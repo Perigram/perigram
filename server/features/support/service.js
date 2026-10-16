@@ -727,7 +727,7 @@ export async function listEntityOptionTypes(auth = {}) {
     }));
 }
 
-export async function sendUserMessage(auth, body = {}) {
+export async function sendUserMessage(auth, body = {}, { refsAuth = null } = {}) {
     const context = body?.instance?.type || body?.instance?.id
         ? await getInstanceConversationContext(auth, instanceConversationKey(
             normalizeInstanceOptionType(body.instance.type),
@@ -746,6 +746,11 @@ export async function sendUserMessage(auth, body = {}) {
         parentMessageId: body.parentMessageId,
         agent: body.agent || null,
         auth,
+        // Refs may ride a send attributed to one principal while carrying
+        // another's validation rights: an agent run posts as the
+        // assistant but its attachments were earned under the delegated
+        // user — validation follows the rights, not the byline.
+        refsAuth: refsAuth || auth,
         recipientUserId: context.kind === 'direct'
             ? context.participants.find(participant => participant !== auth.userId)
             : null
@@ -894,12 +899,12 @@ export async function forwardMessage(auth, messageId = '', body = {}) {
     });
 }
 
-async function insertMessage({ context, sender, senderUserId, message, instanceRefs, attachments, parentMessageId, auth, recipientUserId = null, forwardedFrom = null, agent = null }) {
+async function insertMessage({ context, sender, senderUserId, message, instanceRefs, attachments, parentMessageId, auth, refsAuth = null, recipientUserId = null, forwardedFrom = null, agent = null }) {
     const normalizedAttachments = normalizeAttachments(attachments);
     const materialized = context.kind === 'instance' && normalizedAttachments
         ? await materializeInstanceAttachments(auth, context, normalizedAttachments)
         : { attachments: normalizedAttachments, refs: [] };
-    const refs = [...await normalizeInstanceRefs(instanceRefs, auth, { recipientUserId }), ...materialized.refs];
+    const refs = [...await normalizeInstanceRefs(instanceRefs, refsAuth || auth, { recipientUserId }), ...materialized.refs];
     const text = normalizeMessage(message, refs, materialized.attachments);
     const parent = await resolveParentMessage(auth, context, parentMessageId);
     const instanceFields = context.kind === 'instance'

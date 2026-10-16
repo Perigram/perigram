@@ -299,8 +299,8 @@ function replyBodyFor(context, message, text, assistantUserId, instanceRefs = []
     return { instance: { type: link.type, id: link.id }, message: text, ...refs, ...provenance };
 }
 
-async function sendReply(assistantAuth, context, message, text, instanceRefs = [], agent = null) {
-    await supportService.sendUserMessage(assistantAuth, replyBodyFor(context, message, text, assistantAuth.userId, instanceRefs, agent));
+async function sendReply(assistantAuth, execAuth, context, message, text, instanceRefs = [], agent = null) {
+    await supportService.sendUserMessage(assistantAuth, replyBodyFor(context, message, text, assistantAuth.userId, instanceRefs, agent), { refsAuth: execAuth });
 }
 
 async function conversationHistory(conversationKey, assistantUserId) {
@@ -354,7 +354,7 @@ export async function runAssistantReply(target, context, message) {
         const profileId = target.profile || '';
         const model = target.model || '';
         if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId, model }))) {
-            await sendReply(assistantAuth, context, message, 'LLM provider is not configured for this organization.');
+            await sendReply(assistantAuth, execAuth, context, message, 'LLM provider is not configured for this organization.');
             return;
         }
         const { text, instanceRefs, agent } = await runAgentLoop({
@@ -367,14 +367,14 @@ export async function runAssistantReply(target, context, message) {
             signal: controller.signal,
             stream
         });
-        if (text) await sendReply(assistantAuth, context, message, text, instanceRefs, agent);
+        if (text) await sendReply(assistantAuth, execAuth, context, message, text, instanceRefs, agent);
     } catch (error) {
         // A stopped run is silent: the room asked it to end.
         if (!controller.signal.aborted) {
             console.error('[AGENT-BOTS] reply failed:', error);
             try {
                 const assistantAuth = await buildPrincipalAuth(target.assistantId);
-                await sendReply(assistantAuth, context, message, 'The agent failed to answer; try again.');
+                await sendReply(assistantAuth, execAuth, context, message, 'The agent failed to answer; try again.');
             } catch (nested) {
                 console.error('[AGENT-BOTS] failure notice failed:', nested);
             }
@@ -480,7 +480,7 @@ export async function runAssistantWake(subscription, event, rule = {}) {
             ...body,
             ...(instanceRefs.length ? { instanceRefs } : {}),
             agent
-        });
+        }, { refsAuth: execAuth });
     } catch (error) {
         // A stopped wake is silent, like a failing wake: nobody is waiting.
         if (!controller.signal.aborted) console.error('[AGENT-BOTS] wake failed:', error);

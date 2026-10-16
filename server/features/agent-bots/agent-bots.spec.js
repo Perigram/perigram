@@ -312,9 +312,13 @@ describe('runAssistantReply', () => {
             return [ref];
         });
         await runAssistantReply(target, context, message);
-        const body = mockedSupport.sendUserMessage.mock.calls[0][1];
+        const [sendAuth, body, options] = mockedSupport.sendUserMessage.mock.calls[0];
         expect(body.message).toBe('attached');
         expect(body.instanceRefs).toEqual([ref]);
+        // The reply is attributed to the assistant, but its refs validate
+        // under the delegating user's rights at persistence.
+        expect(sendAuth.userId).toBe(ASSISTANT);
+        expect(options?.refsAuth?.userId).toBe(HUMAN);
     });
 
     it('turns tool failures into readable tool results and continues', async () => {
