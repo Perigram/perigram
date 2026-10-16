@@ -393,12 +393,15 @@ export const setOccsProfileSketchClosed = (sketch = {}, closed, fallbackParamete
 // Existing parameters and non-identifier expressions pass through
 // untouched: their formula is the truth and may legitimately move the
 // geometry.
-export const adoptOccsProfileBindingParameter = (sketch = {}, value, currentValue) => {
+export const adoptOccsProfileBindingParameter = (sketch = {}, value, currentValue, externalParameters = {}) => {
   if (typeof value !== 'string') return sketch.parameters || {};
   const identifier = value.trim();
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) return sketch.parameters || {};
   const parameters = sketch.parameters || {};
   if (Object.prototype.hasOwnProperty.call(parameters, identifier)) return parameters;
+  // An identifier the surrounding scope defines (the cassette's globals)
+  // reads that scope — never minted here.
+  if (Object.prototype.hasOwnProperty.call(externalParameters, identifier)) return parameters;
   if (currentValue === null || currentValue === undefined || currentValue === '') return parameters;
   const numeric = Number(currentValue);
   if (!Number.isFinite(numeric)) return parameters;

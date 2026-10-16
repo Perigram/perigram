@@ -378,6 +378,10 @@ describe('OCCS profile helpers', () => {
     // Non-finite current value: nothing adopted.
     expect(adoptOccsProfileBindingParameter({ parameters: {}, points: [] }, 'W', null))
       .toEqual({});
+    // An identifier the surrounding scope defines (the cassette's
+    // globals) reads that scope — never minted here.
+    expect(adoptOccsProfileBindingParameter({ parameters: {} }, 'A', 12, { A: 500 }))
+      .toEqual({});
   });
 
   it('resolves authored fillet corners into the drawable section chain', () => {    // A 6mm fillet on the p1 corner of a 42x28 rectangle: the sharp
