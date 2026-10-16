@@ -21,8 +21,26 @@ const MAX_TOOL_ROUNDS = 8;
 
 // One in-flight reply per bot and conversation: bursts (or a subscriber's
 // own sends racing the reply) must not stack duplicate answers. Chat
-// replies and lifecycle wakes share the lock space.
-const inFlight = new Set();
+// replies and lifecycle wakes share the lock space. Each entry carries the
+// run's cancellation handle so the room can stop it in flight.
+const inFlight = new Map();
+
+/**
+ * Stops every in-flight run in one conversation, from either the room's
+ * message or its wake. Aborting the run's controller unwinds the LLM
+ * stream; the loop then keeps whatever answer it had produced. Org-scoped
+ * when both sides know the organization.
+ */
+export function stopConversationRuns(organizationId, conversationKey) {
+    let stopped = 0;
+    for (const entry of inFlight.values()) {
+        if (String(entry.conversationKey) !== String(conversationKey)) continue;
+        if (entry.organizationId && organizationId && String(entry.organizationId) !== String(organizationId)) continue;
+        entry.controller.abort();
+        stopped += 1;
+    }
+    return stopped;
+}
 
 /**
  * Room presence for a bot's run as it is produced: the runtime owns no
@@ -147,20 +165,27 @@ function historyMessages(messages = [], botUserId) {
  * One streamed round: consumes the LLM stream, forwarding reasoning and
  * answer deltas as they grow, and returns the assembled neutral message.
  */
-async function streamedRound({ organizationId, profileId, model = '', system, messages, tools, onThinking = null, onText = null }) {
+async function streamedRound({ organizationId, profileId, model = '', system, messages, tools, signal = null, onThinking = null, onText = null }) {
     let thought = '';
     let full = '';
     let message = null;
-    for await (const event of llmService.streamChatCompletion({ organizationId, profileId, model, system, messages, tools })) {
-        if (event.type === 'thinking') {
-            thought += event.text;
-            if (onThinking) onThinking(thought);
-        } else if (event.type === 'text') {
-            full += event.text;
-            if (onText) onText(full);
-        } else if (event.type === 'message') {
-            message = event;
+    try {
+        for await (const event of llmService.streamChatCompletion({ organizationId, profileId, model, system, messages, tools, signal })) {
+            if (event.type === 'thinking') {
+                thought += event.text;
+                if (onThinking) onThinking(thought);
+            } else if (event.type === 'text') {
+                full += event.text;
+                if (onText) onText(full);
+            } else if (event.type === 'message') {
+                message = event;
+            }
         }
+    } catch (error) {
+        // A stopped run is not a failure: keep the partial answer it had
+        // produced so far and let the caller persist that.
+        if (!signal?.aborted) throw error;
+        return { content: full, thinking: thought, toolCalls: [], aborted: true };
     }
     const result = message || { content: full, thinking: thought, toolCalls: [] };
     // Reconcile the live sink with the assembled message: a plain answer
@@ -178,7 +203,7 @@ async function streamedRound({ organizationId, profileId, model = '', system, me
  * stay visible through `stream`; a round that ends in tool calls retracts
  * only its own answer text (only the final answer persists).
  */
-async function runAgentLoop({ botAuth, system, conversation, profileId = '', model = '', stream = null }) {
+async function runAgentLoop({ botAuth, system, conversation, profileId = '', model = '', signal = null, stream = null }) {
     const organizationId = botAuth.organizationId;
     const tools = chatToolDescriptors();
     // Per-run side channel: chat-only tools accumulate state here that the
@@ -196,11 +221,17 @@ async function runAgentLoop({ botAuth, system, conversation, profileId = '', mod
             system,
             messages: conversation,
             tools,
+            signal,
             onThinking: stream ? (text) => stream.thinking(text) : null,
             onText: stream ? (text) => stream.answer(text) : null
         });
         if (assistant.thinking) runThinking += (runThinking ? '\n\n' : '') + assistant.thinking;
         if (stream) stream.thinking(runThinking);
+        // A stopped run keeps whatever answer it had produced; a tool round
+        // that was cancelled mid-call simply has no answer to keep.
+        if (assistant.aborted) {
+            return { text: (assistant.content || '').trim() || null, instanceRefs: run.instanceRefs, agent: { thinking: runThinking, tools: agentTools }, aborted: true };
+        }
         const toolCalls = assistant.toolCalls || [];
         if (!toolCalls.length) {
             return { text: (assistant.content || '').trim() || null, instanceRefs: run.instanceRefs, agent: { thinking: runThinking, tools: agentTools } };
@@ -269,10 +300,12 @@ export async function runBotReply(botUserId, context, message, conversationProfi
         console.warn('[AGENT-BOTS] reply skipped, another run already in flight:', lockKey);
         return;
     }
-    inFlight.add(lockKey);
+    const controller = new AbortController();
+    inFlight.set(lockKey, { conversationKey: message.conversationKey, organizationId: null, controller });
     let stream = null;
     try {
         const botAuth = await buildBotAuth(botUserId);
+        inFlight.get(lockKey).organizationId = botAuth.organizationId;
         stream = botActivitySink(botAuth, message.conversationKey);
         stream.thinking('');
         const organizationId = botAuth.organizationId;
@@ -288,15 +321,20 @@ export async function runBotReply(botUserId, context, message, conversationProfi
             model,
             system: systemPrompt(botAuth.name, botAuth.organizationData?.name || ''),
             conversation: await conversationHistory(message.conversationKey, botUserId),
+            signal: controller.signal,
             stream
         });
-        if (text) await sendReply(botAuth, context, message, text, instanceRefs, agent);    } catch (error) {
-        console.error('[AGENT-BOTS] reply failed:', error);
-        try {
-            const botAuth = await buildBotAuth(botUserId);
-            await sendReply(botAuth, context, message, 'The agent failed to answer; try again.');
-        } catch (nested) {
-            console.error('[AGENT-BOTS] failure notice failed:', nested);
+        if (text) await sendReply(botAuth, context, message, text, instanceRefs, agent);
+    } catch (error) {
+        // A stopped run is silent: the room asked it to end.
+        if (!controller.signal.aborted) {
+            console.error('[AGENT-BOTS] reply failed:', error);
+            try {
+                const botAuth = await buildBotAuth(botUserId);
+                await sendReply(botAuth, context, message, 'The agent failed to answer; try again.');
+            } catch (nested) {
+                console.error('[AGENT-BOTS] failure notice failed:', nested);
+            }
         }
     } finally {
         if (stream) stream.end();
@@ -349,10 +387,12 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
         console.warn('[AGENT-BOTS] wake skipped, reply already in flight:', lockKey);
         return;
     }
-    inFlight.add(lockKey);
+    const controller = new AbortController();
+    inFlight.set(lockKey, { conversationKey: subscription.conversationKey, organizationId: null, controller });
     let stream = null;
     try {
         const botAuth = await buildBotAuth(subscription.botUserId);
+        inFlight.get(lockKey).organizationId = botAuth.organizationId;
         stream = botActivitySink(botAuth, subscription.conversationKey);
         stream.thinking('');
         // Execution-point precedence: the wake rule's model, then this
@@ -382,6 +422,7 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
                 ...await conversationHistory(subscription.conversationKey, subscription.botUserId),
                 { role: 'user', content: trigger }
             ],
+            signal: controller.signal,
             stream
         });
         if (!text) return;
@@ -392,7 +433,8 @@ export async function runBotWake(subscription, event, ruleProfile = '') {
             agent
         });
     } catch (error) {
-        console.error('[AGENT-BOTS] wake failed:', error);
+        // A stopped wake is silent, like a failing wake: nobody is waiting.
+        if (!controller.signal.aborted) console.error('[AGENT-BOTS] wake failed:', error);
     } finally {
         if (stream) stream.end();
         inFlight.delete(lockKey);

@@ -121,7 +121,9 @@ throwing.
   plain answer: its closing message reclassifies (content whole, thinking
   empty), and the agent runtime reconciles its live activity sink with
   that message at round end. Same
-  503/502 posture; each chunk re-arms the idle guard.
+  503/502 posture; each chunk re-arms the idle guard. Takes an optional
+  `signal` (AbortSignal): aborting the caller's controller cancels the
+  request and the stream — the seam the agent runtime stops a run with.
 
 ## Consumers
 

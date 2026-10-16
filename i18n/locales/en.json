@@ -158,6 +158,7 @@
         "attachmentFile": "File",
         "noAttachmentOptions": "Nothing to attach",
         "recordVoice": "Record voice message",
+        "stopRun": "Stop the agent",
         "recording": "Recording",
         "recordingPaused": "Paused",
         "pauseRecording": "Pause recording",

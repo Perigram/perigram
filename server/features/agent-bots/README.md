@@ -52,7 +52,12 @@ Three pieces share one tool catalog:
   run's presence signal (bots never ride the human typing line); a tool
   round retracts only its answer text, and each round reconciles the
   sink with the assembled neutral message (a reasoning-first stream that
-  ends tagless was a plain answer).
+  ends tagless was a plain answer). A run in flight is stoppable
+  (`POST /api/agent-bots/stop` with the conversation key): the room's
+  composer control aborts the request, the loop keeps the answer produced
+  so far and persists it, and a stopped wake stays silent like a failing
+  one. In-flight runs are keyed by bot and conversation and hold their
+  cancellation handle, so the stop reaches exactly the room's run.
 
 ## Conversation membership
 
@@ -85,7 +90,9 @@ bootstrapped through its deterministic address
 so bootstrap is idempotent across workers. `GET /api/agent-bots/contacts`
 (member-visible, optional `?conversationKey=`) ensures the assistant and
 returns every org bot decorated with the conversation's subscription flag
-and wake rules; the assistant sorts first. The chat pickers float these
+and wake rules; each row also carries the room's pin (`profile`, `model`)
+and the bot's own brain (`brain`) so the chat's model select can show the
+effective model, never a blank. The assistant sorts first. The chat pickers float these
 rows above human members (the badge rides the user DTO's bot marker), so
 chatting with an agent is a new chat away — nobody creates anything
 first. Bot administration (create, token, delete) stays manager-gated in
@@ -135,8 +142,10 @@ wake scanner turns matching status transitions into proactive agent runs:
   `POST/DELETE /api/agent-bots/subscriptions` (`{ botId, conversationKey,
   wakeOn? }` — `wakeOn` is the subscription's lifecycle wake rule list:
   omitted leaves stored rules, `null`/`[]` clears, a non-empty array
-  replaces), and `GET /api/agent-bots/wake-options` (active compiled
-  primary states for the wake-rule pickers). `GET /api/agent-bots/contacts`
+  replaces), `GET /api/agent-bots/wake-options` (active compiled
+  primary states for the wake-rule pickers), and `POST
+  /api/agent-bots/stop` (`{ conversationKey }` — stop the room's
+  in-flight run). `GET /api/agent-bots/contacts`
   is the member-visible twin of the listing (ensures the org assistant,
   no admin gate).
 Bot joins are participant-level; bot administration (create, token

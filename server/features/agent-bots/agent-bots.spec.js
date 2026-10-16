@@ -65,7 +65,7 @@ vi.mock('./service.js', () => mockedBotsService);
 vi.mock('./repository.js', () => mockedBotRepository);
 vi.mock('./tools.js', () => mockedTools);
 
-import { resolveTargetBots, runBotReply, runBotWake, registerSupportMessageObserver, handleMessageInserted } from './runtime.js';
+import { resolveTargetBots, runBotReply, runBotWake, registerSupportMessageObserver, handleMessageInserted, stopConversationRuns } from './runtime.js';
 import { handleMcpRequest } from './mcp.js';
 
 const HUMAN = 'user-human';
@@ -457,5 +457,40 @@ describe('handleMcpRequest', () => {
     it('rejects unknown methods', async () => {
         const response = await handleMcpRequest({}, { jsonrpc: '2.0', id: 9, method: 'resources/list' });
         expect(response.error.code).toBe(-32601);
+    });
+});
+
+describe('stopConversationRuns', () => {
+    it('stops an in-flight run and keeps the answer produced so far', async () => {
+        let seenSignal = null;
+        let releaseStream;
+        const held = new Promise(resolve => { releaseStream = resolve; });
+        mockedLlm.streamChatCompletion.mockImplementationOnce(async function* (args) {
+            seenSignal = args.signal;
+            yield { type: 'text', text: 'Half an answer' };
+            await held;
+            throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+        });
+        const message = { conversationKey: 'direct:user-human:user-bot-a', participants: [HUMAN, BOT_A] };
+        const run = runBotReply(BOT_A, { kind: 'direct' }, message);
+        await vi.waitFor(() => expect(seenSignal).toBeTruthy());
+        // The first delta reached the room before the stop.
+        await vi.waitFor(() => expect(mockedConnections.publish).toHaveBeenCalledWith(
+            'conversation:direct:user-human:user-bot-a',
+            expect.objectContaining({ type: 'bot_stream', text: 'Half an answer' })
+        ));
+
+        expect(stopConversationRuns('org-1', message.conversationKey)).toBe(1);
+        expect(seenSignal.aborted).toBe(true);
+        releaseStream();
+        await run;
+
+        const body = mockedSupport.sendUserMessage.mock.calls[0][1];
+        expect(body.message).toBe('Half an answer');
+        expect(body.agent).toEqual({ thinking: '', tools: [] });
+    });
+
+    it('ignores runs in other conversations', () => {
+        expect(stopConversationRuns('org-1', 'group:not-running')).toBe(0);
     });
 });
