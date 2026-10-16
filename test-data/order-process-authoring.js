@@ -31,9 +31,9 @@ export function composeOrderTree(authoring) {
   authoring.declareField({ id: 'tableField', ownerClassId: 'orderClass', name: 'table', descriptor: { base: 'ref' } });
   authoring.wireDeclaration('xlsxRef', 'tableField', 'targets');
   authoring.wireDeclaration('csvRef', 'tableField', 'targets');
-  authoring.wireDeclaration('orderClass', 'designRef', 'children', { key: 'contents' });
-  authoring.wireDeclaration('orderClass', 'materialClass', 'children', { key: 'contents' });
-  authoring.wireDeclaration('orderClass', 'attemptClass', 'children', { key: 'contents' });
+  authoring.wireDeclaration('designRef', 'orderClass', 'children', { key: 'contents' });
+  authoring.wireDeclaration('materialClass', 'orderClass', 'children', { key: 'contents' });
+  authoring.wireDeclaration('attemptClass', 'orderClass', 'children', { key: 'contents' });
   return authoring;
 }
 

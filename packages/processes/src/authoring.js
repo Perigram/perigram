@@ -498,7 +498,7 @@ export function createDefinitionAuthoring(domain, capabilities = null) {
       ...(Object.keys(edgeData).length ? { data: edgeData } : {})
     };
     if (label === 'children') {
-      const childTypeId = target.data?.typeId;
+      const childTypeId = source.data?.typeId;
       edge.data = { key: edgeData.key || `${childTypeId}s`, onRemove: edgeData.onRemove || 'restrict' };
     }
     data.graph.edges.push(edge);

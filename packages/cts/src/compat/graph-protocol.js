@@ -291,6 +291,43 @@ function adoptProducerOutputPaths(output) {
   return changed ? { ...output, fields: adopted } : output;
 }
 
+// Children-wire direction heal: children edges land child-first — the
+// child's `output:type` into the parent's `input:declare`. Graphs
+// persisted before that contract carry parent-first edges; the edge's
+// `data.key` (`${childTypeId}s`, written by every authoring seam) names
+// the child end, so the flip is deterministic and idempotent. Ambiguous
+// shapes (no key, or a key no end matches) are left for validation.
+export function orientChildrenEdgesChildFirst(data = {}) {
+  if (!data || typeof data !== 'object' || !Array.isArray(data.graph?.edges)) return data;
+  const nodeTypeIds = new Map((data.graph.nodes || [])
+    .filter(node => node?.type === 'ctsClass' || node?.type === 'ctsType')
+    .map(node => [String(node.id), String(node.data?.typeId || '')]));
+  const nodeTypes = new Map((data.graph.nodes || []).map(node => [String(node.id), String(node?.type || '')]));
+  let changed = false;
+  const edges = data.graph.edges.map(edge => {
+    if (edge?.role !== 'type' || edge.label !== 'children') return edge;
+    if (String(edge.source) === String(edge.target)) return edge;
+    const childTypeId = String(edge.data?.key || '').replace(/s$/, '');
+    if (!childTypeId) return edge;
+    const sourceChild = nodeTypeIds.get(String(edge.source)) === childTypeId;
+    const targetChild = nodeTypeIds.get(String(edge.target)) === childTypeId;
+    const classToCard = nodeTypes.get(String(edge.source)) === 'ctsClass' && nodeTypes.get(String(edge.target)) === 'ctsType';
+    if (!targetChild || (sourceChild && !classToCard)) return edge;
+    const marker = 'children:';
+    const at = String(edge.id || '').indexOf(marker);
+    changed = true;
+    return {
+      ...edge,
+      id: `${at >= 0 ? edge.id.slice(0, at + marker.length) : 'children:'}${edge.target}-${edge.source}`,
+      source: edge.target,
+      target: edge.source,
+      sourceHandle: 'output:type',
+      targetHandle: 'input:declare'
+    };
+  });
+  return changed ? { ...data, graph: { ...data.graph, edges } } : data;
+}
+
 export function rewriteRetiredWirePaths(data = {}) {
   if (!data || typeof data !== 'object') return data;
   const constructs = new Set(Object.entries(data.processNodes || {})
@@ -382,7 +419,7 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
       : {})
   }));
 
-  const resolvedData = rewriteRetiredWirePaths({
+  const resolvedData = rewriteRetiredWirePaths(orientChildrenEdgesChildFirst({
     ...data,
     graphProtocol: 5,
     processNodes,
@@ -390,7 +427,7 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
     actions,
     sockets,
     screens
-  });
+  }));
   return {
     definition: wrapper?.data ? { ...wrapper, data: resolvedData } : resolvedData,
     diagnostics
@@ -502,9 +539,9 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
   const classRecordIdByGraphNode = new Map((graph?.nodes || [])
     .filter(node => node?.type === 'ctsClass' && node.data?.refId)
     .map(node => [String(node.id), String(node.data.refId)]));
-  // A children edge's target may be an in-tree class OR a type-reference
+  // A children edge's source may be an in-tree class OR a type-reference
   // node naming a registry type: the child type id comes from whichever
-  // the wire lands on.
+  // the wire leaves. The target is always the parent class record.
   const childTypeIdByGraphNode = new Map((graph?.nodes || [])
     .filter(node => (node?.type === 'ctsClass' || node?.type === 'ctsType') && (node.data?.refId || node.data?.typeId))
     .map(node => [String(node.id), node.type === 'ctsClass' ? String(node.data.refId) : String(node.data.typeId || '')]));
@@ -512,8 +549,8 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}, grap
   for (const edge of graph?.edges || []) {
     if (edge.role !== 'type') continue;
     if (edge.label === 'children') {
-      const parent = classRecordIdByGraphNode.get(String(edge.source));
-      const child = childTypeIdByGraphNode.get(String(edge.target));
+      const parent = classRecordIdByGraphNode.get(String(edge.target));
+      const child = childTypeIdByGraphNode.get(String(edge.source));
       const parentDeclaration = byKind('class').find(candidate => candidate.id === parent);
       if (parent && child && classMayDeclareChildren(parentDeclaration?.class || 'file')) {
         childrenEdges.push({ edge, parent, child });

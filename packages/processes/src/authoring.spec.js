@@ -117,8 +117,8 @@ describe('headless definition authoring', () => {
     context.declareField({ id: 'tableField', ownerClassId: 'orderClass', name: 'table', descriptor: { base: 'ref' } });
     context.wireDeclaration('xlsxRef', 'tableField', 'targets');
     context.wireDeclaration('csvRef', 'tableField', 'targets');
-    context.wireDeclaration('orderClass', 'designRef', 'children', { key: 'contents' });
-    context.wireDeclaration('orderClass', 'attemptClass', 'children', { key: 'contents' });
+    context.wireDeclaration('designRef', 'orderClass', 'children', { key: 'contents' });
+    context.wireDeclaration('attemptClass', 'orderClass', 'children', { key: 'contents' });
     context.drop('construct', { id: 'order' });
     context.wireDeclaration('orderClass', 'order', 'binds');
 
@@ -164,7 +164,7 @@ describe('headless definition authoring', () => {
     const context = authoring();
     context.declareClass({ id: 'a', typeId: 'order-a', name: 'A' });
     context.declareTypeRef({ id: 'b', typeId: 'xlsx-workbook' });
-    expect(() => context.wireDeclaration('b', 'a', 'children')).toThrow(/not a legal 'children'/);
+    expect(() => context.wireDeclaration('a', 'b', 'children')).toThrow(/not a legal 'children'/);
   });
 
   it('round-trips every dropped palette record through the canvas twice', () => {

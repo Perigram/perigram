@@ -3056,9 +3056,9 @@ function onConnect(connection) {
   const sourceNode = nodes.value.find(node => node.id === connection.source);
   const targetNode = nodes.value.find(node => node.id === connection.target);
   const targetNodeRecord = draft.value?.data?.processNodes?.[targetNode?.data?.refId];
-  // Children wires orient parent-first (orientChildrenWire): a drag that
-  // runs child → parent lands as the parent → child edge, so the compile
-  // reads one direction regardless of how the author drew it.
+  // Children wires land child-first (orientChildrenWire): the edge always
+  // leaves the child's output:type and enters the parent's input:declare,
+  // regardless of how the author drew it.
   const orientablePair = ['ctsClass', 'ctsType'].includes(sourceNode?.type) && ['ctsClass', 'ctsType'].includes(targetNode?.type)
     && !(sourceNode.type === 'ctsType' && targetNode.type === 'ctsType');
   if (orientablePair) {
@@ -3070,10 +3070,11 @@ function onConnect(connection) {
       const parentNode = orientation.parent === 'target' ? targetNode : sourceNode;
       const childNode = parentNode === sourceNode ? targetNode : sourceNode;
       const declarationEdge = {
-        id: `children:${parentNode.id}-${childNode.id}`,
-        source: parentNode.id,
-        target: childNode.id,
-        sourceHandle: parentNode.type === 'ctsClass' ? 'output:type' : connection.sourceHandle,
+        id: `children:${childNode.id}-${parentNode.id}`,
+        source: childNode.id,
+        target: parentNode.id,
+        sourceHandle: 'output:type',
+        targetHandle: 'input:declare',
         type: 'default',
         role: 'type',
         label: 'children',
@@ -3192,10 +3193,10 @@ function connectionCompatibility(connection = {}) {
           target: { type: target.type, class: target.data?.class }
         });
         if (!orientation.ok) {
-          const className = String(source.data?.name || source.data?.typeId || '').trim() || t('processDesigner.connectReasons.theClass');
+          const className = String(target.data?.name || target.data?.typeId || '').trim() || t('processDesigner.connectReasons.theClass');
           return {
             ok: false,
-            reason: t('processDesigner.connectReasons.childrenContainment', { name: className, kind: source.data.class })
+            reason: t('processDesigner.connectReasons.childrenContainment', { name: className, kind: target.data.class })
           };
         }
         return source.data?.typeId && target.data?.typeId
@@ -3257,19 +3258,20 @@ function connectionCompatibility(connection = {}) {
           ? { ok: true }
           : { ok: false, reason: t('processDesigner.connectReasons.nameClassBeforeRefTarget') };
       }
-      // Type card → class card is the inverted children gesture (the type
-      // card can never parent): the orientation function accepts it when
-      // the class can parent, and onConnect lands the edge parent-first.
-      if (source.type === 'ctsType' && target.type === 'ctsClass') {
+      // Class card → type card is the inverted children gesture (the type
+      // card can never parent, so the class must be the parent): the
+      // orientation function accepts it when the class can parent, and
+      // onConnect lands the edge child-first.
+      if (source.type === 'ctsClass' && target.type === 'ctsType') {
         const orientation = orientChildrenWire({
-          source: { type: source.type },
-          target: { type: target.type, class: target.data?.class }
+          source: { type: source.type, class: source.data?.class },
+          target: { type: target.type }
         });
         if (orientation.ok && source.data?.typeId && target.data?.typeId) return { ok: true };
         if (orientation.ok) return { ok: false, reason: t('processDesigner.connectReasons.childrenNeedTypeIds') };
         return { ok: false, reason: t('processDesigner.connectReasons.childrenContainment', {
-          name: String(target.data?.name || target.data?.typeId || '').trim() || t('processDesigner.connectReasons.theClass'),
-          kind: target.data.class
+          name: String(source.data?.name || source.data?.typeId || '').trim() || t('processDesigner.connectReasons.theClass'),
+          kind: source.data.class
         }) };
       }
       return {

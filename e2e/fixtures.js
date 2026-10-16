@@ -198,7 +198,7 @@ export const test = base.extend({
             for (const childType of edge.types || []) {
               const childIndex = declaredIds.indexOf(childType);
               if (childIndex < 0) continue;
-              authoring.wireDeclaration(`e2e-class-${index}`, `e2e-class-${childIndex}`, 'children', { key: mapKey });
+              authoring.wireDeclaration(`e2e-class-${childIndex}`, `e2e-class-${index}`, 'children', { key: mapKey });
             }
           }
         });

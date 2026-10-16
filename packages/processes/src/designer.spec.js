@@ -463,18 +463,20 @@ describe('declaration wire legality', () => {
   });
 
   it('children wires orient to the only end that can parent — drag direction is ceremony', () => {
-    // The reported gesture: type card / file class dragged INTO a group
-    // class — the only legal parent is the target, the edge lands
-    // parent-first either way.
+    // The reported gesture: type card / file class dragged FROM a group
+    // class — the only legal parent is the source, the edge lands
+    // child-first either way (the child's output into the parent's
+    // declare input).
     expect(orientChildrenWire({ source: { type: 'ctsType' }, target: { type: 'ctsClass', class: 'group' } }))
       .toEqual({ ok: true, parent: 'target' });
     expect(orientChildrenWire({ source: { type: 'ctsClass', class: 'file' }, target: { type: 'ctsClass', class: 'group' } }))
       .toEqual({ ok: true, parent: 'target' });
     expect(orientChildrenWire({ source: { type: 'ctsClass', class: 'group' }, target: { type: 'ctsType' } }))
       .toEqual({ ok: true, parent: 'source' });
-    // Both ends can parent: the drag direction is the author's choice.
+    // Both ends can parent: the drag direction is the author's choice
+    // (the dragged source is the child).
     expect(orientChildrenWire({ source: { type: 'ctsClass', class: 'group' }, target: { type: 'ctsClass', class: 'item' } }))
-      .toEqual({ ok: true, parent: 'source' });
+      .toEqual({ ok: true, parent: 'target' });
     // Neither end can parent: no orientation exists.
     expect(orientChildrenWire({ source: { type: 'ctsClass', class: 'file' }, target: { type: 'ctsClass', class: 'file' } }).ok).toBe(false);
     expect(orientChildrenWire({ source: { type: 'ctsClass', class: 'file' }, target: { type: 'ctsType' } }).ok).toBe(false);
@@ -521,7 +523,8 @@ describe('tree declaration compilation', () => {
       // nesting: `archived` compiles under `done.archived` (nested
       // machines); transitions come from transition nodes only
       { id: 'n1', source: nodes[6].id, target: nodes[5].id, role: 'type', label: 'nested' },
-      { id: 'c1', source: widget.id, target: gadget.id, role: 'type', label: 'children', data: { key: 'parts', onRemove: 'cascade' } }
+      // children: the child's output wires into the parent's declare input
+      { id: 'c1', source: gadget.id, target: widget.id, role: 'type', label: 'children', data: { key: 'parts', onRemove: 'cascade' } }
     ];
     const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges);
     expect(diagnostics).toEqual([]);
@@ -726,7 +729,7 @@ describe('tree declaration compilation', () => {
     const part = classNode('t-part-1', { class: 'item' });
     const { declarations, diagnostics } = compileTreeDeclarations(
       [invoice, part],
-      [{ id: 'c1', source: invoice.id, target: part.id, role: 'type', label: 'children', data: { key: 'parts' } }]
+      [{ id: 'c1', source: part.id, target: invoice.id, role: 'type', label: 'children', data: { key: 'parts' } }]
     );
     expect(diagnostics.some(message => (
       message.includes('Invoice') && message.includes('may not declare lineage children')
@@ -736,7 +739,7 @@ describe('tree declaration compilation', () => {
     const bin = classNode('t-bin-1', { class: 'group', name: 'Bin' });
     const kept = compileTreeDeclarations(
       [bin, part],
-      [{ id: 'c2', source: bin.id, target: part.id, role: 'type', label: 'children', data: { key: 'parts' } }]
+      [{ id: 'c2', source: part.id, target: bin.id, role: 'type', label: 'children', data: { key: 'parts' } }]
     );
     expect(kept.diagnostics).toEqual([]);
     expect(kept.declarations.find(declaration => declaration.id === 't-bin-1').edges)
@@ -757,7 +760,7 @@ describe('tree declaration compilation', () => {
     });
     const nodes = [parent, child, refParent];
     const edges = [
-      { id: 'c1', source: parent.id, target: child.id, role: 'type', label: 'children', data: { key: 'parts' } },
+      { id: 'c1', source: child.id, target: parent.id, role: 'type', label: 'children', data: { key: 'parts' } },
       declares(fieldNode('t-ref-parent-1', 'part', { base: 'ref', accepts: ['t-child-1'] }), refParent, 'field')
     ];
     const { declarations } = compileTreeDeclarations(nodes, edges);
