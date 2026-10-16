@@ -1,5 +1,33 @@
 # TODO
 
+## Chats rail header: archive, search, one + (owner direction 2026-10-16)
+
+Every conversation start moves into one + control (person chat, group,
+AI chat), and the chats rail header becomes exactly three controls:
+the archive toggle, the search field, and +. No stray AI-thread header
+chrome: no second-line avatar, no AI panel button in 1:1 AI threads.
+
+- [ ] WAITING — owner verification on the live stack: the chats header
+  is archive toggle, search bar, + (and the surface's close); the +
+  menu holds new chat, new group, and AI chat (capability-gated); the
+  search filters conversations by title and last message.
+- [ ] WAITING — owner verification on the live stack: a 1:1 AI thread
+  header carries only the title and the AI badge — no avatar on a
+  second line, no sparkles/AI-panel button.
+
+#### Agent Notes (2026-10-16)
+
+Session `agent/chats-header-20261016`. The rail header is now three
+controls: archive toggle (same control leaves the archived view — the
+back arrow is gone), the search field (client-side filter over title
+and last message), and one + whose popup menu owns every conversation
+start — person chat, group, AI chat (the last offered only to members
+holding the agent-chat capability; it opens the draft thread directly).
+The 1:1 AI thread header dropped the second-line assistant avatar (the
+title + AI badge are the whole header) and the sparkles/AI-panel button
+(seating the AI is a group/instance-room action; the composer's model
+select pins an AI thread). Dead `support.backToChats` key removed.
+
 ## Every new AI chat is a fresh thread (owner direction 2026-10-16)
 
 Picking the AI in the new-chat picker must not reopen the one eternal

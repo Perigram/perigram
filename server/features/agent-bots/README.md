@@ -105,8 +105,11 @@ wake rules, and deletion all ride the group contract — deleting the room
 drops its subscription rows (the delete route composes `onGroupDeleted`).
 Presentation is person-chat, not group-chat: the client detects the
 two-participant assistant rooms and renders them without group chrome —
-no member count, no members list, no sender stamps — under the
-assistant's own avatar.
+no member count, no members list, no sender stamps, no AI-panel control
+(the composer's model select pins the room; the panel is a group/instance
+-room affordance). The thread header is the title and the AI badge. The
+rail's one + menu owns every conversation start — person chat, group,
+AI chat (offered to members holding the agent-chat capability).
 
 The conversation is a model execution point in every kind: group and
 instance rows carry the pin (`profile`, `model`) on the subscription, a

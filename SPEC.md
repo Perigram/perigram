@@ -279,7 +279,12 @@ message shape — right-click or long-press the message, or use the row
 action; media-only messages are never orphaned without actions. A left
 click on a message linked to an instance opens that instance's popup (the
 same entity popup the thread title opens); clicks on interactive content
-inside the message keep their own behavior. The chat list
+inside the message keep their own behavior. The chats rail header is
+three controls: the archive toggle (the same control leaves the archived
+view), the search field filtering conversations by title and last
+message, and one + control whose menu owns every conversation start — a
+person chat, a group, an AI chat (offered to members holding the
+agent-chat capability). The chat list
 carries the same gesture language: a right-click (long-press) on a
 conversation row opens its menu (pin, archive), and a left swipe on touch
 unveils the same actions as a sticky rail — one row
