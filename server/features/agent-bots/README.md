@@ -61,7 +61,10 @@ Three pieces share one tool catalog:
   context is a shared resource, and no single call may blind the model. `attach_instances` is chat-run
   only: it validates instances through the support message-write ref seam
   ([support](../support/README.md) inline instance references) and rides
-  them on the AI's reply as reference chips; the MCP listing excludes
+  them on the AI's reply as reference chips — validation runs under the
+  delegating user's rights at both the tool call and persistence
+  (`refsAuth`), so the role-less assistant never drops a delegated
+  attachment; the MCP listing excludes
   chat-only tools. Tools run with the principal's auth they are given;
   the catalog owns no business logic.
 - **MCP transport** (`mcp.js` → `POST /api/mcp`): single-message JSON-RPC

@@ -123,6 +123,15 @@ Instance ref types come from readable generated screen sources in the current
 `auth.screens` process manifest. `GET /api/support/instance-types` is therefore a
 generated-scope endpoint, not a hardcoded chat allowlist, and includes any
 non-`single` source whose requirement is satisfied at read level or stronger.
+
+Ref validation at persistence follows the rights, not the byline: a send is
+attributed to one principal but may carry another's validation rights via
+`sendUserMessage`'s `refsAuth` option — an agent run posts its reply as the
+assistant while its attached refs validate under the delegating user's auth
+(the same rights the user would attach with). Without it, the assistant —
+which holds no process roles — would silently drop every delegated
+attachment at persistence. Refs the validating principal cannot read are
+dropped silently.
 The support service resolves the sender through the active process runtime
 before deriving those sources, so ref validation uses the same
 generated auth window as the rest of the app instead of the raw session auth.
