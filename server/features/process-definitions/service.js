@@ -2131,11 +2131,31 @@ function getDomain() {
  * same legality gates — in order. The first failing gesture stops with its
  * gate message; the grammar mirrors the seam one-to-one.
  */
+// Gestures address things by id: a step without its required fields must
+// fail with the missing field's name, not a downstream seam collision
+// (an omitted id on two declarations collides on the empty key and reads
+// as "Declaration already exists" — a nonsense teacher for a model).
+const STEP_REQUIRED_FIELDS = {
+  declareClass: ['id', 'typeId', 'name'],
+  declareTypeRef: ['id', 'typeId'],
+  declareField: ['id', 'ownerClassId', 'name'],
+  wireDeclaration: ['from', 'to', 'role'],
+  drop: ['item'],
+  configure: ['id'],
+  setInputDefault: ['id', 'input'],
+  connect: ['id', 'fromPort', 'to', 'toPort']
+};
+
 function applyAuthoringSteps(authoring, steps = []) {
   const list = Array.isArray(steps) ? steps : [];
   for (const [index, step] of list.entries()) {
     const op = String(step?.op || '');
     const id = String(step?.id || '');
+    for (const field of STEP_REQUIRED_FIELDS[op] || []) {
+      if (!String(step?.[field] ?? '').trim()) {
+        throw createError({ statusCode: 400, message: `Step ${index + 1} (${op}) failed: ${field} is required` });
+      }
+    }
     try {
       if (op === 'declareClass') {
         authoring.declareClass({ id, typeId: String(step.typeId || ''), name: step.name, class: step.class });
