@@ -184,9 +184,12 @@ into proactive AI runs:
 
 ## API
 
-- `POST /api/agent-bots/chats` (`{ name? }`) — a fresh AI chat thread: a
-  subscribed room with the caller and the assistant, named by the caller
-  (the first message's clipped text) or the assistant's own name.
+- `POST /api/agent-bots/chats` (`{ name?, profile?, model? }`) — a fresh
+  AI chat thread: a subscribed room with the caller and the assistant,
+  named by the caller (the first message's clipped text) or the
+  assistant's own name; the room's model pin may ride the creation (a
+  draft thread picks its model before the first message materializes
+  the room).
 - `POST/DELETE /api/agent-bots/subscriptions` (`{ conversationKey,
   wakeOn?, profile?, model? }` — bring the AI into a room or remove it;
   `wakeOn` is the subscription's lifecycle wake rule list: omitted
