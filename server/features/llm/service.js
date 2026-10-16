@@ -1,5 +1,21 @@
 import { createError } from 'h3';
+import { EnvHttpProxyAgent, fetch as undiciFetch } from 'undici';
 import * as organizationsService from '~/server/features/organizations/service.js';
+
+// One egress seam for every outbound LLM request (completions and model
+// listings). Node's built-in fetch ignores proxy env, and container
+// egress to cloud providers is proxy-gated in proxy-fronted networks —
+// when proxy env is present, requests ride undici's env-aware agent
+// (NO_PROXY honored, CIDR included, so LAN endpoints stay direct);
+// otherwise the global fetch. Built once, lazily, from the process env.
+let egressDispatcher = null;
+function egressFetch(url, options = {}) {
+    const proxyEnv = process.env.HTTPS_PROXY || process.env.https_proxy
+        || process.env.HTTP_PROXY || process.env.http_proxy;
+    if (!proxyEnv) return fetch(url, options);
+    if (!egressDispatcher) egressDispatcher = new EnvHttpProxyAgent();
+    return undiciFetch(url, { ...options, dispatcher: egressDispatcher });
+}
 
 /**
  * LLM is a capability module over named model profiles with capability
@@ -315,7 +331,7 @@ async function probeEndpointModels(provider, baseUrl, apiKey) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
         try {
-            const response = await fetch(url, {
+            const response = await egressFetch(url, {
                 method: 'GET',
                 headers: wireHeaders(provider, apiKey || undefined),
                 signal: controller.signal
@@ -748,7 +764,7 @@ async function openCompletion(config, requestBodyJson, signal = null) {
         };
         let response;
         try {
-            response = await fetch(url, {
+            response = await egressFetch(url, {
                 method: 'POST',
                 headers: wireHeaders(config.provider, config.apiKey),
                 body: requestBodyJson,
