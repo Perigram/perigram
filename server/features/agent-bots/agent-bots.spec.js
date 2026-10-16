@@ -328,7 +328,11 @@ describe('runAssistantReply', () => {
         await runAssistantReply(target, context, message);
         const toolMessage = mockedLlm.chatCompletion.mock.calls[1][0].messages.find((entry) => entry.role === 'tool');
         expect(JSON.parse(toolMessage.content)).toEqual({ error: 'boom' });
-        expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toBe('recovered');
+        // The failure rides the persisted step — the room sees the
+        // rejection, not just the model's story about it.
+        const sent = mockedSupport.sendUserMessage.mock.calls[0][1];
+        expect(sent.agent.steps).toContainEqual({ kind: 'tool', id: 'call-1', name: 'list_types', status: 'error', error: 'boom' });
+        expect(sent.message).toBe('recovered');
     });
 
     it('stops at the round budget with an honest notice', async () => {

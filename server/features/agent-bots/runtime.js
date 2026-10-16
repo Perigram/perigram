@@ -266,6 +266,9 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, pr
             } catch (error) {
                 result = { error: error?.message || String(error) };
                 entry.status = 'error';
+                // The failure rides the step: the room sees what the tool
+                // rejected, so a later prose claim can't hide it.
+                entry.error = String(result.error).slice(0, 200);
             }
             publish();
             conversation.push({

@@ -37,11 +37,14 @@ const toolIcon = (status) => (status === 'done' ? 'pi pi-check' : status === 'er
             </details>
             <div
                 v-else
-                class="flex min-w-0 items-center gap-2 px-1"
+                class="flex min-w-0 flex-col gap-0.5 px-1"
                 data-testid="agent-tool"
             >
-                <i :class="toolIcon(step.status)" aria-hidden="true" />
-                <span class="min-w-0 truncate">{{ step.name }}</span>
+                <div class="flex min-w-0 items-center gap-2">
+                    <i :class="toolIcon(step.status)" aria-hidden="true" />
+                    <span class="min-w-0 truncate">{{ step.name }}</span>
+                </div>
+                <span v-if="step.error" class="min-w-0 truncate pl-6 text-muted">{{ step.error }}</span>
             </div>
         </template>
     </div>
