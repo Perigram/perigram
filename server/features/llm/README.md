@@ -24,6 +24,14 @@ Every provider streams on request — `stream: true` in its own dialect
 Messages-protocol SSE events) — and the module reassembles the fragments
 (text deltas, split tool arguments) back onto the same neutral contract.
 
+Model listings and probes treat a 200 that carries an error envelope as
+an error: gateways that answer `{success: false, msg}` (Z.AI does)
+surface their own message, never masked as an empty listing. The models
+screen offers known providers as login options on top of the three wire
+dialects — the Z.AI GLM coding plan stores its wire truth as provider
+`anthropic` against `https://api.z.ai/api/anthropic` (its
+Claude-Code-compatible route), with the UI owning the preset identity.
+
 There is **no default base URL** — no provider ever implies a cloud
 endpoint. `provider: 'none'` (the default) disables the LLM everywhere.
 

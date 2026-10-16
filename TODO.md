@@ -1,5 +1,29 @@
 # TODO
 
+## Z.AI coding plan as a login option on the models screen (owner direction 2026-10-16)
+
+Known providers are login options: picking the Z.AI GLM coding plan asks
+for its key alone — the platform owns the endpoint and the wire dialect;
+custom self-hosted endpoints stay fully manual. Gateways answering error
+envelopes inside HTTP 200 surface their own message on model listings
+and connection tests (SPEC: agent access).
+
+### Agent Notes (2026-10-16 — login option shipped)
+
+- Root cause of "models aren't being fetched": Z.AI answers auth errors
+  as HTTP 200 + `{success:false, code, msg}`; the listing probe parsed
+  it as an empty listing and threw a masked 502. `probeEndpointModels`
+  now records the endpoint's own `msg` as the attempt failure (verified
+  live against `api.z.ai`: both `x-api-key` and `Bearer` are read; the
+  anthropic-compat listing route is `/v1/models`).
+- `models.vue`: Z.AI GLM preset in the provider picker — fills dialect
+  (anthropic Messages) + `https://api.z.ai/api/anthropic`, locks the
+  base URL, seeds `glm-4.7`/`glm-4.6` model options; stored profiles
+  keep the wire truth, the preset is recognized back on edit.
+- Docs: SPEC (login options + error-envelope rule), llm README, the
+  models screen section of `pages/organization/README.md` (replaced the
+  stale `bots.vue` paragraph — that route no longer exists).
+
 ## Chats rail header: archive, search, one + (owner direction 2026-10-16)
 
 Every conversation start moves into one + control (person chat, group,

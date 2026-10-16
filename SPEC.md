@@ -109,7 +109,12 @@ so lanes stay human seats and single-seat roles remain exactly what they
 were. Bot administration is retired: no bot members to create, no tokens
 to rotate — the assistant is bootstrapped per organization. The provider
 the AI thinks with is administered on the organization's models screen,
-with a connection test. The MCP endpoint serves authenticated user
+with a connection test. Known providers are login options there: picking
+one (the Z.AI GLM coding plan) asks for its key alone — the platform owns
+the endpoint and the wire dialect; custom self-hosted endpoints stay
+fully manual. An endpoint that answers an error envelope inside HTTP 200
+surfaces its own message wherever a model listing or connection test
+runs, never masked as an empty listing. The MCP endpoint serves authenticated user
 principals only.
 
 ## UI

@@ -34,15 +34,18 @@ pending partnership. Partner rows link to the organization directory page.
 The route is exposed as a system screen gated by `organizations:read`, while
 every mutation stays gated by `organizations:admin` on the respective side.
 
-`bots.vue` is the agent member administration route — the org settings home
-for bots: the models table first (named model profiles with capability
-routing, endpoint-fed model pickers, and per-profile connection tests — writing
-`data.settings.llm.profiles`/`routes` through the llm settings seam; a bot
-without a resolvable route answers nothing), then the bot list (create
-with one-time token reveal, rotate, delete, and each bot's model —
-per-bot profile override with the org chat route as default). The token is MCP-only wiring
-for external agents; chat usage needs none of it. The page is gated with
-the team screen (`users:admin`); chat surfaces only join bots to
+`models.vue` is the organization's models screen — named model profiles
+with capability routing, endpoint-fed model pickers, and per-profile
+connection tests, writing `data.settings.llm.profiles`/`routes` through
+the llm settings seam. Known providers are login options: the Z.AI GLM
+coding-plan pick owns its endpoint and dialect (stored as its wire truth,
+anthropic Messages against `api.z.ai`), so the admin pastes a key and
+picks a model; every other provider (Ollama, Anthropic Messages,
+OpenAI-shaped local servers) stays a manual endpoint. Gateways that
+answer errors with HTTP 200 envelopes surface their own message on the
+model listing and the connection test (see
+[llm](../../server/features/llm/README.md)). The page is gated with
+the team screen (`users:admin`); chat surfaces only join the AI to
 conversations (see
 [agent bots](../../server/features/agent-bots/README.md)).
 
