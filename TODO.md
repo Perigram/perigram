@@ -67,6 +67,15 @@ show qwen3:4b never invoking a single tool, and its pool was wedged
 solid during probing. The system prompt now points instance work at the
 action manifest and forbids claiming missing abilities before listing.
 
+Session `agent/model-picker-fix-20261016` repaired the endpoint-models
+session's own defect. Its script patch never matched (a silent no-op
+replace) while the template patch landed, so the picker bound
+`conversationModel*` computeds that did not exist and PrimeVue rendered its
+empty state — "No available options". The computeds and the NUL-joined
+profile+model pin are defined in the component script, asserted present
+against the template this time, and a stray comment fragment the earlier
+surgery left behind is gone.
+
 Session `agent/agent-run-ux-20261016` reshaped the run to the standard AI
 chat pattern. The run's provenance (`agent: { thinking, tools }`) now
 persists on the reply through the support seam (server-authored only —
