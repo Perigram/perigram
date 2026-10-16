@@ -99,15 +99,18 @@ result lands in the subscribed conversation. The state machine stays process
 vocabulary: in-graph agent nodes remain out of contract, AI actors never
 re-wake the AI, and creation (initialize) events do not trigger.
 
-Talking to the AI is starting a chat: the assistant floats first in the
-new-chat pickers, and any participant holding the agent-chat capability may
-bring the AI into a group or organization chat. The AI never holds process
-roles ("lanes") — access follows the chatting user, so lanes stay human
-seats and single-seat roles remain exactly what they were. Bot
-administration is retired: no bot members to create, no tokens to rotate —
-the assistant is bootstrapped per organization. The provider the AI thinks
-with is administered on the organization's models screen, with a connection
-test. The MCP endpoint serves authenticated user principals only.
+Talking to the AI is starting a chat — and every new chat is a fresh
+thread: the assistant floats first in the new-chat pickers, picking it
+opens a new AI conversation (an empty room awaiting its first message,
+then titled by it), and any participant holding the agent-chat
+capability may bring the AI into a group or organization chat. The AI
+never holds process roles ("lanes") — access follows the chatting user,
+so lanes stay human seats and single-seat roles remain exactly what they
+were. Bot administration is retired: no bot members to create, no tokens
+to rotate — the assistant is bootstrapped per organization. The provider
+the AI thinks with is administered on the organization's models screen,
+with a connection test. The MCP endpoint serves authenticated user
+principals only.
 
 ## UI
 

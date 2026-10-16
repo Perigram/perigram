@@ -81,7 +81,9 @@ org `lineage`, plus a `participants` user-id list) and owns the derived
   [agent bots](../agent-bots/README.md) subscription endpoint when the
   AI joins or leaves a group chat.
 - `DELETE /api/support/groups/:id` removes one; the creating member or an
-  admin may delete.
+  admin may delete. The route also drops the room's AI subscription rows
+  (`onGroupDeleted` in [agent bots](../agent-bots/README.md)) so deleted
+  rooms — AI chat threads included — never fire wakes.
 - Group conversations appear in the user's inbox through
   `GET /api/support/conversations`, including groups without messages yet;
   summaries carry `groupName`, `groupId`, and `groupCreatorId`, and

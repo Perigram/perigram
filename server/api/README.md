@@ -3,6 +3,8 @@
 ## Structure
 Routes are grouped into sub-directories corresponding to features:
 - `agent-bots/`: The organization AI's conversation membership —
+  `POST /api/agent-bots/chats` (a fresh AI chat thread: a subscribed room
+  with the caller and the assistant, titled by its first message),
   `POST/DELETE /api/agent-bots/subscriptions` (the body carries
   `conversationKey` with optional `wakeOn` lifecycle wake rules, each
   authored by the caller, and the per-conversation `profile`/`model`
