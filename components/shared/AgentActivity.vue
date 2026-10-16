@@ -26,10 +26,12 @@ const toolIcon = (status) => (status === 'done' ? 'pi pi-check' : status === 'er
             <i class="pi pi-spin pi-spinner" aria-hidden="true" />
         </div>
         <template v-for="(step, index) in steps" :key="step.kind === 'tool' ? step.id : `thinking-${index}`">
-            <!-- The bound `open` only sets the initial state per instance
+            <!-- Reasoning stays open with the answer — the live stream and
+                 the persisted message render the same visible chronology.
+                 The bound `open` only sets the initial state per instance
                  (the value never changes), so the user's own toggling
                  survives. -->
-            <details v-if="step.kind === 'thinking'" :open="live" class="min-w-0" data-testid="agent-thinking">
+            <details v-if="step.kind === 'thinking'" open class="min-w-0" data-testid="agent-thinking">
                 <summary class="cursor-pointer select-none">{{ t('support.thinking') }}</summary>
                 <p class="m-0 mt-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{{ step.text }}</p>
             </details>
