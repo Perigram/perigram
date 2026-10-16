@@ -27,7 +27,8 @@ import { resolveLlmConfig, readLlmSettings, saveLlmSettings, testLlmConnection, 
 
 const AUTH = { userId: 'admin-1', organizationId: 'org-1' };
 
-const ENV_KEYS = ['LLM_PROVIDER', 'LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL'];
+const ENV_KEYS = ['LLM_PROVIDER', 'LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL',
+    'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'NO_PROXY', 'no_proxy'];
 const envBackup = {};
 
 const withSetting = (setting) => {

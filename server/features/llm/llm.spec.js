@@ -23,7 +23,8 @@ import { resolveLlmConfig, chatCompletion, streamChatCompletion, listEndpointMod
 
 const fetchMock = vi.fn();
 
-const ENV_KEYS = ['LLM_PROVIDER', 'LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL'];
+const ENV_KEYS = ['LLM_PROVIDER', 'LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL',
+    'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'NO_PROXY', 'no_proxy'];
 const envBackup = {};
 
 beforeEach(() => {

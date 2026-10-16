@@ -113,13 +113,13 @@
           :aria-label="$t('llm.provider')"
         />
         <InputText
+          v-if="!PRESETS[profileForm.provider]"
           v-model="profileForm.baseUrl"
           type="text"
           class="w-full"
           :placeholder="$t('llm.baseUrl')"
           :aria-label="$t('llm.baseUrl')"
           data-testid="llm-profile-baseurl"
-          :disabled="Boolean(PRESETS[profileForm.provider])"
         />
         <div class="flex items-center gap-2">
           <Select
@@ -216,7 +216,9 @@ const kindOptions = computed(() => ([
 // Known providers are login options: the platform owns their endpoint and
 // dialect, the admin pastes only a key. The stored profile keeps the wire
 // truth (provider dialect + baseUrl); the preset is a UI-level identity.
-const ZAI_PRESET = { provider: 'anthropic', baseUrl: 'https://api.z.ai/api/anthropic', models: ['glm-4.7', 'glm-4.6'] };
+// Model choice never lives here: pickers are endpoint-fed at the models
+// screen and chosen at the execution points.
+const ZAI_PRESET = { provider: 'anthropic', baseUrl: 'https://api.z.ai/api/anthropic' };
 const PRESETS = { zai: ZAI_PRESET };
 const wireProvider = (provider) => PRESETS[provider]?.provider || provider;
 const presetOf = (profile) => Object.entries(PRESETS)
@@ -229,11 +231,7 @@ const providerOptions = computed(() => ([
 ]));
 watch(() => profileForm.provider, (provider) => {
     const preset = PRESETS[provider];
-    if (preset) {
-        profileForm.baseUrl = preset.baseUrl;
-        endpointModels.value = preset.models.map(id => ({ id }));
-        if (!profileForm.model) profileForm.model = preset.models[0];
-    }
+    if (preset) profileForm.baseUrl = preset.baseUrl;
 });
 const chatRouteOptions = computed(() => ([
     { label: t('llm.envDefault'), value: '' },
