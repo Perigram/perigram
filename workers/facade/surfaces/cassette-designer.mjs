@@ -1332,7 +1332,10 @@ export default function createSurface({ vue, components, locale, queries, notify
           process: profileDraft.value.process,
           parameters: sketch.parameters,
           sketch,
-          occsProfile: occsProfileFromSketch(sketch)
+          // The derived profile resolves global-bound fields against the
+          // cassette's variables; the stored sketch keeps the clean
+          // table.
+          occsProfile: occsProfileFromSketch(sketch, { parameters: globalParameters.value })
         };
         return {
           name: profileDraft.value.name || t('cassette.v2.profileEditor.defaultName'),
