@@ -148,7 +148,12 @@ modules — no platform imports.
   commits it on blur or Enter (`surfaces/lib/components/fieldDraft.mjs`): a
   per-keystroke commit runs each character through normalization (`''`
   becomes 0, `42.` becomes 42) and rewrites the field under the caret, and
-  adopt-on-bind would mint a parameter from a half-typed identifier.
+  adopt-on-bind would mint a parameter from a half-typed identifier. The
+  attachment popup's expression fields (edge margin, normal offset,
+  rotation, array value) caption as plain blocks, never `<label>`s: the
+  expression editor's token panel carries buttons, and a label wrapping
+  more than one control forwards a native click onto its first button —
+  focusing the field inserted a phantom parameter token.
   Escape routes at the window
   level: it closes the popup, cancels the engine's active command, and
   clears the selection — from any focus, including a toolbar button or an
@@ -198,7 +203,12 @@ modules — no platform imports.
   whole copy: count mode spreads the requested copies over the span the chord
   leaves — a count the span cannot hold refuses — and spacing mode packs
   copies from the binding at the requested gap between them (zero butts them
-  together), placing the copies that fit. The array binding
+  together), placing the copies that fit. Authored array values are
+  expressions read nullishly (`??`, never a falsy `||`): an empty string or
+  a zero is the author's text mid-edit, and a default substituted there
+  rewrites the field under the caret. A relation patch carrying any array
+  field updates the pattern — no repeated `placementMode` required. The
+  array binding
   (start/center/end snap) places the array, never the walk direction:
   copies always run edge-start to edge-end. A placement that cannot fit, or a
   margin that leaves no span, refuses the evaluation with an error instead of
@@ -251,7 +261,10 @@ modules — no platform imports.
   hardware cuts subtract), with the authored boundary kept as the fold
   reference so edge indexes stay stable. Profiles never ride the body
   channel, and profile relations never enter the face-joint diagnostics
-  (they carry no source face by design — no unresolved noise).
+  (they carry no source face by design — no unresolved noise). The same
+  law shapes the 2D preview modes: a selected profile previews the
+  assembly it is placed in (the geometry its instance parameters drive),
+  never a blank solo pane — a profile owns no face to draw.
 - `templates.js` provides the default OCCS cassette fixture template.
 
 ## Conventions

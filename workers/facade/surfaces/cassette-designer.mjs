@@ -19,6 +19,7 @@ import {
   deleteCassetteV2WorkpieceRelation,
   getCassetteV2WorkpieceRelations,
   getCassetteV2Workpieces,
+  isCassetteV2ProfileWorkpiece,
   OCCS_CASSETTE_FACE_ROLES,
   renderCassetteV2TreeToDrawing,
   cassetteV2LayerPanelRows,
@@ -301,7 +302,12 @@ export default function createSurface({ vue, components, locale, queries, notify
       const previewMode = computed(() => (
         inspectorSelection.value === 'workpiece' || inspectorSelection.value === 'attachment'
           ? 'assembly'
-          : 'workpiece'
+          // A profile owns no face: its solo view is empty geometry, so a
+          // selected profile previews the assembly it is placed in — the
+          // geometry its instance parameters actually drive.
+          : isCassetteV2ProfileWorkpiece(selectedWorkpiece.value || {})
+            ? 'assembly'
+            : 'workpiece'
       ));
       const previewWorkpieceId = computed(() => previewMode.value === 'workpiece' ? selectedWorkpieceId.value : '');
       const selectedWorkpieceRelations = computed(() => workpieceRelations.value
@@ -386,11 +392,11 @@ export default function createSurface({ vue, components, locale, queries, notify
         family: workpiece.family || workpiece.hardware?.family || '',
         productionMode: workpiece.productionMode || workpiece.hardware?.productionMode || '',
         parameters: workpiece.parameters || workpiece.hardware?.parameters || {},
-        boundParameterKeys: workpiece.type === 'profile' || workpiece.profileSnapshot || workpiece.profile
+        boundParameterKeys: isCassetteV2ProfileWorkpiece(workpiece)
           ? profileBoundParameterKeys(workpiece)
           : null,
         isHardware: Boolean(workpiece.family || workpiece.hardware?.family),
-        isProfile: workpiece.type === 'profile' || Boolean(workpiece.profileSnapshot || workpiece.profile),
+        isProfile: isCassetteV2ProfileWorkpiece(workpiece),
         parentCount: workpieceRelations.value.filter(relation => relation.sourceWorkpieceId === workpiece.id).length,
         relations: workpieceRelationRowsById.value.get(workpiece.id) || []
       })));
@@ -1795,7 +1801,11 @@ export default function createSurface({ vue, components, locale, queries, notify
                 title: t('cassette.v2.attachmentFields.sourceSnap'),
                 'onUpdate:modelValue': value => updateInlineAttachmentRelation({ sourceSnap: value })
               }),
-              h('label', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: t('cassette.v2.attachmentFields.edgeMargin') }, [
+              // Caption blocks, not <label>s: a label wraps exactly one
+              // control, and the editor's token panel carries buttons —
+              // the browser forwards a click on the label to its first
+              // button, typing phantom tokens into the field.
+              h('div', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: t('cassette.v2.attachmentFields.edgeMargin') }, [
                 h('span', { class: 'truncate' }, t('cassette.v2.attachmentFields.edgeMargin')),
                 h(CassetteExpressionEditor, {
                   modelValue: relation.offsetX,
@@ -1804,7 +1814,7 @@ export default function createSurface({ vue, components, locale, queries, notify
                   'onUpdate:modelValue': value => updateInlineAttachmentRelation({ offsetX: value })
                 })
               ]),
-              h('label', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: t('cassette.v2.attachmentFields.normalOffset') }, [
+              h('div', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: t('cassette.v2.attachmentFields.normalOffset') }, [
                 h('span', { class: 'truncate' }, t('cassette.v2.attachmentFields.normalOffset')),
                 h(CassetteExpressionEditor, {
                   modelValue: relation.offsetY,
@@ -1813,7 +1823,7 @@ export default function createSurface({ vue, components, locale, queries, notify
                   'onUpdate:modelValue': value => updateInlineAttachmentRelation({ offsetY: value })
                 })
               ]),
-              h('label', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: t('cassette.v2.attachmentFields.rotation') }, [
+              h('div', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: t('cassette.v2.attachmentFields.rotation') }, [
                 h('span', { class: 'truncate' }, t('cassette.v2.attachmentFields.rotation')),
                 h(CassetteExpressionEditor, {
                   modelValue: relation.rotation,
@@ -1871,7 +1881,7 @@ export default function createSurface({ vue, components, locale, queries, notify
                   })
                 : null,
               relation.placementMode === 'edgeArray'
-                ? h('label', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: arrayValueLabel(relation) }, [
+                ? h('div', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: arrayValueLabel(relation) }, [
                     h('span', { class: 'truncate' }, arrayValueLabel(relation)),
                     h(CassetteExpressionEditor, {
                       modelValue: arrayValue(relation),

@@ -234,7 +234,9 @@ const normalizeCassetteV2Hardware = (workpiece = {}) => {
   return createOccsHardwareMetadata({ family, productionMode, parameters });
 };
 
-const isCassetteV2ProfileWorkpiece = (workpiece = {}) => workpiece.type === 'profile' || Boolean(workpiece.profile);
+// A profile workpiece carries its parametric snapshot instead of sheet
+// faces: it owns no trapezoid node and never renders a face of its own.
+export const isCassetteV2ProfileWorkpiece = (workpiece = {}) => workpiece.type === 'profile' || Boolean(workpiece.profile);
 
 export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
   const source = workpiece.profileSnapshot || workpiece.profile || workpiece.data?.occsProfile || {};
@@ -552,10 +554,13 @@ const normalizedCassetteV2WorkpieceRelation = (tree, joint, index = 0) => {
     mirrorY: Boolean(placement.mirrorY ?? placement.mirror?.y),
     pattern,
     placementMode: pattern ? 'edgeArray' : 'point',
-    arrayEdge: pattern?.edge || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.edge,
-    arrayMode: pattern?.mode || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.mode,
-    arrayCount: pattern?.count || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.count,
-    arraySpacing: pattern?.spacing || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.spacing,
+    arrayEdge: pattern?.edge ?? DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.edge,
+    arrayMode: pattern?.mode ?? DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.mode,
+    // Authored array values are expressions: an empty string or a zero
+    // while typing is the author's text, never a missing value — a
+    // falsy read here rewrote the field under the caret with the default.
+    arrayCount: pattern?.count ?? DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.count,
+    arraySpacing: pattern?.spacing ?? DEFAULT_CASSETTE_V2_HARDWARE_ARRAY.spacing,
     source: {
       ...(joint.source || {}),
       occurrence: sourceWorkpiece ? occurrenceIdForWorkpiece(sourceWorkpiece) : joint.source?.occurrence,
@@ -1170,7 +1175,12 @@ export const updateCassetteV2WorkpieceRelation = (tree, relationId, patch = {}) 
     anchor: sourceSnap,
     targetAnchor: targetSnap
   };
-  if (patch.placementMode === 'edgeArray' || patch.pattern) {
+  // Any array field in the patch updates the pattern — an array value
+  // alone must not be dropped for lacking a repeated placementMode.
+  const arrayPatchKeys = ['arrayEdge', 'arrayMode', 'arrayCount', 'arraySpacing'];
+  const patchesArray = patch.placementMode === 'edgeArray' || patch.pattern ||
+    arrayPatchKeys.some(key => patch[key] !== undefined);
+  if (patchesArray) {
     placement.pattern = edgeArrayDefaults(patch.pattern || {
       edge: patch.arrayEdge ?? relation.arrayEdge,
       mode: patch.arrayMode ?? relation.arrayMode,
