@@ -189,7 +189,7 @@ export async function createRole(organizationId, payload = {}, auth = {}) {
   const label = normalizeRoleLabel(payload.label);
   assertUniqueRoleLabel(org.data.roles, label);
   const id = `role_${new ObjectId().toString().slice(0, 12)}`;
-  org.data.roles[id] = { id, label, ...normalizeExclusive(payload.exclusive) };
+  org.data.roles[id] = { id, label, ...normalizeFlag('exclusive', payload.exclusive), ...normalizeFlag('agentChat', payload.agentChat) };
   await repository.updateById(organizationId, org);
   return org.data.roles[id];
 }
@@ -200,7 +200,7 @@ export async function updateRole(organizationId, roleId, payload = {}, auth = {}
   const current = org.data.roles[roleId];
   const exclusive = payload.exclusive === undefined
     ? (current.exclusive ? { exclusive: true } : {})
-    : normalizeExclusive(payload.exclusive);
+    : normalizeFlag('exclusive', payload.exclusive);
   if (exclusive.exclusive && !current.exclusive) {
     const holders = Object.values(org.data.roleAssignments)
       .filter(item => item.roleIds?.includes(roleId))
@@ -213,15 +213,31 @@ export async function updateRole(organizationId, roleId, payload = {}, auth = {}
       });
     }
   }
+  const agentChat = payload.agentChat === undefined
+    ? (current.agentChat ? { agentChat: true } : {})
+    : normalizeFlag('agentChat', payload.agentChat);
   const label = normalizeRoleLabel(payload.label ?? current.label);
   assertUniqueRoleLabel(org.data.roles, label, roleId);
-  org.data.roles[roleId] = { id: roleId, label, ...exclusive };
+  org.data.roles[roleId] = { id: roleId, label, ...exclusive, ...agentChat };
   await repository.updateById(organizationId, org);
   return org.data.roles[roleId];
 }
 
-function normalizeExclusive(exclusive) {
-  return exclusive ? { exclusive: true } : {};
+function normalizeFlag(name, value) {
+  return value ? { [name]: true } : {};
+}
+
+/**
+ * The agent-chat capability (SPEC: agent access): a member sees and
+ * addresses the organization AI when any of their assigned roles carries
+ * `agentChat`. No roles assigned or no flagged role means no AI surface.
+ */
+export async function canUseAgentChats(organizationId, userId) {
+  if (!organizationId || !userId) return false;
+  const raw = await repository.findById(organizationId);
+  const roles = raw?.data?.roles || {};
+  const roleIds = raw?.data?.roleAssignments?.[String(userId)]?.roleIds || [];
+  return roleIds.some(roleId => roles[String(roleId)]?.agentChat);
 }
 
 export async function deleteRole(organizationId, roleId, auth = {}) {

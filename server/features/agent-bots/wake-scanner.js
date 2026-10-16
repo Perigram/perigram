@@ -1,23 +1,24 @@
 import * as systemSettings from '~/server/features/system-settings/service.js';
 import { findStatusEventsAfter } from '~/server/features/states/service.js';
 import * as botRepository from './repository.js';
-import { runBotWake } from './runtime.js';
+import { runAssistantWake } from './runtime.js';
 import { isBotUser } from './service.js';
 
 /**
  * The lifecycle wake scanner (SPEC: agent wakes): a scheduled sweep, not a
  * standing query — the deadline-scanner posture. Every tick reads the
  * status events strictly past the persisted cursor (`system_settings`,
- * insertion order), matches subscription wake rules, and fires bot wakes
- * asynchronously. The cursor advances to the batch's last id BEFORE
- * firing: a crash mid-batch drops the un-fired tail rather than replaying
- * it (wakes are best-effort automation, not delivery guarantees).
+ * insertion order), matches subscription wake rules, and fires AI wakes
+ * asynchronously — each delegated to its rule's author. The cursor
+ * advances to the batch's last id BEFORE firing: a crash mid-batch drops
+ * the un-fired tail rather than replaying it (wakes are best-effort
+ * automation, not delivery guarantees).
  *
  * Matching rules: only `transition`/`intent` operations wake (creation
  * initialize events do not); events whose acting principal is a bot never
- * wake bots (no self-perpetuating loops — deadline/SYSTEM actors do
- * wake); an instance-scoped subscription (an instance chat key) only
- * matches its own instance; org isolation rides the wake's own
+ * wake the AI (no self-perpetuating loops — deadline/SYSTEM actors do);
+ * an instance-scoped subscription (an instance chat key) only matches
+ * its own instance; org isolation rides the wake's delegated
  * access-checked instance read (see runtime.js).
  */
 
@@ -56,11 +57,12 @@ async function dispatchWake(event) {
         // another type) is org-wide for the rule's type — org isolation
         // rides the wake's own access-checked instance read.
         if (scope && scope.type === String(event.targetType) && String(scope.id) !== String(event.targetId)) continue;
-        // The matched rule carries the execution point's model override.
+        // The matched rule carries the execution point's model override and
+        // its author — the delegation principal of the wake run.
         const rule = (subscription.wakeOn || []).find(item => (
             String(item.type) === String(event.targetType) && String(item.state) === state
         )) || {};
-        runBotWake(subscription, event, String(rule.profile || '')).catch(error => console.error('[AGENT-BOTS] wake dispatch failed:', error));
+        runAssistantWake(subscription, event, rule).catch(error => console.error('[AGENT-BOTS] wake dispatch failed:', error));
         fired += 1;
     }
     return fired;

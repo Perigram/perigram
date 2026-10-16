@@ -12,16 +12,24 @@ async function collection() {
 }
 
 /**
- * A subscription is one bot listening to one conversation: group and
- * instance (organization) chats are opt-in per bot; direct chats answer
- * implicitly and are never subscribed. `conversationKind` and
- * `organizationId` ride the row so triggers and cleanup never re-derive
- * them from the key.
+ * A subscription is the AI in one conversation: group and instance
+ * (organization) chats are opt-in per room; direct chats answer
+ * implicitly and carry profile-only rows (the conversation is still a
+ * model execution point). `botUserId` is the organization's assistant —
+ * the only bot member. `conversationKind` and `organizationId` ride the
+ * row so triggers and cleanup never re-derive them from the key. Each
+ * wake rule carries `createdBy` — its author is the delegation
+ * principal when the rule fires (SPEC: agent wakes).
  */
-export async function upsertSubscription({ botUserId, conversationKey, conversationKind, organizationId, wakeOn = null, profile = '' }) {
+export async function upsertSubscription({ botUserId, conversationKey, conversationKind, organizationId, wakeOn = null, profile = '', model = '' }) {
     const col = await collection();
     const normalizedWakeOn = Array.isArray(wakeOn)
-        ? wakeOn.map(rule => ({ type: String(rule.type), state: String(rule.state) }))
+        ? wakeOn.map(rule => ({
+            type: String(rule.type),
+            state: String(rule.state),
+            ...(rule.profile ? { profile: String(rule.profile) } : {}),
+            createdBy: String(rule.createdBy || '')
+        }))
         : null;
     await col.updateOne(
         { botUserId: String(botUserId), conversationKey: String(conversationKey) },
@@ -31,7 +39,8 @@ export async function upsertSubscription({ botUserId, conversationKey, conversat
                 organizationId: organizationId?.toString?.() || null,
                 updatedAt: new Date(),
                 wakeOn: normalizedWakeOn,
-                profile: String(profile || '')
+                profile: String(profile || ''),
+                model: String(model || '')
             },
             $setOnInsert: { createdAt: new Date() }
         },

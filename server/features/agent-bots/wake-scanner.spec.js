@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // The wake scanner's failure modes and matching rules, pinned: creation
-// events never wake, bot actors never wake (no self-perpetuating loops),
+// events never wake, AI actors never wake (no self-perpetuating loops),
 // intent transitions wake like plain ones, instance-scoped subscriptions
 // match only their own instance, and the cursor advances to the batch end
 // before anything fires (crash posture: drop the tail, never replay).
@@ -10,7 +10,7 @@ const { mockedSystemSettings, mockedStatesService, mockedBotRepository, mockedRu
     mockedSystemSettings: { get: vi.fn(), set: vi.fn() },
     mockedStatesService: { findStatusEventsAfter: vi.fn() },
     mockedBotRepository: { findWakeSubscriptions: vi.fn() },
-    mockedRuntime: { runBotWake: vi.fn() },
+    mockedRuntime: { runAssistantWake: vi.fn() },
     mockedBotsService: { isBotUser: vi.fn() }
 }));
 
@@ -41,7 +41,7 @@ beforeEach(() => {
     mockedStatesService.findStatusEventsAfter.mockResolvedValue([]);
     mockedBotRepository.findWakeSubscriptions.mockResolvedValue([]);
     mockedBotsService.isBotUser.mockResolvedValue(false);
-    mockedRuntime.runBotWake.mockResolvedValue();
+    mockedRuntime.runAssistantWake.mockResolvedValue();
 });
 
 describe('scanStatusEventsForWakes', () => {
@@ -67,7 +67,7 @@ describe('scanStatusEventsForWakes', () => {
         mockedBotRepository.findWakeSubscriptions.mockResolvedValue([subscription]);
         const order = [];
         mockedSystemSettings.set.mockImplementation(async () => order.push('cursor'));
-        mockedRuntime.runBotWake.mockImplementation(async () => order.push('wake'));
+        mockedRuntime.runAssistantWake.mockImplementation(async () => order.push('wake'));
         const summary = await scanStatusEventsForWakes();
         expect(summary).toEqual({ events: 2, wakes: 2, skipped: 0 });
         expect(mockedSystemSettings.set).toHaveBeenCalledWith('agentBots.wakeCursor', 'evt-2');
@@ -91,8 +91,8 @@ describe('scanStatusEventsForWakes', () => {
         mockedBotRepository.findWakeSubscriptions.mockResolvedValue([subscription]);
         const summary = await scanStatusEventsForWakes();
         expect(summary.wakes).toBe(1);
-        expect(mockedRuntime.runBotWake).toHaveBeenCalledTimes(1);
-        expect(mockedRuntime.runBotWake).toHaveBeenCalledWith(subscription, expect.anything(), 'rule-brain');
+        expect(mockedRuntime.runAssistantWake).toHaveBeenCalledTimes(1);
+        expect(mockedRuntime.runAssistantWake).toHaveBeenCalledWith(subscription, expect.anything(), { type: 'queue', state: 'nested', profile: 'rule-brain' });
     });
 
     it('never wakes on bot-actor events (loop prevention); SYSTEM actors wake', async () => {
@@ -121,8 +121,8 @@ describe('scanStatusEventsForWakes', () => {
         mockedBotRepository.findWakeSubscriptions.mockResolvedValue([sameInstance, otherInstance, orgScoped]);
         const summary = await scanStatusEventsForWakes();
         expect(summary.wakes).toBe(2);
-        expect(mockedRuntime.runBotWake).toHaveBeenCalledTimes(2);
-        expect(mockedRuntime.runBotWake).toHaveBeenCalledWith(sameInstance, expect.objectContaining({ targetId: 'inst-9' }), '');
-        expect(mockedRuntime.runBotWake).toHaveBeenCalledWith(orgScoped, expect.anything(), '');
+        expect(mockedRuntime.runAssistantWake).toHaveBeenCalledTimes(2);
+        expect(mockedRuntime.runAssistantWake).toHaveBeenCalledWith(sameInstance, expect.objectContaining({ targetId: 'inst-9' }), { type: 'queue', state: 'nested' });
+        expect(mockedRuntime.runAssistantWake).toHaveBeenCalledWith(orgScoped, expect.anything(), { type: 'queue', state: 'nested' });
     });
 });

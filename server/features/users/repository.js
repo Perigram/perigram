@@ -47,28 +47,6 @@ export async function findByEmail(email) {
   });
 }
 
-export async function findByBotTokenHash(tokenHash) {
-  if (!tokenHash) return null;
-  const db = await connectDB();
-  return await db.collection(COLLECTION).findOne({ 'data.bot.tokenHash': tokenHash });
-}
-
-export async function updateBotToken(userId, tokenHash) {
-  const db = await connectDB();
-  return await db.collection(COLLECTION).updateOne(
-    { _id: toFlexibleId(userId) },
-    { $set: { 'data.bot.tokenHash': tokenHash } }
-  );
-}
-
-export async function updateBotProfile(userId, profile = '') {
-  const db = await connectDB();
-  const update = String(profile || '').trim()
-    ? { $set: { 'data.bot.profile': String(profile).trim() } }
-    : { $unset: { 'data.bot.profile': '' } };
-  return await db.collection(COLLECTION).updateOne({ _id: toFlexibleId(userId) }, update);
-}
-
 export async function find(filter = {}) {
   const db = await connectDB();
   return await db.collection(COLLECTION).find(filter).toArray();

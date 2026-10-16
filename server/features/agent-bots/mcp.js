@@ -7,8 +7,8 @@ import { mcpToolDescriptors, executeTool } from './tools.js';
  * over `POST /api/mcp`, plain `application/json` replies (no server-initiated
  * streams), stateless sessions (a session id is minted on initialize and
  * accepted, never tracked). Authentication happens in the auth middleware —
- * a user JWT, a session cookie, or a bot token all authenticate; tools run
- * with that principal's grants.
+ * a user JWT or session cookie — and tools run with that principal's
+ * grants.
  */
 
 const SUPPORTED_PROTOCOL_VERSIONS = new Set(['2024-11-05', '2025-03-26', '2025-06-18']);

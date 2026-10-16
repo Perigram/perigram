@@ -2,7 +2,6 @@ import * as usersRepository from './repository.js';
 import * as sessionsRepository from '../sessions/repository.js';
 import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { hashPassword, verifyPassword, generateSession, generateAccessToken } from '../../utils/auth-helpers.js';
-import { createHash } from 'node:crypto';
 import { createError } from 'h3';
 import { User } from './model.js';
 import { stateService } from '../../core/machines/service.js';
@@ -79,23 +78,25 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
  * which makes assistant bootstrap idempotent across workers (the 409
  * collision means it already exists).
  */
-export async function registerBot({ name, organizationId, roleIds = [], bindings = {}, email = null } = {}, creatorUserId = 'SYSTEM') {
+/**
+ * Registers the bot-marker member (see the users README for the marker).
+ * Today the only bot member is the organization assistant — the AI
+ * attribution identity — whose deterministic per-org address makes
+ * bootstrap idempotent across workers (a 409 collision means it already
+ * exists). The marker carries no token and no profile; the assistant
+ * takes no process roles: AI runs execute delegated to the chatting
+ * user (SPEC: agent access).
+ */
+export async function registerBot({ name, organizationId, email = null } = {}, creatorUserId = 'SYSTEM') {
   if (!name || !organizationId) {
     throw createError({ statusCode: 400, message: 'Bot name and organization are required' });
   }
   const organization = await organizationsRepository.findById(organizationId);
   if (!organization) throw createError({ statusCode: 404, message: 'Organization not found' });
-  const uniqueRoleIds = [...new Set(Array.isArray(roleIds) ? roleIds : [])];
-  const missingRoleIds = uniqueRoleIds.filter(roleId => !organization?.data?.roles?.[roleId]);
-  if (missingRoleIds.length) {
-    throw createError({ statusCode: 400, message: `Unknown organization roles: ${missingRoleIds.join(', ')}` });
-  }
   const uid = `user-${new ObjectId().toString().substring(0, 8)}`;
   const botEmail = String(email || `${uid}@bots.perigram.internal`).toLowerCase();
   const existing = await usersRepository.findByEmail(botEmail);
   if (existing) throw createError({ statusCode: 409, message: 'Bot identity collision, retry' });
-  const token = `pb_${crypto.randomUUID().replace(/-/g, '')}${crypto.randomUUID().replace(/-/g, '')}`;
-  const tokenHash = createHash('sha256').update(token).digest('hex');
   const user = new User({
     identity: { uid, name },
     data: {
@@ -106,28 +107,12 @@ export async function registerBot({ name, organizationId, roleIds = [], bindings
         status: 'active'
       }],
       isActive: true,
-      bot: { tokenHash, createdAt: new Date() }
+      bot: { createdAt: new Date() }
     }
   });
   user.applyStatus('ACTIVE', creatorUserId, { note: 'Bot member created' });
   const createdRaw = await usersRepository.create(user);
-  await organizationsRepository.setRoleAssignment(organizationId, createdRaw._id, {
-    userId: String(createdRaw._id), roleIds: uniqueRoleIds, bindings
-  });
-  return { user: new User(createdRaw), token };
-}
-
-export async function updateBotProfile(userId, profile = '') {
-  await usersRepository.updateBotProfile(userId, String(profile || ''));
-}
-
-export async function rotateBotToken(userId, requesterId = 'SYSTEM') {
-  const user = await getById(userId);
-  if (!user?.data?.bot) throw createError({ statusCode: 404, message: 'Bot not found' });
-  const token = `pb_${crypto.randomUUID().replace(/-/g, '')}${crypto.randomUUID().replace(/-/g, '')}`;
-  const tokenHash = createHash('sha256').update(token).digest('hex');
-  await usersRepository.updateBotToken(userId, tokenHash);
-  return token;
+  return { user: new User(createdRaw) };
 }
 
 /**

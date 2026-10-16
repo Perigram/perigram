@@ -1,13 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// The runtime's failure modes, pinned: bot-to-bot loops, implicit direct
-// answers, subscription gates for group/instance chats (composed ancestor
-// views included), the no-LLM posture, tool errors as readable results,
-// the round budget, and double-fire protection. The MCP transport is
-// protocol-pinned beside them: handshake negotiation, notifications,
-// tool listing, and the auth/unknown-tool error shapes.
+// The AI runtime's failure modes, pinned: self-trigger loops, implicit
+// direct answers, subscription gates for group/instance chats (composed
+// ancestor views included), the no-LLM posture, the delegation contract
+// (tools run with the triggering sender's auth, replies post as the
+// assistant; a sender without the agent-chat capability stays silent),
+// tool errors as readable results, the round budget, and double-fire
+// protection. The MCP transport is protocol-pinned beside them:
+// handshake negotiation, notifications, tool listing, and the
+// auth/unknown-tool error shapes.
 
-const { mockedSupport, mockedLlm, mockedConnections, mockedBotsService, mockedBotRepository, mockedTools, mockedRegistry } = vi.hoisted(() => {
+const { mockedSupport, mockedLlm, mockedConnections, mockedBotsService, mockedOrganizations, mockedBotRepository, mockedTools, mockedRegistry } = vi.hoisted(() => {
     const mockedLlm = { isLlmAvailable: vi.fn(), chatCompletion: vi.fn() };
     // Streaming twin: delegates to the chatCompletion mock so a test sets one
     // behavior and both seams answer identically; yields the content once,
@@ -36,9 +39,11 @@ const { mockedSupport, mockedLlm, mockedConnections, mockedBotsService, mockedBo
     mockedLlm,
     mockedConnections: { publish: vi.fn() },
     mockedBotsService: {
-        buildBotAuth: vi.fn(),
+        buildPrincipalAuth: vi.fn(),
+        ensureOrganizationAssistant: vi.fn(),
         isBotUser: vi.fn()
     },
+    mockedOrganizations: { canUseAgentChats: vi.fn() },
     mockedBotRepository: {
         findSubscriptionsByConversation: vi.fn()
     },
@@ -60,24 +65,39 @@ const { mockedSupport, mockedLlm, mockedConnections, mockedBotsService, mockedBo
 vi.mock('~/server/features/llm/service.js', () => mockedLlm);
 vi.mock('~/server/features/support/service.js', () => mockedSupport);
 vi.mock('~/server/features/connections/service.js', () => mockedConnections);
+vi.mock('~/server/features/organizations/service.js', () => mockedOrganizations);
 vi.mock('~/server/runtime/app-registry.js', () => ({ getAppRegistry: () => mockedRegistry }));
 vi.mock('./service.js', () => mockedBotsService);
 vi.mock('./repository.js', () => mockedBotRepository);
 vi.mock('./tools.js', () => mockedTools);
 
-import { resolveTargetBots, runBotReply, runBotWake, registerSupportMessageObserver, handleMessageInserted, stopConversationRuns } from './runtime.js';
+import { resolveAssistantTarget, runAssistantReply, runAssistantWake, registerSupportMessageObserver, handleMessageInserted, stopConversationRuns } from './runtime.js';
 import { handleMcpRequest } from './mcp.js';
 
 const HUMAN = 'user-human';
-const BOT_A = 'user-bot-a';
-const BOT_B = 'user-bot-b';
+const HUMAN_B = 'user-other';
+const ASSISTANT = 'user-bot-a';
+const ASSISTANT_B = 'user-bot-b';
 
-const botAuth = { userId: BOT_A, name: 'Bot', organizationId: 'org-1', organizationData: { name: 'Org' }, botProfile: 'cloud-big' };
+const humanAuth = { userId: HUMAN, name: 'Human', organizationId: 'org-1', organizationData: { name: 'Org' } };
+const assistantAuth = { userId: ASSISTANT, name: 'Assistant', organizationId: 'org-1', organizationData: { name: 'Org' } };
+const assistantUser = {
+    id: ASSISTANT,
+    toJSON: () => ({ _id: ASSISTANT, identity: { name: 'Assistant' }, data: { bot: { createdAt: new Date() } } })
+};
 
 beforeEach(() => {
     vi.clearAllMocks();
     mockedBotsService.isBotUser.mockResolvedValue(false);
-    mockedBotsService.buildBotAuth.mockResolvedValue({ ...botAuth });
+    mockedBotsService.buildPrincipalAuth.mockImplementation(async (userId) => {
+        if (String(userId) === HUMAN) return { ...humanAuth };
+        if (String(userId) === ASSISTANT) return { ...assistantAuth };
+        const error = new Error('User not found');
+        error.statusCode = 404;
+        throw error;
+    });
+    mockedBotsService.ensureOrganizationAssistant.mockResolvedValue(assistantUser);
+    mockedOrganizations.canUseAgentChats.mockResolvedValue(true);
     mockedLlm.isLlmAvailable.mockResolvedValue(true);
     mockedLlm.chatCompletion.mockResolvedValue({ content: 'ok' });
     mockedSupport.listMessages.mockResolvedValue([]);
@@ -92,63 +112,65 @@ describe('registerSupportMessageObserver', () => {
     });
 });
 
-describe('resolveTargetBots', () => {
+describe('resolveAssistantTarget', () => {
     it('never triggers on the support channel', async () => {
-        expect(await resolveTargetBots({ kind: 'support' }, { sender: 'user', senderUserId: HUMAN })).toEqual([]);
+        expect(await resolveAssistantTarget({ kind: 'support' }, { sender: 'user', senderUserId: HUMAN })).toBeNull();
     });
 
     it('never triggers on non-user senders', async () => {
-        expect(await resolveTargetBots({ kind: 'group', conversationKey: 'group:g' }, { sender: 'support', senderUserId: HUMAN })).toEqual([]);
+        expect(await resolveAssistantTarget({ kind: 'group', conversationKey: 'group:g' }, { sender: 'support', senderUserId: HUMAN })).toBeNull();
     });
 
-    it('never triggers when the sender is a bot (loop prevention)', async () => {
+    it('never triggers when the sender is the AI (loop prevention)', async () => {
         mockedBotsService.isBotUser.mockResolvedValue(true);
-        expect(await resolveTargetBots({ kind: 'group', conversationKey: 'group:g' }, { sender: 'user', senderUserId: BOT_A })).toEqual([]);
+        expect(await resolveAssistantTarget({ kind: 'group', conversationKey: 'group:g' }, { sender: 'user', senderUserId: ASSISTANT })).toBeNull();
     });
 
-    it('answers a direct chat when exactly one participant is a bot', async () => {
-        mockedBotsService.isBotUser.mockImplementation(async (userId) => userId === BOT_A);
-        const message = { sender: 'user', senderUserId: HUMAN, participants: [HUMAN, BOT_A] };
-        expect(await resolveTargetBots({ kind: 'direct', participants: [HUMAN, BOT_A] }, message)).toEqual([{ botUserId: BOT_A, profile: '', model: '' }]);
+    it('answers a direct chat when exactly one participant is the assistant', async () => {
+        mockedBotsService.isBotUser.mockImplementation(async (userId) => userId === ASSISTANT);
+        const message = { sender: 'user', senderUserId: HUMAN, participants: [HUMAN, ASSISTANT] };
+        expect(await resolveAssistantTarget({ kind: 'direct', participants: [HUMAN, ASSISTANT] }, message))
+            .toEqual({ assistantId: ASSISTANT, profile: '', model: '' });
     });
 
     it('resolves a direct chat profile from its profile-only subscription row', async () => {
-        mockedBotsService.isBotUser.mockImplementation(async (userId) => userId === BOT_A);
-        mockedBotRepository.findSubscriptionsByConversation.mockResolvedValue([{ botUserId: BOT_A, profile: 'cloud-big' }]);
-        const message = { sender: 'user', senderUserId: HUMAN, conversationKey: 'direct:user-human:user-bot-a', participants: [HUMAN, BOT_A] };
-        expect(await resolveTargetBots({ kind: 'direct', conversationKey: 'direct:user-human:user-bot-a', participants: [HUMAN, BOT_A] }, message))
-            .toEqual([{ botUserId: BOT_A, profile: 'cloud-big', model: '' }]);
+        mockedBotsService.isBotUser.mockImplementation(async (userId) => userId === ASSISTANT);
+        mockedBotRepository.findSubscriptionsByConversation.mockResolvedValue([{ botUserId: ASSISTANT, profile: 'cloud-big' }]);
+        const message = { sender: 'user', senderUserId: HUMAN, conversationKey: 'direct:user-human:user-bot-a', participants: [HUMAN, ASSISTANT] };
+        expect(await resolveAssistantTarget({ kind: 'direct', conversationKey: 'direct:user-human:user-bot-a', participants: [HUMAN, ASSISTANT] }, message))
+            .toEqual({ assistantId: ASSISTANT, profile: 'cloud-big', model: '' });
     });
 
     it('stays silent when both direct participants are bots', async () => {
         mockedBotsService.isBotUser.mockResolvedValue(true);
-        const message = { sender: 'user', senderUserId: BOT_A, participants: [BOT_A, BOT_B] };
-        expect(await resolveTargetBots({ kind: 'direct', participants: [BOT_A, BOT_B] }, message)).toEqual([]);
+        const message = { sender: 'user', senderUserId: ASSISTANT, participants: [ASSISTANT, ASSISTANT_B] };
+        expect(await resolveAssistantTarget({ kind: 'direct', participants: [ASSISTANT, ASSISTANT_B] }, message)).toBeNull();
     });
 
-    it('stays silent when no direct participant is a bot', async () => {
-        const message = { sender: 'user', senderUserId: HUMAN, participants: [HUMAN, 'user-other'] };
-        expect(await resolveTargetBots({ kind: 'direct', participants: [HUMAN, 'user-other'] }, message)).toEqual([]);
+    it('stays silent when no direct participant is the assistant', async () => {
+        const message = { sender: 'user', senderUserId: HUMAN, participants: [HUMAN, HUMAN_B] };
+        expect(await resolveAssistantTarget({ kind: 'direct', participants: [HUMAN, HUMAN_B] }, message)).toBeNull();
     });
 
     it('carries the conversation model override beside the profile', async () => {
         mockedBotRepository.findSubscriptionsByConversation.mockResolvedValue([
-            { botUserId: BOT_A, profile: 'cloud-big', model: 'qwen3:30b-a3b' }
+            { botUserId: ASSISTANT, profile: 'cloud-big', model: 'qwen3:30b-a3b' }
         ]);
         const message = { sender: 'user', senderUserId: HUMAN, conversationKey: 'group:g1' };
-        expect(await resolveTargetBots({ kind: 'group', conversationKey: 'group:g1' }, message))
-            .toEqual([{ botUserId: BOT_A, profile: 'cloud-big', model: 'qwen3:30b-a3b' }]);
+        expect(await resolveAssistantTarget({ kind: 'group', conversationKey: 'group:g1' }, message))
+            .toEqual({ assistantId: ASSISTANT, profile: 'cloud-big', model: 'qwen3:30b-a3b' });
     });
 
-    it('triggers group bots through subscriptions, carrying the conversation profile', async () => {
-        mockedBotRepository.findSubscriptionsByConversation.mockResolvedValue([{ botUserId: BOT_A, profile: 'cloud-big' }]);
+    it('triggers the subscribed AI in group chats, carrying the conversation profile', async () => {
+        mockedBotRepository.findSubscriptionsByConversation.mockResolvedValue([{ botUserId: ASSISTANT, profile: 'cloud-big' }]);
         const message = { sender: 'user', senderUserId: HUMAN, conversationKey: 'group:g' };
-        expect(await resolveTargetBots({ kind: 'group', conversationKey: 'group:g' }, message)).toEqual([{ botUserId: BOT_A, profile: 'cloud-big', model: '' }]);
+        expect(await resolveAssistantTarget({ kind: 'group', conversationKey: 'group:g' }, message))
+            .toEqual({ assistantId: ASSISTANT, profile: 'cloud-big', model: '' });
     });
 
-    it('triggers an instance bot subscribed to any ancestor on the message path', async () => {
+    it('triggers through a subscription on any ancestor of the message path', async () => {
         mockedBotRepository.findSubscriptionsByConversation.mockImplementation(async (keys) => (
-            keys.includes('instance:project:p1') ? [{ botUserId: BOT_A }] : []
+            keys.includes('instance:project:p1') ? [{ botUserId: ASSISTANT }] : []
         ));
         const context = { kind: 'instance', conversationKey: 'instance:cassette:c1' };
         const message = {
@@ -161,17 +183,18 @@ describe('resolveTargetBots', () => {
                 { type: 'cassette', id: 'c1' }
             ]
         };
-        expect(await resolveTargetBots(context, message)).toEqual([{ botUserId: BOT_A, profile: '', model: '' }]);
+        expect(await resolveAssistantTarget(context, message)).toEqual({ assistantId: ASSISTANT, profile: '', model: '' });
     });
 });
 
-describe('runBotReply', () => {
-    const context = { kind: 'direct', conversationKey: `direct:${HUMAN}:${BOT_A}`, participants: [HUMAN, BOT_A] };
-    const message = { sender: 'user', senderUserId: HUMAN, participants: [HUMAN, BOT_A], conversationKey: context.conversationKey };
+describe('runAssistantReply', () => {
+    const context = { kind: 'direct', conversationKey: `direct:${HUMAN}:${ASSISTANT}`, participants: [HUMAN, ASSISTANT] };
+    const message = { sender: 'user', senderUserId: HUMAN, participants: [HUMAN, ASSISTANT], conversationKey: context.conversationKey };
+    const target = { assistantId: ASSISTANT, profile: 'cloud-big', model: '' };
 
     it('replies that the provider is unconfigured instead of staying silent', async () => {
         mockedLlm.isLlmAvailable.mockResolvedValue(false);
-        await runBotReply(BOT_A, context, message);
+        await runAssistantReply(target, context, message);
         expect(mockedLlm.chatCompletion).not.toHaveBeenCalled();
         expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(1);
         const body = mockedSupport.sendUserMessage.mock.calls[0][1];
@@ -179,37 +202,60 @@ describe('runBotReply', () => {
         expect(body.recipientUserId).toBe(HUMAN);
     });
 
-    it('sends the final assistant text through the auth-checked path', async () => {
+    it('stays silent when the sender lacks the agent-chat capability', async () => {
+        mockedOrganizations.canUseAgentChats.mockResolvedValue(false);
+        await runAssistantReply(target, context, message);
+        expect(mockedLlm.chatCompletion).not.toHaveBeenCalled();
+        expect(mockedSupport.sendUserMessage).not.toHaveBeenCalled();
+        expect(mockedConnections.publish).not.toHaveBeenCalled();
+    });
+
+    it('stays silent when the sender no longer resolves', async () => {
+        mockedBotsService.buildPrincipalAuth.mockImplementation(async (userId) => {
+            if (String(userId) === ASSISTANT) return { ...assistantAuth };
+            const error = new Error('User not found');
+            error.statusCode = 404;
+            throw error;
+        });
+        await runAssistantReply(target, context, message);
+        expect(mockedLlm.chatCompletion).not.toHaveBeenCalled();
+        expect(mockedSupport.sendUserMessage).not.toHaveBeenCalled();
+    });
+
+    it('sends the final assistant text as the assistant, acting for the sender', async () => {
         mockedSupport.listMessages.mockResolvedValue([
             { senderUserId: HUMAN, message: 'hello' },
-            { senderUserId: BOT_A, message: 'hi' }
+            { senderUserId: ASSISTANT, message: 'hi' }
         ]);
         mockedLlm.chatCompletion.mockResolvedValue({ content: 'the answer', toolCalls: [] });
-        await runBotReply(BOT_A, context, message);
+        await runAssistantReply(target, context, message);
         expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(1);
-        expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toBe('the answer');
+        const [sendAuth, body] = mockedSupport.sendUserMessage.mock.calls[0];
+        expect(sendAuth.userId).toBe(ASSISTANT);
+        expect(body.message).toBe('the answer');
         const { system, messages, profileId } = mockedLlm.chatCompletion.mock.calls[0][0];
-        expect(system).toMatch(/Bot/);
+        expect(system).toMatch(/Assistant/);
+        expect(system).toMatch(/Human/);
         expect(profileId).toBe('cloud-big');
         expect(messages.some((entry) => entry.role === 'assistant' && entry.content === 'hi')).toBe(true);
     });
 
-    it('streams the answer onto the conversation topic while the run works', async () => {
+    it('streams the answer onto the conversation topic under the assistant identity', async () => {
         mockedLlm.chatCompletion.mockResolvedValue({ content: 'the answer', toolCalls: [] });
-        await runBotReply(BOT_A, context, message);
+        await runAssistantReply(target, context, message);
         const publishes = mockedConnections.publish.mock.calls.map(([topic, payload]) => ({ topic, payload }));
         const streamed = publishes.filter(({ payload }) => payload?.type === 'bot_stream');
         expect(streamed.length).toBeGreaterThan(0);
         expect(streamed.at(-1)).toEqual({
             topic: `conversation:${context.conversationKey}`,
-            payload: { type: 'bot_stream', conversationKey: context.conversationKey, userId: BOT_A, name: 'Bot', text: 'the answer' }
+            payload: { type: 'bot_stream', conversationKey: context.conversationKey, userId: ASSISTANT, name: 'Assistant', text: 'the answer' }
         });
         expect(publishes.some(({ payload }) => payload?.type === 'bot_stream_end')).toBe(true);
     });
 
     it('runs the loop on the conversation model override', async () => {
         mockedLlm.chatCompletion.mockResolvedValue({ content: 'done', toolCalls: [] });
-        await runBotReply(BOT_A, context, message, 'cloud-big', 'qwen3:30b-a3b');
+        await runAssistantReply({ assistantId: ASSISTANT, profile: 'cloud-big', model: 'qwen3:30b-a3b' }, context, message);
         expect(mockedLlm.chatCompletion.mock.calls[0][0].model).toBe('qwen3:30b-a3b');
         expect(mockedLlm.chatCompletion.mock.calls[0][0].profileId).toBe('cloud-big');
     });
@@ -219,7 +265,7 @@ describe('runBotReply', () => {
             .mockResolvedValueOnce({ content: '', thinking: 'need the types', toolCalls: [{ id: 't1', name: 'list_types', arguments: {} }] })
             .mockResolvedValueOnce({ content: 'done', toolCalls: [] });
         mockedTools.executeTool.mockResolvedValue({ types: [] });
-        await runBotReply(BOT_A, context, message);
+        await runAssistantReply(target, context, message);
         const published = mockedConnections.publish.mock.calls.map(([, payload]) => payload);
         expect(published.some(payload => payload?.type === 'bot_thinking' && payload.text === 'need the types')).toBe(true);
         expect(published.some(payload => payload?.type === 'bot_tool' && payload.tool?.name === 'list_types' && payload.tool.status === 'running')).toBe(true);
@@ -229,13 +275,7 @@ describe('runBotReply', () => {
         expect(sent.agent).toEqual({ thinking: 'need the types', tools: [{ id: 't1', name: 'list_types', status: 'done' }] });
     });
 
-    it('lets the conversation override the bot\'s own brain', async () => {
-        mockedLlm.chatCompletion.mockResolvedValue({ content: 'room brain', toolCalls: [] });
-        await runBotReply(BOT_A, context, message, 'local-fast');
-        expect(mockedLlm.chatCompletion.mock.calls[0][0].profileId).toBe('local-fast');
-    });
-
-    it('executes tool calls with the bot auth and feeds results back', async () => {
+    it('executes tool calls with the sender\'s auth (delegation) and feeds results back', async () => {
         mockedLlm.chatCompletion
             .mockResolvedValueOnce({
                 content: '',
@@ -243,8 +283,8 @@ describe('runBotReply', () => {
             })
             .mockResolvedValueOnce({ content: 'done', toolCalls: [] });
         mockedTools.executeTool.mockResolvedValue({ types: [] });
-        await runBotReply(BOT_A, context, message);
-        expect(mockedTools.executeTool).toHaveBeenCalledWith('list_types', { x: 1 }, botAuth, { instanceRefs: [] });
+        await runAssistantReply(target, context, message);
+        expect(mockedTools.executeTool).toHaveBeenCalledWith('list_types', { x: 1 }, humanAuth, { instanceRefs: [] });
         const toolMessage = mockedLlm.chatCompletion.mock.calls[1][0].messages.find((entry) => entry.role === 'tool');
         expect(toolMessage.toolCallId).toBe('call-1');
         expect(toolMessage.name).toBe('list_types');
@@ -264,7 +304,7 @@ describe('runBotReply', () => {
             if (name === 'attach_instances' && run) run.instanceRefs.push(ref);
             return [ref];
         });
-        await runBotReply(BOT_A, context, message);
+        await runAssistantReply(target, context, message);
         const body = mockedSupport.sendUserMessage.mock.calls[0][1];
         expect(body.message).toBe('attached');
         expect(body.instanceRefs).toEqual([ref]);
@@ -278,7 +318,7 @@ describe('runBotReply', () => {
             })
             .mockResolvedValueOnce({ content: 'recovered', toolCalls: [] });
         mockedTools.executeTool.mockRejectedValue(new Error('boom'));
-        await runBotReply(BOT_A, context, message);
+        await runAssistantReply(target, context, message);
         const toolMessage = mockedLlm.chatCompletion.mock.calls[1][0].messages.find((entry) => entry.role === 'tool');
         expect(JSON.parse(toolMessage.content)).toEqual({ error: 'boom' });
         expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toBe('recovered');
@@ -290,26 +330,26 @@ describe('runBotReply', () => {
             toolCalls: [{ id: 'c', name: 'list_types', arguments: {} }]
         });
         mockedTools.executeTool.mockResolvedValue({});
-        await runBotReply(BOT_A, context, message);
+        await runAssistantReply(target, context, message);
         expect(mockedTools.executeTool).toHaveBeenCalledTimes(8);
         expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toMatch(/budget/i);
     });
 
-    it('skips duplicate concurrent runs for the same bot and conversation', async () => {
+    it('skips duplicate concurrent runs for the same conversation', async () => {
         mockedLlm.chatCompletion.mockImplementation(async () => {
             await new Promise((resolve) => setTimeout(resolve, 20));
             return { content: 'one' };
         });
         await Promise.all([
-            runBotReply(BOT_A, context, message),
-            runBotReply(BOT_A, context, message)
+            runAssistantReply(target, context, message),
+            runAssistantReply(target, context, message)
         ]);
         expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(1);
     });
 });
 
-describe('runBotWake', () => {
-    const subscription = { botUserId: BOT_A, conversationKey: 'instance:organization:org-1', organizationId: 'org-1' };
+describe('runAssistantWake', () => {
+    const subscription = { botUserId: ASSISTANT, conversationKey: 'instance:organization:org-1', organizationId: 'org-1' };
     const wakeEvent = {
         targetId: 'inst-7',
         targetType: 'queue',
@@ -317,6 +357,7 @@ describe('runBotWake', () => {
         toStatePrimary: 'nested',
         actor: { id: 'user-human', label: 'Human', principalType: 'user' }
     };
+    const rule = { type: 'queue', state: 'nested', createdBy: HUMAN };
 
     beforeEach(() => {
         mockedRegistry.getInstanceService.mockReturnValue({
@@ -326,24 +367,33 @@ describe('runBotWake', () => {
 
     it('stays silent when no provider resolves (nobody waits in the room)', async () => {
         mockedLlm.isLlmAvailable.mockResolvedValue(false);
-        await runBotWake(subscription, wakeEvent);
+        await runAssistantWake(subscription, wakeEvent, rule);
         expect(mockedLlm.chatCompletion).not.toHaveBeenCalled();
         expect(mockedSupport.sendUserMessage).not.toHaveBeenCalled();
     });
 
-    it('reads the instance with the bot auth and posts the answer into the subscribed conversation', async () => {
+    it('stays silent when the rule author lost the agent-chat capability', async () => {
+        mockedOrganizations.canUseAgentChats.mockResolvedValue(false);
+        await runAssistantWake(subscription, wakeEvent, rule);
+        expect(mockedLlm.chatCompletion).not.toHaveBeenCalled();
+        expect(mockedSupport.sendUserMessage).not.toHaveBeenCalled();
+    });
+
+    it('reads the instance with the rule author\'s auth and posts as the assistant', async () => {
         mockedLlm.chatCompletion.mockResolvedValue({ content: 'nested and accounted for', toolCalls: [] });
         mockedSupport.listMessages.mockResolvedValue([]);
-        await runBotWake(subscription, wakeEvent);
+        await runAssistantWake(subscription, wakeEvent, rule);
         expect(mockedRegistry.getInstanceService).toHaveBeenCalledWith('queue');
         const [readId, readAuth] = mockedRegistry.getInstanceService().processGetById.mock.calls[0];
         expect(readId).toBe('inst-7');
-        expect(readAuth).toEqual(botAuth);
+        expect(readAuth).toEqual(humanAuth);
         const trigger = mockedLlm.chatCompletion.mock.calls[0][0].messages.at(-1);
         expect(trigger.role).toBe('user');
         expect(trigger.content).toContain('Queue 7');
         expect(trigger.content).toContain('approved → nested');
-        expect(mockedSupport.sendUserMessage).toHaveBeenCalledWith(botAuth, {
+        const [sendAuth, body] = mockedSupport.sendUserMessage.mock.calls[0];
+        expect(sendAuth.userId).toBe(ASSISTANT);
+        expect(body).toEqual({
             instance: { type: 'organization', id: 'org-1' },
             message: 'nested and accounted for',
             agent: { thinking: '', tools: [] }
@@ -353,32 +403,34 @@ describe('runBotWake', () => {
     it('posts into group subscriptions by conversation key', async () => {
         mockedLlm.chatCompletion.mockResolvedValue({ content: 'ok', toolCalls: [] });
         mockedSupport.listMessages.mockResolvedValue([]);
-        await runBotWake({ ...subscription, conversationKey: 'group:g1' }, wakeEvent);
-        expect(mockedSupport.sendUserMessage).toHaveBeenCalledWith(botAuth, {
+        await runAssistantWake({ ...subscription, conversationKey: 'group:g1' }, wakeEvent, rule);
+        const [sendAuth, body] = mockedSupport.sendUserMessage.mock.calls[0];
+        expect(sendAuth.userId).toBe(ASSISTANT);
+        expect(body).toEqual({
             conversationKey: 'group:g1',
             message: 'ok',
             agent: { thinking: '', tools: [] }
         });
     });
 
-    it('skips silently when the bot cannot read the instance', async () => {
+    it('skips silently when the rule author cannot read the instance', async () => {
         mockedRegistry.getInstanceService.mockReturnValue({
             processGetById: vi.fn(async () => { throw new Error('denied'); })
         });
-        await runBotWake(subscription, wakeEvent);
+        await runAssistantWake(subscription, wakeEvent, rule);
         expect(mockedLlm.chatCompletion).not.toHaveBeenCalled();
         expect(mockedSupport.sendUserMessage).not.toHaveBeenCalled();
     });
 
-    it('prefers the wake rule model, then the conversation\'s, then the bot\'s', async () => {
+    it('prefers the wake rule model, then the conversation\'s, then the org route', async () => {
         mockedLlm.chatCompletion.mockResolvedValue({ content: 'ok', toolCalls: [] });
         mockedSupport.listMessages.mockResolvedValue([]);
-        await runBotWake({ botUserId: BOT_A, conversationKey: 'group:g1', profile: 'convo-brain' }, wakeEvent, 'rule-brain');
+        await runAssistantWake({ botUserId: ASSISTANT, conversationKey: 'group:g1', organizationId: 'org-1', profile: 'convo-brain' }, wakeEvent, { ...rule, profile: 'rule-brain' });
         expect(mockedLlm.chatCompletion.mock.calls[0][0].profileId).toBe('rule-brain');
-        await runBotWake({ botUserId: BOT_A, conversationKey: 'group:g1', profile: 'convo-brain' }, wakeEvent, '');
+        await runAssistantWake({ botUserId: ASSISTANT, conversationKey: 'group:g1', organizationId: 'org-1', profile: 'convo-brain' }, wakeEvent, rule);
         expect(mockedLlm.chatCompletion.mock.calls[1][0].profileId).toBe('convo-brain');
-        await runBotWake({ botUserId: BOT_A, conversationKey: 'group:g1' }, wakeEvent, '');
-        expect(mockedLlm.chatCompletion.mock.calls[2][0].profileId).toBe('cloud-big');
+        await runAssistantWake({ botUserId: ASSISTANT, conversationKey: 'group:g1', organizationId: 'org-1' }, wakeEvent, rule);
+        expect(mockedLlm.chatCompletion.mock.calls[2][0].profileId).toBe('');
     });
 
     it('shares the in-flight lock with chat replies for the same conversation', async () => {
@@ -389,8 +441,8 @@ describe('runBotWake', () => {
         const context = { kind: 'group', conversationKey: 'group:g1' };
         const message = { sender: 'user', senderUserId: HUMAN, conversationKey: 'group:g1', participants: [HUMAN] };
         await Promise.all([
-            runBotReply(BOT_A, context, message),
-            runBotWake({ botUserId: BOT_A, conversationKey: 'group:g1' }, wakeEvent)
+            runAssistantReply({ assistantId: ASSISTANT, profile: '', model: '' }, context, message),
+            runAssistantWake({ botUserId: ASSISTANT, conversationKey: 'group:g1', organizationId: 'org-1' }, wakeEvent, rule)
         ]);
         expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(1);
     });
@@ -471,8 +523,8 @@ describe('stopConversationRuns', () => {
             await held;
             throw Object.assign(new Error('aborted'), { name: 'AbortError' });
         });
-        const message = { conversationKey: 'direct:user-human:user-bot-a', participants: [HUMAN, BOT_A] };
-        const run = runBotReply(BOT_A, { kind: 'direct' }, message);
+        const message = { sender: 'user', senderUserId: HUMAN, conversationKey: 'direct:user-human:user-bot-a', participants: [HUMAN, ASSISTANT] };
+        const run = runAssistantReply({ assistantId: ASSISTANT, profile: '', model: '' }, { kind: 'direct' }, message);
         await vi.waitFor(() => expect(seenSignal).toBeTruthy());
         // The first delta reached the room before the stop.
         await vi.waitFor(() => expect(mockedConnections.publish).toHaveBeenCalledWith(

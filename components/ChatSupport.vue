@@ -803,10 +803,10 @@
                     >
                         {{ $t('support.typing', { name: typingName }) }}
                     </div>
-                    <!-- The conversation is an execution point: its bots
-                         run on the chosen model off the served endpoints
-                         (blank = each bot's own brain). -->
-                    <div v-if="conversationBots.length && conversationModelOptions.length" class="flex items-center justify-end px-1">
+                    <!-- The conversation is an execution point: the AI in
+                         this room runs on the chosen model off the served
+                         endpoints (blank = the org chat route). -->
+                    <div v-if="roomAI && conversationModelOptions.length" class="flex items-center justify-end px-1">
                         <PrimeSelect
                             :model-value="conversationModel"
                             :options="conversationModelOptions"
@@ -1506,8 +1506,8 @@ const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadF
 )
 const executingCreate = ref(false)
 const activeConversation = ref(null)
-// Agent bots: the panel button lives in the inbox header; when a group or
-// instance thread is open the panel's switches join bots to exactly that
+// The organization AI: the panel button lives in the inbox header; when a
+// group or instance thread is open the panel joins the AI to exactly that
 // conversation.
 const agentBots = useAgentBotsStore()
 const botPanelVisible = ref(false)
@@ -1614,21 +1614,21 @@ const startCall = async () => {
 }
 
 // The conversation is an execution point: the room picks the model its
-// bots run on, chosen from what the org's chat endpoints actually serve —
+// AI runs on, chosen from what the org's chat endpoints actually serve —
 // the profile pins the endpoint, the row stores both. A direct chat with
-// a bot is the same point through a profile-only row (no membership
-// needed); blank falls back to each bot's own brain.
-const conversationBots = computed(() => {
+// the AI is the same point through a profile-only row (no membership
+// needed); blank falls back to the org chat route.
+const roomAI = computed(() => {
     const conversation = activeConversation.value;
-    if (!conversation) return [];
+    if (!conversation || !agentBots.canChat || !agentBots.ai) return null;
     if (['group', 'instance'].includes(conversation.conversationKind)) {
-        return agentBots.contacts.filter(bot => bot.subscribed);
+        return agentBots.ai.subscribed ? agentBots.ai : null;
     }
     if (conversation.conversationKind === 'direct' && conversation.participant?.data?.bot) {
         const participantId = participantUserId(conversation);
-        return agentBots.contacts.filter(bot => String(bot.id) === participantId);
+        return String(agentBots.ai.id) === String(participantId) ? agentBots.ai : null;
     }
-    return [];
+    return null;
 });
 // Rows pair profile+model; the NUL separator keeps one primitive value for
 // the select while both travel to the row.
@@ -1643,10 +1643,9 @@ const conversationModelRows = computed(() => {
         ? agentBots.chatModels
         : agentBots.chatProfiles.filter(row => row.model).map(row => ({ profile: row.id, model: row.model }));
     const rows = [...base];
-    for (const bot of conversationBots.value) {
-        if (bot.model && !rows.some(row => row.profile === (bot.profile || '') && row.model === bot.model)) {
-            rows.push({ profile: bot.profile || '', model: bot.model });
-        }
+    const pin = roomAI.value;
+    if (pin?.model && !rows.some(row => row.profile === (pin.profile || '') && row.model === pin.model)) {
+        rows.push({ profile: pin.profile || '', model: pin.model });
     }
     return rows.map(row => ({
         label: row.model,
@@ -1656,24 +1655,22 @@ const conversationModelRows = computed(() => {
     }));
 });
 const conversationModelOptions = computed(() => conversationModelRows.value);
-// The select never sits blank: the room's pin when its bots agree, else the
-// model the run would actually use — the bot's own brain, else the first
-// served row.
+// The select never sits blank: the room's pin when it carries a model,
+// else the model the org chat route would actually serve.
 const conversationModel = computed(() => {
-    const pins = new Set(conversationBots.value.map(bot => modelRowValue(bot.profile, bot.model)));
-    const pinned = pins.size === 1 ? [...pins][0] : '';
-    if (pinned && !pinned.endsWith(MODEL_ROW_SEPARATOR)) return pinned;
-    const bot = conversationBots.value[0] || {};
-    const profileRow = agentBots.chatProfiles.find(row => row.id === (bot.profile || bot.brain || '')) || agentBots.chatProfiles[0];
+    const pin = roomAI.value;
+    if (pin?.model) return modelRowValue(pin.profile, pin.model);
     const rows = conversationModelRows.value;
-    const effective = rows.find(row => row.model === profileRow?.model) || rows[0];
-    return effective?.value || '';
+    const effective = agentBots.chatRouteModel
+        ? rows.find(row => row.model === agentBots.chatRouteModel) || { profile: '', model: agentBots.chatRouteModel }
+        : rows[0];
+    return effective ? modelRowValue(effective.profile, effective.model) : '';
 });
 const setConversationModel = async (pin) => {
     const key = activeConversation.value?.conversationKey
-    if (!key) return
+    if (!key || !roomAI.value) return
     const [profile, model] = String(pin || '').split(MODEL_ROW_SEPARATOR)
-    await Promise.all(conversationBots.value.map(bot => agentBots.setSubscriptionProfile(bot.id, key, profile || '', model || '')))
+    await agentBots.setConversationProfile(key, profile || '', model || '')
 }
 
 // Pane-hosted chats open calls as workspace tabs; mobile surfaces keep the
@@ -3508,8 +3505,8 @@ const removeInstanceRef = (targetRef) => {
 const loadNewChatUsers = async () => {
     newChatUsersLoading.value = true
     try {
-        // Bots load beside members: the assistant is ensured server-side, so
-        // chatting with an agent is a new chat away — no setup surface.
+        // The AI loads beside members: the assistant is ensured server-side,
+        // so chatting with it is a new chat away — no setup surface.
         await Promise.all([
             $fetch('/api/support/instance-options', { query: { type: 'user' } }).then((rows) => {
                 newChatUsers.value = rows
@@ -3535,18 +3532,23 @@ const directoryUserOption = (entry) => ({
     instance: entry
 })
 const { query: newChatSearch, results: newChatDirectoryOptions, searching: newChatSearching } = useDirectoryUserSearch()
-// Bot contacts ride the picker's user-option shape (instance DTO carries
-// the bot marker for the badge) and float above human members.
-const botContactOptions = computed(() => agentBots.contacts.map(contact => ({
-    type: 'user',
-    value: String(contact.id),
-    label: contact.name,
-    instance: {
-        _id: contact.id,
-        identity: { name: contact.name },
-        data: { bot: { createdAt: null }, avatarUrl: contact.avatarUrl }
-    }
-})))
+// The organization AI: the single contact floating above human members in
+// the new-chat picker, gated by the caller's agent-chat capability (the
+// server answers canChat; no capability, no AI row).
+const botContactOptions = computed(() => {
+    if (!agentBots.canChat || !agentBots.ai) return [];
+    const contact = agentBots.ai;
+    return [{
+        type: 'user',
+        value: String(contact.id),
+        label: contact.name,
+        instance: {
+            _id: contact.id,
+            identity: { name: contact.name },
+            data: { bot: { createdAt: null }, avatarUrl: contact.avatarUrl }
+        }
+    }];
+});
 
 const newChatOptions = computed(() => {
     const query = newChatSearch.value.trim()

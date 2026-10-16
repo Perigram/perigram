@@ -332,8 +332,7 @@
                   </div>
                   <!-- Single-seat roles (organizations README): exactly one
                        member holds the role at a time — assigning someone
-                       (human or bot) moves the seat. The natural shape for
-                       handing a whole lane to one agent. -->
+                       moves the seat. -->
                   <div class="flex items-center gap-2">
                     <ToggleSwitch
                       :model-value="Boolean(selectedRoleRecord.exclusive)"
@@ -342,6 +341,18 @@
                       @update:model-value="applyRoleExclusive"
                     />
                     <label for="role-exclusive" class="cursor-pointer text-body">{{ $t('organization.singleSeat') }}</label>
+                  </div>
+                  <!-- The agent-chat capability (organizations README):
+                       members holding a role with it see the organization
+                       AI and its chat surfaces. -->
+                  <div class="flex items-center gap-2">
+                    <ToggleSwitch
+                      :model-value="Boolean(selectedRoleRecord.agentChat)"
+                      input-id="role-agent-chat"
+                      :aria-label="$t('organization.agentChat')"
+                      @update:model-value="applyRoleAgentChat"
+                    />
+                    <label for="role-agent-chat" class="cursor-pointer text-body">{{ $t('organization.agentChat') }}</label>
                   </div>
                   <div v-if="selectedRoleAccessSummary.length" class="flex flex-wrap gap-1">
                     <Tag v-for="item in selectedRoleAccessSummary" :key="item.key" :value="`${item.text} · ${item.contributor.label}`" size="small" />
@@ -2693,6 +2704,23 @@ async function applyRoleExclusive(exclusive) {
     const role = await rolePersistence.update(organizationId, selectedRoleId.value, {
       label: selectedRoleRecord.value.label,
       exclusive: Boolean(exclusive)
+    });
+    organizationRoles.value = { ...organizationRoles.value, [role.id]: role };
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
+    await loadOrganizationRoles();
+  }
+}
+
+// Agent-chat capability (organizations README): the roles whose holders
+// see the organization AI. Flipping it moves the whole role's members.
+async function applyRoleAgentChat(agentChat) {
+  if (!selectedRoleRecord.value) return;
+  const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
+  try {
+    const role = await rolePersistence.update(organizationId, selectedRoleId.value, {
+      label: selectedRoleRecord.value.label,
+      agentChat: Boolean(agentChat)
     });
     organizationRoles.value = { ...organizationRoles.value, [role.id]: role };
   } catch (error) {

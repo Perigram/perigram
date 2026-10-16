@@ -4,7 +4,6 @@
         <Button :label="$t('processDesigner.title')" icon="pi pi-sitemap" severity="secondary" outlined @click="openProcessDesigner" />
         <Button :label="$t('auth.inviteMember')" icon="pi pi-link" severity="secondary" :disabled="!roleOptions.length" @click="showInviteDialog = true" />
         <Button :label="$t('common.create')" icon="pi pi-user-plus" :disabled="!roleOptions.length" @click="showCreateDialog = true" />
-        <Button :label="$t('support.bots.addBot')" icon="pi pi-comment" :disabled="!canManageBots" data-testid="team-bot-create-open" @click="openBotCreate" />
     </template>
 
     <TableFrame class="ck-collection-rows">
@@ -14,30 +13,16 @@
         <template #body="{ data }">
           <div class="flex min-w-0 items-center gap-2">
             <span class="truncate">{{ data.identity?.name }}</span>
-            <!-- Bot members are assignable to process roles exactly like
-                 humans — the badge marks which rows are agents. -->
+            <!-- The AI's attribution identity is a member row; the badge
+                 marks it. It holds no roles and no administration — runs
+                 execute delegated to the chatting user. -->
             <Tag v-if="data.data?.bot" :value="$t('support.bots.badge')" severity="secondary" size="small" />
           </div>
         </template>
       </Column>
       <Column field="data.email" :header="$t('profile.email')" sortable>
         <template #body="{ data }">
-          <!-- Bots carry no email; their member row owns the brain select
-               (a chat profile, or the org's chat route when unset). -->
-          <Select
-            v-if="data.data?.bot"
-            :model-value="botProfileOf(data)"
-            :options="botProfileOptions"
-            option-label="label"
-            option-value="value"
-            :aria-label="$t('llm.profile')"
-            class="w-52"
-            :loading="savingBotProfileId === data._id"
-            :disabled="savingBotProfileId === data._id || !canManageBots"
-            :data-testid="`team-bot-profile-${data._id}`"
-            @update:model-value="value => setBotProfile(data, value)"
-          />
-          <span v-else>{{ data.data?.email }}</span>
+          <span v-if="!data.data?.bot">{{ data.data?.email }}</span>
         </template>
       </Column>
       <Column :header="$t('organization.processRoles')">
@@ -50,9 +35,8 @@
       <Column :header="$t('common.actions.title')" class="text-right">
         <template #body="{ data }">
           <div class="flex justify-end gap-2">
-            <Button icon="pi pi-shield" text @click="editProcessRoles(data)" v-tooltip.top="$t('organization.processRoles')" />
-            <Button v-if="data.data?.bot" icon="pi pi-key" text :aria-label="$t('support.bots.rotateToken')" :loading="workingBotId === data._id" @click="rotateBotToken(data)" />
-            <Button icon="pi pi-trash" text severity="danger" @click="confirmDelete(data)" v-tooltip.top="$t('common.delete')" />
+            <Button v-if="!data.data?.bot" icon="pi pi-shield" text @click="editProcessRoles(data)" v-tooltip.top="$t('organization.processRoles')" />
+            <Button v-if="!data.data?.bot" icon="pi pi-trash" text severity="danger" @click="confirmDelete(data)" v-tooltip.top="$t('common.delete')" />
           </div>
         </template>
       </Column>
@@ -285,29 +269,6 @@
             <Button :label="$t('common.save')" icon="pi pi-check" :loading="savingRoleAssignment" @click="saveProcessRoles" />
         </template>
     </StandardDialog>
-
-    <!-- Bot member administration (agent-bots README): creation reveals the
-         one-time token; rotation re-opens the same reveal. -->
-    <StandardDialog v-model:visible="showBotDialog" :header="$t('support.bots.title')" size="sm" :show-default-footer="false">
-      <div class="flex flex-col gap-3 pt-2">
-        <InputText
-          v-model="newBotName"
-          type="text"
-          class="w-full"
-          :placeholder="$t('support.bots.namePlaceholder')"
-          :aria-label="$t('support.bots.namePlaceholder')"
-          data-testid="team-bot-name"
-          @keydown.enter="createBot"
-        />
-        <div v-if="issuedBotToken" class="flex items-center gap-2">
-          <InputText :model-value="issuedBotToken" readonly class="min-w-0 flex-1 text-technical" :aria-label="$t('support.bots.token')" data-testid="team-bot-token" />
-          <Button icon="pi pi-copy" severity="secondary" text rounded :aria-label="$t('common.copy')" @click="copyBotToken" />
-        </div>
-        <div class="flex justify-end gap-2">
-          <Button :label="$t('common.create')" icon="pi pi-plus" :loading="savingBot" :disabled="!newBotName.trim()" data-testid="team-bot-create" @click="createBot" />
-        </div>
-      </div>
-    </StandardDialog>
   </StandardPage>
 </template>
 
@@ -343,7 +304,6 @@ import Avatar from 'primevue/avatar';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
-import Select from 'primevue/select';
 import Tag from 'primevue/tag';
 import Panel from 'primevue/panel';
 import Message from 'primevue/message';
@@ -354,7 +314,6 @@ import TableFrame from '~/components/shared/TableFrame.vue';
 import { usePageBack } from '~/composables/usePageBack.js';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import { useInstancesStore } from '~/stores/instances';
-import { useAgentBotsStore } from '~/stores/agentBots';
 import { useDirectoryUserSearch } from '~/composables/useDirectoryUserSearch.js';
 import { useRegistryStore } from '~/stores/registry';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
@@ -371,7 +330,6 @@ const route = useRoute();
 const authStore = useAuthStore();
 const toast = useToast();
 const instances = useInstancesStore();
-const agentBots = useAgentBotsStore();
 const registry = useRegistryStore();
 const props = defineProps({
   // One-shot invite intent from the page-open seam's params channel
@@ -397,12 +355,6 @@ const generatingInvite = ref(false);
 const savingRoleAssignment = ref(false);
 const selectedUser = ref(null);
 const generatedUrl = ref(null);
-const showBotDialog = ref(false);
-const newBotName = ref('');
-const issuedBotToken = ref('');
-const savingBot = ref(false);
-const workingBotId = ref('');
-const savingBotProfileId = ref('');
 const invitations = ref([]);
 const pendingUsers = ref([]);
 const activeProcess = ref(null);
@@ -535,12 +487,9 @@ async function loadUsers() {
   try {
     // The team surface speaks the feature route's DTO (memberships drive
     // the active/pending split); the instance store serves the §3
-    // process-plane shape for party types. Bot rows are members here too:
-    // their administration (brain, token, lifecycle) rides this surface.
+    // process-plane shape for party types.
     const [allUsers] = await Promise.all([
-      $fetch('/api/users'),
-      agentBots.refresh().catch(() => {}),
-      agentBots.fetchContacts().catch(() => {})
+      $fetch('/api/users')
     ]);
     await loadActiveProcess();
     await loadOrganizationRoles();
@@ -708,19 +657,6 @@ function requiredAssignmentBindings(roleIds = []) {
 }
 
 async function confirmDelete(user) {
-    if (user.data?.bot) {
-        if (!confirm(t('support.bots.deleteConfirm', { name: user.identity?.name }))) return;
-        workingBotId.value = user._id;
-        try {
-            await agentBots.deleteBot(user._id);
-            await loadUsers();
-        } catch (error) {
-            toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 3000 });
-        } finally {
-            workingBotId.value = '';
-        }
-        return;
-    }
     if (confirm(t('auth.removeUserConfirm', { name: user.identity?.name }))) {
         try {
             await instances.removeInstance('user', user._id, { entity: user });
@@ -729,79 +665,6 @@ async function confirmDelete(user) {
         } catch (error) {
             toast.add({ severity: 'error', summary: t('common.error'), detail: error.message, life: 3000 });
         }
-    }
-}
-
-// --- Bot members: brain, token, lifecycle (the agents' member rows) ------
-
-const canManageBots = computed(() => agentBots.canManageBots);
-const botProfileOptions = computed(() => ([
-    { label: t('llm.chatRouteDefault'), value: '' },
-    ...(agentBots.chatProfiles || []).map(profile => ({ label: profile.id, value: profile.id }))
-]));
-
-function botProfileOf(user) {
-    return agentBots.bots?.find(bot => bot.id === user._id)?.profile || '';
-}
-
-function openBotCreate() {
-    newBotName.value = '';
-    issuedBotToken.value = '';
-    showBotDialog.value = true;
-}
-
-async function createBot() {
-    const name = newBotName.value.trim();
-    if (!name) return;
-    savingBot.value = true;
-    try {
-        const created = await agentBots.createBot({ name });
-        issuedBotToken.value = created?.token || '';
-        newBotName.value = '';
-        await loadUsers();
-    } catch (error) {
-        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 4000 });
-    } finally {
-        savingBot.value = false;
-    }
-}
-
-async function setBotProfile(user, profile) {
-    savingBotProfileId.value = user._id;
-    try {
-        await $fetch(`/api/agent-bots/${user._id}/profile`, {
-            method: 'PATCH',
-            body: { profile: profile || '' }
-        });
-        agentBots.bots = (agentBots.bots || []).map(bot => (bot.id === user._id ? { ...bot, profile: profile || '' } : bot));
-    } catch (error) {
-        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
-        await agentBots.refresh().catch(() => {});
-    } finally {
-        savingBotProfileId.value = '';
-    }
-}
-
-async function rotateBotToken(user) {
-    workingBotId.value = user._id;
-    try {
-        const rotated = await agentBots.rotateBotToken(user._id);
-        issuedBotToken.value = rotated?.token || '';
-        newBotName.value = '';
-        showBotDialog.value = true;
-    } catch (error) {
-        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 4000 });
-    } finally {
-        workingBotId.value = '';
-    }
-}
-
-async function copyBotToken() {
-    try {
-        await navigator.clipboard.writeText(issuedBotToken.value);
-        toast.add({ severity: 'success', summary: t('common.copy'), life: 1500 });
-    } catch {
-        toast.add({ severity: 'warn', summary: t('common.copy'), life: 1500 });
     }
 }
 
