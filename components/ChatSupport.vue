@@ -183,7 +183,7 @@
                                     class="bg-subtle text-muted"
                                 />
                                 <Avatar
-                                    v-else-if="option.conversationKind === 'group'"
+                                    v-else-if="option.conversationKind === 'group' && !isAiChatRow(option)"
                                     icon="pi pi-users"
                                     shape="circle"
                                     size="normal"
@@ -207,7 +207,7 @@
                                 <div class="flex min-w-0 items-center gap-2">
                                     <span class="min-w-0 truncate text-label">{{ conversationLabel(option) }}</span>
                                     <small
-                                        v-if="option.conversationKind === 'group'"
+                                        v-if="option.conversationKind === 'group' && !isAiChatRow(option)"
                                         class="shrink-0 text-muted text-supporting"
                                     >
                                         {{ $t('support.membersCount', { count: (option.participants || []).length }) }}
@@ -355,7 +355,7 @@
                                 <template v-else>{{ conversationLabel(activeConversation) }}</template>
                             </h2>
                             <Tag
-                                v-if="isDirectWithBot"
+                                v-if="isAiOnlyRoom"
                                 :value="$t('support.bots.badge')"
                                 severity="secondary"
                                 size="small"
@@ -378,7 +378,9 @@
                              under the title (TraceChain: org root first,
                              links open the ancestor surfaces); group threads
                              carry an overlapping member avatar stack that
-                             opens the full member list as a popup. -->
+                             opens the full member list as a popup; AI
+                             threads carry the assistant's own avatar — a
+                             1:1 chat, never a member list. -->
                         <TraceChain
                             v-if="activeConversation.conversationKind === 'instance'"
                             :entity="chatInstanceRecord"
@@ -386,7 +388,7 @@
                             class="min-w-0"
                         />
                         <button
-                            v-else-if="activeConversation.conversationKind === 'group'"
+                            v-else-if="activeConversation.conversationKind === 'group' && !isAiOnlyRoom"
                             type="button"
                             class="flex min-w-0 items-center gap-1.5"
                             :aria-label="$t('support.members')"
@@ -410,6 +412,13 @@
                                 />
                             </AvatarGroup>
                         </button>
+                        <Avatar
+                            v-else-if="isAiOnlyRoom"
+                            :image="agentBots.ai?.avatarUrl || null"
+                            :label="!agentBots.ai?.avatarUrl ? (agentBots.ai?.name || 'A').charAt(0).toUpperCase() : null"
+                            shape="circle"
+                            class="h-6 w-6 shrink-0 bg-subtle text-supporting [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                        />
                         <small v-else-if="conversationSubtitle" class="block truncate text-muted text-supporting">
                             {{ conversationSubtitle }}
                         </small>
@@ -1520,16 +1529,22 @@ const isDirectWithBot = computed(() => {
     const conversation = activeConversation.value
     return conversation?.conversationKind === 'direct' && Boolean(conversation.participant?.data?.bot)
 })
-// A room whose only counterpart is the AI (a fresh AI thread, a resolved
-// one, or a legacy direct thread): nothing to call, so the call control
-// stays off it.
+// A 1:1 room with the AI — a fresh AI thread (a two-participant group
+// room whose other member is the assistant), a draft one, or a legacy
+// direct thread. It presents as a person chat: no group chrome (members
+// list, member count, sender stamps), nothing to call.
+const isAiChatRow = (conversation) => {
+    if (conversation?.conversationKind !== 'group') return false
+    const assistantId = agentBots.ai?.id
+    if (!assistantId) return false
+    const participants = (conversation.participants || []).map(String)
+    return participants.length === 2 && participants.includes(String(assistantId))
+}
 const isAiOnlyRoom = computed(() => {
     const conversation = activeConversation.value
     if (!conversation) return false
     if (conversation.agentDraft || isDirectWithBot.value) return true
-    if (conversation.conversationKind !== 'group') return false
-    const participants = (conversation.participants || []).map(String)
-    return participants.length === 2 && participants.includes(String(agentBots.ai?.id))
+    return isAiChatRow(conversation)
 })
 // Instance thread view: the children toggle beside the title switches
 // between messages linked to the instance itself and the composed subtree
@@ -3176,7 +3191,12 @@ watch(() => messages.value.length, (newLength, oldLength) => {
 })
 
 onMounted(() => {
-    if (authStore.userIsSet) supportChatStore.connect()
+    if (authStore.userIsSet) {
+        supportChatStore.connect()
+        // The AI contact powers AI-thread presentation (row avatars, the
+        // 1:1 detection) — load it beside the inbox, not only on demand.
+        agentBots.fetchContacts()
+    }
     fetchTranscriptionAvailability()
     if (chatTarget.value?.userId || chatTarget.value?.instanceKey) openDirectTarget()
     else if (chatTarget.value?.conversationKey) openConversationByKey(chatTarget.value.conversationKey)
@@ -3823,7 +3843,10 @@ const isOwnMessage = (chatMessage) => {
 // avatar and name (the shared user chip): group members and org-mates in
 // instance chats (the organization chat included) are multi-sender
 // threads — once per run, never for the viewer's own messages.
+// Sender stamps are group/instance chrome; AI threads are 1:1 chats and
+// never carry them.
 const showSenderLabel = (messageItem) => ['group', 'instance'].includes(activeConversation.value?.conversationKind)
+    && !isAiOnlyRoom.value
     && Boolean(messageItem?.senderUserId)
     && !isOwnMessage(messageItem)
     && messageItem.firstOfSenderRun
@@ -3902,9 +3925,14 @@ const conversationLabel = (conversation) => {
         || (conversation?.conversationKind === 'support' ? t('support.chatTitle') : t('common.user'))
 }
 
-const conversationAvatar = (conversation) => conversation?.participant?.avatarUrl
-    || conversation?.participant?.data?.avatarUrl
-    || ''
+const conversationAvatar = (conversation) => {
+    // AI threads fall into the person-avatar branch: the assistant's own
+    // image stands in for the room.
+    if (isAiChatRow(conversation)) return agentBots.ai?.avatarUrl || ''
+    return conversation?.participant?.avatarUrl
+        || conversation?.participant?.data?.avatarUrl
+        || ''
+}
 
 const conversationPreviewMessage = (conversation) => ({
     message: conversation.lastMessage || '',

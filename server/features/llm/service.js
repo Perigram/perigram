@@ -104,7 +104,15 @@ export async function resolveLlmConfig(organizationId = null, capability = CHAT_
     const routes = setting?.routes && typeof setting.routes === 'object' ? setting.routes : {};
     const family = String(capability || CHAT_CAPABILITY).split('.')[0];
     const routedId = routes[capability] ?? routes[family] ?? routes[CHAT_CAPABILITY] ?? null;
-    const profile = routedId ? profiles[routedId] : null;
+    let profile = routedId ? profiles[routedId] : null;
+    if (!profile && !routedId) {
+        // An unrouted org with exactly one chat profile serves it: a
+        // configured model is the chat model unless routing says
+        // otherwise. Two or more unrouted profiles stay ambiguous and
+        // degrade to the environment.
+        const unrouted = Object.values(profiles).filter(item => item?.kind === 'chat');
+        if (unrouted.length === 1) profile = unrouted[0];
+    }
     if (profile?.kind === 'chat') {
         const config = profileWireConfig(profile);
         if (config.provider !== 'none') return modelOverride ? { ...config, model: modelOverride } : config;
