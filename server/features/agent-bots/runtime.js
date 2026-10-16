@@ -19,7 +19,6 @@ import { executeTool, chatToolDescriptors } from './tools.js';
  */
 
 const HISTORY_LIMIT = 30;
-const MAX_TOOL_ROUNDS = 8;
 
 // One in-flight reply per conversation: bursts (or a subscriber's own
 // sends racing the reply) must not stack duplicate answers. Chat replies
@@ -221,7 +220,10 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, pr
         // mutate under the client while the run continues.
         if (stream) stream.activity(visibleSteps().map(step => (step.kind === 'tool' ? { ...step } : { kind: 'thinking', text: step.text })));
     };
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    // No round budget (owner direction 2026-10-16): the loop runs until the
+    // model answers; the room's stop control and the provider idle guard
+    // are the only terminators.
+    for (;;) {
         segment = { kind: 'thinking', text: '' };
         steps.push(segment);
         const assistant = await streamedRound({
@@ -279,7 +281,6 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, pr
             });
         }
     }
-    return { text: 'Stopped: tool round budget reached without a final answer.', instanceRefs: run.instanceRefs, agent: { steps: visibleSteps() } };
 }
 
 function replyBodyFor(context, message, text, assistantUserId, instanceRefs = [], agent = null) {

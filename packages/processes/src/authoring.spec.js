@@ -10,7 +10,7 @@ import {
   graphIntegrityProblems
 } from './authoring.js';
 import { validateRoundTrip } from './transpiler.js';
-import { compileTreeDeclarations } from './designer.js';
+import { camelCaseId, compileTreeDeclarations } from './designer.js';
 import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '../../cts/src/index.js';
 import { cncTypePack } from '../../cts/src/pack/cnc.js';
 import { facadeDomain, facadeServices } from '../../../test-tools/facade-plugin.js';
@@ -66,6 +66,22 @@ describe('seeding the authoring seam from a stored document', () => {
     const data = seam.definition();
     expect(data.ctsTypes.fld_width.kind).toBe('field');
     expect(data.graph.edges.some(edge => edge.label === 'declares' && edge.source === 'fld_width' && edge.target === 'cls_sheet')).toBe(true);
+  });
+
+  it('accepts socket handles on connect (the guide\'s data: spelling) and mints them on the edge', () => {
+    const seam = authoring();
+    seam.drop('literal', { id: 'lit1' });
+    seam.drop('castValue', { id: 'cast1' });
+    const edge = seam.connect('lit1', 'data:value', 'cast1', 'value');
+    expect(edge.source).toBe('lit1');
+    expect(edge.sourceHandle).toBe('data:value');
+    expect(edge.targetHandle.startsWith('data:')).toBe(true);
+  });
+
+  it('derives row keys from labels in any script', () => {
+    expect(camelCaseId('Название задачи')).toBe('названиеЗадачи');
+    expect(camelCaseId('Field name 2')).toBe('fieldName2');
+    expect(camelCaseId('Ширина sheet 2')).toBe('ширинаSheet2');
   });
 });
 

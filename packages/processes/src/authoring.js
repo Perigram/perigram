@@ -706,7 +706,10 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
 
   function portOf(record, portId, direction) {
     const ports = sync.catalogPorts(record)[direction === 'output' ? 'outputs' : 'inputs'];
-    return ports.find(port => port.id === portId) || null;
+    // Socket handles ('data:<id>' and the legacy spellings) carry the same
+    // meaning as the bare socket id — the one regex home parses them.
+    const bare = parseProcessSocketHandleId(portId) || String(portId || '');
+    return ports.find(port => port.id === bare) || null;
   }
 
   function connectedInputHandles(recordId) {

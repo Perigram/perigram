@@ -146,6 +146,13 @@ describe('definition tool authoring surface', () => {
         expect(catalog.nodeCatalog.length).toBeGreaterThan(0);
         expect(catalog.nodeCatalog.every(node => node.family === 'values')).toBe(true);
 
+        const socketTable = await executeTool('get_authoring_vocabulary', { detail: 'sockets', kind: 'source.literalItem' }, AUTH);
+        expect(socketTable.sockets['source.literalItem'].outputs).toEqual([
+            expect.objectContaining({ id: 'value', base: 'json' })
+        ]);
+        expect(vocabulary.guide).toContain("detail:'sockets'");
+        expect(vocabulary.guide).toContain('id is the FROM node');
+
         const sockets = await executeTool('get_authoring_vocabulary', { detail: 'valueOperations', kind: 'value.math' }, AUTH);
         const math = sockets.valueOperations['value.math'] || {};
         const firstMath = math[Object.keys(math)[0]];
