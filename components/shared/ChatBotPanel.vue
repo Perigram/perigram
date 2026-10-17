@@ -15,12 +15,6 @@
             <div v-else-if="aiRow" class="flex min-w-0 items-center gap-2">
                 <AiAvatar class="shrink-0" />
                 <span class="min-w-0 flex-1 truncate text-label">{{ aiRow.name }}</span>
-                <Tag
-                    :value="$t('support.bots.assistant')"
-                    severity="secondary"
-                    size="small"
-                    class="shrink-0"
-                />
                 <ToggleSwitch
                     v-if="canToggle"
                     :model-value="aiRow.subscribed"
@@ -117,7 +111,6 @@ import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Select from 'primevue/select';
-import Tag from 'primevue/tag';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';

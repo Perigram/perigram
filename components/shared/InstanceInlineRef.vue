@@ -45,7 +45,10 @@ const props = defineProps({
   allowDetailRoute: { type: Boolean, default: true },
   interactive: { type: Boolean, default: true },
   variant: { type: String, default: 'inline' },
-  contextActionEntries: { type: Array, default: () => [] }
+  contextActionEntries: { type: Array, default: () => [] },
+  // Boxed chip treatment (tone-var fill/outline) for surfaces where refs
+  // must read as chips rather than inline text — chat message refs today.
+  chip: { type: Boolean, default: false }
 });
 
 const loaded = ref(null);
@@ -427,7 +430,13 @@ function tonePalette(role) {
     <span
       v-else-if="resolved"
       class="instance-inline-chip min-w-0 max-w-full"
-      :class="{ 'cursor-pointer': interactive }"
+      :class="[
+        { 'cursor-pointer': interactive },
+        // The boxed treatment consumes the tone vars the wrapper sets
+        // (type accent mixed toward the surface by semantic role) —
+        // utilities, never main.css chrome (the design guard's law).
+        chip ? 'rounded-ui border bg-[var(--ck-inline-ref-bg)] px-1 py-0.5 text-[var(--ck-inline-ref-fg)] [border-color:var(--ck-inline-ref-border)]' : ''
+      ]"
       :role="resolved && interactive ? 'button' : undefined"
       :tabindex="resolved && interactive ? 0 : undefined"
       :title="identityLabel"

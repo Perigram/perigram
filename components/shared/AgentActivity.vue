@@ -5,10 +5,11 @@ import Fieldset from 'primevue/fieldset';
 import Message from 'primevue/message';
 
 // An agent run's visible work as one chronology: per-round reasoning in
-// collapsible Fieldsets interleaved with one row per tool invocation,
-// in the order they happened. The same component renders the live run
-// and the provenance persisted on the bot's reply — the answer itself
-// is not rendered here, it is the message body at both sites.
+// collapsible Fieldsets interleaved with one boxed row per tool
+// invocation, in the order they happened. The same component renders
+// the live run and the provenance persisted on the bot's reply — the
+// answer itself is not rendered here, it is the message body at both
+// sites.
 const props = defineProps({
     activity: { type: Object, required: true },
     live: { type: Boolean, default: false }
@@ -18,7 +19,19 @@ const { t } = useI18n();
 
 const steps = computed(() => props.activity.steps || []);
 const pending = computed(() => props.live && !steps.value.length && !props.activity.answer);
-const toolIcon = (status) => (status === 'done' ? 'pi pi-check' : status === 'error' ? 'pi pi-exclamation-triangle' : 'pi pi-spin pi-spinner');
+const toolIcon = (status) => ({
+    done: 'pi pi-check text-status-success',
+    error: 'pi pi-exclamation-triangle text-status-danger'
+}[status] || 'pi pi-spin pi-spinner');
+
+// Compact disclosure for the chronology: supporting-size legend and
+// tighter insets than Aura's defaults (pt is the app's per-instance
+// lever over component tokens).
+const thinkingPt = {
+    root: { style: { padding: '0 0.5rem 0.25rem 0.5rem' } },
+    legend: { style: { padding: '0.25rem 0.5rem' } },
+    legendLabel: { class: 'text-supporting' }
+};
 </script>
 
 <template>
@@ -36,19 +49,16 @@ const toolIcon = (status) => (status === 'done' ? 'pi pi-check' : status === 'er
                 :legend="t('support.thinking')"
                 toggleable
                 :collapsed="false"
+                :pt="thinkingPt"
                 class="min-w-0"
                 data-testid="agent-thinking"
             >
-                <p class="m-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{{ step.text }}</p>
+                <p class="m-0 text-muted text-supporting whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{{ step.text }}</p>
             </Fieldset>
-            <div
-                v-else
-                class="flex min-w-0 flex-col gap-0.5 px-1"
-                data-testid="agent-tool"
-            >
-                <div class="flex min-w-0 items-center gap-2">
-                    <i :class="toolIcon(step.status)" aria-hidden="true" />
-                    <span class="min-w-0 truncate">{{ step.name }}</span>
+            <div v-else class="flex min-w-0 flex-col gap-1" data-testid="agent-tool">
+                <div class="flex min-w-0 items-center gap-2 rounded-ui bg-subtle px-2 py-1">
+                    <i :class="toolIcon(step.status)" class="shrink-0" aria-hidden="true" />
+                    <span class="min-w-0 flex-1 truncate text-technical">{{ step.name }}</span>
                 </div>
                 <Message v-if="step.error" severity="error" size="small" :closable="false">
                     {{ step.error }}
