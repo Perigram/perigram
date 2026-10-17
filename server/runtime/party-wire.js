@@ -13,12 +13,16 @@ const versionById = new Map(frameworkTypes.map(type => [type.id, type.version]))
 function wireSlots(typeId, model, extraFields = {}) {
   const json = model?.toJSON ? model.toJSON() : (model || {});
   const name = json.identity?.name ?? null;
+  // The user's derived rows read the serialized shape (the users model
+  // computes `data.avatarUrl` in toJSON; the bot marker travels as the
+  // bare creation stamp).
+  const extra = typeof extraFields === 'function' ? extraFields(json) : extraFields;
   return {
     _id: json._id ?? json.id ?? null,
     type: typeId,
     typeVersion: versionById.get(typeId) ?? 1,
     name,
-    fields: { name, email: json.data?.email ?? null, ...extraFields }
+    fields: { name, email: json.data?.email ?? null, ...extra }
   };
 }
 
@@ -61,14 +65,22 @@ export const partyProcessBindings = {
     list: async (filters, context = {}) => {
       const roles = await roleIdsByUser(context.organizationId);
       const users = await usersService.list(context.userId, context.organizationId, context.role, context);
-      return users.map(user => wireSlots('user', user, { roles: roles.get(String(wireIdOf(user))) || [] }));
+      return users.map(user => wireSlots('user', user, json => ({
+        roles: roles.get(String(json._id ?? json.id)) || [],
+        bot: Boolean(json.data?.bot),
+        avatarUrl: json.data?.avatarUrl ?? null
+      })));
     },
     read: async (id, context = {}) => {
       const user = await usersService.getById(id);
       if (!user) return null;
       assertReadable({ modelTypeId: 'user', model: user, auth: context });
       const roles = await roleIdsByUser(context.organizationId);
-      return wireSlots('user', user, { roles: roles.get(String(wireIdOf(user))) || [] });
+      return wireSlots('user', user, json => ({
+        roles: roles.get(String(json._id ?? json.id)) || [],
+        bot: Boolean(json.data?.bot),
+        avatarUrl: json.data?.avatarUrl ?? null
+      }));
     }
   },
   organization: {
@@ -84,8 +96,3 @@ export const partyProcessBindings = {
     }
   }
 };
-
-function wireIdOf(model) {
-  const json = model?.toJSON ? model.toJSON() : (model || {});
-  return json._id ?? json.id ?? null;
-}

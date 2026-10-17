@@ -31,10 +31,12 @@ import { useInstancesStore } from '~/stores/instances';
 // The user identity chip: avatar plus display name, never the generic
 // instance-ref face (type glyph plus identifier field — which renders the
 // users icon and the email for the served user type). Resolution rides the
-// instances store's readable-reference seam, so org-mates resolve through
-// the users list and everyone else through the directory card — both carry
-// `data.avatarUrl`. A left click opens the shared entity popup (the user's
-// directory profile), the same surface the direct-thread title opens.
+// instances store's readable-reference seam, whose two legs speak two
+// shapes: the §3 wire DTO for org-mates (`name`, `fields.bot`,
+// `fields.avatarUrl` — CTS SPEC §13 party projection) and the directory
+// card for everyone else (`identity.name`, `data.avatarUrl`). A left
+// click opens the shared entity popup (the user's directory profile),
+// the same surface the direct-thread title opens.
 // The avatar's letter label must be null whenever the image is set:
 // PrimeVue's Avatar renders label over image, so a constant label would
 // hide every avatar (the bug that made avatars look private to their own
@@ -56,13 +58,16 @@ watch(() => props.userId, async (id) => {
     resolved.value = await instances.resolveReadableReference('user', String(id), { silent: true });
 }, { immediate: true });
 
-const displayName = computed(() => resolved.value?.identity?.name
+const displayName = computed(() => resolved.value?.name
+    || resolved.value?.identity?.name
     || props.name
     || t('common.user'));
-const avatarUrl = computed(() => resolved.value?.data?.avatarUrl || '');
+const avatarUrl = computed(() => resolved.value?.fields?.avatarUrl
+    || resolved.value?.data?.avatarUrl
+    || '');
 // The org assistant carries the bot marker (users feature): its chip
 // face is the shared AI glyph, never an image or letter.
-const isBot = computed(() => Boolean(resolved.value?.data?.bot));
+const isBot = computed(() => Boolean(resolved.value?.fields?.bot || resolved.value?.data?.bot));
 
 const open = () => {
     openEntityPopup({ typeId: 'user', instanceId: String(props.userId) });

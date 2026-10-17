@@ -2,13 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('~/server/features/users/service.js', () => ({
   list: vi.fn(async () => [
-    { toJSON: () => ({ _id: 'user-1', identity: { name: 'Ada' }, data: { email: 'ada@perigram.dev', memberships: [{ organizationId: 'org-1' }] } }) },
-    { toJSON: () => ({ _id: 'user-2', identity: { name: 'Bo' }, data: { email: 'bo@perigram.dev', memberships: [{ organizationId: 'org-2' }] } }) }
+    { toJSON: () => ({ _id: 'user-1', identity: { name: 'Ada' }, data: { email: 'ada@perigram.dev', memberships: [{ organizationId: 'org-1' }], avatarUrl: '/api/users/user-1/avatar?v=1' } }) },
+    { toJSON: () => ({ _id: 'user-2', identity: { name: 'Bo' }, data: { email: 'bo@perigram.dev', memberships: [{ organizationId: 'org-2' }] } }) },
+    { toJSON: () => ({ _id: 'user-bot', identity: { name: 'Assistant' }, data: { email: 'assistant@bots.perigram.internal', memberships: [{ organizationId: 'org-1' }], bot: { createdAt: new Date(0) } } }) }
   ]),
   getById: vi.fn(async id => (
     {
-      'user-1': { toJSON: () => ({ _id: 'user-1', identity: { name: 'Ada' }, data: { email: 'ada@perigram.dev', memberships: [{ organizationId: 'org-1' }] } }) },
-      'user-2': { toJSON: () => ({ _id: 'user-2', identity: { name: 'Bo' }, data: { email: 'bo@perigram.dev', memberships: [{ organizationId: 'org-2' }] } }) }
+      'user-1': { toJSON: () => ({ _id: 'user-1', identity: { name: 'Ada' }, data: { email: 'ada@perigram.dev', memberships: [{ organizationId: 'org-1' }], avatarUrl: '/api/users/user-1/avatar?v=1' } }) },
+      'user-2': { toJSON: () => ({ _id: 'user-2', identity: { name: 'Bo' }, data: { email: 'bo@perigram.dev', memberships: [{ organizationId: 'org-2' }] } }) },
+      'user-bot': { toJSON: () => ({ _id: 'user-bot', identity: { name: 'Assistant' }, data: { email: 'assistant@bots.perigram.internal', memberships: [{ organizationId: 'org-1' }], bot: { createdAt: new Date(0) } } }) }
     }[id] || null
   ))
 }));
@@ -47,8 +49,22 @@ describe('party process bindings (§3 wire, readable principals)', () => {
       type: 'user',
       typeVersion: 1,
       name: 'Ada',
-      fields: { name: 'Ada', email: 'ada@perigram.dev', roles: ['role-operator'] }
+      fields: {
+        name: 'Ada',
+        email: 'ada@perigram.dev',
+        roles: ['role-operator'],
+        bot: false,
+        avatarUrl: '/api/users/user-1/avatar?v=1'
+      }
     });
+  });
+
+  it('carries the AI attribution marker and a null avatar for the assistant', async () => {
+    const bot = await partyProcessBindings.user.read('user-bot', member);
+    expect(bot.fields.bot).toBe(true);
+    expect(bot.fields.avatarUrl).toBeNull();
+    const human = await partyProcessBindings.user.read('user-1', member);
+    expect(human.fields.bot).toBe(false);
   });
 
   it('derives the roles row from the active organization assignments — an unassigned member carries the empty set', async () => {

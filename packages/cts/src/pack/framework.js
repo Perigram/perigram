@@ -31,7 +31,13 @@ export const frameworkTypes = [
       // roleAssignments (the org stays the single assignment home); the
       // row makes role-scoped relation domains and filters expressible
       // over user data without copying assignment onto the user record.
-      roles: { base: 'list', itemType: { base: 'string' }, label: 'profile.roles' }
+      roles: { base: 'list', itemType: { base: 'string' }, label: 'profile.roles' },
+      // The AI attribution-identity marker and the computed avatar
+      // serving route — derived at the party read boundary so surfaces
+      // render the assistant's face and avatars off the §3 wire,
+      // without the legacy feature DTO.
+      bot: { base: 'boolean' },
+      avatarUrl: { base: 'string' }
     }
   },
   // Framework machinery types: file storage, revisions, process definitions.

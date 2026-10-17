@@ -554,7 +554,6 @@
                             @touchmove="onTouchMove($event, messageItem)"
                             @touchend="onTouchEnd(messageItem)"
                             @touchcancel="onTouchCancel(messageItem)"
-                            @click="openMessagePopup($event, messageItem)"
                             @contextmenu="openMessageMenuFromRow($event, messageItem, true)"
                         >
                             <!-- Swipe reveal icon: it sits in the gap the
@@ -1496,7 +1495,7 @@ import { useRegistryStore } from '~/stores/registry'
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js'
 import { openInstanceChat } from '~/utils/instance-chat.js'
 import { useEntityPopup } from '~/composables/useEntityPopup'
-import { isInteractiveEventTarget } from '~/utils/interactive-target.js'
+
 import { openChatInWorkspaceTab } from '~/utils/chat-workspace-open.js'
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
@@ -1957,11 +1956,14 @@ watch(groupParticipantIds, async (ids) => {
         return
     }
     groupParticipants.value = await Promise.all(ids.map(async (id) => {
+        // The seam's two legs: the §3 wire row (fields.avatarUrl) for
+        // org-mates, the directory card (data.avatarUrl) for everyone
+        // else.
         const record = await instances.resolveReadableReference('user', String(id), { silent: true })
         return {
             id: String(id),
-            name: record?.name || '',
-            avatarUrl: record?.data?.avatarUrl || ''
+            name: record?.name || record?.identity?.name || '',
+            avatarUrl: record?.fields?.avatarUrl || record?.data?.avatarUrl || ''
         }
     }))
 }, { immediate: true })
@@ -3132,20 +3134,6 @@ const openMessageMenuFromRow = (event, messageItem, longPress = false) => {
     if (!longPress && typeof window !== 'undefined' && String(window.getSelection?.() || '').length) return
     if (longPress) event?.preventDefault?.()
     openMessageMenu(event, messageItem)
-}
-
-// Left click inspects: a message linked to an instance opens that
-// instance's popup (the same entity popup the thread title opens), so a
-// composed thread's rows lead to the exact instance they concern. Clicks
-// on interactive children (inline ref chips, links, media, the reply-quote
-// jump) and text selections keep their own behavior; person threads have
-// no instance to inspect and ignore the click.
-const openMessagePopup = (event, messageItem) => {
-    if (isInteractiveEventTarget(event)) return
-    if (typeof window !== 'undefined' && String(window.getSelection?.() || '').length) return
-    const link = messageItem?.instanceLink
-    if (!link?.type || !link?.id) return
-    openEntityPopup({ typeId: link.type, instanceId: String(link.id) })
 }
 
 // Replies quote the target inline in the composer; sending carries the
