@@ -77,8 +77,9 @@ persistence callbacks, never stores, routing, or auth:
   `computed`, `watch`, lifecycle hooks — render functions, no template
   compiler), the vetted component pack (compose from it; that is the
   consistency law), and `{ t, te, locale }`. The pack is the PrimeVue
-  primitives (`Button`, `Checkbox`, `Dialog`, `InputText`, `InputNumber`,
-  `Message`, `Popover`, `ScrollPanel`, `Select`, `Tag`, `Textarea`) plus
+  primitives (`Button`, `Checkbox`, `ColorPicker`, `Dialog`, `InputText`,
+  `InputNumber`, `Message`, `Popover`, `ScrollPanel`, `Select`,
+  `SelectButton`, `Tag`, `Textarea`, `Toolbar`) plus
   the host designer chrome (`DesignerSurface`, `DesignerWorkspace`,
   `DrawingCanvas`, `InstanceSelect`, `StandardDialog`).
 - The returned component declares props `{ record, persistence }`.

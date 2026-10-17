@@ -742,6 +742,16 @@ entry (a bare length as direct distance toward the cursor, `dist<angle`
 polar, `@x,y` relative), and the editor asserts it off on mount so every
 session starts with the clean chrome.
 
+Owner decision (2026-10-17, profile editor draft and chrome): the
+profile dialog drafts blank — an empty canvas and an empty parameter
+table, no seeded geometry (the parametric hanger template stays the
+renderer's fallback for sketch-less workpieces, never the dialog's
+starting draft); the dialog's window-level controls (name, kind,
+process, library pick, save actions) collapse into one compact row
+instead of stacked bands; and the editor's own operations render as an
+icon toolbar (open-source CAD glyphs, PrimeVue Toolbar) instead of
+wrapped text buttons.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,

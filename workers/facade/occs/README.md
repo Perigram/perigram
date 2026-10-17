@@ -60,8 +60,10 @@ modules — no platform imports.
   The default hanger template is parametric by law: its geometry binds to
   its table (W/H the rectangle, R the corner fillets, D the hole, L the
   sweep at evaluation), so a cassette's instance parameters drive it the
-  moment it is attached — the workpiece row's chips are live. The profile
-  dialog drafts a new profile on this same template, and an attached
+  moment it is attached — the workpiece row's chips are live. The
+  template is the renderer's fallback for sketch-less workpieces, never
+  the dialog's starting draft (owner decision 2026-10-17: every dialog
+  session drafts blank — empty canvas, empty table), and an attached
   workpiece's table is its derived sketch's table with the instance values
   on top, so the row renders a chip for every parameter the sketch binds,
   never only the ones an instance happened to override. The numeric
@@ -70,9 +72,10 @@ modules — no platform imports.
   authored them and carry no table for the expressions to resolve against.
   A blank authoring session starts with an empty
   table — parameters are added when a sketch
-  needs them, nothing is pre-seeded there, and clearing the canvas
-  starts that blank session (the previous session's table dies with its
-  geometry, never riding the next hand-drawn profile). Every authoring field (point
+  needs them, nothing is pre-seeded there; the dialog opens that blank
+  session, and clearing the canvas restarts it (the previous session's
+  table dies with its geometry, never riding the next hand-drawn
+  profile). Every authoring field (point
   coordinates, hole centers and diameters, fillet radii, parameter
   values) carries a number or an expression string evaluated
   against the parameter table through `expressions.js` — the same
