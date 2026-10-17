@@ -131,7 +131,11 @@ const layerPanelRows = computed(() => (drawing.value?.layers || []).map(layer =>
 }));
 const visibleDrawingLayers = computed(() => {
   if (!hasLayers.value) return [];
-  return drawing.value.layers.filter(layer => visibleLayerSelection.value.includes(layer.name));
+  // Layer identity is dual-key: the display name (production export
+  // name) or the stable standardCode — preview surfaces select by code,
+  // authoring surfaces by name, both match the same layers.
+  return drawing.value.layers.filter(layer => visibleLayerSelection.value.includes(layer.name)
+    || (layer.standardCode && visibleLayerSelection.value.includes(layer.standardCode)));
 });
 // Layer-row identity meta (the slug fact under the layer name), built in
 // script like every other identity meta line so template copy stays i18n.
