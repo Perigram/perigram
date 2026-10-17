@@ -32,7 +32,7 @@ vi.mock('~/server/runtime/app-registry.js', () => mockedRegistry);
 vi.mock('~/server/features/organizations/service.js', () => mockedOrganizations);
 vi.mock('~/server/features/agent-bots/service.js', () => mockedAgentService);
 
-import { executeTool, mcpToolDescriptors, chatToolDescriptors } from './tools.js';
+import { executeTool, mcpToolDescriptors, chatToolDescriptors, toolCallDetail } from './tools.js';
 
 const AUTH = { userId: 'user-1', organizationId: 'org-1' };
 const STORED = {
@@ -54,6 +54,24 @@ beforeEach(() => {
     mockedProcessDefinitions.getById.mockResolvedValue(structuredClone(STORED));
     mockedProcessDefinitions.update.mockImplementation(async (_id, payload) => ({ saved: payload }));
     mockedProcessDefinitions.create.mockImplementation(async (payload) => ({ created: payload }));
+});
+
+describe('tool call detail', () => {
+    it('cites the authored vocabulary a call addressed, storage ids never', () => {
+        expect(toolCallDetail('create_process_definition', { name: 'Order flow', data: {} })).toBe('Order flow');
+        expect(toolCallDetail('run_action', { actionId: 'rename', instanceId: '507f1f77bcf86cd799439011' })).toBe('rename');
+        expect(toolCallDetail('list_instances', { type: 'cassette', limit: 5 })).toBe('cassette');
+        // Definition calls addressed by storage id carry no detail — the
+        // id is code-only and never renders.
+        expect(toolCallDetail('get_process_definition', { definitionId: '507f1f77bcf86cd799439011' })).toBe('');
+        expect(toolCallDetail('list_types', {})).toBe('');
+    });
+
+    it('joins several values and caps runaway lengths', () => {
+        expect(toolCallDetail('x', { name: 'Order flow', type: 'cassette' })).toBe('Order flow · cassette');
+        const long = 'x'.repeat(500);
+        expect(toolCallDetail('x', { name: long })).toHaveLength(60);
+    });
 });
 
 describe('definition tool authoring surface', () => {

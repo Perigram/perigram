@@ -1,5 +1,45 @@
 # TODO
 
+## Agent tool calls as small Messages with details (owner direction 2026-10-17)
+
+The agent chronology's tool invocations render as small severity-styled
+PrimeVue Messages instead of Tags: localized tool names, a compact detail
+of what the call addressed (definition name, instance type, action id —
+never raw Mongo ids), and a failed tool's error inside the same message
+(SPEC: agent access, typed machine output).
+
+- [ ] WAITING — owner verification on the live stack: an agent run's tool
+  steps render as small Messages (info while running, secondary when
+  done, error with the rejection text when failed) carrying localized
+  names and the call's detail; the thinking Fieldsets are unchanged.
+
+### Agent Notes (2026-10-17 — typed tool messages shipped)
+
+- Server: the runtime attaches `detail` to each tool step from the call
+  arguments (`toolCallDetail` in the catalog) — authored vocabulary
+  only (definition `name`, instance `type`, `actionId`), storage ids
+  excluded by the no-ids UI rule; empty details stay off the wire, so
+  id-addressed definition calls render label-only. The live
+  `bot_activity` snapshots and the persisted `agent` provenance carry
+  the same step shape.
+- Client: `AgentActivity.vue` renders one small PrimeVue `Message` per
+  tool invocation (severity info/secondary/error by outcome, the status
+  glyph as the message icon) — localized name off the new
+  `support.agentTools.*` vocabulary (en/ru, all 17 catalog tools;
+  unknown tools fall back to the raw name via the t-versus-key idiom —
+  `te` is locale-strict and misses when the locale is `en-US`), the
+  detail after the label, and a failed tool's error inside the same
+  message. Detail parts naming a type resolve through the registry
+  store's served names when loaded. The retired Tag row and its pt are
+  gone.
+- Contradiction reconciled: SPEC claimed the chronology renders as a
+  PrimeVue Timeline — the implementation has been Fieldset+Tag; the
+  SPEC now states the Message form this task ships.
+- Validation: agent-bots + tools specs (incl. new detail cases), chat
+  content SSR smoke (localized labels, severity classes, no Tag
+  chrome), all SSR smokes, check-arch, framework:validate,
+  design-system, docs:validate — pass.
+
 ## Chats inbox folders — chip strip replaces the org tree (owner direction 2026-10-17)
 
 The chats inbox drops the lineage tree: rows render as one flat list, and

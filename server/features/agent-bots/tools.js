@@ -619,3 +619,21 @@ export async function executeTool(name, args, auth, run = null) {
     if (!auth?.userId) throw createError({ statusCode: 401, message: 'Authentication required' });
     return boundedToolResult(await spec.execute(args && typeof args === 'object' ? args : {}, auth, run));
 }
+
+/**
+ * Compact human summary of a tool call's arguments for the run
+ * chronology: the authored vocabulary a call addressed — a definition
+ * name, an instance type, an action id. Storage ids stay out (they are
+ * code-only and never render).
+ */
+const DETAIL_ARG_KEYS = ['name', 'type', 'actionId'];
+const DETAIL_VALUE_LIMIT = 60;
+const DETAIL_TOTAL_LIMIT = 120;
+export function toolCallDetail(name, args = {}) {
+    return DETAIL_ARG_KEYS
+        .map(key => String(args?.[key] ?? '').trim())
+        .filter(Boolean)
+        .map(value => value.slice(0, DETAIL_VALUE_LIMIT))
+        .join(' · ')
+        .slice(0, DETAIL_TOTAL_LIMIT);
+}

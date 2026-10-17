@@ -201,7 +201,26 @@
         "sendMessage": "Send message",
         "members": "Members",
         "folderAll": "All",
-        "folderPersonal": "Personal"
+        "folderPersonal": "Personal",
+        "agentTools": {
+            "list_process_definitions": "Process definitions listed",
+            "get_process_definition": "Process definition loaded",
+            "create_process_definition": "Process definition created",
+            "update_process_definition": "Process definition saved",
+            "update_definition_graph": "Definition graph saved",
+            "get_authoring_vocabulary": "Authoring vocabulary loaded",
+            "compose_process_definition": "Process definition composed",
+            "edit_process_definition": "Process definition edited",
+            "validate_process_definition": "Process definition validated",
+            "activate_process_definition": "Process definition activated",
+            "deactivate_process_definition": "Process definition deactivated",
+            "list_types": "Types listed",
+            "list_instances": "Instances listed",
+            "get_instance": "Instance loaded",
+            "attach_instances": "Instances attached",
+            "list_actions": "Actions listed",
+            "run_action": "Action executed"
+        }
     },
     "footer": {
         "termsAndConditions": "Terms and Conditions",

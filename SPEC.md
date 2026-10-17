@@ -107,10 +107,11 @@ the run's own activity is its presence.
 Non-answer machine output is typed, not conversational (owner direction
 2026-10-17): the agent's failure notices persist with a severity kind
 and render as severity-styled system notices (PrimeVue Message), never
-as plain chat bubbles; tool failures render severity-marked inside the
-run chronology; the thinking disclosure is the PrimeVue Fieldset
-(compact toggle button), and the run's chronology renders as a PrimeVue
-Timeline of its tool invocations. The AI's identity face is the microchip glyph in the
+as plain chat bubbles; the run chronology renders one small PrimeVue
+Message per tool invocation — localized tool name with a compact detail
+of what the call addressed, severity-marked by outcome, a failed tool
+carrying its error in the same message; the thinking disclosure is the
+PrimeVue Fieldset (compact toggle button). The AI's identity face is the microchip glyph in the
 brand accent (carmine) wherever the assistant shows — thread avatars,
 sender chips, pickers — and it is the only AI marker on chat surfaces:
 no text badges. Instance refs attach to chat messages like files do —

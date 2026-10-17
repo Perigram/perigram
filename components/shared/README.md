@@ -549,21 +549,26 @@ Keep person identity displays on this chip; keep entity refs on
 
 ### `AgentActivity.vue`
 An agent run's visible work as one chronology: per-round model
-reasoning in collapsible `Fieldset` disclosures and one bordered
-`Tag` per tool invocation — status icon and technical-voice name in
-the pill (regular weight, content-width, left-aligned through `pt` and
-`self-start`: Aura's Tag is a centered bold badge stretched by its
-flex-column parent), the failure as a severity-error `Message`
-beneath it. The
+reasoning in collapsible `Fieldset` disclosures and one small typed
+`Message` per tool invocation — the localized tool name (the
+`support.agentTools.*` vocabulary, keyed by tool name; unknown tools
+fall back to the raw name through the t-versus-key miss idiom), the
+call's `detail` (definition name, instance type, action id — parts
+naming a type resolve through the registry store's served names when
+loaded) after the label, and a failed tool's error inside the same
+message; severity by outcome (`info` while running, `secondary` when
+done, `error` on failure) with the status glyph as the message icon
+(spinner/check/triangle), content-width and left-aligned beside the
+thinking disclosures. The
 pre-step presence is not this block's: the assistant rides the chat's
 typing line (the host owns that indicator) until the run has anything
 to show. The `pt` adds only what tokens cannot express: the caption-size,
-regular-weight label (matching the tool Tags), the +/− svg (`.p-icon`
-pins 1rem), the chronology's tighter root, and the collapsed state —
+regular-weight label, the +/− svg (`.p-icon` pins 1rem), the
+chronology's tighter root, and the collapsed state —
 tracked through the toggle event beside Fieldset's internal one —
 which drops the box's border while the legend strip keeps its filled
 surface and its exact horizontal position, so a collapsed disclosure
-reads as kin to the Tags and nothing shifts. Compact geometry (legend
+reads as kin to the tool messages and nothing shifts. Compact geometry (legend
 padding/gap, root insets) lives in the PrimeVue tokens and applies to
 every Fieldset. Rendered both for a live run and
 for the `agent` provenance persisted on a bot's reply; both sites start
