@@ -1554,6 +1554,8 @@ import { resolveSourceFilters } from '~/composables/useGeneratedScreen.js'
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useFileTypeView } from '~/composables/useFileTypeView.js'
+import { titleFor } from '#shared/ui-mapping/index.js'
+import { dtoToScreenInstance } from '~/utils/instance-shape.js'
 import { useChatFileUpload } from '~/composables/useChatFileUpload.js'
 import { useDirectoryUserSearch } from '~/composables/useDirectoryUserSearch.js'
 import {
@@ -2952,7 +2954,7 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
                         kind: 'instance',
                         type: source.typeId,
                         id: stripInstanceId(instance),
-                        name: stripDisplayName(instance?.name, stripInstanceId(instance)),
+                        name: stripEntityLabel(instance, source.typeId),
                         entity: instance
                     }))
                 if (!items.length) return
@@ -2986,7 +2988,7 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
                     kind: 'instance',
                     type: source.typeId,
                     id: stripInstanceId(instance),
-                    name: stripDisplayName(instance?.name, stripInstanceId(instance)),
+                    name: stripEntityLabel(instance, source.typeId),
                     entity: instance
                 }))
             } catch {
@@ -3015,6 +3017,21 @@ const stripInstanceId = (entity = null) => {
 // name (the no-technical-ids rule — the same guard the inbox rows
 // apply); unnamed chips fall back to the localized type label.
 const stripDisplayName = (name, id) => (name && name !== String(id) ? name : '')
+
+// Instance chip labels resolve through the ONE title resolver — the
+// type's declared identifier field via the wire-to-screen bridge — the
+// same selection every other instance tree surface uses
+// (InstanceInlineRef, the attachment picker); a null identifier value
+// degrades to the unnamed placeholder, never the type label.
+const stripEntityLabel = (instance = null, typeId = '') => {
+    const view = typeViewById(typeId)
+    const title = titleFor(
+        view ? dtoToScreenInstance(instance, view) : null,
+        view,
+        { unnamedLabel: '' }
+    )
+    return stripDisplayName(title, stripInstanceId(instance))
+}
 
 watch([activeConversationKey, () => activeConversation.value?.typeId, () => activeConversation.value?.instanceId], ([key]) => {
     if (!key || activeConversation.value?.conversationKind !== 'instance') return
