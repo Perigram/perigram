@@ -10,10 +10,13 @@
             @click="togglePopup"
             @keydown="onToggleKeydown"
         >
-            <span class="instance-inline-chip max-w-full" :title="identityLabel">
-                <i v-if="instanceConfig.icon" :class="['instance-inline-chip-icon', instanceConfig.icon]" aria-hidden="true"></i>
-                <span class="instance-inline-chip-label">{{ identityLabel }}</span>
-            </span>
+            <Chip
+                :label="identityLabel"
+                :icon="instanceConfig.icon || undefined"
+                :pt="{ label: { class: 'truncate' } }"
+                class="min-w-0 max-w-full"
+                :title="identityLabel"
+            />
             <slot name="inline-extra" />
         </span>
     </template>
@@ -231,6 +234,7 @@ import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
+import Chip from 'primevue/chip';
 import Divider from 'primevue/divider';
 import Popover from 'primevue/popover';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';

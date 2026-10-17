@@ -704,7 +704,7 @@ describe('Design system manifest', () => {
     expect(relationsBlock).toContain("field.display === 'entityRefList'");
     expect(surfaceContent).toContain("props.suppressChildSummaries && (field.role === 'childCount' || field.replacesCountPath)");
     expect(surfaceContent).toContain('relationVariant');
-    expect(inlineRef).toContain('entityToneStyle');
+    expect(inlineRef).toContain('entityFamilyAccent');
     expect(inlineRef).toContain('color-mix');
     expect(inlineRef).toContain("variant === 'compact'");
     expect(inlineRef).toContain('class="inline-flex w-full');
@@ -713,7 +713,7 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain('compactStatusState');
     expect(inlineRef).toContain('instance-inline-compact-status-row');
     expect(inlineRef).not.toContain('instance-inline-compact-fallback');
-    expect(instanceCard).toContain('instance-inline-chip');
+    expect(instanceCard).toContain('primevue/chip');
     expect(instanceCard).toContain('titleFor');
     expect(entityPreview).toContain('hideDimensionLayer');
     expect(entityPreview).toContain(':hide-dimension-layer="hideDimensionLayer"');
