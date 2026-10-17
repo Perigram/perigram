@@ -299,8 +299,7 @@ describe('runAssistantReply', () => {
         expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toBe('done');
     });
 
-    it('rides chat-run attached instance refs on the final reply', async () => {
-        const ref = { type: 'cassette', id: 'c1', label: 'Cassette c1' };
+    it('rides chat-run attached instance refs on the final reply', async () => {        const ref = { type: 'cassette', id: 'c1', label: 'Cassette c1' };
         mockedLlm.chatCompletion
             .mockResolvedValueOnce({
                 content: '',
@@ -319,6 +318,16 @@ describe('runAssistantReply', () => {
         // under the delegating user's rights at persistence.
         expect(sendAuth.userId).toBe(ASSISTANT);
         expect(options?.refsAuth?.userId).toBe(HUMAN);
+    });
+
+    it('a dead provider keeps the run chronology on the failure notice', async () => {
+        mockedLlm.chatCompletion
+            .mockRejectedValueOnce(new Error('provider exploded'));
+        await runAssistantReply(target, context, message);
+        expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(1);
+        const body = mockedSupport.sendUserMessage.mock.calls[0][1];
+        expect(body.message).toMatch(/failed to answer/i);
+        expect(Array.isArray(body.agent?.steps)).toBe(true);
     });
 
     it('turns tool failures into readable tool results and continues', async () => {

@@ -239,11 +239,21 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, pr
                 publish();
             } : null,
             onText: stream ? (text) => stream.answer(text) : null
+        }).catch(error => {
+            // A dead provider must not discard the run's chronology: the
+            // failure notice rides the same provenance as an answer, so
+            // the room keeps what the run had done (owner defect
+            // 2026-10-17: "all thinking disappeared").
+            if (signal?.aborted) throw error;
+            return { content: '', thinking: '', toolCalls: [], failed: error };
         });
         // Without a live sink nothing streamed; the round's reasoning
         // arrives only as the assembled message.
         if (!stream) segment.text = assistant.thinking || '';
         publish();
+        if (assistant.failed) {
+            return { text: null, instanceRefs: run.instanceRefs, agent: { steps: visibleSteps() }, failed: assistant.failed };
+        }
         // A stopped run keeps whatever answer it had produced; a tool round
         // that was cancelled mid-call simply has no answer to keep.
         if (assistant.aborted) {
@@ -360,7 +370,7 @@ export async function runAssistantReply(target, context, message) {
             await sendReply(assistantAuth, execAuth, context, message, 'LLM provider is not configured for this organization.');
             return;
         }
-        const { text, instanceRefs, agent } = await runAgentLoop({
+        const { text, instanceRefs, agent, failed } = await runAgentLoop({
             organizationId,
             execAuth,
             profileId,
@@ -370,6 +380,13 @@ export async function runAssistantReply(target, context, message) {
             signal: controller.signal,
             stream
         });
+        if (failed) {
+            // The notice carries the run's chronology: a dead provider
+            // must not erase the room's record of what the run did.
+            console.error('[AGENT-BOTS] reply failed:', failed);
+            await sendReply(assistantAuth, execAuth, context, message, 'The agent failed to answer; try again.', instanceRefs, agent);
+            return;
+        }
         if (text) await sendReply(assistantAuth, execAuth, context, message, text, instanceRefs, agent);
     } catch (error) {
         // A stopped run is silent: the room asked it to end.
