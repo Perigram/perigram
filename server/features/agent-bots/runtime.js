@@ -427,9 +427,6 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, co
         conversation.push({ role: 'assistant', content: assistant.content || '', toolCalls });
         for (const call of toolCalls) {
             const entry = { kind: 'tool', id: call.id, name: call.name, status: 'running' };
-            // The call's human detail (definition name, type, action id)
-            // rides the step from the start, so the live chronology and
-            // the persisted provenance cite the same target.
             const detail = toolCallDetail(call.name, call.arguments);
             if (detail) entry.detail = detail;
             steps.push(entry);

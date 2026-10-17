@@ -5,15 +5,10 @@ import Fieldset from 'primevue/fieldset';
 import Message from 'primevue/message';
 import { useRegistryStore } from '~/stores/registry';
 
-// An agent run's visible work as one chronology: per-round reasoning in
-// collapsible Fieldset disclosures and one small typed Message per tool
-// invocation — localized tool name with the call's detail, severity by
-// outcome, a failed tool's error inside the same message — in the order
-// they happened. The same component renders the live run and the
-// provenance persisted on the bot's reply — the answer itself is not
-// rendered here, it is the message body at both sites. The pre-step
-// presence is not this block's: the assistant rides the chat's typing
-// line until there is anything to show (the host owns that indicator).
+// An agent run's chronology: reasoning in collapsible Fieldsets, one
+// small typed Message per tool invocation. Renders both the live run and
+// the `agent` provenance persisted on the reply; the answer itself is the
+// message body at both sites.
 const props = defineProps({
     activity: { type: Object, required: true },
     live: { type: Boolean, default: false }
@@ -31,9 +26,8 @@ const toolIcon = (status) => ({
     done: 'pi pi-check',
     error: 'pi pi-exclamation-triangle'
 }[status] || 'pi pi-spin pi-spinner');
-// Tool names localize off the catalog's fixed vocabulary; a tool the
-// catalog never served renders its raw name rather than a blank line
-// (the t-versus-key miss idiom, not te — te is locale-strict).
+// Unknown tools fall back to the raw name; the t-versus-key idiom covers
+// missing keys (te is locale-strict).
 const toolLabel = (step) => {
     const key = `support.agentTools.${step.name}`;
     const translated = t(key);

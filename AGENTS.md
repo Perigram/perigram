@@ -249,3 +249,19 @@ unstaged files.
   when you see it. Also remove verbose explanations of obvious things that give zero value. I need
   only concrete conventional docs that describe software, not a place for agents to release their
   graphomania. 
+
+### Comment and prose bans (absolute, owner direction 2026-10-17)
+
+- A comment carries at most ONE fact the code cannot show: a trap, an
+  invariant, a decision. Everything else is deleted, not trimmed.
+- Banned forever in comments, READMEs, TODO notes, and commit messages:
+  - negative-space prose — "never X", "not Y", "no longer", "instead
+    of", "unlike", "rather than", "without" — describing a thing by what
+    it is not;
+  - history — why it changed, what it replaced, what used to be;
+  - narrating the code in words;
+  - two sentences where one carries the only fact.
+- A README paragraph whose deletion changes nothing for a maintainer
+  using the thing is slop.
+- Shipping a banned sentence is shipping a defect, same as a failing
+  guard.

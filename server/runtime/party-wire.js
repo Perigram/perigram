@@ -13,9 +13,6 @@ const versionById = new Map(frameworkTypes.map(type => [type.id, type.version]))
 function wireSlots(typeId, model, extraFields = {}) {
   const json = model?.toJSON ? model.toJSON() : (model || {});
   const name = json.identity?.name ?? null;
-  // The user's derived rows read the serialized shape (the users model
-  // computes `data.avatarUrl` in toJSON; the bot marker travels as the
-  // bare creation stamp).
   const extra = typeof extraFields === 'function' ? extraFields(json) : extraFields;
   return {
     _id: json._id ?? json.id ?? null,

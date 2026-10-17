@@ -550,21 +550,12 @@ Keep person identity displays on this chip; keep entity refs on
 `InstanceInlineRef`.
 
 ### `AgentActivity.vue`
-An agent run's visible work as one chronology: per-round model
-reasoning in collapsible `Fieldset` disclosures and one small typed
-`Message` per tool invocation — the localized tool name (the
-`support.agentTools.*` vocabulary, keyed by tool name; unknown tools
-fall back to the raw name through the t-versus-key miss idiom), the
-call's `detail` (definition name, instance type, action id — parts
-naming a type resolve through the registry store's served names when
-loaded) after the label, and a failed tool's error inside the same
-message; severity by outcome (`info` while running, `secondary` when
-done, `error` on failure) with the status glyph as the message icon
-(spinner/check/triangle), content-width and left-aligned beside the
-thinking disclosures. The
-pre-step presence is not this block's: the assistant rides the chat's
-typing line (the host owns that indicator) until the run has anything
-to show. The `pt` adds only what tokens cannot express: the caption-size,
+An agent run's chronology: reasoning in collapsible `Fieldset`
+disclosures and one small typed `Message` per tool invocation — the
+localized tool name (`support.agentTools.*`, raw-name fallback), the
+call's `detail`, the error of a failed call inside the same message;
+severity by outcome (`info`/`secondary`/`error`) with the status glyph
+as the icon. The pre-step presence rides the host's typing line. The `pt` adds only what tokens cannot express: the caption-size,
 regular-weight label, the +/− svg (`.p-icon` pins 1rem), the
 chronology's tighter root, and the collapsed state —
 tracked through the toggle event beside Fieldset's internal one —
@@ -753,17 +744,13 @@ element plays at a time across surfaces); a source surface unmounting
 while its media still plays hands the descriptor and position to the
 app-level dock, which resumes playback there
 (see [components/media](../media/README.md)). Every
-other file renders as the same chip anatomy instance refs use — a raw
-PrimeVue `Chip` (type-derived icon, cropped name, size in the title) in
-a wrapping row; a chip click opens the file inside the app when a viewer
-exists (images already inline; PDF in the dialog through the browser's
-native engine; text fetched and rendered in-app — markdown through the
-shared formatted pipeline, other text kinds preformatted in the
-technical voice; a concrete non-text mime is authoritative, so the
-office containers download instead)
-with the download action beside the preview's title, and kinds without
-an in-app viewer download directly. The message menu
-offers one download entry per attachment for any kind (labels cropped).
+other file renders as a raw PrimeVue `Chip` (type icon, cropped name,
+size in the title); a click opens the in-app viewer when one exists —
+PDF through the browser's engine, markdown through the shared formatted
+pipeline, other text kinds preformatted; matching is mime-exact, so
+office containers download — with the download action beside the
+preview's title. The message menu offers one download entry per
+attachment (labels cropped).
 The root hugs its content so sender-side message columns can right-align
 the block, and every name crops through the `min-w-0`/`truncate` chain.
 All media streams the shared `/api/files/download/:id` route honoring

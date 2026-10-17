@@ -61,9 +61,6 @@
         @play="onMediaPlay($event, attachment)"
       />
       <span v-if="documents.length" class="flex max-w-full flex-wrap items-center gap-1" data-testid="chat-attachment-files">
-        <!-- The same chip anatomy instance refs use (raw PrimeVue Chip,
-             type icon, cropped name). A click opens the file in the app
-             when a viewer exists, else downloads. -->
         <Chip
           v-for="attachment in documents"
           :key="attachment.fileId"
@@ -115,9 +112,6 @@
         class="min-h-0 w-full flex-1 border-0"
       />
       <div v-else class="min-h-0 flex-1 overflow-auto">
-        <!-- Markdown files render through the shared sanitized pipeline
-             (the prose voice); other text kinds read preformatted in the
-             technical voice. -->
         <SupportMessageContent
           v-if="previewIsMarkdown"
           :message="{ message: previewText }"
@@ -150,17 +144,11 @@ const props = defineProps({
 const { t } = useI18n();
 const media = useMediaStore();
 
-// Full-dialog expansion for any previewable attachment (image tiles,
-// file chips): the descriptor is held, not a precomputed URL, so the
-// dialog serves the same bucket-honoring URL as the inline render.
+// The descriptor is held so the dialog serves the same URL as the inline render.
 const previewAttachment = ref(null);
 
-// The in-app viewer set: images (their own tiles), PDFs (the browser's
-// native engine in an iframe), and text — markdown rendered formatted
-// through the shared pipeline, everything else preformatted. A concrete
-// non-text mime is authoritative: the office containers (xlsx/docx —
-// "openxmlformats" embeds "xml") must never ride the text branch;
-// extension sniffing only answers for octet-stream uploads.
+// Office mimes embed "xml" (openxmlformats): only mime-exact text kinds
+// preview; extensions sniff solely octet-stream uploads.
 const isPdf = (attachment = {}) => String(attachment.mimeType || '').includes('pdf')
   || /\.pdf$/i.test(attachment.name || '');
 const isMarkdown = (attachment = {}) => /^text\/markdown/i.test(String(attachment.mimeType || ''))
