@@ -2028,11 +2028,7 @@ const composerTextareaPt = {
     root: { style: { background: 'transparent', borderColor: 'transparent', boxShadow: 'none' } }
 }
 
-// The @-address typeahead (SPEC: agent access): `@` at a word boundary
-// opens the room's candidate list — the seated AI first, then the room's
-// human participants — and a completed pick inserts the token. User tags
-// are composer text; the assistant address is the multi-human room's
-// wake gate.
+// The assistant address is the multi-human room's wake gate.
 const composerField = ref(null)
 const mentionState = ref(null)
 const MENTION_ROWS_MAX = 8
@@ -2064,7 +2060,7 @@ const updateMention = () => {
     const caret = composerCaret()
     const token = message.value.slice(0, caret).match(/(^|\s)@([\p{L}\p{N}_ .-]*)$/u)
     mentionState.value = token
-        ? { start: caret - token[2].length, query: token[2], index: 0 }
+        ? { start: caret - token[2].length - 1, query: token[2], index: 0 }
         : null
 }
 const applyMention = (row) => {
