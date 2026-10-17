@@ -401,6 +401,16 @@ export default function createSurface({ vue, components, locale, queries, record
         Object.values(sketch.parameters || {}).forEach(collect);
         return used;
       };
+      // Nesting law: a workpiece with exactly ONE attachment (it is the
+      // source of one relation) renders only under its host — profiles
+      // cut into a face and single-host hardware are modifiers of that
+      // host, not siblings of sheets. Multi-attached and root workpieces
+      // stay top-level.
+      const rootWorkpieceId = computed(() => workpieces.value[0]?.id || '');
+      const nestedWorkpieceIds = computed(() => new Set(workpieces.value
+        .filter(workpiece => workpiece.id !== rootWorkpieceId.value
+          && workpieceRelations.value.filter(relation => relation.sourceWorkpieceId === workpiece.id).length === 1)
+        .map(workpiece => workpiece.id)));
       const workpieceRows = computed(() => workpieces.value.map(workpiece => ({
         id: workpiece.id,
         label: workpiece.name || workpiece.id,
@@ -413,6 +423,7 @@ export default function createSurface({ vue, components, locale, queries, record
           : null,
         isHardware: Boolean(workpiece.family || workpiece.hardware?.family),
         isProfile: isCassetteV2ProfileWorkpiece(workpiece),
+        isNested: nestedWorkpieceIds.value.has(workpiece.id),
         parentCount: workpieceRelations.value.filter(relation => relation.sourceWorkpieceId === workpiece.id).length,
         relations: workpieceRelationRowsById.value.get(workpiece.id) || []
       })));
@@ -2175,6 +2186,182 @@ export default function createSurface({ vue, components, locale, queries, record
         }, [body]);
       };
 
+      const workpieceRowById = computed(() => new Map(workpieceRows.value.map(row => [row.id, row])));
+
+      const workpieceTypeIcon = (row) => h('i', {
+        class: ['shrink-0 text-sm', row.isProfile
+          ? 'pi pi-wave-pulse'
+          : row.isHardware
+            ? 'ck-entity-icon ck-entity-icon-bolt'
+            : 'ck-entity-icon ck-entity-icon-workpiece'].join(' '),
+        style: { color: `hsl(${hueForWorkpiece(row.id)} 68% 45%)` },
+        'aria-hidden': 'true'
+      });
+
+      // The bound parameters lay out as captioned expression fields in
+      // the palette's field grid — the attachment popup's caption
+      // pattern, never bespoke chip chrome.
+      const workpieceDetailBlocks = (row) => [
+        row.id === selectedWorkpieceId.value && row.isProfile
+          ? h('div', { class: 'mt-2 grid grid-cols-2 gap-2 pl-4' },
+              Object.entries(row.parameters || {})
+                .filter(([key]) => row.boundParameterKeys?.has(key))
+                .map(([key, value]) => h('div', {
+                  key: `${row.id}-${key}`,
+                  class: 'flex min-w-0 flex-col gap-1 text-muted text-label'
+                }, [
+                  h('span', { class: 'truncate' }, key),
+                  profileParameterField(row, key, value)
+                ])))
+          : null,
+        row.id === selectedWorkpieceId.value && row.isHardware
+          ? h('div', { class: 'mt-2 grid grid-cols-2 gap-2 pl-4' }, [
+              h(Select, {
+                modelValue: row.family,
+                options: hardwareFamilyOptions.value,
+                optionLabel: 'label',
+                optionValue: 'value',
+                size: 'small',
+                class: 'w-full',
+                'aria-label': t('cassette.v2.hardwareFields.family'),
+                'onUpdate:modelValue': value => updateSelectedHardware({ family: value })
+              }),
+              row.family === 'hanger_clip'
+                ? h(Select, {
+                    modelValue: row.productionMode || 'integralCut',
+                    options: hangerProductionModeOptions.value,
+                    optionLabel: 'label',
+                    optionValue: 'value',
+                    size: 'small',
+                    class: 'w-full',
+                    'aria-label': t('cassette.v2.hardwareFields.productionMode'),
+                    'onUpdate:modelValue': value => updateSelectedHardware({ productionMode: value })
+                  })
+                : null
+            ])
+          : null
+      ].filter(Boolean);
+
+      const attachmentStatusIcon = (relationId, status) => status !== 'ok'
+        ? h('i', {
+            class: `pi ${status === 'refused' ? 'pi-ban' : status === 'impossible' ? 'pi-times-circle' : 'pi-question-circle'} shrink-0`,
+            style: { color: `var(--ck-status-${relationStatusSeverity(status)})` },
+            role: 'img',
+            'aria-label': t(`cassette.v2.attachmentStatus.${status}`),
+            title: [
+              t(`cassette.v2.attachmentStatus.${status}`),
+              profileEmbeddingErrorById.value.get(relationId) || ''
+            ].filter(Boolean).join(' — ')
+          })
+        : null;
+
+      // A single-attachment dependent under its host: the workpiece
+      // itself (icon, name, detail blocks on selection) with its
+      // attachment settings inline — positioning popup, profile edit,
+      // and delete (the attachment is the workpiece's placement).
+      const nestedDependentRow = (hostRow, relationRow) => {
+        const dependent = workpieceRowById.value.get(relationRow.relation.sourceWorkpieceId);
+        if (!dependent) return null;
+        const isSelected = dependent.id === selectedWorkpieceId.value;
+        return h('div', {
+          key: `${hostRow.id}-dep-${dependent.id}`,
+          class: 'flex flex-col gap-1'
+        }, [
+          h('div', { class: 'flex min-w-0 items-start gap-1' }, [
+            h('button', {
+              type: 'button',
+              class: ['flex min-w-0 flex-1 flex-col gap-0.5 rounded-ui border px-2 py-1 text-left', isSelected ? 'border-primary bg-subtle' : 'border-content-border'],
+              onClick: () => handleWorkpieceGraphNodeSelect(dependent.id)
+            }, [
+              h('div', { class: 'flex min-w-0 items-center gap-2' }, [
+                workpieceTypeIcon(dependent),
+                h('span', { class: 'truncate text-body' }, dependent.label),
+                attachmentStatusIcon(relationRow.relation.id, relationRow.status)
+              ]),
+              relationRow.crumbs.length
+                ? h('small', { class: 'truncate text-muted' }, relationRow.crumbs.join('  ›  '))
+                : null
+            ]),
+            h('div', { class: 'flex shrink-0 items-start' }, [
+              h(Button, {
+                icon: 'pi pi-sliders-h',
+                severity: 'secondary',
+                text: true,
+                rounded: true,
+                size: 'small',
+                'aria-label': t('cassette.v2.attachmentPosition'),
+                title: t('cassette.v2.attachmentPosition'),
+                onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
+              }),
+              dependent.isProfile
+                ? h(Button, {
+                    icon: 'pi pi-pencil',
+                    severity: 'secondary',
+                    text: true,
+                    rounded: true,
+                    size: 'small',
+                    'aria-label': t('cassette.v2.editProfile'),
+                    title: t('cassette.v2.editProfile'),
+                    onClick: () => openProfileDialog(dependent.id)
+                  })
+                : null,
+              h(Button, {
+                icon: 'pi pi-trash',
+                severity: 'danger',
+                text: true,
+                rounded: true,
+                size: 'small',
+                'aria-label': t('cassette.v2.deleteWorkpiece'),
+                title: t('cassette.v2.deleteWorkpiece'),
+                onClick: () => deleteWorkpiece(dependent.id)
+              })
+            ])
+          ]),
+          ...workpieceDetailBlocks(dependent)
+        ]);
+      };
+
+      const plainRelationRow = (row, relationRow) => h('div', {
+        key: `${row.id}-${relationRow.relation.id}-${relationRow.direction}`,
+        class: 'flex min-w-0 items-start gap-1'
+      }, [
+        h('button', {
+          type: 'button',
+          class: ['flex min-w-0 flex-1 flex-col gap-0.5 rounded-ui border px-2 py-1 text-left', relationRow.relation.id === selectedRelationId.value ? 'border-primary bg-subtle' : 'border-content-border'],
+          onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
+        }, [
+          h('div', { class: 'flex min-w-0 items-center gap-2' }, [
+            h('span', { class: 'truncate text-body' }, relationRow.otherLabel),
+            attachmentStatusIcon(relationRow.relation.id, relationRow.status)
+          ]),
+          relationRow.crumbs.length
+            ? h('small', { class: 'truncate text-muted' }, relationRow.crumbs.join('  ›  '))
+            : null
+        ]),
+        h(Button, {
+          icon: 'pi pi-sliders-h',
+          severity: 'secondary',
+          text: true,
+          rounded: true,
+          size: 'small',
+          class: 'mt-0.5 shrink-0',
+          'aria-label': t('cassette.v2.attachmentPosition'),
+          title: t('cassette.v2.attachmentPosition'),
+          onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
+        }),
+        h(Button, {
+          icon: 'pi pi-trash',
+          severity: 'danger',
+          text: true,
+          rounded: true,
+          size: 'small',
+          class: 'mt-0.5 shrink-0',
+          'aria-label': t('cassette.v2.removeAttachment'),
+          title: t('cassette.v2.removeAttachment'),
+          onClick: () => deleteWorkpieceRelation(relationRow.relation.id)
+        })
+      ]);
+
       const renderInspector = () => h('aside', { class: 'flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3' }, [
         h('div', { class: 'flex min-h-0 flex-1 flex-col gap-2 overflow-hidden' }, [
           h('div', { class: 'flex items-center justify-between gap-2' }, [
@@ -2205,176 +2392,87 @@ export default function createSurface({ vue, components, locale, queries, record
           ]),
           h(ScrollPanel, { class: 'min-h-0 flex-1 rounded-ui border border-content-border' }, () =>
             h('div', { class: 'flex flex-col' },
-              workpieceRows.value.map(row => h('div', {
-                key: row.id,
-                class: 'border-b border-content-border p-2 last:border-b-0'
-              }, [
-                h('div', { class: 'flex min-w-0 items-center gap-2' }, [
-                  h('button', {
-                    type: 'button',
-                    class: ['flex min-w-0 flex-1 items-center gap-2 rounded-ui border border-transparent px-2 py-1 text-left', row.id === selectedWorkpieceId.value ? 'border-primary bg-subtle' : ''].filter(Boolean).join(' '),
-                    onClick: () => handleWorkpieceGraphNodeSelect(row.id)
-                  }, [
-                    h('i', {
-                      class: ['shrink-0 text-sm', row.isProfile
-                        ? 'pi pi-wave-pulse'
-                        : row.isHardware
-                          ? 'ck-entity-icon ck-entity-icon-bolt'
-                          : 'ck-entity-icon ck-entity-icon-workpiece'].join(' '),
-                      style: { color: `hsl(${hueForWorkpiece(row.id)} 68% 45%)` },
-                      'aria-hidden': 'true'
-                    }),
-                    h('span', { class: 'truncate' }, row.label),
-                    row.parentCount > 1 ? h(Tag, { value: `×${row.parentCount}`, severity: 'secondary', size: 'small' }) : null
+              workpieceRows.value.filter(row => !row.isNested).map(row => {
+                const isNestedDependent = relationRow => relationRow.direction === 'in'
+                  && nestedWorkpieceIds.value.has(relationRow.relation.sourceWorkpieceId);
+                const dependentRows = row.relations
+                  .filter(isNestedDependent)
+                  .map(relationRow => nestedDependentRow(row, relationRow));
+                const plainRows = row.relations
+                  .filter(relationRow => !isNestedDependent(relationRow))
+                  .map(relationRow => plainRelationRow(row, relationRow));
+                return h('div', {
+                  key: row.id,
+                  class: 'border-b border-content-border p-2 last:border-b-0'
+                }, [
+                  h('div', { class: 'flex min-w-0 items-center gap-2' }, [
+                    h('button', {
+                      type: 'button',
+                      class: ['flex min-w-0 flex-1 items-center gap-2 rounded-ui border border-transparent px-2 py-1 text-left', row.id === selectedWorkpieceId.value ? 'border-primary bg-subtle' : ''].filter(Boolean).join(' '),
+                      onClick: () => handleWorkpieceGraphNodeSelect(row.id)
+                    }, [
+                      workpieceTypeIcon(row),
+                      h('span', { class: 'truncate' }, row.label),
+                      row.parentCount > 1 ? h(Tag, { value: `×${row.parentCount}`, severity: 'secondary', size: 'small' }) : null
+                    ]),
+                    row.id === selectedWorkpieceId.value
+                      ? h('div', { class: 'flex shrink-0 items-center' }, [
+                          h(Button, {
+                            icon: 'pi pi-plus',
+                            severity: 'secondary',
+                            text: true,
+                            rounded: true,
+                            size: 'small',
+                            'aria-label': t('cassette.v2.addRelatedWorkpiece'),
+                            title: t('cassette.v2.addRelatedWorkpiece'),
+                            onClick: () => addWorkpieceFrom(row.id)
+                          }),
+                          h(Button, {
+                            icon: 'pi pi-link',
+                            severity: row.id === pendingAttachmentSourceId.value ? 'primary' : 'secondary',
+                            text: true,
+                            rounded: true,
+                            size: 'small',
+                            'aria-label': t('cassette.v2.addAttachment'),
+                            title: t('cassette.v2.addAttachment'),
+                            onClick: () => startAttachmentConnect(row.id)
+                          }),
+                          row.isProfile
+                            ? h(Button, {
+                                icon: 'pi pi-pencil',
+                                severity: 'secondary',
+                                text: true,
+                                rounded: true,
+                                size: 'small',
+                                'aria-label': t('cassette.v2.editProfile'),
+                                title: t('cassette.v2.editProfile'),
+                                onClick: () => openProfileDialog(row.id)
+                              })
+                            : null,
+                          row.id !== workpieces.value[0]?.id
+                            ? h(Button, {
+                                icon: 'pi pi-trash',
+                                severity: 'danger',
+                                text: true,
+                                rounded: true,
+                                size: 'small',
+                                'aria-label': t('cassette.v2.deleteWorkpiece'),
+                                title: t('cassette.v2.deleteWorkpiece'),
+                                onClick: () => deleteWorkpiece(row.id)
+                              })
+                            : null
+                        ])
+                      : null
                   ]),
-                  row.id === selectedWorkpieceId.value
-                    ? h('div', { class: 'flex shrink-0 items-center' }, [
-                        h(Button, {
-                          icon: 'pi pi-plus',
-                          severity: 'secondary',
-                          text: true,
-                          rounded: true,
-                          size: 'small',
-                          'aria-label': t('cassette.v2.addRelatedWorkpiece'),
-                          title: t('cassette.v2.addRelatedWorkpiece'),
-                          onClick: () => addWorkpieceFrom(row.id)
-                        }),
-                        h(Button, {
-                          icon: 'pi pi-link',
-                          severity: row.id === pendingAttachmentSourceId.value ? 'primary' : 'secondary',
-                          text: true,
-                          rounded: true,
-                          size: 'small',
-                          'aria-label': t('cassette.v2.addAttachment'),
-                          title: t('cassette.v2.addAttachment'),
-                          onClick: () => startAttachmentConnect(row.id)
-                        }),
-                        row.isProfile
-                          ? h(Button, {
-                              icon: 'pi pi-pencil',
-                              severity: 'secondary',
-                              text: true,
-                              rounded: true,
-                              size: 'small',
-                              'aria-label': t('cassette.v2.editProfile'),
-                              title: t('cassette.v2.editProfile'),
-                              onClick: () => openProfileDialog(row.id)
-                            })
-                          : null,
-                        row.id !== workpieces.value[0]?.id
-                          ? h(Button, {
-                              icon: 'pi pi-trash',
-                              severity: 'danger',
-                              text: true,
-                              rounded: true,
-                              size: 'small',
-                              'aria-label': t('cassette.v2.deleteWorkpiece'),
-                              title: t('cassette.v2.deleteWorkpiece'),
-                              onClick: () => deleteWorkpiece(row.id)
-                            })
-                          : null
+                  ...workpieceDetailBlocks(row),
+                  dependentRows.length || plainRows.length
+                    ? h('div', { class: 'mt-2 flex flex-col gap-1 pl-4' }, [
+                        ...dependentRows,
+                        ...plainRows
                       ])
                     : null
-                ]),
-                row.id === selectedWorkpieceId.value && row.isProfile
-                  // The bound parameters lay out as captioned expression
-                  // fields in the palette's field grid — the attachment
-                  // popup's caption pattern, never bespoke chip chrome.
-                  ? h('div', { class: 'mt-2 grid grid-cols-2 gap-2 pl-4' },
-                    Object.entries(row.parameters || {})
-                      .filter(([key]) => row.boundParameterKeys?.has(key))
-                      .map(([key, value]) => h('div', {
-                        key: `${row.id}-${key}`,
-                        class: 'flex min-w-0 flex-col gap-1 text-muted text-label'
-                      }, [
-                        h('span', { class: 'truncate' }, key),
-                        profileParameterField(row, key, value)
-                      ])))
-                  : null,
-                row.id === selectedWorkpieceId.value && row.isHardware
-                  ? h('div', { class: 'mt-2 grid grid-cols-2 gap-2 pl-4' }, [
-                      h(Select, {
-                        modelValue: row.family,
-                        options: hardwareFamilyOptions.value,
-                        optionLabel: 'label',
-                        optionValue: 'value',
-                        size: 'small',
-                        class: 'w-full',
-                        'aria-label': t('cassette.v2.hardwareFields.family'),
-                        'onUpdate:modelValue': value => updateSelectedHardware({ family: value })
-                      }),
-                      row.family === 'hanger_clip'
-                        ? h(Select, {
-                            modelValue: row.productionMode || 'integralCut',
-                            options: hangerProductionModeOptions.value,
-                            optionLabel: 'label',
-                            optionValue: 'value',
-                            size: 'small',
-                            class: 'w-full',
-                            'aria-label': t('cassette.v2.hardwareFields.productionMode'),
-                            'onUpdate:modelValue': value => updateSelectedHardware({ productionMode: value })
-                          })
-                        : null
-                    ])
-                  : null,
-                row.relations.length
-                  ? h('div', { class: 'mt-2 flex flex-col gap-1 pl-4' },
-                    row.relations.map(relationRow => {
-                      const statusIcon = relationRow.status !== 'ok'
-                        ? h('i', {
-                            class: `pi ${relationRow.status === 'refused' ? 'pi-ban' : relationRow.status === 'impossible' ? 'pi-times-circle' : 'pi-question-circle'} shrink-0`,
-                            style: { color: `var(--ck-status-${relationStatusSeverity(relationRow.status)})` },
-                            role: 'img',
-                            'aria-label': t(`cassette.v2.attachmentStatus.${relationRow.status}`),
-                            title: [
-                              t(`cassette.v2.attachmentStatus.${relationRow.status}`),
-                              profileEmbeddingErrorById.value.get(relationRow.relation.id) || ''
-                            ].filter(Boolean).join(' — ')
-                          })
-                        : null;
-                      return h('div', {
-                        key: `${row.id}-${relationRow.relation.id}-${relationRow.direction}`,
-                        class: 'flex min-w-0 items-start gap-1'
-                      }, [
-                        h('button', {
-                          type: 'button',
-                          class: ['flex min-w-0 flex-1 flex-col gap-0.5 rounded-ui border px-2 py-1 text-left', relationRow.relation.id === selectedRelationId.value ? 'border-primary bg-subtle' : 'border-content-border'],
-                          onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
-                        }, [
-                          h('div', { class: 'flex min-w-0 items-center gap-2' }, [
-                            h('span', { class: 'truncate text-body' }, relationRow.otherLabel),
-                            statusIcon
-                          ]),
-                          relationRow.crumbs.length
-                            ? h('small', { class: 'truncate text-muted' }, relationRow.crumbs.join('  ›  '))
-                            : null
-                        ]),
-                        h(Button, {
-                          icon: 'pi pi-sliders-h',
-                          severity: 'secondary',
-                          text: true,
-                          rounded: true,
-                          size: 'small',
-                          class: 'mt-0.5 shrink-0',
-                          'aria-label': t('cassette.v2.attachmentPosition'),
-                          title: t('cassette.v2.attachmentPosition'),
-                          onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
-                        }),
-                        h(Button, {
-                          icon: 'pi pi-trash',
-                          severity: 'danger',
-                          text: true,
-                          rounded: true,
-                          size: 'small',
-                          class: 'mt-0.5 shrink-0',
-                          'aria-label': t('cassette.v2.removeAttachment'),
-                          title: t('cassette.v2.removeAttachment'),
-                          onClick: () => deleteWorkpieceRelation(relationRow.relation.id)
-                        })
-                      ]);
-                    }))
-                  : null
-              ])))
+                ]);
+              }))
           )
         ]),
         h('div', { class: 'h-48 shrink-0 overflow-hidden' }, [
