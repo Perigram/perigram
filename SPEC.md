@@ -732,6 +732,14 @@ surface owns Escape routing (the engine's own handling needs focus
 inside its container): Escape closes the vertex popup, cancels the
 active command, and clears the selection, regardless of focus.
 
+Owner decision (2026-10-17, command input toggle): the profile editor's
+chrome stays the dialog's — the engine's command line stays hidden by
+default — but the toolbar carries a toggle that reveals it on demand:
+the engine CLI is the one complete desktop surface for typed prompt
+entry (a bare length as direct distance toward the cursor, `dist<angle`
+polar, `@x,y` relative), and the editor asserts it off on mount so every
+session starts with the clean chrome.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,

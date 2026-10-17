@@ -536,6 +536,7 @@
                     "clear": "Clear canvas",
                     "ortho": "Ortho",
                     "tangentSnap": "Tangent snap",
+                    "commandLine": "Command line",
                     "basis": "Basis"
                 },
                 "filletRadius": "Fillet radius",

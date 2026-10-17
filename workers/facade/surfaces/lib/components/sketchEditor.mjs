@@ -59,6 +59,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       const importedFileName = ref('');
       const orthoMode = ref(false);
       const tangentSnap = ref(false);
+      const commandLine = ref(false);
       const basisPick = ref(false);
       const selectedVertexId = ref(null);
       const overlayRef = ref(null);
@@ -108,6 +109,16 @@ export default function createSketchEditor({ vue, components, locale }) {
         tangentSnap.value = !tangentSnap.value;
         settings.osnapModes = OSNAP_DEFAULT_MASK
           | (tangentSnap.value ? OSNAP_MODE_BITS.tangent : 0);
+      };
+
+      // The engine CLI is the only desktop surface for typed prompt entry
+      // (bare length, dist<angle, @x,y — vendor README); the toggle reveals
+      // it on demand, the mount asserts it back off (clean-chrome law).
+      const toggleCommandLine = () => {
+        const settings = runtime.value?.AcApSettingManager?.instance;
+        if (!settings) return;
+        commandLine.value = !commandLine.value;
+        settings.isShowCommandLine = commandLine.value;
       };
 
       const toggleBasisPick = () => {
@@ -337,6 +348,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           { labelKey: 'cassette.v2.profileEditor.actions.basis', isOn: () => basisPick.value, onActivate: toggleBasisPick, isDisabled: () => !normalizeOccsProfileSketch(props.modelValue || {}).closed },
           { labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
           { labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
+          { labelKey: 'cassette.v2.profileEditor.actions.commandLine', isOn: () => commandLine.value, onActivate: toggleCommandLine },
           {
             labelKey: () => (normalizeOccsProfileSketch(props.modelValue || {}).closed
               ? 'cassette.v2.profileEditor.closedShape'
@@ -993,8 +1005,10 @@ export default function createSketchEditor({ vue, components, locale }) {
           // The dialog owns the chrome: the engine's standalone-viewer
           // widgets (command line, top-right undo/erase shortcut bar) stay
           // off — prompts and keywords ride the cursor dynamic input, and
-          // undo/erase ride the host toolbar. The dark UI theme matches
-          // the engine's model-space canvas.
+          // undo/erase ride the host toolbar. The toolbar's Command line
+          // toggle reveals the CLI for typed prompt entry (asserted back
+          // off here, so every session starts clean). The dark UI theme
+          // matches the engine's model-space canvas.
           const settings = loaded.AcApSettingManager.instance;
           settings.isShowCommandLine = false;
           settings.isShowShortCutToolbar = false;
