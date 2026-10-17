@@ -1,5 +1,11 @@
 # Stage 1: Build the Rust binary
-FROM rust:1.83 as builder
+FROM rust:1.83 AS builder
+
+# CI: package registries are provider-blocked on runner hosts (the root
+# Dockerfile's LAN relay pattern) — apt, cargo, and pip all need it.
+ENV HTTP_PROXY=http://192.168.0.100:12334 \
+    HTTPS_PROXY=http://192.168.0.100:12334 \
+    NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.77.0.0/16
 
 RUN apt-get update && apt-get install -y \
     python3 python3-pip python3-dev build-essential libssl-dev && \
@@ -16,12 +22,17 @@ RUN cargo build --release
 # Stage 2: Create the final runtime image
 FROM python:3.11-slim
 
+ENV HTTP_PROXY=http://192.168.0.100:12334 \
+    HTTPS_PROXY=http://192.168.0.100:12334 \
+    NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.77.0.0/16
+
 # Create a non-root user
 RUN groupadd -r appuser && useradd -m -r -g appuser appuser
 WORKDIR /app
 
 # Upgrade pip
 RUN pip install --upgrade pip
+ENV HTTP_PROXY= HTTPS_PROXY=
 
 # Copy requirements from local context
 COPY workers/nesting/requirements.txt .
