@@ -348,8 +348,8 @@ export default function createSurface({ vue, components, locale, queries, record
         // Breadcrumb segments naming where the attachment lands: the
         // binding face, plus the arranged edge for edge-array placements.
         const relationCrumbs = (relation) => [
-          relation.targetFaceId ? `face ${relation.targetFaceId}` : null,
-          relation.placementMode === 'edgeArray' && relation.arrayEdge ? `edge ${relation.arrayEdge}` : null
+          relation.targetFaceId || null,
+          relation.placementMode === 'edgeArray' && relation.arrayEdge ? relation.arrayEdge : null
         ].filter(Boolean);
         const rows = new Map(workpieces.value.map(workpiece => [workpiece.id, []]));
         for (const relation of workpieceRelations.value) {
@@ -1253,8 +1253,11 @@ export default function createSurface({ vue, components, locale, queries, record
         selectedRelationId.value = relationId;
         if (relation?.sourceWorkpieceId) selectWorkpiece(relation.sourceWorkpieceId);
         inspectorSelection.value = 'attachment';
+        // The inline editor positions relative to the canvas container:
+        // screen coords from panel clicks convert (and clamp) through
+        // the same mapper the canvas path uses.
         const point = event
-          ? { x: event.clientX, y: event.clientY }
+          ? editorPointFromScreen({ x: event.clientX, y: event.clientY, type: 'attachment' })
           : { x: 120, y: 120 };
         openInlineEditor({
           type: 'attachment',
@@ -2346,6 +2349,17 @@ export default function createSurface({ vue, components, locale, queries, record
                             ? h('small', { class: 'truncate text-muted' }, relationRow.crumbs.join('  ›  '))
                             : null
                         ]),
+                        h(Button, {
+                          icon: 'pi pi-sliders-h',
+                          severity: 'secondary',
+                          text: true,
+                          rounded: true,
+                          size: 'small',
+                          class: 'mt-0.5 shrink-0',
+                          'aria-label': t('cassette.v2.attachmentPosition'),
+                          title: t('cassette.v2.attachmentPosition'),
+                          onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
+                        }),
                         h(Button, {
                           icon: 'pi pi-trash',
                           severity: 'danger',
