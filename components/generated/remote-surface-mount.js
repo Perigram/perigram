@@ -12,6 +12,7 @@ import Select from 'primevue/select';
 import SelectButton from 'primevue/selectbutton';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
+import Toolbar from 'primevue/toolbar';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
@@ -51,7 +52,7 @@ import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 let surfacePack = null;
 function surfaceComponentPack() {
   surfacePack ||= Object.freeze({
-    Button, Checkbox, ColorPicker, Dialog, InputText, InputNumber, Message, Popover, ScrollPanel, Select, SelectButton, Tag, Textarea,
+    Button, Checkbox, ColorPicker, Dialog, InputText, InputNumber, Message, Popover, ScrollPanel, Select, SelectButton, Tag, Textarea, Toolbar,
     DesignerSurface, DesignerWorkspace, DrawingCanvas, InstanceSelect, StandardDialog
   });
   return surfacePack;

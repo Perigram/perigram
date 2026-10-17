@@ -16,6 +16,7 @@ import {
   setOccsProfileSketchClosed
 } from '../../../occs/profiles.js';
 import { resolveOccsExpression } from '../../../occs/expressions.js';
+import { toolIcon } from './toolIcons.mjs';
 import createFieldDraft from './fieldDraft.mjs';
 
 const EXTRACT_DEBOUNCE_MS = 40;
@@ -33,7 +34,7 @@ const BLANK_DXF = '0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1027\n0\nENDSEC\n0\n
 export default function createSketchEditor({ vue, components, locale }) {
   const { h, ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
-  const { Button, InputText, Message } = components;
+  const { Button, InputText, Message, Toolbar } = components;
 
   // The engine singleton is destroyed and re-created per mount; a pending
   // destroy must finish first or its teardown would clobber the new instance.
@@ -323,33 +324,32 @@ export default function createSketchEditor({ vue, components, locale }) {
         clearEngineSelection();
       };
 
-      // Text labels until proper tool icons exist: the engine bundle ships
-      // no extractable command-icon set (its SVGs are baked-in cursor and
-      // marker closures), and ambiguous primeicons (minus=Line,
-      // share-alt=Polyline, square=both Rectangle and Ortho) were worse
-      // than words.
+      // Editor operations ride icon-only buttons (Tabler glyphs,
+      // toolIcons.mjs) with localized tooltips — the engine bundle ships
+      // no icon set, and PrimeIcons had no unambiguous draw-tool glyphs.
       const TOOL_GROUPS = [
         [
-          { command: 'select', labelKey: 'cassette.v2.profileEditor.tools.select' },
-          { command: 'line', labelKey: 'cassette.v2.profileEditor.tools.line' },
-          { command: 'pline', labelKey: 'cassette.v2.profileEditor.tools.polyline' },
-          { command: 'circle', labelKey: 'cassette.v2.profileEditor.tools.circle' },
-          { command: 'arc', labelKey: 'cassette.v2.profileEditor.tools.arc' },
-          { command: 'rectang', labelKey: 'cassette.v2.profileEditor.tools.rectangle' }
+          { command: 'select', icon: 'select', labelKey: 'cassette.v2.profileEditor.tools.select' },
+          { command: 'line', icon: 'line', labelKey: 'cassette.v2.profileEditor.tools.line' },
+          { command: 'pline', icon: 'polyline', labelKey: 'cassette.v2.profileEditor.tools.polyline' },
+          { command: 'circle', icon: 'circle', labelKey: 'cassette.v2.profileEditor.tools.circle' },
+          { command: 'arc', icon: 'arc', labelKey: 'cassette.v2.profileEditor.tools.arc' },
+          { command: 'rectang', icon: 'rectang', labelKey: 'cassette.v2.profileEditor.tools.rectangle' }
         ],
         [
-          { command: 'erase', labelKey: 'cassette.v2.profileEditor.actions.erase' },
-          { command: 'undo', labelKey: 'cassette.v2.profileEditor.actions.undo' },
-          { command: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo' }
+          { command: 'erase', icon: 'erase', labelKey: 'cassette.v2.profileEditor.actions.erase' },
+          { command: 'undo', icon: 'undo', labelKey: 'cassette.v2.profileEditor.actions.undo' },
+          { command: 'redo', icon: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo' }
         ],
         [
           // The basis anchor is a closed-shape construct — on an open
           // sketch the toggle is disabled, never a silent no-op.
-          { labelKey: 'cassette.v2.profileEditor.actions.basis', isOn: () => basisPick.value, onActivate: toggleBasisPick, isDisabled: () => !normalizeOccsProfileSketch(props.modelValue || {}).closed },
-          { labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
-          { labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
-          { labelKey: 'cassette.v2.profileEditor.actions.commandLine', isOn: () => commandLine.value, onActivate: toggleCommandLine },
+          { icon: 'basis', labelKey: 'cassette.v2.profileEditor.actions.basis', isOn: () => basisPick.value, onActivate: toggleBasisPick, isDisabled: () => !normalizeOccsProfileSketch(props.modelValue || {}).closed },
+          { icon: 'ortho', labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
+          { icon: 'tangentSnap', labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
+          { icon: 'commandLine', labelKey: 'cassette.v2.profileEditor.actions.commandLine', isOn: () => commandLine.value, onActivate: toggleCommandLine },
           {
+            icon: () => (normalizeOccsProfileSketch(props.modelValue || {}).closed ? 'closedShape' : 'openShape'),
             labelKey: () => (normalizeOccsProfileSketch(props.modelValue || {}).closed
               ? 'cassette.v2.profileEditor.closedShape'
               : 'cassette.v2.profileEditor.openShape'),
@@ -358,9 +358,9 @@ export default function createSketchEditor({ vue, components, locale }) {
           }
         ],
         [
-          { labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => manager?.curView?.zoomToFitDrawing?.() },
-          { labelKey: 'cassette.v2.profileEditor.importDxf', onActivate: () => fileInputRef.value?.click() },
-          { labelKey: 'cassette.v2.profileEditor.actions.clear', onActivate: () => clearDrawing() }
+          { icon: 'zoomFit', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => manager?.curView?.zoomToFitDrawing?.() },
+          { icon: 'importDxf', labelKey: 'cassette.v2.profileEditor.importDxf', onActivate: () => fileInputRef.value?.click() },
+          { icon: 'clear', labelKey: 'cassette.v2.profileEditor.actions.clear', onActivate: () => clearDrawing() }
         ]
       ];
 
@@ -969,6 +969,26 @@ export default function createSketchEditor({ vue, components, locale }) {
         ]);
       };
 
+      // Icon-only toolbar buttons: the active tool or an armed toggle reads
+      // primary; tooltips and aria-labels carry the localized names.
+      const renderToolGroupButtons = (fromGroup, toGroup) => TOOL_GROUPS.slice(fromGroup, toGroup).flatMap((group, groupIndex) => [
+        ...(groupIndex > 0 ? [h('span', { class: 'mx-0.5 h-4 w-px shrink-0 bg-content-border' })] : []),
+        ...group.map(tool => {
+          const labelKey = typeof tool.labelKey === 'function' ? tool.labelKey() : tool.labelKey;
+          const icon = typeof tool.icon === 'function' ? tool.icon() : tool.icon;
+          return h(Button, {
+            key: labelKey,
+            severity: (tool.command && activeTool.value === tool.command) || tool.isOn?.() ? 'primary' : 'secondary',
+            text: true,
+            rounded: true,
+            disabled: tool.isDisabled?.() || false,
+            'aria-label': t(labelKey),
+            title: t(labelKey),
+            onClick: () => runCommand(tool)
+          }, () => [toolIcon(h, icon)]);
+        })
+      ]);
+
       const handleDxfUpload = async (event) => {
         const [file] = Array.from(event.target.files || []);
         event.target.value = '';
@@ -1093,30 +1113,20 @@ export default function createSketchEditor({ vue, components, locale }) {
         class: 'flex min-h-0 flex-1 flex-col gap-2',
         'data-keyboard-scope': 'cad'
       }, [
-        h('div', { class: 'flex flex-wrap items-center gap-1' }, [
-          ...TOOL_GROUPS.flatMap((group, groupIndex) => [
-            ...(groupIndex > 0 ? [h('span', { class: 'mx-1 h-4 w-px shrink-0 bg-content-border' })] : []),
-            ...group.map(tool => {
-              const labelKey = typeof tool.labelKey === 'function' ? tool.labelKey() : tool.labelKey;
-              return h(Button, {
-                key: labelKey,
-                label: t(labelKey),
-                severity: (tool.command && activeTool.value === tool.command) || tool.isOn?.() ? 'primary' : 'secondary',
-                disabled: tool.isDisabled?.() || false,
-                size: 'small',
-                'aria-label': t(labelKey),
-                onClick: () => runCommand(tool)
-              });
-            })
-          ]),
-          h('input', {
-            ref: fileInputRef,
-            type: 'file',
-            accept: '.dxf',
-            class: 'hidden',
-            onChange: handleDxfUpload
-          })
-        ]),
+        h(Toolbar, {
+          class: 'w-full shrink-0 gap-1 overflow-x-auto p-1',
+          'aria-label': t('cassette.v2.profileEditor.preview')
+        }, {
+          start: () => renderToolGroupButtons(0, 2),
+          end: () => renderToolGroupButtons(2, 4)
+        }),
+        h('input', {
+          ref: fileInputRef,
+          type: 'file',
+          accept: '.dxf',
+          class: 'hidden',
+          onChange: handleDxfUpload
+        }),
         h('div', {
           ref: containerRef,
           class: 'relative min-h-[18rem] w-full flex-1 overflow-hidden rounded-ui border border-content-border bg-subtle',

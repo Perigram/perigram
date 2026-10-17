@@ -35,7 +35,6 @@ import {
   OCCS_PROFILE_KINDS,
   OCCS_PROFILE_PROCESSES,
   closeOccsProfileSketchBoundary,
-  createDefaultOccsProfileTemplateData,
   createEmptyOccsProfileSketch,
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
@@ -259,9 +258,16 @@ export default function createSurface({ vue, components, locale, queries, record
       // The focused profile-parameter chip's raw text (see fieldDraft).
       const profileDialogVisible = ref(false);
       const editingProfileWorkpieceId = ref('');
+      // Every dialog session drafts blank (owner decision 2026-10-17):
+      // empty canvas, empty table — geometry and parameters are authored,
+      // never seeded from the template.
       const profileDraft = ref({
         name: '',
-        ...createDefaultOccsProfileTemplateData()
+        kind: 'hanger',
+        process: 'extruded',
+        parameters: {},
+        sketch: createEmptyOccsProfileSketch(),
+        occsProfile: null
       });
       const profileLibraryRecords = ref([]);
       const profileLibraryAvailable = ref(true);
@@ -1344,22 +1350,25 @@ export default function createSurface({ vue, components, locale, queries, record
         editingProfileWorkpieceId.value = workpieceId;
         const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;
         if (workpiece) {
-          const profile = workpiece.profileSnapshot || workpiece.profile || createDefaultOccsProfileTemplateData();
+          const profile = workpiece.profileSnapshot || workpiece.profile || null;
           profileDraft.value = {
             name: workpiece.name || t('cassette.v2.profileEditor.defaultName'),
-            kind: workpiece.role || profile.kind || 'hanger',
-            process: workpiece.process || profile.process || 'extruded',
-            parameters: workpiece.parameters || profile.parameters || {},
-            sketch: profile.sketch || createDefaultOccsProfileTemplateData().sketch,
-            occsProfile: profile.section ? { section: profile.section, sweep: profile.sweep, sketch: profile.sketch } : profile.occsProfile || null
+            kind: workpiece.role || profile?.kind || 'hanger',
+            process: workpiece.process || profile?.process || 'extruded',
+            parameters: workpiece.parameters || profile?.parameters || {},
+            sketch: profile?.sketch || createEmptyOccsProfileSketch(),
+            occsProfile: profile?.section ? { section: profile.section, sweep: profile.sweep, sketch: profile.sketch } : profile?.occsProfile || null
           };
         } else {
-          // A new profile opens on the parametric default template: its
-          // table carries W/H/R/D/L and its geometry binds to it, so the
-          // saved workpiece's row chips drive the profile.
+          // Blank draft (owner decision 2026-10-17): the dialog opens on
+          // an empty canvas and an empty table, never the seeded template.
           profileDraft.value = {
             name: t('cassette.v2.profileEditor.defaultName'),
-            ...createDefaultOccsProfileTemplateData()
+            kind: 'hanger',
+            process: 'extruded',
+            parameters: {},
+            sketch: createEmptyOccsProfileSketch(),
+            occsProfile: null
           };
         }
         profileDialogVisible.value = true;
@@ -2546,15 +2555,20 @@ export default function createSurface({ vue, components, locale, queries, record
           'onUpdate:visible': value => { profileDialogVisible.value = value; },
           header: t('cassette.v2.profileEditor.title'),
           size: 'xl',
-          fill: true
+          fill: true,
+          showDefaultFooter: false
         }, {
-          default: () => h('div', { class: 'flex min-h-0 flex-1 flex-col gap-3' }, [
-            h('div', { class: 'grid gap-2 md:grid-cols-[minmax(0,1fr)_10rem_10rem]' }, [
+          // Window-level controls in one compact row (owner decision
+          // 2026-10-17): identity, kind/process, library pick, and the
+          // save actions; the dialog's header close cancels.
+          default: () => h('div', { class: 'flex min-h-0 flex-1 flex-col gap-2' }, [
+            h('div', { class: 'flex shrink-0 flex-wrap items-center gap-2' }, [
               h(InputText, {
                 modelValue: profileDraft.value.name,
                 'onUpdate:modelValue': value => { profileDraft.value.name = value; },
                 placeholder: t('cassette.v2.profileEditor.name'),
-                class: 'w-full'
+                size: 'small',
+                class: 'min-w-40 flex-1'
               }),
               h(Select, {
                 modelValue: profileDraft.value.kind,
@@ -2562,7 +2576,9 @@ export default function createSurface({ vue, components, locale, queries, record
                 optionLabel: 'label',
                 optionValue: 'value',
                 appendTo: 'self',
-                class: 'w-full',
+                size: 'small',
+                class: 'w-28',
+                'aria-label': t('cassette.v2.profileEditor.kind'),
                 'onUpdate:modelValue': value => { profileDraft.value.kind = value; }
               }),
               h(Select, {
@@ -2571,54 +2587,52 @@ export default function createSurface({ vue, components, locale, queries, record
                 optionLabel: 'label',
                 optionValue: 'value',
                 appendTo: 'self',
-                class: 'w-full',
+                size: 'small',
+                class: 'w-36',
+                'aria-label': t('cassette.v2.profileEditor.process'),
                 'onUpdate:modelValue': value => { profileDraft.value.process = value; }
-              })
+              }),
+              profileLibraryAvailable.value
+                ? h(Select, {
+                  modelValue: null,
+                  options: profileLibraryRecords.value,
+                  optionLabel: 'name',
+                  placeholder: t('cassette.v2.profileEditor.library'),
+                  appendTo: 'self',
+                  size: 'small',
+                  class: 'w-44',
+                  'onUpdate:modelValue': value => { applyProfileLibraryRecord(value); }
+                })
+                : null,
+              h(Button, {
+                icon: 'pi pi-save',
+                severity: 'primary',
+                rounded: true,
+                size: 'small',
+                disabled: !profileDraftReady.value,
+                'aria-label': t('common.save'),
+                title: t('common.save'),
+                onClick: saveProfileDraft
+              }),
+              profileLibraryAvailable.value
+                ? h(Button, {
+                  icon: 'pi pi-bookmark',
+                  severity: 'secondary',
+                  text: true,
+                  rounded: true,
+                  size: 'small',
+                  disabled: !profileDraftReady.value,
+                  'aria-label': t('cassette.v2.profileEditor.saveToLibrary'),
+                  title: t('cassette.v2.profileEditor.saveToLibrary'),
+                  onClick: saveProfileDraftToLibrary
+                })
+                : null
             ]),
-            profileLibraryAvailable.value
-              ? h(Select, {
-                modelValue: null,
-                options: profileLibraryRecords.value,
-                optionLabel: 'name',
-                placeholder: t('cassette.v2.profileEditor.library'),
-                appendTo: 'self',
-                class: 'w-full',
-                'onUpdate:modelValue': value => { applyProfileLibraryRecord(value); }
-              })
-              : null,
             h(ProfileSketchEditor, {
               modelValue: profileDraft.value.sketch,
               externalParameters: globalParameters.value,
               'onUpdate:modelValue': value => { profileDraft.value.sketch = value; },
               onProfile: value => { profileDraft.value.occsProfile = value; }
-            })
-          ]),
-          footer: () => h('div', { class: 'flex w-full flex-wrap items-center justify-between gap-2' }, [
-            h('div', { class: 'flex flex-wrap gap-2' }, [
-              h(Button, {
-                label: t('common.save'),
-                icon: 'pi pi-save',
-                size: 'small',
-                disabled: !profileDraftReady.value,
-                onClick: saveProfileDraft
-              }),
-              profileLibraryAvailable.value
-                ? h(Button, {
-                  label: t('cassette.v2.profileEditor.saveToLibrary'),
-                  icon: 'pi pi-bookmark',
-                  severity: 'secondary',
-                  size: 'small',
-                  disabled: !profileDraftReady.value,
-                  onClick: saveProfileDraftToLibrary
-                })
-                : null
-            ]),
-            h(Button, {
-              label: t('common.cancel'),
-              severity: 'secondary',
-              text: true,
-              size: 'small',
-              onClick: () => { profileDialogVisible.value = false; }
             })
           ])
         })
