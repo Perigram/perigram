@@ -20,7 +20,7 @@ jobs:
       - name: build image
         run: docker build --network=host -t perigram:staging --build-arg PORT=3001 .
       - name: build nesting worker image
-        run: docker build -t perigram-nesting:staging -f workers/nesting/Dockerfile workers/nesting
+        run: docker build -t perigram-nesting:staging -f workers/nesting/Dockerfile .
       - name: build plugin executor images
         # Each plugin executor as its own image (its dependency install
         # beside the zero-dep SDK — the extracted hosting form).
