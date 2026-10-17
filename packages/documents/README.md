@@ -7,8 +7,8 @@ by composition in
 [server/packs/declarations.js](../../server/packs/declarations.js), and
 the pack's one server binding is the `rows` projection handler (below).
 Drawing/CAD formats (DXF, SVG) are NOT
-here — they are tech-drawing vocabulary
-([@perigram/tech-drawing](../tech-drawing/README.md)).
+here — they are tech-drawing plugin vocabulary
+([workers/tech-drawing](../../workers/tech-drawing/README.md)).
 
 ## Types
 

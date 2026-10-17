@@ -1,6 +1,6 @@
 # CONTAINER: Workers
 
-The worker tier is the nesting solver and the facade plugin's executor.
+The worker tier is the nesting solver and the plugins' executors (facade, tech-drawing).
 The polling task workers
 (file-processing, cassette-processing, geometry-capture) were deleted with
 the queue-era task chains: no code path enqueued their tasks
@@ -15,6 +15,8 @@ registered beside a live enqueue site.
 |---|---|---|---|
 | nesting | HTTP solver | `workers/nesting/worker_service.py` | Pure FastAPI 2D nesting solver called by the facade executor through `NESTING_WORKER_URL`. |
 | facade | Endpoint-mode plugin executor | `workers/facade/index.js` | The facade plugin's compute (DXF extraction, OCCS bake, nesting solve mapping, cassette import, sheet DXF) — see [workers/facade](./facade/README.md). |
+
+| tech-drawing | Static-serving plugin executor (declarations-only plugin, no services) | `workers/tech-drawing/index.js` | Serves the sketch editor surface module and vendored runtimes as static GETs — see [workers/tech-drawing](./tech-drawing/README.md). |
 
 The nesting service is not a task executor: the facade executor's
 `nesting-solve` service validates inputs, calls the solver over HTTP,

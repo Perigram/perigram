@@ -51,17 +51,15 @@ files features are rejected at the mount (see
   `documents.csvText` value-service command (rows → CSV text); the types
   ride the generic instance machinery, whose `content` creation protocol
   serves their graph-authored creates.
-- `tech-drawing/` — mounted purely by composition (no service bindings):
-  the `pen-template` and `layer-standard` reference types and their
-  system-catalog instances ride the generic instance machinery.
-  Declaration data lives in `packages/tech-drawing/src/index.js`.
 
-The facade domain is NOT a mounted pack: it installs per organization as
-the facade plugin (SPEC §Plugin marketplace) — its declarations arrive
-with the install snapshot ([workers/facade listing](../../workers/facade/README.md)),
-its construction/conversion/export compute runs in the external facade
-executor, and the generic instance machinery serves its records
-end to end. No framework code imports it.
+The facade and tech-drawing domains are NOT mounted packs: they install
+per organization as plugins (SPEC §Plugin marketplace, owner decision
+2026-10-17) — their declarations arrive with the install snapshots
+([workers/facade](../../workers/facade/README.md),
+[workers/tech-drawing](../../workers/tech-drawing/README.md)), their
+compute (the facade) runs in the external executor, and the generic
+instance machinery serves their records end to end. No framework code
+imports either.
 
 ## Related
 
