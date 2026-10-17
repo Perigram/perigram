@@ -128,7 +128,7 @@ describe('parseListing', () => {
       { name: '@milkdown/crepe', version: '7.22.3', module: '/assets/vendor/milkdown-crepe.mjs', license: 'MIT' }
     ];
     expect(withDeps(good).dependencies).toEqual(good);
-    for (const injected of ['vue', 'primevue', 'pinia', 'marked', 'dompurify']) {
+    for (const injected of ['vue', 'primevue', 'pinia', 'marked', 'dompurify', 'pele']) {
       expect(() => withDeps([{ name: injected, version: '1.0.0', module: `/assets/vendor/${injected}.mjs`, license: 'MIT' }]))
         .toThrow(/host-injected external/);
     }
