@@ -222,6 +222,19 @@ glyph in the brand accent across chat surfaces (SPEC: agent access).
   fight alignment, markdown flow, and swipe affordances (owner left
   the call to the agent).
 
+### Agent Notes (2026-10-17 — tool Tags; presence on the typing line)
+
+- Owner corrections: a tool invocation is a name, not a legend/content
+  structure — the non-toggleable-Fieldset-with-legend-slot shape is
+  gone; each tool renders as a bordered `Tag` (status icon + technical
+  name) with the failure `Message` beneath. The pending-state
+  "Thinking" box was wrong twice over (it is not thinking yet, and the
+  owner had already placed it): the assistant now rides the typing
+  line above the composer until the run's first step or answer — SPEC
+  and the agent-bots README amended in the same task (the old
+  "never rides the typing line" sentence was this owner's earlier
+  direction, superseded).
+
 ### Agent Notes (2026-10-17 — tool surfaces and the pending pulse)
 
 - Owner direction: tool calls wrap into bordered Fieldset surfaces
