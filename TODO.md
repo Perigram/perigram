@@ -276,6 +276,20 @@ glyph in the brand accent across chat surfaces (SPEC: agent access).
   fight alignment, markdown flow, and swipe affordances (owner left
   the call to the agent).
 
+### Agent Notes (2026-10-17 — fieldset compaction to tokens; collapsed = caption)
+
+- Owner direction: the Fieldset compaction belongs in the PrimeVue
+  tokens — `primeComponentTokens.fieldset` now sets compact legend
+  padding/gap and root insets for EVERY Fieldset (SurfaceDetailBody's
+  rich-structure disclosures included). What tokens cannot express
+  stays per-instance pt in `AgentActivity`: the caption-size label,
+  the +/− svg, chronology density, and the collapsed state — tracked
+  via the toggle event, a collapsed thinking disclosure strips its
+  border/padding/background and reads as a quiet caption line.
+- Reminder from the root README: tokens are startup-evaluated — a
+  running dev server needs a restart before the new fieldset geometry
+  shows.
+
 ### Agent Notes (2026-10-17 — tool Tags; presence on the typing line)
 
 - Owner corrections: a tool invocation is a name, not a legend/content
