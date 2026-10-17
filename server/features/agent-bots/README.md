@@ -79,15 +79,21 @@ Three pieces share one tool catalog:
   that principal's grants. There are no bot tokens.
 - **Chat runtime** (`runtime.js`): registered by the `agent-bots` nitro
   plugin as a support message observer, it decides when the AI answers a
-  persisted message and drives the tool-calling loop until the model
-  answers (owner direction 2026-10-16: no round budget) — the room's stop
+  persisted message — multi-human rooms (group rooms with more than two
+  participants, and every instance room) only when the message names the
+  assistant (`@` + its name, case-insensitive, word-bounded;
+  two-participant assistant rooms are the AI's own person-style threads
+  and answer every message) — and drives the tool-calling loop until the
+  model answers (owner direction 2026-10-16: no round budget) — the room's stop
   control and the provider idle guard are the only terminators — over
   the [LLM capability module](../llm/README.md) on the `chat`
   capability route. The run executes with the **triggering sender's**
   request-shaped auth (`buildPrincipalAuth` — the same construction the
   auth middleware produces), so every tool call enforces exactly what
-  that user may do; a sender without the agent-chat capability is
-  skipped silently. Replies re-enter the auth-checked support send path
+  that user may do; a sender without the agent-chat capability, or one
+  from another organization than the subscription's, is skipped silently
+  — the subscription's organization is the wake boundary. Replies
+  re-enter the auth-checked support send path
   as the assistant user, carrying the run's provenance
   (`agent: { steps }` — the run's chronology: per-round reasoning
   segments interleaved with tool invocations, in the order they happened)
@@ -99,8 +105,11 @@ Three pieces share one tool catalog:
   [support](../support/README.md)), so clients render it as a
   severity-styled system notice; a dead provider's notice keeps the
   run's chronology attached. While the
-  run is in flight it publishes the same activity onto the conversation
-  topic — `bot_activity` with the chronology so far (one reasoning
+  run is in flight it publishes the same activity onto every
+  conversation topic the trigger message fans out to (its own thread
+  plus its instance path, mirroring the support message fanout — the
+  organization chat view sees the run beside the trigger like any other
+  message) — `bot_activity` with the chronology so far (one reasoning
   segment per round, tool invocations as they start and settle carrying
   the failure message when one was rejected, always
   a snapshot), `bot_stream` with the answer so far, and
@@ -115,17 +124,23 @@ Three pieces share one tool catalog:
   (`POST /api/agent-bots/stop` with the conversation key): the room's
   composer control aborts the request, the loop keeps the answer
   produced so far and persists it, and a stopped wake stays silent like
-  a failing one. In-flight runs are keyed by conversation and hold their
-  cancellation handle, so the stop reaches exactly the room's run.
+  a failing one. In-flight runs are keyed by the SUBSCRIBED room and
+  hold their cancellation handle plus every key the stop may arrive
+  from (the room's or any view the trigger fans out to), so the stop
+  reaches exactly the room's run — and one run occupies a room at a
+  time: a trigger arriving mid-run (chat reply or wake alike) is
+  coalesced, never dropped — the latest re-fires when the current run
+  lands, with a fresh history snapshot covering everything said
+  meanwhile; a stopped room's coalesced trigger dies with the stop.
 
 ## Conversation membership
 
 | Kind | Membership | Trigger |
 |---|---|---|
-| AI chat (fresh thread) | Created by `POST /api/agent-bots/chats` — a persisted room with exactly the caller and the assistant, subscribed like any group room | Subscription on `group:<id>` |
+| AI chat (fresh thread) | Created by `POST /api/agent-bots/chats` — a persisted room with exactly the caller and the assistant, subscribed like any group room | Every message (its own person-style thread): subscription on `group:<id>` |
 | Direct with the AI | None needed — legacy threads from the created-bots era; the assistant participant answers implicitly | Implicit: the assistant participant answers |
-| Group chat | Subscription + group participants entry (posting admission is participant-scoped) | Subscription on `group:<id>` |
-| Instance/org chat | Subscription only (instance conversations have no participant list) | Subscription on the instance key or any ancestor key on the message's stored `instancePath` |
+| Group chat | Subscription + group participants entry (posting admission is participant-scoped) | Subscription on `group:<id>`, mention-gated above two participants |
+| Instance/org chat | Subscription only (instance conversations have no participant list) | Subscription on the instance key or any ancestor key on the message's stored `instancePath` (own thread before the nearest ancestor — the first subscribed key pins the run's model), mention-gated |
 
 Every new chat with the AI is a **fresh thread** (SPEC: agent access): the
 new-chat picker's AI row opens an empty draft — nothing is persisted until
@@ -157,9 +172,14 @@ Wakes from that conversation inherit its row.
 
 Bringing the AI into a room is participant-level (any member holding
 the agent-chat capability, through the thread header's AI panel); human
-membership keeps the creator-or-admin gate. Support-channel messages
-never trigger; the AI never triggers itself (no loops); one in-flight
-run per conversation (chat replies and wakes share the lock space).
+membership keeps the creator-or-admin gate, and the human membership
+seams refuse bot targets outright — assistant membership is twin-only,
+so the participants entry and the subscription cannot diverge through
+member management. Support-channel messages never trigger; the AI never
+triggers itself (no loops); one run per subscribed room at a time (chat
+replies and wakes share the lock space), and the subscription's
+organization is the wake boundary — an assistant answers only its own
+org's members.
 
 ## The org assistant
 

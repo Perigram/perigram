@@ -77,7 +77,9 @@ org `lineage`, plus a `participants` user-id list) and owns the derived
   lineage. Creation pings every participant's inbox topic. Membership
   edits on an existing group go through the service seams
   (`addGroupParticipant`/`removeGroupParticipant`, creator-or-admin gated,
-  the creator irremovable) — and assistant membership through the
+  the creator irremovable; the human seams refuse bot targets outright,
+  so the participants entry and the AI's subscription cannot diverge
+  through member management) — and assistant membership through the
   participant-gated twins (`addBotGroupParticipant`/
   `removeBotGroupParticipant`: any participant holding the agent-chat
   capability may seat or remove the AI, and the assistant is the only
