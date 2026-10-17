@@ -137,7 +137,8 @@ Presentation is person-chat, not group-chat: the client detects the
 two-participant assistant rooms and renders them without group chrome —
 no member count, no members list, no sender stamps, no AI-panel control
 (the composer's model select pins the room; the panel is a group/instance
--room affordance). The thread header is the title and the AI badge. The
+-room affordance). The thread header is the title and the shared AI
+face (the microchip avatar — no text badge). The
 rail's one + menu owns every conversation start — person chat, group,
 AI chat (offered to members holding the agent-chat capability).
 

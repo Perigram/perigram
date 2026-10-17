@@ -168,6 +168,7 @@ const canFetchRef = (ref = {}) => {
         :entity="part.ref.instance || null"
         :fetch="canFetchRef(part.ref)"
         :allow-detail-route="!(viewerUserId && message.senderUserId && message.senderUserId !== viewerUserId && part.ref.chatOnlyForRecipient)"
+        chip
         class="max-w-full"
       />
     </template>
@@ -179,6 +180,7 @@ const canFetchRef = (ref = {}) => {
       :entity="ref.instance || null"
       :fetch="canFetchRef(ref)"
       :allow-detail-route="!(viewerUserId && message.senderUserId && message.senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
+      chip
       class="max-w-full"
     />
   </span>

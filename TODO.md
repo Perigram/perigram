@@ -150,6 +150,27 @@ glyph in the brand accent across chat surfaces (SPEC: agent access).
   fight alignment, markdown flow, and swipe affordances (owner left
   the call to the agent).
 
+### Agent Notes (2026-10-17 — owner polish round)
+
+- Avatar deslop: the whisper tint and hairline ring were slop — the
+  face is now the plain glyph-avatar shape (`bg-subtle text-accent`),
+  same as every other glyph avatar.
+- AI text badges removed everywhere the face shows: thread header,
+  new-chat picker row, bot panel (dead `support.bots.assistant` i18n
+  key removed; `support.bots.badge` stays for the users table, which
+  has no avatar). `AiAvatar` is the single AI marker on chat surfaces.
+- `AgentActivity` polish: Fieldset legend compacted through `pt`
+  (supporting-size label, tight insets — pt style objects are the
+  repo's per-instance lever); tool invocations render as boxed rows
+  (subtle inset, status-colored icon, technical-font name).
+- Instance refs in chat messages render as boxed chips: the inline
+  ref's tone vars (`--ck-inline-ref-bg/border/fg`, mixed from the type
+  accent by semantic role) were computed but never consumed — the
+  shared README documented filled/outlined tone chips the code never
+  shipped (doc drift, reconciled). New `chip` opt-in on
+  `InstanceInlineRef` consumes them; `SupportMessageContent` passes
+  it, so message-body tokens and trailing attachments read as chips.
+
 ## Z.AI coding plan as a login option on the models screen (owner direction 2026-10-16)
 
 Known providers are login options: picking the Z.AI GLM coding plan asks

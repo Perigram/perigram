@@ -196,8 +196,7 @@
             "toggleInConversation": "In this chat",
             "wakes": "Wakes",
             "typePlaceholder": "Type",
-            "statePlaceholder": "State",
-            "assistant": "assistant"
+            "statePlaceholder": "State"
         },
         "sendMessage": "Send message",
         "members": "Members",

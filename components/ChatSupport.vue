@@ -354,13 +354,6 @@
                                 </Button>
                                 <template v-else>{{ conversationLabel(activeConversation) }}</template>
                             </h2>
-                            <Tag
-                                v-if="isAiOnlyRoom"
-                                :value="$t('support.bots.badge')"
-                                severity="secondary"
-                                size="small"
-                                class="shrink-0"
-                            />
                             <Button
                                 v-if="activeConversation.conversationKind === 'instance'"
                                 icon="pi pi-sitemap"
@@ -1215,19 +1208,12 @@
                                 class="shrink-0 bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                             />
                             <span class="min-w-0 flex-1 truncate text-label">{{ option.label }}</span>
-                            <Tag
-                                v-if="option.instance?.data?.bot"
-                                :value="$t('support.bots.badge')"
-                                severity="secondary"
-                                size="small"
-                                class="shrink-0"
-                            />
                         </div>
                     </template>
                 </Listbox>
             </div>
         </StandardDialog>
-                <StandardDialog
+        <StandardDialog
             v-model:visible="groupDialog"
             size="sm"
             :show-default-footer="true"
@@ -1453,7 +1439,6 @@ import ChatBotPanel from '~/components/shared/ChatBotPanel.vue'
 import TraceChain from '~/components/shared/links/TraceChain.vue'
 import Popover from 'primevue/popover'
 import AvatarGroup from 'primevue/avatargroup'
-import Tag from 'primevue/tag'
 import CallPanel from '~/components/calls/CallPanel.vue'
 import { collectActionInputFields, initialPromptValue, promptData, promptedFields } from '~/components/generated/action-inputs.js'
 import { isGeneratedSurfaceAction } from '~/utils/action-visibility.js'

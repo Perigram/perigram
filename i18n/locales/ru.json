@@ -196,8 +196,7 @@
             "toggleInConversation": "В этом чате",
             "wakes": "Пробуждения",
             "typePlaceholder": "Тип",
-            "statePlaceholder": "Статус",
-            "assistant": "ассистент"
+            "statePlaceholder": "Статус"
         },
         "sendMessage": "Написать",
         "members": "Участники",

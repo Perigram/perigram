@@ -1046,9 +1046,10 @@ forwarded-from caption line (forward icon + original sender) on every
 shape — text, media, or files. While a subscribed bot runs, its live work
 renders as one chromeless activity block under the messages (no bubble
 chrome, no sender chip): the run's chronology in order — the model's
-reasoning in per-round collapsible `Fieldset` disclosures and one
-status-iconed row per tool invocation between them, a failed tool's
-error text rendered as a severity-error `Message` — and the
+reasoning in per-round collapsible `Fieldset` disclosures (compact
+legend through `pt`) and one boxed tool row per invocation between them
+(subtle inset, status-colored icon, technical-font tool name), a failed
+tool's error text rendered as a severity-error `Message` — and the
 answer growing as markdown in the room's flow. The transcript does not
 jump to the bottom while the run works. The composer's trailing control
 becomes a stop button for the live run; stopping aborts the request and
@@ -1062,10 +1063,13 @@ never ride the human typing line. The assistant's non-answer output is
 typed, not conversational: failure notices (`notice`, a severity name
 authored server-side — see
 [backend support](../server/features/support/README.md)) render as a
-`Message` with that severity instead of a chat bubble, and the AI's
+`Message` with that severity instead of a chat bubble. The AI's
 identity face is the shared microchip avatar
 ([shared components](./shared/README.md)) on inbox rows, thread
-headers, pickers, and sender chips.
+headers, pickers, and sender chips — and it is the only AI marker:
+chat surfaces carry no text badges. Instance refs inside message
+bodies and trailing attachments render through
+`SupportMessageContent` as boxed instance chips, not inline text.
 Conversations with bots carry a model select above the composer: it
 lists the models the org's chat endpoints actually serve (not the
 profiles — the endpoint's own model listing) and pins the choice on the
