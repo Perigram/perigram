@@ -96,7 +96,10 @@ Three pieces share one tool catalog:
   re-enter the auth-checked support send path
   as the assistant user, carrying the run's provenance
   (`agent: { steps }` — the run's chronology: per-round reasoning
-  segments interleaved with tool invocations, in the order they happened)
+  segments interleaved with tool invocations, in the order they happened;
+  a tool step carries `detail`, the compact human summary of what the
+  call addressed — authored vocabulary only, a definition name,
+  instance type, or action id, never a storage id)
   onto the persisted message — the
   activity block the chat renders attached to the answer. A run that
   dies without an answer still answers the room: the failure notice

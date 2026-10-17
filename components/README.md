@@ -1047,9 +1047,10 @@ forwarded-from caption line (forward icon + original sender) on every
 shape — text, media, or files. While a subscribed bot runs, its live work
 renders as one chromeless activity block under the messages (no bubble
 chrome, no sender chip): the run's chronology — the model's reasoning
-in per-round collapsible `Fieldset` disclosures and one bordered `Tag`
-per tool invocation (status icon + technical name, a severity-error
-`Message` beneath a failed one) — and the answer growing
+in per-round collapsible `Fieldset` disclosures and one small
+severity-styled `Message` per tool invocation (localized tool name,
+the call's detail, outcome severity; a failed tool's error rides the
+same message) — and the answer growing
 as markdown in the room's flow; before the first step, the assistant
 rides the typing line above the composer. The transcript
 does not
