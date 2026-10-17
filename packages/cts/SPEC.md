@@ -965,11 +965,17 @@ are compiler concerns. They may be explicit advanced primitives, but they are
 not hidden per-node authoring requirements. The primary palette contains
 only semantics a process author intentionally composes.
 
-## 21. Packs
+## 21. Domain plug-ins (packs retired)
 
-Domain content is optional plug-ins. The framework (registry, runtime,
-designer) imports nothing domain-shaped; a pack mounts through one module
-and provides:
+Domain content is optional plug-ins. The pack mount retired (owner
+decision 2026-10-17, SPEC.md §Plugin marketplace): every domain —
+documents, tech-drawing, facade — is a marketplace plugin whose types
+arrive with the per-organization install snapshot and whose editors ship
+as plugin surface modules; nothing domain-shaped mounts in the framework
+process. The composition laws below carry over to the plugin layer
+(requirements chain install-on-install, no shadowing, `scope: 'system'`
+in the org view); the plugin marketplace section of the root SPEC owns
+the contract. Historically the pack mount provided:
 
 **Requirements and composition:** a pack may declare `requires: [packIds]`.
 The registry composes the system view as framework types plus every

@@ -57,7 +57,7 @@ optional `service` binding), `constructions` (the plugin's types'
 construction modes bound to plugin services — the platform resolves the
 operator's inputs as values and merges the executor's computed fields
 into the created record), `exports` (attachment exports bound to plugin
-services), and `requires` (mounted pack ids the types resolve against).
+services), and `requires` (plugin ids the types resolve against, satisfied by installs).
 Types follow the CTS declaration grammar — fields, states, transitions,
 operators, payload traits, and revision scopes are authored with the
 vocabulary documented in

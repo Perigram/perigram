@@ -61,7 +61,7 @@ targets a surface mount contract
   the available-version tag and upgrade through the Plugins page (the §11
   diff preview with declared migration steps).
 - Existing orgs: `server/scripts/migrate-facade-pack-to-plugin.js`
-  swaps the mounted pack for the install (disablement record + install
+  swapped the mounted pack for the install (an install
   snapshot + service-node rewrites `nesting.solve` →
   `plugin.facade.nesting-solve`); type ids are unchanged, so instances
   and process bindings resolve continuously.

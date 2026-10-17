@@ -95,7 +95,7 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
 - [ ] F. Starter constructs ride listing declarations and compose through
   default installs; the pack-side starter-construct seam
   (`composeStarterConstructs`) retires.
-- [ ] G. Pack machinery deletion: registry pack mounts, the `composePack*`
+- [x] G. Pack machinery deletion: registry pack mounts, the `composePack*`
   seams, `pack_disablements`, the Plugins page packs panel; existing orgs
   migrate off packs in the same task.
 - [ ] H. Executor release convention: the staging workflow deploys the
@@ -142,6 +142,16 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
   `--surface-origin`, Plugins page field, surface-less plugins refuse
   it). D, E, and G are unblocked; coordinating with the in-flight
   milkdown collab work stays an owner sequencing call.
+- G landed (2026-10-17, sixth session): the pack machinery deleted whole —
+  `server/packs/` (composition seams + the restored documents mount
+  leftovers), `packages/documents`, the packs/state API routes, the
+  Plugins page pack branches, the disablement store, the pack enablement
+  trio, the pack branches of every gate (requires, kinds, starter
+  constructs, upgrade), `migrate-facade-pack-to-plugin.js` (its pack is
+  gone). The composition seams renamed to their post-pack truth
+  (`projectedServicesForOrganization`/`projectedDomainsForOrganization`,
+  installs-only). The CTS SPEC §21 and the architecture docs carry the
+  retirement note. Deploy step: drop the `pack_disablements` collection.
 - E landed (2026-10-17, fifth session): the documents plugin
   (workers/documents — listing with service-resolved projections, four
   endpoint services, text/csv editor surfaces on contract 3 with the

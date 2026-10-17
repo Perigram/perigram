@@ -20,7 +20,7 @@ types/processes, not by writing entity services.
 flowchart TB
   subgraph Declarations["Type declarations"]
     Cts["@perigram/cts<br/>value universe, registry, compile R1–R7,<br/>domain projection (synthesis-only)"]
-    Packs["Packs: documents → tech-drawing<br/>(server/packs, SPEC §21)"]
+    Plugins["Plugin listings<br/>(workers/*, install snapshots)"]
     OrgTypes["Org-authored types<br/>(cts_types store)"]
   end
 
@@ -31,7 +31,7 @@ flowchart TB
   end
 
   subgraph Server["Nuxt/Nitro Server"]
-    AppRegistry["server/runtime/app-registry<br/>framework services + pack mounts +<br/>generic instance-service resolver"]
+    AppRegistry["server/runtime/app-registry<br/>framework services +<br/>generic instance-service resolver"]
     Commands["server/core/commands<br/>command_runs"]
     Tasks["server/core/tasks<br/>task_runs"]
     Effects["server/core/effects<br/>declared-effect execution"]
@@ -51,7 +51,7 @@ flowchart TB
     NestingWorker["nesting HTTP solver"]
   end
 
-  Packs --> Cts
+  Plugins --> Cts
   OrgTypes --> Cts
   Cts --> AppRegistry
   Cts --> Normalize
@@ -79,11 +79,10 @@ flowchart TB
 |---|---|---|
 | `@perigram/cts` | Value universe, type declarations, registry/compile, the CTS → compiler-domain projection | Vue, Nuxt, Mongo, workers |
 | `@perigram/processes` | Process normalization, validation, compilation, UI-contract projection, durable evaluation | Concrete domain imports |
-| Packs (`server/packs/*`) | Domain declarations, services/commands/task executors/hook handlers as mountable units | Framework vocabulary |
 | `workers/facade` | The facade plugin's executor (endpoint mode): DXF extraction, OCCS bake, nesting solve, cassette import, sheet DXF — pure compute over values | The platform's connector endpoints |
-| `server/runtime` | Pack mounting, framework services, the instance-service resolver | Business logic |
+| `server/runtime` | Framework services, the instance-service resolver | Business logic |
 | `server/core/*` | Command/task/effect/workflow runtimes (domain-agnostic) | Domain-specific imports |
-| `server/features/*` | Framework entity services; pack-internal feature modules | Core vocabulary or global registration |
+| `server/features/*` | Framework entity services | Core vocabulary or global registration |
 | `shared/ui-mapping` | Declaration/contract → presentation resolution (pure) | Vue/Nuxt/PrimeVue imports, CNC names |
 
 ## Primary Flow
@@ -126,7 +125,8 @@ plugin under workers/facade).
 - [CTS spec](../packages/cts/SPEC.md)
 - [Process compiler](../packages/processes/README.md)
 - [Runtime registry](../server/runtime/README.md)
-- [Packs](../server/packs/README.md)
+- [Documents plugin](../workers/documents/README.md)
+- [Tech-drawing plugin](../workers/tech-drawing/README.md)
 - [Commands](../server/core/commands/README.md)
 - [Tasks](../server/core/tasks/README.md)
 - [Workers](../workers/README.md)

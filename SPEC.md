@@ -839,11 +839,10 @@ as plugin surfaces. After both migrations the pack machinery deletes — the
 registry's pack mounts, the pack composition seams, and the pack enablement
 records — leaving installs the only management plane.
 
-The user-facing word is "Plugins". Mounted domain packs (documents and
-tech-drawing, the facade plugin's requirements) are managed per organization
-from the Plugins section: enabled by default, removable under the same drain
-law as plugin uninstall, re-installable — the transitional management plane
-until the packs retire into listings (owner decision 2026-10-17).
+The user-facing word is "Plugins". The pack mount is retired: the
+mounted-pack management plane, its disablement records, and its routes
+deleted with the pack machinery — installs are the only management plane
+(owner decision 2026-10-17).
 
 Owner decision (2026-10-17): plugins declare their runtime dependencies —
 a dependency tree never crosses the platform boundary; a flattened,
