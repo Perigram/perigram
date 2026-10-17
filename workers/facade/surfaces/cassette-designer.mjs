@@ -46,7 +46,7 @@ import createFieldDraft from './lib/components/fieldDraft.mjs';
 import createFoldedPreview from './lib/components/foldedPreview.mjs';
 import createSketchEditor from './lib/components/sketchEditor.mjs';
 import { buildCassetteV2FoldedPreview } from './lib/cassetteV2FoldedPreview.js';
-import { normalizeGeometryDrawing } from './lib/drawingPreview.js';
+import { cassettePreviewLayerSelection, normalizeGeometryDrawing } from './lib/drawingPreview.js';
 import { hardwareDefaultParameters, hardwareLabel } from '../occs/hardware.js';
 
 const OCCS_MIME = 'application/perigram+occs';
@@ -2664,11 +2664,9 @@ export default function createSurface({ vue, components, locale, queries, record
       // Cassette previews are payload-based, exactly like the platform's
       // card/detail slots: the picker hydrates each record's OCCS
       // document through the mount's loadDocument and renders it with
-      // the same tree renderer the bound preview surface uses — the
-      // preview layer set is outline and folds, nothing else. Thumbnails
-      // cache by record id + updatedAt.
+      // the same tree renderer and preview layer selection the bound
+      // preview surface uses. Thumbnails cache by record id + updatedAt.
       const templateThumbnails = ref(new Map());
-      const PREVIEW_LAYERS = ['cut.outer', 'fold.route'];
 
       const hydrateTemplateThumbnail = async (record) => {
         const key = `${record?._id || ''}:${record?.updatedAt || ''}`;
@@ -2681,10 +2679,9 @@ export default function createSurface({ vue, components, locale, queries, record
         if (!graphTree) return;
         try {
           const drawing = await renderCassetteV2TreeToDrawing(graphTree);
-          const present = new Set((drawing?.layers || []).map(layer => layer.name));
           templateThumbnails.value.set(key, {
             drawing,
-            visibleLayerNames: PREVIEW_LAYERS.filter(name => present.has(name))
+            visibleLayerNames: cassettePreviewLayerSelection(drawing)
           });
         } catch {
           // Quiet placeholder; the record stays loadable.
