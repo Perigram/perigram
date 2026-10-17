@@ -17,7 +17,7 @@ import { createSourceMarkersPlugin } from './lib/source-markers-plugin.js';
 import { codeMirrorTheme } from './lib/cm-theme.js';
 import { createSlashMenu } from './lib/slash-menu.js';
 
-const CSS_ASSETS = ['../assets/vendor/crepe-theme/style.css', '../assets/text-editor.css'];
+const CSS_ASSETS = ['../assets/vendor/crepe-theme.css', '../assets/text-editor.css'];
 
 function injectStyles() {
   for (const href of CSS_ASSETS) {
