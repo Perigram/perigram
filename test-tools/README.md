@@ -5,8 +5,12 @@ The page SSR smoke harness: real page SFCs mounted through
 (`$fetch`, `useAuthStore`, `definePageMeta`, `#app`) stubbed.
 
 - `nuxt-app-stubs.mjs` — the `#app`/`#imports` specifier stubs.
-- `*.ssr-smoke.js` — page smoke cases (named outside the default
-  `*.spec.js` glob so the normal suite does not pick them up).
+- `*.ssr-smoke.js` — smoke cases (named outside the default
+  `*.spec.js` glob so the normal suite does not pick them up): whole
+  pages, and `chat-content.ssr-smoke.js` for the chat content
+  components (message body modes, attached refs, the agent chronology,
+  the inline-ref chip branches) — render-time symbols, not just
+  imports, must resolve.
 - Run with `npx vitest run --config vitest.ssr.config.js` from the repo
   root (see the root README development section).
 
