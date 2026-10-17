@@ -229,6 +229,23 @@ authoring happens only inside a cassette design session.
   unchanged otherwise) so pins can move again through the product
   path. Owner step: one more Upgrade click (v10→v11).
 
+### Agent Notes (2026-10-17 — designer UX round 3, owner defect report)
+
+- Attachment rows are breadcrumbs now: the related workpiece on the
+  first line, `face <id> › edge <id>` (edge only for edge-array
+  placements) muted on the second. The direction arrows and the Driver
+  badge are gone — driver is placement mechanics (which relation
+  positions the workpiece), not user-facing vocabulary; the data stays
+  for evaluation.
+- Cassette load previews: saveTemplate now bakes the production
+  outline into `fields.polygonParts` (the type's previewSource
+  contract) through the same OCCS evaluation the executor's bake
+  service runs — every SAVED cassette carries its thumbnail for the
+  load picker, cards, and compact snapshots without the payload. Bake
+  failure degrades to placeholders; the payload save stays the truth.
+  Existing records gain previews on their next save. Node-proven:
+  factory tree → 1 polygon (5 pts) → cut.outer thumbnail viewBox.
+
 ### Agent Notes (2026-10-17 — designer UX round 2, owner defect report)
 
 - Attachment rows restructured to two lines: the target workpiece and
