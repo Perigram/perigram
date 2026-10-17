@@ -887,7 +887,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             ]))
           ));
         }
-        return h('div', { class: 'flex flex-col gap-1' }, rows);
+        return h('div', { class: 'flex shrink-0 flex-col gap-1' }, rows);
       };
 
 
@@ -1113,13 +1113,17 @@ export default function createSketchEditor({ vue, components, locale }) {
         class: 'flex min-h-0 flex-1 flex-col gap-2',
         'data-keyboard-scope': 'cad'
       }, [
-        h(Toolbar, {
-          class: 'w-full shrink-0 gap-1 overflow-x-auto p-1',
-          'aria-label': t('cassette.v2.profileEditor.preview')
-        }, {
-          start: () => renderToolGroupButtons(0, 2),
-          end: () => renderToolGroupButtons(2, 4)
-        }),
+        // Authoring strip above the canvas: parameters, chord chips,
+        // holes (owner decision 2026-10-17 — the canvas keeps every
+        // remaining pixel of height).
+        renderSketchRows(),
+        importError.value
+          ? h(Message, { severity: 'error', size: 'small', closable: false }, () => importError.value)
+          : null,
+        unchainedCount.value
+          ? h(Message, { severity: 'error', size: 'small', closable: false },
+              () => t('cassette.v2.profileEditor.unchained', { count: unchainedCount.value }))
+          : null,
         h('input', {
           ref: fileInputRef,
           type: 'file',
@@ -1136,6 +1140,15 @@ export default function createSketchEditor({ vue, components, locale }) {
           onPointerup: scheduleExtraction,
           onKeyup: scheduleExtraction
         }, [
+          // The tool toolbar floats inside the canvas (the
+          // DesignerWorkspace overlay pattern) — no row of its own.
+          h(Toolbar, {
+            class: 'absolute left-2 top-2 z-20 max-w-[calc(100%-1rem)] gap-1 overflow-x-auto p-1 shadow-card',
+            'aria-label': t('cassette.v2.profileEditor.preview')
+          }, {
+            start: () => renderToolGroupButtons(0, 2),
+            end: () => renderToolGroupButtons(2, 4)
+          }),
           h('svg', {
             ref: overlayRef,
             class: 'pointer-events-none absolute inset-0 z-10 h-full w-full',
@@ -1147,15 +1160,7 @@ export default function createSketchEditor({ vue, components, locale }) {
                 h(Message, { severity: 'error', closable: false }, () => t('cassette.v2.profileEditor.loadFailed'))
               ])
             : null
-        ]),
-        importError.value
-          ? h(Message, { severity: 'error', size: 'small', closable: false }, () => importError.value)
-          : null,
-        unchainedCount.value
-          ? h(Message, { severity: 'error', size: 'small', closable: false },
-              () => t('cassette.v2.profileEditor.unchained', { count: unchainedCount.value }))
-          : null,
-        renderSketchRows()
+        ])
       ]);
     }
   });

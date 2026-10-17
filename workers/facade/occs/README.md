@@ -149,8 +149,11 @@ modules — no platform imports.
   layerData carries the composite into production redraw on
   `contour.cassette_face`). The
   sketch editor's authoring rows edit the parameter table and hole
-  geometry directly on the sketch model, beneath a dimension annotation
-  band; vertex coordinates and fillet radii edit through a canvas popup
+  geometry directly on the sketch model in the strip above the canvas,
+  while the tool toolbar floats inside the canvas over the drawing and
+  the dialog stands near-viewport height (the canvas owns every
+  remaining pixel); vertex coordinates and fillet radii edit through a
+  canvas popup
   that opens on the selected corner (Select-tool click near an authored
   vertex; Escape or clicking away closes it). Every authoring field — the
   popup's coordinates and fillet radius, the parameter and hole rows, and
