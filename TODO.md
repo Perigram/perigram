@@ -20,6 +20,48 @@ agent access).
   with a test probe); with a provider configured, `web_search` answers
   in an AI chat and lists in the MCP tool catalog; without one, neither
   surface offers it.
+- [ ] WAITING — owner verification on the live stack: attach a text file
+  to a chat message and ask the AI about it in the same thread — the run
+  sees the attachment marker in history, reads its content through
+  `read_attachment`, and answers from it; a binary attachment is refused
+  as not text-readable, and a fileId from another conversation is
+  rejected.
+
+### Agent Notes (2026-10-17 — both halves shipped)
+
+- Mention typeahead (`ChatSupport.vue`): `@` at a word boundary opens the
+  room's candidate list above the composer — the seated AI first
+  (AiAvatar), then the resolved human participants (self excluded);
+  ArrowUp/Down navigate, Enter/Tab complete the `@Name ` token in place,
+  Escape closes; the dropdown closes on send and conversation switch.
+  User tags are composer text only — no notification contract exists.
+- Web search: new capability module `server/features/web-search/`
+  (mirrors transcription) — SearXNG (self-hosted JSON API, no key) and
+  Tavily (cloud, bearer key) behind one neutral
+  `{ results: [{title,url,snippet}] }` contract; org setting
+  `data.settings.webSearch` over `WEB_SEARCH_*` env; proxy-aware egress
+  reuses the llm seam (`egressFetch`, now exported). Routes
+  `GET/PUT /api/web-search/settings` + `POST /api/web-search/test`
+  (keys never travel; omitted key keeps the stored one). The models
+  screen carries the provider block (provider select, SearXNG URL /
+  Tavily key, test, save).
+- Tool catalog: `web_search` descriptor is org-gated — the chat and MCP
+  descriptor builders became async and omit it when the org has no
+  provider (an unconfigured capability never reaches the model's
+  context).
+- Attachment reading: the run's conversation history marks every
+  attachment as `[attachment: name <fileId:id>]`; `read_attachment`
+  (chat-run only, keyed by the run's conversation) resolves the fileId
+  through the support seam's conversation-attachment lookup
+  (`findConversationAttachment` — the room-scope read gate), reads the
+  GridFS buffer (`files` bucket, legacy `uploads` honored), decodes
+  UTF-8 and refuses content with control bytes as not text-readable;
+  reads cap at 64 KB and ride the shared 16 KB tool-result truncation.
+- Specs: new `web-search.spec.js` (resolution merge, both wires,
+  503/502 posture, bounding, key law); tools.spec gains the org-gating
+  and room-scoping pins; agent-bots spec updated for the async
+  descriptors and the run's conversation key. 203 tests green across
+  web-search/agent-bots/support/llm.
 
 ## Chats inbox folders — chip strip replaces the org tree (owner direction 2026-10-17)
 

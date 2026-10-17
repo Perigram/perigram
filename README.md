@@ -273,6 +273,7 @@ builds only).
 | Tasks | [server/core/tasks/README.md](./server/core/tasks/README.md) |
 | Agent AI (delegated runs, tool catalog, MCP) | [server/features/agent-bots/README.md](./server/features/agent-bots/README.md) |
 | LLM providers | [server/features/llm/README.md](./server/features/llm/README.md) |
+| Web search (agent `web_search` tool) | [server/features/web-search/README.md](./server/features/web-search/README.md) |
 | Documents plugin (executor + listing) | [workers/documents/README.md](./workers/documents/README.md) |
 | Facade plugin (executor + listing) | [workers/facade/README.md](./workers/facade/README.md) |
 | Tech-drawing plugin (executor + listing) | [workers/tech-drawing/README.md](./workers/tech-drawing/README.md) |

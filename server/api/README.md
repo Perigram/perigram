@@ -27,6 +27,10 @@ Routes are grouped into sub-directories corresponding to features:
   `GET/PUT /api/llm/settings` administer the org's named model profiles
   and capability routes (keys never travel), and `POST /api/llm/test`
   (`{ profileId? }`) is the one-round connection test.
+- `web-search/`: `GET/PUT /api/web-search/settings` administer the org's
+  public-web search provider (SearXNG base URL or Tavily key; keys never
+  travel), and `POST /api/web-search/test` is the one-round connection
+  test (see [web-search feature](../features/web-search/README.md)).
 - `artifacts/`: Metadata, deletion, and streaming for generated files.
 - `artifact-templates/`: Organization-scoped DXF/PDF upload, parsed layout
   replacement, authorized source streaming, and deletion. Template-generated
