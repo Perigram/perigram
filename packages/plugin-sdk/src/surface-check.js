@@ -12,10 +12,31 @@ import { pathToFileURL } from 'node:url';
 // the mount injects vue, the component pack, and the locale), the
 // default export is the factory `createSurface(ctx)`, and the factory
 // returns a component against a stub context without logging errors.
-export async function checkSurfaceModule(path) {
-  const offenders = [...new Set(graphOffenders(resolve(path)))];
+//
+// With a parsed listing's `dependencies` (owner decision 2026-10-17), a
+// bare specifier naming a declared dependency is legal — the platform's
+// module proxy resolves it to the plugin's own vendor scope — and every
+// declared vendor module must exist under the plugin root.
+export async function checkSurfaceModule(path, { dependencies = [], pluginRoot = null } = {}) {
+  const declared = new Set((dependencies || []).map(dependency => dependency.name));
+  const offenders = [...new Set(graphOffenders(resolve(path), { allowedBare: declared }))];
   if (offenders.length) {
-    throw new Error(`surface module graph must be self-contained — vendor third-party code under the executor root and import it relatively; the mount injects host externals (found: ${offenders.join(', ')})`);
+    throw new Error(`surface module graph must be self-contained — vendor third-party code under the executor root and import it relatively (or declare it as a dependency), and never import host externals (found: ${offenders.join(', ')})`);
+  }
+  if (pluginRoot) {
+    for (const dependency of dependencies || []) {
+      // Listing module paths are root-relative in the plugin's own space
+      // (`/assets/vendor/x.mjs`); on disk they anchor at the plugin root.
+      let exists = false;
+      try {
+        exists = statSync(resolve(pluginRoot, `.${dependency.module}`)).isFile();
+      } catch {
+        exists = false;
+      }
+      if (!exists) {
+        throw new Error(`declared dependency ${dependency.name} serves no module at ${dependency.module} under the plugin root`);
+      }
+    }
   }
   const module = await import(pathToFileURL(path).href);
   const createSurface = module.default;
@@ -40,10 +61,11 @@ export async function checkSurfaceModule(path) {
 }
 
 // Collects every offender in the module's local import graph: bare
-// specifiers (npm packages, node builtins, host externals) and relative
+// specifiers (npm packages, node builtins, host externals — unless the
+// listing declares them as dependencies) and relative
 // specifiers no browser could resolve (extension-less paths). The walk
 // is cycle-safe and skips what it cannot read.
-function graphOffenders(entry, seen = new Set()) {
+function graphOffenders(entry, { allowedBare = new Set(), seen = new Set() } = {}) {
   if (seen.has(entry)) return [];
   seen.add(entry);
   let source;
@@ -54,10 +76,10 @@ function graphOffenders(entry, seen = new Set()) {
   }
   const offenders = [];
   const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '');
-  for (const match of code.matchAll(/(?:from\s*|import\(\s*)['"]([^'"]+)['"]/g)) {
-    const specifier = match[1];
+  for (const match of code.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])([^'"]+)\1/g)) {
+    const specifier = match[2];
     if (!specifier.startsWith('.') && !specifier.startsWith('/')) {
-      offenders.push(specifier);
+      if (!allowedBare.has(specifier)) offenders.push(specifier);
       continue;
     }
     const resolved = resolveLocalModule(entry, specifier);
@@ -65,7 +87,7 @@ function graphOffenders(entry, seen = new Set()) {
       offenders.push(specifier);
       continue;
     }
-    offenders.push(...graphOffenders(resolved, seen));
+    offenders.push(...graphOffenders(resolved, { allowedBare, seen }));
   }
   return offenders;
 }

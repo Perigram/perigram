@@ -117,7 +117,8 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
     throw createError({ statusCode: 409, message: 'Plugin already installed' });
   }
   const layer = parseListingOr400(listing);
-  const { types, services, editors, attachmentKinds, conversions, constructions, starterConstructs, exports: exportBindings, surfaces, requires } = layer;
+  const { types, services, editors, attachmentKinds, conversions, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, requires } = layer;
+  assertInstallableDependencies(dependencies);
   // Surface modules target a mount-contract major; an unsupported one
   // refuses at the gate — never a runtime half-mount (SPEC §Plugin
   // marketplace, owner decision 2026-10-11).
@@ -200,7 +201,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
     pluginId: String(listing.pluginId),
     name: listing.name || listing.pluginId,
     version: listing.version || '1',
-    declarations: { types, editors, attachmentKinds, conversions, constructions, starterConstructs, exports: exportBindings, surfaces, previews: layer.previews },
+    declarations: { types, editors, attachmentKinds, conversions, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, previews: layer.previews },
     services,
     requires,
     endpoints: configuredEndpoints,
@@ -329,6 +330,33 @@ export function serviceModeOf(service = {}) {
   return service.mode === 'endpoint' ? 'endpoint' : 'claim';
 }
 
+// Declared runtime dependencies (owner decision 2026-10-17): the license
+// policy half of the gate — the GPL-stays-out law is a refusal, not a
+// review. The denylist is prefix-matched (case-insensitive), so
+// `GPL-3.0-or-later` and `AGPL-3.0` both fall; operators narrow or widen
+// it with PLUGIN_FORBIDDEN_LICENSES (comma-separated, `none` disables).
+const DEFAULT_FORBIDDEN_LICENSES = ['GPL', 'AGPL'];
+
+function forbiddenLicensePatterns() {
+  const raw = process.env.PLUGIN_FORBIDDEN_LICENSES !== undefined
+    ? process.env.PLUGIN_FORBIDDEN_LICENSES
+    : DEFAULT_FORBIDDEN_LICENSES.join(',');
+  return raw.split(',').map(pattern => pattern.trim()).filter(Boolean).map(pattern => pattern.toLowerCase());
+}
+
+function assertInstallableDependencies(dependencies = []) {
+  const patterns = forbiddenLicensePatterns();
+  for (const dependency of dependencies) {
+    const license = String(dependency.license || '').toLowerCase();
+    if (patterns.some(pattern => license.startsWith(pattern))) {
+      throw createError({
+        statusCode: 400,
+        message: `Dependency ${dependency.name}@${dependency.version} is ${dependency.license} — the deployment's plugin license policy forbids it`
+      });
+    }
+  }
+}
+
 // The plugin's connection settings: per-service endpoints for
 // endpoint-mode services, and the API key sent to the publisher's
 // executor when calling them.
@@ -359,10 +387,33 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
   if (!response.ok) {
     throw createError({ statusCode: 502, message: `Plugin ${pluginId} executor did not serve the module (${response.status})` });
   }
+  const contentType = response.headers.get('content-type') || 'application/octet-stream';
+  const isJsModule = /\.[cm]?js$/.test(segments[segments.length - 1] || '');
+  // A JS module's declared dependencies (owner decision 2026-10-17)
+  // resolve to the plugin's own vendor scope: bare specifiers rewrite to
+  // same-origin proxied URLs, so a surface imports `three` and the
+  // browser loads it from this route. Binary assets stream untouched.
+  if (isJsModule) {
+    const source = await response.text();
+    const rewritten = rewriteDeclaredImports(source, pluginId, install.declarations?.dependencies || []);
+    return { contentType, body: Buffer.from(rewritten, 'utf8') };
+  }
   return {
-    contentType: response.headers.get('content-type') || 'application/octet-stream',
+    contentType,
     body: Buffer.from(await response.arrayBuffer())
   };
+}
+
+function rewriteDeclaredImports(source, pluginId, dependencies = []) {
+  if (!dependencies.length) return source;
+  const targets = new Map(dependencies.map(dependency => [
+    dependency.name,
+    `/api/plugins/${encodeURIComponent(pluginId)}/module${dependency.module}`
+  ]));
+  return source.replace(/(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])([^'"]+)\2/g, (whole, prefix, quote, specifier) => {
+    const target = targets.get(specifier);
+    return target ? `${prefix}${quote}${target}${quote}` : whole;
+  });
 }
 
 export async function settingsFor({ organizationId, pluginId, auth = {} }) {
@@ -859,6 +910,7 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
   assertOrganizationPermission(auth, 'admin');
   const { install, listing } = await loadUpgradePair(organizationId, pluginId);
   const layer = parseListingOr400(listing);
+  assertInstallableDependencies(layer.dependencies);
   // Surface modules target a mount-contract major; the upgrade re-checks
   // the same law the install gate enforced.
   for (const surface of layer.surfaces) {
@@ -944,6 +996,7 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
       conversions: layer.conversions,
       constructions: layer.constructions,
       starterConstructs: layer.starterConstructs,
+      dependencies: layer.dependencies,
       exports: layer.exports,
       surfaces: layer.surfaces,
       previews: layer.previews
