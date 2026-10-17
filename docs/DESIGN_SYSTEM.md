@@ -154,7 +154,7 @@ Shared ownership:
   width tokens for operational cards that must not grow indefinitely; extra
   width creates additional tracks.
 - `InstanceState`, `StateTag`, `TraceChain`, and `DataBlock` own instance block visualization; record titles resolve through the one title resolver (`titleFor` from `shared/ui-mapping`: the declared identifier field, else the localized unnamed placeholder) rendered inline.
-- `DrawingCanvas` owns layer-aware SVG canvas rendering for DXF/SVG previews, cassette thumbnails, mapping previews, and cassette designer interactions. Sources must normalize into its `{ viewBox, layers }` contract and provide layer standard metadata explicitly; the shared canvas does not invent production layer codes.
+- `DrawingCanvas` owns layer-aware SVG canvas rendering for DXF/SVG previews, cassette thumbnails, mapping previews, and cassette designer interactions. Sources must normalize into its `{ viewBox, layers }` contract and provide layer standard metadata explicitly; the shared canvas does not invent production layer codes. The viewport refits when a drawing's viewBox changes, unless the host opts into `preserveViewport` (editing surfaces: first resolve fits, later source changes keep the user's pan/zoom; the toolbar reset is the explicit refit).
 - `GeometryPreview` wraps `DrawingCanvas` for token-backed DXF/layer/polygon previews from `data.geometry.preview` so design cards show geometry instead of file-name fields.
 - `TypedSettingsForm` renders simple typed contract fields for admin operation
   parameters and lifecycle hook settings; do not use raw JSON editors for those
