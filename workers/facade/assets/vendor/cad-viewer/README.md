@@ -60,3 +60,14 @@ engine's internal sysvar manager, which the bundle does not export —
 wiring polar tracking needs a re-vendor that re-exports it. This build
 has no grid or snap-to-grid at all (grid data only round-trips through
 DXF viewport table records).
+
+Keyboard routing stays in the engine: its view key handler binds at the
+document level for the active managed view and maps Ctrl+Z / Ctrl+Y to
+undo/redo and Delete/Backspace to erase, skipping events whose target is
+an editable field — the surface routes no drawing keys of its own (only
+its window-level Escape), so authoring inputs type normally. Typed prompt
+entry (a bare length as direct distance toward the cursor, `dist<angle`
+polar, `@x,y` relative) parses only through the command-line input: with
+the CLI hidden there is no desktop typing surface for it (the engine's
+length/angle entry chrome is touch-layout only), so segment lengths are
+snapped or authored in the vertex popup after the draw.
