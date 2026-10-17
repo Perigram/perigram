@@ -389,8 +389,12 @@ from the compiled manifest.
 - The sidebar owns navigation for the whole shell as a PrimeVue
   `PanelMenu`, header labels passthrough'd to line-height 1 so panel
   headers match row heights, and header and row labels passthrough'd to
-  crop with an ellipsis instead of wrapping (the row link already clips;
-  header labels take `flex-1` to claim the crop width). The brand header is its own panel and
+  crop with an ellipsis instead of wrapping — the submenu scaffold is a
+  track-less grid whose items size to content width, so the content
+  container passthrough takes a `minmax(0,1fr)` column track
+  (`grid-cols-1`) and labels take `min-w-0` + `truncate` (row links
+  already clip; header labels add `flex-1` to claim the crop width).
+  The brand header is its own panel and
   carries the wrap control: wrapped, the sidebar becomes an icon rail
   (brand mark, chats and calls first — the same order the expanded menu
   leads with — then one icon per top-level panel, avatar) and the
