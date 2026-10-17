@@ -17,6 +17,12 @@ jobs:
         run: |
           git clone --depth 1 --branch "$GITHUB_REF_NAME" \
             "https://x-access-token:${TOKEN}@forgejo.sodalab.pro/perigram/perigram.git" .
+          # The nesting solver is a pinned submodule (jagua-rs) — the
+          # shallow clone skips it, and github is provider-blocked on the
+          # runner, so the fetch rides the LAN relay.
+          git -c http.proxy=http://192.168.0.100:12334 \
+              -c https.proxy=http://192.168.0.100:12334 \
+              submodule update --init --depth 1 workers/nesting/jagua-rs
       - name: build image
         run: docker build --network=host -t perigram:staging --build-arg PORT=3001 .
       - name: build nesting worker image
