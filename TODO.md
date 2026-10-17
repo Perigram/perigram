@@ -38,6 +38,17 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
 - [ ] H. Executor release convention: the staging workflow deploys the
   facade executor beside the app and publishes the version-bumped listing;
   the authoring guide documents the per-plugin release loop.
+- [ ] I. Declared runtime dependencies (owner decision 2026-10-17): listing
+  grammar `{ name, version, module, license }`, `perigram-plugin vendor`
+  builds flat bundles, the module proxy resolves bare imports to the
+  plugin's vendor scope, injected externals (`vue`, `primevue`, `pinia`)
+  and the host markdown pipeline refuse as dependencies, the gate audits
+  licenses. The facade's hand-vendored three.js/MLightCAD migrate to it.
+- [ ] J. Surface mount capabilities (owner decision 2026-10-17): `sync`
+  (realtime document sync through the host's room model) and `upload`
+  (asset upload through the host's file channel) as the next
+  surface-contract major; plus the `surfaceOrigin` connection field for
+  executors with surfaces but no services. D, E, and G unblock on I+J.
 
 ### Agent Notes (2026-10-17 — platform contract landed; pack migrations blocked)
 
@@ -53,22 +64,18 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
 - Seeder: `server/scripts/seed-plugin-catalog.js` (validated, marked
   `builtin`, retract-refused); `installDefaultPlugins` logs the seed
   runbook instead of skipping silently.
-- BLOCKED (D, E's migration, G): converting the three pack editors into
-  plugin surface modules. They are app-coupled SFCs, not surface-mount
-  modules: TextDocumentEditor rides milkdown/crepe + codemirror npm
-  graphs (a surface may not import host npm packages — vendoring the
-  whole graph is the three.js precedent at ~10× the size, and TODO's
-  milkdown collab work is in flight), CsvTableEditor uses DataTable
-  (outside the vetted surface pack) and `useRemoteDocumentSync`,
-  SketchEditor speaks a different persistence protocol
-  (`loadScene`/`saveScene` + a direct `/api/files/upload` call) and its
-  origin-entity feature has no surface-mount equivalent. Also missing: a
-  `surfaceOrigin` connection field for executors with surfaces but no
-  services (`endpointOriginOf` derives from configured endpoints only) —
-  needed by tech-drawing. Owner decision required: grow the surface
-  contract (upload + realtime sync capabilities, vendored editors) or
-  accept feature cuts in the plugin editors; G stays blocked until D and
-  E land.
+- BLOCKED→UNBLOCKED (D, E's migration, G): converting the three pack
+  editors into plugin surface modules — app-coupled SFCs on
+  milkdown/crepe + codemirror graphs, DataTable +
+  `useRemoteDocumentSync`, `loadScene`/`saveScene` + direct file upload.
+  Owner decisions 2026-10-17 (SPEC §Plugin marketplace) resolve the
+  design: declared runtime dependencies (slice I — trees flatten into
+  vendored, declared, license-audited bundles; the host markdown
+  pipeline stays the single marked+DOMPurify instance and joins the
+  injected set) and `sync`/`upload` mount capabilities plus
+  `surfaceOrigin` (slice J). D, E, G proceed once I and J land;
+  coordinating with the in-flight milkdown collab work stays an owner
+  sequencing call.
 
 ## Profile library for cassettes (owner direction 2026-10-17)
 

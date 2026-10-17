@@ -797,6 +797,31 @@ from the Plugins section: enabled by default, removable under the same drain
 law as plugin uninstall, re-installable — the transitional management plane
 until the packs retire into listings (owner decision 2026-10-17).
 
+Owner decision (2026-10-17): plugins declare their runtime dependencies —
+a dependency tree never crosses the platform boundary; a flattened,
+declared artifact does. A listing's `declarations.dependencies` carries
+`{ name, version, module, license }` records: the SDK builds each
+dependency's subgraph into one flat vendor bundle served by the plugin's
+executor (`perigram-plugin vendor`), a surface module's bare imports
+resolve to the plugin's own vendor scope through the module proxy, and
+the SDK's surface check enforces that every bare import matches a
+declared dependency. What the host injects is never vendorable:
+dependencies named `vue`, `primevue`, or `pinia` refuse at the contract,
+and the host's markdown read pipeline joins the injected set — surfaces
+receive `renderMarkdown` (shared/markdown, the single marked+DOMPurify
+instance) rather than carrying copies. Declared licenses make the
+GPL-stays-out law a gate refusal instead of a review: the install gate
+and operator policy audit the dependency list.
+
+Owner decision (2026-10-17): the surface mount grows two editor-grade
+capabilities — `sync`, realtime document sync through the host's room
+model, and `upload`, asset upload through the host's file channel (the
+sketch-background and payload-channel shapes). The mount stays data-only
+in its inputs; both capabilities are host-executed transports the module
+calls, never direct API access. They land as the next surface-contract
+major; a listing may still target the earlier majors and mounts without
+them degrade honestly (save/reload, embedded assets).
+
 ## Exports are declarations (owner direction 2026-10-14)
 
 An installed plugin's export bindings (`declarations.exports`: type, kind,
