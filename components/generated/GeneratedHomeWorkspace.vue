@@ -294,10 +294,13 @@ provide('displayedEntityContexts', computed(() => []));
 
 // Layout-only passthrough: panel headers inherit the 1.5 line-height item
 // labels dropped, which made top-level entries taller than their rows;
-// entry labels crop with an ellipsis instead of wrapping rows tall.
+// entry labels crop with an ellipsis instead of wrapping rows tall — the
+// submenu scaffold is a track-less grid whose items grow to content
+// width, so its column takes minmax(0,1fr) before a label can crop.
 const menuPt = {
   headerLabel: { class: 'min-w-0 flex-1 truncate', style: { lineHeight: '1' } },
-  itemLabel: { class: 'min-w-0 flex-1 truncate' }
+  itemLabel: { class: 'min-w-0 flex-1 truncate' },
+  contentContainer: { class: 'grid-cols-1' }
 };
 
 const sections = computed(() => props.screen.regions
