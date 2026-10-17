@@ -43,8 +43,16 @@ values and merges the returned fields before creating the record
 generically), `starterConstructs` (`[{ typeId, construction }]` —
 constructs the plugin stations into every installing organization's
 initial process: the plugin's own file type, a declared mode, one per
-type), and `exports` (attachment exports bound to plugin
-services). A type's `projections` resolve a stored `field` path or a
+type), `dependencies` (declared runtime dependencies, owner decision
+2026-10-17: `[{ name, version, module, license }]` — one flat vendor
+bundle per npm name served by the executor at `module`; surface modules
+import the bare `name` and the platform's module proxy resolves it to
+the plugin's own vendor scope; what the mount injects — `vue`,
+`primevue`, `pinia`, and the host markdown pipeline `marked`/`dompurify`
+— refuses as a dependency, never vendorable; `perigram-plugin vendor`
+builds the bundles and writes the manifest), and `exports` (attachment
+exports bound to plugin services). A type's `projections` resolve a
+stored `field` path or a
 declared endpoint-mode `service` (`resolve: { service:
 'plugin.<id>.<svc>' }` — the platform sends `{ typeId, payloadBase64 }`
 and the service's JSON response is the projection value; `handler`
@@ -75,16 +83,32 @@ A services module is any ESM file exporting `services` (or a default):
 The author-side half of the consistency law: `checkSurfaceModule(path)`
 loads a surface module and proves what the SDK can prove alone and
 zero-dep — the import graph carries no host externals (`vue`, `primevue`,
-`pinia`: the mount injects them), the default export is the factory
+`pinia`: the mount injects them; `marked`/`dompurify`: the host markdown
+pipeline is provided, never vendored), the default export is the factory
 `createSurface(ctx) -> component`, and the factory returns a component
-against a stub context without logging errors. The stub carries the
-contract-2 superset (queries, notify, access beside the base context),
-so editor-grade modules smoke against their full mount context; the
-author-facing contract shapes live in the
+against a stub context without logging errors. A bare specifier naming a
+declared dependency is legal (owner decision 2026-10-17 — the platform's
+module proxy resolves it); with `dependencies` and `pluginRoot`, every
+declared vendor module must also exist under the plugin root. The stub
+carries the contract-2 superset (queries, notify, access beside the base
+context), so editor-grade modules smoke against their full mount
+context; the author-facing contract shapes live in the
 [plugin authoring guide](../../docs/PLUGIN_AUTHORING.md) §1a. The real
 host-shell mount (save callbacks over the instance transports) is proven
 by the platform's fixture-plugin e2e. The CLI wraps it:
-`perigram-plugin surfaces <module.mjs>`.
+`perigram-plugin surfaces <module.mjs> [--listing listing.json]`.
+
+## Vendor command (`perigram-plugin vendor`)
+
+Builds a plugin's declared runtime dependencies as flat bundles: it
+scans the plugin's own module graph for bare imports, bundles each name
+once with the plugin repo's esbuild install (`npm i -D esbuild` — the
+SDK stays zero-dependency), writes `assets/vendor/<name>.mjs`, and emits
+the `{ name, version, module, license }` manifest entries — merging them
+into the listing with `--listing`. A dependency tree never crosses the
+platform boundary; the flattened, declared artifact does. Unresolvable
+names surface as leftovers (install them, or vendor their code by
+relative import the pre-2026 way).
 
 ## API client (`createPluginClient`)
 
@@ -107,8 +131,12 @@ install <pluginId>                  install into PERIGRAM_ORG_ID
 connector <pluginId>                connector panel: token, queue, endpoints
 connect <pluginId> [--set svc=URL ...] [--key K]   read/save connection settings
 test <pluginId> <serviceId> [--input file.json]   invoke an installed service
-surfaces <module.mjs>               check a surface module (import graph,
-                                    factory shape, stub-context smoke)
+surfaces <module.mjs> [--listing L]   check a surface module (import graph,
+                                    factory shape, stub-context smoke);
+                                    --listing admits declared dependencies
+vendor [--listing L] [--entry DIR]   build flat vendor bundles for the
+                                    graph's bare imports, merge the
+                                    dependency manifest into the listing
 ```
 
 Env: `PERIGRAM_APP` (default `http://localhost:3000`),
