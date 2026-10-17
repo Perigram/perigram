@@ -62,3 +62,7 @@ for (const org of orgs) {
 }
 
 console.log(`installed for ${installed} organization(s), ${alreadyInstalled} already held the install — restart the app to rebuild declaration caches`);
+
+// One-shot scripts hold the mongo driver's monitoring handles open —
+// exit explicitly once the work is done.
+process.exit(0);

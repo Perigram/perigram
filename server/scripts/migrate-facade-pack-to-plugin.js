@@ -114,3 +114,7 @@ function rewriteNode(node) {
   node.operator = next;
   return 1;
 }
+
+// One-shot scripts hold the mongo driver's monitoring handles open —
+// exit explicitly once the work is done.
+process.exit(0);
