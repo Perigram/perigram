@@ -1811,34 +1811,26 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       value: statusValue
     };
     if (statusChange) {
-      let patch = Object.fromEntries(persistedChanges.map(change => {
-        if ((change.operation || 'set') !== 'set') throw new Error(`Status transition patch does not support ${change.operation}`);
-        return [change.path, change.value];
-      }));
-      Object.assign(patch, Object.fromEntries(Object.entries(declaredRelationValues(inputs.relations, relationContracts))
-        .map(([key, value]) => [`relations.${key}`, value])));
-      patch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, auth);
+      const patch = wirePatchFromChanges(persistedChanges);
+      const relationValues = declaredRelationValues(inputs.relations, relationContracts);
+      if (Object.keys(relationValues).length) patch.relations = { ...(patch.relations || {}), ...relationValues };
+      const normalizedPatch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, auth);
       const result = await stateService.transitionWithResult({
         typeId,
         targetId: target.id,
         targetState: typeof statusChange.value === 'string' ? statusChange.value : statusChange.value?.id,
         auth,
         context: effectTransitionContext(record, inputs),
-        patch: Object.keys(patch).length ? patch : null
+        patch: Object.keys(normalizedPatch).length ? normalizedPatch : null
       });
       return result.entity;
     }
-    let patch;
-    if (persistedChanges.every(change => (change.operation || 'set') === 'set')) {
-      patch = Object.fromEntries(persistedChanges.map(change => [change.path, change.value]));
-    } else {
-      throw new Error('Persisted entity updates support set values only');
-    }
-    Object.assign(patch, Object.fromEntries(Object.entries(declaredRelationValues(inputs.relations, relationContracts))
-      .map(([key, value]) => [`relations.${key}`, value])));
-    patch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, auth);
+    const patch = wirePatchFromChanges(persistedChanges);
+    const relationValues = declaredRelationValues(inputs.relations, relationContracts);
+    if (Object.keys(relationValues).length) patch.relations = { ...(patch.relations || {}), ...relationValues };
+    const normalizedPatch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, auth);
     if (!service.processUpdate) throw new Error(`Entity service cannot update ${typeId}`);
-    return await service.processUpdate(target.id, patch, auth);
+    return await service.processUpdate(target.id, normalizedPatch, auth);
   }
   if (operation === 'cts.transition') {
     // The declared target rides the state socket (the wire is the value) or
@@ -2073,6 +2065,28 @@ function normalizeFieldSocketInputs(inputs = {}, schemas = []) {
 function unwrapEffectInput(value, field = {}) {
     if (!isDataTree(value)) return value;
     return packetValue(value, field.type?.base === 'array' ? 'list' : 'item');
+}
+
+// The instance wire speaks NESTED blocks (`fields.done` travels as
+// patch.fields.done); a dotted key matches no block branch and the write
+// silently empties (owner defect 2026-10-17 — the four-layer boolean
+// drop). One conversion home for every patch the process seam builds.
+function wirePatchFromChanges(changes = []) {
+  const patch = {};
+  const write = (segments, value) => {
+    let node = patch;
+    while (segments.length > 1) {
+      const key = segments.shift();
+      if (typeof node[key] !== 'object' || node[key] === null) node[key] = {};
+      node = node[key];
+    }
+    node[segments[0]] = value;
+  };
+  for (const change of changes) {
+    if ((change.operation || 'set') !== 'set') throw new Error(`Persisted entity updates support set values only`);
+    write(String(change.path).split('.').filter(Boolean), change.value);
+  }
+  return patch;
 }
 
 function processBlockInputChanges(record = {}, inputs = {}, schemas = null) {  const fieldSchemas = schemas || getEntityFieldSchemas(record.typeId);
