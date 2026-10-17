@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Fieldset from 'primevue/fieldset';
 import Message from 'primevue/message';
@@ -27,14 +27,38 @@ const toolIcon = (status) => ({
     error: 'pi pi-exclamation-triangle'
 }[status] || 'pi pi-spin pi-spinner');
 
-// Compact disclosure on the elements that carry Aura's sizing: the
-// toggle button (which owns the real padding on toggleable fieldsets),
-// the label's caption voice, and the +/− svg (.p-icon pins 1rem).
-const thinkingPt = {
-    root: { style: { padding: '0 0.5rem 0.25rem 0.5rem' } },
-    toggleButton: { style: { padding: '0.25rem 0.5rem', gap: '0.375rem' } },
-    legendLabel: { class: 'text-supporting' },
-    toggleIcon: { style: { width: '0.75rem', height: '0.75rem' } }
+// The thinking disclosure's collapsed state, tracked beside Fieldset's
+// internal one through the toggle event — pt is reactive, so the
+// collapsed state can restyle the root.
+const collapsedThinking = ref(new Set());
+const onThinkingToggle = (index) => {
+    const next = new Set(collapsedThinking.value);
+    if (next.has(index)) next.delete(index);
+    else next.add(index);
+    collapsedThinking.value = next;
+};
+
+// Compact geometry (legend padding/gap, root insets) lives in the
+// PrimeVue tokens (assets/tokens) and applies to every Fieldset; this
+// pt owns only what tokens cannot express — the caption-size label,
+// the +/− svg (`.p-icon` pins 1rem), the chronology's tighter root,
+// and the collapsed state: a collapsed disclosure is a quiet caption
+// line, so the box strips entirely.
+const thinkingPtFor = (index) => {
+    const caption = {
+        legendLabel: { class: 'text-supporting' },
+        toggleIcon: { style: { width: '0.75rem', height: '0.75rem' } }
+    };
+    return collapsedThinking.value.has(index)
+        ? {
+            ...caption,
+            root: { style: { padding: '0', borderWidth: '0', background: 'transparent' } },
+            legend: { style: { background: 'transparent' } }
+        }
+        : {
+            ...caption,
+            root: { style: { padding: '0 0.5rem 0.25rem 0.5rem' } }
+        };
 };
 // Aura's Tag is a centered, bold badge; the chronology wants a
 // left-aligned, regular-weight pill at its content width — the flex
@@ -57,9 +81,10 @@ const tagPt = {
                 :legend="t('support.thinking')"
                 toggleable
                 :collapsed="false"
-                :pt="thinkingPt"
+                :pt="thinkingPtFor(index)"
                 class="min-w-0"
                 data-testid="agent-thinking"
+                @toggle="onThinkingToggle(index)"
             >
                 <p class="m-0 text-muted text-supporting whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{{ step.text }}</p>
             </Fieldset>

@@ -202,6 +202,10 @@ describe('Design system manifest', () => {
     expect(tailwindConfig).toContain("'./packages/*/src/editors/**/*.{vue,js}'");
     expect(tailwindConfig).toContain("'./workers/facade/surfaces/**/*.{js,mjs}'");
     expect(primeComponentTokens).toEqual({
+      fieldset: {
+        root: { padding: '0 0.75rem 0.75rem' },
+        legend: { padding: '0.25rem 0.5rem', gap: '0.375rem' }
+      },
       panel: { root: { background: 'transparent', borderColor: 'transparent' } },
       panelmenu: { panel: { background: 'transparent' } },
       listbox: { root: { borderColor: 'transparent' } },
