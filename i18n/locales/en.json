@@ -3412,7 +3412,9 @@
         "surfaceOriginPlaceholder": "https://executor.example",
         "apiKey": "API key",
         "apiKeyPlaceholder": "Bearer key for the publisher's executor",
-        "savedToast": "Connection saved"
+        "savedToast": "Connection saved",
+        "uninstallAlso": "Will also be removed: {list}",
+        "uninstallBlocked": "Live data blocks removal — delete or migrate first: {detail}"
     },
     "llm": {
         "provider": "AI provider",

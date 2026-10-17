@@ -55,7 +55,7 @@ import {
   projectedServicesForOrganization, commandDefinitionFor, executeConnectorService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings,
-  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue
+  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview
 } from './service.js';
 import { enqueueTask } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -305,20 +305,63 @@ describe('plugin installs', () => {
       declarations: coatingListing.declarations
     });
     const result = await uninstall({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
-    expect(result).toEqual({ removed: true });
+    expect(result).toMatchObject({ removed: true, cascadeRemoved: [] });
     expect(repository.deleteInstall).toHaveBeenCalledWith(ORG, 'coatings');
     expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
   });
 
-  it('refuses uninstall while another installed plugin requires it', async () => {
+  it('previews dependants and live data for the confirm dialog', async () => {
+    repository.findInstall.mockResolvedValue(coatingInstall);
+    repository.listInstallsByOrganization.mockResolvedValue([
+      coatingInstall,
+      { ...coatingInstall, pluginId: 'primers', requires: ['coatings'] }
+    ]);
+    countInstancesOfType.mockResolvedValue(3);
+    const preview = await uninstallPreview({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(preview.dependants).toEqual([{ pluginId: 'primers', name: 'Coatings', version: '2' }]);
+    expect(preview.removing.sort()).toEqual(['coatings', 'primers']);
+    expect(preview.blocked.every(entry => entry.pluginId === 'coatings' || entry.pluginId === 'primers')).toBe(true);
+    countInstancesOfType.mockResolvedValue(0);
+  });
+
+  it('refuses uninstall while another installed plugin requires it, naming the dependant', async () => {
     repository.findInstall.mockResolvedValue(coatingInstall);
     repository.listInstallsByOrganization.mockResolvedValue([
       coatingInstall,
       { ...coatingInstall, pluginId: 'primers', requires: ['coatings'] }
     ]);
     await expect(uninstall({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
-      .rejects.toMatchObject({ message: expect.stringContaining('required by installed plugin primers') });
+      .rejects.toMatchObject({
+        statusCode: 409,
+        message: expect.stringContaining('required by installed plugin primers'),
+        data: { dependants: [{ pluginId: 'primers', name: 'Coatings', version: '2' }] }
+      });
     expect(repository.deleteInstall).not.toHaveBeenCalled();
+  });
+
+  it('cascades the uninstall over dependants when confirmed', async () => {
+    repository.findInstall.mockResolvedValue(coatingInstall);
+    repository.listInstallsByOrganization.mockResolvedValue([
+      coatingInstall,
+      { ...coatingInstall, pluginId: 'primers', requires: ['coatings'] }
+    ]);
+    const result = await uninstall({ organizationId: ORG, pluginId: 'coatings', cascade: true, auth: AUTH });
+    expect(result).toEqual({ removed: true, cascadeRemoved: ['primers'] });
+    expect(repository.deleteInstall).toHaveBeenCalledWith(ORG, 'coatings');
+    expect(repository.deleteInstall).toHaveBeenCalledWith(ORG, 'primers');
+  });
+
+  it('refuses a cascade while any removing type holds live data, deleting nothing', async () => {
+    repository.findInstall.mockResolvedValue(coatingInstall);
+    repository.listInstallsByOrganization.mockResolvedValue([
+      coatingInstall,
+      { ...coatingInstall, pluginId: 'primers', requires: ['coatings'] }
+    ]);
+    countInstancesOfType.mockResolvedValueOnce(0).mockResolvedValueOnce(5);
+    await expect(uninstall({ organizationId: ORG, pluginId: 'coatings', cascade: true, auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('live data') });
+    expect(repository.deleteInstall).not.toHaveBeenCalled();
+    countInstancesOfType.mockResolvedValue(0);
   });
 
   it('refuses to retract a built-in listing', async () => {

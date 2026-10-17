@@ -17,7 +17,6 @@ const { mockedRepository, mockedProcessDefinitions, mockedInvitations } = vi.hoi
 
 vi.mock('./repository.js', () => mockedRepository);
 vi.mock('~/server/db/mongo', () => ({ connectDB: vi.fn() }));
-vi.mock('./default-plugins.js', () => ({ installDefaultPlugins: vi.fn() }));
 vi.mock('~/server/features/process-definitions/service.js', () => mockedProcessDefinitions);
 vi.mock('~/server/features/invitations/service.js', () => mockedInvitations);
 vi.mock('~/server/core/machines/service.js', () => ({ stateService: {} }));

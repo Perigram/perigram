@@ -212,40 +212,77 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
   };
 }
 
-// Block until drained: live instances of any plugin type — or live
-// process definitions binding one — refuse the removal. There is no
-// abandon path; the org deletes or migrates the data first.
-export async function uninstall({ organizationId, pluginId, auth = {} }) {
+// The uninstall impact (owner direction 2026-10-17: deletion warns about
+// what stops working, or removes the dependants): transitive installed
+// dependants (their requires chain names the target) and the live data
+// that blocks removal under the drain law.
+async function uninstallImpact(organizationId, install) {
+  const pluginId = String(install.pluginId);
+  const others = await repository.listInstallsByOrganization(organizationId);
+  const installs = [install, ...others.filter(entry => String(entry.pluginId) !== pluginId)];
+  const removing = new Set([pluginId]);
+  const dependants = [];
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const candidate of installs) {
+      if (removing.has(String(candidate.pluginId))) continue;
+      if ((candidate.requires || []).some(id => removing.has(String(id)))) {
+        removing.add(String(candidate.pluginId));
+        dependants.push({ pluginId: candidate.pluginId, name: candidate.name || candidate.pluginId, version: candidate.version || '1' });
+        grew = true;
+      }
+    }
+  }
+  const blocked = [];
+  for (const target of installs) {
+    if (!removing.has(String(target.pluginId))) continue;
+    for (const type of target.declarations?.types || []) {
+      const [instances, boundBy] = await Promise.all([
+        countInstancesOfType(type.id, organizationId),
+        findTypeReferences(organizationId, type.id)
+      ]);
+      if (instances > 0 || boundBy.length) {
+        blocked.push({
+          pluginId: String(target.pluginId),
+          typeId: type.id,
+          instances,
+          boundBy: boundBy.map(binding => binding.name || binding.id)
+        });
+      }
+    }
+  }
+  return { removing: [...removing], dependants, blocked };
+}
+
+// The preview behind the confirm dialog: what an uninstall removes
+// (beside the target) and what live data blocks it.
+export async function uninstallPreview({ organizationId, pluginId, auth = {} }) {
+  assertSameOrganization(organizationId, auth);
+  assertOrganizationPermission(auth, 'admin');
+  const install = await repository.findInstall(organizationId, pluginId);
+  if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
+  return { pluginId: String(pluginId), ...(await uninstallImpact(organizationId, install)) };
+}
+
+// Block until drained: live data of any removing type refuses the
+// uninstall (no abandon path — the org deletes or migrates first).
+// Dependents ride the removal when `cascade` is set (the preview's
+// dependants list is the consent surface); without it, a depended-on
+// plugin refuses naming its dependant.
+export async function uninstall({ organizationId, pluginId, cascade = false, auth = {} }) {
   assertSameOrganization(organizationId, auth);
   assertOrganizationPermission(auth, 'admin');
 
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
-  // An installed plugin requiring this one keeps it alive — its types
-  // resolve against this plugin's declarations the same way a dependent
-  // pack's do (the plugin-on-plugin requires mirror of the pack gate).
-  for (const other of await repository.listInstallsByOrganization(organizationId)) {
-    if (String(other.pluginId) === String(pluginId)) continue;
-    if ((other.requires || []).includes(String(pluginId))) {
-      throw createError({
-        statusCode: 409,
-        message: `Plugin ${pluginId} is required by installed plugin ${other.pluginId} — uninstall it first`
-      });
-    }
-  }
-  const blocked = [];
-  for (const type of install.declarations?.types || []) {
-    const [instances, boundBy] = await Promise.all([
-      countInstancesOfType(type.id, organizationId),
-      findTypeReferences(organizationId, type.id)
-    ]);
-    if (instances > 0 || boundBy.length) {
-      blocked.push({
-        typeId: type.id,
-        instances,
-        boundBy: boundBy.map(binding => binding.name || binding.id)
-      });
-    }
+  const { removing, dependants, blocked } = await uninstallImpact(organizationId, install);
+  if (dependants.length && !cascade) {
+    throw createError({
+      statusCode: 409,
+      message: `Plugin ${pluginId} is required by installed plugin ${dependants[0].pluginId} — remove them together (the confirm dialog offers it) or uninstall the dependant first`,
+      data: { dependants }
+    });
   }
   if (blocked.length) {
     const detail = blocked.map(entry =>
@@ -260,15 +297,18 @@ export async function uninstall({ organizationId, pluginId, auth = {} }) {
     });
   }
 
-  await repository.deleteInstall(organizationId, pluginId);
+  for (const id of removing) {
+    await repository.deleteInstall(organizationId, id);
+  }
   invalidateInstanceDeclarations(String(organizationId));
   const after = await compileRegistryForOrganization(organizationId);
   await ensureInstanceIndexes(after.resolveView(organizationId));
   publishOrgContractChanged(String(organizationId), 'registry', {
     pluginId: String(pluginId),
-    removed: true
+    removed: true,
+    ...(removing.length > 1 ? { cascadeRemoved: removing.filter(id => id !== String(pluginId)) } : {})
   });
-  return { removed: true };
+  return { removed: true, cascadeRemoved: removing.filter(id => id !== String(pluginId)) };
 }
 
 function serializeListing(listing = {}) {
