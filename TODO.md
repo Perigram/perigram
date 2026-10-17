@@ -1,5 +1,45 @@
 # TODO
 
+## Profile library for cassettes (owner direction 2026-10-17)
+
+Profiles authored in the cassette designer's profile dialog become
+reusable across cassettes: Save to library persists the authored truth
+(kind, process, prepared sketch) as an org record of the plugin's
+`profile` type, and any cassette's dialog picks one back into its draft
+(SPEC: profile library, 2026-10-17). No standalone profile editor —
+authoring happens only inside a cassette design session.
+
+### Agent Notes (2026-10-17 — library shipped)
+
+- The plugin listing (`workers/facade/listing.json`, version 6 → 7)
+  declares the `profile` type: class `item`, fields `name`
+  (identifier), `kind`, `process`, `sketch` (json). Served entirely by
+  the generic instance machinery — no framework feature, no bespoke
+  routes. Attaching stays snapshot-copy: the workpiece's
+  `profileSnapshot` remains the renderer's geometry source; no live
+  references from cassette documents.
+- Blocking gap found and closed: the contract-2 `records.create` host
+  capability (PLUGIN_AUTHORING §1a) had no server route —
+  `stores/instances.js` posted to `/api/instances/:type`, which 404'd
+  (only GET list/get + PATCH existed). Added
+  `server/api/instances/[type]/index.post.js` +
+  `createForHttp` in the instances service, gated through the access
+  engine exactly like `patch` (write level on the class-collection
+  feature, fail-closed); the construct boundary keeps its own `create`
+  with execution auth.
+- The cassette designer's profile dialog gained the library Select
+  (loads on dialog open via `queries.list('profile')`, picking replaces
+  the draft) and a secondary Save-to-library footer button
+  (`records.create`; offline queue rides the outbox toast contract).
+  i18n keys added (en + ru).
+- Operational (not code): existing orgs must upgrade the facade plugin
+  install to v7 (Plugins page — the §11 preview lists the type as an
+  addition, no blockers) and their active process must grant
+  `items:write` for members who save to the library; new orgs get the
+  type with the default install but still need the grant.
+- [ ] WAITING — owner verification on the live stack: save a profile to
+  the library from one cassette, pick it into another.
+
 ## Z.AI coding plan as a login option on the models screen (owner direction 2026-10-16)
 
 Known providers are login options: picking the Z.AI GLM coding plan asks

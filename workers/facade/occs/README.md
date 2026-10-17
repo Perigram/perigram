@@ -208,9 +208,15 @@ modules — no platform imports.
   saves against the joined scope the same way. Profiles live on
   the tree: the designer's profile dialog writes profile workpieces
   (their `profileSnapshot` is the renderer's geometry source) that ride
-  the cassette template's own document — there are no standalone profile
-  records of any other type. The current editor does not run a parametric
-  constraint solver.
+  the cassette template's own document. The plugin's `profile` library
+  type (listing declarations, class `item`) holds reusable profiles as
+  org records: the dialog's Save to library writes the authored truth
+  (kind, process, prepared sketch) through the records host capability,
+  and picking a library record copies it into the draft — a snapshot
+  copy, never a live reference, so the cassette document stays
+  self-contained. Library records are authored only from the designer
+  dialog; the type carries no editor surface of its own. The current
+  editor does not run a parametric constraint solver.
 - `production-layout.js` wraps the Clipper-backed face union/fold-route pass and
   returns semantic `cut.outer` / `fold.route` layer intent.
 - `evaluate.js` resolves OCCS graph-tree templates into production data. It

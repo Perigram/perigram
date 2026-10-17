@@ -131,6 +131,15 @@ hand-written services.
   is the generated detail surfaces' inline-edit persistence path; the
   process effect boundary keeps its own `processUpdate` with execution
   auth.
+- Creates (`createForHttp`): `POST /api/instances/:type` carries the §3
+  draft `createValidated` stores (the `name` rename channel, flat
+  `fields`, `lineage` edges, payload references) under the same
+  access-engine gate as `patch`. This is the server side of the
+  contract-2 `records` host capability — editors composing other types'
+  records (the facade plugin's profile library writes ride it). The
+  construct boundary keeps its own `create` with execution auth;
+  framework feature types keep their feature create routes (no
+  `createForHttp`, the generic route 404s for them).
 - Registration: the core registry's entity-service resolver consults
   `instanceServiceResolver`; explicit feature services always win.
 

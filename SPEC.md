@@ -654,6 +654,21 @@ suffix survives). A profile-local parameter shadows a same-named
 cassette variable: the local binding wins, the global is only the
 outer scope.
 
+Owner decision (2026-10-17, profile library): profiles are reusable
+across cassettes through a plugin-declared `profile` library type
+(class `item`, plain fields: name, kind, process, sketch). Library
+records are authored only from the cassette designer's profile dialog —
+Save to library writes the authored truth (kind, process, prepared
+sketch) as an org record; there is no standalone profile editor and no
+creation of profiles outside a cassette design session. Attaching from
+the library is a snapshot copy into the dialog draft: the workpiece's
+`profileSnapshot` stays the renderer's geometry source and the cassette
+document remains self-contained — no live references from a cassette to
+library records, and a later library edit never silently rewrites
+cassettes. The library rides the generic instance machinery end to end
+(records host capability in, generic instance transport out); no
+framework feature serves it.
+
 Owner declarations (2026-10-15, profile parameter rows, array spacing,
 authoring fields — owner review round 10): the parameters a profile
 workpiece's row shows drive its geometry — editing one re-evaluates the
