@@ -105,6 +105,16 @@ room's human participants — and a completed pick inserts the address
 token. User tags are composer text (no notification contract rides
 them); the assistant address is the multi-human room's wake gate.
 
+The agent can ask the room mid-run: `ask_user` suspends the run, the
+question with its one-tap options renders at the composer, and the next
+message from a capability-holding participant in that conversation is
+consumed as the answer — persisted as the ordinary message it is, never
+double-firing a new run. Unanswered questions time out and the run
+concludes with what it has; stopping the room ends the question with
+it. Asking is for decisions that belong to the room (activation gates
+with live data, genuinely ambiguous intent), never for permission to
+act on declared intent.
+
 An agent run is visible in its room and stays with its answer: the
 model's reasoning streams as a collapsible thinking block and each tool
 invocation appears as it starts and settles; the final answer streams as

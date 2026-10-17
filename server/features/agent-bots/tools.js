@@ -617,6 +617,33 @@ export const TOOL_SPECS = [
         }
     },
     {
+        name: 'ask_user',
+        description: 'Asks the conversation a question and waits for the answer: the run suspends, the question (with optional one-tap options) renders at the composer, and the next message from a participant replies to it. Use it only for decisions that belong to the room — activation gates carrying live data (status migration targets, type death) or genuinely ambiguous intent. Never for permission to act on declared intent, and never to ask whether to retry.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                question: { type: 'string', description: 'The question shown to the room.' },
+                options: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Optional short answer choices offered as one-tap replies (at most 6).'
+                }
+            },
+            required: ['question'],
+            additionalProperties: false
+        },
+        chatOnly: true,
+        execute: async (args, auth, run) => {
+            if (!run?.ask) throw createError({ statusCode: 400, message: 'ask_user is available inside a chat run only' });
+            const options = (Array.isArray(args.options) ? args.options : [])
+                .map(option => String(option || '').trim())
+                .filter(Boolean)
+                .slice(0, 6);
+            const answer = await run.ask(requireString(args.question, 'question'), options);
+            return { answer };
+        }
+    },
+    {
         name: 'read_attachment',
         description: 'Reads the content of a file attached to a message in this conversation. Message history marks attachments as [attachment: name <fileId:id>] — pass that fileId. Reads text files, spreadsheets (as CSV), PDFs (page text), DOCX (document body), and audio (as a transcript when the organization has transcription configured); images and video have no text content. Large content is truncated.',
         inputSchema: {
