@@ -221,6 +221,12 @@ glyph in the brand accent across chat surfaces (SPEC: agent access).
   markdown mode returned no parts when the shared pipeline renders ''
   without a DOM — SSR painted empty agent answers. The documented
   fallback (plain text on SSR, formatting on hydration) is restored.
+- Follow-up: `chats-page.ssr-smoke.js` boots the assembled chat
+  surface (it caught the missing Confirmation/Toast service wiring on
+  arrival); the content smoke is mutation-verified against the exact
+  import deletion that shipped. The page smoke alone does not reach
+  message rendering at SSR — the inbox is empty — so the two smokes
+  own the defect class together.
 
 ### Agent Notes (2026-10-17 — refs attach like files; chronology quieted)
 
