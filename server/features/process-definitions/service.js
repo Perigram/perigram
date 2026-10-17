@@ -46,9 +46,8 @@ import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { operationKindOf, projectDomainFromView, orientChildrenEdgesChildFirst, rewriteRetiredWirePaths } from '~/packages/cts/src/index.js';
 import { withinRelationDomain } from '#shared/relation-domain.js';
-import { composePackDomains, composeStarterConstructs } from '~/server/packs/declarations.js';
-import { packDomainsForOrganization } from '~/server/features/plugins/service.js';
-import { packServicesForOrganization } from '~/server/features/plugins/service.js';
+import { composePackDomains } from '~/server/packs/declarations.js';
+import { packDomainsForOrganization, packServicesForOrganization, starterConstructsForOrganization, resolveProjectionValue } from '~/server/features/plugins/service.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
 import {
   applyStatusMigrations,
@@ -475,15 +474,15 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
   if (!organizationId) throw createError({ statusCode: 400, message: 'Organization id is required' });
 
   const organizationIdValue = toFlexibleId(organizationId);
-  // The starter definition carries the mounted packs' starter constructs
-  // (SPEC §UI visible-by-default) — authored through the same headless
-  // seam the designer and the stationing script use, so validation,
-  // compilation, and activation run identically. The projected domain
-  // (not the pack domain slices) is the validation surface — it carries
-  // the entities the authored nodes address.
+  // The starter definition carries the mounted packs' and installed
+  // plugins' starter constructs (SPEC §UI visible-by-default) — authored
+  // through the same headless seam the designer and the stationing script
+  // use, so validation, compilation, and activation run identically. The
+  // projected domain (not the pack domain slices) is the validation
+  // surface — it carries the entities the authored nodes address.
   const domain = await getProjectedDomain(organizationIdValue);
   const authoring = createDefinitionAuthoring(domain);
-  for (const [index, construct] of composeStarterConstructs().entries()) {
+  for (const [index, construct] of (await starterConstructsForOrganization(organizationIdValue)).entries()) {
     const id = `starter-${index}`;
     authoring.drop('construct', { id });
     authoring.configure(id, {
@@ -1654,6 +1653,18 @@ function processDataEnvironment(auth, run, domain = getDomain()) {
         if (!instance) throw new Error(`${typeId} ${id} not found for projection ${projectionId}`);
         return String(contract.resolve.field).split('.').filter(Boolean)
           .reduce((value, key) => value == null ? undefined : value[key], instance);
+      }
+      // A service resolve dispatches to the installed plugin's
+      // endpoint-mode executor: the platform reads the instance and its
+      // payload, the service computes the projected value (pure compute
+      // over values — the platform carries no plugin code).
+      if (contract.resolve.service) {
+        return await resolveProjectionValue({
+          organizationId: auth.organizationId,
+          commandId: String(contract.resolve.service),
+          typeId,
+          instanceId: id
+        });
       }
       const handler = getAppRegistry().getProjectionHandler(contract.resolve.handler);
       if (!handler) throw new Error(`No handler bound for projection ${typeId}/${projectionId}`);

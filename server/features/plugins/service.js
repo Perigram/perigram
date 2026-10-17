@@ -11,7 +11,7 @@ import { createError } from 'h3';
 import { randomBytes } from 'node:crypto';
 import * as repository from './repository.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
-import { invalidateInstanceDeclarations } from '../instances/service.js';
+import { instanceServiceResolver, invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
@@ -20,7 +20,8 @@ import { findTypeReferences } from '../process-definitions/service.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask } from '../../core/tasks/service.js';
-import { composePackServices, composePackDomains, composePackAttachmentKinds, orderedMountedPacks } from '~/server/packs/declarations.js';
+import { composePackServices, composePackDomains, composePackAttachmentKinds, composeStarterConstructs, orderedMountedPacks } from '~/server/packs/declarations.js';
+import * as filesService from '../files/service.js';
 import { parseListing, normalizeListing } from '#packages/plugin-sdk/src/listing.js';
 import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-surfaces.js';
 
@@ -116,7 +117,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
     throw createError({ statusCode: 409, message: 'Plugin already installed' });
   }
   const layer = parseListingOr400(listing);
-  const { types, services, editors, attachmentKinds, conversions, constructions, exports: exportBindings, surfaces, requires } = layer;
+  const { types, services, editors, attachmentKinds, conversions, constructions, starterConstructs, exports: exportBindings, surfaces, requires } = layer;
   // Surface modules target a mount-contract major; an unsupported one
   // refuses at the gate — never a runtime half-mount (SPEC §Plugin
   // marketplace, owner decision 2026-10-11).
@@ -199,7 +200,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
     pluginId: String(listing.pluginId),
     name: listing.name || listing.pluginId,
     version: listing.version || '1',
-    declarations: { types, editors, attachmentKinds, conversions, constructions, exports: exportBindings, surfaces, previews: layer.previews },
+    declarations: { types, editors, attachmentKinds, conversions, constructions, starterConstructs, exports: exportBindings, surfaces, previews: layer.previews },
     services,
     requires,
     endpoints: configuredEndpoints,
@@ -510,6 +511,55 @@ export async function constructionsForOrganization(organizationId) {
   return constructions;
 }
 
+// Starter constructs for an organization's initial process (SPEC §UI
+// visible-by-default): the mounted packs' constructs plus the installed
+// plugins' — the pack law extended across layers: one construct per type,
+// a cross-layer collision is a composition error.
+export async function starterConstructsForOrganization(organizationId) {
+  const constructs = [...composeStarterConstructs()];
+  const seen = new Set(constructs.map(construct => construct.typeId));
+  for (const install of organizationId ? await repository.listInstallsByOrganization(organizationId) : []) {
+    for (const construct of install.declarations?.starterConstructs || []) {
+      if (seen.has(construct.typeId)) {
+        throw createError({
+          statusCode: 500,
+          message: `starter construct for type ${construct.typeId} declared by both a pack and installed plugin ${install.pluginId}`
+        });
+      }
+      seen.add(construct.typeId);
+      constructs.push({ typeId: construct.typeId, construction: construct.construction });
+    }
+  }
+  return constructs;
+}
+
+// Service-resolved projections (SPEC §8 p extract): the platform reads
+// the target instance and its payload, and the plugin's endpoint-mode
+// service computes the projected value over them — pure compute over
+// values, the DXF-extraction shape; the service response is the
+// projection value.
+export async function resolveProjectionValue({ organizationId, commandId, typeId, instanceId }) {
+  const install = await installForCommand(commandId, organizationId);
+  if (!install) {
+    throw createError({ statusCode: 404, message: `Projection service ${commandId} is not installed for this organization` });
+  }
+  const serviceId = commandId.match(PLUGIN_COMMAND_PATTERN)[2];
+  const service = (install.services || []).find(item => item.id === serviceId);
+  if (serviceModeOf(service) !== 'endpoint') {
+    throw createError({ statusCode: 400, message: `Projection service ${serviceId} is not endpoint mode` });
+  }
+  const instance = await instanceServiceResolver(typeId).getById(String(instanceId)).catch(() => null);
+  if (!instance) throw createError({ statusCode: 400, message: `Instance ${instanceId} not found for projection` });
+  const payloadRef = instance.payload || null;
+  const fileId = payloadRef?.fileId || payloadRef?.id || null;
+  if (!fileId) throw createError({ statusCode: 400, message: `Instance ${instanceId} carries no payload` });
+  const buffer = await filesService.getFileBuffer(fileId, 'files');
+  return await callEndpointService(install, serviceId, {
+    typeId: String(typeId),
+    payloadBase64: Buffer.from(buffer).toString('base64')
+  });
+}
+
 // Attachment export bindings (installed plugins): the plugin services that
 // generate exportable artifacts for the plugin's own types.
 export async function exportersForOrganization(organizationId) {
@@ -572,35 +622,7 @@ export async function executeConnectorService(command, { parameters, auth = {} }
   // nesting-worker shape — self-hosted or cloud-hosted); the JSON body is
   // the service input value and the JSON response is the service output.
   if (serviceModeOf(service) === 'endpoint') {
-    const endpoint = install.endpoints?.[serviceId];
-    if (!endpoint) {
-      throw createError({
-        statusCode: 400,
-        message: `Service ${serviceId} has no endpoint — configure it in the plugin settings`
-      });
-    }
-    let response;
-    try {
-      response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          ...(install.authToken ? { authorization: `Bearer ${install.authToken}` } : {})
-        },
-        body: JSON.stringify(parameters ?? null),
-        signal: AbortSignal.timeout(60000)
-      });
-    } catch (error) {
-      if (error?.name === 'TimeoutError') {
-        throw createError({ statusCode: 504, message: `Service ${serviceId} endpoint timed out` });
-      }
-      throw createError({ statusCode: 502, message: `Service ${serviceId} endpoint failed: ${error?.message || error}` });
-    }
-    if (!response.ok) {
-      const body = await response.text();
-      throw createError({ statusCode: 502, message: `Service ${serviceId} endpoint failed: ${body || response.statusText}` });
-    }
-    return await response.json();
+    return await callEndpointService(install, serviceId, parameters);
   }
 
   const run = await enqueueTask(command.id, {
@@ -642,6 +664,41 @@ async function installForCommand(commandId, organizationId) {
   const install = await repository.findInstall(organizationId, match[1]);
   if (!install) return null;
   return (install.services || []).some(service => service.id === match[2]) ? install : null;
+}
+
+// The one endpoint-mode call: the configured URL, optional executor key,
+// 60 s budget, JSON in/out — shared by connector commands and projection
+// reads.
+async function callEndpointService(install, serviceId, body) {
+  const endpoint = install.endpoints?.[serviceId];
+  if (!endpoint) {
+    throw createError({
+      statusCode: 400,
+      message: `Service ${serviceId} has no endpoint — configure it in the plugin settings`
+    });
+  }
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(install.authToken ? { authorization: `Bearer ${install.authToken}` } : {})
+      },
+      body: JSON.stringify(body ?? null),
+      signal: AbortSignal.timeout(60000)
+    });
+  } catch (error) {
+    if (error?.name === 'TimeoutError') {
+      throw createError({ statusCode: 504, message: `Service ${serviceId} endpoint timed out` });
+    }
+    throw createError({ statusCode: 502, message: `Service ${serviceId} endpoint failed: ${error?.message || error}` });
+  }
+  if (!response.ok) {
+    const text = await response.text();
+    throw createError({ statusCode: 502, message: `Service ${serviceId} endpoint failed: ${text || response.statusText}` });
+  }
+  return await response.json();
 }
 
 // The connector panel data: the token authorizes the publisher's
@@ -886,6 +943,7 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
       attachmentKinds: layer.attachmentKinds,
       conversions: layer.conversions,
       constructions: layer.constructions,
+      starterConstructs: layer.starterConstructs,
       exports: layer.exports,
       surfaces: layer.surfaces,
       previews: layer.previews

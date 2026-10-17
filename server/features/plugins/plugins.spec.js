@@ -7,7 +7,11 @@ vi.mock('../instances/migrations.js', () => ({
 }));
 vi.mock('../process-definitions/service.js', () => ({ findTypeReferences: vi.fn(async () => []) }));
 vi.mock('../instance-events/service.js', () => ({ publishOrgContractChanged: vi.fn() }));
-vi.mock('../instances/service.js', () => ({ invalidateInstanceDeclarations: vi.fn() }));
+vi.mock('../instances/service.js', () => ({
+  invalidateInstanceDeclarations: vi.fn(),
+  instanceServiceResolver: vi.fn(() => ({ getById: vi.fn(async () => null) }))
+}));
+vi.mock('../files/service.js', () => ({ getFileBuffer: vi.fn(async () => Buffer.from('payload')) }));
 vi.mock('../../utils/auth-helpers.js', () => ({ hasPermission: vi.fn(() => true) }));
 vi.mock('../cts-types/repository.js', () => ({
   findByTypeId: vi.fn(async () => null),
@@ -54,12 +58,12 @@ import {
   packServicesForOrganization, commandDefinitionFor, executeConnectorService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings, listPackState, enablePack, disablePack,
-  fetchSurfaceModule
+  fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue
 } from './service.js';
 import { enqueueTask } from '../../core/tasks/service.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
-import { invalidateInstanceDeclarations } from '../instances/service.js';
+import { invalidateInstanceDeclarations, instanceServiceResolver } from '../instances/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
 
 const ORG = 'org-1';
@@ -362,6 +366,31 @@ describe('plugin installs', () => {
     expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
       pluginId: 'primers',
       requires: ['coatings']
+    }));
+  });
+
+  it('snapshots declared starter constructs with the install', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: {
+        ...coatingListing.declarations,
+        types: [
+          {
+            id: 'coating-sheet',
+            class: 'file',
+            name: 'Coating sheet',
+            payload: { mime: ['text/csv'], accept: ['.csv'], maxSize: 1024, preview: 'table', creation: ['editor'] },
+            fields: { name: { base: 'string' } }
+          }
+        ],
+        starterConstructs: [{ typeId: 'coating-sheet', construction: 'editor' }]
+      }
+    });
+    await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
+      declarations: expect.objectContaining({
+        starterConstructs: [{ typeId: 'coating-sheet', construction: 'editor' }]
+      })
     }));
   });
 
@@ -722,6 +751,97 @@ describe('endpoint-mode services', () => {
       endpoints: { match: 'https://cloud.example/match' },
       auth: AUTH
     })).rejects.toMatchObject({ statusCode: 400 });
+  });
+});
+
+describe('starter constructs and service-resolved projections', () => {
+  it('composes pack constructs beside installed plugin constructs, one per type', async () => {
+    repository.listInstallsByOrganization.mockResolvedValue([{
+      ...coatingInstall,
+      declarations: {
+        ...coatingInstall.declarations,
+        starterConstructs: [{ typeId: 'coating', construction: 'editor' }]
+      }
+    }]);
+    const constructs = await starterConstructsForOrganization(ORG);
+    expect(constructs).toEqual([
+      { typeId: 'text-document', construction: 'editor' },
+      { typeId: 'coating', construction: 'editor' }
+    ]);
+  });
+
+  it('refuses a starter construct collision between pack and install layers', async () => {
+    repository.listInstallsByOrganization.mockResolvedValue([{
+      ...coatingInstall,
+      declarations: {
+        ...coatingInstall.declarations,
+        starterConstructs: [{ typeId: 'text-document', construction: 'editor' }]
+      }
+    }]);
+    await expect(starterConstructsForOrganization(ORG))
+      .rejects.toMatchObject({ statusCode: 500, message: expect.stringContaining('text-document') });
+  });
+
+  const projectionInstall = {
+    organizationId: ORG,
+    pluginId: 'coatings',
+    name: 'Coatings',
+    version: '2',
+    declarations: coatingListing.declarations,
+    services: [
+      { id: 'table-rows', label: 'Table rows', mode: 'endpoint', signature: { input: { base: 'json' }, output: { base: 'json' } } }
+    ],
+    endpoints: { 'table-rows': 'https://executor.example/table-rows' }
+  };
+
+  it('dispatches a service-resolved projection with the instance payload as base64', async () => {
+    repository.findInstall.mockResolvedValue(projectionInstall);
+    instanceServiceResolver.mockReturnValue({
+      getById: vi.fn(async () => ({ _id: 'inst-1', payload: { fileId: 'file-1' } }))
+    });
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([{ A: '1' }]), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const value = await resolveProjectionValue({
+        organizationId: ORG,
+        commandId: 'plugin.coatings.table-rows',
+        typeId: 'csv-table',
+        instanceId: 'inst-1'
+      });
+      expect(value).toEqual([{ A: '1' }]);
+      expect(fetchMock).toHaveBeenCalledWith('https://executor.example/table-rows', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ typeId: 'csv-table', payloadBase64: Buffer.from('payload').toString('base64') })
+      }));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('refuses a projection over an instance without a payload', async () => {
+    repository.findInstall.mockResolvedValue(projectionInstall);
+    instanceServiceResolver.mockReturnValue({
+      getById: vi.fn(async () => ({ _id: 'inst-1' }))
+    });
+    await expect(resolveProjectionValue({
+      organizationId: ORG,
+      commandId: 'plugin.coatings.table-rows',
+      typeId: 'csv-table',
+      instanceId: 'inst-1'
+    })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('no payload') });
+  });
+
+  it('refuses a projection bound to a claim-mode service', async () => {
+    repository.findInstall.mockResolvedValue({
+      ...projectionInstall,
+      services: [{ id: 'table-rows', label: 'Table rows', signature: { input: { base: 'json' }, output: { base: 'json' } } }]
+    });
+    await expect(resolveProjectionValue({
+      organizationId: ORG,
+      commandId: 'plugin.coatings.table-rows',
+      typeId: 'csv-table',
+      instanceId: 'inst-1'
+    })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('endpoint mode') });
   });
 });
 

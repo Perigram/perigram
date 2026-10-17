@@ -150,6 +150,20 @@
             "additionalProperties": { "type": "string", "pattern": "^plugin\\.[a-z0-9-]+\\.[a-z0-9-]+$" }
           }
         },
+        "starterConstructs": {
+          "type": "array",
+          "description": "Constructs the plugin stations into every installing organization's initial process: the plugin's own file type, a mode it declares, one construct per type",
+          "items": {
+            "type": "object",
+            "required": ["typeId", "construction"],
+            "additionalProperties": false,
+            "properties": {
+              "typeId": { "type": "string" },
+              "construction": { "type": "string" }
+            }
+          },
+          "uniqueItems": true
+        },
         "exports": {
           "type": "array",
           "description": "Attachment exports bound to plugin services",
