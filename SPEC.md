@@ -840,8 +840,10 @@ edge-array pattern by default and carry placement, array, and mirror
 controls (no face side); hardware carries face-side placement with
 snap or array (no mirror) and may bind edges a profile already
 occupies; workpiece attachments edit symmetric host and self sections
-— face, side, basis snap, and both offsets per section — with no
-mirror, driver, or joint type.
+— face, side, basis snap, and both offsets per section (rotation in
+self) — with no mirror, driver, or joint type; the self side flips the
+sheet against the host side and both offset pairs place in their own
+face frames in 2D and folded 3D alike.
 Snap points and array bindings are computed from the raw authored
 face, never from the profile-merged boundary.
 

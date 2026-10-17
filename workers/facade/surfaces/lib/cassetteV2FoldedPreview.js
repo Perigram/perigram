@@ -468,16 +468,30 @@ const applyWorkpieceJointTransforms = (placed, joints = []) => {
       const targetPlacement = transformPlacement(targetLocal, targetTransform);
       const targetBasis = faceBasis(targetPlacement);
       const sourceBasis = faceBasis(sourceLocal);
-      const desiredNormal = joint.targetSide === 'back'
+      // The host side picks the face side the sheet lands on; the self
+      // side flips the sheet against it (front-to-front, back-to-back).
+      const hostNormal = joint.targetSide === 'back'
         ? scale3(targetBasis.normal, -1)
         : targetBasis.normal;
+      const desiredNormal = joint.sourceSide === 'back'
+        ? scale3(hostNormal, -1)
+        : hostNormal;
       const align = rotationMatrixBetween(sourceBasis.normal, desiredNormal);
       const alignedSourceX = normalize3(multiplyMatrixVector(align, sourceBasis.xAxis), sourceBasis.xAxis);
       const twistAngle = signedAngleAroundAxis(alignedSourceX, targetBasis.xAxis, desiredNormal) + numeric(joint.rotation, 0);
       const twist = rotationMatrixAroundAxis(desiredNormal, twistAngle);
       const matrix = multiplyMatrices(twist, align);
       const targetAnchor = jointTargetAnchor(targetPlacement, joint);
-      const sourceAnchor = multiplyMatrixVector(matrix, faceSnapPoint3d(sourceLocal, joint.sourceSnap));
+      // The self anchor rides its own offset pair in the self face's
+      // frame before the alignment matrix places it — symmetric to
+      // jointTargetAnchor on the host side.
+      const sourceAnchor = multiplyMatrixVector(matrix, add3(
+        add3(
+          faceSnapPoint3d(sourceLocal, joint.sourceSnap),
+          scale3(sourceBasis.xAxis, numeric(joint.sourceOffsetX, 0))
+        ),
+        scale3(sourceBasis.yAxis, numeric(joint.sourceOffsetY, 0))
+      ));
 
       transforms.set(joint.sourceWorkpieceId, {
         matrix,

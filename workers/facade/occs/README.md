@@ -301,10 +301,14 @@ modules — no platform imports.
   pattern by default and edit placement, array, and mirror controls
   (no face side); hardware places on a face side with snap or array
   (no mirror); workpiece attachments edit symmetric HOST and SELF
-  sections — face, side, basis snap, and both offsets each, stored as
-  `target*`/`source*` pairs with `source.side` and
-  `placement.sourceOrigin` — with no mirror, driver, or joint type in
-  the editor. Snap points and array bindings compute from the RAW
+  sections — face, side, basis snap, and both offsets each (plus
+  rotation in SELF), stored as `target*`/`source*` pairs with
+  `source.side` and `placement.sourceOrigin` — with no mirror, driver,
+  or joint type in the editor. Both placements honor the pairs: the 2D
+  assembly transforms and the folded 3D joint pass apply the self
+  offsets in the self face's frame, and the self side flips the sheet
+  against the host side (host front + self back lands front-to-front).
+  Snap points and array bindings compute from the RAW
   authored face (`originalBoundaryVertices`/`referenceVertices` before
   any profile cut merges into the boundary) — placement anchors never
   drift with cut geometry.

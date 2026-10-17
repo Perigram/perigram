@@ -2135,7 +2135,8 @@ export default function createSurface({ vue, components, locale, queries, record
                 selectField('cassette.v2.attachmentFields.side', relation.sourceSide, sideOptions, 'sourceSide'),
                 selectField('cassette.v2.attachmentFields.sourceSnap', relation.sourceSnap, snapOptions, 'sourceSnap'),
                 expressionField('cassette.v2.attachmentFields.edgeMargin', relation.sourceOffsetX, 'sourceOffsetX'),
-                expressionField('cassette.v2.attachmentFields.normalOffset', relation.sourceOffsetY, 'sourceOffsetY')
+                expressionField('cassette.v2.attachmentFields.normalOffset', relation.sourceOffsetY, 'sourceOffsetY'),
+                expressionField('cassette.v2.attachmentFields.rotation', relation.rotation, 'rotation')
               ])
             ]);
           } else {
