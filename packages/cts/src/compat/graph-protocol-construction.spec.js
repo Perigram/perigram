@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { resolveCtsDefinition } from './graph-protocol.js';
 import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '~/packages/cts/src/index.js';
-import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import { constructionInputsForContract, createDefinitionAuthoring, compileProcessDefinition, prepareAuthoredDefinition, validateProcessDefinition } from '~/packages/processes/src/index.js';
 import { facadeDomain, facadePackContent } from '../../../../test-tools/facade-plugin.js';
 import documentsListing from '../../../../workers/documents/listing.json' with { type: 'json' };
@@ -32,7 +31,7 @@ function resolvedModes(definition) {
 
 function realDomain() {
   const registry = createTypeRegistry({ id: 'repro' });
-  for (const declaration of [...frameworkTypes, ...composeSystemDeclarations(), ...documentsListing.declarations.types, ...facadePackContent.types]) registry.defineType(declaration);
+  for (const declaration of [...frameworkTypes, ...documentsListing.declarations.types, ...facadePackContent.types]) registry.defineType(declaration);
   return projectDomainFromView(registry, 'org-1', facadeDomain, { packServices: [] });
 }
 

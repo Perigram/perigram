@@ -48,8 +48,7 @@ import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { operationKindOf, projectDomainFromView, orientChildrenEdgesChildFirst, rewriteRetiredWirePaths } from '~/packages/cts/src/index.js';
 import { withinRelationDomain } from '#shared/relation-domain.js';
-import { composePackDomains } from '~/server/packs/declarations.js';
-import { packDomainsForOrganization, packServicesForOrganization, starterConstructsForOrganization, resolveProjectionValue } from '~/server/features/plugins/service.js';
+import { projectedDomainsForOrganization, projectedServicesForOrganization, starterConstructsForOrganization, resolveProjectionValue } from '~/server/features/plugins/service.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
 import {
   applyStatusMigrations,
@@ -2184,7 +2183,7 @@ function resolveOrganizationId(auth = {}) {
 }
 
 function getDomain() {
-  return composePackDomains();
+  return { commands: {}, construction: {}, events: [], serviceContracts: {} };
 }
 
 /**
@@ -2287,8 +2286,8 @@ export async function editDefinition({ definitionId = '', steps = [] } = {}, aut
 // stored type fails loudly here rather than silently compiling without it.
 async function getProjectedDomain(organizationId = null) {
   const registry = await compileRegistryForOrganization(organizationId);
-  return projectDomainFromView(registry, organizationId, await packDomainsForOrganization(organizationId), {
-    packServices: await packServicesForOrganization(organizationId)
+  return projectDomainFromView(registry, organizationId, await projectedDomainsForOrganization(organizationId), {
+    packServices: await projectedServicesForOrganization(organizationId)
   });
 }
 

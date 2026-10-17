@@ -12,7 +12,6 @@ import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent, normalizeType, mimeMatches } from '~/packages/cts/src/index.js';
-import { composeSystemDeclarations, orderedMountedPacks } from '~/server/packs/declarations.js';
 import * as typeStore from '../cts-types/repository.js';
 import * as pluginInstalls from '../plugins/repository.js';
 import * as repository from './repository.js';
@@ -27,8 +26,7 @@ import { serviceAwareConstructionHandlers, applyConstructionService } from './co
 // order): every pack type is executable through the generic instance
 // service. Pack membership drives per-org enablement filtering (SPEC
 // §Plugin marketplace): orgs hold disablement records against packs.
-const staticTypes = new Map([...frameworkTypes, ...composeSystemDeclarations()].map(type => [type.id, type]));
-const packOfType = new Map(orderedMountedPacks().flatMap(pack => (pack.types || []).map(type => [type.id, pack.id])));
+const staticTypes = new Map(frameworkTypes.map(type => [type.id, type]));
 const declarationCache = new Map();
 // Declared lineage keys per child type (SPEC §6), derived from the same
 // view the indexes derive from: the storage keys parents' children edges
@@ -76,11 +74,8 @@ async function lineageKeysFor(typeId, organizationId = null) {
   if (!lineageKeysCache.has(cacheKey)) {
     let overlayDeclarations = [];
     try {
-      const disabled = new Set(await pluginInstalls.listDisabledPacks(organizationId));
-      const enabledStatic = [...staticTypes.values()].filter(type =>
-        !disabled.has(packOfType.get(type.id)));
       overlayDeclarations = [
-        ...enabledStatic,
+        ...staticTypes.values(),
         ...await pluginInstalls.listDeclarationsByOrganization(organizationId),
         ...await typeStore.listByOrganization(organizationId)
       ];
@@ -96,11 +91,6 @@ async function declarationFor(typeId, organizationId = null) {
   const cacheKey = organizationId ? `${typeId}@${organizationId}` : typeId;
   if (declarationCache.has(cacheKey)) return declarationCache.get(cacheKey);
   let declaration = staticTypes.get(typeId) || null;
-  if (declaration && organizationId && packOfType.has(typeId)) {
-    // Disabled packs do not resolve for the organization, even statically.
-    const disabled = new Set(await pluginInstalls.listDisabledPacks(organizationId).catch(() => []));
-    if (disabled.has(packOfType.get(typeId))) declaration = null;
-  }
   if (!declaration && organizationId) {
     try {
       declaration = await pluginInstalls.findDeclarationByTypeId(organizationId, typeId);

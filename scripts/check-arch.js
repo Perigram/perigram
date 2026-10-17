@@ -4,7 +4,6 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { composeSystemDeclarations, orderedMountedPacks } from '../server/packs/declarations.js';
 import { frameworkTypes } from '../packages/cts/src/index.js';
 import { frameworkCommandDefinitions, frameworkEventDefinitions } from '../server/core/commands/definitions.js';
 import { frameworkTaskDefinitions } from '../server/core/tasks/definitions.js';
@@ -18,16 +17,7 @@ const API_DIR = './server/api';
 // from declared state trees (SPEC §7) — machines are graph-compiled.
 // Documents-pack types ride the generic instance machinery and declare no
 // feature directories of their own.
-const genericInstanceTypes = new Set([
-  ...(orderedMountedPacks().find(pack => pack.id === 'documents')?.types?.map(type => type.id) || []),
-  // tech-drawing reference types without feature directories of their own
-  'color', 'dxf-source', 'svg-file', 'sketch',
-  // tech-drawing catalogue types whose legacy feature directories are gone:
-  // system instances live as §3 documents served by the generic machinery
-  'pen-template', 'layer-standard'
-]);
-const classifiedDeclarations = [...frameworkTypes, ...composeSystemDeclarations()]
-  .filter(declaration => !genericInstanceTypes.has(declaration.id));
+const classifiedDeclarations = [...frameworkTypes];
 const FEATURE_DIRECTORY_ALIASES = new Map([
   ['entity-revisions', 'instance-revisions']
 ]);
@@ -112,11 +102,6 @@ const features = ENTITY_FEATURES;
 const appRegistry = fs.readFileSync('server/runtime/app-registry.js', 'utf8');
 // Mounted packs are boot-time registration sites alongside the framework
 // registry (SPEC §21).
-const packSources = fs.existsSync('server/packs')
-  ? fs.readdirSync('server/packs', { recursive: true })
-      .filter(file => String(file).endsWith('.js'))
-      .map(file => fs.readFileSync(`server/packs/${file}`, 'utf8'))
-  : [];
 
 let errors = 0;
 const inventory = [];
@@ -670,28 +655,6 @@ function descriptorRefFields(descriptor, path = 'input') {
   return [];
 }
 
-for (const pack of orderedMountedPacks()) {
-  for (const service of pack.services || []) {
-    for (const refField of descriptorRefFields(service?.signature?.input)) {
-      console.error(`❌ Pack service ${service.id} declares ref input ${refField} — services are pure V→V (SPEC §8); dereference through a declared projection instead`);
-      errors++;
-    }
-  }
-}
-
-for (const packDir of fs.readdirSync('./server/packs')) {
-  const valueServicesDir = path.join('./server/packs', packDir, 'value-services');
-  if (!fs.existsSync(valueServicesDir)) continue;
-  for (const file of walkDir(valueServicesDir)) {
-    if (!file.endsWith('.js') || file.endsWith('.spec.js')) continue;
-    const relFile = path.relative('.', file);
-    const content = fs.readFileSync(file, 'utf8');
-    if (/features\/(instances|files)\/|instanceServiceResolver/.test(content)) {
-      console.error(`❌ ${relFile} resolves entities or files — value-service handlers are pure V→V (SPEC §8); move the read to a declared projection (projections/)`);
-      errors++;
-    }
-  }
-}
 
 console.log('\n--- Verification Summary ---');
 if (errors === 0) {

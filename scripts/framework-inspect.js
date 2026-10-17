@@ -14,7 +14,6 @@ import {
   DESIGN_SYSTEM_VARIANTS
 } from '../utils/design-system-contract.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
-import { composeSystemDeclarations } from '../server/packs/declarations.js';
 import { extractDataModels } from '../server/utils/extract-data-models.js';
 
 // The registry view is the domain catalog (one source): entities and
@@ -22,7 +21,7 @@ import { extractDataModels } from '../server/utils/extract-data-models.js';
 // through the instance transport by TYPE id (their feature services own
 // storage, no class collection).
 const viewRegistry = createTypeRegistry({ id: 'framework-manifest-view' });
-for (const declaration of [...frameworkTypes, ...composeSystemDeclarations()]) viewRegistry.defineType(declaration);
+for (const declaration of frameworkTypes) viewRegistry.defineType(declaration);
 const projected = projectDomainFromView(viewRegistry, null);
 const cncEntities = projected.entities.map(entity => ({ ...entity, surfaceKey: entity.type }));
 const cncWorkflows = projected.workflows || {};

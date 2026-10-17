@@ -9,9 +9,6 @@ vi.mock('../process-definitions/service.js', () => ({
   findTypeReferences: vi.fn(async () => [])
 }));
 vi.mock('../plugins/repository.js', () => ({
-  listDisabledPacks: vi.fn(async () => []),
-  enablePack: vi.fn(),
-  disablePack: vi.fn(),
   listDeclarationsByOrganization: vi.fn(async () => []),
   findDeclarationByTypeId: vi.fn(async () => null),
   listInstallsByOrganization: vi.fn(async () => [])
