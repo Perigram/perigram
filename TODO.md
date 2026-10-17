@@ -393,6 +393,14 @@ authoring happens only inside a cassette design session.
   unchanged otherwise) so pins can move again through the product
   path. Owner step: one more Upgrade click (v10→v11).
 
+- Preview layer set (owner direction, corrected): outline (`cut.outer`)
+  and folds (`fold.route`) — the cassette's shape, nothing else. The
+  first mapping read "contour" as the literal `contour.cassette_face`
+  layer (profile composites only — a plain cassette carries no such
+  layer, so previews lost the outline); the outline IS the outer cut.
+  Applied to the picker thumbnails AND the `cassette-preview` surface's
+  card/detail priority list.
+
 ### Agent Notes (2026-10-17 — library edit workflow: local by default, explicit rewrite)
 
 - Owner question: does editing a library-sourced placed profile rewrite
