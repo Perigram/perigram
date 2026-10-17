@@ -149,6 +149,23 @@ authoring happens only inside a cassette design session.
 - [ ] WAITING — owner verification on the live stack: save a profile to
   the library from one cassette, pick it into another.
 
+### Agent Notes (2026-10-17 — upgrade path stripped access.inherits; fixed)
+
+- Owner report "I don't see upgrade btn": the org had ALREADY upgraded
+  to v10 (the button correctly disappears when versions match). The
+  upgrade itself exposed a transport defect: `applyUpgrade` stores
+  types through `registry.defineType` → cts `normalizeType`, whose
+  whitelist dropped the `access` facet — the installed v10 snapshot
+  had `profile` without `access.inherits`, so library writes would
+  403 despite the catalog carrying the facet (catalog/installs created
+  by the migrate script store declarations verbatim; only the upgrade
+  route's defineType round-trip normalized).
+- Fix: `normalizeType` carries and validates `access: { inherits }`
+  (cts registry — the authoring boundary, so the defineType round-trip
+  cannot strip it); facade listing re-published as v11 (content
+  unchanged otherwise) so pins can move again through the product
+  path. Owner step: one more Upgrade click (v10→v11).
+
 ### Agent Notes (2026-10-17 — designer UX round, owner directions)
 
 - Cassette load: the dock's open popover lists cassettes as thumbnail
