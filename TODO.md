@@ -79,6 +79,32 @@ authoring happens only inside a cassette design session.
 - [ ] WAITING — owner verification on the live stack: save a profile to
   the library from one cassette, pick it into another.
 
+### Agent Notes (2026-10-17 — owner defect report "Failed to save the profile to the library")
+
+- Diagnosis against the live stack (not a guess): the route is live
+  (unauth POST returns 401), but the catalog still pinned v6 and every
+  install snapshot v6/v1 — `profile` did not resolve for any org, so
+  `records.create` answered 404 "Unknown type profile" and the dialog's
+  catch collapsed it into the generic toast. Catalog refreshed to v7 by
+  re-running `server/scripts/migrate-facade-pack-to-plugin.js` (its
+  documented idempotent re-run; install pins are NOT touched by it).
+- Second, stacked gate (will 403 after upgrade): the org's process
+  grants are type-scoped (`items:write` exists only for the org's own
+  authored type; `files:write` per cassette/text-document/&c.).
+  `createForHttp` gates fail-closed on `items:write` like every
+  instance write transport — the org's Admin role must grant write for
+  the Profile type in the process designer, exactly as it granted
+  cassette once. That grant is org-authored data; not scripted here.
+- Owner steps to use the library on an existing org: (1) Plugins page →
+  Facade fabrication → Upgrade (v6→v7 diff is one added type, no
+  blockers); (2) process designer → role grants → add items write for
+  Profile. New orgs need only the grant.
+- Dialog hardening shipped with this: the failure toast now carries the
+  server's own message instead of a generic string, and the library
+  Select + Save-to-library button stay hidden when the org's install
+  does not declare the type yet (the dialog opens exactly as before the
+  feature instead of offering a button that cannot succeed).
+
 ## Z.AI coding plan as a login option on the models screen (owner direction 2026-10-16)
 
 Known providers are login options: picking the Z.AI GLM coding plan asks
