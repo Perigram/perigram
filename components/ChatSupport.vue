@@ -881,14 +881,17 @@
                         />
                     </div>
 
-                    <!-- Instance target strip: lineage drill-down over all
-                         children of the current target. Icon-only breadcrumb
+                    <!-- Instance target strip: lineage drill-down over the
+                         current target's children. Icon-only breadcrumb
                          pills walk back up, the chip row is the current
-                         level, and exactly one target is selected — the
-                         composed instance root, the deepest drilled lineage
-                         pill, or a drilled leaf chip. Minimal pill elements
-                         from semantic tokens: segmented PrimeVue chrome
-                         fights the composer density. -->
+                         level, and drilling always descends — a picked
+                         chip becomes the trail's last pill (its siblings
+                         drop) and its children load as the new level;
+                         exactly one target is visibly selected, the
+                         composed instance root or the deepest trail pill.
+                         Minimal pill elements from semantic tokens:
+                         segmented PrimeVue chrome fights the composer
+                         density. -->
                     <div
                         v-if="activeConversation.conversationKind === 'instance' && (stripChildren.length || stripTrail.length)"
                         class="flex flex-col gap-1"
@@ -2877,8 +2880,11 @@ const stripChildren = computed(() => {
         const child = base >= 0 ? path[base + 1] : null
         if (!child?.type || !child?.id) continue
         const key = `${child.type}:${child.id}`
+        // Path-derived names keep their stored value only — never the id
+        // (the no-technical-ids rule; unnamed chips localize the type
+        // label).
         if (!byKey.has(key)) {
-            byKey.set(key, { key, type: child.type, id: String(child.id), name: child.name || child.id, entity: null })
+            byKey.set(key, { key, type: child.type, id: String(child.id), name: child.name || '', entity: null })
         }
     }
     return [...byKey.values()]
@@ -2900,7 +2906,10 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
                     key: `${source.typeId}:${stripInstanceId(instance)}`,
                     type: source.typeId,
                     id: stripInstanceId(instance),
-                    name: instance?.name || stripInstanceId(instance) || source.typeId,
+                    // An unnamed instance never falls back to its id (the
+                    // no-technical-ids rule) — the chip localizes the type
+                    // label for an empty name.
+                    name: instance?.name || '',
                     entity: instance
                 }))
             } catch {
@@ -2982,11 +2991,11 @@ async function drillStripTo(chip) {
     // A child target only lands visibly in the composed subtree view; the
     // own-messages filter would hide the sent message entirely.
     if (!includeChildren.value) includeChildren.value = true
+    // Drilling always descends: the chip becomes the trail's last pill
+    // (siblings drop) and its children load as the new level — leaves
+    // simply show no further chips.
+    stripTrail.value = [...stripTrail.value, chip]
     await loadStripChildren(chip.key, chip.type, chip.entity)
-    // Collapse into breadcrumbs only when the drilled target opens another
-    // level; single-level targets keep the flat list with the selection.
-    const children = stripChildrenByKey.value.get(chip.key) || []
-    if (children.length) stripTrail.value = [...stripTrail.value, chip]
 }
 
 function truncateStripTrail(index) {
