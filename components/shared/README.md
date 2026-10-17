@@ -447,16 +447,17 @@ aliases such as `sheetDesign` / `sheet_design` stay consistent. Use this for ent
 context where an always-expanded nested card would overload the surface; do not
 render extra lifecycle badges next to these relation chips because status
 belongs on the actual entity card/detail.
-Inline chips now carry a restrained semantic tone in addition to the icon. The
+Inline chips carry a restrained semantic tone in addition to the icon. The
 hue comes from the tokenized entity family roles (`project/queue`, cassette
-family, sheet/run family, stock/material family, admin/meta family), while the surface treatment
-comes from the entity role: containers render as the strongest filled chips,
-templates/designs/revisions render as mid-strength definition chips, and
-concrete items/instances render as lighter outlined chips. This keeps inline
-refs visually legible in both light and dark themes without changing the
-popover card body. The collapsed inline ref remains a real text-inline chip: it
-stays on one line inside prose, truncates with ellipsis, and keeps the same
-semantic color treatment without inflating surrounding line height.
+family, sheet/run family, stock/material family, admin/meta family), and the
+tone vars the wrapper sets (`--ck-inline-ref-bg/border/fg` mixed from the
+accent by semantic role — containers strongest, definitions mid, items
+lightest) are consumed only where a surface opts in through the `chip`
+prop: `SupportMessageContent` passes it, so chat message refs render as
+boxed chips rather than inline text. The default inline ref stays the
+plain icon-plus-label chip — one line inside prose, truncates with
+ellipsis, no line-height inflation — for dense surfaces (tables, field
+controls, relation rows).
 `InstanceInlineRef` maps entity families to `--ck-entity-tone-*` values only; it
 must not introduce PrimeVue primitive color assignments of its own.
 `variant="compact"` renders a horizontal micro card instead of a chip —
@@ -552,22 +553,27 @@ Keep person identity displays on this chip; keep entity refs on
 
 ### `AgentActivity.vue`
 An agent run's visible work — the model's reasoning in per-round
-collapsible PrimeVue `Fieldset` disclosures and one status-iconed row
-per tool invocation, a failed tool's error rendered as a severity-error
-`Message` — rendered both for a live run and for the `agent`
-provenance persisted on a bot's reply; both sites start open, so the
-chronology stays visible with the answer (the collapsed state is the
-user's own toggling). The live run shows a spinner-only pending state
-before the first token. The answer is never rendered here: it is the
-message body at both sites.
+collapsible PrimeVue `Fieldset` disclosures (compact: supporting-size
+legend and tight insets through `pt`) and one boxed tool row per
+invocation (subtle inset, status-colored icon, technical-font tool
+name), a failed tool's error rendered as a severity-error `Message` —
+rendered both for a live run and for the `agent` provenance persisted
+on a bot's reply; both sites start open, so the chronology stays
+visible with the answer (the collapsed state is the user's own
+toggling). The live run shows a spinner-only pending state before the
+first token. The answer is never rendered here: it is the message body
+at both sites.
 
 ### `AiAvatar.vue`
-The AI identity face: the microchip PrimeIcon in the brand accent on a
-whisper accent tint with a hairline accent ring — one component for
-every surface that shows the assistant (chat inbox rows, thread
+The AI identity face: the microchip PrimeIcon in the brand accent on
+the subtle surface — the same shape as every other glyph avatar, and
+the only AI marker on chat surfaces (no text badges). One component
+for every surface that shows the assistant (chat inbox rows, thread
 headers, pickers, the bot panel) and for bot-marked users inside
 [`UserChip.vue`](#userchipvue). Sizing rides class fallthrough onto the
-underlying `Avatar`.
+underlying `Avatar`; chip-size sites shrink the glyph through
+`[&_.p-avatar-icon]:text-supporting` because Aura pins it at a fixed
+size.
 
 ### `ChatBotPanel.vue`
 The chat bot panel (`StandardDialog`): the organization AI's contact row
@@ -682,7 +688,9 @@ from their own chrome.
 
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while
-`{{instance:type:id}}` tokens render as inline `InstanceInlineRef` chips. The
+`{{instance:type:id}}` tokens render as inline `InstanceInlineRef` chips —
+boxed chips (`chip` prop: tone-var fill/outline), so refs in messages read
+as instance chips, not inline text. The
 component also renders structured `message.instanceRefs[]` entries that were not
 embedded as tokens, so structured attachments remain visible without polluting
 the text body. With the `markdown` prop (agent answers), text parts render
