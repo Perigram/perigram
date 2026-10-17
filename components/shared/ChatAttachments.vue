@@ -60,26 +60,20 @@
         class="min-w-0 max-w-full"
         @play="onMediaPlay($event, attachment)"
       />
-      <span v-if="documents.length" class="flex max-w-full min-w-0 flex-col gap-1">
-        <span
+      <span v-if="documents.length" class="flex max-w-full flex-wrap items-center gap-1" data-testid="chat-attachment-files">
+        <!-- The same chip anatomy instance refs use (raw PrimeVue Chip,
+             type icon, cropped name). A click opens the file in the app
+             when a viewer exists, else downloads. -->
+        <Chip
           v-for="attachment in documents"
           :key="attachment.fileId"
-          class="inline-flex max-w-full min-w-0 items-center gap-2 overflow-hidden rounded-ui bg-subtle px-2 py-1"
-        >
-          <i :class="fileIcon(attachment)" class="shrink-0 text-muted" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate text-supporting" :title="attachment.name || attachment.mimeType">{{ attachment.name || attachment.mimeType }}</span>
-          <small v-if="attachment.size" class="shrink-0 text-muted text-supporting">{{ formatBytes(attachment.size) }}</small>
-          <Button
-            icon="pi pi-download"
-            severity="secondary"
-            text
-            rounded
-            size="small"
-            class="shrink-0"
-            :aria-label="$t('support.download', { name: attachment.name || '' })"
-            @click="download(attachment)"
-          />
-        </span>
+          :label="attachment.name || attachment.mimeType"
+          :icon="fileIcon(attachment)"
+          :pt="chipPt"
+          class="min-w-0 max-w-full cursor-pointer"
+          :title="chipTitle(attachment)"
+          @click="openAttachment(attachment)"
+        />
       </span>
     </template>
   </span>
@@ -91,22 +85,46 @@
     @update:visible="value => { if (!value) previewAttachment = null }"
   >
     <template #header>
-      <span class="min-w-0 truncate text-label">{{ previewAttachment?.name || previewAttachment?.mimeType }}</span>
+      <div class="flex min-w-0 flex-1 items-center gap-2">
+        <span class="min-w-0 flex-1 truncate text-label">{{ previewAttachment?.name || previewAttachment?.mimeType }}</span>
+        <Button
+          icon="pi pi-download"
+          severity="secondary"
+          text
+          rounded
+          size="small"
+          class="shrink-0"
+          :aria-label="$t('support.download', { name: previewAttachment?.name || previewAttachment?.mimeType || '' })"
+          data-testid="chat-attachment-download"
+          @click="download(previewAttachment)"
+        />
+      </div>
     </template>
-    <div class="flex min-h-0 flex-1 items-center justify-center">
-      <img
-        v-if="previewAttachment"
-        class="max-h-full max-w-full object-contain"
+    <div v-if="previewAttachment" class="flex min-h-0 w-full flex-1 flex-col">
+      <div v-if="previewKind === 'image'" class="flex min-h-0 flex-1 items-center justify-center">
+        <img
+          class="max-h-full max-w-full object-contain"
+          :src="url(previewAttachment)"
+          :alt="previewAttachment.name || ''"
+        >
+      </div>
+      <iframe
+        v-else-if="previewKind === 'pdf'"
         :src="url(previewAttachment)"
-        :alt="previewAttachment.name || ''"
-      >
+        :title="previewAttachment.name || previewAttachment.mimeType"
+        class="min-h-0 w-full flex-1 border-0"
+      />
+      <div v-else class="min-h-0 flex-1 overflow-auto">
+        <pre class="m-0 whitespace-pre-wrap break-words rounded-ui bg-subtle p-3 text-technical [overflow-wrap:anywhere]">{{ previewText }}</pre>
+      </div>
     </div>
   </StandardDialog>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import Button from 'primevue/button';
+import Chip from 'primevue/chip';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { chatAttachmentUrl } from '~/utils/chat-file-targets.js';
@@ -122,10 +140,51 @@ const props = defineProps({
 const { t } = useI18n();
 const media = useMediaStore();
 
-// Full-dialog expansion for any rendered image (single or gallery tile):
-// the descriptor is held, not a precomputed URL, so the dialog serves the
-// same bucket-honoring URL as the inline render.
+// Full-dialog expansion for any previewable attachment (image tiles,
+// file chips): the descriptor is held, not a precomputed URL, so the
+// dialog serves the same bucket-honoring URL as the inline render.
 const previewAttachment = ref(null);
+
+// The in-app viewer set: images (their own tiles), PDFs (the browser's
+// native engine in an iframe), and plain text (fetched and rendered in
+// the technical voice). Everything else downloads directly.
+const isPdf = (attachment = {}) => String(attachment.mimeType || '').includes('pdf')
+  || /\.pdf$/i.test(attachment.name || '');
+const isText = (attachment = {}) => {
+  const mime = String(attachment.mimeType || '');
+  if (mime.startsWith('text/')) return true;
+  if (/json|xml|yaml|csv|markdown/i.test(mime)) return true;
+  return /\.(md|txt|csv|json|ya?ml|log)$/i.test(attachment.name || '');
+};
+const previewKind = computed(() => {
+  const attachment = previewAttachment.value;
+  if (!attachment) return '';
+  if (attachment.kind === 'image' || /\.(png|jpe?g|gif|webp|avif|svg)$/i.test(attachment.name || '')) return 'image';
+  if (isPdf(attachment)) return 'pdf';
+  return isText(attachment) ? 'text' : '';
+});
+
+const previewText = ref('');
+watch(previewAttachment, async (attachment) => {
+  previewText.value = '';
+  if (!attachment || previewKind.value !== 'text') return;
+  previewText.value = await $fetch(url(attachment), { responseType: 'text' }).catch(() => t('common.error'));
+}, { immediate: true });
+
+const openAttachment = (attachment) => {
+  if (attachment?.kind === 'image' || isPdf(attachment) || isText(attachment)) {
+    previewAttachment.value = attachment;
+    return;
+  }
+  download(attachment);
+};
+
+const chipPt = { label: { class: 'truncate' } };
+const chipTitle = (attachment = {}) => {
+  const name = attachment.name || attachment.mimeType || '';
+  const size = formatBytes(attachment.size);
+  return size ? `${name} · ${size}` : name;
+};
 
 // Now-playing handoff (components/media README): a media element that
 // starts playback claims the app's single-play channel; when this surface

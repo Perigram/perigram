@@ -1209,13 +1209,17 @@ everything stays inside the home framework. Entity threads show a children toggl
 composed subtree view and messages linked to the entity itself, and the
 composer of a composed view carries a lineage drill-down strip following the
 dynamic-breadcrumbs pattern: ONE strip whose drilled lineage leads as
-icon-only pills (no text; tapping one jumps back to that level), an angle
-marks the descent, and the siblings of the current level follow as chips.
+icon-only pills (no text; tapping one makes that level the trail's end
+and shows its children), an angle
+marks the descent, and the children of the current level follow as chips.
 ALL children of the current target load through the containment sources the
-sidebar uses; picking a child drills the strip into its own children (and
-the next message lands there). The composed entity itself is the target
+sidebar uses; picking a child ALWAYS drills — the chip becomes the trail's
+last pill, its siblings drop, and its children become the new level (a
+leaf simply shows no further chips), and the next message lands there.
+The composed entity itself is the target
 whenever no child is drilled, and exactly one target is always visibly
-selected — the root pill, the deepest lineage pill, or a drilled leaf chip. Replies quote their parent message above the bubble (sender
+selected — the root pill or the deepest trail pill; unnamed chips carry
+their localized type label, never an id. Replies quote their parent message above the bubble (sender
 name plus snippet or voice marker, without a leading border) and jump to the quoted message when
 loaded, loading earlier pages while staying scroll-anchored otherwise; they
 open through the message menu — right-click or long-press the message, or

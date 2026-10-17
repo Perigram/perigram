@@ -1,5 +1,72 @@
 # TODO
 
+## Composer lineage strip: always-drill mechanics, no id names (owner defect 2026-10-17)
+
+The instance target strip in the org chat composer had two defects:
+drilling collapsed into breadcrumbs only when the child opened another
+level (mixed states — a drilled leaf stayed a selected chip among its
+siblings), and unnamed chips fell back to raw instance ids. The strip
+now always drills — a picked chip becomes the trail's last pill, its
+siblings drop, its children load as the new level — and unnamed chips
+carry their localized type label (components README: chats composer).
+
+- [ ] WAITING — owner verification on the live stack: in the org chat
+  composer, picking a child chip descends every time (breadcrumb grows,
+  siblings drop, the child's children appear or the trail simply ends on
+  a leaf), tapping a breadcrumb shows that level's children, and no chip
+  ever renders a raw id.
+
+### Agent Notes (2026-10-17 — strip mechanics fixed)
+
+- `drillStripTo` always pushes the picked chip onto the trail and loads
+  its children — the "collapse only when it opens another level"
+  conditional (the source of the mixed leaf/sibling states) is gone;
+  `truncateStripTrail` and the root pill already matched the intended
+  mechanics.
+- Both child loaders (`loadStripChildren`, the message-path derivation)
+  stored the raw instance id as the chip name when the instance was
+  unnamed; they now store the empty name and the chip renders the
+  localized type label (the template's existing fallback), per the
+  no-technical-ids rule.
+
+## Attachment chips coherent with instance chips; files open in-app (owner direction 2026-10-17)
+
+Non-media attachments render as hand-rolled boxes while instance refs
+render raw PrimeVue chips — unify on the chip anatomy, and a file chip
+click opens the file inside the app when a viewer exists (image, PDF,
+plain text in the standard full dialog, download beside the preview);
+kinds without a viewer download directly (SPEC: Chat files).
+
+- [ ] WAITING — owner verification on the live stack: a sent PDF/text
+  file renders as a chip matching the instance-ref chips; clicking it
+  opens the in-app preview (with the download action in the header), and
+  binary kinds download directly.
+
+### Agent Notes (2026-10-17 — chips unified, in-app preview, org glyph)
+
+- `ChatAttachments.vue`: the hand-rolled document boxes are gone —
+  non-media attachments render as raw PrimeVue chips (file icon, cropped
+  name, size in the title) in a wrapping row, the same anatomy
+  `InstanceInlineRef` chips use. A chip click opens the file in the
+  standard full dialog when a viewer exists — images (as before), PDFs
+  (the browser's native engine in an iframe), plain text (fetched and
+  rendered in the technical voice) — with the download action moved into
+  the preview header; kinds without a viewer download directly. The
+  per-attachment download entries in the message menu are unchanged.
+- Organization glyph: the framework `organization` type declares
+  `glyph: 'pi pi-building'` — the registry is the single home, so the
+  org chat row, the folder chip, pickers, and inline refs all render the
+  building instead of the generic circle fallback; group chats already
+  carry `pi pi-users` on every surface (rows, header, pickers, menus).
+- Defects reconciled in passing: SPEC §Chat files still stated the
+  retired message left-click popup (removed alongside this change), and
+  the domain-projection spec pins missed the user wire rows from the
+  previous task (`bot`, `avatarUrl`).
+- Validation: chat-content smoke (new attachment-chip case), cts +
+  domain-projection + party-wire + app-registry specs, SSR smokes,
+  design-system, framework-packages, check-arch, framework:validate,
+  docs:validate — pass.
+
 ## User wire rows + drop the message click popup (owner direction 2026-10-17)
 
 Sender chips in group/instance threads render "User" for everyone (the

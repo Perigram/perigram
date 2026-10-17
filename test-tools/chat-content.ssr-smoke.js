@@ -14,6 +14,7 @@ import PrimeVue from 'primevue/config';
 import Re_L from '~/assets/presets/re_l';
 import enLocale from '~/i18n/locales/en.json';
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue';
+import ChatAttachments from '~/components/shared/ChatAttachments.vue';
 import ChatInstanceRefs from '~/components/shared/ChatInstanceRefs.vue';
 import AgentActivity from '~/components/shared/AgentActivity.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
@@ -87,6 +88,30 @@ describe('chat content SSR smoke', () => {
     });
     expect(summary).toContain('Cassette One');
     expect(summary).toContain('+1');
+  });
+
+  it('renders file attachments as the same chip anatomy, gallery and summary beside', async () => {
+    const attachments = [
+      { kind: 'file', fileId: 'f1', mimeType: 'application/pdf', name: 'report.pdf', size: 120034 },
+      { kind: 'file', fileId: 'f2', mimeType: 'application/octet-stream', name: 'cut.dxf', size: 4096 },
+      { kind: 'image', fileId: 'f3', mimeType: 'image/png', name: 'site.png' }
+    ];
+    // Documents render one raw PrimeVue chip each — the instance-ref
+    // anatomy — in a wrapping row; no inline download chrome (the chip
+    // click owns open-or-download), images keep their gallery path.
+    const row = await boot({
+      setup: () => () => h(ChatAttachments, { attachments })
+    });
+    expect(row).toContain('data-testid="chat-attachment-files"');
+    expect(row.match(/p-chip-label/g)?.length).toBe(2);
+    expect(row).toContain('>report.pdf<');
+    expect(row).toContain('>cut.dxf<');
+    expect(row).not.toContain('pi-download');
+
+    const summary = await boot({
+      setup: () => () => h(ChatAttachments, { attachments, singleLine: true })
+    });
+    expect(summary).toContain('data-testid="chat-attachment-summary"');
   });
 
   it('renders the agent chronology, thinking disclosure, and typed tool messages', async () => {

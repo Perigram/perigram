@@ -105,7 +105,7 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     expect(byType.get('user')).toMatchObject({ party: true, meta: true, collection: null, blocks: ['fields'] });
     expect(byType.get('organization')).toMatchObject({ party: true, meta: true, collection: null });
     const paths = projected.fieldSchemas.user.map(schema => schema.path);
-    expect(paths).toEqual(['_id', 'type', 'typeVersion', 'name', 'fields.email', 'fields.name', 'fields.roles']);
+    expect(paths).toEqual(['_id', 'type', 'typeVersion', 'name', 'fields.email', 'fields.name', 'fields.roles', 'fields.bot', 'fields.avatarUrl']);
     for (const schema of projected.fieldSchemas.user) {
       expect(schema.writable).toBe(false);
       expect(schema.constructible).toBe(false);
