@@ -538,6 +538,8 @@
                     "commandLine": "Командная строка",
                     "basis": "База"
                 },
+                "kind": "Тип",
+                "process": "Техпроцесс",
                 "filletRadius": "Радиус скругления",
                 "addParameter": "Добавить параметр",
                 "parameterName": "Имя параметра",

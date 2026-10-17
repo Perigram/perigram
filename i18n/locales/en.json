@@ -538,6 +538,8 @@
                     "commandLine": "Command line",
                     "basis": "Basis"
                 },
+                "kind": "Kind",
+                "process": "Process",
                 "filletRadius": "Fillet radius",
                 "addParameter": "Add parameter",
                 "parameterName": "Parameter name",
