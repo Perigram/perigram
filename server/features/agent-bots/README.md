@@ -160,12 +160,7 @@ Three pieces share one tool catalog:
   (`POST /api/agent-bots/stop` with the conversation key): the room's
   composer control aborts the request, the loop keeps the answer
   produced so far and persists it, and a stopped wake stays silent like
-  a failing one. A stop landing mid-tool-batch drops the remaining
-  calls (each answers the model with a readable stopped result instead
-  of executing), `web_search` carries the run's stop signal onto its
-  provider request, and the client freezes bot events between the click
-  and the run's true end so the aborting run's last reconcile events
-  cannot resurrect the stream card. In-flight runs are keyed by the SUBSCRIBED room and
+  a failing one. In-flight runs are keyed by the SUBSCRIBED room and
   hold their cancellation handle plus every key the stop may arrive
   from (the room's or any view the trigger fans out to), so the stop
   reaches exactly the room's run — and one run occupies a room at a

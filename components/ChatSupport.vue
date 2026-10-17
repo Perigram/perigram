@@ -1684,17 +1684,11 @@ const receiveAgentActivity = (payload, mutate) => {
 // The composer's stop control: a run live in this room can be ended early;
 // the answer produced so far is what stays.
 const agentRunLive = computed(() => Boolean(agentActivity.value || agentQuestion.value))
-// Between the stop click and the run's true end, the aborting run's last
-// reconcile events would resurrect the stream card — once the room says
-// stop, bot events are ignored until the run ends (stream end or the
-// persisted message).
-const agentStopping = ref(false)
 const stopAgentRun = async () => {
     const key = activeConversation.value?.conversationKey
     if (!key) return
     agentActivity.value = null
     agentQuestion.value = null
-    agentStopping.value = true
     await $fetch('/api/agent-bots/stop', { method: 'POST', body: { conversationKey: key } }).catch(() => {})
 }
 let typingResetTimer = null
@@ -3341,7 +3335,6 @@ watch(
         agentActivity.value = null
         mentionState.value = null
         agentQuestion.value = null
-        agentStopping.value = false
         if (unsubscribeConversation) {
             unsubscribeConversation()
             unsubscribeConversation = null
@@ -3353,25 +3346,19 @@ watch(
                 return
             }
             if (payload?.type === 'bot_activity') {
-                if (!agentStopping.value) {
-                    receiveAgentActivity(payload, activity => {
-                        activity.steps = Array.isArray(payload.steps) ? payload.steps : []
-                    })
-                }
+                receiveAgentActivity(payload, activity => {
+                    activity.steps = Array.isArray(payload.steps) ? payload.steps : []
+                })
                 return
             }
             if (payload?.type === 'bot_stream') {
-                if (!agentStopping.value) {
-                    receiveAgentActivity(payload, activity => { activity.answer = payload.text || '' })
-                }
+                receiveAgentActivity(payload, activity => { activity.answer = payload.text || '' })
                 return
             }
             if (payload?.type === 'bot_question') {
-                if (!agentStopping.value) {
-                    agentQuestion.value = {
-                        question: String(payload.question || ''),
-                        options: Array.isArray(payload.options) ? payload.options.map(String) : []
-                    }
+                agentQuestion.value = {
+                    question: String(payload.question || ''),
+                    options: Array.isArray(payload.options) ? payload.options.map(String) : []
                 }
                 return
             }
@@ -3382,7 +3369,6 @@ watch(
             if (payload?.type === 'bot_stream_end') {
                 agentActivity.value = null
                 agentQuestion.value = null
-                agentStopping.value = false
                 return
             }
             // Ringing arrives only through the calls store's `call.invite`
@@ -3391,7 +3377,6 @@ watch(
             // The persisted message supersedes the live run.
             agentActivity.value = null
             agentQuestion.value = null
-            agentStopping.value = false
             messages.value.push(payload.message)
             supportChatStore.markRead(key)
             nextTick().then(scrollToBottom)

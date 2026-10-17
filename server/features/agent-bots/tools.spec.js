@@ -191,12 +191,7 @@ describe('definition tool authoring surface', () => {
     });
 
     it('composes definitions through the headless seam with the caller\'s auth', async () => {
-        mockedProcessDefinitions.composeDefinition.mockResolvedValueOnce({
-            _id: 'process-new',
-            identity: { uid: 'process-new', name: 'Composed' },
-            status: { state: { primary: 'DRAFT' } },
-            data: { graph: { nodes: [], edges: [] }, processNodes: {}, ctsTypes: {}, valueInputs: {} }
-        });
+        mockedProcessDefinitions.composeDefinition.mockResolvedValueOnce({ _id: 'process-new', states: { main: 'DRAFT' } });
         const result = await executeTool('compose_process_definition', {
             name: 'Composed',
             steps: [
@@ -211,20 +206,11 @@ describe('definition tool authoring surface', () => {
                 { op: 'drop', item: 'construct', id: 'node_b' }
             ]
         }, AUTH);
-        // The save answers with the digest, never the whole document.
-        expect(result.id).toBe('process-new');
-        expect(result.name).toBe('Composed');
-        expect(result.status).toBe('DRAFT');
-        expect(result.nodes).toEqual([]);
+        expect(result._id).toBe('process-new');
     });
 
     it('edits an existing definition through gestures with the caller\'s auth', async () => {
-        mockedProcessDefinitions.editDefinition.mockResolvedValueOnce({
-            _id: 'd1',
-            identity: { uid: 'd1', name: 'Edited' },
-            status: { state: { primary: 'DRAFT' } },
-            data: { graph: { nodes: [], edges: [] }, processNodes: {}, ctsTypes: {}, valueInputs: {} }
-        });
+        mockedProcessDefinitions.editDefinition.mockResolvedValueOnce({ _id: 'd1', states: { main: 'DRAFT' } });
         const result = await executeTool('edit_process_definition', {
             definitionId: 'd1',
             steps: [
@@ -239,9 +225,7 @@ describe('definition tool authoring surface', () => {
                 { op: 'configure', id: 'node_c', values: { typeId: 'cassette' } }
             ]
         }, AUTH);
-        // The save answers with the digest, never the whole document.
-        expect(result.id).toBe('d1');
-        expect(result.name).toBe('Edited');
+        expect(result._id).toBe('d1');
         expect((await mcpToolDescriptors()).map(tool => tool.name)).toContain('edit_process_definition');
     });
 

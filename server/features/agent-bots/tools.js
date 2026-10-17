@@ -249,13 +249,12 @@ export const TOOL_SPECS = [
             if (!args.graph || typeof args.graph !== 'object') {
                 throw createError({ statusCode: 400, message: 'graph must be an object' });
             }
-            // The digest, never the saved document (see compose).
-            return definitionDigest(await saveAuthoring(requireString(args.definitionId, 'definitionId'), {
+            return await saveAuthoring(requireString(args.definitionId, 'definitionId'), {
                 data: {
                     graph: args.graph,
                     ...(args.valueInputs && typeof args.valueInputs === 'object' ? { valueInputs: args.valueInputs } : {})
                 }
-            }, auth));
+            }, auth);
         }
     },
     {
@@ -373,13 +372,10 @@ export const TOOL_SPECS = [
             additionalProperties: false
         },
         execute: async (args, auth) => {
-            // The digest, never the saved document: whole-document echoes
-            // (megabytes on real definitions) blind small contexts and
-            // drown the transcript (live defect 2026-10-17).
-            return definitionDigest(await processDefinitionsService.composeDefinition(
+            return await processDefinitionsService.composeDefinition(
                 { name: requireString(args.name, 'name'), steps: Array.isArray(args.steps) ? args.steps : [] },
                 auth
-            ));
+            );
         }
     },
     {
@@ -420,11 +416,10 @@ export const TOOL_SPECS = [
             additionalProperties: false
         },
         execute: async (args, auth) => {
-            // The digest, never the saved document (see compose).
-            return definitionDigest(await processDefinitionsService.editDefinition(
+            return await processDefinitionsService.editDefinition(
                 { definitionId: requireString(args.definitionId, 'definitionId'), steps: Array.isArray(args.steps) ? args.steps : [] },
                 auth
-            ));
+            );
         }
     },
     {
@@ -645,12 +640,11 @@ export const TOOL_SPECS = [
             required: ['query'],
             additionalProperties: false
         },
-        execute: async (args, auth, run) => {
+        execute: async (args, auth) => {
             return await webSearchService.webSearch({
                 organizationId: auth.organizationId,
                 query: requireString(args.query, 'query'),
-                maxResults: args.maxResults,
-                ...(run?.signal ? { signal: run.signal } : {})
+                maxResults: args.maxResults
             });
         }
     },

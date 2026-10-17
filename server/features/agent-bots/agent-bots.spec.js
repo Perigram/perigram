@@ -382,7 +382,7 @@ describe('runAssistantReply', () => {
             .mockResolvedValueOnce({ content: 'done', toolCalls: [] });
         mockedTools.executeTool.mockResolvedValue({ types: [] });
         await runAssistantReply(target, context, message);
-        expect(mockedTools.executeTool).toHaveBeenCalledWith('list_types', { x: 1 }, humanAuth, { conversationKey: context.conversationKey, ask: expect.any(Function), signal: expect.any(AbortSignal), instanceRefs: [] });
+        expect(mockedTools.executeTool).toHaveBeenCalledWith('list_types', { x: 1 }, humanAuth, { conversationKey: context.conversationKey, ask: expect.any(Function), instanceRefs: [] });
         const toolMessage = mockedLlm.chatCompletion.mock.calls[1][0].messages.find((entry) => entry.role === 'tool');
         expect(toolMessage.toolCallId).toBe('call-1');
         expect(toolMessage.name).toBe('list_types');
@@ -859,43 +859,5 @@ describe('identical-call loop protection', () => {
         expect(sent.message).toBe('recovered');
         // The blocked step rides the chronology as a marked failure.
         expect(sent.agent.steps.some(step => step.kind === 'tool' && step.status === 'error' && /failed twice/.test(step.error))).toBe(true);
-    });
-});
-
-describe('stop between tool calls', () => {
-    const context = { kind: 'direct', conversationKey: `direct:${HUMAN}:${ASSISTANT}`, participants: [HUMAN, ASSISTANT] };
-    const message = { sender: 'user', senderUserId: HUMAN, participants: [HUMAN, ASSISTANT], conversationKey: context.conversationKey };
-    const target = { assistantId: ASSISTANT, roomKey: context.conversationKey, profile: '', model: '', organizationId: '' };
-
-    it('a stop landing mid-batch drops the remaining calls and stays silent', async () => {
-        mockedLlm.chatCompletion.mockResolvedValueOnce({
-            content: '',
-            toolCalls: [
-                { id: 't1', name: 'web_search', arguments: { query: 'a' } },
-                { id: 't2', name: 'web_search', arguments: { query: 'b' } }
-            ]
-        });
-        // An abort-aware stream, like the real provider fetch: the aborted
-        // round's request rejects instead of answering.
-        mockedLlm.streamChatCompletion.mockReset();
-        mockedLlm.streamChatCompletion.mockImplementation(async function* (args) {
-            const message = await mockedLlm.chatCompletion(args);
-            if (args?.signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
-            yield { type: 'message', content: message?.content || '', thinking: '', toolCalls: message?.toolCalls || [] };
-        });
-        // The first tool resolves while the room's stop lands (the real
-        // stop path) — the second call must never execute.
-        mockedTools.executeTool.mockImplementation(async () => {
-            stopConversationRuns('org-1', context.conversationKey);
-            return {};
-        });
-        await runAssistantReply(target, context, message);
-        expect(mockedTools.executeTool).toHaveBeenCalledTimes(1);
-        expect(mockedSupport.sendUserMessage).not.toHaveBeenCalled();
-        // The dropped call rides the conversation as a readable stop result.
-        const dropped = mockedLlm.chatCompletion.mock.calls[0][0].messages
-            .filter(entry => entry.role === 'tool' && entry.toolCallId === 't2');
-        expect(dropped).toHaveLength(0 + 1);
-        expect(JSON.parse(dropped[0].content).error).toMatch(/stopped before this call executed/);
     });
 });
