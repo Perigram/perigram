@@ -20,7 +20,7 @@ import { useOutboxStore } from './outbox';
 
 // Types whose mutations still own feature routes (party administration,
 // editor feature endpoints); every other type mutates through the generic
-// instance transport (POST/PATCH/DELETE /api/instances/:type(/:id)).
+// instance transport (POST/PATCH /api/instances/:type(/:id)).
 const MUTATION_ROUTES = {
   organization: '/api/organizations',
   user: '/api/users',

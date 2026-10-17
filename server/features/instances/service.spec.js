@@ -262,6 +262,29 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(dto.organizationId).toBe('org-1');
     expect(dto.lineage).toEqual({ projectId: 'p-1' });
   });
+
+  it('createForHttp stores the §3 draft under the access gate and refuses without a grant', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('label'); // item class
+
+    const dto = await service.createForHttp(
+      { name: 'Hanger 40x20', fields: { code: 'H40', note: 'n' } },
+      { auth: { userId: 'user-1', organizationId: 'org-1' }, organizationId: 'org-1' }
+    );
+
+    const stored = coll.insertOne.mock.calls[0][0];
+    expect(stored.organizationId).toBe('org-1');
+    expect(stored.name).toBe('Hanger 40x20');
+    expect(stored.fields).toEqual({ code: 'H40', note: 'n' });
+    expect(dto.name).toBe('Hanger 40x20');
+
+    const { hasInstanceAccess } = await import('../../core/access/service.js');
+    hasInstanceAccess.mockReturnValueOnce(false);
+    await expect(service.createForHttp(
+      { name: 'Nope', fields: {} },
+      { auth: {}, organizationId: 'org-1' }
+    )).rejects.toMatchObject({ statusCode: 403 });
+  });
 });
 
 describe('generic instance list filters (compiled screen source contract)', () => {

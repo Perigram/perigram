@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassettes, cassette designs, sheet designs, and the nesting solver as an installable plugin with an external executor",
-  "version": "6",
+  "version": "7",
   "requires": [
     "tech-drawing",
     "documents"
@@ -309,6 +309,30 @@
         },
         "name": "Sheet design",
         "glyph": "ck-entity-icon ck-entity-icon-sheet-design"
+      },
+      {
+        "id": "profile",
+        "class": "item",
+        "scope": "system",
+        "version": 1,
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          },
+          "kind": {
+            "base": "string"
+          },
+          "process": {
+            "base": "string"
+          },
+          "sketch": {
+            "base": "json",
+            "constructible": false
+          }
+        },
+        "name": "Profile",
+        "glyph": "ck-entity-icon ck-entity-icon-workpiece"
       }
     ],
     "services": [

@@ -425,6 +425,23 @@ function instanceService(typeId) {
       return updated;
     },
 
+    // HTTP create transport (`POST /api/instances/:type`): the create
+    // half of the same wire — the §3 draft createValidated stores (name
+    // rename channel, flat fields, lineage edges, payload traits),
+    // gated through the shared access engine on the class-collection
+    // feature exactly like patch: a write requires a compiled grant,
+    // fail-closed. The construct boundary keeps its own `create` with
+    // execution auth; this serves the records host capability
+    // (contract-2 surfaces composing other types' records).
+    async createForHttp(draft = {}, { auth = null, organizationId = null } = {}) {
+      const declaration = await requireDeclaration(typeId, organizationId || draft?.organizationId);
+      const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
+      if (!hasInstanceAccess({ entity: null, typeId, feature, level: 'write', auth })) {
+        throw createError({ statusCode: 403, message: 'Permission denied' });
+      }
+      return await createValidated(draft, declaration, auth?.userId || null, organizationId);
+    },
+
     async remove(id) {
       const declaration = await declarationFor(typeId, null);
       const collection = repository.collectionForClass(declaration?.class);

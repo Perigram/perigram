@@ -117,11 +117,11 @@ function snapshotHistory({ snapshot, apply, limit = 50 } = {}) {
   };
 }
 
-export default function createSurface({ vue, components, locale, queries, notify, access }) {
+export default function createSurface({ vue, components, locale, queries, records, notify, access }) {
   const { h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent } = vue;
   const t = locale.t;
 
-  if (!queries || !notify || !access) {
+  if (!queries || !records || !notify || !access) {
     throw new Error('cassette-designer requires the contract-2 mount context');
   }
 
@@ -266,6 +266,7 @@ export default function createSurface({ vue, components, locale, queries, notify
         name: '',
         ...createDefaultOccsProfileTemplateData()
       });
+      const profileLibraryRecords = ref([]);
       const templateRecords = ref([]);
       const loadedDocument = ref(null);
 
@@ -1367,11 +1368,69 @@ export default function createSurface({ vue, components, locale, queries, notify
           };
         }
         profileDialogVisible.value = true;
+        loadProfileLibrary();
+      };
+
+      // The profile library: `profile` records of the plugin's own type,
+      // authored only from this dialog. Save to library writes the
+      // authored truth (kind, process, prepared sketch) through the
+      // records host capability; picking one copies it into the draft —
+      // a snapshot copy, never a live reference, so the cassette
+      // document stays self-contained.
+      const loadProfileLibrary = async () => {
+        try {
+          const items = await queries.list('profile');
+          profileLibraryRecords.value = Array.isArray(items) ? items : [];
+        } catch {
+          profileLibraryRecords.value = [];
+        }
+      };
+
+      const applyProfileLibraryRecord = (record) => {
+        if (!record) return;
+        const sketch = normalizeOccsProfileSketch(
+          record?.fields?.sketch || createEmptyOccsProfileSketch(),
+          {}
+        );
+        profileDraft.value = {
+          name: record.name || t('cassette.v2.profileEditor.defaultName'),
+          kind: record?.fields?.kind || 'hanger',
+          process: record?.fields?.process || 'extruded',
+          parameters: { ...(sketch.parameters || {}) },
+          sketch,
+          occsProfile: null
+        };
+      };
+
+      const saveProfileDraftToLibrary = async () => {
+        if (!profileDraftReady.value) {
+          notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
+          return;
+        }
+        const payload = profileDraftPayload();
+        try {
+          const created = await records.create('profile', {
+            name: payload.name,
+            fields: {
+              kind: payload.kind,
+              process: payload.process,
+              sketch: payload.sketch
+            }
+          });
+          if (created) profileLibraryRecords.value = [created, ...profileLibraryRecords.value];
+          notify({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.savedToLibrary'), life: 2500 });
+        } catch (error) {
+          if (error?.name === 'OfflineQueuedError') {
+            notify({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+            return;
+          }
+          notify({ severity: 'error', summary: t('common.error'), detail: t('cassette.v2.profileEditor.librarySaveFailed'), life: 4000 });
+        }
       };
 
       // Profiles persist as tree workpieces (the workpiece's
       // profileSnapshot is the renderer's geometry source) and ride the
-      // cassette template's own save — no records of any other type.
+      // cassette template's own save.
       const saveProfileDraft = () => {
         if (!profileDraftReady.value) {
           notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
@@ -2408,6 +2467,15 @@ export default function createSurface({ vue, components, locale, queries, notify
                 'onUpdate:modelValue': value => { profileDraft.value.process = value; }
               })
             ]),
+            h(Select, {
+              modelValue: null,
+              options: profileLibraryRecords.value,
+              optionLabel: 'name',
+              placeholder: t('cassette.v2.profileEditor.library'),
+              appendTo: 'self',
+              class: 'w-full',
+              'onUpdate:modelValue': value => { applyProfileLibraryRecord(value); }
+            }),
             h(ProfileSketchEditor, {
               modelValue: profileDraft.value.sketch,
               externalParameters: globalParameters.value,
@@ -2415,14 +2483,24 @@ export default function createSurface({ vue, components, locale, queries, notify
               onProfile: value => { profileDraft.value.occsProfile = value; }
             })
           ]),
-          footer: () => h('div', { class: 'flex w-full flex-wrap justify-between gap-2' }, [
-            h(Button, {
-              label: t('common.save'),
-              icon: 'pi pi-save',
-              size: 'small',
-              disabled: !profileDraftReady.value,
-              onClick: saveProfileDraft
-            }),
+          footer: () => h('div', { class: 'flex w-full flex-wrap items-center justify-between gap-2' }, [
+            h('div', { class: 'flex flex-wrap gap-2' }, [
+              h(Button, {
+                label: t('common.save'),
+                icon: 'pi pi-save',
+                size: 'small',
+                disabled: !profileDraftReady.value,
+                onClick: saveProfileDraft
+              }),
+              h(Button, {
+                label: t('cassette.v2.profileEditor.saveToLibrary'),
+                icon: 'pi pi-bookmark',
+                severity: 'secondary',
+                size: 'small',
+                disabled: !profileDraftReady.value,
+                onClick: saveProfileDraftToLibrary
+              })
+            ]),
             h(Button, {
               label: t('common.cancel'),
               severity: 'secondary',
