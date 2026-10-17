@@ -778,66 +778,6 @@
     },
     {
       "blocks": [
-        "fields",
-        "lineage",
-        "relations"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "pen-template"
-    },
-    {
-      "blocks": [
-        "fields",
-        "lineage",
-        "relations"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "layer-standard"
-    },
-    {
-      "blocks": [
-        "fields",
-        "lineage",
-        "relations"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "color"
-    },
-    {
-      "blocks": [
-        "fields",
-        "lineage",
-        "relations"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "dxf-source"
-    },
-    {
-      "blocks": [
-        "fields",
-        "lineage",
-        "relations"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "svg-file"
-    },
-    {
-      "blocks": [
-        "fields",
-        "lineage",
-        "relations"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "sketch"
-    },
-    {
-      "blocks": [
         "fields"
       ],
       "collection": null,
@@ -941,36 +881,6 @@
       "list": null,
       "single": null,
       "type": "docx-document"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "pen-template"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "layer-standard"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "color"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "dxf-source"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "svg-file"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "sketch"
     },
     {
       "list": null,

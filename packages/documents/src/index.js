@@ -1,8 +1,8 @@
 // The documents pack's declaration data (SPEC §21): browser-safe, no
 // server imports. The generic media/office file types — the
 // payload-trait replacements for the artifact kind registry's common
-// kinds. Drawing/CAD formats (DXF, SVG) live in @perigram/tech-drawing.
-// Mounting is by composition in server/packs/declarations.js.
+// kinds. Drawing/CAD formats (DXF, SVG) live in the tech-drawing plugin's
+// listing. Mounting is by composition in server/packs/declarations.js.
 
 const MB = 1024 * 1024;
 

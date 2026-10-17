@@ -1,7 +1,9 @@
 import { getStroke } from 'perfect-freehand'
 
 /**
- * Sketch scene contract (the tech-drawing pack's `sketch` type).
+ * Sketch scene contract (the tech-drawing plugin's `sketch` type) — the
+ * host-side preview adapter copy; the plugin's editing copy lives in
+ * workers/tech-drawing/surfaces/lib/sketch.js over the same stored shape.
  *
  * A scene is plain JSON persisted as the instance payload:
  * `{ version: 1, background: { fileId, url } | null, strokes: Stroke[] }`

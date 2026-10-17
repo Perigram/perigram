@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 
-vi.mock('~/packages/tech-drawing/src/editors/SketchEditor.vue', () => ({ default: { name: 'SketchEditor' } }));
 vi.mock('~/packages/documents/src/editors/TextDocumentEditor.vue', () => ({ default: { name: 'TextDocumentEditor' } }));
 vi.mock('~/packages/documents/src/editors/CsvTableEditor.vue', () => ({ default: { name: 'CsvTableEditor' } }));
 
@@ -13,7 +12,6 @@ import {
   packEditorBindings,
   resolveFilePreview,
   resolveFileSurface,
-  sketchInstancePersistence,
   textInstancePersistence,
   validateEditorBindings
 } from './file-surfaces.js';
@@ -25,12 +23,14 @@ import {
 // registration until its own migration.
 const servedSurfaces = [
   { id: 'sheet-design-editor', url: 'http://127.0.0.1:8790/surfaces/sheet-design-editor.mjs', surfaceContract: 2 },
-  { id: 'cassette-designer', url: 'http://127.0.0.1:8790/surfaces/cassette-designer.mjs', surfaceContract: 2 }
+  { id: 'cassette-designer', url: 'http://127.0.0.1:8790/surfaces/cassette-designer.mjs', surfaceContract: 2 },
+  { id: 'sketch-editor', url: 'http://127.0.0.1:8792/surfaces/sketch-editor.mjs', surfaceContract: 3 }
 ];
 const servedEditors = [
   ...packEditorBindings,
   { type: 'cassette', surface: 'cassette-designer', modes: ['create', 'edit'] },
-  { type: 'sheet-design', surface: 'sheet-design-editor', modes: ['edit'] }
+  { type: 'sheet-design', surface: 'sheet-design-editor', modes: ['edit'] },
+  { type: 'sketch', surface: 'sketch-editor', modes: ['edit'] }
 ];
 
 describe('file surface registry', () => {
@@ -54,9 +54,9 @@ describe('file surface registry', () => {
 
   it('rejects two editor bindings for one type, naming both surfaces', () => {
     expect(() => validateEditorBindings([
-      { type: 'cassette', surface: 'sketch-editor', modes: ['edit'] },
+      { type: 'cassette', surface: 'csv-editor', modes: ['edit'] },
       { type: 'cassette', surface: 'text-editor', modes: ['edit'] }
-    ])).toThrow(/duplicate editor binding for type cassette: surfaces sketch-editor and text-editor/);
+    ])).toThrow(/duplicate editor binding for type cassette: surfaces csv-editor and text-editor/);
   });
 
   it('validates the real pack bindings against the registry', () => {
@@ -128,24 +128,6 @@ describe('file surface registry', () => {
     expect(props.persistence.extension).toBe('.md');
   });
 
-  it('binds the sketch editor with an instance-backed persistence contract', () => {
-    const surface = resolveFileSurface(packEditorBindings, 'sketch');
-    const { persistence } = surface.workspacePage.props(
-      { entity: { _id: 's-1', name: 'Marks', payload: { fileId: 'f-9' } } },
-      'sketch'
-    );
-    expect(persistence.title).toBe('Marks');
-    expect(persistence.origin).toBeUndefined();
-    expect(persistence.loadScene).toBeInstanceOf(Function);
-    expect(persistence.saveScene).toBeInstanceOf(Function);
-  });
-
-  it('builds the sketch persistence save against the instance payload route', async () => {
-    const persistence = sketchInstancePersistence({ _id: 's-1', name: 'Marks' }, 'sketch');
-    expect(persistence.title).toBe('Marks');
-    await expect(persistence.loadScene()).resolves.toBe('');
-  });
-
   it('projects the generic instance persistence for text and csv formats', async () => {
     const text = textInstancePersistence({ _id: 't-1' }, 'text-document', 'text');
     expect(text.title).toBe('');
@@ -191,9 +173,6 @@ describe('file surface registry', () => {
     expect(blank.saveText).toBeInstanceOf(Function);
     expect(blank.rename).toBeInstanceOf(Function);
 
-    const sketchBlank = sketchInstancePersistence(null, 'sketch');
-    expect(sketchBlank.title).toBe('');
-    await expect(sketchBlank.loadScene()).resolves.toBe('');
   });
 
   it('resolves served plugin surface declarations beside the local registry', () => {
@@ -219,8 +198,8 @@ describe('file surface registry', () => {
     const served = [
       { type: 'sketch', surface: 'sketch-editor', modes: ['edit'] }
     ];
-    expect(resolveFileSurface(served, 'sketch').modes).toEqual(['edit']);
-    expect(resolveFileSurface(served, 'sheet-design')).toBeNull();
+    expect(resolveFileSurface(served, 'sketch', servedSurfaces).modes).toEqual(['edit']);
+    expect(resolveFileSurface(served, 'sheet-design', servedSurfaces)).toBeNull();
   });
 
   it('falls back to the pack bindings without a fetched type view', () => {
@@ -228,15 +207,15 @@ describe('file surface registry', () => {
     // list cannot have been fetched: the always-mounted pack fallback
     // drives the defaulted derivations — and carries no facade bindings
     // (the installed plugin layer serves those).
-    expect(resolveFileSurface(undefined, 'sketch').surface).toBe('sketch-editor');
+    expect(resolveFileSurface(undefined, 'sketch')).toBeNull();
     expect(resolveFileSurface(undefined, 'cassette')).toBeNull();
-    expect(fileWorkspacePages().map(row => row.typeId)).toContain('sketch');
+    expect(fileWorkspacePages().map(row => row.typeId)).not.toContain('sketch');
     expect(new Map(fileEditorActions()).get('text-document')?.action).toBe('generic');
   });
 
   it('treats null editors as the active binding set', () => {
     // The editor action resolves its surface with no explicit list.
-    expect(resolveFileSurface(null, 'sketch')?.surface).toBe('sketch-editor');
+    expect(resolveFileSurface(null, 'sketch')).toBeNull();
     expect(resolveFileSurface(null, 'cassette')).toBeNull();
   });
 
@@ -244,7 +223,7 @@ describe('file surface registry', () => {
     expect(resolveFileSurface(packEditorBindings, 'queue')).toBeNull();
     expect(resolveFileSurface([{ type: 'x', surface: 'no-such-surface', modes: ['edit'] }], 'x')).toBeNull();
     expect(resolveFileSurface(packEditorBindings, '')).toBeNull();
-    expect(Object.keys(fileSurfaceRegistry)).toEqual(expect.arrayContaining(['sketch-editor', 'text-editor', 'csv-editor']));
+    expect(Object.keys(fileSurfaceRegistry)).toEqual(expect.arrayContaining(['text-editor', 'csv-editor']));
   });
 
   it('builds payload download URLs against the files bucket', () => {

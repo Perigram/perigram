@@ -14,7 +14,8 @@ import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, compileClientBundle, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
 import { facadeFileTypes } from '../test-tools/facade-plugin.js';
 import { DESIGN_SYSTEM_FIELD_GROUPS } from '../utils/design-system-contract.js';
-import { techDrawingTypes } from '../packages/tech-drawing/src/index.js';
+import techDrawingListing from '../workers/tech-drawing/listing.json';
+const techDrawingTypes = techDrawingListing.declarations.types;
 import {
   resolveInstanceDisplayContract,
   resolveInstanceDisplayFields,

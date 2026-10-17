@@ -125,6 +125,24 @@ services:
     command: node workers/facade/index.js
     restart: unless-stopped
 
+  # The tech-drawing plugin's executor (declarations-only plugin, no
+  # services): serves the sketch editor surface module and its vendored
+  # runtime dependencies as static GETs — the app's module proxy streams
+  # them to browsers same-origin.
+  tech-drawing-executor:
+    image: node:24-alpine
+    working_dir: /src
+    volumes:
+      - .:/src
+    environment:
+      - TECH_DRAWING_EXECUTOR_PORT=8792
+    ports:
+      - "8792:8792"
+    networks:
+      - perigram-network
+    command: node workers/tech-drawing/index.js
+    restart: unless-stopped
+
 networks:
   perigram-network:
     external: true

@@ -5,15 +5,14 @@
 // anywhere (including the browser-safe cts-types composition) without
 // pulling server feature graphs.
 //
-// `tech-drawing` has no service bindings: its types and system instances
-// are served entirely by the generic instance machinery, so appearing in
-// this list is its whole mount.
-import { techDrawingPack } from '#packages/tech-drawing/src/index.js';
+// The tech-drawing pack retired into the tech-drawing plugin (owner
+// decision 2026-10-17): its types install per organization from the
+// listing (workers/tech-drawing/listing.json), its editor ships as the
+// plugin's surface module, and nothing of it mounts here.
 import { documentsPack } from '#packages/documents/src/index.js';
 
 export const mountedPackDeclarations = [
-  documentsPack,
-  techDrawingPack
+  documentsPack
 ];
 
 // Registered pack services (SPEC §8/§21), composed in mount order: the

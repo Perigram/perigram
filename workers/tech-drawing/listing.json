@@ -1,0 +1,269 @@
+{
+  "pluginId": "tech-drawing",
+  "name": "Technical drawing",
+  "description": "Drawing reference types (pens, layer standards, colors), CAD exchange documents (DXF, SVG), and the sketch editor as an installable plugin",
+  "version": "1",
+  "requires": [],
+  "declarations": {
+    "types": [
+      {
+        "id": "pen-template",
+        "class": "file",
+        "scope": "system",
+        "name": "Pen template",
+        "glyph": "ck-file-type-icon ck-file-type-icon-pen-template",
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          },
+          "stroke": {
+            "base": "record",
+            "fields": {
+              "color": {
+                "base": "string",
+                "control": "ColorPicker",
+                "label": "penTemplate.color",
+                "display": "color"
+              },
+              "weight": {
+                "base": "quantity",
+                "unit": "mm",
+                "label": "penTemplate.weight",
+                "display": "dimension"
+              },
+              "pattern": {
+                "base": "enum",
+                "values": [
+                  "SOLID",
+                  "DASHED",
+                  "DOTTED"
+                ],
+                "label": "penTemplate.pattern",
+                "display": "text"
+              }
+            }
+          }
+        },
+        "edges": {
+          "relations": {
+            "palette": {
+              "types": [
+                "color"
+              ],
+              "onRemove": "detach"
+            }
+          }
+        }
+      },
+      {
+        "id": "layer-standard",
+        "class": "file",
+        "scope": "system",
+        "name": "Layer standard",
+        "glyph": "ck-file-type-icon ck-file-type-icon-layer-standard",
+        "fields": {
+          "code": {
+            "base": "string",
+            "identifier": true,
+            "label": "common.code",
+            "display": "code"
+          },
+          "name": {
+            "base": "string"
+          },
+          "category": {
+            "base": "string",
+            "label": "common.type",
+            "display": "text"
+          },
+          "group": {
+            "base": "string",
+            "nullable": true
+          },
+          "kind": {
+            "base": "string",
+            "nullable": true
+          },
+          "purpose": {
+            "base": "string",
+            "nullable": true
+          },
+          "description": {
+            "base": "string"
+          },
+          "production": {
+            "base": "boolean"
+          },
+          "allowedGeometry": {
+            "base": "list",
+            "itemType": {
+              "base": "string"
+            }
+          },
+          "aliases": {
+            "base": "list",
+            "itemType": {
+              "base": "string"
+            }
+          },
+          "parameters": {
+            "base": "list",
+            "itemType": {
+              "base": "string"
+            }
+          },
+          "parameterSchema": {
+            "base": "json"
+          },
+          "defaultExport": {
+            "base": "json"
+          },
+          "i18n": {
+            "base": "json"
+          },
+          "source": {
+            "base": "json"
+          }
+        },
+        "edges": {
+          "relations": {
+            "defaultPen": {
+              "types": [
+                "pen-template"
+              ],
+              "cardinality": "one",
+              "onRemove": "restrict"
+            }
+          }
+        }
+      },
+      {
+        "id": "color",
+        "class": "file",
+        "scope": "system",
+        "name": "Color",
+        "glyph": "ck-file-type-icon ck-file-type-icon-color",
+        "fields": {
+          "code": {
+            "base": "string",
+            "identifier": true,
+            "label": "common.code",
+            "display": "code"
+          },
+          "name": {
+            "base": "string"
+          },
+          "hex": {
+            "base": "string",
+            "control": "ColorPicker",
+            "label": "color.hexCode",
+            "display": "color"
+          }
+        }
+      },
+      {
+        "id": "dxf-source",
+        "class": "file",
+        "scope": "system",
+        "name": "DXF source",
+        "glyph": "ck-file-type-icon ck-file-type-icon-dxf-source",
+        "payload": {
+          "mime": [
+            "application/dxf",
+            "image/vnd.dxf"
+          ],
+          "accept": [
+            ".dxf",
+            "application/dxf",
+            "image/vnd.dxf"
+          ],
+          "maxSize": 52428800,
+          "preview": "dxf"
+        },
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          }
+        }
+      },
+      {
+        "id": "svg-file",
+        "class": "file",
+        "scope": "system",
+        "name": "SVG file",
+        "glyph": "ck-file-type-icon ck-file-type-icon-svg-file",
+        "payload": {
+          "mime": [
+            "image/svg+xml"
+          ],
+          "accept": [
+            ".svg",
+            "image/svg+xml"
+          ],
+          "maxSize": 10485760,
+          "preview": "svg"
+        },
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          }
+        }
+      },
+      {
+        "id": "sketch",
+        "class": "file",
+        "scope": "system",
+        "name": "Sketch",
+        "glyph": "ck-file-type-icon ck-file-type-icon-sketch",
+        "payload": {
+          "mime": [
+            "application/json"
+          ],
+          "accept": [
+            ".json",
+            "application/json"
+          ],
+          "maxSize": 26214400,
+          "preview": "sketch",
+          "creation": [
+            "editor"
+          ]
+        },
+        "revisions": "scene",
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          }
+        }
+      }
+    ],
+    "editors": [
+      {
+        "type": "sketch",
+        "surface": "sketch-editor",
+        "modes": [
+          "edit"
+        ]
+      }
+    ],
+    "surfaces": [
+      {
+        "id": "sketch-editor",
+        "module": "/surfaces/sketch-editor.mjs",
+        "surfaceContract": 3
+      }
+    ],
+    "dependencies": [
+      {
+        "name": "perfect-freehand",
+        "version": "1.2.3",
+        "module": "/assets/vendor/perfect-freehand.mjs",
+        "license": "MIT"
+      }
+    ]
+  }
+}
