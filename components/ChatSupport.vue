@@ -889,17 +889,19 @@
                         />
                     </div>
 
-                    <!-- Instance target strip: lineage drill-down over the
-                         current target's children. Icon-only breadcrumb
-                         pills walk back up, the chip row is the current
-                         level, and drilling always descends — a picked
-                         chip becomes the trail's last pill (its siblings
-                         drop) and its children load as the new level;
-                         exactly one target is visibly selected, the
-                         composed instance root or the deepest trail pill.
-                         Minimal pill elements from semantic tokens:
-                         segmented PrimeVue chrome fights the composer
-                         density. -->
+                    <!-- Instance target strip: level drill-down over the
+                         app's one instance tree. Icon-only breadcrumb
+                         pills walk back up; the chip row is the current
+                         level — at the org root the home screen's
+                         NON-EMPTY section types, inside a type that
+                         type's instances, inside an instance its lineage
+                         children (shared containment seam). Drilling
+                         always descends (a picked chip becomes the
+                         trail's last pill, its siblings drop); browsing
+                         types never moves the message target — the
+                         org/instance picked last stays it. Minimal pill
+                         elements from semantic tokens: segmented
+                         PrimeVue chrome fights the composer density. -->
                     <div
                         v-if="activeConversation.conversationKind === 'instance' && (stripChildren.length || stripTrail.length)"
                         class="flex flex-col gap-1"
@@ -2848,10 +2850,12 @@ const handleMessagesScroll = () => {
     if (container.scrollTop <= 60) loadOlderMessages()
 }
 
-// Instance target strip: picking a child drills into it (the next message
-// lands there); children derive from the app's one instance tree — the
-// home screen's sections at the org root, lineage children through the
-// shared containment seam below.
+// Instance target strip: level drill-down over the app's one instance
+// tree. The org root lists the home screen's section TYPES (only the
+// non-empty ones), a type level lists that type's instances, an instance
+// lists its lineage children through the shared containment seam.
+// Browsing types never moves the message target — only a picked
+// instance does.
 const effectiveContainment = useEffectiveContainment()
 const stripTrail = ref([])
 const stripChildrenByKey = ref(new Map())
@@ -2870,8 +2874,9 @@ const stripTargetKey = computed(() => {
 const stripRootSelected = computed(() => !stripTrail.value.length && !composerInstance.value)
 
 // A lineage pill is selected when it is the current composer target (the
-// deepest drilled level); drilled leaf chips compare the same way.
-const isTrailEntrySelected = (entry) => Boolean(composerInstance.value)
+// deepest drilled INSTANCE level); type pills are folders, never targets.
+const isTrailEntrySelected = (entry) => entry.kind !== 'type'
+    && Boolean(composerInstance.value)
     && composerInstance.value.type === entry.type
     && String(composerInstance.value.id) === String(entry.id)
 
@@ -2905,16 +2910,52 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
     stripLoadingKeys.value = new Set([...stripLoadingKeys.value, targetKey])
     try {
         const orgRoot = !stripTrail.value.length && activeConversation.value?.typeId === 'organization'
-        const sources = orgRoot
-            ? stripRootSources.value.map(source => ({
-                typeId: source.typeId,
-                filters: resolveSourceFilters(source, stripHomeScreen.value || {})
+        if (orgRoot) {
+            // Load every home-section list once: the root shows one pill
+            // per NON-EMPTY type, and each type's instances are stashed
+            // so the drill into the type needs no second fetch.
+            const stash = new Map()
+            const typePills = []
+            await Promise.all(stripRootSources.value.map(async source => {
+                let rows = []
+                try {
+                    rows = await instances.listInstances(
+                        instances.canonicalTypeKey(source.typeId),
+                        resolveSourceFilters(source, stripHomeScreen.value || {})
+                    )
+                } catch {
+                    rows = []
+                }
+                const items = (Array.isArray(rows) ? rows : [])
+                    .filter(instance => stripInstanceId(instance))
+                    .map(instance => ({
+                        key: `${source.typeId}:${stripInstanceId(instance)}`,
+                        kind: 'instance',
+                        type: source.typeId,
+                        id: stripInstanceId(instance),
+                        name: stripDisplayName(instance?.name, stripInstanceId(instance)),
+                        entity: instance
+                    }))
+                if (!items.length) return
+                stash.set(`type:${source.typeId}`, items)
+                typePills.push({
+                    key: `type:${source.typeId}`,
+                    kind: 'type',
+                    type: source.typeId,
+                    id: '',
+                    name: localizedTypeIdLabel(source.typeId),
+                    entity: null
+                })
             }))
-            : linkedExplorerChildSources({
-                linkedItems: [{ key: targetKey, type: targetType, entity: targetInstance }],
-                screens: authStore.screenManifest,
-                containment: effectiveContainment()
-            })
+            stripChildrenByKey.value = new Map([...stripChildrenByKey.value, ...stash])
+            stripChildrenByKey.value = new Map([...stripChildrenByKey.value, [targetKey, typePills]])
+            return
+        }
+        const sources = linkedExplorerChildSources({
+            linkedItems: [{ key: targetKey, type: targetType, entity: targetInstance }],
+            screens: authStore.screenManifest,
+            containment: effectiveContainment()
+        })
         const loaded = await Promise.all(sources.map(async source => {
             try {
                 const childInstances = await instances.listInstances(
@@ -2923,6 +2964,7 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
                 )
                 return (Array.isArray(childInstances) ? childInstances : []).map(instance => ({
                     key: `${source.typeId}:${stripInstanceId(instance)}`,
+                    kind: 'instance',
                     type: source.typeId,
                     id: stripInstanceId(instance),
                     name: stripDisplayName(instance?.name, stripInstanceId(instance)),
@@ -2968,19 +3010,25 @@ watch([activeConversationKey, () => activeConversation.value?.typeId, () => acti
     )
 }, { immediate: true })
 
-// Selection is exactly one target: key-based comparison so chips from any
-// source (loaded or path-derived) match reliably.
-const isChipSelected = (chip) => Boolean(composerInstance.value)
+// Selection is exactly one target and only instances can be it — type
+// pills are folders; key-based comparison so chips from any source match
+// reliably.
+const isChipSelected = (chip) => chip.kind !== 'type'
+    && Boolean(composerInstance.value)
     && composerInstance.value.type === chip.type
     && String(composerInstance.value.id) === String(chip.id ?? (chip.key || '').split(':').slice(1).join(':'))
 
 async function drillStripTo(chip) {
     if (replyTo.value) return
-    composerInstanceTouched = true
-    composerInstance.value = { type: chip.type, id: chip.id, name: chip.name }
-    // A child target only lands visibly in the composed subtree view; the
-    // own-messages filter would hide the sent message entirely.
-    if (!includeChildren.value) includeChildren.value = true
+    // Browsing a type never moves the message target — only a picked
+    // instance does.
+    if (chip.kind !== 'type') {
+        composerInstanceTouched = true
+        composerInstance.value = { type: chip.type, id: chip.id, name: chip.name }
+        // A child target only lands visibly in the composed subtree view; the
+        // own-messages filter would hide the sent message entirely.
+        if (!includeChildren.value) includeChildren.value = true
+    }
     // Drilling always descends: the chip becomes the trail's last pill
     // (siblings drop) and its children load as the new level — leaves
     // simply show no further chips.
@@ -2992,7 +3040,7 @@ function truncateStripTrail(index) {
     stripTrail.value = stripTrail.value.slice(0, index + 1)
     const deepest = stripTrail.value[stripTrail.value.length - 1] || null
     composerInstanceTouched = true
-    composerInstance.value = deepest
+    composerInstance.value = deepest && deepest.kind !== 'type'
         ? { type: deepest.type, id: deepest.id, name: deepest.name }
         : null
     // A child target only lands visibly in the composed subtree view; the
