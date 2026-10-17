@@ -1218,11 +1218,15 @@ the home screen's NON-EMPTY section types (one pill per type that has
 instances), a type level lists that type's instances, and an instance
 lists its lineage children through the shared containment seam
 (`linkedExplorerChildSources` + `useEffectiveContainment`) — stored
-message paths are never a child source. Drilling ALWAYS descends (the
-chip becomes the trail's last pill, its siblings drop, a leaf shows no
-further chips) and the next message lands on the picked instance;
-browsing TYPES never moves the target — the last picked instance (or the
-org itself) stays it.
+message paths are never a child source. Instance chips carry the
+identifier field's value (a legacy null identifier degrades to the
+unnamed placeholder, never the type label). Picking a chip with children
+descends — it becomes the trail's last pill, its siblings drop — while a
+LEAF stays selected in its row (the trail never dead-ends on an empty
+level), and the trail's last pill carries its label beside the icon
+(earlier crumbs stay icon-only); the next message lands on the picked
+instance, and browsing TYPES never moves the target — the last picked
+instance (or the org itself) stays it.
 The composed entity itself is the target
 whenever no child is drilled, and exactly one target is always visibly
 selected — the root pill or the deepest trail pill; unnamed chips carry
