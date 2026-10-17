@@ -1603,14 +1603,13 @@ const botPanelConversationKey = computed(() => {
     if (!conversation || !['group', 'instance'].includes(conversation.conversationKind)) return ''
     return conversation.conversationKey || ''
 })
-// Legacy direct threads from the created-bots era: the assistant is the
-// other participant and answers implicitly.
-const isBotDirectRow = (conversation) => conversation?.conversationKind === 'direct' && Boolean(conversation?.participant?.data?.bot)
+const isBotDirectRow = (conversation) => {
+    if (conversation?.conversationKind !== 'direct' || !agentBots.ai?.id) return false
+    return String(participantUserId(conversation)) === String(agentBots.ai.id)
+}
 const isDirectWithBot = computed(() => isBotDirectRow(activeConversation.value))
-// A 1:1 room with the AI — a fresh AI thread (a two-participant group
-// room whose other member is the assistant), a draft one, or a legacy
-// direct thread. It presents as a person chat: no group chrome (members
-// list, member count, sender stamps), nothing to call.
+// A 1:1 room with the assistant: a two-participant group, a draft, or a
+// direct thread.
 const isAiChatRow = (conversation) => {
     if (conversation?.conversationKind !== 'group') return false
     const assistantId = agentBots.ai?.id
@@ -1758,9 +1757,8 @@ const roomAI = computed(() => {
     if (['group', 'instance'].includes(conversation.conversationKind)) {
         return agentBots.ai.subscribed ? agentBots.ai : null;
     }
-    if (conversation.conversationKind === 'direct' && conversation.participant?.data?.bot) {
-        const participantId = participantUserId(conversation);
-        return String(agentBots.ai.id) === String(participantId) ? agentBots.ai : null;
+    if (conversation.conversationKind === 'direct') {
+        return String(agentBots.ai.id) === String(participantUserId(conversation)) ? agentBots.ai : null;
     }
     return null;
 });
@@ -4097,13 +4095,7 @@ const isOwnMessage = (chatMessage) => {
     return chatMessage.sender === 'user'
 }
 
-// Group and instance threads lead others' sender runs with the sender's
-// avatar and name (the shared user chip): group members and org-mates in
-// instance chats (the organization chat included) are multi-sender
-// threads — once per run, never for the viewer's own messages. AI-only
-// rooms are two-party (viewer + assistant), so the same chip leads the
-// assistant's runs there — every non-own message is the assistant's.
-// Human 1:1 chats never carry stamps.
+// AI-only rooms are two-party: every non-own message is the assistant's.
 const showSenderLabel = (messageItem) => ((['group', 'instance'].includes(activeConversation.value?.conversationKind)
     && !isAiOnlyRoom.value) || isAiOnlyRoom.value)
     && Boolean(messageItem?.senderUserId)
