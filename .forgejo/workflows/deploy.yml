@@ -62,23 +62,18 @@ jobs:
         # three plugins installed (idempotent — existing installs skip;
         # legacy service nodes rewrite where they persist). Installs write
         # directly: plain node, no Nuxt aliases.
-        # The seed/migrate scripts import the mongodb driver, and the app
-        # image is a slim runtime (no server/db, no full node_modules) —
-        # they run from the checkout beside a persistent node_modules
-        # volume (one npm install through the relay, cached thereafter).
+        # The seed/migrate scripts import the mongodb driver, the app
+        # image is a slim runtime, and the runner's workspace cannot be
+        # bind-mounted into sibling containers — the seed ships as its
+        # own image (deploy/seed.Dockerfile).
         run: |
-          docker volume create perigram-seed-node-modules >/dev/null
+          docker build --network=host -t perigram-seed:staging -f deploy/seed.Dockerfile .
           docker run --rm --network host \
-            -v "$PWD":/src -v perigram-seed-node-modules:/src/node_modules -w /src \
-            -e HTTP_PROXY=http://192.168.0.100:12334 \
-            -e HTTPS_PROXY=http://192.168.0.100:12334 \
-            -e NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.77.0.0/16 \
             -e NUXT_MONGODB_URI="mongodb://192.168.0.248:27017/cutkit?directConnection=true" \
             -e FACADE_EXECUTOR_URL=http://127.0.0.1:8790 \
             -e DOCUMENTS_EXECUTOR_URL=http://127.0.0.1:8791 \
             -e TECH_DRAWING_EXECUTOR_URL=http://127.0.0.1:8792 \
-            node:24-alpine sh -c "npm install --no-save --silent mongodb \
-              && node server/scripts/seed-plugin-catalog.js \
+            perigram-seed:staging sh -c "node server/scripts/seed-plugin-catalog.js \
               && node server/scripts/migrate-facade-pack-to-plugin.js \
               && node server/scripts/migrate-tech-drawing-pack-to-plugin.js \
               && node server/scripts/migrate-documents-pack-to-plugin.js"
