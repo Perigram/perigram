@@ -359,9 +359,10 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, co
     // Per-run side channel: chat-only tools accumulate state here that the
     // final reply consumes (instance refs the model attached mid-loop),
     // the run's conversation key scopes their reach (read_attachment
-    // reads only this room's attachments), and `ask` suspends the run on
-    // the room's next answer (ask_user).
-    const run = { conversationKey, instanceRefs: [], ...(ask ? { ask } : {}) };
+    // reads only this room's attachments), `ask` suspends the run on the
+    // room's next answer (ask_user), and `signal` lets long-running tools
+    // (web_search) cancel with the room's stop.
+    const run = { conversationKey, instanceRefs: [], signal, ...(ask ? { ask } : {}) };
     // The run's visible work as one chronology, persisted onto the reply as
     // provenance: per-round reasoning segments interleaved with tool
     // invocations in the order they happened. Empty reasoning segments
@@ -459,6 +460,22 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, co
                 continue;
             }
             let result;
+            // A stopped run stops between tool calls too: the room's stop
+            // must not wait out the rest of a tool batch (or the next
+            // model round). Remaining calls are dropped with a readable
+            // result; the aborted round then unwinds at streamedRound.
+            if (signal?.aborted) {
+                entry.status = 'error';
+                entry.error = 'stopped';
+                publish();
+                conversation.push({
+                    role: 'tool',
+                    toolCallId: call.id,
+                    name: call.name,
+                    content: JSON.stringify({ error: 'The run was stopped before this call executed.' })
+                });
+                continue;
+            }
             try {
                 result = await executeTool(call.name, call.arguments, execAuth, run);
                 entry.status = 'done';

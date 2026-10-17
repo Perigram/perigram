@@ -149,3 +149,16 @@ describe('settings and test', () => {
         expect(failed.reason).toBeTruthy();
     });
 });
+
+describe('stop cancellation', () => {
+    it('forwards the caller\'s stop signal to the provider request', async () => {
+        mockedOrganizations.getById.mockResolvedValue(orgWithSetting({ provider: 'tavily', apiKey: 'tv-1' }));
+        const controller = new AbortController();
+        fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ results: [] }) });
+        await webSearch.webSearch({ organizationId: 'org-1', query: 'q', signal: controller.signal });
+        const requestSignal = fetchMock.mock.calls[0][1].signal;
+        expect(requestSignal.aborted).toBe(false);
+        controller.abort();
+        expect(requestSignal.aborted).toBe(true);
+    });
+});

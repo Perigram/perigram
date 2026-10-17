@@ -1,5 +1,42 @@
 # TODO
 
+## Stop control, tool echoes, and the port-wall diagnosis (owner defect 2026-10-17)
+
+"The stop button doesn't work" decomposed into two real mechanisms:
+tool calls were abort-blind (a stop waited out the in-flight tool batch
+and the next model round), and the client resurrected the stream card
+from the aborting run's last reconcile events after the click. The same
+live sessions also drowned in whole-document echoes — edit/compose/
+update_definition_graph returned the full saved definition (hundreds of
+KB) on every call. A third defect (fields declared in the stored
+definition still refused as ports — `Unknown port nodeUpdate:fields.*`)
+is under diagnosis: the draft-overlay re-seat works for gesture-clean
+declarations (pinned by specs) but the live definition's declaration is
+being silently stubbed as invalid somewhere in the overlay, leaving the
+stale applied field set winning — the silence is the slop.
+
+- [ ] WAITING — owner verification on the live stack: the stop control
+  ends a run within one in-flight tool call (remaining batch calls
+  dropped, nothing resurrects after the click), and edit/compose answer
+  with the compact digest instead of flooding the transcript with the
+  whole document.
+
+### Agent Notes (2026-10-17 — stop + echo shipped)
+
+- Runtime: the tool loop checks the abort before every call — a stop
+  mid-batch drops the rest (each answers the model with a readable
+  stopped result); the run side-channel carries the stop signal and
+  `web_search` forwards it onto the provider request beside its idle
+  timeout (`AbortSignal.any`).
+- Client: an `agentStopping` flag freezes bot events between the stop
+  click and the run's true end (stream end / persisted message /
+  conversation switch clear it) — the aborting run's final reconcile
+  can no longer resurrect the card.
+- Echo trim: `compose_process_definition`, `edit_process_definition`,
+  and `update_definition_graph` return `definitionDigest` of the saved
+  row — same shape `get_process_definition` serves by default; the
+  whole-document view stays available via `{full: true}` reads.
+
 ## Strip = lineage only; chip tokens were a no-op (owner defect batch 2, 2026-10-17)
 
 The previous fixes did not land on the live surface, and the strip was
