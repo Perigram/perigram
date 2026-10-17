@@ -14,4 +14,9 @@ COPY server/scripts ./server/scripts
 COPY server/db ./server/db
 COPY server/utils ./server/utils
 COPY packages/plugin-sdk ./packages/plugin-sdk
+# The seed and migrations read the built-in listings at runtime (not
+# imports — file reads), each under its plugin's path.
+COPY workers/documents/listing.json ./workers/documents/listing.json
+COPY workers/tech-drawing/listing.json ./workers/tech-drawing/listing.json
+COPY workers/facade/listing.json ./workers/facade/listing.json
 CMD ["node", "server/scripts/seed-plugin-catalog.js"]

@@ -32,3 +32,7 @@ for (const path of paths) {
   );
   console.log(`catalog: ${listing.pluginId} v${listing.version} (${listing.declarations.types.length} types, ${listing.declarations.services.length} services)`);
 }
+
+// One-shot scripts hold the mongo driver's monitoring handles open —
+// exit explicitly once the work is done.
+process.exit(0);
