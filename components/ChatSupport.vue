@@ -1528,6 +1528,9 @@ import { useEntityPopup } from '~/composables/useEntityPopup'
 
 import { openChatInWorkspaceTab } from '~/utils/chat-workspace-open.js'
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js'
+import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
+import { resolveSourceFilters } from '~/composables/useGeneratedScreen.js'
+import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useFileTypeView } from '~/composables/useFileTypeView.js'
 import { useChatFileUpload } from '~/composables/useChatFileUpload.js'
@@ -2846,8 +2849,10 @@ const handleMessagesScroll = () => {
 }
 
 // Instance target strip: picking a child drills into it (the next message
-// lands there); children load through the same containment sources the
-// sidebar uses.
+// lands there); children derive from the app's one instance tree — the
+// home screen's sections at the org root, lineage children through the
+// shared containment seam below.
+const effectiveContainment = useEffectiveContainment()
 const stripTrail = ref([])
 const stripChildrenByKey = ref(new Map())
 const stripLoadingKeys = ref(new Set())
@@ -2870,65 +2875,51 @@ const isTrailEntrySelected = (entry) => Boolean(composerInstance.value)
     && composerInstance.value.type === entry.type
     && String(composerInstance.value.id) === String(entry.id)
 
-// Children of the current target: containment-sourced entries plus the
-// children already seen in this thread's message paths — the path-derived
-// set keeps the strip alive for targets without detail-screen sources (the
-// organization chat) and before lists load.
-const stripChildren = computed(() => {
-    const loaded = stripChildrenByKey.value.get(stripTargetKey.value) || []
-    const byKey = new Map(loaded.map(item => [item.key, item]))
-    const conversation = activeConversation.value
-    if (conversation?.conversationKind !== 'instance') return loaded
-    const pathIndex = (path) => path.findIndex(entry => (
-        entry.type === conversation.typeId && String(entry.id) === String(conversation.instanceId)
-    ))
-    for (const messageItem of messages.value) {
-        const path = messageItem.instancePath || []
-        let base = -1
-        if (!stripTrail.value.length) {
-            base = pathIndex(path)
-        } else {
-            const deepest = stripTrail.value[stripTrail.value.length - 1]
-            base = path.findIndex(entry => entry.type === deepest.type && String(entry.id) === String(deepest.id))
-        }
-        const child = base >= 0 ? path[base + 1] : null
-        if (!child?.type || !child?.id) continue
-        const key = `${child.type}:${child.id}`
-        if (!byKey.has(key)) {
-            byKey.set(key, {
-                key,
-                type: child.type,
-                id: String(child.id),
-                // Historical paths denormalized the id as the name for
-                // unnamed instances — guard it, never render it.
-                name: stripDisplayName(child.name, child.id),
-                entity: null
-            })
-        }
-    }
-    return [...byKey.values()]
+// Children of the current target, exactly as the app's one instance tree
+// (the home sidebar and the attachment picker) derives them — no private
+// sources: nothing leaks in from stored message paths.
+const stripChildren = computed(() => stripChildrenByKey.value.get(stripTargetKey.value) || [])
+
+// The org root lists the home screen's section sources (the sidebar's
+// own top level, parent-bound children excluded); a drilled instance
+// lists its lineage children through the shared containment seam.
+const stripHomeScreen = computed(() => authStore.screenManifest.find(screen => screen.template === 'home') || null)
+const stripRootSources = computed(() => {
+    const home = stripHomeScreen.value
+    if (!home) return []
+    return (home.regions || [])
+        .map(region => {
+            const source = (home.sources || []).find(candidate => candidate.id === region.sourceId) || {}
+            if (!source.typeId || source.mode === 'single') return null
+            const parentBound = (source.lineageBindings || [])
+                .some(binding => binding.childTypeId === source.typeId
+                    && binding.parentTypeId !== 'organization')
+            if (parentBound) return null
+            return source
+        })
+        .filter(Boolean)
 })
 
 async function loadStripChildren(targetKey, targetType, targetInstance = null) {
     if (!targetKey || stripChildrenByKey.value.has(targetKey) || stripLoadingKeys.value.has(targetKey)) return
     stripLoadingKeys.value = new Set([...stripLoadingKeys.value, targetKey])
     try {
-        // Lineage only: the strip walks the compiled parent→child
-        // bindings and lists each child type's instances by their
-        // lineage key — the actual hierarchy. Detail-screen list sources
-        // are NOT children (they pulled members and dead-definition
-        // types into the drill-down); party types never declare lineage
-        // children, so no one but real descendants appears.
-        const targetId = String(targetInstance?._id || targetInstance?.id
-            || targetKey.split(':').slice(1).join(':') || '')
-        const sources = (authStore.lineageBindings || [])
-            .filter(binding => binding.parentTypeId === targetType && binding.lineageKey)
-            .map(binding => ({ typeId: binding.childTypeId, lineageKey: binding.lineageKey }))
+        const orgRoot = !stripTrail.value.length && activeConversation.value?.typeId === 'organization'
+        const sources = orgRoot
+            ? stripRootSources.value.map(source => ({
+                typeId: source.typeId,
+                filters: resolveSourceFilters(source, stripHomeScreen.value || {})
+            }))
+            : linkedExplorerChildSources({
+                linkedItems: [{ key: targetKey, type: targetType, entity: targetInstance }],
+                screens: authStore.screenManifest,
+                containment: effectiveContainment()
+            })
         const loaded = await Promise.all(sources.map(async source => {
             try {
                 const childInstances = await instances.listInstances(
                     instances.canonicalTypeKey(source.typeId),
-                    { [source.lineageKey]: targetId }
+                    source.filters
                 )
                 return (Array.isArray(childInstances) ? childInstances : []).map(instance => ({
                     key: `${source.typeId}:${stripInstanceId(instance)}`,
