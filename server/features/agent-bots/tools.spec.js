@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // cross the tool wire in either direction, and a graph-level save composes
 // over the stored document instead of replacing it.
 
-const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mockedOrganizations } = vi.hoisted(() => ({
+const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mockedOrganizations, mockedAgentService } = vi.hoisted(() => ({
     mockedProcessDefinitions: {
         list: vi.fn(),
         getById: vi.fn(),
@@ -21,7 +21,8 @@ const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mo
     mockedSupport: { normalizeInstanceRefs: vi.fn() },
     mockedTypes: { describeOrganizationTypes: vi.fn() },
     mockedRegistry: { getAppRegistry: vi.fn() },
-    mockedOrganizations: { listRoles: vi.fn() }
+    mockedOrganizations: { listRoles: vi.fn() },
+    mockedAgentService: { buildPrincipalAuth: vi.fn() }
 }));
 
 vi.mock('~/server/features/process-definitions/service.js', () => mockedProcessDefinitions);
@@ -29,6 +30,7 @@ vi.mock('~/server/features/support/service.js', () => mockedSupport);
 vi.mock('~/server/features/cts-types/service.js', () => mockedTypes);
 vi.mock('~/server/runtime/app-registry.js', () => mockedRegistry);
 vi.mock('~/server/features/organizations/service.js', () => mockedOrganizations);
+vi.mock('~/server/features/agent-bots/service.js', () => mockedAgentService);
 
 import { executeTool, mcpToolDescriptors, chatToolDescriptors } from './tools.js';
 
@@ -227,5 +229,27 @@ describe('definition tool authoring surface', () => {
         // Without a run the tool states its real constraint.
         await expect(executeTool('attach_instances', { instances: [{ type: 'cassette', id: 'c1' }] }, AUTH))
             .rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it('serves the action manifest live — mid-run activations are visible without a new run', async () => {
+        // The run-start snapshot carries no actions; the live principal
+        // does. The manifest must reflect the live one.
+        mockedAgentService.buildPrincipalAuth.mockResolvedValue({
+            userId: AUTH.userId,
+            organizationId: AUTH.organizationId,
+            roleAssignments: { actions: [
+                { id: 'nodeMake', actionKind: 'createInstance', typeId: 'test-task', label: 'Create Task' },
+                { id: 'nodeUpdate', actionKind: 'updateInstance', typeId: 'test-task', label: 'Update Task' }
+            ] }
+        });
+        const actions = await executeTool('list_actions', {}, AUTH);
+        expect(mockedAgentService.buildPrincipalAuth).toHaveBeenCalledWith(AUTH.userId);
+        expect(actions.map(action => action.id)).toEqual(['nodeMake', 'nodeUpdate']);
+
+        mockedProcessDefinitions.executeActiveProcessAction.mockResolvedValue({ ok: true });
+        await executeTool('run_action', { actionId: 'nodeUpdate', instanceId: 'i1', data: { done: false } }, AUTH);
+        const liveAuth = mockedProcessDefinitions.executeActiveProcessAction.mock.calls[0][1];
+        expect(liveAuth.userId).toBe(AUTH.userId);
+        expect(liveAuth.roleAssignments.actions.map(action => action.id)).toContain('nodeUpdate');
     });
 });

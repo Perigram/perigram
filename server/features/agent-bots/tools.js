@@ -4,6 +4,7 @@ import * as supportService from '~/server/features/support/service.js';
 import { describeOrganizationTypes } from '~/server/features/cts-types/service.js';
 import { listRoles } from '~/server/features/organizations/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import { buildPrincipalAuth } from './service.js';
 import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY, parseProcessSocketHandleId, resolveCatalogNodePorts } from '~/packages/processes/src/index.js';
 
 /**
@@ -91,14 +92,27 @@ const authoringData = (data = {}) => Object.fromEntries(
 const TOOL_RESULT_LIMIT = 16 * 1024;
 
 function boundedToolResult(result) {
-    const json = JSON.stringify(result);
-    if (json.length <= TOOL_RESULT_LIMIT) return result;
+    const json = JSON.stringify(result ?? null);
+    if (json.length <= TOOL_RESULT_LIMIT) return result ?? null;
     return {
         notice: `Tool result truncated: ${json.length} bytes exceeds the ${TOOL_RESULT_LIMIT}-byte conversation limit. Request a narrower view (definition digest, vocabulary detail filters) instead of repeating this call.`,
         truncated: true,
         bytes: json.length,
         preview: json.slice(0, 4096)
     };
+}
+
+// The action manifest is live, not a run-start snapshot: a run may
+// activate new process vocabulary mid-flight, and the delegated principal
+// must see its own current manifest — the same freshness a human gets
+// per request. Only the manifest surface pays the re-resolution.
+async function livePrincipalAuth(auth) {
+    if (!auth?.userId) return auth;
+    try {
+        return await buildPrincipalAuth(auth.userId);
+    } catch {
+        return auth;
+    }
 }
 
 // The compact definition view: node ids/kinds/typeIds, edges with socket
@@ -544,10 +558,11 @@ export const TOOL_SPECS = [
     },
     {
         name: 'list_actions',
-        description: 'Lists the compiled process actions available to the calling principal (the action manifest): create, update, delete, link, unlink, and command actions with their target types.',
+        description: 'Lists the compiled process actions available to the calling principal (the action manifest): create, update, delete, link, unlink, and command actions with their target types. Live per call — actions activated mid-run are visible immediately.',
         inputSchema: { type: 'object', properties: {}, additionalProperties: false },
         execute: async (args, auth) => {
-            return (auth.roleAssignments?.actions || []).map(action => ({
+            const live = await livePrincipalAuth(auth);
+            return (live.roleAssignments?.actions || []).map(action => ({
                 id: action.id,
                 label: action.label || action.caption || action.id,
                 actionKind: action.actionKind || null,
@@ -558,7 +573,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'run_action',
-        description: 'Executes one compiled process action from the manifest (instance creation runs through the active process contract with its access gates).',
+        description: 'Executes one compiled process action from the manifest (instance creation runs through the active process contract with its access gates). Availability is checked against the principal\'s live manifest.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -570,11 +585,12 @@ export const TOOL_SPECS = [
             additionalProperties: false
         },
         execute: async (args, auth) => {
+            const live = await livePrincipalAuth(auth);
             return await processDefinitionsService.executeActiveProcessAction({
                 actionId: requireString(args.actionId, 'actionId'),
                 ...(args.instanceId ? { instanceId: String(args.instanceId) } : {}),
                 data: args.data && typeof args.data === 'object' ? args.data : {}
-            }, auth);
+            }, live);
         }
     }
 ];
