@@ -551,7 +551,10 @@ Keep person identity displays on this chip; keep entity refs on
 An agent run's visible work as one chronology: per-round model
 reasoning in collapsible `Fieldset` disclosures and one bordered
 `Tag` per tool invocation — status icon and technical-voice name in
-the pill, the failure as a severity-error `Message` beneath it. The
+the pill (regular weight, content-width, left-aligned through `pt` and
+`self-start`: Aura's Tag is a centered bold badge stretched by its
+flex-column parent), the failure as a severity-error `Message`
+beneath it. The
 pre-step presence is not this block's: the assistant rides the chat's
 typing line (the host owns that indicator) until the run has anything
 to show. The `pt` compacts the thinking disclosure on the elements
