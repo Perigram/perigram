@@ -1092,7 +1092,38 @@
                     <!-- Composer: one clean rounded surface — attach action,
                          a growing borderless field, and a trailing action
                          that swaps between voice record and send. -->
-                    <div v-else class="flex items-end gap-1 rounded-ui bg-subtle p-1.5" data-testid="chat-composer">
+                    <div v-else class="relative flex items-end gap-1 rounded-ui bg-subtle p-1.5" data-testid="chat-composer">
+                        <!-- The @-address typeahead: the seated AI first,
+                             then the room's humans; a pick completes the
+                             token in place. -->
+                        <div
+                            v-if="mentionState && mentionRows.length"
+                            class="absolute bottom-full left-0 z-10 mb-1 w-64 rounded-ui bg-content p-1.5 shadow-overlay"
+                            role="listbox"
+                            data-testid="chat-mention-dropdown"
+                        >
+                            <button
+                                v-for="(row, index) in mentionRows"
+                                :key="row.id"
+                                type="button"
+                                class="flex w-full items-center gap-2 rounded-ui px-1.5 py-1 text-left"
+                                :class="index === mentionState.index ? 'bg-subtle' : ''"
+                                role="option"
+                                :aria-selected="index === mentionState.index"
+                                @mousedown.prevent="applyMention(row)"
+                                @mousemove="mentionState.index = index"
+                            >
+                                <AiAvatar v-if="row.bot" class="shrink-0" />
+                                <Avatar
+                                    v-else
+                                    :image="row.avatarUrl"
+                                    :label="row.avatarUrl ? null : row.name.charAt(0).toUpperCase()"
+                                    shape="circle"
+                                    class="h-6 w-6 bg-subtle text-supporting [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                                />
+                                <span class="min-w-0 truncate">{{ row.name }}</span>
+                            </button>
+                        </div>
                         <Button
                             icon="pi pi-paperclip"
                             severity="secondary"
@@ -1105,6 +1136,7 @@
                             @click="openAttachmentPicker($event)"
                         />
                         <Textarea
+                            ref="composerField"
                             :placeholder="$t('support.typeMessage')"
                             :pt="composerTextareaPt"
                             class="min-w-0 max-h-40 flex-1 overflow-y-auto"
@@ -1961,7 +1993,80 @@ const composerTextareaPt = {
     root: { style: { background: 'transparent', borderColor: 'transparent', boxShadow: 'none' } }
 }
 
+// The @-address typeahead (SPEC: agent access): `@` at a word boundary
+// opens the room's candidate list — the seated AI first, then the room's
+// human participants — and a completed pick inserts the token. User tags
+// are composer text; the assistant address is the multi-human room's
+// wake gate.
+const composerField = ref(null)
+const mentionState = ref(null)
+const MENTION_ROWS_MAX = 8
+const mentionCandidates = computed(() => {
+    const rows = []
+    const ai = roomAI.value
+    if (ai?.name) rows.push({ id: String(ai.id), name: ai.name, avatarUrl: ai.avatarUrl || '', bot: true })
+    for (const member of groupParticipants.value) {
+        if (!member.name) continue
+        if (String(member.id) === String(currentUserId.value)) continue
+        if (ai && String(member.id) === String(ai.id)) continue
+        rows.push({ ...member, bot: false })
+    }
+    return rows
+})
+const mentionRows = computed(() => {
+    const state = mentionState.value
+    if (!state) return []
+    const query = state.query.trim().toLowerCase()
+    return mentionCandidates.value
+        .filter(row => row.name.toLowerCase().includes(query))
+        .slice(0, MENTION_ROWS_MAX)
+})
+const composerCaret = () => {
+    const el = composerField.value?.$el
+    return Number.isFinite(el?.selectionStart) ? el.selectionStart : message.value.length
+}
+const updateMention = () => {
+    const caret = composerCaret()
+    const token = message.value.slice(0, caret).match(/(^|\s)@([\p{L}\p{N}_ .-]*)$/u)
+    mentionState.value = token
+        ? { start: caret - token[2].length, query: token[2], index: 0 }
+        : null
+}
+const applyMention = (row) => {
+    const state = mentionState.value
+    if (!state) return
+    const caret = composerCaret()
+    const insert = `@${row.name.trim()} `
+    message.value = message.value.slice(0, state.start) + insert + message.value.slice(caret)
+    mentionState.value = null
+    nextTick(() => {
+        const el = composerField.value?.$el
+        if (!el) return
+        el.focus()
+        el.setSelectionRange(state.start + insert.length, state.start + insert.length)
+    })
+}
+
 const handleKeyDown = (event) => {
+    if (mentionState.value && mentionRows.value.length) {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault()
+            const count = mentionRows.value.length
+            const step = event.key === 'ArrowDown' ? 1 : -1
+            mentionState.value.index = (mentionState.value.index + step + count) % count
+            return
+        }
+        if (event.key === 'Enter' || event.key === 'Tab') {
+            event.preventDefault()
+            applyMention(mentionRows.value[mentionState.value.index])
+            return
+        }
+        if (event.key === 'Escape') {
+            event.preventDefault()
+            mentionState.value = null
+            return
+        }
+    }
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault()
         sendMessage()
@@ -1978,6 +2083,7 @@ const handleComposerPaste = (event) => {
 }
 
 const handleTypingInput = () => {
+    updateMention()
     if (!activeConversationKey.value || typingSendTimer) return
     typingSendTimer = setTimeout(() => {
         typingSendTimer = null
@@ -2234,6 +2340,7 @@ const sendMessage = () => {
     const sendingGeneration = stagedGeneration
     pendingFiles.value = []
     message.value = ''
+    mentionState.value = null
     instanceRefs.value = []
     replyTo.value = null
     outgoingFiles.value = [...outgoingFiles.value, ...sendingFiles]
@@ -3207,6 +3314,7 @@ watch(
     [activeConversationKey, supportDialog, () => props.embedded],
     ([key, dialogOpen, embedded]) => {
         agentActivity.value = null
+        mentionState.value = null
         if (unsubscribeConversation) {
             unsubscribeConversation()
             unsubscribeConversation = null

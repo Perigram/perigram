@@ -47,7 +47,12 @@ with HTTP 200 envelopes surface their own message on the connection
 test (see [llm](../../server/features/llm/README.md)). The page is
 gated with the team screen (`users:admin`); chat surfaces only join the
 AI to conversations (see
-[agent bots](../../server/features/agent-bots/README.md)).
+[agent bots](../../server/features/agent-bots/README.md)). The page also
+carries the web-search block: the org's public-web search provider
+(self-hosted SearXNG base URL or keyed Tavily) with its own connection
+test, writing `data.settings.webSearch` through the same settings gate
+(see [web-search](../../server/features/web-search/README.md)) — the
+provider behind the agent's `web_search` tool.
 
 `plugins.vue` is the plugin marketplace surface (see
 [plugins](../../server/features/plugins/README.md)): the installed list

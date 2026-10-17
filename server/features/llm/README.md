@@ -33,7 +33,9 @@ dialects — the Z.AI GLM coding plan stores its wire truth as provider
 Claude-Code-compatible route), with the UI owning the preset identity;
 model choice never lives in the preset — pickers are endpoint-fed.
 
-Outbound requests (completions and listings) share one egress seam:
+Outbound requests (completions and listings) share one egress seam
+(exported as `egressFetch` and reused by
+[web-search](../web-search/README.md) for its provider calls):
 Node's built-in fetch ignores proxy env, so when `HTTP(S)_PROXY` is set
 the seam rides undici's `EnvHttpProxyAgent` (`NO_PROXY` honored, CIDR
 included — LAN endpoints stay direct); without proxy env it is the

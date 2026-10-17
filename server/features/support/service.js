@@ -945,6 +945,26 @@ async function insertMessage({ context, sender, senderUserId, message, instanceR
 // break the send path — failures are logged, not propagated.
 const messageObservers = [];
 
+/**
+ * One attachment descriptor carried by a message in a conversation — the
+ * chat-run read gate: the agent's `read_attachment` tool may only reach
+ * files a message in the room it answers already carries.
+ */
+export async function findConversationAttachment(conversationKey, fileId = '') {
+    const key = String(conversationKey || '').trim();
+    const id = String(fileId || '').trim();
+    if (!key || !id) return null;
+    const rows = await repository.find(
+        { conversationKey: key, 'attachments.fileId': id },
+        { attachments: 1 },
+        { limit: 1 }
+    );
+    for (const attachment of rows[0]?.attachments || []) {
+        if (String(attachment?.fileId || '') === id) return attachment;
+    }
+    return null;
+}
+
 export function registerMessageObserver(observer) {
     if (typeof observer === 'function') messageObservers.push(observer);
     return () => {

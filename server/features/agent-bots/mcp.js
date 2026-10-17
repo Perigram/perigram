@@ -58,7 +58,7 @@ export async function handleMcpRequest(event, body) {
     }
 
     if (method === 'tools/list') {
-        return rpcResult(id, { tools: mcpToolDescriptors() });
+        return rpcResult(id, { tools: await mcpToolDescriptors(event.context?.auth?.organizationId || null) });
     }
 
     if (method === 'tools/call') {

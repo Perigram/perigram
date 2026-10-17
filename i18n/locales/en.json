@@ -3438,5 +3438,12 @@
         "chatRouteDefault": "Chat route",
         "loadModels": "List models from the endpoint",
         "auto": "Auto"
+    },
+    "webSearch": {
+        "title": "Web search",
+        "provider": "Search provider",
+        "none": "Disabled",
+        "searxngUrl": "SearXNG instance URL",
+        "tavilyKey": "Tavily API key"
     }
 }

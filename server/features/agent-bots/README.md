@@ -69,8 +69,18 @@ Three pieces share one tool catalog:
   delegating user's rights at both the tool call and persistence
   (`refsAuth`), so the role-less assistant never drops a delegated
   attachment; the MCP listing excludes
-  chat-only tools. Tools run with the principal's auth they are given;
-  the catalog owns no business logic.
+  chat-only tools. `web_search` rides the
+  [web-search](../web-search/README.md) capability seam and is org-gated:
+  organizations without a configured search provider offer it nowhere —
+  the descriptor builders (chat and MCP alike) omit it, the same
+  capability-availability law an unconfigured LLM follows. `read_attachment`
+  (chat-run only) reads a file attached to a message in the run's own
+  conversation — the run's history marks every attachment as
+  `[attachment: name <fileId:id>]`, the tool reads that file's text
+  (binary content is refused), and the room scoping rides the support
+  seam's conversation-attachment lookup, so the model can never reach a
+  file the room it answers does not already carry. Tools run with
+  the principal's auth they are given; the catalog owns no business logic.
 - **MCP transport** (`mcp.js` → `POST /api/mcp`): single-message JSON-RPC
   over streamable HTTP with `application/json` replies and stateless
   sessions (`initialize` → `tools/list` → `tools/call`/`ping`;
@@ -83,7 +93,10 @@ Three pieces share one tool catalog:
   participants, and every instance room) only when the message names the
   assistant (`@` + its name, case-insensitive, word-bounded;
   two-participant assistant rooms are the AI's own person-style threads
-  and answer every message) — and drives the tool-calling loop until the
+  and answer every message; the chat composer completes the address —
+  typing `@` opens the room's candidate list, the seated AI first, then
+  the room's human participants, and user tags are composer text) — and
+  drives the tool-calling loop until the
   model answers (owner direction 2026-10-16: no round budget) — the room's stop
   control and the provider idle guard are the only terminators — over
   the [LLM capability module](../llm/README.md) on the `chat`

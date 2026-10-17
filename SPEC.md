@@ -53,7 +53,12 @@ Agents operate the platform programmatically through the same boundaries as
 every other client: one curated tool catalog over the existing service seams
 (process definition lifecycle, registry instance reads, compiled action
 execution) exposed through an MCP endpoint and consumed by the
-organization's single AI. There are no created bots: every organization has
+organization's single AI. The catalog also reaches outward and downward:
+`web_search` queries the public web through the organization's configured
+search provider (self-hosted SearXNG or keyed Tavily — an org without one
+offers the tool nowhere), and `read_attachment` reads files attached to the
+conversation's own messages — text content only, room-scoped, never a file
+the room does not already carry. There are no created bots: every organization has
 exactly one AI — the assistant, a member-shaped attribution identity with no
 operational grants of its own — present in the new-chat pickers without any
 setup.
@@ -91,7 +96,11 @@ dropped: the room coalesces it into one trailing run whose freshly
 loaded context covers everything said meanwhile. One run occupies a room
 at a time — the subscribed room owns the lock, the stop control, and the
 run's live presence — and the assistant answers only members of its own
-organization.
+organization. The composer carries the address affordance: typing `@`
+opens the room's candidate list — the seated assistant first, then the
+room's human participants — and a completed pick inserts the address
+token. User tags are composer text (no notification contract rides
+them); the assistant address is the multi-human room's wake gate.
 
 An agent run is visible in its room and stays with its answer: the
 model's reasoning streams as a collapsible thinking block and each tool

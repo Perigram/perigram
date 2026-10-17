@@ -233,10 +233,20 @@ function systemPrompt(assistantName, organizationName, principalName) {
 function historyMessages(messages = [], assistantUserId) {
     return messages
         .filter(item => item && typeof item.message === 'string' && item.message.trim())
-        .map(item => ({
-            role: String(item.senderUserId) === String(assistantUserId) ? 'assistant' : 'user',
-            content: item.message.trim()
-        }));
+        .map(item => {
+            const content = item.message.trim();
+            // Attachments ride the history as addressable markers — the
+            // model reads them through read_attachment, scoped to this
+            // conversation's own messages.
+            const markers = (Array.isArray(item.attachments) ? item.attachments : [])
+                .filter(attachment => attachment?.fileId)
+                .map(attachment => `[attachment: ${attachment.name || 'file'} <fileId:${attachment.fileId}>]`)
+                .join('\n');
+            return {
+                role: String(item.senderUserId) === String(assistantUserId) ? 'assistant' : 'user',
+                content: markers ? `${content}\n${markers}` : content
+            };
+        });
 }
 
 /**
@@ -282,11 +292,15 @@ async function streamedRound({ organizationId, profileId, model = '', system, me
  * stay visible through `stream`; a round that ends in tool calls retracts
  * only its own answer text (only the final answer persists).
  */
-async function runAgentLoop({ organizationId, execAuth, system, conversation, profileId = '', model = '', signal = null, stream = null }) {
-    const tools = chatToolDescriptors();
+async function runAgentLoop({ organizationId, execAuth, system, conversation, conversationKey = '', profileId = '', model = '', signal = null, stream = null }) {
+    // The descriptor surface is org-aware: a capability the org has not
+    // configured (web search without a provider) never reaches the model.
+    const tools = await chatToolDescriptors(organizationId);
     // Per-run side channel: chat-only tools accumulate state here that the
-    // final reply consumes (instance refs the model attached mid-loop).
-    const run = { instanceRefs: [] };
+    // final reply consumes (instance refs the model attached mid-loop),
+    // and the run's conversation key scopes their reach (read_attachment
+    // reads only this room's attachments).
+    const run = { conversationKey, instanceRefs: [] };
     // The run's visible work as one chronology, persisted onto the reply as
     // provenance: per-round reasoning segments interleaved with tool
     // invocations in the order they happened. Empty reasoning segments
@@ -473,6 +487,7 @@ export async function runAssistantReply(target, context, message) {
             execAuth,
             profileId,
             model,
+            conversationKey: message.conversationKey,
             system: systemPrompt(assistantAuth.name, assistantAuth.organizationData?.name || execAuth.organizationData?.name || '', execAuth.name || 'the sender'),
             conversation: await conversationHistory(message.conversationKey, target.assistantId),
             signal: controller.signal,
@@ -598,6 +613,7 @@ export async function runAssistantWake(subscription, event, rule = {}) {
             execAuth,
             profileId,
             model,
+            conversationKey: subscription.conversationKey,
             system: systemPrompt(assistantAuth.name, assistantAuth.organizationData?.name || '', execAuth.name || 'the rule author'),
             conversation: [
                 ...await conversationHistory(subscription.conversationKey, assistant.id),

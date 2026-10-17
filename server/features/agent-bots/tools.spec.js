@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // cross the tool wire in either direction, and a graph-level save composes
 // over the stored document instead of replacing it.
 
-const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mockedOrganizations, mockedAgentService } = vi.hoisted(() => ({
+const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mockedOrganizations, mockedAgentService, mockedWebSearch, mockedFiles } = vi.hoisted(() => ({
     mockedProcessDefinitions: {
         list: vi.fn(),
         getById: vi.fn(),
@@ -18,11 +18,13 @@ const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mo
         composeDefinition: vi.fn(),
         editDefinition: vi.fn()
     },
-    mockedSupport: { normalizeInstanceRefs: vi.fn() },
+    mockedSupport: { normalizeInstanceRefs: vi.fn(), findConversationAttachment: vi.fn() },
     mockedTypes: { describeOrganizationTypes: vi.fn() },
     mockedRegistry: { getAppRegistry: vi.fn() },
     mockedOrganizations: { listRoles: vi.fn() },
-    mockedAgentService: { buildPrincipalAuth: vi.fn() }
+    mockedAgentService: { buildPrincipalAuth: vi.fn() },
+    mockedWebSearch: { isWebSearchAvailable: vi.fn(), webSearch: vi.fn() },
+    mockedFiles: { getFileBuffer: vi.fn() }
 }));
 
 vi.mock('~/server/features/process-definitions/service.js', () => mockedProcessDefinitions);
@@ -31,6 +33,8 @@ vi.mock('~/server/features/cts-types/service.js', () => mockedTypes);
 vi.mock('~/server/runtime/app-registry.js', () => mockedRegistry);
 vi.mock('~/server/features/organizations/service.js', () => mockedOrganizations);
 vi.mock('~/server/features/agent-bots/service.js', () => mockedAgentService);
+vi.mock('~/server/features/web-search/service.js', () => mockedWebSearch);
+vi.mock('~/server/features/files/service.js', () => mockedFiles);
 
 import { executeTool, mcpToolDescriptors, chatToolDescriptors, toolCallDetail } from './tools.js';
 
@@ -51,6 +55,7 @@ const STORED = {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    mockedWebSearch.isWebSearchAvailable.mockResolvedValue(true);
     mockedProcessDefinitions.getById.mockResolvedValue(structuredClone(STORED));
     mockedProcessDefinitions.update.mockImplementation(async (_id, payload) => ({ saved: payload }));
     mockedProcessDefinitions.create.mockImplementation(async (payload) => ({ created: payload }));
@@ -130,11 +135,11 @@ describe('definition tool authoring surface', () => {
         expect(mockedProcessDefinitions.create.mock.calls[0][0].data).toEqual({ dataflowVersion: 4, graph: { nodes: [] } });
     });
 
-    it('serves the graph tool on both descriptors; chat-only tools stay off MCP', () => {
-        const mcp = mcpToolDescriptors().map(tool => tool.name);
+    it('serves the graph tool on both descriptors; chat-only tools stay off MCP', async () => {
+        const mcp = (await mcpToolDescriptors()).map(tool => tool.name);
         expect(mcp).toContain('update_definition_graph');
         expect(mcp).not.toContain('attach_instances');
-        expect(chatToolDescriptors().map(tool => tool.name)).toContain('attach_instances');
+        expect((await chatToolDescriptors()).map(tool => tool.name)).toContain('attach_instances');
     });
 
     it('serves the authoring vocabulary compact by default; details arrive on request', async () => {
@@ -218,7 +223,7 @@ describe('definition tool authoring surface', () => {
             ]
         }, AUTH);
         expect(result._id).toBe('d1');
-        expect(mcpToolDescriptors().map(tool => tool.name)).toContain('edit_process_definition');
+        expect((await mcpToolDescriptors()).map(tool => tool.name)).toContain('edit_process_definition');
     });
 
     it('truncates oversized tool results instead of blinding the model', async () => {
@@ -269,5 +274,47 @@ describe('definition tool authoring surface', () => {
         const liveAuth = mockedProcessDefinitions.executeActiveProcessAction.mock.calls[0][1];
         expect(liveAuth.userId).toBe(AUTH.userId);
         expect(liveAuth.roleAssignments.actions.map(action => action.id)).toContain('nodeUpdate');
+    });
+});
+
+describe('org-gated and room-scoped tools', () => {
+    it('offers web_search on both surfaces only when the org has a search provider', async () => {
+        const chat = await chatToolDescriptors('org-1');
+        const mcp = await mcpToolDescriptors('org-1');
+        expect(chat.some(tool => tool.name === 'web_search')).toBe(true);
+        expect(mcp.some(tool => tool.name === 'web_search')).toBe(true);
+        // read_attachment is the chat run's own (it reads this room's
+        // attachments); the MCP listing excludes it.
+        expect(mcp.some(tool => tool.name === 'read_attachment')).toBe(false);
+        mockedWebSearch.isWebSearchAvailable.mockResolvedValue(false);
+        expect((await chatToolDescriptors('org-1')).some(tool => tool.name === 'web_search')).toBe(false);
+        expect((await mcpToolDescriptors('org-1')).some(tool => tool.name === 'web_search')).toBe(false);
+    });
+
+    it('web_search executes through the capability seam with the caller\'s organization', async () => {
+        mockedWebSearch.webSearch.mockResolvedValue({ provider: 'searxng', results: [] });
+        await executeTool('web_search', { query: 'perigram', maxResults: 3 }, AUTH);
+        expect(mockedWebSearch.webSearch).toHaveBeenCalledWith({ organizationId: 'org-1', query: 'perigram', maxResults: 3 });
+    });
+
+    it('read_attachment is chat-run-only and reads nothing outside this conversation', async () => {
+        await expect(executeTool('read_attachment', { fileId: 'f1' }, AUTH)).rejects.toMatchObject({ statusCode: 400 });
+        mockedSupport.findConversationAttachment.mockResolvedValue(null);
+        await expect(executeTool('read_attachment', { fileId: 'f1' }, AUTH, { conversationKey: 'group:g1' }))
+            .rejects.toMatchObject({ statusCode: 404 });
+        expect(mockedSupport.findConversationAttachment).toHaveBeenCalledWith('group:g1', 'f1');
+    });
+
+    it('read_attachment returns the stored text and refuses binary content', async () => {
+        mockedSupport.findConversationAttachment.mockResolvedValue({ fileId: 'f1', name: 'report.csv', mimeType: 'text/csv', size: 12 });
+        mockedFiles.getFileBuffer.mockResolvedValue(new TextEncoder().encode('a,b,c\n1,2,3\n'));
+        const result = await executeTool('read_attachment', { fileId: 'f1' }, AUTH, { conversationKey: 'group:g1' });
+        expect(mockedFiles.getFileBuffer).toHaveBeenCalledWith('f1', 'files');
+        expect(result.text).toBe('a,b,c\n1,2,3\n');
+        expect(result.name).toBe('report.csv');
+
+        mockedFiles.getFileBuffer.mockResolvedValue(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x01]));
+        await expect(executeTool('read_attachment', { fileId: 'f1' }, AUTH, { conversationKey: 'group:g1' }))
+            .rejects.toMatchObject({ statusCode: 400 });
     });
 });

@@ -382,7 +382,7 @@ describe('runAssistantReply', () => {
             .mockResolvedValueOnce({ content: 'done', toolCalls: [] });
         mockedTools.executeTool.mockResolvedValue({ types: [] });
         await runAssistantReply(target, context, message);
-        expect(mockedTools.executeTool).toHaveBeenCalledWith('list_types', { x: 1 }, humanAuth, { instanceRefs: [] });
+        expect(mockedTools.executeTool).toHaveBeenCalledWith('list_types', { x: 1 }, humanAuth, { conversationKey: context.conversationKey, instanceRefs: [] });
         const toolMessage = mockedLlm.chatCompletion.mock.calls[1][0].messages.find((entry) => entry.role === 'tool');
         expect(toolMessage.toolCallId).toBe('call-1');
         expect(toolMessage.name).toBe('list_types');
