@@ -7,7 +7,7 @@
     >
         <AiAvatar
             v-if="isBot"
-            class="h-5 w-5 shrink-0 [&_.p-avatar-icon]:text-supporting"
+            class="h-5 w-5 shrink-0 [&_.p-avatar-icon]:text-[0.75rem]"
         />
         <Avatar
             v-else

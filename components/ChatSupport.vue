@@ -283,7 +283,7 @@
                     class="pointer-events-none absolute inset-3 z-20 flex flex-col items-center justify-center gap-2 rounded-ui border-2 border-dashed border-chrome-border bg-content text-center"
                     data-testid="chat-drop-zone"
                 >
-                    <i class="pi pi-upload text-section-heading text-muted" aria-hidden="true" />
+                    <i class="pi pi-upload text-[1.25rem] text-muted" aria-hidden="true" />
                     <span class="text-label">{{ $t('support.dropFiles') }}</span>
                 </div>
                 <header class="flex shrink-0 items-center gap-2 border-b border-chrome-border px-3 py-3 md:gap-3 md:px-4">
@@ -392,7 +392,7 @@
                                 <template v-for="participant in groupParticipants.slice(0, 4)" :key="participant.id">
                                     <AiAvatar
                                         v-if="participant.bot"
-                                        class="h-6 w-6 [&_.p-avatar-icon]:text-supporting"
+                                        class="h-6 w-6 [&_.p-avatar-icon]:text-[0.75rem]"
                                     />
                                     <Avatar
                                         v-else
