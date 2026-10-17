@@ -81,7 +81,8 @@ const AUTHORING_GUIDE = [
     "- {op:'connect', id, fromPort, to, toPort} — id is the FROM node; ports are bare socket ids or 'data:<socketId>' handles; both work.",
     'The first illegal gesture fails with the gate message — read it, fix, retry.',
     '3. validate_process_definition: its anchored diagnostics name exactly what to fix.',
-    '4. activate_process_definition: activation gates (migration plan, type death) are confirmations to resolve, never bypass — status migration targets are declared with declare_status_mappings (one mapping per plan row), type death with confirmTypeDeath.',
+    '4. In-tree declarations (declareClass/declareField/declareTypeRef/wireDeclaration) MUST be posted into the registry with apply_declarations before activation — validation overlays the draft, the activation compile resolves the registry.',
+    '5. activate_process_definition: activation gates (migration plan, type death) are confirmations to resolve, never bypass — status migration targets are declared with declare_status_mappings (one mapping per plan row), type death with confirmTypeDeath.',
     'Editing an existing definition: get_process_definition (compact digest: node ids, kinds, edges as node:socket) then edit_process_definition with the same gestures (drop, configure, setInputDefault, connect, declarations) — small payloads, no graph echo-back. Full document view only via get_process_definition {full: true}.'
 ].join('\n');
 
@@ -142,7 +143,9 @@ function definitionDigest(row) {
     return {
         id: row?.identity?.uid ?? row?._id ?? null,
         name: row?.identity?.name ?? null,
-        status: row?.status?.state?.primary ?? null,
+        // The wire shape is the entity DTO (`states.main`), not the
+        // stored status block.
+        status: row?.states?.main ?? row?.status?.state?.primary ?? row?.status?.state ?? null,
         nodes,
         edges,
         valueInputs: Object.keys(data.valueInputs || {}),
@@ -425,6 +428,22 @@ export const TOOL_SPECS = [
                 { definitionId: requireString(args.definitionId, 'definitionId'), steps: Array.isArray(args.steps) ? args.steps : [] },
                 auth
             ));
+        }
+    },
+    {
+        name: 'apply_declarations',
+        description: 'Posts the definition\'s in-tree declarations (classes, fields, states, and their wires) into the organization\'s type registry — the designer Apply\'s declaration step. REQUIRED before activate_process_definition whenever the draft declares types in-tree (declareClass/declareField/declareTypeRef gestures): validation accepts the draft\'s own declarations, but the activation compile resolves types against the registry. A refused declaration (breaking type diff without migrate steps) returns as a structured failure naming the type — resolve it or ask the room; successful posts are idempotent.',
+        inputSchema: {
+            type: 'object',
+            properties: { definitionId: { type: 'string' } },
+            required: ['definitionId'],
+            additionalProperties: false
+        },
+        execute: async (args, auth) => {
+            return await processDefinitionsService.applyTreeDeclarations(
+                requireString(args.definitionId, 'definitionId'),
+                auth
+            );
         }
     },
     {

@@ -27,7 +27,11 @@ Three pieces share one tool catalog:
 - **Tool catalog** (`tools.js`): the curated vocabulary over existing
   service seams — process definition lifecycle
   ([process-definitions](../process-definitions/README.md): list/get/
-  create/update/validate/activate/deactivate, status-migration
+  create/update/validate/activate/deactivate, declaration apply
+  (`apply_declarations` — the designer Apply's declaration step: posts
+  the draft's in-tree declarations into the registry, required before
+  activation because validation overlays the draft while the activation
+  compile resolves the registry), status-migration
   declaration (`declare_status_mappings` — the Apply gate's decision,
   authored without a whole-document echo), plus a graph-level save
   (`update_definition_graph` — nodes, wires, and value inputs without

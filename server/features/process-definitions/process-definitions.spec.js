@@ -494,7 +494,6 @@ describe('current process-definition service contract', () => {
     });
 
     const validation = await validate('process-draft', adminAuth());
-    console.log("VALIDATION ERRORS:", JSON.stringify(validation.errors));
     expect(validation.ok).toBe(true);
     expect(validation.migrationPlan).toEqual({
       statuses: [expect.objectContaining({
@@ -727,7 +726,6 @@ describe('current process-definition service contract', () => {
     }, adminAuth(), { runRepository });
     restoreMachineRegistry();
 
-    console.log('RUNDEBUG', JSON.stringify({ status: run.status, steps: (run.steps||[]).map(s => ({ node: s.nodeId, status: s.status, error: s.error })) }));
     expect(run.status).toBe('succeeded');
     expect(processUpdate).toHaveBeenCalledTimes(1);
     expect(processUpdate).toHaveBeenCalledWith(

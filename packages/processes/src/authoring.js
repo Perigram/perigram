@@ -392,6 +392,16 @@ export function graphIntegrityProblems(graph = null) {
     graph.edges.forEach((edge, index) => {
       if (!edge || !ids.has(edge.source) || !ids.has(edge.target)) {
         problems.push(`edge ${edge?.id || index} references a missing node`);
+        return;
+      }
+      // A data wire addresses sockets, never the node body: an edge
+      // without handles binds nothing at compile time — it silently
+      // does nothing while looking connected. Declaration edges (the
+      // tree's role:'type' wires and their 'decl*' ids) are
+      // node-to-node by design.
+      const declaration = edge.role === 'type' || String(edge?.id || '').startsWith('decl');
+      if (!declaration && (!String(edge.sourceHandle || '').trim() || !String(edge.targetHandle || '').trim())) {
+        problems.push(`edge ${edge.id || index} wires ${edge.source} to ${edge.target} without sockets — data edges address node:socket`);
       }
     });
   }

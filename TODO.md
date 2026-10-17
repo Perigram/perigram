@@ -199,6 +199,41 @@ stands; repetition protection is not a budget).
   the activation-gate structure returned as readable results — the wall
   was the seam, not the catalog.
 
+### Agent Notes (2026-10-17 — activation loop closed, unit-pinned)
+
+- The activation struggle's missing half, found and fixed: the tool
+  catalog taught the declaration gestures but had no way to POST them.
+  `applyTreeDeclarations` (service) / `apply_declarations` (tool) is
+  the designer Apply's declaration step server-side — compile the
+  draft's tree, post each declaration through cts-types `defineType`.
+  The law: validation overlays the draft's declarations, the
+  activation compile resolves the registry, so an in-tree draft
+  validated green and died at activate with `unknown entity type`
+  until applied. The compose guide now carries the apply step.
+- The save floor now refuses socket-less data edges (node-to-node
+  wires) on every write path (`graphIntegrityProblems`): a hand-written
+  graph replacement carrying `{source, target}` edges persisted wires
+  that bound nothing while looking connected — the model-guessed graph
+  shape. Declaration edges (`role: 'type'`) stay exempt.
+- Digest status fixed: `definitionDigest` read `status.state.primary`,
+  the wire DTO carries `states.main` — every tool digest answered
+  `status: null` in production.
+- New spec `agent-bots/agent-tooling-loop.spec.js` (16 tests): drives
+  `executeTool` over the real service + seam on test definitions —
+  compose→validate→activate, in-tree apply loop, the socket wall
+  (unknown/missing ports, control-into-data, single-wire inputs,
+  handle-less graph and full-document replaces), the migration gate
+  through the tool (structured `activationBlocked` plan, off-target
+  400, re-target + applied summary), and the control-node audit: a
+  control-only graph is refused (`not reachable from a trigger`) and a
+  reachable finish compiles to no action/screen of its own — control
+  nodes are orchestration-only, never compiled surface.
+- Finding, not fixed here: the activate-path specs in
+  `process-definitions.spec.js` are not hermetic —
+  `findTypeDeathCandidates` reads the cts-types repository (Mongo), so
+  26 activate-path tests fail on any machine without
+  `MONGODB_URI`; they pass only against a live dev database.
+
 ## Composer lineage strip: always-drill mechanics, no id names (owner defect 2026-10-17)
 
 The instance target strip in the org chat composer had two defects:

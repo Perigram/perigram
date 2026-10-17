@@ -1,0 +1,514 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// The agent tooling loop on REAL definitions: executeTool — the exact
+// catalog the model drives on both surfaces (chat runtime and MCP) —
+// over the real process-definitions service and the real headless
+// authoring seam. Faked: the definition repository (in-memory), the
+// type registry's persistence (no stored org types — no type death),
+// and the app registry's instance services. The loop under test is the
+// one the compose guide teaches: vocabulary → compose/edit → validate
+// → activate → (migration gate) → declare → re-activate.
+//
+// Failure modes enumerated before the tests — the contract each pins:
+//  1. compose/edit answers a compact digest whose edges address
+//     node:socket; the stored graph never carries a data wire bound
+//     to no socket.
+//  2. Illegal gestures (unknown or missing port, control into a data
+//     socket, second wire on a single-value input) are refused BY NAME
+//     and persist nothing — an edit's steps apply atomically.
+//  3. A hand-written graph replacement carrying handle-less data edges
+//     (a wire stuck to the node body — what a model writes when it
+//     guesses the graph shape) is refused at the same wall the gesture
+//     path enforces: the save floor.
+//  4. Declaration edges (role 'type') keep their node-to-node shape —
+//     the floor never rejects the declaration tree's own wires.
+//  5. The activation migration gate returns THROUGH the tool as a
+//     structured activationBlocked result carrying the plan; a declared
+//     mapping outside the plan's retained targets fails activation with
+//     the plan attached; a correct declaration re-activates, re-targets
+//     the stranded instances, and records the applied summary.
+//  6. Control-only graphs (the palette's control section) author,
+//     validate, and activate — but contribute nothing to the compiled
+//     surface: no actions or screens derive from them.
+
+vi.mock('../plugins/repository.js', () => ({
+    listDisabledPacks: vi.fn(async () => []),
+    enablePack: vi.fn(),
+    disablePack: vi.fn(),
+    listInstallsByOrganization: vi.fn(async () => []),
+    listDeclarationsByOrganization: vi.fn(async () => []),
+    findDeclarationByTypeId: vi.fn(async () => null),
+    findInstallByConnectorToken: vi.fn(async () => null)
+}));
+vi.mock('../cts-types/service.js', async () => {
+    const cts = await import('~/packages/cts/src/index.js');
+    const pack = await import('~/packages/cts/src/pack/cnc.js');
+    const domainPack = await import('../../../test-tools/facade-plugin.js');
+    const registry = cts.createTypeRegistry({ id: 'spec-cts' });
+    for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack, ...domainPack.facadeFileTypes]) {
+        registry.defineType(declaration);
+    }
+    return {
+        compileRegistryForOrganization: vi.fn(async () => registry),
+        describeOrganizationTypes: vi.fn(async () => ({ bundle: { types: [] } })),
+        // The registry flip a real apply makes: defineType persists the
+        // org declaration, and the next registry compile serves it.
+        defineType: vi.fn(async declaration => {
+            registry.defineType(declaration);
+            return declaration;
+        })
+    };
+});
+// No stored org-authored types: the type-death manifest stays empty and
+// activate stays hermetic (findTypeDeathCandidates reads this through
+// lifetime.js — see that module for why the service cannot mock it).
+vi.mock('../cts-types/repository.js', () => ({
+    listByOrganization: vi.fn(async () => []),
+    findByTypeId: vi.fn(async () => null)
+}));
+vi.mock('../cts-types/lifetime.js', async (importOriginal) => {
+    const actual = await importOriginal();
+    return { ...actual, countInstancesOfType: vi.fn(async () => 0) };
+});
+vi.mock('../process-definitions/run-repository.js', async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+        ...actual,
+        getRunRepository: () => ({
+            createRun: async ({ run, definition }) => ({ runId: run.id, state: run, definition, revision: 0 }),
+            saveRunState: async (_runId, state, revision) => ({ state, revision: revision + 1 }),
+            findUnreceiptedInvocations: async () => []
+        })
+    };
+});
+vi.mock('~/server/runtime/app-registry.js', () => ({
+    getAppRegistry: vi.fn(),
+    getPerigramRegistry: vi.fn(),
+    resetAppRegistryForTests: vi.fn(),
+    resetPerigramRegistryForTests: vi.fn()
+}));
+vi.mock('~/server/core/machines/service.js', async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+        ...actual,
+        stateService: { ...actual.stateService, setInitialStateForOrganization: vi.fn() }
+    };
+});
+vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
+vi.mock('~/server/features/instance-revisions/service.js', () => ({ getById: vi.fn() }));
+vi.mock('../organizations/service.js', () => ({
+    listRoles: vi.fn(async () => ({ role_admin: { id: 'role_admin', label: 'Admin' } }))
+}));
+vi.mock('../support/service.js', () => ({
+    normalizeInstanceRefs: vi.fn(async () => []),
+    findConversationAttachment: vi.fn(async () => null)
+}));
+vi.mock('../web-search/service.js', () => ({
+    isWebSearchAvailable: vi.fn(async () => false),
+    webSearch: vi.fn()
+}));
+vi.mock('../files/service.js', () => ({ getFileBuffer: vi.fn() }));
+vi.mock('./service.js', () => ({ buildPrincipalAuth: vi.fn(async auth => auth) }));
+
+// In-memory definition store: create composes through the seam, update
+// saves, activate flips the stored row — the loop reads back what it
+// wrote, exactly like the model's next tool call does against Mongo.
+function makeDefinitionStore() {
+    const rows = new Map();
+    const primary = row => row?.states?.main ?? row?.status?.state?.primary ?? row?.status?.state ?? null;
+    return {
+        rows,
+        insert: vi.fn(async doc => {
+            const plain = doc.toJSON ? doc.toJSON() : doc;
+            // The uid is the stable wire address (get_process_definition
+            // reads it); Mongo's _id never leaves the repository.
+            const row = { ...plain, _id: plain?.identity?.uid || `def-${rows.size + 1}` };
+            rows.set(row._id, row);
+            return row;
+        }),
+        findById: vi.fn(async id => rows.get(String(id)) ?? null),
+        findActiveByOrganization: vi.fn(async organizationId =>
+            [...rows.values()].find(row => row.lineage?.organizationId === organizationId && primary(row) === 'ACTIVE') ?? null),
+        findActiveSetByOrganization: vi.fn(async organizationId =>
+            [...rows.values()].filter(row => row.lineage?.organizationId === organizationId && primary(row) === 'ACTIVE')),
+        updateById: vi.fn(async (id, doc) => {
+            const row = { ...(doc.toJSON ? doc.toJSON() : doc), _id: String(id) };
+            rows.set(String(id), row);
+            return row;
+        }),
+        seed(row) {
+            rows.set(String(row._id), row);
+            return row;
+        }
+    };
+}
+
+vi.mock('../process-definitions/repository.js', async () => {
+    const store = makeDefinitionStore();
+    return {
+        __store: store,
+        find: vi.fn(async () => []),
+        findById: store.findById,
+        findActiveByOrganization: store.findActiveByOrganization,
+        findActiveSetByOrganization: store.findActiveSetByOrganization,
+        create: store.insert,
+        insert: store.insert,
+        updateById: store.updateById,
+        removeById: vi.fn(),
+        getConnection: vi.fn()
+    };
+});
+
+import { executeTool } from './tools.js';
+import { createPersistedAcceptanceFixture } from '../../../test-data/persisted-acceptance.js';
+import { stateService } from '~/server/core/machines/service.js';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import * as processRepository from '../process-definitions/repository.js';
+
+const AUTH = {
+    userId: 'admin',
+    organizationId: 'org-acceptance',
+    effectivePermissions: { organizations: { level: 'admin' }, materials: { level: 'admin' } }
+};
+
+const organizationService = {
+    getProcessConfiguration: vi.fn()
+};
+
+const store = () => processRepository.__store;
+
+// The wiring legs author the in-tree way: a declared class + field, a
+// construct bound to it (the draft-overlay law — the field's port exists
+// the moment wireDeclaration lands), and a literal on the field socket.
+// (A registry type in editor mode takes its field values from the
+// construct dialog, not sockets — only lineage/relations inputs are
+// wired; that shape carries the happy-path activate leg below.)
+const TASK_STEPS = [
+    { op: 'declareClass', id: 'clsTask', typeId: 'task', name: 'Task' },
+    { op: 'declareField', id: 'fldTitle', ownerClassId: 'clsTask', name: 'title' },
+    { op: 'wireDeclaration', from: 'fldTitle', to: 'clsTask', role: 'declares' },
+    { op: 'drop', item: 'construct', id: 'make' },
+    { op: 'wireDeclaration', from: 'clsTask', to: 'make', role: 'binds' },
+    { op: 'configure', id: 'make', values: { access: { grants: [{ roleId: 'fixture-role-operator', level: 'admin' }] } } },
+    { op: 'setInputDefault', id: 'make', input: 'fields.title', value: 'Spec task' }
+];
+
+const LITERAL_STEPS = [
+    { op: 'drop', item: 'literal', id: 'nameLit' },
+    { op: 'configure', id: 'nameLit', values: { type: { base: 'string', nullable: false }, value: 'wired' } },
+    { op: 'connect', id: 'nameLit', fromPort: 'value', to: 'make', toPort: 'fields.title' }
+];
+
+// A registry-typed construct — the same shape the acceptance fixture
+// authors: drop, configure the facade type + lane grant, default the
+// identifier field.
+const COMPOSE_STEPS = [
+    { op: 'drop', item: 'construct', id: 'make' },
+    { op: 'configure', id: 'make', values: { typeId: 'cassette', access: { grants: [{ roleId: 'fixture-role-operator', level: 'admin' }] } } },
+    { op: 'setInputDefault', id: 'make', input: 'fields.name', value: 'Spec cassette' }
+];
+
+beforeEach(() => {
+    vi.clearAllMocks();
+    processRepository.__store.rows.clear();
+    organizationService.getProcessConfiguration.mockResolvedValue({
+        roles: createPersistedAcceptanceFixture().organization.data.roles,
+        roleAssignments: {}
+    });
+    getAppRegistry.mockReturnValue({
+        getInstanceService: type => (type === 'organization' ? organizationService : null)
+    });
+});
+
+const call = (name, args) => executeTool(name, args, AUTH);
+
+describe('the compose → validate → activate loop over the tool catalog', () => {
+    it('serves the authoring vocabulary with the guide, roles, and per-kind sockets', async () => {
+        const compact = await call('get_authoring_vocabulary', {});
+        expect(compact.guide).toMatch(/compose_process_definition/);
+        expect(compact.palette.length).toBeGreaterThan(0);
+        expect(compact.roles).toEqual([{ id: 'role_admin', label: 'Admin' }]);
+
+        const sockets = await call('get_authoring_vocabulary', { detail: 'sockets' });
+        const literal = sockets.sockets['source.literalItem'];
+        expect(literal.outputs.map(socket => socket.id)).toContain('value');
+    });
+
+    it('composes a definition through gestures and answers the digest, never the document', async () => {
+        const digest = await call('compose_process_definition', { name: 'Spec compose', steps: COMPOSE_STEPS });
+        expect(digest.nodes).toEqual([
+            expect.objectContaining({ id: 'make', kind: 'cts.construct', typeId: 'cassette' })
+        ]);
+        expect(digest.counts.processNodes).toBe(1);
+        expect(digest.status).toBe('DRAFT');
+
+        const stored = store().rows.get(digest.id);
+        expect(stored.data.dataflowVersion).toBe(4);
+        expect(JSON.stringify(digest).length).toBeLessThan(JSON.stringify(stored).length);
+    });
+
+    it('validates and activates the composed definition through the tools', async () => {
+        const digest = await call('compose_process_definition', { name: 'Spec compose', steps: COMPOSE_STEPS });
+
+        const validation = await call('validate_process_definition', { definitionId: digest.id });
+        expect(validation.ok).toBe(true);
+
+        const activated = await call('activate_process_definition', { definitionId: digest.id });
+        expect(activated.states).toMatchObject({ main: 'ACTIVE' });
+
+        const after = await call('get_process_definition', { definitionId: digest.id });
+        expect(after.status).toBe('ACTIVE');
+    });
+
+    it('edits a stored draft with gestures — small payloads, no graph echo-back', async () => {
+        const digest = await call('compose_process_definition', { name: 'Spec task', steps: TASK_STEPS });
+        const edited = await call('edit_process_definition', { definitionId: digest.id, steps: LITERAL_STEPS });
+        expect(edited.edges).toContainEqual({ from: 'nameLit:value', to: 'make:fields.title' });
+    });
+});
+
+describe('illegal wires never persist — the socket wall', () => {
+    it('refuses a connect that names no sockets (the node-body wire)', async () => {
+        const digest = await call('compose_process_definition', { name: 'Spec task', steps: TASK_STEPS });
+        await expect(call('edit_process_definition', {
+            definitionId: digest.id,
+            steps: [{ op: 'drop', item: 'literal', id: 'nameLit' }, { op: 'connect', id: 'nameLit', to: 'make' }]
+        })).rejects.toThrow(/fromPort is required|Unknown port/);
+        const after = await call('get_process_definition', { definitionId: digest.id });
+        expect(after.edges.filter(edge => !edge.declaration)).toEqual([]);
+    });
+
+    it('refuses a connect onto a socket the node does not carry, naming it', async () => {
+        const digest = await call('compose_process_definition', { name: 'Spec task', steps: TASK_STEPS });
+        await expect(call('edit_process_definition', {
+            definitionId: digest.id,
+            steps: [{ op: 'drop', item: 'literal', id: 'nameLit' }, { op: 'connect', id: 'nameLit', fromPort: 'nope', to: 'make', toPort: 'fields.title' }]
+        })).rejects.toThrow(/Unknown port nameLit:nope/);
+    });
+
+    it('refuses control into a data socket', async () => {
+        const digest = await call('compose_process_definition', { name: 'Spec task', steps: TASK_STEPS });
+        await expect(call('edit_process_definition', {
+            definitionId: digest.id,
+            steps: [
+                { op: 'drop', item: 'construct', id: 'make2' },
+                { op: 'wireDeclaration', from: 'clsTask', to: 'make2', role: 'binds' },
+                { op: 'connect', id: 'make', fromPort: 'completed', to: 'make2', toPort: 'fields.title' }
+            ]
+        })).rejects.toThrow(/control into a data socket/);
+    });
+
+    it('refuses a second wire on a single-value input and keeps the first edit intact', async () => {
+        const digest = await call('compose_process_definition', { name: 'Spec task', steps: TASK_STEPS });
+        await call('edit_process_definition', { definitionId: digest.id, steps: LITERAL_STEPS });
+        await expect(call('edit_process_definition', {
+            definitionId: digest.id,
+            steps: [
+                { op: 'drop', item: 'literal', id: 'nameLit2' },
+                { op: 'connect', id: 'nameLit2', fromPort: 'value', to: 'make', toPort: 'fields.title' }
+            ]
+        })).rejects.toThrow(/accepts one wire/);
+        const after = await call('get_process_definition', { definitionId: digest.id });
+        expect(after.edges.filter(edge => edge.to === 'make:fields.title')).toHaveLength(1);
+    });
+
+    it('refuses a graph replacement whose data edges carry no socket handles', async () => {
+        const digest = await call('compose_process_definition', { name: 'Spec task', steps: TASK_STEPS });
+        const full = await call('get_process_definition', { definitionId: digest.id, full: true });
+        // What a model writes when it guesses the graph shape: edge
+        // endpoints and nothing else — a wire stuck to the node body,
+        // bound to no socket. The save floor must answer it.
+        const graph = {
+            nodes: full.data.graph.nodes,
+            edges: [{ id: 'guessed', source: 'make', target: 'make', sourceHandle: null, targetHandle: null }]
+        };
+        await expect(call('update_definition_graph', { definitionId: digest.id, graph })).rejects.toThrow(/without sockets/);
+        const after = await call('get_process_definition', { definitionId: digest.id });
+        expect(after.edges.filter(edge => !edge.declaration)).toEqual([]);
+    });
+
+    it('keeps declaration edges legal — the tree wires node to node by design', async () => {
+        const digest = await call('compose_process_definition', {
+            name: 'Spec declarations',
+            steps: [
+                { op: 'declareClass', id: 'clsTask', typeId: 'task', name: 'Task' },
+                { op: 'declareField', id: 'fldTitle', ownerClassId: 'clsTask', name: 'title' },
+                { op: 'wireDeclaration', from: 'fldTitle', to: 'clsTask', role: 'declares' }
+            ]
+        });
+        const full = await call('get_process_definition', { definitionId: digest.id, full: true });
+        const declarationEdge = full.data.graph.edges.find(edge => edge.role === 'type');
+        expect(declarationEdge.sourceHandle || null).toBeNull();
+
+        const graph = { nodes: full.data.graph.nodes, edges: full.data.graph.edges };
+        const replaced = await call('update_definition_graph', { definitionId: digest.id, graph });
+        expect(replaced.counts.declarations).toBeGreaterThan(0);
+    });
+
+    it('refuses the same handle-less edge through the full-document save', async () => {
+        const digest = await call('compose_process_definition', { name: 'Spec task', steps: TASK_STEPS });
+        const full = await call('get_process_definition', { definitionId: digest.id, full: true });
+        const data = {
+            ...full.data,
+            graph: {
+                nodes: full.data.graph.nodes,
+                edges: [{ id: 'guessed', source: 'make', target: 'make' }]
+            }
+        };
+        await expect(call('update_process_definition', { definitionId: digest.id, data })).rejects.toThrow(/without sockets/);
+    });
+});
+
+describe('the activation migration gate through the tools', () => {
+    const seedMigrationScenario = () => {
+        const fixture = createPersistedAcceptanceFixture();
+        const typeId = fixture.processDefinition.data.producerOutputs['create_cassette:result'].typeId;
+        const activeData = structuredClone(fixture.processDefinition.data);
+        activeData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({
+            draft: { canUpdateMeta: true }, LEGACY_RETIRED: {}
+        });
+        const draftData = structuredClone(fixture.processDefinition.data);
+        draftData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({
+            draft: { canUpdateMeta: true }, done: {}
+        });
+        store().seed({
+            ...fixture.processDefinition,
+            _id: 'def-active',
+            lineage: { organizationId: 'org-acceptance' },
+            data: activeData
+        });
+        store().seed({
+            _id: 'def-draft',
+            identity: { uid: 'def-draft', name: 'Next process', slug: 'next-process' },
+            lineage: { organizationId: 'org-acceptance' },
+            status: { state: 'DRAFT', userId: 'admin', timestamp: '2026-01-01T00:00:00.000Z', metadata: {}, eventId: null, lifecycle: { actors: [], attachments: {}, data: {} } },
+            data: draftData
+        });
+        const stranded = [
+            { _id: 'p-1', state: 'LEGACY_RETIRED' },
+            { _id: 'p-2', state: 'LEGACY_RETIRED' }
+        ];
+        getAppRegistry.mockReturnValue({
+            getInstanceService: type => (type === typeId
+                ? { processList: vi.fn().mockResolvedValue(stranded) }
+                : (type === 'organization' ? organizationService : null))
+        });
+        return typeId;
+    };
+
+    it('returns the gate as a structured activationBlocked result carrying the plan', async () => {
+        const typeId = seedMigrationScenario();
+
+        const blocked = await call('activate_process_definition', { definitionId: 'def-draft' });
+        expect(blocked).toMatchObject({
+            activationBlocked: true,
+            gate: {
+                migrationRequired: true,
+                affected: [{ typeId, statuses: ['LEGACY_RETIRED'], count: 2 }],
+                migrationPlan: {
+                    statuses: [{
+                        typeId,
+                        removed: [{ state: 'LEGACY_RETIRED', count: 2 }],
+                        targets: expect.arrayContaining(['draft', 'done'])
+                    }]
+                }
+            }
+        });
+        expect(store().rows.get('def-draft').states?.main).not.toBe('ACTIVE');
+    });
+
+    it('accepts any declared mapping at declare time — the plan checks it at activation', async () => {
+        const typeId = seedMigrationScenario();
+        const declared = await call('declare_status_mappings', {
+            definitionId: 'def-draft',
+            mappings: [{ typeId, from: 'LEGACY_RETIRED', to: 'NOT_A_STATE' }]
+        });
+        expect(declared.declared).toEqual([{ typeId, from: 'LEGACY_RETIRED', to: 'NOT_A_STATE' }]);
+
+        await expect(call('activate_process_definition', { definitionId: 'def-draft' }))
+            .rejects.toThrow(/NOT_A_STATE is not a retained state/);
+    });
+
+    it('declares the mapping, re-activates, re-targets the stranded instances, and records the applied summary', async () => {
+        const typeId = seedMigrationScenario();
+
+        const declared = await call('declare_status_mappings', {
+            definitionId: 'def-draft',
+            mappings: [{ typeId, from: 'LEGACY_RETIRED', to: 'done' }]
+        });
+        expect(declared).toMatchObject({ definitionId: 'def-draft', declared: [{ typeId, from: 'LEGACY_RETIRED', to: 'done' }] });
+
+        const activated = await call('activate_process_definition', { definitionId: 'def-draft' });
+        expect(activated.states).toMatchObject({ main: 'ACTIVE' });
+
+        expect(stateService.setInitialStateForOrganization).toHaveBeenCalledTimes(2);
+        expect(stateService.setInitialStateForOrganization).toHaveBeenCalledWith(
+            typeId, 'p-1', 'done', 'org-acceptance', 'admin',
+            expect.objectContaining({ note: 'Process apply migration', producerOutputId: expect.any(String) })
+        );
+
+        const stored = store().rows.get('def-draft');
+        expect(stored.data.migrations.applied).toMatchObject({
+            appliedAt: expect.any(String),
+            applied: { [typeId]: { 'LEGACY_RETIRED->done': 2 } },
+            failures: []
+        });
+    });
+});
+
+describe('control nodes: the palette control section in the compiled surface', () => {
+    it('refuses a control-only graph — an operational node needs a trigger path', async () => {
+        const digest = await call('compose_process_definition', {
+            name: 'Spec flow only',
+            steps: [{ op: 'drop', item: 'finish', id: 'stop' }]
+        });
+        const validation = await call('validate_process_definition', { definitionId: digest.id });
+        expect(validation.ok).toBe(false);
+        expect(validation.errors).toContain('Operational node stop is not reachable from a trigger');
+    });
+
+    it('compiles a reachable finish to no action or screen of its own', async () => {
+        // The cassette construct owns the compiled surface; the finish
+        // wired after it owns orchestration semantics only (a terminal
+        // marker for durable runs) — nothing in the compiled contract
+        // derives from it.
+        const digest = await call('compose_process_definition', {
+            name: 'Spec construct and finish',
+            steps: [
+                ...COMPOSE_STEPS,
+                { op: 'drop', item: 'finish', id: 'stop' },
+                { op: 'connect', id: 'make', fromPort: 'completed', to: 'stop', toPort: 'in' }
+            ]
+        });
+        const validation = await call('validate_process_definition', { definitionId: digest.id });
+        expect(validation.ok).toBe(true);
+
+        const activated = await call('activate_process_definition', { definitionId: digest.id });
+        expect(activated.states).toMatchObject({ main: 'ACTIVE' });
+
+        const compiled = store().rows.get(digest.id).data.compiled;
+        // The construct's grant generates the surfaces; the finish wired
+        // after it contributes nothing — no action, screen, or key of its
+        // own anywhere in the compiled contract.
+        expect(JSON.stringify(Object.keys(compiled.actions || {}))).not.toMatch(/stop|finish/i);
+        expect(JSON.stringify(Object.keys(compiled.screens || {}))).not.toMatch(/stop|finish/i);
+    });
+});
+
+function customLifecycle(states) {
+    return {
+        mode: 'custom',
+        workflow: {
+            schemaVersion: 2,
+            primaryRegion: 'main',
+            regions: {
+                main: {
+                    label: 'Project lifecycle',
+                    initial: Object.keys(states)[0],
+                    states,
+                    transitions: []
+                }
+            }
+        }
+    };
+}

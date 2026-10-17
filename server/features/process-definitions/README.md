@@ -274,7 +274,12 @@ only contain `data.compiled` without semantic records are rejected during
 validation and activation so operators do not edit a guessed reconstruction.
 Edits save in place; an identity-only PATCH never touches data. A save
 carries a structural floor — every graph node needs a unique id, a type,
-and a numeric position, and every edge must address existing nodes
+and a numeric position, every edge must address existing nodes, and every
+data edge must name both its sockets (`sourceHandle`/`targetHandle`): an
+edge wired node-to-node binds nothing at compile time while looking
+connected — the exact wire a hand-authored graph replacement guesses.
+Declaration edges (the tree's `role: 'type'` wires) are node-to-node by
+design and stay exempt
 (`graphIntegrityProblems` from the
 [processes package](../../../packages/processes/README.md)) — while
 semantic validity stays the validator's job, so drafts may fail
@@ -333,6 +338,21 @@ silently: a declaration the registry refuses, or field records whose
 named cause (`draft overlay: <type> skipped: <reason>` / `… field
 record(s) matched no class typeId`) — the failure names its cause and
 the next action instead of a wall.
+
+`applyTreeDeclarations(id, auth)` is the designer Apply's declaration
+step as a service entry (the agent tool `apply_declarations`): it
+compiles the draft's in-tree declaration tree and posts each
+declaration through the cts-types `defineType` boundary — the same
+posts the designer's APPLY makes client-side before activating. The
+law it closes: **validation overlays the draft's own declarations, but
+the activation compile resolves types against the registry** — an
+in-tree-declared draft validates green and still fails activation with
+`unknown entity type` until its declarations are applied (live defect
+2026-10-17: the tool catalog taught the declaration gestures with no
+way to post them, so every agent-authored in-tree definition died at
+activate). A refused declaration (breaking type diff without covering
+migrate steps, SPEC §11) returns as a structured per-type failure;
+successful posts are idempotent re-posts.
 
 Process definitions never store role identities or user assignments. Their
 `data.roleGrants` record maps stable organization role ids to process-owned base
