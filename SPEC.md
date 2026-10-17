@@ -722,11 +722,46 @@ schema, both executor harnesses, and the perigram-plugin CLI — and publishes
 through the operator publish API. An MCP server over the SDK is optional
 later; the SDK and the API are the contract.
 
-The user-facing word is "Plugins". Mounted domain packs (the facade pack and
-its dependencies) are managed per organization from the Plugins section:
-enabled by default, removable under the same drain law as plugin uninstall,
-re-installable — the management plane the extraction lands in while the pack's
-code moves out from underneath.
+Owner decision (2026-10-17): one plugin space. Everything installable is a
+marketplace listing under one contract — the remaining mounted packs
+(documents, tech-drawing) migrate to plugins and the pack mount retires
+whole; no third "mounted" plane survives beside installs. The informal kinds
+differ only in listing data: a private plugin is a listing the operator
+publishes with org-scoped visibility (the catalog stays platform-published —
+orgs remain consumers), and a self-hosted one is any listing whose executor
+the org runs itself, claim mode or an endpoint it configures. The catalog
+route serves a private listing only to its owning organizations; install,
+upgrade, and uninstall are the same gated path for every listing.
+
+Storage and deployment follow the same law. The marketplace deploys as part
+of the app — no separate service: the catalog is platform-side data, seeded
+with the built-in listings as a deploy step so a fresh environment
+self-contains its default installs. Plugins gain no platform-side artifact
+store: the listing is versioned in the plugin's repository (git history is
+the version store), the catalog and install snapshots serve declarations,
+and an executor ships as a container image in a registry, deployed as a
+long-running service the platform calls or that polls it. The platform
+stores declarations, never plugin code.
+
+The pack retirement is dependency-ordered. `requires` chains
+plugin-on-plugin (the install and upgrade gates treat a required plugin id
+as satisfied by an install, not only a mounted pack); starter constructs
+ride listing declarations and compose through the default installs,
+replacing the pack-side starter-construct seam; tech-drawing becomes a
+declarations-only listing — no services, no executor, its types riding the
+generic instance machinery; documents becomes an executor-backed plugin:
+`documents.csvText` externalizes as a pure value service, the rows/cells
+payload decompositions externalize as pure computes over the record's own
+payload value (the DXF-extraction precedent), and its editor bindings ship
+as plugin surfaces. After both migrations the pack machinery deletes — the
+registry's pack mounts, the pack composition seams, and the pack enablement
+records — leaving installs the only management plane.
+
+The user-facing word is "Plugins". Mounted domain packs (documents and
+tech-drawing, the facade plugin's requirements) are managed per organization
+from the Plugins section: enabled by default, removable under the same drain
+law as plugin uninstall, re-installable — the transitional management plane
+until the packs retire into listings (owner decision 2026-10-17).
 
 ## Exports are declarations (owner direction 2026-10-14)
 
