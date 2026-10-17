@@ -135,6 +135,27 @@ authoring happens only inside a cassette design session.
 - [ ] WAITING — owner verification on the live stack: save a profile to
   the library from one cassette, pick it into another.
 
+### Agent Notes (2026-10-17 — designer UX round, owner directions)
+
+- Cassette load: the dock's open popover lists cassettes as thumbnail
+  rows (baked `layerData`/`polygonParts` through the drawing-preview
+  normalizer; quiet box placeholder for payload-only records) — same
+  visual language as the profile picker; `InstanceSelect` (legacy
+  `identity`-keyed) dropped from the surface.
+- Layers panel: rows carry the production name + pen swatch only; the
+  raw-code Tag is gone (aligns with the export-name law — bare codes
+  never surface) and the swatch is a fixed-height line sample instead
+  of the class/inline-height mismatch.
+- OCCS preview removed: dock item, read-only JSON dialog, `occsJson`
+  computed, and the `occsDraft` locale keys (en+ru). The OCCS document
+  builder itself stays — it is the save payload path.
+- Workpieces panel: rows carry type icons (workpiece/hardware glyphs
+  from the ck font, wave-pulse for profiles) tinted with the workpiece
+  hue instead of colored dots; the per-row action cluster (add related,
+  attach, edit profile, delete) renders on the selected row only.
+- Folded 3D: the strip gains an expand button opening the same preview
+  mount full-size in a dialog (70vh), selection/isolation state shared.
+
 ### Agent Notes (2026-10-17 — affordance icons, owner direction)
 
 - Owner supplied `bolt.svg` into the cnc-domain sources; compiled via

@@ -280,10 +280,11 @@ modules — no platform imports.
   mode — bare codes never surface; `standardCode` carries the matching key.
   The designer's layer panel lists the FULL standards registry (every layer
   of the old standard, present in the drawing or not) through
-  `cassetteV2LayerPanelRows`: each row carries the production name, the
-  language-neutral code, and the standard pen; only layers the drawing
-  carries get live visibility toggles, and the drawing's non-standard layers
-  (designer-only helpers) follow after the registry rows.
+  `cassetteV2LayerPanelRows`: each row carries the production name and the
+  standard pen swatch — bare codes never surface here either; only layers
+  the drawing carries get live visibility toggles, and the drawing's
+  non-standard layers (designer-only helpers) follow after the registry
+  rows.
 - Cassette Designer v2 emits a `code.cassette_mark` text entity for the
   bottom-left of each sheet workpiece's main/root face. The resolved text uses
   the cassette template name, template id, and one-based workpiece number; the
@@ -302,7 +303,9 @@ modules — no platform imports.
   per-face paths.
 - `folded-3d.js` prepares canonical folded preview payloads for the Three.js
   preview component, including optional non-sheet hardware body descriptors.
-  Profile workpieces carry no geometry of their own (owner law 2026-10-15):
+  The designer mounts the preview as a bottom strip of the workpieces panel,
+  expandable into a popup dialog (same mount, shared selection/isolation
+  state). Profile workpieces carry no geometry of their own (owner law 2026-10-15):
   they modify face geometry, and the folded 3D rides the MODIFIED faces —
   the folded-preview curve set runs the same profile pass as the 2D drawing
   (open-profile chains splice into the local boundary, closed sections and
