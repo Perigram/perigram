@@ -557,13 +557,15 @@ flex-column parent), the failure as a severity-error `Message`
 beneath it. The
 pre-step presence is not this block's: the assistant rides the chat's
 typing line (the host owns that indicator) until the run has anything
-to show. The `pt` adds only what tokens cannot express: the caption-size
-label, the +/− svg (`.p-icon` pins 1rem), the chronology's tighter
-root, and the collapsed state — tracked through the toggle event
-beside Fieldset's internal one — which strips the box entirely, a
-collapsed disclosure reading as a quiet caption line. Compact
-geometry (legend padding/gap, root insets) lives in the PrimeVue
-tokens and applies to every Fieldset. Rendered both for a live run and
+to show. The `pt` adds only what tokens cannot express: the caption-size,
+regular-weight label (matching the tool Tags), the +/− svg (`.p-icon`
+pins 1rem), the chronology's tighter root, and the collapsed state —
+tracked through the toggle event beside Fieldset's internal one —
+which drops the box's border while the legend strip keeps its filled
+surface and its exact horizontal position, so a collapsed disclosure
+reads as kin to the Tags and nothing shifts. Compact geometry (legend
+padding/gap, root insets) lives in the PrimeVue tokens and applies to
+every Fieldset. Rendered both for a live run and
 for the `agent` provenance persisted on a bot's reply; both sites start
 open, so the chronology stays visible with the answer (the collapsed
 state is the user's own toggling). The answer is never rendered here:
