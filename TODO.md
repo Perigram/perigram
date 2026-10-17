@@ -213,6 +213,15 @@ glyph in the brand accent across chat surfaces (SPEC: agent access).
   fight alignment, markdown flow, and swipe affordances (owner left
   the call to the agent).
 
+### Agent Notes (2026-10-17 — tool surfaces and the pending pulse)
+
+- Owner direction: tool calls wrap into bordered Fieldset surfaces
+  matching the thinking box — non-toggleable, legend carries the muted
+  status icon + technical name, content carries the failure `Message`.
+  The pending spinner is replaced by three pulsing PrimeVue `Skeleton`
+  dots inside a "thinking" disclosure (animated, raw PrimeVue, and off
+  the human typing line per SPEC).
+
 ### Agent Notes (2026-10-17 — chronology icon/legend pass)
 
 - Owner pass: the Fieldset legend keeps Aura's background (the earlier

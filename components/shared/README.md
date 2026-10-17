@@ -548,18 +548,21 @@ Keep person identity displays on this chip; keep entity refs on
 `InstanceInlineRef`.
 
 ### `AgentActivity.vue`
-An agent run's visible work as one quiet chronology: per-round model
-reasoning in collapsible `Fieldset` disclosures and one caption row per
-tool invocation — muted status icon, technical-voice name, a failed
-tool's error as a severity-error `Message`. The `pt` compacts the
-Fieldset on the elements that carry Aura's sizing: the toggle button
-(the legend itself is zeroed for toggleable fieldsets), the label's
-caption voice, and the +/− svg (`.p-icon` pins 1rem). Rendered both
-for a live run and for the `agent` provenance persisted on a bot's
-reply; both sites start open, so the chronology stays visible with the
-answer (the collapsed state is the user's own toggling). The live run
-shows a spinner-only pending state before the first token. The answer
-is never rendered here: it is the message body at both sites.
+An agent run's visible work as one chronology of bordered Fieldset
+surfaces: per-round model reasoning in collapsible disclosures and one
+non-toggleable surface per tool invocation — muted status icon and
+technical-voice name in the legend, the failure as a severity-error
+`Message` in the content. The live run's pending state (before the
+first step) is a "thinking" disclosure pulsing three PrimeVue `Skeleton`
+dots — an animated presence that stays off the human typing line. The
+`pt` compacts every surface on the elements that carry Aura's sizing:
+the toggle button for toggleable boxes (the legend itself is zeroed),
+the legend for the non-toggleable ones, the label's caption voice, and
+the +/− svg (`.p-icon` pins 1rem). Rendered both for a live run and
+for the `agent` provenance persisted on a bot's reply; both sites
+start open, so the chronology stays visible with the answer (the
+collapsed state is the user's own toggling). The answer is never
+rendered here: it is the message body at both sites.
 
 ### `AiAvatar.vue`
 The AI identity face: the microchip PrimeIcon in the brand accent on
