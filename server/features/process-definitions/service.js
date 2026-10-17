@@ -1449,7 +1449,12 @@ function pickMutationData(data = {}, action = {}, entities = {}) {
   const picked = {};
   for (const field of fields) {
     const relationKey = field.startsWith('relations.') ? field.slice('relations.'.length) : '';
+    // Callers address a field by its socket spelling (`fields.done`), the
+    // bare row path (`done`), or a flat dotted key — all one field; the
+    // first present spelling wins and `false` travels as false.
     const value = getByPath(data, field)
+      ?? (Object.hasOwn(data, field) ? data[field] : undefined)
+      ?? (field.startsWith('fields.') ? getByPath(data, field.slice('fields.'.length)) : undefined)
       ?? (relationKey ? (entities[`relation:${relationKey}`] ?? entities[relationKey]) : undefined);
     if (value !== undefined) setByPath(picked, field, value);
   }
@@ -2037,8 +2042,28 @@ function relationInputValue(supplied) {
   return entityInputId(supplied);
 }
 
-function processBlockInputChanges(record = {}, inputs = {}, schemas = null) {
-  const fieldSchemas = schemas || getEntityFieldSchemas(record.typeId);
+// Field sockets spell row paths as `fields.<path>` (the catalog's socket
+// vocabulary — inputDefaults, compiled mutation.fields, the manifest's
+// input policy); the row/schema layer and stored patches speak the bare
+// path. One spelling per concern, but both ADDRESS the same field: the
+// effect boundary accepts either, so a wired-or-prompted `fields.done`
+// writes row `done` (owner defect 2026-10-17: the socket spelling was
+// dropped silently and mutate actions became no-ops).
+function normalizeFieldSocketInputs(inputs = {}, schemas = []) {
+    if (!inputs || typeof inputs !== 'object' || !Array.isArray(schemas)) return inputs;
+    let mapped = null;
+    for (const schema of schemas) {
+        if (!schema?.path || schema.path.startsWith('fields.')) continue;
+        const socket = `fields.${schema.path}`;
+        if (!Object.hasOwn(inputs, socket) || Object.hasOwn(inputs, schema.path)) continue;
+        if (!mapped) mapped = { ...inputs };
+        mapped[schema.path] = mapped[socket];
+        delete mapped[socket];
+    }
+    return mapped || inputs;
+}
+
+function processBlockInputChanges(record = {}, inputs = {}, schemas = null) {  const fieldSchemas = schemas || getEntityFieldSchemas(record.typeId);
   const changes = [];
   // v5 leaf field inputs arrive keyed by their full schema path (the
   // cts.mutate field sockets): a wired or prompted leaf writes exactly
