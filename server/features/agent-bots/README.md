@@ -49,7 +49,11 @@ Three pieces share one tool catalog:
   vocabulary
   ([cts-types](../cts-types/README.md)), instance reads through the
   registry-resolved instance services (party types included, CTS SPEC §13),
-  and compiled action listing/execution. `get_process_definition` serves a
+  and compiled action listing/execution. The action manifest is LIVE per
+  call — the manifest tools re-resolve the delegated principal's current
+  assignments, so process vocabulary activated mid-run is runnable in the
+  same run, exactly as a human's next request would see it.
+  `get_process_definition` serves a
   compact digest by default (node ids/kinds/typeIds, edges with socket
   ids, value-input keys); the full authored document only on `full: true`.
   The definition tools move

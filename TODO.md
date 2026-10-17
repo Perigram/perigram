@@ -78,6 +78,20 @@ and connection tests (SPEC: agent access).
   fields, connect's id-is-the-from-node, and the per-kind socket table
   (`detail:'sockets'`, served off the catalog's own port resolution).
 
+### Agent Notes (2026-10-17 — live action manifest)
+
+- Live-session defect (staging): the agent authored an update action,
+  activated it, and every `run_action` failed "not available to the
+  current process role" while `list_actions` kept showing the run-start
+  snapshot. Cause: the chat runtime builds the delegated principal's
+  auth once per run, and both manifest tools read
+  `auth.roleAssignments.actions` — mid-run activations cannot enter a
+  snapshot frozen before them.
+- Fix: `list_actions`/`run_action` re-resolve the principal
+  (`buildPrincipalAuth`) per call — the manifest surface is live; a
+  failed re-resolution falls back to the snapshot. Also hardened the
+  result-size guard against undefined tool results.
+
 ## Chats rail header: archive, search, one + (owner direction 2026-10-16)
 
 Every conversation start moves into one + control (person chat, group,
