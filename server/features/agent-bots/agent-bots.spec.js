@@ -790,6 +790,8 @@ describe('ask_user — suspended questions', () => {
         expect(JSON.parse(toolMessage.content)).toEqual({ answer: 'legacy' });
         // The coalesced trailing run (the capability-less message) follows.
         await vi.waitFor(() => expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(2));
+        // Drain the trailing run before the next suite inherits its mocks.
+        await new Promise(resolve => setTimeout(resolve, 30));
     });
 
     it('stop ends the question with the run and stays silent', async () => {
@@ -814,5 +816,48 @@ describe('ask_user — suspended questions', () => {
         );
         // A later message in the room takes the normal path again.
         expect(mockedOrganizations.canUseAgentChats).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('identical-call loop protection', () => {
+    const context = { kind: 'direct', conversationKey: `direct:${HUMAN}:${ASSISTANT}`, participants: [HUMAN, ASSISTANT] };
+    const message = { sender: 'user', senderUserId: HUMAN, participants: [HUMAN, ASSISTANT], conversationKey: context.conversationKey };
+    const target = { assistantId: ASSISTANT, roomKey: context.conversationKey, profile: '', model: '', organizationId: '' };
+
+    it('blocks a third identical call and lets a changed one through', async () => {
+        const failingCall = { id: 'c0', name: 'edit_process_definition', arguments: { definitionId: 'd1', steps: [{ op: 'connect' }] } };
+        const rounds = [
+            { content: '', toolCalls: [failingCall] },
+            { content: '', toolCalls: [{ ...failingCall, id: 'c1' }] },
+            { content: '', toolCalls: [{ ...failingCall, id: 'c2' }] },
+            { content: '', toolCalls: [{ id: 'c3', name: 'edit_process_definition', arguments: { definitionId: 'd1', steps: [{ op: 'drop' }] } }] },
+            { content: 'recovered', toolCalls: [] }
+        ];
+        mockedLlm.chatCompletion.mockImplementation(async () => rounds.shift());
+        // Earlier suites may have left one-shot stream implementations
+        // queued; this test owns the whole stream.
+        mockedLlm.streamChatCompletion.mockReset();
+        mockedLlm.streamChatCompletion.mockImplementation(async function* (args) {
+            const message = await mockedLlm.chatCompletion(args);
+            yield { type: 'message', content: message?.content || '', thinking: '', toolCalls: message?.toolCalls || [] };
+        });
+        mockedTools.executeTool.mockRejectedValue(new Error('Unknown port'));
+        await runAssistantReply(target, context, message);
+        // The two first identical attempts executed; the third was blocked
+        // before execution with the repetition notice as its tool result.
+        const editCalls = mockedTools.executeTool.mock.calls.filter(call => call[0] === 'edit_process_definition');
+        expect(editCalls.map(call => JSON.stringify(call[1]))).toEqual([
+            '{"definitionId":"d1","steps":[{"op":"connect"}]}',
+            '{"definitionId":"d1","steps":[{"op":"connect"}]}',
+            '{"definitionId":"d1","steps":[{"op":"drop"}]}'
+        ]);
+        const toolMessages = mockedLlm.chatCompletion.mock.calls
+            .flatMap(call => call[0].messages || [])
+            .filter(entry => entry.role === 'tool' && entry.toolCallId === 'c2');
+        expect(JSON.parse(toolMessages.at(-1).content).error).toMatch(/already made and failed twice/);
+        const sent = mockedSupport.sendUserMessage.mock.calls.at(-1)[1];
+        expect(sent.message).toBe('recovered');
+        // The blocked step rides the chronology as a marked failure.
+        expect(sent.agent.steps.some(step => step.kind === 'tool' && step.status === 'error' && /failed twice/.test(step.error))).toBe(true);
     });
 });

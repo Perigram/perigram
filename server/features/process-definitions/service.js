@@ -2207,7 +2207,15 @@ const STEP_REQUIRED_FIELDS = {
   connect: ['id', 'fromPort', 'to', 'toPort']
 };
 
-function applyAuthoringSteps(authoring, steps = []) {
+const DECLARATION_STEP_OPS = new Set(['declareClass', 'declareTypeRef', 'declareField', 'wireDeclaration']);
+
+/**
+ * The headless step runner shared by compose and edit (exported for the
+ * seam specs): applies gestures in order, re-seating the session onto
+ * the draft-overlay domain after every declaration step so the tree's
+ * own declarations resolve as ports immediately.
+ */
+export function applyAuthoringSteps(authoring, steps = [], domain = null) {
   const list = Array.isArray(steps) ? steps : [];
   for (const [index, step] of list.entries()) {
     const op = String(step?.op || '');
@@ -2240,6 +2248,15 @@ function applyAuthoringSteps(authoring, steps = []) {
     } catch (error) {
       throw createError({ statusCode: 400, message: `Step ${index + 1} (${op}) failed: ${error?.message || error}` });
     }
+    // Declaration steps re-seat the seam onto the draft-overlay domain:
+    // the tree's own declarations become ports immediately, so a field
+    // declares and wires in ONE session — no intermediate apply (the
+    // draft-overlay rule the acceptance adapter already follows; live
+    // defect 2026-10-17: an unapplied field's connect was refused with
+    // `Unknown port` until activation posted it).
+    if (domain && DECLARATION_STEP_OPS.has(op)) {
+      authoring.withDomain(declarationOverlayDomain(authoring.definition(), domain));
+    }
   }
 }
 
@@ -2254,7 +2271,7 @@ export async function composeDefinition({ name = '', steps = [] } = {}, auth) {
   await assertOrgAccess(auth, organizationId, 'write');
   const domain = await getProjectedDomain(organizationId);
   const authoring = createDefinitionAuthoring(domain);
-  applyAuthoringSteps(authoring, steps);
+  applyAuthoringSteps(authoring, steps, domain);
   return await create({ name, data: authoring.definition() }, auth);
 }
 
@@ -2273,7 +2290,12 @@ export async function editDefinition({ definitionId = '', steps = [] } = {}, aut
   await assertOrgAccess(auth, organizationId, 'write');
   const domain = await getProjectedDomain(organizationId);
   const authoring = createDefinitionAuthoring(domain, null, stored?.data || null);
-  applyAuthoringSteps(authoring, steps);
+  // Stored-but-unapplied declarations resolve as ports from the first
+  // step: the seam starts on the draft-overlay domain, not the raw
+  // projection (an edited-in-a-later-session field wired the same wall
+  // otherwise).
+  authoring.withDomain(declarationOverlayDomain(stored?.data || {}, domain));
+  applyAuthoringSteps(authoring, steps, domain);
   const data = authoring.definition();
   for (const key of ['history', 'activated']) {
     if (stored?.data?.[key] !== undefined) data[key] = stored.data[key];

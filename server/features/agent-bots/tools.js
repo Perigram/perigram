@@ -77,6 +77,7 @@ const AUTHORING_GUIDE = [
     "- {op:'configure', id, values} — inspector writes (typeId, construction, access...);",
     "- lanes are role grants: an effect's lane IS its access — configure {access:{grants:[{roleId,level}]}}, levels read/write/admin, roleIds from the roles list in this payload; grantless effects land in the implicit lane;",
     "- {op:'setInputDefault', id, input, value} — literal value on an input socket (input = bare socket id);",
+    "- a declared field's port exists in the SAME session once wireDeclaration lands (fields.* on construct/mutate nodes) — never hand-edit construction.inputs, it is an authoring-time snapshot that derives from the class's declared fields;",
     "- {op:'connect', id, fromPort, to, toPort} — id is the FROM node; ports are bare socket ids or 'data:<socketId>' handles; both work.",
     'The first illegal gesture fails with the gate message — read it, fix, retry.',
     '3. validate_process_definition: its anchored diagnostics name exactly what to fix.',
