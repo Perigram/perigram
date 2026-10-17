@@ -1,19 +1,21 @@
 // Layered arrangement for the process canvas — the Tidy command's
 // engine ("Auto-arrangement (Tidy)" and "Lanes"). Pure: nodes, edges,
 // lane band membership in → positions plus content-hugging band
-// geometry out. x = column (longest-path layering + pull-up). Within
-// each lane×column cell, barycenter sweeps over wired neighbors pick
-// the row order; y = row pitch, then a median polish whose clamps keep
-// the in-cell order and the lane bounds. Deterministic and idempotent:
+// geometry out. x = column (condensation layering: mutual pairs share
+// a column; columns pack by their widest card). Within each lane×column
+// cell, barycenter sweeps over wired neighbors pick the row order; y =
+// lane row pitch, then a same-lane median polish whose clamps keep the
+// in-cell order and the lane bounds. Deterministic and idempotent:
 // running it over its own output moves nothing.
-const COLUMN_PITCH = 420;
-const LANE_ROW_HEIGHT = 170;
+const COLUMN_SNAP = 420;
 const LANE_INSET = 24;
 const LANE_MIN_HEIGHT = 150;
 const LANE_PADDING = 24;
 const COLUMN_GAP = 16;
 const PROCESS_CARD_HEIGHT = 140;
 const DECLARATION_CARD_HEIGHT = 96;
+const PROCESS_CARD_WIDTH = 180;
+const DECLARATION_CARD_WIDTH = 200;
 const ORDER_SWEEPS = 8;
 const POLISH_PASSES = 24;
 const POLISH_EPSILON = 0.5;
@@ -25,6 +27,11 @@ function isDeclaration(node) {
 function cardHeightOf(node) {
   if (node?.dimensions?.height) return node.dimensions.height;
   return isDeclaration(node) ? DECLARATION_CARD_HEIGHT : PROCESS_CARD_HEIGHT;
+}
+
+function cardWidthOf(node) {
+  if (node?.dimensions?.width) return node.dimensions.width;
+  return isDeclaration(node) ? DECLARATION_CARD_WIDTH : PROCESS_CARD_WIDTH;
 }
 
 function medianOf(values) {
@@ -51,37 +58,106 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     predecessors.get(edge.target).push(edge.source);
   }
 
-  // x = column: longest-path layering over flow edges. A predecessor on
-  // the current DFS path is a transient authoring cycle — it does not
-  // advance the layer, so the pass terminates on cyclic drafts.
-  const layer = new Map();
-  const visiting = new Set();
-  const depth = id => {
-    if (layer.has(id)) return layer.get(id);
-    visiting.add(id);
-    let value = 0;
-    for (const pred of predecessors.get(id) || []) {
-      if (visiting.has(pred)) continue;
-      value = Math.max(value, depth(pred) + 1);
+  // x = column: longest-path layering over the condensation of the flow
+  // edges — a strongly connected component (an authoring loop, a
+  // forEach pair) shares one column, so a back edge spans one arc.
+  const sccOf = new Map();
+  {
+    let index = 0;
+    const indices = new Map();
+    const low = new Map();
+    const onStack = new Set();
+    const stack = [];
+    const strongConnect = id => {
+      indices.set(id, index);
+      low.set(id, index);
+      index += 1;
+      stack.push(id);
+      onStack.add(id);
+      for (const next of successors.get(id) || []) {
+        if (!indices.has(next)) {
+          strongConnect(next);
+          low.set(id, Math.min(low.get(id), low.get(next)));
+        } else if (onStack.has(next)) {
+          low.set(id, Math.min(low.get(id), indices.get(next)));
+        }
+      }
+      if (low.get(id) === indices.get(id)) {
+        for (;;) {
+          const member = stack.pop();
+          onStack.delete(member);
+          sccOf.set(member, id);
+          if (member === id) break;
+        }
+      }
+    };
+    for (const node of nodes) {
+      if (!isDeclaration(node) && !indices.has(node.id)) strongConnect(node.id);
     }
-    visiting.delete(id);
-    layer.set(id, value);
+  }
+  const compPreds = new Map();
+  const compSuccs = new Map();
+  for (const edge of processEdges) {
+    const from = sccOf.get(edge.source);
+    const to = sccOf.get(edge.target);
+    if (from === to) continue;
+    if (!compPreds.has(to)) compPreds.set(to, []);
+    if (!compPreds.get(to).includes(from)) compPreds.get(to).push(from);
+    if (!compSuccs.has(from)) compSuccs.set(from, []);
+    if (!compSuccs.get(from).includes(to)) compSuccs.get(from).push(to);
+  }
+  const compLayer = new Map();
+  const compDepth = component => {
+    if (compLayer.has(component)) return compLayer.get(component);
+    let value = 0;
+    for (const pred of compPreds.get(component) || []) {
+      value = Math.max(value, compDepth(pred) + 1);
+    }
+    compLayer.set(component, value);
     return value;
   };
-  for (const node of nodes) if (!isDeclaration(node)) depth(node.id);
-
-  // Pull pred-less nodes toward their first consumer: longest-path
-  // layering strands a fresh source at the leftmost column even when its
-  // only consumer sits far right. A pred-less node never depends on
-  // another node's layer, so one pass settles every pull.
-  for (const node of nodes) {
-    if (isDeclaration(node)) continue;
-    const id = node.id;
-    if ((predecessors.get(id) || []).length) continue;
-    const successorLayers = (successors.get(id) || []).map(next => layer.get(next));
-    if (!successorLayers.length) continue;
-    const cap = Math.min(...successorLayers) - 1;
-    if (cap > layer.get(id)) layer.set(id, cap);
+  for (const component of new Set([...sccOf.values()])) compDepth(component);
+  // A pred-less component pulls up to the column before its first
+  // consumer, so a fresh source strands beside what consumes it.
+  for (const component of compLayer.keys()) {
+    if ((compPreds.get(component) || []).length) continue;
+    const consumerLayers = (compSuccs.get(component) || []).map(next => compLayer.get(next));
+    if (!consumerLayers.length) continue;
+    const cap = Math.min(...consumerLayers) - 1;
+    if (cap > compLayer.get(component)) compLayer.set(component, cap);
+  }
+  const layer = new Map();
+  {
+    const compMembers = new Map();
+    for (const [id, component] of sccOf) {
+      if (!compMembers.has(component)) compMembers.set(component, []);
+      compMembers.get(component).push(id);
+    }
+    for (const [component, members] of compMembers) {
+      // A pair (a mutual wire, a forEach closer) is one visual unit on
+      // one column; a larger cycle layers internally with its closing
+      // edge as the one backward span.
+      if (members.length <= 2) {
+        for (const id of members) layer.set(id, compLayer.get(component));
+        continue;
+      }
+      const memberSet = new Set(members);
+      const inner = new Map();
+      const visiting = new Set();
+      const innerDepth = id => {
+        if (inner.has(id)) return inner.get(id);
+        visiting.add(id);
+        let value = 0;
+        for (const pred of predecessors.get(id) || []) {
+          if (!memberSet.has(pred) || visiting.has(pred)) continue;
+          value = Math.max(value, innerDepth(pred) + 1);
+        }
+        visiting.delete(id);
+        inner.set(id, value);
+        return value;
+      };
+      for (const id of members) layer.set(id, compLayer.get(component) + innerDepth(id));
+    }
   }
 
   // Declarations anchor one column left of the nearest process node their
@@ -126,7 +202,7 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     // per-column separation owns it like every other card.
     columns.set(node.id, anchor
       ? layer.get(anchor) - 1
-      : Math.round((node.position?.x || 0) / COLUMN_PITCH));
+      : Math.round((node.position?.x || 0) / COLUMN_SNAP));
   }
 
   // Band assignment: effects by grant; secondaries and declarations by
@@ -267,11 +343,19 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     }
   }
 
-  // Row stacking: row index is shared across a band's cells, so a
-  // horizontal chain sits on one row.
+  // Row stacking: a lane's cells share row indices; the lane's row
+  // pitch is its tallest card plus the gap.
+  const bandPitch = new Map(bands.map(band => [band.id, PROCESS_CARD_HEIGHT + COLUMN_GAP]));
+  for (const node of nodes) {
+    const band = bandOf.get(node.id);
+    if (band && cellFor.has(node.id)) {
+      bandPitch.set(band.id, Math.max(bandPitch.get(band.id), cardHeightOf(node) + COLUMN_GAP));
+    }
+  }
   const y = new Map();
   for (const cell of cells) {
-    cell.forEach((node, index) => y.set(node.id, LANE_INSET + index * LANE_ROW_HEIGHT));
+    const pitch = bandPitch.get(bandOf.get(cell[0].id).id);
+    cell.forEach((node, index) => y.set(node.id, LANE_INSET + index * pitch));
   }
 
   const bandGeometry = () => {
@@ -297,9 +381,11 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
   let { tops } = bandGeometry();
   let bandHeights = new Map(bandGeometry().geometry.map(band => [band.id, band.height]));
 
-  // Median polish: each card moves toward its wired neighbors' median,
-  // clamped below its in-cell predecessor and inside its band — the
-  // clamps are the overlap and lane laws, so any exit state is legal.
+  // Median polish: each card moves toward the median of its wired
+  // SAME-LANE neighbors (cross-lane medians chase the lane below and
+  // inflate the stack), clamped below its in-cell predecessor and
+  // inside its band — those two clamps are the no-overlap and
+  // lane-containment laws.
   const inCellAbove = id => {
     const index = order.get(id);
     return index > 0 ? cellFor.get(id)[index - 1] : null;
@@ -313,14 +399,13 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     for (const id of polishOrder) {
       const band = bandOf.get(id);
       const target = medianOf((neighbors.get(id) || [])
-        .filter(other => y.has(other))
-        .map(other => tops.get(bandOf.get(other).id) + y.get(other)));
+        .filter(other => y.has(other) && bandOf.get(other)?.id === band.id)
+        .map(other => y.get(other)));
       if (target === null) continue;
       const above = inCellAbove(id);
       const min = above ? y.get(above.id) + cardHeightOf(byId.get(above.id)) + COLUMN_GAP : LANE_INSET;
       const max = Math.max(min, tops.get(band.id) + bandHeights.get(band.id) - LANE_INSET - cardHeightOf(byId.get(id)));
-      const relative = target - tops.get(band.id);
-      const next = Math.round(Math.min(max, Math.max(min, relative)));
+      const next = Math.round(Math.min(max, Math.max(min, target)));
       moved += Math.abs(next - y.get(id));
       y.set(id, next);
     }
@@ -330,10 +415,21 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     if (moved < POLISH_EPSILON) break;
   }
 
-  // Column normalization: declarations may sit one column left of the
-  // flow sources — shift so the leftmost column starts at x = 0.
-  let shift = 0;
-  for (const column of columns.values()) if (column + shift < 0) shift = -column;
+  // Columns pack by their widest card: neighbors sit one card width
+  // plus the gap apart, whatever the card sizes are.
+  const usedColumns = [...new Set([...columns.values()])].sort((left, right) => left - right);
+  const columnWidth = new Map(usedColumns.map(column => [column, 0]));
+  for (const node of nodes) {
+    const column = columns.get(node.id);
+    if (column === undefined) continue;
+    columnWidth.set(column, Math.max(columnWidth.get(column), cardWidthOf(node)));
+  }
+  const columnStart = new Map();
+  let columnX = 0;
+  for (const column of usedColumns) {
+    columnStart.set(column, columnX);
+    columnX += columnWidth.get(column) + COLUMN_GAP;
+  }
 
   const arranged = new Map();
   for (const node of nodes) {
@@ -341,7 +437,7 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     const band = bandOf.get(node.id);
     const absolute = band ? tops.get(band.id) + y.get(node.id) : y.get(node.id);
     arranged.set(node.id, {
-      x: Math.round((columns.get(node.id) + shift) * COLUMN_PITCH),
+      x: Math.round(columnStart.get(columns.get(node.id))),
       y: Math.round(absolute)
     });
   }
