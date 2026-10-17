@@ -48,9 +48,10 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, ref } from 'vue';
 import Button from 'primevue/button';
-import CallPanel from '~/components/calls/CallPanel.vue';
+// The panel chunk loads only when a floating room actually exists.
+const CallPanel = defineAsyncComponent(() => import('~/components/calls/CallPanel.vue'));
 import { useI18n } from 'vue-i18n';
 import { useCallsStore } from '~/stores/calls';
 import { useAuthStore } from '~/stores/auth';

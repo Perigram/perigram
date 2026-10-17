@@ -386,6 +386,8 @@ export default defineNuxtConfig({
 
     experimental: {
         payloadExtraction: false,
+        // Enables hydrate-on-* strategy props on Lazy components; opt-in per surface.
+        lazyHydration: true,
     },
 
     build: {

@@ -181,7 +181,7 @@
 </template>
 
 <script setup>
-    import { ref, computed, provide, watch, onMounted, onUnmounted } from 'vue'
+    import { ref, computed, provide, watch, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
     import { useRouter, useRoute } from 'vue-router'
     import { useI18n } from 'vue-i18n'
     import Button from 'primevue/button'
@@ -194,13 +194,14 @@
     import Tab from 'primevue/tab'
     import ChatSupportDialog from '~/components/shared/ChatSupportDialog.vue';
     import EntityPopup from '~/components/shared/EntityPopup.vue'
-    import ChatSupport from '~/components/ChatSupport.vue'
     import UserAccountMenu from '~/components/shared/UserAccountMenu.vue'
-    import ProfileSettingsDialog from '~/components/shared/ProfileSettingsDialog.vue'
     import OfflineOutboxBadge from '~/components/shared/OfflineOutboxBadge.vue'
     import IncomingCalls from '~/components/calls/IncomingCalls.vue'
-    import CallFloatingWindow from '~/components/calls/CallFloatingWindow.vue'
-    import MediaDock from '~/components/media/MediaDock.vue'
+    // Heavy shell surfaces load as async chunks instead of entry-chunk weight.
+    const ChatSupport = defineAsyncComponent(() => import('~/components/ChatSupport.vue'))
+    const ProfileSettingsDialog = defineAsyncComponent(() => import('~/components/shared/ProfileSettingsDialog.vue'))
+    const CallFloatingWindow = defineAsyncComponent(() => import('~/components/calls/CallFloatingWindow.vue'))
+    const MediaDock = defineAsyncComponent(() => import('~/components/media/MediaDock.vue'))
     import { useCallsStore } from '~/stores/calls'
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
