@@ -1490,7 +1490,8 @@ export default function createSurface({ vue, components, locale, queries, record
             process: workpiece.process || profile?.process || 'extruded',
             parameters: workpiece.parameters || profile?.parameters || {},
             sketch: profile?.sketch || createEmptyOccsProfileSketch(),
-            occsProfile: profile?.section ? { section: profile.section, sweep: profile.sweep, sketch: profile.sketch } : profile?.occsProfile || null
+            occsProfile: profile?.section ? { section: profile.section, sweep: profile.sweep, sketch: profile.sketch } : profile?.occsProfile || null,
+            libraryId: workpiece.profileTemplateId?.toString() || ''
           };
         } else {
           // Blank draft (owner decision 2026-10-17): the dialog opens on
@@ -1501,7 +1502,8 @@ export default function createSurface({ vue, components, locale, queries, record
             process: 'extruded',
             parameters: {},
             sketch: createEmptyOccsProfileSketch(),
-            occsProfile: null
+            occsProfile: null,
+            libraryId: ''
           };
         }
         profileDialogVisible.value = true;
@@ -1540,7 +1542,8 @@ export default function createSurface({ vue, components, locale, queries, record
           process: record?.fields?.process || 'extruded',
           parameters: { ...(sketch.parameters || {}) },
           sketch,
-          occsProfile: null
+          occsProfile: null,
+          libraryId: record?._id?.toString() || ''
         };
       };
 
@@ -1583,7 +1586,10 @@ export default function createSurface({ vue, components, locale, queries, record
           process: record?.fields?.process || 'extruded',
           parameters: { ...(sketch.parameters || {}) },
           occsProfile,
-          sketch
+          sketch,
+          // Library provenance: edits stay local (the snapshot law), and
+          // Update library targets this record.
+          profileTemplateId: record?._id?.toString() || ''
         });
         cassetteTree.value = added.tree;
         selectWorkpiece(added.workpieceId);
@@ -1607,6 +1613,46 @@ export default function createSurface({ vue, components, locale, queries, record
           });
           if (created) profileLibraryRecords.value = [created, ...profileLibraryRecords.value];
           notify({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.savedToLibrary'), life: 2500 });
+        } catch (error) {
+          if (error?.name === 'OfflineQueuedError') {
+            notify({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+            return;
+          }
+          notify({
+            severity: 'error',
+            summary: t('common.error'),
+            detail: error?.data?.message || error?.message || t('cassette.v2.profileEditor.librarySaveFailed'),
+            life: 4000
+          });
+        }
+      };
+
+      // Editing a library-sourced profile is local (the snapshot law);
+      // Update library is the explicit rewrite of the origin record —
+      // authored truth only (kind, process, prepared sketch), the
+      // record keeps its name.
+      const updateProfileLibraryRecord = async () => {
+        const libraryId = profileDraft.value.libraryId;
+        if (!profileDraftReady.value || !libraryId) {
+          if (!profileDraftReady.value) {
+            notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
+          }
+          return;
+        }
+        const payload = profileDraftPayload();
+        try {
+          const updated = await records.update('profile', libraryId, {
+            fields: {
+              kind: payload.kind,
+              process: payload.process,
+              sketch: payload.sketch
+            }
+          });
+          if (updated) {
+            profileLibraryRecords.value = profileLibraryRecords.value.map(item =>
+              item?._id?.toString() === libraryId ? updated : item);
+          }
+          notify({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.updatedInLibrary'), life: 2500 });
         } catch (error) {
           if (error?.name === 'OfflineQueuedError') {
             notify({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
@@ -3010,15 +3056,19 @@ export default function createSurface({ vue, components, locale, queries, record
               }),
               profileLibraryAvailable.value
                 ? h(Button, {
-                  icon: 'pi pi-bookmark',
+                  icon: profileDraft.value.libraryId ? 'pi pi-cloud-upload' : 'pi pi-bookmark',
                   severity: 'secondary',
                   text: true,
                   rounded: true,
                   size: 'small',
                   disabled: !profileDraftReady.value,
-                  'aria-label': t('cassette.v2.profileEditor.saveToLibrary'),
-                  title: t('cassette.v2.profileEditor.saveToLibrary'),
-                  onClick: saveProfileDraftToLibrary
+                  'aria-label': profileDraft.value.libraryId
+                    ? t('cassette.v2.profileEditor.updateLibrary')
+                    : t('cassette.v2.profileEditor.saveToLibrary'),
+                  title: profileDraft.value.libraryId
+                    ? t('cassette.v2.profileEditor.updateLibrary')
+                    : t('cassette.v2.profileEditor.saveToLibrary'),
+                  onClick: profileDraft.value.libraryId ? updateProfileLibraryRecord : saveProfileDraftToLibrary
                 })
                 : null
             ]),

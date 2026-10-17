@@ -542,6 +542,8 @@
                 "loadFailed": "The CAD engine failed to load.",
                 "saved": "Profile template saved",
                 "savedToLibrary": "Profile saved to library",
+                "updatedInLibrary": "Library profile updated",
+                "updateLibrary": "Update library",
                 "librarySaveFailed": "Failed to save the profile to the library.",
                 "library": "Library",
                 "saveToLibrary": "Save to library",
