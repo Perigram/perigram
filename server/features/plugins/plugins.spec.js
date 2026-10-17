@@ -50,7 +50,7 @@ vi.mock('./repository.js', () => ({
 import * as repository from './repository.js';
 import * as typeStore from '../cts-types/repository.js';
 import {
-  install, installFromCatalog, uninstall, listInstalled, servicesForOrganization,
+  install, installFromCatalog, uninstall, listInstalled, listCatalog, servicesForOrganization,
   packServicesForOrganization, commandDefinitionFor, executeConnectorService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings, listPackState, enablePack, disablePack,
@@ -231,7 +231,7 @@ describe('plugin installs', () => {
   it('refuses a required pack that is not mounted or is disabled', async () => {
     repository.findCatalogByPluginId.mockResolvedValue({ ...coatingListing, requires: ['nope'] });
     await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('unknown pack nope') });
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('unknown plugin or pack nope') });
     repository.listDisabledPacks.mockResolvedValue(['tech-drawing']);
     repository.findCatalogByPluginId.mockResolvedValue({ ...coatingListing, requires: ['tech-drawing'] });
     await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
@@ -317,6 +317,67 @@ describe('plugin installs', () => {
     expect(result).toEqual({ removed: true });
     expect(repository.deleteInstall).toHaveBeenCalledWith(ORG, 'coatings');
     expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
+  });
+
+  it('refuses uninstall while another installed plugin requires it', async () => {
+    repository.findInstall.mockResolvedValue(coatingInstall);
+    repository.listInstallsByOrganization.mockResolvedValue([
+      coatingInstall,
+      { ...coatingInstall, pluginId: 'primers', requires: ['coatings'] }
+    ]);
+    await expect(uninstall({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toMatchObject({ message: expect.stringContaining('required by installed plugin primers') });
+    expect(repository.deleteInstall).not.toHaveBeenCalled();
+  });
+
+  it('refuses to retract a built-in listing', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({ pluginId: 'facade', builtin: true });
+    await expect(retractListing('facade'))
+      .rejects.toMatchObject({ message: expect.stringContaining('deployment-published') });
+    expect(repository.deleteCatalogListing).not.toHaveBeenCalled();
+  });
+
+  it('serves private catalog listings only to their owning organizations', async () => {
+    repository.listCatalog.mockResolvedValue([
+      { pluginId: 'public-one', name: 'Public', version: '1', declarations: {} },
+      { pluginId: 'private-one', name: 'Private', version: '1', visibility: 'private', organizations: [ORG], declarations: {} },
+      { pluginId: 'private-other', name: 'Private', version: '1', visibility: 'private', organizations: ['org-2'], declarations: {} }
+    ]);
+    const listings = await listCatalog({ auth: AUTH });
+    expect(listings.map(listing => listing.pluginId)).toEqual(['public-one', 'private-one']);
+  });
+
+  it('accepts a requirement satisfied by an installed plugin', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      pluginId: 'primers',
+      name: 'Primers',
+      version: '1',
+      requires: ['coatings'],
+      declarations: {
+        types: [{ id: 'primer', class: 'item', name: 'Primer', fields: { code: { base: 'string' } } }]
+      }
+    });
+    repository.listInstallsByOrganization.mockResolvedValue([coatingInstall]);
+    await install({ organizationId: ORG, pluginId: 'primers', auth: AUTH });
+    expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
+      pluginId: 'primers',
+      requires: ['coatings']
+    }));
+  });
+
+  it('refuses a requirement neither mounted nor installed', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      pluginId: 'primers',
+      name: 'Primers',
+      version: '1',
+      requires: ['no-such-thing'],
+      declarations: {
+        types: [{ id: 'primer', class: 'item', name: 'Primer', fields: { code: { base: 'string' } } }]
+      }
+    });
+    await expect(install({ organizationId: ORG, pluginId: 'primers', auth: AUTH }))
+      .rejects.toMatchObject({ message: expect.stringContaining('unknown plugin or pack no-such-thing') });
+    expect(repository.createInstall).not.toHaveBeenCalled();
   });
 
   it('lists installed plugins from the install snapshots', async () => {

@@ -99,6 +99,23 @@ describe('parseListing', () => {
       'types', 'services', 'editors', 'surfaces', 'previews', 'attachmentKinds', 'conversions', 'constructions', 'exports'
     ]);
     expect(schema.properties.requires.items.pattern).toBe('^[a-z0-9-]+$');
+    expect(schema.properties.visibility.enum).toEqual(['public', 'private']);
+  });
+
+  it('validates listing visibility and its owning organizations', () => {
+    expect(parseListing(fullListing).visibility).toBe('public');
+    const privateListing = parseListing({ ...fullListing, visibility: 'private', organizations: ['org-1'] });
+    expect(privateListing.visibility).toBe('private');
+    expect(privateListing.organizations).toEqual(['org-1']);
+    expect(normalizeListing({ ...fullListing, visibility: 'private', organizations: ['org-1'] }))
+      .toMatchObject({ visibility: 'private', organizations: ['org-1'] });
+    // A public listing carries no organizations block on the wire.
+    expect(normalizeListing(fullListing).organizations).toBeUndefined();
+    expect(() => parseListing({ ...fullListing, visibility: 'secret' })).toThrow(/visibility/);
+  });
+
+  it('refuses a plugin requiring itself', () => {
+    expect(() => parseListing({ ...fullListing, requires: ['coatings'] })).toThrow(/cannot require itself/);
   });
 
   it('validates plugin-delivered surface declarations', () => {

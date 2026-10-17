@@ -25,7 +25,13 @@
 // - `previews` — preview bindings `[{ type, surface }]`: the plugin's
 //   types whose preview slots mount the bound preview surface (one per
 //   type, the surface must be kind `preview`);
-// - `requires` — mounted pack ids the plugin's types resolve against.
+// - `requires` — pack or plugin ids the plugin's types resolve against:
+//   a requirement is satisfied by a mounted pack or an installed plugin
+//   (owner decision 2026-10-17 — plugin-on-plugin requires);
+// - `visibility` — 'public' (the default) or 'private': a private
+//   listing is served only to the organizations its `organizations` array
+//   names (org ids). The catalog stays platform-published; the operator
+//   scopes private listings (owner decision 2026-10-17).
 
 const SERVICE_REF = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 const MODULE_PATH = /^\/[a-z0-9/_-]+\.m?js$/;
@@ -43,6 +49,13 @@ export function parseListing(listing = {}) {
   const previews = (declarations.previews || []).filter(Boolean);
   const requires = Array.isArray(listing.requires) ? listing.requires.map(String) : [];
   const pluginId = String(listing.pluginId || '');
+  const visibility = listing.visibility === 'private' ? 'private' : 'public';
+  if (listing.visibility !== undefined && !['public', 'private'].includes(listing.visibility)) {
+    throw listingError(`visibility must be 'public' or 'private' (got ${JSON.stringify(listing.visibility)})`);
+  }
+  const organizations = Array.isArray(listing.organizations)
+    ? listing.organizations.map(id => String(id))
+    : [];
 
   if (!pluginId || !/^[a-z0-9-]+$/.test(pluginId)) {
     throw listingError(`pluginId must be a slug (got ${JSON.stringify(pluginId)})`);
@@ -219,11 +232,14 @@ export function parseListing(listing = {}) {
 
   for (const packId of requires) {
     if (!/^[a-z0-9-]+$/.test(packId)) {
-      throw listingError(`requires entries must be pack slugs (got ${JSON.stringify(packId)})`);
+      throw listingError(`requires entries must be pack or plugin slugs (got ${JSON.stringify(packId)})`);
+    }
+    if (packId === pluginId) {
+      throw listingError('a plugin cannot require itself');
     }
   }
 
-  return { pluginId, types, services, editors, attachmentKinds, conversions, constructions, exports: exportsList, surfaces, previews, requires };
+  return { pluginId, types, services, editors, attachmentKinds, conversions, constructions, exports: exportsList, surfaces, previews, requires, visibility, organizations };
 }
 
 // The normalized catalog document the publish API stores and installs
@@ -236,6 +252,10 @@ export function normalizeListing(listing = {}) {
     description: listing.description || '',
     version: String(listing.version || '1'),
     requires: layer.requires,
+    visibility: layer.visibility,
+    ...(layer.visibility === 'private' && layer.organizations.length
+      ? { organizations: layer.organizations }
+      : {}),
     declarations: {
       types: layer.types,
       services: layer.services,
