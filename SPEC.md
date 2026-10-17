@@ -41,6 +41,11 @@ mutating, or deleting parties through a process graph is refused, parties are
 never lineage children, and role identity / user assignment stay organization
 data.
 
+The party types carry fixed identity glyphs — the organization is the
+building mark everywhere it renders (the registry glyph declaration is
+the single home; pickers, chips, and chats read it), beside the people
+glyph group chats carry on chat surfaces.
+
 Relation entries may declare a target domain — a boolean expression over the
 target instance (role membership included) — so an assignee picker offers,
 and a write accepts, only instances inside the declared domain. One
@@ -331,14 +336,16 @@ the `artifact` entity and its overload die when chat/proof/capture/upload flows 
 ## Chat files
 
 Any file may be attached to chat messages. Images and videos preview inline
-(single items and their sets as galleries); every attachment offers a
-download. Message actions (reply, transcribe, per-attachment downloads,
-copy) live in one context menu, reachable on every viewport and for every
-message shape — right-click or long-press the message, or use the row
-action; media-only messages are never orphaned without actions. A left
-click on a message linked to an instance opens that instance's popup (the
-same entity popup the thread title opens); clicks on interactive content
-inside the message keep their own behavior. The chats rail header is
+(single items and their sets as galleries); audio keeps its native player.
+Non-media attachments render as the same chip anatomy instance refs use —
+raw PrimeVue chips (type icon, cropped name) in a wrapping row. A chip
+click opens the file inside the app when a viewer exists (image, PDF,
+plain text) with the download action beside the preview; kinds without an
+in-app viewer download directly. Message actions (reply, transcribe,
+per-attachment downloads, copy) live in one context menu, reachable on
+every viewport and for every message shape — right-click or long-press
+the message, or use the row action; media-only messages are never
+orphaned without actions. The chats rail header is
 three controls: the archive toggle (the same control leaves the archived
 view), the search field filtering conversations by title and last
 message, and one + control whose menu owns every conversation start — a

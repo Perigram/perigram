@@ -753,8 +753,13 @@ element plays at a time across surfaces); a source surface unmounting
 while its media still plays hands the descriptor and position to the
 app-level dock, which resumes playback there
 (see [components/media](../media/README.md)). Every
-other file renders a chip row (type-derived icon, cropped name, human-
-readable size) with an inline download anchor, and the message menu
+other file renders as the same chip anatomy instance refs use — a raw
+PrimeVue `Chip` (type-derived icon, cropped name, size in the title) in
+a wrapping row; a chip click opens the file inside the app when a viewer
+exists (images already inline; PDF in the dialog through the browser's
+native engine; plain text fetched and rendered in the technical voice)
+with the download action beside the preview's title, and kinds without
+an in-app viewer download directly. The message menu
 offers one download entry per attachment for any kind (labels cropped).
 The root hugs its content so sender-side message columns can right-align
 the block, and every name crops through the `min-w-0`/`truncate` chain.
