@@ -757,7 +757,10 @@ other file renders as the same chip anatomy instance refs use — a raw
 PrimeVue `Chip` (type-derived icon, cropped name, size in the title) in
 a wrapping row; a chip click opens the file inside the app when a viewer
 exists (images already inline; PDF in the dialog through the browser's
-native engine; plain text fetched and rendered in the technical voice)
+native engine; text fetched and rendered in-app — markdown through the
+shared formatted pipeline, other text kinds preformatted in the
+technical voice; a concrete non-text mime is authoritative, so the
+office containers download instead)
 with the download action beside the preview's title, and kinds without
 an in-app viewer download directly. The message menu
 offers one download entry per attachment for any kind (labels cropped).

@@ -1,5 +1,52 @@
 # TODO
 
+## Chat surface follow-up fixes (owner defect batch 2026-10-17)
+
+Three defects on the freshly shipped surfaces: the composer lineage
+strip still rendered raw ids (the stored message paths of unnamed
+instances carry stale id-as-name values the strip trusted), file chips
+rendered at Aura's full size (the preset owned no chip geometry), and
+the in-app preview sent binary office files (xlsx/docx — their mime
+embeds "xml") to the plain-text branch as garbage.
+
+- [ ] WAITING — owner verification on the live stack (dev app restart
+  required — chip geometry is a token-table change): the strip shows
+  localized type labels for unnamed instances, never ids; file and
+  instance chips render compact; xlsx/docx chips download instead of a
+  garbage text preview; markdown files preview formatted; the assistant
+  carries the AI glyph in the group member stack and its pfp-chip
+  beside named avatars.
+
+### Agent Notes (2026-10-17 — follow-up batch)
+
+- Strip ids (reproduced on the live DB): the stored `instancePath` of
+  messages sent before the no-ids guard denormalized the raw id as the
+  name for unnamed instances — the server builder is already clean
+  (`instanceName` returns the stored slot only), but the strip trusted
+  the stale stored names. Both strip loaders now apply the same
+  name-equals-id guard the inbox rows apply; unnamed chips localize the
+  type label. The always-drill mechanics from the previous task were
+  correct and stand.
+- Preview garbage: the text-kind matcher regex-tested the mime for
+  `xml`, and the office containers (`application/vnd.openxml…sheet`,
+  docx) embed "xml" — binaries rode the text branch as garbage. A
+  concrete non-text mime is now authoritative (octet-stream falls back
+  to extension sniffing); markdown previews render through the shared
+  formatted pipeline instead of raw text.
+- Chip size: the preset token table (assets/tokens, the home that
+  already owns Fieldset/panel/listbox geometry) gains compact chip
+  padding/label tokens — every chip surface (files and instance refs
+  alike) renders small; feature code stays off PrimeVue geometry. Needs
+  the dev app restart (tokens are startup-evaluated).
+- AI face: the group member stack now carries the bot flag from the
+  user wire row and renders the shared AI glyph for the assistant
+  (sender chips already did via UserChip); Roma's avatar was verified
+  serving end-to-end on the live stack — an empty pfp there was the
+  stale client session, not the wire.
+- Validation: SSR smokes, design-system, framework-packages, support +
+  agent-bots + party-wire + cts specs, check-arch, framework:validate,
+  docs:validate — pass.
+
 ## Headless authoring draft overlay + identical-call loop brake (owner defect 2026-10-17, live session)
 
 A live agent session exposed two defects. (1) The headless authoring

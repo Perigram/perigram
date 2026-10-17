@@ -338,9 +338,10 @@ the `artifact` entity and its overload die when chat/proof/capture/upload flows 
 Any file may be attached to chat messages. Images and videos preview inline
 (single items and their sets as galleries); audio keeps its native player.
 Non-media attachments render as the same chip anatomy instance refs use —
-raw PrimeVue chips (type icon, cropped name) in a wrapping row. A chip
-click opens the file inside the app when a viewer exists (image, PDF,
-plain text) with the download action beside the preview; kinds without an
+raw PrimeVue chips (type icon, cropped name, compact preset geometry) in
+a wrapping row. A chip click opens the file inside the app when a viewer
+exists (image, PDF, text — markdown rendered formatted) with the
+download action beside the preview; kinds without an
 in-app viewer download directly. Message actions (reply, transcribe,
 per-attachment downloads, copy) live in one context menu, reachable on
 every viewport and for every message shape — right-click or long-press

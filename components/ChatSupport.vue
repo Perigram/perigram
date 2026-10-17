@@ -393,14 +393,22 @@
                             @click="toggleMembersList($event)"
                         >
                             <AvatarGroup class="shrink-0">
-                                <Avatar
-                                    v-for="participant in groupParticipants.slice(0, 4)"
-                                    :key="participant.id"
-                                    :image="participant.avatarUrl"
-                                    :label="participant.avatarUrl ? null : participant.name.charAt(0).toUpperCase()"
-                                    shape="circle"
-                                    class="h-6 w-6 bg-subtle text-supporting [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
-                                />
+                                <template v-for="participant in groupParticipants.slice(0, 4)" :key="participant.id">
+                                    <!-- The assistant keeps its AI face in the
+                                         stack — the same glyph every surface
+                                         shows for it, never a letter. -->
+                                    <AiAvatar
+                                        v-if="participant.bot"
+                                        class="h-6 w-6 [&_.p-avatar-icon]:text-supporting"
+                                    />
+                                    <Avatar
+                                        v-else
+                                        :image="participant.avatarUrl"
+                                        :label="participant.avatarUrl ? null : participant.name.charAt(0).toUpperCase()"
+                                        shape="circle"
+                                        class="h-6 w-6 bg-subtle text-supporting [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                                    />
+                                </template>
                                 <Avatar
                                     v-if="groupParticipants.length > 4"
                                     :label="`+${groupParticipants.length - 4}`"
@@ -1988,14 +1996,15 @@ watch(groupParticipantIds, async (ids) => {
         return
     }
     groupParticipants.value = await Promise.all(ids.map(async (id) => {
-        // The seam's two legs: the §3 wire row (fields.avatarUrl) for
-        // org-mates, the directory card (data.avatarUrl) for everyone
-        // else.
+        // The seam's two legs: the §3 wire row (fields.avatarUrl,
+        // fields.bot) for org-mates, the directory card (data.avatarUrl)
+        // for everyone else.
         const record = await instances.resolveReadableReference('user', String(id), { silent: true })
         return {
             id: String(id),
             name: record?.name || record?.identity?.name || '',
-            avatarUrl: record?.fields?.avatarUrl || record?.data?.avatarUrl || ''
+            avatarUrl: record?.fields?.avatarUrl || record?.data?.avatarUrl || '',
+            bot: Boolean(record?.fields?.bot || record?.data?.bot)
         }
     }))
 }, { immediate: true })
@@ -2880,11 +2889,16 @@ const stripChildren = computed(() => {
         const child = base >= 0 ? path[base + 1] : null
         if (!child?.type || !child?.id) continue
         const key = `${child.type}:${child.id}`
-        // Path-derived names keep their stored value only — never the id
-        // (the no-technical-ids rule; unnamed chips localize the type
-        // label).
         if (!byKey.has(key)) {
-            byKey.set(key, { key, type: child.type, id: String(child.id), name: child.name || '', entity: null })
+            byKey.set(key, {
+                key,
+                type: child.type,
+                id: String(child.id),
+                // Historical paths denormalized the id as the name for
+                // unnamed instances — guard it, never render it.
+                name: stripDisplayName(child.name, child.id),
+                entity: null
+            })
         }
     }
     return [...byKey.values()]
@@ -2906,10 +2920,7 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
                     key: `${source.typeId}:${stripInstanceId(instance)}`,
                     type: source.typeId,
                     id: stripInstanceId(instance),
-                    // An unnamed instance never falls back to its id (the
-                    // no-technical-ids rule) — the chip localizes the type
-                    // label for an empty name.
-                    name: instance?.name || '',
+                    name: stripDisplayName(instance?.name, stripInstanceId(instance)),
                     entity: instance
                 }))
             } catch {
@@ -2964,6 +2975,11 @@ const stripInstanceId = (entity = null) => {
     const value = entity?._id || entity?.id || ''
     return value ? String(value) : ''
 }
+
+// A stored name equal to the id is a stale send-time fallback, never a
+// name (the no-technical-ids rule — the same guard the inbox rows
+// apply); unnamed chips fall back to the localized type label.
+const stripDisplayName = (name, id) => (name && name !== String(id) ? name : '')
 
 watch([activeConversationKey, () => activeConversation.value?.typeId, () => activeConversation.value?.instanceId], ([key]) => {
     if (!key || activeConversation.value?.conversationKind !== 'instance') return

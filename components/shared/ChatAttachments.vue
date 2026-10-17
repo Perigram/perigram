@@ -115,7 +115,16 @@
         class="min-h-0 w-full flex-1 border-0"
       />
       <div v-else class="min-h-0 flex-1 overflow-auto">
-        <pre class="m-0 whitespace-pre-wrap break-words rounded-ui bg-subtle p-3 text-technical [overflow-wrap:anywhere]">{{ previewText }}</pre>
+        <!-- Markdown files render through the shared sanitized pipeline
+             (the prose voice); other text kinds read preformatted in the
+             technical voice. -->
+        <SupportMessageContent
+          v-if="previewIsMarkdown"
+          :message="{ message: previewText }"
+          markdown
+          class="m-3 block max-w-3xl"
+        />
+        <pre v-else class="m-3 whitespace-pre-wrap break-words rounded-ui bg-subtle p-3 text-technical [overflow-wrap:anywhere]">{{ previewText }}</pre>
       </div>
     </div>
   </StandardDialog>
@@ -127,6 +136,7 @@ import Button from 'primevue/button';
 import Chip from 'primevue/chip';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import SupportMessageContent from '~/components/shared/SupportMessageContent.vue';
 import { chatAttachmentUrl } from '~/utils/chat-file-targets.js';
 import { useMediaStore } from '~/stores/media';
 
@@ -146,14 +156,20 @@ const media = useMediaStore();
 const previewAttachment = ref(null);
 
 // The in-app viewer set: images (their own tiles), PDFs (the browser's
-// native engine in an iframe), and plain text (fetched and rendered in
-// the technical voice). Everything else downloads directly.
+// native engine in an iframe), and text — markdown rendered formatted
+// through the shared pipeline, everything else preformatted. A concrete
+// non-text mime is authoritative: the office containers (xlsx/docx —
+// "openxmlformats" embeds "xml") must never ride the text branch;
+// extension sniffing only answers for octet-stream uploads.
 const isPdf = (attachment = {}) => String(attachment.mimeType || '').includes('pdf')
   || /\.pdf$/i.test(attachment.name || '');
+const isMarkdown = (attachment = {}) => /^text\/markdown/i.test(String(attachment.mimeType || ''))
+  || /\.md$/i.test(attachment.name || '');
 const isText = (attachment = {}) => {
   const mime = String(attachment.mimeType || '');
-  if (mime.startsWith('text/')) return true;
-  if (/json|xml|yaml|csv|markdown/i.test(mime)) return true;
+  if (/^text\//i.test(mime)) return true;
+  if (/^application\/(json|xml|yaml|x-yaml)(;|$)/i.test(mime)) return true;
+  if (mime && !/^application\/octet-stream$/i.test(mime)) return false;
   return /\.(md|txt|csv|json|ya?ml|log)$/i.test(attachment.name || '');
 };
 const previewKind = computed(() => {
@@ -165,6 +181,7 @@ const previewKind = computed(() => {
 });
 
 const previewText = ref('');
+const previewIsMarkdown = computed(() => Boolean(previewAttachment.value) && isMarkdown(previewAttachment.value));
 watch(previewAttachment, async (attachment) => {
   previewText.value = '';
   if (!attachment || previewKind.value !== 'text') return;

@@ -457,6 +457,18 @@ export const primeSemanticTokens = {
 // per-instance through pt, which also owns what tokens cannot
 // express: label size, the +/− glyph, and state-dependent chrome).
 export const primeComponentTokens = {
+    chip: {
+        // Compact chip geometry (owner direction 2026-10-17): chat chips
+        // are dense caption-surface rows, not badges — smaller padding
+        // and the supporting text size/weight for every chip surface.
+        root: {
+            padding: '0.25rem 0.5rem'
+        },
+        label: {
+            fontSize: '0.8125rem',
+            fontWeight: '400'
+        }
+    },
     fieldset: {
         root: {
             padding: '0 0.75rem 0.75rem'
