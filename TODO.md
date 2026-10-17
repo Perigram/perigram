@@ -110,6 +110,31 @@ authoring happens only inside a cassette design session.
 - [ ] WAITING — owner verification on the live stack: save a profile to
   the library from one cassette, pick it into another.
 
+### Agent Notes (2026-10-17 — add-profile picker with previews shipped)
+
+- The add-profile button now opens a picker (the surface's Popover
+  pattern): Create new (blank dialog draft) + library rows, each with
+  an evaluated-sketch thumbnail; picking a row places the profile as a
+  workpiece directly (snapshot copy of the record's authored truth;
+  row parameters start from the sketch's own table). An unresolvable
+  stored sketch refuses with the dialog's invalid-sketch toast.
+- Thumbnail projection single-homed in the plugin:
+  `occProfileSketchLayerData` (occs/profiles.js) evaluates the stored
+  sketch to layerData (closed → `cut.outer`, open chain → `cut.inner`
+  never closed, holes → `cut.hole` circles); the drawing-preview
+  normalizer pens/sizes it for DrawingCanvas card mode. Broken
+  sketches → null → quiet blank (preview law). Node-proven: default
+  template → 4pt outline + 25pt hole with viewBox; open chain →
+  cut.inner; broken → null.
+- The same projection backs the new `profile-preview` surface
+  (contract 1, bound in the listing v9 via `previews`): profile
+  records preview in the platform's card/detail slots like cassettes.
+  `InstanceSelect`'s entity-card mode was NOT used for the picker: it
+  keys on the legacy `identity` block (`isCanonicalEntity`), which the
+  §3 wire DTO deliberately dropped (owner decision 2026-10-11) — plain
+  §3 records render as bare labels there.
+- Owner step unchanged: Plugins page → Upgrade (now v6→v9).
+
 ### Agent Notes (2026-10-17 — access inheritance shipped; no grant step)
 
 - Owner direction: the library is completely coupled to cassettes, so
@@ -123,7 +148,7 @@ authoring happens only inside a cassette design session.
   v8. Proof: spec asserts the gate asks `files:write(gallery)` for an
   item-class type delegating to a file-class parent.
 - Remaining owner step: Plugins page → Facade fabrication → Upgrade
-  (v6→v8; §11 preview lists one added type, no blockers). No process
+  (v6→latest; §11 preview lists one added type, no blockers). No process
   authoring needed — whoever writes cassettes writes the library.
 
 ### Agent Notes (2026-10-17 — owner defect report "Failed to save the profile to the library")

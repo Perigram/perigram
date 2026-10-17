@@ -217,7 +217,13 @@ modules — no platform imports.
   self-contained. Library records are authored only from the designer
   dialog; the type carries no editor surface of its own. The type's
   write access inherits the cassette grant (`access.inherits` in the
-  listing — whoever may write cassettes may write library profiles). The
+  listing — whoever may write cassettes may write library profiles).
+  The add-profile affordance is a picker: library rows with
+  evaluated-sketch thumbnails (`occProfileSketchLayerData` → the
+  drawing-preview normalizer — the same projection the bound
+  `profile-preview` surface renders in the platform's preview slots)
+  beside Create new (the blank dialog draft); picking a row places the
+  profile as a workpiece directly. The
   current editor does not run a parametric constraint solver.
 - `production-layout.js` wraps the Clipper-backed face union/fold-route pass and
   returns semantic `cut.outer` / `fold.route` layer intent.

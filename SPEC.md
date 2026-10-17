@@ -683,7 +683,12 @@ document remains self-contained — no live references from a cassette to
 library records, and a later library edit never silently rewrites
 cassettes. The library rides the generic instance machinery end to end
 (records host capability in, generic instance transport out); no
-framework feature serves it.
+framework feature serves it. The add-profile affordance is a picker
+(owner direction 2026-10-17): library instances listed with previews
+(the evaluated sketch section, rendered by the plugin's bound preview
+surface in platform slots and as thumbnails in the designer's picker)
+beside a create-new entry that opens the blank dialog draft; picking an
+instance places it directly.
 
 Owner decision (2026-10-17, library access inherits the cassette grant):
 the profile library is completely coupled to cassettes, so its write
