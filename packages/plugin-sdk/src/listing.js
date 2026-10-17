@@ -28,6 +28,16 @@
 // - `requires` — pack or plugin ids the plugin's types resolve against:
 //   a requirement is satisfied by a mounted pack or an installed plugin
 //   (owner decision 2026-10-17 — plugin-on-plugin requires);
+// - `dependencies` — declared runtime dependencies (owner decision
+//   2026-10-17): a dependency tree never crosses the platform boundary,
+//   a flattened, declared artifact does. `{ name, version, module,
+//   license }` per entry: the SDK's vendor command builds each
+//   dependency into one flat bundle the executor serves at `module`,
+//   surface modules import the bare `name`, and the module proxy
+//   resolves it to the plugin's own vendor scope. What the mount
+//   injects is never vendorable (`vue`, `primevue`, `pinia`, and the
+//   host markdown pipeline `marked`/`dompurify`); declared licenses
+//   make the platform's license policy a gate;
 // - `visibility` — 'public' (the default) or 'private': a private
 //   listing is served only to the organizations its `organizations` array
 //   names (org ids). The catalog stays platform-published; the operator
@@ -35,6 +45,15 @@
 
 const SERVICE_REF = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 const MODULE_PATH = /^\/[a-z0-9/_-]+\.m?js$/;
+const DEPENDENCY_MODULE_PATH = /^\/[a-z0-9/._-]+\.m?js$/;
+const DEPENDENCY_NAME = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
+const SPDX_LIKE = /^[A-Za-z0-9.+-]+$/;
+
+// What the surface mount injects — a dependency naming one of these is a
+// bundled copy of a host external (the consistency law's refusal) or of
+// the host's single markdown pipeline. The mount provides them; the
+// listing may never vendor them.
+export const INJECTED_DEPENDENCIES = ['vue', 'primevue', 'pinia', 'marked', 'dompurify'];
 
 export function parseListing(listing = {}) {
   const declarations = listing.declarations || {};
@@ -48,6 +67,7 @@ export function parseListing(listing = {}) {
   const exportsList = declarations.exports || [];
   const surfaces = (declarations.surfaces || []).filter(Boolean);
   const previews = (declarations.previews || []).filter(Boolean);
+  const dependencies = (declarations.dependencies || []).filter(Boolean);
   const requires = Array.isArray(listing.requires) ? listing.requires.map(String) : [];
   const pluginId = String(listing.pluginId || '');
   const visibility = listing.visibility === 'private' ? 'private' : 'public';
@@ -291,6 +311,39 @@ export function parseListing(listing = {}) {
     }
   }
 
+  // Declared runtime dependencies (owner decision 2026-10-17): one flat,
+  // license-declared vendor bundle per name, served by this executor.
+  const seenDependencyNames = new Set();
+  const seenDependencyModules = new Set();
+  for (const dependency of dependencies) {
+    if (!DEPENDENCY_NAME.test(dependency?.name || '')) {
+      throw listingError(`dependency name must be an npm package name (got ${JSON.stringify(dependency?.name)})`);
+    }
+    if (!dependency?.version || typeof dependency.version !== 'string') {
+      throw listingError(`dependency ${dependency.name} needs a version string`);
+    }
+    if (!SPDX_LIKE.test(dependency?.license || '')) {
+      throw listingError(`dependency ${dependency.name} needs a license identifier (got ${JSON.stringify(dependency?.license)})`);
+    }
+    if (!DEPENDENCY_MODULE_PATH.test(dependency?.module || '')) {
+      throw listingError(`dependency ${dependency.name} module must be a root-relative .js/.mjs path the executor serves (got ${JSON.stringify(dependency?.module)})`);
+    }
+    if (dependency.module.split('/').includes('..')) {
+      throw listingError(`dependency ${dependency.name} module must not traverse (${dependency.module})`);
+    }
+    if (INJECTED_DEPENDENCIES.includes(dependency.name)) {
+      throw listingError(`dependency ${dependency.name} is a host-injected external — the mount provides it, a plugin never vendors it`);
+    }
+    if (seenDependencyNames.has(dependency.name)) {
+      throw listingError(`duplicate dependency ${dependency.name}`);
+    }
+    if (seenDependencyModules.has(dependency.module)) {
+      throw listingError(`dependencies ${dependency.name} and another share the module ${dependency.module}`);
+    }
+    seenDependencyNames.add(dependency.name);
+    seenDependencyModules.add(dependency.module);
+  }
+
   for (const packId of requires) {
     if (!/^[a-z0-9-]+$/.test(packId)) {
       throw listingError(`requires entries must be pack or plugin slugs (got ${JSON.stringify(packId)})`);
@@ -300,7 +353,7 @@ export function parseListing(listing = {}) {
     }
   }
 
-  return { pluginId, types, services, editors, attachmentKinds, conversions, constructions, starterConstructs, exports: exportsList, surfaces, previews, requires, visibility, organizations };
+  return { pluginId, types, services, editors, attachmentKinds, conversions, constructions, starterConstructs, exports: exportsList, surfaces, previews, dependencies, requires, visibility, organizations };
 }
 
 // The normalized catalog document the publish API stores and installs
@@ -327,7 +380,8 @@ export function normalizeListing(listing = {}) {
       starterConstructs: layer.starterConstructs,
       exports: layer.exports,
       surfaces: layer.surfaces,
-      previews: layer.previews
+      previews: layer.previews,
+      dependencies: layer.dependencies
     }
   };
 }

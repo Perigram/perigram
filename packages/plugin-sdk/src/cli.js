@@ -11,19 +11,54 @@
 // A services module is any ESM file exporting `services` (or a default):
 // `{ '<serviceId>': async input => output }`.
 import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseListing } from './listing.js';
 import { createEndpointExecutor } from './endpoint-executor.js';
 import { runClaimExecutor } from './claim-executor.js';
 import { createPluginClient } from './api-client.js';
 import { checkSurfaceModule } from './surface-check.js';
+import { vendorDependencies } from './vendor.js';
 
 const APP = process.env.PERIGRAM_APP || 'http://localhost:3000';
 
 const commands = {
   surfaces: async args => {
-    const ok = await checkSurfaceModule(requireArg(args, 'surface module path'));
+    const listingPath = flag(args, '--listing');
+    const options = {};
+    if (listingPath) {
+      const listing = readListing(listingPath);
+      options.dependencies = parseListing(listing).dependencies;
+      options.pluginRoot = dirname(resolve(listingPath));
+    }
+    const ok = await checkSurfaceModule(requireArg(args, 'surface module path'), options);
     if (ok) process.stdout.write('surface module OK — import graph clean, factory returns a component\n');
+  },
+
+  vendor: async args => {
+    const listingPath = flag(args, '--listing');
+    const entry = flag(args, '--entry')
+      || (listingPath ? resolve(dirname(resolve(listingPath)), 'surfaces') : null);
+    if (!entry) {
+      throw new Error('vendor needs --entry <dir|file>, or --listing listing.json (entry defaults to the plugin\'s surfaces/)');
+    }
+    const { bundled, manifest, leftovers } = await vendorDependencies({
+      pluginRoot: listingPath ? dirname(resolve(listingPath)) : process.cwd(),
+      entry,
+      listingPath
+    });
+    if (!bundled.length) {
+      process.stdout.write('no bare imports to vendor — the graph is already self-contained\n');
+      return;
+    }
+    for (const name of bundled) {
+      const entryOf = manifest.find(item => item.name === name);
+      process.stdout.write(`vendored ${name}@${entryOf.version} (${entryOf.license}) → ${entryOf.module}\n`);
+    }
+    if (listingPath) process.stdout.write(`dependencies merged into ${resolve(listingPath)}\n`);
+    if (leftovers.length) {
+      process.stdout.write(`not vendorable (no resolvable package): ${leftovers.join(', ')}\n`);
+    }
   },
 
   login: async args => {

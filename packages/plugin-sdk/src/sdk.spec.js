@@ -89,14 +89,14 @@ describe('parseListing', () => {
       requires: ['documents']
     });
     expect(Object.keys(normalized.declarations)).toEqual([
-      'types', 'services', 'editors', 'attachmentKinds', 'conversions', 'constructions', 'starterConstructs', 'exports', 'surfaces', 'previews'
+      'types', 'services', 'editors', 'attachmentKinds', 'conversions', 'constructions', 'starterConstructs', 'exports', 'surfaces', 'previews', 'dependencies'
     ]);
   });
 
   it('keeps the JSON schema in lockstep with the validated fields', () => {
     const declarations = schema.properties.declarations.properties;
     expect(Object.keys(declarations)).toEqual([
-      'types', 'services', 'editors', 'surfaces', 'previews', 'attachmentKinds', 'conversions', 'constructions', 'starterConstructs', 'exports'
+      'types', 'services', 'editors', 'surfaces', 'previews', 'attachmentKinds', 'conversions', 'constructions', 'starterConstructs', 'exports', 'dependencies'
     ]);
     expect(schema.properties.requires.items.pattern).toBe('^[a-z0-9-]+$');
     expect(schema.properties.visibility.enum).toEqual(['public', 'private']);
@@ -116,6 +116,34 @@ describe('parseListing', () => {
 
   it('refuses a plugin requiring itself', () => {
     expect(() => parseListing({ ...fullListing, requires: ['coatings'] })).toThrow(/cannot require itself/);
+  });
+
+  it('validates declared runtime dependencies', () => {
+    const withDeps = dependencies => parseListing({
+      ...fullListing,
+      declarations: { ...fullListing.declarations, dependencies }
+    });
+    const good = [
+      { name: 'three', version: '0.170.0', module: '/assets/vendor/three.mjs', license: 'MIT' },
+      { name: '@milkdown/crepe', version: '7.22.3', module: '/assets/vendor/milkdown-crepe.mjs', license: 'MIT' }
+    ];
+    expect(withDeps(good).dependencies).toEqual(good);
+    for (const injected of ['vue', 'primevue', 'pinia', 'marked', 'dompurify']) {
+      expect(() => withDeps([{ name: injected, version: '1.0.0', module: `/assets/vendor/${injected}.mjs`, license: 'MIT' }]))
+        .toThrow(/host-injected external/);
+    }
+    expect(() => withDeps([{ name: 'three', version: '0.1', module: '/assets/vendor/a.mjs', license: 'MIT' }, { name: 'three', version: '0.2', module: '/assets/vendor/b.mjs', license: 'MIT' }]))
+      .toThrow(/duplicate dependency three/);
+    expect(() => withDeps([{ name: 'a', version: '1', module: '/assets/vendor/x.mjs', license: 'MIT' }, { name: 'b', version: '1', module: '/assets/vendor/x.mjs', license: 'MIT' }]))
+      .toThrow(/share the module/);
+    expect(() => withDeps([{ name: 'three', version: '0.1', module: '/../etc/passwd.js', license: 'MIT' }]))
+      .toThrow(/traverse/);
+    expect(() => withDeps([{ name: 'Not A Name', version: '1', module: '/assets/vendor/x.mjs', license: 'MIT' }]))
+      .toThrow(/npm package name/);
+    expect(() => withDeps([{ name: 'three', module: '/assets/vendor/x.mjs', license: 'MIT' }]))
+      .toThrow(/version/);
+    expect(() => withDeps([{ name: 'three', version: '1', module: '/assets/vendor/x.mjs' }]))
+      .toThrow(/license/);
   });
 
   it('validates starter constructs: own file type, declared mode, one per type', () => {
@@ -539,6 +567,63 @@ describe('createPluginClient', () => {
     await expect(client.publish({})).rejects.toThrow(/PERIGRAM_OPERATOR_TOKEN/);
     const orgScoped = createPluginClient({ appUrl: 'http://app', organizationId: 'org-1', fetchImpl: async () => { throw new Error('must not fetch'); } });
     await expect(orgScoped.install('x')).rejects.toThrow(/PERIGRAM_TOKEN/);
+  });
+});
+
+describe('declared runtime dependencies (owner decision 2026-10-17)', () => {
+  it('accepts a bare import that names a declared dependency, refuses the rest', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'surface-deps-'));
+    try {
+      // The author-side reality the check assumes: the plugin repo has
+      // its dependencies installed, so node resolves the bare import.
+      mkdirSync(join(dir, 'node_modules/three'), { recursive: true });
+      writeFileSync(join(dir, 'node_modules/three/package.json'), JSON.stringify({ name: 'three', version: '0.170.0', type: 'module', main: 'index.js' }));
+      writeFileSync(join(dir, 'node_modules/three/index.js'), 'export const THREE = true;\n');
+      const modulePath = join(dir, 'editor.mjs');
+      const declared = [{ name: 'three', version: '0.170.0', module: '/assets/vendor/three.mjs', license: 'MIT' }];
+      // A bare import without declarations refuses (the mount injects
+      // host externals; nothing else may be bare).
+      writeFileSync(modulePath, 'import * as THREE from \'three\';\nexport default function createSurface() { return {}; }\n');
+      await expect(checkSurfaceModule(modulePath)).rejects.toThrow(/self-contained/);
+      // Declared through the listing contract, the same import is legal.
+      await expect(checkSurfaceModule(modulePath, { dependencies: declared })).resolves.toBe(true);
+      // An undeclared name still refuses.
+      writeFileSync(modulePath, 'import * as X from \'xlsx\';\nexport default function createSurface() { return {}; }\n');
+      await expect(checkSurfaceModule(modulePath, { dependencies: declared })).rejects.toThrow(/xlsx/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses a declared dependency whose vendor module is missing under the plugin root', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'surface-deps-'));
+    try {
+      const modulePath = join(dir, 'editor.mjs');
+      writeFileSync(modulePath, 'export default function createSurface() { return {}; }\n');
+      const declared = [{ name: 'three', version: '0.170.0', module: '/assets/vendor/three.mjs', license: 'MIT' }];
+      await expect(checkSurfaceModule(modulePath, { dependencies: declared, pluginRoot: dir }))
+        .rejects.toThrow(/serves no module/);
+      mkdirSync(join(dir, 'assets/vendor'), { recursive: true });
+      writeFileSync(join(dir, 'assets/vendor/three.mjs'), 'export const THREE = true;\n');
+      await expect(checkSurfaceModule(modulePath, { dependencies: declared, pluginRoot: dir }))
+        .resolves.toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('collects the bare imports of a plugin graph and slugs vendor bundles', async () => {
+    const { collectBareImports, vendorSlug } = await import('./vendor.js');
+    const dir = mkdtempSync(join(tmpdir(), 'vendor-'));
+    try {
+      writeFileSync(join(dir, 'editor.mjs'), 'import * as THREE from \'three\';\nimport { lib } from \'./lib.js\';\nexport default function createSurface() { return lib(THREE); }\n');
+      writeFileSync(join(dir, 'lib.js'), 'import \'@milkdown/crepe\';\nexport const lib = () => null;\n');
+      expect(collectBareImports([join(dir, 'editor.mjs')]).sort()).toEqual(['@milkdown/crepe', 'three']);
+      expect(vendorSlug('@milkdown/crepe')).toBe('milkdown-crepe.mjs');
+      expect(vendorSlug('three')).toBe('three.mjs');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

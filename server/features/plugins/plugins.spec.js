@@ -369,8 +369,35 @@ describe('plugin installs', () => {
     }));
   });
 
-  it('snapshots declared starter constructs with the install', async () => {
+  it('refuses a dependency the license policy forbids (GPL family)', async () => {
     repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: {
+        ...coatingListing.declarations,
+        dependencies: [
+          { name: 'three', version: '0.170.0', module: '/assets/vendor/three.mjs', license: 'MIT' },
+          { name: 'libredwg', version: '0.7', module: '/assets/vendor/libredwg.mjs', license: 'GPL-3.0-or-later' }
+        ]
+      }
+    });
+    await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('libredwg@0.7 is GPL-3.0-or-later') });
+    expect(repository.createInstall).not.toHaveBeenCalled();
+    // The policy is operator-configurable: PLUGIN_FORBIDDEN_LICENSES=none admits it.
+    process.env.PLUGIN_FORBIDDEN_LICENSES = 'none';
+    try {
+      await install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+      expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
+        declarations: expect.objectContaining({
+          dependencies: expect.arrayContaining([expect.objectContaining({ name: 'libredwg' })])
+        })
+      }));
+    } finally {
+      delete process.env.PLUGIN_FORBIDDEN_LICENSES;
+    }
+  });
+
+  it('snapshots declared starter constructs with the install', async () => {    repository.findCatalogByPluginId.mockResolvedValue({
       ...coatingListing,
       declarations: {
         ...coatingListing.declarations,
@@ -888,6 +915,59 @@ describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
         modulePath,
         auth: AUTH
       })).rejects.toMatchObject({ statusCode: 400 });
+    }
+  });
+
+  it('rewrites declared bare imports to the plugin\'s proxied vendor scope', async () => {
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings'
+        ? {
+          ...moduleInstall,
+          declarations: {
+            ...moduleInstall.declarations,
+            dependencies: [
+              { name: 'three', version: '0.170.0', module: '/assets/vendor/three.mjs', license: 'MIT' }
+            ]
+          }
+        }
+        : null
+    ));
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      'import * as THREE from \'three\';\nimport local from \'./local.js\';\nconst dyn = () => import(\'three\');\nexport default null;\n',
+      { status: 200, headers: { 'content-type': 'application/javascript' } }
+    )));
+    try {
+      const module = await fetchSurfaceModule({
+        organizationId: ORG,
+        pluginId: 'coatings',
+        modulePath: '/surfaces/designer.mjs',
+        auth: AUTH
+      });
+      const source = module.body.toString();
+      expect(source).toContain(`import * as THREE from '/api/plugins/coatings/module/assets/vendor/three.mjs'`);
+      expect(source).toContain(`import('three')`.replace("'three'", `'/api/plugins/coatings/module/assets/vendor/three.mjs'`));
+      // Relative imports pass through untouched — the proxied path resolves them.
+      expect(source).toContain(`import local from './local.js'`);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('streams non-JS vendor assets untouched', async () => {
+    const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(bytes, {
+      status: 200, headers: { 'content-type': 'image/png' }
+    })));
+    try {
+      const module = await fetchSurfaceModule({
+        organizationId: ORG,
+        pluginId: 'coatings',
+        modulePath: '/assets/vendor/texture.png',
+        auth: AUTH
+      });
+      expect(Buffer.compare(module.body, bytes)).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
     }
   });
 

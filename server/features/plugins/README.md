@@ -159,10 +159,19 @@ executors through the worker protocol.
   served type view: any member of an organization holding the install.
   Module responses are `no-store`: they are live executor artifacts, and
   the app-wide stale-while-revalidate rule must not delay an executor
-  update past the next browser load. The served type view composes these
+  update past the next browser load. A JS module's declared
+  dependencies (owner decision 2026-10-17) resolve to the plugin's own
+  vendor scope: bare specifiers naming a declared dependency rewrite to
+  same-origin proxied URLs; binary assets stream untouched. The served
+  type view composes these
   same-origin URLs
   ([cts-types](../cts-types/README.md)); connection settings never reach
   the browser.
+- **Dependency license gate**: a listing's declared runtime dependencies
+  carry licenses; the install and upgrade gates refuse the GPL family
+  by default (`PLUGIN_FORBIDDEN_LICENSES` narrows or widens the
+  prefix-matched denylist, `none` disables) — the GPL-stays-out law as a
+  refusal, not a review.
 - **Surface styles**: a surface module composes with the host's utility
   classes, and those classes are compiled by the app's style build —
   which only sees sources in its tailwind content scan. In-repo surface

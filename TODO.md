@@ -43,8 +43,7 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
   builds flat bundles, the module proxy resolves bare imports to the
   plugin's vendor scope, injected externals (`vue`, `primevue`, `pinia`)
   and the host markdown pipeline refuse as dependencies, the gate audits
-  licenses. The facade's hand-vendored three.js/MLightCAD migrate to it.
-- [ ] J. Surface mount capabilities (owner decision 2026-10-17): `sync`
+  licenses. The facade's hand-vendored three.js/MLightCAD migrate to it.- [ ] J. Surface mount capabilities (owner decision 2026-10-17): `sync`
   (realtime document sync through the host's room model) and `upload`
   (asset upload through the host's file channel) as the next
   surface-contract major; plus the `surfaceOrigin` connection field for
@@ -61,6 +60,16 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
   blocked below. H's doc half landed (authoring guide §5 release loop,
   deploy README release steps); the workflow edit stays an operator
   action.
+- I's contract landed (2026-10-17, second session): listing grammar +
+  schema (injected-externals refusal incl. `marked`/`dompurify`),
+  `perigram-plugin vendor` (flat bundles via the plugin repo's esbuild;
+  manifest merge into the listing, validated end-to-end against a real
+  package), deps-aware surface check (`surfaces --listing`), the module
+  proxy's bare-import rewrite (JS only, binaries untouched), and the
+  GPL-family license gate (`PLUGIN_FORBIDDEN_LICENSES`). Remaining: the
+  facade's three.js/MLightCAD re-vendor onto declared dependencies —
+  deferred until the dev stack can render-verify the folded preview and
+  sketch surfaces after the swap.
 - Seeder: `server/scripts/seed-plugin-catalog.js` (validated, marked
   `builtin`, retract-refused); `installDefaultPlugins` logs the seed
   runbook instead of skipping silently.

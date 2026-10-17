@@ -106,9 +106,19 @@ persistence callbacks, never stores, routing, or auth:
   `notify` (`{ severity, summary, detail }` — the host toast), and
   `access` (`canWrite(record)` — the host's write-grant resolution;
   without the grant, degrade to view-only). A surface that needs none of
-  them stays on contract 1. The plugin serves its own third-party
-  runtimes beside its modules (vendored assets under the executor root,
-  resolved by relative URL) — a module never imports host npm packages.
+  them stays on contract 1. The plugin serves its own third-party runtimes
+  beside its modules — either vendored as static assets under the
+  executor root, imported by relative URL, or as declared runtime
+  dependencies (owner decision 2026-10-17): `perigram-plugin vendor
+  --listing listing.json` builds each bare import into one flat bundle
+  under `assets/vendor/` and declares `{ name, version, module, license
+  }` in the listing; the module then imports the bare name
+  (`import * as THREE from 'three'`) and the platform's module proxy
+  resolves it to the plugin's own vendor scope. What the mount injects
+  is never vendorable: `vue`, `primevue`, `pinia`, and the host markdown
+  pipeline (`renderMarkdown` is provided; `marked`/`dompurify` refuse as
+  dependencies) — and the plugin repo needs `esbuild` installed for the
+  vendor build (the SDK itself stays zero-dependency).
 - Never import `vue`, `primevue`, or `pinia` — the mount injects them.
 
 ### 1b. Author a preview surface (read-only)
