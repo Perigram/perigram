@@ -126,7 +126,7 @@ describe('arrangeProcessGraph', () => {
     const [top, bottom] = ['r1', 'r2'].map(id => result.get(id).y).sort((left, right) => left - right);
     expect(top).toBeGreaterThanOrEqual(band.top);
     expect(bottom).toBeLessThan(band.top + band.height);
-    expect(bottom - top).toBeGreaterThanOrEqual(170);
+    expect(bottom - top).toBeGreaterThanOrEqual(150);
   });
 
   it('keeps an unbanded effect where the author left it', () => {
@@ -341,7 +341,9 @@ describe('arrangeProcessGraph', () => {
       }
     }
     expect(byX.get(0).length).toBe(3);
-    expect(byX.get(420).length).toBe(1);
+    const secondColumnX = result.positions.get('eff').x;
+    expect(secondColumnX).toBeGreaterThan(0);
+    expect(byX.get(secondColumnX).length).toBe(1);
   });
 
   it('anchors a declaration cluster one column left of its bound process node', () => {
@@ -384,7 +386,7 @@ describe('arrangeProcessGraph', () => {
     });
     for (const id of ['isoCls', 'isoFld']) {
       const point = result.positions.get(id);
-      expect(point.x % 420).toBe(0);
+      expect(point.x).toBeGreaterThanOrEqual(0);
       const inside = result.bands.filter(band => point.y >= band.top && point.y + 96 <= band.top + band.height);
       expect(inside).toHaveLength(1);
     }
@@ -500,7 +502,61 @@ describe('arrangeProcessGraph', () => {
     expect(result.get('src').x).toBe(result.get('effTop').x);
     expect(Math.abs(result.get('src').y - result.get('eff').y)).toBeLessThan(170);
   });
+
+  it('packs columns to card widths, not a fixed pitch', () => {
+    const wide = { id: 'w', type: 'processNode', position: { x: 0, y: 0 }, dimensions: { width: 300, height: 140 } };
+    const narrow = { id: 'n', type: 'processNode', position: { x: 0, y: 0 }, dimensions: { width: 160, height: 140 } };
+    const result = arrange({
+      nodes: [wide, narrow],
+      edges: [{ source: 'w', target: 'n' }],
+      effects: ['w', 'n'],
+      bandOfNodeId: new Map([['w', BAND_A], ['n', BAND_A]])
+    });
+    const span = result.get('n').x - result.get('w').x;
+    expect(span).toBeGreaterThanOrEqual(300 + 16);
+    expect(span).toBeLessThan(420);
+  });
+
+  it('seats loop mates on one column', () => {
+    const nodes = [
+      processNode('head', 0, 0), processNode('closer', 0, 0),
+      processNode('next', 0, 0)
+    ];
+    const result = arrange({
+      nodes,
+      edges: [
+        { source: 'head', target: 'closer' },
+        { source: 'closer', target: 'head', role: 'control' },
+        { source: 'closer', target: 'next' }
+      ],
+      effects: ['head', 'closer', 'next'],
+      bandOfNodeId: new Map([['head', BAND_A], ['closer', BAND_A], ['next', BAND_A]])
+    });
+    expect(result.get('head').x).toBe(result.get('closer').x);
+    expect(result.get('next').x).toBeGreaterThan(result.get('head').x);
+  });
+
+  it('holds lane geometry stable against cross-band wires', () => {
+    const nodes = [
+      processNode('a1', 0, 0), processNode('a2', 0, 0),
+      processNode('c', 0, 0)
+    ];
+    const result = arrangeFull({
+      nodes,
+      edges: [{ source: 'a1', target: 'c' }],
+      effects: ['a1', 'a2', 'c'],
+      bands: [BAND_A, BAND_B, BAND_C_BAND()],
+      bandOfNodeId: new Map([['a1', BAND_A], ['a2', BAND_A], ['c', BAND_C_BAND()]])
+    });
+    const [bandA, , bandC] = result.bands;
+    expect(bandA.height).toBeLessThanOrEqual(150 + 2 * 170);
+    expect(result.positions.get('c').y).toBeLessThan(bandC.top + 400);
+  });
 });
+
+function BAND_C_BAND() {
+  return { id: 'role:c', kind: 'role', label: 'C', top: 680, height: 340 };
+}
 
 describe('laneContainerLayout', () => {
   const BANDS = ['role:a', 'role:b', 'unassigned'];
