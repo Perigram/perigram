@@ -6756,3 +6756,12 @@ in-process, and command_runs/task_runs are the audit trail.
 - The manual-action spec paths no longer need the run-repository mock;
   the action-evaluation specs run Mongo-free.
 
+
+## Tidy arranges by barycenter cell ordering (2026-10-17)
+
+- [ ] Lane×column cell orders come from barycenter sweeps over wired
+      neighbors; y is row pitch plus an order-preserving median polish.
+      Lane membership, grants, drop acceptance, and the layering laws
+      are untouched.
+
+Status: WAITING

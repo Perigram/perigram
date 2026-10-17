@@ -535,11 +535,13 @@ is the pure helper `utils/processDesignerArrangement.js` (see
 - **Every node lives in exactly one band** — effects by grant,
   secondaries and declarations by their anchor node's band, anchorless
   nodes by nearest band — so nothing crosses a lane divider.
-- **y = constrained relaxation.** Each card settles at the median of
-  its wired neighbors' y (flow and declaration wires alike), under hard
-  constraints: clamped inside its band, per-column separation (no two
-  cards in a column overlap), band heights re-derived from content
-  after each pass. Runs to a stable state.
+- **y = cell rows plus median polish.** Within each lane×column cell,
+  barycenter sweeps over wired neighbors (flow and declaration wires
+  alike) pick the row order, seeded from the authored y; a lane's cells
+  share row indices, so a horizontal chain sits on one row. A bounded
+  polish then moves each card toward its wired neighbors' median,
+  clamped below its in-cell predecessor and inside its band — those two
+  clamps are the no-overlap and lane-containment laws.
 
 ### Card behavior details
 
