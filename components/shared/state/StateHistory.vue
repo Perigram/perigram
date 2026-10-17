@@ -199,7 +199,7 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
       <StepItem v-for="(event, index) in orderedEvents" :key="stepKey(event, index)" :value="stepKey(event, index)">
         <Step :pt="stepPt">
           <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-1 text-left">
-            <i v-if="isFieldChange(event)" class="pi pi-pencil text-muted text-supporting" aria-hidden="true"></i>
+            <i v-if="isFieldChange(event)" class="pi pi-pencil text-muted text-[0.75rem]" aria-hidden="true"></i>
             <StateTag :value="eventState(event)" :policy="policyByValue" />
             <span v-if="actorUserId(event) && actorStartsRun(index)" class="inline-flex min-w-0 items-center gap-1" :title="actorTitle(event)">
               <InstanceInlineRef type="user" :id="actorUserId(event)" :entity="{ _id: actorUserId(event), identity: { name: actorName(event) }, data: {} }" />

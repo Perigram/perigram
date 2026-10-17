@@ -75,7 +75,8 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   weight, line height, tracking, or family utilities. Only page titles scale
   responsively. Generic PrimeVue controls retain their inherited typography. A local font
   size is valid only when a documented runtime data value directly drives
-  visualization geometry or information magnitude.
+  visualization geometry or information magnitude. Roles carry font-family:
+  icon glyphs (`pi pi-*`, `ck-*`) shrink through font-size utilities alone.
 - Component-specific dimensions such as support chat size, dialog widths, popover/menu minimum widths, preview height, table action column width, and form swatch size live here because they are reused UI decisions rather than page-local styling.
 - Application tokens do not own a motion scale or component-specific spacing.
   Interaction behavior unavailable in PrimeVue stays local to its owning

@@ -1,6 +1,6 @@
 <template>
-    <!-- Aura pins .p-avatar-icon's size; chip-size sites shrink the glyph
-         via [&_.p-avatar-icon]:text-supporting. -->
+    <!-- Typography utilities set font-family; icon glyphs shrink by
+         font-size alone. -->
     <Avatar
         icon="pi pi-microchip-ai"
         shape="circle"
