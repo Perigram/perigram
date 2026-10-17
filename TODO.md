@@ -229,6 +229,18 @@ authoring happens only inside a cassette design session.
   unchanged otherwise) so pins can move again through the product
   path. Owner step: one more Upgrade click (v10→v11).
 
+### Agent Notes (2026-10-17 — designer UX round 4, owner defect report)
+
+- Breadcrumb redundancy fixed: `face face1 › edge E3` → `face1 › E3`
+  (the ids are self-describing; prefixes dropped).
+- The positioning popup was unreachable from panel rows:
+  `selectWorkpieceRelation` passed raw screen coords while the inline
+  editor positions relative to the canvas container — a right-panel
+  click placed the popup far off-canvas. Row clicks now convert
+  through `editorPointFromScreen` (clamped, same as canvas clicks),
+  and each attachment row carries an explicit sliders-h button
+  (`attachmentPosition`, en+ru) opening the same popup.
+
 ### Agent Notes (2026-10-17 — designer UX round 3, owner defect report)
 
 - Attachment rows are breadcrumbs now: the related workpiece on the
