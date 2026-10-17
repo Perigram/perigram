@@ -293,9 +293,11 @@ let childLoadSequences = new Map();
 provide('displayedEntityContexts', computed(() => []));
 
 // Layout-only passthrough: panel headers inherit the 1.5 line-height item
-// labels dropped, which made top-level entries taller than their rows.
+// labels dropped, which made top-level entries taller than their rows;
+// entry labels crop with an ellipsis instead of wrapping rows tall.
 const menuPt = {
-  headerLabel: { style: { lineHeight: '1' } }
+  headerLabel: { class: 'min-w-0 flex-1 truncate', style: { lineHeight: '1' } },
+  itemLabel: { class: 'min-w-0 flex-1 truncate' }
 };
 
 const sections = computed(() => props.screen.regions
