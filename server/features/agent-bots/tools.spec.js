@@ -16,7 +16,8 @@ const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mo
         deactivate: vi.fn(),
         executeActiveProcessAction: vi.fn(),
         composeDefinition: vi.fn(),
-        editDefinition: vi.fn()
+        editDefinition: vi.fn(),
+        declareStatusMappings: vi.fn()
     },
     mockedSupport: { normalizeInstanceRefs: vi.fn(), findConversationAttachment: vi.fn() },
     mockedTypes: { describeOrganizationTypes: vi.fn() },
@@ -300,6 +301,20 @@ describe('org-gated and room-scoped tools', () => {
         mockedWebSearch.webSearch.mockResolvedValue({ provider: 'searxng', results: [] });
         await executeTool('web_search', { query: 'perigram', maxResults: 3 }, AUTH);
         expect(mockedWebSearch.webSearch).toHaveBeenCalledWith({ organizationId: 'org-1', query: 'perigram', maxResults: 3 });
+    });
+
+    it('declare_status_mappings delegates the migration decision to the service seam', async () => {
+        mockedProcessDefinitions.declareStatusMappings.mockResolvedValue({
+            definitionId: 'd1',
+            declared: [{ typeId: 'task', from: 'archived', to: 'done' }]
+        });
+        const mappings = [{ typeId: 'task', from: 'archived', to: 'done' }];
+        const result = await executeTool('declare_status_mappings', { definitionId: 'd1', mappings }, AUTH);
+        expect(mockedProcessDefinitions.declareStatusMappings).toHaveBeenCalledWith({ definitionId: 'd1', mappings }, AUTH);
+        expect(result.declared).toEqual(mappings);
+        // A plain authoring action: both surfaces list it.
+        expect((await chatToolDescriptors()).some(tool => tool.name === 'declare_status_mappings')).toBe(true);
+        expect((await mcpToolDescriptors()).some(tool => tool.name === 'declare_status_mappings')).toBe(true);
     });
 
     it('read_attachment is chat-run-only and reads nothing outside this conversation', async () => {

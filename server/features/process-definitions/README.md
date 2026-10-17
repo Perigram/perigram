@@ -90,7 +90,11 @@ migration. `migration-plan.js` owns the contract:
   not an activate-time payload: `data.migrations.statuses` carries
   `[{ typeId, from, to }]` alongside the graph records, and activation
   reads the declaration (the activate request body carries no migration
-  data). Every removed state with a live count must be covered by one
+  data). The `declareStatusMappings` service entry (the agent tool
+  `declare_status_mappings`) merges the declaration server-side through
+  the same update boundary — no whole-document echo; an empty list
+  clears the declaration back to the 409 gate. Every removed state with
+  a live count must be covered by one
   declared mapping whose `to` is a retained target for that entity type;
   partial or off-target declarations are HTTP 400 with the plan attached.
   A declared row the current plan no longer requires is a no-op, so stale

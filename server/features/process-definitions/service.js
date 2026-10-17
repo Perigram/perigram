@@ -2283,6 +2283,34 @@ export async function composeDefinition({ name = '', steps = [] } = {}, auth) {
  * activated) are preserved; `compiled` is dropped by the update seam as
  * on every save.
  */
+/**
+ * Declares the Apply status-migration decision on a definition — the
+ * authored `data.migrations.statuses` the activation gate reads (the
+ * migration-plan contract) — through a server-side merge: no
+ * whole-document echo from the caller. The list replaces the stored
+ * declaration (stale rows are no-ops by contract); an empty list clears
+ * it back to the historical 409 gate. Coverage is validated at
+ * activation, where the recomputed plan rides the 400.
+ */
+export async function declareStatusMappings({ definitionId = '', mappings = [] } = {}, auth) {
+  const id = String(definitionId || '');
+  if (!id) throw createError({ statusCode: 400, message: 'definitionId is required' });
+  if (!Array.isArray(mappings)) {
+    throw createError({ statusCode: 400, message: 'mappings must be an array of { typeId, from, to }' });
+  }
+  const stored = await getById(id, auth);
+  const declared = normalizeStatusMappings(mappings);
+  const data = { ...(stored?.data || {}) };
+  if (declared.length) {
+    data.migrations = { ...(data.migrations || {}), statuses: declared };
+  } else if (data.migrations) {
+    data.migrations = { ...data.migrations };
+    delete data.migrations.statuses;
+  }
+  await update(id, { data }, auth);
+  return { definitionId: id, declared };
+}
+
 export async function editDefinition({ definitionId = '', steps = [] } = {}, auth) {
   const id = String(definitionId || '');
   const stored = await getById(id, auth);

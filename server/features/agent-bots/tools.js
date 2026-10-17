@@ -81,7 +81,7 @@ const AUTHORING_GUIDE = [
     "- {op:'connect', id, fromPort, to, toPort} — id is the FROM node; ports are bare socket ids or 'data:<socketId>' handles; both work.",
     'The first illegal gesture fails with the gate message — read it, fix, retry.',
     '3. validate_process_definition: its anchored diagnostics name exactly what to fix.',
-    '4. activate_process_definition: activation gates (migration plan, type death) are confirmations to resolve, never bypass.',
+    '4. activate_process_definition: activation gates (migration plan, type death) are confirmations to resolve, never bypass — status migration targets are declared with declare_status_mappings (one mapping per plan row), type death with confirmTypeDeath.',
     'Editing an existing definition: get_process_definition (compact digest: node ids, kinds, edges as node:socket) then edit_process_definition with the same gestures (drop, configure, setInputDefault, connect, declarations) — small payloads, no graph echo-back. Full document view only via get_process_definition {full: true}.'
 ].join('\n');
 
@@ -437,7 +437,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'activate_process_definition',
-        description: 'Activates a definition (additively, into the active set). Activation gates return as a structured { activationBlocked, ... } result: read the migration plan / type death rows, then re-call with confirmTypeDeath or the declared status migrations authored on the definition data.',
+        description: 'Activates a definition (additively, into the active set). Activation gates return as a structured { activationBlocked, ... } result: read the migration plan / type death rows, then resolve them — status migrations through declare_status_mappings (one mapping per plan row, targets from the plan), type death by re-calling with confirmTypeDeath: true.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -464,6 +464,37 @@ export const TOOL_SPECS = [
                 }
                 throw error;
             }
+        }
+    },
+    {
+        name: 'declare_status_mappings',
+        description: 'Declares the Apply status-migration decision on a definition — the mapping list the activation gate reads when removed workflow states still hold live instances. Take one { typeId, from, to } per migration-plan row, targets from the plan\'s retained targets; ask the room with ask_user when the choice belongs to it. The list replaces the stored declaration (an empty list clears it back to the gate); coverage is validated at activation with the plan attached.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                definitionId: { type: 'string' },
+                mappings: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            typeId: { type: 'string' },
+                            from: { type: 'string' },
+                            to: { type: 'string' }
+                        },
+                        required: ['typeId', 'from', 'to'],
+                        additionalProperties: false
+                    }
+                }
+            },
+            required: ['definitionId', 'mappings'],
+            additionalProperties: false
+        },
+        execute: async (args, auth) => {
+            return await processDefinitionsService.declareStatusMappings({
+                definitionId: requireString(args.definitionId, 'definitionId'),
+                mappings: args.mappings
+            }, auth);
         }
     },
     {
