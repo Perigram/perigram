@@ -200,3 +200,13 @@ Install → execute → upgrade → uninstall. The install gate (type-id
 no-shadowing, clean compile, claimable attachment kinds, required packs
 enabled), the upgrade preview, and the uninstall drain gate all refuse
 loudly — a clean loop through those four states is the acceptance test.
+
+## 5. Release loop
+
+A plugin release is two deploys at one version: the executor (a
+container image beside the app, or wherever its orgs reach it) and the
+listing (`perigram-plugin publish`; plugins built into a deployment seed
+from `server/scripts/seed-plugin-catalog.js`). Bump `version`, ship both,
+and installed organizations see the available version on the Plugins
+page and apply it through the §11 diff preview — publishing never pushes
+to orgs.

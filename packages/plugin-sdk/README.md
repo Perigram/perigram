@@ -40,12 +40,17 @@ declared plugin service as the executor, bare or plugin-qualified),
 `constructions` (the plugin's types' construction modes bound to plugin
 services — the platform resolves ref inputs and payloads as base64
 values and merges the returned fields before creating the record
-generically), and `exports` (attachment exports bound to plugin
-services).
-`requires` lists mounted pack ids the plugin's types resolve against — the
-install and pack-disable gates enforce it platform-side. `parseListing`
-throws on every violation; `normalizeListing` returns the catalog document
-the publish API stores.
+generically), `starterConstructs` (`[{ typeId, construction }]` —
+constructs the plugin stations into every installing organization's
+initial process: the plugin's own file type, a declared mode, one per
+type), and `exports` (attachment exports bound to plugin
+services). A type's `projections` resolve a stored `field` path or a
+declared endpoint-mode `service` (`resolve: { service:
+'plugin.<id>.<svc>' }` — the platform sends `{ typeId, payloadBase64 }`
+and the service's JSON response is the projection value; `handler`
+resolves are the pack-mount binding and refuse here).
+`parseListing` throws on every violation; `normalizeListing` returns the
+catalog document the publish API stores.
 
 ## Executor harnesses
 

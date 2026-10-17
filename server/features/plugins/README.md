@@ -40,7 +40,9 @@ executors through the worker protocol.
   route wrapper only adds caller authority, and an organization's
   default installs at creation (`organizations/default-plugins.js`)
   pass the same gates with pre-wired, validated endpoints for
-  endpoint-mode services.
+  endpoint-mode services. The snapshot carries the full declaration
+  layer — types, editors, surfaces, previews, attachment kinds,
+  conversions, constructions, starter constructs, exports.
 - **Composition**: installed declarations are a resolution source
   between system pack types and the org-authored overlay
   (`compileRegistryForOrganization` in
@@ -94,6 +96,22 @@ executors through the worker protocol.
   Plugins page's connector panel. Authoring and hosting (including the
   executor implementations for both modes) is documented in the
   [plugin authoring guide](../../../docs/PLUGIN_AUTHORING.md).
+- **Service-resolved projections** (SPEC §8 p extract): a listing's type
+  projections may resolve through a declared plugin service
+  (`resolve: { service: 'plugin.<id>.<svc>' }`) — endpoint mode only, a
+  projection is a synchronous read and cannot park on the claim queue (the
+  SDK contract refuses the rest, including `handler` resolves, which only
+  pack mounts bind). The platform reads the target instance and its
+  payload and dispatches `{ typeId, payloadBase64 }` to the service; the
+  service's JSON response is the projection value (`resolveProjectionValue`
+  here; the process runtime's `projectEntity` calls it). Pure compute over
+  values — the DXF-extraction shape; the platform carries no plugin code.
+- **Starter constructs**: a listing may declare `starterConstructs`
+  (own file type, declared construction mode, one per type — the pack
+  law). Installs snapshot them, and the installing organization's initial
+  process stations them beside the mounted packs' constructs
+  (`starterConstructsForOrganization` here; a cross-layer type collision
+  is a composition error).
 - **Install gate**: trial composition on the live org view — every
   plugin type id must be free (no system, installed, or org declaration
   holds it; the no-shadowing rule), each type must define cleanly, and
