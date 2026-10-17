@@ -1,6 +1,6 @@
 import { schemaWebSite } from './utils/schema'
 import Re_L from './assets/presets/re_l'
-import { cssVariableTokens, darkCssVariableTokens } from './assets/tokens/index.js'
+import { cssVariableTokens, darkCssVariableTokens, primeFormFluidPT } from './assets/tokens/index.js'
 import { fileURLToPath } from 'node:url'
 
 const resolveRoot = (path) => fileURLToPath(new URL(path, import.meta.url))
@@ -73,6 +73,9 @@ export default defineNuxtConfig({
     primevue: {
         options: {
             ripple: true,
+            // Form fields fill their host by default — see the fluid pt
+            // contract in assets/tokens/README.md.
+            pt: primeFormFluidPT,
             theme: {
                 preset: Re_L,
                 options: {

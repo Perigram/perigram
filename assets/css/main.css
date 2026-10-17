@@ -130,11 +130,13 @@ body {
    public/icons/data-model/cnc-domain).
    Behaves like a PrimeIcon class string in every surface (<i :class>, PrimeVue
    Tree/Menu/Tab icon props) and follows the active color scheme.
-   font-size compensates the 24-grid live-area padding so these glyphs match
-   PrimeIcons' edge-to-edge em fill at the same nominal size. */
+   The transform scale compensates the 24-grid live-area padding so these
+   glyphs match PrimeIcons' edge-to-edge em fill at the same nominal size,
+   while the glyph keeps its 1em advance — fixed-size icon boxes (Avatar)
+   center it exactly like a PrimeIcon. */
 .ck-entity-icon {
     font-family: 'ck-entity-icons';
-    font-size: 1.23em;
+    transform: scale(1.23);
     font-style: normal;
     font-weight: normal;
     font-variant: normal;
@@ -194,11 +196,13 @@ body {
    scripts/README.md).
    Behaves like a PrimeIcon class string in every surface (<i :class>, PrimeVue
    Tree/Menu/Tab icon props) and follows the active color scheme.
-   font-size compensates the 24-grid live-area padding so these glyphs match
-   PrimeIcons' edge-to-edge em fill at the same nominal size. */
+   The transform scale compensates the 24-grid live-area padding so these
+   glyphs match PrimeIcons' edge-to-edge em fill at the same nominal size,
+   while the glyph keeps its 1em advance — fixed-size icon boxes (Avatar)
+   center it exactly like a PrimeIcon. */
 .ck-file-type-icon {
     font-family: 'ck-file-type-icons';
-    font-size: 1.2em;
+    transform: scale(1.2);
     font-style: normal;
     font-weight: normal;
     font-variant: normal;

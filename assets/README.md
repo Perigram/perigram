@@ -5,7 +5,9 @@
 - `tokens/index.js` is the app-level source for semantic typography, reusable
   layout constraints, domain signals, geometry/data visualization, motion, and
   the primary brand palette.
-- `presets/re_l.js` extends Aura with the primary palette projection only.
+- `presets/re_l.js` extends Aura with the semantic palettes and the
+  component-token set exported by `tokens/index.js` (see
+  [tokens/README.md](./tokens/README.md)).
 - `css/main.css` provides global app-shell, integration, and layout rules. It
   must not define PrimeVue variables or target PrimeVue component selectors.
 - `css/fonts.css` and SCSS files provide global font and legacy preprocessor support.
