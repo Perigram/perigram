@@ -43,7 +43,7 @@ import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
 import { normalizeLegacyProcessActions } from './action-migration.js';
 import { compileActiveProcessRuntime, getActiveMergedDataForOrganization } from './runtime.js';
-import { compileRegistryForOrganization } from '../cts-types/service.js';
+import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { operationKindOf, projectDomainFromView, orientChildrenEdgesChildFirst, rewriteRetiredWirePaths } from '~/packages/cts/src/index.js';
@@ -65,7 +65,7 @@ import {
   tryAcceptGraphProtocol,
   validateActivatableProcess
 } from './compiler-adapter.js';
-import { migrateProducerOutputIdentities } from '~/packages/processes/src/index.js';
+import { compileTreeDeclarations, migrateProducerOutputIdentities } from '~/packages/processes/src/index.js';
 import {
   continueStoredRun,
   executeManualRun,
@@ -2294,14 +2294,6 @@ export async function composeDefinition({ name = '', steps = [] } = {}, auth) {
 }
 
 /**
- * Headless editing (agent authoring): the same gesture grammar as
- * composeDefinition, applied to an EXISTING definition's stored authored
- * document. Small payloads in, legality gates enforced, no whole-graph
- * echo from the caller. Server-owned activation records (history,
- * activated) are preserved; `compiled` is dropped by the update seam as
- * on every save.
- */
-/**
  * Declares the Apply status-migration decision on a definition — the
  * authored `data.migrations.statuses` the activation gate reads (the
  * migration-plan contract) — through a server-side merge: no
@@ -2329,6 +2321,14 @@ export async function declareStatusMappings({ definitionId = '', mappings = [] }
   return { definitionId: id, declared };
 }
 
+/**
+ * Headless editing (agent authoring): the same gesture grammar as
+ * composeDefinition, applied to an EXISTING definition's stored authored
+ * document. Small payloads in, legality gates enforced, no whole-graph
+ * echo from the caller. Server-owned activation records (history,
+ * activated) are preserved; `compiled` is dropped by the update seam as
+ * on every save.
+ */
 export async function editDefinition({ definitionId = '', steps = [] } = {}, auth) {
   const id = String(definitionId || '');
   const stored = await getById(id, auth);
@@ -2347,6 +2347,46 @@ export async function editDefinition({ definitionId = '', steps = [] } = {}, aut
     if (stored?.data?.[key] !== undefined) data[key] = stored.data[key];
   }
   return await update(id, { data }, auth);
+}
+
+/**
+ * The designer Apply's declaration step, server-side: compiles the
+ * draft's in-tree declaration tree (classes, fields, states, and their
+ * wires) and posts each declaration into the organization's type
+ * registry through the cts-types boundary — the same posts the
+ * designer's APPLY makes before it activates. Required before
+ * activation whenever the draft declares types in-tree: validation
+ * overlays the draft's own declarations, but the activation compile
+ * resolves types against the registry. A declaration the registry
+ * refuses (breaking diff without covering migrate steps, SPEC §11)
+ * returns as a structured failure; nothing partially applied is rolled
+ * back — successful posts are idempotent re-posts on retry.
+ */
+export async function applyTreeDeclarations(id, auth) {
+  const process = await loadAuthorized(id, auth, 'write');
+  const graph = process.data?.graph || {};
+  const { declarations, diagnostics } = compileTreeDeclarations(
+    graph.nodes || [],
+    graph.edges || [],
+    process.data?.processNodes || {}
+  );
+  if (diagnostics.length) {
+    throw createError({ statusCode: 400, message: `Declaration errors: ${diagnostics.join('; ')}` });
+  }
+  const applied = [];
+  const failures = [];
+  for (const declaration of declarations) {
+    try {
+      await defineType(declaration, {
+        organizationId: process.lineage.organizationId,
+        actor: auth.userId
+      });
+      applied.push(String(declaration.id));
+    } catch (error) {
+      failures.push({ typeId: String(declaration.id), message: error?.message || String(error) });
+    }
+  }
+  return { applied, failures };
 }
 
 // The compiler consumes the CTS-projected domain: strangler-converted system
