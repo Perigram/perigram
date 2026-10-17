@@ -67,7 +67,9 @@ undo/redo and Delete/Backspace to erase, skipping events whose target is
 an editable field — the surface routes no drawing keys of its own (only
 its window-level Escape), so authoring inputs type normally. Typed prompt
 entry (a bare length as direct distance toward the cursor, `dist<angle`
-polar, `@x,y` relative) parses only through the command-line input: with
-the CLI hidden there is no desktop typing surface for it (the engine's
-length/angle entry chrome is touch-layout only), so segment lengths are
-snapped or authored in the vertex popup after the draw.
+polar, `@x,y` relative) parses only through the command-line input —
+the engine's length/angle entry chrome is touch-layout only — so the
+profile editor's toolbar carries a Command line toggle that reveals the
+CLI on demand (mounted `display`-absolute inside the canvas container);
+the mount asserts the setting off, so every session starts with the
+clean chrome.
