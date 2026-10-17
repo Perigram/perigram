@@ -30,6 +30,7 @@ reads. Tech-drawing catalogue instances migrate into §3 documents through
 
 | Script | When to run | What it does |
 |---|---|---|
+| `migrate-documents-pack-to-plugin.js` | Adopting the documents plugin | Publishes the built-in listing, installs it per org, and rewrites `documents.csvText` service nodes to `plugin.documents.csv-text`. Idempotent; restart the app after. |
 | `migrate-tech-drawing-pack-to-plugin.js` | Adopting the tech-drawing plugin | Publishes the built-in listing and installs it for every organization (type ids unchanged; the pack's code mount is gone). Idempotent. |
 | `migrate-tech-drawing-instances.js` | Adopting the tech-drawing pack instance store | Moves legacy pen/layer-standard rows into §3 pack instances (ids preserved), carrying the `defaultPen` relation. Dry-run; `--apply` persists. |
 | `migrate-cassette-instances.js` | Adopting the §13 cassette store | Moves legacy `cassettes`-collection documents into the per-class `files` collection (ids preserved); inline OCCS definitions upload to the payload bucket. The legacy collection is left for the operator to drop. Dry-run; `--apply` persists. |

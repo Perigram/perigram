@@ -137,21 +137,13 @@ executors through the worker protocol.
   install and the upgrade, never a runtime half-mount (owner decision
   2026-10-11). Surface declarations snapshot with the install beside the
   editor bindings.
-- **Mounted-pack enablement**: the installed list includes the mounted
-  domain packs (the facade and its dependencies) — enabled by default,
-  zero migration. `GET .../plugins/state` serves the combined pack +
-  install state; `POST .../plugins/packs/:packId` re-enables a pack
-  (cascading over its requirements), `DELETE` disables one under the
-  same drain law as a plugin uninstall: live instances or process
-  bindings on any pack type refuse, an enabled dependent pack refuses,
-  an installed plugin whose `requires` names the pack refuses, and a
-  trial compose of the org view without the pack refuses when
-  org-authored declarations still reference its types. Disablement
-  records live in `pack_disablements`; absence is enabled. This is the
-  management plane the facade extraction lands in — the org-facing
-  contract stays install/remove while the pack's code moves out from
-  underneath.
-- **Surface module proxy**: plugin editor/preview modules execute in the
+- **Mounted-pack enablement (transitional, empty)**: no pack remains
+  mounted — documents and tech-drawing retired into their plugins (owner
+  decision 2026-10-17), so `GET .../plugins/state` serves installs only
+  and the packs routes answer over an empty set. The routes, the
+  `pack_disablements` store, and the pack panel in the Plugins page are
+  the retired management plane, deleted with the rest of the pack
+  machinery in the unified-space plan's final slice.- **Surface module proxy**: plugin editor/preview modules execute in the
   browser, so they must load same-origin — the configured endpoints
   address the server's network (in dev the docker-internal executor
   host), which a browser can never reach. `GET

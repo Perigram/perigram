@@ -15,7 +15,6 @@ Internal npm workspace packages used to extract the reusable industrial workflow
 | `@perigram/mcp` | Read-only MCP tool handlers for schema/workflow/docs inspection |
 | `@perigram/processes` | Organization process definition normalization, validation, and compilation |
 | `@perigram/cts` | Perigram Type System: value universe, type declarations, classes, edges, states, operators, expressions, diffing, tenancy (see its `SPEC.md`) |
-| `@perigram/documents` | Documents reference pack declarations: generic document/media file types with payload traits and preview modes |
 | `@perigram/plugin-sdk` | Plugin authoring SDK: listing contract (with JSON schema), executor harnesses, API client, and the `perigram-plugin` CLI |
 
 Module boundaries, runtime relationships, and per-package contracts are

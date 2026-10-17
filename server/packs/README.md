@@ -1,7 +1,15 @@
 # COMPONENT: Packs
 
-Optional domain plug-ins mounted by the framework registry (CTS SPEC §21:
-[packages/cts/SPEC.md](../../packages/cts/SPEC.md)). A pack module exports
+No pack remains mounted: documents and tech-drawing retired into their
+plugins (owner decision 2026-10-17, SPEC §Plugin marketplace) — their
+types install per organization from the listings
+([workers/documents](../../workers/documents/README.md),
+[workers/tech-drawing](../../workers/tech-drawing/README.md)), their
+editors ship as the plugins' surface modules, and their compute runs in
+the external executors. The composition seams below stay until their
+consumers finish migrating off them (slice G of the unified-space plan).
+
+A pack module exports
 one mountable unit — declaration data (types, editors, services; browser
 safe) plus a server binding (entity services with process bindings,
 construction handlers, commands, task executors, workflow hook handlers,
@@ -45,21 +53,8 @@ declaration, and `value-services/` modules importing the instance or
 files features are rejected at the mount (see
 [scripts/README.md](../../scripts/README.md)).
 
-- `documents/` — the pack mount binding the `rows`/`cells` projection
-  handlers (`documents.tableRows`/`documents.tableCells`, see
-  [@perigram/documents](../../packages/documents/README.md)) and the
-  `documents.csvText` value-service command (rows → CSV text); the types
-  ride the generic instance machinery, whose `content` creation protocol
-  serves their graph-authored creates.
 
-The facade and tech-drawing domains are NOT mounted packs: they install
-per organization as plugins (SPEC §Plugin marketplace, owner decision
-2026-10-17) — their declarations arrive with the install snapshots
-([workers/facade](../../workers/facade/README.md),
-[workers/tech-drawing](../../workers/tech-drawing/README.md)), their
-compute (the facade) runs in the external executor, and the generic
-instance machinery serves their records end to end. No framework code
-imports either.
+No framework code imports any of the plugins' domains.
 
 ## Related
 
