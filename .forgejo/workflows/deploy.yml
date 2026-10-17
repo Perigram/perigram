@@ -19,6 +19,54 @@ jobs:
             "https://x-access-token:${TOKEN}@forgejo.sodalab.pro/perigram/perigram.git" .
       - name: build image
         run: docker build --network=host -t perigram:staging --build-arg PORT=3001 .
+      - name: build nesting worker image
+        run: docker build -t perigram-nesting:staging -f workers/nesting/Dockerfile workers/nesting
+      - name: build plugin executor images
+        # Each plugin executor as its own image (its dependency install
+        # beside the zero-dep SDK — the extracted hosting form).
+        run: |
+          docker build -t perigram-executor-facade:staging --build-arg PLUGIN=facade -f workers/plugin-executor.Dockerfile .
+          docker build -t perigram-executor-documents:staging --build-arg PLUGIN=documents -f workers/plugin-executor.Dockerfile .
+          docker build -t perigram-executor-tech-drawing:staging --build-arg PLUGIN=tech-drawing -f workers/plugin-executor.Dockerfile .
+      - name: plugin executor stack
+        # The plugins host beside the app: the nesting solver (the facade
+        # executor's HTTP dependency) and the three plugin executors,
+        # re-created per deploy. The app (host-networked) reaches them on
+        # 127.0.0.1:879x.
+        run: |
+          docker rm -f perigram-nesting perigram-facade-executor perigram-documents-executor perigram-tech-drawing-executor || true
+          docker run -d --name perigram-nesting --restart unless-stopped \
+            --network host \
+            perigram-nesting:staging
+          docker run -d --name perigram-facade-executor --restart unless-stopped \
+            --network host \
+            -e FACADE_EXECUTOR_PORT=8790 \
+            -e NESTING_WORKER_URL=http://127.0.0.1:8000/nest \
+            perigram-executor-facade:staging
+          docker run -d --name perigram-documents-executor --restart unless-stopped \
+            --network host \
+            -e DOCUMENTS_EXECUTOR_PORT=8791 \
+            perigram-executor-documents:staging
+          docker run -d --name perigram-tech-drawing-executor --restart unless-stopped \
+            --network host \
+            -e TECH_DRAWING_EXECUTOR_PORT=8792 \
+            perigram-executor-tech-drawing:staging
+      - name: seed catalog and ensure builtin installs
+        # The built-in listings publish and every organization gets the
+        # three plugins installed (idempotent — existing installs skip;
+        # legacy service nodes rewrite where they persist). Installs write
+        # directly: plain node, no Nuxt aliases.
+        run: |
+          docker run --rm --network host \
+            -v "$PWD:/src" -w /src \
+            -e NUXT_MONGODB_URI="mongodb://192.168.0.248:27017/cutkit?directConnection=true" \
+            -e FACADE_EXECUTOR_URL=http://127.0.0.1:8790 \
+            -e DOCUMENTS_EXECUTOR_URL=http://127.0.0.1:8791 \
+            -e TECH_DRAWING_EXECUTOR_URL=http://127.0.0.1:8792 \
+            node:24-alpine sh -c "node server/scripts/seed-plugin-catalog.js \
+              && node server/scripts/migrate-facade-pack-to-plugin.js \
+              && node server/scripts/migrate-tech-drawing-pack-to-plugin.js \
+              && node server/scripts/migrate-documents-pack-to-plugin.js"
       - name: redeploy container
         env:
           NUXT_VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
@@ -30,6 +78,9 @@ jobs:
             -e NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true \
             -e BASE_URL=https://perigram.sodalab.pro \
             -e NUXT_PUBLIC_BASE_URL=https://perigram.sodalab.pro \
+            -e FACADE_EXECUTOR_URL=http://127.0.0.1:8790 \
+            -e DOCUMENTS_EXECUTOR_URL=http://127.0.0.1:8791 \
+            -e TECH_DRAWING_EXECUTOR_URL=http://127.0.0.1:8792 \
             -e LIVEKIT_PUBLIC_URL=wss://perigram.sodalab.pro/livekit \
             -e LIVEKIT_INTERNAL_URL=ws://192.168.0.15:7880 \
             -e LIVEKIT_API_KEY=3a75db6bdbfc3048d69dee4b \
