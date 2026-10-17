@@ -1,5 +1,45 @@
 # TODO
 
+## User wire rows + drop the message click popup (owner direction 2026-10-17)
+
+Sender chips in group/instance threads render "User" for everyone (the
+assistant included): the readable-reference seam serves the §3 wire DTO
+(`name`, `fields`), while UserChip still reads the retired legacy DTO
+(`identity.name`, `data.avatarUrl`, `data.bot`). Fix at the wire — the
+framework user type declares the derived rows `bot` and `avatarUrl`,
+party-wire projects them, and the chip speaks the wire shape (CTS SPEC
+§13). The message row's left-click instance popup is slop — a text
+message is text, not a button — and is dropped entirely.
+
+- [ ] WAITING — owner verification on the live stack: group threads show
+  the assistant's name with the AI glyph face (and org-mates' names and
+  avatars) on sender chips and the header member stack; clicking a
+  message bubble does nothing.
+
+### Agent Notes (2026-10-17 — wire rows + popup dropped)
+
+- Root cause (reproduced on the live stack): since parties became
+  readable process principals (`d2e12a3b5`), the readable-reference seam
+  serves the §3 wire DTO (`name`, `fields`), while UserChip and the
+  group member stack still read the retired legacy DTO
+  (`identity.name`, `data.avatarUrl`, `data.bot`) — every non-self
+  sender chip rendered "User"; the user only sees it on bots because
+  their groups are human+assistant.
+- CTS: the framework `user` type declares the derived rows `bot`
+  (boolean) and `avatarUrl` (string); party-wire projects them beside
+  `roles` (CTS SPEC §13 records all three as the derived user rows, §6
+  names them domain vocabulary). `wireSlots` takes the extra rows as a
+  function of the serialized record; the dead `wireIdOf` helper is gone.
+- Client: UserChip and the group member stack read the seam's two legs —
+  wire (`name`, `fields.bot`, `fields.avatarUrl`) for org-mates,
+  directory card (`identity.name`, `data.avatarUrl`) for everyone else.
+- The message row's left-click instance popup is deleted (handler,
+  template binding, and the now-unused interactive-target import); the
+  right-click/long-press menu and swipe affordances are unchanged.
+- Validation: party-wire spec (new rows + assistant case), cts spec,
+  SSR smokes, design-system, framework-packages, check-arch,
+  framework:validate, docs:validate — pass.
+
 ## Agent tool calls as small Messages with details (owner direction 2026-10-17)
 
 The agent chronology's tool invocations render as small severity-styled

@@ -533,9 +533,11 @@ plus the identifier-flagged field (the served `user` type declares
 `identifier: "email"` and the users glyph) and carries no avatar slot, so
 inline user refs read as "users-icon + email" and other users' avatars
 never render there. The chip resolves its user through the instances
-store's readable-reference seam (org-mates through the users list,
-everyone else through the directory card — both carry `data.avatarUrl`,
-and the avatar image endpoint is open to every authenticated caller), so
+store's readable-reference seam, whose two legs speak two shapes:
+org-mates resolve through the §3 user wire (`name`, `fields.bot`,
+`fields.avatarUrl` — CTS SPEC §13 party projection), everyone else
+through the directory card (`identity.name`, `data.avatarUrl`), and the
+avatar image endpoint is open to every authenticated caller, so
 the avatar renders for any reachable person, not just the viewer (the
 letter label renders only while no image resolves — PrimeVue `Avatar`
 renders label over image, so a constant label hides every avatar; see the

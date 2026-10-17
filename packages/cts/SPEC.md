@@ -332,8 +332,8 @@ the paths against every declared target's row; every ref write evaluates
 it exactly (R2 — a value outside the domain is refused whatever offered
 it); pickers project the same expression so they offer what writes accept
 (one evaluator home, shared). Party types are legal relation targets
-(readable principals, §13); their wire rows — including the derived
-`user.roles` — are domain vocabulary.
+(readable principals, §13); their wire rows — the derived user rows
+`roles`, `bot`, and `avatarUrl` included — are domain vocabulary.
 
 ```yaml
 edges:
@@ -604,10 +604,12 @@ class collection, no construction): they join the process plane as
 instance-source bindings, relation targets (§6 domains included), and
 decomposition inputs — never as constructs, mutations, transitions,
 removes, or lineage children (compile refuses all of these). The party
-wire is §3 identity slots plus the declared rows; `user.roles` is derived
-at the read boundary from the active organization's authoritative
+wire is §3 identity slots plus the declared rows; the derived user rows
+are `roles` (from the active organization's authoritative
 `roleAssignments` — assignment stays organization data, the wire carries
-the derived read. Party reads gate on shared membership (self always
+the derived read), `bot` (the AI attribution-identity marker — surfaces
+render the assistant's face from it), and `avatarUrl` (the computed
+avatar serving route). Party reads gate on shared membership (self always
 readable) and ride the registered party services.
 
 ## 14. Process designer in development
