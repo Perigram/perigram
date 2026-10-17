@@ -98,3 +98,45 @@ describe('headless authoring draft overlay', () => {
         expect(edges.some(edge => edge.target === 'nodeMake' && String(edge.targetHandle || '').includes('fields.organization'))).toBe(true);
     });
 });
+
+describe('the overlay names its skips (no silent Unknown port)', () => {
+    const CONNECT = { op: 'connect', id: 'nodeLit', fromPort: 'value', to: 'nodeMake', toPort: 'fields.category' };
+
+    it('reports a declaration the registry refuses, with the reason', async () => {
+        const authoring = createDefinitionAuthoring(RAW_DOMAIN);
+        applyAuthoringSteps(authoring, BASE_STEPS, RAW_DOMAIN);
+        const data = authoring.definition();
+        // The live trap: a stored declaration the registry refuses
+        // (here: a non-kebab type id) — silently stubbed until now.
+        data.ctsTypes.clsTask.typeId = 'Task_X';
+        const seeded = createDefinitionAuthoring(RAW_DOMAIN, null, structuredClone(data));
+        seeded.withDomain(declarationOverlayDomain(data, RAW_DOMAIN));
+        let failure = null;
+        try {
+            applyAuthoringSteps(seeded, [CONNECT], RAW_DOMAIN);
+        } catch (error) {
+            failure = error;
+        }
+        expect(failure?.message).toMatch(/Unknown port/);
+        expect(failure?.message).toMatch(/Task_X skipped: type id must be kebab-case/);
+    });
+
+    it('reports field records that matched no class typeId', async () => {
+        const authoring = createDefinitionAuthoring(RAW_DOMAIN);
+        applyAuthoringSteps(authoring, BASE_STEPS, RAW_DOMAIN);
+        const data = authoring.definition();
+        // A field record whose typeId points anywhere else: its name never
+        // becomes a declaration field, and the port never exists.
+        data.ctsTypes.fldTitle.typeId = 'some-other-type';
+        const seeded = createDefinitionAuthoring(RAW_DOMAIN, null, structuredClone(data));
+        seeded.withDomain(declarationOverlayDomain(data, RAW_DOMAIN));
+        let failure = null;
+        try {
+            applyAuthoringSteps(seeded, [{ ...CONNECT, toPort: 'fields.title' }], RAW_DOMAIN);
+        } catch (error) {
+            failure = error;
+        }
+        expect(failure?.message).toMatch(/Unknown port/);
+        expect(failure?.message).toMatch(/field record\(s\) matched no class typeId/);
+    });
+});
