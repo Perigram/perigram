@@ -23,9 +23,12 @@ New writes always persist
 `conversationKey`, `conversationKind`, `participants`, `senderUserId`,
 `message`, `instanceRefs`, `timestamp`, and optionally `attachments` (see
 [Message Attachments](#message-attachments)), `forwardedFrom` (see
-[Forwarding](#forwarding)), or `agent` — the bot runtime's run
+[Forwarding](#forwarding)), `agent` — the bot runtime's run
 provenance (`{ steps }` — the run's chronology of reasoning segments and
-tool invocations), server-authored through the service
+tool invocations), or `notice` — a machine-output severity name
+(PrimeVue Message severity, e.g. `error`/`warn`) carried by the agent's
+failure replies so clients render them as severity-styled notices
+instead of chat bubbles. Both are server-authored through the service
 seam and stripped from client-posted bodies.
 
 ### Inbox Preferences and Read Marks

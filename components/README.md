@@ -1046,8 +1046,9 @@ forwarded-from caption line (forward icon + original sender) on every
 shape — text, media, or files. While a subscribed bot runs, its live work
 renders as one chromeless activity block under the messages (no bubble
 chrome, no sender chip): the run's chronology in order — the model's
-reasoning in per-round collapsible native `details` disclosures and one
-status-iconed row per tool invocation between them — and the
+reasoning in per-round collapsible `Fieldset` disclosures and one
+status-iconed row per tool invocation between them, a failed tool's
+error text rendered as a severity-error `Message` — and the
 answer growing as markdown in the room's flow. The transcript does not
 jump to the bottom while the run works. The composer's trailing control
 becomes a stop button for the live run; stopping aborts the request and
@@ -1057,14 +1058,20 @@ attached above it, open — thinking and tool history stay visible with the
 answer in the transcript, and an agent answer renders markdown as room
 content (no bubble) in the prose document voice through the shared
 sanitized pipeline (plain text on SSR, formatted on hydration). Bots
-never ride the human typing line.
+never ride the human typing line. The assistant's non-answer output is
+typed, not conversational: failure notices (`notice`, a severity name
+authored server-side — see
+[backend support](../server/features/support/README.md)) render as a
+`Message` with that severity instead of a chat bubble, and the AI's
+identity face is the shared microchip avatar
+([shared components](./shared/README.md)) on inbox rows, thread
+headers, pickers, and sender chips.
 Conversations with bots carry a model select above the composer: it
 lists the models the org's chat endpoints actually serve (not the
 profiles — the endpoint's own model listing) and pins the choice on the
 room for its subscribed bots, or the bot participant of a direct chat.
-It is never blank — it shows the room's effective model (the pin when
-the bots agree, else the bot's own brain); blank storage still falls
-back to the bot's own brain.
+It is never blank — it shows the room's effective model (the pin, else
+the org chat route); a blank pin falls back to the org chat route.
 Conversation history is lazy: the thread loads the newest
 message page and prepends older pages on scroll-to-top through the
 `limit`/`before` cursor contract, preserving the scroll anchor. Voice messages

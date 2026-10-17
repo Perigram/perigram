@@ -92,7 +92,13 @@ Three pieces share one tool catalog:
   (`agent: { steps }` — the run's chronology: per-round reasoning
   segments interleaved with tool invocations, in the order they happened)
   onto the persisted message — the
-  activity block the chat renders attached to the answer. While the
+  activity block the chat renders attached to the answer. A run that
+  dies without an answer still answers the room: the failure notice
+  persists with a `notice` severity (`error` for run failures, `warn`
+  for the unconfigured-provider state — see
+  [support](../support/README.md)), so clients render it as a
+  severity-styled system notice; a dead provider's notice keeps the
+  run's chronology attached. While the
   run is in flight it publishes the same activity onto the conversation
   topic — `bot_activity` with the chronology so far (one reasoning
   segment per round, tool invocations as they start and settle carrying
