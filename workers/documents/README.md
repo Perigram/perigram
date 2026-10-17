@@ -28,7 +28,18 @@ machinery from the install snapshot.
   prosemirror class identity across the subpath bundles; rebuild with
   `perigram-plugin vendor --listing listing.json`. The crepe theme and
   the editor voice css are static assets under `assets/`, injected as
-  links relative to the module URL.
+  links relative to the module URL. The theme css is BUILT, never
+  hand-copied — crepe's own theme files @import bare npm paths
+  (`@milkdown/kit/...`) that no browser can resolve, so the served css
+  must be one esbuild-bundled file over the enabled features (prosemirror,
+  reset, table, code-mirror, list-item, image-block — Latex/AI/toolbar
+  chrome stay off, keeping KaTeX's fonts out):
+
+  ```
+  C=node_modules/@milkdown/crepe/lib/theme/common
+  printf '@import "%s/prosemirror.css";\n@import "%s/reset.css";\n@import "%s/table.css";\n@import "%s/code-mirror.css";\n@import "%s/list-item.css";\n@import "%s/image-block.css";\n' $C $C $C $C $C $C > /tmp/crepe-entry.css
+  npx esbuild --bundle /tmp/crepe-entry.css --outfile=assets/vendor/crepe-theme.css
+  ```
 
 Runs from the repo mount (compose `documents-executor`, port 8791) —
 nothing here imports platform code.
