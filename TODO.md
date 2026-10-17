@@ -68,6 +68,27 @@ stands; repetition protection is not a budget).
   "already failed twice — change the approach" tool result (visible as an
   error step in the chronology) while changed-argument retries always
   proceed.
+- [ ] WAITING — owner verification on the live stack: the full gate loop
+  runs in one conversation — activate hits the migration plan, the AI
+  asks the room for targets (ask_user), declares them with
+  `declare_status_mappings`, and re-activates: the migration summary
+  lands on the definition and the re-targeted instances answer
+  afterward.
+
+### Agent Notes (2026-10-17 — declare_status_mappings shipped)
+
+- `declareStatusMappings` (service): a server-side merge of
+  `data.migrations.statuses` through the same update boundary the
+  designer's save drives — normalized rows (deduped by type|from,
+  incomplete dropped), replace semantics, empty list clears the
+  declaration while the `applied` summary survives, coverage left to
+  activation's plan-attached 400 by contract. The tool rides it on both
+  surfaces (plain authoring action, not chat-gated).
+- The gate loop is now complete end to end: activate → structured plan →
+  ask_user for targets → declare_status_mappings → re-activate
+  (activate-then-migrate in one request, idempotent resume). Pinned by
+  `status-migration-declaration.spec.js` (replace/clear/reject) and the
+  tools delegation + listing specs.
 
 ### Agent Notes (2026-10-17 — both shipped)
 
