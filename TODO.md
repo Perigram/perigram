@@ -6571,3 +6571,13 @@ up-left (anchored top-right during the gesture, like the drag header),
 clamped to the token minimums and the viewport, persisted in
 localStorage. The size binding pins a data-driven inline exception.
 
+
+## Mermaid fences render as diagrams in the shared markdown pipeline (2026-10-17)
+
+- [ ] Wherever the app renders markdown through `shared/markdown.js`
+  (agent answers, chat and file previews), a ```mermaid fence renders as
+  an inline pele SVG diagram; a fence that will not parse stays a plain
+  code block. pele joins `marked`/`dompurify` in the plugin SDK's
+  never-vendor set (surfaces receive `renderMarkdown`).
+
+Status: WAITING
