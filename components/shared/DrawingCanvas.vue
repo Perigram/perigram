@@ -41,7 +41,13 @@ const props = defineProps({
   showDesignerWorkpieceContext: { type: Boolean, default: false },
   visibleLayerNames: { type: Array, default: null },
   defaultPen: { type: Object, default: () => DEFAULT_DRAWING_PEN },
-  highlightedExtrusionIndex: { type: Number, default: null }
+  highlightedExtrusionIndex: { type: Number, default: null },
+  // Sticky viewport for editing surfaces: the first resolved drawing fits
+  // the view, and later source changes (live edits re-rendering bounds)
+  // keep the user's pan/zoom instead of refitting — the toolbar's reset
+  // view is the explicit refit. Default refits whenever the drawing's
+  // viewBox changes (previews, read-only panes).
+  preserveViewport: { type: Boolean, default: false }
 });
 
 const emit = defineEmits([
@@ -312,7 +318,7 @@ const refresh = async () => {
     if (!isLayerVisibilityControlled.value) {
       visibleLayers.value = nextDrawing?.layers?.map(layer => layer.name) || [];
     }
-    if (!previousViewBox || previousViewBox !== nextDrawing?.viewBox) {
+    if (!previousViewBox || (previousViewBox !== nextDrawing?.viewBox && !props.preserveViewport)) {
       viewBox.value = applyPreviewInset(parseViewBox(nextDrawing?.viewBox));
     }
     emit('ready', nextDrawing);

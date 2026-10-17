@@ -2463,9 +2463,14 @@ export default function createSurface({ vue, components, locale, queries, record
           }, [
             h(DrawingCanvas, {
               ref: drawingCanvasRef,
+              // Sticky editing viewport: live edits keep the user's
+              // pan/zoom; the canvas remounts per opened document
+              // (key) so a fresh cassette still fits.
+              key: selectedTemplateId.value || 'draft',
               source: drawingCanvasSource.value,
               sourceType: 'geometry-preview',
               mode: 'designer',
+              preserveViewport: true,
               visibleLayerNames: visibleLayerNames.value,
               selectedDesignerFaceId: selectedDesignerFaceId.value,
               designerSelectableWorkpieceIds: designerSelectableWorkpieceIds.value,
