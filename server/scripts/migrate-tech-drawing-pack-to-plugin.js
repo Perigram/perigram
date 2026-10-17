@@ -7,16 +7,20 @@
 // bindings resolve continuously through the swap. No pack disablement is
 // written: the pack no longer exists in code.
 //
-// Run inside the app container against the dev stack (after seeding):
+// Plain-node runbook (no Nuxt aliases — installs write directly, the
+// facade-migration precedent): run inside the app container after
+// seeding, then restart the app so per-org declaration caches rebuild.
+//
 //   docker compose -f docker-compose.dev.yml exec app \
 //     node server/scripts/migrate-tech-drawing-pack-to-plugin.js
+//   docker compose -f docker-compose.dev.yml restart app
 //
-// Idempotent: re-running refreshes the catalog pin and skips orgs that
-// already hold the install.
-import { connectDB } from '../db/mongo.js';
-import { installFromCatalog } from '../features/plugins/service.js';
-import { normalizeListing } from '../../packages/plugin-sdk/src/listing.js';
+// Idempotent: re-running refreshes the catalog pin and skips installs
+// that already hold.
+import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { connectDB } from '../db/mongo.js';
+import { normalizeListing } from '../../packages/plugin-sdk/src/listing.js';
 
 const surfaceOrigin = process.env.TECH_DRAWING_EXECUTOR_URL || 'http://tech-drawing-executor:8792';
 const listingPath = process.argv[2] || 'workers/tech-drawing/listing.json';
@@ -42,8 +46,19 @@ for (const org of orgs) {
     alreadyInstalled += 1;
     continue;
   }
-  await installFromCatalog({ organizationId, pluginId: listing.pluginId, surfaceOrigin });
+  await db.collection('plugin_installs').insertOne({
+    organizationId,
+    pluginId: listing.pluginId,
+    name: listing.name,
+    version: listing.version,
+    declarations: listing.declarations,
+    services: listing.declarations.services,
+    requires: listing.requires,
+    surfaceOrigin,
+    connectorToken: randomBytes(24).toString('base64url'),
+    installedAt: new Date()
+  });
   installed += 1;
 }
 
-console.log(`installed for ${installed} organization(s), ${alreadyInstalled} already held the install`);
+console.log(`installed for ${installed} organization(s), ${alreadyInstalled} already held the install — restart the app to rebuild declaration caches`);
