@@ -550,16 +550,16 @@ Keep person identity displays on this chip; keep entity refs on
 ### `AgentActivity.vue`
 An agent run's visible work as one quiet chronology: per-round model
 reasoning in collapsible `Fieldset` disclosures and one caption row per
-tool invocation — status-colored icon, technical-voice name, a failed
+tool invocation — muted status icon, technical-voice name, a failed
 tool's error as a severity-error `Message`. The `pt` compacts the
 Fieldset on the elements that carry Aura's sizing: the toggle button
-(the legend itself is zeroed for toggleable fieldsets) and the legend's
-hover strip. Rendered both for a live run and for the `agent` provenance
-persisted on a bot's reply; both sites start open, so the chronology
-stays visible with the answer (the collapsed state is the user's own
-toggling). The live run shows a spinner-only pending state before the
-first token. The answer is never rendered here: it is the message body
-at both sites.
+(the legend itself is zeroed for toggleable fieldsets), the label's
+caption voice, and the +/− svg (`.p-icon` pins 1rem). Rendered both
+for a live run and for the `agent` provenance persisted on a bot's
+reply; both sites start open, so the chronology stays visible with the
+answer (the collapsed state is the user's own toggling). The live run
+shows a spinner-only pending state before the first token. The answer
+is never rendered here: it is the message body at both sites.
 
 ### `AiAvatar.vue`
 The AI identity face: the microchip PrimeIcon in the brand accent on

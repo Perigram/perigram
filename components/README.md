@@ -1047,7 +1047,7 @@ shape — text, media, or files. While a subscribed bot runs, its live work
 renders as one chromeless activity block under the messages (no bubble
 chrome, no sender chip): the run's chronology — the model's reasoning
 in per-round collapsible `Fieldset` disclosures and one caption row per
-tool invocation (status-colored icon, technical-voice name, a
+tool invocation (muted status icon, technical-voice name, a
 severity-error `Message` when a tool failed) — and the answer growing
 as markdown in the room's flow. The transcript
 does not
