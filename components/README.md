@@ -1041,10 +1041,9 @@ tight stack — the timestamp trails under the last message of the run only
 (the instance leaf link keeps its caption row regardless), and group and
 instance threads (the organization chat included) lead others' runs with
 the sender's avatar and display name through the shared user chip
-(`components/shared/UserChip.vue`, once per run, never for the viewer's
-own messages); the assistant's own chat — a two-party room — leads the
-assistant's runs with the same chip, and human 1:1 chats never carry
-stamps. Forwarded messages lead their content with the
+(`components/shared/UserChip.vue`, once per run, on others' messages);
+the assistant's own chat — a two-party room — leads the assistant's runs
+with the same chip. Forwarded messages lead their content with the
 forwarded-from caption line (forward icon + original sender) on every
 shape — text, media, or files. While a subscribed bot runs, its live work
 renders as one chromeless activity block under the messages (no bubble
