@@ -6,11 +6,10 @@ import { composeSystemDeclarations, mountedPackDeclarations } from './declaratio
 // retired into its plugin, owner decision 2026-10-17); the laws stay
 // exercised through synthesized mounts.
 describe('pack composition', () => {
-  it('composes the mounted packs in mount order', () => {
-    const declarations = composeSystemDeclarations();
-    const ids = declarations.map(type => type.id);
-    expect(ids).toContain('text-document');
-    expect(ids).toContain('csv-table');
+  it('composes the (empty) mounted set', () => {
+    // No pack remains mounted (documents retired into its plugin, owner
+    // decision 2026-10-17); the composition seam stays for its exit.
+    expect(composeSystemDeclarations()).toEqual([]);
   });
 
   it('fails loudly on a missing requirement', () => {
@@ -30,14 +29,13 @@ describe('pack composition', () => {
   });
 
   it('fails loudly on inter-pack id collisions', () => {
-    mountedPackDeclarations.push({
-      id: 'clone',
-      requires: [],
-      types: [{ ...composeSystemDeclarations()[0] }]
-    });
+    const type = { id: 'clone-type', class: 'item', fields: { name: { base: 'string' } } };
+    mountedPackDeclarations.push({ id: 'one', requires: [], types: [type] });
+    mountedPackDeclarations.push({ id: 'two', requires: [], types: [{ ...type }] });
     try {
-      expect(() => composeSystemDeclarations()).toThrow(/duplicate system type id/);
+      expect(() => composeSystemDeclarations()).toThrow(/duplicate system type id clone-type/);
     } finally {
+      mountedPackDeclarations.pop();
       mountedPackDeclarations.pop();
     }
   });

@@ -9,7 +9,8 @@ import { readFileSync } from 'node:fs';
 // (`pi pi-*`) resolve from the primeicons package and are out of scope.
 describe('Icon font glyph coverage', () => {
   it('resolves every mounted pack glyph class in the generated font CSS', async () => {
-    const { documentsTypes } = await import('../packages/documents/src/index.js');
+    const documentsListing = (await import('../workers/documents/listing.json', { with: { type: 'json' } })).default;
+    const documentsTypes = documentsListing.declarations.types;
     const techDrawingListing = (await import('../workers/tech-drawing/listing.json', { with: { type: 'json' } })).default;
     const techDrawingTypes = techDrawingListing.declarations.types;
     const css = readFileSync('assets/css/main.css', 'utf8');

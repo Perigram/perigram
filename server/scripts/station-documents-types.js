@@ -1,13 +1,13 @@
 import { connectDB } from '../db/mongo.js';
 import { randomBytes } from 'node:crypto';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../../packages/cts/src/index.js';
-import { documentsPack } from '../../packages/documents/src/index.js';
+import documentsListing from '../../workers/documents/listing.json' with { type: 'json' };
 import techDrawingListing from '../../workers/tech-drawing/listing.json' with { type: 'json' };
 import { createDefinitionAuthoring } from '../../packages/processes/src/authoring.js';
 
 /**
  * Stations the mounted packs' starter constructs (the documents pack's
- * markdown-first set, packages/documents/src/index.js) into
+ * markdown-first set, the documents plugin listing) into
  * organizations' processes as an additive ACTIVE definition — the same
  * headless authoring seam the designer, the e2e fixtures, and the
  * org-creation starter use (createDefinitionAuthoring), posted through
@@ -36,11 +36,11 @@ const db = await connectDB();
 
 function definitionData(organizationId) {
   const registry = createTypeRegistry({ id: 'station-documents' });
-  for (const declaration of [...frameworkTypes, ...documentsPack.types, ...techDrawingListing.declarations.types]) {
+  for (const declaration of [...frameworkTypes, ...documentsListing.declarations.types, ...techDrawingListing.declarations.types]) {
     registry.defineType(declaration);
   }
   const domain = projectDomainFromView(registry, organizationId, [], {
-    packServices: [...(documentsPack.services || []), ...(techDrawingListing.declarations.services || [])]
+    packServices: [...(documentsListing.declarations.services || []), ...(techDrawingListing.declarations.services || [])]
   });
   const authoring = createDefinitionAuthoring(domain);
   TYPES.forEach((construct, index) => {

@@ -3,6 +3,8 @@ import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import ColorPicker from 'primevue/colorpicker';
+import Column from 'primevue/column';
+import DataTable from 'primevue/datatable';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
@@ -51,7 +53,7 @@ import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 let surfacePack = null;
 function surfaceComponentPack() {
   surfacePack ||= Object.freeze({
-    Button, Checkbox, ColorPicker, Dialog, InputText, InputNumber, Message, Popover, ScrollPanel, Select, SelectButton, Tag, Textarea,
+    Button, Checkbox, ColorPicker, Column, DataTable, Dialog, InputText, InputNumber, Message, Popover, ScrollPanel, Select, SelectButton, Tag, Textarea,
     DesignerSurface, DesignerWorkspace, DrawingCanvas, InstanceSelect, StandardDialog
   });
   return surfacePack;
@@ -197,10 +199,19 @@ export function editorSurfacePersistence(typeId) {
       // single-homes in file-surfaces.
       return await runBlankFileConstruct(typeId);
     },
-    async loadDocument(record, { mimeType = 'application/json' } = {}) {
+    async loadDocument(record, { mimeType = 'application/json', raw = false } = {}) {
       const url = instancePayloadFileUrl(record?.payload);
       if (!url) return null;
-      return await basePersistence(record, mimeType).load().then(text => (text ? JSON.parse(text) : null));
+      const text = await basePersistence(record, mimeType).load();
+      if (!text) return null;
+      // Text payloads (markdown documents, CSV tables) are the document
+      // itself — `raw` hands the text back unparsed.
+      if (raw || mimeType.startsWith('text/')) return text;
+      try {
+        return JSON.parse(text);
+      } catch {
+        return text;
+      }
     },
     async saveDocument(record, document, { fileName, mimeType = 'application/json' } = {}) {
       const text = typeof document === 'string' ? document : JSON.stringify(document ?? {});

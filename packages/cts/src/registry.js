@@ -192,9 +192,12 @@ export function normalizeType(declaration = {}) {
 }
 
 // Declared extract projections (SPEC §8 p): `{ id, label?, output,
-// resolve }` with resolve exactly one of a stored `field` path or a pack
-// `handler` id. Output is a V-grammar descriptor; the declaration owns
-// the mapping so graphs never author paths into stored payloads.
+// resolve }` with resolve exactly one of a stored `field` path, a pack
+// `handler` id, or a plugin `service` ref (owner decision 2026-10-17:
+// service-resolved projections compute on the plugin's endpoint-mode
+// executor — the platform reads the instance/payload, the service
+// returns the value). Output is a V-grammar descriptor; the declaration
+// owns the mapping so graphs never author paths into stored payloads.
 function normalizeProjections(projections = [], typeId = '') {
   if (!Array.isArray(projections)) {
     throw new Error(`type ${typeId}: projections must be an array`);
@@ -206,8 +209,10 @@ function normalizeProjections(projections = [], typeId = '') {
     }
     const fieldResolved = typeof projection?.resolve?.field === 'string' && projection.resolve.field.trim();
     const handlerResolved = typeof projection?.resolve?.handler === 'string' && projection.resolve.handler.trim();
-    if (fieldResolved === handlerResolved) {
-      throw new Error(`type ${typeId}: projection ${id} resolves exactly one of field or handler`);
+    const serviceResolved = typeof projection?.resolve?.service === 'string' && projection.resolve.service.trim();
+    const resolvedCount = [fieldResolved, handlerResolved, serviceResolved].filter(Boolean).length;
+    if (resolvedCount !== 1) {
+      throw new Error(`type ${typeId}: projection ${id} resolves exactly one of field, handler, or service`);
     }
     if (!projection.output || typeof projection.output !== 'object' || !projection.output.base) {
       throw new Error(`type ${typeId}: projection ${id} requires an output descriptor`);
@@ -219,7 +224,9 @@ function normalizeProjections(projections = [], typeId = '') {
       ...(projection.group ? { group: String(projection.group) } : {}),
       resolve: fieldResolved
         ? { field: projection.resolve.field.trim() }
-        : { handler: projection.resolve.handler.trim() }
+        : handlerResolved
+          ? { handler: projection.resolve.handler.trim() }
+          : { service: projection.resolve.service.trim() }
     });
   }));
 }

@@ -54,6 +54,10 @@ vi.mock('../cts-types/repository.js', () => ({
 import { instanceServiceResolver } from './service.js';
 import * as repository from './repository.js';
 import { findByTypeId } from '../cts-types/repository.js';
+import * as pluginInstalls from '../plugins/repository.js';
+import documentsListing from '../../../workers/documents/listing.json' with { type: 'json' };
+const documentsByType = new Map(documentsListing.declarations.types.map(type => [type.id, type]));
+pluginInstalls.findDeclarationByTypeId.mockImplementation(async (organizationId, typeId) => documentsByType.get(typeId) || null);
 
 const db = { collection: vi.fn() };
 const connectDB = (await import('~/server/db/mongo')).connectDB;
@@ -144,7 +148,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     await service.processUpdate('507f1f77bcf86cd799439011', {
       fields: { name: 'Renamed' },
       name: 'Renamed Too'
-    });
+    }, 'org-1');
 
     const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
     expect(set['fields.name']).toBe('Renamed');
@@ -209,7 +213,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     await service.processUpdate('507f1f77bcf86cd799439011', {
       provenance: { op: 'forged' },
       attachments: { primary: { fileId: 'evil' } }
-    });
+    }, 'org-1');
     const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
     expect(set.provenance).toBeUndefined();
     expect(set.payload).toBeUndefined();
@@ -430,7 +434,7 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
   it('refuses types without a revision scope or payload traits', async () => {
     stubCollection();
     const docx = instanceServiceResolver('docx-document'); // payload, no revisions
-    await expect(docx.replacePayload(SKETCH_ID, { buffer: Buffer.from('x'), filename: 'm.docx' }, {}))
+    await expect(docx.replacePayload(SKETCH_ID, { buffer: Buffer.from('x'), filename: 'm.docx' }, { organizationId: 'org-1' }))
       .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('revision scope') });
 
     const note = instanceServiceResolver('plain-note'); // revisions absent, no payload (org-store fixture)

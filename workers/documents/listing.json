@@ -1,0 +1,431 @@
+{
+  "pluginId": "documents",
+  "name": "Documents",
+  "description": "The generic media/office file types (images, PDF, markdown, CSV, XLSX, DOCX) with their editor surfaces, table projections, and CSV composition as an installable plugin",
+  "version": "1",
+  "requires": [],
+  "declarations": {
+    "types": [
+      {
+        "id": "image",
+        "class": "file",
+        "scope": "system",
+        "name": "Image",
+        "glyph": "ck-file-type-icon ck-file-type-icon-image",
+        "payload": {
+          "mime": [
+            "image/jpeg",
+            "image/png"
+          ],
+          "accept": [
+            ".jpg",
+            ".jpeg",
+            ".png",
+            "image/jpeg",
+            "image/png"
+          ],
+          "maxSize": 26214400,
+          "preview": "image",
+          "creation": [
+            "upload",
+            "capture"
+          ]
+        },
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          }
+        }
+      },
+      {
+        "id": "pdf-document",
+        "class": "file",
+        "scope": "system",
+        "name": "PDF document",
+        "glyph": "ck-file-type-icon ck-file-type-icon-pdf-document",
+        "payload": {
+          "mime": [
+            "application/pdf"
+          ],
+          "accept": [
+            ".pdf",
+            "application/pdf"
+          ],
+          "maxSize": 26214400,
+          "preview": "pdf"
+        },
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          }
+        }
+      },
+      {
+        "id": "text-document",
+        "class": "file",
+        "scope": "system",
+        "name": "Text document",
+        "glyph": "ck-file-type-icon ck-file-type-icon-text-document",
+        "payload": {
+          "mime": [
+            "text/markdown"
+          ],
+          "accept": [
+            ".md",
+            "text/markdown"
+          ],
+          "maxSize": 10485760,
+          "preview": "text",
+          "creation": [
+            "editor",
+            "content",
+            "upload"
+          ]
+        },
+        "revisions": "content",
+        "projections": [
+          {
+            "id": "text",
+            "label": "Text",
+            "group": "tableData",
+            "output": {
+              "base": "string"
+            },
+            "resolve": {
+              "service": "plugin.documents.text"
+            }
+          }
+        ],
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          }
+        }
+      },
+      {
+        "id": "csv-table",
+        "class": "file",
+        "scope": "system",
+        "name": "CSV table",
+        "glyph": "ck-file-type-icon ck-file-type-icon-csv-table",
+        "payload": {
+          "mime": [
+            "text/csv"
+          ],
+          "accept": [
+            ".csv",
+            "text/csv"
+          ],
+          "maxSize": 10485760,
+          "preview": "table",
+          "creation": [
+            "editor",
+            "content"
+          ]
+        },
+        "revisions": "content",
+        "projections": [
+          {
+            "id": "rows",
+            "label": "Table rows",
+            "group": "tableData",
+            "output": {
+              "base": "list",
+              "itemType": {
+                "base": "record"
+              }
+            },
+            "resolve": {
+              "service": "plugin.documents.table-rows"
+            }
+          },
+          {
+            "id": "cells",
+            "label": "Table cells (positional)",
+            "group": "tableData",
+            "output": {
+              "base": "list",
+              "itemType": {
+                "base": "record"
+              }
+            },
+            "resolve": {
+              "service": "plugin.documents.table-cells"
+            }
+          }
+        ],
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          }
+        }
+      },
+      {
+        "id": "xlsx-workbook",
+        "class": "file",
+        "scope": "system",
+        "name": "XLSX workbook",
+        "glyph": "ck-file-type-icon ck-file-type-icon-xlsx-workbook",
+        "payload": {
+          "mime": [
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          ],
+          "accept": [
+            ".xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          ],
+          "maxSize": 26214400,
+          "preview": "workbook",
+          "creation": [
+            "upload"
+          ]
+        },
+        "projections": [
+          {
+            "id": "rows",
+            "label": "Table rows",
+            "group": "tableData",
+            "output": {
+              "base": "list",
+              "itemType": {
+                "base": "record"
+              }
+            },
+            "resolve": {
+              "service": "plugin.documents.table-rows"
+            }
+          },
+          {
+            "id": "cells",
+            "label": "Table cells (positional)",
+            "group": "tableData",
+            "output": {
+              "base": "list",
+              "itemType": {
+                "base": "record"
+              }
+            },
+            "resolve": {
+              "service": "plugin.documents.table-cells"
+            }
+          }
+        ],
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          }
+        }
+      },
+      {
+        "id": "docx-document",
+        "class": "file",
+        "scope": "system",
+        "name": "DOCX document",
+        "glyph": "ck-file-type-icon ck-file-type-icon-docx-document",
+        "payload": {
+          "mime": [
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          ],
+          "accept": [
+            ".docx",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          ],
+          "maxSize": 26214400,
+          "preview": "download"
+        },
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true
+          }
+        }
+      }
+    ],
+    "services": [
+      {
+        "id": "table-rows",
+        "label": "Table rows",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "table-cells",
+        "label": "Table cells (positional)",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "text",
+        "label": "Document text",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": {
+            "base": "string"
+          }
+        }
+      },
+      {
+        "id": "csv-text",
+        "label": "CSV text",
+        "mode": "endpoint",
+        "group": "tableData",
+        "render": {
+          "label": "CSV text",
+          "icon": "pi pi-table"
+        },
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "rows": {
+                "base": "list",
+                "itemType": {
+                  "base": "record"
+                }
+              }
+            }
+          },
+          "output": {
+            "base": "string"
+          }
+        }
+      }
+    ],
+    "editors": [
+      {
+        "type": "text-document",
+        "surface": "text-editor",
+        "modes": [
+          "edit"
+        ]
+      },
+      {
+        "type": "csv-table",
+        "surface": "csv-editor",
+        "modes": [
+          "edit"
+        ]
+      }
+    ],
+    "surfaces": [
+      {
+        "id": "text-editor",
+        "module": "/surfaces/text-editor.mjs",
+        "surfaceContract": 3
+      },
+      {
+        "id": "csv-editor",
+        "module": "/surfaces/csv-editor.mjs",
+        "surfaceContract": 3
+      }
+    ],
+    "starterConstructs": [
+      {
+        "typeId": "text-document",
+        "construction": "editor"
+      }
+    ],
+    "dependencies": [
+      {
+        "name": "xlsx",
+        "version": "0.18.5",
+        "module": "/assets/vendor/xlsx.mjs",
+        "license": "Apache-2.0"
+      },
+      {
+        "name": "@codemirror/view",
+        "version": "6.43.14",
+        "module": "/assets/vendor/codemirror-view.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "@codemirror/language",
+        "version": "6.13.1",
+        "module": "/assets/vendor/codemirror-language.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "@lezer/highlight",
+        "version": "1.2.5",
+        "module": "/assets/vendor/lezer-highlight.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "@milkdown/crepe",
+        "version": "7.22.3",
+        "module": "/assets/vendor/milkdown-crepe.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "@codemirror/language-data",
+        "version": "6.5.2",
+        "module": "/assets/vendor/codemirror-language-data.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "@milkdown/prose/state",
+        "version": "7.22.3",
+        "module": "/assets/vendor/milkdown-prose-state.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "@milkdown/plugin-slash",
+        "version": "7.22.3",
+        "module": "/assets/vendor/milkdown-plugin-slash.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "@milkdown/prose/view",
+        "version": "7.22.3",
+        "module": "/assets/vendor/milkdown-prose-view.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "@milkdown/utils",
+        "version": "7.22.3",
+        "module": "/assets/vendor/milkdown-utils.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "@milkdown/core",
+        "version": "7.22.3",
+        "module": "/assets/vendor/milkdown-core.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "@milkdown/preset-commonmark",
+        "version": "7.22.3",
+        "module": "/assets/vendor/milkdown-preset-commonmark.mjs",
+        "license": "MIT"
+      },
+      {
+        "name": "@milkdown/prose/commands",
+        "version": "7.22.3",
+        "module": "/assets/vendor/milkdown-prose-commands.mjs",
+        "license": "MIT"
+      }
+    ]
+  }
+}

@@ -16,7 +16,6 @@ import { convertArtifact } from '~/server/features/artifact-conversions/operatio
 import { instanceServiceResolver } from '~/server/features/instances/service.js';
 import { partyProcessBindings } from '~/server/runtime/party-wire.js';
 
-import { documentsPack } from '~/server/packs/documents/index.js';
 import { frameworkCommandDefinitions } from '~/server/core/commands/definitions.js';
 import { frameworkTaskDefinitions } from '~/server/core/tasks/definitions.js';
 
@@ -26,7 +25,9 @@ let appRegistry = null;
 // and the packs to mount. A pack provides: domain content, entity services
 // with process bindings, construction handlers, delete adapters, commands,
 // and task executors.
-const FRAMEWORK_PACKS = [documentsPack];
+// No pack mounts anymore (documents and tech-drawing retired into their
+// plugins, owner decision 2026-10-17); the loop stays for the seam's exit.
+const FRAMEWORK_PACKS = [];
 
 export function getAppRegistry() {
   if (appRegistry) {

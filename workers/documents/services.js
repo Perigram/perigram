@@ -1,0 +1,81 @@
+// The documents plugin's executor services (endpoint mode): pure compute
+// over values — the platform sends the record's own payload as base64 and
+// the service returns the computed value; the CSV composition twin takes
+// rows in and returns the CSV text. The table decomposition and text
+// extraction moved here from the retired pack's projection handlers
+// (owner decision 2026-10-17); column semantics stay in the reading
+// graph. Imports the xlsx ESM build.
+import * as XLSX from 'xlsx/xlsx.mjs';
+
+function badRequest(message) {
+  const error = new Error(message);
+  error.status = 400;
+  throw error;
+}
+
+function bufferOf(input = {}) {
+  if (!input?.payloadBase64 || typeof input.payloadBase64 !== 'string') {
+    badRequest('the projection requires payloadBase64');
+  }
+  return Buffer.from(input.payloadBase64, 'base64');
+}
+
+// Spreadsheet column letter: 0 → A, 25 → Z, 26 → AA.
+function columnLetter(index) {
+  let n = index;
+  let letter = '';
+  do {
+    letter = String.fromCharCode(65 + (n % 26)) + letter;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return letter;
+}
+
+// Header-keyed conversion: the first matrix row is the header, the rest
+// are data. Cells under an empty header are dropped.
+function recordsByHeader(matrix) {
+  const headers = matrix[0].map(header => String(header ?? '').trim());
+  return matrix.slice(1).map(row => Object.fromEntries(
+    headers.map((header, index) => [header, row[index] ?? '']).filter(([header]) => header)
+  ));
+}
+
+// Positional conversion: every matrix row is data, keyed by column letter.
+function recordsByPosition(matrix) {
+  return matrix.map(row => Object.fromEntries(
+    row.map((cell, index) => [columnLetter(index), cell ?? ''])
+  ));
+}
+
+function sheetMatrix(input = {}) {
+  const buffer = bufferOf(input);
+  let workbook;
+  try {
+    workbook = input.typeId === 'csv-table'
+      ? XLSX.read(new TextDecoder().decode(buffer), { type: 'string' })
+      : XLSX.read(buffer, { type: 'array' });
+  } catch {
+    badRequest('payload is not a readable spreadsheet');
+  }
+  const sheetName = workbook.SheetNames?.[0];
+  const sheet = sheetName ? workbook.Sheets?.[sheetName] : null;
+  if (!sheet) badRequest('the payload carries no sheet');
+  const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
+    .filter(row => Array.isArray(row) && row.some(cell => String(cell ?? '').trim() !== ''));
+  if (!matrix.length) badRequest('the payload carries no rows');
+  return matrix;
+}
+
+export const services = {
+  'table-rows': async input => recordsByHeader(await sheetMatrix(input)),
+  'table-cells': async input => recordsByPosition(await sheetMatrix(input)),
+  text: async input => new TextDecoder().decode(bufferOf(input)),
+  // The composition twin of the rows decomposition: rows back into CSV
+  // text (RFC 4180).
+  'csv-text': async ({ rows = [] } = {}) => {
+    if (!Array.isArray(rows)) badRequest('csv-text requires a rows array');
+    return XLSX.utils.sheet_to_csv(
+      XLSX.utils.json_to_sheet(rows.map(row => (row && typeof row === 'object') ? row : {}))
+    );
+  }
+};

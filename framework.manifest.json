@@ -718,66 +718,6 @@
   "entities": [
     {
       "blocks": [
-        "fields",
-        "lineage",
-        "relations"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "image"
-    },
-    {
-      "blocks": [
-        "fields",
-        "lineage",
-        "relations"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "pdf-document"
-    },
-    {
-      "blocks": [
-        "fields",
-        "lineage",
-        "relations"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "text-document"
-    },
-    {
-      "blocks": [
-        "fields",
-        "lineage",
-        "relations"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "csv-table"
-    },
-    {
-      "blocks": [
-        "fields",
-        "lineage",
-        "relations"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "xlsx-workbook"
-    },
-    {
-      "blocks": [
-        "fields",
-        "lineage",
-        "relations"
-      ],
-      "collection": "files",
-      "lineage": {},
-      "type": "docx-document"
-    },
-    {
-      "blocks": [
         "fields"
       ],
       "collection": null,
@@ -852,36 +792,6 @@
     }
   ],
   "routes": [
-    {
-      "list": null,
-      "single": null,
-      "type": "image"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "pdf-document"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "text-document"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "csv-table"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "xlsx-workbook"
-    },
-    {
-      "list": null,
-      "single": null,
-      "type": "docx-document"
-    },
     {
       "list": null,
       "single": null,

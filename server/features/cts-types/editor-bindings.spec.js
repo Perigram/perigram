@@ -5,13 +5,11 @@ import { composePackEditors, composeSystemDeclarations } from '~/server/packs/de
 // accepts bindings for payload-bearing file types. The real packs must
 // compose cleanly; mutated mounts must be refused with the binding named.
 describe('pack editor binding guards', () => {
-  it('composes the real mounted packs without violations', () => {
-    const editors = composePackEditors();
-    const declarations = new Map(composeSystemDeclarations().map(declaration => [declaration.id, declaration]));
-    expect(editors.length).toBeGreaterThan(0);
-    for (const editor of editors) {
-      expect(declarations.get(editor.type)?.class, editor.type).toBe('file');
-    }
+  it('composes the (empty) mounted set without violations', () => {
+    // No pack mounts anymore (documents and tech-drawing retired into
+    // their plugins); the real editor laws live in the SDK's listing
+    // contract. The seam must still compose cleanly over the empty set.
+    expect(composePackEditors()).toEqual([]);
   });
 
   it('rejects an editor binding for a non-file class, naming the binding', () => {

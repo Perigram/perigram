@@ -125,6 +125,23 @@ services:
     command: node workers/facade/index.js
     restart: unless-stopped
 
+  # The documents plugin's executor (endpoint mode): table projections,
+  # text extraction, and CSV composition over values; serves the text/csv
+  # editor surfaces and their vendored runtimes as static GETs.
+  documents-executor:
+    image: node:24-alpine
+    working_dir: /src
+    volumes:
+      - .:/src
+    environment:
+      - DOCUMENTS_EXECUTOR_PORT=8791
+    ports:
+      - "8791:8791"
+    networks:
+      - perigram-network
+    command: node workers/documents/index.js
+    restart: unless-stopped
+
   # The tech-drawing plugin's executor (declarations-only plugin, no
   # services): serves the sketch editor surface module and its vendored
   # runtime dependencies as static GETs — the app's module proxy streams

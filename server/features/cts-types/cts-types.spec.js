@@ -27,6 +27,9 @@ vi.mock('./repository.js', () => ({
 
 import * as repository from './repository.js';
 import * as pluginInstalls from '../plugins/repository.js';
+import documentsListing from '../../../workers/documents/listing.json' with { type: 'json' };
+const documentsTypes = documentsListing.declarations.types;
+pluginInstalls.listDeclarationsByOrganization.mockImplementation(async () => documentsTypes);
 import { compileRegistryForOrganization, defineType, removeType, describeOrganizationTypes } from './service.js';
 import { findTypeReferences } from '../process-definitions/service.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -37,7 +40,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   repository.findByTypeId.mockResolvedValue(null);
   repository.listByOrganization.mockResolvedValue([]);
-  pluginInstalls.listDeclarationsByOrganization.mockResolvedValue([]);
+  pluginInstalls.listDeclarationsByOrganization.mockImplementation(async () => documentsTypes);
 });
 
 describe('cts type storage', () => {
@@ -130,22 +133,34 @@ describe('cts type storage', () => {
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
   });
 
-  it('drops disabled packs from the composed org view and its served editors', async () => {
-    pluginInstalls.listDisabledPacks.mockResolvedValue(['documents']);
-    const { bundle, attachmentKinds, editors } = await describeOrganizationTypes(ORG);
+  it('composes the installed documents plugin layer into the org view', async () => {
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
+      pluginId: 'documents',
+      name: 'Documents',
+      version: '1',
+      declarations: documentsListing.declarations,
+      services: documentsListing.declarations.services
+    }]);
+    const { bundle, editors } = await describeOrganizationTypes(ORG);
     expect(bundle.ok).toBe(true);
-    expect(bundle.types.some(type => type.id === 'xlsx-workbook')).toBe(false);
-    expect(editors.some(editor => editor.type === 'text-document')).toBe(false);
-    pluginInstalls.listDisabledPacks.mockResolvedValue([]);
+    expect(bundle.types.some(type => type.id === 'xlsx-workbook')).toBe(true);
+    expect(editors.some(editor => editor.type === 'text-document')).toBe(true);
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
   });
 
-  it('serves the composed pack editor bindings with the type view', async () => {
+  it('serves the installed plugin editor bindings with the type view', async () => {
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
+      pluginId: 'documents',
+      name: 'Documents',
+      version: '1',
+      declarations: documentsListing.declarations,
+      services: documentsListing.declarations.services
+    }]);
     const described = await describeOrganizationTypes(ORG);
     const byType = new Map((described.editors || []).map(editor => [editor.type, editor]));
-    // mounted-pack editors (documents); the cassette and
-    // sheet-design bindings arrive from the installed facade plugin layer
-    expect(byType.size).toBeGreaterThan(0);
+    expect(byType.get('text-document')).toMatchObject({ surface: 'text-editor' });
     expect(byType.get('cassette')).toBeUndefined();
+    pluginInstalls.listInstallsByOrganization.mockResolvedValue([]);
   });
 
   it('stores valid org declarations after full-view compile', async () => {
