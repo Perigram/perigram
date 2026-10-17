@@ -20,7 +20,7 @@ import { CLASS_COLLECTIONS, createTypeRegistry, declarationsFromCtsRecords, orie
 // own the report); they are skipped, not fatal.
 const DRAFT_OVERLAY_ORG = 'draft-overlay';
 
-export function declarationOverlayDomain(data = {}, domain = {}) {
+export function declarationOverlayDomain(data = {}, domain = {}, { report = null } = {}) {
   // Transition-node-declared target statuses ride the process records:
   // the overlay must know them or a draft binding check would refuse the
   // very target the transition node authors.
@@ -38,21 +38,29 @@ export function declarationOverlayDomain(data = {}, domain = {}) {
   // must carry them — a system type's construction changes when a draft
   // parent adopts it.
   const registry = createTypeRegistry({ id: 'cts:draft-overlay' });
-  for (const declaration of []) {
-    registry.defineType(declaration);
-  }
   const invalid = [];
   const declared = new Set();
   for (const declaration of declarations) {
     declared.add(declaration.id);
     try {
       registry.defineType({ ...declaration, scope: 'org', organizationId: DRAFT_OVERLAY_ORG });
-    } catch {
+      report?.push({ typeId: declaration.id, fields: Object.keys(declaration.fields || {}).length });
+    } catch (error) {
       // An unfinished declaration is authored state, not a save error.
       // Its id still stubs into the entity list so bindings to it save
       // (APPLY posts the declarations and reports the real error there);
-      // only its rows/workflows stay absent.
+      // only its rows/workflows stay absent — but the skip is never
+      // silent: the report carries the reason so port-resolution
+      // failures can name their cause instead of a bare `Unknown port`.
       invalid.push(declaration);
+      report?.push({ typeId: declaration.id, skipped: error?.message || String(error) });
+    }
+  }
+  if (report) {
+    const fieldRecords = Object.values(healed?.ctsTypes || {}).filter(record => record?.kind === 'field' && record?.name);
+    const matchedFields = declarations.reduce((sum, declaration) => sum + Object.keys(declaration.fields || {}).length, 0);
+    if (fieldRecords.length > matchedFields) {
+      report.push({ note: `${fieldRecords.length - matchedFields} field record(s) matched no class typeId — their names never became declaration fields` });
     }
   }
   const overlay = projectDomainFromView(registry, DRAFT_OVERLAY_ORG, {});

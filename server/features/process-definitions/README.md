@@ -327,7 +327,12 @@ declarations before the first step — the tree's declarations are ports
 immediately, so a field declares and wires in one session with no
 intermediate apply (the same overlay law the acceptance adapter follows;
 live defect 2026-10-17: unapplied fields' connects were refused with
-`Unknown port` until an activation posted them).
+`Unknown port` until an activation posted them). The overlay never skips
+silently: a declaration the registry refuses, or field records whose
+`typeId` matches no class, ride the very `Unknown port` step error as a
+named cause (`draft overlay: <type> skipped: <reason>` / `… field
+record(s) matched no class typeId`) — the failure names its cause and
+the next action instead of a wall.
 
 Process definitions never store role identities or user assignments. Their
 `data.roleGrants` record maps stable organization role ids to process-owned base

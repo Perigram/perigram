@@ -2246,7 +2246,25 @@ export function applyAuthoringSteps(authoring, steps = [], domain = null) {
         throw new Error(`Unknown authoring step: ${op || '(none)'}`);
       }
     } catch (error) {
-      throw createError({ statusCode: 400, message: `Step ${index + 1} (${op}) failed: ${error?.message || error}` });
+      let message = `Step ${index + 1} (${op}) failed: ${error?.message || error}`;
+      // A bare `Unknown port` hides its cause: the port set derives from
+      // the draft-overlay domain, and a skipped or fieldless declaration
+      // there is the usual reason. Name it in the same breath — the
+      // caller (agent or designer) gets the cause and the next action,
+      // not a wall.
+      if (/^Unknown port/.test(String(error?.message || '')) && domain) {
+        const report = [];
+        declarationOverlayDomain(authoring.definition(), domain, { report });
+        const summary = [
+          ...report.filter(entry => entry.typeId).map(entry => (
+            entry.skipped ? `${entry.typeId} skipped: ${entry.skipped}` : `${entry.typeId}(${entry.fields} fields)`
+          )),
+          ...report.map(entry => entry.note).filter(Boolean)
+        ];
+        if (summary.length) message += ` — draft overlay: ${summary.join('; ')}`;
+        else message += ' — the draft declares no types: the port set falls back to the applied registry';
+      }
+      throw createError({ statusCode: 400, message });
     }
     // Declaration steps re-seat the seam onto the draft-overlay domain:
     // the tree's own declarations become ports immediately, so a field
