@@ -88,7 +88,7 @@ describe('chat content SSR smoke', () => {
     expect(summary).toContain('+1');
   });
 
-  it('renders the agent chronology, thinking disclosure, and tool rows', async () => {
+  it('renders the agent chronology, thinking disclosure, and tool tags', async () => {
     const html = await boot({
       setup: () => () => h(AgentActivity, {
         activity: {
@@ -105,18 +105,19 @@ describe('chat content SSR smoke', () => {
     expect(html).toContain('reasoning here');
     expect(html).toContain('list_types');
     expect(html).toContain('it failed');
-    expect(html).toContain('data-testid="agent-tool"');
+    expect(html.match(/p-tag-label/g)?.length).toBe(2);
   });
 
-  it('renders the pending run as a pulsing skeleton disclosure', async () => {
+  it('renders nothing while the run has no steps — the typing line owns that presence', async () => {
     const html = await boot({
       setup: () => () => h(AgentActivity, {
         activity: { steps: [], answer: '' },
         live: true
       })
     });
-    expect(html).toContain('data-testid="agent-pending"');
-    expect(html.match(/p-skeleton-circle/g)?.length).toBe(3);
+    expect(html).not.toContain('p-fieldset');
+    expect(html).not.toContain('p-skeleton');
+    expect(html).not.toContain('data-testid="agent-thinking"');
   });
 
   it('renders the inline ref chip resolved, unresolved, and non-interactive', async () => {
