@@ -1067,7 +1067,7 @@ typed, not conversational: failure notices (`notice`, a severity name
 authored server-side — see
 [backend support](../server/features/support/README.md)) render as a
 `Message` with that severity instead of a chat bubble. The AI's
-identity face is the shared microchip avatar
+identity face is the shared sparkles avatar
 ([shared components](./shared/README.md)) on inbox rows, thread
 headers, pickers, and sender chips — and it is the only AI marker:
 chat surfaces carry no text badges. Instance refs attach to messages

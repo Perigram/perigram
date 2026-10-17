@@ -202,10 +202,6 @@ describe('Design system manifest', () => {
     expect(tailwindConfig).toContain("'./packages/*/src/editors/**/*.{vue,js}'");
     expect(tailwindConfig).toContain("'./workers/facade/surfaces/**/*.{js,mjs}'");
     expect(primeComponentTokens).toEqual({
-      chip: {
-        root: { paddingX: '0.375rem', paddingY: '0.125rem', borderRadius: '0.5rem' },
-        icon: { size: '0.75rem' }
-      },
       fieldset: {
         root: { padding: '0 0.75rem 0.75rem' },
         legend: { padding: '0.25rem 0.5rem', gap: '0.375rem' }

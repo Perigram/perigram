@@ -142,7 +142,7 @@ as plain chat bubbles; the run chronology renders one small PrimeVue
 Message per tool invocation — localized tool name with a compact detail
 of what the call addressed, severity-marked by outcome, a failed tool
 carrying its error in the same message; the thinking disclosure is the
-PrimeVue Fieldset (compact toggle button). The AI's identity face is the microchip glyph in the
+PrimeVue Fieldset (compact toggle button). The AI's identity face is the sparkles glyph in the
 brand accent (carmine) wherever the assistant shows — thread avatars,
 sender chips, pickers — and it is the only AI marker on chat surfaces:
 no text badges. Instance refs attach to chat messages like files do —
