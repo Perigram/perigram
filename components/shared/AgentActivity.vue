@@ -40,20 +40,21 @@ const onThinkingToggle = (index) => {
 
 // Compact geometry (legend padding/gap, root insets) lives in the
 // PrimeVue tokens (assets/tokens) and applies to every Fieldset; this
-// pt owns only what tokens cannot express — the caption-size label,
-// the +/− svg (`.p-icon` pins 1rem), the chronology's tighter root,
-// and the collapsed state: a collapsed disclosure is a quiet caption
-// line, so the box strips entirely.
+// pt owns only what tokens cannot express — the caption-size,
+// regular-weight label (matching the tool Tags), the +/− svg
+// (`.p-icon` pins 1rem), the chronology's tighter root, and the
+// collapsed state: the box's border goes, but the legend strip keeps
+// its filled surface and its exact horizontal position, so a
+// collapsed disclosure reads as kin to the Tags and nothing shifts.
 const thinkingPtFor = (index) => {
     const caption = {
-        legendLabel: { class: 'text-supporting' },
+        legendLabel: { class: 'text-supporting', style: { fontWeight: '400' } },
         toggleIcon: { style: { width: '0.75rem', height: '0.75rem' } }
     };
     return collapsedThinking.value.has(index)
         ? {
             ...caption,
-            root: { style: { padding: '0', borderWidth: '0', background: 'transparent' } },
-            legend: { style: { background: 'transparent' } }
+            root: { style: { padding: '0 0.5rem 0 0.5rem', borderWidth: '0', background: 'transparent' } }
         }
         : {
             ...caption,
