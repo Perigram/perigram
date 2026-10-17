@@ -55,6 +55,18 @@ export function parseListing(listing = {}) {
       throw listingError(`every type needs id and class (got ${JSON.stringify(type?.id)})`);
     }
   }
+  const typeById = new Map(types.map(type => [type.id, type]));
+  for (const type of types) {
+    if (type.access?.inherits !== undefined) {
+      const parent = typeById.get(type.access.inherits);
+      if (!type.access.inherits || typeof type.access.inherits !== 'string' || !parent) {
+        throw listingError(`type ${type.id}: access.inherits must name a type this plugin declares`);
+      }
+      if (parent.id === type.id) {
+        throw listingError(`type ${type.id}: access.inherits may not name the type itself`);
+      }
+    }
+  }
 
   for (const service of services) {
     if (!/^[a-z0-9-]+$/.test(service.id || '')) {
@@ -82,7 +94,6 @@ export function parseListing(listing = {}) {
     return String(ref);
   };
 
-  const typeById = new Map(types.map(type => [type.id, type]));
   const constructModesOf = type => new Set([
     ...Object.values(type?.operators || {})
       .filter(operator => operator?.species === 'construct')

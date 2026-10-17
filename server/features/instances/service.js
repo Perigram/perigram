@@ -250,6 +250,26 @@ async function requireDeclaration(typeId, organizationId) {
   return declaration;
 }
 
+// A type may delegate its write gate to another type through its
+// declaration (`access.inherits` — the listing grammar): writes to
+// records of the delegating type are authorized by the parent's grant,
+// so a type that only exists beside its parent (the facade profile
+// library beside cassettes) inherits that parent's rights instead of
+// demanding its own grant row (owner direction 2026-10-17). One hop,
+// no chains; an unresolvable parent refuses fail-closed.
+async function writeGrantTarget(declaration, organizationId) {
+  const inherits = declaration?.access?.inherits;
+  if (!inherits || inherits === declaration.id) {
+    return { typeId: declaration.id, feature: CLASS_COLLECTIONS[declaration.class] || declaration.id };
+  }
+  try {
+    const parent = await requireDeclaration(inherits, organizationId);
+    return { typeId: parent.id, feature: CLASS_COLLECTIONS[parent.class] || parent.id };
+  } catch {
+    return null;
+  }
+}
+
 function instanceService(typeId) {
   // Static-declaration construct modes (SPEC §4): payload types offer
   // only their creation protocols, payload-less types offer
@@ -407,8 +427,8 @@ function instanceService(typeId) {
         throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
       }
       const current = toDto(doc);
-      const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
-      if (!hasInstanceAccess({ entity: current, typeId, feature, level: 'write', auth })) {
+      const target = await writeGrantTarget(declaration, organizationId);
+      if (!target || !hasInstanceAccess({ entity: current, typeId: target.typeId, feature: target.feature, level: 'write', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
       const updated = await this.processUpdate(id, patch, organizationId);
@@ -435,8 +455,8 @@ function instanceService(typeId) {
     // (contract-2 surfaces composing other types' records).
     async createForHttp(draft = {}, { auth = null, organizationId = null } = {}) {
       const declaration = await requireDeclaration(typeId, organizationId || draft?.organizationId);
-      const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
-      if (!hasInstanceAccess({ entity: null, typeId, feature, level: 'write', auth })) {
+      const target = await writeGrantTarget(declaration, organizationId || draft?.organizationId);
+      if (!target || !hasInstanceAccess({ entity: null, typeId: target.typeId, feature: target.feature, level: 'write', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
       return await createValidated(draft, declaration, auth?.userId || null, organizationId);

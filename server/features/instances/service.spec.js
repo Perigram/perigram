@@ -37,7 +37,7 @@ vi.mock('../cts-types/repository.js', () => ({
         : typeId === 'label'
         ? { id: 'label', class: 'item', version: 1, fields: { code: { base: 'string', identifier: true }, note: { base: 'string' } }, states: { main: { initial: 'new', states: { new: {} } } } }
         : typeId === 'memo'
-          ? { id: 'memo', class: 'item', version: 1, fields: { title: { base: 'string' }, body: { base: 'string' } }, states: { main: { initial: 'new', states: { new: {} } } } }
+          ? { id: 'memo', class: 'item', version: 1, fields: { title: { base: 'string' }, body: { base: 'string' } }, states: { main: { initial: 'new', states: { new: {} } } }, access: { inherits: 'gallery' } }
           : null
   )),
   // org-1 declares the panel-under-bin hierarchy (SPEC §6 children edge,
@@ -284,6 +284,23 @@ describe('generic instance service stored shape (SPEC §3)', () => {
       { name: 'Nope', fields: {} },
       { auth: {}, organizationId: 'org-1' }
     )).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it('a type delegating its write gate (access.inherits) is authorized by the parent grant', async () => {
+    stubCollection();
+    const { hasInstanceAccess } = await import('../../core/access/service.js');
+    const service = instanceServiceResolver('memo'); // item class, inherits gallery (file class)
+
+    await service.createForHttp(
+      { name: 'Composed', fields: { title: 't' } },
+      { auth: {}, organizationId: 'org-1' }
+    );
+
+    // The gate asked for the PARENT's grant (files feature, gallery type),
+    // not memo's own class collection — inheritance across classes.
+    expect(hasInstanceAccess).toHaveBeenLastCalledWith(
+      expect.objectContaining({ typeId: 'gallery', feature: 'files', level: 'write' })
+    );
   });
 });
 
