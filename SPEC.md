@@ -91,7 +91,11 @@ dropped: the room coalesces it into one trailing run whose freshly
 loaded context covers everything said meanwhile. One run occupies a room
 at a time — the subscribed room owns the lock, the stop control, and the
 run's live presence — and the assistant answers only members of its own
-organization.
+organization. The composer carries the address affordance: typing `@`
+opens the room's candidate list — the seated assistant first, then the
+room's human participants — and a completed pick inserts the address
+token. User tags are composer text (no notification contract rides
+them); the assistant address is the multi-human room's wake gate.
 
 An agent run is visible in its room and stays with its answer: the
 model's reasoning streams as a collapsible thinking block and each tool

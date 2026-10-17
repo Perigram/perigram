@@ -1,5 +1,26 @@
 # TODO
 
+## Chat composer mention dropdown + agent web search (owner direction 2026-10-17)
+
+Two owner asks in one session: the composer completes `@` addresses with
+a typeahead dropdown (the seated assistant first, then the room's human
+participants — user tags are composer text, the assistant address is the
+multi-human room's wake gate; SPEC: agent access), and the agent tool
+catalog gains `web_search` over an organization-configured search
+provider — self-hosted SearXNG or keyed Tavily — administered as a block
+on the models screen, exposed to the chat runtime and MCP alike (SPEC:
+agent access).
+
+- [ ] WAITING — owner verification on the live stack: typing `@` in the
+  composer opens the candidate list (assistant first, then the room's
+  members); arrow keys navigate, Enter/Tab completes the token, Escape
+  closes; the completed `@Assistant` wakes the gated room.
+- [ ] WAITING — owner verification on the live stack: the models screen
+  carries the search provider block (SearXNG base URL or Tavily key,
+  with a test probe); with a provider configured, `web_search` answers
+  in an AI chat and lists in the MCP tool catalog; without one, neither
+  surface offers it.
+
 ## Chats inbox folders — chip strip replaces the org tree (owner direction 2026-10-17)
 
 The chats inbox drops the lineage tree: rows render as one flat list, and

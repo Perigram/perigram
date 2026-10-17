@@ -83,7 +83,10 @@ Three pieces share one tool catalog:
   participants, and every instance room) only when the message names the
   assistant (`@` + its name, case-insensitive, word-bounded;
   two-participant assistant rooms are the AI's own person-style threads
-  and answer every message) — and drives the tool-calling loop until the
+  and answer every message; the chat composer completes the address —
+  typing `@` opens the room's candidate list, the seated AI first, then
+  the room's human participants, and user tags are composer text) — and
+  drives the tool-calling loop until the
   model answers (owner direction 2026-10-16: no round budget) — the room's stop
   control and the provider idle guard are the only terminators — over
   the [LLM capability module](../llm/README.md) on the `chat`
