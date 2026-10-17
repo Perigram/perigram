@@ -47,6 +47,7 @@ import createFoldedPreview from './lib/components/foldedPreview.mjs';
 import createSketchEditor from './lib/components/sketchEditor.mjs';
 import { buildCassetteV2FoldedPreview } from './lib/cassetteV2FoldedPreview.js';
 import { normalizeGeometryDrawing } from './lib/drawingPreview.js';
+import { evaluateOccsCassetteTemplate } from '../occs/evaluate.js';
 
 const OCCS_MIME = 'application/perigram+occs';
 
@@ -344,6 +345,12 @@ export default function createSurface({ vue, components, locale, queries, record
         return workpiece?.name || workpieceId || '';
       };
       const workpieceRelationRowsById = computed(() => {
+        // Breadcrumb segments naming where the attachment lands: the
+        // binding face, plus the arranged edge for edge-array placements.
+        const relationCrumbs = (relation) => [
+          relation.targetFaceId ? `face ${relation.targetFaceId}` : null,
+          relation.placementMode === 'edgeArray' && relation.arrayEdge ? `edge ${relation.arrayEdge}` : null
+        ].filter(Boolean);
         const rows = new Map(workpieces.value.map(workpiece => [workpiece.id, []]));
         for (const relation of workpieceRelations.value) {
           const status = profileEmbeddingErrorById.value.has(relation.id)
@@ -353,9 +360,8 @@ export default function createSurface({ vue, components, locale, queries, record
             rows.get(relation.sourceWorkpieceId)?.push({
               relation,
               direction: 'out',
-              arrow: '->',
               otherLabel: workpieceLabel(relation.targetWorkpieceId),
-              faceLabel: `${relation.sourceFaceId} -> ${relation.targetFaceId}`,
+              crumbs: relationCrumbs(relation),
               status
             });
           }
@@ -363,9 +369,8 @@ export default function createSurface({ vue, components, locale, queries, record
             rows.get(relation.targetWorkpieceId)?.push({
               relation,
               direction: 'in',
-              arrow: '<-',
               otherLabel: workpieceLabel(relation.sourceWorkpieceId),
-              faceLabel: `${relation.targetFaceId} <- ${relation.sourceFaceId}`,
+              crumbs: relationCrumbs(relation),
               status
             });
           }
@@ -854,6 +859,20 @@ export default function createSurface({ vue, components, locale, queries, record
           });
           if (recordTitle(target) !== name) {
             await props.persistence.rename(target, name);
+          }
+          // Baked preview rows (the type's previewSource contract): every
+          // saved cassette carries its production outline on the record,
+          // so cards, pickers, and compact snapshots preview without the
+          // payload. The payload save above stays the truth; a bake
+          // failure only degrades previews.
+          try {
+            const evaluation = await evaluateOccsCassetteTemplate(definition, {}, cassetteMarkContext.value);
+            const polygonParts = (evaluation?.polygons || []).map(part => ({ coordinates: part.coordinates }));
+            if (polygonParts.length) {
+              await props.persistence.patch(target, { fields: { polygonParts } });
+            }
+          } catch {
+            // Previews degrade to placeholders; the saved document is complete.
           }
           persistedTemplateIdOverride.value = target._id?.toString() || persistedTemplateIdOverride.value;
           loadedDocument.value = { ...target, definition };
@@ -2320,20 +2339,11 @@ export default function createSurface({ vue, components, locale, queries, record
                           onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
                         }, [
                           h('div', { class: 'flex min-w-0 items-center gap-2' }, [
-                            h('span', { class: 'shrink-0 text-muted text-technical' }, relationRow.arrow),
                             h('span', { class: 'truncate text-body' }, relationRow.otherLabel),
-                            relationRow.relation.driver
-                              ? h('i', {
-                                  class: 'pi pi-compass shrink-0 text-muted',
-                                  role: 'img',
-                                  'aria-label': t('cassette.v2.driver'),
-                                  title: t('cassette.v2.driver')
-                                })
-                              : null,
                             statusIcon
                           ]),
-                          relationRow.faceLabel
-                            ? h('small', { class: 'truncate pl-5 text-muted' }, relationRow.faceLabel)
+                          relationRow.crumbs.length
+                            ? h('small', { class: 'truncate text-muted' }, relationRow.crumbs.join('  ›  '))
                             : null
                         ]),
                         h(Button, {
