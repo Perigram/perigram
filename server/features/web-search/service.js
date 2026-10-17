@@ -63,7 +63,7 @@ export async function isWebSearchAvailable(organizationId = null) {
  * carry title, url, and snippet only — the neutral shape every consumer
  * serves.
  */
-export async function webSearch({ organizationId = null, query, maxResults = RESULTS_DEFAULT }) {
+export async function webSearch({ organizationId = null, query, maxResults = RESULTS_DEFAULT, signal = null }) {
     const config = await resolveWebSearchConfig(organizationId);
     if (config.provider === 'none') {
         throw createError({ statusCode: 503, message: 'Web search is not configured' });
@@ -74,12 +74,17 @@ export async function webSearch({ organizationId = null, query, maxResults = RES
     const searxng = config.provider === 'searxng';
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    // The caller's stop cancels the request beside the idle timeout — a
+    // stopped room must not wait out a hanging provider.
+    const requestSignal = signal
+        ? AbortSignal.any([controller.signal, signal])
+        : controller.signal;
     let response;
     try {
         if (searxng) {
             response = await egressFetch(
                 `${config.baseUrl.replace(/\/+$/, '')}/search?q=${encodeURIComponent(searchQuery)}&format=json`,
-                { signal: controller.signal }
+                { signal: requestSignal }
             );
         } else {
             response = await egressFetch(`${config.baseUrl.replace(/\/+$/, '')}/search`, {
@@ -89,7 +94,7 @@ export async function webSearch({ organizationId = null, query, maxResults = RES
                     Authorization: `Bearer ${config.apiKey}`
                 },
                 body: JSON.stringify({ query: searchQuery, max_results: limit }),
-                signal: controller.signal
+                signal: requestSignal
             });
         }
     } catch (error) {
