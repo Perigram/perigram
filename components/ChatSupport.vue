@@ -891,15 +891,17 @@
 
                     <!-- Instance target strip: level drill-down over the
                          app's one instance tree. Icon-only breadcrumb
-                         pills walk back up; the chip row is the current
+                         pills walk back up — except the last, which
+                         carries its label (the reader always sees the
+                         current level); the chip row is the current
                          level — at the org root the home screen's
                          NON-EMPTY section types, inside a type that
                          type's instances, inside an instance its lineage
-                         children (shared containment seam). Drilling
-                         always descends (a picked chip becomes the
-                         trail's last pill, its siblings drop); browsing
-                         types never moves the message target — the
-                         org/instance picked last stays it. Minimal pill
+                         children. A chip with children descends (it
+                         becomes the trail's last pill, siblings drop);
+                         a leaf stays selected in its row, and browsing
+                         types never moves the message target — the org
+                         or last picked instance stays it. Minimal pill
                          elements from semantic tokens: segmented
                          PrimeVue chrome fights the composer density. -->
                     <div
@@ -923,18 +925,28 @@
                             </button>
                             <template v-for="(crumb, index) in stripTrail" :key="crumb.key">
                                 <i class="pi pi-angle-right shrink-0 text-muted" aria-hidden="true"></i>
+                                <!-- The current level's crumb carries its
+                                     label — the reader always sees where
+                                     they are; earlier crumbs stay
+                                     icon-only. -->
                                 <button
                                     type="button"
-                                    class="flex h-6 w-6 shrink-0 items-center justify-center rounded-ui transition-colors"
-                                    :class="isTrailEntrySelected(crumb)
-                                        ? 'bg-primary text-primary-contrast'
-                                        : 'bg-subtle text-muted hover:opacity-80'"
-                                    :title="crumb.name || localizedTypeIdLabel(crumb.type)"
-                                    :aria-label="crumb.name || localizedTypeIdLabel(crumb.type)"
+                                    class="flex h-6 shrink-0 items-center justify-center rounded-ui transition-colors"
+                                    :class="[
+                                        index === stripTrail.length - 1 ? 'w-auto gap-1 px-2' : 'w-6',
+                                        isTrailEntrySelected(crumb)
+                                            ? 'bg-primary text-primary-contrast'
+                                            : 'bg-subtle text-muted hover:opacity-80'
+                                    ]"
+                                    :title="crumb.name || $t('common.unnamed')"
+                                    :aria-label="crumb.name || $t('common.unnamed')"
                                     :aria-current="isTrailEntrySelected(crumb) ? 'true' : undefined"
                                     @click="truncateStripTrail(index)"
                                 >
                                     <i :class="instances.iconFor(crumb.type)" aria-hidden="true"></i>
+                                    <span v-if="index === stripTrail.length - 1" class="max-w-32 truncate text-supporting">
+                                        {{ crumb.name || $t('common.unnamed') }}
+                                    </span>
                                 </button>
                             </template>
                             <template v-if="stripChildren.length">
@@ -952,7 +964,14 @@
                                     @click="drillStripTo(chip)"
                                 >
                                     <i :class="instances.iconFor(chip.type)" class="shrink-0" aria-hidden="true"></i>
-                                    <span class="max-w-32 truncate">{{ chip.name || localizedTypeIdLabel(chip.type) }}</span>
+                                    <!-- Instance chips carry the identifier
+                                         field's value — the record's own
+                                         name — never the type label; a
+                                         legacy null identifier degrades to
+                                         the unnamed placeholder. Type
+                                         pills carry their type label from
+                                         construction. -->
+                                    <span class="max-w-32 truncate">{{ chip.name || $t('common.unnamed') }}</span>
                                 </button>
                             </template>
                         </div>
@@ -3029,11 +3048,12 @@ async function drillStripTo(chip) {
         // own-messages filter would hide the sent message entirely.
         if (!includeChildren.value) includeChildren.value = true
     }
-    // Drilling always descends: the chip becomes the trail's last pill
-    // (siblings drop) and its children load as the new level — leaves
-    // simply show no further chips.
-    stripTrail.value = [...stripTrail.value, chip]
     await loadStripChildren(chip.key, chip.type, chip.entity)
+    // Only a level that HAS children descends into the trail (its
+    // siblings drop); a leaf stays selected in its row — the trail
+    // would otherwise dead-end on an icon with nothing beneath it.
+    const children = stripChildrenByKey.value.get(chip.key) || []
+    if (children.length) stripTrail.value = [...stripTrail.value, chip]
 }
 
 function truncateStripTrail(index) {
