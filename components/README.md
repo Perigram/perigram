@@ -1213,8 +1213,10 @@ dynamic-breadcrumbs pattern: ONE strip whose drilled lineage leads as
 icon-only pills (no text; tapping one makes that level the trail's end
 and shows its children), an angle
 marks the descent, and the children of the current level follow as chips.
-ALL children of the current target load through the containment sources the
-sidebar uses; picking a child ALWAYS drills — the chip becomes the trail's
+Children derive from the compiled LINEAGE BINDINGS only — each child type
+of the current target's type listed by its lineage key (the actual
+hierarchy; detail-screen list sources are not children, and party types
+never appear — no lineage children by class); picking a child ALWAYS drills — the chip becomes the trail's
 last pill, its siblings drop, and its children become the new level (a
 leaf simply shows no further chips), and the next message lands there.
 The composed entity itself is the target

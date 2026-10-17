@@ -1,5 +1,46 @@
 # TODO
 
+## Strip = lineage only; chip tokens were a no-op (owner defect batch 2, 2026-10-17)
+
+The previous fixes did not land on the live surface, and the strip was
+structurally wrong, not just cosmetically: it derived children from
+detail-screen list sources, so the org drill-down listed members (USER
+rows), types from dead definitions, and missed lineage children whose
+types lack a detail screen. The strip now walks the compiled lineage
+bindings only — each child type listed by its lineage key; party types
+never appear (no lineage children by class). The compact chip tokens
+were a no-op (Aura's chip has no `label` token and root padding is
+`paddingX/paddingY`, not `padding`) — corrected against the shipped
+theme package.
+
+- [ ] WAITING — owner verification after the dev app restarts: the org
+  chat strip lists only real lineage children (no users, no dead types),
+  drilling always descends, unnamed chips carry type labels; chips render
+  compact everywhere; the assistant's sender chip shows the AI glyph.
+
+### Agent Notes (2026-10-17 — batch 2)
+
+- Why nothing changed on the live stack: (1) the chip token block was a
+  no-op — Aura's chip declares `root.paddingX/paddingY` (no `padding`,
+  no `label` token at all), so both the padding and the label
+  size/weight tokens defined nothing; corrected to
+  `paddingX/paddingY/borderRadius` + `icon.size` against the shipped
+  `@primeuix/themes` chip definition. (2) Token tables bake at boot —
+  the dev app container had not been restarted since the change.
+- Strip structure: children came from `linkedExplorerChildSources` over
+  detail-screen list sources plus a synthesized "every list source is a
+  child edge" containment pass — that is where USER rows (the org
+  overview lists members) and dead-definition types entered, and why
+  types without a detail screen never listed. The strip now derives
+  children from the compiled lineage bindings alone (`parentTypeId ===`
+  current type, list each child type filtered by its lineage key) —
+  the simplest structure; the message-path derivation stays grounded by
+  the id-guard.
+- The assistant sender chip's wire path (fields.bot → AiAvatar) is
+  verified by the party-wire spec and the live probe; an SSR smoke case
+  for it cannot exist (the chip resolves its record asynchronously —
+  SSR snapshots the unresolved state by design).
+
 ## Chat surface follow-up fixes (owner defect batch 2026-10-17)
 
 Three defects on the freshly shipped surfaces: the composer lineage
