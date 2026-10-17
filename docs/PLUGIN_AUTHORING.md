@@ -106,7 +106,15 @@ persistence callbacks, never stores, routing, or auth:
   `notify` (`{ severity, summary, detail }` — the host toast), and
   `access` (`canWrite(record)` — the host's write-grant resolution;
   without the grant, degrade to view-only). A surface that needs none of
-  them stays on contract 1. The plugin serves its own third-party runtimes
+  them stays on contract 1. Capability mounts (`surfaceContract: 3`,
+  owner decision 2026-10-17) add two host-executed transports beside the
+  editor-grade io: `sync.onRecordChanged(callback)` subscribes to the
+  host's record-change bridge for the mounted record (remote saves and
+  renames arrive as callbacks — reload when clean, flag when dirty; the
+  surface's own publications are skipped host-side) and
+  `upload.file(blob, { fileName })` stores an asset through the host's
+  file channel and returns the stored ref — the module calls, never
+  fetches. The plugin serves its own third-party runtimes
   beside its modules — either vendored as static assets under the
   executor root, imported by relative URL, or as declared runtime
   dependencies (owner decision 2026-10-17): `perigram-plugin vendor
