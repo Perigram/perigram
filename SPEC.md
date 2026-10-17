@@ -807,6 +807,13 @@ parameter/holes strip sits above the canvas, the tool toolbar floats
 inside the canvas over the drawing, and the dialog stands near-viewport
 height so the canvas takes everything left.
 
+Owner decision (2026-10-17, assembly tree layout): the designer's
+workpiece tree keeps every workpiece top-level — sheets and hardware
+never nest under another workpiece. A profile workpiece renders once, as
+a child of the workpiece its attachment relation targets; every other
+relation (fold joints, hardware attachments) renders as a relation row
+under its workpiece. No workpiece is ever hidden by nesting.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,

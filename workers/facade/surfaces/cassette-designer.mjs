@@ -416,14 +416,13 @@ export default function createSurface({ vue, components, locale, queries, record
         Object.values(sketch.parameters || {}).forEach(collect);
         return used;
       };
-      // Nesting law: a workpiece with exactly ONE attachment (it is the
-      // source of one relation) renders only under its host — profiles
-      // cut into a face and single-host hardware are modifiers of that
-      // host, not siblings of sheets. Multi-attached and root workpieces
-      // stay top-level.
-      const rootWorkpieceId = computed(() => workpieces.value[0]?.id || '');
+      // Tree law (owner, 2026-10-17): every workpiece renders as a
+      // top-level row — sheets and hardware never nest under each
+      // other. Only profile workpieces nest, once, under the workpiece
+      // their single attachment relation targets; every other relation
+      // renders as a relation row under its workpiece.
       const nestedWorkpieceIds = computed(() => new Set(workpieces.value
-        .filter(workpiece => workpiece.id !== rootWorkpieceId.value
+        .filter(workpiece => isCassetteV2ProfileWorkpiece(workpiece)
           && workpieceRelations.value.filter(relation => relation.sourceWorkpieceId === workpiece.id).length === 1)
         .map(workpiece => workpiece.id)));
       const workpieceRows = computed(() => workpieces.value.map(workpiece => ({

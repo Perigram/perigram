@@ -268,6 +268,12 @@ modules — no platform imports.
   clamping; the designer drawing carries the refusals as
   `profileEmbeddingErrors` (`{relationId, reason}`) so the attachment row
   shows a refused status instead of the profile vanishing silently.
+  The designer's assembly tree follows the owner layout law (2026-10-17):
+  every workpiece renders as a top-level row — sheets and hardware never
+  nest under another workpiece — a profile workpiece renders once as a
+  child of the workpiece its attachment relation targets (breadcrumb,
+  status, positioning, edit, and delete inline), and every other
+  relation renders as a relation row under its workpiece.
   Closed profile sections produce their production effect through the
   same pass (owner law 2026-10-15, profiles are terminal): the array
   settings (or the point placement) place the section copies and each
