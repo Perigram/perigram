@@ -16,8 +16,8 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   one marker block each:
   - `ck-entity-icons` from the hand-drawn CNC domain SVGs in
     `public/icons/data-model/cnc-domain/` (24-grid sources; the
-    seven-glyph set is the owner's original icon family — treat them as
-    authored assets, never as orphaned files), fonts in
+    owner-authored icon family — treat them as authored assets, never
+    as orphaned files), fonts in
     `public/fonts/cnc-domain/`;
   - `ck-file-type-icons` from `public/icons/file-types/`, fonts in
     `public/fonts/file-types/` — one source per mounted-pack CTS file

@@ -2166,7 +2166,7 @@ export default function createSurface({ vue, components, locale, queries, record
             h('div', { class: 'flex items-center gap-1' }, [
               h(Tag, { value: assemblySummary.value, severity: 'secondary', size: 'small' }),
               h(Button, {
-                icon: 'pi pi-sliders-v',
+                icon: 'pi pi-wave-pulse',
                 severity: 'secondary',
                 text: true,
                 rounded: true,
@@ -2176,7 +2176,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 onClick: event => openProfilePicker(event)
               }),
               h(Button, {
-                icon: 'pi pi-bolt',
+                icon: 'ck-entity-icon ck-entity-icon-bolt',
                 severity: 'secondary',
                 text: true,
                 rounded: true,
