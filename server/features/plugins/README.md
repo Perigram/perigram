@@ -182,11 +182,14 @@ executors through the worker protocol.
   conversions, requires) beside the types. Services replace with the
   snapshot; the connector token survives.
 - **Uninstall gate (block until drained)**: live instances of any plugin
-  type, or live process definitions binding one, refuse the removal; so
-  does another installed plugin whose `requires` names this one (uninstall
-  the dependent first — the plugin-on-plugin mirror of the pack
-  dependency gate). There is no abandon path; the org deletes or migrates
-  first.
+  type, or live process definitions binding one, refuse the removal.
+  There is no abandon path; the org deletes or migrates first. Beside
+  the gate: an installed plugin whose `requires` names the target rides
+  the removal — the preview (`uninstallPreview`, served at
+  `GET .../plugins/:pluginId/uninstall-preview`) lists the dependants
+  and the blocking data for the confirm dialog, and the delete accepts
+  `?cascade=1` to remove them together (all-or-nothing: any live data in
+  the cascade refuses the whole removal).
 - Installs/uninstalls invalidate the instance-declaration cache,
   re-derive instance indexes, and publish the org contract-change event
   (`registry` origin) so open screens reconcile.
@@ -201,7 +204,8 @@ executors through the worker protocol.
 | `DELETE /api/plugins/catalog/:pluginId` | platform operator (`x-operator-token`) | Retract a listing (refused while installs exist). |
 | `GET /api/organizations/:id/plugins` | member (`organizations:read`) | List installed plugins. |
 | `POST /api/organizations/:id/plugins` | `organizations:admin` | Install `{ pluginId }` at the catalog's current version. |
-| `DELETE /api/organizations/:id/plugins/:pluginId` | `organizations:admin` | Uninstall (drain-gated). |
+| `GET /api/organizations/:id/plugins/:pluginId/uninstall-preview` | `organizations:admin` | Uninstall impact: dependants that ride a cascade, live data that blocks it. |
+| `DELETE /api/organizations/:id/plugins/:pluginId` | `organizations:admin` | Uninstall (drain-gated; `?cascade=1` removes dependants together). |
 | `GET /api/organizations/:id/plugins/:pluginId/upgrade` | `organizations:admin` | Upgrade preview: additions, removals, §11 change plans, blockers. |
 | `POST /api/organizations/:id/plugins/:pluginId/upgrade` | `organizations:admin` | Apply the upgrade (gated by the preview's blockers). |
 | `GET /api/organizations/:id/plugins/:pluginId/connector` | `organizations:admin` | Connector panel data: token, claim queue, worker endpoints. |
