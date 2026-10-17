@@ -475,6 +475,26 @@ describe('payload traits (SPEC §4)', () => {
       class: 'item',
       fields: { serial: { base: 'string' } }
     }).payload).toBeNull();
+    expect(normalizeType({
+      id: 'bare-doc',
+      class: 'item',
+      fields: { serial: { base: 'string' } }
+    }).access).toBeUndefined();
+  });
+
+  it('round-trips the write-gate delegation facet through defineType/normalizeType', () => {
+    expect(normalizeType({
+      id: 'linked-doc',
+      class: 'item',
+      fields: { name: { base: 'string' } },
+      access: { inherits: 'panel' }
+    }).access).toEqual({ inherits: 'panel' });
+    expect(() => normalizeType({
+      id: 'linked-doc',
+      class: 'item',
+      fields: { name: { base: 'string' } },
+      access: {}
+    })).toThrow(/access\.inherits/);
   });
 
   it('normalizes and validates the creation protocol list', () => {

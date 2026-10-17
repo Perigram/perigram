@@ -64,6 +64,16 @@ function startCase(value = '') {
   return String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 }
 
+// Write-gate delegation facet: `{ inherits: <typeId> }`, validated at
+// the authoring boundary like every other facet.
+function normalizeAccess(access = {}) {
+  const inherits = String(access?.inherits || '');
+  if (!inherits) {
+    throw new Error('access.inherits must name a type id');
+  }
+  return { inherits };
+}
+
 // Legacy `render` facet adoption (SPEC §4 boundary migration,
 // adopt-and-delete): both pack seeds and stored org docs normalize here,
 // so the retired keys convert exactly once and never reach the compiled
@@ -154,6 +164,12 @@ export function normalizeType(declaration = {}) {
     // graphs as outputs, never as constructs.
     ...(declaration.derived === true ? { derived: true } : {}),
     edges: normalizeEdges(declaration.edges || {}, declaration.id),
+    // Declared write-gate delegation (owner decision 2026-10-17): a type
+    // may authorize its record writes by another type's grant
+    // (`access.inherits`, the listing grammar the instance write
+    // transports consume). Validated here so the upgrade path's
+    // defineType round-trip cannot strip it.
+    ...(declaration.access !== undefined ? { access: normalizeAccess(declaration.access) } : {}),
     // Declared extract projections (SPEC §8 p): the entity→value gates
     // this type owns — output descriptor plus resolve (stored field path
     // or pack handler id). Validated at the authoring boundary like every
