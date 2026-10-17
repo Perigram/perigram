@@ -20,14 +20,14 @@ jobs:
       - name: build image
         run: docker build --network=host -t perigram:staging --build-arg PORT=3001 .
       - name: build nesting worker image
-        run: docker build -t perigram-nesting:staging -f workers/nesting/Dockerfile .
+        run: docker build --network=host -t perigram-nesting:staging -f workers/nesting/Dockerfile .
       - name: build plugin executor images
         # Each plugin executor as its own image (its dependency install
         # beside the zero-dep SDK — the extracted hosting form).
         run: |
-          docker build -t perigram-executor-facade:staging --build-arg PLUGIN=facade -f workers/plugin-executor.Dockerfile .
-          docker build -t perigram-executor-documents:staging --build-arg PLUGIN=documents -f workers/plugin-executor.Dockerfile .
-          docker build -t perigram-executor-tech-drawing:staging --build-arg PLUGIN=tech-drawing -f workers/plugin-executor.Dockerfile .
+          docker build --network=host -t perigram-executor-facade:staging --build-arg PLUGIN=facade -f workers/plugin-executor.Dockerfile .
+          docker build --network=host -t perigram-executor-documents:staging --build-arg PLUGIN=documents -f workers/plugin-executor.Dockerfile .
+          docker build --network=host -t perigram-executor-tech-drawing:staging --build-arg PLUGIN=tech-drawing -f workers/plugin-executor.Dockerfile .
       - name: plugin executor stack
         # The plugins host beside the app: the nesting solver (the facade
         # executor's HTTP dependency) and the three plugin executors,
