@@ -31,7 +31,7 @@ function injectStyles() {
   }
 }
 
-export default function createSurface({ vue, components, locale, sync }) {
+export default function createSurface({ vue, components, locale, sync, renderMarkdown = null }) {
   const { h, ref, computed, onMounted, onBeforeUnmount, defineComponent } = vue;
   const t = locale.t;
   const { Button, InputText, Popover } = components;
@@ -219,6 +219,7 @@ export default function createSurface({ vue, components, locale, sync }) {
       // mount, destroyed with the component.
       let crepe = null;
       let slashMenu = null;
+      let editorDiagramClick = null;
       let loaded = false;
 
       onMounted(async () => {
@@ -242,7 +243,25 @@ export default function createSurface({ vue, components, locale, sync }) {
             [CrepeEditor.Feature.Placeholder]: false
           },
           featureConfigs: {
-            [CrepeEditor.Feature.CodeMirror]: { languages: codeLanguages, theme: codeMirrorTheme }
+            [CrepeEditor.Feature.CodeMirror]: {
+              languages: codeLanguages,
+              theme: codeMirrorTheme,
+              // Mermaid fences preview as diagrams (owner direction
+              // 2026-10-17) through the host-provided read pipeline —
+              // pele stays single-homed in the platform, the plugin
+              // never vendors it. Blocks start in preview-only (the
+              // Obsidian read), crepe's own Edit toggle and a click on
+              // the diagram flip to the CodeMirror source with the
+              // diagram kept live beside it; fences that do not parse
+              // stay plain source blocks.
+              previewOnlyByDefault: true,
+              renderPreview: (language, content) => {
+                if (!renderMarkdown || String(language || '').toLowerCase() !== 'mermaid') return null;
+                const host = document.createElement('div');
+                host.innerHTML = renderMarkdown(`\`\`\`mermaid\n${String(content || '')}\n\`\`\``);
+                return host.querySelector('.mermaid-diagram') || null;
+              }
+            }
           }
         });
         crepe.editor.use($prose(() => createSourceMarkersPlugin({
@@ -257,10 +276,25 @@ export default function createSurface({ vue, components, locale, sync }) {
         }));
         await crepe.create();
         loaded = true;
+        // Clicking a rendered diagram enters its source (the Obsidian
+        // flip): the delegation drives crepe's own preview toggle only
+        // while the block is diagram-only — a click in the split view
+        // (source beside the live diagram) never hides the editor.
+        editorDiagramClick = event => {
+          const block = event.target?.closest?.('.milkdown-code-block');
+          if (!block?.querySelector('.preview .mermaid-diagram')) return;
+          if (!block.querySelector('.codemirror-host.hidden')) return;
+          block.querySelector('.preview-toggle-button')?.click();
+        };
+        editorHost.value.addEventListener('click', editorDiagramClick);
       });
 
       onBeforeUnmount(() => {
         loaded = false;
+        if (editorDiagramClick && editorHost.value) {
+          editorHost.value.removeEventListener('click', editorDiagramClick);
+          editorDiagramClick = null;
+        }
         slashMenu?.destroy();
         slashMenu = null;
         crepe?.destroy();

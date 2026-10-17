@@ -291,7 +291,14 @@ is authored through input rules, slash commands, and the toolbar, and
 the block UI of fenced code appears on hover, never as standing
 chrome. Code renders in the app's mono voice wherever it appears.
 `text-document` instances are creatable by
-uploading an existing `.md` file. Editor components belong to the packs
+uploading an existing `.md` file. Mermaid fences live-preview as
+diagrams in the editor (owner direction 2026-10-17): the block opens
+diagram-only, and entering its source — the Edit toggle or a click on
+the diagram — shows the CodeMirror source with the diagram kept live
+beside it; a fence that will not parse stays a plain source block.
+The diagrams render through the host-provided markdown pipeline —
+pele never vendors into the plugin.
+Editor components belong to the packs
 that own their types (owner direction 2026-10-14): the documents pack
 ships the markdown and csv editors, tech-drawing ships the sketch
 editor, and the artifact entity carries no editors. Markdown support is

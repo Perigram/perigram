@@ -6704,3 +6704,13 @@ localStorage. The size binding pins a data-driven inline exception.
   never-vendor set (surfaces receive `renderMarkdown`).
 
 Status: WAITING
+
+## Mermaid diagrams live-preview in the markdown editor (2026-10-17)
+
+- [ ] The editor's mermaid fences open diagram-only (Obsidian read);
+      the Edit toggle or a click on the diagram flips to the CodeMirror
+      source with the diagram live beside it. Diagrams render through
+      the host-provided renderMarkdown — the surface-context seam SPEC
+      promises becomes real, pele stays never-vendored.
+
+Status: WAITING

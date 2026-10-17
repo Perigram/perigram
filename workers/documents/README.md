@@ -23,8 +23,13 @@ machinery from the install snapshot.
   editor (`surfaces/text-editor.mjs`, milkdown/crepe with every engine
   chrome disabled — remote saves reconcile through the host's
   record-change bridge) and the csv editor (`surfaces/csv-editor.mjs`,
-  cell-edit DataTable). The milkdown/codemirror families and xlsx are
-  declared vendored dependencies — the split vendor build keeps one
+  cell-edit DataTable). Mermaid fences preview as diagrams in the
+  markdown editor through the host-provided `renderMarkdown` (the
+  single pele home — never vendored): blocks open diagram-only, crepe's
+  Edit toggle or a click on the diagram flips to the CodeMirror source
+  with the diagram kept live beside it, and fences that do not parse
+  stay plain source blocks. The milkdown/codemirror families and xlsx
+  are declared vendored dependencies — the split vendor build keeps one
   prosemirror class identity across the subpath bundles; rebuild with
   `perigram-plugin vendor --listing listing.json`. The crepe theme and
   the editor voice css are static assets under `assets/`, injected as
