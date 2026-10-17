@@ -290,7 +290,19 @@ modules — no platform imports.
   arrangeable edges (the trapezoid's four authored edges less folds and
   the edges consumed by other profiles — the asking relation's own edge
   stays listed), snapping a stale illegal default to the first
-  arrangeable edge on the write path.
+  arrangeable edge on the write path. Attachment authoring is per-kind
+  and picker-driven (owner law 2026-10-17): the add-attachment control
+  opens a workpiece→face picker — the target workpiece and binding face
+  are chosen explicitly, never a click-armed connect mode — and the
+  attachment settings carry each source kind's own field set: profiles
+  place and array with mirror controls (no face side, no joint
+  semantics), hardware places on a face side with snap or array (no
+  mirror, no joint), workpiece attachments carry the full face-to-face
+  joint placement (source face, snap pair, side, joint type, driver).
+  Snap points and array bindings compute from the RAW authored face
+  (`originalBoundaryVertices`/`referenceVertices` before any profile
+  cut merges into the boundary) — placement anchors never drift with
+  cut geometry.
 - `drawing.js` converts resolved OCCS face curves into the shared
   `DrawingCanvas` `{ viewBox, layers }` contract with explicit layer-standard
   codes, including generated dimension annotation layers and caller-provided

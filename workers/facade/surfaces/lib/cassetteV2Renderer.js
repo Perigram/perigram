@@ -2301,7 +2301,7 @@ const designerAttachmentMarkersForTree = (curves = [], tree = createCassetteV2Gr
       const active = !selectedRelationId || selectedRelationId === relation.id;
       const markers = [];
       if (targetCurve) {
-        markers.push(markerFromPoint(faceSnapPoint(targetCurve.boundaryVertices || targetCurve.vertices, relation.targetSnap), {
+        markers.push(markerFromPoint(faceSnapPoint(rawFaceVertices(targetCurve), relation.targetSnap), {
           id: `${relation.id}:target`,
           relationId: relation.id,
           workpieceId: relation.targetWorkpieceId,
@@ -2313,7 +2313,7 @@ const designerAttachmentMarkersForTree = (curves = [], tree = createCassetteV2Gr
         }));
       }
       if (sourceCurve) {
-        markers.push(markerFromPoint(faceSnapPoint(sourceCurve.boundaryVertices || sourceCurve.vertices, relation.sourceSnap), {
+        markers.push(markerFromPoint(faceSnapPoint(rawFaceVertices(sourceCurve), relation.sourceSnap), {
           id: `${relation.id}:source`,
           relationId: relation.id,
           workpieceId: relation.sourceWorkpieceId,
@@ -2339,7 +2339,7 @@ const relationProfileWorkpiece = (tree, relation) => (
 );
 
 const hardwarePointsForRelation = (curve, relation, parameters = {}) => {
-  const vertices = curve?.boundaryVertices || curve?.vertices || [];
+  const vertices = rawFaceVertices(curve);
   if (relation.pattern?.type === 'edgeArray') {
     return expandOccsEdgeArray2d({
       vertices,
@@ -3589,6 +3589,17 @@ const faceSnapPoint = (vertices = [], snap = 'center') => {
   return [(minX + maxX) / 2, (minY + maxY) / 2];
 };
 
+// Snap points and array bindings read the RAW authored face (owner law
+// 2026-10-17): a face cut by closed profiles keeps its authored outline
+// in originalBoundaryVertices/referenceVertices while vertices and
+// boundaryVertices carry the merged cut geometry — placement anchors
+// must not drift with the cut.
+const rawFaceVertices = (curve) => curve?.originalBoundaryVertices
+  || curve?.referenceVertices
+  || curve?.boundaryVertices
+  || curve?.vertices
+  || [];
+
 const buildCassetteV2LocalTrapezoidTreeCurves = (sourceTree) => {
   const parameters = treeParameters(sourceTree);
   const entryById = new Map();
@@ -3659,14 +3670,14 @@ const buildCassetteV2AssemblyTransforms = (sourceTree, localCurves) => {
       const sourceCurve = localCurveByNodeId.get(sourceFaceId);
       if (!sourceCurve) continue;
 
-      const targetPointLocal = faceSnapPoint(targetCurve.vertices, relation.targetSnap);
+      const targetPointLocal = faceSnapPoint(rawFaceVertices(targetCurve), relation.targetSnap);
       const targetPointRotated = rotate2d(targetPointLocal, targetTransform.rotation);
       const offsetRotated = rotate2d([
         resolveCassetteV2Expression(relation.offsetX, parameters, 0),
         resolveCassetteV2Expression(relation.offsetY, parameters, 0)
       ], targetTransform.rotation);
       const rotation = numeric(targetTransform.rotation, 0) + resolveCassetteV2AngleExpression(relation.rotation, parameters, 0);
-      const sourceSnapRotated = rotate2d(faceSnapPoint(sourceCurve.vertices, relation.sourceSnap), rotation);
+      const sourceSnapRotated = rotate2d(faceSnapPoint(rawFaceVertices(sourceCurve), relation.sourceSnap), rotation);
 
       transforms.set(relation.sourceWorkpieceId, {
         origin: [
