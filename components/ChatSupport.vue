@@ -1528,7 +1528,6 @@ import { useEntityPopup } from '~/composables/useEntityPopup'
 
 import { openChatInWorkspaceTab } from '~/utils/chat-workspace-open.js'
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js'
-import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useFileTypeView } from '~/composables/useFileTypeView.js'
 import { useChatFileUpload } from '~/composables/useChatFileUpload.js'
@@ -2908,14 +2907,23 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
     if (!targetKey || stripChildrenByKey.value.has(targetKey) || stripLoadingKeys.value.has(targetKey)) return
     stripLoadingKeys.value = new Set([...stripLoadingKeys.value, targetKey])
     try {
-        const sources = linkedExplorerChildSources({
-            linkedItems: [{ key: targetKey, type: targetType, entity: targetInstance }],
-            screens: authStore.screenManifest,
-            containment: effectiveContainmentForStrip()
-        })
+        // Lineage only: the strip walks the compiled parent→child
+        // bindings and lists each child type's instances by their
+        // lineage key — the actual hierarchy. Detail-screen list sources
+        // are NOT children (they pulled members and dead-definition
+        // types into the drill-down); party types never declare lineage
+        // children, so no one but real descendants appears.
+        const targetId = String(targetInstance?._id || targetInstance?.id
+            || targetKey.split(':').slice(1).join(':') || '')
+        const sources = (authStore.lineageBindings || [])
+            .filter(binding => binding.parentTypeId === targetType && binding.lineageKey)
+            .map(binding => ({ typeId: binding.childTypeId, lineageKey: binding.lineageKey }))
         const loaded = await Promise.all(sources.map(async source => {
             try {
-                const childInstances = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters)
+                const childInstances = await instances.listInstances(
+                    instances.canonicalTypeKey(source.typeId),
+                    { [source.lineageKey]: targetId }
+                )
                 return (Array.isArray(childInstances) ? childInstances : []).map(instance => ({
                     key: `${source.typeId}:${stripInstanceId(instance)}`,
                     type: source.typeId,
@@ -2938,37 +2946,6 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
     } finally {
         stripLoadingKeys.value = new Set([...stripLoadingKeys.value].filter(key => key !== targetKey))
     }
-}
-
-function effectiveContainmentForStrip() {
-    const bindings = authStore.lineageBindings || []
-    const edges = authStore.processActive
-        ? bindings.map(binding => ({
-            childType: binding.childTypeId,
-            parentType: binding.parentTypeId,
-            lineageKey: binding.lineageKey
-        }))
-        : [...registry.containment]
-    // Detail screens declare deeper hierarchy than the compiled bindings
-    // (nesting runs under queues, sheet designs under runs): every list
-    // source on a type's detail screen is a child edge, with the lineage
-    // key read from the filter placeholder target.
-    for (const screen of authStore.screenManifest || []) {
-        if (screen.template !== 'instanceDetail' || !screen.typeId) continue
-        for (const source of screen.sources || []) {
-            if (source.mode !== 'list' || source.typeId === screen.typeId) continue
-            if (edges.some(edge => edge.parentType === screen.typeId && edge.childType === source.typeId)) continue
-            const filterEntry = Object.entries(source.filters || {})
-                .find(([, value]) => typeof value === 'string' && value.startsWith('$screen'))
-            if (!filterEntry) continue
-            edges.push({
-                childType: source.typeId,
-                parentType: screen.typeId,
-                lineageKey: filterEntry[0]
-            })
-        }
-    }
-    return edges
 }
 
 const stripInstanceId = (entity = null) => {

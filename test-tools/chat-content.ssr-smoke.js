@@ -6,7 +6,7 @@
 // (the missing renderMarkdown import that 500'd every chat surface) —
 // so these components must RENDER, not merely compile.
 import { describe, expect, it, vi } from 'vitest';
-import { createSSRApp, h } from 'vue';
+import { createSSRApp, h, ref } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import { createI18n } from 'vue-i18n';
 import { createPinia } from 'pinia';
@@ -21,6 +21,11 @@ import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 
 globalThis.$fetch = vi.fn(async () => ({}));
 globalThis.navigateTo = () => {};
+const nuxtState = new Map();
+globalThis.useState = (key, init) => {
+  if (!nuxtState.has(key)) nuxtState.set(key, ref(typeof init === 'function' ? init() : null));
+  return nuxtState.get(key);
+};
 
 const boot = Component => {
   const i18n = createI18n({

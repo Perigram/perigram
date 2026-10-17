@@ -459,15 +459,11 @@ export const primeSemanticTokens = {
 export const primeComponentTokens = {
     chip: {
         // Compact chip geometry (owner direction 2026-10-17): chat chips
-        // are dense caption-surface rows, not badges — smaller padding
-        // and the supporting text size/weight for every chip surface.
-        root: {
-            padding: '0.25rem 0.5rem'
-        },
-        label: {
-            fontSize: '0.8125rem',
-            fontWeight: '400'
-        }
+        // are dense caption-surface rows, not badges. Aura's chip owns
+        // only root padding/radius and icon size (no label token — the
+        // label inherits the root font).
+        root: { paddingX: '0.375rem', paddingY: '0.125rem', borderRadius: '0.5rem' },
+        icon: { size: '0.75rem' }
     },
     fieldset: {
         root: {
