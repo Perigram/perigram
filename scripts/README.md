@@ -61,6 +61,11 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   fields from the remaining per-org assistants, and drops subscription
   rows of group rooms deleted before deletion cleaned up after itself.
   Run once after deploying the delegation scheme.
+- `retire-process-runs.js`: drops the retired process execution record
+  collections (`execution_runs`, `execution_step_invocations`,
+  `execution_waits`, `execution_outputs`, `execution_steps`,
+  `execution_receipts`). Run once after deploying the in-process action
+  evaluation (owner direction 2026-10-17: no durable process runs).
 - `check-arch.js`: Architecture guardrail for v24 backend features, API layer
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
   retired vocabulary, portable-runtime import rules, concrete CNC domain leaks

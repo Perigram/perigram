@@ -228,21 +228,6 @@ stands; repetition protection is not a budget).
   control-only graph is refused (`not reachable from a trigger`) and a
   reachable finish compiles to no action/screen of its own — control
   nodes never compile to runtime surface.
-- Owner correction (2026-10-17), framing defect in docs and code: there
-  are NO durable runs. A process definition is a contract generator
-  (actions, screens, workflows, grants over the org's types); its
-  runtime is the continuous organization backend serving the compiled
-  contract — the definition does not "run". The run-record engine
-  (`run-repository.js`, orchestration's run/step/invocation/receipt
-  machinery, `POST /api/process-definitions/:id/runs`, the "Process
-  execution" README section, and `executeDataflowActionRun` routing
-  every manual action through `startRun`) implements an
-  execution-program framing the architecture does not have.
-  Reconciliation is an owner decision: retire the run subsystem
-  (actions evaluate the compiled contract through the command/task
-  boundaries they already delegate to) or keep it as an unnamed
-  implementation detail and strip the "runs" framing from every doc
-  and agent surface.
 - Finding, not fixed here: the activate-path specs in
   `process-definitions.spec.js` are not hermetic —
   `findTypeDeathCandidates` reads the cts-types repository (Mongo), so
@@ -6729,3 +6714,34 @@ Status: WAITING
       promises becomes real, pele stays never-vendored.
 
 Status: WAITING
+
+## Retire durable process runs (owner direction 2026-10-17)
+
+No durable process runs: definitions compile to contracts, the
+organization backend serves them continuously, actions evaluate
+in-process, and command_runs/task_runs are the audit trail.
+
+- [ ] WAITING — owner verification on the live stack: a generated-screen
+  action (create/update/transition) executes and its typed entity events
+  reconcile open screens; an async command action (facade nesting solve)
+  completes its downstream chain when the task lands; preview in the
+  designer unchanged; `node server/scripts/retire-process-runs.js` run
+  once after deploy.
+
+### Agent Notes (2026-10-17 — retired)
+
+- Deleted: `run-repository.js` (+ its node:test spec), the
+  `POST /api/process-definitions/:id/runs` route, the
+  `process-reconciliation` plugin, `npm run test:durable`, and the
+  `ingestTaskCompletion`/`failTaskInvocation`/`reconcileProcessTaskRuns`
+  service entries. Definitions repository lost its dead `getConnection`.
+- Added: in-process evaluation in the service (`evaluateDefinitionDataflow`,
+  `evaluateDataflow`) over the unchanged pure evaluator
+  (`createProcessRun`/`advanceProcessRun`/`resumeProcessRun`); async
+  command effects park on an in-process continuation keyed by the
+  enqueued task-run id, and the task runtime's terminal boundary calls
+  `continueActionFromTask`/`failActionFromTask`. Stored execution
+  collections are dropped by `server/scripts/retire-process-runs.js`.
+- The manual-action spec paths no longer need the run-repository mock;
+  the action-evaluation specs run Mongo-free.
+

@@ -797,7 +797,7 @@ use the same field contract.
 V4 effect records also derive the semantic action manifest consumed by screen
 and access compilation. Their selected process-role grants, trigger mode,
 entity type, fields, construction contract, command, and status target are
-therefore the same contract used by durable execution and generated UI; a new
+therefore the same contract used by action evaluation and generated UI; a new
 canvas effect is not a runtime-only box.
 `dataflowVersion: 4` is the sole current operation protocol. Every executable
 canvas record lives under `processNodes` and has a namespaced kind from the
@@ -1048,15 +1048,15 @@ content rather than writing the marker into an entity. The marker never
 crosses a runtime boundary as-is: `serializeProcessResult` is the single
 conversion point for result emission and rewrites every marker, at any depth,
 to the serializable tag `{ missing: true, path }` while leaving present
-`null` values untouched. The process-definitions preview and manual-run
-service responses are emitted through this helper, so no missing value
+`null` values untouched. The process-definitions preview and action-evaluation
+responses are emitted through this helper, so no missing value
 silently degrades to `null` over JSON.
 
 `orchestration.js` executes the full runtime control plane. Effect nodes have
 only two execution modes: `manual`, which is exposed through authorized UI, and
-`event`, which requires an incoming control socket. Runs carry
-durable control tokens, foreach scopes, join arrivals, attempts,
-and step outputs. Data subgraphs are evaluated lazily for the operational node
+`event`, which requires an incoming control socket. An evaluation carries
+control tokens, foreach scopes, join arrivals, attempts,
+and step outputs as in-process state. Data subgraphs are evaluated lazily for the operational node
 that consumes them. Arbitrary data or control cycles are rejected during
 activation. Declaration wires (`role: 'type'`) survive normalization with
 their role and label intact — machine vocabulary reads them by node type and

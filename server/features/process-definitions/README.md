@@ -125,7 +125,7 @@ migration. `migration-plan.js` owns the contract:
   invalidation event, so open screens reconcile exactly as if the
   mutation happened through an action.
 
-Creation, update, validation, activation, preview, and run accept current
+Creation, update, validation, activation, and preview accept current
 semantic species records. The one-way legacy migration runs before resolution;
 no retired operation kind is accepted after that boundary. Save and activation
 persist the current records. Draft acceptance overlays the draft's declaration
@@ -157,8 +157,7 @@ retired status socket or an arbitrary field patch.
 
 `compiler-adapter.js` owns current-protocol validation and activation
 projections. `resolveCtsDefinition` resolves ids and paths without changing
-species kinds, discriminators, socket ids, or graph edges. The durable run
-repository owns run/invocation/wait/receipt storage, and `runtime.js` owns
+species kinds, discriminators, socket ids, or graph edges. `runtime.js` owns
 active-process compilation and auth hydration. No feature imports another
 feature's repository.
 
@@ -166,44 +165,32 @@ Process compilation runs through `projectDomainFromView` over the organization
 type store plus mounted declarations. Workflow projection preserves recursive
 state trees. Consumer actions may omit producer identity; when present, the
 producer output must emit the same type. The compiled contract is derived from
-fresh semantic records for every validate/apply/run; stored compiled snapshots
+fresh semantic records for every validate/apply/evaluation; stored compiled snapshots
 are inspection-only.
 
-## Process execution
+## Action evaluation and async completion
 
-`POST /api/process-definitions/:id/runs` starts a manual current-species
-process run backed by durable MongoDB execution records. Runs, steps,
-invocations, waits, outputs, and receipts retain revision, provenance,
-control-scope, and invocation identity. Native species records and their
-authored ports are resolved once and used unchanged by validation, compilation,
-orchestration, and effect adapters.
+A definition never "runs": activation compiles the contract, and the
+organization backend serves it continuously. A manual action executes by
+evaluating the authored dataflow in-process — the same graph evaluator
+preview uses (`packages/processes` orchestration) over the lowered
+definition, driven to settled or the first async boundary, with every
+effect re-entering its registered service/command/status boundary under
+the originating actor's access snapshot. Evaluation keeps no records:
+`command_runs` and `task_runs` are the audit trail.
 
-Receipt ingestion claims the invocation revision and advances the run in one
-MongoDB transaction. Duplicate or concurrent delivery is therefore an
-idempotent no-op after the first commit. Dispatched invocations without receipts
-remain discoverable after restart for continuation or retry.
-
-Task completion closes the loop end to end. `executeManualRun` records the
-enqueued task-run id on the invocation dispatch (`dispatch.taskRunId`, resolved
-from the command result's task/job references), the task runtime's terminal
-boundary (`completeTaskRun`/`failTaskRun`/`cancelTaskRun` in
-`server/core/tasks`) notifies the process layer, and `ingestTaskCompletion`
-correlates by that task-run id, projects the terminal `TaskResult` entities
-onto the invocation's expected completion sockets, and — inside the same
-receipt transaction — resumes the waiting graph step
-(`resumeProcessRun`): the step succeeds with the projected output, its
-snapshotted control token is re-queued on the recorded `completed` routes, and
-the run continues. After the transaction commits, `continueStoredRun` drives
-the run to settled or the next async boundary with the originating actor
-context. Terminal task failure or cancellation enters the same receipt
-transaction through `failInvocation`; with no authored failure route in the
-graph language the run is marked failed/cancelled. The
-`process-reconciliation` plugin re-checks unreceipted invocations against
-terminal task runs every 30 seconds, so a crash between task finalization and
-ingestion redelivers exactly once. The completion snapshot intentionally lists
-socket ids (not a duplicated typed contract): per-output persistence owner and
-timing are declared once on the command/task boundary and enforced where the
-result is produced and where it is projected.
+An async command effect (a command whose result carries task/job refs)
+parks the evaluation at the task boundary. The enqueued task-run id keys
+an in-process continuation; the task runtime's terminal boundary
+(`continueActionFromTask` / `failActionFromTask` in this service, called
+from `server/core/tasks`) resumes the parked evaluation with the task's
+projected completion output — terminal `TaskResult` entities land on the
+sockets the effect declared — and drives it to settled with the
+originating actor context. A task outcome with no parked continuation is
+an uncorrelated no-op. A server restart between dispatch and completion
+drops the continuation: the task's own terminal handler still applies
+its domain effects, and `command_runs`/`task_runs` still record what
+happened.
 
 Effect nodes are
 either manual or automatic-from-socket. Date or event-triggered automation is
@@ -213,7 +200,7 @@ the run object so the action re-enters the normal feature access boundary; it
 includes the compiled `effectivePermissions` consumed by entity adapters, so
 the execution has the same access context as the action that started it.
 
-Preview and manual-run responses leave the process runtime through
+Preview and action-evaluation responses leave the process runtime through
 `serializeProcessResult` from
 [`packages/processes`](../../../packages/processes/README.md): evaluator
 missing-field markers are converted to the machine-readable tag
@@ -375,8 +362,9 @@ bind a CTS type.
 Manual generated-screen actions execute through the active process definition,
 not through client-selected entity routes. For v4 definitions,
 `executeActiveProcessAction()` verifies the compiled role assignment, resolves
-the authored effect's manual start, starts the durable run, and returns
-the effect result (or a run/wake reference for a persisted wait). It does not
+the authored effect's manual start, evaluates the action's dataflow
+in-process, and returns the effect result (a wait reference when the
+evaluation parks on an async command). It does not
 execute a second action algebra. The delegated entity/status/command service
 remains the access and business-logic boundary. Create-entity actions are
 authorized as create operations by

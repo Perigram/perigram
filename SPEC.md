@@ -515,6 +515,17 @@ The organization runtime uses process definitions as business logic; a
 definition is turned on or off in organization settings — that is the
 whole lifecycle.
 
+## Process runtime (owner direction 2026-10-17)
+
+There are no durable process runs. A process definition is a state
+machine / contract generator: activation compiles it into actions,
+screens, workflows, and grants, and the organization backend serves the
+compiled contract continuously. Manual actions evaluate the authored
+dataflow in-process at the moment of the action; async command effects
+park on the task boundary and continue in-process when the task lands.
+`command_runs` and `task_runs` are the audit trail. No execution
+records are stored for process evaluation.
+
 ## Plugin marketplace
 
 Organization settings has a Plugins section: the organization sees the central
