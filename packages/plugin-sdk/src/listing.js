@@ -36,7 +36,7 @@
 //   surface modules import the bare `name`, and the module proxy
 //   resolves it to the plugin's own vendor scope. What the mount
 //   injects is never vendorable (`vue`, `primevue`, `pinia`, and the
-//   host markdown pipeline `marked`/`dompurify`/`pele`); declared licenses
+//   host markdown pipeline `marked`/`dompurify`); declared licenses
 //   make the platform's license policy a gate;
 // - `visibility` — 'public' (the default) or 'private': a private
 //   listing is served only to the organizations its `organizations` array
@@ -57,7 +57,7 @@ const SPDX_LIKE = /^[A-Za-z0-9.+-]+$/;
 // bundled copy of a host external (the consistency law's refusal) or of
 // the host's single markdown pipeline. The mount provides them; the
 // listing may never vendor them.
-export const INJECTED_DEPENDENCIES = ['vue', 'primevue', 'pinia', 'marked', 'dompurify', 'pele'];
+export const INJECTED_DEPENDENCIES = ['vue', 'primevue', 'pinia', 'marked', 'dompurify'];
 
 export function parseListing(listing = {}) {
   const declarations = listing.declarations || {};

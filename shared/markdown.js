@@ -1,6 +1,5 @@
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
-import { render as renderMermaidDiagram } from 'pele';
 
 // The markdown document contract: detection and rendering live here and
 // nowhere else. The payload IS the text, so the source editor and the
@@ -12,42 +11,6 @@ import { render as renderMermaidDiagram } from 'pele';
 export function isMarkdownDocument({ mimeType = '', name = '' } = {}) {
   return mimeType === 'text/markdown' || /\.md$/i.test(name || '');
 }
-
-// Mermaid fences render as diagrams (owner direction 2026-10-17): pele
-// turns the fence source into an inline SVG inside the pipeline output,
-// so every markdown reader (agent answers, chat and file previews)
-// inherits diagrams from one hook. A fence pele cannot parse falls back
-// to the plain code block; pele's own escaping and size limits run
-// before DOMPurify sees the document.
-const escapeHtml = (value = '') => String(value)
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#39;');
-
-const plainCodeBlock = (code, lang = '', escaped = false) => {
-  const body = `${String(code).replace(/\n$/, '')}\n`;
-  const safe = escaped ? body : escapeHtml(body);
-  return lang
-    ? `<pre><code class="language-${escapeHtml(lang)}">${safe}</code></pre>\n`
-    : `<pre><code>${safe}</code></pre>\n`;
-};
-
-marked.use({
-  renderer: {
-    code(code, infostring, escaped) {
-      const lang = String(infostring || '').match(/^\S*/)?.[0] || '';
-      if (lang !== 'mermaid') return plainCodeBlock(code, lang, escaped);
-      try {
-        const { svg } = renderMermaidDiagram(String(code).replace(/\n$/, ''));
-        return `<div class="mermaid-diagram">${svg}</div>\n`;
-      } catch {
-        return plainCodeBlock(code, lang, escaped);
-      }
-    }
-  }
-});
 
 // Markdown source to sanitized HTML. Server-side there is no DOM, so the
 // render is the empty string there — the module stays import-safe in

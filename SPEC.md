@@ -124,11 +124,7 @@ An agent run is visible in its room and stays with its answer: the
 model's reasoning streams as a collapsible thinking block and each tool
 invocation appears as it starts and settles; the final answer streams as
 it is produced and renders as markdown in the app's prose document
-voice, as room content rather than a chat bubble; mermaid fences in
-markdown render as diagrams wherever the shared markdown pipeline
-renders (owner direction 2026-10-17): pele turns the fence into an
-inline SVG — agent answers, chat and file previews alike — and a fence
-that will not parse stays a code block. The run's reasoning
+voice, as room content rather than a chat bubble; the run's reasoning
 and tool history persist attached to the answer. The room can stop a run in flight — generation ends and the
 answer produced so far is what stays. A run's pending presence rides the
 human typing line — the assistant's name, the same indicator, until its
@@ -937,7 +933,7 @@ declared dependency. What the host injects is never vendorable:
 dependencies named `vue`, `primevue`, or `pinia` refuse at the contract,
 and the host's markdown read pipeline joins the injected set — surfaces
 receive `renderMarkdown` (shared/markdown, the single marked+DOMPurify
-instance with pele for mermaid fences) rather than carrying copies. Declared licenses make the
+instance) rather than carrying copies. Declared licenses make the
 GPL-stays-out law a gate refusal instead of a review: the install gate
 and operator policy audit the dependency list.
 

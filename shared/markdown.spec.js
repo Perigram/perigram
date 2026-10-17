@@ -27,8 +27,4 @@ describe('renderMarkdown', () => {
     expect(renderMarkdown('# hi')).toBe('');
     expect(renderMarkdown('')).toBe('');
   });
-
-  it('stays import-safe and empty server-side for mermaid fences', () => {
-    expect(renderMarkdown('# t\n\n```mermaid\nflowchart LR\n  A --> B\n```\n')).toBe('');
-  });
 });

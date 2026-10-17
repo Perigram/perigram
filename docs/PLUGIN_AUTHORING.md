@@ -125,7 +125,7 @@ persistence callbacks, never stores, routing, or auth:
   (`import * as THREE from 'three'`) and the platform's module proxy
   resolves it to the plugin's own vendor scope. What the mount injects
   is never vendorable: `vue`, `primevue`, `pinia`, and the host markdown
-  pipeline (`renderMarkdown` is provided; `marked`/`dompurify`/`pele` refuse as
+  pipeline (`renderMarkdown` is provided; `marked`/`dompurify` refuse as
   dependencies) — and the plugin repo needs `esbuild` installed for the
   vendor build (the SDK itself stays zero-dependency).
 - Never import `vue`, `primevue`, or `pinia` — the mount injects them.
