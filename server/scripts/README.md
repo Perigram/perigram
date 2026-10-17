@@ -7,7 +7,14 @@ or package aliases.
 
 ## Seeds
 
-The only live seeder is `seed-palette-colors.js`: it upserts the
+The plugin-catalog seeder is `seed-plugin-catalog.js`: it publishes the
+deployment's built-in listings from their `workers/<plugin>/listing.json`
+sources into `plugin_catalog` (validated by the SDK contract, marked
+`builtin`, retract-refused). Run it as a deploy step on fresh environments
+— `installDefaultPlugins` logs loudly when a default plugin is missing
+from the catalog. Idempotent; re-running refreshes the pinned versions.
+
+The only other live seeder is `seed-palette-colors.js`: it upserts the
 tech-drawing `color` type's system catalogue as SPEC §3 documents
 (`organizationId: null` rows in the per-class `files` collection), by
 `code`, never touching org shadow rows. Dry-run by default; `--apply`

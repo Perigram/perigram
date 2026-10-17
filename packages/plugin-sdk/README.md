@@ -15,8 +15,14 @@ walkthrough: [plugin authoring guide](../../docs/PLUGIN_AUTHORING.md).
 
 ## Listing contract (`parseListing` / `normalizeListing`)
 
-A listing is `{ pluginId (slug), name, description, version, requires?,
-declarations }` where `declarations` carries `types` (CTS grammar,
+A listing is `{ pluginId (slug), name, description, version, visibility?,
+organizations?, requires?, declarations }` where `visibility` is `public`
+(the default) or `private` — a private listing is served only to the
+organizations its `organizations` ids name, scoped by the operator at
+publish (the catalog stays platform-published). `requires` lists pack or
+plugin ids the types resolve against, satisfied by a mounted pack or an
+installed plugin (never the plugin itself); the platform-side gates
+enforce it. `declarations` carries `types` (CTS grammar,
 non-empty), `services` (SPEC §8 signatures, `mode` endpoint/claim),
 `editors` (file-type editor bindings — the bound type must be declared by
 the same plugin with class `file`, one binding per type),

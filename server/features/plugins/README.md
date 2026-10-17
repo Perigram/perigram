@@ -11,9 +11,16 @@ executors through the worker protocol.
 ## Contract
 
 - **Catalog** (`plugin_catalog`): one listing per `pluginId` —
-  `{ pluginId, name, description, version, requires?, declarations: { types,
+  `{ pluginId, name, description, version, visibility?, organizations?,
+  requires?, declarations: { types,
   services, editors, surfaces, previews, attachmentKinds, conversions, constructions, exports } }`.
-  Platform-published only; organizations never write it. Publishing rides
+  Platform-published only; organizations never write it. A listing may be
+  `visibility: 'private'` with owning `organizations` ids — the catalog
+  route serves it only to members of those orgs (the operator scopes
+  private listings; owner decision 2026-10-17). Built-in listings seed
+  from the deployment (`server/scripts/seed-plugin-catalog.js`, marked
+  `builtin`) and refuse retraction — retiring one means removing it from
+  the deployment. Publishing rides
   `POST /api/plugins/catalog` (operator token) and retracting rides
   `DELETE /api/plugins/catalog/:pluginId` (the same token; refused while
   any organization still holds an install — installed pins are snapshots
@@ -91,9 +98,10 @@ executors through the worker protocol.
   plugin type id must be free (no system, installed, or org declaration
   holds it; the no-shadowing rule), each type must define cleanly, and
   the compile must introduce no new errors. A refused install writes
-  nothing. Beside it: a `requires` entry must name a mounted pack that is
-  enabled for the organization (a disabled requirement strands the
-  plugin's types), and an attachment-kind id must be unclaimed (enabled
+  nothing. Beside it: a `requires` entry names a mounted pack enabled for
+  the organization or an installed plugin (owner decision 2026-10-17 —
+  requires chains plugin-on-plugin), and an attachment-kind id must be
+  unclaimed (enabled
   packs and other installs hold their kinds globally — collisions
   refuse). Editor bindings ride the listing contract (the bound type must
   be the plugin's own `file` type, one editor per type) and compose into
@@ -158,8 +166,11 @@ executors through the worker protocol.
   conversions, requires) beside the types. Services replace with the
   snapshot; the connector token survives.
 - **Uninstall gate (block until drained)**: live instances of any plugin
-  type, or live process definitions binding one, refuse the removal.
-  There is no abandon path; the org deletes or migrates first.
+  type, or live process definitions binding one, refuse the removal; so
+  does another installed plugin whose `requires` names this one (uninstall
+  the dependent first — the plugin-on-plugin mirror of the pack
+  dependency gate). There is no abandon path; the org deletes or migrates
+  first.
 - Installs/uninstalls invalidate the instance-declaration cache,
   re-derive instance indexes, and publish the org contract-change event
   (`registry` origin) so open screens reconcile.
@@ -168,7 +179,7 @@ executors through the worker protocol.
 
 | Route | Access | Action |
 |---|---|---|
-| `GET /api/plugins/catalog` | authenticated | List catalog listings. |
+| `GET /api/plugins/catalog` | authenticated | List catalog listings (a private listing only for members of its owning orgs). |
 | `GET /api/plugins/:pluginId/module/**` | member (org holding the install) | Surface module proxy: stream the module path from the install's endpoint origin (same-origin browser loading). |
 | `POST /api/plugins/catalog` | platform operator (`x-operator-token`) | Publish/upsert a listing (validated by the SDK contract). |
 | `DELETE /api/plugins/catalog/:pluginId` | platform operator (`x-operator-token`) | Retract a listing (refused while installs exist). |
