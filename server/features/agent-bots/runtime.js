@@ -376,7 +376,10 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, co
     };
     // No round budget (owner direction 2026-10-16): the loop runs until the
     // model answers; the room's stop control and the provider idle guard
-    // are the only terminators.
+    // are the only terminators. Identical-call repetition tracking is the
+    // one in-loop brake (see the tool execution loop).
+    let lastCallSignature = null;
+    let repeatCount = 0;
     for (;;) {
         segment = { kind: 'thinking', text: '' };
         steps.push(segment);
@@ -430,6 +433,31 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, co
             if (detail) entry.detail = detail;
             steps.push(entry);
             publish();
+            // Loop protection, not a round budget: the exact same call
+            // landing a third time means the model is repeating a failed
+            // attempt verbatim (observed live 2026-10-17: five identical
+            // failing edits) — it gets a structured instruction to change
+            // approach instead of another identical failure. A changed
+            // argument list always proceeds.
+            const signature = `${call.name}:${JSON.stringify(call.arguments || {})}`;
+            if (signature === lastCallSignature) repeatCount += 1;
+            else {
+                lastCallSignature = signature;
+                repeatCount = 0;
+            }
+            if (repeatCount >= 2) {
+                const notice = 'This exact call was already made and failed twice in this run. Repeating it identical will fail again — change the inputs or the approach, or ask the room with ask_user.';
+                entry.status = 'error';
+                entry.error = notice.slice(0, 200);
+                publish();
+                conversation.push({
+                    role: 'tool',
+                    toolCallId: call.id,
+                    name: call.name,
+                    content: JSON.stringify({ error: notice })
+                });
+                continue;
+            }
             let result;
             try {
                 result = await executeTool(call.name, call.arguments, execAuth, run);

@@ -1,5 +1,48 @@
 # TODO
 
+## Headless authoring draft overlay + identical-call loop brake (owner defect 2026-10-17, live session)
+
+A live agent session exposed two defects. (1) The headless authoring
+seam resolved ports against the raw projected domain only: a field
+declared in-tree (this session or stored in a never-applied draft) had
+no port, so its connect was refused with `Unknown port` until an
+activation posted it — the acceptance adapter already followed the
+draft-overlay law, the authoring seam did not, and the model burned a
+session retrying. (2) The run loop repeated one failing tool call five
+times verbatim with no brake (the owner's no-round-budget direction
+stands; repetition protection is not a budget).
+
+- [ ] WAITING — owner verification on the live stack: ask the AI to add a
+  field to a type and wire it in one pass — declare + wireDeclaration +
+  connect succeed in a single edit session, no intermediate activation;
+  the compose guide's same-session flow works end to end.
+- [ ] WAITING — owner verification on the live stack: a model repeating an
+  identical failing call gets, on its third attempt, a structured
+  "already failed twice — change the approach" tool result (visible as an
+  error step in the chronology) while changed-argument retries always
+  proceed.
+
+### Agent Notes (2026-10-17 — both shipped)
+
+- Seam: `applyAuthoringSteps` re-seats the authoring session onto
+  `declarationOverlayDomain` after every declaration step, and
+  `editDefinition` seats the stored draft's unapplied declarations before
+  the first step — in-tree declarations are ports immediately, one
+  session, no intermediate apply. Pinned by
+  `authoring-overlay.spec.js` (same-session wire, the refused-without-
+  re-seat control, and the stored-unapplied edit path).
+- Loop brake: `runAgentLoop` tracks the last tool signature; a third
+  identical call is blocked pre-execution and answered with a structured
+  instruction (change inputs / approach / ask the room), riding the
+  chronology as an error step. The compose guide now states that field
+  ports exist in-session once `wireDeclaration` lands and that
+  `construction.inputs` is never hand-edited (an authoring-time
+  snapshot).
+- The live session also confirmed the good halves: `read_attachment`
+  read the budget workbook, `run_action` created the category tasks, and
+  the activation-gate structure returned as readable results — the wall
+  was the seam, not the catalog.
+
 ## Composer lineage strip: always-drill mechanics, no id names (owner defect 2026-10-17)
 
 The instance target strip in the org chat composer had two defects:

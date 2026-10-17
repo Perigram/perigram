@@ -1,0 +1,100 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// The headless seam's draft-overlay law, pinned: the tree's own
+// declarations — authored this session or seeded from a stored draft
+// that never applied — resolve as ports, so a field declares and wires
+// in ONE session with no intermediate apply. Live defect 2026-10-17: an
+// unapplied field's connect was refused with `Unknown port` until an
+// activation posted it into the registry (the acceptance adapter already
+// followed the overlay; the authoring seam did not).
+
+vi.mock('../plugins/repository.js', () => ({
+    listDisabledPacks: vi.fn(async () => []),
+    enablePack: vi.fn(),
+    disablePack: vi.fn(),
+    listInstallsByOrganization: vi.fn(async () => []),
+    listDeclarationsByOrganization: vi.fn(async () => []),
+    findDeclarationByTypeId: vi.fn(async () => null),
+    findInstallByConnectorToken: vi.fn(async () => null)
+}));
+vi.mock('../cts-types/service.js', async () => {
+    const cts = await import('~/packages/cts/src/index.js');
+    const registry = cts.createTypeRegistry({ id: 'spec-cts' });
+    for (const declaration of cts.frameworkTypes) registry.defineType(declaration);
+    return { compileRegistryForOrganization: vi.fn(async () => registry) };
+});
+vi.mock('./repository.js', () => ({
+    findById: vi.fn(async () => null),
+    findActiveSetByOrganization: vi.fn(async () => []),
+    insert: vi.fn(async doc => doc),
+    updateById: vi.fn(async (_id, doc) => doc)
+}));
+
+import { createDefinitionAuthoring } from '~/packages/processes/src/authoring.js';
+import { declarationOverlayDomain } from './compiler-adapter.js';
+import { applyAuthoringSteps } from './service.js';
+
+// The raw served projection: framework types only, no knowledge of the
+// draft's in-tree declarations.
+const RAW_DOMAIN = { entities: [], workflows: {}, fieldSchemas: {}, relations: [], commands: {} };
+
+const BASE_STEPS = [
+    { op: 'declareClass', id: 'clsTask', typeId: 'task', name: 'Task' },
+    { op: 'declareField', id: 'fldTitle', ownerClassId: 'clsTask', name: 'title' },
+    { op: 'wireDeclaration', from: 'fldTitle', to: 'clsTask', role: 'declares' },
+    { op: 'drop', item: 'construct', id: 'nodeMake' },
+    { op: 'configure', id: 'nodeMake', values: { typeId: 'task' } },
+    { op: 'drop', item: 'literal', id: 'nodeLit' },
+    { op: 'connect', id: 'nodeLit', fromPort: 'value', to: 'nodeMake', toPort: 'fields.title' }
+];
+
+const CONNECT_ORG_FIELD = { op: 'connect', id: 'nodeLit', fromPort: 'value', to: 'nodeMake', toPort: 'fields.organization' };
+
+beforeEach(() => {
+    vi.clearAllMocks();
+});
+
+describe('headless authoring draft overlay', () => {
+    it('wires a field declared in the same session — one pass, no intermediate apply', () => {
+        const authoring = createDefinitionAuthoring(RAW_DOMAIN);
+        applyAuthoringSteps(authoring, [
+            ...BASE_STEPS,
+            { op: 'declareField', id: 'fldOrg', ownerClassId: 'clsTask', name: 'organization' },
+            { op: 'wireDeclaration', from: 'fldOrg', to: 'clsTask', role: 'declares' },
+            CONNECT_ORG_FIELD
+        ], RAW_DOMAIN);
+        const edges = authoring.definition().graph.edges;
+        expect(edges.some(edge => edge.target === 'nodeMake' && String(edge.targetHandle || '').includes('fields.organization'))).toBe(true);
+    });
+
+    it('without the overlay re-seat the same connect is refused (the live defect, pinned)', () => {
+        // The base composes WITH the overlay (as the fixed seam does); the
+        // refusal under test is the second session resolving ports against
+        // the raw projection only.
+        const authoring = createDefinitionAuthoring(RAW_DOMAIN);
+        applyAuthoringSteps(authoring, BASE_STEPS, RAW_DOMAIN);
+        const seeded = createDefinitionAuthoring(RAW_DOMAIN, null, authoring.definition());
+        expect(() => applyAuthoringSteps(seeded, [CONNECT_ORG_FIELD], null))
+            .toThrow(/Unknown port nodeMake:fields\.organization/);
+    });
+
+    it('a stored draft with unapplied declarations resolves them from the first step (the edit path)', () => {
+        // A stored draft whose organization field was declared and wired
+        // but never applied — the exact live session's stored state.
+        const stored = createDefinitionAuthoring(RAW_DOMAIN);
+        applyAuthoringSteps(stored, [
+            ...BASE_STEPS,
+            { op: 'declareField', id: 'fldOrg', ownerClassId: 'clsTask', name: 'organization' },
+            { op: 'wireDeclaration', from: 'fldOrg', to: 'clsTask', role: 'declares' }
+        ], RAW_DOMAIN);
+        const storedData = stored.definition();
+
+        // editDefinition's opening move: seat the session onto the overlay
+        // of the stored draft before any step runs.
+        const editing = createDefinitionAuthoring(RAW_DOMAIN, null, structuredClone(storedData));
+        editing.withDomain(declarationOverlayDomain(storedData, RAW_DOMAIN));
+        expect(() => applyAuthoringSteps(editing, [CONNECT_ORG_FIELD], RAW_DOMAIN)).not.toThrow();
+        const edges = editing.definition().graph.edges;
+        expect(edges.some(edge => edge.target === 'nodeMake' && String(edge.targetHandle || '').includes('fields.organization'))).toBe(true);
+    });
+});
