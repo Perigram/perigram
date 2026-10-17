@@ -12,6 +12,7 @@ export const iconFontGlyphs = Object.freeze([
     'ck-entity-icon ck-entity-icon-cassette-template',
     'ck-entity-icon ck-entity-icon-cassette-instance',
     'ck-entity-icon ck-entity-icon-cassette-design',
+    'ck-entity-icon ck-entity-icon-bolt',
     'ck-file-type-icon ck-file-type-icon-xlsx-workbook',
     'ck-file-type-icon ck-file-type-icon-text-document',
     'ck-file-type-icon ck-file-type-icon-svg-file',
