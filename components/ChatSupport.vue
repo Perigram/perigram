@@ -69,6 +69,31 @@
                         @click="closeChat"
                     />
                 </div>
+                <!-- Folder chips scope the flat list (SPEC): All, Personal
+                     (person and group chats), one chip per organization with
+                     instance chats. The strip scrolls horizontally on narrow
+                     rails and hides while only one scope exists; the pills
+                     reuse the composer target-strip tokens. -->
+                <div
+                    v-if="inboxFolders.length > 1"
+                    class="mb-2 flex shrink-0 items-center gap-1 overflow-x-auto px-2"
+                    data-testid="chats-folders"
+                >
+                    <button
+                        v-for="folder in inboxFolders"
+                        :key="folder.key"
+                        type="button"
+                        class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors"
+                        :class="selectedFolder === folder.key
+                            ? 'bg-primary text-primary-contrast'
+                            : 'bg-subtle text-muted hover:opacity-80'"
+                        :aria-current="selectedFolder === folder.key ? 'true' : undefined"
+                        @click="selectedFolder = folder.key"
+                    >
+                        <i v-if="folder.icon" :class="folder.icon" class="shrink-0" aria-hidden="true"></i>
+                        <span class="max-w-32 truncate">{{ folder.label }}</span>
+                    </button>
+                </div>
                 <StateBlock
                     v-if="!displayConversations.length"
                     class="m-3"
@@ -92,10 +117,10 @@
                               member count, and the trailing meta column (read
                               check before the smart timestamp, pin indicator
                               and unread-count badge under it) up top; the
-                              latest-message preview below. Instance chats
-                              nest by lineage (the org chat roots the tree):
-                              rows with children chats carry a disclosure and
-                              nested rows indent by depth. The row menu
+                              latest-message preview below. Rows of every
+                              kind share one flush left edge — the folder
+                              chip strip above the list owns org scoping,
+                              not per-row nesting. The row menu
                               (pin/archive) opens on right-click (long-press on
                               touch); on touch a left swipe unveils the same
                               actions as a sticky rail (one row at a time, tap
@@ -144,34 +169,9 @@
                             </span>
                             <div
                                 class="relative flex w-full min-w-0 items-start gap-2 md:gap-3"
-                                :class="[
-                                    rowDrag.key === option.conversationKey ? '' : 'transition-transform',
-                                    chatRowIndentClass(option)
-                                ]"
+                                :class="rowDrag.key === option.conversationKey ? '' : 'transition-transform'"
                                 :style="rowContentStyle(option)"
                             >
-                            <!-- Only instance rows carry the tree disclosure,
-                                 in one fixed-width leading cell so every
-                                 instance row aligns regardless of nesting;
-                                 person and group rows stay flush. The Button
-                                 renders at its natural small size — no
-                                 dimension overrides on PrimeVue controls. -->
-                            <span
-                                v-if="option.conversationKind === 'instance'"
-                                class="flex w-7 shrink-0 items-center justify-center self-center"
-                            >
-                                <Button
-                                    v-if="hasChatChildren(option)"
-                                    :icon="chatTreeExpanded(option) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                                    severity="secondary"
-                                    text
-                                    rounded
-                                    size="small"
-                                    :aria-label="$t('support.chatChildren')"
-                                    :aria-expanded="chatTreeExpanded(option)"
-                                    @click.stop="toggleChatTree(option)"
-                                />
-                            </span>
                             <div class="relative shrink-0">
                                 <Avatar
                                     v-if="option.conversationKind === 'instance'"
@@ -1784,44 +1784,29 @@ const localizedTypeIdLabel = (type) => {
 }
 
 
-// Instance chats nest by lineage: every messaged instance has its own chat
-// row, and each row carries its nearest row-bearing ancestor's key as
-// parentKey — the org chat roots the tree, deeper instances nest under
-// their parent instance's chat. Rows without a visible parent stay at the
-// top level.
-const expandedChatKeys = ref(new Set())
-const chatTreeExpanded = (conversation) => expandedChatKeys.value.has(conversation.conversationKey)
-const toggleChatTree = (conversation) => {
-    const next = new Set(expandedChatKeys.value)
-    if (next.has(conversation.conversationKey)) next.delete(conversation.conversationKey)
-    else next.add(conversation.conversationKey)
-    expandedChatKeys.value = next
-}
-const chatChildrenByKey = computed(() => {
-    const byKey = new Map()
-    for (const conversation of supportChatStore.conversations) {
-        if (conversation.conversationKind !== 'instance' || !conversation.parentKey) continue
-        byKey.set(conversation.parentKey, [...(byKey.get(conversation.parentKey) || []), conversation])
-    }
-    return byKey
-})
-const hasChatChildren = (conversation) => (chatChildrenByKey.value.get(conversation.conversationKey) || []).length > 0
-// Nesting depth follows the visible parent chain (roots at 0).
-const chatRowDepth = (conversation) => {
-    let depth = 0
-    let current = conversation
+// Folder chips scope the flat inbox (SPEC): All, Personal (person and
+// group chats), and one chip per organization with instance chats.
+// Instance rows join the organization row rooting their parentKey chain
+// — the same ancestry the server ships; rows whose lineage carries no
+// organization chat row belong to the active organization (the inbox
+// query is org-scoped server-side).
+const selectedFolder = ref('all')
+const orgRootOf = (conversation) => {
     const guard = new Set()
-    while (current?.parentKey && !guard.has(current.parentKey)) {
-        guard.add(current.parentKey)
-        depth += 1
-        current = supportChatStore.conversations.find(item => item.conversationKey === current.parentKey)
+    let current = conversation
+    while (current?.conversationKind === 'instance' && !guard.has(current.conversationKey)) {
+        guard.add(current.conversationKey)
+        if (current.typeId === 'organization') return current
+        current = supportChatStore.conversations.find(item => item.conversationKey === current.parentKey) || null
     }
-    return depth
+    return null
 }
-const CHAT_ROW_INDENT = ['pl-2', 'pl-4', 'pl-6']
-const chatRowIndentClass = (conversation) => {
-    const depth = chatRowDepth(conversation)
-    return depth ? CHAT_ROW_INDENT[Math.min(depth, CHAT_ROW_INDENT.length) - 1] : ''
+const folderKeyOf = (conversation) => {
+    if (conversation.conversationKind !== 'instance') return 'personal'
+    const root = orgRootOf(conversation)
+    if (root) return root.conversationKey
+    const organizationId = String(authStore.organizationData?._id || authStore.userData?.organizationId || '')
+    return `instance:organization:${organizationId}`
 }
 // Archived conversations live behind the inbox header toggle; the default
 // list hides them.
@@ -1837,47 +1822,65 @@ const searchHit = (conversation) => {
         || String(conversation.lastMessage || '').toLowerCase().includes(query)
 }
 
-const displayConversations = computed(() => supportChatStore.conversations
+// Rows in play for the current archive view, before folder and search
+// narrow them — the folder strip derives from this set so searching never
+// reshapes the chips.
+const scopeConversations = computed(() => supportChatStore.conversations
     .filter(conversation => {
         if (Boolean(conversation.archived) !== showArchived.value) return false
         return ['direct', 'group'].includes(conversation.conversationKind)
             || conversation.conversationKind === 'instance'
-    })
+    }))
+
+// One organization chip per organization with instance chats, led by its
+// own chat row when that row exists (its live label names the org); the
+// unlabeled fallback reads the active organization record.
+const orgFolders = computed(() => {
+    const folders = new Map()
+    for (const conversation of [...scopeConversations.value].sort(byLatestActivity)) {
+        if (conversation.conversationKind !== 'instance') continue
+        const key = folderKeyOf(conversation)
+        if (folders.has(key)) continue
+        const root = orgRootOf(conversation)
+        folders.set(key, {
+            key,
+            label: root
+                ? conversationLabel(root)
+                : (authStore.organizationData?.identity?.name || localizedTypeIdLabel('organization')),
+            icon: instances.iconFor('organization')
+        })
+    }
+    return [...folders.values()]
+})
+
+// The chip strip: All always; Personal only while organization scopes
+// exist (otherwise it would mirror All); organization chips follow
+// latest activity.
+const inboxFolders = computed(() => [
+    { key: 'all', label: t('support.folderAll') },
+    ...(orgFolders.value.length ? [{ key: 'personal', label: t('support.folderPersonal') }] : []),
+    ...orgFolders.value
+])
+
+const folderHit = (conversation) => {
+    if (selectedFolder.value === 'all') return true
+    return folderKeyOf(conversation) === selectedFolder.value
+}
+
+const displayConversations = computed(() => scopeConversations.value
+    .filter(folderHit)
     .filter(searchHit))
 
 // One unified inbox: person, group, and instance chats share a single
-// list; pinned rows lead, everything else follows the latest activity, and
-// an expanded instance chat lists its children chats — recursively —
-// directly under it.
+// flat list; pinned rows lead, everything else follows the latest
+// activity.
 const byLatestActivity = (left, right) => {
     if (Boolean(right.pinned) !== Boolean(left.pinned)) return right.pinned ? 1 : -1
     const leftTime = left.timestamp ? new Date(left.timestamp).getTime() : 0
     const rightTime = right.timestamp ? new Date(right.timestamp).getTime() : 0
     return rightTime - leftTime
 }
-const conversationSections = computed(() => {
-    const visible = displayConversations.value
-    const visibleKeys = new Set(visible.map(conversation => conversation.conversationKey))
-    const childrenOf = key => (chatChildrenByKey.value.get(key) || [])
-        .filter(child => visibleKeys.has(child.conversationKey))
-        .sort(byLatestActivity)
-    const rooted = (conversation) => {
-        if (conversation.conversationKind !== 'instance') return true
-        return !conversation.parentKey || !visibleKeys.has(conversation.parentKey)
-    }
-    const appendTree = (conversation, acc) => {
-        acc.push(conversation)
-        if (!chatTreeExpanded(conversation)) return
-        for (const child of childrenOf(conversation.conversationKey)) appendTree(child, acc)
-    }
-    return visible
-        .filter(rooted)
-        .sort(byLatestActivity)
-        .reduce((acc, conversation) => {
-            appendTree(conversation, acc)
-            return acc
-        }, [])
-})
+const conversationSections = computed(() => [...displayConversations.value].sort(byLatestActivity))
 
 
 

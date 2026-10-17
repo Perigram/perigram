@@ -200,7 +200,8 @@
         },
         "sendMessage": "Написать",
         "members": "Участники",
-        "chatChildren": "Дочерние чаты"
+        "folderAll": "Все",
+        "folderPersonal": "Личные"
     },
     "footer": {
         "termsAndConditions": "Условия и положения",

@@ -200,7 +200,8 @@
         },
         "sendMessage": "Send message",
         "members": "Members",
-        "chatChildren": "Child chats"
+        "folderAll": "All",
+        "folderPersonal": "Personal"
     },
     "footer": {
         "termsAndConditions": "Terms and Conditions",
