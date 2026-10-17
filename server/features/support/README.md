@@ -233,11 +233,13 @@ fanout publishes the message event to every `conversation:instance:*` topic
 along the instance path (aggregated views stay live through one subscription)
 plus one `org:<id>` inbox ping. The user inbox query includes
 `{ conversationKind: 'instance', organizationId }` so org-mates see each
-other's instance messages. Inbox instance chats ship as lineage tree rows: one row per messaged
+other's instance messages. Inbox instance chats ship one row per messaged
 instance (the organization chat included), each carrying the conversation
-key of its nearest row-bearing ancestor as `parentKey` — the org chat
-roots the tree and deeper instances nest under their parent instance's
-chat. Row labels resolve live from the instance record; stored link names
+key of its nearest row-bearing ancestor as `parentKey`; the inbox client
+groups rows into per-organization folder chips through that ancestry (the
+inbox presentation contract lives in
+[components](../../../components/README.md)). Row labels resolve live
+from the instance record; stored link names
 survive only when not stale id-fallbacks, and empty names localize the
 type label client-side. Unread counts land on a row and on every ancestor
 row (roots aggregate their subtree, like the composed thread views); shell

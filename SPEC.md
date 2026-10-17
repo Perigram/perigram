@@ -369,9 +369,11 @@ ids, never the identifier/email). Forwarded messages carry a distinct
 forwarded-from header above
 their content, on every message shape — text, media, or files.
 
-The chats list is a tree rooted at the organization chat: an instance
-chat whose instance has children chats the user is involved in lists them
-as a collapsible sub-list under itself, recursively by lineage. Instance
+The chats list is a flat list scoped by a folder chip strip above it:
+All, Personal (person and group chats), and one chip per organization
+with instance chats — selecting an organization chip lists that
+organization's chats, the organization chat included. The strip scrolls
+horizontally when narrow and hides while only one scope exists. Instance
 thread headers carry their lineage breadcrumbs under the name; group
 thread headers carry an overlapping member avatar stack with the full
 member list one popup away.

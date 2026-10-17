@@ -1,7 +1,7 @@
 # COMPONENT: Components
 
 ## Style Guide
-- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette and the zinc surface scale; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states. Cascade law: styles emit in declared layers — `tailwind-base, primevue, tailwind-utilities` (`assets/css/main.css` owns the statement; main.css is the only `@tailwind` site, the module's css injection is off) — so unlayered app CSS and utilities outrank PrimeVue identically in dev and production builds. Before layers, the production bundle inlined PrimeVue after the app CSS and every equal-specificity tie on `p-*` elements silently flipped between dev and staging; `!important` patches for order flips are defects of that old regime, not a pattern. UI is written in raw PrimeVue plus the registered shared primitives — no hand-rolled `<div>`/`<button>` chrome, no custom controls, no stuffing composite surfaces into slot templates. Single-select lists and compact rail rows are `Listbox` with single-line `#option` templates (chats-inbox anatomy: content + trailing meta, nested tree rows, right-click row menu, `@click.stop` on triggers); per-row contextual detail (history, pickers, rename) opens a `Popover` anchored at the row's trigger (`NameEditPopover`/`InstanceActionsPopover` precedent) — never inside the option; tabular data grids are `TableFrame` + `DataTable` with `#body` cells; link-style text actions are `Button` with `link`/`text` variants. Never hand-build bordered/rounded row or container markup that a PrimeVue component or registered primitive already owns. When unsure which component owns a surface, ask the PrimeVue MCP — do not improvise markup.
+- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette and the zinc surface scale; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states. Cascade law: styles emit in declared layers — `tailwind-base, primevue, tailwind-utilities` (`assets/css/main.css` owns the statement; main.css is the only `@tailwind` site, the module's css injection is off) — so unlayered app CSS and utilities outrank PrimeVue identically in dev and production builds. Before layers, the production bundle inlined PrimeVue after the app CSS and every equal-specificity tie on `p-*` elements silently flipped between dev and staging; `!important` patches for order flips are defects of that old regime, not a pattern. UI is written in raw PrimeVue plus the registered shared primitives — no hand-rolled `<div>`/`<button>` chrome, no custom controls, no stuffing composite surfaces into slot templates. Single-select lists and compact rail rows are `Listbox` with single-line `#option` templates (chats-inbox anatomy: content + trailing meta, folder chip strip above the list, right-click row menu, `@click.stop` on triggers); per-row contextual detail (history, pickers, rename) opens a `Popover` anchored at the row's trigger (`NameEditPopover`/`InstanceActionsPopover` precedent) — never inside the option; tabular data grids are `TableFrame` + `DataTable` with `#body` cells; link-style text actions are `Button` with `link`/`text` variants. Never hand-build bordered/rounded row or container markup that a PrimeVue component or registered primitive already owns. When unsure which component owns a surface, ask the PrimeVue MCP — do not improvise markup.
 - **Avatar labels:** PrimeVue `Avatar` renders label over icon over
   image — a constant letter `:label` next to `:image` hides every avatar
   image. Pass the label only when no image resolves
@@ -1018,12 +1018,13 @@ today's messages, calendar date otherwise) on the first line; the
 single-line latest-message preview through `SupportMessageContent`
 trailed by the small pin indicator and per-row unread-count badge on the
 second. The read mark belongs to rows whose newest message is the viewer's
-own and another participant has read it. Instance chats nest by lineage: every
-messaged instance has its own row and the org chat roots the tree; a row
-with children chats carries a disclosure chevron overlaid in the gutter
-before its avatar (nothing shifts — top-level rows of every kind share one
-left edge), and nested rows indent by depth (rows whose parent is not
-visible stay top-level). Selection renders as the Listbox
+own and another participant has read it. A folder chip strip scopes the
+flat list above it — All, Personal (person and group rows), and one chip
+per organization with instance chats (the organization chat included);
+the strip scrolls horizontally on narrow rails, hides while only one
+scope exists, and its pills reuse the composer target-strip tokens.
+Rows of every kind share one flush left edge — no nesting, no
+disclosure. Selection renders as the Listbox
 checkmark (`highlightOnSelect` off) — no tinted highlight. A right-click
 (long-press on touch) on a row opens the row menu
 with per-user pin/archive preferences: pinned rows lead the list, archived

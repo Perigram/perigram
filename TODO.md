@@ -1,5 +1,43 @@
 # TODO
 
+## Chats inbox folders — chip strip replaces the org tree (owner direction 2026-10-17)
+
+The chats inbox drops the lineage tree: rows render as one flat list, and
+a scrollable folder chip strip above the list scopes it — All, Personal
+(person and group chats), and one chip per organization with instance
+chats, listing that organization's chats with the organization chat
+included (SPEC: Chat thread).
+
+- [ ] WAITING — owner verification on the live stack: the inbox renders
+  the folder strip (All / Personal / the organization) whenever instance
+  chats exist, hides it otherwise, and the chips scroll horizontally on
+  narrow rails; rows of every kind share one flush left edge with no
+  disclosure chevrons or indentation.
+
+### Agent Notes (2026-10-17 — folder strip shipped)
+
+- `ChatSupport.vue`: the lineage tree (expansion set, children map,
+  depth indents, disclosure cell) is gone; the inbox renders one flat
+  Listbox. A chip strip above the list scopes it — All, Personal
+  (direct/group rows), one chip per organization with instance chats.
+  Chips derive from the live rows: the organization row rooting a row's
+  `parentKey` chain names and keys its chip (live label), rows whose
+  lineage carries no organization row fall back to the active
+  organization (the inbox query is org-scoped server-side). Personal
+  renders only while organization scopes exist, else it would mirror
+  All; searching filters inside the selected folder and never reshapes
+  the chips.
+- Pills reuse the composer target-strip tokens (minimal semantic-token
+  buttons); the retired `support.chatChildren` i18n key is removed
+  (en/ru), replaced by `support.folderAll`/`support.folderPersonal`.
+- Server contract unchanged: rows still ship `parentKey` (unread
+  aggregation, root-only shell totals); the support README now points
+  to the components README for the inbox presentation contract.
+- Validation: SSR smokes (chats page seeded with org/child/direct rows
+  asserts the strip and flat rows), design-system, framework-packages,
+  support service + store specs, check-arch, framework:validate,
+  docs:validate — all pass.
+
 ## AI waking mechanics in group/org chats (owner direction 2026-10-17)
 
 The AI's chat waking in group and organization rooms becomes mention-gated
