@@ -393,6 +393,23 @@ authoring happens only inside a cassette design session.
   unchanged otherwise) so pins can move again through the product
   path. Owner step: one more Upgrade click (v10→v11).
 
+### Agent Notes (2026-10-17 — preview correction: payload-based, like it always was)
+
+- Owner correction stood twice: cassette previews already existed —
+  payload-based, host-resolved (the bound `cassette-preview` surface in
+  card/detail slots), and the designer already had the identical
+  capability (`props.persistence.loadDocument`, the same call
+  `hydrateDefinition` makes). The save-time bake and the backfill
+  script were invention on top of an existing contract — both reverted,
+  script deleted, and the three backfilled records' `fields.polygonParts`
+  cleaned (all pre-backfill records carried 0).
+- The load picker now hydrates each record's OCCS document on list load
+  and renders it with `renderCassetteV2TreeToDrawing` — the same
+  renderer the preview surface uses — cached by id+updatedAt.
+- Preview layer set (owner direction): contour, fold, dimension — never
+  the production cut layers. Applied to the picker thumbnails AND the
+  `cassette-preview` surface's card/detail priority list.
+
 ### Agent Notes (2026-10-17 — cassette previews backfilled; zero-write diagnosis)
 
 - Owner report "no cassette previews still": DB check showed ZERO
