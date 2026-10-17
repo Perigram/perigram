@@ -1,5 +1,68 @@
 # TODO
 
+## AI waking mechanics in group/org chats (owner direction 2026-10-17)
+
+The AI's chat waking in group and organization rooms becomes mention-gated
+and room-scoped: the subscribed assistant answers messages that address it
+by name (@ plus its name), its own fresh threads answer every message, one
+run occupies a room at a time (the subscribed room owns the lock, the stop
+control, and the run's live presence, which follows the trigger message's
+fanout), messages arriving mid-run coalesce into one trailing run instead
+of dropping, group membership (the participants entry) and the
+subscription stay reconciled through the AI panel seams only, and the
+subscription's organization is the boundary — an assistant answers only
+its own org's members (SPEC: agent access).
+
+- [ ] WAITING — owner verification on the live stack: in a subscribed group
+  room the AI answers only messages that @-mention it; a fresh AI thread
+  answers every message.
+- [ ] WAITING — owner verification on the live stack: with the AI subscribed
+  to the organization chat, an @-mention on any instance chat in the org
+  answers beside that message; the organization chat view shows the run's
+  live activity and its stop control ends it.
+- [ ] WAITING — owner verification on the live stack: messages sent while
+  the AI is answering are answered by one trailing run after the current
+  one lands (nothing is silently dropped).
+- [ ] WAITING — owner verification on the live stack: removing the AI
+  through the room's members management is refused (the AI panel is the
+  only seat); a member of another organization in a shared group never
+  wakes the room's assistant.
+
+### Agent Notes (2026-10-17 — waking mechanics rebuilt)
+
+- Mention gate: `resolveAssistantTarget` wakes multi-human rooms (group
+  rooms with more than two participants, every instance room) only when
+  the message carries `@` + the assistant's name (word-bounded,
+  case-insensitive, resolved off the bot identity read);
+  two-participant assistant rooms (the fresh-thread shape) answer every
+  message; direct threads and lifecycle wake rules unchanged.
+- Room-keyed runs: the lock, the stop match, and the run's live presence
+  moved from the trigger's conversation key to the subscribed room —
+  ancestor-subscribed triggers serialize into one run, the stop reaches
+  it from the subscribed room's view or any fanout view, and
+  `bot_activity`/`bot_stream` publish to every topic the trigger
+  message fans out to (mirroring the support message fanout, so the
+  organization chat view sees the run beside the trigger).
+- Coalescing: a trigger arriving mid-run waits as `pending` on the lock
+  entry and re-fires when the current run lands with a fresh history
+  snapshot; a stop clears it. Chat replies and wakes share the
+  mechanism and the lock space.
+- Membership: the human group-participant seams refuse bot targets
+  (assistant membership is twin-only), and the group trigger requires
+  the assistant's participants entry beside the subscription — the
+  member list and the AI's answering presence cannot diverge.
+- Org boundary: the trigger resolves delegation against the
+  subscription's `organizationId` and skips senders from other orgs
+  (shared groups seat foreign members); the run's LLM org follows the
+  subscription, not the sender.
+- Deterministic pin: the first subscribed key in execution-point order
+  (own thread, then nearest ancestor) wins the room's profile/model —
+  no more Mongo-natural-order pick between a child chat and the org
+  chat both being subscribed.
+- Specs extended for every failure mode above (agent-bots trigger
+  gates, coalescing, ancestor stop/fanout, cross-org silence; support
+  human-seam bot refusal).
+
 ## Unified plugin space — mounted packs retire into listings (owner direction 2026-10-17)
 
 One installable contract for everything called a mounted pack, a private

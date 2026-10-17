@@ -1202,6 +1202,26 @@ describe('support communication service', () => {
     expect(mocks.repository.deleteGroupById).toHaveBeenCalledWith('group-1');
   });
 
+  it('refuses bot targets on the human membership seams (assistant membership is twin-only)', async () => {
+    mocks.repository.findGroupById.mockResolvedValue({
+      _id: 'group-1',
+      identity: { name: 'Workshop' },
+      origin: { userId: 'user-a' },
+      lineage: { organizationId: 'org-1' },
+      participants: ['user-a', 'user-b', 'user-bot']
+    });
+    mocks.usersService.getById.mockImplementation(async id => (
+      String(id) === 'user-bot'
+        ? { toJSON: () => ({ _id: 'user-bot', identity: { name: 'Assistant' }, data: { bot: { createdAt: new Date() } } }), data: { bot: { createdAt: new Date() } } }
+        : { toJSON: () => ({ _id: String(id), identity: { name: `User ${id}` }, data: {} }), data: {} }
+    ));
+
+    // The participants entry and the AI's subscription cannot diverge: the
+    // creator-or-admin seam never seats or removes the assistant.
+    await expect(supportService.addGroupParticipant(auth, 'group-1', 'user-bot')).rejects.toMatchObject({ statusCode: 400 });
+    await expect(supportService.removeGroupParticipant(auth, 'group-1', 'user-bot')).rejects.toMatchObject({ statusCode: 400 });
+  });
+
   it('merges member groups into the conversation inbox, including message-less groups', async () => {
     mocks.repository.findConversationMessages.mockResolvedValue([
       {

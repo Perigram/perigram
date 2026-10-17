@@ -50,14 +50,23 @@ export async function buildPrincipalAuth(userId) {
 }
 
 export async function isBotUser(userId) {
-    if (!userId) return false;
+    return Boolean(await getBotIdentity(userId));
+}
+
+/**
+ * The bot marker plus the display name, from one user read — the name is
+ * the mention token the chat runtime's group/org wake gate matches.
+ */
+export async function getBotIdentity(userId) {
+    if (!userId) return null;
     const user = await usersService.getById(userId).catch(() => null);
-    return Boolean(user?.data?.bot);
+    if (!user?.data?.bot) return null;
+    return { id: String(user._id ?? user.id ?? ''), name: user.identity?.name || '' };
 }
 
 // --- The organization assistant ---------------------------------------------
 
-const ASSISTANT_NAME = 'Assistant';
+export const ASSISTANT_NAME = 'Assistant';
 const assistantEmailFor = (organizationId) => `assistant-${organizationId}@bots.perigram.internal`;
 
 /**

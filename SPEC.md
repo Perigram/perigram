@@ -82,6 +82,17 @@ endpoints actually serve, is never blank (it shows the room's effective
 model), and the choice overrides the served model at request time. The
 models screen administers providers and endpoints only.
 
+In group and organization chats the AI is woken by address, not by
+traffic (owner direction 2026-10-17): the subscribed assistant answers a
+message only when it names the assistant (@ plus the assistant's name);
+the AI's own fresh threads answer every message, as direct conversations
+always have. A message arriving while a run is in flight is never
+dropped: the room coalesces it into one trailing run whose freshly
+loaded context covers everything said meanwhile. One run occupies a room
+at a time — the subscribed room owns the lock, the stop control, and the
+run's live presence — and the assistant answers only members of its own
+organization.
+
 An agent run is visible in its room and stays with its answer: the
 model's reasoning streams as a collapsible thinking block and each tool
 invocation appears as it starts and settles; the final answer streams as
