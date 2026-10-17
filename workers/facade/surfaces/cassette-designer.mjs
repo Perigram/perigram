@@ -151,7 +151,8 @@ export default function createSurface({ vue, components, locale, queries, record
       const editorSurfaceRef = ref(null);
       const drawingCanvasRef = ref(null);
       const inlineEditor = ref(null);
-      const pendingAttachmentSourceId = ref('');
+      const attachmentPicker = ref(null);
+      const attachmentPickerSourceId = ref('');
       const foldedPreviewWorkpieceId = ref('');
       const foldedExpanded = ref(false);
       const previewSource = ref(null);
@@ -446,6 +447,18 @@ export default function createSurface({ vue, components, locale, queries, record
         if (status === 'unresolved') return 'warn';
         return 'secondary';
       };
+      // Attachment settings are per source kind (owner decision
+      // 2026-10-17): profiles embed (edge array / point placement, no
+      // joint semantics, no face side), hardware places on a face side
+      // (snap or array, no mirror, no joint), and workpiece attachments
+      // carry the full face-to-face joint placement.
+      const attachmentSourceKind = (relation) => {
+        const source = workpieceById.value.get(relation.sourceWorkpieceId);
+        if (!source) return 'workpiece';
+        if (isCassetteV2ProfileWorkpiece(source)) return 'profile';
+        if (source.family || source.hardware?.family) return 'hardware';
+        return 'workpiece';
+      };
       const hueForWorkpiece = (workpieceId = '') => {
         let hash = 0;
         for (const char of String(workpieceId || 'workpiece')) {
@@ -716,7 +729,6 @@ export default function createSurface({ vue, components, locale, queries, record
         selectedNodeId.value = '';
         selectedWorkpieceOverrideId.value = '';
         selectedRelationId.value = '';
-        pendingAttachmentSourceId.value = '';
         inspectorSelection.value = '';
       };
 
@@ -1736,19 +1748,19 @@ export default function createSurface({ vue, components, locale, queries, record
         }
       });
 
-      const addAttachmentToWorkpiece = (workpieceId, targetWorkpieceId = '') => {
+      const addAttachmentToWorkpiece = (workpieceId, targetWorkpieceId = '', targetFaceId = '') => {
         closeInlineEditor();
         const targetWorkpiece = workpieces.value.find(workpiece => (
           workpiece.id === targetWorkpieceId &&
           workpiece.id !== workpieceId
-        )) || workpieces.value.find(workpiece => workpiece.id !== workpieceId);
+        ));
         if (!targetWorkpiece) return;
         const sourceFaceId = selectedNode.value?.workpieceId === workpieceId
           ? selectedNode.value.id
           : treeNodes.value.find(node => node.workpieceId === workpieceId && !node.parentId)?.id;
         const result = addCassetteV2WorkpieceAttachment(cassetteTree.value, workpieceId, {
           targetWorkpieceId: targetWorkpiece.id,
-          targetFaceId: targetWorkpiece.rootId,
+          targetFaceId: targetFaceId || targetWorkpiece.rootId,
           sourceFaceId,
           driver: false
         });
@@ -1765,18 +1777,16 @@ export default function createSurface({ vue, components, locale, queries, record
         });
       };
 
-      const startAttachmentConnect = (workpieceId) => {
-        pendingAttachmentSourceId.value = pendingAttachmentSourceId.value === workpieceId ? '' : workpieceId;
-        selectWorkpieceForInspector(workpieceId);
+      // The add-attachment control opens a workpiece→face picker (owner
+      // decision 2026-10-17) — the target and its binding face are
+      // chosen explicitly, never a click-armed connect mode.
+      const openAttachmentPicker = (event, workpieceId) => {
+        attachmentPickerSourceId.value = workpieceId;
+        attachmentPicker.value?.toggle?.(event);
       };
 
-      const handleWorkpieceGraphNodeSelect = (workpieceId) => {
-        if (pendingAttachmentSourceId.value && pendingAttachmentSourceId.value !== workpieceId) {
-          addAttachmentToWorkpiece(pendingAttachmentSourceId.value, workpieceId);
-          pendingAttachmentSourceId.value = '';
-          return;
-        }
-        selectWorkpieceForInspector(workpieceId);
+      const closeAttachmentPicker = () => {
+        attachmentPicker.value?.hide?.();
       };
 
       const deleteWorkpiece = (workpieceId) => {
@@ -1786,9 +1796,6 @@ export default function createSurface({ vue, components, locale, queries, record
         cassetteTree.value = result.tree;
         if (result.deletedWorkpieceIds.includes(foldedPreviewWorkpieceId.value)) {
           foldedPreviewWorkpieceId.value = '';
-        }
-        if (result.deletedWorkpieceIds.includes(pendingAttachmentSourceId.value)) {
-          pendingAttachmentSourceId.value = '';
         }
         if (result.deletedWorkpieceIds.includes(selectedWorkpieceOverrideId.value)) {
           selectedWorkpieceOverrideId.value = '';
@@ -2059,6 +2066,9 @@ export default function createSurface({ vue, components, locale, queries, record
               : null
           ]);
         } else if (editor.type === 'attachment' && relation) {
+          // Per-kind field sets: profile / hardware / workpiece
+          // (attachmentSourceKind above owns the mapping).
+          const kind = attachmentSourceKind(relation);
           body = h('div', { class: 'flex w-96 flex-col gap-2' }, [
             h('div', { class: 'flex cursor-move items-center gap-1', onMousedown: event => { event.preventDefault(); startInlineEditorDrag(event); } }, [
               h(Select, {
@@ -2073,18 +2083,20 @@ export default function createSurface({ vue, components, locale, queries, record
                 onMousedown: event => event.stopPropagation(),
                 'onUpdate:modelValue': value => updateInlineAttachmentRelation({ targetFaceId: value })
               }),
-              h(Select, {
-                modelValue: relation.sourceFaceId,
-                options: sourceFaceOptions.value,
-                optionLabel: 'label',
-                optionValue: 'value',
-                class: 'min-w-0 flex-1',
-                size: 'small',
-                'aria-label': t('cassette.v2.attachmentFields.sourceFace'),
-                title: t('cassette.v2.attachmentFields.sourceFace'),
-                onMousedown: event => event.stopPropagation(),
-                'onUpdate:modelValue': value => updateInlineAttachmentRelation({ sourceFaceId: value })
-              }),
+              kind === 'workpiece'
+                ? h(Select, {
+                    modelValue: relation.sourceFaceId,
+                    options: sourceFaceOptions.value,
+                    optionLabel: 'label',
+                    optionValue: 'value',
+                    class: 'min-w-0 flex-1',
+                    size: 'small',
+                    'aria-label': t('cassette.v2.attachmentFields.sourceFace'),
+                    title: t('cassette.v2.attachmentFields.sourceFace'),
+                    onMousedown: event => event.stopPropagation(),
+                    'onUpdate:modelValue': value => updateInlineAttachmentRelation({ sourceFaceId: value })
+                  })
+                : null,
               h(Button, {
                 icon: 'pi pi-times',
                 severity: 'secondary',
@@ -2108,17 +2120,19 @@ export default function createSurface({ vue, components, locale, queries, record
                 title: t('cassette.v2.attachmentFields.targetSnap'),
                 'onUpdate:modelValue': value => updateInlineAttachmentRelation({ targetSnap: value })
               }),
-              h(Select, {
-                modelValue: relation.sourceSnap,
-                options: snapOptions.value,
-                optionLabel: 'label',
-                optionValue: 'value',
-                class: 'w-full',
-                size: 'small',
-                'aria-label': t('cassette.v2.attachmentFields.sourceSnap'),
-                title: t('cassette.v2.attachmentFields.sourceSnap'),
-                'onUpdate:modelValue': value => updateInlineAttachmentRelation({ sourceSnap: value })
-              }),
+              kind === 'workpiece'
+                ? h(Select, {
+                    modelValue: relation.sourceSnap,
+                    options: snapOptions.value,
+                    optionLabel: 'label',
+                    optionValue: 'value',
+                    class: 'w-full',
+                    size: 'small',
+                    'aria-label': t('cassette.v2.attachmentFields.sourceSnap'),
+                    title: t('cassette.v2.attachmentFields.sourceSnap'),
+                    'onUpdate:modelValue': value => updateInlineAttachmentRelation({ sourceSnap: value })
+                  })
+                : null,
               // Caption blocks, not <label>s: a label wraps exactly one
               // control, and the editor's token panel carries buttons —
               // the browser forwards a click on the label to its first
@@ -2150,29 +2164,33 @@ export default function createSurface({ vue, components, locale, queries, record
                   'onUpdate:modelValue': value => updateInlineAttachmentRelation({ rotation: value })
                 })
               ]),
-              h(Select, {
-                modelValue: relation.targetSide,
-                options: sideOptions.value,
-                optionLabel: 'label',
-                optionValue: 'value',
-                class: 'w-full',
-                size: 'small',
-                'aria-label': t('cassette.v2.attachmentFields.side'),
-                title: t('cassette.v2.attachmentFields.side'),
-                'onUpdate:modelValue': value => updateInlineAttachmentRelation({ targetSide: value })
-              }),
-              h(Select, {
-                modelValue: relation.placementMode,
-                options: placementModeOptions.value,
-                optionLabel: 'label',
-                optionValue: 'value',
-                class: 'w-full',
-                size: 'small',
-                'aria-label': t('cassette.v2.attachmentFields.placementMode'),
-                title: t('cassette.v2.attachmentFields.placementMode'),
-                'onUpdate:modelValue': value => updateInlineAttachmentRelation({ placementMode: value })
-              }),
-              relation.placementMode === 'edgeArray'
+              kind !== 'profile'
+                ? h(Select, {
+                    modelValue: relation.targetSide,
+                    options: sideOptions.value,
+                    optionLabel: 'label',
+                    optionValue: 'value',
+                    class: 'w-full',
+                    size: 'small',
+                    'aria-label': t('cassette.v2.attachmentFields.side'),
+                    title: t('cassette.v2.attachmentFields.side'),
+                    'onUpdate:modelValue': value => updateInlineAttachmentRelation({ targetSide: value })
+                  })
+                : null,
+              kind !== 'workpiece'
+                ? h(Select, {
+                    modelValue: relation.placementMode,
+                    options: placementModeOptions.value,
+                    optionLabel: 'label',
+                    optionValue: 'value',
+                    class: 'w-full',
+                    size: 'small',
+                    'aria-label': t('cassette.v2.attachmentFields.placementMode'),
+                    title: t('cassette.v2.attachmentFields.placementMode'),
+                    'onUpdate:modelValue': value => updateInlineAttachmentRelation({ placementMode: value })
+                  })
+                : null,
+              kind !== 'workpiece' && relation.placementMode === 'edgeArray'
                 ? h(Select, {
                     modelValue: relation.arrayEdge,
                     options: attachableEdgeOptions(relation.targetFaceId, relation.id),
@@ -2185,7 +2203,7 @@ export default function createSurface({ vue, components, locale, queries, record
                     'onUpdate:modelValue': value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arrayEdge: value })
                   })
                 : null,
-              relation.placementMode === 'edgeArray'
+              kind !== 'workpiece' && relation.placementMode === 'edgeArray'
                 ? h(Select, {
                     modelValue: relation.arrayMode,
                     options: arrayModeOptions.value,
@@ -2198,7 +2216,7 @@ export default function createSurface({ vue, components, locale, queries, record
                     'onUpdate:modelValue': value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arrayMode: value })
                   })
                 : null,
-              relation.placementMode === 'edgeArray'
+              kind !== 'workpiece' && relation.placementMode === 'edgeArray'
                 ? h('div', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: arrayValueLabel(relation) }, [
                     h('span', { class: 'truncate' }, arrayValueLabel(relation)),
                     h(CassetteExpressionEditor, {
@@ -2209,47 +2227,53 @@ export default function createSurface({ vue, components, locale, queries, record
                     })
                   ])
                 : null,
-              h('div', { class: 'flex min-w-0 gap-1' }, [
-                h(Button, {
-                  icon: 'pi pi-arrows-h',
-                  severity: relation.mirrorX ? 'primary' : 'secondary',
-                  size: 'small',
-                  class: 'min-w-0 flex-1',
-                  label: t('cassette.v2.attachmentFields.mirrorX'),
-                  'aria-label': t('cassette.v2.attachmentFields.mirrorX'),
-                  title: t('cassette.v2.attachmentFields.mirrorX'),
-                  onClick: () => updateInlineAttachmentRelation({ mirrorX: !relation.mirrorX })
-                }),
-                h(Button, {
-                  icon: 'pi pi-arrows-v',
-                  severity: relation.mirrorY ? 'primary' : 'secondary',
-                  size: 'small',
-                  class: 'min-w-0 flex-1',
-                  label: t('cassette.v2.attachmentFields.mirrorY'),
-                  'aria-label': t('cassette.v2.attachmentFields.mirrorY'),
-                  title: t('cassette.v2.attachmentFields.mirrorY'),
-                  onClick: () => updateInlineAttachmentRelation({ mirrorY: !relation.mirrorY })
-                })
-              ]),
-              h(Select, {
-                modelValue: relation.type,
-                options: jointTypeOptions.value,
-                optionLabel: 'label',
-                optionValue: 'value',
-                class: 'w-full',
-                size: 'small',
-                'aria-label': t('cassette.v2.attachmentFields.jointType'),
-                title: t('cassette.v2.attachmentFields.jointType'),
-                'onUpdate:modelValue': value => updateInlineAttachmentRelation({ type: value })
-              }),
-              h(Button, {
-                icon: 'pi pi-map-marker',
-                severity: relation.driver ? 'primary' : 'secondary',
-                size: 'small',
-                'aria-label': t('cassette.v2.attachmentFields.driver'),
-                title: t('cassette.v2.attachmentFields.driver'),
-                onClick: () => updateInlineAttachmentRelation({ driver: true })
-              }),
+              kind !== 'hardware'
+                ? h('div', { class: 'flex min-w-0 gap-1' }, [
+                    h(Button, {
+                      icon: 'pi pi-arrows-h',
+                      severity: relation.mirrorX ? 'primary' : 'secondary',
+                      size: 'small',
+                      class: 'min-w-0 flex-1',
+                      label: t('cassette.v2.attachmentFields.mirrorX'),
+                      'aria-label': t('cassette.v2.attachmentFields.mirrorX'),
+                      title: t('cassette.v2.attachmentFields.mirrorX'),
+                      onClick: () => updateInlineAttachmentRelation({ mirrorX: !relation.mirrorX })
+                    }),
+                    h(Button, {
+                      icon: 'pi pi-arrows-v',
+                      severity: relation.mirrorY ? 'primary' : 'secondary',
+                      size: 'small',
+                      class: 'min-w-0 flex-1',
+                      label: t('cassette.v2.attachmentFields.mirrorY'),
+                      'aria-label': t('cassette.v2.attachmentFields.mirrorY'),
+                      title: t('cassette.v2.attachmentFields.mirrorY'),
+                      onClick: () => updateInlineAttachmentRelation({ mirrorY: !relation.mirrorY })
+                    })
+                  ])
+                : null,
+              kind === 'workpiece'
+                ? h(Select, {
+                    modelValue: relation.type,
+                    options: jointTypeOptions.value,
+                    optionLabel: 'label',
+                    optionValue: 'value',
+                    class: 'w-full',
+                    size: 'small',
+                    'aria-label': t('cassette.v2.attachmentFields.jointType'),
+                    title: t('cassette.v2.attachmentFields.jointType'),
+                    'onUpdate:modelValue': value => updateInlineAttachmentRelation({ type: value })
+                  })
+                : null,
+              kind === 'workpiece'
+                ? h(Button, {
+                    icon: 'pi pi-map-marker',
+                    severity: relation.driver ? 'primary' : 'secondary',
+                    size: 'small',
+                    'aria-label': t('cassette.v2.attachmentFields.driver'),
+                    title: t('cassette.v2.attachmentFields.driver'),
+                    onClick: () => updateInlineAttachmentRelation({ driver: true })
+                  })
+                : null,
               h(Button, {
                 icon: 'pi pi-trash',
                 severity: 'danger',
@@ -2434,7 +2458,7 @@ export default function createSurface({ vue, components, locale, queries, record
             h('button', {
               type: 'button',
               class: ['flex min-w-0 flex-1 flex-col gap-0.5 rounded-ui border px-2 py-1 text-left', isSelected ? 'border-primary bg-subtle' : 'border-content-border'],
-              onClick: () => handleWorkpieceGraphNodeSelect(dependent.id)
+              onClick: () => selectWorkpieceForInspector(dependent.id)
             }, [
               h('div', { class: 'flex min-w-0 items-center gap-2' }, [
                 workpieceTypeIcon(dependent),
@@ -2494,6 +2518,7 @@ export default function createSurface({ vue, components, locale, queries, record
           onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
         }, [
           h('div', { class: 'flex min-w-0 items-center gap-2' }, [
+            h('i', { class: 'pi pi-link shrink-0 text-xs text-muted', 'aria-hidden': 'true' }),
             h('span', { class: 'truncate text-body' }, relationRow.otherLabel),
             attachmentStatusIcon(relationRow.relation.id, relationRow.status)
           ]),
@@ -2572,7 +2597,7 @@ export default function createSurface({ vue, components, locale, queries, record
                     h('button', {
                       type: 'button',
                       class: ['flex min-w-0 flex-1 items-center gap-2 rounded-ui border border-transparent px-2 py-1 text-left', row.id === selectedWorkpieceId.value ? 'border-primary bg-subtle' : ''].filter(Boolean).join(' '),
-                      onClick: () => handleWorkpieceGraphNodeSelect(row.id)
+                      onClick: () => selectWorkpieceForInspector(row.id)
                     }, [
                       workpieceTypeIcon(row),
                       h('span', { class: 'truncate' }, row.label),
@@ -2592,13 +2617,14 @@ export default function createSurface({ vue, components, locale, queries, record
                           }),
                           h(Button, {
                             icon: 'pi pi-link',
-                            severity: row.id === pendingAttachmentSourceId.value ? 'primary' : 'secondary',
+                            severity: 'secondary',
                             text: true,
                             rounded: true,
                             size: 'small',
+                            disabled: workpieces.value.length < 2,
                             'aria-label': t('cassette.v2.addAttachment'),
                             title: t('cassette.v2.addAttachment'),
-                            onClick: () => startAttachmentConnect(row.id)
+                            onClick: event => openAttachmentPicker(event, row.id)
                           }),
                           row.isProfile
                             ? h(Button, {
@@ -2903,6 +2929,35 @@ export default function createSurface({ vue, components, locale, queries, record
                 ])))
             : null
         ])),
+        h(Popover, { ref: attachmentPicker }, () => {
+          const sourceId = attachmentPickerSourceId.value;
+          // Targets as workpiece → face trees: picking the face binds
+          // the relation to it directly.
+          const targets = workpieceRows.value.filter(row => row.id !== sourceId);
+          return h('div', { class: 'flex w-72 max-w-90 flex-col gap-1' },
+            targets.map(row => {
+              const faces = treeNodes.value.filter(node => node.workpieceId === row.id);
+              return h('div', { key: row.id, class: 'flex flex-col gap-0.5' }, [
+                h('div', { class: 'flex items-center gap-2 px-1 py-0.5' }, [
+                  workpieceTypeIcon(row),
+                  h('span', { class: 'truncate text-xs text-muted' }, row.label)
+                ]),
+                ...faces.map(node => h('button', {
+                  key: node.id,
+                  type: 'button',
+                  class: 'flex w-full items-center gap-2 rounded-ui px-1 py-1 text-left hover:bg-subtle',
+                  style: { paddingLeft: node.parentId ? '1.25rem' : undefined },
+                  onClick: () => {
+                    closeAttachmentPicker();
+                    addAttachmentToWorkpiece(sourceId, row.id, node.id);
+                  }
+                }, [
+                  h('i', { class: 'pi pi-link shrink-0 text-xs text-muted', 'aria-hidden': 'true' }),
+                  h('span', { class: 'truncate font-mono text-xs' }, node.id)
+                ]))
+              ]);
+            }));
+        }),
         h(StandardDialog, {
           visible: hardwareDialogVisible.value,
           'onUpdate:visible': value => { hardwareDialogVisible.value = value; },
