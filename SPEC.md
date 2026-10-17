@@ -761,7 +761,10 @@ starting draft); the dialog's window-level controls (name, kind,
 process, library pick, save actions) collapse into one compact row
 instead of stacked bands; and the editor's own operations render as an
 icon toolbar (open-source CAD glyphs, PrimeVue Toolbar) instead of
-wrapped text buttons.
+wrapped text buttons. The editor's layout is space-first: the
+parameter/holes strip sits above the canvas, the tool toolbar floats
+inside the canvas over the drawing, and the dialog stands near-viewport
+height so the canvas takes everything left.
 
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
