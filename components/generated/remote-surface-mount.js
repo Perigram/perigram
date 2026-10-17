@@ -27,6 +27,7 @@ import { hasPermissionGrant } from '#shared/access-control.js';
 import { resolveTypeFeature } from '#shared/field-access-policies.js';
 import { onInstanceChanged } from '#utils/instance-events.js';
 import { instancePayloadPersistence, instancePayloadFileUrl, runBlankFileConstruct } from './file-surfaces.js';
+import { renderMarkdown } from '#shared/markdown.js';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
 // The remote-surface mount (SPEC §Plugin marketplace, owner decision
@@ -65,11 +66,16 @@ const SURFACE_VUE = Object.freeze({ h, ref, shallowRef, computed, reactive, watc
 // Contract 1 mounts the base context; contract 2 (the editor-grade
 // mount) adds queries, notify, and access beside it; contract 3 (the
 // capability mount, owner decision 2026-10-17) adds sync and upload.
+// The base context carries the host's markdown read pipeline
+// (`renderMarkdown`, the single marked+DOMPurify+pele home — mermaid
+// fences render as diagrams): surfaces receive it instead of vendoring
+// marked/dompurify/pele (the never-vendor law).
 export function surfaceHostContext({ t, te, locale }, surfaceContract = 1, io = {}) {
   const base = Object.freeze({
     vue: SURFACE_VUE,
     components: surfaceComponentPack(),
-    locale: Object.freeze({ t, te, locale: () => locale.value })
+    locale: Object.freeze({ t, te, locale: () => locale.value }),
+    renderMarkdown
   });
   if (Number(surfaceContract) < 2) return base;
   const editorGrade = Object.freeze({

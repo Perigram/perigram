@@ -6,7 +6,10 @@
 // half-mount. Bump by adding a version and teaching the loader its mount
 // context; never by editing what an existing version means.
 //
-// 1 — the M5 data-only mount: ctx `{ vue, components, locale }`, props
+// 1 — the M5 data-only mount: ctx `{ vue, components, locale,
+//     renderMarkdown }` (the host's markdown read pipeline — mermaid
+//     fences render as pele diagrams through it; surfaces receive it,
+//     never vendor marked/dompurify/pele), props
 //     `{ record, persistence }` (createBlank/loadDocument/saveDocument/
 //     rename).
 // 2 — the editor-grade mount (M6): everything in 1 plus the ctx

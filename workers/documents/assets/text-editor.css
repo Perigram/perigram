@@ -91,3 +91,11 @@
   user-select: none;
   pointer-events: none;
 }
+
+/* Mermaid diagram previews (crepe's code-block preview panel): the
+   pele SVG keeps inside the block — clipped, never overflowing the
+   document column. */
+.milkdown-code-block .preview .mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
