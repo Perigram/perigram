@@ -39,6 +39,7 @@ import {
   createEmptyOccsProfileSketch,
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
+  occProfileSketchLayerData,
   occsProfileFromSketch
 } from '../occs/profiles.js';
 import createExpressionEditor from './lib/components/expressionEditor.mjs';
@@ -46,6 +47,7 @@ import createFieldDraft from './lib/components/fieldDraft.mjs';
 import createFoldedPreview from './lib/components/foldedPreview.mjs';
 import createSketchEditor from './lib/components/sketchEditor.mjs';
 import { buildCassetteV2FoldedPreview } from './lib/cassetteV2FoldedPreview.js';
+import { normalizeGeometryDrawing } from './lib/drawingPreview.js';
 
 const OCCS_MIME = 'application/perigram+occs';
 
@@ -268,6 +270,7 @@ export default function createSurface({ vue, components, locale, queries, record
       });
       const profileLibraryRecords = ref([]);
       const profileLibraryAvailable = ref(true);
+      const profilePicker = ref(null);
       const templateRecords = ref([]);
       const loadedDocument = ref(null);
 
@@ -1408,6 +1411,52 @@ export default function createSurface({ vue, components, locale, queries, record
         };
       };
 
+      // The add-profile picker: library rows with evaluated-sketch
+      // thumbnails beside Create new (the blank dialog draft). Picking a
+      // row places the profile as a workpiece directly — a snapshot copy
+      // of the record's authored truth; the dialog stays the authoring
+      // surface.
+      const openProfilePicker = (event) => {
+        loadProfileLibrary();
+        profilePicker.value?.toggle?.(event);
+      };
+
+      const closeProfilePicker = () => {
+        profilePicker.value?.hide?.();
+      };
+
+      const profileRecordThumbnail = (record) => {
+        const layerData = occProfileSketchLayerData(record?.fields?.sketch);
+        return layerData ? normalizeGeometryDrawing({ data: { layerData } }) : null;
+      };
+
+      const addProfileFromLibrary = (record) => {
+        if (!record) return;
+        const sketch = normalizeOccsProfileSketch(
+          record?.fields?.sketch || createEmptyOccsProfileSketch(),
+          {}
+        );
+        let occsProfile = null;
+        try {
+          occsProfile = occsProfileFromSketch(sketch, {});
+        } catch {
+          notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
+          return;
+        }
+        const added = addCassetteV2ProfileWorkpiece(cassetteTree.value, {
+          referenceWorkpieceId: selectedWorkpieceId.value,
+          name: record.name || t('cassette.v2.profileEditor.defaultName'),
+          kind: record?.fields?.kind || 'hanger',
+          process: record?.fields?.process || 'extruded',
+          parameters: { ...(sketch.parameters || {}) },
+          occsProfile,
+          sketch
+        });
+        cassetteTree.value = added.tree;
+        selectWorkpiece(added.workpieceId);
+        closeProfilePicker();
+      };
+
       const saveProfileDraftToLibrary = async () => {
         if (!profileDraftReady.value) {
           notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
@@ -2124,7 +2173,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 size: 'small',
                 'aria-label': t('cassette.v2.addProfile'),
                 title: t('cassette.v2.addProfile'),
-                onClick: () => openProfileDialog()
+                onClick: event => openProfilePicker(event)
               }),
               h(Button, {
                 icon: 'pi pi-bolt',
@@ -2428,6 +2477,43 @@ export default function createSurface({ vue, components, locale, queries, record
               : null
           ])
         ]),
+        h(Popover, { ref: profilePicker }, () => h('div', { class: 'flex w-80 max-w-90 flex-col gap-1' }, [
+          h(Button, {
+            icon: 'pi pi-plus',
+            label: t('cassette.v2.profileEditor.createNew'),
+            severity: 'secondary',
+            text: true,
+            size: 'small',
+            class: 'w-full justify-start',
+            onClick: () => {
+              closeProfilePicker();
+              openProfileDialog();
+            }
+          }),
+          profileLibraryAvailable.value && profileLibraryRecords.value.length
+            ? h('div', { class: 'mt-1 flex flex-col border-t border-content-border pt-1' },
+                profileLibraryRecords.value.map(record => {
+                  const thumbnail = profileRecordThumbnail(record);
+                  return h('button', {
+                    key: record?._id,
+                    type: 'button',
+                    class: 'flex w-full items-center gap-2 rounded-ui px-1 py-1 text-left hover:bg-subtle',
+                    onClick: () => addProfileFromLibrary(record)
+                  }, [
+                    h('span', { class: 'flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden rounded-ui border border-content-border' },
+                      thumbnail
+                        ? h(DrawingCanvas, {
+                            source: thumbnail,
+                            sourceType: 'geometry-preview',
+                            mode: 'card',
+                            fill: true
+                          })
+                        : h('i', { class: 'pi pi-box text-muted' })),
+                    h('span', { class: 'truncate' }, record?.name || t('cassette.v2.profileEditor.defaultName'))
+                  ]);
+                }))
+            : null
+        ])),
         h(StandardDialog, {
           visible: occsDialogVisible.value,
           'onUpdate:visible': value => { occsDialogVisible.value = value; },

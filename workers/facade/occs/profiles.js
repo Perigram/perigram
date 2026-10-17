@@ -361,6 +361,39 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   };
 };
 
+// Preview projection: a sketch's evaluated section as drawing layerData
+// (the drawing-preview normalizer's channel) — outline on cut.outer
+// (closed) or cut.inner (an open chain is a cut path, never closed),
+// holes on cut.hole as circle polygons. Unresolvable sketches return
+// null: previews render a quiet blank, never an error state.
+export const occProfileSketchLayerData = (sketch = {}) => {
+  try {
+    const { section } = occsProfileFromSketch(sketch, {});
+    const vertices = (section?.vertices || [])
+      .filter(vertex => Array.isArray(vertex) && vertex.length >= 2)
+      .map(([x, y]) => [Number(x), Number(y)])
+      .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
+    if (vertices.length < 2) return null;
+    const layers = [{
+      layer: section.open ? 'cut.inner' : 'cut.outer',
+      coordinates: vertices
+    }];
+    for (const hole of section.holes || []) {
+      const [cx, cy] = (hole?.center || []).map(Number);
+      const radius = Number(hole?.diameter) / 2;
+      if (!Number.isFinite(cx) || !Number.isFinite(cy) || !(radius > 0)) continue;
+      const circle = Array.from({ length: 25 }, (_, index) => {
+        const angle = (index / 24) * Math.PI * 2;
+        return [cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius];
+      });
+      layers.push({ layer: 'cut.hole', coordinates: circle });
+    }
+    return layers;
+  } catch {
+    return null;
+  }
+};
+
 // Rebuilds the edge chain for a chosen closure: consecutive pairs for an
 // open sketch, closed ring for a closed one. Point coordinates and
 // modifiers pass through untouched (expressions included); anchors reset —
