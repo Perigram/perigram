@@ -213,6 +213,14 @@ glyph in the brand accent across chat surfaces (SPEC: agent access).
   fight alignment, markdown flow, and swipe affordances (owner left
   the call to the agent).
 
+### Agent Notes (2026-10-17 — chronology icon/legend pass)
+
+- Owner pass: the Fieldset legend keeps Aura's background (the earlier
+  transparent override read as missing chrome); the +/− svg shrinks to
+  match the caption-size label (`.p-icon` pins 1rem, so the size rides
+  the `toggleIcon` pt); tool-call status icons lose their status colors
+  (muted, like the rest of the chronology) and shrink.
+
 ### Agent Notes (2026-10-17 — hotfix: render-time crash + SSR fallback)
 
 - Owner defect report: every chat surface 500'd
