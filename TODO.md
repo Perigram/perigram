@@ -227,7 +227,22 @@ stands; repetition protection is not a budget).
   400, re-target + applied summary), and the control-node audit: a
   control-only graph is refused (`not reachable from a trigger`) and a
   reachable finish compiles to no action/screen of its own — control
-  nodes are orchestration-only, never compiled surface.
+  nodes never compile to runtime surface.
+- Owner correction (2026-10-17), framing defect in docs and code: there
+  are NO durable runs. A process definition is a contract generator
+  (actions, screens, workflows, grants over the org's types); its
+  runtime is the continuous organization backend serving the compiled
+  contract — the definition does not "run". The run-record engine
+  (`run-repository.js`, orchestration's run/step/invocation/receipt
+  machinery, `POST /api/process-definitions/:id/runs`, the "Process
+  execution" README section, and `executeDataflowActionRun` routing
+  every manual action through `startRun`) implements an
+  execution-program framing the architecture does not have.
+  Reconciliation is an owner decision: retire the run subsystem
+  (actions evaluate the compiled contract through the command/task
+  boundaries they already delegate to) or keep it as an unnamed
+  implementation detail and strip the "runs" framing from every doc
+  and agent surface.
 - Finding, not fixed here: the activate-path specs in
   `process-definitions.spec.js` are not hermetic —
   `findTypeDeathCandidates` reads the cts-types repository (Mongo), so

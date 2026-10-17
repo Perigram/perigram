@@ -469,9 +469,11 @@ describe('control nodes: the palette control section in the compiled surface', (
 
     it('compiles a reachable finish to no action or screen of its own', async () => {
         // The cassette construct owns the compiled surface; the finish
-        // wired after it owns orchestration semantics only (a terminal
-        // marker for durable runs) — nothing in the compiled contract
-        // derives from it.
+        // wired after it adds nothing to it — no action, screen, or
+        // grant derives from a control node. The runtime is the
+        // continuous organization backend over the compiled contract,
+        // not a program the definition "runs" (owner direction
+        // 2026-10-17: there are no durable runs).
         const digest = await call('compose_process_definition', {
             name: 'Spec construct and finish',
             steps: [
