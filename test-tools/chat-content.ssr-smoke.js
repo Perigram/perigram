@@ -105,6 +105,18 @@ describe('chat content SSR smoke', () => {
     expect(html).toContain('reasoning here');
     expect(html).toContain('list_types');
     expect(html).toContain('it failed');
+    expect(html).toContain('data-testid="agent-tool"');
+  });
+
+  it('renders the pending run as a pulsing skeleton disclosure', async () => {
+    const html = await boot({
+      setup: () => () => h(AgentActivity, {
+        activity: { steps: [], answer: '' },
+        live: true
+      })
+    });
+    expect(html).toContain('data-testid="agent-pending"');
+    expect(html.match(/p-skeleton-circle/g)?.length).toBe(3);
   });
 
   it('renders the inline ref chip resolved, unresolved, and non-interactive', async () => {
