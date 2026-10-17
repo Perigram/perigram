@@ -2588,7 +2588,10 @@ export default function createSurface({ vue, components, locale, queries, record
           header: t('cassette.v2.profileEditor.title'),
           size: 'xl',
           fill: true,
-          showDefaultFooter: false
+          showDefaultFooter: false,
+          // Near-viewport height (owner decision 2026-10-17): the editor
+          // canvas takes the space; `fill` keeps the viewport caps.
+          class: 'h-[92dvh]'
         }, {
           // Window-level controls in one compact row (owner decision
           // 2026-10-17): identity, kind/process, library pick, and the
