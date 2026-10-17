@@ -1197,9 +1197,9 @@ composed subtree), and under the title the thread carries its lineage
 breadcrumbs through the shared `TraceChain` (organization root first;
 links open the ancestor surfaces; unreadable instances render no chain).
 Group thread headers carry an overlapping member avatar stack (resolved
-through the readable-reference seam; the assistant keeps the shared AI
-glyph in the stack, never an image or letter) that opens the full member list as a
-popup of `UserChip` rows. Instance labels are
+through the readable-reference seam; the assistant renders its shared AI
+glyph there) that opens the full member list as a popup of `UserChip`
+rows. Instance labels are
 identity names only — never uids or raw ids; unnamed instances fall back
 to the localized type label. Calls start from every non-support thread
 header, entity threads included. On desktop, entity opens from chat
@@ -1209,26 +1209,17 @@ workspace is mounted, a pending request consumed on mount otherwise — so
 everything stays inside the home framework. Entity threads show a children toggle that switches between the
 composed subtree view and messages linked to the entity itself, and the
 composer of a composed view carries a lineage drill-down strip following the
-dynamic-breadcrumbs pattern: ONE strip whose drilled lineage leads as
-icon-only pills (no text; tapping one makes that level the trail's end
-and shows its children), an angle
-marks the descent, and the children of the current level follow as chips.
-The strip walks the app's ONE instance tree by levels: the org root lists
-the home screen's NON-EMPTY section types (one pill per type that has
-instances), a type level lists that type's instances, and an instance
-lists its lineage children through the shared containment seam
-(`linkedExplorerChildSources` + `useEffectiveContainment`) — stored
-message paths are never a child source. Instance chips resolve their
-labels through the one title resolver (`titleFor` over the type view's
-declared identifier field — the same selection `InstanceInlineRef` and
-the picker use; a null identifier value degrades to the unnamed
-placeholder, never the type label). Picking a chip with children
-descends — it becomes the trail's last pill, its siblings drop — while a
-LEAF stays selected in its row (the trail never dead-ends on an empty
-level), and the trail's last pill carries its label beside the icon
-(earlier crumbs stay icon-only); the next message lands on the picked
-instance, and browsing TYPES never moves the target — the last picked
-instance (or the org itself) stays it.
+dynamic-breadcrumbs pattern: the drilled lineage leads as breadcrumb
+pills — icon-only, except the current level, which carries its label —
+and the current level's chips follow. The org root lists the home
+screen's non-empty section types, a type lists its instances
+(`resolveSourceFilters` + the instances store), an instance lists its
+lineage children (`linkedExplorerChildSources` +
+`useEffectiveContainment`); chip labels ride the shared title resolver
+(`titleFor`, the `InstanceInlineRef` path). A chip with children
+descends (it becomes the trail's last pill, its siblings drop); a leaf
+stays selected in its row; the message lands on the picked instance,
+and type browsing leaves the target alone.
 The composed entity itself is the target
 whenever no child is drilled, and exactly one target is always visibly
 selected — the root pill or the deepest trail pill; unnamed chips carry

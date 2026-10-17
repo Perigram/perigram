@@ -8,9 +8,6 @@ export const frameworkTypes = [
     scope: 'system',
     version: 1,
     name: 'Organization',
-    // The fixed identity mark (SPEC: parties) — every registry consumer
-    // (chats, pickers, chips) renders the building, never a generic
-    // fallback.
     glyph: 'pi pi-building',
     fields: {
       name: { base: 'string', identifier: true },

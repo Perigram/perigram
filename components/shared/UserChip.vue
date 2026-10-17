@@ -28,19 +28,11 @@ import AiAvatar from '~/components/shared/AiAvatar.vue';
 import { useEntityPopup } from '~/composables/useEntityPopup';
 import { useInstancesStore } from '~/stores/instances';
 
-// The user identity chip: avatar plus display name, never the generic
-// instance-ref face (type glyph plus identifier field — which renders the
-// users icon and the email for the served user type). Resolution rides the
-// instances store's readable-reference seam, whose two legs speak two
-// shapes: the users feature DTO for org-mates (`identity.name`,
-// `data.avatarUrl`, `data.bot` — the marker travels at read level) and the
-// directory card for everyone else (`identity.name`, `data.avatarUrl`).
-// A left click opens the shared entity popup (the user's directory
-// profile), the same surface the direct-thread title opens.
-// The avatar's letter label must be null whenever the image is set:
-// PrimeVue's Avatar renders label over image, so a constant label would
-// hide every avatar (the bug that made avatars look private to their own
-// user).
+// The user identity chip. Resolution rides the readable-reference seam:
+// the users feature DTO for org-mates (identity.name, data.avatarUrl,
+// data.bot), the directory card otherwise. A click opens the shared
+// entity popup. The Avatar label stays null while an image is set —
+// PrimeVue renders label over image.
 const props = defineProps({
     userId: { type: [String, Number], required: true },
     // Optional display-name hint while (or instead of) the record resolves.
@@ -65,8 +57,7 @@ const displayName = computed(() => resolved.value?.name
 const avatarUrl = computed(() => resolved.value?.fields?.avatarUrl
     || resolved.value?.data?.avatarUrl
     || '');
-// The org assistant carries the bot marker (users feature): its chip
-// face is the shared AI glyph, never an image or letter.
+// The bot marker drives the shared AI glyph.
 const isBot = computed(() => Boolean(resolved.value?.fields?.bot || resolved.value?.data?.bot));
 
 const open = () => {

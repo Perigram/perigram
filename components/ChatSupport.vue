@@ -69,11 +69,7 @@
                         @click="closeChat"
                     />
                 </div>
-                <!-- Folder chips scope the flat list (SPEC): All, Personal
-                     (person and group chats), one chip per organization with
-                     instance chats. The strip scrolls horizontally on narrow
-                     rails and hides while only one scope exists; the pills
-                     reuse the composer target-strip tokens. -->
+                <!-- Folder chips scope the list (SPEC: Chat thread). -->
                 <div
                     v-if="inboxFolders.length > 1"
                     class="mb-2 flex shrink-0 items-center gap-1 overflow-x-auto px-2"
@@ -394,9 +390,6 @@
                         >
                             <AvatarGroup class="shrink-0">
                                 <template v-for="participant in groupParticipants.slice(0, 4)" :key="participant.id">
-                                    <!-- The assistant keeps its AI face in the
-                                         stack — the same glyph every surface
-                                         shows for it, never a letter. -->
                                     <AiAvatar
                                         v-if="participant.bot"
                                         class="h-6 w-6 [&_.p-avatar-icon]:text-supporting"
@@ -890,20 +883,9 @@
                     </div>
 
                     <!-- Instance target strip: level drill-down over the
-                         app's one instance tree. Icon-only breadcrumb
-                         pills walk back up — except the last, which
-                         carries its label (the reader always sees the
-                         current level); the chip row is the current
-                         level — at the org root the home screen's
-                         NON-EMPTY section types, inside a type that
-                         type's instances, inside an instance its lineage
-                         children. A chip with children descends (it
-                         becomes the trail's last pill, siblings drop);
-                         a leaf stays selected in its row, and browsing
-                         types never moves the message target — the org
-                         or last picked instance stays it. Minimal pill
-                         elements from semantic tokens: segmented
-                         PrimeVue chrome fights the composer density. -->
+                         app's instance tree — types at the org root,
+                         instances inside a type, lineage children inside
+                         an instance. -->
                     <div
                         v-if="activeConversation.conversationKind === 'instance' && (stripChildren.length || stripTrail.length)"
                         class="flex flex-col gap-1"
@@ -925,10 +907,7 @@
                             </button>
                             <template v-for="(crumb, index) in stripTrail" :key="crumb.key">
                                 <i class="pi pi-angle-right shrink-0 text-muted" aria-hidden="true"></i>
-                                <!-- The current level's crumb carries its
-                                     label — the reader always sees where
-                                     they are; earlier crumbs stay
-                                     icon-only. -->
+                                <!-- The current level carries its label. -->
                                 <button
                                     type="button"
                                     class="flex h-6 shrink-0 items-center justify-center rounded-ui transition-colors"
@@ -964,13 +943,6 @@
                                     @click="drillStripTo(chip)"
                                 >
                                     <i :class="instances.iconFor(chip.type)" class="shrink-0" aria-hidden="true"></i>
-                                    <!-- Instance chips carry the identifier
-                                         field's value — the record's own
-                                         name — never the type label; a
-                                         legacy null identifier degrades to
-                                         the unnamed placeholder. Type
-                                         pills carry their type label from
-                                         construction. -->
                                     <span class="max-w-32 truncate">{{ chip.name || $t('common.unnamed') }}</span>
                                 </button>
                             </template>
@@ -1934,9 +1906,6 @@ const scopeConversations = computed(() => supportChatStore.conversations
             || conversation.conversationKind === 'instance'
     }))
 
-// One organization chip per organization with instance chats, led by its
-// own chat row when that row exists (its live label names the org); the
-// unlabeled fallback reads the active organization record.
 const orgFolders = computed(() => {
     const folders = new Map()
     for (const conversation of [...scopeConversations.value].sort(byLatestActivity)) {
@@ -1955,9 +1924,6 @@ const orgFolders = computed(() => {
     return [...folders.values()]
 })
 
-// The chip strip: All always; Personal only while organization scopes
-// exist (otherwise it would mirror All); organization chips follow
-// latest activity.
 const inboxFolders = computed(() => [
     { key: 'all', label: t('support.folderAll') },
     ...(orgFolders.value.length ? [{ key: 'personal', label: t('support.folderPersonal') }] : []),
@@ -2027,9 +1993,6 @@ watch(groupParticipantIds, async (ids) => {
         return
     }
     groupParticipants.value = await Promise.all(ids.map(async (id) => {
-        // The seam's two legs: the users feature DTO (data.avatarUrl,
-        // data.bot) for org-mates, the directory card (data.avatarUrl)
-        // for everyone else.
         const record = await instances.resolveReadableReference('user', String(id), { silent: true })
         return {
             id: String(id),
@@ -2871,12 +2834,9 @@ const handleMessagesScroll = () => {
     if (container.scrollTop <= 60) loadOlderMessages()
 }
 
-// Instance target strip: level drill-down over the app's one instance
-// tree. The org root lists the home screen's section TYPES (only the
-// non-empty ones), a type level lists that type's instances, an instance
-// lists its lineage children through the shared containment seam.
-// Browsing types never moves the message target — only a picked
-// instance does.
+// Instance target strip: types at the org root, instances inside a
+// type, lineage children inside an instance (the shared containment
+// seam).
 const effectiveContainment = useEffectiveContainment()
 const stripTrail = ref([])
 const stripChildrenByKey = ref(new Map())
@@ -2894,21 +2854,14 @@ const stripTargetKey = computed(() => {
 // always visibly selected.
 const stripRootSelected = computed(() => !stripTrail.value.length && !composerInstance.value)
 
-// A lineage pill is selected when it is the current composer target (the
-// deepest drilled INSTANCE level); type pills are folders, never targets.
+// Type entries are folders; only instances can be the target.
 const isTrailEntrySelected = (entry) => entry.kind !== 'type'
     && Boolean(composerInstance.value)
     && composerInstance.value.type === entry.type
     && String(composerInstance.value.id) === String(entry.id)
 
-// Children of the current target, exactly as the app's one instance tree
-// (the home sidebar and the attachment picker) derives them — no private
-// sources: nothing leaks in from stored message paths.
 const stripChildren = computed(() => stripChildrenByKey.value.get(stripTargetKey.value) || [])
 
-// The org root lists the home screen's section sources (the sidebar's
-// own top level, parent-bound children excluded); a drilled instance
-// lists its lineage children through the shared containment seam.
 const stripHomeScreen = computed(() => authStore.screenManifest.find(screen => screen.template === 'home') || null)
 const stripRootSources = computed(() => {
     const home = stripHomeScreen.value
@@ -2932,9 +2885,7 @@ async function loadStripChildren(targetKey, targetType, targetInstance = null) {
     try {
         const orgRoot = !stripTrail.value.length && activeConversation.value?.typeId === 'organization'
         if (orgRoot) {
-            // Load every home-section list once: the root shows one pill
-            // per NON-EMPTY type, and each type's instances are stashed
-            // so the drill into the type needs no second fetch.
+            // One pill per non-empty type; the stashed lists serve the type drill.
             const stash = new Map()
             const typePills = []
             await Promise.all(stripRootSources.value.map(async source => {
@@ -3013,16 +2964,10 @@ const stripInstanceId = (entity = null) => {
     return value ? String(value) : ''
 }
 
-// A stored name equal to the id is a stale send-time fallback, never a
-// name (the no-technical-ids rule — the same guard the inbox rows
-// apply); unnamed chips fall back to the localized type label.
+// Id-equal stored names are stale send-time fallbacks.
 const stripDisplayName = (name, id) => (name && name !== String(id) ? name : '')
 
-// Instance chip labels resolve through the ONE title resolver — the
-// type's declared identifier field via the wire-to-screen bridge — the
-// same selection every other instance tree surface uses
-// (InstanceInlineRef, the attachment picker); a null identifier value
-// degrades to the unnamed placeholder, never the type label.
+// Labels ride the shared title resolver (the InstanceInlineRef path).
 const stripEntityLabel = (instance = null, typeId = '') => {
     const view = typeViewById(typeId)
     const title = titleFor(
@@ -3046,9 +2991,6 @@ watch([activeConversationKey, () => activeConversation.value?.typeId, () => acti
     )
 }, { immediate: true })
 
-// Selection is exactly one target and only instances can be it — type
-// pills are folders; key-based comparison so chips from any source match
-// reliably.
 const isChipSelected = (chip) => chip.kind !== 'type'
     && Boolean(composerInstance.value)
     && composerInstance.value.type === chip.type
@@ -3056,8 +2998,6 @@ const isChipSelected = (chip) => chip.kind !== 'type'
 
 async function drillStripTo(chip) {
     if (replyTo.value) return
-    // Browsing a type never moves the message target — only a picked
-    // instance does.
     if (chip.kind !== 'type') {
         composerInstanceTouched = true
         composerInstance.value = { type: chip.type, id: chip.id, name: chip.name }
@@ -3066,9 +3006,7 @@ async function drillStripTo(chip) {
         if (!includeChildren.value) includeChildren.value = true
     }
     await loadStripChildren(chip.key, chip.type, chip.entity)
-    // Only a level that HAS children descends into the trail (its
-    // siblings drop); a leaf stays selected in its row — the trail
-    // would otherwise dead-end on an icon with nothing beneath it.
+    // Only levels with children descend; leaves stay selected in their row.
     const children = stripChildrenByKey.value.get(chip.key) || []
     if (children.length) stripTrail.value = [...stripTrail.value, chip]
 }

@@ -772,12 +772,7 @@ export async function executeTool(name, args, auth, run = null) {
     return boundedToolResult(await spec.execute(args && typeof args === 'object' ? args : {}, auth, run));
 }
 
-/**
- * Compact human summary of a tool call's arguments for the run
- * chronology: the authored vocabulary a call addressed — a definition
- * name, an instance type, an action id. Storage ids stay out (they are
- * code-only and never render).
- */
+/** Authored vocabulary of a call (name, type, action id); storage ids stay out. */
 const DETAIL_ARG_KEYS = ['name', 'type', 'actionId'];
 const DETAIL_VALUE_LIMIT = 60;
 const DETAIL_TOTAL_LIMIT = 120;
