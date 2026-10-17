@@ -174,6 +174,7 @@ export default function createSurface({ vue, components, locale, queries, record
 
       function openDockPopover(panel, event) {
         dockPopoverPanel.value = panel;
+        if (panel === 'open') loadTemplateRecords();
         dockMenu.value?.toggle?.(event);
       }
 
@@ -996,7 +997,12 @@ export default function createSurface({ vue, components, locale, queries, record
 
       // The opened record: its payload document loads before the tree
       // applies; payload-less records keep the blank tree. The template
-      // list for the open dock rides the query transport.
+      // list for the open dock rides the query transport and refetches
+      // every time the picker opens (saves bake new previews into
+      // fields the list DTOs carry).
+      const loadTemplateRecords = () => {
+        queries.list('cassette').then(rows => { templateRecords.value = rows || []; }).catch(() => {});
+      };
       watch(() => props.record?._id || '', async (recordId) => {
         persistedTemplateIdOverride.value = '';
         if (!recordId) {
@@ -1033,7 +1039,7 @@ export default function createSurface({ vue, components, locale, queries, record
         }
         refreshSessionDraftState();
         resetDesignerHistory();
-        queries.list('cassette').then(rows => { templateRecords.value = rows || []; }).catch(() => {});
+        loadTemplateRecords();
       });
 
       onBeforeUnmount(() => {

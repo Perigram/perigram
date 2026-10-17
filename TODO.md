@@ -393,6 +393,18 @@ authoring happens only inside a cassette design session.
   unchanged otherwise) so pins can move again through the product
   path. Owner step: one more Upgrade click (v10→v11).
 
+### Agent Notes (2026-10-17 — cassette previews backfilled; zero-write diagnosis)
+
+- Owner report "no cassette previews still": DB check showed ZERO
+  record writes today (files, items, revisions) — no cassette had been
+  re-saved since the bake landed, so no record carried parts. Demanding
+  a manual re-save per cassette was the wrong ask; shipped
+  `server/scripts/bake-cassette-previews.js` (backfill from stored OCCS
+  payloads through the same evaluation the save path runs; idempotent)
+  and ran it on the dev stack.
+- The load picker also refetches the template list each time it opens
+  (same-session saves now show fresh baked previews immediately).
+
 ### Agent Notes (2026-10-17 — hardware library shipped; cassette previews were stale, not broken)
 
 - Cassette load previews: DB check shows every cassette predates the
