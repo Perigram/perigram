@@ -96,13 +96,14 @@ Non-answer machine output is typed, not conversational (owner direction
 and render as severity-styled system notices (PrimeVue Message), never
 as plain chat bubbles; tool failures render severity-marked inside the
 run chronology; the thinking disclosure is the PrimeVue Fieldset
-(compact legend), and tool invocations render as boxed rows in the
-technical voice. The AI's identity face is the microchip glyph in the
+(compact toggle button), and the run's chronology renders as a PrimeVue
+Timeline of its tool invocations. The AI's identity face is the microchip glyph in the
 brand accent (carmine) wherever the assistant shows — thread avatars,
 sender chips, pickers — and it is the only AI marker on chat surfaces:
-no text badges. Instance refs inside chat messages render as boxed
-instance chips, never inline text. Person-chat presentation stays as
-it is.
+no text badges. Instance refs inside chat messages render as PrimeVue
+Chips toned by entity family, never inline text. Inline entity refs
+everywhere are raw PrimeVue Chips — no hand-rolled chip chrome.
+Person-chat presentation stays as it is.
 
 Lifecycle wakes: the AI brought into a conversation may be woken by status
 transitions — assignment-side wake rules on the subscription (type + target

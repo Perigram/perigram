@@ -150,6 +150,28 @@ glyph in the brand accent across chat surfaces (SPEC: agent access).
   fight alignment, markdown flow, and swipe affordances (owner left
   the call to the agent).
 
+### Agent Notes (2026-10-17 — raw-PrimeVue enforcement round)
+
+- Owner verdict: the boxed tool row and utility-rolled chip chrome
+  violated SPEC §UI ("raw, unmodified PrimeVue, no hand-rolled
+  chrome") even though the automated guards passed them — the guards
+  are a floor, not the law. Corrected by moving to primitives:
+- `AgentActivity`: the chronology is a PrimeVue `Timeline` (status
+  icon as marker, thinking `Fieldset` / tool name as content, error
+  `Message` under failed tools); the Fieldset `pt` now targets
+  `toggleButton` — the element that actually carries Aura's legend
+  padding (the earlier `legend`-section override shrank only the
+  label text and left the control oversized).
+- `InstanceInlineRef`: the identity chip is the raw PrimeVue `Chip`
+  (icon + truncating label), toned per entity family through one
+  data-driven style; the `chip` prop and the role-palette tone
+  machinery (six vars, four palettes) are gone. `InstanceCard`'s
+  inline pill and the cassette designer's layer label migrated off
+  the hand-rolled `instance-inline-chip` classes, which are deleted
+  from main.css (compact micro-card layout CSS stays — guard-clean
+  child shaping). Inventory inline-style exception updated to the
+  new exact binding.
+
 ### Agent Notes (2026-10-17 — owner polish round)
 
 - Avatar deslop: the whisper tint and hairline ring were slop — the
