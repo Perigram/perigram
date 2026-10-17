@@ -48,6 +48,7 @@ import createSketchEditor from './lib/components/sketchEditor.mjs';
 import { buildCassetteV2FoldedPreview } from './lib/cassetteV2FoldedPreview.js';
 import { normalizeGeometryDrawing } from './lib/drawingPreview.js';
 import { evaluateOccsCassetteTemplate } from '../occs/evaluate.js';
+import { hardwareDefaultParameters, hardwareLabel } from '../occs/hardware.js';
 
 const OCCS_MIME = 'application/perigram+occs';
 
@@ -131,7 +132,7 @@ export default function createSurface({ vue, components, locale, queries, record
   const parameterNameDraft = createFieldDraft({ vue });
   const CassetteFoldedPreview = createFoldedPreview({ vue, components, locale });
   const ProfileSketchEditor = createSketchEditor({ vue, components, locale });
-  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, Message, ScrollPanel, Select, Tag } = components;
+  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, InputNumber, Message, ScrollPanel, Select, Tag } = components;
 
   return defineComponent({
     name: 'CassetteDesignerV2',
@@ -273,6 +274,20 @@ export default function createSurface({ vue, components, locale, queries, record
       const profileLibraryRecords = ref([]);
       const profileLibraryAvailable = ref(true);
       const profilePicker = ref(null);
+      const hardwareLibraryRecords = ref([]);
+      const hardwareLibraryAvailable = ref(true);
+      const hardwarePicker = ref(null);
+      const hardwareDialogVisible = ref(false);
+      const hardwareDraft = ref(createHardwareDraft());
+
+      function createHardwareDraft(family = 'bolt') {
+        return {
+          name: '',
+          family,
+          productionMode: family === 'hanger_clip' ? 'integralCut' : '',
+          parameters: { ...hardwareDefaultParameters(family) }
+        };
+      }
       const templateRecords = ref([]);
       const loadedDocument = ref(null);
 
@@ -1337,8 +1352,10 @@ export default function createSurface({ vue, components, locale, queries, record
         inspectorSelection.value = 'workpiece';
       };
 
-      const addHardwareToSelectedWorkpiece = () => {
-        closeInlineEditor();
+      // Hardware lands on the selected workpiece (or a selected hardware
+      // row's host): the reference resolution is shared by the library
+      // pick and the dialog's Save.
+      const hardwareReference = () => {
         const selectedIsHardware = Boolean(selectedWorkpiece.value?.family || selectedWorkpiece.value?.hardware?.family);
         const parentRelation = selectedIsHardware
           ? workpieceRelations.value.find(relation => relation.sourceWorkpieceId === selectedWorkpieceId.value)
@@ -1347,17 +1364,106 @@ export default function createSurface({ vue, components, locale, queries, record
         const referenceNodeId = selectedNode.value?.workpieceId === referenceWorkpieceId
           ? selectedNode.value.id
           : treeNodes.value.find(node => node.workpieceId === referenceWorkpieceId && !node.parentId)?.id;
+        return { referenceWorkpieceId, referenceNodeId };
+      };
+
+      const placeHardwareWorkpiece = ({ name = '', family = 'hanger_clip', productionMode = 'integralCut', parameters = {} } = {}) => {
+        closeInlineEditor();
         const result = addCassetteV2HardwareWorkpiece(cassetteTree.value, {
-          referenceWorkpieceId,
-          referenceNodeId,
-          family: 'hanger_clip',
-          productionMode: 'integralCut'
+          ...hardwareReference(),
+          ...(name ? { name } : {}),
+          family,
+          productionMode,
+          parameters
         });
         cassetteTree.value = result.tree;
         selectedWorkpieceOverrideId.value = result.workpieceId;
         selectedRelationId.value = getCassetteV2WorkpieceRelations(result.tree)
           .find(relation => relation.sourceWorkpieceId === result.workpieceId)?.id || '';
         inspectorSelection.value = 'attachment';
+      };
+
+      // The hardware library: `hardware` records of the plugin's own
+      // type, same workflow as profiles. Hardware is a catalog domain
+      // (occs/hardware.js owns families, defaults, modes) — the create
+      // flow is a parameter form over the catalog, never a canvas.
+      const loadHardwareLibrary = async () => {
+        try {
+          const items = await queries.list('hardware');
+          hardwareLibraryRecords.value = Array.isArray(items) ? items : [];
+          hardwareLibraryAvailable.value = true;
+        } catch {
+          hardwareLibraryAvailable.value = false;
+          hardwareLibraryRecords.value = [];
+        }
+      };
+
+      const openHardwarePicker = (event) => {
+        loadHardwareLibrary();
+        hardwarePicker.value?.toggle?.(event);
+      };
+
+      const closeHardwarePicker = () => {
+        hardwarePicker.value?.hide?.();
+      };
+
+      const openHardwareDialog = () => {
+        hardwareDraft.value = createHardwareDraft();
+        hardwareDialogVisible.value = true;
+      };
+
+      const onHardwareDraftFamilyChange = (family) => {
+        hardwareDraft.value = createHardwareDraft(family);
+      };
+
+      const hardwareDraftParameterKeys = computed(() => Object.keys(hardwareDefaultParameters(hardwareDraft.value.family)));
+
+      const addHardwareFromLibrary = (record) => {
+        if (!record) return;
+        placeHardwareWorkpiece({
+          name: record.name || hardwareLabel(record?.fields?.family || 'bolt', record?.fields?.productionMode || ''),
+          family: record?.fields?.family || 'bolt',
+          productionMode: record?.fields?.productionMode || 'integralCut',
+          parameters: { ...(record?.fields?.parameters || {}) }
+        });
+        closeHardwarePicker();
+      };
+
+      const saveHardwareDraft = () => {
+        placeHardwareWorkpiece({
+          name: hardwareDraft.value.name || hardwareLabel(hardwareDraft.value.family, hardwareDraft.value.productionMode),
+          family: hardwareDraft.value.family,
+          productionMode: hardwareDraft.value.productionMode,
+          parameters: { ...(hardwareDraft.value.parameters || {}) }
+        });
+        hardwareDialogVisible.value = false;
+      };
+
+      const saveHardwareDraftToLibrary = async () => {
+        try {
+          const created = await records.create('hardware', {
+            name: hardwareDraft.value.name || hardwareLabel(hardwareDraft.value.family, hardwareDraft.value.productionMode),
+            fields: {
+              family: hardwareDraft.value.family,
+              productionMode: hardwareDraft.value.productionMode,
+              parameters: { ...(hardwareDraft.value.parameters || {}) }
+            }
+          });
+          if (created) hardwareLibraryRecords.value = [created, ...hardwareLibraryRecords.value];
+          hardwareLibraryAvailable.value = true;
+          notify({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.hardwareLibrary.savedToLibrary'), life: 2500 });
+        } catch (error) {
+          if (error?.name === 'OfflineQueuedError') {
+            notify({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+            return;
+          }
+          notify({
+            severity: 'error',
+            summary: t('common.error'),
+            detail: error?.data?.message || error?.message || t('cassette.v2.hardwareLibrary.saveFailed'),
+            life: 4000
+          });
+        }
       };
 
       const profileDraftPayload = () => {
@@ -2215,29 +2321,47 @@ export default function createSurface({ vue, components, locale, queries, record
                 ])))
           : null,
         row.id === selectedWorkpieceId.value && row.isHardware
-          ? h('div', { class: 'mt-2 grid grid-cols-2 gap-2 pl-4' }, [
-              h(Select, {
-                modelValue: row.family,
-                options: hardwareFamilyOptions.value,
-                optionLabel: 'label',
-                optionValue: 'value',
-                size: 'small',
-                class: 'w-full',
-                'aria-label': t('cassette.v2.hardwareFields.family'),
-                'onUpdate:modelValue': value => updateSelectedHardware({ family: value })
-              }),
-              row.family === 'hanger_clip'
-                ? h(Select, {
-                    modelValue: row.productionMode || 'integralCut',
-                    options: hangerProductionModeOptions.value,
-                    optionLabel: 'label',
-                    optionValue: 'value',
+          ? h('div', { class: 'mt-2 flex flex-col gap-2 pl-4' }, [
+              h('div', { class: 'grid grid-cols-2 gap-2' }, [
+                h(Select, {
+                  modelValue: row.family,
+                  options: hardwareFamilyOptions.value,
+                  optionLabel: 'label',
+                  optionValue: 'value',
+                  size: 'small',
+                  class: 'w-full',
+                  'aria-label': t('cassette.v2.hardwareFields.family'),
+                  'onUpdate:modelValue': value => updateSelectedHardware({ family: value })
+                }),
+                row.family === 'hanger_clip'
+                  ? h(Select, {
+                      modelValue: row.productionMode || 'integralCut',
+                      options: hangerProductionModeOptions.value,
+                      optionLabel: 'label',
+                      optionValue: 'value',
+                      size: 'small',
+                      class: 'w-full',
+                      'aria-label': t('cassette.v2.hardwareFields.productionMode'),
+                      'onUpdate:modelValue': value => updateSelectedHardware({ productionMode: value })
+                    })
+                  : null
+              ]),
+              h('div', { class: 'grid grid-cols-3 gap-2' },
+                Object.keys(hardwareDefaultParameters(row.family)).map(key => h('div', {
+                  key: `${row.id}-${key}`,
+                  class: 'flex min-w-0 flex-col gap-1 text-muted text-label'
+                }, [
+                  h('span', { class: 'truncate' }, key),
+                  h(InputNumber, {
+                    modelValue: Number(row.parameters?.[key]),
                     size: 'small',
                     class: 'w-full',
-                    'aria-label': t('cassette.v2.hardwareFields.productionMode'),
-                    'onUpdate:modelValue': value => updateSelectedHardware({ productionMode: value })
+                    'aria-label': key,
+                    'onUpdate:modelValue': value => updateSelectedHardware({
+                      parameters: { ...(row.parameters || {}), [key]: String(value ?? 0) }
+                    })
                   })
-                : null
+                ])))
             ])
           : null
       ].filter(Boolean);
@@ -2386,7 +2510,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 size: 'small',
                 'aria-label': t('cassette.v2.addHardware'),
                 title: t('cassette.v2.addHardware'),
-                onClick: addHardwareToSelectedWorkpiece
+                onClick: event => openHardwarePicker(event)
               })
             ])
           ]),
@@ -2674,6 +2798,107 @@ export default function createSurface({ vue, components, locale, queries, record
                   ]);
                 }))
             : null
+        ])),
+        h(Popover, { ref: hardwarePicker }, () => h('div', { class: 'flex w-80 max-w-90 flex-col gap-1' }, [
+          h(Button, {
+            icon: 'pi pi-plus',
+            label: t('cassette.v2.hardwareLibrary.createNew'),
+            severity: 'secondary',
+            text: true,
+            size: 'small',
+            class: 'w-full justify-start',
+            onClick: () => {
+              closeHardwarePicker();
+              openHardwareDialog();
+            }
+          }),
+          hardwareLibraryAvailable.value && hardwareLibraryRecords.value.length
+            ? h('div', { class: 'mt-1 flex flex-col border-t border-content-border pt-1' },
+                hardwareLibraryRecords.value.map(record => h('button', {
+                  key: record?._id,
+                  type: 'button',
+                  class: 'flex w-full items-center gap-2 rounded-ui px-1 py-1 text-left hover:bg-subtle',
+                  onClick: () => addHardwareFromLibrary(record)
+                }, [
+                  h('i', { class: 'ck-entity-icon ck-entity-icon-bolt shrink-0 text-sm text-muted', 'aria-hidden': 'true' }),
+                  h('span', { class: 'truncate' }, record?.name || ''),
+                  h('small', { class: 'ml-auto shrink-0 text-muted' },
+                    hardwareLabel(record?.fields?.family || 'bolt', record?.fields?.productionMode || ''))
+                ])))
+            : null
+        ])),
+        h(StandardDialog, {
+          visible: hardwareDialogVisible.value,
+          'onUpdate:visible': value => { hardwareDialogVisible.value = value; },
+          header: t('cassette.v2.hardwareLibrary.title'),
+          size: 'sm',
+          showDefaultFooter: false
+        }, () => h('div', { class: 'flex flex-col gap-3' }, [
+          h(InputText, {
+            modelValue: hardwareDraft.value.name,
+            'onUpdate:modelValue': value => { hardwareDraft.value.name = value; },
+            placeholder: t('cassette.v2.hardwareLibrary.name'),
+            class: 'w-full'
+          }),
+          h('div', { class: 'grid grid-cols-2 gap-2' }, [
+            h(Select, {
+              modelValue: hardwareDraft.value.family,
+              options: hardwareFamilyOptions.value,
+              optionLabel: 'label',
+              optionValue: 'value',
+              class: 'w-full',
+              'aria-label': t('cassette.v2.hardwareFields.family'),
+              'onUpdate:modelValue': value => onHardwareDraftFamilyChange(value)
+            }),
+            hardwareDraft.value.family === 'hanger_clip'
+              ? h(Select, {
+                  modelValue: hardwareDraft.value.productionMode || 'integralCut',
+                  options: hangerProductionModeOptions.value,
+                  optionLabel: 'label',
+                  optionValue: 'value',
+                  class: 'w-full',
+                  'aria-label': t('cassette.v2.hardwareFields.productionMode'),
+                  'onUpdate:modelValue': value => { hardwareDraft.value.productionMode = value; }
+                })
+              : null
+          ]),
+          h('div', { class: 'grid grid-cols-3 gap-2' },
+            hardwareDraftParameterKeys.value.map(key => h('div', {
+              key,
+              class: 'flex min-w-0 flex-col gap-1 text-muted text-label'
+            }, [
+              h('span', { class: 'truncate' }, key),
+              h(InputNumber, {
+                modelValue: Number(hardwareDraft.value.parameters?.[key]),
+                class: 'w-full',
+                'aria-label': key,
+                'onUpdate:modelValue': value => { hardwareDraft.value.parameters = { ...hardwareDraft.value.parameters, [key]: String(value ?? 0) }; }
+              })
+            ]))),
+          h('div', { class: 'flex flex-wrap items-center justify-between gap-2' }, [
+            h('div', { class: 'flex flex-wrap gap-2' }, [
+              h(Button, {
+                label: t('common.save'),
+                icon: 'pi pi-save',
+                size: 'small',
+                onClick: saveHardwareDraft
+              }),
+              h(Button, {
+                label: t('cassette.v2.hardwareLibrary.saveToLibrary'),
+                icon: 'pi pi-bookmark',
+                severity: 'secondary',
+                size: 'small',
+                onClick: saveHardwareDraftToLibrary
+              })
+            ]),
+            h(Button, {
+              label: t('common.cancel'),
+              severity: 'secondary',
+              text: true,
+              size: 'small',
+              onClick: () => { hardwareDialogVisible.value = false; }
+            })
+          ])
         ])),
         h(StandardDialog, {
           visible: foldedExpanded.value,

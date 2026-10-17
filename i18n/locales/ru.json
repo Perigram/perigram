@@ -420,6 +420,14 @@
             "addRelatedWorkpiece": "Добавить связанную заготовку",
             "addAttachment": "Добавить привязку",
             "addHardware": "Добавить метиз",
+            "hardwareLibrary": {
+                "title": "Метиз",
+                "createNew": "Новый метиз",
+                "name": "Название метиза",
+                "saveToLibrary": "Сохранить в библиотеку",
+                "savedToLibrary": "Метиз сохранён в библиотеку",
+                "saveFailed": "Не удалось сохранить метиз в библиотеку."
+            },
             "addProfile": "Добавить профиль",
             "editProfile": "Редактировать профиль",
             "deleteWorkpiece": "Удалить заготовку",

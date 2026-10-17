@@ -420,6 +420,14 @@
             "addRelatedWorkpiece": "Add related workpiece",
             "addAttachment": "Add attachment",
             "addHardware": "Add hardware",
+            "hardwareLibrary": {
+                "title": "Hardware",
+                "createNew": "New hardware",
+                "name": "Hardware name",
+                "saveToLibrary": "Save to library",
+                "savedToLibrary": "Hardware saved to library",
+                "saveFailed": "Failed to save the hardware to the library."
+            },
             "addProfile": "Add profile",
             "editProfile": "Edit profile",
             "deleteWorkpiece": "Delete workpiece",
