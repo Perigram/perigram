@@ -131,7 +131,7 @@ export default function createSurface({ vue, components, locale, queries, record
   const parameterNameDraft = createFieldDraft({ vue });
   const CassetteFoldedPreview = createFoldedPreview({ vue, components, locale });
   const ProfileSketchEditor = createSketchEditor({ vue, components, locale });
-  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, InstanceSelect, Button, Checkbox, InputText, Message, ScrollPanel, Select, Tag, Textarea } = components;
+  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, Message, ScrollPanel, Select, Tag } = components;
 
   return defineComponent({
     name: 'CassetteDesignerV2',
@@ -153,10 +153,10 @@ export default function createSurface({ vue, components, locale, queries, record
       const inlineEditor = ref(null);
       const pendingAttachmentSourceId = ref('');
       const foldedPreviewWorkpieceId = ref('');
+      const foldedExpanded = ref(false);
       const previewSource = ref(null);
       const cassettePreviewSource = ref(null);
       const previewError = ref('');
-      const occsDialogVisible = ref(false);
       const dockMenu = ref(null);
       const dockPopoverPanel = ref(null);
 
@@ -210,11 +210,6 @@ export default function createSurface({ vue, components, locale, queries, record
           icon: 'pi pi-refresh',
           label: t('common.reset'),
           onClick: resetTree
-        },
-        {
-          icon: 'pi pi-code',
-          label: t('cassette.v2.occsDraft'),
-          onClick: () => { occsDialogVisible.value = true; }
         }
       ]);
 
@@ -422,9 +417,6 @@ export default function createSurface({ vue, components, locale, queries, record
         }
         return (hash * 137 + 43) % 360;
       };
-      const workpieceAccentStyle = (workpieceId) => ({
-        backgroundColor: `hsl(${hueForWorkpiece(workpieceId)} 68% 52%)`
-      });
       const targetFaceOptions = computed(() => treeNodes.value
         .filter(node => node.workpieceId === selectedWorkpieceRelation.value?.targetWorkpieceId)
         .map(node => ({ label: node.id, value: node.id })));
@@ -581,7 +573,6 @@ export default function createSurface({ vue, components, locale, queries, record
         });
         return used;
       });
-      const occsJson = computed(() => JSON.stringify(createCassetteV2OccsDocument(cassetteTree.value, cassetteMarkContext.value), null, 2));
       const drawingLayerNames = computed(() => drawingLayers.value.map(layer => layer.name).filter(Boolean));
       const sameEntityId = (left, right) => left?.toString?.() === right?.toString?.();
       const standardCodeOf = (standard) => standard?.fields?.code || null;
@@ -1810,16 +1801,10 @@ export default function createSurface({ vue, components, locale, queries, record
             'onUpdate:modelValue': row.present ? updateVisibleLayerNames : undefined
           }),
           h('label', { for: layerInputId(row), class: 'min-w-0 flex-1 truncate', title: row.label }, row.label),
-          row.code
-            ? h(Tag, { value: row.code, severity: 'secondary', size: 'small' })
-            : null,
           (row.orgPen || row.tablePen) && (row.orgPen || row.tablePen)?.color
             ? h('span', {
-                class: 'block h-3 w-10 shrink-0 rounded-ui border border-content-border',
-                style: {
-                  backgroundColor: row.orgPen?.fields?.stroke?.color || row.tablePen.color,
-                  height: `${Math.min(6, Number(row.orgPen?.fields?.stroke?.weight ?? row.tablePen.weight) * 2 + 1) || 3}px`
-                },
+                class: 'block h-[3px] w-8 shrink-0 rounded-full',
+                style: { backgroundColor: row.orgPen?.fields?.stroke?.color || row.tablePen.color },
                 ...(row.orgPen ? { title: entitySelectLabel(row.orgPen, '') } : {}),
                 'aria-hidden': 'true'
               })
@@ -2199,53 +2184,65 @@ export default function createSurface({ vue, components, locale, queries, record
                     class: ['flex min-w-0 flex-1 items-center gap-2 rounded-ui border border-transparent px-2 py-1 text-left', row.id === selectedWorkpieceId.value ? 'border-primary bg-subtle' : ''].filter(Boolean).join(' '),
                     onClick: () => handleWorkpieceGraphNodeSelect(row.id)
                   }, [
-                    h('span', { class: 'h-2.5 w-2.5 shrink-0 rounded-full', style: workpieceAccentStyle(row.id), 'aria-hidden': 'true' }),
+                    h('i', {
+                      class: ['shrink-0 text-sm', row.isProfile
+                        ? 'pi pi-wave-pulse'
+                        : row.isHardware
+                          ? 'ck-entity-icon ck-entity-icon-bolt'
+                          : 'ck-entity-icon ck-entity-icon-workpiece'].join(' '),
+                      style: { color: `hsl(${hueForWorkpiece(row.id)} 68% 45%)` },
+                      'aria-hidden': 'true'
+                    }),
                     h('span', { class: 'truncate' }, row.label),
                     row.parentCount > 1 ? h(Tag, { value: `×${row.parentCount}`, severity: 'secondary', size: 'small' }) : null
                   ]),
-                  h(Button, {
-                    icon: 'pi pi-plus',
-                    severity: 'secondary',
-                    text: true,
-                    rounded: true,
-                    size: 'small',
-                    'aria-label': t('cassette.v2.addRelatedWorkpiece'),
-                    title: t('cassette.v2.addRelatedWorkpiece'),
-                    onClick: () => addWorkpieceFrom(row.id)
-                  }),
-                  h(Button, {
-                    icon: 'pi pi-link',
-                    severity: row.id === pendingAttachmentSourceId.value ? 'primary' : 'secondary',
-                    text: true,
-                    rounded: true,
-                    size: 'small',
-                    'aria-label': t('cassette.v2.addAttachment'),
-                    title: t('cassette.v2.addAttachment'),
-                    onClick: () => startAttachmentConnect(row.id)
-                  }),
-                  row.isProfile
-                    ? h(Button, {
-                        icon: 'pi pi-pencil',
-                        severity: 'secondary',
-                        text: true,
-                        rounded: true,
-                        size: 'small',
-                        'aria-label': t('cassette.v2.editProfile'),
-                        title: t('cassette.v2.editProfile'),
-                        onClick: () => openProfileDialog(row.id)
-                      })
-                    : null,
-                  row.id !== workpieces.value[0]?.id
-                    ? h(Button, {
-                        icon: 'pi pi-trash',
-                        severity: 'danger',
-                        text: true,
-                        rounded: true,
-                        size: 'small',
-                        'aria-label': t('cassette.v2.deleteWorkpiece'),
-                        title: t('cassette.v2.deleteWorkpiece'),
-                        onClick: () => deleteWorkpiece(row.id)
-                      })
+                  row.id === selectedWorkpieceId.value
+                    ? h('div', { class: 'flex shrink-0 items-center' }, [
+                        h(Button, {
+                          icon: 'pi pi-plus',
+                          severity: 'secondary',
+                          text: true,
+                          rounded: true,
+                          size: 'small',
+                          'aria-label': t('cassette.v2.addRelatedWorkpiece'),
+                          title: t('cassette.v2.addRelatedWorkpiece'),
+                          onClick: () => addWorkpieceFrom(row.id)
+                        }),
+                        h(Button, {
+                          icon: 'pi pi-link',
+                          severity: row.id === pendingAttachmentSourceId.value ? 'primary' : 'secondary',
+                          text: true,
+                          rounded: true,
+                          size: 'small',
+                          'aria-label': t('cassette.v2.addAttachment'),
+                          title: t('cassette.v2.addAttachment'),
+                          onClick: () => startAttachmentConnect(row.id)
+                        }),
+                        row.isProfile
+                          ? h(Button, {
+                              icon: 'pi pi-pencil',
+                              severity: 'secondary',
+                              text: true,
+                              rounded: true,
+                              size: 'small',
+                              'aria-label': t('cassette.v2.editProfile'),
+                              title: t('cassette.v2.editProfile'),
+                              onClick: () => openProfileDialog(row.id)
+                            })
+                          : null,
+                        row.id !== workpieces.value[0]?.id
+                          ? h(Button, {
+                              icon: 'pi pi-trash',
+                              severity: 'danger',
+                              text: true,
+                              rounded: true,
+                              size: 'small',
+                              'aria-label': t('cassette.v2.deleteWorkpiece'),
+                              title: t('cassette.v2.deleteWorkpiece'),
+                              onClick: () => deleteWorkpiece(row.id)
+                            })
+                          : null
+                      ])
                     : null
                 ]),
                 row.id === selectedWorkpieceId.value && row.isProfile
@@ -2330,18 +2327,31 @@ export default function createSurface({ vue, components, locale, queries, record
               ])))
           )
         ]),
-        h('div', { class: 'h-48 shrink-0 overflow-hidden' }, [
-          h(CassetteFoldedPreview, {
-            preview: cassettePreviewSource.value?.foldedPreview,
-            selectedFaceId: selectedNodeId.value,
-            selectedWorkpieceId: selectedWorkpieceId.value,
-            isolatedWorkpieceId: foldedPreviewWorkpieceId.value,
-            'onUpdate:isolatedWorkpieceId': value => { foldedPreviewWorkpieceId.value = value; },
-            titleKey: 'cassette.v2.cassetteFoldedPreview',
-            onWorkpieceSelect: selectWorkpieceForInspector
+        h('div', { class: 'relative h-48 shrink-0 overflow-hidden' }, [
+          foldedPreviewMount(),
+          h(Button, {
+            icon: 'pi pi-window-maximize',
+            severity: 'secondary',
+            text: true,
+            rounded: true,
+            size: 'small',
+            class: 'absolute right-0.5 top-0.5 z-[130]',
+            'aria-label': t('common.expand'),
+            title: t('common.expand'),
+            onClick: () => { foldedExpanded.value = true; }
           })
         ])
       ]);
+
+      const foldedPreviewMount = () => h(CassetteFoldedPreview, {
+        preview: cassettePreviewSource.value?.foldedPreview,
+        selectedFaceId: selectedNodeId.value,
+        selectedWorkpieceId: selectedWorkpieceId.value,
+        isolatedWorkpieceId: foldedPreviewWorkpieceId.value,
+        'onUpdate:isolatedWorkpieceId': value => { foldedPreviewWorkpieceId.value = value; },
+        titleKey: 'cassette.v2.cassetteFoldedPreview',
+        onWorkpieceSelect: selectWorkpieceForInspector
+      });
 
       const renderOnboardingRail = () => {
         if (!showOnboardingRail.value) return null;
@@ -2390,11 +2400,7 @@ export default function createSurface({ vue, components, locale, queries, record
         ]);
       };
 
-      const templateOptions = computed(() => templateRecords.value.map(cassette => ({
-        label: cassette.name || cassette._id,
-        value: cassette._id?.toString(),
-        entity: cassette
-      })));
+      const cassetteRecordThumbnail = (record) => normalizeGeometryDrawing({ data: { ...(record?.fields || {}) } });
 
       return () => h(DesignerSurface, {
         class: 'relative gap-3',
@@ -2453,19 +2459,30 @@ export default function createSurface({ vue, components, locale, queries, record
                 })
               : null,
             dockPopoverPanel.value === 'open'
-              ? h(InstanceSelect, {
-                  modelValue: null,
-                  options: templateOptions.value,
-                  optionLabel: 'label',
-                  optionValue: 'value',
-                  typeId: 'cassette',
-                  placeholder: t('cassette.v2.loadTemplate'),
-                  class: 'w-full',
-                  'onUpdate:modelValue': value => {
-                    loadTemplateInto(value);
-                    closeDockPopover();
-                  }
-                })
+              ? h('div', { class: 'flex w-80 max-w-90 flex-col gap-1' },
+                  templateRecords.value.map(record => {
+                    const thumbnail = cassetteRecordThumbnail(record);
+                    return h('button', {
+                      key: record?._id,
+                      type: 'button',
+                      class: 'flex w-full items-center gap-2 rounded-ui px-1 py-1 text-left hover:bg-subtle',
+                      onClick: () => {
+                        loadTemplateInto(record?._id?.toString());
+                        closeDockPopover();
+                      }
+                    }, [
+                      h('span', { class: 'flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden rounded-ui border border-content-border' },
+                        thumbnail
+                          ? h(DrawingCanvas, {
+                              source: thumbnail,
+                              sourceType: 'geometry-preview',
+                              mode: 'card',
+                              fill: true
+                            })
+                          : h('i', { class: 'pi pi-box text-muted' })),
+                      h('span', { class: 'truncate' }, record?.name || record?._id)
+                    ]);
+                  }))
               : null,
             dockPopoverPanel.value === 'rename'
               ? h(Button, {
@@ -2515,13 +2532,14 @@ export default function createSurface({ vue, components, locale, queries, record
             : null
         ])),
         h(StandardDialog, {
-          visible: occsDialogVisible.value,
-          'onUpdate:visible': value => { occsDialogVisible.value = value; },
-          header: t('cassette.v2.occsDraft'),
-          size: 'lg',
+          visible: foldedExpanded.value,
+          'onUpdate:visible': value => { foldedExpanded.value = value; },
+          header: t('cassette.v2.cassetteFoldedPreview'),
+          size: 'xl',
+          fill: true,
           showDefaultFooter: false
         }, () => [
-          h(Textarea, { modelValue: occsJson.value, readonly: true, rows: 24, class: 'w-full text-technical' })
+          h('div', { class: 'h-[70vh] w-full' }, [foldedPreviewMount()])
         ]),
         h(StandardDialog, {
           visible: profileDialogVisible.value,
