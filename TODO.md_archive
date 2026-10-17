@@ -1,0 +1,6 @@
+## Tidy arranges by barycenter cell ordering (2026-10-17)
+
+- [x] Lane×column cell orders come from barycenter sweeps over wired
+      neighbors; y is row pitch plus an order-preserving median polish.
+      Lane membership, grants, drop acceptance, and the layering laws
+      are untouched.
