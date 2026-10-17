@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import { renderMarkdown } from '#shared/markdown.js';
 import { stripInstanceTokens } from '#shared/instance-tokens.js';
 
 const props = defineProps({
@@ -23,7 +24,10 @@ const renderParts = computed(() => {
   if (props.singleLine) return [{ type: 'text', value: text.value }];
   if (props.markdown) {
     const html = renderMarkdown(text.value);
-    return html ? [{ type: 'html', value: html }] : [];
+    // The shared pipeline renders '' without a DOM: SSR paints the plain
+    // text and hydration swaps in the formatted document.
+    if (html) return [{ type: 'html', value: html }];
+    return withLinks(text.value);
   }
   return withLinks(text.value);
 });
