@@ -382,7 +382,7 @@ describe('runAssistantReply', () => {
             .mockResolvedValueOnce({ content: 'done', toolCalls: [] });
         mockedTools.executeTool.mockResolvedValue({ types: [] });
         await runAssistantReply(target, context, message);
-        expect(mockedTools.executeTool).toHaveBeenCalledWith('list_types', { x: 1 }, humanAuth, { conversationKey: context.conversationKey, instanceRefs: [] });
+        expect(mockedTools.executeTool).toHaveBeenCalledWith('list_types', { x: 1 }, humanAuth, { conversationKey: context.conversationKey, ask: expect.any(Function), instanceRefs: [] });
         const toolMessage = mockedLlm.chatCompletion.mock.calls[1][0].messages.find((entry) => entry.role === 'tool');
         expect(toolMessage.toolCallId).toBe('call-1');
         expect(toolMessage.name).toBe('list_types');
@@ -723,5 +723,96 @@ describe('stopConversationRuns', () => {
         releaseStream();
         await run;
         expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toBe('Half');
+    });
+});
+
+describe('ask_user — suspended questions', () => {
+    const context = { kind: 'direct', conversationKey: `direct:${HUMAN}:${ASSISTANT}`, participants: [HUMAN, ASSISTANT] };
+    const message = { sender: 'user', senderUserId: HUMAN, participants: [HUMAN, ASSISTANT], conversationKey: context.conversationKey };
+    const target = { assistantId: ASSISTANT, roomKey: context.conversationKey, profile: '', model: '', organizationId: '' };
+
+    it('consumes the next capability-holding message as the answer and never fires a second run', async () => {
+        mockedLlm.chatCompletion
+            .mockResolvedValueOnce({ content: '', toolCalls: [{ id: 'a1', name: 'ask_user', arguments: { question: 'Map archived to?' } }] })
+            .mockResolvedValueOnce({ content: 'mapped, done', toolCalls: [] });
+        mockedTools.executeTool.mockImplementation(async (name, args, auth, run) => {
+            if (name !== 'ask_user') return {};
+            return { answer: await run.ask(args.question, ['done', 'legacy']) };
+        });
+        const run = runAssistantReply(target, context, message);
+        await vi.waitFor(() => expect(mockedLlm.chatCompletion).toHaveBeenCalledTimes(1));
+        // The question card publishes onto the conversation topic.
+        await vi.waitFor(() => expect(mockedConnections.publish).toHaveBeenCalledWith(
+            `conversation:${context.conversationKey}`,
+            expect.objectContaining({ type: 'bot_question', question: 'Map archived to?' })
+        ));
+        // The room answers: the message steers the suspended run.
+        handleMessageInserted(context, { ...message, message: 'done' });
+        await run;
+        // The user's answer is the tool result the model saw.
+        const toolMessage = mockedLlm.chatCompletion.mock.calls[1][0].messages.find(entry => entry.role === 'tool');
+        expect(JSON.parse(toolMessage.content)).toEqual({ answer: 'done' });
+        // Exactly one reply: the answer message never triggered a second run.
+        expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(1);
+        expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toBe('mapped, done');
+        expect(mockedConnections.publish).toHaveBeenCalledWith(
+            `conversation:${context.conversationKey}`,
+            expect.objectContaining({ type: 'bot_question_end' })
+        );
+    });
+
+    it('a sender without the agent-chat capability cannot answer; their message takes the normal trigger path', async () => {
+        mockedBotsService.buildPrincipalAuth.mockImplementation(async (userId) => {
+            if (String(userId) === HUMAN) return { ...humanAuth };
+            if (String(userId) === HUMAN_B) return { ...humanAuth, userId: HUMAN_B, name: 'Other Human' };
+            if (String(userId) === ASSISTANT) return { ...assistantAuth };
+            const error = new Error('User not found');
+            error.statusCode = 404;
+            throw error;
+        });
+        mockedLlm.chatCompletion
+            .mockResolvedValueOnce({ content: '', toolCalls: [{ id: 'a1', name: 'ask_user', arguments: { question: 'Which?' } }] })
+            .mockResolvedValue({ content: 'after', toolCalls: [] });
+        mockedTools.executeTool.mockImplementation(async (name, args, auth, run) => (
+            name === 'ask_user' ? { answer: await run.ask(args.question, []) } : {}
+        ));
+        const run = runAssistantReply(target, context, message);
+        await vi.waitFor(() => expect(mockedLlm.chatCompletion).toHaveBeenCalledTimes(1));
+        // The capability-less member's message is not consumed as an answer:
+        // it falls through to the trigger (coalesced behind the live run).
+        mockedOrganizations.canUseAgentChats.mockResolvedValueOnce(false);
+        handleMessageInserted(context, { ...message, senderUserId: HUMAN_B, message: 'let me answer' });
+        await vi.waitFor(() => expect(mockedOrganizations.canUseAgentChats).toHaveBeenCalledTimes(1));
+        // A capability-holding answer then resolves the question.
+        handleMessageInserted(context, { ...message, message: 'legacy' });
+        await run;
+        const toolMessage = mockedLlm.chatCompletion.mock.calls[1][0].messages.find(entry => entry.role === 'tool');
+        expect(JSON.parse(toolMessage.content)).toEqual({ answer: 'legacy' });
+        // The coalesced trailing run (the capability-less message) follows.
+        await vi.waitFor(() => expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(2));
+    });
+
+    it('stop ends the question with the run and stays silent', async () => {
+        mockedLlm.chatCompletion.mockResolvedValueOnce({ content: '', toolCalls: [{ id: 'a1', name: 'ask_user', arguments: { question: 'Which?' } }] });
+        mockedTools.executeTool.mockImplementation(async (name, args, auth, run) => (
+            name === 'ask_user' ? { answer: await run.ask(args.question, []) } : {}
+        ));
+        mockedLlm.streamChatCompletion.mockImplementationOnce(async function* () {
+            yield { type: 'message', content: '', thinking: '', toolCalls: [{ id: 'a1', name: 'ask_user', arguments: { question: 'Which?' } }] };
+        }).mockImplementationOnce(async function* (args) {
+            if (args?.signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+            yield { type: 'message', content: '', thinking: '', toolCalls: [] };
+        });
+        const run = runAssistantReply(target, context, message);
+        await vi.waitFor(() => expect(mockedTools.executeTool).toHaveBeenCalled());
+        expect(stopConversationRuns('org-1', context.conversationKey)).toBe(1);
+        await run;
+        expect(mockedSupport.sendUserMessage).not.toHaveBeenCalled();
+        expect(mockedConnections.publish).toHaveBeenCalledWith(
+            `conversation:${context.conversationKey}`,
+            expect.objectContaining({ type: 'bot_question_end' })
+        );
+        // A later message in the room takes the normal path again.
+        expect(mockedOrganizations.canUseAgentChats).toHaveBeenCalledTimes(1);
     });
 });

@@ -285,9 +285,12 @@ describe('org-gated and room-scoped tools', () => {
         const mcp = await mcpToolDescriptors('org-1');
         expect(chat.some(tool => tool.name === 'web_search')).toBe(true);
         expect(mcp.some(tool => tool.name === 'web_search')).toBe(true);
-        // read_attachment is the chat run's own (it reads this room's
-        // attachments); the MCP listing excludes it.
+        // read_attachment and ask_user are the chat run's own (they read
+        // this room's attachments / wait on this room's answer); the MCP
+        // listing excludes them.
         expect(mcp.some(tool => tool.name === 'read_attachment')).toBe(false);
+        expect(mcp.some(tool => tool.name === 'ask_user')).toBe(false);
+        expect(chat.some(tool => tool.name === 'ask_user')).toBe(true);
         mockedWebSearch.isWebSearchAvailable.mockResolvedValue(false);
         expect((await chatToolDescriptors('org-1')).some(tool => tool.name === 'web_search')).toBe(false);
         expect((await mcpToolDescriptors('org-1')).some(tool => tool.name === 'web_search')).toBe(false);

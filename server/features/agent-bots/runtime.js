@@ -37,6 +37,58 @@ function refirePending(pending) {
     run.catch(error => console.error('[AGENT-BOTS] deferred run failed:', error));
 }
 
+// A room's suspended question (ask_user): the run waits inside the tool
+// until the next capability-holding participant message in the asking
+// conversation answers it (consumed by the observer below — never a new
+// trigger), the room stops the run, or the question times out.
+const pendingAsks = new Map();
+const ASK_TIMEOUT_MS = 10 * 60_000;
+
+function waitForRoomAnswer(conversationKey, organizationId, signal) {
+    return new Promise((resolve, reject) => {
+        const entry = { organizationId, resolve, timer: null, onAbort: null };
+        const settle = (outcome) => {
+            clearTimeout(entry.timer);
+            signal?.removeEventListener?.('abort', entry.onAbort);
+            pendingAsks.delete(conversationKey);
+            outcome();
+        };
+        entry.timer = setTimeout(() => {
+            settle(() => reject(new Error('The room did not answer within 10 minutes — conclude with what you have and state exactly what input is still needed.')));
+        }, ASK_TIMEOUT_MS);
+        entry.onAbort = () => {
+            settle(() => reject(Object.assign(new Error('The run was stopped'), { name: 'AbortError' })));
+        };
+        if (signal?.aborted) {
+            entry.onAbort();
+            return;
+        }
+        signal?.addEventListener?.('abort', entry.onAbort);
+        pendingAsks.set(conversationKey, entry);
+    });
+}
+
+/**
+ * The observer's ask routing: a message in a conversation with a
+ * suspended question, from a sender holding the agent-chat capability,
+ * is that question's answer — it steers the waiting run and never fires
+ * a new one. Everything else (bots, the capability-less, other rooms)
+ * falls through to the normal trigger.
+ */
+async function consumePendingAsk(context, message) {
+    const key = String(message?.conversationKey || context?.conversationKey || '');
+    const ask = pendingAsks.get(key);
+    if (!ask) return false;
+    if (!message || context.kind === 'support') return false;
+    if (message.sender && message.sender !== MESSAGE_SENDER.USER) return false;
+    if (await senderIsBot(message.senderUserId)) return false;
+    if (!(await organizationsService.canUseAgentChats(ask.organizationId, message.senderUserId))) return false;
+    pendingAsks.delete(key);
+    clearTimeout(ask.timer);
+    ask.resolve(String(message.message || '').trim());
+    return true;
+}
+
 /**
  * Stops every in-flight run reachable from one conversation key — the
  * subscribed room's or any view the trigger message fans out to. Aborting
@@ -93,6 +145,14 @@ function botActivitySink(assistantAuth, conversationKeys) {
         },
         answer(text) {
             publish('bot_stream', { text });
+        },
+        // The suspended question (ask_user): rendered at the composer
+        // until answered, stopped, or timed out.
+        question(question, options = []) {
+            publish('bot_question', { question, options });
+        },
+        questionEnd() {
+            publish('bot_question_end');
         },
         end() {
             publish('bot_stream_end');
@@ -220,7 +280,7 @@ function systemPrompt(assistantName, organizationName, principalName) {
         `You are ${assistantName}, the organization AI operating inside Perigram — a process programming platform — for the organization "${organizationName}".`,
         `You are acting for ${principalName}: every tool call runs with exactly their access rights — you can read and do what they may, and nothing beyond it.`,
         'You manipulate process definitions and instances through the provided tools, which enforce the same access rules as every other client.',
-        'Act on the user\'s declared intent without asking permission first — do the work, then report what happened. Activation gates are the only confirmations. Tool errors are fix instructions, not dead ends: read the message, correct the input, and retry in the same run — never ask the user whether to retry.',
+        'Act on the user\'s declared intent without asking permission first — do the work, then report what happened. Activation gates are the only confirmations: when one carries live data (status migration targets, type death), ask_user once with the concrete impact and options instead of guessing or giving up. Tool errors are fix instructions, not dead ends: read the message, correct the input, and retry in the same run — never ask the user whether to retry.',
         'The authored process protocol is fixed: dataflowVersion 4. Never ask about versions.',
         'Authoring discipline: read before writing (get_authoring_vocabulary for the palette and node kinds, get_process_definition / list_types / list_instances for the current state), edit existing definitions with edit_process_definition gestures instead of whole-graph echo-backs, always validate_process_definition before activate_process_definition, and treat activation gates (migration plans, type death) as confirmations to surface and resolve — never to bypass.',
         'Attach instances you handled with attach_instances so the conversation shows them as reference chips.',
@@ -292,15 +352,16 @@ async function streamedRound({ organizationId, profileId, model = '', system, me
  * stay visible through `stream`; a round that ends in tool calls retracts
  * only its own answer text (only the final answer persists).
  */
-async function runAgentLoop({ organizationId, execAuth, system, conversation, conversationKey = '', profileId = '', model = '', signal = null, stream = null }) {
+async function runAgentLoop({ organizationId, execAuth, system, conversation, conversationKey = '', profileId = '', model = '', signal = null, stream = null, ask = null }) {
     // The descriptor surface is org-aware: a capability the org has not
     // configured (web search without a provider) never reaches the model.
     const tools = await chatToolDescriptors(organizationId);
     // Per-run side channel: chat-only tools accumulate state here that the
     // final reply consumes (instance refs the model attached mid-loop),
-    // and the run's conversation key scopes their reach (read_attachment
-    // reads only this room's attachments).
-    const run = { conversationKey, instanceRefs: [] };
+    // the run's conversation key scopes their reach (read_attachment
+    // reads only this room's attachments), and `ask` suspends the run on
+    // the room's next answer (ask_user).
+    const run = { conversationKey, instanceRefs: [], ...(ask ? { ask } : {}) };
     // The run's visible work as one chronology, persisted onto the reply as
     // provenance: per-round reasoning segments interleaved with tool
     // invocations in the order they happened. Empty reasoning segments
@@ -435,6 +496,15 @@ async function resolveDelegatedPrincipal(organizationId, userId) {
     return execAuth;
 }
 
+// ask_user's runtime half: publish the question through the run's sink,
+// wait for the room's answer (the observer consumes it), and always
+// clear the question card — answered, stopped, or timed out.
+function askRoom(stream, conversationKey, organizationId, signal, question, options) {
+    if (stream) stream.question(question, options);
+    return waitForRoomAnswer(conversationKey, organizationId, signal)
+        .finally(() => { if (stream) stream.questionEnd(); });
+}
+
 /**
  * The AI's chat answer: bounded tool loop over the shared catalog,
  * executing with the triggering sender's rights, the final assistant text
@@ -488,6 +558,7 @@ export async function runAssistantReply(target, context, message) {
             profileId,
             model,
             conversationKey: message.conversationKey,
+            ask: (question, options) => askRoom(stream, String(message.conversationKey), organizationId, controller.signal, question, options),
             system: systemPrompt(assistantAuth.name, assistantAuth.organizationData?.name || execAuth.organizationData?.name || '', execAuth.name || 'the sender'),
             conversation: await conversationHistory(message.conversationKey, target.assistantId),
             signal: controller.signal,
@@ -525,11 +596,17 @@ export async function runAssistantReply(target, context, message) {
 
 /**
  * The observer registered against the support service. Fire-and-forget:
- * message persistence never awaits an LLM.
+ * message persistence never awaits an LLM. A message answering the
+ * room's suspended question steers the waiting run instead of triggering
+ * a new one.
  */
 export function handleMessageInserted(context, message) {
-    resolveAssistantTarget(context, message)
-        .then(target => (target ? runAssistantReply(target, context, message) : null))
+    consumePendingAsk(context, message)
+        .then(consumed => {
+            if (consumed) return null;
+            return resolveAssistantTarget(context, message)
+                .then(target => (target ? runAssistantReply(target, context, message) : null));
+        })
         .catch(error => console.error('[AGENT-BOTS] trigger failed:', error));
 }
 
@@ -614,6 +691,7 @@ export async function runAssistantWake(subscription, event, rule = {}) {
             profileId,
             model,
             conversationKey: subscription.conversationKey,
+            ask: (question, options) => askRoom(stream, String(subscription.conversationKey), subscription.organizationId, controller.signal, question, options),
             system: systemPrompt(assistantAuth.name, assistantAuth.organizationData?.name || '', execAuth.name || 'the rule author'),
             conversation: [
                 ...await conversationHistory(subscription.conversationKey, assistant.id),
