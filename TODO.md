@@ -393,6 +393,21 @@ authoring happens only inside a cassette design session.
   unchanged otherwise) so pins can move again through the product
   path. Owner step: one more Upgrade click (v10→v11).
 
+### Agent Notes (2026-10-17 — library edit workflow: local by default, explicit rewrite)
+
+- Owner question: does editing a library-sourced placed profile rewrite
+  the library element? Answer shipped as law (SPEC 2026-10-17): edits
+  are LOCAL (snapshot law — the library record and other cassettes
+  never change implicitly); the placed workpiece carries provenance
+  (`profileTemplateId`, a field the tree contract already had); the
+  dialog offers the explicit choice — Save (local), Update library
+  (rewrites the origin record's kind/process/prepared sketch via
+  records.update; the record keeps its name), Save to library (create,
+  only when no origin). Loaded-from-library drafts carry the picked
+  record as origin. A rewrite never propagates to placed workpieces —
+  re-picking is the refresh path. Hardware rows have no placed-edit
+  dialog yet; the same law applies when one lands.
+
 ### Agent Notes (2026-10-17 — preview correction: payload-based, like it always was)
 
 - Owner correction stood twice: cassette previews already existed —

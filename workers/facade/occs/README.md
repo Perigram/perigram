@@ -224,7 +224,11 @@ modules — no platform imports.
   and picking a library record copies it into the draft — a snapshot
   copy, never a live reference, so the cassette document stays
   self-contained. Library records are authored only from the designer
-  dialog; the type carries no editor surface of its own. The type's
+  dialog; the type carries no editor surface of its own. Placed
+  workpieces carry their library origin (`profileTemplateId`): edits
+  are local, and the dialog's Update library rewrites the origin record
+  explicitly (authored truth; the record keeps its name) — a rewrite
+  never reaches already-placed workpieces. The type's
   write access inherits the cassette grant (`access.inherits` in the
   listing — whoever may write cassettes may write library profiles).
   The add-profile affordance is a picker: library rows with

@@ -715,6 +715,18 @@ surface in platform slots and as thumbnails in the designer's picker)
 beside a create-new entry that opens the blank dialog draft; picking an
 instance places it directly.
 
+Owner decision (2026-10-17, library edit workflow): editing a profile
+placed from the library is LOCAL — the workpiece's snapshot changes,
+the library record and every other cassette are untouched (the snapshot
+law; provenance rides the workpiece's `profileTemplateId`). The
+explicit choice lives in the dialog: Save keeps edits local; when the
+draft carries a library origin (placed from the library or loaded into
+the draft from it), Update library rewrites that record's authored
+truth (kind, process, prepared sketch — the record keeps its name);
+without an origin, Save to library creates a new record. A library
+rewrite never reaches already-placed workpieces — re-picking from the
+library is the refresh path.
+
 Owner decision (2026-10-17, hardware library): hardware gets the
 profile library workflow — a plugin-declared `hardware` library type
 (class `item`, plain fields: name, family, productionMode, parameters;
