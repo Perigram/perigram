@@ -116,18 +116,6 @@ provide('instanceInlineActionEntity', resolved);
 provide('instanceInlineActionTypeId', generatedTypeId);
 provide('instanceInlineHasEditorAction', computed(() => popupHasEditorAction.value));
 provide('instanceInlineExecuteAction', executePopupAction);
-// One restrained data-driven tone: the entity family's accent whispered
-// into the Chip's surface, border, and text (the family accent mapping
-// is the README's tone law — entity tones only, never PrimeVue
-// primitive color assignments).
-const chipTone = computed(() => {
-  const accent = entityFamilyAccent(props.type);
-  return {
-    background: `color-mix(in srgb, ${accent} 8%, var(--p-content-background))`,
-    borderColor: `color-mix(in srgb, ${accent} 32%, var(--p-content-border-color))`,
-    color: `color-mix(in srgb, ${accent} 28%, var(--p-text-color))`
-  };
-});
 const chipPt = { label: { class: 'truncate' } };
 const { typeById } = useFileTypeView();
 const compactDisplay = computed(() => resolveInstanceDisplayContract({
@@ -295,14 +283,6 @@ onUnmounted(() => {
   window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeCompactPopup);
 });
 
-function entityFamilyAccent(type) {
-
-  if (['cassette', 'profileTemplate'].includes(type)) return 'var(--ck-entity-tone-fabrication)';
-  if (['sheetDesign'].includes(type)) return 'var(--ck-entity-tone-output)';
-  if (['color'].includes(type)) return 'var(--ck-entity-tone-material)';
-  if (['organization', 'artifact', 'entityRevision', 'user'].includes(type)) return 'var(--ck-entity-tone-system)';
-  return 'var(--p-surface-500)';
-}
 </script>
 
 <template>
@@ -337,7 +317,6 @@ function entityFamilyAccent(type) {
             v-if="resolved"
             :label="identityLabel"
             :icon="icon || undefined"
-            :style="chipTone"
             :pt="chipPt"
             class="min-w-0 max-w-full flex-1"
             :title="identityLabel"
@@ -378,7 +357,6 @@ function entityFamilyAccent(type) {
       v-else-if="resolved"
       :label="identityLabel"
       :icon="icon || undefined"
-      :style="chipTone"
       :pt="chipPt"
       class="min-w-0 max-w-full"
       :class="{ 'cursor-pointer': interactive }"
