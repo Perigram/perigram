@@ -49,12 +49,6 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   or editing source SVGs — nothing outside the marked CSS blocks is
   hand-editable (hand-written rules parked inside the markers are deleted
   on rebuild).
-- `bake-cassette-previews.js`: Backfills `fields.polygonParts` (the
-  cassette type's previewSource contract) for existing cassette records
-  from their stored OCCS payload documents — the same evaluation the
-  designer's save path runs, so load pickers, cards, and compact
-  snapshots render without re-saving each record. Idempotent; run once
-  inside the app container after deploying the save-time bake.
 - `migrate-llm-settings-profiles.js`: one-way rewrite of the retired
   single-provider `data.settings.llm` shape into named profiles with
   capability routing (`{ provider, baseUrl, model, apiKey? }` becomes

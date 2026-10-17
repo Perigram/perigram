@@ -10,11 +10,12 @@
 import { renderCassetteV2TreeToDrawing } from './lib/cassetteV2Renderer.js';
 import { normalizeGeometryDrawing } from './lib/drawingPreview.js';
 
+// Preview layer set (owner direction 2026-10-17): cassette previews
+// show the shape — contour, fold, dimension — never the production cut
+// layers.
 const PREVIEW_LAYER_PRIORITY = [
-  'cut.outer',
+  'contour.cassette_face',
   'fold.route',
-  'cut.inner',
-  'cut.hole',
   'dimension.cassette'
 ];
 

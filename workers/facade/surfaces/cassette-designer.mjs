@@ -47,7 +47,6 @@ import createFoldedPreview from './lib/components/foldedPreview.mjs';
 import createSketchEditor from './lib/components/sketchEditor.mjs';
 import { buildCassetteV2FoldedPreview } from './lib/cassetteV2FoldedPreview.js';
 import { normalizeGeometryDrawing } from './lib/drawingPreview.js';
-import { evaluateOccsCassetteTemplate } from '../occs/evaluate.js';
 import { hardwareDefaultParameters, hardwareLabel } from '../occs/hardware.js';
 
 const OCCS_MIME = 'application/perigram+occs';
@@ -887,20 +886,6 @@ export default function createSurface({ vue, components, locale, queries, record
           if (recordTitle(target) !== name) {
             await props.persistence.rename(target, name);
           }
-          // Baked preview rows (the type's previewSource contract): every
-          // saved cassette carries its production outline on the record,
-          // so cards, pickers, and compact snapshots preview without the
-          // payload. The payload save above stays the truth; a bake
-          // failure only degrades previews.
-          try {
-            const evaluation = await evaluateOccsCassetteTemplate(definition, {}, cassetteMarkContext.value);
-            const polygonParts = (evaluation?.polygons || []).map(part => ({ coordinates: part.coordinates }));
-            if (polygonParts.length) {
-              await props.persistence.patch(target, { fields: { polygonParts } });
-            }
-          } catch {
-            // Previews degrade to placeholders; the saved document is complete.
-          }
           persistedTemplateIdOverride.value = target._id?.toString() || persistedTemplateIdOverride.value;
           loadedDocument.value = { ...target, definition };
           applyTemplate(loadedDocument.value);
@@ -1001,7 +986,10 @@ export default function createSurface({ vue, components, locale, queries, record
       // every time the picker opens (saves bake new previews into
       // fields the list DTOs carry).
       const loadTemplateRecords = () => {
-        queries.list('cassette').then(rows => { templateRecords.value = rows || []; }).catch(() => {});
+        queries.list('cassette').then(rows => {
+          templateRecords.value = rows || [];
+          hydrateTemplateThumbnails();
+        }).catch(() => {});
       };
       watch(() => props.record?._id || '', async (recordId) => {
         persistedTemplateIdOverride.value = '';
@@ -2669,7 +2657,43 @@ export default function createSurface({ vue, components, locale, queries, record
         ]);
       };
 
-      const cassetteRecordThumbnail = (record) => normalizeGeometryDrawing({ data: { ...(record?.fields || {}) } });
+      // Cassette previews are payload-based, exactly like the platform's
+      // card/detail slots: the picker hydrates each record's OCCS
+      // document through the mount's loadDocument and renders it with
+      // the same tree renderer the bound preview surface uses, limited
+      // to the preview layer set (contour, fold, dimension). Thumbnails
+      // cache by record id + updatedAt.
+      const templateThumbnails = ref(new Map());
+      const PREVIEW_LAYERS = ['contour.cassette_face', 'fold.route', 'dimension.cassette'];
+
+      const hydrateTemplateThumbnail = async (record) => {
+        const key = `${record?._id || ''}:${record?.updatedAt || ''}`;
+        if (!record || templateThumbnails.value.has(key)) return;
+        templateThumbnails.value.set(key, null);
+        const document = await props.persistence.loadDocument(record).catch(() => null);
+        const graphTree = document?.extensions?.perigram?.graphTree
+          || document?.graphTree
+          || null;
+        if (!graphTree) return;
+        try {
+          const drawing = await renderCassetteV2TreeToDrawing(graphTree);
+          const present = new Set((drawing?.layers || []).map(layer => layer.name));
+          templateThumbnails.value.set(key, {
+            drawing,
+            visibleLayerNames: PREVIEW_LAYERS.filter(name => present.has(name))
+          });
+        } catch {
+          // Quiet placeholder; the record stays loadable.
+        }
+      };
+
+      const hydrateTemplateThumbnails = () => {
+        templateRecords.value.forEach(record => { hydrateTemplateThumbnail(record); });
+      };
+
+      const templateThumbnailFor = (record) => (
+        templateThumbnails.value.get(`${record?._id || ''}:${record?.updatedAt || ''}`) || null
+      );
 
       return () => h(DesignerSurface, {
         class: 'relative gap-3',
@@ -2735,7 +2759,7 @@ export default function createSurface({ vue, components, locale, queries, record
             dockPopoverPanel.value === 'open'
               ? h('div', { class: 'flex w-80 max-w-90 flex-col gap-1' },
                   templateRecords.value.map(record => {
-                    const thumbnail = cassetteRecordThumbnail(record);
+                    const thumbnail = templateThumbnailFor(record);
                     return h('button', {
                       key: record?._id,
                       type: 'button',
@@ -2748,10 +2772,11 @@ export default function createSurface({ vue, components, locale, queries, record
                       h('span', { class: 'flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden rounded-ui border border-content-border' },
                         thumbnail
                           ? h(DrawingCanvas, {
-                              source: thumbnail,
+                              source: thumbnail.drawing,
                               sourceType: 'geometry-preview',
                               mode: 'card',
-                              fill: true
+                              fill: true,
+                              visibleLayerNames: thumbnail.visibleLayerNames
                             })
                           : h('i', { class: 'pi pi-box text-muted' })),
                       h('span', { class: 'truncate' }, record?.name || record?._id)
