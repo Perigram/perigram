@@ -76,10 +76,17 @@ Three pieces share one tool catalog:
   capability-availability law an unconfigured LLM follows. `read_attachment`
   (chat-run only) reads a file attached to a message in the run's own
   conversation — the run's history marks every attachment as
-  `[attachment: name <fileId:id>]`, the tool reads that file's text
-  (binary content is refused), and the room scoping rides the support
-  seam's conversation-attachment lookup, so the model can never reach a
-  file the room it answers does not already carry. Tools run with
+  `[attachment: name <fileId:id>]`, and the reader
+  (`attachment-read.js`) extracts by family: text decodes as UTF-8,
+  spreadsheets (csv/xlsx/xls) flatten to per-sheet CSV, PDFs extract
+  page text (the pdfjs seam the artifact templates already use), DOCX
+  unwraps its document body (jszip), and audio transcribes through the
+  organization's
+  [transcription](../transcription/README.md) seam; images and video
+  are refused with the text-only boundary, and unrecognized binaries
+  are refused outright. The room scoping rides the support seam's
+  conversation-attachment lookup, so the model can never reach a file
+  the room it answers does not already carry. Tools run with
   the principal's auth they are given; the catalog owns no business logic.
 - **MCP transport** (`mcp.js` → `POST /api/mcp`): single-message JSON-RPC
   over streamable HTTP with `application/json` replies and stateless

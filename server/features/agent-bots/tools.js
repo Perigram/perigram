@@ -6,6 +6,7 @@ import { listRoles } from '~/server/features/organizations/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as webSearchService from '~/server/features/web-search/service.js';
 import * as filesService from '~/server/features/files/service.js';
+import { readAttachmentContent } from './attachment-read.js';
 import { buildPrincipalAuth } from './service.js';
 import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY, parseProcessSocketHandleId, resolveCatalogNodePorts } from '~/packages/processes/src/index.js';
 
@@ -22,9 +23,6 @@ import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_C
 
 const LIST_LIMIT_DEFAULT = 25;
 const LIST_LIMIT_MAX = 100;
-// One attachment read serves at most this many bytes; larger results ride
-// the shared tool-result truncation notice instead.
-const ATTACHMENT_READ_LIMIT_BYTES = 64 * 1024;
 
 function requireString(value, field) {
     const text = String(value ?? '').trim();
@@ -620,7 +618,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'read_attachment',
-        description: 'Reads the text content of a file attached to a message in this conversation. Message history marks attachments as [attachment: name <fileId:id>] — pass that fileId. Text-like files return their content (truncated when large); binary files are refused as not text-readable.',
+        description: 'Reads the content of a file attached to a message in this conversation. Message history marks attachments as [attachment: name <fileId:id>] — pass that fileId. Reads text files, spreadsheets (as CSV), PDFs (page text), DOCX (document body), and audio (as a transcript when the organization has transcription configured); images and video have no text content. Large content is truncated.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -637,19 +635,12 @@ export const TOOL_SPECS = [
             if (!descriptor) throw createError({ statusCode: 404, message: 'No message in this conversation carries that attachment' });
             const buffer = await filesService.getFileBuffer(fileId, descriptor.bucket || 'files').catch(() => null);
             if (!buffer) throw createError({ statusCode: 404, message: 'Attachment content is no longer stored' });
-            const slice = buffer.subarray(0, ATTACHMENT_READ_LIMIT_BYTES);
-            const text = new TextDecoder('utf-8').decode(slice);
-            // Binary sniff: NUL or control bytes outside tab/CR/LF mean the
-            // file is not text-readable — refuse instead of serving mojibake.
-            if (/[\u0000-\u0008\u000e-\u001f]/.test(text.replace(/[\t\n\r]/g, ''))) {
-                throw createError({ statusCode: 400, message: `${descriptor.name || 'The file'} is not text-readable` });
-            }
+            const content = await readAttachmentContent(descriptor, buffer, auth);
             return {
                 name: descriptor.name || '',
                 mimeType: descriptor.mimeType || '',
                 size: descriptor.size || buffer.length,
-                ...(buffer.length > slice.length ? { truncatedByRead: true } : {}),
-                text
+                ...content
             };
         }
     }

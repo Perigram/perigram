@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // cross the tool wire in either direction, and a graph-level save composes
 // over the stored document instead of replacing it.
 
-const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mockedOrganizations, mockedAgentService, mockedWebSearch, mockedFiles } = vi.hoisted(() => ({
+const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mockedOrganizations, mockedAgentService, mockedWebSearch, mockedFiles, mockedTranscription } = vi.hoisted(() => ({
     mockedProcessDefinitions: {
         list: vi.fn(),
         getById: vi.fn(),
@@ -24,7 +24,8 @@ const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mo
     mockedOrganizations: { listRoles: vi.fn() },
     mockedAgentService: { buildPrincipalAuth: vi.fn() },
     mockedWebSearch: { isWebSearchAvailable: vi.fn(), webSearch: vi.fn() },
-    mockedFiles: { getFileBuffer: vi.fn() }
+    mockedFiles: { getFileBuffer: vi.fn() },
+    mockedTranscription: { transcribeAudio: vi.fn() }
 }));
 
 vi.mock('~/server/features/process-definitions/service.js', () => mockedProcessDefinitions);
@@ -35,6 +36,7 @@ vi.mock('~/server/features/organizations/service.js', () => mockedOrganizations)
 vi.mock('~/server/features/agent-bots/service.js', () => mockedAgentService);
 vi.mock('~/server/features/web-search/service.js', () => mockedWebSearch);
 vi.mock('~/server/features/files/service.js', () => mockedFiles);
+vi.mock('~/server/features/transcription/service.js', () => mockedTranscription);
 
 import { executeTool, mcpToolDescriptors, chatToolDescriptors, toolCallDetail } from './tools.js';
 
@@ -306,15 +308,79 @@ describe('org-gated and room-scoped tools', () => {
     });
 
     it('read_attachment returns the stored text and refuses binary content', async () => {
-        mockedSupport.findConversationAttachment.mockResolvedValue({ fileId: 'f1', name: 'report.csv', mimeType: 'text/csv', size: 12 });
-        mockedFiles.getFileBuffer.mockResolvedValue(new TextEncoder().encode('a,b,c\n1,2,3\n'));
+        mockedSupport.findConversationAttachment.mockResolvedValue({ fileId: 'f1', name: 'notes.txt', mimeType: 'text/plain', size: 12 });
+        mockedFiles.getFileBuffer.mockResolvedValue(new TextEncoder().encode('plain text body\n'));
         const result = await executeTool('read_attachment', { fileId: 'f1' }, AUTH, { conversationKey: 'group:g1' });
         expect(mockedFiles.getFileBuffer).toHaveBeenCalledWith('f1', 'files');
-        expect(result.text).toBe('a,b,c\n1,2,3\n');
-        expect(result.name).toBe('report.csv');
+        expect(result.readAs).toBe('text');
+        expect(result.text).toBe('plain text body\n');
+        expect(result.name).toBe('notes.txt');
 
         mockedFiles.getFileBuffer.mockResolvedValue(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x01]));
         await expect(executeTool('read_attachment', { fileId: 'f1' }, AUTH, { conversationKey: 'group:g1' }))
             .rejects.toMatchObject({ statusCode: 400 });
+    });
+});
+
+describe('read_attachment typed content extraction', () => {
+    const RUN = { conversationKey: 'group:g1' };
+
+    it('flattens spreadsheets to CSV sheets', async () => {
+        const { write, utils } = await import('xlsx/xlsx.mjs');
+        const workbook = utils.book_new();
+        utils.book_append_sheet(workbook, utils.aoa_to_sheet([['Part', 'Qty'], ['bracket', '4']]), 'Order');
+        mockedSupport.findConversationAttachment.mockResolvedValue({ fileId: 'f1', name: 'order.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', kind: 'file' });
+        mockedFiles.getFileBuffer.mockResolvedValue(Buffer.from(write(workbook, { type: 'buffer', bookType: 'xlsx' })));
+        const result = await executeTool('read_attachment', { fileId: 'f1' }, AUTH, RUN);
+        expect(result.readAs).toBe('csv');
+        expect(result.text).toContain('## Sheet: Order');
+        expect(result.text).toContain('bracket,4');
+    });
+
+    it('extracts PDF page text', async () => {
+        const { PDFDocument } = await import('pdf-lib');
+        const pdf = await PDFDocument.create();
+        const page = pdf.addPage([420, 300]);
+        page.drawText('Perigram attachment round trip', { size: 12 });
+        mockedSupport.findConversationAttachment.mockResolvedValue({ fileId: 'f1', name: 'sheet.pdf', mimeType: 'application/pdf', kind: 'file' });
+        mockedFiles.getFileBuffer.mockResolvedValue(Buffer.from(await pdf.save()));
+        const result = await executeTool('read_attachment', { fileId: 'f1' }, AUTH, RUN);
+        expect(result.readAs).toBe('text');
+        expect(result.text).toContain('Perigram attachment round trip');
+    });
+
+    it('unwraps the DOCX document body', async () => {
+        const JSZip = (await import('jszip')).default;
+        const zip = new JSZip();
+        zip.file('word/document.xml', '<?xml version="1.0"?><w:document><w:body><w:p><w:r><w:t>Cut list &amp; notes</w:t></w:r></w:p><w:p><w:r><w:t>second paragraph</w:t></w:r></w:p></w:body></w:document>');
+        mockedSupport.findConversationAttachment.mockResolvedValue({ fileId: 'f1', name: 'notes.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', kind: 'file' });
+        mockedFiles.getFileBuffer.mockResolvedValue(await zip.generateAsync({ type: 'nodebuffer' }));
+        const result = await executeTool('read_attachment', { fileId: 'f1' }, AUTH, RUN);
+        expect(result.readAs).toBe('text');
+        expect(result.text).toContain('Cut list & notes');
+        expect(result.text).toContain('second paragraph');
+    });
+
+    it('transcribes audio through the organization\'s transcription seam', async () => {
+        mockedTranscription.transcribeAudio.mockResolvedValue({ text: 'spoken notes', provider: 'local', model: '' });
+        mockedSupport.findConversationAttachment.mockResolvedValue({ fileId: 'f1', name: 'voice.webm', mimeType: 'audio/webm', kind: 'audio' });
+        mockedFiles.getFileBuffer.mockResolvedValue(Buffer.from('opaque-audio-bytes'));
+        const result = await executeTool('read_attachment', { fileId: 'f1' }, AUTH, RUN);
+        expect(result.readAs).toBe('transcript');
+        expect(result.text).toBe('spoken notes');
+        expect(mockedTranscription.transcribeAudio).toHaveBeenCalledWith(expect.objectContaining({
+            filename: 'voice.webm',
+            organizationId: 'org-1'
+        }));
+        mockedTranscription.transcribeAudio.mockRejectedValue(Object.assign(new Error('Transcription is not configured'), { statusCode: 503 }));
+        await expect(executeTool('read_attachment', { fileId: 'f1' }, AUTH, RUN)).rejects.toMatchObject({ statusCode: 503 });
+    });
+
+    it('refuses images with the text-only boundary and unknown binaries', async () => {
+        mockedSupport.findConversationAttachment.mockResolvedValue({ fileId: 'f1', name: 'photo.png', mimeType: 'image/png', kind: 'image' });
+        await expect(executeTool('read_attachment', { fileId: 'f1' }, AUTH, RUN)).rejects.toMatchObject({ statusCode: 400 });
+        mockedSupport.findConversationAttachment.mockResolvedValue({ fileId: 'f2', name: 'model.bin', mimeType: 'application/octet-stream', kind: 'file' });
+        mockedFiles.getFileBuffer.mockResolvedValue(Buffer.from([0x00, 0x01, 0x02, 0x03]));
+        await expect(executeTool('read_attachment', { fileId: 'f2' }, AUTH, RUN)).rejects.toMatchObject({ statusCode: 400 });
     });
 });

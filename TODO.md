@@ -65,6 +65,32 @@ agent access).
   `read_attachment`, and answers from it; a binary attachment is refused
   as not text-readable, and a fileId from another conversation is
   rejected.
+- [ ] WAITING — owner verification on the live stack: the typed reader
+  covers every readable family — a spreadsheet flattens to CSV sheets, a
+  PDF yields its page text, a DOCX its body, a voice message transcribes
+  through the org's transcription provider; images and video are refused
+  with the text-only boundary.
+
+### Agent Notes (2026-10-17 — typed attachment reading)
+
+- `read_attachment` now extracts by family (`attachment-read.js`):
+  text/csv/xlsx/xls (per-sheet CSV off the existing `xlsx` dependency),
+  PDF (page text through `pdfjs-dist/legacy` — the same seam the
+  artifact templates use, no new package), DOCX (jszip unwrap of
+  `word/document.xml`, entity-decoded — jszip declared as a direct
+  dependency at the version docx-preview already installs, zero new
+  bytes), audio (the transcription seam, org-gated: unconfigured answers
+  the model as a readable 503). Images/video are refused with the
+  boundary message; unknown binaries refused outright. Extracted text
+  caps at 64 KB ahead of the shared 16 KB tool-result truncation; PDF
+  reads cap at 40 pages.
+- Real round-trip specs: pdf-lib generates / pdfjs extracts, jszip-built
+  DOCX unwraps, xlsx workbook flattens, transcription mock answers the
+  audio path and its 503. Vision (images into the model) needs a
+  multimodal chat contract — not built; the refusal names the boundary.
+- Owner step after deploy: reinstall dependencies inside the container
+  (jszip is already present via docx-preview, so in practice a restart
+  suffices).
 
 ### Agent Notes (2026-10-17 — both halves shipped)
 
