@@ -1042,7 +1042,9 @@ tight stack — the timestamp trails under the last message of the run only
 instance threads (the organization chat included) lead others' runs with
 the sender's avatar and display name through the shared user chip
 (`components/shared/UserChip.vue`, once per run, never for the viewer's
-own messages). Forwarded messages lead their content with the
+own messages); the assistant's own chat — a two-party room — leads the
+assistant's runs with the same chip, and human 1:1 chats never carry
+stamps. Forwarded messages lead their content with the
 forwarded-from caption line (forward icon + original sender) on every
 shape — text, media, or files. While a subscribed bot runs, its live work
 renders as one chromeless activity block under the messages (no bubble
@@ -1067,7 +1069,7 @@ typed, not conversational: failure notices (`notice`, a severity name
 authored server-side — see
 [backend support](../server/features/support/README.md)) render as a
 `Message` with that severity instead of a chat bubble. The AI's
-identity face is the shared sparkles avatar
+identity face is the shared microchip avatar
 ([shared components](./shared/README.md)) on inbox rows, thread
 headers, pickers, and sender chips — and it is the only AI marker:
 chat surfaces carry no text badges. Instance refs attach to messages

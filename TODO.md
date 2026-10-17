@@ -1,5 +1,16 @@
 # TODO
 
+## The assistant's face in its own chat (owner direction 2026-10-17)
+
+The AI 1:1 thread leads the assistant's runs with the sender chip (the
+microchip face plus name); every AI surface shows the microchip glyph
+again.
+
+- [ ] WAITING — owner verification on the live stack: in the assistant's
+  chat, the assistant's first message of each run carries the AI-face
+  sender chip; every AI surface (inbox, headers, pickers, member stacks)
+  shows the microchip glyph.
+
 ## Stop control, tool echoes, and the port-wall diagnosis (owner defect 2026-10-17)
 
 "The stop button doesn't work" decomposed into two real mechanisms:
