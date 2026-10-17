@@ -192,10 +192,14 @@ export async function addGroupParticipant(auth, groupId = '', userId = '') {
     assertGroupManager(auth, group);
     const participantId = String(userId || '').trim();
     if (!participantId) throw createError({ statusCode: 400, message: 'Participant is required' });
-    const participants = (group.participants || []).map(item => item?.toString?.() || item);
-    if (participants.includes(participantId)) return groupDTO(group);
     const participant = await usersService.getById(participantId).catch(() => null);
     if (!participant) throw createError({ statusCode: 400, message: 'Unknown participant' });
+    // Assistant membership is twin-only: the human seam never seats or
+    // removes a bot, so the participants entry and the AI's subscription
+    // cannot diverge.
+    if (participant?.data?.bot) throw createError({ statusCode: 400, message: 'Assistant membership is managed through the AI panel' });
+    const participants = (group.participants || []).map(item => item?.toString?.() || item);
+    if (participants.includes(participantId)) return groupDTO(group);
     const next = [...participants, participantId];
     await repository.updateGroupParticipants(groupId, next);
     notifyInboxParticipants([participantId], groupConversationKey(group._id));
@@ -210,6 +214,8 @@ export async function removeGroupParticipant(auth, groupId = '', userId = '') {
     const participantId = String(userId || '').trim();
     const isCreator = String(group.origin?.userId || '') === participantId;
     if (isCreator) throw createError({ statusCode: 400, message: 'The group creator cannot be removed' });
+    const removedUser = await usersService.getById(participantId).catch(() => null);
+    if (removedUser?.data?.bot) throw createError({ statusCode: 400, message: 'Assistant membership is managed through the AI panel' });
     const participants = (group.participants || []).map(item => item?.toString?.() || item);
     const next = participants.filter(item => item !== participantId);
     if (next.length === participants.length) return groupDTO(group);

@@ -4,7 +4,7 @@ import * as connectionsService from '~/server/features/connections/service.js';
 import * as organizationsService from '~/server/features/organizations/service.js';
 import { MESSAGE_SENDER } from '~/server/features/support/const.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { buildPrincipalAuth, ensureOrganizationAssistant, isBotUser } from './service.js';
+import { buildPrincipalAuth, ensureOrganizationAssistant, getBotIdentity, ASSISTANT_NAME } from './service.js';
 import * as botRepository from './repository.js';
 import { executeTool, chatToolDescriptors } from './tools.js';
 
@@ -20,23 +20,38 @@ import { executeTool, chatToolDescriptors } from './tools.js';
 
 const HISTORY_LIMIT = 30;
 
-// One in-flight reply per conversation: bursts (or a subscriber's own
-// sends racing the reply) must not stack duplicate answers. Chat replies
-// and lifecycle wakes share the lock space. Each entry carries the
-// run's cancellation handle so the room can stop it in flight.
+// One in-flight run per room: the SUBSCRIBED conversation owns the lock
+// (chat replies and wakes share it), so bursts and ancestor-subscribed
+// triggers serialize instead of racing. A trigger arriving mid-run is
+// coalesced, never dropped — the latest waits as `pending` and re-fires
+// once the current run lands, its history re-snapshot covering everything
+// said meanwhile. Each entry carries the run's cancellation handle and
+// every conversation key its stop may arrive from (the room plus the
+// trigger's fanout keys).
 const inFlight = new Map();
 
+function refirePending(pending) {
+    const run = pending.kind === 'wake'
+        ? runAssistantWake(pending.subscription, pending.event, pending.rule)
+        : runAssistantReply(pending.target, pending.context, pending.message);
+    run.catch(error => console.error('[AGENT-BOTS] deferred run failed:', error));
+}
+
 /**
- * Stops every in-flight run in one conversation, from either the room's
- * message or its wake. Aborting the run's controller unwinds the LLM
- * stream; the loop then keeps whatever answer it had produced. Org-scoped
- * when both sides know the organization.
+ * Stops every in-flight run reachable from one conversation key — the
+ * subscribed room's or any view the trigger message fans out to. Aborting
+ * the run's controller unwinds the LLM stream; the loop then keeps
+ * whatever answer it had produced. Org-scoped when both sides know the
+ * organization. A stopped room stays stopped: its coalesced trigger is
+ * dropped with it.
  */
 export function stopConversationRuns(organizationId, conversationKey) {
     let stopped = 0;
     for (const entry of inFlight.values()) {
-        if (String(entry.conversationKey) !== String(conversationKey)) continue;
+        const keys = entry.stopKeys || [entry.conversationKey];
+        if (!keys.includes(String(conversationKey))) continue;
         if (entry.organizationId && organizationId && String(entry.organizationId) !== String(organizationId)) continue;
+        entry.pending = null;
         entry.controller.abort();
         stopped += 1;
     }
@@ -45,15 +60,28 @@ export function stopConversationRuns(organizationId, conversationKey) {
 
 /**
  * Room presence for the AI's run as it is produced: the runtime owns no
- * delivery channel, so the run's activity rides the conversation topic.
- * `bot_activity` carries the run's chronology so far (per-round reasoning
- * segments interleaved with tool invocations, in the order they happened),
- * `bot_stream` the answer so far, and `bot_stream_end` clears the run
- * once the persisted message supersedes it.
+ * delivery channel, so the run's activity rides the conversation topics —
+ * every key the trigger message fans out to, so the subscribed ancestor
+ * view (the organization chat) sees the run beside the trigger exactly
+ * like the message itself. `bot_activity` carries the run's chronology so
+ * far (per-round reasoning segments interleaved with tool invocations, in
+ * the order they happened), `bot_stream` the answer so far, and
+ * `bot_stream_end` clears the run once the persisted message supersedes
+ * it.
  */
-function botActivitySink(assistantAuth, conversationKey) {
-    const topic = `conversation:${conversationKey}`;
-    const base = { conversationKey, userId: assistantAuth.userId, name: assistantAuth.name || '' };
+function botActivitySink(assistantAuth, conversationKeys) {
+    const keys = [...new Set((conversationKeys || []).map(key => String(key || '')).filter(Boolean))];
+    const publish = (type, fields = {}) => {
+        for (const key of keys) {
+            connectionsService.publish(`conversation:${key}`, {
+                conversationKey: key,
+                userId: assistantAuth.userId,
+                name: assistantAuth.name || '',
+                type,
+                ...fields
+            });
+        }
+    };
     return {
         // Absolute state, not deltas: each publish carries the whole
         // chronology so far, and each round reconciles with the assembled
@@ -61,50 +89,76 @@ function botActivitySink(assistantAuth, conversationKey) {
         // plain answer can reclassify without the client accumulating
         // garbage.
         activity(steps) {
-            connectionsService.publish(topic, { ...base, type: 'bot_activity', steps });
+            publish('bot_activity', { steps });
         },
         answer(text) {
-            connectionsService.publish(topic, { ...base, type: 'bot_stream', text });
+            publish('bot_stream', { text });
         },
         end() {
-            connectionsService.publish(topic, { ...base, type: 'bot_stream_end' });
+            publish('bot_stream_end');
         }
     };
 }
 
-const botFlagCache = new Map();
+const botIdentityCache = new Map();
 const BOT_FLAG_TTL_MS = 60_000;
 
-async function senderIsBot(userId) {
+async function cachedBotIdentity(userId) {
     const key = String(userId || '');
-    if (!key) return false;
-    const cached = botFlagCache.get(key);
-    if (cached && Date.now() - cached.at < BOT_FLAG_TTL_MS) return cached.isBot;
-    const isBot = await isBotUser(key);
-    botFlagCache.set(key, { at: Date.now(), isBot });
-    return isBot;
+    if (!key) return null;
+    const cached = botIdentityCache.get(key);
+    if (cached && Date.now() - cached.at < BOT_FLAG_TTL_MS) return cached.identity;
+    const identity = await getBotIdentity(key);
+    botIdentityCache.set(key, { at: Date.now(), identity });
+    return identity;
+}
+
+async function senderIsBot(userId) {
+    return Boolean(await cachedBotIdentity(userId));
 }
 
 /**
- * Conversation keys a message belongs to: its own thread plus, for instance
- * messages, every ancestor along the stored instance path — the AI
- * subscribed to a composed ancestor view answers messages landing on any
- * descendant instance chat.
+ * The multi-human room's wake gate (SPEC: agent access): `@` plus the
+ * assistant's name, case-insensitive, ending at a word boundary.
+ */
+function messageMentionsAssistant(message, assistantName) {
+    const text = String(message?.message || '');
+    const name = String(assistantName || '').trim();
+    if (!text || !name) return false;
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`@${escaped}(?![\\p{L}\\p{N}_])`, 'iu').test(text);
+}
+
+/**
+ * Conversation keys a message belongs to, in execution-point order: its own
+ * thread first, then the instance path's ancestors nearest-first — the AI
+ * subscribed to any of them answers beside the message, and the first
+ * subscribed key wins the room's model pin.
  */
 function candidateConversationKeys(context, message) {
-    const keys = new Set([String(message.conversationKey || context.conversationKey || '')].filter(Boolean));
-    for (const entry of message.instancePath || []) {
-        if (entry?.type && entry?.id) keys.add(supportService.instanceConversationKey(entry.type, entry.id));
+    const keys = [];
+    const own = String(message.conversationKey || context.conversationKey || '');
+    if (own) keys.push(own);
+    const path = Array.isArray(message.instancePath) ? message.instancePath : [];
+    for (let index = path.length - 1; index >= 0; index -= 1) {
+        const entry = path[index];
+        if (!entry?.type || !entry?.id) continue;
+        const key = supportService.instanceConversationKey(entry.type, entry.id);
+        if (!keys.includes(key)) keys.push(key);
     }
-    return [...keys];
+    return keys;
 }
 
 /**
  * Trigger rules: support-channel messages never trigger; the AI never
  * triggers itself (no loops); direct conversations answer implicitly when
  * the assistant is a participant; group and instance conversations answer
- * through subscriptions. The sender's agent-chat capability is checked at
- * run time, not here — resolution stays purely structural.
+ * through subscriptions — group rooms additionally require the assistant's
+ * participants entry, and multi-human rooms only when the message names
+ * the assistant (a two-participant assistant room is the AI's own
+ * person-style thread and answers every message). The sender's capability
+ * and organization are checked at run time, not here — resolution stays
+ * purely structural.
  */
 export async function resolveAssistantTarget(context, message) {
     if (!message || context.kind === 'support') return null;
@@ -121,19 +175,44 @@ export async function resolveAssistantTarget(context, message) {
         // Direct chats need no membership, but the conversation is still a
         // model execution point: a profile-only subscription row may pin
         // the room's model.
-        const [row] = await botRepository.findSubscriptionsByConversation([
-            String(message.conversationKey || context.conversationKey || '')
-        ]);
-        return { assistantId: bots[0], profile: String(row?.profile || ''), model: String(row?.model || '') };
+        const conversationKey = String(message.conversationKey || context.conversationKey || '');
+        const [row] = await botRepository.findSubscriptionsByConversation([conversationKey]);
+        return {
+            assistantId: bots[0],
+            roomKey: conversationKey,
+            profile: String(row?.profile || ''),
+            model: String(row?.model || ''),
+            organizationId: row?.organizationId ? String(row.organizationId) : ''
+        };
     }
 
-    const subscriptions = await botRepository.findSubscriptionsByConversation(candidateConversationKeys(context, message));
+    const candidates = candidateConversationKeys(context, message);
+    const subscriptions = await botRepository.findSubscriptionsByConversation(candidates);
     if (!subscriptions.length) return null;
-    // One AI, one room: the first row is the room's membership (the key
-    // stays bot+conversation from the multi-bot era; only the assistant's
-    // rows exist).
-    const row = subscriptions[0];
-    return { assistantId: String(row.botUserId), profile: String(row.profile || ''), model: String(row.model || '') };
+    // One AI, one room: the first subscribed key in execution-point order
+    // (own thread, then nearest ancestor) is the room that answers.
+    const byKey = new Map(subscriptions.map(row => [String(row.conversationKey), row]));
+    const roomKey = candidates.find(key => byKey.has(key));
+    const row = byKey.get(roomKey);
+    const assistantId = String(row.botUserId);
+    if (context.kind === 'group') {
+        const participants = (message.participants || context.participants || []).map(item => String(item));
+        if (!participants.includes(assistantId)) return null;
+        if (participants.length > 2) {
+            const identity = await cachedBotIdentity(assistantId);
+            if (!messageMentionsAssistant(message, identity?.name || ASSISTANT_NAME)) return null;
+        }
+    } else {
+        const identity = await cachedBotIdentity(assistantId);
+        if (!messageMentionsAssistant(message, identity?.name || ASSISTANT_NAME)) return null;
+    }
+    return {
+        assistantId,
+        roomKey,
+        profile: String(row.profile || ''),
+        model: String(row.model || ''),
+        organizationId: row.organizationId ? String(row.organizationId) : ''
+    };
 }
 
 function systemPrompt(assistantName, organizationName, principalName) {
@@ -344,25 +423,38 @@ async function resolveDelegatedPrincipal(organizationId, userId) {
  * failures surface as a short reply so the room never stares at silence.
  */
 export async function runAssistantReply(target, context, message) {
-    const lockKey = `${target.assistantId}:${message.conversationKey}`;
-    if (inFlight.has(lockKey)) {
-        console.warn('[AGENT-BOTS] reply skipped, another run already in flight:', lockKey);
+    const roomKey = String(target.roomKey || message.conversationKey || '');
+    const lockKey = `${target.assistantId}:${roomKey}`;
+    const existing = inFlight.get(lockKey);
+    if (existing) {
+        // Coalesce, never drop: the latest trigger answers once the
+        // current run lands.
+        existing.pending = { kind: 'reply', target, context, message };
         return;
     }
     const controller = new AbortController();
-    inFlight.set(lockKey, { conversationKey: message.conversationKey, organizationId: null, controller });
+    const fanoutKeys = candidateConversationKeys(context, message);
+    const stopKeys = [...new Set([roomKey, ...fanoutKeys])];
+    inFlight.set(lockKey, { conversationKey: roomKey, stopKeys, organizationId: null, controller, pending: null });
     let stream = null;
     // Hoisted: the failure notice in the catch needs the delegated
     // principal, and a try-scoped const is invisible there.
     let execAuth = null;
     try {
-        execAuth = await resolveDelegatedPrincipal(message.organizationId || context.organizationId, message.senderUserId);
+        execAuth = await resolveDelegatedPrincipal(
+            target.organizationId || message.organizationId || context.organizationId,
+            message.senderUserId
+        );
         if (!execAuth) return;
+        // The subscription's org is the wake boundary: an assistant answers
+        // only its own organization's members (a shared group's foreign
+        // participant stays silent).
+        if (target.organizationId && String(execAuth.organizationId || '') !== target.organizationId) return;
         const assistantAuth = await buildPrincipalAuth(target.assistantId);
-        inFlight.get(lockKey).organizationId = assistantAuth.organizationId || execAuth.organizationId;
-        stream = botActivitySink(assistantAuth, message.conversationKey);
+        inFlight.get(lockKey).organizationId = target.organizationId || assistantAuth.organizationId || execAuth.organizationId;
+        stream = botActivitySink(assistantAuth, fanoutKeys);
         stream.activity([]);
-        const organizationId = execAuth.organizationId;
+        const organizationId = target.organizationId || execAuth.organizationId;
         // Execution-point precedence: the conversation's pin, then the org
         // chat route (no per-bot brain — one AI, the org's models).
         const profileId = target.profile || '';
@@ -405,7 +497,9 @@ export async function runAssistantReply(target, context, message) {
         }
     } finally {
         if (stream) stream.end();
+        const pending = inFlight.get(lockKey)?.pending || null;
         inFlight.delete(lockKey);
+        if (pending && !controller.signal.aborted) refirePending(pending);
     }
 }
 
@@ -452,12 +546,21 @@ function actorLabelOf(event) {
  */
 export async function runAssistantWake(subscription, event, rule = {}) {
     const lockKey = `${subscription.botUserId}:${subscription.conversationKey}`;
-    if (inFlight.has(lockKey)) {
-        console.warn('[AGENT-BOTS] wake skipped, reply already in flight:', lockKey);
+    const existing = inFlight.get(lockKey);
+    if (existing) {
+        // Coalesce with the room's in-flight run: the wake re-fires once it
+        // lands (chat replies and wakes share the lock space).
+        existing.pending = { kind: 'wake', subscription, event, rule };
         return;
     }
     const controller = new AbortController();
-    inFlight.set(lockKey, { conversationKey: subscription.conversationKey, organizationId: null, controller });
+    inFlight.set(lockKey, {
+        conversationKey: subscription.conversationKey,
+        stopKeys: [String(subscription.conversationKey)],
+        organizationId: null,
+        controller,
+        pending: null
+    });
     let stream = null;
     try {
         const execAuth = await resolveDelegatedPrincipal(subscription.organizationId, rule.createdBy);
@@ -466,7 +569,7 @@ export async function runAssistantWake(subscription, event, rule = {}) {
         if (!assistant) return;
         const assistantAuth = await buildPrincipalAuth(assistant.id);
         inFlight.get(lockKey).organizationId = subscription.organizationId?.toString?.() || null;
-        stream = botActivitySink(assistantAuth, subscription.conversationKey);
+        stream = botActivitySink(assistantAuth, [subscription.conversationKey]);
         stream.activity([]);
         // Execution-point precedence: the wake rule's model, then this
         // conversation's, then the org chat route.
@@ -510,6 +613,8 @@ export async function runAssistantWake(subscription, event, rule = {}) {
         if (!controller.signal.aborted) console.error('[AGENT-BOTS] wake failed:', error);
     } finally {
         if (stream) stream.end();
+        const pending = inFlight.get(lockKey)?.pending || null;
         inFlight.delete(lockKey);
+        if (pending && !controller.signal.aborted) refirePending(pending);
     }
 }
