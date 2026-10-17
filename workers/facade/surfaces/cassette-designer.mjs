@@ -480,10 +480,6 @@ export default function createSurface({ vue, components, locale, queries, record
         label: t(`cassette.v2.sides.${side}`),
         value: side
       })));
-      const jointTypeOptions = computed(() => ['mechanical', 'adhesive', 'weld', 'interlock', 'hook_on', 'sealed', 'gasketed', 'other'].map(type => ({
-        label: t(`cassette.v2.jointTypes.${type}`),
-        value: type
-      })));
       const hardwareFamilyOptions = computed(() => CASSETTE_V2_HARDWARE_FAMILIES.map(family => ({
         label: t(`cassette.v2.hardwareFamilies.${family}`),
         value: family
@@ -523,7 +519,14 @@ export default function createSurface({ vue, components, locale, queries, record
       // Owner law (2026-10-16): a profile never arranges on a fold edge
       // (or one consumed by another profile) — the chooser offers only
       // the face's arrangeable edges, keeping the relation's own.
-      const attachableEdgeOptions = (faceId, relationId) => cassetteV2AttachableProfileEdgesForTree(cassetteTree.value, faceId, relationId)
+      // Hardware arrays may bind profile-occupied edges (owner law
+      // 2026-10-17): the terminal exclusion is profile-on-profile only.
+      const attachableEdgeOptions = (faceId, relationId, kind = 'profile') => cassetteV2AttachableProfileEdgesForTree(
+        cassetteTree.value,
+        faceId,
+        relationId,
+        { excludeProfileEdges: kind !== 'hardware' }
+      )
         .map(edge => ({ label: edge, value: edge }));
       const anchorOptions = computed(() => [
         { label: t('cassette.v2.anchors.start'), value: 0 },
@@ -1317,7 +1320,10 @@ export default function createSurface({ vue, components, locale, queries, record
           const attachable = cassetteV2AttachableProfileEdgesForTree(
             cassetteTree.value,
             nextPatch.targetFaceId || relation.targetFaceId,
-            relationId
+            relationId,
+            // Hardware arrays may sit on profile-occupied edges (owner
+            // law 2026-10-17): only profile askers get the exclusion.
+            { excludeProfileEdges: attachmentSourceKind(relation) !== 'hardware' }
           );
           const edge = nextPatch.arrayEdge ?? relation.arrayEdge;
           if (attachable.length && !attachable.includes(edge)) nextPatch.arrayEdge = attachable[0];
@@ -1334,10 +1340,6 @@ export default function createSurface({ vue, components, locale, queries, record
         selectedRelationId.value = result.selectedRelationId;
         if (result.selectedWorkpieceId) selectWorkpieceForInspector(result.selectedWorkpieceId);
         else inspectorSelection.value = 'workpiece';
-      };
-
-      const deleteInlineAttachmentRelation = () => {
-        deleteWorkpieceRelation(inlineEditorRelation.value?.id || selectedWorkpieceRelation.value?.id);
       };
 
       const addWorkpieceFrom = (workpieceId) => {
@@ -2066,224 +2068,155 @@ export default function createSurface({ vue, components, locale, queries, record
               : null
           ]);
         } else if (editor.type === 'attachment' && relation) {
-          // Per-kind field sets: profile / hardware / workpiece
-          // (attachmentSourceKind above owns the mapping).
+          // Per-kind field sets (attachmentSourceKind owns the mapping):
+          // workpiece attachments edit symmetric host/self sections —
+          // face, side, basis snap, and both offsets per section — with
+          // no mirror, driver, or delete (the panel row owns removal).
           const kind = attachmentSourceKind(relation);
-          body = h('div', { class: 'flex w-96 flex-col gap-2' }, [
-            h('div', { class: 'flex cursor-move items-center gap-1', onMousedown: event => { event.preventDefault(); startInlineEditorDrag(event); } }, [
-              h(Select, {
-                modelValue: relation.targetFaceId,
-                options: targetFaceOptions.value,
-                optionLabel: 'label',
-                optionValue: 'value',
-                class: 'min-w-0 flex-1',
-                size: 'small',
-                'aria-label': t('cassette.v2.attachmentFields.targetFace'),
-                title: t('cassette.v2.attachmentFields.targetFace'),
-                onMousedown: event => event.stopPropagation(),
-                'onUpdate:modelValue': value => updateInlineAttachmentRelation({ targetFaceId: value })
-              }),
-              kind === 'workpiece'
-                ? h(Select, {
-                    modelValue: relation.sourceFaceId,
-                    options: sourceFaceOptions.value,
-                    optionLabel: 'label',
-                    optionValue: 'value',
-                    class: 'min-w-0 flex-1',
-                    size: 'small',
-                    'aria-label': t('cassette.v2.attachmentFields.sourceFace'),
-                    title: t('cassette.v2.attachmentFields.sourceFace'),
-                    onMousedown: event => event.stopPropagation(),
-                    'onUpdate:modelValue': value => updateInlineAttachmentRelation({ sourceFaceId: value })
-                  })
-                : null,
-              h(Button, {
-                icon: 'pi pi-times',
-                severity: 'secondary',
-                text: true,
-                rounded: true,
-                size: 'small',
-                'aria-label': t('common.close'),
-                onMousedown: event => event.stopPropagation(),
-                onClick: closeInlineEditor
-              })
-            ]),
-            h('div', { class: 'grid grid-cols-2 gap-2' }, [
-              h(Select, {
-                modelValue: relation.targetSnap,
-                options: snapOptions.value,
-                optionLabel: 'label',
-                optionValue: 'value',
-                class: 'w-full',
-                size: 'small',
-                'aria-label': t('cassette.v2.attachmentFields.targetSnap'),
-                title: t('cassette.v2.attachmentFields.targetSnap'),
-                'onUpdate:modelValue': value => updateInlineAttachmentRelation({ targetSnap: value })
-              }),
-              kind === 'workpiece'
-                ? h(Select, {
-                    modelValue: relation.sourceSnap,
-                    options: snapOptions.value,
-                    optionLabel: 'label',
-                    optionValue: 'value',
-                    class: 'w-full',
-                    size: 'small',
-                    'aria-label': t('cassette.v2.attachmentFields.sourceSnap'),
-                    title: t('cassette.v2.attachmentFields.sourceSnap'),
-                    'onUpdate:modelValue': value => updateInlineAttachmentRelation({ sourceSnap: value })
-                  })
-                : null,
-              // Caption blocks, not <label>s: a label wraps exactly one
-              // control, and the editor's token panel carries buttons —
-              // the browser forwards a click on the label to its first
-              // button, typing phantom tokens into the field.
-              h('div', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: t('cassette.v2.attachmentFields.edgeMargin') }, [
-                h('span', { class: 'truncate' }, t('cassette.v2.attachmentFields.edgeMargin')),
-                h(CassetteExpressionEditor, {
-                  modelValue: relation.offsetX,
-                  parameters: globalParameters.value,
-                  parameterNames: globalParameterNames.value,
-                  'onUpdate:modelValue': value => updateInlineAttachmentRelation({ offsetX: value })
-                })
-              ]),
-              h('div', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: t('cassette.v2.attachmentFields.normalOffset') }, [
-                h('span', { class: 'truncate' }, t('cassette.v2.attachmentFields.normalOffset')),
-                h(CassetteExpressionEditor, {
-                  modelValue: relation.offsetY,
-                  parameters: globalParameters.value,
-                  parameterNames: globalParameterNames.value,
-                  'onUpdate:modelValue': value => updateInlineAttachmentRelation({ offsetY: value })
-                })
-              ]),
-              h('div', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: t('cassette.v2.attachmentFields.rotation') }, [
-                h('span', { class: 'truncate' }, t('cassette.v2.attachmentFields.rotation')),
-                h(CassetteExpressionEditor, {
-                  modelValue: relation.rotation,
-                  parameters: globalParameters.value,
-                  parameterNames: globalParameterNames.value,
-                  'onUpdate:modelValue': value => updateInlineAttachmentRelation({ rotation: value })
-                })
-              ]),
-              kind !== 'profile'
-                ? h(Select, {
-                    modelValue: relation.targetSide,
-                    options: sideOptions.value,
-                    optionLabel: 'label',
-                    optionValue: 'value',
-                    class: 'w-full',
-                    size: 'small',
-                    'aria-label': t('cassette.v2.attachmentFields.side'),
-                    title: t('cassette.v2.attachmentFields.side'),
-                    'onUpdate:modelValue': value => updateInlineAttachmentRelation({ targetSide: value })
-                  })
-                : null,
-              kind !== 'workpiece'
-                ? h(Select, {
-                    modelValue: relation.placementMode,
-                    options: placementModeOptions.value,
-                    optionLabel: 'label',
-                    optionValue: 'value',
-                    class: 'w-full',
-                    size: 'small',
-                    'aria-label': t('cassette.v2.attachmentFields.placementMode'),
-                    title: t('cassette.v2.attachmentFields.placementMode'),
-                    'onUpdate:modelValue': value => updateInlineAttachmentRelation({ placementMode: value })
-                  })
-                : null,
-              kind !== 'workpiece' && relation.placementMode === 'edgeArray'
-                ? h(Select, {
-                    modelValue: relation.arrayEdge,
-                    options: attachableEdgeOptions(relation.targetFaceId, relation.id),
-                    optionLabel: 'label',
-                    optionValue: 'value',
-                    class: 'w-full',
-                    size: 'small',
-                    'aria-label': t('cassette.v2.attachmentFields.arrayEdge'),
-                    title: t('cassette.v2.attachmentFields.arrayEdge'),
-                    'onUpdate:modelValue': value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arrayEdge: value })
-                  })
-                : null,
-              kind !== 'workpiece' && relation.placementMode === 'edgeArray'
-                ? h(Select, {
-                    modelValue: relation.arrayMode,
-                    options: arrayModeOptions.value,
-                    optionLabel: 'label',
-                    optionValue: 'value',
-                    class: 'w-full',
-                    size: 'small',
-                    'aria-label': t('cassette.v2.attachmentFields.arrayMode'),
-                    title: t('cassette.v2.attachmentFields.arrayMode'),
-                    'onUpdate:modelValue': value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arrayMode: value })
-                  })
-                : null,
-              kind !== 'workpiece' && relation.placementMode === 'edgeArray'
-                ? h('div', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: arrayValueLabel(relation) }, [
-                    h('span', { class: 'truncate' }, arrayValueLabel(relation)),
-                    h(CassetteExpressionEditor, {
-                      modelValue: arrayValue(relation),
-                      parameters: globalParameters.value,
-                      parameterNames: globalParameterNames.value,
-                      'onUpdate:modelValue': value => updateInlineAttachmentRelation(arrayValuePatch(relation, value))
-                    })
-                  ])
-                : null,
-              kind !== 'hardware'
-                ? h('div', { class: 'flex min-w-0 gap-1' }, [
-                    h(Button, {
-                      icon: 'pi pi-arrows-h',
-                      severity: relation.mirrorX ? 'primary' : 'secondary',
-                      size: 'small',
-                      class: 'min-w-0 flex-1',
-                      label: t('cassette.v2.attachmentFields.mirrorX'),
-                      'aria-label': t('cassette.v2.attachmentFields.mirrorX'),
-                      title: t('cassette.v2.attachmentFields.mirrorX'),
-                      onClick: () => updateInlineAttachmentRelation({ mirrorX: !relation.mirrorX })
-                    }),
-                    h(Button, {
-                      icon: 'pi pi-arrows-v',
-                      severity: relation.mirrorY ? 'primary' : 'secondary',
-                      size: 'small',
-                      class: 'min-w-0 flex-1',
-                      label: t('cassette.v2.attachmentFields.mirrorY'),
-                      'aria-label': t('cassette.v2.attachmentFields.mirrorY'),
-                      title: t('cassette.v2.attachmentFields.mirrorY'),
-                      onClick: () => updateInlineAttachmentRelation({ mirrorY: !relation.mirrorY })
-                    })
-                  ])
-                : null,
-              kind === 'workpiece'
-                ? h(Select, {
-                    modelValue: relation.type,
-                    options: jointTypeOptions.value,
-                    optionLabel: 'label',
-                    optionValue: 'value',
-                    class: 'w-full',
-                    size: 'small',
-                    'aria-label': t('cassette.v2.attachmentFields.jointType'),
-                    title: t('cassette.v2.attachmentFields.jointType'),
-                    'onUpdate:modelValue': value => updateInlineAttachmentRelation({ type: value })
-                  })
-                : null,
-              kind === 'workpiece'
-                ? h(Button, {
-                    icon: 'pi pi-map-marker',
-                    severity: relation.driver ? 'primary' : 'secondary',
-                    size: 'small',
-                    'aria-label': t('cassette.v2.attachmentFields.driver'),
-                    title: t('cassette.v2.attachmentFields.driver'),
-                    onClick: () => updateInlineAttachmentRelation({ driver: true })
-                  })
-                : null,
-              h(Button, {
-                icon: 'pi pi-trash',
-                severity: 'danger',
-                size: 'small',
-                'aria-label': t('cassette.v2.removeAttachment'),
-                title: t('cassette.v2.removeAttachment'),
-                onClick: deleteInlineAttachmentRelation
-              })
-            ])
+          // Caption blocks, not <label>s: a label wraps exactly one
+          // control, and the editor's token panel carries buttons —
+          // the browser forwards a click on the label to its first
+          // button, typing phantom tokens into the field.
+          const expressionField = (labelKey, value, key) => h('div', {
+            class: 'flex min-w-0 flex-col gap-1 text-muted text-label',
+            title: t(labelKey)
+          }, [
+            h('span', { class: 'truncate' }, t(labelKey)),
+            h(CassetteExpressionEditor, {
+              modelValue: value,
+              parameters: globalParameters.value,
+              parameterNames: globalParameterNames.value,
+              'onUpdate:modelValue': next => updateInlineAttachmentRelation({ [key]: next })
+            })
           ]);
+          const selectField = (labelKey, modelValue, options, key) => h(Select, {
+            modelValue,
+            options: options.value,
+            optionLabel: 'label',
+            optionValue: 'value',
+            class: 'w-full',
+            size: 'small',
+            'aria-label': t(labelKey),
+            title: t(labelKey),
+            'onUpdate:modelValue': value => updateInlineAttachmentRelation({ [key]: value })
+          });
+          const dragHandle = fields => h('div', {
+            class: 'flex cursor-move items-center gap-1',
+            onMousedown: event => { event.preventDefault(); startInlineEditorDrag(event); }
+          }, [
+            ...fields,
+            h(Button, {
+              icon: 'pi pi-times',
+              severity: 'secondary',
+              text: true,
+              rounded: true,
+              size: 'small',
+              'aria-label': t('common.close'),
+              onMousedown: event => event.stopPropagation(),
+              onClick: closeInlineEditor
+            })
+          ]);
+          if (kind === 'workpiece') {
+            const section = (labelKey, fields) => h('div', { class: 'flex flex-col gap-1' }, [
+              h('div', { class: 'text-muted text-label' }, t(labelKey)),
+              h('div', { class: 'grid grid-cols-2 gap-2' }, fields)
+            ]);
+            body = h('div', { class: 'flex w-96 flex-col gap-2' }, [
+              dragHandle([]),
+              section('cassette.v2.attachmentFields.hostSection', [
+                selectField('cassette.v2.attachmentFields.targetFace', relation.targetFaceId, targetFaceOptions, 'targetFaceId'),
+                selectField('cassette.v2.attachmentFields.side', relation.targetSide, sideOptions, 'targetSide'),
+                selectField('cassette.v2.attachmentFields.targetSnap', relation.targetSnap, snapOptions, 'targetSnap'),
+                expressionField('cassette.v2.attachmentFields.edgeMargin', relation.offsetX, 'offsetX'),
+                expressionField('cassette.v2.attachmentFields.normalOffset', relation.offsetY, 'offsetY')
+              ]),
+              section('cassette.v2.attachmentFields.selfSection', [
+                selectField('cassette.v2.attachmentFields.sourceFace', relation.sourceFaceId, sourceFaceOptions, 'sourceFaceId'),
+                selectField('cassette.v2.attachmentFields.side', relation.sourceSide, sideOptions, 'sourceSide'),
+                selectField('cassette.v2.attachmentFields.sourceSnap', relation.sourceSnap, snapOptions, 'sourceSnap'),
+                expressionField('cassette.v2.attachmentFields.edgeMargin', relation.sourceOffsetX, 'sourceOffsetX'),
+                expressionField('cassette.v2.attachmentFields.normalOffset', relation.sourceOffsetY, 'sourceOffsetY')
+              ])
+            ]);
+          } else {
+            body = h('div', { class: 'flex w-96 flex-col gap-2' }, [
+              dragHandle([
+                h(Select, {
+                  modelValue: relation.targetFaceId,
+                  options: targetFaceOptions.value,
+                  optionLabel: 'label',
+                  optionValue: 'value',
+                  class: 'min-w-0 flex-1',
+                  size: 'small',
+                  'aria-label': t('cassette.v2.attachmentFields.targetFace'),
+                  title: t('cassette.v2.attachmentFields.targetFace'),
+                  onMousedown: event => event.stopPropagation(),
+                  'onUpdate:modelValue': value => updateInlineAttachmentRelation({ targetFaceId: value })
+                })
+              ]),
+              h('div', { class: 'grid grid-cols-2 gap-2' }, [
+                selectField('cassette.v2.attachmentFields.targetSnap', relation.targetSnap, snapOptions, 'targetSnap'),
+                expressionField('cassette.v2.attachmentFields.edgeMargin', relation.offsetX, 'offsetX'),
+                expressionField('cassette.v2.attachmentFields.normalOffset', relation.offsetY, 'offsetY'),
+                expressionField('cassette.v2.attachmentFields.rotation', relation.rotation, 'rotation'),
+                kind === 'hardware'
+                  ? selectField('cassette.v2.attachmentFields.side', relation.targetSide, sideOptions, 'targetSide')
+                  : null,
+                selectField('cassette.v2.attachmentFields.placementMode', relation.placementMode, placementModeOptions, 'placementMode'),
+                relation.placementMode === 'edgeArray'
+                  ? h(Select, {
+                      modelValue: relation.arrayEdge,
+                      options: attachableEdgeOptions(relation.targetFaceId, relation.id, kind),
+                      optionLabel: 'label',
+                      optionValue: 'value',
+                      class: 'w-full',
+                      size: 'small',
+                      'aria-label': t('cassette.v2.attachmentFields.arrayEdge'),
+                      title: t('cassette.v2.attachmentFields.arrayEdge'),
+                      'onUpdate:modelValue': value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arrayEdge: value })
+                    })
+                  : null,
+                relation.placementMode === 'edgeArray'
+                  ? selectField('cassette.v2.attachmentFields.arrayMode', relation.arrayMode, arrayModeOptions, 'arrayMode')
+                  : null,
+                relation.placementMode === 'edgeArray'
+                  ? h('div', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: arrayValueLabel(relation) }, [
+                      h('span', { class: 'truncate' }, arrayValueLabel(relation)),
+                      h(CassetteExpressionEditor, {
+                        modelValue: arrayValue(relation),
+                        parameters: globalParameters.value,
+                        parameterNames: globalParameterNames.value,
+                        'onUpdate:modelValue': value => updateInlineAttachmentRelation(arrayValuePatch(relation, value))
+                      })
+                    ])
+                  : null,
+                kind === 'profile'
+                  ? h('div', { class: 'flex min-w-0 gap-1' }, [
+                      h(Button, {
+                        icon: 'pi pi-arrows-h',
+                        severity: relation.mirrorX ? 'primary' : 'secondary',
+                        size: 'small',
+                        class: 'min-w-0 flex-1',
+                        label: t('cassette.v2.attachmentFields.mirrorX'),
+                        'aria-label': t('cassette.v2.attachmentFields.mirrorX'),
+                        title: t('cassette.v2.attachmentFields.mirrorX'),
+                        onClick: () => updateInlineAttachmentRelation({ mirrorX: !relation.mirrorX })
+                      }),
+                      h(Button, {
+                        icon: 'pi pi-arrows-v',
+                        severity: relation.mirrorY ? 'primary' : 'secondary',
+                        size: 'small',
+                        class: 'min-w-0 flex-1',
+                        label: t('cassette.v2.attachmentFields.mirrorY'),
+                        'aria-label': t('cassette.v2.attachmentFields.mirrorY'),
+                        title: t('cassette.v2.attachmentFields.mirrorY'),
+                        onClick: () => updateInlineAttachmentRelation({ mirrorY: !relation.mirrorY })
+                      })
+                    ])
+                  : null
+              ])
+            ]);
+          }
         } else if (editor.type === 'faceParameter' && anchorKey) {
           body = h('div', { class: 'flex min-w-64 flex-col gap-2' }, [
             h('div', { class: 'flex cursor-move items-start gap-1', onMousedown: event => { event.preventDefault(); startInlineEditorDrag(event); } }, [

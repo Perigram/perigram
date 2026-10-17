@@ -921,7 +921,7 @@ describe('cassette v2 trapezoid renderer', () => {
     ]);
     expect(occs.cassette.joints).toEqual([expect.objectContaining({
       id: 'joint_wp_1_wp_2',
-      source: { occurrence: 'wp_2', face: 'face_2' },
+      source: { occurrence: 'wp_2', face: 'face_2', side: 'front' },
       target: { occurrence: 'wp_1', face: 'face_1', side: 'front' }
     })]);
     expect(relations).toEqual([expect.objectContaining({
@@ -977,7 +977,7 @@ describe('cassette v2 trapezoid renderer', () => {
       targetSnap: 'origin',
       source: { occurrence: 'wp_2', face: addedFace.nodeId }
     });
-    expect(occs.cassette.joints[0].source).toEqual({ occurrence: 'wp_2', face: addedFace.nodeId });
+    expect(occs.cassette.joints[0].source).toEqual({ occurrence: 'wp_2', face: addedFace.nodeId, side: 'front' });
     expect(sourceFaceCurve.vertices[0]).toEqual(targetCurve.vertices[0]);
     expect(drawing.foldedPreview.joints).toEqual([expect.objectContaining({
       sourceWorkpieceId: 'wp_2',

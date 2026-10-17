@@ -487,6 +487,8 @@
                 "targetFace": "Target face",
                 "sourceFace": "Source face",
                 "targetSnap": "Target snap",
+                "hostSection": "Host",
+                "selfSection": "Self",
                 "sourceSnap": "Source snap",
                 "side": "Side",
                 "edgeMargin": "Edge margin",
