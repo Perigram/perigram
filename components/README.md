@@ -1045,11 +1045,11 @@ own messages). Forwarded messages lead their content with the
 forwarded-from caption line (forward icon + original sender) on every
 shape — text, media, or files. While a subscribed bot runs, its live work
 renders as one chromeless activity block under the messages (no bubble
-chrome, no sender chip): the run's chronology as a `Timeline` — the
-model's reasoning in per-round collapsible `Fieldset` disclosures and
-one tool invocation per event (status-colored marker icon,
-technical-voice name, a severity-error `Message` when a tool failed) —
-and the answer growing as markdown in the room's flow. The transcript
+chrome, no sender chip): the run's chronology — the model's reasoning
+in per-round collapsible `Fieldset` disclosures and one caption row per
+tool invocation (status-colored icon, technical-voice name, a
+severity-error `Message` when a tool failed) — and the answer growing
+as markdown in the room's flow. The transcript
 does not
 jump to the bottom while the run works. The composer's trailing control
 becomes a stop button for the live run; stopping aborts the request and
@@ -1067,10 +1067,10 @@ authored server-side — see
 identity face is the shared microchip avatar
 ([shared components](./shared/README.md)) on inbox rows, thread
 headers, pickers, and sender chips — and it is the only AI marker:
-chat surfaces carry no text badges. Instance refs inside message
-bodies and trailing attachments render through
-`SupportMessageContent` as PrimeVue instance Chips, not inline
-text.
+chat surfaces carry no text badges. Instance refs attach to messages
+like files do: a wrapping chip row under the message body
+(`ChatInstanceRefs`), tokens in authored text strip from display —
+refs never render inline inside a contrast bubble.
 Conversations with bots carry a model select above the composer: it
 lists the models the org's chat endpoints actually serve (not the
 profiles — the endpoint's own model listing) and pins the choice on the
