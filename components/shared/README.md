@@ -447,14 +447,12 @@ aliases such as `sheetDesign` / `sheet_design` stay consistent. Use this for ent
 context where an always-expanded nested card would overload the surface; do not
 render extra lifecycle badges next to these relation chips because status
 belongs on the actual entity card/detail.
-Inline chips are the raw PrimeVue `Chip` — icon plus truncating label —
-toned per entity family through one data-driven style: the family accent
-whispered into the Chip's surface, border, and text. The hue comes from
-the tokenized entity family roles (`project/queue`, cassette
-family, sheet/run family, stock/material family, admin/meta family), and
-`InstanceInlineRef` maps entity families to `--ck-entity-tone-*` values
-only; it must not introduce PrimeVue primitive color assignments of its
-own. The Chip is the popover trigger everywhere the ref renders — chat
+Inline chips are the raw PrimeVue `Chip` — icon plus truncating label,
+Aura's own chrome. There is no per-type tint: a tone mapping would mean
+branching on authored type names inside shared code, and per-type
+presentation vocabulary rides declarations (the registry's `glyph` is
+the model) — no tone declaration exists, so none is synthesized. The
+Chip is the popover trigger everywhere the ref renders — chat
 message refs read as chips, not inline text — keeping the one-line,
 no-line-height-inflation behavior inside prose and dense surfaces
 (tables, field controls, relation rows) alike.

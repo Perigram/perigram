@@ -101,8 +101,9 @@ Timeline of its tool invocations. The AI's identity face is the microchip glyph 
 brand accent (carmine) wherever the assistant shows — thread avatars,
 sender chips, pickers — and it is the only AI marker on chat surfaces:
 no text badges. Instance refs inside chat messages render as PrimeVue
-Chips toned by entity family, never inline text. Inline entity refs
-everywhere are raw PrimeVue Chips — no hand-rolled chip chrome.
+Chips, never inline text. Inline entity refs
+everywhere are raw PrimeVue Chips — no hand-rolled chip chrome, no
+per-type tint hardcoded from authored type names.
 Person-chat presentation stays as it is.
 
 Lifecycle wakes: the AI brought into a conversation may be woken by status

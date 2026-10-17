@@ -382,13 +382,6 @@ describe('Design system manifest', () => {
     expect(supportMessageContent).toContain('text-prose');
   });
 
-  it('keeps shared instance accents inside the token system', () => {
-    const entityInlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceInlineRef.vue'), 'utf8');
-
-    expect(entityInlineRef).toContain('var(--ck-entity-tone-output)');
-    expect(entityInlineRef).not.toMatch(/var\(--p-(?:blue|orange|teal|green|purple)-500\)/);
-  });
-
   it('keeps app chrome and process signals on semantic color aliases', () => {
     const rawPaletteUtility = /\b(?:bg|text|border|ring)-(?:slate|zinc|gray|neutral|stone|blue|sky|teal|cyan|indigo|violet|fuchsia|purple|emerald|green|lime|red|orange|amber|yellow|pink|rose)-\d{1,3}\b/;
     const offenders = usedVueFiles().filter((file) => rawPaletteUtility.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')));
@@ -704,8 +697,6 @@ describe('Design system manifest', () => {
     expect(relationsBlock).toContain("field.display === 'entityRefList'");
     expect(surfaceContent).toContain("props.suppressChildSummaries && (field.role === 'childCount' || field.replacesCountPath)");
     expect(surfaceContent).toContain('relationVariant');
-    expect(inlineRef).toContain('entityFamilyAccent');
-    expect(inlineRef).toContain('color-mix');
     expect(inlineRef).toContain("variant === 'compact'");
     expect(inlineRef).toContain('class="inline-flex w-full');
     expect(inlineRef).toContain('variant="inline"');

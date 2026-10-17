@@ -181,6 +181,18 @@ glyph in the brand accent across chat surfaces (SPEC: agent access).
   fight alignment, markdown flow, and swipe affordances (owner left
   the call to the agent).
 
+### Agent Notes (2026-10-17 — tone deleted: data was hardcoded to code)
+
+- Owner finding: `entityFamilyAccent` branched on authored type names
+  (pack, plugin, and framework types) inside the generic inline ref —
+  domain data baked into shared code, the anti-pattern the registry's
+  declared `glyph` exists to prevent. Tone itself declared slop.
+- Deleted: `chipTone`, `entityFamilyAccent`, and the two `:style`
+  bindings — inline refs and compact identity render Chips with
+  Aura's own chrome; the file's inline-style inventory exception went
+  with them. No declared-tone vocabulary was built for a retired
+  feature.
+
 ### Agent Notes (2026-10-17 — raw-PrimeVue enforcement round)
 
 - Owner verdict: the boxed tool row and utility-rolled chip chrome

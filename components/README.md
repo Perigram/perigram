@@ -1069,7 +1069,7 @@ identity face is the shared microchip avatar
 headers, pickers, and sender chips — and it is the only AI marker:
 chat surfaces carry no text badges. Instance refs inside message
 bodies and trailing attachments render through
-`SupportMessageContent` as toned PrimeVue instance Chips, not inline
+`SupportMessageContent` as PrimeVue instance Chips, not inline
 text.
 Conversations with bots carry a model select above the composer: it
 lists the models the org's chat endpoints actually serve (not the
