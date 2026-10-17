@@ -135,6 +135,16 @@ authoring happens only inside a cassette design session.
 - [ ] WAITING — owner verification on the live stack: save a profile to
   the library from one cassette, pick it into another.
 
+### Agent Notes (2026-10-17 — affordance icons, owner direction)
+
+- Owner supplied `bolt.svg` into the cnc-domain sources; compiled via
+  `npm run icons:build` (fonts + generated CSS block + palette). The
+  add-hardware button now rides the hand-drawn
+  `ck-entity-icon ck-entity-icon-bolt` instead of PrimeIcons' bolt;
+  the add-profile button and the profile type's listing glyph ride
+  `pi pi-wave-pulse` (listing v10).
+- Owner step: Plugins page → Upgrade (now v6→v10).
+
 ### Agent Notes (2026-10-17 — add-profile picker with previews shipped)
 
 - The add-profile button now opens a picker (the surface's Popover
