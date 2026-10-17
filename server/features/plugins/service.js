@@ -20,14 +20,9 @@ import { findTypeReferences } from '../process-definitions/service.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask } from '../../core/tasks/service.js';
-import { composePackServices, composePackDomains, composePackAttachmentKinds, composeStarterConstructs, orderedMountedPacks } from '~/server/packs/declarations.js';
 import * as filesService from '../files/service.js';
 import { parseListing, normalizeListing } from '#packages/plugin-sdk/src/listing.js';
 import { isSupportedSurfaceContract, endpointOriginOf } from '#shared/plugin-surfaces.js';
-
-function packById(packId) {
-  return orderedMountedPacks().find(pack => pack.id === String(packId)) || null;
-}
 
 // Connector command ids: plugin.<pluginId>.<serviceId>; the install's
 // claim queue is plugin.<pluginId>@<organizationId>.
@@ -130,26 +125,19 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
       });
     }
   }
-  // The plugin's requirements must be satisfied — a mounted, enabled pack
-  // or an installed plugin (owner decision 2026-10-17: requires chains
-  // plugin-on-plugin; the pack branch is the transitional mount until the
-  // packs retire). A missing requirement would strand the plugin's types
-  // the same way a disabled dependent pack would.
-  const disabledPacks = new Set(await repository.listDisabledPacks(organizationId).catch(() => []));
+  // The plugin's requirements must be satisfied by installs (owner
+  // decision 2026-10-17: requires chains plugin-on-plugin; the packs
+  // retired). A missing requirement would strand the plugin's types.
   const installedPlugins = await repository.listInstallsByOrganization(organizationId);
   const installedPluginIds = new Set(installedPlugins.map(install => String(install.pluginId)));
   for (const requirementId of requires) {
-    if (installedPluginIds.has(requirementId)) continue;
-    if (!packById(requirementId)) {
-      throw createError({ statusCode: 400, message: `Plugin requires unknown plugin or pack ${requirementId}` });
-    }
-    if (disabledPacks.has(requirementId)) {
-      throw createError({ statusCode: 400, message: `Plugin requires pack ${requirementId}, which is disabled for this organization — enable it first` });
+    if (!installedPluginIds.has(requirementId)) {
+      throw createError({ statusCode: 400, message: `Plugin requires plugin ${requirementId}, which is not installed — install it first` });
     }
   }
-  // Attachment kinds are global upload vocabulary: a kind id held by an
-  // enabled pack or another installed plugin is not claimable.
-  const heldKinds = composePackAttachmentKinds(orderedMountedPacks().filter(pack => !disabledPacks.has(pack.id)));
+  // Attachment kinds are global upload vocabulary: a kind id another
+  // installed plugin holds is not claimable.
+  const heldKinds = {};
   for (const install of installedPlugins) {
     for (const kind of Object.keys(install.declarations?.attachmentKinds || {})) {
       if (heldKinds[kind]) {
@@ -533,19 +521,16 @@ export async function servicesForOrganization(organizationId) {
 // The one service list the projected-domain consumers resolve: mounted
 // pack services plus the organization's installed plugin services —
 // disabled packs contribute nothing.
-export async function packServicesForOrganization(organizationId) {
-  const disabled = new Set(await repository.listDisabledPacks(organizationId).catch(() => []));
-  const packs = orderedMountedPacks().filter(pack => !disabled.has(pack.id));
-  return [...composePackServices(packs), ...await servicesForOrganization(organizationId)];
+export async function projectedServicesForOrganization(organizationId) {
+  return await servicesForOrganization(organizationId);
 }
 
 // The projected-domain pack slices for an organization: enabled packs,
 // with installed plugins' construction contracts merged beside them (the
 // listing's service-backed constructions are the plugin layer of the same
 // domain vocabulary).
-export async function packDomainsForOrganization(organizationId) {
-  const disabled = new Set(await repository.listDisabledPacks(organizationId).catch(() => []));
-  const merged = composePackDomains(orderedMountedPacks().filter(pack => !disabled.has(pack.id)));
+export async function projectedDomainsForOrganization(organizationId) {
+  const merged = { commands: {}, construction: {}, events: [], serviceContracts: {} };
   const installs = organizationId ? await repository.listInstallsByOrganization(organizationId) : [];
   for (const install of installs) {
     for (const [typeId, modes] of Object.entries(install.declarations?.constructions || {})) {
@@ -590,14 +575,14 @@ export async function constructionsForOrganization(organizationId) {
 // plugins' — the pack law extended across layers: one construct per type,
 // a cross-layer collision is a composition error.
 export async function starterConstructsForOrganization(organizationId) {
-  const constructs = [...composeStarterConstructs()];
-  const seen = new Set(constructs.map(construct => construct.typeId));
+  const constructs = [];
+  const seen = new Set();
   for (const install of organizationId ? await repository.listInstallsByOrganization(organizationId) : []) {
     for (const construct of install.declarations?.starterConstructs || []) {
       if (seen.has(construct.typeId)) {
         throw createError({
           statusCode: 500,
-          message: `starter construct for type ${construct.typeId} declared by both a pack and installed plugin ${install.pluginId}`
+          message: `starter construct for type ${construct.typeId} declared by two installed plugins (last: ${install.pluginId})`
         });
       }
       seen.add(construct.typeId);
@@ -795,118 +780,6 @@ export async function connectorInfo({ organizationId, pluginId, auth = {} }) {
   };
 }
 
-// --- Mounted-pack enablement (the facade extraction's management plane):
-// packs compose for an org unless a disablement record exists; enabling
-// cascades over requirements, disabling is drain-gated by instances,
-// process bindings, a trial compose without the pack, and enabled
-// dependents ---
-
-export async function listPackState({ organizationId, auth = {} }) {
-  assertSameOrganization(organizationId, auth);
-  assertOrganizationPermission(auth, 'read');
-  const disabled = new Set(await repository.listDisabledPacks(organizationId));
-  const installs = await repository.listInstallsByOrganization(organizationId);
-  return orderedMountedPacks().map(pack => ({
-    pluginId: pack.id,
-    name: pack.label || pack.id,
-    pack: true,
-    enabled: !disabled.has(pack.id),
-    types: (pack.types || []).map(type => ({ id: type.id, name: type.name || null, class: type.class || null })),
-    services: (pack.services || []).map(service =>
-      ({ id: service.id, label: service.render?.label || service.label || service.id }))
-  })).concat(installs.map(install => ({ ...serializeInstall(install), pack: false, enabled: true })));
-}
-
-export async function enablePack({ organizationId, packId, auth = {} }) {
-  assertSameOrganization(organizationId, auth);
-  assertOrganizationPermission(auth, 'admin');
-  const target = packById(packId);
-  if (!target) throw createError({ statusCode: 404, message: 'Unknown pack' });
-  // Enabling cascades: requirements come back with the pack.
-  const disabled = new Set(await repository.listDisabledPacks(organizationId));
-  const toEnable = [];
-  const collect = pack => {
-    if (!disabled.has(pack.id) || toEnable.includes(pack.id)) return;
-    toEnable.push(pack.id);
-    for (const requirement of pack.requires || []) collect(packById(requirement));
-  };
-  collect(target);
-  for (const id of toEnable) await repository.enablePack(organizationId, id);
-  invalidateInstanceDeclarations(String(organizationId));
-  publishOrgContractChanged(String(organizationId), 'registry', { packId: String(packId), enabled: true });
-  return { packId: String(packId), enabled: true, enabledPacks: toEnable };
-}
-
-export async function disablePack({ organizationId, packId, auth = {} }) {
-  assertSameOrganization(organizationId, auth);
-  assertOrganizationPermission(auth, 'admin');
-  const target = packById(packId);
-  if (!target) throw createError({ statusCode: 404, message: 'Unknown pack' });
-  const disabled = new Set(await repository.listDisabledPacks(organizationId));
-  if (disabled.has(packId)) {
-    throw createError({ statusCode: 409, message: 'Pack is already disabled' });
-  }
-  // An enabled dependent keeps the requirement alive.
-  for (const pack of orderedMountedPacks()) {
-    if (disabled.has(pack.id)) continue;
-    if ((pack.requires || []).includes(target.id)) {
-      throw createError({
-        statusCode: 409,
-        message: `Pack ${target.id} is required by enabled pack ${pack.id} — disable it first`
-      });
-    }
-  }
-  // An installed plugin requiring the pack keeps it alive too — its types
-  // resolve against the pack's declarations the same way a dependent
-  // pack's do.
-  for (const install of await repository.listInstallsByOrganization(organizationId)) {
-    if ((install.requires || []).includes(target.id)) {
-      throw createError({
-        statusCode: 409,
-        message: `Pack ${target.id} is required by installed plugin ${install.pluginId} — uninstall it first`
-      });
-    }
-  }
-  // Drain: live instances or process bindings on any pack type refuse.
-  const blocked = [];
-  for (const type of target.types || []) {
-    const [instances, boundBy] = await Promise.all([
-      countInstancesOfType(type.id, organizationId),
-      findTypeReferences(organizationId, type.id)
-    ]);
-    if (instances > 0 || boundBy.length) {
-      blocked.push({ typeId: type.id, instances, boundBy: boundBy.map(binding => binding.name || binding.id) });
-    }
-  }
-  if (blocked.length) {
-    const detail = blocked.map(entry =>
-      entry.instances > 0
-        ? `${entry.typeId}: ${entry.instances} instance(s)`
-        : `${entry.typeId}: bound by ${entry.boundBy.join(', ')}`
-    ).join('; ');
-    throw createError({
-      statusCode: 409,
-      message: `Pack types still have live data (${detail}) — delete or migrate it first`,
-      data: { blocked }
-    });
-  }
-  // Trial compose without the pack: org-authored declarations referencing
-  // pack types would wedge the view — refuse before writing anything.
-  const trial = await compileRegistryForOrganization(organizationId, {
-    disabledPackIds: new Set([...disabled, target.id])
-  });
-  const compiled = trial.compile(organizationId);
-  if (!compiled.ok) {
-    throw createError({
-      statusCode: 409,
-      message: `Disabling pack ${target.id} breaks the organization view: ${compiled.errors.join('; ')}`
-    });
-  }
-  await repository.disablePack(organizationId, target.id, auth.userId);
-  invalidateInstanceDeclarations(String(organizationId));
-  publishOrgContractChanged(String(organizationId), 'registry', { packId: String(packId), enabled: false });
-  return { packId: String(packId), enabled: false };
-}
 
 export async function regenerateConnectorToken({ organizationId, pluginId, auth = {} }) {
   assertSameOrganization(organizationId, auth);
@@ -947,17 +820,15 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
   // The upgraded pin's requirements must still hold, and its attachment
   // kinds must stay claimable — the same laws the install gate enforces,
   // re-checked against the world as it is now.
-  const disabledPacks = new Set(await repository.listDisabledPacks(organizationId).catch(() => []));
   const otherInstalls = (await repository.listInstallsByOrganization(organizationId))
     .filter(other => String(other.pluginId) !== String(install.pluginId));
   const installedPluginIds = new Set(otherInstalls.map(other => String(other.pluginId)));
   for (const requirementId of layer.requires) {
-    if (installedPluginIds.has(requirementId)) continue;
-    if (!packById(requirementId) || disabledPacks.has(requirementId)) {
-      throw createError({ statusCode: 409, message: `Upgrade requires plugin or pack ${requirementId}, which is not installed, not mounted, or disabled` });
+    if (!installedPluginIds.has(requirementId)) {
+      throw createError({ statusCode: 409, message: `Upgrade requires plugin ${requirementId}, which is not installed` });
     }
   }
-  const heldKinds = composePackAttachmentKinds(orderedMountedPacks().filter(pack => !disabledPacks.has(pack.id)));
+  const heldKinds = {};
   for (const other of otherInstalls) {
     for (const kind of Object.keys(other.declarations?.attachmentKinds || {})) {
       heldKinds[kind] = `plugin ${other.pluginId}`;

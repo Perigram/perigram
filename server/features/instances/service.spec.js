@@ -13,9 +13,6 @@ vi.mock('../../core/access/service.js', () => ({
   hasInstanceAccess: vi.fn(() => true)
 }));
 vi.mock('../plugins/repository.js', () => ({
-  listDisabledPacks: vi.fn(async () => []),
-  enablePack: vi.fn(),
-  disablePack: vi.fn(),
   listDeclarationsByOrganization: vi.fn(async () => []),
   findDeclarationByTypeId: vi.fn(async () => null)
 }));

@@ -5,7 +5,6 @@
 // paths; these lookups serve the system vocabulary the runtimes and
 // catalog contexts read synchronously).
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '~/packages/cts/src/index.js';
-import { composeSystemDeclarations, composePackDomains } from '~/server/packs/declarations.js';
 
 let viewCache = null;
 let blockSchemaByPath = null;
@@ -13,10 +12,10 @@ let blockSchemaByPath = null;
 function systemView() {
   if (viewCache) return viewCache;
   const registry = createTypeRegistry({ id: 'process-system-view' });
-  for (const declaration of [...frameworkTypes, ...composeSystemDeclarations()]) {
+  for (const declaration of frameworkTypes) {
     registry.defineType(declaration);
   }
-  viewCache = projectDomainFromView(registry, null, composePackDomains(), {});
+  viewCache = projectDomainFromView(registry, null, { commands: {}, construction: {}, events: [], serviceContracts: {} }, {});
   return viewCache;
 }
 

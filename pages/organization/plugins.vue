@@ -28,17 +28,7 @@
             <Column :header="$t('common.actions.title')" class="text-right">
               <template #body="{ data }">
                 <div class="flex justify-end gap-2">
-                  <Button
-                    v-if="data.pack"
-                    icon="pi pi-trash"
-                    :aria-label="$t('plugins.uninstall')"
-                    severity="danger"
-                    size="small"
-                    text
-                    :loading="workingPluginId === data.pluginId"
-                    @click="uninstall(data)"
-                  />
-                  <template v-else>
+                  <template>
                     <Tag
                       v-if="data.availableVersion"
                       :value="`${data.version} → ${data.availableVersion}`"
@@ -340,7 +330,6 @@ const authStore = useAuthStore();
 
 const catalog = ref([]);
 const installed = ref([]);
-const disabledPacks = ref([]);
 const loading = ref(true);
 const installDialogVisible = ref(false);
 const pendingInstall = ref(null);
@@ -369,19 +358,12 @@ async function load() {
     return;
   }
   try {
-    const [catalogResponse, installedResponse, stateResponse] = await Promise.all([
+    const [catalogResponse, installedResponse] = await Promise.all([
       $fetch('/api/plugins/catalog'),
-      $fetch(`/api/organizations/${activeOrganizationId.value}/plugins`),
-      $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/state`)
+      $fetch(`/api/organizations/${activeOrganizationId.value}/plugins`)
     ]);
-    catalog.value = [
-      ...(catalogResponse || []),
-      ...(stateResponse || []).filter(item => item.pack && !item.enabled)
-    ];
-    installed.value = [
-      ...(stateResponse || []).filter(item => item.pack && item.enabled),
-      ...(installedResponse || [])
-    ];
+    catalog.value = [...(catalogResponse || [])];
+    installed.value = [...(installedResponse || [])];
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 3000 });
   } finally {
@@ -410,11 +392,7 @@ async function confirmInstall() {
   if (!listing) return;
   workingPluginId.value = listing.pluginId;
   try {
-    if (listing.pack) {
-      await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/packs/${encodeURIComponent(listing.pluginId)}`, {
-        method: 'POST'
-      });
-    } else {
+    {
       await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins`, {
         method: 'POST',
         body: { pluginId: listing.pluginId }
@@ -489,11 +467,7 @@ function uninstall(item) {
 async function removeInstalled(item) {
   workingPluginId.value = item.pluginId;
   try {
-    if (item.pack) {
-      await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/packs/${encodeURIComponent(item.pluginId)}`, {
-        method: 'DELETE'
-      });
-    } else {
+    {
       await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(item.pluginId)}`, {
         method: 'DELETE'
       });

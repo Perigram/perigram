@@ -80,7 +80,7 @@ process-definitions collection ([process-definitions](../process-definitions/REA
 - `createInitialForUser()` is the narrow public-signup helper. It creates the
   first organization for a newly registered user, seeds the organization's
   `role_admin` identity and creator assignment, creates and activates the
-  organization's starter process (the mounted packs' starter constructs —
+  organization's starter process (the installed plugins' starter constructs —
   see
   [process definitions](../process-definitions/README.md)), and writes the
   user's initial owner

@@ -1,7 +1,6 @@
 import { reactive, ref } from 'vue';
 import { compileTreeDeclarations, createProcessDesignerContract } from '~/packages/processes/src/index.js';
 import { createTypeRegistry, projectDomainFromView, renderPolicyFor, frameworkTypes } from '~/packages/cts/src/index.js';
-import { composePackServices, composeSystemDeclarations } from '~/server/packs/declarations.js';
 import { clearTypeMigrationSteps, declarationPostFailure } from '~/utils/processDesignerTypeMigrations.js';
 
 // The CTS declaration layer's lifecycle: the organization's type registry
@@ -50,7 +49,7 @@ export function useProcessDesignerTypes({
   function ctsProjectedDomain() {
     if (!ctsDomainCache) {
       ctsDomainCache = projectDomainFromView(ctsRegistry(), activeOrganizationId(), servedDomain, {
-        packServices: servedServices || composePackServices()
+        packServices: servedServices || []
       });
     }
     return ctsDomainCache;
@@ -153,7 +152,7 @@ export function useProcessDesignerTypes({
     // no local composition source) and overlay nothing — their ids are
     // disjoint from the mounted packs'.
     const composedIds = new Set();
-    for (const declaration of [...frameworkTypes, ...composeSystemDeclarations()]) {
+    for (const declaration of frameworkTypes) {
       composedIds.add(declaration.id);
       registry.defineType(declaration);
     }

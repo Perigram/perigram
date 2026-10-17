@@ -1,8 +1,8 @@
 import { requireAuth } from '~/server/utils/permissions';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { projectDomainFromView } from '~/packages/cts/src/index.js';
-import { packDomainsForOrganization } from '~/server/features/plugins/service.js';
-import { packServicesForOrganization } from '~/server/features/plugins/service.js';
+import { projectedDomainsForOrganization } from '~/server/features/plugins/service.js';
+import { projectedServicesForOrganization } from '~/server/features/plugins/service.js';
 import { compileRegistryForOrganization } from '~/server/features/cts-types/service.js';
 import { projectEntityProcessCapabilities } from '~/packages/processes/src/index.js';
 
@@ -21,8 +21,8 @@ export default defineEventHandler(async (event) => {
   // tables are not projected.
   const organizationId = resolveOrganizationId(auth);
   const view = await compileRegistryForOrganization(organizationId);
-  const domain = projectDomainFromView(view, organizationId, await packDomainsForOrganization(organizationId), {
-    packServices: await packServicesForOrganization(organizationId)
+  const domain = projectDomainFromView(view, organizationId, await projectedDomainsForOrganization(organizationId), {
+    packServices: await projectedServicesForOrganization(organizationId)
   });
 
   // Resolver-aware bindings: every entity in the projected view resolves
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
     // The one service list (mounted packs + installed plugins) and the
     // command definitions — the designer consumes these instead of
     // importing pack modules.
-    services: await packServicesForOrganization(organizationId),
+    services: await projectedServicesForOrganization(organizationId),
     commands: registry.listCommandDefinitions()
   };
 });

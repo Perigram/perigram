@@ -51,7 +51,7 @@ AI to conversations (see
 
 `plugins.vue` is the plugin marketplace surface (see
 [plugins](../../server/features/plugins/README.md)): the installed list
-(marketplace installs plus enabled mounted packs — the facade and its
+(marketplace installs — the platform's plugins compose the org view
 dependencies, removable) and the central catalog (plus disabled packs,
 re-installable). It is a registered workspace page opened as a home pane
 tab from the generated overview; the route stays as the mobile/deep-link

@@ -9,16 +9,8 @@ import {
   createTypeRegistry, compileClientBundle, frameworkTypes, planTypeMigration
 } from '~/packages/cts/src/index.js';
 import { isSupportedSurfaceContract, pluginModuleUrl } from '#shared/plugin-surfaces.js';
-import { composeSystemDeclarations, composePackEditors, composePackAttachmentKinds, orderedMountedPacks } from '~/server/packs/declarations.js';
 import * as pluginInstalls from '../plugins/repository.js';
 
-// The org's enabled mounted packs: disablement records filter the pack
-// layer of the system view (SPEC §Plugin marketplace — absence enabled).
-async function enabledPacksFor(organizationId, disabledPackIds = null) {
-  const disabled = disabledPackIds
-    || new Set(await pluginInstalls.listDisabledPacks(organizationId).catch(() => []));
-  return orderedMountedPacks().filter(pack => !disabled.has(pack.id));
-}
 import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -50,21 +42,17 @@ function withoutMigrateSteps(declaration = {}) {
 // probe must be synchronous, so authoring callers pre-count the type
 // being written into `emptyTypeIds`; every other composition passes no
 // probe and refuse-on-breaking holds exactly as before.
-export async function compileRegistryForOrganization(organizationId, { emptyTypeIds = null, excludePluginId = null, disabledPackIds = null } = {}) {
+export async function compileRegistryForOrganization(organizationId, { emptyTypeIds = null, excludePluginId = null } = {}) {
   const registry = createTypeRegistry({
     id: `cts-types:${organizationId || 'system'}`,
     hasInstances: emptyTypeIds
       ? type => (emptyTypeIds.has(type.id) ? 0 : 1)
       : null
   });
-  // System types are the framework's party declarations plus every
-  // ENABLED mounted pack's types in dependency order (SPEC §21
-  // requirements) — orgs hold disablement records against packs
-  // (SPEC §Plugin marketplace).
-  const packs = organizationId
-    ? await enabledPacksFor(organizationId, disabledPackIds)
-    : orderedMountedPacks();
-  for (const declaration of [...frameworkTypes, ...composeSystemDeclarations(packs)]) {
+  // System types are the framework's party declarations (the packs
+  // retired into plugins, owner decision 2026-10-17 — their types arrive
+  // with the install layer below).
+  for (const declaration of frameworkTypes) {
     registry.defineType(declaration);
   }
   if (organizationId) {
@@ -98,13 +86,9 @@ export async function compileRegistryForOrganization(organizationId, { emptyType
 }
 
 export async function describeOrganizationTypes(organizationId) {
-  const packs = organizationId
-    ? await enabledPacksFor(organizationId)
-    : orderedMountedPacks();
-  const disabledPackIds = new Set(orderedMountedPacks().filter(pack => !packs.includes(pack)).map(pack => pack.id));
-  const registry = await compileRegistryForOrganization(organizationId, { disabledPackIds });
-  const editors = [...composePackEditors(packs)];
-  const attachmentKinds = composePackAttachmentKinds(packs);
+  const registry = await compileRegistryForOrganization(organizationId);
+  const editors = [];
+  const attachmentKinds = {};
   // Installed plugin declarations compose beside the enabled packs: editor
   // bindings and attachment kinds are the installed layer of the same
   // served vocabulary (SPEC §Plugin marketplace), under the same laws —

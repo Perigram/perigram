@@ -77,16 +77,15 @@ strangler layer 0 of the designer rebuild (see
   the response (SPEC §19 abandoned data, promoted to a gate).
 - `describeOrganizationTypes` returns the compiled client bundle (types,
   states, operators, derived display policy, JSON Schemas) plus attachment-kind
-  payload traits and the composed pack editor bindings (SPEC §21: each
-  mounted pack's `{ type, surface, modes }` records, dependency-ordered by
-  `server/packs/declarations.js`). The editor list is the served half of
+  payload traits and the installed plugins' editor bindings (`{
+  type, surface, modes }` records from the install snapshots). The editor
+  list is the served half of
   the type→surface contract; the app maps surface ids to components in
   [components/generated/file-surfaces](../../../components/generated/README.md).
-  Editor bindings are file-type contracts: the pack composition seam
-  (`composePackEditors`) refuses a binding whose type no mounted pack
-  declares or whose class is not `file` (payload-bearing), naming the
-  offending pack and type — a party/group/process type can never carry an
-  editor surface (spec: `editor-bindings.spec.js`). Beside the editors the
+  Editor bindings are file-type contracts: the SDK's listing contract
+  refuses a binding whose type the plugin does not declare or whose class
+  is not `file` (payload-bearing) — a party/group/process type can never
+  carry an editor surface. Beside the editors the
   view serves the installed plugins' surface declarations (owner decision
   2026-10-11) as `{ id, url, surfaceContract, kind? }` records: each
   module URL is the app's same-origin plugin-module proxy path

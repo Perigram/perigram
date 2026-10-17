@@ -43,7 +43,8 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   the facade plugin's listing (`workers/facade/listing.json`) carries
   `ck-entity-icon ck-entity-icon-<name>` — both consumed exactly like a
   `pi pi-*` PrimeIcon string. `shared/icon-fonts.spec.js` guards the
-  pack-side drift: every `ck-*` glyph class a mounted pack declares must
+  listing-side drift: every `ck-*` glyph class a documents/tech-drawing
+  listing declares must
   resolve in the generated CSS. Run as `npm run icons:build` after adding
   or editing source SVGs — nothing outside the marked CSS blocks is
   hand-editable (hand-written rules parked inside the markers are deleted
@@ -152,14 +153,11 @@ in `check-arch.js` and documented in `server/features/README.md`.
 The checker also blocks live entity UI that passes local `:state-actions`
 instead of relying on server-provided `InstanceState` workflow actions.
 
-`check-arch.js` also enforces the SPEC §8 species purity seams at the pack
-layer (see [server/packs/README.md](../server/packs/README.md)): a
-registered service's input signature with a `ref` field is rejected at
-the declaration (dereferencing is the projection's job), and modules
-under `server/packs/*/value-services/` that import the instance or files
-features are rejected at the mount — a pure V→V handler resolves no
-entities. Projection handlers (`server/packs/*/projections/`) are the one
-entity-read seam beside the instance services.
+The SPEC §8 species purity seam (value services are pure V→V; a `ref`
+input is the projection's job) lives in the plugin SDK's listing contract
+now: `parseListing` rejects `ref` inputs on service signatures, and
+service-resolved projections carry the compute to the executors. The pack
+layer that once hosted these checks retired (owner decision 2026-10-17).
 
 `npm run agent:scope-check -- --base origin/local` is the mandatory guard for
 external top-layer agents before they commit or push. It is intentionally

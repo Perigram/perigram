@@ -10,7 +10,6 @@ import {
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { prepareAuthoredDefinition } from '~/packages/processes/src/index.js';
 import { CLASS_COLLECTIONS, createTypeRegistry, declarationsFromCtsRecords, orientChildrenEdgesChildFirst, projectDomainFromView } from '~/packages/cts/src/index.js';
-import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 
 // A draft carries its own declarations: `ctsTypes` records author types
 // in-tree and only land in the registry at APPLY (SAVE persists the tree
@@ -39,7 +38,7 @@ export function declarationOverlayDomain(data = {}, domain = {}) {
   // must carry them — a system type's construction changes when a draft
   // parent adopts it.
   const registry = createTypeRegistry({ id: 'cts:draft-overlay' });
-  for (const declaration of composeSystemDeclarations()) {
+  for (const declaration of []) {
     registry.defineType(declaration);
   }
   const invalid = [];

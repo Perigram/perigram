@@ -46,18 +46,15 @@ vi.mock('./repository.js', () => ({
   updateSettings: vi.fn(),
   listDeclarationsByOrganization: vi.fn(async () => []),
   findDeclarationByTypeId: vi.fn(async () => null),
-  listDisabledPacks: vi.fn(async () => []),
-  enablePack: vi.fn(),
-  disablePack: vi.fn()
 }));
 
 import * as repository from './repository.js';
 import * as typeStore from '../cts-types/repository.js';
 import {
   install, installFromCatalog, uninstall, listInstalled, listCatalog, servicesForOrganization,
-  packServicesForOrganization, commandDefinitionFor, executeConnectorService,
+  projectedServicesForOrganization, commandDefinitionFor, executeConnectorService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
-  retractListing, settingsFor, updateSettings, listPackState, enablePack, disablePack,
+  retractListing, settingsFor, updateSettings,
   fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue
 } from './service.js';
 import { enqueueTask } from '../../core/tasks/service.js';
@@ -411,7 +408,7 @@ describe('plugin installs', () => {
     }));
   });
 
-  it('refuses a requirement neither mounted nor installed', async () => {
+  it('refuses a requirement no install satisfies', async () => {
     repository.findCatalogByPluginId.mockResolvedValue({
       pluginId: 'primers',
       name: 'Primers',
@@ -422,7 +419,7 @@ describe('plugin installs', () => {
       }
     });
     await expect(install({ organizationId: ORG, pluginId: 'primers', auth: AUTH }))
-      .rejects.toMatchObject({ message: expect.stringContaining('unknown plugin or pack no-such-thing') });
+      .rejects.toMatchObject({ message: expect.stringContaining('plugin no-such-thing, which is not installed') });
     expect(repository.createInstall).not.toHaveBeenCalled();
   });
 
@@ -535,7 +532,7 @@ describe('connector services', () => {
       command: 'plugin.coatings.mix',
       group: 'Coatings'
     });
-    const merged = await packServicesForOrganization(ORG);
+    const merged = await projectedServicesForOrganization(ORG);
     expect(merged.some(service => service.id === 'plugin.coatings.mix')).toBe(true);
     expect(merged.some(service => service.id === 'plugin.coatings.match')).toBe(false);
   });
@@ -684,7 +681,6 @@ describe('upgrades', () => {
     await expect(applyUpgrade({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
       .rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('primers') });
     expect(repository.updateInstallSnapshot).not.toHaveBeenCalled();
-    repository.listDisabledPacks.mockResolvedValue([]);
   });
 
   it('refuses the upgrade when already at the catalog version', async () => {

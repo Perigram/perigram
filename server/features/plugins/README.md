@@ -48,7 +48,7 @@ executors through the worker protocol.
   layer — types, editors, surfaces, previews, attachment kinds,
   conversions, constructions, starter constructs, exports.
 - **Composition**: installed declarations are a resolution source
-  between system pack types and the org-authored overlay
+  between the framework declarations and the org-authored overlay
   (`compileRegistryForOrganization` in
   [cts-types](../cts-types/README.md)); plugin types serve as
   `scope: 'system'` in the org view, and the generic instance machinery
@@ -64,8 +64,8 @@ executors through the worker protocol.
   bindings (`process.exports`) so the surfaces derive export affordances
   with no authored action nodes (SPEC §Exports are declarations).
   Installed construction contracts merge into the
-  projected domain's construction table beside the packs
-  (`packDomainsForOrganization`).
+  projected domain's construction table
+  (`projectedDomainsForOrganization`).
 - **Connector services**: a listing may declare `services` —
   `{ id (slug), label, signature: { input, output }, render, mode }` records
   in the SPEC §8 V grammar (`mode`: `endpoint` — the platform calls the
@@ -78,11 +78,11 @@ executors through the worker protocol.
   `endpoints`, the executor API key, and — for plugins that declare
   surfaces but no endpoint services — the `surfaceOrigin` the module
   proxy loads modules from (owner decision 2026-10-17). Installed services compose into the
-  projected domain's service list (`packServicesForOrganization` — the one
+  projected domain's service list (`projectedServicesForOrganization` — the one
   list the designer, compiler, and admin domain route resolve), as species
   records whose id and command are the same plugin-qualified id
   `plugin.<pluginId>.<serviceId>`; they obey the same active-process
-  service gating as pack services. Palette law (SPEC §20 — the palette is
+  service gating. Palette law (SPEC §20 — the palette is
   operations, never an implementation-mechanism catalog): only wireable
   services compose — a signature input of `record` projects data sockets
   (the s-species port projection maps record fields only); a bare-value
@@ -107,27 +107,24 @@ executors through the worker protocol.
   (`resolve: { service: 'plugin.<id>.<svc>' }`) — endpoint mode only, a
   projection is a synchronous read and cannot park on the claim queue (the
   SDK contract refuses the rest, including `handler` resolves, which only
-  pack mounts bind). The platform reads the target instance and its
+  endpoint executors bind). The platform reads the target instance and its
   payload and dispatches `{ typeId, payloadBase64 }` to the service; the
   service's JSON response is the projection value (`resolveProjectionValue`
   here; the process runtime's `projectEntity` calls it). Pure compute over
   values — the DXF-extraction shape; the platform carries no plugin code.
 - **Starter constructs**: a listing may declare `starterConstructs`
-  (own file type, declared construction mode, one per type — the pack
-  law). Installs snapshot them, and the installing organization's initial
-  process stations them beside the mounted packs' constructs
-  (`starterConstructsForOrganization` here; a cross-layer type collision
-  is a composition error).
+  (own file type, declared construction mode, one per type). Installs
+  snapshot them, and the installing organization's initial process
+  stations them (`starterConstructsForOrganization` here; a cross-install
+  type collision is a composition error).
 - **Install gate**: trial composition on the live org view — every
   plugin type id must be free (no system, installed, or org declaration
   holds it; the no-shadowing rule), each type must define cleanly, and
   the compile must introduce no new errors. A refused install writes
-  nothing. Beside it: a `requires` entry names a mounted pack enabled for
-  the organization or an installed plugin (owner decision 2026-10-17 —
-  requires chains plugin-on-plugin), and an attachment-kind id must be
-  unclaimed (enabled
-  packs and other installs hold their kinds globally — collisions
-  refuse). Editor bindings ride the listing contract (the bound type must
+  nothing. Beside it: every `requires` entry names an installed plugin
+  (owner decision 2026-10-17 — requires chains plugin-on-plugin), and an
+  attachment-kind id must be unclaimed (other installs hold their kinds
+  globally — collisions refuse). Editor bindings ride the listing contract (the bound type must
   be the plugin's own `file` type, one editor per type) and compose into
   the served type view beside the packs
   ([cts-types](../cts-types/README.md)). A declared surface module must
@@ -137,13 +134,7 @@ executors through the worker protocol.
   install and the upgrade, never a runtime half-mount (owner decision
   2026-10-11). Surface declarations snapshot with the install beside the
   editor bindings.
-- **Mounted-pack enablement (transitional, empty)**: no pack remains
-  mounted — documents and tech-drawing retired into their plugins (owner
-  decision 2026-10-17), so `GET .../plugins/state` serves installs only
-  and the packs routes answer over an empty set. The routes, the
-  `pack_disablements` store, and the pack panel in the Plugins page are
-  the retired management plane, deleted with the rest of the pack
-  machinery in the unified-space plan's final slice.- **Surface module proxy**: plugin editor/preview modules execute in the
+- **Surface module proxy**: plugin editor/preview modules execute in the
   browser, so they must load same-origin — the configured endpoints
   address the server's network (in dev the docker-internal executor
   host), which a browser can never reach. `GET
@@ -213,9 +204,6 @@ executors through the worker protocol.
 | `DELETE /api/organizations/:id/plugins/:pluginId` | `organizations:admin` | Uninstall (drain-gated). |
 | `GET /api/organizations/:id/plugins/:pluginId/upgrade` | `organizations:admin` | Upgrade preview: additions, removals, §11 change plans, blockers. |
 | `POST /api/organizations/:id/plugins/:pluginId/upgrade` | `organizations:admin` | Apply the upgrade (gated by the preview's blockers). |
-| `GET /api/organizations/:id/plugins/state` | member (`organizations:read`) | Combined state: mounted packs (enabled/disabled) + marketplace installs. |
-| `POST /api/organizations/:id/plugins/packs/:packId` | `organizations:admin` | Enable a mounted pack (cascades over requirements). |
-| `DELETE /api/organizations/:id/plugins/packs/:packId` | `organizations:admin` | Disable a mounted pack (drain-gated, dependents-gated, trial-compose-gated). |
 | `GET /api/organizations/:id/plugins/:pluginId/connector` | `organizations:admin` | Connector panel data: token, claim queue, worker endpoints. |
 | `POST /api/organizations/:id/plugins/:pluginId/connector/regenerate` | `organizations:admin` | Rotate the connector token. |
 | `GET /api/organizations/:id/plugins/:pluginId/settings` | `organizations:admin` | Connection settings: per-service modes and endpoints, API key, surface origin. |
