@@ -20,19 +20,19 @@ const { t } = useI18n();
 const steps = computed(() => props.activity.steps || []);
 const pending = computed(() => props.live && !steps.value.length && !props.activity.answer);
 const toolIcon = (status) => ({
-    done: 'pi pi-check text-status-success',
-    error: 'pi pi-exclamation-triangle text-status-danger'
+    done: 'pi pi-check',
+    error: 'pi pi-exclamation-triangle'
 }[status] || 'pi pi-spin pi-spinner');
 
 // Compact disclosure on the elements that carry Aura's sizing: the
-// legend's block padding and hover strip die, the toggle button (which
-// owns the real padding on toggleable fieldsets) tightens, and the
-// label drops to the caption voice.
+// toggle button tightens (it owns the real padding on toggleable
+// fieldsets), the label drops to the caption voice, and the +/− svg
+// scales with it (.p-icon pins 1rem, so it needs explicit size).
 const thinkingPt = {
     root: { style: { padding: '0 0.5rem 0.25rem 0.5rem' } },
-    legend: { style: { padding: '0', background: 'transparent' } },
     toggleButton: { style: { padding: '0.25rem 0.5rem', gap: '0.375rem' } },
-    legendLabel: { class: 'text-supporting' }
+    legendLabel: { class: 'text-supporting' },
+    toggleIcon: { style: { width: '0.75rem', height: '0.75rem' } }
 };
 </script>
 
@@ -59,7 +59,7 @@ const thinkingPt = {
             </Fieldset>
             <div v-else class="flex min-w-0 flex-col gap-0.5 px-1" data-testid="agent-tool">
                 <span class="flex min-w-0 items-center gap-2">
-                    <i :class="toolIcon(step.status)" class="shrink-0" aria-hidden="true" />
+                    <i :class="toolIcon(step.status)" class="shrink-0 scale-75" aria-hidden="true" />
                     <span class="min-w-0 flex-1 truncate text-technical">{{ step.name }}</span>
                 </span>
                 <Message v-if="step.error" severity="error" size="small" :closable="false">
