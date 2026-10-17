@@ -579,7 +579,7 @@ state is the user's own toggling). The answer is never rendered here:
 it is the message body at both sites.
 
 ### `AiAvatar.vue`
-The AI identity face: the microchip PrimeIcon in the brand accent on
+The AI identity face: the sparkles PrimeIcon in the brand accent on
 the subtle surface — the same shape as every other glyph avatar, and
 the only AI marker on chat surfaces (no text badges). One component
 for every surface that shows the assistant (chat inbox rows, thread
