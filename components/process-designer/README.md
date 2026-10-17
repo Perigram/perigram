@@ -528,20 +528,23 @@ untouched, and the write marks the draft dirty like any drag. The pass
 is the pure helper `utils/processDesignerArrangement.js` (see
 [utils](../../utils/README.md)) — deterministic and idempotent:
 
-- **x = column.** Longest-path layering over the flow edges (event and
-  data; declaration wires never layer anything). A pred-less node pulls
-  up to the column before its first consumer; a cycle-closing edge does
-  not advance the layer.
+- **x = column.** Longest-path layering over the condensation of the
+  flow edges (event and data; declaration wires never layer anything):
+  a mutual pair shares one column, a larger cycle layers internally
+  with its closing edge as the one backward span. Columns pack by their
+  widest card. A pred-less node pulls up to the column before its first
+  consumer.
 - **Every node lives in exactly one band** — effects by grant,
   secondaries and declarations by their anchor node's band, anchorless
   nodes by nearest band — so nothing crosses a lane divider.
 - **y = cell rows plus median polish.** Within each lane×column cell,
   barycenter sweeps over wired neighbors (flow and declaration wires
   alike) pick the row order, seeded from the authored y; a lane's cells
-  share row indices, so a horizontal chain sits on one row. A bounded
-  polish then moves each card toward its wired neighbors' median,
-  clamped below its in-cell predecessor and inside its band — those two
-  clamps are the no-overlap and lane-containment laws.
+  share row indices at the lane's row pitch — its tallest card plus the
+  gap. A bounded polish then moves each card toward the median of its
+  wired same-lane neighbors, clamped below its in-cell predecessor and
+  inside its band — those two clamps are the no-overlap and
+  lane-containment laws.
 
 ### Card behavior details
 

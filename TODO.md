@@ -6755,3 +6755,11 @@ in-process, and command_runs/task_runs are the audit trail.
 - The manual-action spec paths no longer need the run-repository mock;
   the action-evaluation specs run Mongo-free.
 
+
+## Tidy compactness and loop pairing (2026-10-17)
+
+- [ ] Columns pack by their widest card; a mutual pair shares one
+      column; polish medians stay same-lane. Lane membership, grants,
+      drop acceptance, and the acyclic LTR law are untouched.
+
+Status: WAITING
