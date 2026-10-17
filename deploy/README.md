@@ -124,6 +124,24 @@ come from secrets (see Contract — the service plane is inline). ConfigBot/Olla
 env is intentionally absent on this deploy — it is a prod-only,
 cluster-internal feature.
 
+## Plugin marketplace release steps
+
+The CI deploys only the app container. A plugin release beside it is
+manual (until an executor stage joins the workflow): redeploy the
+executor container (dev compose runs `facade-executor` from the repo
+mount on 8790; staging needs an equivalent host), then seed the
+built-in listings from a repo checkout the runner can reach:
+
+```bash
+NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true \
+  node server/scripts/seed-plugin-catalog.js
+```
+
+Installed organizations then upgrade from the Plugins page (the §11 diff
+preview). Wiring the executor deploy + seed into
+`.forgejo/workflows/deploy.yml` (staging branch — pipeline edits live
+there) follows the app stage's build-before-remove pattern.
+
 ## Development Stack
 
 Local development uses `docker-compose.dev.yml` + `Dockerfile.dev`: source is

@@ -15,8 +15,14 @@ walkthrough: [plugin authoring guide](../../docs/PLUGIN_AUTHORING.md).
 
 ## Listing contract (`parseListing` / `normalizeListing`)
 
-A listing is `{ pluginId (slug), name, description, version, requires?,
-declarations }` where `declarations` carries `types` (CTS grammar,
+A listing is `{ pluginId (slug), name, description, version, visibility?,
+organizations?, requires?, declarations }` where `visibility` is `public`
+(the default) or `private` — a private listing is served only to the
+organizations its `organizations` ids name, scoped by the operator at
+publish (the catalog stays platform-published). `requires` lists pack or
+plugin ids the types resolve against, satisfied by a mounted pack or an
+installed plugin (never the plugin itself); the platform-side gates
+enforce it. `declarations` carries `types` (CTS grammar,
 non-empty), `services` (SPEC §8 signatures, `mode` endpoint/claim),
 `editors` (file-type editor bindings — the bound type must be declared by
 the same plugin with class `file`, one binding per type),
@@ -34,12 +40,17 @@ declared plugin service as the executor, bare or plugin-qualified),
 `constructions` (the plugin's types' construction modes bound to plugin
 services — the platform resolves ref inputs and payloads as base64
 values and merges the returned fields before creating the record
-generically), and `exports` (attachment exports bound to plugin
-services).
-`requires` lists mounted pack ids the plugin's types resolve against — the
-install and pack-disable gates enforce it platform-side. `parseListing`
-throws on every violation; `normalizeListing` returns the catalog document
-the publish API stores.
+generically), `starterConstructs` (`[{ typeId, construction }]` —
+constructs the plugin stations into every installing organization's
+initial process: the plugin's own file type, a declared mode, one per
+type), and `exports` (attachment exports bound to plugin
+services). A type's `projections` resolve a stored `field` path or a
+declared endpoint-mode `service` (`resolve: { service:
+'plugin.<id>.<svc>' }` — the platform sends `{ typeId, payloadBase64 }`
+and the service's JSON response is the projection value; `handler`
+resolves are the pack-mount binding and refuse here).
+`parseListing` throws on every violation; `normalizeListing` returns the
+catalog document the publish API stores.
 
 ## Executor harnesses
 

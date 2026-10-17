@@ -13,14 +13,14 @@ ship as container images — no platform-side artifact store, the platform
 stores declarations, never code (SPEC: Plugin marketplace, owner decision
 2026-10-17).
 
-- [ ] A. Catalog seeding: publishing the built-in listings becomes a
+- [x] A. Catalog seeding: publishing the built-in listings becomes a
   deploy/migration step; `installDefaultPlugins`
   (`server/features/organizations/default-plugins.js`) no longer silently
   skips on a fresh database.
-- [ ] B. Listing visibility: the SDK listing contract gains `visibility`
+- [x] B. Listing visibility: the SDK listing contract gains `visibility`
   (public/private with owning organizations); catalog routes serve private
   listings only to their orgs; the publish API accepts it (operator-set).
-- [ ] C. Plugin-on-plugin `requires`: install/upgrade gates accept an
+- [x] C. Plugin-on-plugin `requires`: install/upgrade gates accept an
   installed plugin as the satisfied requirement, not only a mounted pack.
 - [ ] D. tech-drawing: declarations-only listing (no services, no
   executor), org migration script, default install; its pack mount
@@ -38,6 +38,37 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
 - [ ] H. Executor release convention: the staging workflow deploys the
   facade executor beside the app and publishes the version-bumped listing;
   the authoring guide documents the per-plugin release loop.
+
+### Agent Notes (2026-10-17 — platform contract landed; pack migrations blocked)
+
+- Done: A, B, C complete. F's listing half (starter constructs ride
+  listings and compose into org initial processes across pack and plugin
+  layers) and E's platform half (service-resolved projections: listing
+  grammar + `resolveProjectionValue` dispatch in `projectEntity` — the
+  platform reads the instance/payload, an endpoint-mode service computes
+  the value) landed; F's seam retirement completes in G, E's migration is
+  blocked below. H's doc half landed (authoring guide §5 release loop,
+  deploy README release steps); the workflow edit stays an operator
+  action.
+- Seeder: `server/scripts/seed-plugin-catalog.js` (validated, marked
+  `builtin`, retract-refused); `installDefaultPlugins` logs the seed
+  runbook instead of skipping silently.
+- BLOCKED (D, E's migration, G): converting the three pack editors into
+  plugin surface modules. They are app-coupled SFCs, not surface-mount
+  modules: TextDocumentEditor rides milkdown/crepe + codemirror npm
+  graphs (a surface may not import host npm packages — vendoring the
+  whole graph is the three.js precedent at ~10× the size, and TODO's
+  milkdown collab work is in flight), CsvTableEditor uses DataTable
+  (outside the vetted surface pack) and `useRemoteDocumentSync`,
+  SketchEditor speaks a different persistence protocol
+  (`loadScene`/`saveScene` + a direct `/api/files/upload` call) and its
+  origin-entity feature has no surface-mount equivalent. Also missing: a
+  `surfaceOrigin` connection field for executors with surfaces but no
+  services (`endpointOriginOf` derives from configured endpoints only) —
+  needed by tech-drawing. Owner decision required: grow the surface
+  contract (upload + realtime sync capabilities, vendored editors) or
+  accept feature cuts in the plugin editors; G stays blocked until D and
+  E land.
 
 ## Profile library for cassettes (owner direction 2026-10-17)
 

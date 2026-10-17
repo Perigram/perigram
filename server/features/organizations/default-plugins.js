@@ -25,7 +25,13 @@ export async function installDefaultPlugins(db, organizationId) {
   for (const pluginId of DEFAULT_PLUGINS) {
     try {
       const listing = await db.collection('plugin_catalog').findOne({ pluginId });
-      if (!listing?.declarations?.types?.length) continue;
+      if (!listing?.declarations?.types?.length) {
+        // A fresh environment without its built-ins seeded: the catalog
+        // is empty and orgs would silently lose their default plugins.
+        // Say it — the seed runbook is scripts/seed-plugin-catalog.js.
+        console.error(`[Default Plugins] ${pluginId} is not in the catalog — run server/scripts/seed-plugin-catalog.js`);
+        continue;
+      }
       await installFromCatalog({
         organizationId,
         pluginId,

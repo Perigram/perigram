@@ -3,6 +3,6 @@ import { requireAuth } from '../../utils/permissions.js';
 import * as pluginsService from '../../features/plugins/service.js';
 
 export default defineEventHandler((event) => {
-  requireAuth(event);
-  return pluginsService.listCatalog();
+  const auth = requireAuth(event);
+  return pluginsService.listCatalog({ auth });
 });

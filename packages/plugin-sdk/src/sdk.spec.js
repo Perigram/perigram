@@ -89,16 +89,78 @@ describe('parseListing', () => {
       requires: ['documents']
     });
     expect(Object.keys(normalized.declarations)).toEqual([
-      'types', 'services', 'editors', 'attachmentKinds', 'conversions', 'constructions', 'exports', 'surfaces', 'previews'
+      'types', 'services', 'editors', 'attachmentKinds', 'conversions', 'constructions', 'starterConstructs', 'exports', 'surfaces', 'previews'
     ]);
   });
 
   it('keeps the JSON schema in lockstep with the validated fields', () => {
     const declarations = schema.properties.declarations.properties;
     expect(Object.keys(declarations)).toEqual([
-      'types', 'services', 'editors', 'surfaces', 'previews', 'attachmentKinds', 'conversions', 'constructions', 'exports'
+      'types', 'services', 'editors', 'surfaces', 'previews', 'attachmentKinds', 'conversions', 'constructions', 'starterConstructs', 'exports'
     ]);
     expect(schema.properties.requires.items.pattern).toBe('^[a-z0-9-]+$');
+    expect(schema.properties.visibility.enum).toEqual(['public', 'private']);
+  });
+
+  it('validates listing visibility and its owning organizations', () => {
+    expect(parseListing(fullListing).visibility).toBe('public');
+    const privateListing = parseListing({ ...fullListing, visibility: 'private', organizations: ['org-1'] });
+    expect(privateListing.visibility).toBe('private');
+    expect(privateListing.organizations).toEqual(['org-1']);
+    expect(normalizeListing({ ...fullListing, visibility: 'private', organizations: ['org-1'] }))
+      .toMatchObject({ visibility: 'private', organizations: ['org-1'] });
+    // A public listing carries no organizations block on the wire.
+    expect(normalizeListing(fullListing).organizations).toBeUndefined();
+    expect(() => parseListing({ ...fullListing, visibility: 'secret' })).toThrow(/visibility/);
+  });
+
+  it('refuses a plugin requiring itself', () => {
+    expect(() => parseListing({ ...fullListing, requires: ['coatings'] })).toThrow(/cannot require itself/);
+  });
+
+  it('validates starter constructs: own file type, declared mode, one per type', () => {
+    const withConstructs = starterConstructs => parseListing({
+      ...fullListing,
+      declarations: { ...fullListing.declarations, starterConstructs }
+    });
+    // coating-sheet is a file type with no declared creation modes — the
+    // default 'upload' applies.
+    expect(withConstructs([{ typeId: 'coating-sheet', construction: 'upload' }]).starterConstructs)
+      .toEqual([{ typeId: 'coating-sheet', construction: 'upload' }]);
+    expect(() => withConstructs([{ typeId: 'cassette', construction: 'upload' }])).toThrow(/must reference a type this plugin declares/);
+    expect(() => withConstructs([{ typeId: 'coating', construction: 'upload' }])).toThrow(/requires a file type/);
+    expect(() => withConstructs([{ typeId: 'coating-sheet', construction: 'editor' }])).toThrow(/does not declare/);
+    expect(() => withConstructs([
+      { typeId: 'coating-sheet', construction: 'upload' },
+      { typeId: 'coating-sheet', construction: 'upload' }
+    ])).toThrow(/duplicate starter construct/);
+  });
+
+  it('validates type projections: field or endpoint-service resolve, never a handler', () => {
+    const withProjections = projections => parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        services: [
+          ...fullListing.declarations.services,
+          { id: 'extract', mode: 'endpoint', signature: { input: { base: 'json' }, output: { base: 'json' } } },
+          { id: 'poll-extract', signature: { input: { base: 'json' }, output: { base: 'json' } } }
+        ],
+        types: [{
+          id: 'coating-sheet',
+          class: 'file',
+          fields: { code: { base: 'string' } },
+          projections
+        }]
+      }
+    });
+    expect(withProjections([{ id: 'p', resolve: { field: 'fields.code' } }]).types[0].projections).toHaveLength(1);
+    expect(withProjections([{ id: 'p', resolve: { service: 'plugin.coatings.extract' } }]).types[0].projections).toHaveLength(1);
+    expect(() => withProjections([{ id: 'p', resolve: { handler: 'coatings.extract' } }])).toThrow(/handler/);
+    expect(() => withProjections([{ id: 'p', resolve: { service: 'plugin.coatings.poll-extract' } }])).toThrow(/endpoint mode/);
+    expect(() => withProjections([{ id: 'p', resolve: { service: 'plugin.coatings.match' } }])).toThrow(/endpoint mode/);
+    expect(() => withProjections([{ id: 'p', resolve: { service: 'plugin.other.extract' } }])).toThrow(/names plugin other/);
+    expect(() => withProjections([{ id: 'p', resolve: {} }])).toThrow(/field or service resolve/);
   });
 
   it('validates plugin-delivered surface declarations', () => {

@@ -25,7 +25,13 @@
 // - `previews` — preview bindings `[{ type, surface }]`: the plugin's
 //   types whose preview slots mount the bound preview surface (one per
 //   type, the surface must be kind `preview`);
-// - `requires` — mounted pack ids the plugin's types resolve against.
+// - `requires` — pack or plugin ids the plugin's types resolve against:
+//   a requirement is satisfied by a mounted pack or an installed plugin
+//   (owner decision 2026-10-17 — plugin-on-plugin requires);
+// - `visibility` — 'public' (the default) or 'private': a private
+//   listing is served only to the organizations its `organizations` array
+//   names (org ids). The catalog stays platform-published; the operator
+//   scopes private listings (owner decision 2026-10-17).
 
 const SERVICE_REF = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 const MODULE_PATH = /^\/[a-z0-9/_-]+\.m?js$/;
@@ -38,11 +44,19 @@ export function parseListing(listing = {}) {
   const attachmentKinds = declarations.attachmentKinds || {};
   const conversions = declarations.conversions || [];
   const constructions = declarations.constructions || {};
+  const starterConstructs = (declarations.starterConstructs || []).filter(Boolean);
   const exportsList = declarations.exports || [];
   const surfaces = (declarations.surfaces || []).filter(Boolean);
   const previews = (declarations.previews || []).filter(Boolean);
   const requires = Array.isArray(listing.requires) ? listing.requires.map(String) : [];
   const pluginId = String(listing.pluginId || '');
+  const visibility = listing.visibility === 'private' ? 'private' : 'public';
+  if (listing.visibility !== undefined && !['public', 'private'].includes(listing.visibility)) {
+    throw listingError(`visibility must be 'public' or 'private' (got ${JSON.stringify(listing.visibility)})`);
+  }
+  const organizations = Array.isArray(listing.organizations)
+    ? listing.organizations.map(id => String(id))
+    : [];
 
   if (!pluginId || !/^[a-z0-9-]+$/.test(pluginId)) {
     throw listingError(`pluginId must be a slug (got ${JSON.stringify(pluginId)})`);
@@ -167,6 +181,55 @@ export function parseListing(listing = {}) {
     }
   }
 
+  // Starter constructs (SPEC §UI visible-by-default): what the plugin
+  // stations into every installing organization's initial process — the
+  // pack law: the plugin's own file type, a mode it declares, one
+  // construct per type.
+  const seenStarterTypes = new Set();
+  for (const construct of starterConstructs) {
+    if (!construct?.typeId || !construct?.construction) {
+      throw listingError(`malformed starter construct: ${JSON.stringify(construct)}`);
+    }
+    const declaration = typeById.get(construct.typeId);
+    if (!declaration) {
+      throw listingError(`starter construct for type ${construct.typeId} must reference a type this plugin declares`);
+    }
+    if (declaration.class !== 'file') {
+      throw listingError(`starter construct for type ${construct.typeId} of class ${declaration.class} requires a file type`);
+    }
+    if (seenStarterTypes.has(construct.typeId)) {
+      throw listingError(`duplicate starter construct for type ${construct.typeId}`);
+    }
+    if (!constructModesOf(declaration).has(construct.construction)) {
+      throw listingError(`starter construct for ${construct.typeId} names construction mode ${construct.construction}, which the type does not declare`);
+    }
+    seenStarterTypes.add(construct.typeId);
+  }
+
+  // Type projections (SPEC §8 p extract): a listing's projections resolve
+  // a stored `field` path or a declared plugin service. A service resolve
+  // must be endpoint mode — a projection is a synchronous read and cannot
+  // park on the claim queue. A `handler` resolve is the pack-mount
+  // binding and refuses here: no platform handler would ever serve a
+  // plugin's id.
+  for (const type of types) {
+    for (const projection of type?.projections || []) {
+      const resolve = projection?.resolve || {};
+      if (resolve.handler !== undefined) {
+        throw listingError(`projection ${type.id}/${projection?.id} resolves through a handler — plugin projections resolve a field or a service`);
+      }
+      if (resolve.service !== undefined) {
+        const ref = serviceRefOf(resolve.service, `projection ${type.id}/${projection?.id}`);
+        const service = services.find(item => item.id === ref.split('.').pop());
+        if (service?.mode !== 'endpoint') {
+          throw listingError(`projection ${type.id}/${projection?.id} binds service ${ref}, which is not endpoint mode — a projection is a synchronous read`);
+        }
+      } else if (resolve.field === undefined) {
+        throw listingError(`projection ${type.id}/${projection?.id} needs a field or service resolve (got ${JSON.stringify(resolve)})`);
+      }
+    }
+  }
+
   for (const exporter of exportsList) {
     if (!exporter?.typeId || !exporter?.kind) {
       throw listingError(`every export needs typeId and kind (got ${JSON.stringify(exporter?.typeId)})`);
@@ -230,11 +293,14 @@ export function parseListing(listing = {}) {
 
   for (const packId of requires) {
     if (!/^[a-z0-9-]+$/.test(packId)) {
-      throw listingError(`requires entries must be pack slugs (got ${JSON.stringify(packId)})`);
+      throw listingError(`requires entries must be pack or plugin slugs (got ${JSON.stringify(packId)})`);
+    }
+    if (packId === pluginId) {
+      throw listingError('a plugin cannot require itself');
     }
   }
 
-  return { pluginId, types, services, editors, attachmentKinds, conversions, constructions, exports: exportsList, surfaces, previews, requires };
+  return { pluginId, types, services, editors, attachmentKinds, conversions, constructions, starterConstructs, exports: exportsList, surfaces, previews, requires, visibility, organizations };
 }
 
 // The normalized catalog document the publish API stores and installs
@@ -247,6 +313,10 @@ export function normalizeListing(listing = {}) {
     description: listing.description || '',
     version: String(listing.version || '1'),
     requires: layer.requires,
+    visibility: layer.visibility,
+    ...(layer.visibility === 'private' && layer.organizations.length
+      ? { organizations: layer.organizations }
+      : {}),
     declarations: {
       types: layer.types,
       services: layer.services,
@@ -254,6 +324,7 @@ export function normalizeListing(listing = {}) {
       attachmentKinds: layer.attachmentKinds,
       conversions: layer.conversions,
       constructions: layer.constructions,
+      starterConstructs: layer.starterConstructs,
       exports: layer.exports,
       surfaces: layer.surfaces,
       previews: layer.previews

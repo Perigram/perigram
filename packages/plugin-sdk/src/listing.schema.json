@@ -13,8 +13,19 @@
     "version": { "type": ["string", "number"] },
     "requires": {
       "type": "array",
-      "description": "Mounted pack ids the plugin's types resolve against",
+      "description": "Pack or plugin ids the plugin's types resolve against: a requirement is satisfied by a mounted pack or an installed plugin",
       "items": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+      "uniqueItems": true
+    },
+    "visibility": {
+      "type": "string",
+      "enum": ["public", "private"],
+      "description": "A private listing is served only to the organizations its organizations array names; the catalog stays platform-published and the operator scopes private listings"
+    },
+    "organizations": {
+      "type": "array",
+      "description": "Owner organization ids — the only orgs a private listing is served to",
+      "items": { "type": "string" },
       "uniqueItems": true
     },
     "declarations": {
@@ -138,6 +149,20 @@
             "propertyNames": { "pattern": "^[a-zA-Z][a-zA-Z0-9]*$" },
             "additionalProperties": { "type": "string", "pattern": "^plugin\\.[a-z0-9-]+\\.[a-z0-9-]+$" }
           }
+        },
+        "starterConstructs": {
+          "type": "array",
+          "description": "Constructs the plugin stations into every installing organization's initial process: the plugin's own file type, a mode it declares, one construct per type",
+          "items": {
+            "type": "object",
+            "required": ["typeId", "construction"],
+            "additionalProperties": false,
+            "properties": {
+              "typeId": { "type": "string" },
+              "construction": { "type": "string" }
+            }
+          },
+          "uniqueItems": true
         },
         "exports": {
           "type": "array",
