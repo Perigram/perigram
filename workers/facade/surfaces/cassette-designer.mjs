@@ -267,6 +267,7 @@ export default function createSurface({ vue, components, locale, queries, record
         ...createDefaultOccsProfileTemplateData()
       });
       const profileLibraryRecords = ref([]);
+      const profileLibraryAvailable = ref(true);
       const templateRecords = ref([]);
       const loadedDocument = ref(null);
 
@@ -1381,7 +1382,12 @@ export default function createSurface({ vue, components, locale, queries, record
         try {
           const items = await queries.list('profile');
           profileLibraryRecords.value = Array.isArray(items) ? items : [];
+          profileLibraryAvailable.value = true;
         } catch {
+          // The org's install does not declare the type yet (upgrade
+          // pending): the library affordances stay hidden instead of
+          // failing on every use.
+          profileLibraryAvailable.value = false;
           profileLibraryRecords.value = [];
         }
       };
@@ -1424,7 +1430,12 @@ export default function createSurface({ vue, components, locale, queries, record
             notify({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
             return;
           }
-          notify({ severity: 'error', summary: t('common.error'), detail: t('cassette.v2.profileEditor.librarySaveFailed'), life: 4000 });
+          notify({
+            severity: 'error',
+            summary: t('common.error'),
+            detail: error?.data?.message || error?.message || t('cassette.v2.profileEditor.librarySaveFailed'),
+            life: 4000
+          });
         }
       };
 
@@ -2467,15 +2478,17 @@ export default function createSurface({ vue, components, locale, queries, record
                 'onUpdate:modelValue': value => { profileDraft.value.process = value; }
               })
             ]),
-            h(Select, {
-              modelValue: null,
-              options: profileLibraryRecords.value,
-              optionLabel: 'name',
-              placeholder: t('cassette.v2.profileEditor.library'),
-              appendTo: 'self',
-              class: 'w-full',
-              'onUpdate:modelValue': value => { applyProfileLibraryRecord(value); }
-            }),
+            profileLibraryAvailable.value
+              ? h(Select, {
+                modelValue: null,
+                options: profileLibraryRecords.value,
+                optionLabel: 'name',
+                placeholder: t('cassette.v2.profileEditor.library'),
+                appendTo: 'self',
+                class: 'w-full',
+                'onUpdate:modelValue': value => { applyProfileLibraryRecord(value); }
+              })
+              : null,
             h(ProfileSketchEditor, {
               modelValue: profileDraft.value.sketch,
               externalParameters: globalParameters.value,
@@ -2492,14 +2505,16 @@ export default function createSurface({ vue, components, locale, queries, record
                 disabled: !profileDraftReady.value,
                 onClick: saveProfileDraft
               }),
-              h(Button, {
-                label: t('cassette.v2.profileEditor.saveToLibrary'),
-                icon: 'pi pi-bookmark',
-                severity: 'secondary',
-                size: 'small',
-                disabled: !profileDraftReady.value,
-                onClick: saveProfileDraftToLibrary
-              })
+              profileLibraryAvailable.value
+                ? h(Button, {
+                  label: t('cassette.v2.profileEditor.saveToLibrary'),
+                  icon: 'pi pi-bookmark',
+                  severity: 'secondary',
+                  size: 'small',
+                  disabled: !profileDraftReady.value,
+                  onClick: saveProfileDraftToLibrary
+                })
+                : null
             ]),
             h(Button, {
               label: t('common.cancel'),
