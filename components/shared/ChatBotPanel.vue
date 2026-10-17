@@ -13,12 +13,7 @@
                 <i class="pi pi-spin pi-spinner text-muted" aria-hidden="true" />
             </div>
             <div v-else-if="aiRow" class="flex min-w-0 items-center gap-2">
-                <Avatar
-                    :image="aiRow.avatarUrl || null"
-                    :label="!aiRow.avatarUrl ? String(aiRow.name || '?').charAt(0).toUpperCase() : null"
-                    shape="circle"
-                    class="shrink-0 bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
-                />
+                <AiAvatar class="shrink-0" />
                 <span class="min-w-0 flex-1 truncate text-label">{{ aiRow.name }}</span>
                 <Tag
                     :value="$t('support.bots.assistant')"
@@ -119,7 +114,6 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Select from 'primevue/select';
@@ -127,6 +121,7 @@ import Tag from 'primevue/tag';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
+import AiAvatar from '~/components/shared/AiAvatar.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import { useAgentBotsStore } from '~/stores/agentBots';
 

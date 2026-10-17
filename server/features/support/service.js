@@ -745,6 +745,7 @@ export async function sendUserMessage(auth, body = {}, { refsAuth = null } = {})
         attachments: body.attachments,
         parentMessageId: body.parentMessageId,
         agent: body.agent || null,
+        notice: body.notice || null,
         auth,
         // Refs may ride a send attributed to one principal while carrying
         // another's validation rights: an agent run posts as the
@@ -899,7 +900,7 @@ export async function forwardMessage(auth, messageId = '', body = {}) {
     });
 }
 
-async function insertMessage({ context, sender, senderUserId, message, instanceRefs, attachments, parentMessageId, auth, refsAuth = null, recipientUserId = null, forwardedFrom = null, agent = null }) {
+async function insertMessage({ context, sender, senderUserId, message, instanceRefs, attachments, parentMessageId, auth, refsAuth = null, recipientUserId = null, forwardedFrom = null, agent = null, notice = null }) {
     const normalizedAttachments = normalizeAttachments(attachments);
     const materialized = context.kind === 'instance' && normalizedAttachments
         ? await materializeInstanceAttachments(auth, context, normalizedAttachments)
@@ -923,6 +924,7 @@ async function insertMessage({ context, sender, senderUserId, message, instanceR
         ...(parent ? { parent } : {}),
         ...(forwardedFrom ? { forwardedFrom } : {}),
         ...(agent ? { agent } : {}),
+        ...(notice ? { notice } : {}),
         ...instanceFields,
         timestamp: new Date()
     }, messageProjection());
@@ -1839,6 +1841,7 @@ function messageProjection() {
         parent: 1,
         forwardedFrom: 1,
         agent: 1,
+        notice: 1,
         organizationId: 1
     };
 }

@@ -1,13 +1,14 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import Fieldset from 'primevue/fieldset';
+import Message from 'primevue/message';
 
 // An agent run's visible work as one chronology: per-round reasoning in
-// collapsible disclosures interleaved with one row per tool invocation,
+// collapsible Fieldsets interleaved with one row per tool invocation,
 // in the order they happened. The same component renders the live run
-// (open, with a pending state before the first token) and the provenance
-// persisted on the bot's reply (collapsed). The answer itself is not
-// rendered here — it is the message body at both sites.
+// and the provenance persisted on the bot's reply — the answer itself
+// is not rendered here, it is the message body at both sites.
 const props = defineProps({
     activity: { type: Object, required: true },
     live: { type: Boolean, default: false }
@@ -26,15 +27,20 @@ const toolIcon = (status) => (status === 'done' ? 'pi pi-check' : status === 'er
             <i class="pi pi-spin pi-spinner" aria-hidden="true" />
         </div>
         <template v-for="(step, index) in steps" :key="step.kind === 'tool' ? step.id : `thinking-${index}`">
-            <!-- Reasoning stays open with the answer — the live stream and
-                 the persisted message render the same visible chronology.
-                 The bound `open` only sets the initial state per instance
-                 (the value never changes), so the user's own toggling
+            <!-- Reasoning starts open at both sites so the chronology
+                 stays visible with the answer; `collapsed` only seeds
+                 the initial state, so the user's own toggling
                  survives. -->
-            <details v-if="step.kind === 'thinking'" open class="min-w-0" data-testid="agent-thinking">
-                <summary class="cursor-pointer select-none">{{ t('support.thinking') }}</summary>
-                <p class="m-0 mt-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{{ step.text }}</p>
-            </details>
+            <Fieldset
+                v-if="step.kind === 'thinking'"
+                :legend="t('support.thinking')"
+                toggleable
+                :collapsed="false"
+                class="min-w-0"
+                data-testid="agent-thinking"
+            >
+                <p class="m-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{{ step.text }}</p>
+            </Fieldset>
             <div
                 v-else
                 class="flex min-w-0 flex-col gap-0.5 px-1"
@@ -44,7 +50,9 @@ const toolIcon = (status) => (status === 'done' ? 'pi pi-check' : status === 'er
                     <i :class="toolIcon(step.status)" aria-hidden="true" />
                     <span class="min-w-0 truncate">{{ step.name }}</span>
                 </div>
-                <span v-if="step.error" class="min-w-0 truncate pl-6 text-muted">{{ step.error }}</span>
+                <Message v-if="step.error" severity="error" size="small" :closable="false">
+                    {{ step.error }}
+                </Message>
             </div>
         </template>
     </div>

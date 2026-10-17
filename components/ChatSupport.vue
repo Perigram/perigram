@@ -187,6 +187,7 @@
                                     size="normal"
                                     class="bg-subtle text-muted"
                                 />
+                                <AiAvatar v-else-if="isAiChatRow(option) || isBotDirectRow(option)" class="shrink-0" />
                                 <Avatar
                                     v-else
                                     :image="conversationAvatar(option)"
@@ -303,6 +304,7 @@
                         shape="circle"
                         class="shrink-0 bg-subtle text-muted"
                     />
+                    <AiAvatar v-else-if="isAiOnlyRoom" class="shrink-0" />
                     <Avatar
                         v-else-if="activeConversation.conversationKind === 'group'"
                         icon="pi pi-users"
@@ -652,23 +654,39 @@
                                     :class="[
                                         // An agent answer is room content, not a
                                         // chat bubble: markdown in document flow.
-                                        // A voice message's transcript is caption
-                                        // chrome on the lower surface — never the
-                                        // sender's primary bubble (SPEC: chat); it
-                                        // is the viewer's private transcript, so
-                                        // only transcribing viewers see text here.
+                                        // A failure notice is typed machine
+                                        // output: a severity-styled Message,
+                                        // never a bubble. A voice message's
+                                        // transcript is caption chrome on the
+                                        // lower surface — never the sender's
+                                        // primary bubble (SPEC: chat); it is
+                                        // the viewer's private transcript, so
+                                        // only transcribing viewers see text
+                                        // here.
                                         messageItem.agent
                                             ? 'py-0.5'
-                                            : [
-                                                'rounded-ui px-4 py-2',
-                                                isAudioOnlyMessage(messageItem) ? 'bg-subtle' : isOwnMessage(messageItem)
-                                                    ? 'bg-primary text-primary-contrast'
-                                                    : 'bg-subtle'
-                                            ],
+                                            : messageItem.notice
+                                                ? ''
+                                                : [
+                                                    'rounded-ui px-4 py-2',
+                                                    isAudioOnlyMessage(messageItem) ? 'bg-subtle' : isOwnMessage(messageItem)
+                                                        ? 'bg-primary text-primary-contrast'
+                                                        : 'bg-subtle'
+                                                ],
                                         isAudioOnlyMessage(messageItem) ? 'order-last' : ''
                                     ]"
                                 >
-                                    <div class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
+                                    <Message
+                                        v-if="messageItem.notice"
+                                        :severity="messageItem.notice"
+                                        :closable="false"
+                                    >
+                                        <SupportMessageContent
+                                            :message="bubbleContentMessage(messageItem)"
+                                            :viewer-user-id="currentUserId"
+                                        />
+                                    </Message>
+                                    <div v-else class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
                                         <SupportMessageContent
                                             :message="bubbleContentMessage(messageItem)"
                                             :viewer-user-id="currentUserId"
@@ -1185,7 +1203,12 @@
                 >
                     <template #option="{ option }">
                         <div class="flex min-w-0 items-center gap-2">
+                            <AiAvatar
+                                v-if="option.instance?.data?.bot"
+                                class="shrink-0"
+                            />
                             <Avatar
+                                v-else
                                 :image="option.instance?.data?.avatarUrl || null"
                                 :label="!option.instance?.data?.avatarUrl ? String(option.label || '?').charAt(0).toUpperCase() : null"
                                 shape="circle"
@@ -1357,8 +1380,9 @@
                 >
                     <template #option="{ option }">
                         <div class="flex min-w-0 items-center gap-2">
+                            <AiAvatar v-if="isAiChatRow(option) || isBotDirectRow(option)" class="shrink-0" />
                             <Avatar
-                                v-if="option.conversationKind === 'group'"
+                                v-else-if="option.conversationKind === 'group'"
                                 icon="pi pi-users"
                                 shape="circle"
                                 class="shrink-0 bg-subtle text-muted"
@@ -1397,7 +1421,9 @@ import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } 
 import { conversationKeyForRoom } from '~/utils/call-rooms.js'
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue'
 import UserChip from '~/components/shared/UserChip.vue'
+import AiAvatar from '~/components/shared/AiAvatar.vue'
 import Avatar from 'primevue/avatar'
+import Message from 'primevue/message'
 import Badge from 'primevue/badge'
 import Divider from 'primevue/divider'
 import Listbox from 'primevue/listbox'
@@ -1521,10 +1547,10 @@ const botPanelConversationKey = computed(() => {
     if (!conversation || !['group', 'instance'].includes(conversation.conversationKind)) return ''
     return conversation.conversationKey || ''
 })
-const isDirectWithBot = computed(() => {
-    const conversation = activeConversation.value
-    return conversation?.conversationKind === 'direct' && Boolean(conversation.participant?.data?.bot)
-})
+// Legacy direct threads from the created-bots era: the assistant is the
+// other participant and answers implicitly.
+const isBotDirectRow = (conversation) => conversation?.conversationKind === 'direct' && Boolean(conversation?.participant?.data?.bot)
+const isDirectWithBot = computed(() => isBotDirectRow(activeConversation.value))
 // A 1:1 room with the AI — a fresh AI thread (a two-participant group
 // room whose other member is the assistant), a draft one, or a legacy
 // direct thread. It presents as a person chat: no group chrome (members
