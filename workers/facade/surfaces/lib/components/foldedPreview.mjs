@@ -18,9 +18,10 @@ export default function createFoldedPreview({ vue, components, locale }) {
       selectedFaceId: { type: String, default: '' },
       titleKey: { type: String, default: 'cassette.v2.foldedPreview' },
       selectedWorkpieceId: { type: String, default: '' },
-      isolatedWorkpieceId: { type: String, default: '' }
+      isolatedWorkpieceId: { type: String, default: '' },
+      expandable: { type: Boolean, default: false }
     },
-    emits: ['workpiece-select', 'update:isolatedWorkpieceId'],
+    emits: ['workpiece-select', 'update:isolatedWorkpieceId', 'expand'],
     setup(props, { emit }) {
       const viewportRef = ref(null);
       const renderer = shallowRef(null);
@@ -397,6 +398,18 @@ export default function createFoldedPreview({ vue, components, locale }) {
         h('div', { class: 'flex h-6 items-center justify-between gap-2' }, [
           h('small', { class: 'truncate text-muted' }, t(props.titleKey)),
           h('div', { class: 'flex items-center gap-1' }, [
+            props.expandable
+              ? h(components.Button, {
+                  icon: 'pi pi-window-maximize',
+                  severity: 'secondary',
+                  text: true,
+                  rounded: true,
+                  size: 'small',
+                  'aria-label': t('common.expand'),
+                  title: t('common.expand'),
+                  onClick: () => emit('expand')
+                })
+              : null,
             props.isolatedWorkpieceId
               ? h(components.Button, {
                   icon: 'pi pi-arrow-left',

@@ -2297,69 +2297,77 @@ export default function createSurface({ vue, components, locale, queries, record
                   : null,
                 row.relations.length
                   ? h('div', { class: 'mt-2 flex flex-col gap-1 pl-4' },
-                    row.relations.map(relationRow => h('div', {
-                      key: `${row.id}-${relationRow.relation.id}-${relationRow.direction}`,
-                      class: 'flex min-w-0 items-center gap-1'
-                    }, [
-                      h('button', {
-                        type: 'button',
-                        class: ['flex min-w-0 flex-1 items-center gap-2 rounded-ui border px-2 py-1 text-left', relationRow.relation.id === selectedRelationId.value ? 'border-primary bg-subtle' : 'border-content-border'],
-                        onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
+                    row.relations.map(relationRow => {
+                      const statusIcon = relationRow.status !== 'ok'
+                        ? h('i', {
+                            class: `pi ${relationRow.status === 'refused' ? 'pi-ban' : relationRow.status === 'impossible' ? 'pi-times-circle' : 'pi-question-circle'} shrink-0`,
+                            style: { color: `var(--ck-status-${relationStatusSeverity(relationRow.status)})` },
+                            role: 'img',
+                            'aria-label': t(`cassette.v2.attachmentStatus.${relationRow.status}`),
+                            title: [
+                              t(`cassette.v2.attachmentStatus.${relationRow.status}`),
+                              profileEmbeddingErrorById.value.get(relationRow.relation.id) || ''
+                            ].filter(Boolean).join(' — ')
+                          })
+                        : null;
+                      return h('div', {
+                        key: `${row.id}-${relationRow.relation.id}-${relationRow.direction}`,
+                        class: 'flex min-w-0 items-start gap-1'
                       }, [
-                        h('span', { class: 'shrink-0 text-muted text-technical' }, relationRow.arrow),
-                        h('span', { class: 'truncate text-body' }, relationRow.otherLabel),
-                        h('small', { class: 'truncate text-muted' }, relationRow.faceLabel),
-                        relationRow.relation.driver
-                          ? h(Tag, { value: t('cassette.v2.driver'), severity: 'secondary', size: 'small' })
-                          : null,
-                        relationRow.status !== 'ok'
-                          ? h(Tag, {
-                              value: t(`cassette.v2.attachmentStatus.${relationRow.status}`),
-                              severity: relationStatusSeverity(relationRow.status),
-                              size: 'small',
-                              title: profileEmbeddingErrorById.value.get(relationRow.relation.id) || undefined
-                            })
-                          : null
-                      ]),
-                      h(Button, {
-                        icon: 'pi pi-trash',
-                        severity: 'danger',
-                        text: true,
-                        rounded: true,
-                        size: 'small',
-                        'aria-label': t('cassette.v2.removeAttachment'),
-                        title: t('cassette.v2.removeAttachment'),
-                        onClick: () => deleteWorkpieceRelation(relationRow.relation.id)
-                      })
-                    ])))
+                        h('button', {
+                          type: 'button',
+                          class: ['flex min-w-0 flex-1 flex-col gap-0.5 rounded-ui border px-2 py-1 text-left', relationRow.relation.id === selectedRelationId.value ? 'border-primary bg-subtle' : 'border-content-border'],
+                          onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
+                        }, [
+                          h('div', { class: 'flex min-w-0 items-center gap-2' }, [
+                            h('span', { class: 'shrink-0 text-muted text-technical' }, relationRow.arrow),
+                            h('span', { class: 'truncate text-body' }, relationRow.otherLabel),
+                            relationRow.relation.driver
+                              ? h('i', {
+                                  class: 'pi pi-compass shrink-0 text-muted',
+                                  role: 'img',
+                                  'aria-label': t('cassette.v2.driver'),
+                                  title: t('cassette.v2.driver')
+                                })
+                              : null,
+                            statusIcon
+                          ]),
+                          relationRow.faceLabel
+                            ? h('small', { class: 'truncate pl-5 text-muted' }, relationRow.faceLabel)
+                            : null
+                        ]),
+                        h(Button, {
+                          icon: 'pi pi-trash',
+                          severity: 'danger',
+                          text: true,
+                          rounded: true,
+                          size: 'small',
+                          class: 'mt-0.5 shrink-0',
+                          'aria-label': t('cassette.v2.removeAttachment'),
+                          title: t('cassette.v2.removeAttachment'),
+                          onClick: () => deleteWorkpieceRelation(relationRow.relation.id)
+                        })
+                      ]);
+                    }))
                   : null
               ])))
           )
         ]),
-        h('div', { class: 'relative h-48 shrink-0 overflow-hidden' }, [
-          foldedPreviewMount(),
-          h(Button, {
-            icon: 'pi pi-window-maximize',
-            severity: 'secondary',
-            text: true,
-            rounded: true,
-            size: 'small',
-            class: 'absolute right-0.5 top-0.5 z-[130]',
-            'aria-label': t('common.expand'),
-            title: t('common.expand'),
-            onClick: () => { foldedExpanded.value = true; }
-          })
+        h('div', { class: 'h-48 shrink-0 overflow-hidden' }, [
+          foldedPreviewMount({ expandable: true })
         ])
       ]);
 
-      const foldedPreviewMount = () => h(CassetteFoldedPreview, {
+      const foldedPreviewMount = ({ expandable = false } = {}) => h(CassetteFoldedPreview, {
         preview: cassettePreviewSource.value?.foldedPreview,
         selectedFaceId: selectedNodeId.value,
         selectedWorkpieceId: selectedWorkpieceId.value,
         isolatedWorkpieceId: foldedPreviewWorkpieceId.value,
         'onUpdate:isolatedWorkpieceId': value => { foldedPreviewWorkpieceId.value = value; },
         titleKey: 'cassette.v2.cassetteFoldedPreview',
-        onWorkpieceSelect: selectWorkpieceForInspector
+        onWorkpieceSelect: selectWorkpieceForInspector,
+        expandable,
+        onExpand: () => { foldedExpanded.value = true; }
       });
 
       const renderOnboardingRail = () => {
