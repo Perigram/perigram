@@ -341,8 +341,11 @@ export async function runAssistantReply(target, context, message) {
     const controller = new AbortController();
     inFlight.set(lockKey, { conversationKey: message.conversationKey, organizationId: null, controller });
     let stream = null;
+    // Hoisted: the failure notice in the catch needs the delegated
+    // principal, and a try-scoped const is invisible there.
+    let execAuth = null;
     try {
-        const execAuth = await resolveDelegatedPrincipal(message.organizationId || context.organizationId, message.senderUserId);
+        execAuth = await resolveDelegatedPrincipal(message.organizationId || context.organizationId, message.senderUserId);
         if (!execAuth) return;
         const assistantAuth = await buildPrincipalAuth(target.assistantId);
         inFlight.get(lockKey).organizationId = assistantAuth.organizationId || execAuth.organizationId;
@@ -374,7 +377,10 @@ export async function runAssistantReply(target, context, message) {
             console.error('[AGENT-BOTS] reply failed:', error);
             try {
                 const assistantAuth = await buildPrincipalAuth(target.assistantId);
-                await sendReply(assistantAuth, execAuth, context, message, 'The agent failed to answer; try again.');
+                // A failure notice carries no attached refs; the refs auth
+                // falls back to the assistant when the run died before the
+                // delegation resolved.
+                await sendReply(assistantAuth, execAuth || assistantAuth, context, message, 'The agent failed to answer; try again.');
             } catch (nested) {
                 console.error('[AGENT-BOTS] failure notice failed:', nested);
             }
