@@ -12,6 +12,7 @@ import { createI18n } from 'vue-i18n';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import Re_L from '~/assets/presets/re_l';
+import enLocale from '~/i18n/locales/en.json';
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue';
 import ChatInstanceRefs from '~/components/shared/ChatInstanceRefs.vue';
 import AgentActivity from '~/components/shared/AgentActivity.vue';
@@ -25,7 +26,7 @@ const boot = Component => {
     legacy: false,
     missingWarn: false,
     fallbackWarn: false,
-    messages: { en: {} }
+    messages: { en: enLocale }
   });
   const app = createSSRApp({ render: () => h(Component) });
   app.use(i18n);
@@ -88,14 +89,15 @@ describe('chat content SSR smoke', () => {
     expect(summary).toContain('+1');
   });
 
-  it('renders the agent chronology, thinking disclosure, and tool tags', async () => {
+  it('renders the agent chronology, thinking disclosure, and typed tool messages', async () => {
     const html = await boot({
       setup: () => () => h(AgentActivity, {
         activity: {
           steps: [
             { kind: 'thinking', text: 'reasoning here' },
             { kind: 'tool', id: 't1', name: 'list_types', status: 'done' },
-            { kind: 'tool', id: 't2', name: 'broken_tool', status: 'error', error: 'it failed' }
+            { kind: 'tool', id: 't2', name: 'run_action', status: 'running', detail: 'rename' },
+            { kind: 'tool', id: 't3', name: 'broken_tool', status: 'error', error: 'it failed' }
           ],
           answer: ''
         },
@@ -103,9 +105,19 @@ describe('chat content SSR smoke', () => {
       })
     });
     expect(html).toContain('reasoning here');
-    expect(html).toContain('list_types');
+    // One typed message per tool invocation: localized names off the
+    // catalog vocabulary (unknown tools fall back to the raw name), the
+    // call's detail after the label, the failure inside the same
+    // message, severity classes by outcome, and no Tag chrome.
+    expect(html).toContain('Types listed');
+    expect(html).toContain('Action executed — rename');
+    expect(html).toContain('broken_tool');
     expect(html).toContain('it failed');
-    expect(html.match(/p-tag-label/g)?.length).toBe(2);
+    expect((html.match(/data-testid="agent-tool"/g) || []).length).toBe(3);
+    expect(html).toContain('p-message-secondary');
+    expect(html).toContain('p-message-info');
+    expect(html).toContain('p-message-error');
+    expect(html).not.toContain('p-tag');
   });
 
   it('renders nothing while the run has no steps — the typing line owns that presence', async () => {

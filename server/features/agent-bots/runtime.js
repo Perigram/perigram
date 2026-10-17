@@ -6,7 +6,7 @@ import { MESSAGE_SENDER } from '~/server/features/support/const.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { buildPrincipalAuth, ensureOrganizationAssistant, getBotIdentity, ASSISTANT_NAME } from './service.js';
 import * as botRepository from './repository.js';
-import { executeTool, chatToolDescriptors } from './tools.js';
+import { executeTool, chatToolDescriptors, toolCallDetail } from './tools.js';
 
 /**
  * The organization AI's chat runtime: registered (by the agent-bots
@@ -348,6 +348,11 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, pr
         conversation.push({ role: 'assistant', content: assistant.content || '', toolCalls });
         for (const call of toolCalls) {
             const entry = { kind: 'tool', id: call.id, name: call.name, status: 'running' };
+            // The call's human detail (definition name, type, action id)
+            // rides the step from the start, so the live chronology and
+            // the persisted provenance cite the same target.
+            const detail = toolCallDetail(call.name, call.arguments);
+            if (detail) entry.detail = detail;
             steps.push(entry);
             publish();
             let result;

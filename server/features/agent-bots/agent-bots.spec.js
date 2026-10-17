@@ -52,6 +52,7 @@ const { mockedSupport, mockedLlm, mockedConnections, mockedBotsService, mockedOr
     },
     mockedTools: {
         executeTool: vi.fn(),
+        toolCallDetail: vi.fn((name, args = {}) => String(args?.name || args?.type || args?.actionId || '')),
         chatToolDescriptors: vi.fn(() => [
             { name: 'list_types', description: 'lists types', inputSchema: { type: 'object', properties: {} } }
         ]),
@@ -357,6 +358,19 @@ describe('runAssistantReply', () => {
             { kind: 'tool', id: 't1', name: 'list_types', status: 'done' },
             { kind: 'thinking', text: 'now the answer' }
         ] });
+    });
+
+    it('persists the tool call detail on the chronology step', async () => {
+        mockedLlm.chatCompletion
+            .mockResolvedValueOnce({
+                content: '',
+                toolCalls: [{ id: 'c1', name: 'run_action', arguments: { actionId: 'rename' } }]
+            })
+            .mockResolvedValueOnce({ content: 'done', toolCalls: [] });
+        mockedTools.executeTool.mockResolvedValue({});
+        await runAssistantReply(target, context, message);
+        const sent = mockedSupport.sendUserMessage.mock.calls.at(-1)[1];
+        expect(sent.agent.steps).toContainEqual({ kind: 'tool', id: 'c1', name: 'run_action', status: 'done', detail: 'rename' });
     });
 
     it('executes tool calls with the sender\'s auth (delegation) and feeds results back', async () => {

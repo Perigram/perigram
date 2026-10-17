@@ -201,7 +201,26 @@
         "sendMessage": "Написать",
         "members": "Участники",
         "folderAll": "Все",
-        "folderPersonal": "Личные"
+        "folderPersonal": "Личные",
+        "agentTools": {
+            "list_process_definitions": "Определения процессов получены",
+            "get_process_definition": "Определение процесса загружено",
+            "create_process_definition": "Определение процесса создано",
+            "update_process_definition": "Определение процесса сохранено",
+            "update_definition_graph": "Граф определения сохранён",
+            "get_authoring_vocabulary": "Словарь авторинга загружен",
+            "compose_process_definition": "Определение процесса собрано",
+            "edit_process_definition": "Определение процесса изменено",
+            "validate_process_definition": "Определение процесса проверено",
+            "activate_process_definition": "Определение процесса активировано",
+            "deactivate_process_definition": "Определение процесса деактивировано",
+            "list_types": "Типы получены",
+            "list_instances": "Экземпляры получены",
+            "get_instance": "Экземпляр загружен",
+            "attach_instances": "Экземпляры прикреплены",
+            "list_actions": "Действия получены",
+            "run_action": "Действие выполнено"
+        }
     },
     "footer": {
         "termsAndConditions": "Условия и положения",
