@@ -487,6 +487,8 @@
                 "targetFace": "Целевая грань",
                 "sourceFace": "Исходная грань",
                 "targetSnap": "Привязка цели",
+                "hostSection": "Хост",
+                "selfSection": "Свой",
                 "sourceSnap": "Привязка источника",
                 "side": "Сторона",
                 "edgeMargin": "Отступ от края",

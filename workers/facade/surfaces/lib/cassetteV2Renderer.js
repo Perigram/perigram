@@ -573,7 +573,9 @@ const normalizedCassetteV2WorkpieceRelation = (tree, joint, index = 0) => {
   const targetFaceId = target.face || placement.relativeTo?.face || targetWorkpiece?.rootId || tree.rootId;
   const sourceFaceId = joint.source?.face || placement.sourceFace || sourceWorkpiece?.rootId || '';
   const targetSide = target.side || placement.relativeTo?.side || DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.side;
+  const sourceSide = joint.source?.side || placement.sourceSide || DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.side;
   const origin = Array.isArray(placement.origin) ? placement.origin : [];
+  const sourceOrigin = Array.isArray(placement.sourceOrigin) ? placement.sourceOrigin : [];
   const targetSnap = placement.targetAnchor ||
     placement.targetSnap ||
     target.anchor ||
@@ -595,10 +597,13 @@ const normalizedCassetteV2WorkpieceRelation = (tree, joint, index = 0) => {
     targetWorkpieceId: targetWorkpiece?.id || '',
     targetFaceId,
     targetSide,
+    sourceSide,
     targetSnap,
     sourceSnap,
     offsetX: origin[0] ?? placement.offsetX ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetX,
     offsetY: origin[1] ?? placement.offsetY ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetY,
+    sourceOffsetX: sourceOrigin[0] ?? placement.sourceOffsetX ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetX,
+    sourceOffsetY: sourceOrigin[1] ?? placement.sourceOffsetY ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetY,
     rotation: placement.rotation ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.rotation,
     mirrorX: Boolean(placement.mirrorX ?? placement.mirror?.x),
     mirrorY: Boolean(placement.mirrorY ?? placement.mirror?.y),
@@ -614,7 +619,8 @@ const normalizedCassetteV2WorkpieceRelation = (tree, joint, index = 0) => {
     source: {
       ...(joint.source || {}),
       occurrence: sourceWorkpiece ? occurrenceIdForWorkpiece(sourceWorkpiece) : joint.source?.occurrence,
-      face: sourceFaceId
+      face: sourceFaceId,
+      side: sourceSide
     },
     target: {
       occurrence: targetWorkpiece ? occurrenceIdForWorkpiece(targetWorkpiece) : target.occurrence,
@@ -631,6 +637,11 @@ const normalizedCassetteV2WorkpieceRelation = (tree, joint, index = 0) => {
       origin: [
         origin[0] ?? placement.offsetX ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetX,
         origin[1] ?? placement.offsetY ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetY
+      ],
+      sourceSide,
+      sourceOrigin: [
+        sourceOrigin[0] ?? placement.sourceOffsetX ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetX,
+        sourceOrigin[1] ?? placement.sourceOffsetY ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetY
       ],
       anchor: sourceSnap,
       targetAnchor: targetSnap,
@@ -962,6 +973,10 @@ export const addCassetteV2ProfileWorkpiece = (tree, reference = {}) => {
       driver: true
     });
     joint.source.face = '';
+    // Profiles attach through the edge-array contract by default (owner
+    // law 2026-10-17, same default as hardware): the attachment editor
+    // opens with the edge chooser live, never a bare point placement.
+    joint.placement.pattern = edgeArrayDefaults(reference.pattern || DEFAULT_CASSETTE_V2_HARDWARE_ARRAY);
     nextTree.joints.push(joint);
   }
 
@@ -1198,6 +1213,7 @@ export const updateCassetteV2WorkpieceRelation = (tree, relationId, patch = {}) 
   const targetFaceId = faceIdForWorkpiece(nextTree, targetWorkpiece, patch.targetFaceId ||
     (patch.targetWorkpieceId ? targetWorkpiece?.rootId : relation.targetFaceId));
   const targetSide = patch.targetSide || relation.targetSide || DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.side;
+  const sourceSide = patch.sourceSide || relation.sourceSide || DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.side;
   const targetSnap = patch.targetSnap || relation.targetSnap || DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.targetSnap;
   const sourceSnap = patch.sourceSnap || relation.sourceSnap || DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.sourceSnap;
   const requestedDriver = patch.driver ?? relation.driver;
@@ -1218,6 +1234,11 @@ export const updateCassetteV2WorkpieceRelation = (tree, relationId, patch = {}) 
     origin: [
       patch.offsetX ?? relation.offsetX,
       patch.offsetY ?? relation.offsetY
+    ],
+    sourceSide,
+    sourceOrigin: [
+      patch.sourceOffsetX ?? relation.sourceOffsetX ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetX,
+      patch.sourceOffsetY ?? relation.sourceOffsetY ?? DEFAULT_CASSETTE_V2_ATTACHMENT_PLACEMENT.offsetY
     ],
     rotation: patch.rotation ?? relation.rotation,
     mirrorX: patch.mirrorX ?? relation.mirrorX,
@@ -1247,7 +1268,8 @@ export const updateCassetteV2WorkpieceRelation = (tree, relationId, patch = {}) 
     driver,
     source: {
       occurrence: occurrenceIdForWorkpiece(sourceWorkpiece),
-      face: sourceFaceId
+      face: sourceFaceId,
+      side: sourceSide
     },
     target,
     placement
@@ -2568,19 +2590,25 @@ export const profileFoldEdgeRefusalsForTree = (tree = createCassetteV2GraphTree(
 export const cassetteV2AttachableProfileEdgesForTree = (
   tree = createCassetteV2GraphTree(),
   faceId = '',
-  relationId = ''
+  relationId = '',
+  // Hardware arrays may bind an edge a profile already occupies (owner
+  // law 2026-10-17): the profile-terminal exclusion applies when the
+  // asking relation is a profile; folds are prohibited for everyone.
+  { excludeProfileEdges = true } = {}
 ) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
   const folds = getCassetteV2FoldEdges(sourceTree);
   const terminal = new Set();
-  for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
-    if (relation.id === relationId) continue;
-    const workpiece = relationProfileWorkpiece(sourceTree, relation);
-    if (!workpiece) continue;
-    const edgeIndex = profileArrangementEdgeIndex(relation, workpiece, parameters);
-    if (edgeIndex === null) continue;
-    terminal.add(`${relation.targetFaceId}:${edgeIndex}`);
+  if (excludeProfileEdges) {
+    for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
+      if (relation.id === relationId) continue;
+      const workpiece = relationProfileWorkpiece(sourceTree, relation);
+      if (!workpiece) continue;
+      const edgeIndex = profileArrangementEdgeIndex(relation, workpiece, parameters);
+      if (edgeIndex === null) continue;
+      terminal.add(`${relation.targetFaceId}:${edgeIndex}`);
+    }
   }
   return Array.from({ length: 4 }, (_, edgeIndex) => edgeIndex)
     .filter(edgeIndex => !folds.has(`${faceId}:E${edgeIndex}`) && !terminal.has(`${faceId}:${edgeIndex}`))
@@ -3677,7 +3705,14 @@ const buildCassetteV2AssemblyTransforms = (sourceTree, localCurves) => {
         resolveCassetteV2Expression(relation.offsetY, parameters, 0)
       ], targetTransform.rotation);
       const rotation = numeric(targetTransform.rotation, 0) + resolveCassetteV2AngleExpression(relation.rotation, parameters, 0);
-      const sourceSnapRotated = rotate2d(faceSnapPoint(rawFaceVertices(sourceCurve), relation.sourceSnap), rotation);
+      // The self anchor rides its own offset pair (sourceOrigin): the
+      // source snap point plus the self offset, rotated into place —
+      // symmetric to the host offset on the target snap.
+      const sourceSnap = faceSnapPoint(rawFaceVertices(sourceCurve), relation.sourceSnap);
+      const sourceSnapRotated = rotate2d([
+        sourceSnap[0] + resolveCassetteV2Expression(relation.sourceOffsetX, parameters, 0),
+        sourceSnap[1] + resolveCassetteV2Expression(relation.sourceOffsetY, parameters, 0)
+      ], rotation);
 
       transforms.set(relation.sourceWorkpieceId, {
         origin: [
