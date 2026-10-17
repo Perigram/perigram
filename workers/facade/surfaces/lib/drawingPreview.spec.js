@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyLayerPens,
+  cassettePreviewLayerSelection,
   normalizeGeometryDrawing
 } from './drawingPreview.js';
 
@@ -212,5 +213,28 @@ describe('drawing preview contract', () => {
     expect(drawing.layers[0].weight).toBe(2);
     expect(drawing.layers[0].standardId).toBe('face-standard');
     expect(drawing.layers[0].penId).toBeNull();
+  });
+
+  it('selects cassette preview layers by standardCode under localized export names', () => {
+    const selection = cassettePreviewLayerSelection({
+      layers: [
+        { name: '2_1_Обрезь_3,15', standardCode: 'cut.outer' },
+        { name: '3_1_Фрезеровка_90', standardCode: 'fold.route' },
+        { name: '5_1_Размер_Кассета', standardCode: 'dimension.cassette' }
+      ]
+    });
+
+    expect(selection).toEqual(['cut.outer', 'fold.route']);
+  });
+
+  it('matches preview layers by name when a layer carries no standardCode', () => {
+    expect(cassettePreviewLayerSelection({
+      layers: [{ name: 'fold.route', standardCode: null }]
+    })).toEqual(['fold.route']);
+  });
+
+  it('returns a null selection for drawings outside the preview set', () => {
+    expect(cassettePreviewLayerSelection({ layers: [{ name: 'geometry' }] })).toBeNull();
+    expect(cassettePreviewLayerSelection(null)).toBeNull();
   });
 });

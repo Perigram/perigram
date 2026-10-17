@@ -372,6 +372,23 @@ export const isOccsCassetteDefinition = (definition = null) => Boolean(
   && definition.occs && definition.documentType
 );
 
+// The cassette preview layer set (owner direction 2026-10-17; the
+// facade README's cassette-preview row owns the contract): the shape —
+// outline (`cut.outer`) and folds — never production detail or
+// dimensions. Layer keys resolve by standardCode first (the renderer
+// names layers with localized export names; DrawingCanvas matches
+// visibility by name OR standardCode). Null means uncontrolled — every
+// layer renders, the quiet fallback for drawings outside the set.
+// Shared by the cassette-preview surface and the designer's load-picker
+// thumbnails.
+export const CASSETTE_PREVIEW_LAYERS = ['cut.outer', 'fold.route'];
+
+export const cassettePreviewLayerSelection = (drawing = null) => {
+  const keys = new Set((drawing?.layers || []).map(layer => layer.standardCode || layer.name));
+  const allowed = CASSETTE_PREVIEW_LAYERS.filter(code => keys.has(code));
+  return allowed.length ? allowed : null;
+};
+
 export const normalizeGeometryDrawing = (source, options = {}) => {
   const geometry = source?.data?.geometry || source?.geometry || source || {};
   const preview = geometry.preview || geometry.data || geometry;

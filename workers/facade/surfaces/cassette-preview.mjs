@@ -8,15 +8,7 @@
 // renderer emits is already styled; org-authored standards still
 // override host-side. Blank records render the quiet blank band.
 import { renderCassetteV2TreeToDrawing } from './lib/cassetteV2Renderer.js';
-import { normalizeGeometryDrawing } from './lib/drawingPreview.js';
-
-// Preview layer set (owner direction 2026-10-17): cassette previews show
-// the shape — outline (cut.outer) and folds — never production detail or
-// dimensions.
-const PREVIEW_LAYER_PRIORITY = [
-  'cut.outer',
-  'fold.route'
-];
+import { cassettePreviewLayerSelection, normalizeGeometryDrawing } from './lib/drawingPreview.js';
 
 const isOccsCassetteDocument = (document = null) => Boolean(
   document && typeof document === 'object'
@@ -65,11 +57,7 @@ export default function createSurface({ vue, components }) {
       }
 
       function handleDrawingReady(rendered) {
-        const layerNames = Array.isArray(rendered?.layers)
-          ? rendered.layers.map(layer => layer.name).filter(Boolean)
-          : [];
-        const allowed = PREVIEW_LAYER_PRIORITY.filter(name => layerNames.includes(name));
-        visibleLayerNames.value = allowed.length ? allowed : null;
+        visibleLayerNames.value = cassettePreviewLayerSelection(rendered);
       }
 
       const renderKey = computed(() => [
