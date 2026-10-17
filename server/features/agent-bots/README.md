@@ -86,7 +86,12 @@ Three pieces share one tool catalog:
   are refused with the text-only boundary, and unrecognized binaries
   are refused outright. The room scoping rides the support seam's
   conversation-attachment lookup, so the model can never reach a file
-  the room it answers does not already carry. Tools run with
+  the room it answers does not already carry. `ask_user` (chat-run
+  only) suspends the run on the room's answer — the room-input channel
+  for decisions that belong to it (activation gates carrying live data,
+  genuinely ambiguous intent); its routing and lifecycle ride the
+  runtime's pending-question registry (see the chat runtime above).
+  Tools run with
   the principal's auth they are given; the catalog owns no business logic.
 - **MCP transport** (`mcp.js` → `POST /api/mcp`): single-message JSON-RPC
   over streamable HTTP with `application/json` replies and stateless
@@ -137,7 +142,13 @@ Three pieces share one tool catalog:
   the failure message when one was rejected, always
   a snapshot), `bot_stream` with the answer so far, and
   `bot_stream_end` when the
-  persisted message supersedes the live view. The activity itself is the
+  persisted message supersedes the live view. `ask_user` suspends the
+  run on the room's answer: `bot_question` (with one-tap options)
+  renders at the composer until `bot_question_end` — answered by the
+  next capability-holding participant message in the asking
+  conversation (consumed by the observer as the answer, never a second
+  trigger), ended by stop, or timed out (10 minutes) with a readable
+  no-answer error the run concludes from. The activity itself is the
   run's pre-step presence signal: the assistant rides the room's typing
   line until the first step or answer streams, then the activity is the
   presence; a
@@ -199,7 +210,9 @@ membership keeps the creator-or-admin gate, and the human membership
 seams refuse bot targets outright — assistant membership is twin-only,
 so the participants entry and the subscription cannot diverge through
 member management. Support-channel messages never trigger; the AI never
-triggers itself (no loops); one run per subscribed room at a time (chat
+triggers itself (no loops); a message answering the room's suspended
+question steers the waiting run instead of triggering a new one; one run
+per subscribed room at a time (chat
 replies and wakes share the lock space), and the subscription's
 organization is the wake boundary — an assistant answers only its own
 org's members.

@@ -1,5 +1,55 @@
 # TODO
 
+## Agent asks the room: ask_user with composer-suspended questions (owner direction 2026-10-17)
+
+Activation gates make the agent stop and ask (status migration targets,
+type death), but its only way to ask today is ending the turn with
+prose — in mention-gated rooms the answer never re-wakes it, and every
+room loses the run's fetched context between turns. `ask_user` suspends
+the run: the question renders with one-tap options at the composer, the
+next capability-holding participant message in that conversation is
+consumed as the answer (persisted as the ordinary message it is, never
+a second trigger), the same run continues with its context intact;
+unanswered questions time out, stopping the room ends the question
+(SPEC: agent access).
+
+- [ ] WAITING — owner verification on the live stack: an agent run
+  hitting an activation gate asks through `ask_user`; the question card
+  with option buttons renders above the composer; a typed reply or an
+  option tap is consumed as the answer and the same run continues and
+  resolves the gate in one thread of work.
+- [ ] WAITING — owner verification on the live stack: a reply to a
+  pending question never fires a second run; a member without the
+  agent-chat capability cannot answer (their message stays a plain
+  message); stop ends the question with the run.
+
+### Agent Notes (2026-10-17 — ask_user shipped)
+
+- Runtime: a pending-question registry keyed by the asking conversation
+  (`waitForRoomAnswer`) — the run suspends inside the tool until the
+  observer consumes the next capability-holding participant message in
+  that conversation as the answer, the stop aborts it, or it times out
+  (10 minutes) with a readable no-answer error. The sink gained
+  `bot_question` / `bot_question_end` (same fanout keys as the run's
+  activity). Wakes can ask too — both run paths build the asker.
+- Observer routing: `handleMessageInserted` consumes a pending answer
+  BEFORE trigger resolution — the answer steers the suspended run and
+  never double-fires (it still persists as the ordinary message it is).
+  Bots, the capability-less, and other rooms fall through to the normal
+  trigger.
+- Catalog: `ask_user` (chat-run only, injected as `run.ask` — no import
+  cycle) takes `{ question, options? }` (≤6 one-tap choices) and returns
+  `{ answer }`. The system prompt's decisiveness law now routes
+  activation gates with live data to a single ask instead of guessing.
+- Client: the question card renders above the composer (question text +
+  option buttons; a tap sends the option as the reply message); it
+  clears on answer, stop, stream end, message, and room switch; the
+  stop control also shows while a question waits.
+- Specs: answer consumption (single continued run, tool result carries
+  the answer), capability-less fall-through (message coalesces as a
+  trailing trigger), stop-during-ask silence with the question card
+  cleared, MCP exclusion. 105 agent-bots specs green.
+
 ## Agent tool calls as small Messages with details (owner direction 2026-10-17)
 
 The agent chronology's tool invocations render as small severity-styled
