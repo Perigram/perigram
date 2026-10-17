@@ -981,24 +981,6 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
-      const handleKeydown = (event) => {
-        if (!manager) return;
-        const key = event.key?.toLowerCase();
-        const isUndo = (event.ctrlKey || event.metaKey) && key === 'z' && !event.shiftKey;
-        const isRedo = (event.ctrlKey || event.metaKey) && (key === 'y' || (key === 'z' && event.shiftKey));
-        if (isUndo || isRedo) {
-          event.preventDefault();
-          event.stopPropagation();
-          manager.sendStringToExecute?.(isUndo ? 'undo' : 'redo');
-          return;
-        }
-        if (key === 'delete' || key === 'backspace') {
-          event.preventDefault();
-          event.stopPropagation();
-          manager.sendStringToExecute?.('erase');
-        }
-      };
-
       const mountEngine = async () => {
         if (typeof window === 'undefined' || runtime.value) return;
         engineError.value = '';
@@ -1031,7 +1013,6 @@ export default function createSketchEditor({ vue, components, locale }) {
           manager.events.documentActivated.addEventListener(() => bindDatabase({ schedule: false }));
           manager.events.documentCreated.addEventListener(() => bindDatabase({ schedule: false }));
           bindCommandEvents();
-          containerRef.value?.addEventListener('keydown', handleKeydown, true);
           window.addEventListener('keydown', handleWindowKeydown, true);
           manager.curView?.events?.renderFrame?.addEventListener?.(bumpViewTick);
           bindDatabase();
@@ -1079,7 +1060,6 @@ export default function createSketchEditor({ vue, components, locale }) {
         unbindCommandEvents = null;
         window.removeEventListener('keydown', handleWindowKeydown, true);
         manager?.curView?.events?.renderFrame?.removeEventListener?.(bumpViewTick);
-        containerRef.value?.removeEventListener?.('keydown', handleKeydown, true);
         unbindDatabase();
         const dying = manager;
         manager = null;
