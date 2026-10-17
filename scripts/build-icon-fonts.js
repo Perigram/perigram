@@ -24,7 +24,10 @@
  * keep live-area padding. --descent 158 aligns the live-area bottom with
  * PrimeIcons' baseline overshoot, and each family's base class scales
  * glyphs by 1/live-area-fill (see FAMILIES) so every set renders at the
- * same size at the same font-size.
+ * same size at the same font-size. The scale rides `transform`, not
+ * `font-size`: the glyph keeps a 1em advance like a PrimeIcon, so
+ * fixed-size icon boxes (Avatar pins `.p-avatar-icon` at 1em) center it
+ * instead of clipping a wider-than-box advance.
  *
  * Run: `npm run icons:build` after adding or editing source SVGs.
  */
@@ -47,7 +50,7 @@ const FAMILIES = [
         fontDir: 'public/fonts/cnc-domain',
         publicBase: '/fonts/cnc-domain',
         // 2.25-unit live-area padding (~81% fill): 1/0.814 ≈ 1.23
-        sizeCompensation: '1.23em',
+        sizeCompensation: 'scale(1.23)',
         comment: 'Custom CNC entity icon font (built from\n   public/icons/data-model/cnc-domain).'
     },
     {
@@ -57,7 +60,7 @@ const FAMILIES = [
         fontDir: 'public/fonts/file-types',
         publicBase: '/fonts/file-types',
         // Material 24-grid live area (20/24 ≈ 83% fill): 1/0.833 ≈ 1.2
-        sizeCompensation: '1.2em',
+        sizeCompensation: 'scale(1.2)',
         comment: 'CTS file-type glyphs — Google Material Symbols Outlined\n   sources, Apache-2.0 (the type → icon mapping lives in\n   scripts/README.md).'
     }
 ];
@@ -110,11 +113,13 @@ function buildFamily(family) {
 /* ${family.comment}
    Behaves like a PrimeIcon class string in every surface (<i :class>, PrimeVue
    Tree/Menu/Tab icon props) and follows the active color scheme.
-   font-size compensates the 24-grid live-area padding so these glyphs match
-   PrimeIcons' edge-to-edge em fill at the same nominal size. */
+   The transform scale compensates the 24-grid live-area padding so these
+   glyphs match PrimeIcons' edge-to-edge em fill at the same nominal size,
+   while the glyph keeps its 1em advance — fixed-size icon boxes (Avatar)
+   center it exactly like a PrimeIcon. */
 .${family.classBase} {
     font-family: '${family.name}';
-    font-size: ${family.sizeCompensation};
+    transform: ${family.sizeCompensation};
     font-style: normal;
     font-weight: normal;
     font-variant: normal;

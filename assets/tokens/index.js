@@ -647,3 +647,23 @@ export const primeComponentTokens = {
         }
     }
 };
+
+// Form fields fill their host by default: every form-field control mounts
+// with PrimeVue's fluid class, so a bare input never sizes itself by its
+// native `size` attribute inside dialogs, inspector panes, and form grids
+// (the intrinsic default escapes narrow hosts). Width utilities
+// (`w-full`, `flex-1`, `max-w-*`) still override — they are unlayered and
+// beat the `primevue` cascade layer. Buttons are deliberately absent:
+// fluid buttons stretch to 100%, and only PrimeVue's `Fluid` wrapper
+// regions opt actions into that.
+export const primeFormFluidPT = {
+    inputtext: { root: { class: 'p-inputtext-fluid' } },
+    textarea: { root: { class: 'p-textarea-fluid' } },
+    inputnumber: { root: { class: 'p-inputnumber-fluid' } },
+    select: { root: { class: 'p-select-fluid' } },
+    multiselect: { root: { class: 'p-multiselect-fluid' } },
+    datepicker: { root: { class: 'p-datepicker-fluid' } },
+    password: { root: { class: 'p-password-fluid' } },
+    autocomplete: { root: { class: 'p-autocomplete-fluid' } },
+    treeselect: { root: { class: 'p-treeselect-fluid' } }
+};
