@@ -2,6 +2,7 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/ChatSupport.vue': 'layout',
   'components/calls/CallPanel.vue': 'layout',
   'components/calls/CallWorkspacePage.vue': 'layout',
+  'components/shared/AiAvatar.vue': 'layout',
   'components/shared/DesignerDialog.vue': 'layout',
   'components/shared/DesignerWorkspace.vue': 'layout',
   'components/shared/InstancePage.vue': 'layout',
