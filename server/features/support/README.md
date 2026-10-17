@@ -116,9 +116,11 @@ Chat messages can carry structured `instanceRefs`:
 [{ "type": "project", "id": "..." }]
 ```
 
-`SupportMessageContent.vue` renders inline `{{instance:type:id}}` tokens as
-`InstanceInlineRef` chips for token-authored text and also renders
-structured refs from `message.instanceRefs[]`. The chat composer stores selected
+`ChatInstanceRefs.vue` renders a message's `instanceRefs[]` as an
+attached chip row under the message body — the same attachment surface
+files and media ride — and `{{instance:type:id}}` tokens inside authored
+text strip from display: refs never render inline inside a chat bubble.
+The chat composer stores selected
 instances only in `instanceRefs`; it does not inject attachment tokens into the
 message body.
 

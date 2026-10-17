@@ -181,6 +181,22 @@ glyph in the brand accent across chat surfaces (SPEC: agent access).
   fight alignment, markdown flow, and swipe affordances (owner left
   the call to the agent).
 
+### Agent Notes (2026-10-17 — refs attach like files; chronology quieted)
+
+- Owner direction: chips embedded in message bubbles read badly,
+  especially on the contrast (own) side — refs now attach like files:
+  a wrapping chip row under the message body (`ChatInstanceRefs.vue`,
+  sibling of `ChatAttachments`), on the page surface. Tokens in
+  authored text strip from display (`shared/instance-tokens.js` owns
+  the grammar); `SupportMessageContent` is text-only and lost its ref
+  plumbing. The composer's staged refs dropped their `bg-subtle`
+  wrapper — Chip plus remove control, no double chrome.
+- `AgentActivity`: the Timeline rail is gone (rail + fieldset borders
+  + markers were three competing structures); tool invocations render
+  as caption rows (status icon, technical name, error `Message`), and
+  the Fieldset `pt` now also kills the legend hover strip and pads the
+  toggle button — the elements that actually carry Aura's sizing.
+
 ### Agent Notes (2026-10-17 — tone deleted: data was hardcoded to code)
 
 - Owner finding: `entityFamilyAccent` branched on authored type names

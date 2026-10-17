@@ -548,13 +548,13 @@ Keep person identity displays on this chip; keep entity refs on
 `InstanceInlineRef`.
 
 ### `AgentActivity.vue`
-An agent run's visible work as one raw-PrimeVue `Timeline` — the run's
-chronology: per-round model reasoning in collapsible `Fieldset`
-disclosures (compacted through `pt` on the toggle button — the element
-that actually carries Aura's legend padding) and one tool invocation
-per event, the status-colored icon as the marker and the technical-voice
-name as content, a failed tool's error rendered as a severity-error
-`Message`. Rendered both for a live run and for the `agent` provenance
+An agent run's visible work as one quiet chronology: per-round model
+reasoning in collapsible `Fieldset` disclosures and one caption row per
+tool invocation — status-colored icon, technical-voice name, a failed
+tool's error as a severity-error `Message`. The `pt` compacts the
+Fieldset on the elements that carry Aura's sizing: the toggle button
+(the legend itself is zeroed for toggleable fieldsets) and the legend's
+hover strip. Rendered both for a live run and for the `agent` provenance
 persisted on a bot's reply; both sites start open, so the chronology
 stays visible with the answer (the collapsed state is the user's own
 toggling). The live run shows a spinner-only pending state before the
@@ -684,16 +684,14 @@ record from any route; the composable state is the single
 from their own chrome.
 
 ### `SupportMessageContent.vue`
-Renders support-chat message bodies. Plain text remains text, while
-`{{instance:type:id}}` tokens render as `InstanceInlineRef`s — toned
-PrimeVue Chips, so refs in messages read as instance chips, not inline
-text. The
-component also renders structured `message.instanceRefs[]` entries that were not
-embedded as tokens, so structured attachments remain visible without polluting
-the text body. With the `markdown` prop (agent answers), text parts render
+Renders support-chat message bodies as text only. `{{instance:type:id}}`
+tokens strip from display — instance refs render attached to the
+message through
+[`ChatInstanceRefs.vue`](#chatinstancerefsvue), beside files and media,
+never inline in the bubble (a chip cannot inherit a contrast bubble's
+surface). With the `markdown` prop (agent answers), text parts render
 through the shared sanitized markdown pipeline
-([shared/markdown.js](../../shared/markdown.js)) instead of plain spans —
-instance-token chips still split out first, and the pipeline renders plain
+([shared/markdown.js](../../shared/markdown.js)) — plain
 text on SSR, formatting on hydration. Markdown mode also lays the root out as
 a full-width block column in the prose reading voice (`text-prose` — an agent
 answer is a room document; human chat text keeps the UI voice), with document
@@ -711,21 +709,17 @@ plain text — the preview row is the click target that opens the
 conversation, so anchors would steal clicks. Text
 parts parse http(s) URLs into safe anchors (`noopener`, inherit-colored so
 both bubble sides stay readable); trailing punctuation peels off the link and
-stays text. Chat
-composers source attachable entities from the same compiled screen list
-sources the home sidebar renders (the attachment picker tree), never
-manual ids; the support instance-options endpoint stays the server-side
-validation and hydration channel for those refs. Chat message refs may also carry compact entity snapshots plus
-chat-only recipient metadata; `SupportMessageContent` passes those snapshots
-into `InstanceInlineRef` so popovers stay usable inside chat even when the
-recipient lacks ordinary entity read access, while generated detail-route
-buttons stay hidden for that chat-only recipient view. When an older
-chat-only ref still lacks an embedded snapshot, the message renderer disables
-inline fetches for that recipient view instead of probing the protected entity
-endpoint and throwing a visible `403` in the browser console.
-For non-restricted refs, the renderer may still hydrate an embedded
-snapshot through the normal entity API when that snapshot predates the richer
-chat snapshot contract and lacks its fields.
+stays text.
+
+### `ChatInstanceRefs.vue`
+The message's attached instance refs, the sibling of
+[`ChatAttachments.vue`](#chatattachmentsvue): full mode renders the
+refs as `InstanceInlineRef` chips in a wrapping row under the message
+(on the page surface, never inside a contrast bubble); `singleLine` is
+the inbox preview summary (type icon, name, overflow count) mirroring
+the attachment summary. It owns the recipient-scoped fetch gating the
+chat-only snapshot contract requires (restricted recipient views keep
+their embedded snapshots and lose detail routes).
 
 ### `ChatAttachments.vue`
 Renders a support message's `attachments[]` (the contract lives in the

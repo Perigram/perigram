@@ -233,7 +233,11 @@
                                         <SupportMessageContent
                                             v-if="option.lastMessage"
                                             :message="conversationPreviewMessage(option)"
-                                            :viewer-user-id="currentUserId"
+                                            single-line
+                                        />
+                                        <ChatInstanceRefs
+                                            v-else-if="(option.instanceRefs || []).length"
+                                            :refs="option.instanceRefs"
                                             single-line
                                         />
                                         <ChatAttachments
@@ -642,7 +646,7 @@
                                     class="px-1"
                                 />
                                 <div
-                                    v-if="messageBubbleText(messageItem) || (messageItem.instanceRefs || []).length"
+                                    v-if="messageBubbleText(messageItem)"
                                     class="group relative max-w-full min-w-0 text-body"
                                     :class="[
                                         // An agent answer is room content, not a
@@ -674,15 +678,11 @@
                                         :severity="messageItem.notice"
                                         :closable="false"
                                     >
-                                        <SupportMessageContent
-                                            :message="bubbleContentMessage(messageItem)"
-                                            :viewer-user-id="currentUserId"
-                                        />
+                                        <SupportMessageContent :message="bubbleContentMessage(messageItem)" />
                                     </Message>
                                     <div v-else class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
                                         <SupportMessageContent
                                             :message="bubbleContentMessage(messageItem)"
-                                            :viewer-user-id="currentUserId"
                                             :markdown="Boolean(messageItem.agent)"
                                         />
                                     </div>
@@ -705,11 +705,22 @@
                                         />
                                     </span>
                                 </div>
+                                <!-- The attachment surface: files, media, and
+                                     attached instance refs ride one row group
+                                     under the message body, on the page
+                                     surface — never inside a contrast
+                                     bubble. -->
                                 <div
-                                    v-if="(messageItem.attachments || []).length"
-                                    class="group relative flex max-w-full items-center gap-1"
+                                    v-if="(messageItem.attachments || []).length || (messageItem.instanceRefs || []).length"
+                                    class="group relative flex max-w-full flex-col items-start gap-1"
                                 >
+                                    <ChatInstanceRefs
+                                        :refs="messageItem.instanceRefs || []"
+                                        :viewer-user-id="currentUserId"
+                                        :sender-user-id="messageItem.senderUserId || ''"
+                                    />
                                     <ChatAttachments
+                                        v-if="(messageItem.attachments || []).length"
                                         :attachments="messageItem.attachments"
                                         class="min-w-0 max-w-full"
                                     />
@@ -936,13 +947,13 @@
                     </div>
 
                     <div v-if="messagePreviewVisible" class="rounded-ui bg-subtle p-2 text-muted text-body">
-                        <SupportMessageContent :message="draftPreviewMessage" :viewer-user-id="currentUserId" />
+                        <SupportMessageContent :message="draftPreviewMessage" />
                     </div>
-                    <div v-if="instanceRefs.length" class="flex flex-wrap gap-2">
-                        <div
+                    <div v-if="instanceRefs.length" class="flex max-w-full flex-wrap items-center gap-1">
+                        <span
                             v-for="ref in instanceRefs"
                             :key="`${ref.type}-${ref.id}`"
-                            class="inline-flex max-w-full items-center gap-1 rounded-ui bg-subtle px-2 py-1"
+                            class="inline-flex max-w-full items-center gap-0.5"
                         >
                             <InstanceInlineRef
                                 :type="ref.type"
@@ -958,7 +969,7 @@
                                 :aria-label="$t('common.delete')"
                                 @click="removeInstanceRef(ref)"
                             />
-                        </div>
+                        </span>
                     </div>
                     <!-- Staged files: image thumbnails or type icons, the
                          resolved child-type identity for instance targets
@@ -1430,8 +1441,10 @@ import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
+import { stripInstanceTokens } from '#shared/instance-tokens.js'
 import AgentActivity from '~/components/shared/AgentActivity.vue'
 import ChatAttachments from '~/components/shared/ChatAttachments.vue'
+import ChatInstanceRefs from '~/components/shared/ChatInstanceRefs.vue'
 import StateBlock from '~/components/shared/StateBlock.vue'
 import StandardDialog from '~/components/shared/StandardDialog.vue'
 import ChatAttachmentPicker from '~/components/shared/ChatAttachmentPicker.vue'
@@ -2485,12 +2498,14 @@ const isAudioOnlyMessage = (messageItem) => (messageItem.attachments || []).leng
     && (messageItem.attachments[0].kind || chatAttachmentKind(messageItem.attachments[0].mimeType || '')) === 'audio'
 
 // The bubble's text: the authored body, or — for audio-only voice messages
-// carrying none — the viewer's transcript. Reply quotes and inbox previews
-// read the authored body alone, so private transcripts never leave the
-// transcribing viewer's bubble.
+// carrying none — the viewer's transcript. Instance tokens strip from
+// display (refs attach to the message); a body that is tokens only
+// renders no bubble. Reply quotes and inbox previews read the authored
+// body alone, so private transcripts never leave the transcribing
+// viewer's bubble.
 const messageBubbleText = (messageItem) => (isAudioOnlyMessage(messageItem) && !String(messageItem.message || '').trim()
     ? String(messageItem.transcript || '')
-    : String(messageItem.message || ''))
+    : stripInstanceTokens(String(messageItem.message || '')).trim())
 
 const bubbleContentMessage = (messageItem) => ({
     ...messageItem,

@@ -100,8 +100,9 @@ run chronology; the thinking disclosure is the PrimeVue Fieldset
 Timeline of its tool invocations. The AI's identity face is the microchip glyph in the
 brand accent (carmine) wherever the assistant shows — thread avatars,
 sender chips, pickers — and it is the only AI marker on chat surfaces:
-no text badges. Instance refs inside chat messages render as PrimeVue
-Chips, never inline text. Inline entity refs
+no text badges. Instance refs attach to chat messages like files do —
+a chip row under the message body, never inline in a contrast bubble;
+tokens in authored text strip from display. Inline entity refs
 everywhere are raw PrimeVue Chips — no hand-rolled chip chrome, no
 per-type tint hardcoded from authored type names.
 Person-chat presentation stays as it is.
