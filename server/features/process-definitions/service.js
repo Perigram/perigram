@@ -65,12 +65,7 @@ import {
   tryAcceptGraphProtocol,
   validateActivatableProcess
 } from './compiler-adapter.js';
-import { compileTreeDeclarations, migrateProducerOutputIdentities } from '~/packages/processes/src/index.js';
-import {
-  continueStoredRun,
-  executeManualRun,
-  getRunRepository
-} from './run-repository.js';
+import { compileTreeDeclarations, createProcessRun, advanceProcessRun, migrateProducerOutputIdentities } from '~/packages/processes/src/index.js';
 import {
   processChildEntities,
   processParentEntity,
@@ -584,32 +579,114 @@ function manualRunEnvironment(definition, auth = {}, domain = null) {
   };
 }
 
-export async function startRun(id, payload = {}, auth = {}, options = {}) {
-  const process = options.definition ?? await loadAuthorized(id, auth, 'read');
-  const definition = process.toJSON ? process.toJSON() : { ...process };
-  if (Number(definition.data?.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
-    throw createError({ statusCode: 409, message: `Process must use dataflow version ${PROCESS_DATAFLOW_VERSION} before it can run` });
-  }
-  // Protocol acceptance at the execution boundary: a v5 definition lowers
-  // here once, so the run's stored snapshot and every downstream evaluation
-  // see the executable working shapes. The projected domain is computed once
-  // and shared by acceptance and the run environment so compilation and
-  // evaluation cannot disagree about the entity contracts.
-  const projectedDomain = await getProjectedDomain(resolveOrganizationId(auth));
+// Async command effects park the evaluation on the task boundary; the
+// task runtime's terminal boundary continues it in this process.
+// command_runs and task_runs are the audit trail — evaluation itself
+// keeps no records.
+const pendingActionContinuations = new Map();
+
+function dispatchTaskRunId(dispatch = {}) {
+  return String(dispatch?.taskRunId || dispatch?.taskId || dispatch?.tasks?.[0]?.id || dispatch?.jobs?.[0]?.id || '');
+}
+
+function advanceToBoundary(run, definition, environment) {
+  let state = run;
+  return (async function step() {
+    if (state.status !== 'running') return state;
+    const advanced = await advanceProcessRun(state, definition, environment(state));
+    if (advanced === state || JSON.stringify(advanced) === JSON.stringify(state)) return state;
+    state = advanced;
+    return step();
+  })();
+}
+
+/**
+ * Evaluates a definition's dataflow in-process: the same graph evaluator
+ * preview uses, driven to settled or the first async command boundary.
+ * At the boundary the continuation is registered under the enqueued
+ * task-run id for the task runtime's terminal boundary to continue.
+ */
+async function evaluateDataflow(definition, payload = {}, { auth, actor, domain = null }) {
+  const projectedDomain = domain || await getProjectedDomain(resolveOrganizationId(auth));
   const runnableDefinition = {
     ...definition,
     data: currentProcessDefinition(definition.data, projectedDomain)
   };
-  const organizationId = resolveOrganizationId(auth);
-  const actor = buildRunActor(auth, organizationId);
-  const runRepository = options.runRepository || getRunRepository(await repository.getConnection());
-  const run = await executeManualRun(runnableDefinition, payload, {
-    actor,
-    repository: runRepository,
-    ...manualRunEnvironment(runnableDefinition, auth, projectedDomain)
+  const base = manualRunEnvironment(runnableDefinition, auth, projectedDomain);
+  const run = createProcessRun(runnableDefinition, payload.trigger || {}, {
+    processDefinitionId: runnableDefinition._id || runnableDefinition.id,
+    context: { inputs: payload.inputs || {}, actor: actor || buildRunActor(auth, resolveOrganizationId(auth)) }
   });
+  const environment = current => ({
+    ...base,
+    executeEffect: async (request, runState) => {
+      const dispatch = await base.executeEffect(request, runState);
+      if (!base.isAsyncBoundary(request, dispatch)) return dispatch;
+      const taskRunId = dispatchTaskRunId(dispatch);
+      if (!taskRunId) return dispatch;
+      const snapshot = snapshotInvocation(request, runnableDefinition.data);
+      pendingActionContinuations.set(taskRunId, {
+        run: structuredClone(runState),
+        definition: runnableDefinition,
+        actor: actor || runState?.context?.actor || {},
+        snapshot
+      });
+      return { __processEffectPending: true };
+    },
+    data: current => base.data(current)
+  });
+  return await advanceToBoundary(run, runnableDefinition.data, environment);
+}
+
+export async function evaluateDefinitionDataflow(id, payload = {}, auth = {}) {
+  const process = await loadAuthorized(id, auth, 'read');
+  const definition = process.toJSON ? process.toJSON() : { ...process };
+  if (Number(definition.data?.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
+    throw createError({ statusCode: 409, message: `Process must use dataflow version ${PROCESS_DATAFLOW_VERSION} before it can run` });
+  }
+  const run = await evaluateDataflow(definition, payload, { auth });
   assertManualRunHasNoMutationFailures(run);
   return serializeProcessResult(run);
+}
+
+/**
+ * The task runtime's terminal boundary for succeeded tasks: continues a
+ * parked action evaluation with the task's projected completion output.
+ * An unknown task-run id is an uncorrelated no-op — command_runs and
+ * task_runs remain the completion record.
+ */
+export async function continueActionFromTask({ taskRunId, taskResult = {} } = {}) {
+  const key = String(taskRunId || '');
+  const continuation = key && pendingActionContinuations.get(key);
+  if (!continuation) return { applied: false, reason: 'uncorrelated' };
+  pendingActionContinuations.delete(key);
+  const { run, definition, actor, snapshot } = continuation;
+  const domain = await getProjectedDomain(actor.organizationId ?? null);
+  const resumed = await resumeProcessRun(run, definition.data, {
+    output: projectedCompletionOutput(snapshot, taskResult)
+  }, {
+    catalogContext: catalogContextFromDefinition(definition.data, domain),
+    domain,
+    data: current => processDataEnvironment(actor, current, domain)
+  });
+  await advanceToBoundary(resumed, definition.data, current => ({
+    ...manualRunEnvironment(definition, actor, domain),
+    data: () => processDataEnvironment(actor, current, domain)
+  }));
+  return { applied: true };
+}
+
+/**
+ * The task runtime's terminal boundary for failed or cancelled tasks:
+ * the parked evaluation, if any, fails with the task's cause.
+ */
+export async function failActionFromTask({ taskRunId, error = null, cancelled = false } = {}) {
+  const key = String(taskRunId || '');
+  const continuation = key && pendingActionContinuations.get(key);
+  if (!continuation) return { applied: false, reason: 'uncorrelated' };
+  pendingActionContinuations.delete(key);
+  continuation.run = failRunState(continuation.run, { error, cancelled });
+  return { applied: true };
 }
 
 // The mutation mapper collects per-slot failures so batch flows keep going
@@ -670,10 +747,36 @@ function catalogContextFromDefinition(processData, domain = null) {
   };
 }
 
-async function loadRunRecord(runRepository, runId) {
-  const runRecord = await runRepository.collection('runs').findOne({ _id: String(runId) });
-  if (!runRecord) throw createError({ statusCode: 404, message: 'Process run not found' });
-  return runRecord;
+function routeSourceId(route) {
+  return String(route?.sourceNodeId || route?.fromNodeId || route?.source?.nodeId || route?.from?.nodeId || '');
+}
+
+function socketIdOf(value) {
+  return String(value?.socketId || value?.id || value?.key || value || '');
+}
+
+// The async-boundary snapshot a parked action continues from: the
+// sockets the task's completion may project onto and the routes a
+// receipt may advance.
+function snapshotInvocation(request = {}, processData = {}) {
+  const record = request.record || {};
+  const nodeId = String(record.nodeId || record.id || request.nodeId || '');
+  const declaredSockets = request.expectedCompletionSockets
+    || record.expectedCompletionSockets
+    || record.outputSockets
+    || record.outputs
+    || [];
+  const allRoutes = processData.routes || processData.connections || processData.edges || [];
+  const routes = request.connectedRoutes || allRoutes.filter(route => !nodeId || routeSourceId(route) === nodeId);
+  return {
+    expectedCompletionSockets: declaredSockets.map(socketIdOf).filter(Boolean),
+    connectedRoutes: structuredClone(routes),
+    producerOutputId: request.producerOutputId || record.producerOutputId || null,
+    producerIdentity: structuredClone(request.producerIdentity || record.producerIdentity || {
+      nodeId,
+      outputSocketId: socketIdOf(record.producerOutputId || record.outputSocketId)
+    })
+  };
 }
 
 function projectedCompletionOutput(invocation, taskResult = {}) {
@@ -706,95 +809,6 @@ function failRunState(state, { error, cancelled }) {
   next.error = failure;
   next.updatedAt = new Date().toISOString();
   return next;
-}
-
-export async function ingestTaskCompletion({ taskRunId, taskResult = {} } = {}) {
-  const runRepository = getRunRepository(await repository.getConnection());
-  const invocation = await runRepository.findInvocationByTaskRunId(taskRunId);
-  if (!invocation) return { applied: false, reason: 'uncorrelated' };
-  const runRecord = await loadRunRecord(runRepository, invocation.runId);
-  const definition = runRecord.definition;
-  const actor = runRecord.state?.context?.actor || {};
-  const resumedDomain = await getProjectedDomain(actor.organizationId ?? null);
-
-  const ingested = await runRepository.ingestReceipt({
-    invocationId: invocation.invocationId,
-    socketId: '',
-    output: projectedCompletionOutput(invocation, taskResult)
-  }, {
-    advance: async ({ invocation: claimed, output, session }) => {
-      const current = await runRepository.collection('runs').findOne({ _id: claimed.runId }, { session });
-      const resumed = await resumeProcessRun(current.state, definition.data, {
-        invocationId: claimed.invocationId,
-        output
-      }, {
-        catalogContext: catalogContextFromDefinition(definition.data, resumedDomain),
-        domain: resumedDomain,
-        data: run => processDataEnvironment(actor, run, resumedDomain)
-      });
-      return { state: resumed };
-    }
-  });
-  if (!ingested.applied) return ingested;
-
-  const refreshed = await loadRunRecord(runRepository, invocation.runId);
-  await continueStoredRun(refreshed, definition, {}, {
-    actor,
-    repository: runRepository,
-    ...manualRunEnvironment(definition, actor)
-  });
-  return ingested;
-}
-
-export async function failTaskInvocation({ taskRunId, error = null, cancelled = false } = {}) {
-  const runRepository = getRunRepository(await repository.getConnection());
-  const invocation = await runRepository.findInvocationByTaskRunId(taskRunId);
-  if (!invocation) return { applied: false, reason: 'uncorrelated' };
-  return runRepository.failInvocation(invocation.invocationId, { error, cancelled }, {
-    advance: async ({ invocation: claimed, session }) => {
-      const current = await runRepository.collection('runs').findOne({ _id: claimed.runId }, { session });
-      return { state: failRunState(current.state, { error, cancelled }) };
-    }
-  });
-}
-
-export async function reconcileProcessTaskRuns() {
-  const runRepository = getRunRepository(await repository.getConnection());
-  const { getTaskRunById } = await import('../../core/tasks/service.js');
-  const pending = await runRepository.findUnreceiptedInvocations();
-  const summary = { scanned: pending.length, ingested: 0, failed: 0, skipped: 0 };
-  for (const invocation of pending) {
-    const taskRunId = invocation.dispatch?.taskRunId;
-    if (!taskRunId) {
-      summary.skipped += 1;
-      continue;
-    }
-    let taskRun = null;
-    try {
-      taskRun = await getTaskRunById(String(taskRunId));
-    } catch {
-      summary.skipped += 1;
-      continue;
-    }
-    if (!taskRun || !['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(taskRun.status)) {
-      summary.skipped += 1;
-      continue;
-    }
-    const outcome = taskRun.status === 'SUCCEEDED'
-      ? await ingestTaskCompletion({ taskRunId: String(taskRunId), taskResult: taskRun.output || {} })
-      : await failTaskInvocation({
-        taskRunId: String(taskRunId),
-        error: taskRun.error || { message: `Task run ${taskRun.status}` },
-        cancelled: taskRun.status === 'CANCELLED'
-      });
-    if (outcome?.applied) {
-      if (taskRun.status === 'SUCCEEDED') summary.ingested += 1;
-      else summary.failed += 1;
-    } else {
-      summary.skipped += 1;
-    }
-  }
-  return summary;
 }
 
 export async function preview({ definition, nodeId = '', trigger = {}, inputs = {} } = {}, auth = {}) {
@@ -1027,7 +1041,7 @@ async function executeDataflowActionRun({ process, actionId, instanceId, data, p
   const graphNode = (process.data.graph?.nodes || [])
     .find(node => String(node.data?.refId || node.id) === String(effect.id));
   if (!graphNode) throw createError({ statusCode: 409, message: `Action ${actionId} has no graph node` });
-  let run = await startRun(process.id, {
+  const run = await evaluateDataflow(process, {
     trigger: { nodeId: graphNode.id },
     inputs: {
       entity: instanceId || entities?.entity || null,
@@ -1036,7 +1050,7 @@ async function executeDataflowActionRun({ process, actionId, instanceId, data, p
       parameters,
       targetOrganizationId
     }
-  }, auth, { definition: process });
+  }, { auth });
   if (run.status === 'failed') {
     throw createError({ statusCode: 400, message: run.error?.message || `Action ${actionId} failed` });
   }

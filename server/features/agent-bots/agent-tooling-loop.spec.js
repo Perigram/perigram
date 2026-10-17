@@ -70,17 +70,6 @@ vi.mock('../cts-types/lifetime.js', async (importOriginal) => {
     const actual = await importOriginal();
     return { ...actual, countInstancesOfType: vi.fn(async () => 0) };
 });
-vi.mock('../process-definitions/run-repository.js', async (importOriginal) => {
-    const actual = await importOriginal();
-    return {
-        ...actual,
-        getRunRepository: () => ({
-            createRun: async ({ run, definition }) => ({ runId: run.id, state: run, definition, revision: 0 }),
-            saveRunState: async (_runId, state, revision) => ({ state, revision: revision + 1 }),
-            findUnreceiptedInvocations: async () => []
-        })
-    };
-});
 vi.mock('~/server/runtime/app-registry.js', () => ({
     getAppRegistry: vi.fn(),
     getPerigramRegistry: vi.fn(),
@@ -155,7 +144,6 @@ vi.mock('../process-definitions/repository.js', async () => {
         insert: store.insert,
         updateById: store.updateById,
         removeById: vi.fn(),
-        getConnection: vi.fn()
     };
 });
 
@@ -468,12 +456,9 @@ describe('control nodes: the palette control section in the compiled surface', (
     });
 
     it('compiles a reachable finish to no action or screen of its own', async () => {
-        // The cassette construct owns the compiled surface; the finish
-        // wired after it adds nothing to it — no action, screen, or
-        // grant derives from a control node. The runtime is the
-        // continuous organization backend over the compiled contract,
-        // not a program the definition "runs" (owner direction
-        // 2026-10-17: there are no durable runs).
+        // The construct owns the compiled surface; the finish adds
+        // nothing to it — no action, screen, or grant derives from a
+        // control node.
         const digest = await call('compose_process_definition', {
             name: 'Spec construct and finish',
             steps: [

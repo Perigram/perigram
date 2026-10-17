@@ -6,7 +6,7 @@ import {
   performDurableEffect,
   preview,
   resolveProcessGraphEntity,
-  startRun,
+  evaluateDefinitionDataflow,
   update,
   validate
 } from './service.js';
@@ -39,20 +39,6 @@ vi.mock('../cts-types/service.js', async () => {
   }
   return { compileRegistryForOrganization: vi.fn(async () => registry) };
 });
-vi.mock('./run-repository.js', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    getRunRepository: () => ({
-      createRun: async ({ run, definition }) => ({ runId: run.id, state: run, definition, revision: 0 }),
-      saveRunState: async (_runId, state, revision) => ({ state, revision: revision + 1 }),
-      findUnreceiptedInvocations: async () => []
-    }),
-    executeManualRun: actual.executeManualRun,
-    continueStoredRun: actual.continueStoredRun
-  };
-});
-
 vi.mock('./repository.js', () => ({
   find: vi.fn(),
   findById: vi.fn(),
@@ -61,7 +47,6 @@ vi.mock('./repository.js', () => ({
   create: vi.fn(),
   updateById: vi.fn(),
   removeById: vi.fn(),
-  getConnection: vi.fn()
 }));
 
 const runRepository = {
@@ -720,7 +705,7 @@ describe('current process-definition service contract', () => {
     const restoreMachineRegistry = mockMachineRegistry();
     processRepository.findById.mockResolvedValue(draftRecord(readModifyWriteProcessData()));
 
-    const run = await startRun('process-draft', {
+    const run = await evaluateDefinitionDataflow('process-draft', {
       trigger: { nodeId: 'update' },
       inputs: { entity: machine }
     }, adminAuth(), { runRepository });
@@ -810,7 +795,7 @@ describe('current process-definition service contract', () => {
     const restoreMachineRegistry = mockMachineRegistry();
     processRepository.findById.mockResolvedValue(draftRecord(data));
 
-    const run = await startRun('process-draft', {
+    const run = await evaluateDefinitionDataflow('process-draft', {
       trigger: { nodeId: 'update' },
       inputs: { entity: 'machine-1' }
     }, adminAuth(), { runRepository });
@@ -1025,7 +1010,7 @@ describe('current process-definition service contract', () => {
     const restoreMachineRegistry = mockMachineRegistry();
     processRepository.findById.mockResolvedValue(draftRecord(data));
 
-    await expect(startRun('process-draft', {
+    await expect(evaluateDefinitionDataflow('process-draft', {
       trigger: { nodeId: 'update' },
       inputs: { entity: machine }
     }, adminAuth(), { runRepository })).rejects.toMatchObject({
@@ -1101,7 +1086,7 @@ describe('current process-definition service contract', () => {
     const restoreMachineRegistry = mockMachineRegistry();
     processRepository.findById.mockResolvedValue(draftRecord(data));
 
-    const run = await startRun('process-draft', {
+    const run = await evaluateDefinitionDataflow('process-draft', {
       trigger: { nodeId: 'update' },
       inputs: { entity: machine }
     }, adminAuth(), { runRepository });
