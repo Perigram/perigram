@@ -215,8 +215,10 @@ modules — no platform imports.
   and picking a library record copies it into the draft — a snapshot
   copy, never a live reference, so the cassette document stays
   self-contained. Library records are authored only from the designer
-  dialog; the type carries no editor surface of its own. The current
-  editor does not run a parametric constraint solver.
+  dialog; the type carries no editor surface of its own. The type's
+  write access inherits the cassette grant (`access.inherits` in the
+  listing — whoever may write cassettes may write library profiles). The
+  current editor does not run a parametric constraint solver.
 - `production-layout.js` wraps the Clipper-backed face union/fold-route pass and
   returns semantic `cut.outer` / `fold.route` layer intent.
 - `evaluate.js` resolves OCCS graph-tree templates into production data. It

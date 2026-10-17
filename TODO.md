@@ -79,6 +79,22 @@ authoring happens only inside a cassette design session.
 - [ ] WAITING — owner verification on the live stack: save a profile to
   the library from one cassette, pick it into another.
 
+### Agent Notes (2026-10-17 — access inheritance shipped; no grant step)
+
+- Owner direction: the library is completely coupled to cassettes, so
+  its access inherits cassette access — no per-type grant row. Shipped
+  as the generic listing grammar `access: { inherits: <typeId> }`
+  (parent must be a type the same plugin declares; parseListing
+  validates) consumed by the instances write gates (`writeGrantTarget`,
+  one hop, fail-closed on an unresolvable parent; `patch` and
+  `createForHttp` both re-scope to the parent's feature + type id).
+  Facade listing v8 binds `profile` → `cassette`; catalog refreshed to
+  v8. Proof: spec asserts the gate asks `files:write(gallery)` for an
+  item-class type delegating to a file-class parent.
+- Remaining owner step: Plugins page → Facade fabrication → Upgrade
+  (v6→v8; §11 preview lists one added type, no blockers). No process
+  authoring needed — whoever writes cassettes writes the library.
+
 ### Agent Notes (2026-10-17 — owner defect report "Failed to save the profile to the library")
 
 - Diagnosis against the live stack (not a guess): the route is live
@@ -95,10 +111,9 @@ authoring happens only inside a cassette design session.
   instance write transport — the org's Admin role must grant write for
   the Profile type in the process designer, exactly as it granted
   cassette once. That grant is org-authored data; not scripted here.
-- Owner steps to use the library on an existing org: (1) Plugins page →
-  Facade fabrication → Upgrade (v6→v7 diff is one added type, no
-  blockers); (2) process designer → role grants → add items write for
-  Profile. New orgs need only the grant.
+- Owner steps to use the library on an existing org: Plugins page →
+  Facade fabrication → Upgrade (superseded for grant-free access by the
+  2026-10-17 inheritance round above: upgrade to v8 is the only step).
 - Dialog hardening shipped with this: the failure toast now carries the
   server's own message instead of a generic string, and the library
   Select + Save-to-library button stay hidden when the org's install

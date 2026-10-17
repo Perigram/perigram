@@ -13,7 +13,11 @@ executors through the worker protocol.
 - **Catalog** (`plugin_catalog`): one listing per `pluginId` —
   `{ pluginId, name, description, version, requires?, declarations: { types,
   services, editors, surfaces, previews, attachmentKinds, conversions, constructions, exports } }`.
-  Platform-published only; organizations never write it. Publishing rides
+  Platform-published only; organizations never write it. A type entry
+  may carry `access: { inherits: <typeId> }` naming another declared
+  type of the same plugin: the generic instance write transports
+  authorize the type's records by the parent's grant (see
+  [instances](../instances/README.md)). Publishing rides
   `POST /api/plugins/catalog` (operator token) and retracting rides
   `DELETE /api/plugins/catalog/:pluginId` (the same token; refused while
   any organization still holds an install — installed pins are snapshots

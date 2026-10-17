@@ -678,6 +678,19 @@ cassettes. The library rides the generic instance machinery end to end
 (records host capability in, generic instance transport out); no
 framework feature serves it.
 
+Owner decision (2026-10-17, library access inherits the cassette grant):
+the profile library is completely coupled to cassettes, so its write
+access inherits cassette access — if a member may write cassettes, they
+may write library profiles; no per-type grant row exists for it. The
+mechanism is declarative and generic, never domain-coupled in platform
+code: a listing type may carry `access: { inherits: <typeId> }` naming
+another type the same plugin declares, and the generic instance write
+transports (create/PATCH) authorize the delegating type's records by
+the parent's compiled grant (one hop, no chains; an unresolvable parent
+refuses fail-closed). Reads stay org-scoped as everywhere. The facade
+listing binds `profile` → `cassette`; other plugins may bind their own
+support types the same way.
+
 Owner declarations (2026-10-15, profile parameter rows, array spacing,
 authoring fields — owner review round 10): the parameters a profile
 workpiece's row shows drive its geometry — editing one re-evaluates the

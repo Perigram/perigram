@@ -140,6 +140,14 @@ hand-written services.
   construct boundary keeps its own `create` with execution auth;
   framework feature types keep their feature create routes (no
   `createForHttp`, the generic route 404s for them).
+- Write-gate delegation (`access.inherits`): a type may authorize its
+  record writes by another type's grant — the declaration's
+  `access: { inherits: <typeId> }` (listing grammar; the parent must be
+  a type the same plugin declares) re-scopes the `patch`/`createForHttp`
+  gate to the parent's feature and type id, one hop, no chains; an
+  unresolvable parent refuses fail-closed. Types that exist only beside
+  a parent (the facade `profile` library beside cassettes) inherit that
+  parent's rights instead of demanding their own grant row.
 - Registration: the core registry's entity-service resolver consults
   `instanceServiceResolver`; explicit feature services always win.
 
