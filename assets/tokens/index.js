@@ -451,8 +451,21 @@ export const primeSemanticTokens = {
 // paint no background and Panels paint no border (PanelMenu panels keep
 // Aura's default hairline border; the workspace node's pane Panels restore
 // the same border locally), and Splitter gutters are invisible —
-// draggable, never drawn.
+// draggable, never drawn. Fieldsets run compact everywhere: tight
+// legend and root insets — a disclosure is a dense structural
+// grouping, not an airy panel (the agent chronology tightens further
+// per-instance through pt, which also owns what tokens cannot
+// express: label size, the +/− glyph, and state-dependent chrome).
 export const primeComponentTokens = {
+    fieldset: {
+        root: {
+            padding: '0 0.75rem 0.75rem'
+        },
+        legend: {
+            padding: '0.25rem 0.5rem',
+            gap: '0.375rem'
+        }
+    },
     panel: {
         root: {
             background: 'transparent',
