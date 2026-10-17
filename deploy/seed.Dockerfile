@@ -7,9 +7,11 @@ ENV HTTP_PROXY=http://192.168.0.100:12334 \
     HTTPS_PROXY=http://192.168.0.100:12334 \
     NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.77.0.0/16
 WORKDIR /app
-RUN npm install --silent mongodb
+RUN npm install --silent mongodb winston
 ENV HTTP_PROXY= HTTPS_PROXY=
+RUN printf '{ "type": "module" }' > package.json
 COPY server/scripts ./server/scripts
 COPY server/db ./server/db
+COPY server/utils ./server/utils
 COPY packages/plugin-sdk ./packages/plugin-sdk
 CMD ["node", "server/scripts/seed-plugin-catalog.js"]
