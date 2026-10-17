@@ -1760,14 +1760,7 @@ export default function createSurface({ vue, components, locale, queries, record
             disabled: !row.present,
             'onUpdate:modelValue': row.present ? updateVisibleLayerNames : undefined
           }),
-          h('label', { for: layerInputId(row), class: 'min-w-0 flex-1 truncate' }, [
-            h('span', {
-              class: 'instance-inline-chip min-w-0 max-w-full',
-              title: row.label
-            }, [
-              h('span', { class: 'instance-inline-chip-label' }, row.label)
-            ])
-          ]),
+          h('label', { for: layerInputId(row), class: 'min-w-0 flex-1 truncate', title: row.label }, row.label),
           row.code
             ? h(Tag, { value: row.code, severity: 'secondary', size: 'small' })
             : null,

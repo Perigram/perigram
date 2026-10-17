@@ -2,6 +2,7 @@
 import { computed, defineAsyncComponent, inject, onMounted, onUnmounted, provide, ref, unref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
+import Chip from 'primevue/chip';
 import Popover from 'primevue/popover';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import StateTag from '~/components/ui-mapping/StateTag.vue';
@@ -45,10 +46,7 @@ const props = defineProps({
   allowDetailRoute: { type: Boolean, default: true },
   interactive: { type: Boolean, default: true },
   variant: { type: String, default: 'inline' },
-  contextActionEntries: { type: Array, default: () => [] },
-  // Boxed chip treatment (tone-var fill/outline) for surfaces where refs
-  // must read as chips rather than inline text — chat message refs today.
-  chip: { type: Boolean, default: false }
+  contextActionEntries: { type: Array, default: () => [] }
 });
 
 const loaded = ref(null);
@@ -79,8 +77,7 @@ const relationFetchId = computed(() => normalizedId.value
   || instanceId(contextEntity.value)
   || ''
 );
-const baseResolved = computed(() => hydrated.value || props.entity || contextEntity.value || loaded.value);
-const resolved = computed(() => baseResolved.value);
+const resolved = computed(() => hydrated.value || props.entity || contextEntity.value || loaded.value);
 const resolvedId = computed(() => normalizedId.value
   || resolved.value?._id?.toString?.()
   || resolved.value?.id?.toString?.()
@@ -119,7 +116,19 @@ provide('instanceInlineActionEntity', resolved);
 provide('instanceInlineActionTypeId', generatedTypeId);
 provide('instanceInlineHasEditorAction', computed(() => popupHasEditorAction.value));
 provide('instanceInlineExecuteAction', executePopupAction);
-const toneStyle = computed(() => entityToneStyle(props.type));
+// One restrained data-driven tone: the entity family's accent whispered
+// into the Chip's surface, border, and text (the family accent mapping
+// is the README's tone law — entity tones only, never PrimeVue
+// primitive color assignments).
+const chipTone = computed(() => {
+  const accent = entityFamilyAccent(props.type);
+  return {
+    background: `color-mix(in srgb, ${accent} 8%, var(--p-content-background))`,
+    borderColor: `color-mix(in srgb, ${accent} 32%, var(--p-content-border-color))`,
+    color: `color-mix(in srgb, ${accent} 28%, var(--p-text-color))`
+  };
+});
+const chipPt = { label: { class: 'truncate' } };
 const { typeById } = useFileTypeView();
 const compactDisplay = computed(() => resolveInstanceDisplayContract({
   typeId: generatedTypeId.value,
@@ -286,12 +295,6 @@ onUnmounted(() => {
   window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeCompactPopup);
 });
 
-function entityToneStyle(type) {
-  const family = entityFamilyAccent(type);
-  const role = entitySemanticRole(type);
-  return toneVars(family, role);
-}
-
 function entityFamilyAccent(type) {
 
   if (['cassette', 'profileTemplate'].includes(type)) return 'var(--ck-entity-tone-fabrication)';
@@ -300,69 +303,12 @@ function entityFamilyAccent(type) {
   if (['organization', 'artifact', 'entityRevision', 'user'].includes(type)) return 'var(--ck-entity-tone-system)';
   return 'var(--p-surface-500)';
 }
-
-function entitySemanticRole(type) {
-  if (['organization'].includes(type)) return 'container';
-  if (['sheetDesign', 'profileTemplate', 'entityRevision'].includes(type)) return 'definition';
-  if (['artifact', 'user'].includes(type)) return 'meta';
-  return 'item';
-}
-
-function toneVars(accent, role) {
-  const palette = tonePalette(role);
-  return {
-    '--ck-inline-ref-accent': accent,
-    '--ck-inline-ref-bg': `color-mix(in srgb, ${accent}, var(--p-content-background) ${palette.bgMix}%)`,
-    '--ck-inline-ref-border': `color-mix(in srgb, ${accent}, var(--p-content-border-color) ${palette.borderMix}%)`,
-    '--ck-inline-ref-fg': `color-mix(in srgb, ${accent}, var(--p-text-color) ${palette.fgMix}%)`,
-    '--ck-inline-ref-shadow': palette.shadow,
-    '--ck-inline-ref-font-weight': palette.weight
-  };
-}
-
-function tonePalette(role) {
-  if (role === 'container') {
-    return {
-      bgMix: 68,
-      borderMix: 26,
-      fgMix: 18,
-      shadow: 'inset 0 0 0 999px color-mix(in srgb, var(--ck-inline-ref-accent), transparent 92%)',
-      weight: 600
-    };
-  }
-  if (role === 'definition') {
-    return {
-      bgMix: 84,
-      borderMix: 42,
-      fgMix: 26,
-      shadow: 'inset 0 0 0 999px color-mix(in srgb, var(--ck-inline-ref-accent), transparent 96%)',
-      weight: 550
-    };
-  }
-  if (role === 'meta') {
-    return {
-      bgMix: 92,
-      borderMix: 54,
-      fgMix: 34,
-      shadow: 'none',
-      weight: 500
-    };
-  }
-  return {
-    bgMix: 96,
-    borderMix: 46,
-    fgMix: 30,
-    shadow: 'none',
-    weight: 500
-  };
-}
 </script>
 
 <template>
   <span
     v-if="variant === 'compact' && compactCardWorthy"
     class="inline-flex w-full min-w-0 max-w-full"
-    :style="toneStyle"
   >
     <span
       class="instance-inline-compact min-w-0 max-w-full"
@@ -387,14 +333,15 @@ function tonePalette(role) {
       </span>
       <span class="instance-inline-compact-main">
         <span class="instance-inline-compact-header">
-          <span
+          <Chip
             v-if="resolved"
-            class="instance-inline-chip min-w-0 max-w-full flex-1"
+            :label="identityLabel"
+            :icon="icon || undefined"
+            :style="chipTone"
+            :pt="chipPt"
+            class="min-w-0 max-w-full flex-1"
             :title="identityLabel"
-          >
-            <i v-if="icon" :class="['instance-inline-chip-icon', icon]" aria-hidden="true"></i>
-            <span class="instance-inline-chip-label">{{ identityLabel }}</span>
-          </span>
+          />
           <span v-else class="min-w-0 flex-1 truncate text-label">
             {{ compactTypeLabel || $t('common.notAvailable') }}
           </span>
@@ -419,7 +366,7 @@ function tonePalette(role) {
       </span>
     </span>  </span>
 
-  <span v-else class="instance-inline-tone inline-flex min-w-0 max-w-full items-center align-middle" :class="{ 'pointer-events-none': !interactive }" :style="toneStyle">
+  <span v-else class="inline-flex min-w-0 max-w-full items-center align-middle" :class="{ 'pointer-events-none': !interactive }">
     <component
       v-if="resolved && cardComponent"
       :is="cardComponent"
@@ -427,26 +374,21 @@ function tonePalette(role) {
       class="min-w-0 max-w-full"
       data-instance-card-interactive="true"
     />
-    <span
+    <Chip
       v-else-if="resolved"
-      class="instance-inline-chip min-w-0 max-w-full"
-      :class="[
-        { 'cursor-pointer': interactive },
-        // The boxed treatment consumes the tone vars the wrapper sets
-        // (type accent mixed toward the surface by semantic role) —
-        // utilities, never main.css chrome (the design guard's law).
-        chip ? 'rounded-ui border bg-[var(--ck-inline-ref-bg)] px-1 py-0.5 text-[var(--ck-inline-ref-fg)] [border-color:var(--ck-inline-ref-border)]' : ''
-      ]"
-      :role="resolved && interactive ? 'button' : undefined"
-      :tabindex="resolved && interactive ? 0 : undefined"
+      :label="identityLabel"
+      :icon="icon || undefined"
+      :style="chipTone"
+      :pt="chipPt"
+      class="min-w-0 max-w-full"
+      :class="{ 'cursor-pointer': interactive }"
+      :role="interactive ? 'button' : undefined"
+      :tabindex="interactive ? 0 : undefined"
       :title="identityLabel"
       data-instance-card-interactive="true"
-      @click="resolved && interactive ? toggleCompactPopup($event) : undefined"
-      @keydown="resolved && interactive ? onCompactKeydown($event) : undefined"
-    >
-      <i v-if="icon" :class="['instance-inline-chip-icon', icon]" aria-hidden="true"></i>
-      <span class="instance-inline-chip-label">{{ identityLabel }}</span>
-    </span>
+      @click="interactive ? toggleCompactPopup($event) : undefined"
+      @keydown="interactive ? onCompactKeydown($event) : undefined"
+    />
     <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted" data-instance-card-interactive="true">
       <i :class="icon" class="shrink-0"></i>
       <span class="truncate">{{ resolvedId || $t('common.notAvailable') }}</span>
