@@ -2706,11 +2706,11 @@ export default function createSurface({ vue, components, locale, queries, record
       // Cassette previews are payload-based, exactly like the platform's
       // card/detail slots: the picker hydrates each record's OCCS
       // document through the mount's loadDocument and renders it with
-      // the same tree renderer the bound preview surface uses, limited
-      // to the preview layer set (contour, fold, dimension). Thumbnails
+      // the same tree renderer the bound preview surface uses — the
+      // preview layer set is outline and folds, nothing else. Thumbnails
       // cache by record id + updatedAt.
       const templateThumbnails = ref(new Map());
-      const PREVIEW_LAYERS = ['contour.cassette_face', 'fold.route', 'dimension.cassette'];
+      const PREVIEW_LAYERS = ['cut.outer', 'fold.route'];
 
       const hydrateTemplateThumbnail = async (record) => {
         const key = `${record?._id || ''}:${record?.updatedAt || ''}`;
