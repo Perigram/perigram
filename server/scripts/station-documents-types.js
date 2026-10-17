@@ -2,7 +2,7 @@ import { connectDB } from '../db/mongo.js';
 import { randomBytes } from 'node:crypto';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../../packages/cts/src/index.js';
 import { documentsPack } from '../../packages/documents/src/index.js';
-import { techDrawingPack } from '../../packages/tech-drawing/src/index.js';
+import techDrawingListing from '../../workers/tech-drawing/listing.json' with { type: 'json' };
 import { createDefinitionAuthoring } from '../../packages/processes/src/authoring.js';
 
 /**
@@ -36,11 +36,11 @@ const db = await connectDB();
 
 function definitionData(organizationId) {
   const registry = createTypeRegistry({ id: 'station-documents' });
-  for (const declaration of [...frameworkTypes, ...documentsPack.types, ...techDrawingPack.types]) {
+  for (const declaration of [...frameworkTypes, ...documentsPack.types, ...techDrawingListing.declarations.types]) {
     registry.defineType(declaration);
   }
   const domain = projectDomainFromView(registry, organizationId, [], {
-    packServices: [...(documentsPack.services || []), ...(techDrawingPack.services || [])]
+    packServices: [...(documentsPack.services || []), ...(techDrawingListing.declarations.services || [])]
   });
   const authoring = createDefinitionAuthoring(domain);
   TYPES.forEach((construct, index) => {

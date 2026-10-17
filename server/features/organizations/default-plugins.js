@@ -1,24 +1,37 @@
 // Default plugin installs for new organizations (SPEC §Plugin
-// marketplace): the facade domain — the demo deployment's exercised
-// example — installs beside every new org so its types resolve from the
-// first login, exactly as the pack composed for every org before the
-// extraction. Installs ride the plugins feature's gated install seam
-// (installFromCatalog); endpoint-mode services carry the demo
-// deployment's configured executor URL (FACADE_EXECUTOR_URL). Orgs
-// rewire or remove the install from the Plugins section.
+// marketplace): the demo deployment's exercised plugins install beside
+// every new org so their types resolve from the first login — tech-drawing
+// (the retired pack, owner decision 2026-10-17) before the facade, whose
+// `requires` names it. Installs ride the plugins feature's gated install
+// seam (installFromCatalog); endpoint-mode services carry the deployment's
+// configured executor URLs and surface-bearing plugins their surface
+// origin. Orgs rewire or remove the installs from the Plugins section.
 import { installFromCatalog } from '../plugins/service.js';
 
-const DEFAULT_PLUGINS = ['facade'];
+// tech-drawing first: the facade listing requires it (plugin-on-plugin
+// requires), and install order is the default-install chain's order.
+const DEFAULT_PLUGINS = ['tech-drawing', 'facade'];
 
-function endpointsFor(base, services = []) {
-  if (!base) return {};
-  const endpoints = {};
-  for (const service of services) {
-    if (service?.mode === 'endpoint' && service.id) {
-      endpoints[service.id] = `${base.replace(/\/+$/, '')}/${service.id}`;
-    }
+// The demo deployment's executor connections.
+function connectionFor(pluginId, services = []) {
+  if (pluginId === 'tech-drawing') {
+    // Declarations-only plugin: no services, the executor serves its
+    // editor surface module — the module proxy loads from the surface
+    // origin.
+    const origin = process.env.TECH_DRAWING_EXECUTOR_URL || 'http://tech-drawing-executor:8792';
+    return { surfaceOrigin: origin };
   }
-  return endpoints;
+  if (pluginId === 'facade') {
+    const base = process.env.FACADE_EXECUTOR_URL;
+    const endpoints = {};
+    for (const service of services) {
+      if (service?.mode === 'endpoint' && service.id) {
+        endpoints[service.id] = `${base.replace(/\/+$/, '')}/${service.id}`;
+      }
+    }
+    return { endpoints };
+  }
+  return {};
 }
 
 export async function installDefaultPlugins(db, organizationId) {
@@ -35,7 +48,7 @@ export async function installDefaultPlugins(db, organizationId) {
       await installFromCatalog({
         organizationId,
         pluginId,
-        endpoints: endpointsFor(process.env.FACADE_EXECUTOR_URL, listing.declarations.services || [])
+        ...connectionFor(pluginId, listing.declarations.services || [])
       });
     } catch (error) {
       if (error?.statusCode === 409) continue;

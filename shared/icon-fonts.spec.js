@@ -10,7 +10,8 @@ import { readFileSync } from 'node:fs';
 describe('Icon font glyph coverage', () => {
   it('resolves every mounted pack glyph class in the generated font CSS', async () => {
     const { documentsTypes } = await import('../packages/documents/src/index.js');
-    const { techDrawingTypes } = await import('../packages/tech-drawing/src/index.js');
+    const techDrawingListing = (await import('../workers/tech-drawing/listing.json', { with: { type: 'json' } })).default;
+    const techDrawingTypes = techDrawingListing.declarations.types;
     const css = readFileSync('assets/css/main.css', 'utf8');
     const escape = token => token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     let checked = 0;

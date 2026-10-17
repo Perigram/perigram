@@ -22,7 +22,7 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
   listings only to their orgs; the publish API accepts it (operator-set).
 - [x] C. Plugin-on-plugin `requires`: install/upgrade gates accept an
   installed plugin as the satisfied requirement, not only a mounted pack.
-- [ ] D. tech-drawing: declarations-only listing (no services, no
+- [x] D. tech-drawing: declarations-only listing (no services, no
   executor), org migration script, default install; its pack mount
   removes.
 - [ ] E. documents: executor-backed plugin — `documents.csvText` as a pure
@@ -79,6 +79,20 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
   `--surface-origin`, Plugins page field, surface-less plugins refuse
   it). D, E, and G are unblocked; coordinating with the in-flight
   milkdown collab work stays an owner sequencing call.
+- D landed (2026-10-17, fourth session): the tech-drawing plugin
+  (workers/tech-drawing — listing, sketch-editor surface on contract 3,
+  perfect-freehand as the first vendored declared dependency, static
+  executor on :8792); the pack mount removed (documents is the last
+  mounted pack); consumers repointed (shared specs and e2e fixtures
+  read the listing, the file-surface registry drops its local sketch
+  entry, the manifest regenerated); seeder + default installs
+  (tech-drawing before the facade, surfaceOrigin pre-wired) +
+  `migrate-tech-drawing-pack-to-plugin.js` + compose service. The
+  sketch editor's origin-entity affordance never rendered under the
+  instance persistence and did not return; the scene model now lives in
+  the plugin with the host keeping the DrawingCanvas preview adapter.
+  The migration script run against the live dev stack is the remaining
+  operator step (seed → migrate → bring up the executor).
 - Seeder: `server/scripts/seed-plugin-catalog.js` (validated, marked
   `builtin`, retract-refused); `installDefaultPlugins` logs the seed
   runbook instead of skipping silently.
@@ -1812,7 +1826,7 @@ starter process). Owner direction: file editors are parts of their
 packs, artifacts carry no editors, markdown creation is visible for
 every organization. Contracts:
 [packages/documents/README.md](./packages/documents/README.md),
-[packages/tech-drawing/README.md](./packages/tech-drawing/README.md),
+the retired tech-drawing pack README,
 [components/generated/README.md](./components/generated/README.md),
 [components/artifacts/README.md](./components/artifacts/README.md).
 

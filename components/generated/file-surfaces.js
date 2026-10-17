@@ -1,8 +1,6 @@
 import RemoteEditorSurface from '~/components/generated/RemoteEditorSurface.vue';
 import TextDocumentEditor from '~/packages/documents/src/editors/TextDocumentEditor.vue';
 import CsvTableEditor from '~/packages/documents/src/editors/CsvTableEditor.vue';
-import SketchEditor from '~/packages/tech-drawing/src/editors/SketchEditor.vue';
-import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
 import { documentsEditors } from '~/packages/documents/src/index.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useInstancesStore } from '~/stores/instances';
@@ -39,15 +37,6 @@ import { instancePayloadFileUrl } from './file-preview-contract.js';
  *   workspace-page rows.
  */
 export const fileSurfaceRegistry = {
-  'sketch-editor': {
-    action: 'generic',
-    workspacePage: {
-      labelKey: 'sketch.editorTitle',
-      icon: 'pi pi-file-edit',
-      component: SketchEditor,
-      props: (page, typeId) => ({ persistence: sketchInstancePersistence(page.entity, typeId) })
-    }
-  },
   'text-editor': {
     action: 'generic',
     // The text editor owns its document shell (padding + bounded scroll),
@@ -176,20 +165,6 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
 }
 
 /**
- * Sketch-scoped projection of the instance persistence: the scene
- * contract (`loadScene`/`saveScene`; origin stays artifact-path-only).
- */
-export function sketchInstancePersistence(entity = {}, typeId = 'sketch') {
-  const base = instancePayloadPersistence(entity, typeId, 'application/json');
-  return {
-    title: base.title,
-    loadScene: base.load,
-    saveScene: (sceneText, filename) => base.save(sceneText, filename),
-    rename: base.rename
-  };
-}
-
-/**
  * Text/csv-scoped projection of the instance persistence. Text documents
  * are markdown: the editor edits the source directly and saves with the
  * markdown extension and mime.
@@ -234,12 +209,13 @@ export function validateEditorBindings(bindings = [], registry = fileSurfaceRegi
 // The mounted packs' editor bindings in composition order — the same
 // records the cts-types feature serves with the organization type view.
 // Validated at module load so pack/registry drift fails here, not as a
-// silently missing editor presentation. The facade domain's editor
-// bindings (cassette designer, sheet editor) arrive with the
-// organization type view from the installed facade plugin and resolve
-// as plugin-delivered surface modules (RemoteEditorSurface) — the
-// pre-auth fallback below covers only always-mounted pack types.
-export const packEditorBindings = validateEditorBindings([...documentsEditors, ...techDrawingEditors]);
+// silently missing editor presentation. The facade and tech-drawing
+// domains' editor bindings (cassette designer, sheet editor, sketch
+// editor) arrive with the organization type view from the installed
+// plugins and resolve as plugin-delivered surface modules
+// (RemoteEditorSurface) — the pre-auth fallback below covers only
+// always-mounted pack types.
+export const packEditorBindings = validateEditorBindings([...documentsEditors]);
 
 // Served-list default (editor-binding guard): when the app has fetched
 // the organization type view, the served editor list is the authoritative

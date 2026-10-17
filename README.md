@@ -27,7 +27,7 @@ type (see [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md)).
 ```mermaid
 flowchart LR
   Cts["@perigram/cts<br/>type declarations + registry + projection"]
-  Packs["server/packs/*<br/>documents → tech-drawing"]
+  Packs["server/packs/*<br/>documents"]
   Compiler["@perigram/processes<br/>process compiler + UI contract"]
   Runtime["server/runtime/app-registry<br/>pack mounts + instance-service resolver"]
   Commands["server/core/commands<br/>command_runs"]
@@ -78,6 +78,7 @@ commands.
 | `perigram-app` | `server/`, `pages/`, `components/`, `composables/` | Nuxt UI, Nitro API, command/task runtimes, feature services. |
 | `nesting-worker` | `workers/nesting/` | FastAPI HTTP solver for nesting geometry. |
 | `facade-executor` | `workers/facade/` | The facade plugin's endpoint-mode executor (DXF/OCCS/nesting compute over values; serves the plugin's editor and preview surface modules as static GETs). |
+| `tech-drawing-executor` | `workers/tech-drawing/` | The tech-drawing plugin's executor (declarations-only plugin): serves the sketch editor surface module and its vendored runtime dependencies as static GETs. |
 | `mongo` | Docker image | MongoDB documents and GridFS files. |
 | `livekit` | Docker image (`livekit/livekit-server`, `livekit.dev.yaml`) | Self-hosted WebRTC SFU for voice/video calls; rooms are derived and token-gated by the `livekit` capability module. Call recordings ride an external egress plane (LiveKit + Redis + `livekit/egress` + an S3-compatible bucket) deployed beside whichever server the app targets. |
 
@@ -274,6 +275,7 @@ builds only).
 | Agent AI (delegated runs, tool catalog, MCP) | [server/features/agent-bots/README.md](./server/features/agent-bots/README.md) |
 | LLM providers | [server/features/llm/README.md](./server/features/llm/README.md) |
 | Facade plugin (executor + listing) | [workers/facade/README.md](./workers/facade/README.md) |
+| Tech-drawing plugin (executor + listing) | [workers/tech-drawing/README.md](./workers/tech-drawing/README.md) |
 | Type system (CTS) | [packages/cts/README.md](./packages/cts/README.md) |
 | Process compiler | [packages/processes/README.md](./packages/processes/README.md) |
 | Core package | [packages/core/README.md](./packages/core/README.md) |

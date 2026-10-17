@@ -82,6 +82,26 @@ export async function vendorDependencies({ pluginRoot, entry, listingPath = null
     try {
       meta = JSON.parse(readFileSync(require.resolve(`${name}/package.json`), 'utf8'));
     } catch {
+      // Strict exports maps may hide ./package.json — resolve the entry
+      // and climb to the package root instead.
+      try {
+        let dir = dirname(require.resolve(name));
+        for (let depth = 0; depth < 8 && !meta; depth += 1) {
+          try {
+            const candidate = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
+            if (candidate.name === name) meta = candidate;
+          } catch {
+            // keep climbing
+          }
+          const parent = dirname(dir);
+          if (parent === dir) break;
+          dir = parent;
+        }
+      } catch {
+        meta = null;
+      }
+    }
+    if (!meta) {
       leftovers.push(name);
       continue;
     }

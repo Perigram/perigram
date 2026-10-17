@@ -1,40 +1,42 @@
 import { describe, expect, it } from 'vitest';
 import { composeSystemDeclarations, mountedPackDeclarations } from './declarations.js';
-import { techDrawingPack } from '~/packages/tech-drawing/src/index.js';
 
 // Pack composition (SPEC §21 requirements): dependency order, uniqueness,
-// loud failures.
+// loud failures. The mounted set is the documents pack alone (tech-drawing
+// retired into its plugin, owner decision 2026-10-17); the laws stay
+// exercised through synthesized mounts.
 describe('pack composition', () => {
   it('composes the mounted packs in mount order', () => {
     const declarations = composeSystemDeclarations();
     const ids = declarations.map(type => type.id);
-    expect(ids).toContain('pen-template');
-    expect(ids).toContain('layer-standard');
-    expect(ids).toContain('dxf-source');
+    expect(ids).toContain('text-document');
+    expect(ids).toContain('csv-table');
   });
 
   it('fails loudly on a missing requirement', () => {
-    // No mounted pack currently declares requirements (the facade, the
-    // only one, became a plugin) — synthesize the graph to hold the law.
+    // No mounted pack currently declares requirements (tech-drawing and
+    // the facade both became plugins) — synthesize the graph to hold the
+    // law.
     mountedPackDeclarations.push({
       id: 'requiring',
-      requires: ['tech-drawing'],
+      requires: ['unmounted-pack'],
       types: [{ id: 'requiring-type', class: 'item', fields: {} }]
     });
-    const index = mountedPackDeclarations.findIndex(pack => pack.id === 'tech-drawing');
-    const removed = mountedPackDeclarations.splice(index, 1);
     try {
-      expect(() => composeSystemDeclarations()).toThrow(/requires unmounted pack tech-drawing/);
+      expect(() => composeSystemDeclarations()).toThrow(/requires unmounted pack unmounted-pack/);
     } finally {
-      mountedPackDeclarations.splice(index, 0, ...removed);
       mountedPackDeclarations.pop();
     }
   });
 
   it('fails loudly on inter-pack id collisions', () => {
-    mountedPackDeclarations.push({ id: 'clone', requires: [], types: [techDrawingPack.types[0]] });
+    mountedPackDeclarations.push({
+      id: 'clone',
+      requires: [],
+      types: [{ ...composeSystemDeclarations()[0] }]
+    });
     try {
-      expect(() => composeSystemDeclarations()).toThrow(/duplicate system type id pen-template/);
+      expect(() => composeSystemDeclarations()).toThrow(/duplicate system type id/);
     } finally {
       mountedPackDeclarations.pop();
     }

@@ -15,6 +15,7 @@ import { connectDB } from '../db/mongo.js';
 import { normalizeListing } from '../../packages/plugin-sdk/src/listing.js';
 
 const BUILTIN_LISTING_PATHS = [
+  'workers/tech-drawing/listing.json',
   'workers/facade/listing.json'
 ];
 

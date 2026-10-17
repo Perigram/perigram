@@ -23,7 +23,8 @@ import { facadeFileTypes } from '../test-tools/facade-plugin.js';
 // Declaration-owned lifecycles replace the deleted legacy workflow table:
 // one registry view projection derives entities and workflows.
 import { createTypeRegistry, frameworkTypes as ctsFrameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
-import { techDrawingTypes } from '../packages/tech-drawing/src/index.js';
+import techDrawingListing from '../workers/tech-drawing/listing.json';
+const techDrawingTypes = techDrawingListing.declarations.types;
 const viewRegistry = createTypeRegistry({ id: 'design-system-view' });
 for (const declaration of [...ctsFrameworkTypes, ...techDrawingTypes, ...facadeFileTypes]) viewRegistry.defineType(declaration);
 // Machines are graph-compiled at runtime (SPEC §7: the projection carries

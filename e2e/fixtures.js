@@ -3,7 +3,7 @@ import { E2E_PREFIX } from './config.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#packages/cts/src/index.js';
 import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
 import { documentsPack } from '#packages/documents/src/index.js';
-import { techDrawingPack } from '#packages/tech-drawing/src/index.js';
+import techDrawingListing from '../workers/tech-drawing/listing.json' with { type: 'json' };
 import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
 
 // Default construction modes for the pack file types the suite authors.
@@ -27,7 +27,7 @@ function mountedDomain(organizationId, extraTypes = []) {
   for (const declaration of [
     ...frameworkTypes,
     ...documentsPack.types,
-    ...techDrawingPack.types,
+    ...techDrawingListing.declarations.types,
     ...facadePackContent.types,
     ...extraTypes
   ]) {
@@ -35,7 +35,7 @@ function mountedDomain(organizationId, extraTypes = []) {
   }
   const packServices = [
     ...(documentsPack.services || []),
-    ...(techDrawingPack.services || []),
+    ...(techDrawingListing.declarations.services || []),
     ...(facadePackContent.services || [])
   ];
   return projectDomainFromView(registry, organizationId, facadeDomain, { packServices });

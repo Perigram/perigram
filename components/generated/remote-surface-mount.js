@@ -2,12 +2,14 @@ import { h, ref, shallowRef, computed, reactive, watch, onMounted, onBeforeUnmou
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
+import ColorPicker from 'primevue/colorpicker';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import Popover from 'primevue/popover';
 import ScrollPanel from 'primevue/scrollpanel';
 import Select from 'primevue/select';
+import SelectButton from 'primevue/selectbutton';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
@@ -49,7 +51,7 @@ import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 let surfacePack = null;
 function surfaceComponentPack() {
   surfacePack ||= Object.freeze({
-    Button, Checkbox, Dialog, InputText, InputNumber, Message, Popover, ScrollPanel, Select, Tag, Textarea,
+    Button, Checkbox, ColorPicker, Dialog, InputText, InputNumber, Message, Popover, ScrollPanel, Select, SelectButton, Tag, Textarea,
     DesignerSurface, DesignerWorkspace, DrawingCanvas, InstanceSelect, StandardDialog
   });
   return surfacePack;

@@ -48,7 +48,7 @@ describe('cts type storage', () => {
     const bundle = await describeOrganizationTypes(ORG);
     expect(bundle.bundle.ok).toBe(true);
     expect(bundle.bundle.types.some(type => type.id === 'widget' && type.scope === 'org')).toBe(true);
-    expect(bundle.bundle.types.filter(type => type.id === 'dxf-source')).toHaveLength(1);
+    expect(bundle.bundle.types.filter(type => type.id === 'xlsx-workbook')).toHaveLength(1);
     expect(bundle.bundle.types.filter(type => type.id === 'queue')).toHaveLength(0);
     expect(bundle.bundle.types.filter(type => type.id === 'organization').length).toBeGreaterThan(0);
     // no mounted pack declares attachment kinds today (the facade kinds ride the installed plugin layer)
@@ -131,18 +131,18 @@ describe('cts type storage', () => {
   });
 
   it('drops disabled packs from the composed org view and its served editors', async () => {
-    pluginInstalls.listDisabledPacks.mockResolvedValue(['tech-drawing']);
+    pluginInstalls.listDisabledPacks.mockResolvedValue(['documents']);
     const { bundle, attachmentKinds, editors } = await describeOrganizationTypes(ORG);
     expect(bundle.ok).toBe(true);
-    expect(bundle.types.some(type => type.id === 'dxf-source')).toBe(false);
-    expect(editors.some(editor => editor.type === 'dxf-source')).toBe(false);
+    expect(bundle.types.some(type => type.id === 'xlsx-workbook')).toBe(false);
+    expect(editors.some(editor => editor.type === 'text-document')).toBe(false);
     pluginInstalls.listDisabledPacks.mockResolvedValue([]);
   });
 
   it('serves the composed pack editor bindings with the type view', async () => {
     const described = await describeOrganizationTypes(ORG);
     const byType = new Map((described.editors || []).map(editor => [editor.type, editor]));
-    // mounted-pack editors (documents/tech-drawing); the cassette and
+    // mounted-pack editors (documents); the cassette and
     // sheet-design bindings arrive from the installed facade plugin layer
     expect(byType.size).toBeGreaterThan(0);
     expect(byType.get('cassette')).toBeUndefined();
@@ -425,13 +425,13 @@ describe('cts type storage', () => {
 
   it('refuses shadowing a system type', async () => {
     await expect(defineType(
-      { id: 'dxf-source', class: 'file', fields: { rogue: { base: 'string' } } },
+      { id: 'xlsx-workbook', class: 'file', fields: { rogue: { base: 'string' } } },
       { organizationId: ORG }
     )).rejects.toThrow(/shadows a system type/);
   });
 
   it('deletes org types, refuses system types', async () => {
-    await expect(removeType('dxf-source', { organizationId: ORG })).rejects.toThrow(/System types/);
+    await expect(removeType('xlsx-workbook', { organizationId: ORG })).rejects.toThrow(/System types/);
     repository.listByOrganization.mockResolvedValue([
       { id: 'widget', class: 'file', scope: 'org', organizationId: ORG, version: 1, fields: {} }
     ]);
@@ -484,7 +484,7 @@ describe('cts type storage', () => {
 
   it('exposes a registry for downstream runtimes', async () => {
     const registry = await compileRegistryForOrganization(ORG);
-    expect(registry.getType('dxf-source')).toBeTruthy();
-    expect(registry.getType('dxf-source', 'other-org')?.scope).toBe('system');
+    expect(registry.getType('xlsx-workbook')).toBeTruthy();
+    expect(registry.getType('xlsx-workbook', 'other-org')?.scope).toBe('system');
   });
 });
