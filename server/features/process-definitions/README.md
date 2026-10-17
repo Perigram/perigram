@@ -314,7 +314,16 @@ Agent authoring rides the same seam through two service entries:
 owned activation records preserved, the same step grammar and legality
 gates; the tool catalog in
 [agent-bots](../agent-bots/README.md) serves them as
-`compose_process_definition` / `edit_process_definition`).
+`compose_process_definition` / `edit_process_definition`). The seam
+resolves ports against the **draft-overlay domain**: every declaration
+step (`declareClass`/`declareTypeRef`/`declareField`/`wireDeclaration`)
+re-seats the session onto `declarationOverlayDomain` over the projected
+domain, and `editDefinition` seats the stored draft's own unapplied
+declarations before the first step — the tree's declarations are ports
+immediately, so a field declares and wires in one session with no
+intermediate apply (the same overlay law the acceptance adapter follows;
+live defect 2026-10-17: unapplied fields' connects were refused with
+`Unknown port` until an activation posted them).
 
 Process definitions never store role identities or user assignments. Their
 `data.roleGrants` record maps stable organization role ids to process-owned base
