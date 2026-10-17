@@ -5,15 +5,13 @@
 // anywhere (including the browser-safe cts-types composition) without
 // pulling server feature graphs.
 //
-// The tech-drawing pack retired into the tech-drawing plugin (owner
-// decision 2026-10-17): its types install per organization from the
-// listing (workers/tech-drawing/listing.json), its editor ships as the
-// plugin's surface module, and nothing of it mounts here.
-import { documentsPack } from '#packages/documents/src/index.js';
-
-export const mountedPackDeclarations = [
-  documentsPack
-];
+// No pack remains mounted: documents and tech-drawing both retired into
+// their plugins (owner decision 2026-10-17) — their types install per
+// organization from the listings (workers/documents, workers/tech-drawing),
+// their editors ship as the plugins' surface modules, and their compute
+// runs in the external executors. The composition seams below stay until
+// their consumers finish migrating off them.
+export const mountedPackDeclarations = [];
 
 // Registered pack services (SPEC §8/§21), composed in mount order: the
 // one service list every `packServices` consumer — the process runtime's

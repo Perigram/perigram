@@ -4,8 +4,6 @@ vi.mock('~/components/generated/GeneratedHomeWorkspace.vue', () => ({ default: {
 vi.mock('~/components/generated/GeneratedFacadeDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadeDesignerWorkspacePage' } }));
 vi.mock('~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadePatternDesignerWorkspacePage' } }));
 vi.mock('~/packages/tech-drawing/src/editors/SketchEditor.vue', () => ({ default: { name: 'SketchEditor' } }));
-vi.mock('~/packages/documents/src/editors/TextDocumentEditor.vue', () => ({ default: { name: 'TextDocumentEditor' } }));
-vi.mock('~/packages/documents/src/editors/CsvTableEditor.vue', () => ({ default: { name: 'CsvTableEditor' } }));
 vi.mock('~/components/entities/Artifact/ArtifactDetail.vue', () => ({ default: { name: 'ArtifactDetail' } }));
 
 import {

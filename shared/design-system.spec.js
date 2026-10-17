@@ -367,7 +367,7 @@ describe('Design system manifest', () => {
     const dataBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/DataBlock.vue'), 'utf8');
     const actionToolbar = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/ActionToolbar.vue'), 'utf8');
     const artifactViewer = fs.readFileSync(path.join(REPO_ROOT, 'components/artifacts/ArtifactViewer.vue'), 'utf8');
-    const textDocumentEditor = fs.readFileSync(path.join(REPO_ROOT, 'packages/documents/src/editors/TextDocumentEditor.vue'), 'utf8');
+    const textDocumentEditor = fs.readFileSync(path.join(REPO_ROOT, 'workers/documents/surfaces/text-editor.mjs'), 'utf8');
     const supportMessageContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/SupportMessageContent.vue'), 'utf8');
 
     expect(fontsCss).toContain(':where(input, button, select, textarea)');

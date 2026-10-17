@@ -2,7 +2,7 @@ import { test as base, expect } from '@playwright/test';
 import { E2E_PREFIX } from './config.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#packages/cts/src/index.js';
 import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
-import { documentsPack } from '#packages/documents/src/index.js';
+import documentsListing from '../workers/documents/listing.json' with { type: 'json' };
 import techDrawingListing from '../workers/tech-drawing/listing.json' with { type: 'json' };
 import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
 
@@ -26,7 +26,7 @@ function mountedDomain(organizationId, extraTypes = []) {
   const registry = createTypeRegistry({ id: 'e2e-species' });
   for (const declaration of [
     ...frameworkTypes,
-    ...documentsPack.types,
+    ...documentsListing.declarations.types,
     ...techDrawingListing.declarations.types,
     ...facadePackContent.types,
     ...extraTypes
@@ -34,7 +34,7 @@ function mountedDomain(organizationId, extraTypes = []) {
     registry.defineType(declaration);
   }
   const packServices = [
-    ...(documentsPack.services || []),
+    ...(documentsListing.declarations.services || []),
     ...(techDrawingListing.declarations.services || []),
     ...(facadePackContent.services || [])
   ];

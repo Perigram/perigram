@@ -88,7 +88,7 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
 - [x] D. tech-drawing: declarations-only listing (no services, no
   executor), org migration script, default install; its pack mount
   removes.
-- [ ] E. documents: executor-backed plugin — `documents.csvText` as a pure
+- [x] E. documents: executor-backed plugin — `documents.csvText` as a pure
   value service, the rows/cells payload decompositions as pure computes
   over the record's own payload, editor bindings as surfaces; org
   migration + default install.
@@ -142,6 +142,20 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
   `--surface-origin`, Plugins page field, surface-less plugins refuse
   it). D, E, and G are unblocked; coordinating with the in-flight
   milkdown collab work stays an owner sequencing call.
+- E landed (2026-10-17, fifth session): the documents plugin
+  (workers/documents — listing with service-resolved projections, four
+  endpoint services, text/csv editor surfaces on contract 3 with the
+  milkdown/codemirror graph and xlsx as declared vendored dependencies
+  through the split multi-entry vendor build, static executor on :8791);
+  the pack mount removed (no pack remains — the composition seams await
+  G), consumers repointed to the listing, the CTS projection grammar
+  gained the service resolve, the manifest regenerated; seeder + default
+  installs + `migrate-documents-pack-to-plugin.js` (with the
+  `documents.csvText` → `plugin.documents.csv-text` service-node
+  rewrites) + compose service. The migration-script plain-node defect
+  found on the live stack is fixed (direct install writes, the facade
+  precedent). Stack runbook: up documents-executor → seed → migrate →
+  restart.
 - D landed (2026-10-17, fourth session): the tech-drawing plugin
   (workers/tech-drawing — listing, sketch-editor surface on contract 3,
   perfect-freehand as the first vendored declared dependency, static
@@ -1675,7 +1689,7 @@ delivered: a `text` projection (text-document payload → string — the
 graph's only way to read a text payload, SPEC §8's entity→value gate) and
 `value.format` growing named `{key}` slots substituted from a wired record
 (`{value}` unchanged). Contracts:
-[packages/documents/README.md](./packages/documents/README.md),
+the retired documents pack README,
 [packages/processes/README.md](./packages/processes/README.md) (format
 semantics beside the other record-carried kinds).
 
@@ -2000,7 +2014,7 @@ stationing script had never run and fresh orgs start from the empty
 starter process). Owner direction: file editors are parts of their
 packs, artifacts carry no editors, markdown creation is visible for
 every organization. Contracts:
-[packages/documents/README.md](./packages/documents/README.md),
+the retired documents pack README,
 the retired tech-drawing pack README,
 [components/generated/README.md](./components/generated/README.md),
 [components/artifacts/README.md](./components/artifacts/README.md).
@@ -2059,7 +2073,7 @@ sheets. Beside it, the documents pack declares a positional projection:
 every row is data, keyed by spreadsheet column letters (`A`, `B`, …), so
 `Record field` path `A` is the positional column read. The author picks
 the projection that matches the file — no heuristics. Contracts:
-[packages/documents/README.md](./packages/documents/README.md).
+the retired documents pack README.
 
 - [x] A. `cells` projection declared on `csv-table` and `xlsx-workbook`
   (`tableData` tab), one shared payload parse in the pack handler with
@@ -2093,7 +2107,7 @@ The documents pack's content must be usable end to end: text documents and
 CSV tables creatable from procedural content in the designer (a `content`
 creation protocol beside upload/editor), and rows composable back into CSV
 text (a pack value service in the `tableData` tab). Contracts:
-[packages/documents/README.md](./packages/documents/README.md),
+the retired documents pack README,
 [packages/cts/SPEC.md](./packages/cts/SPEC.md) §4 (creation protocols).
 
 - [x] A. `content` protocol: mode input (content string) in the construction

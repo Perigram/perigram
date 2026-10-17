@@ -74,54 +74,43 @@ export async function vendorDependencies({ pluginRoot, entry, listingPath = null
     throw new Error('vendoring needs esbuild in the plugin repo — npm install -D esbuild (the SDK itself stays zero-dependency)');
   }
 
-  const bundled = [];
+  // One split build over every name: each declared dependency is an
+  // entry, shared internals land in shared chunks — subpath families
+  // (prosemirror state/view/commands) keep one class identity across
+  // their bundles, which separate builds would break.
+  const entryPoints = {};
   const manifest = [];
   const leftovers = [];
   for (const name of names) {
-    let meta;
-    try {
-      meta = JSON.parse(readFileSync(require.resolve(`${name}/package.json`), 'utf8'));
-    } catch {
-      // Strict exports maps may hide ./package.json — resolve the entry
-      // and climb to the package root instead.
-      try {
-        let dir = dirname(require.resolve(name));
-        for (let depth = 0; depth < 8 && !meta; depth += 1) {
-          try {
-            const candidate = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
-            if (candidate.name === name) meta = candidate;
-          } catch {
-            // keep climbing
-          }
-          const parent = dirname(dir);
-          if (parent === dir) break;
-          dir = parent;
-        }
-      } catch {
-        meta = null;
-      }
-    }
+    let meta = packageMeta(require, name, root);
     if (!meta) {
       leftovers.push(name);
       continue;
     }
-    const module = `/assets/vendor/${vendorSlug(name)}`;
+    const slug = vendorSlug(name).replace(/\.mjs$/, '');
+    entryPoints[slug] = name;
+    manifest.push({
+      name,
+      version: String(meta.version || ''),
+      module: `/assets/vendor/${slug}.mjs`,
+      license: String(meta.license || 'UNKNOWN')
+    });
+  }
+  const bundled = manifest.map(entry => entry.name);
+  if (bundled.length) {
     await esbuild.build({
-      entryPoints: [name],
+      entryPoints,
       bundle: true,
+      splitting: true,
       format: 'esm',
       platform: 'browser',
       target: 'esnext',
       absWorkingDir: root,
-      outfile: resolve(root, `.${module}`),
+      outdir: resolve(root, 'assets/vendor'),
+      entryNames: '[name]',
+      chunkNames: 'chunks/[name]-[hash]',
+      outExtension: { '.js': '.mjs' },
       logLevel: 'silent'
-    });
-    bundled.push(name);
-    manifest.push({
-      name,
-      version: String(meta.version || ''),
-      module,
-      license: String(meta.license || 'UNKNOWN')
     });
   }
 
@@ -135,6 +124,28 @@ export async function vendorDependencies({ pluginRoot, entry, listingPath = null
   }
 
   return { bundled, manifest, leftovers };
+}
+
+// A dependency's package metadata: read `<rootName>/package.json` by
+// walking node_modules upward from the plugin root (npm's classic
+// lookup — `require.resolve` refuses ESM-only exports maps like
+// milkdown's, but the file is always on disk).
+function packageMeta(require, name, pluginRoot) {
+  const rootName = name.startsWith('@') ? name.split('/').slice(0, 2).join('/') : name.split('/')[0];
+  let dir = resolve(pluginRoot);
+  for (let depth = 0; depth < 16; depth += 1) {
+    const candidate = join(dir, 'node_modules', rootName, 'package.json');
+    try {
+      const meta = JSON.parse(readFileSync(candidate, 'utf8'));
+      if (meta.name === rootName) return meta;
+    } catch {
+      // keep climbing
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
 }
 
 function collectModuleFiles(dir, files = []) {

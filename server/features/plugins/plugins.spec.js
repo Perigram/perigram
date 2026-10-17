@@ -144,9 +144,10 @@ describe('plugin installs', () => {
   });
 
   it('installs the full declaration layer beside the types', async () => {
+    repository.listInstallsByOrganization.mockResolvedValue([{ ...coatingInstall, pluginId: 'primers' }]);
     repository.findCatalogByPluginId.mockResolvedValue({
       ...coatingListing,
-      requires: ['documents'],
+      requires: ['primers'],
       declarations: {
         ...coatingListing.declarations,
         types: [
@@ -167,8 +168,9 @@ describe('plugin installs', () => {
         conversions: [{ id: 'docToCoating', label: 'Import', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' } }],
         surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }]
       }),
-      requires: ['documents']
+      requires: ['primers']
     }));
+    repository.listInstallsByOrganization.mockResolvedValue([]);
   });
 
   it('installs with pre-wired endpoints for endpoint-mode services only', async () => {
@@ -230,18 +232,6 @@ describe('plugin installs', () => {
         surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 2 }]
       })
     }));
-  });
-
-  it('refuses a required pack that is not mounted or is disabled', async () => {
-    repository.findCatalogByPluginId.mockResolvedValue({ ...coatingListing, requires: ['nope'] });
-    await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('unknown plugin or pack nope') });
-    repository.listDisabledPacks.mockResolvedValue(['documents']);
-    repository.findCatalogByPluginId.mockResolvedValue({ ...coatingListing, requires: ['documents'] });
-    await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
-      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('disabled') });
-    expect(repository.createInstall).not.toHaveBeenCalled();
-    repository.listDisabledPacks.mockResolvedValue([]);
   });
 
   it('refuses an attachment kind another install already holds', async () => {
@@ -590,10 +580,13 @@ describe('upgrades', () => {
     version: '2',
     declarations: { types: coatingListing.declarations.types }
   };
+  // The upgrade's requirement rides the installed-plugin layer (the
+  // listingV3 requires 'primers').
+  const primersInstall = { ...coatingInstall, pluginId: 'primers' };
   const listingV3 = {
     ...coatingListing,
     version: '3',
-    requires: ['documents'],
+    requires: ['primers'],
     declarations: {
       types: [
         // changed: gains a required field WITH a covering default step
@@ -665,6 +658,7 @@ describe('upgrades', () => {
 
   it('applies a clean upgrade as the new pinned snapshot and runs covered steps', async () => {
     countInstancesOfType.mockResolvedValue(7);
+    repository.listInstallsByOrganization.mockResolvedValue([installedV2, primersInstall]);
     const result = await applyUpgrade({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
     expect(result).toMatchObject({ pluginId: 'coatings', version: '3' });
     const persisted = repository.updateInstallSnapshot.mock.calls[0][2];
@@ -674,7 +668,7 @@ describe('upgrades', () => {
     expect(persisted.declarations.editors).toEqual([{ type: 'coating-sheet', surface: 'coating-designer', modes: ['edit'] }]);
     expect(persisted.declarations.attachmentKinds).toEqual({ COATING_DOC: { kind: 'COATING_DOC' } });
     expect(persisted.declarations.conversions).toHaveLength(1);
-    expect(persisted.requires).toEqual(['documents']);
+    expect(persisted.requires).toEqual(['primers']);
     // one-time steps never persist (SPEC §11)
     expect(persisted.declarations.types.some(type => type.migrate)).toBe(false);
     expect(applyTypeMigrationSteps).toHaveBeenCalledWith(expect.objectContaining({
@@ -685,10 +679,10 @@ describe('upgrades', () => {
   });
 
   it('refuses an upgrade whose pack requirements no longer hold', async () => {
-    repository.findCatalogByPluginId.mockImplementation(async () => ({ ...listingV3, requires: ['documents'] }));
-    repository.listDisabledPacks.mockResolvedValue(['documents']);
+    repository.findCatalogByPluginId.mockImplementation(async () => ({ ...listingV3, requires: ['primers'] }));
+    repository.listInstallsByOrganization.mockResolvedValue([]);
     await expect(applyUpgrade({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
-      .rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('documents') });
+      .rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('primers') });
     expect(repository.updateInstallSnapshot).not.toHaveBeenCalled();
     repository.listDisabledPacks.mockResolvedValue([]);
   });
@@ -827,7 +821,7 @@ describe('endpoint-mode services', () => {
 });
 
 describe('starter constructs and service-resolved projections', () => {
-  it('composes pack constructs beside installed plugin constructs, one per type', async () => {
+  it('composes the installed plugins\' starter constructs, one per type', async () => {
     repository.listInstallsByOrganization.mockResolvedValue([{
       ...coatingInstall,
       declarations: {
@@ -837,21 +831,17 @@ describe('starter constructs and service-resolved projections', () => {
     }]);
     const constructs = await starterConstructsForOrganization(ORG);
     expect(constructs).toEqual([
-      { typeId: 'text-document', construction: 'editor' },
       { typeId: 'coating', construction: 'editor' }
     ]);
   });
 
-  it('refuses a starter construct collision between pack and install layers', async () => {
-    repository.listInstallsByOrganization.mockResolvedValue([{
-      ...coatingInstall,
-      declarations: {
-        ...coatingInstall.declarations,
-        starterConstructs: [{ typeId: 'text-document', construction: 'editor' }]
-      }
-    }]);
+  it('refuses a starter construct collision between two installs', async () => {
+    repository.listInstallsByOrganization.mockResolvedValue([
+      { ...coatingInstall, declarations: { ...coatingInstall.declarations, starterConstructs: [{ typeId: 'coating', construction: 'editor' }] } },
+      { ...coatingInstall, pluginId: 'primers', declarations: { ...coatingInstall.declarations, starterConstructs: [{ typeId: 'coating', construction: 'upload' }] } }
+    ]);
     await expect(starterConstructsForOrganization(ORG))
-      .rejects.toMatchObject({ statusCode: 500, message: expect.stringContaining('text-document') });
+      .rejects.toMatchObject({ statusCode: 500, message: expect.stringContaining('coating') });
   });
 
   const projectionInstall = {
@@ -1078,108 +1068,5 @@ describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
     } finally {
       vi.unstubAllGlobals();
     }
-  });
-});
-
-describe('mounted-pack enablement', () => {
-  beforeEach(() => {
-    repository.listInstallsByOrganization.mockResolvedValue([]);
-  });
-
-  it('lists every mounted pack as enabled by default', async () => {
-    repository.listDisabledPacks.mockResolvedValue([]);
-    const state = await listPackState({ organizationId: ORG, auth: AUTH });
-    const byId = new Map(state.map(item => [item.pluginId, item]));
-    expect(byId.get('facade')).toBeUndefined();
-    expect(byId.get('documents')).toMatchObject({ pack: true, enabled: true });
-    expect(byId.get('tech-drawing')).toBeUndefined();
-  });
-
-  it('enabling a pack cascades over its disabled requirements (the law applies when a pack declares them)', async () => {
-    // No mounted pack declares requirements anymore (tech-drawing and the
-    // facade both became plugins) — synthesize the graph to hold the law.
-    const { mountedPackDeclarations } = await import('~/server/packs/declarations.js');
-    mountedPackDeclarations.push({ id: 'requiring', label: 'Requiring', requires: ['documents'], types: [] });
-    repository.listDisabledPacks.mockResolvedValue(['documents', 'requiring']);
-    try {
-      const result = await enablePack({ organizationId: ORG, packId: 'requiring', auth: AUTH });
-      expect(result).toMatchObject({ packId: 'requiring', enabled: true });
-      const enabledIds = repository.enablePack.mock.calls.map(call => call[1]).sort();
-      expect(enabledIds).toEqual(['documents', 'requiring']);
-    } finally {
-      mountedPackDeclarations.pop();
-      repository.listDisabledPacks.mockResolvedValue([]);
-    }
-  });
-
-  it('disables a pack with no dependents (the dependent law lives in the installed-plugin variant below)', async () => {
-    repository.listDisabledPacks.mockResolvedValue([]);
-    await disablePack({ organizationId: ORG, packId: 'documents', auth: AUTH });
-    expect(repository.disablePack).toHaveBeenCalledWith(ORG, 'documents', expect.anything());
-    repository.disablePack.mockClear();
-    repository.enablePack.mockClear();
-  });
-
-  it('refuses disabling a pack an installed plugin requires', async () => {
-    // both dependent packs disabled so the pack-dependent gate stays quiet
-    // and the installed-plugin gate is the one that refuses
-    repository.listDisabledPacks.mockResolvedValue([]);
-    repository.listInstallsByOrganization.mockResolvedValue([
-      { organizationId: ORG, pluginId: 'coatings', requires: ['documents'] }
-    ]);
-    await expect(disablePack({ organizationId: ORG, packId: 'documents', auth: AUTH }))
-      .rejects.toMatchObject({ statusCode: 409, message: expect.stringContaining('required by installed plugin coatings') });
-    expect(repository.disablePack).not.toHaveBeenCalled();
-    repository.listDisabledPacks.mockResolvedValue([]);
-    repository.listInstallsByOrganization.mockResolvedValue([]);
-  });
-
-  it('refuses disabling a pack whose types have live instances', async () => {
-    countInstancesOfType.mockResolvedValue(12);
-    await expect(disablePack({ organizationId: ORG, packId: 'documents', auth: AUTH }))
-      .rejects.toMatchObject({ statusCode: 409 });
-    expect(repository.disablePack).not.toHaveBeenCalled();
-    countInstancesOfType.mockResolvedValue(0);
-  });
-
-  it('refuses disabling a pack the org view still depends on', async () => {
-    typeStore.listByOrganization.mockResolvedValue([
-      {
-        id: 'facade-job', class: 'group', scope: 'org', organizationId: ORG, version: 1,
-        fields: {},
-        edges: { children: { parts: { types: ['xlsx-workbook'] } } }
-      }
-    ]);
-    await expect(disablePack({ organizationId: ORG, packId: 'documents', auth: AUTH }))
-      .rejects.toMatchObject({ statusCode: 409 });
-    expect(repository.disablePack).not.toHaveBeenCalled();
-    typeStore.listByOrganization.mockResolvedValue([]);
-  });
-
-  it('disables a drained pack and invalidates the org view', async () => {
-    const result = await disablePack({ organizationId: ORG, packId: 'documents', auth: AUTH });
-    expect(result).toEqual({ packId: 'documents', enabled: false });
-    expect(repository.disablePack).toHaveBeenCalledWith(ORG, 'documents', 'user-1');
-    expect(invalidateInstanceDeclarations).toHaveBeenCalledWith(ORG);
-  });
-
-  it('composes installed plugin services beside the mounted packs\' own services', async () => {
-    repository.listInstallsByOrganization.mockResolvedValue([{
-      ...coatingInstall,
-      services: [
-        {
-          id: 'mix',
-          label: 'Color mix',
-          signature: {
-            input: { base: 'record', fields: { base: { base: 'string' } } },
-            output: { base: 'json' }
-          }
-        },
-        ...coatingListing.declarations.services
-      ]
-    }]);
-    const services = await packServicesForOrganization(ORG);
-    expect(services.map(service => service.id)).toEqual(['documents.csvText', 'plugin.coatings.mix']);
-    repository.listInstallsByOrganization.mockResolvedValue([]);
   });
 });

@@ -46,7 +46,11 @@
 const SERVICE_REF = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 const MODULE_PATH = /^\/[a-z0-9/_-]+\.m?js$/;
 const DEPENDENCY_MODULE_PATH = /^\/[a-z0-9/._-]+\.m?js$/;
-const DEPENDENCY_NAME = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
+// An npm specifier: package name (scoped or plain), optionally with
+// subpaths — milkdown's '@milkdown/prose/commands' family needs them,
+// and the vendor build's shared chunks keep one class identity across
+// the subpath bundles.
+const DEPENDENCY_NAME = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*(\/[a-z0-9-._~]+)*$/;
 const SPDX_LIKE = /^[A-Za-z0-9.+-]+$/;
 
 // What the surface mount injects — a dependency naming one of these is a

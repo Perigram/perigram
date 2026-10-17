@@ -10,7 +10,19 @@ import { installFromCatalog } from '../plugins/service.js';
 
 // tech-drawing first: the facade listing requires it (plugin-on-plugin
 // requires), and install order is the default-install chain's order.
-const DEFAULT_PLUGINS = ['tech-drawing', 'facade'];
+const DEFAULT_PLUGINS = ['tech-drawing', 'documents', 'facade'];
+
+// Endpoint-mode services under one base URL (the demo deployment's
+// executor wiring).
+function endpointsFor(base, services = []) {
+  const endpoints = {};
+  for (const service of services) {
+    if (service?.mode === 'endpoint' && service.id && base) {
+      endpoints[service.id] = `${base.replace(/\/+$/, '')}/${service.id}`;
+    }
+  }
+  return endpoints;
+}
 
 // The demo deployment's executor connections.
 function connectionFor(pluginId, services = []) {
@@ -21,15 +33,12 @@ function connectionFor(pluginId, services = []) {
     const origin = process.env.TECH_DRAWING_EXECUTOR_URL || 'http://tech-drawing-executor:8792';
     return { surfaceOrigin: origin };
   }
+  if (pluginId === 'documents') {
+    const base = process.env.DOCUMENTS_EXECUTOR_URL || 'http://documents-executor:8791';
+    return { endpoints: endpointsFor(base, services) };
+  }
   if (pluginId === 'facade') {
-    const base = process.env.FACADE_EXECUTOR_URL;
-    const endpoints = {};
-    for (const service of services) {
-      if (service?.mode === 'endpoint' && service.id) {
-        endpoints[service.id] = `${base.replace(/\/+$/, '')}/${service.id}`;
-      }
-    }
-    return { endpoints };
+    return { endpoints: endpointsFor(process.env.FACADE_EXECUTOR_URL, services) };
   }
   return {};
 }

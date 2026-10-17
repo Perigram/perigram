@@ -1,7 +1,4 @@
 import RemoteEditorSurface from '~/components/generated/RemoteEditorSurface.vue';
-import TextDocumentEditor from '~/packages/documents/src/editors/TextDocumentEditor.vue';
-import CsvTableEditor from '~/packages/documents/src/editors/CsvTableEditor.vue';
-import { documentsEditors } from '~/packages/documents/src/index.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
@@ -36,36 +33,7 @@ import { instancePayloadFileUrl } from './file-preview-contract.js';
  *   scroll area, and the flag rides `resolveFileSurface` into the derived
  *   workspace-page rows.
  */
-export const fileSurfaceRegistry = {
-  'text-editor': {
-    action: 'generic',
-    // The text editor owns its document shell (padding + bounded scroll),
-    // so the pane host stays flush instead of wrapping it in a second
-    // padded scroll area.
-    flush: true,
-    workspacePage: {
-      labelKey: 'editors.text',
-      icon: 'pi pi-file-edit',
-      component: TextDocumentEditor,
-      props: (page, typeId) => ({
-        persistence: textInstancePersistence(page.entity, typeId, 'text')
-      })
-    }
-  },
-  'csv-editor': {
-    action: 'generic',
-    // Same owned shell as the text editor: one editor, one scroll.
-    flush: true,
-    workspacePage: {
-      labelKey: 'editors.csv',
-      icon: 'pi pi-file-edit',
-      component: CsvTableEditor,
-      props: (page, typeId) => ({
-        persistence: textInstancePersistence(page.entity, typeId, 'csv')
-      })
-    }
-  }
-};
+export const fileSurfaceRegistry = {};
 
 /**
  * The blank construct an editor's first save rides (SPEC §UI): runs the
@@ -164,22 +132,6 @@ export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 
   };
 }
 
-/**
- * Text/csv-scoped projection of the instance persistence. Text documents
- * are markdown: the editor edits the source directly and saves with the
- * markdown extension and mime.
- */
-export function textInstancePersistence(entity = {}, typeId = '', format = 'text') {
-  const markdown = format === 'text';
-  const base = instancePayloadPersistence(entity, typeId, markdown ? 'text/markdown' : 'text/csv');
-  return {
-    title: base.title,
-    extension: markdown ? '.md' : '.csv',
-    loadText: base.load,
-    saveText: base.save,
-    rename: base.rename
-  };
-}
 
 /**
  * Validate editor bindings against the surface registry (the app-side
@@ -215,7 +167,7 @@ export function validateEditorBindings(bindings = [], registry = fileSurfaceRegi
 // plugins and resolve as plugin-delivered surface modules
 // (RemoteEditorSurface) — the pre-auth fallback below covers only
 // always-mounted pack types.
-export const packEditorBindings = validateEditorBindings([...documentsEditors]);
+export const packEditorBindings = validateEditorBindings([]);
 
 // Served-list default (editor-binding guard): when the app has fetched
 // the organization type view, the served editor list is the authoritative

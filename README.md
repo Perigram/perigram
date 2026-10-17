@@ -27,7 +27,6 @@ type (see [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md)).
 ```mermaid
 flowchart LR
   Cts["@perigram/cts<br/>type declarations + registry + projection"]
-  Packs["server/packs/*<br/>documents"]
   Compiler["@perigram/processes<br/>process compiler + UI contract"]
   Runtime["server/runtime/app-registry<br/>pack mounts + instance-service resolver"]
   Commands["server/core/commands<br/>command_runs"]
@@ -38,7 +37,6 @@ flowchart LR
   Workers["workers/*<br/>task executors"]
   Mongo[(MongoDB + GridFS)]
 
-  Packs --> Cts
   Cts --> Compiler
   Cts --> Runtime
   Compiler --> Runtime
@@ -77,6 +75,7 @@ commands.
 |---|---|---|
 | `perigram-app` | `server/`, `pages/`, `components/`, `composables/` | Nuxt UI, Nitro API, command/task runtimes, feature services. |
 | `nesting-worker` | `workers/nesting/` | FastAPI HTTP solver for nesting geometry. |
+| `documents-executor` | `workers/documents/` | The documents plugin's endpoint-mode executor (table projections, text extraction, CSV composition; serves the text/csv editor surfaces and their vendored runtimes as static GETs). |
 | `facade-executor` | `workers/facade/` | The facade plugin's endpoint-mode executor (DXF/OCCS/nesting compute over values; serves the plugin's editor and preview surface modules as static GETs). |
 | `tech-drawing-executor` | `workers/tech-drawing/` | The tech-drawing plugin's executor (declarations-only plugin): serves the sketch editor surface module and its vendored runtime dependencies as static GETs. |
 | `mongo` | Docker image | MongoDB documents and GridFS files. |
@@ -274,6 +273,7 @@ builds only).
 | Tasks | [server/core/tasks/README.md](./server/core/tasks/README.md) |
 | Agent AI (delegated runs, tool catalog, MCP) | [server/features/agent-bots/README.md](./server/features/agent-bots/README.md) |
 | LLM providers | [server/features/llm/README.md](./server/features/llm/README.md) |
+| Documents plugin (executor + listing) | [workers/documents/README.md](./workers/documents/README.md) |
 | Facade plugin (executor + listing) | [workers/facade/README.md](./workers/facade/README.md) |
 | Tech-drawing plugin (executor + listing) | [workers/tech-drawing/README.md](./workers/tech-drawing/README.md) |
 | Type system (CTS) | [packages/cts/README.md](./packages/cts/README.md) |
