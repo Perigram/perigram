@@ -1,5 +1,44 @@
 # TODO
 
+## Unified plugin space — mounted packs retire into listings (owner direction 2026-10-17)
+
+One installable contract for everything called a mounted pack, a private
+plugin, or a published plugin today: the remaining mounted packs
+(documents, tech-drawing) migrate to marketplace listings, the pack
+machinery deletes, and installs become the only management plane. Private
+plugins are operator-published listings with org-scoped visibility;
+self-hosted is claim mode or the org's own endpoint. The catalog stays
+platform-side and seeds its built-in listings as a deploy step; executors
+ship as container images — no platform-side artifact store, the platform
+stores declarations, never code (SPEC: Plugin marketplace, owner decision
+2026-10-17).
+
+- [ ] A. Catalog seeding: publishing the built-in listings becomes a
+  deploy/migration step; `installDefaultPlugins`
+  (`server/features/organizations/default-plugins.js`) no longer silently
+  skips on a fresh database.
+- [ ] B. Listing visibility: the SDK listing contract gains `visibility`
+  (public/private with owning organizations); catalog routes serve private
+  listings only to their orgs; the publish API accepts it (operator-set).
+- [ ] C. Plugin-on-plugin `requires`: install/upgrade gates accept an
+  installed plugin as the satisfied requirement, not only a mounted pack.
+- [ ] D. tech-drawing: declarations-only listing (no services, no
+  executor), org migration script, default install; its pack mount
+  removes.
+- [ ] E. documents: executor-backed plugin — `documents.csvText` as a pure
+  value service, the rows/cells payload decompositions as pure computes
+  over the record's own payload, editor bindings as surfaces; org
+  migration + default install.
+- [ ] F. Starter constructs ride listing declarations and compose through
+  default installs; the pack-side starter-construct seam
+  (`composeStarterConstructs`) retires.
+- [ ] G. Pack machinery deletion: registry pack mounts, the `composePack*`
+  seams, `pack_disablements`, the Plugins page packs panel; existing orgs
+  migrate off packs in the same task.
+- [ ] H. Executor release convention: the staging workflow deploys the
+  facade executor beside the app and publishes the version-bumped listing;
+  the authoring guide documents the per-plugin release loop.
+
 ## Profile library for cassettes (owner direction 2026-10-17)
 
 Profiles authored in the cassette designer's profile dialog become
