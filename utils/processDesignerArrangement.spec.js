@@ -449,6 +449,57 @@ describe('arrangeProcessGraph', () => {
     )) });
     expect([...third]).toEqual([...first]);
   });
+
+  it('aligns a three-column crossing chain onto shared rows', () => {
+    const nodes = [
+      processNode('a1', 0, 500), processNode('a2', 0, 0),
+      processNode('m1', 420, 500), processNode('m2', 420, 0),
+      processNode('b1', 840, 0), processNode('b2', 840, 500)
+    ];
+    const input = {
+      nodes,
+      edges: [
+        { source: 'a1', target: 'm1' },
+        { source: 'a2', target: 'm2' },
+        { source: 'm1', target: 'b1' },
+        { source: 'm2', target: 'b2' }
+      ],
+      effects: ['a1', 'a2', 'm1', 'm2', 'b1', 'b2'],
+      bandOfNodeId: new Map([
+        ['a1', BAND_A], ['a2', BAND_A], ['m1', BAND_A], ['m2', BAND_A],
+        ['b1', BAND_B], ['b2', BAND_B]
+      ])
+    };
+    const result = arrange(input);
+    const signs = [
+      Math.sign(result.get('a1').y - result.get('a2').y),
+      Math.sign(result.get('m1').y - result.get('m2').y),
+      Math.sign(result.get('b1').y - result.get('b2').y)
+    ];
+    expect(new Set(signs).size).toBe(1);
+    const rerun = arrange({ ...input, nodes: input.nodes.map(node => (
+      result.has(node.id) ? { ...node, position: result.get(node.id) } : node
+    )) });
+    expect([...rerun]).toEqual([...result]);
+  });
+
+  it('seats a pulled-up source on its far consumer\'s row', () => {
+    const nodes = [
+      processNode('src', 0, 0),
+      processNode('effTop', 0, 0), processNode('eff', 0, 0)
+    ];
+    const result = arrange({
+      nodes,
+      edges: [
+        { source: 'src', target: 'eff' },
+        { source: 'effTop', target: 'eff', role: 'control' }
+      ],
+      effects: ['eff', 'effTop'],
+      bandOfNodeId: new Map([['eff', BAND_A], ['effTop', BAND_A]])
+    });
+    expect(result.get('src').x).toBe(result.get('effTop').x);
+    expect(Math.abs(result.get('src').y - result.get('eff').y)).toBeLessThan(170);
+  });
 });
 
 describe('laneContainerLayout', () => {
