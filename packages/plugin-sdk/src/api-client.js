@@ -40,11 +40,11 @@ export function createPluginClient({ appUrl, operatorToken = null, token = null,
       `${base}/api/organizations/${encodeURIComponent(org(organizationId))}/plugins/${encodeURIComponent(pluginId)}/settings`,
       { headers: authHeaders(token) }),
 
-    saveSettings: async (pluginId, { endpoints = {}, authToken = null }) => request(fetchImpl,
+    saveSettings: async (pluginId, { endpoints = {}, authToken = null, surfaceOrigin = undefined }) => request(fetchImpl,
       `${base}/api/organizations/${encodeURIComponent(org(organizationId))}/plugins/${encodeURIComponent(pluginId)}/settings`, {
         method: 'POST',
         headers: authHeaders(token, { json: true }),
-        body: JSON.stringify({ endpoints, authToken })
+        body: JSON.stringify({ ...(surfaceOrigin === undefined ? {} : { surfaceOrigin }), endpoints, authToken })
       }),
 
     // Execute an installed service through the command runtime

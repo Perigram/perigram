@@ -436,6 +436,27 @@ describe('plugin installs', () => {
     expect(repository.createInstall).not.toHaveBeenCalled();
   });
 
+  it('pre-wires a surface origin at install for surface-bearing plugins', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue({
+      ...coatingListing,
+      declarations: {
+        ...coatingListing.declarations,
+        surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }]
+      }
+    });
+    await installFromCatalog({ organizationId: ORG, pluginId: 'coatings', surfaceOrigin: 'http://executor:8791' });
+    expect(repository.createInstall).toHaveBeenCalledWith(expect.objectContaining({
+      surfaceOrigin: 'http://executor:8791'
+    }));
+  });
+
+  it('refuses a surface origin for a plugin that declares no surfaces', async () => {
+    repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
+    await expect(installFromCatalog({ organizationId: ORG, pluginId: 'coatings', surfaceOrigin: 'http://executor:8791' }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('no surface modules') });
+    expect(repository.createInstall).not.toHaveBeenCalled();
+  });
+
   it('lists installed plugins from the install snapshots', async () => {
     repository.listInstallsByOrganization.mockResolvedValue([{
       organizationId: ORG,
@@ -745,6 +766,29 @@ describe('endpoint-mode services', () => {
     }
   });
 
+  it('saves and serves the surface origin beside the endpoints', async () => {
+    repository.findInstall.mockResolvedValue({
+      ...endpointInstall,
+      surfaceOrigin: 'http://surface-executor:8791',
+      declarations: {
+        ...coatingListing.declarations,
+        surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }]
+      }
+    });
+    const saved = await updateSettings({
+      organizationId: ORG,
+      pluginId: 'coatings',
+      endpoints: { match: 'https://executor.example/match' },
+      surfaceOrigin: 'http://surface-executor:8791',
+      auth: AUTH
+    });
+    expect(repository.updateSettings).toHaveBeenCalledWith(ORG, 'coatings', expect.objectContaining({
+      surfaceOrigin: 'http://surface-executor:8791'
+    }));
+    expect(saved.surfaces).toBe(true);
+    expect(saved.surfaceOrigin).toBe('http://surface-executor:8791');
+  });
+
   it('saves and serves connection settings, refusing endpoints for claim services', async () => {
     const settings = await settingsFor({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
     expect(settings.services).toEqual([
@@ -761,7 +805,8 @@ describe('endpoint-mode services', () => {
     });
     expect(repository.updateSettings).toHaveBeenCalledWith(ORG, 'coatings', {
       endpoints: { match: 'https://cloud.example/match' },
-      authToken: 'new-key'
+      authToken: 'new-key',
+      surfaceOrigin: null
     });
     expect(saved.services[0].endpoint).toBe('https://executor.example/match');
 
@@ -966,6 +1011,38 @@ describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
         auth: AUTH
       });
       expect(Buffer.compare(module.body, bytes)).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('serves modules through a surface-origin-only install (no service endpoints)', async () => {
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings'
+        ? {
+          ...moduleInstall,
+          endpoints: {},
+          surfaceOrigin: 'http://surface-executor:8791',
+          declarations: {
+            ...moduleInstall.declarations,
+            surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }]
+          }
+        }
+        : null
+    ));
+    const fetchMock = vi.fn(async () => new Response('export default null;', {
+      status: 200, headers: { 'content-type': 'application/javascript' }
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const module = await fetchSurfaceModule({
+        organizationId: ORG,
+        pluginId: 'coatings',
+        modulePath: '/surfaces/designer.mjs',
+        auth: AUTH
+      });
+      expect(module.body.toString()).toBe('export default null;');
+      expect(fetchMock).toHaveBeenCalledWith('http://surface-executor:8791/surfaces/designer.mjs', expect.anything());
     } finally {
       vi.unstubAllGlobals();
     }

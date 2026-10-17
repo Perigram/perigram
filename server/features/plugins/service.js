@@ -110,7 +110,7 @@ export async function install({ organizationId, pluginId, auth = {} }) {
 // seam so every install write passes the same gates. `endpoints`
 // pre-wires connection settings for endpoint-mode services under the
 // same validation the settings save applies.
-export async function installFromCatalog({ organizationId, pluginId, endpoints = {} }) {
+export async function installFromCatalog({ organizationId, pluginId, endpoints = {}, surfaceOrigin = null }) {
   const listing = await repository.findCatalogByPluginId(pluginId);
   if (!listing) throw createError({ statusCode: 404, message: 'Plugin not found' });
   if (await repository.findInstall(organizationId, pluginId)) {
@@ -196,6 +196,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
   }
 
   const configuredEndpoints = configuredEndpointsFor(services, endpoints);
+  const configuredSurfaceOrigin = configuredSurfaceOriginFor(surfaces, surfaceOrigin);
   await repository.createInstall({
     organizationId: String(organizationId),
     pluginId: String(listing.pluginId),
@@ -205,6 +206,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
     services,
     requires,
     endpoints: configuredEndpoints,
+    ...(configuredSurfaceOrigin ? { surfaceOrigin: configuredSurfaceOrigin } : {}),
     connectorToken: mintConnectorToken()
   });
   invalidateInstanceDeclarations(String(organizationId));
@@ -425,6 +427,8 @@ export async function settingsFor({ organizationId, pluginId, auth = {} }) {
   return {
     pluginId: install.pluginId,
     authToken: install.authToken || null,
+    surfaceOrigin: install.surfaceOrigin || null,
+    surfaces: (install.declarations?.surfaces || []).length > 0,
     services: (install.services || []).map(service => ({
       id: service.id,
       label: serviceSummary(service).label,
@@ -458,15 +462,34 @@ function configuredEndpointsFor(services = [], endpoints = {}) {
   return configured;
 }
 
-export async function updateSettings({ organizationId, pluginId, endpoints = {}, authToken = null, auth = {} }) {
+// The surface origin (owner decision 2026-10-17): executors with
+// surfaces but no endpoint services still need a reachable origin for
+// the module proxy. Only a plugin that declares surfaces may carry one.
+function configuredSurfaceOriginFor(surfaces = [], surfaceOrigin = null) {
+  if (!surfaceOrigin) return null;
+  if (!surfaces?.length) {
+    throw createError({ statusCode: 400, message: 'The plugin declares no surface modules — a surface origin does not apply' });
+  }
+  const parsed = String(surfaceOrigin);
+  if (!/^https?:\/\//.test(parsed)) {
+    throw createError({ statusCode: 400, message: 'The surface origin must be an http(s) URL' });
+  }
+  return parsed;
+}
+
+export async function updateSettings({ organizationId, pluginId, endpoints = {}, authToken = null, surfaceOrigin = undefined, auth = {} }) {
   assertSameOrganization(organizationId, auth);
   assertOrganizationPermission(auth, 'admin');
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin is not installed' });
   const configured = configuredEndpointsFor(install.services, endpoints);
+  const configuredSurfaceOrigin = surfaceOrigin === undefined
+    ? (install.surfaceOrigin || null)
+    : configuredSurfaceOriginFor(install.declarations?.surfaces || [], surfaceOrigin);
   await repository.updateSettings(organizationId, pluginId, {
     endpoints: configured,
-    authToken: authToken ? String(authToken) : null
+    authToken: authToken ? String(authToken) : null,
+    surfaceOrigin: configuredSurfaceOrigin
   });
   return settingsFor({ organizationId, pluginId, auth });
 }

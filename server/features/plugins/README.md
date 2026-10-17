@@ -75,7 +75,9 @@ executors through the worker protocol.
   the default — the executor polls the worker protocol). Installs snapshot
   them beside the types and mint a `connectorToken`; the Connection settings
   (`GET`/`POST .../plugins/:pluginId/settings`) store per-service
-  `endpoints` and the executor API key. Installed services compose into the
+  `endpoints`, the executor API key, and — for plugins that declare
+  surfaces but no endpoint services — the `surfaceOrigin` the module
+  proxy loads modules from (owner decision 2026-10-17). Installed services compose into the
   projected domain's service list (`packServicesForOrganization` — the one
   list the designer, compiler, and admin domain route resolve), as species
   records whose id and command are the same plugin-qualified id
@@ -224,8 +226,8 @@ executors through the worker protocol.
 | `DELETE /api/organizations/:id/plugins/packs/:packId` | `organizations:admin` | Disable a mounted pack (drain-gated, dependents-gated, trial-compose-gated). |
 | `GET /api/organizations/:id/plugins/:pluginId/connector` | `organizations:admin` | Connector panel data: token, claim queue, worker endpoints. |
 | `POST /api/organizations/:id/plugins/:pluginId/connector/regenerate` | `organizations:admin` | Rotate the connector token. |
-| `GET /api/organizations/:id/plugins/:pluginId/settings` | `organizations:admin` | Connection settings: per-service modes and endpoints, API key. |
-| `POST /api/organizations/:id/plugins/:pluginId/settings` | `organizations:admin` | Save connection settings (endpoints for endpoint-mode services, API key). |
+| `GET /api/organizations/:id/plugins/:pluginId/settings` | `organizations:admin` | Connection settings: per-service modes and endpoints, API key, surface origin. |
+| `POST /api/organizations/:id/plugins/:pluginId/settings` | `organizations:admin` | Save connection settings (endpoints for endpoint-mode services, API key, surface origin for surface-bearing plugins). |
 
 The organization UI is the Plugins section in org settings
 ([pages/organization](../../../pages/organization/README.md)): installed

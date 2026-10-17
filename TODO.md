@@ -70,6 +70,15 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
   facade's three.js/MLightCAD re-vendor onto declared dependencies —
   deferred until the dev stack can render-verify the folded preview and
   sketch surfaces after the swap.
+- J landed (2026-10-17, third session): surface contract 3 (the
+  capability mount — `sync.onRecordChanged` over the host's
+  instance-change bridge with own-publication skip, `upload.file`
+  through the host file channel; stub context carries the contract-3
+  superset) and the `surfaceOrigin` connection field end to end
+  (`endpointOriginOf` fallback, install pre-wire, settings seam + CLI
+  `--surface-origin`, Plugins page field, surface-less plugins refuse
+  it). D, E, and G are unblocked; coordinating with the in-flight
+  milkdown collab work stays an owner sequencing call.
 - Seeder: `server/scripts/seed-plugin-catalog.js` (validated, marked
   `builtin`, retract-refused); `installDefaultPlugins` logs the seed
   runbook instead of skipping silently.

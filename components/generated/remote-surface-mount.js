@@ -20,6 +20,7 @@ import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { resolveTypeFeature } from '#shared/field-access-policies.js';
+import { onInstanceChanged } from '#utils/instance-events.js';
 import { instancePayloadPersistence, instancePayloadFileUrl, runBlankFileConstruct } from './file-surfaces.js';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
@@ -57,7 +58,8 @@ function surfaceComponentPack() {
 const SURFACE_VUE = Object.freeze({ h, ref, shallowRef, computed, reactive, watch, onMounted, onBeforeUnmount, nextTick, defineComponent });
 
 // Contract 1 mounts the base context; contract 2 (the editor-grade
-// mount) adds queries, notify, and access beside it.
+// mount) adds queries, notify, and access beside it; contract 3 (the
+// capability mount, owner decision 2026-10-17) adds sync and upload.
 export function surfaceHostContext({ t, te, locale }, surfaceContract = 1, io = {}) {
   const base = Object.freeze({
     vue: SURFACE_VUE,
@@ -65,12 +67,18 @@ export function surfaceHostContext({ t, te, locale }, surfaceContract = 1, io = 
     locale: Object.freeze({ t, te, locale: () => locale.value })
   });
   if (Number(surfaceContract) < 2) return base;
-  return Object.freeze({
+  const editorGrade = Object.freeze({
     ...base,
     queries: io.queries || null,
     records: io.records || null,
     notify: io.notify || (() => {}),
     access: io.access || { canWrite: () => false }
+  });
+  if (Number(surfaceContract) < 3) return editorGrade;
+  return Object.freeze({
+    ...editorGrade,
+    sync: io.sync || null,
+    upload: io.upload || null
   });
 }
 
@@ -122,6 +130,45 @@ export function editorSurfaceAccess(typeId) {
       entity: record,
       typeId
     })
+  });
+}
+
+// Record-change reconciliation (contract 3, owner decision 2026-10-17):
+// the same instance-change bridge the in-app editors ride (SPEC UI
+// client sync), scoped to the mounted record. Remote saves and renames
+// arrive as callbacks — a clean editor reloads, a dirty one raises its
+// refresh affordance. The surface's own publications are skipped
+// host-side (the persistence origin token): a surface never sees its own
+// echoes.
+export function editorSurfaceSync(typeId, recordGetter = () => null) {
+  const ownOriginOf = id => `persistence:${typeId}:${id}`;
+  return Object.freeze({
+    onRecordChanged: callback => onInstanceChanged(detail => {
+      const record = recordGetter();
+      const id = String(record?._id || record?.id || '');
+      if (!id || String(detail.id || '') !== id) return;
+      const type = String(detail.type || '').replace(/_/g, '-');
+      if (type && type !== String(typeId).replace(/_/g, '-')) return;
+      if (detail.origin && detail.origin === ownOriginOf(id)) return;
+      callback(detail);
+    })
+  });
+}
+
+// Asset upload through the host file channel (contract 3): the surface
+// hands the host a Blob (or File), the host stores it with the actor's
+// tenancy metadata and returns the stored ref — the module never touches
+// the API. Documents belong to `persistence.saveDocument`; this channel
+// is for assets the document references.
+export function editorSurfaceUpload() {
+  return Object.freeze({
+    file: async (input, { fileName } = {}) => {
+      const name = String(fileName || input?.name || 'asset');
+      const blob = input instanceof Blob ? input : new Blob([input]);
+      const form = new FormData();
+      form.append('file', input instanceof File ? input : new File([blob], name), name);
+      return await $fetch('/api/files/upload', { method: 'POST', body: form });
+    }
   });
 }
 
