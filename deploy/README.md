@@ -126,21 +126,22 @@ cluster-internal feature.
 
 ## Plugin marketplace release steps
 
-The CI deploys only the app container. A plugin release beside it is
-manual (until an executor stage joins the workflow): redeploy the
-executor container (dev compose runs `facade-executor` from the repo
-mount on 8790; staging needs an equivalent host), then seed the
-built-in listings from a repo checkout the runner can reach:
+The CI deploys the whole plugin plane beside the app: the nesting
+worker, the three plugin executors (each a `workers/plugin-executor.Dockerfile`
+image — the plugin's own dependency install beside the zero-dep SDK),
+the catalog seed, and the idempotent per-org builtin installs
+(facade/tech-drawing/documents) run on every push to `staging`, and the
+app carries the executor URLs (`FACADE/DOCUMENTS/TECH_DRAWING_EXECUTOR_URL`
+on 127.0.0.1:879x). Listing version bumps ride the same push: installed
+organizations see the upgrade in the Plugins page.
 
 ```bash
 NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true \
   node server/scripts/seed-plugin-catalog.js
 ```
 
-Installed organizations then upgrade from the Plugins page (the §11 diff
-preview). Wiring the executor deploy + seed into
-`.forgejo/workflows/deploy.yml` (staging branch — pipeline edits live
-there) follows the app stage's build-before-remove pattern.
+The dev stack keeps its compose services (`docker-compose.dev.yml`) —
+same executors, repo-mounted instead of imaged.
 
 ## Development Stack
 

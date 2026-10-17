@@ -1,0 +1,8 @@
+{
+  "name": "@perigram/documents-executor",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}
