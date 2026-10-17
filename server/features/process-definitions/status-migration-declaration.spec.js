@@ -30,7 +30,6 @@ vi.mock('./repository.js', () => ({
     create: vi.fn(),
     updateById: vi.fn(),
     removeById: vi.fn(),
-    getConnection: vi.fn()
 }));
 vi.mock('~/server/runtime/app-registry.js', async (importOriginal) => ({
     ...(await importOriginal()),

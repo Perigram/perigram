@@ -268,12 +268,12 @@ async function notifyProcessTaskOutcome({ taskRunId, status, output = null, erro
   try {
     const processService = await import('../../features/process-definitions/service.js');
     if (status === 'SUCCEEDED') {
-      await processService.ingestTaskCompletion({ taskRunId, taskResult: output || {} });
+      await processService.continueActionFromTask({ taskRunId, taskResult: output || {} });
     } else {
-      await processService.failTaskInvocation({ taskRunId, error, cancelled: status === 'CANCELLED' });
+      await processService.failActionFromTask({ taskRunId, error, cancelled: status === 'CANCELLED' });
     }
   } catch (error) {
-    console.error(`[Task ${taskRunId}] Process ingestion failed:`, error.message);
+    console.error(`[Task ${taskRunId}] Process action continuation failed:`, error.message);
   }
 }
 
