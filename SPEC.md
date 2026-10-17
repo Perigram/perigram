@@ -142,7 +142,8 @@ as plain chat bubbles; the run chronology renders one small PrimeVue
 Message per tool invocation — localized tool name with a compact detail
 of what the call addressed, severity-marked by outcome, a failed tool
 carrying its error in the same message; the thinking disclosure is the
-PrimeVue Fieldset (compact toggle button). The AI's identity face is the sparkles glyph in the
+PrimeVue Fieldset (compact toggle button). The AI's identity face is the microchip
+glyph in the
 brand accent (carmine) wherever the assistant shows — thread avatars,
 sender chips, pickers — and it is the only AI marker on chat surfaces:
 no text badges. Instance refs attach to chat messages like files do —
@@ -407,7 +408,10 @@ leads the run and the timestamp trails it under the last message only;
 consecutive messages sit close together. Group chats and instance chats
 (the organization chat included) show the sender on others' messages as
 avatar plus display name (resolved names, never
-ids, never the identifier/email). Forwarded messages carry a distinct
+ids, never the identifier/email). The assistant's own chat (the AI 1:1
+thread) leads the assistant's runs with the same sender chip — the AI
+face plus name; the viewer's own messages never carry a stamp, and human
+1:1 chats never do (owner direction 2026-10-17). Forwarded messages carry a distinct
 forwarded-from header above
 their content, on every message shape — text, media, or files.
 

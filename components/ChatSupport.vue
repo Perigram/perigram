@@ -4162,11 +4162,12 @@ const isOwnMessage = (chatMessage) => {
 // Group and instance threads lead others' sender runs with the sender's
 // avatar and name (the shared user chip): group members and org-mates in
 // instance chats (the organization chat included) are multi-sender
-// threads — once per run, never for the viewer's own messages.
-// Sender stamps are group/instance chrome; AI threads are 1:1 chats and
-// never carry them.
-const showSenderLabel = (messageItem) => ['group', 'instance'].includes(activeConversation.value?.conversationKind)
-    && !isAiOnlyRoom.value
+// threads — once per run, never for the viewer's own messages. AI-only
+// rooms are two-party (viewer + assistant), so the same chip leads the
+// assistant's runs there — every non-own message is the assistant's.
+// Human 1:1 chats never carry stamps.
+const showSenderLabel = (messageItem) => ((['group', 'instance'].includes(activeConversation.value?.conversationKind)
+    && !isAiOnlyRoom.value) || isAiOnlyRoom.value)
     && Boolean(messageItem?.senderUserId)
     && !isOwnMessage(messageItem)
     && messageItem.firstOfSenderRun
