@@ -166,6 +166,20 @@ authoring happens only inside a cassette design session.
   unchanged otherwise) so pins can move again through the product
   path. Owner step: one more Upgrade click (v10→v11).
 
+### Agent Notes (2026-10-17 — designer UX round 2, owner defect report)
+
+- Attachment rows restructured to two lines: the target workpiece and
+  badges on the first line, the bound face on the second — the old
+  single line truncated all four elements into noise. Status warnings
+  are icon badges now (refused → ban, impossible → times-circle,
+  unresolved → question-circle; `--ck-status-*` colors) with the
+  localized status and embedding-refusal detail in the tooltip; the
+  Driver tag became a compass icon badge.
+- The 3D expand button moved INTO the folded preview's own header
+  controls (new `expandable` prop + `expand` emit) — the previous
+  absolute overlay sat exactly over the header's reset/isolation
+  buttons and was effectively invisible.
+
 ### Agent Notes (2026-10-17 — designer UX round, owner directions)
 
 - Cassette load: the dock's open popover lists cassettes as thumbnail
