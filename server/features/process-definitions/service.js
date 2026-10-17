@@ -24,7 +24,9 @@ import {
   resumeProcessRun,
   serializeProcessResult,
   validateRoundTrip,
-  authoredSocketDefault
+  authoredSocketDefault,
+  isDataTree,
+  packetValue
 } from '~/packages/processes/src/index.js';
 import { createDefinitionAuthoring, graphIntegrityProblems } from '~/packages/processes/src/authoring.js';
 import {
@@ -2063,6 +2065,16 @@ function normalizeFieldSocketInputs(inputs = {}, schemas = []) {
     return mapped || inputs;
 }
 
+// Effect inputs arrive as data packets (the orchestration's one wire
+// shape); a stored patch speaks scalars. Unwrap once, here — a packet
+// that reached the patch intact was silently rejected by the instance
+// write while the save still bumped updatedAt (owner defect 2026-10-17:
+// "it can't even change a single boolean value").
+function unwrapEffectInput(value, field = {}) {
+    if (!isDataTree(value)) return value;
+    return packetValue(value, field.type?.base === 'array' ? 'list' : 'item');
+}
+
 function processBlockInputChanges(record = {}, inputs = {}, schemas = null) {  const fieldSchemas = schemas || getEntityFieldSchemas(record.typeId);
   const changes = [];
   // v5 leaf field inputs arrive keyed by their full schema path (the
@@ -2075,7 +2087,7 @@ function processBlockInputChanges(record = {}, inputs = {}, schemas = null) {  c
     changes.push({
       path: field.path,
       operation: 'set',
-      value: normalizeBlockFieldValue(field, inputs[field.path])
+      value: normalizeBlockFieldValue(field, unwrapEffectInput(inputs[field.path], field))
     });
   }
   for (const block of record.blocks || []) {
@@ -2089,7 +2101,7 @@ function processBlockInputChanges(record = {}, inputs = {}, schemas = null) {  c
         changes.push({
           path: field.path,
           operation: 'set',
-          value: normalizeBlockFieldValue(field, fieldValue)
+          value: normalizeBlockFieldValue(field, unwrapEffectInput(fieldValue, field))
         });
       }
     }
