@@ -1,4 +1,4 @@
-import { defineEventHandler, getRouterParam } from 'h3';
+import { defineEventHandler, getRouterParam, getQuery } from 'h3';
 import { requireAuth } from '../../../../utils/permissions.js';
 import * as pluginsService from '../../../../features/plugins/service.js';
 
@@ -7,6 +7,7 @@ export default defineEventHandler((event) => {
   return pluginsService.uninstall({
     organizationId: getRouterParam(event, 'id'),
     pluginId: getRouterParam(event, 'pluginId'),
+    cascade: getQuery(event).cascade === '1',
     auth
   });
 });

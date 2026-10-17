@@ -308,6 +308,15 @@ stores declarations, never code (SPEC: Plugin marketplace, owner decision
   `--surface-origin`, Plugins page field, surface-less plugins refuse
   it). D, E, and G are unblocked; coordinating with the in-flight
   milkdown collab work stays an owner sequencing call.
+- Owner direction (2026-10-17, evening), landed same session: no default
+  installs — `organizations/default-plugins.js` deleted, new orgs start
+  empty and install explicitly; the facade listing's vestigial
+  `documents` requirement dropped (audit: its surfaces reference only
+  tech-drawing types — pen-template, layer-standard), v13; uninstall is
+  a clear deletion — `GET .../plugins/:pluginId/uninstall-preview`
+  (dependants + blocking data for the confirm dialog) and
+  `DELETE ...?cascade=1` removes dependants together, all-or-nothing
+  under the drain law.
 - G landed (2026-10-17, sixth session): the pack machinery deleted whole —
   `server/packs/` (composition seams + the restored documents mount
   leftovers), `packages/documents`, the packs/state API routes, the

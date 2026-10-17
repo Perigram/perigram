@@ -28,9 +28,9 @@ nothing here imports platform code.
 ## Publish, install, migrate
 
 - Deploy + seed: `node server/scripts/seed-plugin-catalog.js` publishes
-  the built-in listing; new organizations install it by default
-  (`organizations/default-plugins.js`, before the facade — the facade's
-  `requires` names this plugin).
+  the built-in listing; organizations install explicitly from the
+  Plugins section (no default installs, owner direction 2026-10-17) —
+  install this before the facade, whose `requires` names it.
 - Existing orgs: `server/scripts/migrate-tech-drawing-pack-to-plugin.js`
   installs the listing per organization (type ids unchanged, so
   instances, the color system catalogue, and process bindings resolve

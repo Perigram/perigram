@@ -1,6 +1,5 @@
 import * as repository from './repository.js';
 import { connectDB } from '~/server/db/mongo';
-import { installDefaultPlugins } from './default-plugins.js';
 import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { createError } from 'h3';
 import { hasPermission, resolveAuthPermissions } from '../../utils/auth-helpers.js';
@@ -49,9 +48,6 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     organizationId: createdRaw._id,
     actorId: userId
   });
-  await installDefaultPlugins(await connectDB(), String(createdRaw._id)).catch(error => {
-    console.warn('[organizations] default plugin install failed:', error?.message || error);
-  });
 
   const membership = ownerMembership({
     organizationId: createdRaw._id,
@@ -86,9 +82,6 @@ export async function createInitialForUser(userId, data = {}) {
   await processDefinitionsService.createActiveEmptyProcess({
     organizationId: createdRaw._id,
     actorId: userId
-  });
-  await installDefaultPlugins(await connectDB(), String(createdRaw._id)).catch(error => {
-    console.warn('[organizations] default plugin install failed:', error?.message || error);
   });
 
   await repository.addUserMembership(userId, ownerMembership({

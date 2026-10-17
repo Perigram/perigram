@@ -46,9 +46,11 @@ nothing here imports platform code.
 
 ## Publish, install, migrate
 
-- Deploy + seed: `node server/scripts/seed-plugin-catalog.js`; new
-  organizations install by default (`organizations/default-plugins.js`,
-  endpoints pre-wired from `DOCUMENTS_EXECUTOR_URL`).
+- Deploy + seed: `node server/scripts/seed-plugin-catalog.js`;
+  organizations install explicitly from the Plugins section (no default
+  installs, owner direction 2026-10-17); default installs' endpoint
+  pre-wiring from `DOCUMENTS_EXECUTOR_URL` applied to the one-time
+  org migrations.
 - Existing orgs: `server/scripts/migrate-documents-pack-to-plugin.js`
   installs the listing per organization and rewrites stored process
   definitions' `documents.csvText` service nodes to

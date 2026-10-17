@@ -455,23 +455,37 @@ async function saveSettings() {
   }
 }
 
-function uninstall(item) {
+async function uninstall(item) {
+  // The confirm rides the uninstall preview: dependants join the removal
+  // (cascade), live data is named before the server refuses it.
+  let preview = { dependants: [], blocked: [] };
+  try {
+    preview = await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(item.pluginId)}/uninstall-preview`);
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error.message, life: 5000 });
+    return;
+  }
+  const parts = [t('plugins.uninstallConfirm')];
+  if (preview.dependants?.length) {
+    parts.push(t('plugins.uninstallAlso', { list: preview.dependants.map(entry => entry.name).join(', ') }));
+  }
+  if (preview.blocked?.length) {
+    parts.push(t('plugins.uninstallBlocked', { detail: preview.blocked.map(entry => `${entry.typeId} (${entry.instances})`).join(', ') }));
+  }
   confirm.require({
-    message: t('plugins.uninstallConfirm'),
+    message: parts.join('\n\n'),
     header: t('common.confirmation'),
     icon: 'pi pi-exclamation-triangle',
-    accept: () => removeInstalled(item)
+    accept: () => removeInstalled(item, Boolean(preview.dependants?.length))
   });
 }
 
-async function removeInstalled(item) {
+async function removeInstalled(item, cascade = false) {
   workingPluginId.value = item.pluginId;
   try {
-    {
-      await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(item.pluginId)}`, {
-        method: 'DELETE'
-      });
-    }
+    await $fetch(`/api/organizations/${activeOrganizationId.value}/plugins/${encodeURIComponent(item.pluginId)}${cascade ? '?cascade=1' : ''}`, {
+      method: 'DELETE'
+    });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('plugins.uninstalledToast'), life: 3000 });
     await load();
   } catch (error) {

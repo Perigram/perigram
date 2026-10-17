@@ -3412,7 +3412,9 @@
         "surfaceOriginPlaceholder": "https://executor.example",
         "apiKey": "API-ключ",
         "apiKeyPlaceholder": "Ключ для executor'а издателя (Bearer)",
-        "savedToast": "Подключение сохранено"
+        "savedToast": "Подключение сохранено",
+        "uninstallAlso": "Также будут удалены: {list}",
+        "uninstallBlocked": "Удаление заблокировано живыми данными — сначала удалите или перенесите: {detail}"
     },
     "llm": {
         "provider": "ИИ-провайдер",

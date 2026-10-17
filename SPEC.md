@@ -848,6 +848,15 @@ schema, both executor harnesses, and the perigram-plugin CLI — and publishes
 through the operator publish API. An MCP server over the SDK is optional
 later; the SDK and the API are the contract.
 
+Owner direction (2026-10-17, evening): no default installs. New
+organizations start with zero plugins — installation is an explicit act
+from the Plugins section, and the deployment's built-in listings seed
+the catalog for exactly that. Uninstall is a clear deletion: the confirm
+dialog previews what stops working (installed dependants whose requires
+chain names the target) and removes them together on consent
+(`?cascade=1`); live data still blocks under the drain law, named in the
+same preview before the server refuses it.
+
 Owner decision (2026-10-17): one plugin space. Everything installable is a
 marketplace listing under one contract — the remaining mounted packs
 (documents, tech-drawing) migrate to plugins and the pack mount retires
