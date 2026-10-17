@@ -1213,15 +1213,16 @@ dynamic-breadcrumbs pattern: ONE strip whose drilled lineage leads as
 icon-only pills (no text; tapping one makes that level the trail's end
 and shows its children), an angle
 marks the descent, and the children of the current level follow as chips.
-Children derive from the app's ONE instance tree, the same seam the home
-sidebar and the attachment picker browse — the org root lists the home
-screen's section sources, a drilled instance lists its lineage children
-through the shared containment seam (`linkedExplorerChildSources` +
-`useEffectiveContainment`); stored message paths are never a child
-source (they leaked members and dead-definition types into the
-drill-down); picking a child ALWAYS drills — the chip becomes the trail's
-last pill, its siblings drop, and its children become the new level (a
-leaf simply shows no further chips), and the next message lands there.
+The strip walks the app's ONE instance tree by levels: the org root lists
+the home screen's NON-EMPTY section types (one pill per type that has
+instances), a type level lists that type's instances, and an instance
+lists its lineage children through the shared containment seam
+(`linkedExplorerChildSources` + `useEffectiveContainment`) — stored
+message paths are never a child source. Drilling ALWAYS descends (the
+chip becomes the trail's last pill, its siblings drop, a leaf shows no
+further chips) and the next message lands on the picked instance;
+browsing TYPES never moves the target — the last picked instance (or the
+org itself) stays it.
 The composed entity itself is the target
 whenever no child is drilled, and exactly one target is always visibly
 selected — the root pill or the deepest trail pill; unnamed chips carry
