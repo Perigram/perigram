@@ -827,10 +827,14 @@ under its workpiece. No workpiece is ever hidden by nesting.
 Owner decision (2026-10-17, attachment authoring): the add-attachment
 control opens a workpiece→face picker — the target workpiece and the
 binding face are chosen explicitly, no click-armed connect mode.
-Attachment settings are per source kind: profiles carry placement,
-array, and mirror controls (no face side, no joint semantics); hardware
-carries face-side placement with snap or array (no mirror, no joint);
-workpiece attachments carry the full face-to-face joint placement.
+Attachment settings are per source kind, with no delete in the editor
+(the panel relation row owns removal): profiles attach on the
+edge-array pattern by default and carry placement, array, and mirror
+controls (no face side); hardware carries face-side placement with
+snap or array (no mirror) and may bind edges a profile already
+occupies; workpiece attachments edit symmetric host and self sections
+— face, side, basis snap, and both offsets per section — with no
+mirror, driver, or joint type.
 Snap points and array bindings are computed from the raw authored
 face, never from the profile-merged boundary.
 

@@ -287,22 +287,27 @@ modules — no platform imports.
   — both profile passes skip it and the designer drawing surfaces the
   refusal through `profileEmbeddingErrors` — and the attachment popup's
   edge chooser lists only `cassetteV2AttachableProfileEdgesForTree`'s
-  arrangeable edges (the trapezoid's four authored edges less folds and
-  the edges consumed by other profiles — the asking relation's own edge
-  stays listed), snapping a stale illegal default to the first
-  arrangeable edge on the write path. Attachment authoring is per-kind
-  and picker-driven (owner law 2026-10-17): the add-attachment control
-  opens a workpiece→face picker — the target workpiece and binding face
-  are chosen explicitly, never a click-armed connect mode — and the
-  attachment settings carry each source kind's own field set: profiles
-  place and array with mirror controls (no face side, no joint
-  semantics), hardware places on a face side with snap or array (no
-  mirror, no joint), workpiece attachments carry the full face-to-face
-  joint placement (source face, snap pair, side, joint type, driver).
-  Snap points and array bindings compute from the RAW authored face
-  (`originalBoundaryVertices`/`referenceVertices` before any profile
-  cut merges into the boundary) — placement anchors never drift with
-  cut geometry.
+  arrangeable edges (the trapezoid's four authored edges less folds
+  and, for profile askers, the edges consumed by other profiles — the
+  asking relation's own edge stays listed; hardware arrays may bind an
+  edge a profile already occupies, owner law 2026-10-17), snapping a
+  stale illegal default to the first arrangeable edge on the write
+  path. Attachment authoring is per-kind and picker-driven (owner law
+  2026-10-17): the add-attachment control opens a workpiece→face
+  picker — the target workpiece and binding face are chosen
+  explicitly, never a click-armed connect mode — and the attachment
+  settings carry each source kind's own field set with no delete (the
+  panel relation row owns removal): profiles attach on the edge-array
+  pattern by default and edit placement, array, and mirror controls
+  (no face side); hardware places on a face side with snap or array
+  (no mirror); workpiece attachments edit symmetric HOST and SELF
+  sections — face, side, basis snap, and both offsets each, stored as
+  `target*`/`source*` pairs with `source.side` and
+  `placement.sourceOrigin` — with no mirror, driver, or joint type in
+  the editor. Snap points and array bindings compute from the RAW
+  authored face (`originalBoundaryVertices`/`referenceVertices` before
+  any profile cut merges into the boundary) — placement anchors never
+  drift with cut geometry.
 - `drawing.js` converts resolved OCCS face curves into the shared
   `DrawingCanvas` `{ viewBox, layers }` contract with explicit layer-standard
   codes, including generated dimension annotation layers and caller-provided
