@@ -229,6 +229,21 @@ authoring happens only inside a cassette design session.
   unchanged otherwise) so pins can move again through the product
   path. Owner step: one more Upgrade click (v10→v11).
 
+### Agent Notes (2026-10-17 — workpieces panel nesting, owner direction + agent judgment)
+
+- Single-attachment dependents (a workpiece that is the source of
+  exactly one relation — profiles cut into a face, single-host
+  hardware) now render ONLY nested under their host row: icon, name,
+  face › edge breadcrumb, status badge, and inline actions —
+  positioning popup, profile edit, delete (the attachment is the
+  dependent's placement, so delete removes the workpiece). Selecting a
+  nested row still opens its detail blocks (profile parameter chips,
+  hardware family/mode selects) in place. The old model double-rendered
+  dependents (own top-level row + inbound relation row under the host).
+- The rule is data-driven (exactly one outgoing relation, not the root
+  workpiece) — no type special-casing; multi-attached workpieces keep
+  their top-level row with the ×N tag and plain relation rows.
+
 ### Agent Notes (2026-10-17 — designer UX round 4, owner defect report)
 
 - Breadcrumb redundancy fixed: `face face1 › edge E3` → `face1 › E3`
