@@ -3376,6 +3376,8 @@
         "settings": "Connection",
         "workerHeader": "header: x-worker-token",
         "endpointPlaceholder": "https://example.org/service",
+        "surfaceOrigin": "Surface origin",
+        "surfaceOriginPlaceholder": "https://executor.example",
         "apiKey": "API key",
         "apiKeyPlaceholder": "Bearer key for the publisher's executor",
         "savedToast": "Connection saved"

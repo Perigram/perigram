@@ -131,10 +131,15 @@ const commands = {
     const pluginId = requireArg(args, 'pluginId');
     const key = flag(args, '--key');
     const sets = flagSets(args, '--set');
-    if (sets.length || key !== null) {
+    const surfaceOrigin = flag(args, '--surface-origin');
+    if (sets.length || key !== null || surfaceOrigin !== null) {
       const endpoints = {};
       for (const [serviceId, url] of sets) endpoints[serviceId] = url;
-      const saved = await client.saveSettings(pluginId, { endpoints, authToken: key });
+      const saved = await client.saveSettings(pluginId, {
+        endpoints,
+        authToken: key,
+        ...(surfaceOrigin !== null ? { surfaceOrigin } : {})
+      });
       process.stdout.write(formatJson(saved));
     } else {
       process.stdout.write(formatJson(await client.settings(pluginId)));

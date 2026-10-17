@@ -3376,6 +3376,8 @@
         "settings": "Подключение",
         "workerHeader": "заголовок: x-worker-token",
         "endpointPlaceholder": "https://example.org/service",
+        "surfaceOrigin": "Источник поверхностей",
+        "surfaceOriginPlaceholder": "https://executor.example",
         "apiKey": "API-ключ",
         "apiKeyPlaceholder": "Ключ для executor'а издателя (Bearer)",
         "savedToast": "Подключение сохранено"

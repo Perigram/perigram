@@ -260,6 +260,16 @@
             :data-testid="`plugin-endpoint-${field.id}`"
           />
         </div>
+        <div v-if="settings.surfaces" class="flex flex-col gap-2">
+          <div class="text-muted text-label">{{ $t('plugins.surfaceOrigin') }}</div>
+          <InputText
+            v-model="settings.surfaceOrigin"
+            type="text"
+            class="w-full text-technical"
+            :placeholder="$t('plugins.surfaceOriginPlaceholder')"
+            data-testid="plugin-surface-origin"
+          />
+        </div>
         <div class="flex flex-col gap-2">
           <div class="text-muted text-label">{{ $t('plugins.apiKey') }}</div>
           <InputText
@@ -432,6 +442,8 @@ async function openSettings(item) {
     settings.value = {
       pluginId: response.pluginId,
       authToken: response.authToken || '',
+      surfaceOrigin: response.surfaceOrigin || '',
+      surfaces: response.surfaces || false,
       endpoints: Object.fromEntries(
         (response.services || []).filter(service => service.mode === 'endpoint')
           .map(service => [service.id, service.endpoint || ''])
@@ -452,7 +464,8 @@ async function saveSettings() {
       method: 'POST',
       body: {
         endpoints: settings.value.endpoints,
-        authToken: settings.value.authToken || null
+        authToken: settings.value.authToken || null,
+        ...(settings.value.surfaces ? { surfaceOrigin: settings.value.surfaceOrigin || null } : {})
       }
     });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('plugins.savedToast'), life: 3000 });

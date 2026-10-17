@@ -132,11 +132,11 @@ export async function enablePack(organizationId, packId) {
 }
 
 // Connection settings: per-service endpoints and the executor API key.
-export async function updateSettings(organizationId, pluginId, { endpoints, authToken }) {
+export async function updateSettings(organizationId, pluginId, { endpoints, authToken, surfaceOrigin }) {
   const db = await connectDB();
   await db.collection(INSTALLS_COLLECTION).updateOne(
     { organizationId: String(organizationId), pluginId: String(pluginId) },
-    { $set: { endpoints, authToken } }
+    { $set: { endpoints, authToken, surfaceOrigin: surfaceOrigin || null } }
   );
 }
 

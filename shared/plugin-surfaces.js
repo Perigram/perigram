@@ -15,6 +15,15 @@
 //     transport, and the grown primitive pack (designer chrome beside
 //     the PrimeVue primitives). Author-facing shapes:
 //     docs/PLUGIN_AUTHORING.md §1a.
+// 3 — the capability mount (owner decision 2026-10-17): everything in 2
+//     plus `sync` and `upload`. `sync.onRecordChanged(callback)` delivers
+//     the host's instance-change bridge events for the mounted record —
+//     the same reconciliation channel the in-app editors ride (remote
+//     saves and renames reload or flag; the surface's own publications
+//     are skipped host-side) — and `upload.file(blob, { fileName })`
+//     stores an asset through the host's file channel, returning the
+//     stored file ref. Both are host-executed transports: the module
+//     calls, never fetches.
 //
 // Kinds (M7): a surface entry is an `editor` (the default — mounts over
 // `{ record, persistence }` inside the editor chrome) or a `preview`
@@ -25,18 +34,20 @@
 // The listing contract validates the kind and its bindings (SDK
 // `parseListing`); the platform serves resolved preview bindings on the
 // type view.
-export const SUPPORTED_SURFACE_CONTRACTS = [1, 2];
+export const SUPPORTED_SURFACE_CONTRACTS = [1, 2, 3];
 
 export function isSupportedSurfaceContract(version) {
   return SUPPORTED_SURFACE_CONTRACTS.includes(Number(version));
 }
 
 // Where a plugin's surface modules load from: the install's first
-// configured endpoint origin — the executor serves its UI beside its
-// services. Server-side consumers only: that origin addresses the
-// server's network (dev's docker-internal executor host is the canonical
-// example), which a browser can never reach, so the platform serves
-// modules same-origin through `pluginModuleUrl`'s app proxy route.
+// configured endpoint origin, or its configured `surfaceOrigin` (owner
+// decision 2026-10-17 — executors with surfaces but no services, like a
+// declarations-only plugin with an editor) — the executor serves its UI
+// beside its services. Server-side consumers only: that origin addresses
+// the server's network (dev's docker-internal executor host is the
+// canonical example), which a browser can never reach, so the platform
+// serves modules same-origin through `pluginModuleUrl`'s app proxy route.
 export function endpointOriginOf(install) {
   for (const url of Object.values(install?.endpoints || {})) {
     try {
@@ -45,14 +56,21 @@ export function endpointOriginOf(install) {
       continue;
     }
   }
+  if (install?.surfaceOrigin) {
+    try {
+      return new URL(String(install.surfaceOrigin)).origin;
+    } catch {
+      // fall through
+    }
+  }
   return null;
 }
 
 // The browser-facing module URL: the app's plugin-module proxy path
 // (`GET /api/plugins/:pluginId/module**` — the plugins feature streams it
-// from the endpoint origin server-side). `null` until an endpoint is
-// connected; the client loader renders the connect-the-executor state
-// then.
+// from the endpoint origin server-side). `null` until an endpoint or
+// surface origin is connected; the client loader renders the
+// connect-the-executor state then.
 export function pluginModuleUrl(install, modulePath) {
   return endpointOriginOf(install)
     ? `/api/plugins/${encodeURIComponent(install.pluginId)}/module${modulePath}`
