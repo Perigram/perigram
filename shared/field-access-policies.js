@@ -55,6 +55,10 @@ export const fieldAccessPolicies = {
       'data.email',
       'data.role',
       'data.avatarUrl',
+      // The AI attribution marker travels at read level: clients badge the
+      // assistant (sender chips, member stacks) from it — users README's
+      // marker contract ("DTOs carry the same bare shape").
+      'data.bot',
       'data.memberships.organizationId',
       'data.memberships.role',
       'data.memberships.roleIds',

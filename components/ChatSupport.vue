@@ -2025,8 +2025,8 @@ watch(groupParticipantIds, async (ids) => {
         return
     }
     groupParticipants.value = await Promise.all(ids.map(async (id) => {
-        // The seam's two legs: the §3 wire row (fields.avatarUrl,
-        // fields.bot) for org-mates, the directory card (data.avatarUrl)
+        // The seam's two legs: the users feature DTO (data.avatarUrl,
+        // data.bot) for org-mates, the directory card (data.avatarUrl)
         // for everyone else.
         const record = await instances.resolveReadableReference('user', String(id), { silent: true })
         return {

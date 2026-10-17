@@ -38,6 +38,19 @@ const user = {
   }
 };
 
+// The organization assistant's serialized shape (the users README marker
+// contract): the bare creation stamp is the whole marker.
+const assistant = {
+  _id: 'user-bot1',
+  identity: { uid: 'user-bot1', name: 'Assistant' },
+  lineage: { organizationId: 'org-1' },
+  data: {
+    email: 'user-bot1@bots.perigram.internal',
+    bot: { createdAt: '2026-10-17T00:00:00.000Z' },
+    memberships: [{ organizationId: 'org-1', role: 'role_viewer', roleIds: ['role_viewer'], status: 'active' }]
+  }
+};
+
 describe('entity field access', () => {
   it('denies fields without a registered entity policy', () => {
     expect(canDisplayEntityField({
@@ -166,5 +179,15 @@ describe('entity field access', () => {
     });
     expect(redacted.data.permissions).toBeUndefined();
     expect(redacted.data.memberships[0].permissions).toBeUndefined();
+  });
+
+  it('carries the assistant bot marker at user read level', () => {
+    const redacted = redactEntityForAccess(assistant, 'user', {
+      organizationId: 'org-1',
+      effectivePermissions: { users: 'read' }
+    });
+
+    expect(redacted.data.bot).toEqual({ createdAt: '2026-10-17T00:00:00.000Z' });
+    expect(redacted.data.permissions).toBeUndefined();
   });
 });

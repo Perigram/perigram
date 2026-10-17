@@ -32,11 +32,11 @@ import { useInstancesStore } from '~/stores/instances';
 // instance-ref face (type glyph plus identifier field — which renders the
 // users icon and the email for the served user type). Resolution rides the
 // instances store's readable-reference seam, whose two legs speak two
-// shapes: the §3 wire DTO for org-mates (`name`, `fields.bot`,
-// `fields.avatarUrl` — CTS SPEC §13 party projection) and the directory
-// card for everyone else (`identity.name`, `data.avatarUrl`). A left
-// click opens the shared entity popup (the user's directory profile),
-// the same surface the direct-thread title opens.
+// shapes: the users feature DTO for org-mates (`identity.name`,
+// `data.avatarUrl`, `data.bot` — the marker travels at read level) and the
+// directory card for everyone else (`identity.name`, `data.avatarUrl`).
+// A left click opens the shared entity popup (the user's directory
+// profile), the same surface the direct-thread title opens.
 // The avatar's letter label must be null whenever the image is set:
 // PrimeVue's Avatar renders label over image, so a constant label would
 // hide every avatar (the bug that made avatars look private to their own
