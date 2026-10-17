@@ -11,3 +11,13 @@
 <script setup>
 import Avatar from 'primevue/avatar';
 </script>
+
+<style scoped>
+/* Site font-size shrinks ride a fixed-size .p-avatar-icon box; flex
+   centers the glyph inside it. */
+.p-avatar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
