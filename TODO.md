@@ -36,6 +36,16 @@ stale applied field set winning — the silence is the slop.
   and `update_definition_graph` return `definitionDigest` of the saved
   row — same shape `get_process_definition` serves by default; the
   whole-document view stays available via `{full: true}` reads.
+- Port-wall resolution (same batch): the overlay never skips silently
+  anymore — `declarationOverlayDomain` reports built declarations
+  (field counts), registry-refused declarations (with the reason), and
+  field records whose typeId matches no class; an `Unknown port` step
+  error appends that report (`draft overlay: <type> skipped: <reason>` /
+  `… field record(s) matched no class typeId`). The live wall — a
+  stored declaration the registry stubbed, or mismatched field records
+  — now names itself in one error instead of twenty blind retries
+  (which the loop brake bounds anyway). Also removed a dead
+  empty-array loop in the overlay builder.
 
 ## Strip = lineage only; chip tokens were a no-op (owner defect batch 2, 2026-10-17)
 
