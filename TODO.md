@@ -206,6 +206,22 @@ glyph in the brand accent across chat surfaces (SPEC: agent access).
   fight alignment, markdown flow, and swipe affordances (owner left
   the call to the agent).
 
+### Agent Notes (2026-10-17 — hotfix: render-time crash + SSR fallback)
+
+- Owner defect report: every chat surface 500'd
+  (`renderMarkdown is not defined`) and the attachment picker's rows
+  went dead — one root cause: the text-only rewrite dropped the
+  `renderMarkdown` import while removing `useI18n`, and the render
+  crash took the picker's subtree with it. Import-only compile smokes
+  cannot see this class; `test-tools/chat-content.ssr-smoke.js` now
+  runtime-renders the chat content components (all message modes,
+  attached refs, chronology, chip branches) so a missing render-time
+  symbol fails CI.
+- The smoke immediately caught a second regression from the rewrite:
+  markdown mode returned no parts when the shared pipeline renders ''
+  without a DOM — SSR painted empty agent answers. The documented
+  fallback (plain text on SSR, formatting on hydration) is restored.
+
 ### Agent Notes (2026-10-17 — refs attach like files; chronology quieted)
 
 - Owner direction: chips embedded in message bubbles read badly,
