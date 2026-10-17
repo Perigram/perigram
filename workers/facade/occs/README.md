@@ -37,7 +37,10 @@ modules — no platform imports.
   It keeps hardware declarative with parameters, interfaces, preview metadata,
   hanger production modes (`sheetPart`, `integralCut`, `castSolid`), and
   edge-array expansion helpers instead of storing constructive solid operation
-  history. Integral-cut hanger clips resolve through curve boolean difference:
+  history. The plugin's `hardware` library type (listing) holds reusable
+  tuned presets (family, mode, parameters) authored from the designer's
+  hardware dialog — a parameter form over this catalog, never a canvas —
+  and placed hardware workpieces edit their parameters on the nested row. Integral-cut hanger clips resolve through curve boolean difference:
   the parent face becomes the resulting polygon. Fully internal cutouts remain
   on `cut.inner`; edge-breaking hanger operands are boolean-only and dispatch
   only through the modified `cut.outer` contour. Bolt/rivet/screw/spacer/standoff

@@ -229,6 +229,29 @@ authoring happens only inside a cassette design session.
   unchanged otherwise) so pins can move again through the product
   path. Owner step: one more Upgrade click (v10→v11).
 
+### Agent Notes (2026-10-17 — hardware library shipped; cassette previews were stale, not broken)
+
+- Cassette load previews: DB check shows every cassette predates the
+  save-time bake (newest 2026-10-16 16:17, bake landed 2026-10-17) —
+  `polygonParts: 0` across the board. Re-saving a cassette bakes its
+  thumbnail; nothing to fix in code.
+- Hardware gets the profile workflow (owner direction): listing v12
+  declares the `hardware` type (class item; name, family,
+  productionMode, parameters; `access.inherits: cassette`). The
+  add-hardware button opens a picker — library rows (bolt icon, name,
+  catalog label) + New hardware. The create flow is a parameter FORM
+  over the OCCS catalog (family Select → hanger mode Select → the
+  family's parameter table prefilled from `hardwareDefaultParameters`;
+  InputNumber chips), never a canvas: hardware has no authored
+  geometry. Save places the workpiece; Save to library writes the
+  record (records host capability; offline queue toasts like profiles).
+  Placed hardware rows now also edit parameters in place (the tree
+  update path already normalized hardware patches — only the UI was
+  missing).
+- Owner step: Plugins page → Upgrade (→v12; v10 orgs skipped the
+  stripped-access v11 — v12 carries the access facet through the fixed
+  defineType round-trip).
+
 ### Agent Notes (2026-10-17 — workpieces panel nesting, owner direction + agent judgment)
 
 - Single-attachment dependents (a workpiece that is the source of

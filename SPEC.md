@@ -703,6 +703,20 @@ surface in platform slots and as thumbnails in the designer's picker)
 beside a create-new entry that opens the blank dialog draft; picking an
 instance places it directly.
 
+Owner decision (2026-10-17, hardware library): hardware gets the
+profile library workflow — a plugin-declared `hardware` library type
+(class `item`, plain fields: name, family, productionMode, parameters;
+write access inherits the cassette grant like profiles). Hardware is a
+catalog domain, never a sketch: the create flow is a parameter form
+over the OCCS hardware catalog (`occs/hardware.js` owns the families,
+their default parameter tables, and the hanger production modes) —
+family, mode for hanger clips, and the family's parameters, prefilled
+from catalog defaults. Library records are authored only from the
+designer's hardware dialog; picking one places the workpiece directly
+(a snapshot copy of family, mode, and parameters). Placed hardware
+workpieces edit their parameters in place on the nested row, the same
+law as profile instance chips.
+
 Owner decision (2026-10-17, library access inherits the cassette grant):
 the profile library is completely coupled to cassettes, so its write
 access inherits cassette access — if a member may write cassettes, they
