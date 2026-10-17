@@ -542,27 +542,41 @@ and the avatar image endpoint is open to every authenticated caller), so
 the avatar renders for any reachable person, not just the viewer (the
 letter label renders only while no image resolves — PrimeVue `Avatar`
 renders label over image, so a constant label hides every avatar; see the
-style guide in [components/README.md](../README.md)). A click opens the
-shared entity popup (`useEntityPopup` → the user's directory profile).
+style guide in [components/README.md](../README.md)). A resolved user
+carrying the bot marker renders the shared AI face
+([`AiAvatar.vue`](#aiavatarvue)) instead of image or letter. A click
+opens the shared entity popup (`useEntityPopup` → the user's directory
+profile).
 Keep person identity displays on this chip; keep entity refs on
 `InstanceInlineRef`.
 
 ### `AgentActivity.vue`
-An agent run's visible work — the model's reasoning in a collapsible
-`details` disclosure and one status-iconed row per tool invocation —
-rendered both for a live run (open, with a spinner-only pending state
-before the first token) and for the `agent` provenance persisted on a
-bot's reply (collapsed). The answer is never rendered here: it is the
+An agent run's visible work — the model's reasoning in per-round
+collapsible PrimeVue `Fieldset` disclosures and one status-iconed row
+per tool invocation, a failed tool's error rendered as a severity-error
+`Message` — rendered both for a live run and for the `agent`
+provenance persisted on a bot's reply; both sites start open, so the
+chronology stays visible with the answer (the collapsed state is the
+user's own toggling). The live run shows a spinner-only pending state
+before the first token. The answer is never rendered here: it is the
 message body at both sites.
 
+### `AiAvatar.vue`
+The AI identity face: the microchip PrimeIcon in the brand accent on a
+whisper accent tint with a hairline accent ring — one component for
+every surface that shows the assistant (chat inbox rows, thread
+headers, pickers, the bot panel) and for bot-marked users inside
+[`UserChip.vue`](#userchipvue). Sizing rides class fallthrough onto the
+underlying `Avatar`.
+
 ### `ChatBotPanel.vue`
-The chat bot panel (`StandardDialog`): org bot rows with per-conversation
-join switches (group/instance threads only — direct chats need no
-membership), one-time token reveal/copy on create and rotation, and bot
-deletion through the confirm service. Backed by
-[stores/agentBots.js](../../stores/README.md); the trigger lives in the
-Chats inbox header and only for principals with user-management access
-(the server enforces the same gate).
+The chat bot panel (`StandardDialog`): the organization AI's contact row
+— the shared AI face ([`AiAvatar.vue`](#aiavatarvue)), the assistant
+tag, the per-conversation join switch (group/instance threads only —
+direct chats need no membership), the room's model pin, and its
+lifecycle wake rules (type + state with an optional profile) — backed
+by [stores/agentBots.js](../../stores/README.md). The trigger lives on
+group and instance thread headers.
 
 ### `ChatAttachmentPicker.vue`
 The chat composer's attachment surface: a Popover hosting PrimeVue

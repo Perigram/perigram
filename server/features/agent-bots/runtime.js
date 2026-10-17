@@ -293,24 +293,25 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, pr
     }
 }
 
-function replyBodyFor(context, message, text, assistantUserId, instanceRefs = [], agent = null) {
+function replyBodyFor(context, message, text, assistantUserId, instanceRefs = [], agent = null, notice = null) {
     const refs = instanceRefs.length ? { instanceRefs } : {};
     const provenance = agent ? { agent } : {};
+    const noticeField = notice ? { notice } : {};
     if (context.kind === 'direct') {
         const other = (message.participants || context.participants || [])
             .map(item => String(item))
             .find(item => item !== String(assistantUserId));
-        return { recipientUserId: other, message: text, ...refs, ...provenance };
+        return { recipientUserId: other, message: text, ...refs, ...provenance, ...noticeField };
     }
     if (context.kind === 'group') {
-        return { conversationKey: context.conversationKey, message: text, ...refs, ...provenance };
+        return { conversationKey: context.conversationKey, message: text, ...refs, ...provenance, ...noticeField };
     }
     const link = message.instanceLink || {};
-    return { instance: { type: link.type, id: link.id }, message: text, ...refs, ...provenance };
+    return { instance: { type: link.type, id: link.id }, message: text, ...refs, ...provenance, ...noticeField };
 }
 
-async function sendReply(assistantAuth, execAuth, context, message, text, instanceRefs = [], agent = null) {
-    await supportService.sendUserMessage(assistantAuth, replyBodyFor(context, message, text, assistantAuth.userId, instanceRefs, agent), { refsAuth: execAuth });
+async function sendReply(assistantAuth, execAuth, context, message, text, instanceRefs = [], agent = null, notice = null) {
+    await supportService.sendUserMessage(assistantAuth, replyBodyFor(context, message, text, assistantAuth.userId, instanceRefs, agent, notice), { refsAuth: execAuth });
 }
 
 async function conversationHistory(conversationKey, assistantUserId) {
@@ -367,7 +368,7 @@ export async function runAssistantReply(target, context, message) {
         const profileId = target.profile || '';
         const model = target.model || '';
         if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId, model }))) {
-            await sendReply(assistantAuth, execAuth, context, message, 'LLM provider is not configured for this organization.');
+            await sendReply(assistantAuth, execAuth, context, message, 'LLM provider is not configured for this organization.', [], null, 'warn');
             return;
         }
         const { text, instanceRefs, agent, failed } = await runAgentLoop({
@@ -384,7 +385,7 @@ export async function runAssistantReply(target, context, message) {
             // The notice carries the run's chronology: a dead provider
             // must not erase the room's record of what the run did.
             console.error('[AGENT-BOTS] reply failed:', failed);
-            await sendReply(assistantAuth, execAuth, context, message, 'The agent failed to answer; try again.', instanceRefs, agent);
+            await sendReply(assistantAuth, execAuth, context, message, 'The agent failed to answer; try again.', instanceRefs, agent, 'error');
             return;
         }
         if (text) await sendReply(assistantAuth, execAuth, context, message, text, instanceRefs, agent);
@@ -397,7 +398,7 @@ export async function runAssistantReply(target, context, message) {
                 // A failure notice carries no attached refs; the refs auth
                 // falls back to the assistant when the run died before the
                 // delegation resolved.
-                await sendReply(assistantAuth, execAuth || assistantAuth, context, message, 'The agent failed to answer; try again.');
+                await sendReply(assistantAuth, execAuth || assistantAuth, context, message, 'The agent failed to answer; try again.', [], null, 'error');
             } catch (nested) {
                 console.error('[AGENT-BOTS] failure notice failed:', nested);
             }

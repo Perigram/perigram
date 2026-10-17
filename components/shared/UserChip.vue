@@ -5,7 +5,12 @@
         :aria-label="displayName"
         @click.stop="open"
     >
+        <AiAvatar
+            v-if="isBot"
+            class="h-5 w-5 shrink-0 [&_.p-avatar-icon]:text-supporting"
+        />
         <Avatar
+            v-else
             :image="avatarUrl"
             :label="avatarUrl ? null : displayName.charAt(0).toUpperCase()"
             shape="circle"
@@ -19,6 +24,7 @@
 import Avatar from 'primevue/avatar';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import AiAvatar from '~/components/shared/AiAvatar.vue';
 import { useEntityPopup } from '~/composables/useEntityPopup';
 import { useInstancesStore } from '~/stores/instances';
 
@@ -54,6 +60,9 @@ const displayName = computed(() => resolved.value?.identity?.name
     || props.name
     || t('common.user'));
 const avatarUrl = computed(() => resolved.value?.data?.avatarUrl || '');
+// The org assistant carries the bot marker (users feature): its chip
+// face is the shared AI glyph, never an image or letter.
+const isBot = computed(() => Boolean(resolved.value?.data?.bot));
 
 const open = () => {
     openEntityPopup({ typeId: 'user', instanceId: String(props.userId) });

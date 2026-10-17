@@ -199,6 +199,7 @@ describe('runAssistantReply', () => {
         expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(1);
         const body = mockedSupport.sendUserMessage.mock.calls[0][1];
         expect(body.message).toMatch(/not configured/i);
+        expect(body.notice).toBe('warn');
         expect(body.recipientUserId).toBe(HUMAN);
     });
 
@@ -327,6 +328,7 @@ describe('runAssistantReply', () => {
         expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(1);
         const body = mockedSupport.sendUserMessage.mock.calls[0][1];
         expect(body.message).toMatch(/failed to answer/i);
+        expect(body.notice).toBe('error');
         expect(Array.isArray(body.agent?.steps)).toBe(true);
     });
 

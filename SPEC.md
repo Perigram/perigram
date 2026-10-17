@@ -91,6 +91,15 @@ and tool history persist attached to the answer. The room can stop a run in flig
 answer produced so far is what stays. Bots never ride the human typing
 line — the run's own activity is its presence.
 
+Non-answer machine output is typed, not conversational (owner direction
+2026-10-17): the agent's failure notices persist with a severity kind
+and render as severity-styled system notices (PrimeVue Message), never
+as plain chat bubbles; tool failures render severity-marked inside the
+run chronology; the thinking disclosure is the PrimeVue Fieldset. The
+AI's identity face is the microchip glyph in the brand accent (carmine)
+wherever the assistant shows — thread avatars, sender chips, pickers —
+while person-chat presentation stays as it is.
+
 Lifecycle wakes: the AI brought into a conversation may be woken by status
 transitions — assignment-side wake rules on the subscription (type + target
 state; instance-scoped when the subscription is an instance chat) drive the

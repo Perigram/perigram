@@ -79,6 +79,36 @@ authoring happens only inside a cassette design session.
 - [ ] WAITING — owner verification on the live stack: save a profile to
   the library from one cassette, pick it into another.
 
+## AI chat presence polish (owner direction 2026-10-17)
+
+Non-answer AI output is typed: failure notices carry a severity kind and
+render as PrimeVue `Message` notices instead of plain bubbles; tool
+failures render severity-marked inside the run chronology; the thinking
+disclosure is the PrimeVue `Fieldset`; the AI's avatar is the microchip
+glyph in the brand accent across chat surfaces (SPEC: agent access).
+
+### Agent Notes (2026-10-17 — implemented)
+
+- Wire: `notice` (a PrimeVue severity name) rides failure replies from
+  the agent runtime through the same server-authored seam as `agent`
+  provenance — stripped from client-posted bodies at the send route;
+  persisted and projected on the message DTO.
+- `AgentActivity.vue`: thinking steps render as toggleable `Fieldset`
+  (open initially at both sites — live and persisted, unchanged
+  behavior; fixed the stale shared-README claim that persisted renders
+  collapsed); tool errors render as `Message severity="error"`.
+- `ChatSupport.vue`: messages carrying `notice` render as `Message`
+  with that severity — no bubble chrome; the run's chronology and
+  answer rendering unchanged.
+- New shared `AiAvatar.vue` (microchip glyph, accent ink on a whisper
+  accent tint with hairline ring) used for the assistant's face:
+  inbox/thread/forward/new-chat rows, `ChatBotPanel`, and `UserChip`
+  when the resolved user carries the bot marker.
+- Person bubbles stay bubbles: `Message` is a callout for machine
+  output, not a chat bubble; converting conversational bubbles would
+  fight alignment, markdown flow, and swipe affordances (owner left
+  the call to the agent).
+
 ## Z.AI coding plan as a login option on the models screen (owner direction 2026-10-16)
 
 Known providers are login options: picking the Z.AI GLM coding plan asks
