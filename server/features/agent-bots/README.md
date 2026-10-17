@@ -106,7 +106,9 @@ Three pieces share one tool catalog:
   a snapshot), `bot_stream` with the answer so far, and
   `bot_stream_end` when the
   persisted message supersedes the live view. The activity itself is the
-  run's presence signal (the AI never rides the human typing line); a
+  run's pre-step presence signal: the assistant rides the room's typing
+  line until the first step or answer streams, then the activity is the
+  presence; a
   tool round retracts only its answer text, and each round reconciles
   the sink with the assembled neutral message (a reasoning-first stream
   that ends tagless was a plain answer). A run in flight is stoppable

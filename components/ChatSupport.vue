@@ -823,11 +823,11 @@
                     :class="fullPage ? '' : 'max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))]'"
                 >
                     <div
-                        v-show="typingName"
+                        v-show="typingName || agentTypingName"
                         ref="typingIndicatorRef"
                         class="px-1 text-muted text-supporting opacity-0"
                     >
-                        {{ $t('support.typing', { name: typingName }) }}
+                        {{ $t('support.typing', { name: typingName || agentTypingName }) }}
                     </div>
                     <!-- The conversation is an execution point: the AI in
                          this room runs on the chosen model off the served
@@ -1596,6 +1596,14 @@ const typingIndicatorRef = ref(null)
 // steps being the run's chronology so far. The persisted message replaces
 // it.
 const agentActivity = ref(null)
+// The live run's pre-step presence: the assistant rides the typing
+// line (owner direction — SPEC agent access) until the run has steps
+// or an answer to show; after that the activity block is the presence.
+const agentTypingName = computed(() => {
+    const activity = agentActivity.value
+    if (!activity || (activity.steps || []).length || activity.answer) return ''
+    return activity.name || t('support.bots.title')
+})
 const receiveAgentActivity = (payload, mutate) => {
     if (!agentActivity.value || agentActivity.value.userId !== payload.userId) {
         agentActivity.value = { userId: payload.userId, name: payload.name || '', steps: [], answer: '' }
@@ -1616,7 +1624,7 @@ const stopAgentRun = async () => {
 let typingResetTimer = null
 let typingSendTimer = null
 
-const typingActive = computed(() => Boolean(typingName.value))
+const typingActive = computed(() => Boolean(typingName.value || agentTypingName.value))
 useEnterExit(typingIndicatorRef, typingActive, { y: 4, duration: 0.15 })
 const callRoom = ref('')
 const callDialog = ref(false)

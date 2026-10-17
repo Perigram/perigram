@@ -88,8 +88,10 @@ invocation appears as it starts and settles; the final answer streams as
 it is produced and renders as markdown in the app's prose document
 voice, as room content rather than a chat bubble; the run's reasoning
 and tool history persist attached to the answer. The room can stop a run in flight — generation ends and the
-answer produced so far is what stays. Bots never ride the human typing
-line — the run's own activity is its presence.
+answer produced so far is what stays. A run's pending presence rides the
+human typing line — the assistant's name, the same indicator, until its
+first step or answer streams (owner direction 2026-10-17); from then on,
+the run's own activity is its presence.
 
 Non-answer machine output is typed, not conversational (owner direction
 2026-10-17): the agent's failure notices persist with a severity kind

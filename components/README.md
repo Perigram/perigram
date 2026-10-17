@@ -1045,13 +1045,12 @@ own messages). Forwarded messages lead their content with the
 forwarded-from caption line (forward icon + original sender) on every
 shape — text, media, or files. While a subscribed bot runs, its live work
 renders as one chromeless activity block under the messages (no bubble
-chrome, no sender chip): the run's chronology as bordered Fieldset
-surfaces — the model's reasoning in per-round collapsible disclosures
-and one non-toggleable surface per tool invocation (muted status icon
-and technical-voice name in the legend, a severity-error `Message` as
-content when a tool failed) — and the answer growing
-as markdown in the room's flow; before the first step, a "thinking"
-disclosure pulses three Skeleton dots. The transcript
+chrome, no sender chip): the run's chronology — the model's reasoning
+in per-round collapsible `Fieldset` disclosures and one bordered `Tag`
+per tool invocation (status icon + technical name, a severity-error
+`Message` beneath a failed one) — and the answer growing
+as markdown in the room's flow; before the first step, the assistant
+rides the typing line above the composer. The transcript
 does not
 jump to the bottom while the run works. The composer's trailing control
 becomes a stop button for the live run; stopping aborts the request and
