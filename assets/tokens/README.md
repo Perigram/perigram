@@ -27,6 +27,14 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   from this object.
   Aura, not this module, owns generic control and container typography,
   spacing, borders, radii, shadows, and interaction states.
+- `index.js` also exports `primeFormFluidPT`, the global passthrough that
+  mounts every form-field control (input, textarea, number, select,
+  date, password, autocomplete, tree-select) with PrimeVue's fluid class:
+  form fields fill their host instead of their native `size` attribute, so
+  bare inputs in dialogs, inspector panes, and form grids never escape
+  narrow hosts. Width utilities still override (unlayered Tailwind beats
+  the `primevue` cascade layer), and buttons are excluded — fluid buttons
+  stretch, and only a `Fluid` wrapper region opts actions into that.
 - Nuxt emits the exported `cssVariableTokens` and `darkCssVariableTokens`
   directly. `assets/css/main.css` consumes those variables but must not
   duplicate their values or bridge PrimeVue `--p-*` variables.
