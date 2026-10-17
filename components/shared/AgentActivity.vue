@@ -36,7 +36,13 @@ const thinkingPt = {
     legendLabel: { class: 'text-supporting' },
     toggleIcon: { style: { width: '0.75rem', height: '0.75rem' } }
 };
-const tagPt = { label: { class: 'truncate' } };
+// Aura's Tag is a centered, bold badge; the chronology wants a
+// left-aligned, regular-weight pill at its content width — the flex
+// column would otherwise stretch it full-width and center its label.
+const tagPt = {
+    root: { style: { fontWeight: '400', justifyContent: 'flex-start' } },
+    label: { class: 'truncate' }
+};
 </script>
 
 <template>
@@ -63,7 +69,7 @@ const tagPt = { label: { class: 'truncate' } };
                     :icon="toolIcon(step.status)"
                     severity="secondary"
                     :pt="tagPt"
-                    class="min-w-0 max-w-full"
+                    class="self-start min-w-0 max-w-full"
                 />
                 <Message v-if="step.error" severity="error" size="small" :closable="false">
                     {{ step.error }}
