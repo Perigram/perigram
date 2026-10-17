@@ -4,6 +4,8 @@ import * as supportService from '~/server/features/support/service.js';
 import { describeOrganizationTypes } from '~/server/features/cts-types/service.js';
 import { listRoles } from '~/server/features/organizations/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import * as webSearchService from '~/server/features/web-search/service.js';
+import * as filesService from '~/server/features/files/service.js';
 import { buildPrincipalAuth } from './service.js';
 import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY, parseProcessSocketHandleId, resolveCatalogNodePorts } from '~/packages/processes/src/index.js';
 
@@ -20,6 +22,9 @@ import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_C
 
 const LIST_LIMIT_DEFAULT = 25;
 const LIST_LIMIT_MAX = 100;
+// One attachment read serves at most this many bytes; larger results ride
+// the shared tool-result truncation notice instead.
+const ATTACHMENT_READ_LIMIT_BYTES = 64 * 1024;
 
 function requireString(value, field) {
     const text = String(value ?? '').trim();
@@ -592,14 +597,85 @@ export const TOOL_SPECS = [
                 data: args.data && typeof args.data === 'object' ? args.data : {}
             }, live);
         }
+    },
+    {
+        name: 'web_search',
+        description: 'Searches the public web through the organization\'s configured search provider. Returns ranked results with title, url, and snippet. Use it for facts, current events, documentation, or anything outside the organization\'s own data.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: { type: 'string', description: 'The search query.' },
+                maxResults: { type: 'integer', description: 'Maximum results to return (default 5, at most 10).' }
+            },
+            required: ['query'],
+            additionalProperties: false
+        },
+        execute: async (args, auth) => {
+            return await webSearchService.webSearch({
+                organizationId: auth.organizationId,
+                query: requireString(args.query, 'query'),
+                maxResults: args.maxResults
+            });
+        }
+    },
+    {
+        name: 'read_attachment',
+        description: 'Reads the text content of a file attached to a message in this conversation. Message history marks attachments as [attachment: name <fileId:id>] — pass that fileId. Text-like files return their content (truncated when large); binary files are refused as not text-readable.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                fileId: { type: 'string', description: 'The fileId from an [attachment: …] marker in the conversation.' }
+            },
+            required: ['fileId'],
+            additionalProperties: false
+        },
+        chatOnly: true,
+        execute: async (args, auth, run) => {
+            if (!run?.conversationKey) throw createError({ statusCode: 400, message: 'read_attachment is available inside a chat run only' });
+            const fileId = requireString(args.fileId, 'fileId');
+            const descriptor = await supportService.findConversationAttachment(run.conversationKey, fileId);
+            if (!descriptor) throw createError({ statusCode: 404, message: 'No message in this conversation carries that attachment' });
+            const buffer = await filesService.getFileBuffer(fileId, descriptor.bucket || 'files').catch(() => null);
+            if (!buffer) throw createError({ statusCode: 404, message: 'Attachment content is no longer stored' });
+            const slice = buffer.subarray(0, ATTACHMENT_READ_LIMIT_BYTES);
+            const text = new TextDecoder('utf-8').decode(slice);
+            // Binary sniff: NUL or control bytes outside tab/CR/LF mean the
+            // file is not text-readable — refuse instead of serving mojibake.
+            if (/[\u0000-\u0008\u000e-\u001f]/.test(text.replace(/[\t\n\r]/g, ''))) {
+                throw createError({ statusCode: 400, message: `${descriptor.name || 'The file'} is not text-readable` });
+            }
+            return {
+                name: descriptor.name || '',
+                mimeType: descriptor.mimeType || '',
+                size: descriptor.size || buffer.length,
+                ...(buffer.length > slice.length ? { truncatedByRead: true } : {}),
+                text
+            };
+        }
     }
 ];
 
 const SPECS_BY_NAME = new Map(TOOL_SPECS.map(spec => [spec.name, spec]));
 
+// Org-gated tools: the descriptor surface reflects the organization's
+// configured capabilities — an org without a search provider offers no
+// search tool on any surface (the capability-availability law; see the
+// web-search README).
+const ORG_GATED_TOOLS = {
+    web_search: webSearchService.isWebSearchAvailable
+};
+
+async function availableSpecs(organizationId) {
+    const allowed = new Map();
+    for (const [name, check] of Object.entries(ORG_GATED_TOOLS)) {
+        allowed.set(name, await check(organizationId).catch(() => false));
+    }
+    return TOOL_SPECS.filter(spec => !ORG_GATED_TOOLS[spec.name] || allowed.get(spec.name));
+}
+
 /** MCP `tools/list` descriptors. */
-export function mcpToolDescriptors() {
-    return TOOL_SPECS
+export async function mcpToolDescriptors(organizationId = null) {
+    return (await availableSpecs(organizationId))
         .filter(spec => !spec.chatOnly)
         .map(({ name, description, inputSchema }) => ({ name, description, inputSchema }));
 }
@@ -609,8 +685,9 @@ export function mcpToolDescriptors() {
  * serves. The [llm module](../llm/README.md) translates them onto each
  * provider's wire shape.
  */
-export function chatToolDescriptors() {
-    return TOOL_SPECS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }));
+export async function chatToolDescriptors(organizationId = null) {
+    return (await availableSpecs(organizationId))
+        .map(({ name, description, inputSchema }) => ({ name, description, inputSchema }));
 }
 
 export async function executeTool(name, args, auth, run = null) {

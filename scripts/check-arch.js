@@ -63,6 +63,7 @@ const CAPABILITY_FEATURES = [
   'support',
   'system-settings',
   'transcription',
+  'web-search',
   'workflow-overrides',
   // Undeclared entity features: master/derived types still served by
   // feature services but absent from the type declarations (Phase 7

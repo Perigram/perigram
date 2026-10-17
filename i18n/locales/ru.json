@@ -3419,5 +3419,12 @@
         "chatRouteDefault": "Маршрут чата",
         "loadModels": "Модели сервера",
         "auto": "Авто"
+    },
+    "webSearch": {
+        "title": "Поиск в интернете",
+        "provider": "Провайдер поиска",
+        "none": "Отключён",
+        "searxngUrl": "Адрес инстанса SearXNG",
+        "tavilyKey": "API-ключ Tavily"
     }
 }

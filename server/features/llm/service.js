@@ -9,7 +9,7 @@ import * as organizationsService from '~/server/features/organizations/service.j
 // (NO_PROXY honored, CIDR included, so LAN endpoints stay direct);
 // otherwise the global fetch. Built once, lazily, from the process env.
 let egressDispatcher = null;
-function egressFetch(url, options = {}) {
+export function egressFetch(url, options = {}) {
     const proxyEnv = process.env.HTTPS_PROXY || process.env.https_proxy
         || process.env.HTTP_PROXY || process.env.http_proxy;
     if (!proxyEnv) return fetch(url, options);

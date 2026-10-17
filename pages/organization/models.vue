@@ -87,6 +87,57 @@
       </div>
     </div>
 
+    <ActionToolbar :title="$t('webSearch.title')" />
+    <div class="flex flex-wrap items-center gap-3" data-testid="web-search-block">
+      <Select
+        v-model="webSearch.provider"
+        :options="webSearchProviderOptions"
+        option-label="label"
+        option-value="value"
+        :aria-label="$t('webSearch.provider')"
+        class="w-64"
+        data-testid="web-search-provider"
+      />
+      <InputText
+        v-if="webSearch.provider === 'searxng'"
+        v-model="webSearch.baseUrl"
+        type="text"
+        class="w-64"
+        :placeholder="$t('webSearch.searxngUrl')"
+        :aria-label="$t('webSearch.searxngUrl')"
+        data-testid="web-search-baseurl"
+      />
+      <Password
+        v-if="webSearch.provider === 'tavily'"
+        v-model="webSearch.apiKey"
+        :feedback="false"
+        :placeholder="webSearch.apiKeySet ? $t('llm.apiKeySet') : $t('webSearch.tavilyKey')"
+        :aria-label="$t('webSearch.tavilyKey')"
+        input-class="w-full"
+      />
+      <Button
+        :label="$t('llm.test')"
+        icon="pi pi-check-circle"
+        severity="secondary"
+        text
+        size="small"
+        :loading="testingWebSearch"
+        :disabled="!webSearchLoaded || webSearch.provider === 'none'"
+        data-testid="web-search-test"
+        @click="runWebSearchTest"
+      />
+      <Button
+        :label="$t('common.save')"
+        severity="secondary"
+        outlined
+        size="small"
+        :loading="savingWebSearch"
+        :disabled="!webSearchLoaded"
+        data-testid="web-search-save"
+        @click="saveWebSearchSettings"
+      />
+    </div>
+
     <StandardDialog v-model:visible="profileVisible" size="sm" :header="$t('llm.profile')" :show-default-footer="false">
       <div class="flex flex-col gap-3 pt-2">
         <InputText
@@ -212,6 +263,68 @@ const chatRouteOptions = computed(() => ([
     { label: t('llm.envDefault'), value: '' },
     ...profiles.value.filter(profile => profile.kind === 'chat').map(profile => ({ label: profile.id, value: profile.id }))
 ]));
+
+// The org's public-web search provider behind the agent's web_search
+// tool (searxng self-hosted, tavily keyed; see the web-search feature).
+// An untouched key field keeps the stored key — the key only travels
+// when typed.
+const webSearch = reactive({ provider: 'none', baseUrl: '', apiKey: '', apiKeySet: false });
+const webSearchLoaded = ref(false);
+const savingWebSearch = ref(false);
+const testingWebSearch = ref(false);
+const webSearchProviderOptions = computed(() => ([
+    { label: t('webSearch.none'), value: 'none' },
+    { label: 'SearXNG', value: 'searxng' },
+    { label: 'Tavily', value: 'tavily' }
+]));
+async function loadWebSearchSettings() {
+    try {
+        const saved = await $fetch('/api/web-search/settings');
+        Object.assign(webSearch, {
+            provider: saved?.provider || 'none',
+            baseUrl: saved?.baseUrl || '',
+            apiKey: '',
+            apiKeySet: Boolean(saved?.apiKeySet)
+        });
+        webSearchLoaded.value = true;
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
+    }
+}
+async function saveWebSearchSettings() {
+    savingWebSearch.value = true;
+    try {
+        const saved = await $fetch('/api/web-search/settings', {
+            method: 'PUT',
+            body: {
+                provider: webSearch.provider,
+                baseUrl: webSearch.provider === 'searxng' ? webSearch.baseUrl : '',
+                ...(webSearch.apiKey ? { apiKey: webSearch.apiKey } : {})
+            }
+        });
+        Object.assign(webSearch, { provider: saved?.provider || 'none', baseUrl: saved?.baseUrl || '', apiKey: '', apiKeySet: Boolean(saved?.apiKeySet) });
+        toast.add({ severity: 'success', summary: t('common.success'), life: 1500 });
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
+    } finally {
+        savingWebSearch.value = false;
+    }
+}
+async function runWebSearchTest() {
+    testingWebSearch.value = true;
+    try {
+        const result = await $fetch('/api/web-search/test', { method: 'POST' });
+        if (result?.ok) {
+            toast.add({ severity: 'success', summary: `${result.provider} · ${result.results}`, life: 3000 });
+        } else {
+            toast.add({ severity: 'error', summary: t('webSearch.title'), detail: result?.reason || '', life: 8000 });
+        }
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('webSearch.title'), detail: error?.data?.message || error?.message || '', life: 8000 });
+    } finally {
+        testingWebSearch.value = false;
+    }
+}
 
 // The page is mounted both as a standalone route and as a home pane tab:
 // the back control belongs to the routed surface.
