@@ -177,59 +177,22 @@ App default screen/body overloads are registered in
 user-specific manifest has been composed and loaded. Do not hardcode new
 entity-specific generated branches in `GeneratedScreen` or `GeneratedInstanceDetail`;
 register the overload there so it receives only the sources, regions, actions,
-and scope available to the current user. Project `entityDetail` screens use
-this path to render an IDE-style operational workspace over the generated
-project source and generated child collection sources. Its Explorer owns child
-rows from generated source regions and can collapse so the recursive pane area
-uses the full width without rebuilding or changing the recursive pane tree.
-Relations declared on the project are rendered in a dedicated **Linked entities**
-Explorer section. They use the same typed relation references and entity-detail
-workspace files as every other entity; this section is navigation, not a second
-containment model, and does not depend on relation-key naming conventions.
-Project-context actions live in a fixed workspace strip above both Explorer and
-panes; the strip's left control owns Explorer visibility. Explorer contains
-source navigation only, while panes contain the canonical entity page for their
-selected entity or a registered workspace page, plus pane-local controls. Each
-pane header owns its IDE-style file tabs in one compact fixed-height row whose
-single hairline spans the whole stripe — tab list and the right-side pane
-controls alike: each entity tab carries its compact
-lifecycle status and a close affordance that appears only on tab hover or
-focus (its space stays reserved so labels do not shift), followed by a
-standalone add-tab control. The stripe is SINGLE-HOMED in
-`components/generated/GeneratedPaneHeader.vue`: every pane host mounts
-that one component — the row, its height (40px), and the control fill
-are defined once, never pasted into hosts (a host pasting its own
-header row is a defect even when visually identical). Every control in
-the stripe — close, add, and
-the pane menu — fills the stripe height through stretch (`h-full`), the
-tab labels render at the text-label role size, and no control overflows
-or clips against the stripe's edges.
-Overflow stays wheel/touchpad-scrollable while native scrollbar chrome remains
-hidden, matching an IDE file-tab strip.
-Pane split/close commands live in a pane-level ellipsis menu. Generated entity
-actions not already owned by an operational editor belong to the active tab body
-below the tab strip. Action presentation has one concern-based owner: collection
-creation stays with its region, relation mutation stays with the relation-aware
-entity surface, and entity operations stay with the opened entity. Inside
-Project, CRUD deletion is a management action owned only by the Explorer
-entity-row ellipsis. It uses the canonical permission gate and confirmation and
-closes every affected entity/page tab after success.
-Explorer parent entities remain selectable files and become expandable folders
-when declared containment and loaded lineage establish children. Linked roots
-stay in the separate Linked entities section rather than being presented as
-containment; declared descendants may nest beneath a linked parent.
-Active-pane emphasis uses the neutral chrome-subtle token on its tab header,
-and empty panes retain an open-content prompt. The embedded entity page suppresses its
-duplicate title, lineage, lifecycle, and action header while retaining the full
-canonical detail body. A pane must not substitute a compact
-summary/detail-body-only surface. It scopes
-and loads the selected entity's own compiled detail screen so child regions
-remain available inside Project. Explorer starts as a compact 15% rail;
-project mutation actions, including relation Link, remain in the strip even
-when a child region references the same compiled action. Unlink is not an owner
-strip command: each linked `InstanceInlineRef` receives the matching contextual
-Unlink operation in its own actions, with both owner and target already bound.
-Only project-bound child-create actions move to collection context.
+and scope available to the current user. Desktop panes host compiled
+screens and registered workspace pages
+([components/generated/README.md](./generated/README.md) owns the pane
+tab lifecycle contract). Each pane header is a single-homed stripe:
+`GeneratedWorkspacePane` mounts `GeneratedPaneHeader` once per pane —
+Back, the IDE-style tab strip whose single hairline spans the stripe,
+and the pane menu — and dispatches the selected tab's body. Every
+control fills the stripe height through stretch (`h-full`), tab labels
+render at the text-label role size, overflow stays
+wheel/touchpad-scrollable with native scrollbar chrome hidden, and pane
+split/close commands live in the pane-level ellipsis menu. Action
+presentation keeps one concern-based owner: collection creation stays
+with its region, relation mutation stays with the relation-aware entity
+surface, and entity operations stay with the opened entity. Active-pane
+emphasis uses the neutral chrome-subtle token on its tab header, and
+empty panes retain an open-content prompt.
 When a generated Link input carries an artifact creator contract, its entity
 picker exposes a dedicated upload dialog for the allowed upload-backed kinds.
 The created artifact is selected into the same typed Link input; exact-id and
@@ -239,39 +202,24 @@ shared entity picker renders its selected reference inside a normal full-width
 Select rather than replacing the control with a card and icon-only edit button.
 Artifact creator/editor surfaces render only domain-declared typed inputs. They
 must not expose the persisted `data.metadata` object as a raw JSON textarea.
-its tree starts directly below the workspace action strip without a redundant
-Explorer header. Collapse hides that mounted panel and its gutter so reopening
-restores the 15/85 split instead of inserting a new equally sized panel. The
-initial pane and new split targets stay unselected until an explicit Explorer
-selection, while still rendering a blank pane header with their local
-split/close controls. Nested workspace headers use neutral structural borders
-instead of the signal-orange action boundary. A workspace pane can be a pane-native entity
-file or an app-registered workspace page; process data selects neither arbitrary
-Vue components nor page-local markup. Entity files reuse registered entity-detail
-body overloads, so a queue file is the operational queue editor instead of a
-generic summary block; generic child entities continue to use their contract-driven
-detail surface. The project entity itself uses that standard detail body. The
-action strip receives only screen/main action ids
-compiled for the project plus direct project-child creation actions from its
-loaded child regions, then resolves and filters them through the effective user
-action manifest and project status. Create actions with different internal ids
-but the same visible entity/parent operation collapse to one button, matching
-the generated create-button label contract.
+A workspace pane hosts a compiled screen or an app-registered workspace
+page; process data selects neither arbitrary
+Vue components nor page-local markup. The generated
+create-button label contract collapses create actions with different
+internal ids but the same visible entity/parent operation into one
+button.
 An entity-bound registered page (for example the facade plugin's cassette
 designer, mounted through the remote-surface loader) mounts inside a
 pane. Source-loaded children and explicitly linked entities use the same
 page-opening contract, so an accessible linked entity can open the embedded
 surface. Entity links and
-actions inside a linked entity's own child regions stay in the active project
-pane as well; they must not fall back to route navigation or a dialog merely
-because the entity was discovered one detail level deeper. The recursive
-pane tree, split proportions, Explorer width/visibility, active pane, ordered
+actions inside a linked entity's own child regions stay in the active home
+pane as well; deep discovery keeps the same in-workspace opening contract. The recursive
+pane tree, split proportions, active pane, ordered
 tabs and their pane-local selections, and opened registered pages persist as
 versioned browser UI state
-scoped to the current user, organization, and project; only stable references
-are stored. Operational bodies
-receive file mode and remove redundant rounded panel borders when the file pane
-already owns the boundary. Panes can be recursively split right or down and
+scoped to the current user and organization; only stable references
+are stored. Panes can be recursively split right or down and
 retain pane-local selections. An overload must not discover extra sources or
 actions from domain registries or the global action manifest, and it must not
 invent upload/link controls outside compiled process actions.
@@ -1255,8 +1203,8 @@ popovers carry it too, all opening the entity thread through
 mount). The
 detail rail rides `GeneratedInstanceDetail` — the canonical detail chrome —
 in its abstract branch, through `InstancePage`'s sidebar slot; the bounded
-branch mounts no rail and its host (`GeneratedInstanceFile`) supplies the popup
-entry from the pane action strip.
+branch mounts no rail and its host surface carries its chat entry through
+the shared popup.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock type-id="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `type-id` must match a declared type in the registry view; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data

@@ -1,69 +1,9 @@
 <template>
-  <!-- The project overload still owns entity tabs through the legacy
-       renderer family; generated home screens never produce entity items
-       — their instance surfaces are compiled screen tabs. -->
-  <GeneratedInstanceFile
-    v-if="item?.kind === 'instance'"
-    :item="item"
-    :tabs="tabs"
-    :action-entries="actionEntries"
-    :closeable="closeable"
-    :splittable="splittable"
-    :back="back"
-    @back="$emit('back')"
-    @execute-action="(action, entry) => $emit('execute-action', action, entry)"
-    @open-entity="request => $emit('open-entity', request)"
-    @open-page="page => $emit('open-page', page)"
-    @refresh="$emit('refresh')"
-    @select-tab="$emit('select-tab', $event)"
-    @close-tab="$emit('close-tab', $event)"
-    @add-tab="$emit('add-tab', $event)"
-    @split="orientation => $emit('split', orientation)"
-    @close="$emit('close')"
-  />
-  <GeneratedScreenPane
-    v-else-if="item?.kind === 'screen'"
-    :item="item"
-    :tabs="tabs"
-    :closeable="closeable"
-    :splittable="splittable"
-    :back="back"
-    @back="$emit('back')"
-    @refresh="$emit('refresh')"
-    @open-entity="request => $emit('open-entity', request)"
-    @select-tab="$emit('select-tab', $event)"
-    @close-tab="$emit('close-tab', $event)"
-    @add-tab="$emit('add-tab', $event)"
-    @split="orientation => $emit('split', orientation)"
-    @close="$emit('close')"
-  />
-  <GeneratedWorkspacePage
-    v-else-if="item?.kind === 'page'"
-    :page="item"
-    :tabs="tabs"
-    :closeable="closeable"
-    :splittable="splittable"
-    :back="back"
-    @back="$emit('back')"
-    @execute-action="(action, entry) => $emit('execute-action', action, entry)"
-    @open-page="page => $emit('open-page', page)"
-    @open-call="request => $emit('open-call', request)"
-    @refresh="$emit('refresh')"
-    @select-tab="$emit('select-tab', $event)"
-    @close-tab="$emit('close-tab', $event)"
-    @add-tab="$emit('add-tab', $event)"
-    @split="orientation => $emit('split', orientation)"
-    @close="$emit('close')"
-  />
-  <section
-    v-else
-    class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
-    data-empty-workspace-pane
-  >
+  <section class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
     <GeneratedPaneHeader
       :tabs="tabs"
+      :active-key="selectionKey"
       :closeable="closeable"
-      :splittable="splittable"
       :back="back"
       @back="$emit('back')"
       @refresh="$emit('refresh')"
@@ -73,7 +13,22 @@
       @split="orientation => $emit('split', orientation)"
       @close="$emit('close')"
     />
-    <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-muted">
+    <GeneratedScreenPane
+      v-if="item?.kind === 'screen'"
+      :item="item"
+      @open-entity="request => $emit('open-entity', request)"
+      @refresh="$emit('refresh')"
+    />
+    <GeneratedWorkspacePage
+      v-else-if="item?.kind === 'page'"
+      :page="item"
+      @execute-action="(action, entry) => $emit('execute-action', action, entry)"
+      @open-page="page => $emit('open-page', page)"
+      @open-call="request => $emit('open-call', request)"
+      @closed="$emit('close-tab', item.key)"
+      @refresh="$emit('refresh')"
+    />
+    <div v-else class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-muted">
       <i class="pi pi-folder-open" aria-hidden="true" />
       <span>{{ $t('project.openSomething') }}</span>
     </div>
@@ -81,22 +36,19 @@
 </template>
 
 <script setup>
-// The workspace pane dispatcher: opened screens (type screens and
-// instance-bound detail screens), registered workspace pages, and — for
-// the project overload only — legacy entity file tabs. Generated home
-// screens produce no entity items: every instance surface there is a
-// compiled screen rendered through the generator.
-import GeneratedInstanceFile from '~/components/generated/GeneratedInstanceFile.vue';
-import GeneratedWorkspacePage from '~/components/generated/GeneratedWorkspacePage.vue';
-import GeneratedScreenPane from '~/components/generated/GeneratedScreenPane.vue';
+// The workspace pane shell: the pane header (the tab strip and pane
+// controls) mounts exactly once here, and the body dispatches on the
+// selected tab's content kind — compiled screens and registered workspace
+// pages. The body components own content only.
 import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
+import GeneratedScreenPane from '~/components/generated/GeneratedScreenPane.vue';
+import GeneratedWorkspacePage from '~/components/generated/GeneratedWorkspacePage.vue';
 
 defineProps({
   item: { type: Object, default: null },
   tabs: { type: Array, default: () => [] },
-  actionEntries: { type: Array, default: () => [] },
+  selectionKey: { type: String, default: '' },
   closeable: { type: Boolean, default: false },
-  splittable: { type: Boolean, default: true },
   // The pane's navigation history has somewhere to go: renders the Back
   // control at the start of the pane header.
   back: { type: Boolean, default: false }
