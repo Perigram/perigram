@@ -100,11 +100,9 @@ export async function install({ organizationId, pluginId, auth = {} }) {
 }
 
 // The gate-and-write core behind the install route: the wrapper above
-// owns caller authority; platform onboarding (an organization's default
-// installs, server/features/organizations/default-plugins.js) rides this
-// seam so every install write passes the same gates. `endpoints`
-// pre-wires connection settings for endpoint-mode services under the
-// same validation the settings save applies.
+// owns caller authority. `endpoints` pre-wires connection settings for
+// endpoint-mode services under the same validation the settings save
+// applies.
 export async function installFromCatalog({ organizationId, pluginId, endpoints = {}, surfaceOrigin = null }) {
   const listing = await repository.findCatalogByPluginId(pluginId);
   if (!listing) throw createError({ statusCode: 404, message: 'Plugin not found' });

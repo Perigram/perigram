@@ -15,8 +15,8 @@
 //     node server/scripts/migrate-tech-drawing-pack-to-plugin.js
 //   docker compose -f docker-compose.dev.yml restart app
 //
-// Idempotent: re-running refreshes the catalog pin and skips installs
-// that already hold.
+// Idempotent: re-running refreshes the catalog pin and the install's
+// surface origin (TECH_DRAWING_EXECUTOR_URL); held pins stay.
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { connectDB } from '../db/mongo.js';
@@ -43,6 +43,10 @@ for (const org of orgs) {
   const organizationId = String(org._id);
   const existing = await db.collection('plugin_installs').findOne({ organizationId, pluginId: listing.pluginId });
   if (existing) {
+    await db.collection('plugin_installs').updateOne(
+      { organizationId, pluginId: listing.pluginId },
+      { $set: { surfaceOrigin } }
+    );
     alreadyInstalled += 1;
     continue;
   }

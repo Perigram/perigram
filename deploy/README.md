@@ -130,9 +130,13 @@ The CI deploys the whole plugin plane beside the app: the nesting
 worker, the three plugin executors (each a `workers/plugin-executor.Dockerfile`
 image — the plugin's own dependency install beside the zero-dep SDK),
 the catalog seed, and the idempotent per-org builtin installs
-(facade/tech-drawing/documents) run on every push to `staging`, and the
+(facade/tech-drawing/documents) run on every push to `staging`; the
 app carries the executor URLs (`FACADE/DOCUMENTS/TECH_DRAWING_EXECUTOR_URL`
-on 127.0.0.1:879x). Listing version bumps ride the same push: installed
+on 127.0.0.1:879x), and a post-start probe fails the deploy when an
+executor port stays silent. The seed scripts also refresh held
+installs' connection wiring (endpoints, surface origin) to the
+deploy's executor URLs — declaration pins move only through the
+upgrade flow. Listing version bumps ride the same push: installed
 organizations see the upgrade in the Plugins page.
 
 ```bash

@@ -57,6 +57,21 @@ jobs:
             --network host \
             -e TECH_DRAWING_EXECUTOR_PORT=8792 \
             perigram-executor-tech-drawing:staging
+      - name: probe the executor plane
+        # The job container sits on the runner bridge; the executors sit on
+        # the host network. Probe through the host daemon with the image
+        # this pipeline just built.
+        run: |
+          docker run --rm --network host perigram:staging sh -c '
+            for port in 8000 8790 8791 8792; do
+              n=0
+              until curl -s -o /dev/null "http://127.0.0.1:$port/"; do
+                n=$((n+1))
+                if [ $n -ge 15 ]; then echo ":$port never answered" >&2; exit 1; fi
+                sleep 2
+              done
+              echo ":$port answered"
+            done'
       - name: seed catalog and ensure builtin installs
         # The built-in listings publish and every organization gets the
         # three plugins installed (idempotent — existing installs skip;

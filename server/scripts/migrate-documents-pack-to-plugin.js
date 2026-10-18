@@ -16,8 +16,9 @@
 //     node server/scripts/migrate-documents-pack-to-plugin.js
 //   docker compose -f docker-compose.dev.yml restart app
 //
-// Idempotent: re-running refreshes the catalog pin, skips installs that
-// already hold, and rewrites only remaining old-command nodes.
+// Idempotent: re-running refreshes the catalog pin and the install
+// wiring (endpoints from DOCUMENTS_EXECUTOR_URL), held pins stay, and
+// rewrites only remaining old-command nodes.
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { connectDB } from '../db/mongo.js';
@@ -60,6 +61,10 @@ for (const org of orgs) {
   const organizationId = String(org._id);
   const existing = await db.collection('plugin_installs').findOne({ organizationId, pluginId: listing.pluginId });
   if (existing) {
+    await db.collection('plugin_installs').updateOne(
+      { organizationId, pluginId: listing.pluginId },
+      { $set: { endpoints: endpointsFor(existing.services || listing.declarations.services) } }
+    );
     alreadyInstalled += 1;
   } else {
     await db.collection('plugin_installs').insertOne({

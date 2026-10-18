@@ -3,8 +3,8 @@
 // install — the retirement-era twin of the tech-drawing/documents
 // migrations for deployments whose orgs predate the plugin (their
 // `nesting.solve` service nodes rewrite to `plugin.facade.nesting-solve`
-// where they persist). Idempotent: installs that already hold are
-// skipped, endpoints are refreshed when the executor URL is set.
+// where they persist). Idempotent: installs that already hold keep
+// their pin; the endpoint wiring refreshes from FACADE_EXECUTOR_URL.
 //
 // Plain-node runbook (no Nuxt aliases — installs write directly):
 //   node server/scripts/migrate-facade-pack-to-plugin.js
@@ -50,6 +50,10 @@ for (const org of orgs) {
   const organizationId = String(org._id);
   const existing = await db.collection('plugin_installs').findOne({ organizationId, pluginId: listing.pluginId });
   if (existing) {
+    await db.collection('plugin_installs').updateOne(
+      { organizationId, pluginId: listing.pluginId },
+      { $set: { endpoints: endpointsFor(existing.services || listing.declarations.services) } }
+    );
     alreadyInstalled += 1;
     continue;
   }

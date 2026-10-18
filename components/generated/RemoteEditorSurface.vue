@@ -53,6 +53,17 @@ function fail(severity, key) {
   status.value = 'error';
 }
 
+// Prefer the proxy's own failure message over the generic offline text.
+async function proxyErrorDetail(url) {
+  if (!url) return null;
+  try {
+    const body = await fetch(url).then(response => response.json());
+    return body?.message || null;
+  } catch {
+    return null;
+  }
+}
+
 const errorMessage = ref('');
 
 onMounted(async () => {
@@ -74,10 +85,12 @@ onMounted(async () => {
     mounted.value = createSurface(surfaceHostContext({ t, te, locale }, props.surface?.surfaceContract, hostIo));
     status.value = 'ready';
   } catch (error) {
-    // The failure state says so on the surface; the console keeps the
-    // cause — a swallowed module error is undiagnosable.
+    // The console keeps the cause — a swallowed module error is
+    // undiagnosable.
     console.error('plugin surface module failed to mount', props.surface?.url, error);
-    fail('warn', 'pluginSurfaces.unavailable');
+    errorSeverity.value = 'warn';
+    errorMessage.value = (await proxyErrorDetail(props.surface?.url)) || t('pluginSurfaces.unavailable');
+    status.value = 'error';
   }
 });
 </script>

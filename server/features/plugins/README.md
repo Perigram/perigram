@@ -41,10 +41,11 @@ executors through the worker protocol.
   organization until it upgrades (upgrade flow is a later slice riding
   the type-migration machinery). Every install write — route or
   onboarding — rides `installFromCatalog`, the gate-and-write core: the
-  route wrapper only adds caller authority, and an organization's
-  default installs at creation (`organizations/default-plugins.js`)
-  pass the same gates with pre-wired, validated endpoints for
-  endpoint-mode services. The snapshot carries the full declaration
+  route wrapper only adds caller authority, `endpoints`/`surfaceOrigin`
+  pre-wire connection settings under the settings-save validation, and
+  the deployment's built-in plugins install through the seed scripts
+  ([server/scripts/README.md](../../scripts/README.md)) writing the same
+  record shape directly. The snapshot carries the full declaration
   layer — types, editors, surfaces, previews, attachment kinds,
   conversions, constructions, starter constructs, exports.
 - **Composition**: installed declarations are a resolution source
