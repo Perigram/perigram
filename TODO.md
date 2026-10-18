@@ -26,6 +26,34 @@ editable fillets, and a one-shot migration for stored sketches.
   run) against production data and `--apply` once the counts look
   right.
 
+### Agent Notes (2026-10-18, round 5 — owner review fixes)
+
+- Owner report on round 4, five defects, all reproduced in a fresh
+  browser harness (native-ESM mount of the surface with the real
+  Tailwind class set; artifacts under /tmp/opencode/profile-fix-harness,
+  screenshot after-fix.png).
+- Parameter strip restored above the canvas (`fx` row) — the expression
+  table's one home; the shape popup carries op, rotation, and fillet
+  radii.
+- The engine's pick is edge-only, so face clicks opened nothing: the
+  screen-space hit test is back beside the engine pick (subtract
+  shapes test above add shapes; a cutout click selects the cutting
+  primitive). Verified: rect face click → rect popup, hole click →
+  circle popup, dim-input clicks still edit their field.
+- Axis renders solid (round 4 shipped dash-dot against the SPEC's
+  solid-basis-line sentence; occs/README carried the same defect and
+  follows).
+- Canvas carries two surface states (owner law): the material half
+  hatches as the face (light 45° hatch), cuts and the void half stay
+  empty, the resolved result keeps the dense hatch + solid outline.
+  The round-4 faint tint rect is gone.
+- Dimensions: stacked dims on one baseline chain outward (18/40/62px —
+  W and W/2 shared one line before); arrowheads on every dimension
+  line; short dims keep line + label (the 28px cull hid them); inputs
+  clamp by their full box so edge dims stay whole.
+- SPEC carries the owner's readout rulings (strip home, two surface
+  states, click-anywhere selection).
+
 ### Agent Notes (2026-10-18, round 4 — CAD conventions)
 
 - Delivery gap found: round 3 was merged to local and then local was

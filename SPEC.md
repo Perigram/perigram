@@ -890,16 +890,25 @@ the cassette editor shows its dimensions: every primitive field is a
 dimension annotation on the canvas, labeled by its parameter expression
 where one is bound (measured numbers otherwise), and set directly in
 place — typing in the dimension commits the field. Selection is the
-CAD engine's entity pick; a single selected shape opens its parameter
-popup (op, rotation, fillet radii, the expression table) at the click
-point — the popup is the only authoring panel. The editor overlays the resolved
+CAD engine's entity pick; a single selected shape opens its popup
+(op, rotation, fillet radii) at the click point. The editor overlays the resolved
 boolean result as the one strong figure over the editable primitives —
-the material half a faint tint, the result hatched with a solid
+the result hatched with a solid
 outline — so the union, difference, and material-half clip read at a
 glance; the zero axis renders as a solid basis line. Rectangle
 extraction canonicalizes corner order (counter-clockwise from the
 leftmost corner), so the draw direction leaves the stored settings
 unchanged.
+
+Owner review (2026-10-18, profile editor readout): the parameter table
+lives in the strip above the canvas — its one home, visible with no
+selection. Clicking a primitive — face, edge, or cutout — opens its
+popup. The canvas carries exactly two surface states, hatch and empty:
+the material half hatches as the face, a subtract cut leaves empty; a
+primitive is either added or subtracted from the face. Stacked
+dimensions chain outward on their baseline and every dimension line
+carries arrowheads.
+
 
 Owner decision (2026-10-17, assembly tree layout): the designer's
 workpiece tree keeps every workpiece top-level — sheets and hardware
