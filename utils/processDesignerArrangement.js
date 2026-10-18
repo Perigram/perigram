@@ -2,20 +2,23 @@
 // engine ("Auto-arrangement (Tidy)" and "Lanes"). Pure: nodes, edges,
 // lane band membership in → positions plus content-hugging band
 // geometry out. x = column (condensation layering: mutual pairs share
-// a column; columns pack by their widest card). Within each lane×column
-// cell, barycenter sweeps over wired neighbors pick the row order; y =
-// lane row pitch, then a same-lane median polish whose clamps keep the
-// in-cell order and the lane bounds. Deterministic and idempotent:
-// running it over its own output moves nothing.
+// a column; columns span their widest card plus air). Within each
+// lane×column cell, barycenter sweeps over wired neighbors pick the
+// row order; y = lane row pitch, then a same-lane median polish whose
+// clamps keep the in-cell order and the lane bounds. Deterministic and
+// idempotent: running it over its own output moves nothing.
 const COLUMN_SNAP = 420;
+const COLUMN_AIR = 120;
+const COLUMN_MIN_SPAN = 360;
+const ROW_MIN_PITCH = 170;
 const LANE_INSET = 24;
 const LANE_MIN_HEIGHT = 150;
 const LANE_PADDING = 24;
 const COLUMN_GAP = 16;
 const PROCESS_CARD_HEIGHT = 140;
 const DECLARATION_CARD_HEIGHT = 96;
-const PROCESS_CARD_WIDTH = 180;
-const DECLARATION_CARD_WIDTH = 200;
+const PROCESS_CARD_WIDTH = 384;
+const DECLARATION_CARD_WIDTH = 224;
 const ORDER_SWEEPS = 8;
 const POLISH_PASSES = 24;
 const POLISH_EPSILON = 0.5;
@@ -344,8 +347,8 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
   }
 
   // Row stacking: a lane's cells share row indices; the lane's row
-  // pitch is its tallest card plus the gap.
-  const bandPitch = new Map(bands.map(band => [band.id, PROCESS_CARD_HEIGHT + COLUMN_GAP]));
+  // pitch is its tallest card plus the gap, floored at the resting row.
+  const bandPitch = new Map(bands.map(band => [band.id, ROW_MIN_PITCH]));
   for (const node of nodes) {
     const band = bandOf.get(node.id);
     if (band && cellFor.has(node.id)) {
@@ -415,8 +418,8 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     if (moved < POLISH_EPSILON) break;
   }
 
-  // Columns pack by their widest card: neighbors sit one card width
-  // plus the gap apart, whatever the card sizes are.
+  // Columns span their widest card plus air, floored at the resting
+  // span: neighbors keep readable distance at any card size.
   const usedColumns = [...new Set([...columns.values()])].sort((left, right) => left - right);
   const columnWidth = new Map(usedColumns.map(column => [column, 0]));
   for (const node of nodes) {
@@ -428,7 +431,7 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
   let columnX = 0;
   for (const column of usedColumns) {
     columnStart.set(column, columnX);
-    columnX += columnWidth.get(column) + COLUMN_GAP;
+    columnX += Math.max(COLUMN_MIN_SPAN, columnWidth.get(column) + COLUMN_AIR);
   }
 
   const arranged = new Map();
