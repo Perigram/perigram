@@ -268,6 +268,18 @@ exact trap that session hit twice).
   dropped children-read filter (`27b4179a3`), plugin connector dispatch
   from the effect boundary (`511ed49a8`, `724ff7d91`), relation writes
   persisting through the nested patch shape (`80a206a9b`).
+- The full loop then ran live end to end (2026-10-18, evening): a real
+  xlsx order table (name/template/pcs/A/B/R against the org's own OCCS
+  templates) uploaded into a queue, cassette designs baked from its rows
+  by the facade executor, and an actual nesting solve placing all four
+  on one sheet (efficiency 21.19%), the layouts stored on the attempt's
+  result field. The chain took five more runtime fixes, all merged:
+  construction output landing in declared fields (`331952f34`),
+  children-read lineage filter storage path (`0e26e4548`), typed
+  extract skipping foreign union items (`5e3499d46` region), plugin
+  parameter unwrap and passthrough (`72176f745`, `575a8bf9c`), the
+  unawaited async command payload (`e2c12c604`), and consumer-only
+  typed context entities (`f64febfc5`).
 
 ## Model-traffic timeouts removed + authoring removal grammar (owner direction 2026-10-18)
 
