@@ -852,4 +852,22 @@ describe('durable process orchestration', () => {
     expect(tree.branches[1]).toMatchObject({ path: [1], itemCount: 1, items: [] });
   });
 
+  it('binds the run-context entity to the trigger effect only; downstream consumers take their wired edges', async () => {
+    const trigger = { id: 'act', kind: 'cts.transition', typeId: 'project', trigger: { mode: 'manual' } };
+    const downstream = { id: 'chained', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'event' } };
+    const definition = process([trigger, downstream], ['act', 'chained'], [control('act', 'completed', 'chained')]);
+    const executeEffect = vi.fn(async ({ inputs }) => inputs.entity || { type: 'project', id: 'updated' });
+    const run = createProcessRun(definition, {}, {
+      context: { inputs: { entity: { type: 'project', id: 'ctx-1' } } }
+    });
+    run.trigger = { nodeId: 'act' };
+
+    await runProcessUntilSettled(run, definition, { executeEffect, catalogContext: catalogContext });
+
+    const triggerEntity = executeEffect.mock.calls[0][0].inputs.entity;
+    const chainedEntity = executeEffect.mock.calls[1][0].inputs.entity;
+    expect(triggerEntity).toMatchObject({ id: 'ctx-1' });
+    expect(chainedEntity).toBeUndefined();
+  });
+
 });

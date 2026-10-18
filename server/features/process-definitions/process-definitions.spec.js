@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   activate,
   executeActiveProcessAction,
+  executeProcessQuery,
   hasProcessDefinitionMembershipAccess,
   performDurableEffect,
   preview,
@@ -956,7 +957,13 @@ describe('current process-definition service contract', () => {
     expect(result).toMatchObject({ _id: 'machine-1', states: { main: 'new' } });
   });
 
-  it('resolves a context read feeding a manual action (materialized data environment)', async () => {
+  it('passes the children-read lineage filter through to the process list', async () => {
+    const processList = vi.fn(async () => []);
+    await executeProcessQuery(processList, { queueId: 'q-1' }, { userId: 'u' });
+    expect(processList).toHaveBeenCalledWith({ queueId: 'q-1' }, { userId: 'u' });
+  });
+
+  it('binds the manual transport instance to the trigger effect through the typed map', async () => {
     // The orchestration seam spreads environment.data as an object per
     // evaluated node; a function-valued data environment silently dropped
     // every read seam (currentEntity, childEntities, projectEntity).
@@ -1023,7 +1030,6 @@ describe('current process-definition service contract', () => {
     restoreMachineRegistry();
 
     expect(result).toMatchObject({ _id: 'machine-1', states: { main: 'state2' } });
-    expect(processGetById).toHaveBeenCalled();
   });
 
   it('surfaces a failed mutation slot as the manual action error instead of a silent success', async () => {

@@ -346,13 +346,21 @@ function extractEffectItemInputs(record, inputs, environment) {
   ]));
 }
 
+// The run context's untyped entity (the manual transport's instanceId) is
+// the trigger node's own entity; every other consumer binds the typed map.
+function isTriggerNode(run, node) {
+  return Boolean(run?.trigger?.nodeId) && String(run.trigger.nodeId) === String(node?.id || '');
+}
+
 async function resolveNodeInputs(process, node, run, environment, tokenContext) {
   const record = process.processNodes[recordId(node)];
   const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
   const dataInputs = ports.inputs.filter(port => port.role === 'data');
   const inputs = {};
   for (const port of dataInputs) {
-    const runValue = processRunInput(run.context?.inputs || {}, record, port.id, environment);
+    const runValue = processRunInput(run.context?.inputs || {}, record, port.id, environment, {
+      bindContextEntity: isTriggerNode(run, node)
+    });
     if (runValue !== undefined) {
       inputs[port.id] = socketPacket(runValue, port.access);
       continue;
@@ -384,9 +392,11 @@ function socketPacket(value, access = 'item') {
   return createDataPacket(structuredClone(value), shape || 'item');
 }
 
-function processRunInput(inputs = {}, record = {}, portId = '', environment = {}) {
+function processRunInput(inputs = {}, record = {}, portId = '', environment = {}, { bindContextEntity = false } = {}) {
   if (portId === 'entity') {
-    return inputs.entity ?? inputs.entities?.[record.typeId];
+    const typed = record.typeId ? inputs.entities?.[record.typeId] : undefined;
+    if (typed !== undefined) return typed;
+    return bindContextEntity ? inputs.entity : undefined;
   }
   if (Object.hasOwn(inputs.data || {}, portId)) return inputs.data[portId];
   if (portId.startsWith('entry:') && Array.isArray(record.entries)) {
@@ -448,7 +458,9 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
         inputs[port.id] = socketPacket(record.inputDefaults[port.id], port.access);
         continue;
       }
-      const runValue = processRunInput(run.context?.inputs || {}, record, port.id);
+      const runValue = processRunInput(run.context?.inputs || {}, record, port.id, environment, {
+        bindContextEntity: isTriggerNode(run, graphNode)
+      });
       if (runValue !== undefined) {
         inputs[port.id] = socketPacket(runValue, port.access);
         continue;

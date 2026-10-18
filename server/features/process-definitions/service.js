@@ -1056,7 +1056,12 @@ async function executeDataflowActionRun({ process, actionId, instanceId, data, p
     trigger: { nodeId: graphNode.id },
     inputs: {
       entity: instanceId || entities?.entity || null,
-      entities,
+      entities: {
+        ...(entities || {}),
+        ...(effect.typeId && (instanceId || entities?.entity)
+          ? { [effect.typeId]: instanceId || entities.entity }
+          : {})
+      },
       data,
       parameters,
       targetOrganizationId
@@ -1085,8 +1090,8 @@ export async function resolveProcessGraphEntity(typeId, candidate, { instanceId 
   return entity?.toJSON ? entity.toJSON() : entity;
 }
 
-export async function executeProcessQuery(processList, auth) {
-  return await processList({}, auth);
+export async function executeProcessQuery(processList, filters = {}, auth) {
+  return await processList(filters, auth);
 }
 
 async function queryProcessGraphEntities(typeId, filters = {}, auth = {}) {
@@ -1658,10 +1663,10 @@ function processDataEnvironment(auth, run, domain = getDomain()) {
     parentEntity: (entity, typeId) => processParentEntity(domain.containment, resolveEntity, entity, typeId),
     childEntities: (entity, typeId) => processChildEntities(domain.containment, queryEntities, entity, typeId),
     relatedEntities: (entity, relationKey, typeId) => processRelatedEntities(domain.relations, resolveEntity, entity, relationKey, typeId),
-    queryEntities: async typeId => {
+    queryEntities: async (typeId, filters = {}) => {
       const service = getAppRegistry().getInstanceService(typeId);
       if (!service?.processList) throw new Error(`Entity service cannot query ${typeId} from a process`);
-      return await executeProcessQuery(service.processList, auth);
+      return await executeProcessQuery(service.processList, filters, auth);
     },
     // The declared-projection seam (SPEC §8 p extract): the graph's only
     // entity→value dereference beside the reads above. The projection
