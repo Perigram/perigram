@@ -94,7 +94,9 @@ modules — no platform imports.
   compact panel (header, then a single field row), and opens on
   clicking the primitive — face, edge, or cutout. Floating authoring
   chrome (popups, dimension inputs) styles through the design-token
-  utilities `bg-content`, `border-content-border`, and `text-muted`.
+  utilities `bg-content`, `border-content-border`, and `text-muted`,
+  and every authoring field sizes to its content (growing while
+  typing) so its value stays whole.
   The default
   hanger
   template is parametric by law: a rect (W/H the rectangle, R the four

@@ -914,6 +914,7 @@ Owner review (2026-10-18, profile editor popup chrome): the popup and
 every floating authoring field carry the theme's surface background
 and border. The primitive popup lays out as one compact panel: header
 (kind, operation), then one row with rotation and the fillet radii.
+Authoring fields size to their content so their values stay visible.
 
 
 Owner decision (2026-10-17, assembly tree layout): the designer's
