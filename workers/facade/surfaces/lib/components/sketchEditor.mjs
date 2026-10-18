@@ -1121,8 +1121,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         return {
           shape,
           sketch,
-          left: Math.min(selection.at[0] + 14, Math.max(0, width - 220)),
-          top: Math.min(Math.max(selection.at[1] - 16, 0), Math.max(0, height - 150))
+          left: Math.min(selection.at[0] + 14, Math.max(0, width - 440)),
+          top: Math.min(Math.max(selection.at[1] - 16, 0), Math.max(0, height - 120))
         };
       });
 
@@ -1131,8 +1131,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!popup) return null;
         const { shape, sketch } = popup;
         const rows = [];
-        const labeledField = (label, value, readEvaluated, apply, widthClass = 'w-16') => h('div', { class: 'flex items-center gap-1' }, [
-          h('span', { class: 'w-6 shrink-0 text-right font-mono text-xs text-muted-color' }, label),
+        const labeledField = (label, value, readEvaluated, apply, widthClass = 'w-14') => h('div', { class: 'flex items-center gap-1' }, [
+          h('span', { class: 'w-5 shrink-0 text-right font-mono text-xs text-muted' }, label),
           expressionField(
             value,
             `${label}${resolvedHint(sketch, value)}`,
@@ -1142,49 +1142,53 @@ export default function createSketchEditor({ vue, components, locale }) {
           )
         ]);
         if (shape.type === 'rect') {
-          rows.push(labeledField('∠', shape.rotation, s => s?.rotation, (s, next) => ({ ...s, rotation: next }), 'w-14'));
-          const filletByCorner = new Map(shape.fillets.map(fillet => [fillet.corner, fillet.radius]));
-          for (const corner of [0, 1, 2, 3]) {
-            rows.push(labeledField(
-              `r${corner}`,
-              filletByCorner.get(corner) ?? 0,
-              s => (s?.fillets || []).find(fillet => fillet.corner === corner)?.radius ?? 0,
-              (s, next) => {
-                const others = s.fillets.filter(fillet => fillet.corner !== corner);
-                return Number(next) === 0
-                  ? { ...s, fillets: others }
-                  : { ...s, fillets: [...others, { corner, radius: next }] };
-              },
-              'w-14'
-            ));
-          }
+          rows.push(h('div', { class: 'flex items-center gap-1' }, [
+            labeledField('∠', shape.rotation, s => s?.rotation, (s, next) => ({ ...s, rotation: next })),
+            h('span', { class: 'mx-0.5 h-4 w-px shrink-0 bg-content-border' }),
+            ...[0, 1, 2, 3].map(corner => {
+              const filletByCorner = new Map(shape.fillets.map(fillet => [fillet.corner, fillet.radius]));
+              return labeledField(
+                `r${corner}`,
+                filletByCorner.get(corner) ?? 0,
+                s => (s?.fillets || []).find(fillet => fillet.corner === corner)?.radius ?? 0,
+                (s, next) => {
+                  const others = s.fillets.filter(fillet => fillet.corner !== corner);
+                  return Number(next) === 0
+                    ? { ...s, fillets: others }
+                    : { ...s, fillets: [...others, { corner, radius: next }] };
+                }
+              );
+            })
+          ]));
         }
         if (shape.type === 'chain') {
-          for (const modifier of shape.modifiers.filter(item => item.type === 'fillet')) {
-            rows.push(labeledField(
-              modifier.vertexId.replace(/^p/, 'r'),
-              modifier.radius,
-              s => (s?.modifiers || []).find(item => item.type === 'fillet' && item.vertexId === modifier.vertexId)?.radius ?? 0,
-              (s, next) => {
-                const radius = next === '' || next === null ? 0 : next;
-                const modifiers = (s.modifiers || []).filter(item => !(
-                  item.type === 'fillet' && item.vertexId === modifier.vertexId
-                ));
-                if (Number(radius) !== 0) modifiers.push({ type: 'fillet', vertexId: modifier.vertexId, radius });
-                return { ...s, modifiers };
-              },
-              'w-14'
-            ));
+          const fillets = shape.modifiers.filter(item => item.type === 'fillet');
+          for (let index = 0; index < fillets.length; index += 4) {
+            rows.push(h('div', { class: 'flex items-center gap-1' }, fillets.slice(index, index + 4).map(modifier => (
+              labeledField(
+                modifier.vertexId.replace(/^p/, 'r'),
+                modifier.radius,
+                s => (s?.modifiers || []).find(item => item.type === 'fillet' && item.vertexId === modifier.vertexId)?.radius ?? 0,
+                (s, next) => {
+                  const radius = next === '' || next === null ? 0 : next;
+                  const modifiers = (s.modifiers || []).filter(item => !(
+                    item.type === 'fillet' && item.vertexId === modifier.vertexId
+                  ));
+                  if (Number(radius) !== 0) modifiers.push({ type: 'fillet', vertexId: modifier.vertexId, radius });
+                  return { ...s, modifiers };
+                }
+              )
+            ))));
           }
         }
         return h('div', {
-          class: 'profile-shape-popup absolute z-20 flex flex-col gap-1 rounded-ui border border-content-border bg-content-background px-1.5 py-1 shadow-md',
+          class: 'profile-shape-popup absolute z-20 flex flex-col gap-1.5 rounded-ui border border-content-border bg-content px-2 py-1.5 shadow-md',
           style: { left: `${popup.left}px`, top: `${popup.top}px` },
           onPointerdown: event => { event.stopPropagation(); }
         }, [
-          h('div', { class: 'flex items-center gap-1' }, [
+          h('div', { class: 'flex items-center justify-between gap-2 border-b border-content-border pb-1' }, [
             h('span', {
-              class: 'text-muted-color',
+              class: 'text-muted',
               title: t(SHAPE_KIND_LABEL[shape.type])
             }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
             opButton(shape)
@@ -1198,7 +1202,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       const renderParameterStrip = () => {
         const sketch = normalizeOccsProfileSketch(props.modelValue || {});
         return h('div', { class: 'flex shrink-0 flex-wrap items-center gap-1' }, [
-          h('span', { class: 'font-mono text-xs text-muted-color' }, 'fx'),
+          h('span', { class: 'font-mono text-xs text-muted' }, 'fx'),
           ...Object.entries(sketch.parameters).map(([key, value]) => h('div', {
             key,
             class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5'
@@ -1255,8 +1259,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         ];
         const { axis, face } = annotations;
         // Two surface states (owner law): the material half hatches as
-        // the face, cuts and the void half stay empty; the resolved
-        // result is the one strong figure — denser hatch, solid
+        // the face; the section is cut from it — empty interior, solid
         // outline.
         const outlinePath = annotations.outline.length
           ? h('path', {
@@ -1264,8 +1267,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               d: annotations.outline
                 .map(ring => `${ring.map((point, index) => `${index ? 'L' : 'M'} ${point[0]} ${point[1]}`).join(' ')} Z`)
                 .join(' '),
-              'fill-rule': 'evenodd',
-              fill: 'url(#profile-result-hatch)',
+              fill: 'none',
               stroke: PRIMARY,
               'stroke-width': 2.5,
               'stroke-linejoin': 'round'
@@ -1282,16 +1284,6 @@ export default function createSketchEditor({ vue, components, locale }) {
               patternUnits: 'userSpaceOnUse'
             }, [
               h('line', { x1: 0, y1: 0, x2: 0, y2: 14, stroke: HATCH_STROKE, 'stroke-width': 1, 'stroke-opacity': 0.22 })
-            ]),
-            h('pattern', {
-              key: 'result-hatch-pattern',
-              id: 'profile-result-hatch',
-              width: 7,
-              height: 7,
-              patternTransform: 'rotate(45)',
-              patternUnits: 'userSpaceOnUse'
-            }, [
-              h('line', { x1: 0, y1: 0, x2: 0, y2: 7, stroke: HATCH_STROKE, 'stroke-width': 1.2, 'stroke-opacity': 0.55 })
             ]),
             h('marker', {
               key: 'dim-arrow',
@@ -1363,7 +1355,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             const top = Math.min(Math.max(dimension.labelAt[1] - 13, 2), Math.max(2, height - 28));
             return h(InputText, {
               key: dimension.key,
-              class: 'profile-dim absolute z-20 w-14 bg-content-background text-center font-mono text-xs shadow-sm',
+              class: 'profile-dim absolute z-20 w-14 bg-content text-center font-mono text-xs shadow-sm',
               style: { left: `${left}px`, top: `${top}px` },
               modelValue: fieldDraft.text(editable.ariaLabel, editable.value),
               ...fieldDraft.handlers(editable.ariaLabel, editable.value, next => {
@@ -1384,11 +1376,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!popup) return null;
         const { shapeId, id, sketch } = popup;
         return h('div', {
-          class: 'profile-vertex-popup absolute z-20 flex items-center gap-1 rounded-ui border border-content-border bg-content-background px-1.5 py-1 shadow-md',
+          class: 'profile-vertex-popup absolute z-20 flex items-center gap-1.5 rounded-ui border border-content-border bg-content px-2 py-1.5 shadow-md',
           style: { left: `${popup.left}px`, top: `${popup.top}px` },
           onPointerdown: event => { event.stopPropagation(); }
         }, [
-          h('span', { class: 'font-mono text-xs text-muted-color' }, id),
+          h('span', { class: 'font-mono text-xs text-muted' }, id),
           expressionField(popup.x, `x${resolvedHint(sketch, popup.x)}`, next => { applyVertexField(shapeId, id, 'x', next); }, `x ${id}`),
           expressionField(popup.y, `y${resolvedHint(sketch, popup.y)}`, next => { applyVertexField(shapeId, id, 'y', next); }, `y ${id}`),
           h(InputText, {
