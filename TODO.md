@@ -26,6 +26,19 @@ editable fillets, and a one-shot migration for stored sketches.
   run) against production data and `--apply` once the counts look
   right.
 
+### Agent Notes (2026-10-18, round 3 — editor readability)
+
+- Dimension values now pass the authored field per dim (center
+  position dims rendered empty — the value lookup keyed a field name
+  the shape never carried).
+- The material half renders as a faint tint; the resolved result is
+  the one hatched, solid-outlined figure — the hatch-on-hatch mess is
+  gone.
+- Shape settings moved out of the strip into a selection popup:
+  clicking a primitive (Select tool) opens its popup (op, rotation,
+  fillet radii; chain fillet chips); the strip carries the parameter
+  table only.
+
 ### Agent Notes (2026-10-18, round 2 — editor booleans and dimensions)
 
 - Result overlay: the resolved boolean section (debounced, Clipper)
