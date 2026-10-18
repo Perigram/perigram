@@ -528,12 +528,14 @@ untouched, and the write marks the draft dirty like any drag. The pass
 is the pure helper `utils/processDesignerArrangement.js` (see
 [utils](../../utils/README.md)) — deterministic and idempotent:
 
-- **x = column.** Longest-path layering over the condensation of the
-  flow edges (event and data; declaration wires never layer anything):
+- **x = column.** Longest-path layering over the condensation of the flow
+  edges (event and data; declaration wires never layer anything):
   a mutual pair shares one column, a larger cycle layers internally
-  with its closing edge as the one backward span. Columns span their
-  widest card plus air, floored at the resting span. A pred-less node
-  pulls up to the column before its first consumer.
+  with its closing edge as the one backward span. Weakly connected
+  components arrange independently and pack side by side, largest
+  first. Columns span their widest card plus air, floored at the
+  resting span. A pred-less node pulls up to the column before its
+  first consumer.
 - **Every node lives in exactly one band** — effects by grant,
   secondaries and declarations by their anchor node's band, anchorless
   nodes by nearest band — so nothing crosses a lane divider.
