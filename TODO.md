@@ -6738,7 +6738,8 @@ in-process, and command_runs/task_runs are the audit trail.
 
 - [ ] Columns span their widest card plus air (floored); lane rows
       pitch to the lane tallest card, floored at the resting row; a
-      mutual pair shares one column; polish medians stay same-lane.
+      mutual pair shares one column; weakly connected components pack
+      side by side; polish medians stay same-lane.
       Lane membership, grants, drop acceptance, and the acyclic LTR law
       are untouched.
 

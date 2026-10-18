@@ -113,7 +113,7 @@ describe('arrangeProcessGraph', () => {
     expect(new Set(ys).size).toBe(1);
   });
 
-  it('stacks same-column members of a lane on distinct rows', () => {
+  it('sits unwired nodes side by side on one row', () => {
     const nodes = [processNode('r1', 0, 0), processNode('r2', 0, 0)];
     const band = { id: 'role:a', kind: 'role', label: 'A', top: 0, height: 340 };
     const result = arrange({
@@ -123,10 +123,28 @@ describe('arrangeProcessGraph', () => {
       bands: [band],
       bandOfNodeId: new Map([['r1', band], ['r2', band]])
     });
-    const [top, bottom] = ['r1', 'r2'].map(id => result.get(id).y).sort((left, right) => left - right);
-    expect(top).toBeGreaterThanOrEqual(band.top);
-    expect(bottom).toBeLessThan(band.top + band.height);
-    expect(bottom - top).toBeGreaterThanOrEqual(150);
+    const [first, second] = ['r1', 'r2'].map(id => result.get(id)).sort((a, b) => a.x - b.x);
+    expect(second.x - first.x).toBeGreaterThanOrEqual(360);
+    expect(second.y).toBe(first.y);
+  });
+
+  it('packs unwired clusters beside the wired flow', () => {
+    const nodes = [
+      processNode('a', 0, 0), processNode('b', 0, 0),
+      processNode('c', 0, 0), processNode('d', 0, 0)
+    ];
+    const result = arrange({
+      nodes,
+      edges: [
+        { source: 'a', target: 'b' },
+        { source: 'c', target: 'd' }
+      ],
+      effects: ['a', 'b', 'c', 'd'],
+      bandOfNodeId: new Map([['a', BAND_A], ['b', BAND_A], ['c', BAND_A], ['d', BAND_A]])
+    });
+    expect(result.get('b').x).toBeGreaterThan(result.get('a').x);
+    expect(result.get('c').x).toBeGreaterThanOrEqual(result.get('b').x);
+    expect(result.get('d').x).toBeGreaterThan(result.get('c').x);
   });
 
   it('keeps an unbanded effect where the author left it', () => {
@@ -551,6 +569,26 @@ describe('arrangeProcessGraph', () => {
     const [bandA, , bandC] = result.bands;
     expect(bandA.height).toBeLessThanOrEqual(150 + 2 * 170);
     expect(result.positions.get('c').y).toBeLessThan(bandC.top + 400);
+  });
+
+  it('spreads a mutually-evented trio across columns', () => {
+    const nodes = [processNode('a', 0, 0), processNode('b', 0, 0), processNode('c', 0, 0)];
+    const result = arrange({
+      nodes,
+      edges: [
+        { source: 'a', target: 'b', role: 'control' },
+        { source: 'b', target: 'a', role: 'control' },
+        { source: 'b', target: 'c', role: 'control' },
+        { source: 'c', target: 'b', role: 'control' },
+        { source: 'c', target: 'a', role: 'control' }
+      ],
+      effects: ['a', 'b', 'c'],
+      bandOfNodeId: new Map([['a', BAND_A], ['b', BAND_A], ['c', BAND_A]])
+    });
+    const xs = new Set(['a', 'b', 'c'].map(id => result.get(id).x));
+    expect(xs.size).toBe(3);
+    expect(result.get('b').x).toBeGreaterThan(result.get('a').x);
+    expect(result.get('c').x).toBeGreaterThan(result.get('b').x);
   });
 });
 
