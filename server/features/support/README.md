@@ -118,10 +118,12 @@ Chat messages can carry structured `instanceRefs`:
 [{ "type": "project", "id": "..." }]
 ```
 
-`ChatInstanceRefs.vue` renders a message's `instanceRefs[]` as an
-attached chip row under the message body — the same attachment surface
-files and media ride — and `{{instance:type:id}}` tokens inside authored
-text strip from display: refs never render inline inside a chat bubble.
+`ChatInstanceRefs.vue` renders a message's `instanceRefs[]` under the
+message body on the page surface — stacked bordered cards, one per ref:
+`InstanceInlineRef`'s compact card (preview band, identifier chip, state)
+where the type's compact surface carries one, a plain chip otherwise;
+click inspects the instance through the shared popover. Inline
+`{{instance:type:id}}` tokens inside authored text strip from display.
 The chat composer stores selected
 instances only in `instanceRefs`; it does not inject attachment tokens into the
 message body.
@@ -303,7 +305,10 @@ through the same path as picked files, caps and instance-chat gating
 included).
 Attachment-only messages are valid (empty body). Reply quotes persist the
 parent's attachments, and conversation summaries carry the last message's
-`attachments` so inbox previews render attachment chips.
+`attachments` so inbox previews render attachment chips. Images and video
+embed inline (gallery tiles, players); other files render as stacked
+bordered chips whose click opens the shared preview dialog
+(download for opaque kinds).
 
 ### Instance chats materialize files as child instances
 
