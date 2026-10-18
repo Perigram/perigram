@@ -38,7 +38,7 @@ targets a surface mount contract
 | `sheet-design-editor` | editor | 2 | The sheet-design type's editor: layout drag/rotate/snap, layer-pen styling, save through the mount's patch transport. Pure layout compute in `surfaces/lib/`. |
 | `cassette-designer` | editor | 2 | The cassette type's designer: parametric face graph, workpieces/attachments, profile sketch and folded 3D preview. Engine and render family in [`occs/`](./occs/README.md) and `surfaces/lib/`; the three.js preview runtime is vendored under `assets/vendor/three/`, the profile sketch canvas runs the vendored MLightCAD CAD engine under `assets/vendor/cad-viewer/` (DXF drawing/import; the open-source DWG parser is GPL and stays out) — the surface graph never imports an npm package (`perigram-plugin surfaces` walks and refuses it). |
 | `cassette-preview` | preview | 1 | The cassette type's read-only preview (M7): baked geometry rows when the record carries them, else the payload OCCS document through the plugin renderer; mounts in the platform's card and detail preview slots over `{ record, payload }`. Preview layer set (owner direction 2026-10-17): outline (`cut.outer`) and folds (`fold.route`) only, matched by layer `standardCode` (layer names are localized export names) — resolved by `cassettePreviewLayerSelection` in `surfaces/lib/drawingPreview.js`, the single home the designer's load-picker thumbnails reuse; a drawing outside the set renders all layers. |
-| `profile-preview` | preview | 1 | The profile library type's read-only preview: the record's stored sketch evaluated to its section (`occProfileSketchLayerData`) through the shared drawing-preview normalizer; quiet blank when the sketch does not resolve. |
+| `profile-preview` | preview | 1 | The profile library type's read-only preview: the record's stored sketch through the boolean fold (`resolveOccsProfileSketchLayerData`) and the shared drawing-preview normalizer; quiet blank when the sketch does not resolve. |
 
 ## Services
 
@@ -64,7 +64,11 @@ targets a surface mount contract
   swapped the mounted pack for the install (an install
   snapshot + service-node rewrites `nesting.solve` →
   `plugin.facade.nesting-solve`); type ids are unchanged, so instances
-  and process bindings resolve continuously.
+  and process bindings resolve continuously. Stored profile sketches
+  cross into the shape model through
+  `server/scripts/migrate-profile-sketches-to-shapes.js` (one-shot,
+  dry-run by default — see
+  [scripts README](../../server/scripts/README.md)).
 
 Parent: [workers README](../README.md). Platform consumer:
 [plugins feature](../../server/features/plugins/README.md).
