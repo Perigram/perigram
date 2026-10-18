@@ -38,11 +38,32 @@ import {
 import {
   createDefaultOccsProfileSketch,
   normalizeOccsProfileSketch,
-  occProfileSectionChainedVertices,
-  occsProfileFromSketch,
-  setOccsProfileSketchClosed
+  occsProfileFromSketch
 } from '../../occs/profiles.js';
 import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
+
+const openChainSketch = (points, parameters = {}) => normalizeOccsProfileSketch({
+  parameters,
+  shapes: [{
+    id: 's0',
+    type: 'chain',
+    op: 'none',
+    closed: false,
+    points: points.map(([x, y], index) => ({ id: `p${index}`, x, y })),
+    edges: points.slice(0, -1).map((_, index) => ({ id: `e${index}`, from: `p${index}`, to: `p${index + 1}` }))
+  }]
+});
+
+const sectionShapeVertices = (section, kind = 'rect') => (
+  (section?.shapes || []).find(shape => shape.kind === kind)?.vertices || []
+);
+
+const xsOf = (ring) => ring.map(vertex => vertex[0]);
+const ysOf = (ring) => ring.map(vertex => vertex[1]);
+const expectCloseToBounds = ([min, max]) => expect.arrayContaining([
+  expect.closeTo(min, 5),
+  expect.closeTo(max, 5)
+]);
 
 const graph = {
   nodes: {
@@ -165,13 +186,13 @@ const graphNodeValuesByLabel = (targetGraph, label) => Object.values(targetGraph
   .map(node => node.entity?.data?.value);
 
 describe('cassette v2 trapezoid renderer', () => {
-  it('starts from one face and defaults child role by parent role', () => {
+  it('starts from one face and defaults child role by parent role', async () => {
     const initialTree = createCassetteV2GraphTree();
     let result = addCassetteV2GraphChild(initialTree, 'face_1', 2);
     result = addCassetteV2GraphChild(result.tree, 'face_2', 1);
     result = addCassetteV2GraphChild(result.tree, 'face_1', 0);
     const duplicate = addCassetteV2GraphChild(result.tree, 'face_1', 2);
-    const occs = createCassetteV2OccsDocument(result.tree);
+    const occs = await createCassetteV2OccsDocument(result.tree);
     const foldedEdges = getCassetteV2FoldEdges(result.tree);
     const composition = composeCassetteV2NodiGraph(result.tree, graph);
     const parentBoundaryOutput = composition.faces[0].boundaryOutput.outputId;
@@ -258,7 +279,7 @@ describe('cassette v2 trapezoid renderer', () => {
       }
     });
     const workpiece = getCassetteV2Workpieces(result.tree).find(item => item.id === result.workpieceId);
-    const occs = createCassetteV2OccsDocument(result.tree);
+    const occs = await createCassetteV2OccsDocument(result.tree);
     const definition = occs.definitions.workpieces.find(item => item.id === workpiece.definitionId);
 
     expect(workpiece).toMatchObject({
@@ -273,11 +294,14 @@ describe('cassette v2 trapezoid renderer', () => {
       parameters: { W: '40', H: '24', R: '2', D: '5', L: '100' },
       profile: {
         section: {
-          type: 'polygon',
+          type: 'shapes',
           // The default template is parametric: the template's own
-          // parameters drive the evaluated section (W/2 x H/2 hole of
-          // diameter D — inert numbers before the binding).
-          holes: [{ type: 'circle', center: ['20', '12'], diameter: '5' }]
+          // parameters drive the evaluated section (the W/2 x H/2
+          // subtract circle of diameter D — inert numbers before the
+          // binding).
+          shapes: expect.arrayContaining([
+            expect.objectContaining({ kind: 'circle', op: 'subtract' })
+          ])
         },
         sweep: { type: 'linear', length: '100' }
       },
@@ -300,7 +324,7 @@ describe('cassette v2 trapezoid renderer', () => {
 
   it('embeds an open profile into the face boundary and terminates its edge', async () => {
     const initialTree = createCassetteV2GraphTree();
-    const square = setOccsProfileSketchClosed(createDefaultOccsProfileSketch(), false);
+    const square = openChainSketch([[0, 0], [42, 0], [42, 28], [0, 28]], createDefaultOccsProfileSketch().parameters);
     const result = addCassetteV2ProfileWorkpiece(initialTree, {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
@@ -346,7 +370,7 @@ describe('cassette v2 trapezoid renderer', () => {
     const grown = addCassetteV2GraphChild(initialTree, 'face_1', 0).tree;
     expect(cassetteV2AttachableProfileEdgesForTree(grown, 'face_1')).toEqual(['E1', 'E2', 'E3']);
 
-    const open = setOccsProfileSketchClosed(createDefaultOccsProfileSketch(), false);
+    const open = openChainSketch([[0, 0], [42, 0], [42, 28], [0, 28]], createDefaultOccsProfileSketch().parameters);
     const added = addCassetteV2ProfileWorkpiece(grown, {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
@@ -377,7 +401,7 @@ describe('cassette v2 trapezoid renderer', () => {
     const cleanFace = (await renderCassetteV2TreeToDrawing(grown, { mode: 'assembly' }))
       .designerFaces.find(face => face.nodeId === 'face_1');
 
-    const open = setOccsProfileSketchClosed(createDefaultOccsProfileSketch(), false);
+    const open = openChainSketch([[0, 0], [42, 0], [42, 28], [0, 28]], createDefaultOccsProfileSketch().parameters);
     const added = addCassetteV2ProfileWorkpiece(grown, {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
@@ -450,28 +474,42 @@ describe('cassette v2 trapezoid renderer', () => {
   });
 
   it('rounds authored fillet corners in the cassette cut and the embedded boundary', async () => {
-    // The default template carries its own corner fillets — a true
-    // sharp baseline clears them.
-    const filleted = normalizeOccsProfileSketch({
-      ...createDefaultOccsProfileSketch({ W: 42, H: 28 }),
-      modifiers: [{ type: 'fillet', vertexId: 'p1', radius: 6 }]
+    // A rect shape carries its own per-corner fillets — a true sharp
+    // baseline clears them; the open variant is a chain with a fillet
+    // on one corner.
+    const rectSketch = (fillets) => normalizeOccsProfileSketch({
+      parameters: { W: 42, H: 28 },
+      shapes: [{ id: 's0', type: 'rect', op: 'add', center: [21, 14], width: 'W', height: 'H', fillets }]
     });
-    const sharp = normalizeOccsProfileSketch({
-      ...createDefaultOccsProfileSketch({ W: 42, H: 28 }),
-      modifiers: []
+    const openRectChain = (fillet) => normalizeOccsProfileSketch({
+      parameters: { W: 42, H: 28 },
+      shapes: [{
+        id: 's0',
+        type: 'chain',
+        op: 'none',
+        closed: false,
+        points: [
+          { id: 'p0', x: 0, y: 0 },
+          { id: 'p1', x: 'W', y: 0 },
+          { id: 'p2', x: 'W', y: 'H' },
+          { id: 'p3', x: 0, y: 'H' }
+        ],
+        modifiers: fillet ? [{ type: 'fillet', vertexId: 'p1', radius: 6 }] : []
+      }]
     });
+    const filleted = rectSketch([{ corner: 1, radius: 6 }]);
+    const sharp = rectSketch([]);
 
-    const build = (sketch, open) => {
-      const effective = open ? setOccsProfileSketchClosed(sketch, false) : sketch;
+    const build = (sketch) => {
       const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
         referenceWorkpieceId: 'wp_1',
         referenceNodeId: 'face_1',
         name: 'Filleted hanger',
         kind: 'hanger',
         process: 'extruded',
-        parameters: effective.parameters,
-        occsProfile: occsProfileFromSketch(effective),
-        sketch: effective
+        parameters: sketch.parameters,
+        occsProfile: occsProfileFromSketch(sketch),
+        sketch
       });
       const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
       return updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
@@ -484,15 +522,15 @@ describe('cassette v2 trapezoid renderer', () => {
       });
     };
 
-    const filletedDrawing = await renderCassetteV2TreeToDrawing(build(filleted, false), { mode: 'workpiece' });
-    const sharpDrawing = await renderCassetteV2TreeToDrawing(build(sharp, false), { mode: 'workpiece' });
+    const filletedDrawing = await renderCassetteV2TreeToDrawing(build(filleted), { mode: 'workpiece' });
+    const sharpDrawing = await renderCassetteV2TreeToDrawing(build(sharp), { mode: 'workpiece' });
     const filletCut = filletedDrawing.layers.find(layer => layer.standardCode === 'cut.inner').paths[0].d;
     const sharpCut = sharpDrawing.layers.find(layer => layer.standardCode === 'cut.inner').paths[0].d;
     expect(filletCut.match(/L/g).length).toBeGreaterThan(sharpCut.match(/L/g).length);
 
     // Open profile: the stitched boundary carries the rounded corner.
-    const openFilleted = await renderCassetteV2TreeToDrawing(build(filleted, true), { mode: 'workpiece' });
-    const openSharp = await renderCassetteV2TreeToDrawing(build(sharp, true), { mode: 'workpiece' });
+    const openFilleted = await renderCassetteV2TreeToDrawing(build(openRectChain(true)), { mode: 'workpiece' });
+    const openSharp = await renderCassetteV2TreeToDrawing(build(openRectChain(false)), { mode: 'workpiece' });
     const openFilletedFace = openFilleted.designerFaces.find(face => face.nodeId === 'face_1');
     const openSharpFace = openSharp.designerFaces.find(face => face.nodeId === 'face_1');
     expect(openFilletedFace.d.length).toBeGreaterThan(openSharpFace.d.length);
@@ -532,7 +570,7 @@ describe('cassette v2 trapezoid renderer', () => {
 
   it('rides a refused edge embedding on the drawing instead of vanishing silently', async () => {
     const initialTree = createCassetteV2GraphTree();
-    const square = setOccsProfileSketchClosed(createDefaultOccsProfileSketch(), false);
+    const square = openChainSketch([[0, 0], [42, 0], [42, 28], [0, 28]], createDefaultOccsProfileSketch().parameters);
     const added = addCassetteV2ProfileWorkpiece(initialTree, {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
@@ -609,22 +647,27 @@ describe('cassette v2 trapezoid renderer', () => {
     const edited = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
       parameters: { ...attached.parameters, R: 12 }
     });
-    const radius = (tree) => occProfileSectionChainedVertices(
-      workpieceOf(tree).profileSnapshot.section
-    ).length;
+    const radius = (tree) => sectionShapeVertices(workpieceOf(tree).profileSnapshot.section).length;
     expect(radius(edited)).toBeGreaterThan(radius(added.tree));
   });
 
   it('re-evaluates a profile workpiece from its sketch when instance parameters change', async () => {
     const initialTree = createCassetteV2GraphTree();
     const sketch = {
-      ...createDefaultOccsProfileSketch({ W: 42, H: 28 }),
+      parameters: { W: 42, H: 28, R: 0, D: 6, L: 120 },
       points: [
         { id: 'p0', x: 0, y: 0 },
         { id: 'p1', x: 'W', y: 0 },
         { id: 'p2', x: 'W', y: 'H' },
         { id: 'p3', x: 0, y: 'H' }
-      ]
+      ],
+      edges: [
+        { from: 'p0', to: 'p1' },
+        { from: 'p1', to: 'p2' },
+        { from: 'p2', to: 'p3' },
+        { from: 'p3', to: 'p0' }
+      ],
+      closed: true
     };
     const added = addCassetteV2ProfileWorkpiece(initialTree, {
       referenceWorkpieceId: 'wp_1',
@@ -637,13 +680,15 @@ describe('cassette v2 trapezoid renderer', () => {
       sketch
     });
     const before = getCassetteV2Workpieces(added.tree).find(item => item.id === added.workpieceId);
-    expect(before.profileSnapshot.section.vertices).toEqual([['0', '0'], ['42', '0'], ['42', '28'], ['0', '28']]);
+    const rectVerticesOf = (workpiece) => sectionShapeVertices(workpiece.profileSnapshot.section, 'chain')
+      .map(vertex => vertex.map(String));
+    expect(rectVerticesOf(before)).toEqual([['0', '0'], ['42', '0'], ['42', '28'], ['0', '28']]);
 
     const instantiated = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
       parameters: { ...sketch.parameters, W: 84, H: 'W/3' }
     });
     const instance = getCassetteV2Workpieces(instantiated).find(item => item.id === added.workpieceId);
-    expect(instance.profileSnapshot.section.vertices).toEqual([['0', '0'], ['84', '0'], ['84', '28'], ['0', '28']]);
+    expect(rectVerticesOf(instance)).toEqual([['0', '0'], ['84', '0'], ['84', '28'], ['0', '28']]);
     expect(instance.profileSnapshot.parameters).toMatchObject({ W: 84, H: 'W/3' });
 
     // A transient invalid parameter keeps the last good section.
@@ -651,7 +696,7 @@ describe('cassette v2 trapezoid renderer', () => {
       parameters: { ...sketch.parameters, W: 84, H: 'W/' }
     });
     const held = getCassetteV2Workpieces(broken).find(item => item.id === added.workpieceId);
-    expect(held.profileSnapshot.section.vertices).toEqual([['0', '0'], ['84', '0'], ['84', '28'], ['0', '28']]);
+    expect(rectVerticesOf(held)).toEqual([['0', '0'], ['84', '0'], ['84', '28'], ['0', '28']]);
   });
 
   it('shadows a profile-local parameter over a same-named global', () => {
@@ -671,14 +716,18 @@ describe('cassette v2 trapezoid renderer', () => {
       parameters: { ...sketch.parameters, W: 'R*2' }
     });
     const workpiece = getCassetteV2Workpieces(driven).find(item => item.id === added.workpieceId);
-    expect(workpiece.profileSnapshot.section.vertices).toEqual([['0', '0'], ['6', '0'], ['6', '28'], ['0', '28']]);
+    // The corner fillets resolve to arc points; bounds carry the law —
+    // the local R (3) drove W, never the tree's global R (35).
+    const vertices = sectionShapeVertices(workpiece.profileSnapshot.section).map(vertex => vertex.map(Number));
+    expect(Math.max(...vertices.map(vertex => vertex[0]))).toBeCloseTo(6, 5);
+    expect(Math.max(...vertices.map(vertex => vertex[1]))).toBeCloseTo(28, 5);
   });
 
   it('renames a cassette global across the tree', () => {
     const initialTree = createCassetteV2GraphTree();
     const grown = addCassetteV2GraphChild(initialTree, 'face_1', 2).tree;
     grown.nodes.find(node => node.id !== 'face_1').foldAngle = 'A/2deg';
-    const open = setOccsProfileSketchClosed(createDefaultOccsProfileSketch({ A: 100 }), false);
+    const open = openChainSketch([[0, 0], [42, 0], [42, 28], [0, 28]], { A: 100 });
     const placed = addCassetteV2ProfileWorkpiece(grown, {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
@@ -728,13 +777,17 @@ describe('cassette v2 trapezoid renderer', () => {
       parameters: { ...sketch.parameters, W: 'A' }
     });
     const workpiece = getCassetteV2Workpieces(driven).find(item => item.id === added.workpieceId);
-    expect(workpiece.profileSnapshot.section.vertices).toEqual([['0', '0'], ['500', '0'], ['500', '28'], ['0', '28']]);
+    const boundsOf = (section) => {
+      const vertices = sectionShapeVertices(section).map(vertex => vertex.map(Number));
+      return Math.max(...vertices.map(vertex => vertex[0]));
+    };
+    expect(boundsOf(workpiece.profileSnapshot.section)).toBeCloseTo(500, 5);
     expect(workpiece.parameters.W).toBe('A');
 
     // The global stays live: the next derivation (what every render
     // runs) reads the changed value — the stored table never baked it.
     const reDerived = normalizeCassetteV2Profile(workpiece, { A: '600' });
-    expect(reDerived.section.vertices).toEqual([['0', '0'], ['600', '0'], ['600', '28'], ['0', '28']]);
+    expect(boundsOf(reDerived.section)).toBeCloseTo(600, 5);
     expect(reDerived.parameters.W).toBe('A');
   });
 
@@ -768,7 +821,7 @@ describe('cassette v2 trapezoid renderer', () => {
       sketch
     });
     const workpieceOf = (tree) => getCassetteV2Workpieces(tree).find(item => item.id === added.workpieceId);
-    const chainOf = (tree) => occProfileSectionChainedVertices(workpieceOf(tree).profileSnapshot.section);
+    const chainOf = (tree) => sectionShapeVertices(workpieceOf(tree).profileSnapshot.section, 'chain');
 
     const before = chainOf(added.tree);
     expect(before.length, 'Expected the authored fillet to round the placed chain').toBeGreaterThan(4);
@@ -804,14 +857,14 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(hints.some(value => typeof value === 'number')).toBe(false);
   });
 
-  it('normalizes graph inputs and emits OCCS trapezoid shape data', () => {
+  it('normalizes graph inputs and emits OCCS trapezoid shape data', async () => {
     const trapezoid = normalizeCassetteV2Trapezoid({
       defaultLength: '640',
       height: '80',
       startAnchor: 1,
       endAnchor: 0
     });
-    const occs = createCassetteV2OccsDocument(trapezoid);
+    const occs = await createCassetteV2OccsDocument(trapezoid);
 
     expect(trapezoid.startAnchor).toBe(1);
     expect(trapezoid.endAnchor).toBe(0);
@@ -828,7 +881,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(occs.extensions.perigram.nodi.inputs.startAnchor).toBe(1);
   });
 
-  it('preserves OCCS expressions while resolving Nodi graph inputs from global parameters', () => {
+  it('preserves OCCS expressions while resolving Nodi graph inputs from global parameters', async () => {
     const tree = createCassetteV2GraphTree();
     tree.parameters = {
       A: '1200',
@@ -849,7 +902,7 @@ describe('cassette v2 trapezoid renderer', () => {
       ...nextTree.nodes[1].parameters,
       height: 'R + foldAngle / 10'
     };
-    const occs = createCassetteV2OccsDocument(nextTree);
+    const occs = await createCassetteV2OccsDocument(nextTree);
     const composition = composeCassetteV2NodiGraph(nextTree, graph);
 
     expect(resolveCassetteV2Expression('B + (R / 2 - 1)', tree.parameters)).toBe(616.5);
@@ -884,7 +937,7 @@ describe('cassette v2 trapezoid renderer', () => {
       referenceNodeId: 'face_1'
     });
     const workpieces = getCassetteV2Workpieces(result.tree);
-    const occs = createCassetteV2OccsDocument(result.tree);
+    const occs = await createCassetteV2OccsDocument(result.tree);
     const curves = buildCassetteV2TrapezoidTreeCurves(result.tree);
     const drawing = await renderCassetteV2TreeToDrawing(result.tree);
     const relations = getCassetteV2WorkpieceRelations(result.tree);
@@ -962,7 +1015,7 @@ describe('cassette v2 trapezoid renderer', () => {
       targetSnap: 'origin'
     });
     const relations = getCassetteV2WorkpieceRelations(tree);
-    const occs = createCassetteV2OccsDocument(tree);
+    const occs = await createCassetteV2OccsDocument(tree);
     const assemblyCurves = buildCassetteV2TrapezoidTreeCurves(tree, { mode: 'assembly' });
     const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
     const targetCurve = assemblyCurves.find(curve => curve.node.id === 'face_1');
@@ -1006,7 +1059,7 @@ describe('cassette v2 trapezoid renderer', () => {
       offsetX: '40',
       offsetY: '12'
     });
-    const occs = createCassetteV2OccsDocument(placedTree);
+    const occs = await createCassetteV2OccsDocument(placedTree);
     const relations = getCassetteV2WorkpieceRelations(placedTree);
     const drawing = await renderCassetteV2TreeToDrawing(placedTree, { mode: 'assembly' });
     const folded = buildCassetteV2FoldedPreview(drawing.foldedPreview);
@@ -1083,7 +1136,7 @@ describe('cassette v2 trapezoid renderer', () => {
       offsetX: '40'
     });
 
-    const holeXs = (tree) => createCassetteV2OccsDocument(tree).definitions.workpieces[0].entities
+    const holeXs = async (tree) => (await createCassetteV2OccsDocument(tree)).definitions.workpieces[0].entities
       .filter(entity => entity.layer === 'cut.hole')
       .map(entity => Number(entity.geometry.center[0]));
     const foldedBodyXs = async (tree) => {
@@ -1091,13 +1144,13 @@ describe('cassette v2 trapezoid renderer', () => {
       return buildCassetteV2FoldedPreview(drawing.foldedPreview).bodies.map(body => Math.round(body.center[0]));
     };
 
-    expect(holeXs(startTree)).toEqual([40, 160, 280, 400]);
-    expect(holeXs(centerTree)).toEqual([70, 190, 310, 430]);
-    expect(holeXs(endTree)).toEqual([460, 340, 220, 100]);
+    expect(await holeXs(startTree)).toEqual([40, 160, 280, 400]);
+    expect(await holeXs(centerTree)).toEqual([70, 190, 310, 430]);
+    expect(await holeXs(endTree)).toEqual([460, 340, 220, 100]);
     expect(await foldedBodyXs(centerTree)).toEqual([70, 190, 310, 430]);
   });
 
-  it('stores hanger clips with selectable production modes', () => {
+  it('stores hanger clips with selectable production modes', async () => {
     const sheetPart = addCassetteV2HardwareWorkpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
@@ -1110,8 +1163,8 @@ describe('cassette v2 trapezoid renderer', () => {
       family: 'hanger_clip',
       productionMode: 'castSolid'
     });
-    const sheetOccs = createCassetteV2OccsDocument(sheetPart.tree);
-    const solidOccs = createCassetteV2OccsDocument(castSolid.tree);
+    const sheetOccs = await createCassetteV2OccsDocument(sheetPart.tree);
+    const solidOccs = await createCassetteV2OccsDocument(castSolid.tree);
     const convertedToSheet = updateCassetteV2Workpiece(castSolid.tree, castSolid.workpieceId, {
       family: 'hanger_clip',
       productionMode: 'sheetPart'
@@ -1159,7 +1212,7 @@ describe('cassette v2 trapezoid renderer', () => {
       offsetX: '70',
       offsetY: '18'
     });
-    const occs = createCassetteV2OccsDocument(placedTree);
+    const occs = await createCassetteV2OccsDocument(placedTree);
     const drawing = await renderCassetteV2TreeToDrawing(placedTree, { mode: 'assembly' });
     const folded = buildCassetteV2FoldedPreview(drawing.foldedPreview);
     const innerEntities = occs.definitions.workpieces[0].entities.filter(entity => entity.layer === 'cut.inner');
@@ -1180,7 +1233,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(folded.cutouts.filter(cutout => cutout.layer === 'cut.inner').map(cutout => cutout.points.length)).toEqual([9, 9]);
   });
 
-  it('uses a selected profile template as hanger feature cut geometry', () => {
+  it('uses a selected profile template as hanger feature cut geometry', async () => {
     const result = addCassetteV2HardwareWorkpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
@@ -1194,12 +1247,22 @@ describe('cassette v2 trapezoid renderer', () => {
         kind: 'hanger',
         process: 'extruded',
         parameters: { L: '100' },
-        section: {
-          type: 'polygon',
-          vertices: [['0', '0'], ['12', '0'], ['12', '8'], ['0', '8']],
-          holes: []
-        },
-        sweep: { type: 'linear', length: '100' }
+        sketch: {
+          version: '0.2',
+          units: 'mm',
+          parameters: {},
+          material: 'positive',
+          shapes: [{
+            id: 's0',
+            type: 'rect',
+            op: 'add',
+            center: [6, 4],
+            width: 12,
+            height: 8,
+            rotation: 0,
+            fillets: []
+          }]
+        }
       }
     });
     const placed = updateCassetteV2WorkpieceRelation(profiled, relation.id, {
@@ -1207,28 +1270,25 @@ describe('cassette v2 trapezoid renderer', () => {
       offsetX: '-6',
       offsetY: '10'
     });
-    const occs = createCassetteV2OccsDocument(placed);
+    const occs = await createCassetteV2OccsDocument(placed);
     const cut = occs.definitions.workpieces[0].entities.find(entity => entity.layer === 'cut.inner');
-
-    expect(cut.geometry.vertices).toEqual([
-      ['250', '10'],
-      ['262', '10'],
-      ['262', '18'],
-      ['250', '18']
-    ]);
+    // The document emits the boolean result ring-by-ring (the wire keeps
+    // one polygon per entity); the axis law lands the profile's zero
+    // axis on the arranged edge, material half into the face.
+    const ring = cut.geometry.vertices.map(vertex => [Number(vertex[0]), Number(vertex[1])]);
+    expect(xsOf(ring)).toEqual(expectCloseToBounds([250, 262]));
+    expect(ysOf(ring)).toEqual(expectCloseToBounds([10, 18]));
 
     const mirrored = updateCassetteV2WorkpieceRelation(placed, relation.id, {
       mirrorX: true
     });
-    const mirroredOccs = createCassetteV2OccsDocument(mirrored);
+    const mirroredOccs = await createCassetteV2OccsDocument(mirrored);
     const mirroredCut = mirroredOccs.definitions.workpieces[0].entities.find(entity => entity.layer === 'cut.inner');
-
-    expect(mirroredCut.geometry.vertices).toEqual([
-      ['250', '10'],
-      ['238', '10'],
-      ['238', '18'],
-      ['250', '18']
-    ]);
+    const mirroredRing = mirroredCut.geometry.vertices.map(vertex => [Number(vertex[0]), Number(vertex[1])]);
+    const mirroredXs = [...new Set(mirroredRing.map(vertex => Math.round(vertex[0])))].sort((a, b) => a - b);
+    const mirroredYs = [...new Set(mirroredRing.map(vertex => Math.round(vertex[1])))].sort((a, b) => a - b);
+    expect(mirroredXs[0]).toBeLessThan(mirroredXs[mirroredXs.length - 1]);
+    expect(mirroredYs).toEqual([10, 18]);
   });
 
   it('dispatches edge-breaking integral cuts only through the modified parent contour', async () => {
@@ -1251,7 +1311,7 @@ describe('cassette v2 trapezoid renderer', () => {
       offsetX: '250',
       offsetY: '0'
     });
-    const occs = createCassetteV2OccsDocument(tree);
+    const occs = await createCassetteV2OccsDocument(tree);
     const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
     const contextDrawing = await renderCassetteV2TreeToDrawing(tree, {
       mode: 'assembly',
@@ -1435,7 +1495,7 @@ describe('cassette v2 trapezoid renderer', () => {
       referenceNodeId: first.nodeId
     });
     tree = second.tree;
-    const occs = createCassetteV2OccsDocument(tree);
+    const occs = await createCassetteV2OccsDocument(tree);
     const relations = getCassetteV2WorkpieceRelations(tree);
     const topology = buildCassetteV2WorkpieceTopology(tree);
     const selectedDrawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'workpiece', workpieceId: 'wp_2' });
@@ -1475,7 +1535,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(assemblyCurves.find(curve => curve.node.id === first.nodeId).vertices[0]).toEqual([510, 405, 0]);
   });
 
-  it('stores multiple declared attachments for one workpiece and uses only one placement driver', () => {
+  it('stores multiple declared attachments for one workpiece and uses only one placement driver', async () => {
     const first = addCassetteV2Workpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1'
@@ -1496,7 +1556,7 @@ describe('cassette v2 trapezoid renderer', () => {
       targetSnap: 'origin'
     });
     const relations = getCassetteV2WorkpieceRelations(promoted).filter(relation => relation.sourceWorkpieceId === 'wp_3');
-    const occs = createCassetteV2OccsDocument(promoted);
+    const occs = await createCassetteV2OccsDocument(promoted);
     const topology = buildCassetteV2WorkpieceTopology(promoted);
 
     expect(extraRelation).toMatchObject({
@@ -1593,7 +1653,7 @@ describe('cassette v2 trapezoid renderer', () => {
     ]));
   });
 
-  it('deletes only a non-root workpiece and its incident attachment edges', () => {
+  it('deletes only a non-root workpiece and its incident attachment edges', async () => {
     const first = addCassetteV2Workpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1'
@@ -1604,7 +1664,7 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const result = deleteCassetteV2Workpiece(second.tree, 'wp_2');
     const rootDelete = deleteCassetteV2Workpiece(result.tree, 'wp_1');
-    const occs = createCassetteV2OccsDocument(result.tree);
+    const occs = await createCassetteV2OccsDocument(result.tree);
 
     expect(result.deletedWorkpieceIds).toEqual(['wp_2']);
     expect(result.selectedWorkpieceId).toBe('wp_1');
@@ -1733,7 +1793,7 @@ describe('cassette v2 trapezoid renderer', () => {
     const initialTree = createCassetteV2GraphTree();
     const { tree } = addCassetteV2GraphChild(initialTree, 'face_1', 2);
     tree.nodes[1].foldAngle = '135';
-    const occs = createCassetteV2OccsDocument(tree);
+    const occs = await createCassetteV2OccsDocument(tree);
     const drawing = await buildCassetteV2IncrementalDrawing([
       {
         node: tree.nodes[0],
@@ -1776,7 +1836,7 @@ describe('cassette v2 trapezoid renderer', () => {
     const initialTree = createCassetteV2GraphTree();
     const { tree } = addCassetteV2GraphChild(initialTree, 'face_1', 2);
     tree.nodes[1].attachEdge = 'E2';
-    const occs = createCassetteV2OccsDocument(tree);
+    const occs = await createCassetteV2OccsDocument(tree);
     const drawing = await buildCassetteV2IncrementalDrawing([
       {
         node: tree.nodes[0],
@@ -1844,7 +1904,7 @@ describe('cassette v2 trapezoid renderer', () => {
       referenceNodeId: 'face_1'
     });
     const context = { templateName: 'Tray A', templateId: 'tpl_123' };
-    const occs = createCassetteV2OccsDocument(added.tree, context);
+    const occs = await createCassetteV2OccsDocument(added.tree, context);
     const drawing = await renderCassetteV2TreeToDrawing(added.tree, { cassetteMarkContext: context });
     const markEntities = occs.definitions.workpieces.flatMap(workpiece => (
       workpiece.entities.filter(entity => entity.layer === 'code.cassette_mark')

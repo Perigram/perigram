@@ -347,7 +347,7 @@ describe('cassette v2 folded preview', () => {
   it('drives the default hanger template from cassette instance parameters', async () => {
     const { renderCassetteV2TreeToDrawing, addCassetteV2ProfileWorkpiece, updateCassetteV2Workpiece, createCassetteV2GraphTree, getCassetteV2Workpieces } =
       await import('./cassetteV2Renderer.js');
-    const { createDefaultOccsProfileSketch, occProfileSectionChainedVertices } =
+    const { createDefaultOccsProfileSketch } =
       await import('../../occs/profiles.js');
 
     // The default hanger: no template, no authored sketch — the
@@ -361,20 +361,20 @@ describe('cassette v2 folded preview', () => {
       .find(workpiece => workpiece.id === added.workpieceId).profileSnapshot;
 
     const before = snapshotOf(added.tree);
-    expect(before.sketch.points[1]).toMatchObject({ x: 'W' });
-    expect(before.sketch.modifiers[0]).toMatchObject({ radius: 'R' });
+    const rectSketchOf = (snapshot) => snapshot.sketch.shapes.find(shape => shape.type === 'rect');
+    const rectRingOf = (snapshot) => (snapshot.section?.shapes || []).find(shape => shape.kind === 'rect')?.vertices || [];
+    expect(rectSketchOf(before)).toMatchObject({ width: 'W', height: 'H' });
+    expect(rectSketchOf(before).fillets[0]).toMatchObject({ radius: 'R' });
 
     // The owner's exact case: change R from the cassette row.
     const updated = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
       parameters: { R: 6 }
     });
     const after = snapshotOf(updated);
-    // The section re-derives: the evaluated fillet radius follows R.
-    expect(after.section.modifiers[0].radius).toBe(6);
-    const chain = occProfileSectionChainedVertices(after.section);
-    expect(chain.length).toBeGreaterThan(4);
-    const baseline = occProfileSectionChainedVertices(before.section);
-    expect(chain.length).toBeGreaterThan(baseline.length);
+    // The section re-derives: a larger fillet radius grows the resolved
+    // corner arcs.
+    expect(rectRingOf(after).length).toBeGreaterThan(rectRingOf(before).length);
+    expect(rectRingOf(after).length).toBeGreaterThan(4);
 
     // And the drawing's cut follows the parameter too (point-mode
     // placement cuts at the snap point).
@@ -386,7 +386,7 @@ describe('cassette v2 folded preview', () => {
 
   it('carries profile modifications into the folded 3D faces', async () => {    const { renderCassetteV2TreeToDrawing, addCassetteV2ProfileWorkpiece, updateCassetteV2WorkpieceRelation, getCassetteV2WorkpieceRelations, createCassetteV2GraphTree } =
       await import('./cassetteV2Renderer.js');
-    const { createDefaultOccsProfileSketch, occsProfileFromSketch, setOccsProfileSketchClosed } =
+    const { createDefaultOccsProfileSketch, occsProfileFromSketch, normalizeOccsProfileSketch } =
       await import('../../occs/profiles.js');
 
     const build = (sketch, patch) => {
@@ -403,9 +403,20 @@ describe('cassette v2 folded preview', () => {
       const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
       return updateCassetteV2WorkpieceRelation(added.tree, relation.id, patch);
     };
+    const openChainSketch = (points, parameters = {}) => normalizeOccsProfileSketch({
+      parameters,
+      shapes: [{
+        id: 's0',
+        type: 'chain',
+        op: 'none',
+        closed: false,
+        points: points.map(([x, y], index) => ({ id: `p${index}`, x, y })),
+        edges: points.slice(0, -1).map((_, index) => ({ id: `e${index}`, from: `p${index}`, to: `p${index + 1}` }))
+      }]
+    });
 
     // Open profile: the folded face's boundary is the stitched contour.
-    const open = setOccsProfileSketchClosed(createDefaultOccsProfileSketch({ W: 42, H: 28 }), false);
+    const open = openChainSketch([[0, 0], [42, 0], [42, 28], [0, 28]], { W: 42, H: 28 });
     const openDrawing = await renderCassetteV2TreeToDrawing(
       build(open, { placementMode: 'edgeArray', arrayEdge: 'E2', arrayMode: 'count', arrayCount: '1' }),
       { mode: 'assembly', contextWorkpieceId: 'wp_1' }

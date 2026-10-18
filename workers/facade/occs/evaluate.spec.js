@@ -10,13 +10,27 @@ import {
 import {
   createDefaultOccsProfileSketch,
   normalizeOccsProfileSketch,
-  occsProfileFromSketch,
-  setOccsProfileSketchClosed
+  occsProfileFromSketch
 } from './profiles.js';
+
+const openChainSketch = (points, parameters = {}) => normalizeOccsProfileSketch({
+  parameters,
+  shapes: [{
+    id: 's0',
+    type: 'chain',
+    op: 'none',
+    closed: false,
+    points: points.map((point, index) => ({ id: `p${index}`, x: point[0], y: point[1] })),
+    edges: points.slice(0, -1).map((_, index) => ({ id: `e${index}`, from: `p${index}`, to: `p${index + 1}` }))
+  }]
+});
 
 describe('OCCS cassette evaluation', () => {
   it('embeds the open-profile composite into the evaluated contour and nesting', async () => {
-    const openSketch = setOccsProfileSketchClosed(createDefaultOccsProfileSketch({ W: 30, H: 20 }), false);
+    const openSketch = openChainSketch(
+      [[0, 0], [30, 0], [30, 20], [0, 20]].slice(0, 3),
+      { W: 30, H: 20 }
+    );
     const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
@@ -27,7 +41,7 @@ describe('OCCS cassette evaluation', () => {
       occsProfile: occsProfileFromSketch(openSketch),
       sketch: openSketch
     });
-    const definition = createCassetteV2OccsDocument(added.tree);
+    const definition = await createCassetteV2OccsDocument(added.tree);
     const result = await evaluateOccsCassetteTemplate(definition, {});
 
     // The whole bound edge is replaced by the composite chain: host edge
@@ -48,7 +62,7 @@ describe('OCCS cassette evaluation', () => {
     // count grows past the plain face contour by the copy interiors.
     expect(result.nestingPolygons).toHaveLength(1);
     const plain = await evaluateOccsCassetteTemplate(
-      createCassetteV2OccsDocument(createCassetteV2GraphTree()), {}
+      await createCassetteV2OccsDocument(createCassetteV2GraphTree()), {}
     );
     expect(result.nestingPolygons[0].coordinates.length)
       .toBeGreaterThan(plain.nestingPolygons[0].coordinates.length);
@@ -77,10 +91,14 @@ describe('OCCS cassette evaluation', () => {
       offsetY: '30'
     });
 
-    const definition = createCassetteV2OccsDocument(tree);
+    const definition = await createCassetteV2OccsDocument(tree);
     const result = await evaluateOccsCassetteTemplate(definition, {});
     const profileCuts = result.layerData.filter(item => item.layer === 'cut.inner');
-    expect(profileCuts).toHaveLength(3);
+    // Three placed copies; each copy's boolean result carries its outer
+    // ring and its subtracted hole as separate cut paths.
+    const cutIds = new Set(profileCuts.map(cut => cut.handles[0].replace(/:\d+$/, '')));
+    expect(cutIds.size).toBe(3);
+    expect(profileCuts).toHaveLength(6);
     for (const cut of profileCuts) {
       expect(cut.relationId).toBe(relation.id);
       expect(cut.profileWorkpieceId).toBeTruthy();
@@ -89,12 +107,7 @@ describe('OCCS cassette evaluation', () => {
   });
 
   it('refuses open-profile placements that overflow or overlap', async () => {
-    const longSketch = normalizeOccsProfileSketch({
-      version: '0.1', units: 'mm', parameters: {},
-      points: [{ id: 'p0', x: 0, y: 0 }, { id: 'p1', x: 5000, y: 0 }],
-      edges: [{ id: 'e0', type: 'line', from: 'p0', to: 'p1' }],
-      holes: [], closed: false, modifiers: [], constraints: []
-    });
+    const longSketch = openChainSketch([[0, 0], [5000, 0]]);
     const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
@@ -105,7 +118,7 @@ describe('OCCS cassette evaluation', () => {
       occsProfile: occsProfileFromSketch(longSketch),
       sketch: longSketch
     });
-    const definition = createCassetteV2OccsDocument(added.tree);
+    const definition = await createCassetteV2OccsDocument(added.tree);
     await expect(evaluateOccsCassetteTemplate(definition, {})).rejects.toThrow(/invalid/i);
   });
 
@@ -151,7 +164,7 @@ describe('OCCS cassette evaluation', () => {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1'
     });
-    const definition = createCassetteV2OccsDocument(added.tree);
+    const definition = await createCassetteV2OccsDocument(added.tree);
     const result = await evaluateOccsCassetteTemplate(definition, {
       A: 700,
       B: 300,
@@ -195,7 +208,7 @@ describe('OCCS cassette evaluation', () => {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1'
     });
-    const definition = createCassetteV2OccsDocument(added.tree);
+    const definition = await createCassetteV2OccsDocument(added.tree);
     definition.definitions.workpieces[1].type = 'hardware';
 
     const result = await evaluateOccsCassetteTemplate(definition, {

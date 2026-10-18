@@ -1,4 +1,5 @@
 import { resolveOccsExpression, rewriteOccsExpressionIdentifiers } from './expressions.js';
+import { differenceCassetteV2Polygons, unionCassetteV2FacePolygons } from '../surfaces/lib/cassetteV2Clipper.js';
 
 export const OCCS_PROFILE_KINDS = Object.freeze([
   'hanger',
@@ -21,75 +22,67 @@ export const DEFAULT_OCCS_PROFILE_PARAMETERS = Object.freeze({
   L: 120
 });
 
-// The numeric geometry seed normalize fills MISSING sketch fields with.
-// It must stay literal: seeded fields belong to sketches that never
-// authored them, and expression-bound seeds would reference identifiers
-// those sketches do not carry (evaluation throws). The parametric
-// default below is the TEMPLATE path — the profile dialog and the
-// sketch-less fallback, whose tables always carry W/H/R/D/L.
+export const OCCS_PROFILE_SHAPE_OPS = Object.freeze(['add', 'subtract', 'none']);
+
+// The material half of the zero axis (X=0) is a boolean body: the
+// evaluated section is clipped to it. 'positive' hatches X>0.
+export const normalizeOccsProfileMaterial = (material) => (
+  material === 'negative' ? 'negative' : 'positive'
+);
+
+const RECT_TEMPLATE_FILLET_CORNERS = [0, 1, 2, 3];
+
 const PROFILE_GEOMETRY_SEED = Object.freeze({
-  points: [
-    { id: 'p0', x: 0, y: 0 },
-    { id: 'p1', x: 42, y: 0 },
-    { id: 'p2', x: 42, y: 28 },
-    { id: 'p3', x: 0, y: 28 }
-  ],
-  edges: [
-    { id: 'e0', type: 'line', from: 'p0', to: 'p1' },
-    { id: 'e1', type: 'line', from: 'p1', to: 'p2' },
-    { id: 'e2', type: 'line', from: 'p2', to: 'p3' },
-    { id: 'e3', type: 'line', from: 'p3', to: 'p0' }
-  ],
-  holes: [
-    { id: 'h0', type: 'circle', center: [21, 14], diameter: 6 }
-  ]
+  rect: {
+    center: [21, 14],
+    width: 42,
+    height: 28,
+    rotation: 0,
+    fillets: RECT_TEMPLATE_FILLET_CORNERS.map(corner => ({ corner, radius: 3 }))
+  },
+  circle: { center: [21, 14], diameter: 6 }
 });
 
+// Parametric by law: the template's geometry binds to its table (W/H the
+// rectangle, R the corner fillets, D the hole; L resolves the sweep at
+// evaluation), so cassette instance parameters drive it.
 export const createDefaultOccsProfileSketch = (parameters = {}) => ({
-  version: '0.1',
+  version: '0.2',
   units: 'mm',
   parameters: {
     ...DEFAULT_OCCS_PROFILE_PARAMETERS,
     ...parameters
   },
-  // Parametric by law: the geometry binds to the table (W/H the
-  // rectangle, R the corner fillets, D the hole; L resolves the sweep at
-  // evaluation), so cassette instance parameters drive it and the
-  // workpiece row's chips are live.
-  points: [
-    { id: 'p0', x: 0, y: 0 },
-    { id: 'p1', x: 'W', y: 0 },
-    { id: 'p2', x: 'W', y: 'H' },
-    { id: 'p3', x: 0, y: 'H' }
-  ],
-  edges: PROFILE_GEOMETRY_SEED.edges,
-  holes: [
-    { id: 'h0', type: 'circle', center: ['W/2', 'H/2'], diameter: 'D' }
-  ],
-  closed: true,
-  modifiers: [
-    { type: 'fillet', vertexId: 'p0', radius: 'R' },
-    { type: 'fillet', vertexId: 'p1', radius: 'R' },
-    { type: 'fillet', vertexId: 'p2', radius: 'R' },
-    { type: 'fillet', vertexId: 'p3', radius: 'R' }
-  ],
-  constraints: []
+  material: 'positive',
+  shapes: [
+    {
+      id: 's0',
+      type: 'rect',
+      op: 'add',
+      center: ['W/2', 'H/2'],
+      width: 'W',
+      height: 'H',
+      rotation: 0,
+      fillets: RECT_TEMPLATE_FILLET_CORNERS.map(corner => ({ corner, radius: 'R' }))
+    },
+    {
+      id: 's1',
+      type: 'circle',
+      op: 'subtract',
+      center: ['W/2', 'H/2'],
+      diameter: 'D'
+    }
+  ]
 });
 
 export const createEmptyOccsProfileSketch = (parameters = {}) => ({
-  version: '0.1',
+  version: '0.2',
   units: 'mm',
   parameters: { ...parameters },
-  points: [],
-  edges: [],
-  holes: [],
-  closed: false,
-  modifiers: [],
-  constraints: []
+  material: 'positive',
+  shapes: []
 });
 
-// The parameter table starts empty — parameters are added when a sketch
-// needs them; nothing is pre-seeded.
 export const createDefaultOccsProfileTemplateData = (overrides = {}) => ({
   kind: overrides.kind || 'hanger',
   process: overrides.process || 'extruded',
@@ -115,6 +108,46 @@ const sketchValue = (value, fallback = 0) => {
   }
   return fallback;
 };
+
+const normalizeOp = (op, fallback = 'none') => (
+  OCCS_PROFILE_SHAPE_OPS.includes(op) ? op : fallback
+);
+
+const normalizeCenter = (center = []) => [
+  sketchValue(Array.isArray(center) ? center[0] : 0, 0),
+  sketchValue(Array.isArray(center) ? center[1] : 0, 0)
+];
+
+const normalizeCircleShape = (shape = {}, index = 0, fallbackOp) => ({
+  id: shape.id || `s${index}`,
+  type: 'circle',
+  op: normalizeOp(shape.op, fallbackOp),
+  center: normalizeCenter(shape.center),
+  diameter: sketchValue(shape.diameter, 0)
+});
+
+const normalizeRectFillets = (fillets = [], width = 0, height = 0) => {
+  const byCorner = new Map();
+  for (const fillet of Array.isArray(fillets) ? fillets : []) {
+    const corner = Number(fillet?.corner);
+    if (!Number.isInteger(corner) || corner < 0 || corner > 3) continue;
+    byCorner.set(corner, sketchValue(fillet.radius, 0));
+  }
+  return [...byCorner.entries()]
+    .filter(([, radius]) => radius !== 0)
+    .map(([corner, radius]) => ({ corner, radius }));
+};
+
+const normalizeRectShape = (shape = {}, index = 0, fallbackOp) => ({
+  id: shape.id || `s${index}`,
+  type: 'rect',
+  op: normalizeOp(shape.op, fallbackOp),
+  center: normalizeCenter(shape.center),
+  width: sketchValue(shape.width, 0),
+  height: sketchValue(shape.height, 0),
+  rotation: sketchValue(shape.rotation, 0),
+  fillets: normalizeRectFillets(shape.fillets)
+});
 
 const normalizePoint = (point = {}, index = 0) => ({
   id: point.id || `p${index}`,
@@ -150,91 +183,167 @@ const normalizeFilletModifiers = (modifiers = [], pointIds = new Set()) => {
   return [...filletsByVertex.values()];
 };
 
-export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {}) => {
-  // Missing geometry fields fill from the numeric seed — never the
-  // parametric default, whose expressions need a table the sketch may
-  // not carry.
-  const fallback = {
-    points: PROFILE_GEOMETRY_SEED.points,
-    edges: PROFILE_GEOMETRY_SEED.edges,
-    holes: PROFILE_GEOMETRY_SEED.holes,
-    parameters: { ...DEFAULT_OCCS_PROFILE_PARAMETERS, ...fallbackParameters }
-  };
-  const rawParameters = {
-    ...(fallbackParameters || {}),
-    ...(sketch.parameters || {})
-  };
-  const parameters = Object.fromEntries(
-    Object.entries(rawParameters).map(([key, value]) => [key, sketchValue(value, 0)])
-  );
-  const points = Array.isArray(sketch.points)
-    ? sketch.points.map(normalizePoint)
-    : fallback.points;
+const normalizeChainShape = (shape = {}, index = 0, fallbackOp) => {
+  const points = (Array.isArray(shape.points) ? shape.points : [])
+    .map(normalizePoint);
   const pointIds = new Set(points.map(point => point.id));
-  const edgeSource = Array.isArray(sketch.edges)
-    ? sketch.edges
-    : points.length ? fallback.edges : [];
+  const edgeSource = Array.isArray(shape.edges)
+    ? shape.edges
+    : points.length > 1
+      ? points.map((point, at) => ({ from: point.id, to: points[(at + 1) % points.length].id }))
+      : [];
   const edges = edgeSource
     .filter(edge => pointIds.has(edge.from) && pointIds.has(edge.to))
     .map(normalizeLineEdge);
-  const holes = (Array.isArray(sketch.holes) ? sketch.holes : fallback.holes)
-    .filter(hole => hole?.type === 'circle')
-    .map((hole, index) => ({
-      id: hole.id || `h${index}`,
-      type: 'circle',
-      center: [
-        sketchValue(Array.isArray(hole.center) ? hole.center[0] : 0, 0),
-        sketchValue(Array.isArray(hole.center) ? hole.center[1] : 0, 0)
-      ],
-      diameter: sketchValue(hole.diameter, 0)
-    }));
-  const modifiers = normalizeFilletModifiers(
-    Array.isArray(sketch.modifiers) ? sketch.modifiers : fallback.modifiers,
-    pointIds
-  );
-  const closed = typeof sketch.closed === 'boolean'
-    ? sketch.closed
-    : points.length >= 3 && edges.some(edge => edge.to === points[0]?.id);
-  const anchors = normalizeOccsProfileSketchAnchors(sketch.anchors, pointIds, closed);
-  // One connected chain is the law: extraction records how many drawn or
-  // imported pieces no chain joined; the savable gate refuses while any
-  // remain. Authored edits reset it (they rebuild the canvas from the
-  // model, which drops the strays).
-  const unchained = Number.isInteger(sketch.unchained) && sketch.unchained > 0
-    ? sketch.unchained
-    : 0;
-
+  const closed = typeof shape.closed === 'boolean'
+    ? shape.closed && points.length >= 3
+    : false;
   return {
-    version: sketch.version || '0.1',
-    units: sketch.units || 'mm',
-    parameters,
+    id: shape.id || `s${index}`,
+    type: 'chain',
+    op: normalizeOp(shape.op, fallbackOp),
+    closed,
     points,
     edges,
-    holes,
-    closed,
-    anchors,
-    unchained,
-    modifiers,
-    constraints: Array.isArray(sketch.constraints) ? sketch.constraints : fallback.constraints
+    modifiers: normalizeFilletModifiers(shape.modifiers, pointIds)
   };
 };
 
-// Anchors are the profile's placement basis, a closed-shape construct:
-// the chosen vertex lands on the attachment point (and is the origin the
-// cut geometry is taken relative to). Open shapes carry no anchor — their
-// references are the sketch origin (zero) and the chain's end point.
-const normalizeOccsProfileSketchAnchors = (anchors = null, pointIds = new Set(), closed = false) => {
-  if (!closed || !anchors || typeof anchors !== 'object') return null;
-  return pointIds.has(anchors.vertexId) ? { vertexId: anchors.vertexId } : null;
+const normalizeShape = (shape = {}, index = 0, fallbackOp = 'none') => {
+  if (shape?.type === 'circle') return normalizeCircleShape(shape, index, fallbackOp === 'subtract' ? 'subtract' : fallbackOp);
+  if (shape?.type === 'rect') return normalizeRectShape(shape, index, fallbackOp);
+  if (shape?.type === 'chain') return normalizeChainShape(shape, index, fallbackOp);
+  return null;
 };
+
+// Legacy chain sketches (points/edges/holes/closed/anchors) upgrade into
+// the shape model on read and through the one-shot migration script: the
+// chain becomes one chain shape, holes become subtract circles, and a
+// closed sketch's basis anchor becomes the axis — the chain translates so
+// the anchor vertex sits on X=0 (coordinates go numeric; translation is
+// arithmetic the expression layer has no form for).
+export const upgradeLegacyOccsProfileSketch = (sketch = {}) => {
+  const hasLegacyGeometry = Array.isArray(sketch.points) || Array.isArray(sketch.holes)
+    || typeof sketch.closed === 'boolean';
+  if (!hasLegacyGeometry) return null;
+  const parameters = Object.fromEntries(
+    Object.entries(sketch.parameters || {}).map(([key, value]) => [key, sketchValue(value, 0)])
+  );
+  const points = (Array.isArray(sketch.points) ? sketch.points : []).map(normalizePoint);
+  const pointIds = new Set(points.map(point => point.id));
+  const edges = (Array.isArray(sketch.edges) ? sketch.edges : [])
+    .filter(edge => pointIds.has(edge.from) && pointIds.has(edge.to))
+    .map(normalizeLineEdge);
+  const closed = Boolean(sketch.closed) && points.length >= 3;
+  const modifiers = normalizeFilletModifiers(sketch.modifiers, pointIds);
+
+  let chainPoints = points;
+  if (closed && sketch.anchors?.vertexId && pointIds.has(sketch.anchors.vertexId)) {
+    const anchor = points.find(point => point.id === sketch.anchors.vertexId);
+    let anchorX = 0;
+    let anchorY = 0;
+    try {
+      anchorX = resolveOccsExpression(anchor.x, parameters);
+      anchorY = resolveOccsExpression(anchor.y, parameters);
+    } catch {
+      anchorX = numericValue(anchor.x, 0);
+      anchorY = numericValue(anchor.y, 0);
+    }
+    chainPoints = points.map(point => {
+      let x = numericValue(point.x, 0);
+      let y = numericValue(point.y, 0);
+      try {
+        x = resolveOccsExpression(point.x, parameters);
+        y = resolveOccsExpression(point.y, parameters);
+      } catch { /* unresolvable fields fall back to their numeric value */ }
+      return { ...point, x: x - anchorX, y: y - anchorY };
+    });
+  }
+
+  const shapes = [];
+  if (points.length >= 2) {
+    const chainPointIds = new Set(chainPoints.map(point => point.id));
+    shapes.push({
+      id: 's0',
+      type: 'chain',
+      op: closed ? 'add' : 'none',
+      closed,
+      points: chainPoints,
+      edges: edges.filter(edge => chainPointIds.has(edge.from) && chainPointIds.has(edge.to)),
+      modifiers
+    });
+  }
+  (Array.isArray(sketch.holes) ? sketch.holes : [])
+    .filter(hole => hole?.type === 'circle')
+    .forEach((hole, index) => {
+      shapes.push({
+        id: `s${shapes.length}`,
+        type: 'circle',
+        op: 'subtract',
+        center: normalizeCenter(hole.center),
+        diameter: sketchValue(hole.diameter, 0)
+      });
+    });
+
+  return {
+    version: '0.2',
+    units: sketch.units || 'mm',
+    parameters,
+    material: normalizeOccsProfileMaterial(sketch.material),
+    shapes
+  };
+};
+
+export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {}) => {
+  if (Array.isArray(sketch?.shapes)) {
+    const rawParameters = {
+      ...(fallbackParameters || {}),
+      ...(sketch.parameters || {})
+    };
+    return {
+      version: sketch.version || '0.2',
+      units: sketch.units || 'mm',
+      parameters: Object.fromEntries(
+        Object.entries(rawParameters).map(([key, value]) => [key, sketchValue(value, 0)])
+      ),
+      material: normalizeOccsProfileMaterial(sketch.material),
+      shapes: sketch.shapes
+        .map((shape, index) => normalizeShape(shape, index))
+        .filter(Boolean)
+    };
+  }
+
+  const upgraded = upgradeLegacyOccsProfileSketch(sketch);
+  if (upgraded) {
+    return normalizeOccsProfileSketch({
+      ...upgraded,
+      parameters: { ...(fallbackParameters || {}), ...(sketch.parameters || {}) }
+    });
+  }
+
+  // A sketch with neither shapes nor legacy geometry is sketch-less: the
+  // numeric seed stands in (the parametric template is the dialog and
+  // fallback path, whose table always carries W/H/R/D/L).
+  return normalizeOccsProfileSketch({
+    ...createDefaultOccsProfileSketch({ ...DEFAULT_OCCS_PROFILE_PARAMETERS, ...fallbackParameters }),
+    parameters: { ...DEFAULT_OCCS_PROFILE_PARAMETERS, ...fallbackParameters }
+  });
+};
+
+// A sketch participates when at least one closed shape carries a boolean
+// op or an open chain rides it as a cut path.
+const sketchParticipates = (evaluated = {}) => evaluated.shapes.some(shape => (
+  shape.type === 'chain' && !shape.closed
+    ? shape.points.length >= 2
+    : (shape.op === 'add' || shape.op === 'subtract')
+      && (shape.type === 'chain'
+        ? shape.points.length >= 3
+        : true)
+));
 
 export const isOccsProfileSketchSavable = (sketch = {}, fallbackParameters = {}) => {
   try {
-    if (normalizeOccsProfileSketch(sketch, fallbackParameters).unchained > 0) return false;
-    const evaluated = evaluateOccsProfileSketch(sketch, fallbackParameters);
-    return evaluated.closed
-      ? evaluated.points.length >= 3
-      : evaluated.points.length >= 2;
+    return sketchParticipates(evaluateOccsProfileSketch(sketch, fallbackParameters));
   } catch {
     return false;
   }
@@ -247,9 +356,6 @@ export const isOccsProfileSketchSavable = (sketch = {}, fallbackParameters = {})
 // never silent zeros.
 export const evaluateOccsProfileSketch = (sketch = {}, fallbackParameters = {}) => {
   const normalized = normalizeOccsProfileSketch(sketch, fallbackParameters);
-  // Identifier scope is the full raw table (parameters may reference each
-  // other in any order); each value resolves through it, so the engine's
-  // cycle detection sees complete chains.
   const parameters = {};
   for (const [key, value] of Object.entries(normalized.parameters)) {
     parameters[key] = resolveOccsExpression(value, normalized.parameters);
@@ -262,94 +368,176 @@ export const evaluateOccsProfileSketch = (sketch = {}, fallbackParameters = {}) 
   return {
     ...normalized,
     parameters,
-    points: normalized.points.map(point => ({
-      ...point,
-      x: resolveField(point.x, `point ${point.id} x`),
-      y: resolveField(point.y, `point ${point.id} y`)
-    })),
-    holes: normalized.holes.map(hole => ({
-      ...hole,
-      center: [
-        resolveField(hole.center[0], `hole ${hole.id} x`),
-        resolveField(hole.center[1], `hole ${hole.id} y`)
-      ],
-      diameter: resolveField(hole.diameter, `hole ${hole.id} diameter`)
-    })),
-    modifiers: normalized.modifiers.map(modifier => ({
-      ...modifier,
-      radius: resolveField(modifier.radius, `fillet ${modifier.vertexId}`)
-    })),
-    anchors: normalized.anchors
+    shapes: normalized.shapes.map(shape => {
+      if (shape.type === 'circle') {
+        return {
+          ...shape,
+          center: [
+            resolveField(shape.center[0], `shape ${shape.id} x`),
+            resolveField(shape.center[1], `shape ${shape.id} y`)
+          ],
+          diameter: resolveField(shape.diameter, `shape ${shape.id} diameter`)
+        };
+      }
+      if (shape.type === 'rect') {
+        return {
+          ...shape,
+          center: [
+            resolveField(shape.center[0], `shape ${shape.id} x`),
+            resolveField(shape.center[1], `shape ${shape.id} y`)
+          ],
+          width: resolveField(shape.width, `shape ${shape.id} width`),
+          height: resolveField(shape.height, `shape ${shape.id} height`),
+          rotation: resolveField(shape.rotation, `shape ${shape.id} rotation`),
+          fillets: shape.fillets.map(fillet => ({
+            corner: fillet.corner,
+            radius: resolveField(fillet.radius, `shape ${shape.id} fillet ${fillet.corner}`)
+          }))
+        };
+      }
+      return {
+        ...shape,
+        points: shape.points.map(point => ({
+          ...point,
+          x: resolveField(point.x, `point ${point.id} x`),
+          y: resolveField(point.y, `point ${point.id} y`)
+        })),
+        modifiers: shape.modifiers.map(modifier => ({
+          ...modifier,
+          radius: resolveField(modifier.radius, `fillet ${modifier.vertexId}`)
+        }))
+      };
+    })
   };
 };
 
-// Closed sketches close their boundary on save; open sketches keep their
-// chain open — their first and last vertices are the break points.
+// Closed chain shapes close their boundary on save; open chains keep
+// their ends — the first and last vertices are the break points.
 export const closeOccsProfileSketchBoundary = (sketch = {}, fallbackParameters = {}) => {
   const normalized = normalizeOccsProfileSketch(sketch, fallbackParameters);
-  if (!normalized.closed || normalized.points.length < 3) return normalized;
-  const existingEdges = normalized.edges.filter(edge => edge.type === 'line');
-  const edges = normalized.points.map((point, index) => {
-    const to = normalized.points[(index + 1) % normalized.points.length]?.id || point.id;
-    const existing = existingEdges.find(edge => edge.from === point.id && edge.to === to);
-    return existing || {
-      id: `e${index}`,
-      type: 'line',
-      from: point.id,
-      to
-    };
-  }).filter(edge => edge.from !== edge.to);
   return {
     ...normalized,
-    closed: true,
-    edges
+    shapes: normalized.shapes.map(shape => {
+      if (shape.type !== 'chain' || !shape.closed || shape.points.length < 3) return shape;
+      const pointIds = new Set(shape.points.map(point => point.id));
+      const edges = shape.points.map((point, index) => {
+        const to = shape.points[(index + 1) % shape.points.length]?.id || point.id;
+        const existing = shape.edges.find(edge => edge.from === point.id && edge.to === to);
+        return existing || { id: `e${index}`, type: 'line', from: point.id, to };
+      }).filter(edge => edge.from !== edge.to);
+      return { ...shape, edges: edges.filter(edge => pointIds.has(edge.from) && pointIds.has(edge.to)) };
+    })
+  };
+};
+
+// A single open chain with no boolean shapes keeps the polyline section:
+// the cut-path construct the edge embedding splices into the host contour.
+const openChainSection = (evaluated = {}) => {
+  if (evaluated.shapes.length !== 1) return null;
+  const shape = evaluated.shapes[0];
+  if (shape.type !== 'chain' || shape.closed) return null;
+  const vertices = shape.points.map(point => [String(point.x), String(point.y)]);
+  if (vertices.length < 2) return null;
+  return {
+    type: 'polyline',
+    open: true,
+    vertices,
+    edges: Array.from({ length: vertices.length - 1 }, () => ({ type: 'line' })),
+    modifiers: shape.modifiers.map(modifier => ({
+      ...modifier,
+      vertexIndex: shape.points.findIndex(point => point.id === modifier.vertexId)
+    })).filter(modifier => modifier.vertexIndex >= 0),
+    breakPoints: [vertices[0], vertices[vertices.length - 1]]
+  };
+};
+
+const rectCornerVertices = (shape = {}) => {
+  const halfWidth = shape.width / 2;
+  const halfHeight = shape.height / 2;
+  const angle = (shape.rotation * Math.PI) / 180;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const local = [
+    [-halfWidth, -halfHeight],
+    [halfWidth, -halfHeight],
+    [halfWidth, halfHeight],
+    [-halfWidth, halfHeight]
+  ];
+  return local.map(([x, y]) => [
+    shape.center[0] + x * cos - y * sin,
+    shape.center[1] + x * sin + y * cos
+  ]);
+};
+
+const circlePolygon = (center = [], diameter = 0, segments = 48) => {
+  const radius = diameter / 2;
+  return Array.from({ length: segments }, (_, index) => {
+    const angle = (index / segments) * Math.PI * 2;
+    return [center[0] + Math.cos(angle) * radius, center[1] + Math.sin(angle) * radius];
+  });
+};
+
+const chainSectionShape = (shape = {}) => {
+  const vertices = shape.points.map(point => [point.x, point.y]);
+  const section = {
+    open: !shape.closed,
+    type: shape.closed ? 'polygon' : 'polyline',
+    vertices,
+    modifiers: shape.modifiers.map(modifier => ({
+      type: 'fillet',
+      radius: modifier.radius,
+      vertexIndex: shape.points.findIndex(point => point.id === modifier.vertexId)
+    })).filter(modifier => modifier.vertexIndex >= 0)
+  };
+  return {
+    shapeId: shape.id,
+    kind: 'chain',
+    op: shape.op,
+    closed: shape.closed,
+    vertices: occProfileSectionChainedVertices(section)
   };
 };
 
 export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   const normalized = evaluateOccsProfileSketch(sketch, options.parameters);
-  const vertices = [];
-  const vertexIds = [];
-
-  for (const point of normalized.points) {
-    if (vertexIds.includes(point.id)) continue;
-    vertexIds.push(point.id);
-    vertices.push([String(point.x), String(point.y)]);
-  }
-
-  const closed = normalized.closed && vertices.length >= 3;
-  const edgeCount = closed ? vertices.length : Math.max(0, vertices.length - 1);
-  const section = {
-    type: closed ? 'polygon' : 'polyline',
-    open: !closed,
-    vertices,
-    edges: Array.from({ length: edgeCount }, () => ({ type: 'line' })),
-    holes: normalized.holes.map(hole => ({
-      type: 'circle',
-      center: hole.center.map(value => String(value)),
-      diameter: String(hole.diameter)
-    })),
-    // vertexIndex: the modifier's slot in the section's vertex walk. Point
-    // ids are identity, not position — a merged sketch mints fresh ids —
-    // so the chain resolver cannot recover the slot from the id string.
-    modifiers: normalized.modifiers.map(modifier => {
-      const vertexIndex = vertexIds.indexOf(modifier.vertexId);
-      return vertexIndex >= 0 ? { ...modifier, vertexIndex } : { ...modifier };
-    })
+  const polyline = openChainSection(normalized);
+  const section = polyline || {
+    type: 'shapes',
+    open: false,
+    axis: { material: normalized.material },
+    shapes: normalized.shapes.map(shape => {
+      if (shape.type === 'circle') {
+        return {
+          shapeId: shape.id,
+          kind: 'circle',
+          op: shape.op,
+          closed: true,
+          vertices: circlePolygon(shape.center, shape.diameter)
+        };
+      }
+      if (shape.type === 'rect') {
+        const corners = rectCornerVertices(shape);
+        const radiusByIndex = new Map(shape.fillets.map(fillet => [fillet.corner, fillet.radius]));
+        return {
+          shapeId: shape.id,
+          kind: 'rect',
+          op: shape.op,
+          closed: true,
+          vertices: occProfileSectionChainedVertices({
+            open: false,
+            type: 'polygon',
+            vertices: corners,
+            modifiers: [...radiusByIndex.entries()].map(([vertexIndex, radius]) => ({
+              type: 'fillet',
+              radius,
+              vertexIndex
+            }))
+          })
+        };
+      }
+      return chainSectionShape(shape);
+    }).filter(sectionShape => sectionShape.vertices.length >= 2)
   };
-  const anchorPoint = normalized.anchors?.vertexId
-    ? normalized.points.find(point => point.id === normalized.anchors.vertexId) || null
-    : null;
-  if (closed && anchorPoint) {
-    section.anchor = [String(anchorPoint.x), String(anchorPoint.y)];
-  }
-  if (!closed && vertices.length >= 2) {
-    // Break points: where an inserted open profile splits the host face.
-    section.breakPoints = [
-      vertices[0],
-      vertices[vertices.length - 1]
-    ];
-  }
 
   return {
     section,
@@ -361,74 +549,62 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   };
 };
 
+// Boolean fold of a shapes section: union of the add shapes minus the
+// subtract shapes, clipped to the material half of the zero axis (the
+// hatched body). Polyline sections have no boolean meaning (null).
+export const resolveOccsProfileSectionPolygons = async (section = {}) => {
+  if (section.type !== 'shapes') return null;
+  const adds = section.shapes.filter(shape => shape.op === 'add');
+  const subtracts = section.shapes.filter(shape => shape.op === 'subtract');
+  let polygons = adds.length ? await unionCassetteV2FacePolygons(adds.map(shape => shape.vertices)) : [];
+  let holes = [];
+  if (subtracts.length) {
+    const difference = await differenceCassetteV2Polygons(polygons, subtracts.map(shape => shape.vertices));
+    polygons = difference.polygons;
+    holes = difference.holes;
+  }
+  const span = 1e6;
+  const voidHalf = section.axis?.material === 'negative'
+    ? [[0, -span], [span, -span], [span, span], [0, span]]
+    : [[0, -span], [-span, -span], [-span, span], [0, span]];
+  const clipped = await differenceCassetteV2Polygons(polygons, [voidHalf]);
+  return { polygons: clipped.polygons, holes: [...holes, ...clipped.holes] };
+};
+
 // Preview projection: a sketch's evaluated section as drawing layerData
-// (the drawing-preview normalizer's channel) — outline on cut.outer
-// (closed) or cut.inner (an open chain is a cut path, never closed),
-// holes on cut.hole as circle polygons. Unresolvable sketches return
-// null: previews render a quiet blank, never an error state.
-export const occProfileSketchLayerData = (sketch = {}) => {
+// (the drawing-preview normalizer's channel) — the boolean outline on
+// cut.outer, an open chain on cut.inner (a cut path), resolved holes on
+// cut.inner. Unresolvable sketches return null: previews render a quiet
+// blank, never an error state.
+export const resolveOccsProfileSketchLayerData = async (sketch = {}) => {
   try {
     const { section } = occsProfileFromSketch(sketch, {});
-    const vertices = (section?.vertices || [])
-      .filter(vertex => Array.isArray(vertex) && vertex.length >= 2)
-      .map(([x, y]) => [Number(x), Number(y)])
-      .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
-    if (vertices.length < 2) return null;
-    const layers = [{
-      layer: section.open ? 'cut.inner' : 'cut.outer',
-      coordinates: vertices
-    }];
-    for (const hole of section.holes || []) {
-      const [cx, cy] = (hole?.center || []).map(Number);
-      const radius = Number(hole?.diameter) / 2;
-      if (!Number.isFinite(cx) || !Number.isFinite(cy) || !(radius > 0)) continue;
-      const circle = Array.from({ length: 25 }, (_, index) => {
-        const angle = (index / 24) * Math.PI * 2;
-        return [cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius];
-      });
-      layers.push({ layer: 'cut.hole', coordinates: circle });
+    if (section.type === 'polyline') {
+      const vertices = (section.vertices || [])
+        .filter(vertex => Array.isArray(vertex) && vertex.length >= 2)
+        .map(([x, y]) => [Number(x), Number(y)])
+        .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
+      return vertices.length >= 2
+        ? [{ layer: 'cut.inner', coordinates: vertices }]
+        : null;
     }
-    return layers;
+    const resolved = await resolveOccsProfileSectionPolygons(section);
+    if (!resolved) return null;
+    const layers = resolved.polygons
+      .filter(polygon => polygon.length >= 3)
+      .map(polygon => ({ layer: 'cut.outer', coordinates: polygon }));
+    for (const hole of resolved.holes) {
+      if (hole.length >= 3) layers.push({ layer: 'cut.inner', coordinates: hole });
+    }
+    return layers.length ? layers : null;
   } catch {
     return null;
   }
 };
 
-// Rebuilds the edge chain for a chosen closure: consecutive pairs for an
-// open sketch, closed ring for a closed one. Point coordinates and
-// modifiers pass through untouched (expressions included); anchors reset —
-// the closure change redefines which anchor shape applies.
-export const setOccsProfileSketchClosed = (sketch = {}, closed, fallbackParameters = {}) => {
-  const normalized = normalizeOccsProfileSketch(sketch, fallbackParameters);
-  if (closed) {
-    return {
-      ...closeOccsProfileSketchBoundary({ ...normalized, closed: true }, fallbackParameters),
-      anchors: null
-    };
-  }
-  const edges = [];
-  for (let index = 0; index + 1 < normalized.points.length; index += 1) {
-    edges.push({
-      id: `e${index}`,
-      type: 'line',
-      from: normalized.points[index].id,
-      to: normalized.points[index + 1].id
-    });
-  }
-  return { ...normalized, closed: false, edges, anchors: null };
-};
-
-// Adopt-on-bind (owner law 2026-10-15): authoring a single unknown
-// identifier into a field creates that parameter WITH the field's
-// current value — the geometry never jumps, the evaluation resolves
-// immediately (no blank canvas), and the merge law keeps the binding
-// because evaluation matches the drawn geometry by construction.
-// Existing parameters and non-identifier expressions pass through
-// untouched: their formula is the truth and may legitimately move the
-// geometry.
-// Rewrites every expression referencing the given names — point
-// coordinates, hole centers and diameters, fillet radii, parameter
-// values — as whole identifiers. Parameter keys stay put.
+// Rewrites every expression referencing the given names — shape fields,
+// fillet radii, parameter values — as whole identifiers. Parameter keys
+// stay put.
 export const rewriteOccsProfileSketchExpressions = (sketch = {}, renames = {}) => {
   const names = Object.keys(renames || {}).filter(name => name !== renames[name]);
   if (!names.length) return sketch;
@@ -438,13 +614,27 @@ export const rewriteOccsProfileSketchExpressions = (sketch = {}, renames = {}) =
     parameters: Object.fromEntries(
       Object.entries(sketch.parameters || {}).map(([key, value]) => [key, rewrite(value)])
     ),
-    points: (sketch.points || []).map(point => ({ ...point, x: rewrite(point.x), y: rewrite(point.y) })),
-    holes: (sketch.holes || []).map(hole => ({
-      ...hole,
-      center: (hole.center || []).map(rewrite),
-      diameter: rewrite(hole.diameter)
-    })),
-    modifiers: (sketch.modifiers || []).map(modifier => ({ ...modifier, radius: rewrite(modifier.radius) }))
+    shapes: (sketch.shapes || []).map(shape => {
+      if (shape.type === 'circle' || shape.type === 'rect') {
+        return {
+          ...shape,
+          center: (shape.center || []).map(rewrite),
+          ...(shape.type === 'circle'
+            ? { diameter: rewrite(shape.diameter) }
+            : {
+                width: rewrite(shape.width),
+                height: rewrite(shape.height),
+                rotation: rewrite(shape.rotation),
+                fillets: (shape.fillets || []).map(fillet => ({ ...fillet, radius: rewrite(fillet.radius) }))
+              })
+        };
+      }
+      return {
+        ...shape,
+        points: (shape.points || []).map(point => ({ ...point, x: rewrite(point.x), y: rewrite(point.y) })),
+        modifiers: (shape.modifiers || []).map(modifier => ({ ...modifier, radius: rewrite(modifier.radius) }))
+      };
+    })
   };
 };
 
@@ -459,7 +649,7 @@ export const renameOccsProfileSketchParameter = (sketch = {}, from = '', to = ''
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(next)) return sketch;
   if (!Object.prototype.hasOwnProperty.call(sketch.parameters || {}, source)) return sketch;
   if (Object.prototype.hasOwnProperty.call(sketch.parameters, next)) return sketch;
-  const rewritten = rewriteOccsProfileSketchExpressions(sketch, { [source]: next });
+  const rewritten = rewriteOccsProfileSketchExpressions(sketch, { [source]: to });
   return {
     ...rewritten,
     parameters: Object.fromEntries(
@@ -498,9 +688,12 @@ const pointFromDxf = (point = {}) => ({
 //   { type: 'ARC',   center: {x,y}, radius, startAngle, endAngle }  (radians, CCW)
 //   { type: 'CIRCLE', center: {x,y}, radius }
 //   { type: 'POLYLINE', vertices: [{x,y}], closed }
-// A tangent corner arc between two line segments maps to the sketch's
+// A tangent corner arc between two line segments maps to the shape's
 // fillet modifier (the polygon keeps the theoretical sharp corner);
-// every other arc flattens to chords within `chordTolerance` mm.
+// every other arc flattens to chords within `chordTolerance` mm. Every
+// chainable piece becomes its own shape — nothing is dropped. With
+// `reference: true` (a DXF import used as a visual guide) every shape
+// lands with op none.
 
 const CHORD_TOLERANCE_MM = 0.05;
 const POINT_EPSILON = 0.001;
@@ -544,7 +737,7 @@ const flattenArcToPoints = (arc, chordTolerance) => {
   return points;
 };
 
-// The section walk every cassette consumer draws: the stored section
+// The section walk every cassette consumer draws: the stored geometry
 // keeps the theoretical sharp corners and its fillet modifiers; this
 // pass resolves each authored corner to its tangent arc points (the
 // same trim/bisector math and chord tolerance the editor's entity
@@ -660,8 +853,6 @@ const tangentToFillet = (segment, incoming, outgoing) => {
   return { vertex: roundPoint(vertex), radius: segment.arc.radius };
 };
 
-// Chains free segments (line/arc records) by endpoint connectivity into
-// the longest closed loop, or the longest open trail when nothing closes.
 const reverseSegment = (segment) => {
   if (segment.type === 'line') return { type: 'line', a: segment.b, b: segment.a };
   return {
@@ -677,6 +868,9 @@ const reverseSegment = (segment) => {
   };
 };
 
+// Chains free segments (line/arc records) by endpoint connectivity into
+// the longest closed loop growable from the seed, or the longest open
+// trail when nothing closes.
 const chainSegments = (segments) => {
   if (!segments.length) return { chain: [], closed: false };
   const best = { chain: [], closed: false };
@@ -728,6 +922,27 @@ const chainSegments = (segments) => {
     if (best.closed && best.chain.length === segments.length) break;
   }
   return best;
+};
+
+// Every chainable piece becomes a shape: segments are consumed chain by
+// chain until none remain — extraction keeps all drawn geometry, a lone
+// arc included as its own one-segment chain.
+const chainAllSegments = (segments) => {
+  const remaining = [...segments];
+  const chains = [];
+  while (remaining.length) {
+    const { chain, closed } = chainSegments(remaining);
+    if (chain.length >= 1) {
+      chains.push({ chain, closed });
+      for (const segment of chain) {
+        const at = remaining.indexOf(segment);
+        if (at >= 0) remaining.splice(at, 1);
+      }
+      continue;
+    }
+    break;
+  }
+  return { chains, leftover: remaining };
 };
 
 const polylineRecordSegments = (record) => {
@@ -824,6 +1039,100 @@ const chainToSketchGeometry = (chain, closed, chordTolerance) => {
   return { points, modifiers };
 };
 
+// A closed four-vertex chain with right angles and equal opposite sides
+// is a rectangle primitive (any rotation): parametric width, height,
+// rotation, and per-corner fillets author it from then on.
+const RIGHT_ANGLE_EPSILON = 1e-3;
+
+const chainAsRect = (points = []) => {
+  if (points.length !== 4) return null;
+  for (let index = 0; index < 4; index += 1) {
+    const previous = points[(index + 3) % 4];
+    const current = points[index];
+    const next = points[(index + 1) % 4];
+    const toPrevious = [previous.x - current.x, previous.y - current.y];
+    const toNext = [next.x - current.x, next.y - current.y];
+    const dot = toPrevious[0] * toNext[0] + toPrevious[1] * toNext[1];
+    const lengths = [Math.hypot(...toPrevious), Math.hypot(...toNext)];
+    if (!lengths[0] || !lengths[1]) return null;
+    if (Math.abs(dot / (lengths[0] * lengths[1])) > RIGHT_ANGLE_EPSILON) return null;
+  }
+  const side = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
+  const widths = [side(points[0], points[1]), side(points[2], points[3])];
+  const heights = [side(points[1], points[2]), side(points[3], points[0])];
+  if (Math.abs(widths[0] - widths[1]) > POINT_EPSILON || Math.abs(heights[0] - heights[1]) > POINT_EPSILON) {
+    return null;
+  }
+  const width = (widths[0] + widths[1]) / 2;
+  const height = (heights[0] + heights[1]) / 2;
+  const angle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
+  return {
+    center: [
+      (points[0].x + points[2].x) / 2,
+      (points[0].y + points[2].y) / 2
+    ],
+    width,
+    height,
+    rotation: (angle * 180) / Math.PI
+  };
+};
+
+const chainShapeFromGeometry = (geometry, closed, fallbackOp, index) => {
+  const points = geometry.points;
+  const pointIds = points.map((_, at) => `p${at}`);
+  // A fillet modifier references the polygon vertex nearest the recorded
+  // theoretical corner (the corner itself is not a segment endpoint).
+  const modifiers = geometry.modifiers.map(fillet => {
+    let nearest = 0;
+    let nearestDistance = Infinity;
+    points.forEach((point, at) => {
+      const distance = Math.hypot(point.x - fillet.vertex.x, point.y - fillet.vertex.y);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearest = at;
+      }
+    });
+    return { type: 'fillet', vertexId: pointIds[nearest], radius: fillet.radius };
+  });
+  const shapeClosed = closed && points.length >= 3;
+  const edgeCount = shapeClosed ? points.length : Math.max(0, points.length - 1);
+  const edges = [];
+  for (let at = 0; at < edgeCount; at += 1) {
+    const from = pointIds[at];
+    const to = pointIds[(at + 1) % points.length];
+    if (from !== to) edges.push({ id: `e${at}`, type: 'line', from, to });
+  }
+  const rect = shapeClosed ? chainAsRect(points) : null;
+  if (rect) {
+    return {
+      id: `s${index}`,
+      type: 'rect',
+      op: fallbackOp,
+      center: rect.center,
+      width: rect.width,
+      height: rect.height,
+      rotation: rect.rotation,
+      fillets: modifiers
+        .map(modifier => ({ corner: pointIds.indexOf(modifier.vertexId), radius: modifier.radius }))
+        .filter(fillet => fillet.corner >= 0)
+    };
+  }
+  return {
+    id: `s${index}`,
+    type: 'chain',
+    op: shapeClosed ? fallbackOp : 'none',
+    closed: shapeClosed,
+    points: points.map((point, at) => ({
+      id: pointIds[at],
+      x: point.x,
+      y: point.y,
+      ...(point.chord ? { chord: true } : {})
+    })),
+    edges,
+    modifiers
+  };
+};
+
 export const occProfileSketchFromEntities = (entities = [], options = {}) => {
   const parameters = options.parameters || {};
   const chordTolerance = Number.isFinite(options.chordTolerance)
@@ -849,310 +1158,311 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
     if (segment) freeSegments.push(segment);
   }
 
-  let source = null;
-  // Entities the chosen source consumed; every other chainable piece
-  // (line/arc segment or polyline) is unchained and blocks the save gate.
-  let consumed = 0;
-  const chainableCount = freeSegments.length + polylines.length;
-  const closedPolyline = polylines
-    .filter(record => record.closed && record.vertices.length >= 3)
-    .sort((left, right) => right.vertices.length - left.vertices.length)[0];
-  if (closedPolyline) {
-    source = { segments: polylineRecordSegments(closedPolyline), closed: true };
-    consumed = 1;
-  } else if (freeSegments.length) {
-    const chained = chainSegments(freeSegments);
-    if (chained.chain.length >= 2 || (chained.chain.length === 1 && chained.chain[0].type === 'line')) {
-      source = { segments: chained.chain, closed: chained.closed };
-      consumed = chained.chain.length;
-    }
-  } else if (polylines.length) {
-    const fallbackPolyline = polylines.sort((left, right) => right.vertices.length - left.vertices.length)[0];
-    source = { segments: polylineRecordSegments(fallbackPolyline), closed: false };
-    consumed = 1;
-  }
-  const unchained = Math.max(0, chainableCount - consumed);
+  const reference = Boolean(options.reference);
+  const chainDefaultOp = reference ? 'none' : 'add';
+  const shapes = [];
 
-  if (!source) {
-    // No chainable geometry: circles still become holes; line pieces
-    // that could not start a chain count as unchained.
-    return normalizeOccsProfileSketch({
-      ...createEmptyOccsProfileSketch(parameters),
-      holes: circles.map((circle, index) => ({
-        id: `h${index}`,
-        type: 'circle',
-        center: [circle.center.x, circle.center.y],
-        diameter: circle.diameter
-      })),
-      unchained
-    }, parameters);
-  }
-
-  const geometry = chainToSketchGeometry(source.segments, source.closed, chordTolerance);
-  const points = geometry.points;
-  const fillets = geometry.modifiers;
-  const pointIds = points.map((_, index) => `p${index}`);
-  // A fillet modifier references the polygon vertex nearest the recorded
-  // theoretical corner (the corner itself is not a segment endpoint).
-  const modifiers = fillets.map((fillet) => {
-    let nearest = 0;
-    let nearestDistance = Infinity;
-    points.forEach((point, index) => {
-      const distance = Math.hypot(point.x - fillet.vertex.x, point.y - fillet.vertex.y);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearest = index;
-      }
+  for (const circle of circles) {
+    shapes.push({
+      id: `s${shapes.length}`,
+      type: 'circle',
+      op: reference ? 'none' : 'subtract',
+      center: [circle.center.x, circle.center.y],
+      diameter: circle.diameter
     });
-    return { type: 'fillet', vertexId: pointIds[nearest], radius: fillet.radius };
-  });
-  const sketchClosed = source.closed && points.length >= 3;
-  const edgeCount = sketchClosed ? points.length : Math.max(0, points.length - 1);
-  const edges = [];
-  for (let index = 0; index < edgeCount; index += 1) {
-    const from = pointIds[index];
-    const to = pointIds[(index + 1) % points.length];
-    if (from !== to) edges.push({ id: `e${index}`, type: 'line', from, to });
+  }
+
+  const chains = polylines
+    .sort((left, right) => right.vertices.length - left.vertices.length)
+    .map(record => ({ segments: polylineRecordSegments(record), closed: record.closed }));
+  const { chains: freeChains } = chainAllSegments(freeSegments);
+  chains.push(...freeChains.map(chained => ({ segments: chained.chain, closed: chained.closed })));
+
+  for (const { segments, closed } of chains) {
+    const geometry = chainToSketchGeometry(segments, closed, chordTolerance);
+    if (geometry.points.length >= 2) {
+      shapes.push(chainShapeFromGeometry(geometry, closed, chainDefaultOp, shapes.length));
+    }
   }
 
   return normalizeOccsProfileSketch({
-    version: '0.1',
+    version: '0.2',
     units: 'mm',
     parameters,
-    points: points.map((point, index) => ({
-      id: pointIds[index],
-      x: point.x,
-      y: point.y,
-      ...(point.chord ? { chord: true } : {})
-    })),
-    edges,
-    holes: circles.map((circle, index) => ({
-      id: `h${index}`,
-      type: 'circle',
-      center: [circle.center.x, circle.center.y],
-      diameter: circle.diameter
-    })),
-    closed: sketchClosed,
-    unchained,
-    modifiers,
-    constraints: []
+    material: 'positive',
+    shapes
   }, parameters);
 };
 
 // Extraction merges into the authored sketch instead of replacing it: an
-// extracted point sitting on an authored point's evaluated position
-// (within a rounding epsilon) keeps the authored id, expression
-// coordinates, and fillet radius — drawing, importing, or undoing never
-// destroys parametric authoring. Moved or new points carry the
-// extracted numerics. An authored sketch whose expressions do not
-// resolve falls back to the plain extraction (the save gate reports it).
+// extracted shape sitting on an authored shape's evaluated position
+// (within a rounding epsilon) keeps the authored id, op, expressions,
+// and fillets — drawing, importing, or undoing never destroys parametric
+// authoring. Moved or new shapes carry the extracted numerics; authored
+// shapes with no extracted counterpart were erased and drop. An authored
+// sketch whose expressions do not resolve falls back to the plain
+// extraction (the save gate reports it).
 const MERGE_EPSILON_MM = 1e-3;
+
+const shapesWithinEpsilon = (extracted = {}, authored = {}) => {
+  if (extracted.type !== authored.type) return false;
+  if (extracted.type === 'circle') {
+    return Math.hypot(authored.center[0] - extracted.center[0], authored.center[1] - extracted.center[1]) <= MERGE_EPSILON_MM
+      && Math.abs(authored.diameter - extracted.diameter) <= MERGE_EPSILON_MM;
+  }
+  if (extracted.type === 'rect') {
+    return Math.hypot(authored.center[0] - extracted.center[0], authored.center[1] - extracted.center[1]) <= MERGE_EPSILON_MM
+      && Math.abs(authored.width - extracted.width) <= MERGE_EPSILON_MM
+      && Math.abs(authored.height - extracted.height) <= MERGE_EPSILON_MM
+      && Math.abs(authored.rotation - extracted.rotation) <= MERGE_EPSILON_MM;
+  }
+  if (Boolean(authored.closed) !== Boolean(extracted.closed)) return false;
+  const authoredPoints = authored.points || [];
+  const extractedPoints = extracted.points || [];
+  if (authoredPoints.length !== extractedPoints.length) return false;
+  return authoredPoints.every((point, index) => (
+    Math.hypot(point.x - extractedPoints[index].x, point.y - extractedPoints[index].y) <= MERGE_EPSILON_MM
+  ));
+};
+
+// Chain merge: the per-point position law — an extracted point sitting
+// on an authored point's evaluated position keeps the authored id and
+// expression coordinates; moved or new points carry the extracted
+// numerics. Fillet modifiers survive the same way: an authored fillet
+// whose vertex survived stays, extracted fillets remap onto the merged
+// ids of their slots.
+const mergeChainShape = (extractedShape, authoredShape, evaluatedShape) => {
+  const evaluatedPoints = evaluatedShape?.points || [];
+  const authoredPoints = authoredShape?.points || [];
+  const used = new Set();
+  const points = extractedShape.points.map(point => {
+    let best = null;
+    for (const candidate of evaluatedPoints) {
+      if (used.has(candidate.id) || Boolean(candidate.chord) !== Boolean(point.chord)) continue;
+      const distance = Math.hypot(candidate.x - point.x, candidate.y - point.y);
+      if (distance <= MERGE_EPSILON_MM && (!best || distance < best.distance)) best = candidate;
+    }
+    if (!best) return { ...point };
+    used.add(best.id);
+    const original = authoredPoints.find(item => item.id === best.id);
+    return original ? { id: original.id, x: original.x, y: original.y } : { ...point };
+  });
+  const authoredFillet = new Map(
+    (authoredShape?.modifiers || [])
+      .filter(modifier => modifier?.type === 'fillet')
+      .map(modifier => [modifier.vertexId, modifier.radius])
+  );
+  const idAtIndex = new Map(points.map((point, index) => [index, point.id]));
+  const modifiers = [];
+  for (const vertexId of used) {
+    if (authoredFillet.has(vertexId)) {
+      modifiers.push({ type: 'fillet', vertexId, radius: authoredFillet.get(vertexId) });
+    }
+  }
+  for (const modifier of extractedShape.modifiers || []) {
+    if (!modifier || modifier.type !== 'fillet') continue;
+    const index = Number(String(modifier.vertexId ?? '').slice(1));
+    const vertexId = Number.isInteger(index) ? idAtIndex.get(index) ?? modifier.vertexId : modifier.vertexId;
+    if (used.has(vertexId)) continue;
+    modifiers.push({ ...modifier, vertexId });
+  }
+  return {
+    ...authoredShape,
+    closed: extractedShape.closed,
+    points,
+    modifiers
+  };
+};
 
 export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, externalParameters = {}) => {
   let source = null;
   try {
     // The external scope joins the evaluation: a sketch whose fields
-    // read the cassette's globals keeps its bindings through the merge
-    // (without it the evaluation threw and the fallback wiped the
-    // authoring into plain extraction). The scope never stores.
+    // read the cassette's globals keeps its bindings through the merge.
+    // The scope never stores.
     source = evaluateOccsProfileSketch(authored, externalParameters);
   } catch {
     return extracted;
   }
-  const authoredPoints = new Map(
-    (Array.isArray(authored.points) ? authored.points : []).map(point => [point.id, point])
-  );
-  const authoredFillet = new Map(
-    (Array.isArray(authored.modifiers) ? authored.modifiers : [])
-      .filter(modifier => modifier?.type === 'fillet')
-      .map(modifier => [modifier.vertexId, modifier.radius])
-  );
   const usedAuthored = new Set();
-  const kept = [];
-  const points = extracted.points.map((point) => {
+  const shapes = extracted.shapes.map((shape) => {
     let best = null;
-    for (const candidate of source.points) {
-      if (usedAuthored.has(candidate.id) || Boolean(candidate.chord) !== Boolean(point.chord)) continue;
-      const distance = Math.hypot(candidate.x - point.x, candidate.y - point.y);
-      if (distance <= MERGE_EPSILON_MM && (!best || distance < best.distance)) {
-        best = { candidate, distance };
+    let bestMatches = 0;
+    for (const candidate of source.shapes) {
+      if (usedAuthored.has(candidate.id) || candidate.type !== shape.type) continue;
+      if (shape.type === 'chain') {
+        const matches = candidate.points.filter((candidatePoint, index) => (
+          shape.points[index] && Math.hypot(
+            candidatePoint.x - shape.points[index].x,
+            candidatePoint.y - shape.points[index].y
+          ) <= MERGE_EPSILON_MM
+        )).length;
+        if (matches > bestMatches) {
+          best = candidate;
+          bestMatches = matches;
+        }
+        continue;
       }
+      if (!best && shapesWithinEpsilon(shape, candidate)) best = candidate;
     }
-    if (!best) return { ...point };
-    usedAuthored.add(best.candidate.id);
-    kept.push(best.candidate.id);
-    const original = authoredPoints.get(best.candidate.id);
-    return {
-      id: best.candidate.id,
-      x: original ? original.x : best.candidate.x,
-      y: original ? original.y : best.candidate.y
-    };
+    if (!best) return { ...shape };
+    usedAuthored.add(best.id);
+    const original = authored.shapes.find(authoredShape => authoredShape.id === best.id) || best;
+    if (shape.type === 'chain' && original.type === 'chain') {
+      // Point ids are per-shape identity: the authored ids ride the kept
+      // shape so its fillet modifiers stay referenced.
+      return mergeChainShape(shape, original, best);
+    }
+    return { ...original };
   });
   // Fresh ids must not collide with the kept authored ids.
-  const taken = new Set(points.map(point => point.id));
+  const taken = new Set(shapes.map(shape => shape.id));
   let nextId = 0;
-  for (const point of points) {
-    if (usedAuthored.has(point.id)) continue;
-    while (taken.has(`p${nextId}`)) nextId += 1;
-    const id = `p${nextId}`;
+  for (const shape of shapes) {
+    if (usedAuthored.has(shape.id)) continue;
+    while (taken.has(`s${nextId}`)) nextId += 1;
+    const id = `s${nextId}`;
     taken.add(id);
-    point.id = id;
+    shape.id = id;
   }
-  const idAtIndex = new Map(points.map((point, index) => [index, point.id]));
-  const extractedVertexId = (vertexId) => {
-    const index = Number(String(vertexId ?? '').slice(1));
-    return Number.isInteger(index) ? idAtIndex.get(index) ?? vertexId : vertexId;
+  return {
+    ...extracted,
+    material: authored.material || extracted.material,
+    parameters: authored.parameters || extracted.parameters,
+    shapes
   };
-  const modifiers = [];
-  for (const vertexId of kept) {
-    if (authoredFillet.has(vertexId)) {
-      modifiers.push({ type: 'fillet', vertexId, radius: authoredFillet.get(vertexId) });
-    }
-  }
-  for (const modifier of extracted.modifiers) {
-    if (!modifier || modifier.type !== 'fillet') continue;
-    const vertexId = extractedVertexId(modifier.vertexId);
-    if (kept.includes(vertexId)) continue;
-    modifiers.push({ ...modifier, vertexId });
-  }
-  const authoredHoles = (Array.isArray(authored.holes) ? authored.holes : []);
-  const usedHoles = new Set();
-  const holes = extracted.holes.map((hole, index) => {
-    let best = null;
-    source.holes.forEach((candidate, at) => {
-      if (usedHoles.has(at)) return;
-      const distance = Math.hypot(candidate.center[0] - hole.center[0], candidate.center[1] - hole.center[1]);
-      if (distance <= MERGE_EPSILON_MM
-        && Math.abs(candidate.diameter - hole.diameter) <= MERGE_EPSILON_MM
-        && (!best || distance < best.distance)) best = { at, distance };
-    });
-    if (!best) return { ...hole, id: `h${index}` };
-    usedHoles.add(best.at);
-    const original = authoredHoles[best.at];
-    return {
-      id: original?.id ?? `h${index}`,
-      type: 'circle',
-      center: original ? original.center : hole.center,
-      diameter: original ? original.diameter : hole.diameter
-    };
-  });
-  return { ...extracted, points, holes, modifiers };
 };
 
 // Rebuilds CAD entity records from a sketch so the canvas can seed with
-// the exact geometry: the boundary becomes discrete line segments with a
-// tangent arc at every fillet corner, holes become circles. This is the
-// deterministic inverse of `occProfileSketchFromEntities`' fillet path.
-// Expression-bound fields evaluate against the parameter table first —
-// an unresolvable expression throws (callers gate on savable).
+// the exact geometry: circles become CIRCLE entities, rectangles and
+// chains become discrete line segments with a tangent arc at every
+// fillet corner. This is the deterministic inverse of
+// `occProfileSketchFromEntities`' fillet path. Expression-bound fields
+// evaluate against the parameter table first — an unresolvable
+// expression throws (callers gate on savable).
 export const occProfileEntitiesFromSketch = (sketch = {}, options = {}) => {
   const normalized = evaluateOccsProfileSketch(sketch, options.parameters);
   const entities = [];
-  const filletByVertexId = new Map(
-    normalized.modifiers.map(modifier => [modifier.vertexId, Math.max(0, modifier.radius)])
-  );
-  const vertices = normalized.points.map(point => ({ x: point.x, y: point.y }));
-  const corners = [];
-  const closed = normalized.closed && vertices.length >= 3;
 
-  for (let index = 0; index < vertices.length; index += 1) {
-    const vertex = vertices[index];
-    const previous = closed ? vertices[(index - 1 + vertices.length) % vertices.length] : vertices[index - 1];
-    const next = closed ? vertices[(index + 1) % vertices.length] : vertices[index + 1];
-    const isFirstOpenEnd = !closed && index === 0;
-    const isLastOpenEnd = !closed && index === vertices.length - 1;
-    const radius = filletByVertexId.get(normalized.points[index].id) || 0;
-    if (!previous || !next || isFirstOpenEnd || isLastOpenEnd || radius <= 0) {
-      corners.push({ vertex, radius: 0 });
+  for (const shape of normalized.shapes) {
+    if (shape.type === 'circle') {
+      const diameter = numericValue(shape.diameter);
+      if (diameter > 0) {
+        entities.push({
+          type: 'CIRCLE',
+          center: roundPoint({ x: shape.center[0], y: shape.center[1] }),
+          radius: diameter / 2
+        });
+      }
       continue;
     }
-    const toPrevious = { x: previous.x - vertex.x, y: previous.y - vertex.y };
-    const toNext = { x: next.x - vertex.x, y: next.y - vertex.y };
-    const lengthPrevious = Math.hypot(toPrevious.x, toPrevious.y);
-    const lengthNext = Math.hypot(toNext.x, toNext.y);
-    if (!lengthPrevious || !lengthNext) {
-      corners.push({ vertex, radius: 0 });
-      continue;
-    }
-    const unitPrevious = { x: toPrevious.x / lengthPrevious, y: toPrevious.y / lengthPrevious };
-    const unitNext = { x: toNext.x / lengthNext, y: toNext.y / lengthNext };
-    const cosine = unitPrevious.x * unitNext.x + unitPrevious.y * unitNext.y;
-    const interiorAngle = Math.acos(Math.max(-1, Math.min(1, cosine)));
-    if (interiorAngle >= Math.PI - TANGENT_EPSILON || interiorAngle <= TANGENT_EPSILON) {
-      corners.push({ vertex, radius: 0 });
-      continue;
-    }
-    const tangentDistance = radius / Math.tan(interiorAngle / 2);
-    const trim = Math.min(
-      tangentDistance,
-      lengthPrevious * 0.49,
-      lengthNext * 0.49
-    );
-    // A radius larger than the adjacent segments allow clamps to the
-    // largest fillet that fits: the arc is derived from the trimmed
-    // tangent points, so it stays tangent to both segments and
-    // extraction maps it back to the fillet instead of flattening it
-    // into chords.
-    const fittedRadius = trim * Math.tan(interiorAngle / 2);
-    const start = { x: vertex.x + unitPrevious.x * trim, y: vertex.y + unitPrevious.y * trim };
-    const end = { x: vertex.x + unitNext.x * trim, y: vertex.y + unitNext.y * trim };
-    const bisector = {
-      x: unitPrevious.x + unitNext.x,
-      y: unitPrevious.y + unitNext.y
-    };
-    const bisectorLength = Math.hypot(bisector.x, bisector.y);
-    const centerDistance = fittedRadius / Math.sin(interiorAngle / 2);
-    const center = {
-      x: vertex.x + (bisector.x / bisectorLength) * centerDistance,
-      y: vertex.y + (bisector.y / bisectorLength) * centerDistance
-    };
-    corners.push({
-      vertex,
-      radius: fittedRadius,
-      trim,
-      start,
-      end,
-      center
-    });
-  }
 
-  const emitEdge = (from, to) => {
-    if (!from || !to || samePoint(from, to)) return;
-    entities.push({ type: 'LINE', start: roundPoint(from), end: roundPoint(to) });
-  };
-  const emitCorner = (corner) => {
-    if (corner.radius > 0 && corner.center) {
-      const startAngle = Math.atan2(corner.start.y - corner.center.y, corner.start.x - corner.center.x);
-      const endAngle = Math.atan2(corner.end.y - corner.center.y, corner.end.x - corner.center.x);
-      let sweep = endAngle - startAngle;
-      while (sweep < 0) sweep += Math.PI * 2;
-      while (sweep >= Math.PI * 2) sweep -= Math.PI * 2;
-      // Fillets are minor arcs; a major sweep means the start/end pair is
-      // wound the other way around the center.
-      entities.push(sweep <= Math.PI
-        ? { type: 'ARC', center: roundPoint(corner.center), radius: corner.radius, startAngle, endAngle, ccw: true }
-        : { type: 'ARC', center: roundPoint(corner.center), radius: corner.radius, startAngle: endAngle, endAngle: startAngle, ccw: true });
+    const radiusById = new Map();
+    if (shape.type === 'rect') {
+      for (const fillet of shape.fillets) {
+        radiusById.set(`r${fillet.corner}`, Math.max(0, fillet.radius));
+      }
+    } else {
+      for (const modifier of shape.modifiers) {
+        radiusById.set(modifier.vertexId, Math.max(0, modifier.radius));
+      }
     }
-  };
+    const vertices = shape.type === 'rect'
+      ? rectCornerVertices(shape).map(([x, y]) => ({ x, y }))
+      : shape.points.map(point => ({ x: point.x, y: point.y }));
+    const corners = [];
+    // Rectangles are closed by kind; chains carry their own closure.
+    const closed = (shape.type === 'rect' || shape.closed) && vertices.length >= 3;
 
-  for (let index = 0; index < corners.length; index += 1) {
-    const corner = corners[index];
-    const nextCorner = closed ? corners[(index + 1) % corners.length] : corners[index + 1];
-    emitCorner(corner);
-    if (!nextCorner) break;
-    const edgeStart = corner.radius > 0 && corner.end ? corner.end : corner.vertex;
-    const edgeEnd = nextCorner.radius > 0 && nextCorner.start ? nextCorner.start : nextCorner.vertex;
-    emitEdge(edgeStart, edgeEnd);
-  }
-
-  for (const hole of normalized.holes) {
-    const diameter = numericValue(hole.diameter);
-    if (diameter > 0) {
-      entities.push({
-        type: 'CIRCLE',
-        center: roundPoint({ x: numericValue(hole.center[0]), y: numericValue(hole.center[1]) }),
-        radius: diameter / 2
+    for (let index = 0; index < vertices.length; index += 1) {
+      const vertex = vertices[index];
+      const previous = closed ? vertices[(index - 1 + vertices.length) % vertices.length] : vertices[index - 1];
+      const next = closed ? vertices[(index + 1) % vertices.length] : vertices[index + 1];
+      const isFirstOpenEnd = !closed && index === 0;
+      const isLastOpenEnd = !closed && index === vertices.length - 1;
+      const key = shape.type === 'rect' ? `r${index}` : shape.points[index].id;
+      const radius = radiusById.get(key) || 0;
+      if (!previous || !next || isFirstOpenEnd || isLastOpenEnd || radius <= 0) {
+        corners.push({ vertex, radius: 0 });
+        continue;
+      }
+      const toPrevious = { x: previous.x - vertex.x, y: previous.y - vertex.y };
+      const toNext = { x: next.x - vertex.x, y: next.y - vertex.y };
+      const lengthPrevious = Math.hypot(toPrevious.x, toPrevious.y);
+      const lengthNext = Math.hypot(toNext.x, toNext.y);
+      if (!lengthPrevious || !lengthNext) {
+        corners.push({ vertex, radius: 0 });
+        continue;
+      }
+      const unitPrevious = { x: toPrevious.x / lengthPrevious, y: toPrevious.y / lengthPrevious };
+      const unitNext = { x: toNext.x / lengthNext, y: toNext.y / lengthNext };
+      const cosine = unitPrevious.x * unitNext.x + unitPrevious.y * unitNext.y;
+      const interiorAngle = Math.acos(Math.max(-1, Math.min(1, cosine)));
+      if (interiorAngle >= Math.PI - TANGENT_EPSILON || interiorAngle <= TANGENT_EPSILON) {
+        corners.push({ vertex, radius: 0 });
+        continue;
+      }
+      const tangentDistance = radius / Math.tan(interiorAngle / 2);
+      const trim = Math.min(
+        tangentDistance,
+        lengthPrevious * 0.49,
+        lengthNext * 0.49
+      );
+      // A radius larger than the adjacent segments allow clamps to the
+      // largest fillet that fits: the arc is derived from the trimmed
+      // tangent points, so it stays tangent to both segments and
+      // extraction maps it back to the fillet instead of flattening it
+      // into chords.
+      const fittedRadius = trim * Math.tan(interiorAngle / 2);
+      const start = { x: vertex.x + unitPrevious.x * trim, y: vertex.y + unitPrevious.y * trim };
+      const end = { x: vertex.x + unitNext.x * trim, y: vertex.y + unitNext.y * trim };
+      const bisector = {
+        x: unitPrevious.x + unitNext.x,
+        y: unitPrevious.y + unitNext.y
+      };
+      const bisectorLength = Math.hypot(bisector.x, bisector.y);
+      const centerDistance = fittedRadius / Math.sin(interiorAngle / 2);
+      const center = {
+        x: vertex.x + (bisector.x / bisectorLength) * centerDistance,
+        y: vertex.y + (bisector.y / bisectorLength) * centerDistance
+      };
+      corners.push({
+        vertex,
+        radius: fittedRadius,
+        trim,
+        start,
+        end,
+        center
       });
+    }
+
+    const emitEdge = (from, to) => {
+      if (!from || !to || samePoint(from, to)) return;
+      entities.push({ type: 'LINE', start: roundPoint(from), end: roundPoint(to) });
+    };
+    const emitCorner = (corner) => {
+      if (corner.radius > 0 && corner.center) {
+        const startAngle = Math.atan2(corner.start.y - corner.center.y, corner.start.x - corner.center.x);
+        const endAngle = Math.atan2(corner.end.y - corner.center.y, corner.end.x - corner.center.x);
+        let sweep = endAngle - startAngle;
+        while (sweep < 0) sweep += Math.PI * 2;
+        while (sweep >= Math.PI * 2) sweep -= Math.PI * 2;
+        // Fillets are minor arcs; a major sweep means the start/end pair is
+        // wound the other way around the center.
+        entities.push(sweep <= Math.PI
+          ? { type: 'ARC', center: roundPoint(corner.center), radius: corner.radius, startAngle, endAngle, ccw: true }
+          : { type: 'ARC', center: roundPoint(corner.center), radius: corner.radius, startAngle: endAngle, endAngle: startAngle, ccw: true });
+      }
+    };
+
+    for (let index = 0; index < corners.length; index += 1) {
+      const corner = corners[index];
+      const nextCorner = closed ? corners[(index + 1) % corners.length] : corners[index + 1];
+      emitCorner(corner);
+      if (!nextCorner) break;
+      const edgeStart = corner.radius > 0 && corner.end ? corner.end : corner.vertex;
+      const edgeEnd = nextCorner.radius > 0 && nextCorner.start ? nextCorner.start : nextCorner.vertex;
+      emitEdge(edgeStart, edgeEnd);
     }
   }
 
