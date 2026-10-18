@@ -16,10 +16,35 @@ editable fillets, and a one-shot migration for stored sketches.
   hatched material half renders and flips, drawn/imported geometry
   lands as shapes (imports as reference), and a closed profile cuts
   through its boolean result placed axis-on-edge.
+- [ ] WAITING — owner verification on the live stack: the boolean
+  result reads on the canvas (one solid outline, holes punched through
+  the hatch, solid axis) and primitive parameters author as on-canvas
+  dimensions — expression-labeled, editable in place; a rectangle
+  drawn from any corner or direction keeps identical settings.
 - [ ] WAITING — owner verification on the live stack: run
   `node server/scripts/migrate-profile-sketches-to-shapes.js` (dry
   run) against production data and `--apply` once the counts look
   right.
+
+### Agent Notes (2026-10-18, round 2 — editor booleans and dimensions)
+
+- Result overlay: the resolved boolean section (debounced, Clipper)
+  draws as one solid outline — outer rings carry the material hatch,
+  holes punch through via evenodd — over the editable primitives; the
+  axis is a solid line.
+- Parameter dimensions: rect (width, height, axis distance, origin
+  height) and circle (diameter, axis distance, origin height) fields
+  render as on-canvas dimensions labeled by their expression where
+  bound (measured numbers otherwise) and edit in place through the
+  adopt-on-bind commit path; chain edges keep measured dims; rect
+  corners carry index labels addressing the per-corner fillet fields.
+- Rect extraction canonicalizes corner order (CCW from the leftmost
+  corner): the same rectangle from any corner/direction extracts to
+  identical settings — previously rotation flipped 0/90/180/−90 with
+  width/height swapped (owner report: "settings for primitives are
+  wrong").
+- Strip rows slimmed to op + rotation + fillets; geometry fields live
+  on the canvas dimensions.
 
 ### Agent Notes (2026-10-18 — shipped)
 

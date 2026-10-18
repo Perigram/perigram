@@ -11,9 +11,11 @@ import {
   mergeOccsProfileSketchGeometry,
   normalizeOccsProfileSketch,
   occProfileEntitiesFromSketch,
+  occProfileRectCornerVertices,
   occProfileSketchFromEntities,
   occsProfileFromSketch,
-  renameOccsProfileSketchParameter
+  renameOccsProfileSketchParameter,
+  resolveOccsProfileSectionPolygons
 } from '../../../occs/profiles.js';
 import { resolveOccsExpression } from '../../../occs/expressions.js';
 import { toolIcon } from './toolIcons.mjs';
@@ -138,16 +140,74 @@ export default function createSketchEditor({ vue, components, locale }) {
         commitSketch({ ...normalized, material: normalized.material === 'positive' ? 'negative' : 'positive' });
       };
 
+      // The resolved boolean result (outer rings and holes, world
+      // coordinates) — recomputed debounced from the authored model; the
+      // overlay draws it as one solid outline so the union, difference,
+      // and material-half clip read at a glance.
+      const resolvedSection = shallowRef(null);
+      let outlineTimer = null;
+      const resolveOutline = async () => {
+        outlineTimer = null;
+        if (disposed) return;
+        try {
+          const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+          const { section } = occsProfileFromSketch(normalized, { parameters: externalScope() });
+          resolvedSection.value = section?.type === 'shapes'
+            ? await resolveOccsProfileSectionPolygons(section)
+            : null;
+        } catch {
+          resolvedSection.value = null;
+        }
+      };
+      const scheduleOutlineResolve = () => {
+        if (outlineTimer) clearTimeout(outlineTimer);
+        outlineTimer = setTimeout(resolveOutline, 120);
+      };
+
       // Canvas annotations: the zero axis with its hatched material half,
-      // automatic per-edge dimensions for every chain shape's authored
-      // corners, datum marks for the sketch origin and open chains' break
-      // ends — a derived overlay (never stored, never extracted). The
-      // pure descriptor builder runs through a computed keyed on a tick
-      // bumped from the view's render frame, so pan/zoom redraw it like
-      // any other reactive render. The origin datum renders on an empty
-      // canvas too.
+      // the resolved boolean result, parameter dimensions on every
+      // primitive, per-edge dimensions for chain shapes, datum marks for
+      // the sketch origin and open chains' break ends — a derived overlay
+      // (never stored, never extracted). The pure descriptor builder runs
+      // through a computed keyed on a tick bumped from the view's render
+      // frame, so pan/zoom redraw it like any other reactive render. The
+      // origin datum renders on an empty canvas too.
       const viewTick = ref(0);
       const bumpViewTick = () => { viewTick.value += 1; };
+
+      // One linear dimension between world points a and b, drawn on the
+      // side of `side` (a world point). Editable dims carry their field
+      // binding — the label shows the parameter expression where one is
+      // bound, the measured number otherwise.
+      const linearDim = (key, a, b, side, label, editable, toScreen) => {
+        const [ax, ay] = toScreen(a[0], a[1]);
+        const [bx, by] = toScreen(b[0], b[1]);
+        if (Math.hypot(bx - ax, by - ay) < 28) return null;
+        const nx = b[1] - a[1];
+        const ny = a[0] - b[0];
+        const outward = (side[0] - (a[0] + b[0]) / 2) * nx + (side[1] - (a[1] + b[1]) / 2) * ny > 0
+          ? [nx, ny]
+          : [-nx, -ny];
+        const nl = Math.hypot(outward[0], outward[1]) || 1;
+        const [dx, dy] = toScreen(a[0] + outward[0] / nl, a[1] + outward[1] / nl);
+        let ux = dx - ax;
+        let uy = dy - ay;
+        const ul = Math.hypot(ux, uy) || 1;
+        ux /= ul;
+        uy /= ul;
+        const off = 16;
+        const a1 = [ax + ux * off, ay + uy * off];
+        const b1 = [bx + ux * off, by + uy * off];
+        return {
+          key,
+          extensionA: [ax + ux * 2, ay + uy * 2, a1[0] + ux * 3, a1[1] + uy * 3],
+          extensionB: [bx + ux * 2, by + uy * 2, b1[0] + ux * 3, b1[1] + uy * 3],
+          line: [...a1, ...b1],
+          labelAt: [(a1[0] + b1[0]) / 2 + ux * 9, (a1[1] + b1[1]) / 2 + uy * 9],
+          text: label,
+          editable
+        };
+      };
 
       const chainDimensions = (shape, toScreen) => {
         const corners = shape.points.filter(point => !point.chord);
@@ -164,49 +224,113 @@ export default function createSketchEditor({ vue, components, locale }) {
           const b = corners[(index + 1) % corners.length];
           const worldLength = Math.hypot(b.x - a.x, b.y - a.y);
           if (worldLength < 1e-6) continue;
-          const [ax, ay] = toScreen(a.x, a.y);
-          const [bx, by] = toScreen(b.x, b.y);
-          if (Math.hypot(bx - ax, by - ay) < 28) continue;
-          const nx = b.y - a.y;
-          const ny = a.x - b.x;
-          const outward = (centroid[0] - (a.x + b.x) / 2) * nx + (centroid[1] - (a.y + b.y) / 2) * ny > 0
-            ? [nx, ny]
-            : [-nx, -ny];
-          const nl = Math.hypot(outward[0], outward[1]) || 1;
-          const [dx, dy] = toScreen(a.x + outward[0] / nl, a.y + outward[1] / nl);
-          let ux = dx - ax;
-          let uy = dy - ay;
-          const ul = Math.hypot(ux, uy) || 1;
-          ux /= ul;
-          uy /= ul;
-          const off = 16;
-          const a1 = [ax + ux * off, ay + uy * off];
-          const b1 = [bx + ux * off, by + uy * off];
-          dimensions.push({
-            key: `${shape.id}-${a.id}-${b.id}`,
-            extensionA: [ax + ux * 2, ay + uy * 2, a1[0] + ux * 3, a1[1] + uy * 3],
-            extensionB: [bx + ux * 2, by + uy * 2, b1[0] + ux * 3, b1[1] + uy * 3],
-            line: [...a1, ...b1],
-            labelAt: [(a1[0] + b1[0]) / 2 + ux * 9, (a1[1] + b1[1]) / 2 + uy * 9],
-            text: worldLength.toFixed(1)
-          });
+          const dim = linearDim(`${shape.id}-${a.id}-${b.id}`, [a.x, a.y], [b.x, b.y], centroid, worldLength.toFixed(1), null, toScreen);
+          if (dim) dimensions.push(dim);
         }
         return dimensions;
       };
 
-      const buildCanvasAnnotations = (evaluated, view) => {
+      const fieldLabel = (value, evaluatedValue) => (
+        typeof value === 'string' ? value : (Number.isFinite(evaluatedValue) ? evaluatedValue.toFixed(1) : '?')
+      );
+
+      // Primitive dimensions: rect (width, height, distance from the
+      // axis, height from the origin) and circle (diameter, distance
+      // from the axis, height from the origin) — each bound to its field,
+      // editable in place.
+      const primitiveDimensions = (authoredShape, shape, toScreen) => {
+        const dims = [];
+        const editable = (fieldKey, value, readEvaluated, apply) => ({
+          shapeId: shape.id,
+          fieldKey,
+          value,
+          ariaLabel: `${fieldKey} ${shape.id}`,
+          readEvaluated,
+          apply
+        });
+        if (shape.type === 'rect') {
+          const corners = occProfileRectCornerVertices(shape);
+          const centroid = [
+            (corners[0][0] + corners[2][0]) / 2,
+            (corners[0][1] + corners[2][1]) / 2
+          ];
+          const xs = corners.map(corner => corner[0]);
+          const ys = corners.map(corner => corner[1]);
+          const minX = Math.min(...xs);
+          const minY = Math.min(...ys);
+          const push = (fieldKey, a, b, side, rawValue, readEvaluated, apply) => {
+            const dim = linearDim(
+              `${shape.id}:${fieldKey}`, a, b, side,
+              fieldLabel(authoredShape ? authoredShape[fieldKey] : rawValue, rawValue),
+              editable(fieldKey, authoredShape ? authoredShape[fieldKey] : rawValue, readEvaluated, apply),
+              toScreen
+            );
+            if (dim) dims.push(dim);
+          };
+          push('width', corners[0], corners[1], centroid, shape.width,
+            s => s?.width, (s, next) => ({ ...s, width: next }));
+          push('height', corners[1], corners[2], centroid, shape.height,
+            s => s?.height, (s, next) => ({ ...s, height: next }));
+          push('center-x', [0, minY], [centroid[0], minY], [centroid[0], minY - 4], shape.center[0],
+            s => s?.center?.[0], (s, next) => ({ ...s, center: [next, s.center[1]] }));
+          push('center-y', [minX, 0], [minX, centroid[1]], [minX - 4, centroid[1]], shape.center[1],
+            s => s?.center?.[1], (s, next) => ({ ...s, center: [s.center[0], next] }));
+        }
+        if (shape.type === 'circle') {
+          const radius = shape.diameter / 2;
+          const [cx, cy] = shape.center;
+          const push = (fieldKey, a, b, side, rawValue, readEvaluated, apply) => {
+            const dim = linearDim(
+              `${shape.id}:${fieldKey}`, a, b, side,
+              fieldLabel(authoredShape ? authoredShape[fieldKey] : rawValue, rawValue),
+              editable(fieldKey, authoredShape ? authoredShape[fieldKey] : rawValue, readEvaluated, apply),
+              toScreen
+            );
+            if (dim) dims.push(dim);
+          };
+          push('diameter', [cx - radius, cy], [cx + radius, cy], [cx, cy - radius - 4], shape.diameter,
+            s => s?.diameter, (s, next) => ({ ...s, diameter: next }));
+          push('center-x', [0, cy - radius], [cx, cy - radius], [cx, cy - radius - 4], shape.center[0],
+            s => s?.center?.[0], (s, next) => ({ ...s, center: [next, s.center[1]] }));
+          push('center-y', [cx - radius, 0], [cx - radius, cy], [cx - radius - 4, cy], shape.center[1],
+            s => s?.center?.[1], (s, next) => ({ ...s, center: [s.center[0], next] }));
+        }
+        return dims;
+      };
+
+      const buildCanvasAnnotations = (evaluated, authored, view) => {
         const toScreen = (x, y) => {
           const point = view.worldToScreen({ x, y });
           return [point.x, point.y];
         };
         const chains = evaluated.shapes.filter(shape => shape.type === 'chain');
-        const dimensions = chains.flatMap(shape => chainDimensions(shape, toScreen));
+        const authoredById = new Map((authored?.shapes || []).map(shape => [shape.id, shape]));
+        const dimensions = [
+          ...chains.flatMap(shape => chainDimensions(shape, toScreen)),
+          ...evaluated.shapes.flatMap(shape => (
+            shape.type === 'rect' || shape.type === 'circle'
+              ? primitiveDimensions(authoredById.get(shape.id), shape, toScreen)
+              : []
+          ))
+        ];
         const openEnds = chains
           .filter(shape => !shape.closed && shape.points.length >= 2)
           .flatMap(shape => [
             toScreen(shape.points[0].x, shape.points[0].y),
             toScreen(shape.points[shape.points.length - 1].x, shape.points[shape.points.length - 1].y)
           ]);
+        const cornerLabels = evaluated.shapes
+          .filter(shape => shape.type === 'rect')
+          .flatMap(shape => occProfileRectCornerVertices(shape).map((corner, index) => ({
+            key: `${shape.id}:c${index}`,
+            at: toScreen(corner[0], corner[1]),
+            text: String(index)
+          })));
+        const outline = resolvedSection.value
+          ? [...resolvedSection.value.polygons, ...resolvedSection.value.holes]
+              .filter(ring => ring.length >= 3)
+              .map(ring => ring.map(vertex => toScreen(Number(vertex[0]), Number(vertex[1]))))
+          : [];
         // The axis spans the viewport in world Y; the hatch covers the
         // material half of the screen.
         const span = 1e5;
@@ -217,6 +341,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         const materialRight = evaluated.material !== 'negative';
         return {
           dimensions,
+          cornerLabels,
+          outline,
           origin: toScreen(0, 0),
           openEnds,
           axis: { top: axisTop, bottom: axisBottom },
@@ -238,7 +364,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         } catch {
           return null;
         }
-        return buildCanvasAnnotations(evaluated, view);
+        return buildCanvasAnnotations(evaluated, normalizeOccsProfileSketch(props.modelValue || {}), view);
       });
 
       const findShape = (sketch, shapeId) => sketch.shapes.find(shape => shape.id === shapeId) || null;
@@ -315,7 +441,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // Vertex selection feeds the canvas popup: with the Select tool a
       // click near an authored corner selects it; anything else clears.
       const handleVertexSelectPointerDown = (event) => {
-        if (event.target?.closest?.('.profile-vertex-popup')) return;
+        if (event.target?.closest?.('.profile-vertex-popup') || event.target?.closest?.('.profile-dim')) return;
         if (activeTool.value !== 'select') {
           selectedCorner.value = null;
           return;
@@ -823,11 +949,11 @@ export default function createSketchEditor({ vue, components, locale }) {
       });
 
       // Authoring rows: parameters, then one row per shape — kind glyph,
-      // op, expression fields; fillets edit right on the row (chains:
-      // per-corner chips; rects: per-corner radii), so an applied fillet
-      // stays editable. Values are numbers or expressions; the tooltip
-      // shows the resolved value. Chain corner coordinates edit through
-      // the canvas popup.
+      // op, and the fields the canvas does not carry as dimensions
+      // (rect rotation and per-corner fillet radii, chain fillet chips).
+      // Rect and circle geometry — position from the axis, sizes —
+      // authors through the on-canvas parameter dimensions; chain corner
+      // coordinates edit through the canvas popup.
       const renderShapeRow = (sketch, shape) => {
         const fields = [];
         const field = (key, value, readEvaluated, apply) => expressionField(
@@ -836,15 +962,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           applyShapeField(shape.id, readEvaluated, apply),
           `${key} ${shape.id}`
         );
-        if (shape.type === 'circle') {
-          fields.push(field('x', shape.center[0], s => s?.center?.[0], (s, next) => ({ ...s, center: [next, s.center[1]] })));
-          fields.push(field('y', shape.center[1], s => s?.center?.[1], (s, next) => ({ ...s, center: [s.center[0], next] })));
-          fields.push(field('d', shape.diameter, s => s?.diameter, (s, next) => ({ ...s, diameter: next })));
-        } else if (shape.type === 'rect') {
-          fields.push(field('x', shape.center[0], s => s?.center?.[0], (s, next) => ({ ...s, center: [next, s.center[1]] })));
-          fields.push(field('y', shape.center[1], s => s?.center?.[1], (s, next) => ({ ...s, center: [s.center[0], next] })));
-          fields.push(field('w', shape.width, s => s?.width, (s, next) => ({ ...s, width: next })));
-          fields.push(field('h', shape.height, s => s?.height, (s, next) => ({ ...s, height: next })));
+        if (shape.type === 'rect') {
           fields.push(field('∠', shape.rotation, s => s?.rotation, (s, next) => ({ ...s, rotation: next })));
           const filletByCorner = new Map(shape.fillets.map(fillet => [fillet.corner, fillet.radius]));
           for (const corner of [0, 1, 2, 3]) {
@@ -860,7 +978,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               }
             ));
           }
-        } else {
+        } else if (shape.type === 'chain') {
           // Chain: fillet chips per authored corner — an applied fillet
           // stays re-specifiable here (the popup edits coordinates).
           for (const modifier of shape.modifiers.filter(item => item.type === 'fillet')) {
@@ -952,6 +1070,21 @@ export default function createSketchEditor({ vue, components, locale }) {
           h('line', { key: `${key}-v`, x1: x, y1: y - 8, x2: x, y2: y + 8, stroke: PRIMARY, 'stroke-width': 1 })
         ];
         const { axis, hatch } = annotations;
+        // One path, every ring, evenodd: the result's outer rings carry
+        // the material hatch, its holes punch through it.
+        const outlinePath = annotations.outline.length
+          ? h('path', {
+              key: 'result-outline',
+              d: annotations.outline
+                .map(ring => `${ring.map((point, index) => `${index ? 'L' : 'M'} ${point[0]} ${point[1]}`).join(' ')} Z`)
+                .join(' '),
+              'fill-rule': 'evenodd',
+              fill: 'url(#profile-material-hatch)',
+              stroke: PRIMARY,
+              'stroke-width': 2,
+              'stroke-linejoin': 'round'
+            })
+          : null;
         return [
           h('defs', { key: 'hatch-defs' }, [
             h('pattern', {
@@ -975,12 +1108,13 @@ export default function createSketchEditor({ vue, components, locale }) {
                 fill: 'url(#profile-material-hatch)'
               })
             : null,
-          line('axis', [axis.top[0], axis.top[1], axis.bottom[0], axis.bottom[1]], PRIMARY, 1.5, { 'stroke-dasharray': '6 4' }),
+          outlinePath,
+          line('axis', [axis.top[0], axis.top[1], axis.bottom[0], axis.bottom[1]], PRIMARY, 1.5),
           ...annotations.dimensions.flatMap(dimension => [
             line(`${dimension.key}-ea`, dimension.extensionA),
             line(`${dimension.key}-eb`, dimension.extensionB),
             line(`${dimension.key}-d`, dimension.line),
-            h('text', {
+            dimension.editable ? null : h('text', {
               key: `${dimension.key}-t`,
               x: dimension.labelAt[0], y: dimension.labelAt[1],
               'font-size': 10,
@@ -992,9 +1126,47 @@ export default function createSketchEditor({ vue, components, locale }) {
               'paint-order': 'stroke'
             }, dimension.text)
           ]),
+          ...annotations.cornerLabels.map(corner => h('text', {
+            key: `${corner.key}-t`,
+            x: corner.at[0] + 7, y: corner.at[1] - 7,
+            'font-size': 9,
+            'text-anchor': 'middle',
+            'dominant-baseline': 'middle',
+            fill: DIM_STROKE,
+            stroke: DIM_HALO,
+            'stroke-width': 3,
+            'paint-order': 'stroke'
+          }, corner.text)),
           ...datum('origin', annotations.origin),
           ...annotations.openEnds.flatMap((at, index) => datum(`open-end-${index}`, at))
         ];
+      };
+
+      // The editable parameter dimensions: one small input per bound
+      // field, positioned at its dimension's label point — typing in it
+      // commits the field (adopt-on-bind rides the same path as the
+      // strip rows).
+      const renderDimensionInputs = () => {
+        const annotations = canvasAnnotations.value;
+        if (!annotations) return null;
+        return annotations.dimensions
+          .filter(dimension => dimension.editable)
+          .map(dimension => {
+            const { editable } = dimension;
+            return h(InputText, {
+              key: dimension.key,
+              class: 'profile-dim absolute z-20 w-14 -translate-x-1/2 -translate-y-1/2 text-center font-mono text-xs',
+              style: { left: `${dimension.labelAt[0]}px`, top: `${dimension.labelAt[1]}px` },
+              modelValue: fieldDraft.text(editable.ariaLabel, editable.value),
+              ...fieldDraft.handlers(editable.ariaLabel, editable.value, next => {
+                applyShapeField(editable.shapeId, editable.readEvaluated, editable.apply)(next);
+              }),
+              size: 'small',
+              'aria-label': editable.ariaLabel,
+              title: editable.ariaLabel,
+              onPointerdown: event => { event.stopPropagation(); }
+            });
+          });
       };
 
       // The selected corner's popup edits the authored model through the
@@ -1135,16 +1307,22 @@ export default function createSketchEditor({ vue, components, locale }) {
       onMounted(async () => {
         await nextTick();
         mountEngine();
+        scheduleOutlineResolve();
       });
 
       watch(() => props.modelValue, () => {
         if (manager) reseedFromModel();
+        scheduleOutlineResolve();
       }, { deep: true });
+
+      watch(() => props.externalParameters, () => { scheduleOutlineResolve(); }, { deep: true });
 
       onBeforeUnmount(() => {
         disposed = true;
         if (extractTimer) clearTimeout(extractTimer);
         extractTimer = null;
+        if (outlineTimer) clearTimeout(outlineTimer);
+        outlineTimer = null;
         zoomObserver?.disconnect?.();
         zoomObserver = null;
         unbindCommandEvents?.();
@@ -1207,6 +1385,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             class: 'pointer-events-none absolute inset-0 z-10 h-full w-full',
             'aria-hidden': 'true'
           }, renderCanvasAnnotations()),
+          ...renderDimensionInputs(),
           renderVertexPopup(),
           engineError.value
             ? h('div', { class: 'flex h-full items-center justify-center p-4' }, [

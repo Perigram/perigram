@@ -75,7 +75,18 @@ modules — no platform imports.
   `resolveOccsProfileSectionPolygons` folds the section — union of the
   add shapes minus the subtract shapes, clipped to the material half —
   through the vendored Clipper pass, yielding ordered outer polygons
-  and hole rings; every ring is cut geometry. The default hanger
+  and hole rings; every ring is cut geometry. The editor overlays the
+  resolved result as one solid outline — outer rings carrying the
+  material hatch, holes punching through it — over the editable
+  primitives, and the zero axis renders as a solid basis line.
+  Primitive parameters author as on-canvas dimension annotations (the
+  cassette editor's dimension law): every rect field (width, height,
+  position from the axis, height from the origin) and circle field
+  (diameter, position) renders as a dimension labeled by its parameter
+  expression where one is bound — measured numbers otherwise — and
+  edits in place, typing commits the field; rect corner indexes label
+  the corners so the per-corner fillet radii address them. The default
+  hanger
   template is parametric by law: a rect (W/H the rectangle, R the four
   corner fillets) plus a subtract circle (D the hole), with L resolving
   the sweep at evaluation, so a cassette's instance parameters drive it
@@ -109,7 +120,10 @@ modules — no platform imports.
   composite chain splices into the host face's contour (the embedding
   law below); boolean shapes never apply to it. Extraction keeps every
   drawn piece as its own shape — a closed four-vertex right-angle chain
-  detects as a `rect` primitive, circles become `subtract` shapes on a
+  detects as a `rect` primitive in canonical order (counter-clockwise
+  from the leftmost corner, so the draw direction leaves the stored
+  settings and corner labels unchanged), circles become `subtract`
+  shapes on a
   draw, and `mergeOccsProfileSketchGeometry` merges back under the
   one-way truth rule: an extracted shape sitting on an authored shape's
   evaluated position keeps the authored id, op, expressions, and
