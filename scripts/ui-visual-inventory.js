@@ -77,8 +77,7 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   ]],
   'components/process-designer/LaneBands.vue': ['data-driven', [
     ':style="{ top: `${band.top}px`, left: `${left}px`, width: `${Math.max(0, right - left)}px`, borderTop: \'1px solid var(--p-content-border-color)\' }"',
-    ':style="labelStyle"',
-    ':style="{ left: `${corridor.x}px`, width: `${corridor.width}px`, top: `${corridor.top}px`, height: `${corridor.height}px` }"'
+    ':style="labelStyle"'
   ]],
   'components/shared/ChatSupportDialog.vue': ['layout', [":style=\"{ width: 'min(94vw, 25rem)' }\""]],
   'components/calls/CallFloatingWindow.vue': ['data-driven', [':style="windowStyle"']],

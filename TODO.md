@@ -1,5 +1,50 @@
 # TODO
 
+## MCP authoring legality — graphs the designer cannot author (owner defect 2026-10-18)
+
+A live MCP session produced authoring states the visual designer has no
+gesture for: an effect configured with several role grants (its lane
+should be the single grant), the multi-grant corridor stretching a
+band-wide background across every granted lane, wires pinned to the node
+body (handles the addressed record carries no socket for), and
+record-less canvas nodes — cards that render empty yet take lane seats
+in Tidy. Agent authoring now carries designer legality at every seam
+(SPEC: agent access).
+
+- [ ] WAITING — owner verification on the live stack: asking the AI to
+  grant an effect two roles fails the configure gesture with the
+  one-grant message; a single-grant configure seats the effect in that
+  lane.
+- [ ] WAITING — owner verification on the live stack: a graph or
+  whole-document save carrying an invented handle, a record-less node,
+  or an unknown node type is rejected with its integrity message and
+  persists nothing.
+- [ ] WAITING — owner verification on the live stack: the designer
+  paints no corridor on any effect; a stored multi-grant record
+  collapses to its primary grant on its next save.
+
+### Agent Notes (2026-10-18 — legality walls shipped)
+
+- Gesture gate (`authoring.js` `configure`): effect access writes
+  normalize, then a multi-grant write fails naming the lane law.
+- Save floor: `graphIntegrityProblems` reads the authored data and
+  rejects unknown canvas node types and nodes addressing no
+  processNodes/ctsTypes record; `graphEdgeSocketProblems` runs after
+  the persisted rewrites (which may drop retired handles) and rejects
+  data-edge handles addressing no socket on the addressed record;
+  `create`/`update` call both.
+- `collapseEffectAccessGrants` joins the persisted rewrites: an
+  effect's access collapses to its primary grant on every save. The
+  corridor rendering and `LaneBands`' corridors prop are removed —
+  `grants[0]` already seated lanes.
+- The compose guide's lane line states the one-grant law.
+- Specs: `authoring.spec.js` (floor shape, socket wall, one-grant
+  configure, collapse), `agent-tooling-loop.spec.js` (tool-level:
+  invented handle, phantom node, multi-grant configure, whole-document
+  collapse). Guards: check-arch, framework:validate, docs:validate,
+  SSR smokes, processes suite — pass; the Mongo-gated
+  process-definitions failures are unchanged from the primary.
+
 ## The assistant's face in its own chat (owner direction 2026-10-17)
 
 The AI 1:1 thread leads the assistant's runs with the sender chip (the

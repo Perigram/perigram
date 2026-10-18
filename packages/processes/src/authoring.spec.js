@@ -5,8 +5,10 @@
 // definition authoring").
 import { describe, expect, it } from 'vitest';
 import {
+  collapseEffectAccessGrants,
   createDefinitionAuthoring,
   createProcessRecordSync,
+  graphEdgeSocketProblems,
   graphIntegrityProblems
 } from './authoring.js';
 import { validateRoundTrip } from './transpiler.js';
@@ -318,12 +320,70 @@ describe('headless layout and graph integrity', () => {
 
   it('flags the structural corruption the save floor rejects', () => {
     const problems = graphIntegrityProblems({
-      nodes: [{ id: '', type: 'processNode', data: {} }, { id: 'a' }],
-      edges: [{ id: 'e', source: 'ghost', target: 'a' }]
+      graph: {
+        nodes: [
+          { id: '', type: 'processNode', data: {} },
+          { id: 'a' },
+          { id: 'stretched', type: 'banner', position: { x: 0, y: 0 } },
+          { id: 'phantom', type: 'processNode', position: { x: 0, y: 0 }, data: { refId: 'missing' } }
+        ],
+        edges: [{ id: 'e', source: 'ghost', target: 'a' }]
+      },
+      processNodes: {}
     });
     expect(problems).toContain('node 0 has no id');
     expect(problems.some(problem => problem.includes('no numeric position'))).toBe(true);
     expect(problems).toContain('edge e references a missing node');
-    expect(graphIntegrityProblems({ nodes: [] })).toEqual([]);
+    expect(problems.some(problem => problem.includes('unknown canvas type banner'))).toBe(true);
+    expect(problems).toContain('node phantom addresses no processNodes record');
+    expect(graphIntegrityProblems({ graph: { nodes: [] } })).toEqual([]);
+  });
+
+  it('flags data edges whose handles address no socket on the addressed record', () => {
+    const authored = {
+      graph: {
+        nodes: [
+          { id: 'lit', type: 'processNode', position: { x: 0, y: 0 }, data: { refId: 'lit' } },
+          { id: 'make', type: 'processNode', position: { x: 0, y: 0 }, data: { refId: 'make' } }
+        ],
+        edges: [
+          { id: 'ok', source: 'lit', target: 'make', sourceHandle: 'data:value', targetHandle: 'data:in' },
+          { id: 'faked', source: 'lit', target: 'make', sourceHandle: 'data:value', targetHandle: 'data:topEdge' }
+        ]
+      },
+      processNodes: {
+        lit: { id: 'lit', kind: 'source.literalItem', inputs: [], outputs: [{ id: 'value' }] },
+        make: { id: 'make', kind: 'cts.construct', inputs: [{ id: 'in' }], outputs: [] }
+      }
+    };
+    expect(graphEdgeSocketProblems(authored)).toEqual([
+      'edge faked handle data:topEdge addresses no inputs socket on make'
+    ]);
+    expect(graphEdgeSocketProblems({ graph: { nodes: [], edges: [] } })).toEqual([]);
+  });
+
+  it('configures an effect lane as one grant and collapses stored multi-grant records', () => {
+    const seam = authoring();
+    seam.drop('construct', { id: 'make' });
+    expect(() => seam.configure('make', {
+      access: { grants: [
+        { roleId: 'role_admin', level: 'admin' },
+        { roleId: 'role_operator', level: 'write' }
+      ] }
+    })).toThrow(/one role grant/);
+    seam.configure('make', { access: { grants: [{ roleId: 'role_admin', level: 'admin' }] } });
+    expect(seam.record('make').access.grants).toHaveLength(1);
+
+    const collapsed = collapseEffectAccessGrants({
+      processNodes: {
+        make: { id: 'make', kind: 'cts.construct', access: { grants: [
+          { roleId: 'role_admin', level: 'admin' },
+          { roleId: 'role_operator', level: 'write' }
+        ] } },
+        lit: { id: 'lit', kind: 'source.literalItem', access: 'item' }
+      }
+    });
+    expect(collapsed.processNodes.make.access.grants).toEqual([{ roleId: 'role_admin', level: 'admin' }]);
+    expect(collapsed.processNodes.lit.access).toBe('item');
   });
 });

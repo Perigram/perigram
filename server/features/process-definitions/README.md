@@ -259,13 +259,18 @@ The compiled runtime contract is not a design source. Stored definitions that
 only contain `data.compiled` without semantic records are rejected during
 validation and activation so operators do not edit a guessed reconstruction.
 Edits save in place; an identity-only PATCH never touches data. A save
-carries a structural floor — every graph node needs a unique id, a type,
-and a numeric position, every edge must address existing nodes, and every
-data edge must name both its sockets (`sourceHandle`/`targetHandle`;
-declaration edges — the tree's `role: 'type'` wires — are node-to-node
-by design and exempt)
-(`graphIntegrityProblems` from the
-[processes package](../../../packages/processes/README.md)). Semantic
+carries a structural floor — every graph node needs a unique id, a
+canvas type the designer renders, and a numeric position, addresses its
+processNodes/ctsTypes record, every edge must address existing nodes,
+and every data edge must name both its sockets
+(`sourceHandle`/`targetHandle`; declaration edges — the tree's
+`role: 'type'` wires — are node-to-node by design and exempt) and, past
+the persisted rewrites, each handle must address a socket the addressed
+record carries (`graphIntegrityProblems` and `graphEdgeSocketProblems`
+from the
+[processes package](../../../packages/processes/README.md)). The same
+rewrites collapse an effect's access to its primary grant — one grant
+per effect, its lane. Semantic
 validity stays the validator's job; drafts may fail validation
 mid-edit but never persist as corruption. Each
 activation writes the activated snapshot to `data.activated` — the

@@ -40,7 +40,8 @@ Three pieces share one tool catalog:
   (`get_authoring_vocabulary` — the compose guide, the organization's role
   list (the grant vocabulary the designer's
   [lanes](../../../components/process-designer/README.md) author through
-  effect `access.grants`), node families, and the palette's droppable item
+  effect `access.grants`, one grant per effect), node families, and the
+  palette's droppable item
   ids, COMPACT by default; the per-kind socket inventory (`detail:
   'sockets'` — every kind's input/output socket ids, what `connect`
   addresses), the node catalog, and typed value-operation

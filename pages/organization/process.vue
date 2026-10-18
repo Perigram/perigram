@@ -48,7 +48,6 @@
           <template #zoom-pane>
             <LaneBands
               :bands="laneBands"
-              :corridors="laneCorridors"
               :left="laneExtent.left"
               :right="laneExtent.right"
             />
@@ -1178,8 +1177,8 @@ const documentDockItems = computed(() => [
 // lane clears grants).
 const secondaryHidden = ref(false);
 const LANE_MIN_HEIGHT = 150;
-// lg operation card width (DesignerNodeCard `w-72`) — the corridor column.
-const LANE_CORRIDOR_WIDTH = 288;
+// lg operation card width (DesignerNodeCard `w-72`) — the extent fallback.
+const LANE_NODE_FALLBACK_WIDTH = 288;
 // The lane container pass's band geometry (contract: README "Lanes") —
 // bands hug their members, stacked in role order. Null before the first
 // projection; the minimum-height stack below is the pre-projection paint.
@@ -1290,7 +1289,7 @@ function seedLaneFacts(node) {
 }
 
 // Band paint model: the projection owns geometry; labels come from the
-// role list, and grant-derived effect membership feeds corridors + Tidy.
+// role list, and grant-derived effect membership feeds Tidy.
 const laneModel = computed(() => {
   const roleIds = Object.keys(organizationRoles.value);
   const byPrimary = new Map(roleIds.map(roleId => [roleId, []]));
@@ -1318,31 +1317,11 @@ const laneModel = computed(() => {
 
 const laneBands = computed(() => laneModel.value.bands);
 
-// Multi-role records paint a corridor: the column of the node's card
-// spanning every lane the effect is granted to (the operation is one
-// record — never cloned, its wires never duplicated).
-const laneCorridors = computed(() => {
-  const roleBands = laneModel.value.bands;
-  const corridors = [];
-  for (const node of nodes.value) {
-    if (node.type !== 'processNode' || !isEffectNode(node)) continue;
-    const grants = draft.value?.data?.processNodes?.[node.data?.refId]?.access?.grants || [];
-    const grantedBands = grants
-      .map(grant => roleBands.find(band => band.id === `role:${grant.roleId}`))
-      .filter(Boolean);
-    if (grantedBands.length < 2) continue;
-    const top = Math.min(...grantedBands.map(band => band.top));
-    const bottom = Math.max(...grantedBands.map(band => band.top + band.height));
-    corridors.push({ id: node.id, x: node.position?.x || 0, width: LANE_CORRIDOR_WIDTH, top, height: bottom - top });
-  }
-  return corridors;
-});
-
 // Bands span the nodes' horizontal domain — from the leftmost node's
 // column to the rightmost node's right edge.
 const laneExtent = computed(() => {
   const extents = nodes.value
-    .map(node => ({ left: node.position?.x, right: (node.position?.x || 0) + (node.dimensions?.width || LANE_CORRIDOR_WIDTH) }))
+    .map(node => ({ left: node.position?.x, right: (node.position?.x || 0) + (node.dimensions?.width || LANE_NODE_FALLBACK_WIDTH) }))
     .filter(item => Number.isFinite(item.left));
   if (!extents.length) return { left: 0, right: 2400 };
   const pad = 24;
