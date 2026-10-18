@@ -1,5 +1,8 @@
+import { parseProcessSocketHandleId } from './ports.js';
+
+// The handle prefix table lives in ports.js alone (the ports contract).
 export function normalizeHandle(handle = '') {
-  return String(handle).replace(/^(input|output|data):/, '');
+  return parseProcessSocketHandleId(handle);
 }
 
 export function lineageKeyForTypeId(typeId = '') {

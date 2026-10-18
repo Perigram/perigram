@@ -1139,6 +1139,37 @@ describe('@perigram/processes compiler', () => {
     expect(validation.errors.join('\n')).toContain('billing.secret');
   });
 
+  it('keeps control handles out of an event-wired mutate mutation field list', () => {
+    const mutateDomain = {
+      ...domain,
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        project: [{ path: 'fields.metadata', block: 'fields', type: { base: 'json', nullable: true }, readable: true, writable: true }]
+      }
+    };
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      roles: { role_operator: { id: 'role_operator' } },
+      graph: {
+        nodes: ['make_project', 'patch'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [
+          { id: 'e1', source: 'make_project', sourceHandle: 'data:result', target: 'patch', targetHandle: 'data:entity', role: 'data' },
+          { id: 'e2', source: 'make_project', sourceHandle: 'data:result', target: 'patch', targetHandle: 'data:fields.metadata', role: 'data' },
+          { id: 'e3', source: 'make_project', sourceHandle: 'control:completed', target: 'patch', targetHandle: 'control:in', role: 'control' }
+        ]
+      },
+      producerOutputs: producerOutputRecords([['make_project', 'project']]),
+      processNodes: {
+        make_project: { id: 'make_project', kind: 'cts.construct', typeId: 'project', construction: { mode: 'genericCreate' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_operator', level: 'write' }] }, producerOutputId: 'make_project:entity' },
+        patch: { id: 'patch', kind: 'cts.mutate', typeId: 'project', trigger: { mode: 'event' }, access: { level: 'write', grants: [{ roleId: 'role_operator', level: 'write' }] }, inputs: [
+          { id: 'entity', type: { base: 'entityRef', typeId: 'project', nullable: false }, role: 'data', required: true, access: 'list', multiple: false },
+          { id: 'fields.metadata', type: { base: 'json', nullable: true }, role: 'data', required: false, access: 'list', multiple: false }
+        ] }
+      }
+    }, mutateDomain);
+    expect(compiled.actions.patch.mutation.fields).toEqual(['fields.metadata']);
+  });
+
   it('does not let write-level update actions mutate admin-only fields', () => {
     const validation = validateProcessDefinition({
       roles: { role_editor: { id: 'role_editor' } },
