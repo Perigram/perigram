@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   closeWorkspaceLeaf,
   createWorkspaceLeaf,
+  pruneLeafTabs,
   splitWorkspaceLeaf,
   updateWorkspaceLeaf,
   updateWorkspaceSplit,
@@ -62,5 +63,18 @@ describe('workspace split tree', () => {
     );
 
     expect(closeWorkspaceLeaf(root, 'pane-2')).toEqual(createWorkspaceLeaf('pane-1', 'project:p1'));
+  });
+
+  it('closes tabs whose content died and resets a fully dead leaf to one empty tab', () => {
+    const keep = createWorkspaceLeaf('pane-1', 'screen:s1');
+    keep.tabKeys = ['screen:s1', 'screen:gone', 'page:p1'];
+    const pruned = pruneLeafTabs(keep, new Set(['screen:s1', 'page:p1']), key => key.startsWith('empty:'));
+    expect(pruned.tabKeys).toEqual(['screen:s1', 'page:p1']);
+    expect(pruned.selectionKey).toBe('screen:s1');
+
+    const dead = pruneLeafTabs(keep, new Set([]), key => key.startsWith('empty:'));
+    expect(dead.tabKeys).toHaveLength(1);
+    expect(dead.tabKeys[0]).toMatch(/^empty:/);
+    expect(dead.selectionKey).toBe(dead.tabKeys[0]);
   });
 });

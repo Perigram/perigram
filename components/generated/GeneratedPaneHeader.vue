@@ -3,8 +3,7 @@
   <div data-pane-header class="flex h-10 shrink-0 items-stretch border-b border-chrome-border">
     <!-- The pane's back control: walks the workspace-owned navigation
          history of in-place tab replacements. Always visible, disabled
-         while the pane has no history — navigation stays discoverable
-         instead of appearing after the fact. -->
+         while the pane has no history. -->
     <div class="flex shrink-0 items-center pl-1">
       <Button
         icon="pi pi-arrow-left"
@@ -29,7 +28,6 @@
     />
     <div class="flex shrink-0 items-stretch pr-0.5">
       <GeneratedWorkspacePaneMenu
-        :splittable="splittable"
         :closeable="closeable"
         @split="$emit('split', $event)"
         @close="$emit('close')"
@@ -48,7 +46,6 @@ defineProps({
   tabs: { type: Array, default: () => [] },
   activeKey: { type: String, default: '' },
   closeable: { type: Boolean, default: false },
-  splittable: { type: Boolean, default: true },
   back: { type: Boolean, default: false }
 });
 
