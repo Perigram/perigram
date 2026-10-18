@@ -319,8 +319,12 @@ onUnmounted(() => {
       </span>
       <span class="instance-inline-compact-main">
         <span class="instance-inline-compact-header">
+          <template v-if="compactLayout === 'stacked' && resolved">
+            <i v-if="icon" :class="icon" class="shrink-0 text-xs text-muted" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate text-xs text-supporting" :title="identityLabel">{{ identityLabel }}</span>
+          </template>
           <Chip
-            v-if="resolved"
+            v-else-if="resolved"
             :label="identityLabel"
             :icon="icon || undefined"
             :pt="chipPt"
