@@ -65,6 +65,44 @@ editable fillets, and a one-shot migration for stored sketches.
   run) against production data and `--apply` once the counts look
   right.
 
+### Agent Notes (2026-10-18, round 8 — owner review, parameter lifecycle)
+
+- Owner report: typing a value into one primitive's dimension changed
+  another primitive. Three compounding defects, reproduced in the
+  harness (leak.cjs):
+- Stacking reshuffle: dim stack slots banded on SCREEN baselines, so
+  pan/zoom (and load-time wobble) re-banded and swapped the two
+  identically-labeled `W/2` inputs — a typed value landed on the other
+  primitive's field. Bands now key on the world midpoint; slots hold
+  through navigation.
+- Duplicate position dims: the template's rect and circle each rendered
+  their own `W/2`/`H/2` axis dims — same label, same baseline. One dim
+  per unique position expression now renders (divergent expressions
+  each keep their own).
+- Parameter lifecycle: a typed number into a dim bound to a bare
+  parameter severed that field to a silent numeric (the parameter table
+  never moved and primitives diverged). A bare-parameter dim is now
+  that parameter's editor — typing commits the parameter, bindings
+  intact, bound fields follow; compound expressions still commit to
+  their own field. Verified: W dim typed 60 sets `W: 60` with
+  `width: "W"` and the circle's `W/2` intact.
+- Dimension hell, second owner report. Two root causes found by
+  timeline capture (delete + Ctrl+Z):
+  (1) the merge's fresh-id renumber skipped any extracted shape whose
+  id equaled a kept authored id — undo restored the circle as a numeric
+  duplicate colliding with the rect's id (two shapes both `s0`: Vue key
+  collisions, popups and dims hitting the wrong shape). Renumbering now
+  tracks kept shapes by identity.
+  (2) the erase dropped the authored circle from the model, so the
+  undo's restored geometry extracted as a brand-new numeric shape
+  ("values instead of parameters"). The editor keeps merge-dropped
+  authored shapes (session memory, capped 20, cleared with the
+  canvas/imports) as adoption candidates — undo now revives the circle
+  with `d=D c=[W/2,H/2]` and its id.
+- The shape popup's op control is a segmented Reference/Add/Subtract
+  (SelectButton) — the three states read at once; the sequential cycle
+  button is deleted.
+
 ### Agent Notes (2026-10-18, round 7 — owner review, the cut and field sizes)
 
 - Owner report: the cut never showed — nothing ever removed hatch.
