@@ -1,5 +1,5 @@
 <template>
-  <span class="inline-flex shrink-0 self-stretch items-stretch">
+  <span v-if="closeable" class="inline-flex shrink-0 self-stretch items-stretch">
     <Button
       icon="pi pi-ellipsis-v"
       text
