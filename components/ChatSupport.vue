@@ -166,7 +166,7 @@
                                 />
                             </span>
                             <div
-                                class="relative flex w-full min-w-0 items-start gap-2 md:gap-3"
+                                class="relative flex w-full min-w-0 items-center gap-2 md:gap-3"
                                 :class="rowDrag.key === option.conversationKey ? '' : 'transition-transform'"
                                 :style="rowContentStyle(option)"
                             >
@@ -200,7 +200,7 @@
                                     :aria-label="$t('support.online')"
                                 />
                             </div>
-                            <div class="min-w-0 flex-1">
+                            <div class="flex min-w-0 flex-1 flex-col gap-1">
                                 <div class="flex min-w-0 items-baseline gap-2">
                                     <span class="min-w-0 truncate text-label">{{ conversationLabel(option) }}</span>
                                     <small
@@ -228,9 +228,9 @@
                                 </div>
                                 <div class="flex min-w-0 items-center gap-1">
                                     <small class="min-w-0 flex-1 truncate text-muted text-supporting">
-                                        <SupportMessageContent
-                                            v-if="option.lastMessage"
-                                            :message="conversationPreviewMessage(option)"
+                                        <ChatAttachments
+                                            v-if="(option.attachments || []).length"
+                                            :attachments="option.attachments"
                                             single-line
                                         />
                                         <ChatInstanceRefs
@@ -238,9 +238,9 @@
                                             :refs="option.instanceRefs"
                                             single-line
                                         />
-                                        <ChatAttachments
-                                            v-else-if="(option.attachments || []).length"
-                                            :attachments="option.attachments"
+                                        <SupportMessageContent
+                                            v-else-if="option.lastMessage"
+                                            :message="conversationPreviewMessage(option)"
                                             single-line
                                         />
                                         <template v-else>{{ $t('support.noMessages') }}</template>
