@@ -1187,7 +1187,9 @@ Entity-linked chats ride the same surfaces: the inbox is one unified
 timestamp-ordered list across person, group, and entity chats — the avatar
 glyph (person image/letter, group icon, entity type icon) carries the kind,
 and all placeholders stay neutral (subtle surface, muted ink) instead of
-primary. The grouping switch narrows entity chats to their top-level nodes
+primary. The row preview leads with the message's payload: attachments
+show their kind icon plus the first file name, instance refs their type
+glyph plus the declared identifier; text messages show the message body. The grouping switch narrows entity chats to their top-level nodes
 (entities with no resolvable lineage ancestors) and back to every entity
 chat. Child-entity threads (cassettes, nesting runs, sheet designs) resolve
 server-side through the support service's scoped list resolution when
