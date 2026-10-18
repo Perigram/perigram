@@ -24,7 +24,7 @@
       <span v-if="refs.length" class="flex w-full max-w-80 flex-col items-start gap-1" data-testid="chat-instance-refs">
         <span
           v-if="previewRefs.length === 1"
-          class="block w-full overflow-hidden rounded-ui border border-content-border bg-subtle p-1.5"
+          class="block w-full overflow-hidden rounded-ui border border-content-border"
         >
           <InstanceInlineRef v-bind="previewRefProps(previewRefs[0])" />
         </span>
@@ -36,7 +36,7 @@
           <span
             v-for="ref in previewRefs"
             :key="`${ref.type}-${ref.id}`"
-            class="block min-w-0 overflow-hidden rounded-ui border border-content-border bg-subtle p-1"
+            class="block min-w-0 overflow-hidden rounded-ui border border-content-border"
           >
             <InstanceInlineRef v-bind="previewRefProps(ref)" />
           </span>
