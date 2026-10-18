@@ -26,6 +26,24 @@ editable fillets, and a one-shot migration for stored sketches.
   run) against production data and `--apply` once the counts look
   right.
 
+### Agent Notes (2026-10-18, round 4 — CAD conventions)
+
+- Delivery gap found: round 3 was merged to local and then local was
+  rewound past it (concurrent reset); the running stack served round 2
+  the whole time — the owner reviewed round 2. Round 3 recovered from
+  its branch and reworked here.
+- Selection is the engine's entity pick (selectionAdded/Removed map
+  seeded entities to shapes); the parallel screen-space hit-test is
+  gone. One selected shape → parameter popup at the click (op,
+  rotation, fillets, the expression table) — the top strip is deleted.
+- Dimensions follow drafting law: outside the figure, label centered
+  on the dimension line (the input's background breaks the line),
+  inputs clamped into the canvas; extension lines thin; corner index
+  labels removed; the axis is a dash-dot centerline.
+- A boolean result clipped away on the void side of the axis reports
+  itself (message) instead of rendering nothing; resolve errors
+  surface instead of swallowing.
+
 ### Agent Notes (2026-10-18, round 3 — editor readability)
 
 - Dimension values now pass the authored field per dim (center

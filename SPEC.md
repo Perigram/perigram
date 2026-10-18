@@ -889,9 +889,10 @@ anchor vertex sits on it). The editor shows the authored model the way
 the cassette editor shows its dimensions: every primitive field is a
 dimension annotation on the canvas, labeled by its parameter expression
 where one is bound (measured numbers otherwise), and set directly in
-place — typing in the dimension commits the field. A selected
-primitive edits its remaining parameters (op, rotation, fillet radii)
-in a popup at the click point. The editor overlays the resolved
+place — typing in the dimension commits the field. Selection is the
+CAD engine's entity pick; a single selected shape opens its parameter
+popup (op, rotation, fillet radii, the expression table) at the click
+point — the popup is the only authoring panel. The editor overlays the resolved
 boolean result as the one strong figure over the editable primitives —
 the material half a faint tint, the result hatched with a solid
 outline — so the union, difference, and material-half clip read at a

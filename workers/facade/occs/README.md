@@ -79,7 +79,7 @@ modules — no platform imports.
   material half as a faint tint and the resolved result as the one
   strong figure — outer rings hatched with a solid outline, holes
   punching through — over the editable primitives; the zero axis
-  renders as a solid basis line.
+  renders as a drafting centerline (dash-dot).
   Primitive parameters author as on-canvas dimension annotations (the
   cassette editor's dimension law): every rect field (width, height,
   position from the axis, height from the origin) and circle field
