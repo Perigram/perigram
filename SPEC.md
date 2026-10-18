@@ -860,6 +860,33 @@ parameter/holes strip sits above the canvas, the tool toolbar floats
 inside the canvas over the drawing, and the dialog stands near-viewport
 height so the canvas takes everything left.
 
+Owner decision (2026-10-18, profile shape model): a profile sketch is a
+list of parametric shapes combined by per-shape boolean operations and
+evaluated on the edge axis. Any number of shapes may exist in one
+profile; the profile-level open/closed distinction is retired — closure
+is a chain shape's own state. Shape kinds: circle, rectangle, and chain
+(drawn on the canvas or imported); every authoring field is an
+expression over the parameter table (distances from the basis axis,
+radii, width/height, rotation). Each shape carries its own operation —
+add, subtract, or none; a shape with no operation is reference geometry
+(an imported drawing used as a visual guide) and evaluation ignores it.
+The editor displays the zero vertical axis — the basis every parameter
+measures from — and hatches the material half-plane beside it; the
+hatched half is a body that participates in the boolean evaluation: the
+profile section is the union of the add shapes minus the subtract
+shapes, clipped to the material half. The axis is the placement basis:
+placed into a cassette, the axis lands on the attachment edge (snap +
+offsets), material half toward the host face. Fillets are
+non-destructive: they live as modifiers on their shape — per-corner on
+rectangles, per-vertex on chains — and stay editable after application
+(position and radius). Boolean evaluation is for closed shapes; an open
+chain shape keeps the cut-path role (the composite-chain embedding law).
+Stored profiles — library records and cassette documents — cross into
+the shape model through a one-shot migration script; chain sketches
+become chain shapes, holes become subtract circles, and a closed
+sketch's basis anchor becomes the axis (the chain is translated so the
+anchor vertex sits on it).
+
 Owner decision (2026-10-17, assembly tree layout): the designer's
 workpiece tree keeps every workpiece top-level — sheets and hardware
 never nest under another workpiece. A profile workpiece renders once, as

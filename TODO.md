@@ -1,5 +1,30 @@
 # TODO
 
+## Profile shape model (owner direction 2026-10-18)
+
+The profile sketch becomes a list of parametric shapes with per-shape
+boolean ops, evaluated on the zero axis (SPEC §Owner decision
+2026-10-18, profile shape model): primitives (circle, rectangle, chain)
+with expression fields measured from the basis axis, per-shape
+add/subtract/none ops (none = reference geometry), the hatched material
+half-plane as a boolean body, axis-on-edge placement, non-destructive
+editable fillets, and a one-shot migration for stored sketches.
+
+- [ ] Shape model in `occs/profiles.js`: `sketch.shapes`, per-shape ops,
+  material half, fillets as shape modifiers; legacy chain sketches
+  upgrade at normalize.
+- [ ] Boolean section resolver: union of adds − subtracts, clipped to
+  the material half, through the vendored Clipper pass; open chains keep
+  the embedding section path.
+- [ ] Sketch editor: axis + hatch overlay, shape rows with op and
+  expression fields, always-editable fillets, draw/import mapping into
+  shapes.
+- [ ] Consumers: cut path, renderer placement (axis on edge), previews
+  and thumbnails, folded 3D.
+- [ ] One-shot migration script over stored library records and cassette
+  documents.
+- [ ] Specs and e2e updated; READMEs match the new model.
+
 ## The authoring skill teaches the domain (owner direction 2026-10-18)
 
 The served guide was a gesture syntax manual: the model learned op
