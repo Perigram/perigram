@@ -1524,7 +1524,8 @@ async function loadInstanceOptionsForSources(auth, type, sources = []) {
 function normalizeInstanceOption(type, instance) {
     const dto = instance?.toJSON ? instance.toJSON() : instance;
     const value = dto?._id?.toString?.() || dto?._id || dto?.id || '';
-    const label = dto?.name || value;
+    // Naming law lives in the support README: labels carry names only.
+    const label = dto?.name || '';
     return {
         type,
         value,

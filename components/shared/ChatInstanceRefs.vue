@@ -32,8 +32,12 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { useInstancesStore } from '~/stores/instances';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { instanceRecordTitle } from '~/utils/instance-shape.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
 
 const props = defineProps({
   refs: { type: Array, default: () => [] },
@@ -45,7 +49,9 @@ const props = defineProps({
   singleLine: { type: Boolean, default: false }
 });
 
+const { t, te } = useI18n();
 const instances = useInstancesStore();
+const { typeById } = useFileTypeView();
 
 const restrictedView = computed(() => Boolean(
   props.viewerUserId && props.senderUserId && props.senderUserId !== props.viewerUserId
@@ -55,7 +61,13 @@ const canFetch = (ref = {}) => !restrictedView.value || !ref.chatOnlyForRecipien
 
 const first = computed(() => props.refs[0] || null);
 const firstIcon = computed(() => (first.value ? instances.iconFor(first.value.type) : 'pi pi-circle'));
-const firstLabel = computed(() => first.value?.instance?.identity?.name
-  || first.value?.label
-  || '');
+// Naming law: the support README — empty names localize the type label.
+const firstLabel = computed(() => {
+  const ref = first.value || {};
+  const typeView = ref.type ? typeById(ref.type) : null;
+  const title = instanceRecordTitle(ref.instance || null, typeView);
+  if (title) return title;
+  const storedName = ref.label && ref.label !== String(ref.id) ? ref.label : '';
+  return storedName || generatedEntityLabel(ref.type, { t, te });
+});
 </script>

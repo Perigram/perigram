@@ -3,6 +3,8 @@
 // live in flat `fields`, the name slot and payload slot travel as
 // themselves. Pure; pinned by spec.
 
+import { titleFor } from '#shared/ui-mapping/index.js';
+
 function readBlockPath(dto = {}, segments = []) {
   return segments.reduce((value, segment) => (value == null ? undefined : value[segment]), dto);
 }
@@ -85,4 +87,10 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
     payload: dto.payload || null,
     previewSource: previewSourceValue(dto, typeRecord)
   };
+}
+
+// The record title over a wire DTO; callers own the empty-name fallback.
+export function instanceRecordTitle(dto = null, typeRecord = null) {
+  if (!dto || !typeRecord) return '';
+  return titleFor(dtoToScreenInstance(dto, typeRecord), typeRecord, { unnamedLabel: '' });
 }

@@ -23,8 +23,8 @@ import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
-import { titleFor } from '#shared/ui-mapping/index.js';
-import { dtoToScreenInstance } from '~/utils/instance-shape.js';
+import { instanceRecordTitle } from '~/utils/instance-shape.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { instanceHasEditorAction } from '~/components/generated/instance-editor-action.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useStatePolicy } from '~/composables/useStatePolicy';
@@ -53,7 +53,7 @@ const loaded = ref(null);
 const compactOp = ref();
 const authStore = useAuthStore();
 const instances = useInstancesStore();
-const { t } = useI18n();
+const { t, te } = useI18n();
 const entityContext = inject('entityContext', null);
 const generatedExecuteAction = inject('generatedExecuteAction', null);
 const normalizedId = computed(() => props.id?.toString?.() || props.id || '');
@@ -128,10 +128,11 @@ const compactDisplay = computed(() => resolveInstanceDisplayContract({
 // meta-facts channel (slug/serial beside the label) died with the
 // identity-chrome helpers.
 const typeView = computed(() => typeById(generatedTypeId.value));
-const identityLabel = computed(() => titleFor(
-  typeView.value ? dtoToScreenInstance(resolved.value, typeView.value) : null,
-  typeView.value,
-  { unnamedLabel: t('common.unnamed') }
+const identityLabel = computed(() =>
+  instanceRecordTitle(resolved.value, typeView.value) || t('common.unnamed'));
+const unresolvedLabel = computed(() => generatedEntityLabel(
+  generatedTypeId.value || props.type,
+  { t, te }
 ));
 const compactDataFields = computed(() => compactDisplay.value.fields.filter(field =>
   field.display !== 'entityRef'
@@ -369,7 +370,7 @@ onUnmounted(() => {
     />
     <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted" data-instance-card-interactive="true">
       <i :class="icon" class="shrink-0"></i>
-      <span class="truncate">{{ resolvedId || $t('common.notAvailable') }}</span>
+      <span class="truncate">{{ resolvedId ? unresolvedLabel : $t('common.notAvailable') }}</span>
     </span>
   </span>
 

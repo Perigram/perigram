@@ -74,19 +74,20 @@ describe('chat content SSR smoke', () => {
 
   it('renders attached instance refs and their preview summary', async () => {
     const refs = [
-      { type: 'cassette', id: 'abc', instance: { _id: 'abc', identity: { name: 'Cassette One' } } },
+      { type: 'cassette', id: 'abc', label: 'Cassette One', instance: { _id: 'abc', name: 'Cassette One', fields: {} } },
       { type: 'sheetDesign', id: 'def' }
     ];
     // Full mode renders one chip per resolved ref; a ref without a
     // snapshot renders the muted unresolved fallback. Labels resolve
     // through the registry's type view, which this smoke does not load —
-    // assert structure, not names.
+    // the chip and fallback render the localized unnamed placeholder, and
+    // the raw id never renders.
     const row = await boot({
       setup: () => () => h(ChatInstanceRefs, { refs })
     });
     expect(row).toContain('data-testid="chat-instance-refs"');
     expect(row.match(/p-chip-label/g)?.length).toBe(1);
-    expect(row).toContain('>def<');
+    expect(row).not.toContain('>def<');
 
     const summary = await boot({
       setup: () => () => h(ChatInstanceRefs, { refs, singleLine: true })

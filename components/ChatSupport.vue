@@ -1528,8 +1528,8 @@ import { resolveSourceFilters } from '~/composables/useGeneratedScreen.js'
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useFileTypeView } from '~/composables/useFileTypeView.js'
-import { titleFor } from '#shared/ui-mapping/index.js'
-import { dtoToScreenInstance } from '~/utils/instance-shape.js'
+import { instanceRecordTitle } from '~/utils/instance-shape.js'
+import { generatedEntityLabel } from '~/utils/generated-labels.js'
 import { useChatFileUpload } from '~/composables/useChatFileUpload.js'
 import { useDirectoryUserSearch } from '~/composables/useDirectoryUserSearch.js'
 import {
@@ -2964,15 +2964,8 @@ const stripInstanceId = (entity = null) => {
 const stripDisplayName = (name, id) => (name && name !== String(id) ? name : '')
 
 // Labels ride the shared title resolver (the InstanceInlineRef path).
-const stripEntityLabel = (instance = null, typeId = '') => {
-    const view = typeViewById(typeId)
-    const title = titleFor(
-        view ? dtoToScreenInstance(instance, view) : null,
-        view,
-        { unnamedLabel: '' }
-    )
-    return stripDisplayName(title, stripInstanceId(instance))
-}
+const stripEntityLabel = (instance = null, typeId = '') =>
+    stripDisplayName(instanceRecordTitle(instance, typeViewById(typeId)), stripInstanceId(instance))
 
 watch([activeConversationKey, () => activeConversation.value?.typeId, () => activeConversation.value?.instanceId], ([key]) => {
     if (!key || activeConversation.value?.conversationKind !== 'instance') return
@@ -3704,9 +3697,16 @@ const openCreatePromptDialog = async (action) => {
         if (field.type === 'instance' || field.type === 'typeList') {
             if (!type) continue
             try {
-                createPromptOptions[field.id] = await $fetch('/api/support/instance-options', {
+                const rows = await $fetch('/api/support/instance-options', {
                     query: { type }
                 })
+                const view = typeViewById(type)
+                createPromptOptions[field.id] = (rows || []).map(row => ({
+                    ...row,
+                    label: instanceRecordTitle(row.instance || null, view)
+                        || row.label
+                        || generatedEntityLabel(type, { t, te })
+                }))
             } catch (error) {
                 console.error('Failed to load create prompt options:', error)
                 createPromptOptions[field.id] = []
@@ -3787,7 +3787,7 @@ const hydrateInstanceRefs = async (refs = []) => {
             const option = (options || []).find(item => item.value === ref.id)
             hydrated.push({
                 ...ref,
-                label: option?.label || ref.label || ref.id,
+                label: option?.label || (ref.label !== String(ref.id) ? ref.label : ''),
                 entity: option?.entity || ref.instance || null,
                 recipientHasAccess: option?.recipientHasAccess
             })
