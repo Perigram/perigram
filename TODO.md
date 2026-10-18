@@ -65,6 +65,29 @@ editable fillets, and a one-shot migration for stored sketches.
   run) against production data and `--apply` once the counts look
   right.
 
+### Agent Notes (2026-10-18, round 6 — owner review, hatch and popup chrome)
+
+- Owner report: two hatch densities on the canvas, and the popup had
+  no background. Root causes: the result overlay carried its own
+  dense hatch pattern; the popup and dim inputs styled through
+  `bg-content-background` / `text-muted-color` — utilities the design
+  tokens never define (the app spells them `bg-content` /
+  `text-muted`), so the classes resolved to nothing and the popups
+  rendered transparent.
+- Canvas now carries one hatch (the material half as the face); the
+  resolved section is the cut — empty interior, solid 2.5px outline.
+  Verified in the harness (real Tailwind build): one pattern element,
+  outline fill none.
+- Popups and dimension inputs carry the theme surface through the
+  real utilities; the shape popup re-lays-out as a compact panel
+  (header with kind icon and op, one row holding rotation and r0..r3;
+  chain fillets wrap four per row) and clamps inside the canvas by
+  its real width.
+- The harness now builds its stylesheet with the app's Tailwind
+  config over the surface source, so a class the tokens do not define
+  renders unstyled in the harness too (this defect class is visible
+  there now).
+
 ### Agent Notes (2026-10-18, round 5 — owner review fixes)
 
 - Owner report on round 4, five defects, all reproduced in a fresh

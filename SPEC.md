@@ -904,10 +904,16 @@ Owner review (2026-10-18, profile editor readout): the parameter table
 lives in the strip above the canvas — its one home, visible with no
 selection. Clicking a primitive — face, edge, or cutout — opens its
 popup. The canvas carries exactly two surface states, hatch and empty:
-the material half hatches as the face, a subtract cut leaves empty; a
-primitive is either added or subtracted from the face. Stacked
+the material half hatches as the face — the one hatch — and the
+resolved section is the cut from it (empty interior, solid outline);
+a primitive is either added or subtracted from the face. Stacked
 dimensions chain outward on their baseline and every dimension line
 carries arrowheads.
+
+Owner review (2026-10-18, profile editor popup chrome): the popup and
+every floating authoring field carry the theme's surface background
+and border. The primitive popup lays out as one compact panel: header
+(kind, operation), then one row with rotation and the fillet radii.
 
 
 Owner decision (2026-10-17, assembly tree layout): the designer's

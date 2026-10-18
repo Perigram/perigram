@@ -77,10 +77,9 @@ modules — no platform imports.
   through the vendored Clipper pass, yielding ordered outer polygons
   and hole rings; every ring is cut geometry. The editor's canvas
   carries exactly two surface states (owner law 2026-10-18): the
-  material half hatches as the face, and cuts — subtract footprints,
-  holes, the void half — stay empty; the resolved result overlays as
-  the one strong figure (denser hatch, solid outline) over the
-  editable primitives, and the zero axis renders as a solid basis
+  material half hatches as the face — the one hatch — and the resolved
+  section is cut from it (empty interior, solid outline), the void
+  half staying empty; the zero axis renders as a solid basis
   line.
   Primitive parameters author as on-canvas dimension annotations (the
   cassette editor's dimension law): every rect field (width, height,
@@ -91,8 +90,12 @@ modules — no platform imports.
   baseline chain outward, and every dimension line terminates in
   arrowheads. The sketch's expression table lives in the parameter
   strip above the canvas (the `fx` row — its one home); a selected
-  primitive's popup carries its op, rotation, and fillet radii, and
-  opens on clicking the primitive — face, edge, or cutout. The default
+  primitive's popup carries its op, rotation, and fillet radii as one
+  compact panel (header, then a single field row), and opens on
+  clicking the primitive — face, edge, or cutout. Floating authoring
+  chrome (popups, dimension inputs) styles through the design-token
+  utilities `bg-content`, `border-content-border`, and `text-muted`.
+  The default
   hanger
   template is parametric by law: a rect (W/H the rectangle, R the four
   corner fillets) plus a subtract circle (D the hole), with L resolving
