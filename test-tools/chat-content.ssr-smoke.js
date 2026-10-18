@@ -119,6 +119,53 @@ describe('chat content SSR smoke', () => {
     expect(html).toContain('instance-inline-compact-header');
   });
 
+  it('tiles several preview refs into a grid', async () => {
+    globalThis.$fetch.mockImplementation(async (url) => (
+      String(url).includes('/api/admin/cts/types')
+        ? {
+            types: [{ id: 'cassette', payload: { maxSize: null }, fields: {}, sections: [] }],
+            editors: [],
+            surfaces: [],
+            previews: [{
+              type: 'cassette',
+              surface: 'cassette-preview',
+              url: '/api/plugins/facade/module/surfaces/cassette-preview.mjs',
+              surfaceContract: 1
+            }]
+          }
+        : {}
+    ));
+    const i18n = createI18n({ legacy: false, missingWarn: false, fallbackWarn: false, messages: { en: enLocale } });
+    const app = createSSRApp({
+      setup: () => () => h(MessageAttachments, {
+        refs: ['a', 'b'].map(id => ({
+          type: 'cassette',
+          id,
+          instance: { _id: id, fields: {} }
+        }))
+      })
+    });
+    const pinia = createPinia();
+    app.use(i18n);
+    app.use(pinia);
+    app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
+    const { useAuthStore } = await import('~/stores/auth');
+    useAuthStore(pinia).user = { organizationId: 'org-preview-grid-smoke' };
+    const { useFileTypeView } = await import('~/composables/useFileTypeView.js');
+    setActivePinia(pinia);
+    useFileTypeView();
+    await new Promise(resolve => setTimeout(resolve));
+    let html;
+    try {
+      html = await renderToString(app);
+    } finally {
+      globalThis.$fetch.mockImplementation(async () => ({}));
+    }
+    expect(html).toContain('data-testid="chat-instance-refs-grid"');
+    expect(html).toContain('grid-cols-2');
+    expect((html.match(/instance-inline-compact--stacked/g) || []).length).toBe(2);
+  });
+
   it('renders attached instance refs and their preview summary', async () => {
     const refs = [
       { type: 'cassette', id: 'abc', label: 'Cassette One', instance: { _id: 'abc', name: 'Cassette One', fields: {} } },
