@@ -1077,6 +1077,25 @@ describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
     }
   });
 
+  it('serves any member of the installing org; the organizations grant is not the gate', async () => {
+    vi.mocked(hasPermission).mockImplementation(() => false);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('export default null;', {
+      status: 200, headers: { 'content-type': 'application/javascript' }
+    })));
+    try {
+      const module = await fetchSurfaceModule({
+        organizationId: ORG,
+        pluginId: 'coatings',
+        modulePath: '/surfaces/designer.mjs',
+        auth: AUTH
+      });
+      expect(module.body.toString()).toBe('export default null;');
+    } finally {
+      vi.mocked(hasPermission).mockImplementation(() => true);
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('404s without an install and 503s without a connected endpoint', async () => {
     await expect(fetchSurfaceModule({
       organizationId: ORG,

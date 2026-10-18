@@ -394,7 +394,6 @@ function assertInstallableDependencies(dependencies = []) {
 // through the route wrapper — never the server-network origin.
 export async function fetchSurfaceModule({ organizationId, pluginId, modulePath = '', auth = {} }) {
   assertSameOrganization(organizationId, auth);
-  assertOrganizationPermission(auth, 'read');
   const install = await repository.findInstall(organizationId, pluginId);
   if (!install) throw createError({ statusCode: 404, message: 'Plugin not installed' });
   const origin = endpointOriginOf(install);
