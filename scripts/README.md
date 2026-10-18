@@ -65,7 +65,7 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   collections (`execution_runs`, `execution_step_invocations`,
   `execution_waits`, `execution_outputs`, `execution_steps`,
   `execution_receipts`). Run once after deploying the in-process action
-  evaluation (owner direction 2026-10-17: no durable process runs).
+  evaluation.
 - `check-arch.js`: Architecture guardrail for v24 backend features, API layer
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
   retired vocabulary, portable-runtime import rules, concrete CNC domain leaks
