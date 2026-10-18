@@ -831,16 +831,6 @@ transcription stay in the host composer.
   spacing; gutters are invisible but draggable — the division works
   without being drawn. Split-tree mutation remains pure state owned by
   the caller.
-- **`FloatingSurface.vue`**: The floating-surface shell — a detached tab's
-  window chrome. A floating surface hosts the same content components a
-  pane tab hosts (the floating call window mounts the shared `CallPanel`)
-  behind one shell owning the viewport anchor, the drag header, the
-  up-left resize grip, clamping, and the persisted window size (keyed per
-  surface through `storageKey`). The host fills the `header` slot (title
-  plus its own controls) and the body slot; a host hand-rolling its own
-  drag/resize chrome is a defect. Bounded record popups (the entity
-  popup, the chat dialog) ride their dialog shells — `FloatingSurface`
-  serves the free-floating window shape only.
 - **`InstanceActionsPopover.vue`**: Shared ellipsis trigger and compact action
   popover for entity-local commands. Disclosure is opt-in, not the default:
   `InstancePage` action slots and full `InstanceCard` footers render their
