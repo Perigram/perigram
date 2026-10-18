@@ -50,7 +50,10 @@ Three pieces share one tool catalog:
   context window), headless composition and editing
   (`compose_process_definition` / `edit_process_definition` — ordered
   designer gestures through the same authoring seam the designer shell
-  drives, with the same legality gates; editing seeds the seam onto the
+  drives, with the same legality gates; the grammar is constructive and
+  destructive — `disconnect`, `unwireDeclaration`, and `removeNode`
+  remove what `connect`, `wireDeclaration`, and `drop` create; editing
+  seeds the seam onto the
   stored draft, so "add a node, wire it" is two small gestures with no
   graph echo-back), the type
   vocabulary
@@ -116,8 +119,8 @@ Three pieces share one tool catalog:
   typing `@` opens the room's candidate list, the seated AI first, then
   the room's human participants, and user tags are composer text) — and
   drives the tool-calling loop until the
-  model answers — the room's stop control and the provider idle guard
-  are the only terminators — over
+  model answers — the room's stop control is the
+  only terminator — over
   the [LLM capability module](../llm/README.md) on the `chat`
   capability route. The run executes with the **triggering sender's**
   request-shaped auth (`buildPrincipalAuth` — the same construction the

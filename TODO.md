@@ -1,5 +1,46 @@
 # TODO
 
+## Model-traffic timeouts removed + authoring removal grammar (owner direction 2026-10-18)
+
+Two orders. (1) The LLM seam's synthetic deadlines — the 120 s idle
+guard (the prime suspect in the failed cassettes-into-libraries run),
+the listing-probe timeout, and undici's platform stall defaults — are
+gone; the prior session
+implemented an env override instead of the removal the owner ordered
+and is recorded as disobeyed. (2) The headless authoring grammar gains
+its destructive half: `disconnect`, `unwireDeclaration`, `removeNode` —
+re-parenting and restructuring are gesture-expressible, closing the gap
+that forced whole-graph replaces (the failed
+cassettes-into-libraries session died exactly there).
+
+- [ ] WAITING — owner verification on the live stack: a chat AI run
+  with a long reasoning segment runs to its answer; no
+  "failed to answer" notice while the model still emits.
+- [ ] WAITING — owner verification on the live stack: edit gestures
+  disconnect a wire, unwire a declaration, and remove a node on a
+  stored definition; the digest reflects each removal and validation
+  still passes.
+- [ ] WAITING — owner verification on the live stack: re-asking the
+  cassettes-into-libraries restructure completes through gestures with
+  no whole-graph echo.
+
+### Agent Notes (2026-10-18 — shipped)
+
+- `llm/service.js`: `REQUEST_TIMEOUT_MS` and both guard sites deleted;
+  the egress seam zeroes undici's `headersTimeout`/`bodyTimeout` (global
+  dispatcher, and the proxy-path `EnvHttpProxyAgent`); caller
+  AbortSignals remain the only cancellation. No spec pinned the guard.
+- `authoring.js`: `disconnect` (port-resolved like connect),
+  `unwireDeclaration` (edge-id addressing), `removeNode` (record, wires,
+  anchored producer outputs, join-selection reset, interpretation
+  re-run); all three exposed through `applyAuthoringSteps`, the tool
+  schemas' op enums, and the guide.
+- Specs: seam-level removal case (`authoring.spec.js`), tool-level
+  restructure case (`agent-tooling-loop.spec.js`), full llm/web-search/
+  transcription suites against the new egress seam — pass. Livekit
+  service.spec (2) and draft-overlay (1) failures are pre-existing on
+  the primary.
+
 ## MCP authoring legality — graphs the designer cannot author (owner defect 2026-10-18)
 
 A live MCP session produced authoring states the visual designer has no

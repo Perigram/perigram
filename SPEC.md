@@ -88,6 +88,11 @@ the same validated instance refs human sends carry. Agent authoring
 produces only graphs the visual designer could author (owner direction
 2026-10-18): an effect carries one role grant — its lane; wires address
 real sockets on real records; the save seam rejects everything else. The
+authoring grammar is constructive and destructive — wires and nodes are
+removable through the same gestures that create them. Model traffic
+carries no synthetic deadlines: a run ends on the answer or the room's
+stop — a dead peer surfaces as a network error (owner direction
+2026-10-18). The
 AI thinks on the
 organization's named model profiles — local or cloud, per capability (chat,
 call summaries, and image endpoints when an image capability ships) — never

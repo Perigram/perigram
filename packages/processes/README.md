@@ -130,7 +130,11 @@ same writes the inspector performs, including socket input defaults), and
 port-gated connections (the same `processSocketsCompatible` gate the
 canvas applies; socket handles — `data:<id>` and the legacy spellings —
 are accepted wherever a bare socket id is, and minted by `ports.js` on
-the stored edge). Children wires land
+the stored edge), and the removal twins of all three: `disconnect` (the
+data wire `connect` addresses), `unwireDeclaration` (the declaration
+wire `wireDeclaration` addresses), and `removeNode` (a node with its
+record, its wires, and the producer outputs it anchored — join
+selections pointing at removed outputs reset). Children wires land
 child-first — `wireDeclaration(childId, parentId, 'children')` wires the
 child's output into the parent's declare input — and accept type-reference
 children, so an org type's containment may name pack, other registry

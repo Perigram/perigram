@@ -39,7 +39,9 @@ Outbound requests (completions and listings) share one egress seam
 Node's built-in fetch ignores proxy env, so when `HTTP(S)_PROXY` is set
 the seam rides undici's `EnvHttpProxyAgent` (`NO_PROXY` honored, CIDR
 included — LAN endpoints stay direct); without proxy env it is the
-global fetch. The compose files pass `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`
+global fetch. The dispatchers' stall deadlines are zeroed (owner
+direction 2026-10-18): a dead peer surfaces as a network error, and
+caller AbortSignals are the only cancellation. The compose files pass `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`
 through to the app container, defaulting `NO_PROXY` to loopback plus the
 private ranges — set the proxy vars in `.env` to the address reachable
 FROM the container (the host's loopback proxy is not `127.0.0.1` there).
@@ -88,7 +90,6 @@ providers). The environment is the unnamed default profile:
 | `LLM_BASE_URL` | — | Server base; **required** — never defaulted. |
 | `LLM_API_KEY` | — | Optional key (many local servers run open). |
 | `LLM_MODEL` | — | Model id; **required** — never defaulted. |
-| `LLM_TIMEOUT_MS` | `120000` | Idle guard on one request: time to first bytes, and between stream chunks. |
 
 Completion paths canonicalize: a base already carrying `/v1` is
 stripped and the prefix re-applied (routers reject the root path with
@@ -148,7 +149,7 @@ throwing.
   plain answer: its closing message reclassifies (content whole, thinking
   empty), and the agent runtime reconciles its live activity sink with
   that message at round end. Same
-  503/502 posture; each chunk re-arms the idle guard. Takes an optional
+  503/502 posture. Takes an optional
   `signal` (AbortSignal): aborting the caller's controller cancels the
   request and the stream — the seam the agent runtime stops a run with.
 
