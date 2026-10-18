@@ -250,12 +250,15 @@ const summaryIcon = computed(() => ({
   file: 'pi pi-file'
 }[summaryKind.value]));
 
-const summaryLabel = computed(() => ({
-  image: t('support.attachmentPhoto'),
-  video: t('support.attachmentVideo'),
-  audio: t('support.attachmentVoice'),
-  file: t('support.attachmentFile')
-}[summaryKind.value]));
+const summaryLabel = computed(() => {
+  const kind = ({
+    image: t('support.attachmentPhoto'),
+    video: t('support.attachmentVideo'),
+    audio: t('support.attachmentVoice'),
+    file: t('support.attachmentFile')
+  }[summaryKind.value]);
+  return props.attachments.find(attachment => attachment.name?.trim())?.name?.trim() || kind;
+});
 
 function formatBytes(size = 0) {
   if (!Number.isFinite(size) || size <= 0) return '';
