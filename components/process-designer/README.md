@@ -464,10 +464,9 @@ grants. Dropping any OTHER node into a lane makes that lane its home
 (persisted on the canvas node) — lanes accept everything dropped into
 them. This replaces the inspector's role assignment editor — grant
 LEVELS per role stay inspector-owned (a lane cannot express them), and
-the effective-access summary stays. An effect granted to several roles
-(stored records) renders in its primary lane with a translucent
-corridor across its other granted lanes at the node's column — the
-operation is one record, never cloned, its wires never duplicated.
+the effective-access summary stays. An effect carries exactly one
+grant — its lane; the save seam collapses any stored record to its
+primary grant.
 
 Effects and state declarations are the PRIMARY populations — they carry
 the access/workflow story. The remove (delete) operation is a LANE

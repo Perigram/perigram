@@ -84,7 +84,11 @@ their grants leaves the AI silent. The AI authors process definitions and
 operates instances through the same tool catalog, with
 validate-before-activate and the migration/type-death gates as explicit
 steps, and attaches instances to its replies as inline reference chips —
-the same validated instance refs human sends carry. The AI thinks on the
+the same validated instance refs human sends carry. Agent authoring
+produces only graphs the visual designer could author (owner direction
+2026-10-18): an effect carries one role grant — its lane; wires address
+real sockets on real records; the save seam rejects everything else. The
+AI thinks on the
 organization's named model profiles — local or cloud, per capability (chat,
 call summaries, and image endpoints when an image capability ships) — never
 a defaulted cloud endpoint. Model selection happens at the execution points
