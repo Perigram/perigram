@@ -199,7 +199,7 @@
                                 />
                             </div>
                             <div class="min-w-0 flex-1">
-                                <div class="flex min-w-0 items-center gap-2">
+                                <div class="flex min-w-0 items-baseline gap-2">
                                     <span class="min-w-0 truncate text-label">{{ conversationLabel(option) }}</span>
                                     <small
                                         v-if="option.conversationKind === 'group' && !isAiChatRow(option)"
@@ -212,11 +212,11 @@
                                          renders. -->
                                     <span
                                         v-if="(isOwnInboxRow(option) && option.lastMessageRead) || option.timestamp"
-                                        class="ml-auto flex shrink-0 items-center gap-1"
+                                        class="ml-auto flex shrink-0 items-baseline gap-1"
                                     >
                                         <i
                                             v-if="isOwnInboxRow(option) && option.lastMessageRead"
-                                            class="pi pi-check shrink-0 text-supporting text-primary"
+                                            class="pi pi-check shrink-0 text-[0.75rem] text-primary"
                                             :aria-label="$t('support.messageRead')"
                                         />
                                         <small v-if="option.timestamp" class="text-muted text-supporting">
@@ -225,7 +225,7 @@
                                     </span>
                                 </div>
                                 <div class="flex min-w-0 items-center gap-1">
-                                    <small class="min-w-0 flex-1 truncate text-muted">
+                                    <small class="min-w-0 flex-1 truncate text-muted text-supporting">
                                         <SupportMessageContent
                                             v-if="option.lastMessage"
                                             :message="conversationPreviewMessage(option)"
@@ -245,7 +245,7 @@
                                     </small>
                                     <i
                                         v-if="option.pinned"
-                                        class="pi pi-thumbtack shrink-0 text-supporting text-muted"
+                                        class="pi pi-thumbtack shrink-0 text-[0.75rem] text-muted"
                                         :aria-label="$t('support.pin')"
                                     />
                                     <Badge
@@ -4024,6 +4024,8 @@ watch([() => props.conversationKey, () => supportChatStore.conversations], ([key
 // Function declaration: the immediate watcher below runs during setup and
 // must be able to call this before its textual position.
 function openConversationByKey(key) {
+    // The option keeps its click-focus tint after the thread opens.
+    if (import.meta.client && document.activeElement instanceof HTMLElement) document.activeElement.blur()
     const summary = supportChatStore.conversations.find(item => item.conversationKey === key)
     if (summary) {
         activeConversation.value = { ...summary, resolved: true }
