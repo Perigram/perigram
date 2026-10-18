@@ -16,6 +16,15 @@
         >
           <i v-if="tabIcon(tab)" :class="tabIcon(tab)" class="shrink-0" aria-hidden="true" />
           <span class="min-w-0 truncate text-body">{{ tabLabel(tab) }}</span>
+          <InstanceState
+            v-if="tab.kind === 'instance'"
+            :instance="tab.instance"
+            :type-id="tab.type"
+            variant="icon"
+            @click.stop
+            @refresh="$emit('refresh', tab)"
+            @transitioned="$emit('refresh', tab)"
+          />
           <Button
             icon="pi pi-times"
             text
@@ -49,16 +58,21 @@ import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import { useI18n } from 'vue-i18n';
+import { useRegistryStore } from '~/stores/registry';
+import { titleFor } from '#shared/ui-mapping/index.js';
+import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
+import InstanceState from '~/components/shared/state/InstanceState.vue';
 
 defineProps({
   tabs: { type: Array, default: () => [] },
   activeKey: { type: String, default: '' }
 });
 
-defineEmits(['select', 'close-tab', 'add']);
+defineEmits(['select', 'close-tab', 'add', 'refresh']);
 
 const { t } = useI18n();
+const registry = useRegistryStore();
 
 // The strip stretches to the pane header's fixed height; the header row
 // owns the single hairline, so the tablist's border is dropped.
@@ -70,17 +84,32 @@ const tabListPt = {
   activeBar: { style: { height: '2px', background: 'var(--p-primary-color)', borderRadius: 0, zIndex: 1 } }
 };
 
-// Items carry their live label and icon (resolved over the instances pool
-// and the page registry at build time); the strip only renders them.
 function tabLabel(tab = {}) {
   if (tab.kind === 'empty') return t('project.newTab');
-  if (tab.label) return tab.label;
+  if (tab.kind === 'instance') {
+    // Entity tab titles follow the one title resolver: the loaded DTO
+    // maps through the wire-to-screen bridge before titleFor, so the
+    // declared identity field wins and raw ids never render.
+    const typeRecord = registry.typeRecord(tab.type) || null;
+    return titleFor(
+      typeRecord ? dtoToScreenInstance(tab.instance || {}, typeRecord) : null,
+      typeRecord,
+      { unnamedLabel: t('common.unnamed') }
+    );
+  }
+  // Opened type screens resolve their compiled label from the manifest.
+  if (tab.kind === 'screen') {
+    return tab.label || tab.screenKey;
+  }
+  // Runtime-opened pages (live calls) carry their own label.
+  if (typeof tab.label === 'string' && tab.label) return tab.label;
   const definition = resolveGeneratedWorkspacePage(tab.pageId);
   return definition ? t(definition.labelKey) : tab.key;
 }
 
 function tabIcon(tab = {}) {
   if (tab.kind === 'empty') return 'pi pi-plus';
-  return tab.icon || resolveGeneratedWorkspacePage(tab.pageId)?.icon || 'pi pi-file';
+  if (tab.kind === 'instance' || tab.kind === 'screen') return registry.iconFor(tab.typeId);
+  return resolveGeneratedWorkspacePage(tab.pageId)?.icon || 'pi pi-file';
 }
 </script>

@@ -45,53 +45,15 @@
                         />
                     </div>
                 </div>
-                <!-- Grid fills the stage with equal cells (meet-style):
-                     the participant count and the pane size choose the
-                     layout, tile positions stay visually stable, and
-                     overflow paginates instead of scrolling. -->
-                <div
-                    v-else
-                    ref="gridEl"
-                    class="call-grid relative grid min-h-0 flex-1 overflow-hidden"
-                    :style="{ '--call-cols': gridLayout.columns }"
-                >
+                <div v-else class="call-grid grid min-h-0 flex-1 auto-rows-min content-start gap-3 overflow-y-auto">
                     <CallTile
-                        v-for="tile in pagedGridTiles"
+                        v-for="tile in tiles"
                         :key="`grid-${tile.identity}-${tile.isScreen}`"
                         :tile="tile"
-                        fill
                         @toggle-pin="togglePin"
                         @video="el => attachTile(tile, el)"
                         @aspect="ratio => patchTileAspect(tile, ratio)"
                     />
-                    <div
-                        v-if="gridPageCount > 1"
-                        class="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-2 pb-1"
-                    >
-                        <Button
-                            icon="pi pi-chevron-left"
-                            severity="secondary"
-                            text
-                            rounded
-                            size="small"
-                            class="pointer-events-auto"
-                            :aria-label="$t('call.prevPage')"
-                            :disabled="gridPage === 0"
-                            @click="gridPage -= 1"
-                        />
-                        <span class="rounded-ui bg-content px-2 py-0.5 text-supporting">{{ gridPage + 1 }}/{{ gridPageCount }}</span>
-                        <Button
-                            icon="pi pi-chevron-right"
-                            severity="secondary"
-                            text
-                            rounded
-                            size="small"
-                            class="pointer-events-auto"
-                            :aria-label="$t('call.nextPage')"
-                            :disabled="gridPage >= gridPageCount - 1"
-                            @click="gridPage += 1"
-                        />
-                    </div>
                 </div>
 
                 <!-- One status pill for transient call state: reconnecting
@@ -270,14 +232,13 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
-import Select from 'primevue/select';
+import Select from '~/components/shared/InstanceSelect.vue';
 import SelectButton from 'primevue/selectbutton';
 import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import CallPrejoin from '~/components/calls/CallPrejoin.vue';
 import CallTile from '~/components/calls/CallTile.vue';
-import { selectCallGridLayout, sortCallTiles, visuallyStableOrder } from '~/utils/call-grid.js';
 import { riseAndFade } from '~/composables/useMotion.js';
 import { useCallsStore } from '~/stores/calls';
 import { useCallRouting } from '~/composables/useCallRouting.js';
@@ -373,12 +334,6 @@ const hideReactionPicker = () => {
 
 const tileKey = (identity, isScreen) => `${identity}:${isScreen ? 'screen' : 'camera'}`;
 
-const participantFlags = participant => ({
-    isLocal: participant.isLocal === true,
-    joinedAt: participant.joinedAt || Date.now(),
-    lastSpokeAt: participant.lastSpokeAt || 0
-});
-
 // Tiles are mutated in place: replacing tile objects on every audio-level
 // tick re-rendered every tile and made the video surfaces flicker.
 const syncTile = (identity, name = '', patch = {}) => {
@@ -389,9 +344,6 @@ const syncTile = (identity, name = '', patch = {}) => {
             identity,
             name,
             isScreen: false,
-            isLocal: false,
-            joinedAt: 0,
-            lastSpokeAt: 0,
             hasVideo: false,
             muted: false,
             speaking: false,
@@ -554,52 +506,6 @@ const spotlightTile = computed(() => pinnedTile.value
     || null);
 const stripTiles = computed(() => tiles.filter(tile => tile !== spotlightTile.value));
 
-// Meet-style grid: the stage fills with equal cells sized by the
-// participant count and the measured container, tile order is
-// speaker-priority but visually stable, and overflow paginates.
-const gridEl = ref(null);
-const gridSize = ref({ width: 0, height: 0 });
-const gridOrderKeys = ref([]);
-const gridPage = ref(0);
-
-const gridTiles = computed(() => {
-    const sortedKeys = sortCallTiles(tiles).map(tile => tileKey(tile.identity, tile.isScreen));
-    return visuallyStableOrder(gridOrderKeys.value, sortedKeys, gridLayout.value.maxTiles);
-});
-const gridLayout = computed(() => selectCallGridLayout(
-    tiles.length,
-    gridSize.value.width,
-    gridSize.value.height
-));
-const gridPageCount = computed(() => Math.max(1, Math.ceil(gridTiles.value.length / Math.max(1, gridLayout.value.maxTiles))));
-const pagedGridTiles = computed(() => {
-    const max = Math.max(1, gridLayout.value.maxTiles);
-    const page = Math.min(gridPage.value, gridPageCount.value - 1);
-    return gridTiles.value
-        .slice(page * max, (page + 1) * max)
-        .map(key => tiles.find(tile => tileKey(tile.identity, tile.isScreen) === key))
-        .filter(Boolean);
-});
-
-watch(gridTiles, order => { gridOrderKeys.value = order; });
-watch(gridPageCount, count => {
-    if (gridPage.value > count - 1) gridPage.value = count - 1;
-});
-
-let gridObserver = null;
-onMounted(() => {
-    if (!gridEl.value || typeof ResizeObserver === 'undefined') return;
-    gridObserver = new ResizeObserver(entries => {
-        const rect = entries[0]?.contentRect;
-        if (rect) gridSize.value = { width: rect.width, height: rect.height };
-    });
-    gridObserver.observe(gridEl.value);
-});
-onBeforeUnmount(() => {
-    gridObserver?.disconnect();
-    gridObserver = null;
-});
-
 // A surface transfer (tab → floating window) parks the connected room in
 // the calls store; the adopting panel takes the live connection over
 // instead of reconnecting. Until adoption completes, the floating panel
@@ -623,7 +529,7 @@ const adoptLiveRoom = () => {
     micEnabled.value = local.isMicrophoneEnabled;
     cameraEnabled.value = local.isCameraEnabled;
     sharing.value = local.isScreenShareEnabled;
-    syncTile(local.identity, local.name, { ...participantFlags(local), muted: !micEnabled.value });
+    syncTile(local.identity, local.name, { muted: !micEnabled.value });
     // The local camera/screen publications will not re-publish on adoption,
     // so seed them from the current publications or the local tile degrades
     // to the avatar after a transfer.
@@ -633,7 +539,7 @@ const adoptLiveRoom = () => {
         syncTile(local.identity, local.name, { isScreen, hasVideo: Boolean(publication.track), track: publication.track || null });
     }
     for (const participant of livekitRoom.remoteParticipants.values()) {
-        syncTile(participant.identity, participant.name, participantFlags(participant));
+        syncTile(participant.identity, participant.name);
         for (const publication of participant.trackPublications.values()) {
             const track = publication.track;
             if (!track || !publication.isSubscribed) continue;
@@ -657,7 +563,7 @@ const adoptLiveRoom = () => {
 const bindRoomEvents = (room) => {
     room
         .on(LiveKit.RoomEvent.ParticipantConnected, participant => {
-            syncTile(participant.identity, participant.name, participantFlags(participant));
+            syncTile(participant.identity, participant.name);
         })
         .on(LiveKit.RoomEvent.ParticipantDisconnected, participant => {
             dropTile(participant.identity, false);
@@ -710,11 +616,9 @@ const bindRoomEvents = (room) => {
         })
         .on(LiveKit.RoomEvent.ActiveSpeakersChanged, speakers => {
             const levels = new Map(speakers.map(speaker => [speaker.identity, speaker.audioLevel || 0.6]));
-            const spokeAt = Date.now();
             for (const tile of tiles) {
                 tile.speaking = levels.has(tile.identity);
                 tile.audioLevel = levels.get(tile.identity) || 0;
-                if (tile.speaking) tile.lastSpokeAt = spokeAt;
             }
             syncSustainedSpeaker();
         })
@@ -765,9 +669,9 @@ const join = async (prejoin = {}) => {
             livekitRoom = null;
             return;
         }
-        syncTile(local.identity, local.name, { ...participantFlags(local), muted: !micEnabled.value });
+        syncTile(local.identity, local.name, { muted: !micEnabled.value });
         for (const participant of livekitRoom.remoteParticipants.values()) {
-            syncTile(participant.identity, participant.name, participantFlags(participant));
+            syncTile(participant.identity, participant.name);
         }
         connected.value = true;
         stage.value = 'connected';
@@ -993,18 +897,16 @@ onBeforeUnmount(() => {
  * Container-driven layout: the speaker/grid stage responds to the panel's
  * own width, not the viewport, so calls lay out correctly inside arbitrary
  * workspace panes — narrow containers stack the strip, wide containers get
- * the side strip. The grid fills the stage: equal cells sized by the
- * measured container (utils/call-grid.js picks the column count), and the
- * only scroll candidate is the speaker strip.
+ * the side strip. The grid is a self-fitting masonry: tiles never shrink
+ * below 14rem and columns fill the available width, so participant count and
+ * pane size choose the column count together.
  */
 .call-panel {
   container-type: inline-size;
 }
 
 .call-grid {
-  grid-template-columns: repeat(var(--call-cols, 1), minmax(0, 1fr));
-  grid-auto-rows: minmax(0, 1fr);
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
 }
 
 @container (min-width: 40rem) {

@@ -55,9 +55,7 @@ import Button from 'primevue/button';
 
 const props = defineProps({
     tile: { type: Object, required: true },
-    spotlight: { type: Boolean, default: false },
-    // Grid cells fill their track: the grid owns the tile box.
-    fill: { type: Boolean, default: false }
+    spotlight: { type: Boolean, default: false }
 });
 const emit = defineEmits(['toggle-pin', 'video', 'aspect']);
 
@@ -71,13 +69,13 @@ const qualityClass = computed(() => {
 });
 
 // Spotlighted screen shares hug their live source proportions instead of
-// stretching the stage box; cameras fill the stage; grid cells fill their
-// track; strip tiles keep a stable 16:9 cell.
+// stretching the stage box; cameras fill the stage; grid/strip tiles keep a
+// stable 16:9 cell.
 const hugAspect = computed(() => props.spotlight && props.tile.isScreen && Number(props.tile.aspect) > 0);
 
 const tileClass = computed(() => {
     if (hugAspect.value) return 'h-auto max-h-full w-auto max-w-full';
-    if (props.spotlight || props.fill) return 'h-full w-full';
+    if (props.spotlight) return 'h-full w-full';
     return 'aspect-video';
 });
 

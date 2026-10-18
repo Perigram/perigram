@@ -37,7 +37,6 @@ describe('home workspace state', () => {
       paneSequence: 2,
       openedEntityRefs: [{ key: 'project:p1', typeId: 'project', instanceId: 'p1' }],
       openedPageRefs: [{ key: 'page:cassette-designer:c1', pageId: 'cassette-designer', typeId: 'cassette', instanceId: 'c1' }],
-      openedScreenRefs: [{ key: 'screen:doc-detail:d1', screenKey: 'doc-detail', typeId: 'doc', instanceId: 'd1' }],
       sidebarCollapsed: true
     });
 
@@ -53,12 +52,6 @@ describe('home workspace state', () => {
       pageId: 'cassette-designer',
       typeId: 'cassette',
       instanceId: 'c1'
-    }]);
-    expect(state.openedScreenRefs).toEqual([{
-      key: 'screen:doc-detail:d1',
-      screenKey: 'doc-detail',
-      typeId: 'doc',
-      instanceId: 'd1'
     }]);
   });
 
