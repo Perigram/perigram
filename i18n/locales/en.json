@@ -3082,6 +3082,7 @@
             "typeNodeNoType": "The type node has no selected type",
             "typePinOnly": "Type bindings wire into the Type pin",
             "childrenContainment": "{name} is a {kind} class — {kind} classes may not declare lineage children (containment belongs to item, group, or process classes)",
+            "typeCardNeverParents": "A type reference is always the child end — draw the wire from the reference into the class",
             "childrenNeedTypeIds": "Both classes need a type id before declaring children",
             "stateNestSelf": "A state cannot nest inside itself",
             "stateParentCycle": "A state has one parent state; parent cycles are invalid",

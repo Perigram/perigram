@@ -645,7 +645,8 @@ describe('display policy (SPEC §4/§7)', () => {
     );
     // No string field to adopt and no explicit flag: the boundary mints
     // a nullable `name` row and flags it — unnameable types are
-    // unrepresentable, at every scope.
+    // unrepresentable, at every scope. The minted row is identity
+    // vocabulary only: construction and mutation expose authored rows.
     const registry3 = createTypeRegistry({ id: 'render-flag-spec-3' });
     registry3.defineType({
       id: 'no-name-field', class: 'item', name: 'No name field',
@@ -654,7 +655,7 @@ describe('display policy (SPEC §4/§7)', () => {
     expect(registry3.compile().errors).toEqual([]);
     const minted = compileClientBundle(registry3).types.find(record => record.id === 'no-name-field');
     expect(minted.identifier).toBe('name');
-    expect(minted.fields.name).toMatchObject({ base: 'string', nullable: true, identifier: true });
+    expect(minted.fields.name).toMatchObject({ base: 'string', nullable: true, identifier: true, writable: false, constructible: false });
     // The mint takes the first free row name and never collides.
     const registry3b = createTypeRegistry({ id: 'render-flag-spec-3b' });
     registry3b.defineType({

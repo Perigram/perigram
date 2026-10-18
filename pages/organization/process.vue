@@ -718,7 +718,7 @@ import {
   definitionToCanvas,
   isProcessDataHandle,
   normalizeDesignerAccess,
-  orientChildrenWire,
+  childrenWireLegality,
   parseProcessSocketHandleId,
   prepareAuthoredDefinition,
   processSocketsCompatible,
@@ -3056,37 +3056,28 @@ function onConnect(connection) {
   const sourceNode = nodes.value.find(node => node.id === connection.source);
   const targetNode = nodes.value.find(node => node.id === connection.target);
   const targetNodeRecord = draft.value?.data?.processNodes?.[targetNode?.data?.refId];
-  // Children wires land child-first (orientChildrenWire): the edge always
-  // leaves the child's output:type and enters the parent's input:declare,
-  // regardless of how the author drew it.
-  const orientablePair = ['ctsClass', 'ctsType'].includes(sourceNode?.type) && ['ctsClass', 'ctsType'].includes(targetNode?.type)
-    && !(sourceNode.type === 'ctsType' && targetNode.type === 'ctsType');
-  if (orientablePair) {
-    const orientation = orientChildrenWire({
-      source: { type: sourceNode.type, class: sourceNode.data?.class },
-      target: { type: targetNode.type, class: targetNode.data?.class }
-    });
-    if (orientation.ok) {
-      const parentNode = orientation.parent === 'target' ? targetNode : sourceNode;
-      const childNode = parentNode === sourceNode ? targetNode : sourceNode;
-      const declarationEdge = {
-        id: `children:${childNode.id}-${parentNode.id}`,
-        source: childNode.id,
-        target: parentNode.id,
-        sourceHandle: 'output:type',
-        targetHandle: 'input:declare',
-        type: 'default',
-        role: 'type',
-        label: 'children',
-        data: { key: `${childNode.data.typeId}s`, onRemove: 'restrict' }
-      };
-      if (edges.value.some(edge => edge.id === declarationEdge.id)) return;
-      selectedEdgeId.value = null;
-      edges.value.push(decorateEdge(declarationEdge));
-      syncEdgeSelection();
-      evaluateNow();
-      return;
-    }
+  // Children wires are drawn child-first: the edge leaves the child's
+  // output:type and enters the parent's input:declare, exactly as drawn —
+  // the compatibility gate already refused an illegal direction.
+  const childrenPair = ['ctsClass', 'ctsType'].includes(sourceNode?.type) && targetNode?.type === 'ctsClass';
+  if (childrenPair && childrenWireLegality({ target: { type: targetNode.type, class: targetNode.data?.class } })) {
+    const declarationEdge = {
+      id: `children:${sourceNode.id}-${targetNode.id}`,
+      source: sourceNode.id,
+      target: targetNode.id,
+      sourceHandle: 'output:type',
+      targetHandle: 'input:declare',
+      type: 'default',
+      role: 'type',
+      label: 'children',
+      data: { key: `${sourceNode.data.typeId}s`, onRemove: 'restrict' }
+    };
+    if (edges.value.some(edge => edge.id === declarationEdge.id)) return;
+    selectedEdgeId.value = null;
+    edges.value.push(decorateEdge(declarationEdge));
+    syncEdgeSelection();
+    evaluateNow();
+    return;
   }
   const legality = declarationWireLegality({
     sourceType: sourceNode?.type,
@@ -3185,14 +3176,9 @@ function connectionCompatibility(connection = {}) {
         };
       }
       if (legality === 'children') {
-        // Orientation (SPEC §5): when only one end can parent, the wire
-        // orients there — the gate vets the oriented pair, never the
-        // drag direction. Refusal means no legal orientation exists.
-        const orientation = orientChildrenWire({
-          source: { type: source.type, class: source.data?.class },
-          target: { type: target.type, class: target.data?.class }
-        });
-        if (!orientation.ok) {
+        // Drawn child-first (SPEC §5): the target must be a class that
+        // can parent; the wire lands exactly as drawn.
+        if (!childrenWireLegality({ target: { type: target.type, class: target.data?.class } })) {
           const className = String(target.data?.name || target.data?.typeId || '').trim() || t('processDesigner.connectReasons.theClass');
           return {
             ok: false,
@@ -3258,21 +3244,10 @@ function connectionCompatibility(connection = {}) {
           ? { ok: true }
           : { ok: false, reason: t('processDesigner.connectReasons.nameClassBeforeRefTarget') };
       }
-      // Class card → type card is the inverted children gesture (the type
-      // card can never parent, so the class must be the parent): the
-      // orientation function accepts it when the class can parent, and
-      // onConnect lands the edge child-first.
+      // A type-reference card is a child end only (SPEC §5): the children
+      // wire leaves the card's output into the class's declare input.
       if (source.type === 'ctsClass' && target.type === 'ctsType') {
-        const orientation = orientChildrenWire({
-          source: { type: source.type, class: source.data?.class },
-          target: { type: target.type }
-        });
-        if (orientation.ok && source.data?.typeId && target.data?.typeId) return { ok: true };
-        if (orientation.ok) return { ok: false, reason: t('processDesigner.connectReasons.childrenNeedTypeIds') };
-        return { ok: false, reason: t('processDesigner.connectReasons.childrenContainment', {
-          name: String(source.data?.name || source.data?.typeId || '').trim() || t('processDesigner.connectReasons.theClass'),
-          kind: source.data.class
-        }) };
+        return { ok: false, reason: t('processDesigner.connectReasons.typeCardNeverParents') };
       }
       return {
         ok: false,

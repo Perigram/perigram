@@ -271,14 +271,14 @@ state machine; class/type-reference nodes target a ref field's accepted
 targets; class/reference nodes bind an origin species Type pin; state→state
 wires declare one parent relationship (`nested` — there is no transition
 declaration node). Class→class children wires retain their typed key and
-`onRemove` policy, and orient themselves (`orientChildrenWire`): the edge
-always lands child-first — it leaves the child's `output:type` and enters
-the parent's `input:declare` — no matter which way it was dragged. When
-exactly one end can parent (a group class beside a file class or a
-type-reference card), the wire orients to that end; the drag direction is
-the author's choice only when both ends could parent (the dragged source
-becomes the child), and a pair where neither end can parent (file↔file,
-type-card↔type-card) is refused at the gate. Declaration edges
+`onRemove` policy and are drawn child-first (`childrenWireLegality`): the
+edge leaves the child's `output:type` and enters the parent's
+`input:declare`, exactly as drawn. The drawn target must be a class that
+can parent (item, group, process — SPEC §5); any other direction — a
+file or party class, or a type-reference card, as the drawn target — is
+refused at the connect gate with the containment reason (owner direction
+2026-10-18: the wire lands as drawn; an illegal direction is an error,
+and the canvas re-orients nothing). Declaration edges
 persist as `role: 'type'` records and round-trip
 without being treated as dataflow. `compileTreeDeclarations` is the one
 declaration compiler; diagnostics name the authored class before its opaque

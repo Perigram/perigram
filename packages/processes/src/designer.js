@@ -251,19 +251,13 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
   return null;
 }
 
-// Children-wire orientation: the parent must be an in-tree class that may
-// declare children (SPEC §5 — type-reference cards and file/party classes
-// never parent). When exactly one end can parent, the wire orients itself
-// there — the drag direction is ceremony, not meaning; when both ends
-// could parent, the drag direction is the author's choice (target =
-// parent, the wire leaves the dragged child). `ok: false` means no
-// orientation is legal.
-export function orientChildrenWire({ source = {}, target = {} } = {}) {
-  const sourceCanParent = source.type === 'ctsClass' && classMayDeclareChildren(source.class);
-  const targetCanParent = target.type === 'ctsClass' && classMayDeclareChildren(target.class);
-  if (targetCanParent) return { ok: true, parent: 'target' };
-  if (sourceCanParent) return { ok: true, parent: 'source' };
-  return { ok: false };
+// A children wire is drawn child-first or refused (SPEC §5): the parent
+// must be an in-tree class that may declare children (type-reference
+// cards and file/party classes never parent). The wire lands exactly as
+// drawn; an illegal direction is a gate refusal (owner direction
+// 2026-10-18).
+export function childrenWireLegality({ target = {} } = {}) {
+  return target.type === 'ctsClass' && classMayDeclareChildren(target.class);
 }
 
 // Tree declarations compile from the canvas vocabulary (SPEC §20/§21 one
