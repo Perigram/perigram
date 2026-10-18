@@ -166,9 +166,9 @@ Dev-stack filesystem runbook (compose mounts the repo at `/src`):
   perigram-network`) and run `docker compose -f docker-compose.dev.yml up -d
   app` to migrate the services onto it; mongo keeps its named volume across
   the recreate.
-Agent session worktrees are nested under `.agent-worktrees/` (plus scratch
-dirs `.agent-wt*`) in the project root; a worktree is removed once its
-branch merges. Nuxt scanning and the dev
+Agent session worktrees are nested under `.agent-worktrees/` and
+`.agent/worktrees/` (plus scratch dirs `.agent-wt*`) in the project root; a
+worktree is removed once its branch merges. Nuxt scanning and the dev
 watchers ignore that tree — plus the equally dev-foreign `.opencode/`
 agent tooling state and the `video/` renderer tree — via a path predicate
 in `nuxt.config.js`: chokidar v4 leaks glob-ignored nested file events,
