@@ -37,15 +37,22 @@ Three pieces share one tool catalog:
   (`update_definition_graph` — nodes, wires, and value inputs without
   echoing the whole document), with activation gates returned as
   structured results), the authoring vocabulary
-  (`get_authoring_vocabulary` — the compose guide, the organization's role
+  (`get_authoring_vocabulary` — the authoring skill: the domain model
+  (the two layers, the class identity laws, containment and lineage,
+  effects and lanes), the gesture grammar with its removal twins, and
+  the compose→validate→apply→activate loop; the organization's role
   list (the grant vocabulary the designer's
   [lanes](../../../components/process-designer/README.md) author through
   effect `access.grants`, one grant per effect), node families, and the
   palette's droppable item
   ids, COMPACT by default; the per-kind socket inventory (`detail:
-  'sockets'` — every kind's input/output socket ids, what `connect`
-  addresses), the node catalog, and typed value-operation
-  sockets arrive on request through `detail` filters — one oversized
+  'sockets'` — the catalog-static kinds' socket ids; record-bound kinds
+  resolve live sockets off the digest of the dropped node, and a filter
+  naming no entry fails with the valid families), the node catalog, and
+  typed value-operation
+  sockets arrive on request through `detail` filters (each carrying the
+  guide and roles beside its detail — the palette list rides the
+  default view only) — one oversized
   vocabulary response must never evict the tools from a small model's
   context window), headless composition and editing
   (`compose_process_definition` / `edit_process_definition` — ordered

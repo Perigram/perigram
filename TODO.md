@@ -1,5 +1,42 @@
 # TODO
 
+## The authoring skill teaches the domain (owner direction 2026-10-18)
+
+The served guide was a gesture syntax manual: the model learned op
+shapes and nothing about what a process, class, field, or containment
+IS — the failed cassettes-into-libraries session guessed the ontology
+and drowned. The guide now leads with the domain model (the two
+layers, the five class identity laws, containment and lineage sockets,
+re-parenting as three gestures, effects and the one-grant lane law,
+where sockets live), then the gesture grammar, then the loop. The
+loop's discipline line and the runtime prompt both send authoring-shape
+ambiguity to ask_user; a family/kind filter naming no catalog entry
+fails with the valid families instead of a silent empty inventory (the
+exact trap that session hit twice).
+
+- [ ] WAITING — owner verification on the live stack: get_authoring_vocabulary
+  serves the concept-first guide; a sockets query with a palette group
+  id as family fails naming the valid families.
+- [ ] WAITING — owner verification on the live stack: re-asking the
+  cassettes-into-libraries restructure — the AI either asks the room
+  which class law/parenting it wants or composes it through gestures
+  in one run.
+
+### Agent Notes (2026-10-18 — shipped)
+
+- `AUTHORING_GUIDE` rewritten: What a process definition is → the
+  declaration tree (class laws per CTS SPEC §5, children wiring and
+  lineage.<parentTypeId>Id, re-parenting, fields, states, type refs) →
+  the operation graph (effects, one grant, trigger derivation, where
+  ports come from, sockets truth) → the gestures → the loop with the
+  ask_user rule.
+- `get_authoring_vocabulary` description tells the same truth
+  (catalog-static vs record-bound sockets); the family/kind no-match
+  guard answers 400 with the families list; the runtime prompt's
+  authoring-discipline line carries the ask-on-shape clause.
+- Specs: the vocabulary test pins the concepts, the ask_user rule, and
+  the family teacher error.
+
 ## Model-traffic timeouts removed + authoring removal grammar (owner direction 2026-10-18)
 
 Two orders. (1) The LLM seam's synthetic deadlines — the 120 s idle
