@@ -1395,12 +1395,42 @@ to swallow exactly this.
 
 - [ ] WAITING — owner verification on the live stack: dragging a class or
   type card onto/into a parenting class lands one wire leaving the
-  CHILD's right-side output into the PARENT's left-side input, either
-  drag direction; a stored pre-flip draft loads already flipped.
+  CHILD's right-side output into the PARENT's left-side input; a reversed
+  drag (a non-parenting class or type card as the drawn target) is
+  refused with the containment reason (owner revision 2026-10-18); a
+  stored pre-flip draft loads already flipped.
 - [ ] WAITING — owner verification on the live stack: Apply re-activated
   the poisoned org definition (the operator ran the activation through
   the real API); auth hydration serves the process contract again and
   the app loads.
+
+#### Agent Notes (2026-10-18)
+
+Owner revision of the drag-direction contract, plus the artificial
+create-input report, landed in `agent/children-wire-honesty-20261018-101500`:
+
+1. **Children wires land as drawn or refuse.** The 10-16 auto-orientation
+   (flip to the only end that can parent) is cut: `orientChildrenWire`
+   became `childrenWireLegality` — the drawn target must be a class that
+   can parent (item/group/process), and an illegal direction is a gate
+   refusal with the existing containment reason; a type card as the drawn
+   target gets its own reason (`typeCardNeverParents`, en+ru). Legal
+   drawings are unchanged (both-can-parent stays as-drawn target=parent).
+   The stored-edge heal `orientChildrenEdgesChildFirst` stays — it
+   migrates legacy parent-first stored edges at the load seam.
+2. **The minted identifier row constructs nothing.** A class with only an
+   unnamed field compiled to a fieldless declaration, and the
+   identifier-totality mint surfaced as an artificial `fields.name`
+   create input (and mutate socket). The minted row now carries
+   `writable: false, constructible: false` (SPEC §4): it renders the
+   unnamed placeholder; authored rows alone construct and mutate. The
+   domain-projection spec that pinned the minted row as a create input
+   is rewritten to the owner's law.
+
+Validation: cts + processes 582, composables/shared-designer/
+cts-types/process-definitions selection byte-identical to the pre-change
+failure baseline (all pre-existing), SSR page smokes, localization,
+check-arch, check-docs, framework:validate pass.
 
 #### Agent Notes (2026-10-16)
 

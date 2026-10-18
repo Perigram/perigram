@@ -104,7 +104,8 @@ module layout and how the code maps to the spec's build-order tiers.
   compile error until authored. Compile also enforces the display-flag
   laws: exactly one `identifier` field — total by boundary mint (no flag
   mints the first declared string field; no string field at all mints a
-  nullable `name`/`title`/`label` row and flags it, so unnameable types
+  nullable `name`/`title`/`label` row and flags it — identity vocabulary
+  only, writable/constructible false — so unnameable types
   are unrepresentable at every scope; once minted, frozen; explicit flags
   deviate), at most one `depiction` field, and a name on every type
   (write-gated through the introduced-errors channel; views stay served).
@@ -121,8 +122,8 @@ module layout and how the code maps to the spec's build-order tiers.
   `construction` (`genericCreate` + declared construct operators as `via`
   modes with signature-derived `modeInputs`; construction inputs are
   `fields.*` rows and addressable edges only — there is no hardcoded Name
-  input; the identifier row is total by boundary mint, so every generic
-  create prompts the record's name source), `relations` (declared edges, with
+  input; the minted identifier row serves identity rendering only, so a
+  type with no authored name row creates unnamed records), `relations` (declared edges, with
   their target domains), and `attachmentKinds` (payload traits). Party
   types project as readable principals (SPEC §13): `meta` entities flagged
   `party`, read-only field schemas (identity slots + declared rows),

@@ -189,7 +189,10 @@ Identifier totality: when no field carries the flag, normalization MINTS
 one — the first declared `string`-based field is flagged once, at the
 boundary, and the mint persists; a type with no string field at all gets
 a nullable `name` row minted and flagged (first free of `name`/`title`/
-`label`). Unnameable types are unrepresentable at every scope: explicit
+`label`). The minted row serves identity rendering only — construction
+and mutation expose authored rows, so a type with no authored name row
+creates unnamed records until a field is declared. Unnameable types are
+unrepresentable at every scope: explicit
 flags remain the authored deviation and always win, later field additions
 never shift a mint, and two or more of either flag is a compile error
 naming the fields.
