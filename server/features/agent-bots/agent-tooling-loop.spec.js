@@ -204,12 +204,19 @@ describe('the compose → validate → activate loop over the tool catalog', () 
     it('serves the authoring vocabulary with the guide, roles, and per-kind sockets', async () => {
         const compact = await call('get_authoring_vocabulary', {});
         expect(compact.guide).toMatch(/compose_process_definition/);
+        expect(compact.guide).toMatch(/declaration tree/);
+        expect(compact.guide).toMatch(/Five identity laws/);
+        expect(compact.guide).toMatch(/ask_user/);
         expect(compact.palette.length).toBeGreaterThan(0);
         expect(compact.roles).toEqual([{ id: 'role_admin', label: 'Admin' }]);
 
         const sockets = await call('get_authoring_vocabulary', { detail: 'sockets' });
         const literal = sockets.sockets['source.literalItem'];
         expect(literal.outputs.map(socket => socket.id)).toContain('value');
+
+        // A wrong family id teaches instead of answering an empty inventory.
+        await expect(call('get_authoring_vocabulary', { detail: 'sockets', family: 'operations' }))
+            .rejects.toThrow(/families: sources, values/);
     });
 
     it('composes a definition through gestures and answers the digest, never the document', async () => {

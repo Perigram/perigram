@@ -62,30 +62,44 @@ function instanceRow(dto) {
 // loop moves only authored data (the full record runs to megabytes).
 const SERVER_OWNED_DATA_KEYS = ['compiled', 'history', 'activated'];
 
-// The bot-facing authoring recipe served with the vocabulary: the compose
-// loop over the headless seam, the edit path, and the validation teacher.
+// The bot-facing authoring skill served with the vocabulary: the domain
+// model first, then the gesture grammar, then the loop. The model reads
+// this as its only process-designer education.
 const AUTHORING_GUIDE = [
-    '## Composing a process definition',
-    "1. This payload: palette item ids (bare — 'literal', 'construct', 'calculate', 'finish', ...), the org's roles, families, declaration types. Per-kind sockets: request {detail:'sockets'} — every kind's input/output socket ids with base types. Operation sockets: {detail:'valueOperations', kind}.",
-    '2. compose_process_definition with ordered designer gestures:',
+    '## What a process definition is',
+    "The organization's authored contract in two layers: a DECLARATION TREE — the entity vocabulary — and an OPERATION GRAPH — behavior. Activating compiles both into the runtime contract: actions, screens, role grants, workflows.",
+    '## The declaration tree — the entity vocabulary',
+    "- A CLASS declares an entity type. Five identity laws (CTS SPEC §5): item — a tracked individual; group — identity IS its membership, declares children; file — payload content, replaceable; process — a run with provenance inputs and typed outputs; party — framework principals (user, organization), read-only: parties bind as instance sources and relation targets and are never constructed or mutated.",
+    "- Containment: {op:'wireDeclaration', from: child, to: parent, role:'children'} — an item, group, or process class parents; file and party never parent. The child's construct node gains a lineage input named for the parent type (lineage.<parentTypeId>Id — read the exact id from the digest after the wire lands); connect the parent construct's result into it. onRemove: restrict (default) | cascade | detach.",
+    '- Re-parenting is three gestures: unwireDeclaration the old children wire, wireDeclaration the new one, then disconnect/connect the lineage sockets to the new parent construct.',
+    "- A FIELD declares a typed slot on a class: the name is a label in any script (the storage key derives), descriptor.base picks the type (string, number, boolean, date, enum, entityRef, ...).",
+    "- A STATE declares lifecycle vocabulary — root when wired to its class, nested when wired to a parent state; initial and terminal are state facts. Transitions are OPERATION nodes (cts.transition) selecting a declared state as target.",
+    "- A TYPE REFERENCE ({op:'declareTypeRef', typeId}) binds an existing registry type (ids from list_types) into the tree; it wires as child, target, or binding exactly like a class.",
+    '## The operation graph — behavior',
+    "- EFFECTS (construct, mutate, transition, remove, registered services) are the one population carrying access: ONE grant per effect — its lane. An effect runs automatically iff its event input 'in' is wired.",
+    '- Everything else is dataflow: sources (literal, context, all<T>), values, collections, reads, control. Ports derive from declarations: a construct bound to a class exposes fields.<name> per declared field; a consumer takes its type from its entity input.',
+    "- Sockets: {detail:'sockets'} serves the catalog-static kinds (families: sources, values, collections, records, reads, effects, control). Record-bound kinds (construct, mutate, transition) resolve their live sockets from the bound record — read them off the digest row of the dropped node.",
+    '## The gestures',
+    'Palette item ids are bare: literal, construct, calculate, finish, ... (this payload lists them all). Declaration roles: declares, targets, children, binds.',
     "- {op:'declareClass', id, typeId, name} — declare a CTS class in-tree;",
     "- {op:'declareTypeRef', id, typeId} — reference a registry type (ids from list_types);",
-    "- {op:'declareField', id, ownerClassId, name, descriptor:{base}} — field on a class; the name is a label in any script (the storage key derives from it automatically);",
-    "- {op:'wireDeclaration', from, to, role} — declaration wire (from = child, to = parent; roles: declares, targets, children, binds);",
-    "- {op:'drop', item, id} — drop a palette item as a process node (item = the bare palette id);",
-    "- {op:'configure', id, values} — inspector writes (typeId, construction, access...);",
-    "- lanes are role grants: an effect's lane IS its access — exactly ONE grant per effect; configure {access:{grants:[{roleId,level}]}}, levels read/write/admin, roleIds from the roles list in this payload; grants: [] lands the effect in the grantless implicit lane;",
+    "- {op:'declareField', id, ownerClassId, name, descriptor:{base}} — field on a class;",
+    "- {op:'wireDeclaration', from, to, role} — declaration wire (from = child, to = parent);",
+    "- {op:'unwireDeclaration', from, to, role} — removes that declaration wire;",
+    "- {op:'drop', item, id} — drop a palette item as a process node;",
+    "- {op:'configure', id, values} — inspector writes (typeId, construction, access...); lanes are role grants: an effect's lane IS its access — exactly ONE grant per effect; configure {access:{grants:[{roleId,level}]}}, levels read/write/admin, roleIds from the roles list in this payload; grants: [] lands the effect in the grantless implicit lane;",
     "- {op:'setInputDefault', id, input, value} — literal value on an input socket (input = bare socket id);",
-    "- a declared field's port exists in the SAME session once wireDeclaration lands (fields.* on construct/mutate nodes) — never hand-edit construction.inputs, it is an authoring-time snapshot that derives from the class's declared fields;",
+    '- a declared field\'s port exists in the SAME session once wireDeclaration lands (fields.* on construct/mutate nodes) — never hand-edit construction.inputs, it derives from the class\'s declared fields;',
     "- {op:'connect', id, fromPort, to, toPort} — id is the FROM node; ports are bare socket ids or 'data:<socketId>' handles; both work.",
-    "- {op:'disconnect', id, fromPort, to, toPort} — removes the data wire those addresses name (same addressing as connect);",
-    "- {op:'unwireDeclaration', from, to, role} — removes the declaration wire (same addressing as wireDeclaration);",
+    "- {op:'disconnect', id, fromPort, to, toPort} — removes the data wire those addresses name;",
     "- {op:'removeNode', id} — removes a node: its record, its wires, and the producer outputs it anchored;",
-    'The first illegal gesture fails with the gate message — read it, fix, retry.',
-    '3. validate_process_definition: its anchored diagnostics name exactly what to fix.',
-    '4. In-tree declarations (declareClass/declareField/declareTypeRef/wireDeclaration) MUST be posted into the registry with apply_declarations before activation — validation overlays the draft, the activation compile resolves the registry.',
-    '5. activate_process_definition: activation gates (migration plan, type death) are confirmations to resolve, never bypass — status migration targets are declared with declare_status_mappings (one mapping per plan row), type death with confirmTypeDeath.',
-    'Editing an existing definition: get_process_definition (compact digest: node ids, kinds, edges as node:socket) then edit_process_definition with the same gestures (drop, configure, setInputDefault, connect, declarations) — small payloads, no graph echo-back. Full document view only via get_process_definition {full: true}.'
+    '## The loop',
+    'The first illegal gesture fails with the gate message — read it, fix, retry. When intent maps to several authoring shapes (which class law, where it parents, which children move), ask_user: shape belongs to the room.',
+    '1. compose_process_definition (or get_process_definition digest + edit_process_definition — same gestures, small payloads, no graph echo-back).',
+    '2. validate_process_definition: its anchored diagnostics name exactly what to fix.',
+    '3. In-tree declarations MUST be posted into the registry with apply_declarations before activation — validation overlays the draft, the activation compile resolves the registry.',
+    '4. activate_process_definition: activation gates (migration plan, type death) are confirmations to resolve, never bypass — status migration targets are declared with declare_status_mappings (one mapping per plan row), type death with confirmTypeDeath.',
+    'Full document view only via get_process_definition {full: true}.'
 ].join('\n');
 
 const authoringData = (data = {}) => Object.fromEntries(
@@ -264,7 +278,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'get_authoring_vocabulary',
-        description: 'The process authoring vocabulary, COMPACT by default: the compose/edit recipe (guide), the organization\'s roles (grant vocabulary for effect access — the designer\'s lanes), node families, declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners), and the palette\'s droppable items (id + kind per group). Deep details on request via detail: \'sockets\' (every kind\'s input/output socket ids and base types — what connect addresses), detail: \'nodeCatalog\' (every valid node kind with family and level), or detail: \'valueOperations\' (typed input sockets and output per operation), narrowed by family/kind. A processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + edit_process_definition; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
+        description: 'The process authoring vocabulary, COMPACT by default: the authoring skill (guide: what a process definition is — the declaration tree\'s class/field/state laws and containment, the operation graph\'s effects and lanes — the gesture grammar, and the compose→validate→apply→activate loop), the organization\'s roles (grant vocabulary for effect access — the designer\'s lanes, one grant per effect), node families, declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners), and the palette\'s droppable items (id + kind per group). Deep details on request via detail: \'sockets\' (the catalog-static kinds\' socket ids and base types — record-bound kinds resolve live sockets off the digest of the dropped node), detail: \'nodeCatalog\' (every valid node kind with family and level), or detail: \'valueOperations\' (typed input sockets and output per operation), narrowed by family/kind. A processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + edit_process_definition; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -284,13 +298,32 @@ export const TOOL_SPECS = [
                     items: (group.items || []).map(item => ({ id: item.id, kind: item.kind || item.type || null }))
                 }))
             });
+            // Detail views re-serve the skill but never the palette list —
+            // one oversized response evicts the tools from context.
+            const base = () => ({
+                guide: AUTHORING_GUIDE,
+                families: [...PROCESS_NODE_FAMILIES],
+                declarationNodeTypes: [...DECLARATION_NODE_TYPES]
+            });
             const roles = async () => Object.values((await listRoles(auth.organizationId, auth)) || {})
                 .map(role => ({ id: role.id, label: role.label || role.id }));
+            // A filter naming nothing is a teacher error, never a silent
+            // empty inventory (families are the catalog's own vocabulary).
+            if (['nodeCatalog', 'sockets'].includes(args.detail)
+                && !Object.values(PROCESS_NODE_CATALOG).some(entry => (
+                    (!args.family || entry.family === args.family)
+                    && (!args.kind || entry.kind === args.kind)
+                ))) {
+                throw createError({
+                    statusCode: 400,
+                    message: `No catalog entry matches family '${args.family || '*'}' kind '${args.kind || '*'}' — families: ${PROCESS_NODE_FAMILIES.join(', ')}; kinds are the palette items' kind values`
+                });
+            }
             if (args.detail === 'nodeCatalog') {
                 const entries = Object.values(PROCESS_NODE_CATALOG)
                     .filter(entry => !args.family || entry.family === args.family)
                     .filter(entry => !args.kind || entry.kind === args.kind);
-                return { ...(await compact()), roles: await roles(), nodeCatalog: entries };
+                return { ...(await base()), roles: await roles(), nodeCatalog: entries };
             }
             if (args.detail === 'sockets') {
                 // The per-kind socket inventory off the catalog's own port
@@ -320,7 +353,7 @@ export const TOOL_SPECS = [
                         sockets[entry.kind] = { ...(inputs.length ? { inputs } : {}), ...(outputs.length ? { outputs } : {}) };
                     }
                 }
-                return { ...(await compact()), roles: await roles(), sockets };
+                return { ...(await base()), roles: await roles(), sockets };
             }
             if (args.detail === 'valueOperations') {
                 const valueOperations = {};
@@ -334,7 +367,7 @@ export const TOOL_SPECS = [
                         };
                     }
                 }
-                return { ...(await compact()), roles: await roles(), valueOperations };
+                return { ...(await base()), roles: await roles(), valueOperations };
             }
             return { ...(await compact()), roles: await roles() };
         }
