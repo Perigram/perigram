@@ -244,6 +244,9 @@ const { t, te } = useI18n();
 const sidebarCollapsed = ref(false);
 const expandedKeys = ref({});
 const callsFlyout = ref(null);
+const linkedChildrenByKey = ref(new Map());
+const loadedChildKeys = ref(new Set());
+let childLoadSequences = new Map();
 provide('displayedEntityContexts', computed(() => []));
 
 const workspaceStorageKey = computed(() => homeWorkspaceStorageKey({
@@ -838,10 +841,6 @@ watch(expandedKeys, (next, prev = {}) => {
     if (item) loadChildrenFor(item);
   }
 });
-
-const linkedChildrenByKey = ref(new Map());
-const loadedChildKeys = ref(new Set());
-let childLoadSequences = new Map();
 
 async function loadChildrenFor(parent) {
   if (!parent || loadedChildKeys.value.has(parent.key)) return;
