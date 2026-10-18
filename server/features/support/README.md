@@ -125,6 +125,11 @@ text strip from display: refs never render inline inside a chat bubble.
 The chat composer stores selected
 instances only in `instanceRefs`; it does not inject attachment tokens into the
 message body.
+Ref labels carry the stored name slot only, empty when unnamed; surfaces
+resolve the record title client-side (`instanceRecordTitle` over the
+snapshot, the identifier row) and fall back to the localized type label
+for empty names (the naming law under
+[Instance-Linked Chats](#instance-linked-chats)).
 
 Instance ref types come from readable generated screen sources in the current
 `auth.screens` process manifest. `GET /api/support/instance-types` is therefore a
