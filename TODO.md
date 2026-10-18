@@ -6758,8 +6758,10 @@ in-process, and command_runs/task_runs are the audit trail.
 
 ## Tidy compactness and loop pairing (2026-10-17)
 
-- [ ] Columns pack by their widest card; a mutual pair shares one
-      column; polish medians stay same-lane. Lane membership, grants,
-      drop acceptance, and the acyclic LTR law are untouched.
+- [ ] Columns span their widest card plus air (floored); lane rows
+      pitch to the lane tallest card, floored at the resting row; a
+      mutual pair shares one column; polish medians stay same-lane.
+      Lane membership, grants, drop acceptance, and the acyclic LTR law
+      are untouched.
 
 Status: WAITING

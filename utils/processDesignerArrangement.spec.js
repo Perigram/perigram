@@ -514,7 +514,7 @@ describe('arrangeProcessGraph', () => {
     });
     const span = result.get('n').x - result.get('w').x;
     expect(span).toBeGreaterThanOrEqual(300 + 16);
-    expect(span).toBeLessThan(420);
+    expect(span).toBeLessThanOrEqual(420);
   });
 
   it('seats loop mates on one column', () => {
