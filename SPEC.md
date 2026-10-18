@@ -885,7 +885,17 @@ Stored profiles — library records and cassette documents — cross into
 the shape model through a one-shot migration script; chain sketches
 become chain shapes, holes become subtract circles, and a closed
 sketch's basis anchor becomes the axis (the chain is translated so the
-anchor vertex sits on it).
+anchor vertex sits on it). The editor shows the authored model the way
+the cassette editor shows its dimensions: every primitive field is a
+dimension annotation on the canvas, labeled by its parameter expression
+where one is bound (measured numbers otherwise), and set directly in
+place — typing in the dimension commits the field. The editor overlays
+the resolved boolean result as one solid outline over the editable
+primitives, so the union, difference, and material-half clip read at a
+glance; the zero axis renders as a solid basis line. Rectangle
+extraction canonicalizes corner order (counter-clockwise from the
+leftmost corner), so the draw direction leaves the stored settings
+unchanged.
 
 Owner decision (2026-10-17, assembly tree layout): the designer's
 workpiece tree keeps every workpiece top-level — sheets and hardware
