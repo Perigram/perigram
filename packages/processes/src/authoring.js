@@ -588,6 +588,26 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     return declare({ id, nodeType: 'ctsType', data: { typeId, label: typeId } });
   }
 
+  // A state node's scope: ownerClassId (in-tree class) or bare typeId.
+  function declareState({ id, ownerClassId, typeId, value, initial, terminal }) {
+    if (!value) throw new Error(`State ${id} has no value`);
+    const owner = ownerClassId ? declarationNodeOf(ownerClassId) : null;
+    if (ownerClassId && (!owner || owner.type !== 'ctsClass')) {
+      throw new Error(`State ${id} declares on unknown class ${ownerClassId}`);
+    }
+    const node = declare({
+      id, nodeType: 'ctsState',
+      data: {
+        typeId: owner ? owner.data.typeId : (typeId || null),
+        value,
+        initial: initial === true,
+        terminal: terminal === true
+      }
+    });
+    if (owner) wireDeclaration(id, ownerClassId, 'declares');
+    return node;
+  }
+
   // The declaration wire gesture: gated by the same legality table the
   // canvas applies, persisted as a role:'type' edge the interpretation
   // and the tree compile read.
@@ -623,6 +643,12 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     if (label === 'children') {
       const childTypeId = source.data?.typeId;
       edge.data = { key: edgeData.key || `${childTypeId}s`, onRemove: edgeData.onRemove || 'restrict' };
+    }
+    // The state-entry wire is the value (SPEC §7); handles follow the
+    // machine-vocabulary wire shape (see designer.js 'entry' legality).
+    if (label === 'entry') {
+      edge.sourceHandle = mintProcessSocketHandle({ id: 'state', role: 'data' });
+      edge.targetHandle = mintProcessSocketHandle({ id: 'state', role: 'data' });
     }
     data.graph.edges.push(edge);
     interpretNow();
@@ -925,6 +951,7 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     declareClass,
     declareField,
     declareTypeRef,
+    declareState,
     wireDeclaration,
     unwireDeclaration,
     configure,

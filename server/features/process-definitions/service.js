@@ -2217,6 +2217,7 @@ const STEP_REQUIRED_FIELDS = {
   declareClass: ['id', 'typeId', 'name'],
   declareTypeRef: ['id', 'typeId'],
   declareField: ['id', 'ownerClassId', 'name'],
+  declareState: ['id', 'value'],
   wireDeclaration: ['from', 'to', 'role'],
   unwireDeclaration: ['from', 'to', 'role'],
   drop: ['item'],
@@ -2227,7 +2228,7 @@ const STEP_REQUIRED_FIELDS = {
   removeNode: ['id']
 };
 
-const DECLARATION_STEP_OPS = new Set(['declareClass', 'declareTypeRef', 'declareField', 'wireDeclaration', 'unwireDeclaration']);
+const DECLARATION_STEP_OPS = new Set(['declareClass', 'declareTypeRef', 'declareField', 'declareState', 'wireDeclaration', 'unwireDeclaration']);
 
 /**
  * The headless step runner shared by compose and edit (exported for the
@@ -2252,6 +2253,15 @@ export function applyAuthoringSteps(authoring, steps = [], domain = null) {
         authoring.declareTypeRef({ id, typeId: String(step.typeId || '') });
       } else if (op === 'declareField') {
         authoring.declareField({ id, ownerClassId: String(step.ownerClassId || ''), name: step.name, descriptor: step.descriptor });
+      } else if (op === 'declareState') {
+        authoring.declareState({
+          id,
+          ownerClassId: String(step.ownerClassId || ''),
+          typeId: String(step.typeId || ''),
+          value: step.value,
+          initial: step.initial === true,
+          terminal: step.terminal === true
+        });
       } else if (op === 'wireDeclaration') {
         authoring.wireDeclaration(String(step.from || ''), String(step.to || ''), String(step.role || ''));
       } else if (op === 'unwireDeclaration') {
