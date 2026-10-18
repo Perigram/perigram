@@ -123,8 +123,10 @@ stacked family under the message body on the page surface. Instance refs
 resolve preview media over their snapshot (a served plugin preview
 binding, a renderable stored payload, or a declared geometry value — the
 channels the shared preview mounts); a ref with media renders
-`InstanceInlineRef`'s compact card (preview band, identifier chip,
-state), other refs the outlined chip carrying the type glyph. File
+`InstanceInlineRef`'s stacked compact card (preview band over identifier
+chip and state) — one card full-width, several as a tile grid (two
+columns, three past four, the image gallery's column law), other refs
+the outlined chip carrying the type glyph. File
 documents render the filled chip; images and video embed inline (gallery
 tiles, players), other files open the shared preview dialog on click
 (download for opaque kinds). Click on a ref inspects the instance through
