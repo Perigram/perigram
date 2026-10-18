@@ -1940,9 +1940,15 @@ async function commandEffectPayload(commandId, inputs = {}, auth = {}) {
   }
   if (!command) throw new Error(`Unknown command: ${commandId}`);
   // A plugin connector's input is its value signature: the service
-  // sockets travel as parameters straight to the endpoint.
+  // sockets travel as parameters straight to the endpoint, unwrapped
+  // from their data packets.
   if (command.plugin) {
-    return { parameters: Object.fromEntries(Object.entries(inputs).filter(([id]) => id !== 'in')) };
+    const parameters = {};
+    for (const [id, value] of Object.entries(inputs)) {
+      if (id === 'in') continue;
+      parameters[id] = isDataTree(value) ? packetValue(value) : value;
+    }
+    return { parameters };
   }
   const entities = {};
   for (const input of command.input?.abstractEntities || []) {
