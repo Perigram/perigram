@@ -13,7 +13,7 @@ import {
 } from './authoring.js';
 import { validateRoundTrip } from './transpiler.js';
 import { camelCaseId, compileTreeDeclarations } from './designer.js';
-import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '../../cts/src/index.js';
+import { createTypeRegistry, projectDomainFromView, frameworkTypes, resolveCtsDefinition, checkCtsGraphBindings } from '../../cts/src/index.js';
 import { cncTypePack } from '../../cts/src/pack/cnc.js';
 import { facadeDomain, facadeServices } from '../../../test-tools/facade-plugin.js';
 
@@ -163,8 +163,7 @@ describe('headless definition authoring', () => {
     expect(() => context.connect('other', 'value', 'first', 'index')).toThrow(/accepts one wire/);
   });
 
-  it('authors the declaration tree in-definition: classes, ref fields, children to type references, wired bindings', () => {
-    const context = authoring();
+  it('authors the declaration tree in-definition: classes, ref fields, children to type references, wired bindings', () => {    const context = authoring();
     context.declareClass({ id: 'orderClass', typeId: 'facade-order', class: 'group', name: 'Facade order' });
     context.declareClass({ id: 'attemptClass', typeId: 'nesting-attempt', class: 'item', name: 'Nesting attempt' });
     context.declareField({ id: 'orderName', ownerClassId: 'orderClass', name: 'name', descriptor: { base: 'string', identifier: true } });
@@ -197,6 +196,37 @@ describe('headless definition authoring', () => {
     // ports re-sync from it.
     expect(definition.processNodes.order.typeId).toBe('facade-order');
     expect(definition.processNodes.order.outputs.map(port => port.id)).toEqual(['completed', 'result']);
+  });
+
+  it('authors states and their entry wires: class-scoped root, registry-scoped, construct initial and transition target', () => {
+    const context = authoring();
+    context.declareClass({ id: 'panelClass', typeId: 'part', class: 'item', name: 'Panel' });
+    context.declareState({ id: 'stNew', ownerClassId: 'panelClass', value: 'NEW', initial: true });
+    context.declareState({ id: 'stLive', ownerClassId: 'panelClass', value: 'LIVE' });
+    context.declareTypeRef({ id: 'sheetRef', typeId: 'sheet' });
+    context.declareState({ id: 'stProduction', typeId: 'sheet', value: 'PRODUCTION', terminal: true });
+    context.drop('construct', { id: 'makePanel' });
+    context.wireDeclaration('panelClass', 'makePanel', 'binds');
+    context.wireDeclaration('stNew', 'makePanel', 'entry');
+    context.drop('transition', { id: 'shipPanel' });
+    context.connect('makePanel', 'result', 'shipPanel', 'entity');
+    context.wireDeclaration('stLive', 'shipPanel', 'entry');
+
+    const definition = context.definition();
+    expect(definition.ctsTypes.stNew).toMatchObject({ kind: 'state', typeId: 'part', value: 'NEW', initial: true, terminal: false });
+    // Registry-scoped states carry no class wire, so interpretation keeps
+    // them unscoped value tokens (graph-protocol: unscoped records satisfy
+    // any bound type).
+    expect(definition.ctsTypes.stProduction).toMatchObject({ kind: 'state', value: 'PRODUCTION', terminal: true });
+    expect(definition.ctsTypes.stProduction.typeId).toBeNull();
+    const entryEdge = definition.graph.edges.find(edge => edge.id === 'decl:entry:stNew-makePanel');
+    expect(entryEdge).toMatchObject({ sourceHandle: 'data:state', targetHandle: 'data:state' });
+    expect(definition.processNodes.makePanel.inputDefaults.state).toBe('NEW');
+    expect(definition.processNodes.shipPanel.inputDefaults.state).toBe('LIVE');
+    expect(graphEdgeSocketProblems(definition)).toEqual([]);
+    expect(graphIntegrityProblems(definition)).toEqual([]);
+    const errors = checkCtsGraphBindings(resolveCtsDefinition(definition, projectedDomain()).definition, projectedDomain());
+    expect(errors).toEqual([]);
   });
 
   it('preserves authored relation selection and socket defaults across a vocabulary gap', () => {
