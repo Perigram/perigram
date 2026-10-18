@@ -1727,7 +1727,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     const commandAuth = command
       ? createActionExecutionAuth(auth, { actionKind: 'runCommand', commandId: record.commandId, access: command.access })
       : auth;
-    const commandResult = await executeCommand(record.commandId, commandEffectPayload(record.commandId, inputs, auth), commandAuth);
+    const commandResult = await executeCommand(record.commandId, await commandEffectPayload(record.commandId, inputs, auth), commandAuth);
     // The value boundary (SPEC §8 s species): a cts.service's declared
     // output is the handler's value. The command envelope (recording,
     // events, billing) stays in command_runs — spreading it onto the
