@@ -915,6 +915,15 @@ every floating authoring field carry the theme's surface background
 and border. The primitive popup lays out as one compact panel: header
 (kind, operation), then one row with rotation and the fillet radii.
 Authoring fields size to their content so their values stay visible.
+Typing a number into a dimension labeled by a bare parameter commits
+to that parameter — every field bound to it follows; a local field
+edit touches its own primitive only, and primitives bound to the same
+position expression share one dimension for it. Erasing a shape and
+undoing the erase revives the shape with its parameter bindings, and
+shape ids stay unique through every merge. A shape's boolean operation
+is a segmented Reference/Add/Subtract control — the whole state set
+reads at a glance, cycling through states one click at a time does
+not.
 
 
 Owner decision (2026-10-17, assembly tree layout): the designer's

@@ -1306,21 +1306,30 @@ const mergeChainShape = (extractedShape, authoredShape, evaluatedShape) => {
   };
 };
 
-export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, externalParameters = {}) => {
+// `adoptShapes` (editor session state) offers already-dropped authored
+// shapes as extra match candidates: an engine undo/redo restores canvas
+// geometry the model dropped, and the restored shape re-adopts its
+// authored expressions instead of landing numeric.
+export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, externalParameters = {}, adoptShapes = []) => {
   let source = null;
+  let adoptSource = null;
   try {
     // The external scope joins the evaluation: a sketch whose fields
     // read the cassette's globals keeps its bindings through the merge.
     // The scope never stores.
     source = evaluateOccsProfileSketch(authored, externalParameters);
+    adoptSource = adoptShapes.length
+      ? evaluateOccsProfileSketch({ ...authored, shapes: adoptShapes }, externalParameters).shapes
+      : [];
   } catch {
     return extracted;
   }
   const usedAuthored = new Set();
+  const keptShapeIds = new Set();
   const shapes = extracted.shapes.map((shape) => {
     let best = null;
     let bestMatches = 0;
-    for (const candidate of source.shapes) {
+    for (const candidate of [...source.shapes, ...adoptSource]) {
       if (usedAuthored.has(candidate.id) || candidate.type !== shape.type) continue;
       if (shape.type === 'chain') {
         const matches = candidate.points.filter((candidatePoint, index) => (
@@ -1337,9 +1346,12 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
       }
       if (!best && shapesWithinEpsilon(shape, candidate)) best = candidate;
     }
-    if (!best) return { ...shape };
+    if (!best) return { ...shape, __fresh: true };
     usedAuthored.add(best.id);
-    const original = authored.shapes.find(authoredShape => authoredShape.id === best.id) || best;
+    const pool = authored.shapes.find(authoredShape => authoredShape.id === best.id)
+      || adoptShapes.find(adoptShape => adoptShape.id === best.id);
+    const original = pool || best;
+    keptShapeIds.add(original.id);
     if (shape.type === 'chain' && original.type === 'chain') {
       // Point ids are per-shape identity: the authored ids ride the kept
       // shape so its fillet modifiers stay referenced.
@@ -1347,11 +1359,14 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     }
     return { ...original };
   });
-  // Fresh ids must not collide with the kept authored ids.
+  // Fresh shapes renumber against every kept id — an extracted id that
+  // happens to equal a kept id still renumbers (identity, not the id,
+  // decides kept-ness).
   const taken = new Set(shapes.map(shape => shape.id));
   let nextId = 0;
   for (const shape of shapes) {
-    if (usedAuthored.has(shape.id)) continue;
+    if (!shape.__fresh) continue;
+    delete shape.__fresh;
     while (taken.has(`s${nextId}`)) nextId += 1;
     const id = `s${nextId}`;
     taken.add(id);

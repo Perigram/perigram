@@ -86,9 +86,15 @@ modules — no platform imports.
   position from the axis, height from the origin) and circle field
   (diameter, position) renders as a dimension labeled by its parameter
   expression where one is bound — measured numbers otherwise — and
-  edits in place, typing commits the field; stacked dimensions on one
-  baseline chain outward, and every dimension line terminates in
-  arrowheads. The sketch's expression table lives in the parameter
+  edits in place, typing commits the field: a dimension bound to a
+  bare parameter is that parameter's editor — a typed number commits
+  to the parameter and every field bound to it follows, while a
+  compound expression (`W/2`) commits to its own field; stacked
+  dimensions on one baseline chain outward (slots keyed on world
+  position, so navigation keeps them in place), and every dimension
+  line terminates in arrowheads. Concentric primitives bound to the
+  same position expression render one dim for it; divergent
+  expressions each keep their own. The sketch's expression table lives in the parameter
   strip above the canvas (the `fx` row — its one home); a selected
   primitive's popup carries its op, rotation, and fillet radii as one
   compact panel (header, then a single field row), and opens on
@@ -143,7 +149,16 @@ modules — no platform imports.
   drawing, importing, or undoing never destroys parametric authoring;
   moved or new geometry goes numeric, authored shapes with no extracted
   counterpart were erased and drop, and an authored sketch whose
-  expressions do not resolve falls back to the plain extraction.
+  expressions do not resolve falls back to the plain extraction. A
+  fourth argument offers dropped authored shapes back as adoption
+  candidates: the editor keeps the last drops in session memory, so an
+  engine undo/redo that restores erased canvas geometry revives the
+  shape with its expressions (an erase alone drops it; the revive needs
+  the geometry back on the canvas). Fresh ids renumber against every
+  kept id by object identity — an extracted id colliding with a kept id
+  still renumbers. The shape popup's operation is a segmented
+  Reference/Add/Subtract control; the whole state set reads at a
+  glance.
   Document transitions (DXF import) bind the database listeners without
   scheduling an extraction: the import's own explicit extraction is the
   one that lands. Legacy chain sketches (points/edges/holes/closed/

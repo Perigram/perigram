@@ -4,6 +4,7 @@
 // grips, and undo/redo run in the engine; entity records and the sketch
 // model normalize through occs/profiles.js.
 import {
+  OCCS_PROFILE_SHAPE_OPS,
   adoptOccsProfileBindingParameter,
   createEmptyOccsProfileSketch,
   evaluateOccsProfileSketch,
@@ -33,9 +34,6 @@ const GLYPH_REDRAW_SETTLE_MS = 80;
 // CDN) is needed to boot a drawable document.
 const BLANK_DXF = '0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1027\n0\nENDSEC\n0\nEOF\n';
 
-const SHAPE_OPS = ['none', 'add', 'subtract'];
-const nextOp = op => SHAPE_OPS[(SHAPE_OPS.indexOf(op) + 1) % SHAPE_OPS.length];
-const OP_ICONS = { none: 'pi pi-eye', add: 'pi pi-plus', subtract: 'pi pi-minus' };
 const SHAPE_KIND_ICON = { circle: 'circle', rect: 'rectang', chain: 'polyline' };
 const SHAPE_KIND_LABEL = {
   circle: 'cassette.v2.profileEditor.tools.circle',
@@ -46,7 +44,7 @@ const SHAPE_KIND_LABEL = {
 export default function createSketchEditor({ vue, components, locale }) {
   const { h, ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
-  const { Button, InputText, Message, Toolbar } = components;
+  const { Button, InputText, Message, Toolbar, SelectButton } = components;
 
   // The engine singleton is destroyed and re-created per mount; a pending
   // destroy must finish first or its teardown would clobber the new instance.
@@ -84,6 +82,11 @@ export default function createSketchEditor({ vue, components, locale }) {
       let lastEmitted = '';
       let disposed = false;
       let zoomObserver = null;
+      // Authored shapes dropped by a merge (an erase): offered back as
+      // adoption candidates so an engine undo/redo that restores canvas
+      // geometry revives their expressions. Session state — never
+      // stored, cleared with the canvas.
+      let droppedShapes = [];
       // The construction document opens in Write mode; the blank and any
       // imported document must keep it — Read-mode documents silently
       // refuse the mode-gated draw commands. The bundle exports no mode
@@ -186,14 +189,14 @@ export default function createSketchEditor({ vue, components, locale }) {
       const bumpViewTick = () => { viewTick.value += 1; };
 
       // Dimension stacking: dims on the same side of the same baseline
-      // chain outward (18px, then 40, 62…).
+      // chain outward (18px, then 40, 62…). Bands key on the WORLD
+      // midpoint, so pan/zoom keeps every dim in its slot — screen-space
+      // banding reshuffled same-label inputs onto each other mid-edit.
       const createDimStack = () => {
         const slots = new Map();
-        return (a1, b1, ux, uy) => {
-          const horizontal = Math.abs(b1[0] - a1[0]) >= Math.abs(b1[1] - a1[1]);
-          const baseline = horizontal ? (a1[1] + b1[1]) / 2 : (a1[0] + b1[0]) / 2;
-          const side = horizontal ? (uy > 0 ? 'below' : 'above') : (ux > 0 ? 'right' : 'left');
-          const slotKey = `${side}:${Math.round(baseline / 48)}`;
+        return (worldMid, horizontal, side) => {
+          const along = horizontal ? worldMid[1] : worldMid[0];
+          const slotKey = `${side}:${Math.round(along / 12)}`;
           const slot = slots.get(slotKey) || 0;
           slots.set(slotKey, slot + 1);
           return 18 + slot * 22;
@@ -225,7 +228,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         uy /= ul;
         const a0 = [ax + ux * 2, ay + uy * 2];
         const b0 = [bx + ux * 2, by + uy * 2];
-        const off = stack ? stack(a0, b0, ux, uy) : 18;
+        const horizontal = Math.abs(bx - ax) >= Math.abs(by - ay);
+        const side = horizontal ? (uy > 0 ? 'below' : 'above') : (ux > 0 ? 'right' : 'left');
+        const off = stack
+          ? stack([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], horizontal, side)
+          : 18;
         const a1 = [ax + ux * off, ay + uy * off];
         const b1 = [bx + ux * off, by + uy * off];
         return {
@@ -329,7 +336,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         const stack = createDimStack();
         const chains = evaluated.shapes.filter(shape => shape.type === 'chain');
         const authoredById = new Map((authored?.shapes || []).map(shape => [shape.id, shape]));
-        const dimensions = [
+        const allDimensions = [
           ...chains.flatMap(shape => chainDimensions(shape, toScreen, stack)),
           ...evaluated.shapes.flatMap(shape => (
             shape.type === 'rect' || shape.type === 'circle'
@@ -337,6 +344,19 @@ export default function createSketchEditor({ vue, components, locale }) {
               : []
           ))
         ];
+        // Position dims measure the parameter they carry: concentric
+        // primitives bound to the same expression render one dim for it
+        // (both fields keep their binding; the value edits through the
+        // one dim). Divergent expressions each keep their own dim.
+        const seenPosition = new Set();
+        const dimensions = allDimensions.filter(dimension => {
+          const fieldKey = dimension.editable?.fieldKey;
+          if (fieldKey !== 'center-x' && fieldKey !== 'center-y') return true;
+          const dedupeKey = `${fieldKey}:${dimension.text}`;
+          if (seenPosition.has(dedupeKey)) return false;
+          seenPosition.add(dedupeKey);
+          return true;
+        });
         const openEnds = chains
           .filter(shape => !shape.closed && shape.points.length >= 2)
           .flatMap(shape => [
@@ -692,10 +712,13 @@ export default function createSketchEditor({ vue, components, locale }) {
         // only moved or new geometry goes numeric. The external scope
         // joins the merge's evaluation so global-bound fields resolve;
         // the stored sketch keeps the clean table.
-        const sketch = normalizeOccsProfileSketch(
-          mergeOccsProfileSketchGeometry(extracted, props.modelValue || {}, externalScope()),
-          context.parameters
-        );
+        const merged = mergeOccsProfileSketchGeometry(extracted, props.modelValue || {}, externalScope(), droppedShapes);
+        const keptIds = new Set(merged.shapes.map(shape => shape.id));
+        droppedShapes = [
+          ...(props.modelValue?.shapes || []),
+          ...droppedShapes
+        ].filter(shape => !keptIds.has(shape.id)).slice(-20);
+        const sketch = normalizeOccsProfileSketch(merged, context.parameters);
         const fingerprint = JSON.stringify(sketch);
         if (fingerprint === lastEmitted) return;
         lastEmitted = fingerprint;
@@ -847,6 +870,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         unbindDatabase();
         clearDrawingEntities();
         importedFileName.value = '';
+        droppedShapes = [];
         // Clearing starts the blank authoring session: the parameter
         // table empties with the canvas (occs/README.md owns the
         // blank-session law), so a cleared session's parameters never
@@ -969,10 +993,22 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
-      // Shape field commit with adopt-on-bind: a single unknown
-      // identifier mints its parameter at the field's evaluated value.
-      const applyShapeField = (shapeId, readEvaluated, apply) => (value) => {
+      // Shape field commit with the parameter lifecycle: a typed number
+      // into a field bound to a bare sketch parameter commits to that
+      // parameter (the dim is the parameter's editor — everything bound
+      // to it follows); every other value keeps the adopt-on-bind path
+      // onto the field.
+      const BARE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+      const applyShapeField = (shapeId, readEvaluated, apply, authoredValue) => (value) => {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        const numeric = typeof value === 'string' && value.trim() !== '' ? Number(value) : null;
+        const binding = typeof authoredValue === 'string' ? authoredValue.trim() : '';
+        if (Number.isFinite(numeric)
+          && BARE_IDENTIFIER.test(binding)
+          && Object.prototype.hasOwnProperty.call(normalized.parameters, binding)) {
+          commitSketch({ ...normalized, parameters: { ...normalized.parameters, [binding]: numeric } });
+          return;
+        }
         const parameters = adoptOccsProfileBindingParameter(
           normalized,
           value,
@@ -1028,10 +1064,6 @@ export default function createSketchEditor({ vue, components, locale }) {
               : shape
           ))
         });
-      };
-
-      const cycleShapeOp = (shapeId) => {
-        updateShape(shapeId, shape => ({ ...shape, op: nextOp(shape.op) }));
       };
 
       const applyParameterValue = (key, value) => {
@@ -1105,15 +1137,18 @@ export default function createSketchEditor({ vue, components, locale }) {
         });
       };
 
-      const opButton = (shape) => h(Button, {
-        icon: OP_ICONS[shape.op] || OP_ICONS.none,
-        severity: shape.op === 'none' ? 'secondary' : 'primary',
-        text: true,
-        rounded: true,
+      const opButton = (shape) => h(SelectButton, {
+        modelValue: shape.op,
+        options: OCCS_PROFILE_SHAPE_OPS.map(op => ({
+          value: op,
+          label: t(`cassette.v2.profileEditor.ops.${op}`)
+        })),
+        optionValue: 'value',
+        optionLabel: 'label',
+        allowEmpty: false,
         size: 'small',
-        'aria-label': t(`cassette.v2.profileEditor.ops.${shape.op}`),
-        title: t(`cassette.v2.profileEditor.ops.${shape.op}`),
-        onClick: () => { cycleShapeOp(shape.id); }
+        'aria-label': `${t(`cassette.v2.profileEditor.ops.${shape.op}`)} ${shape.id}`,
+        'onUpdate:modelValue': value => { updateShape(shape.id, subject => ({ ...subject, op: value })); }
       });
 
       // The selected primitive's parameter popup — the one home for a
@@ -1146,7 +1181,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           expressionField(
             value,
             `${label}${resolvedHint(sketch, value)}`,
-            applyShapeField(shape.id, readEvaluated, apply),
+            applyShapeField(shape.id, readEvaluated, apply, value),
             `${label} ${shape.id}`
           )
         ]);
@@ -1195,7 +1230,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           style: { left: `${popup.left}px`, top: `${popup.top}px` },
           onPointerdown: event => { event.stopPropagation(); }
         }, [
-          h('div', { class: 'flex items-center justify-between gap-2 border-b border-content-border pb-1' }, [
+          h('div', { class: 'flex items-center gap-2 border-b border-content-border pb-1' }, [
             h('span', {
               class: 'text-muted',
               title: t(SHAPE_KIND_LABEL[shape.type])
@@ -1375,7 +1410,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               style: { left: `${left}px`, top: `${top}px`, width: `${boxWidth}px` },
               modelValue: shown,
               ...fieldDraft.handlers(editable.ariaLabel, editable.value, next => {
-                applyShapeField(editable.shapeId, editable.readEvaluated, editable.apply)(next);
+                applyShapeField(editable.shapeId, editable.readEvaluated, editable.apply, editable.value)(next);
               }),
               size: 'small',
               'aria-label': editable.ariaLabel,
@@ -1446,6 +1481,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           );
           if (!opened) throw new Error(t('cassette.v2.profileEditor.importFailed'));
           importedFileName.value = file.name;
+          droppedShapes = [];
           manager.curView?.zoomToFitDrawing?.();
           // An import is reference geometry: every extracted shape lands
           // with op none until the author assigns its ops.
