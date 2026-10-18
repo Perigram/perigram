@@ -30,10 +30,10 @@ const appTokenStyles = `:root{${cssDeclarations(cssVariableTokens)}}.dark-mode{$
 // scratch, `.opencode` tooling state, the `video` renderer tree: chokidar
 // v4 leaks glob-ignored nested events, so the ignore must match paths,
 // not globs. Contract: Development notes in the root README.
-const DEV_WATCH_IGNORE = p => /(^|[\\/])(\.agent[-_]w[a-z0-9_-]*|\.opencode|video)([\\/]|$)/i.test(String(p));
+const DEV_WATCH_IGNORE = p => /(^|[\\/])(\.agent([-_]w[a-z0-9_-]*)?|\.opencode|video)([\\/]|$)/i.test(String(p));
 
 export default defineNuxtConfig({
-    ignore: ['**/.agent-worktrees/**', '**/.agent-wt*/**', '**/.opencode/**', '**/video/**'],
+    ignore: ['**/.agent/**', '**/.agent-worktrees/**', '**/.agent-wt*/**', '**/.opencode/**', '**/video/**'],
     compatibilityDate: '2025-07-15',
 
     // Home serves at the stable shell route '/home' — the canonical
