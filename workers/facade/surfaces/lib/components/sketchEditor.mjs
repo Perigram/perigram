@@ -1148,7 +1148,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // strip rows).
       const renderDimensionInputs = () => {
         const annotations = canvasAnnotations.value;
-        if (!annotations) return null;
+        if (!annotations) return [];
         return annotations.dimensions
           .filter(dimension => dimension.editable)
           .map(dimension => {
