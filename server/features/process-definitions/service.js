@@ -966,7 +966,8 @@ async function executeCompiledRelationMutationAction({ action, actionId, instanc
     action,
     executionAuth
   );
-  const updated = await persistProcessEntityPatch(typeId, targetId, flattenMutationPatch(mutation), executionAuth);
+  const { relationReplaces, ...relationPatch } = mutation;
+  const updated = await persistProcessEntityPatch(typeId, targetId, relationPatch, executionAuth);
   await publishActionEntityEvent(auth, typeId, updated || { _id: targetId }, 'updated', 'process-relation-update');
   return updated;
 }
@@ -1128,7 +1129,7 @@ async function linkCreatedEntityToContextRelation({ action = {}, data = {}, enti
   const next = existing.some(ref => ref.type === targetType && String(ref.id) === String(createdId))
     ? existing
     : [...existing, { type: targetType, id: createdId }];
-  const patch = { [`relations.${relation.key}`]: next };
+  const patch = { relations: { [relation.key]: next } };
   if (relation.association?.path) {
     const associations = getByPath(owner, relation.association.path);
     const currentAssociations = Array.isArray(associations) ? associations : [];
@@ -1551,7 +1552,7 @@ async function normalizeProcessPatchRelations(typeId, patch = {}, contracts = []
   const normalized = await normalizeProcessMutation(typeId, { relations }, contracts, auth);
   return {
     ...patch,
-    ...Object.fromEntries(Object.entries(normalized.relations).map(([key, value]) => [`relations.${key}`, value]))
+    relations: { ...(patch.relations || {}), ...(normalized.relations || {}) }
   };
 }
 
@@ -1617,20 +1618,6 @@ async function persistProcessEntityPatch(typeId, targetId, patch, auth) {
     auth
   });
   return await service.processUpdate(targetId, patch, auth);
-}
-
-function flattenMutationPatch(source = {}, prefix = '', result = {}) {
-  for (const [key, value] of Object.entries(source || {})) {
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (value && typeof value === 'object' && value.type && value.id) {
-      result[path] = value;
-    } else if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-      flattenMutationPatch(value, path, result);
-    } else {
-      result[path] = value;
-    }
-  }
-  return result;
 }
 
 function getByPath(source, path) {
