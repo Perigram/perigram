@@ -23,29 +23,38 @@
     <template v-else>
       <!-- Media attachments flow as one masonry: instance preview cards
            and image tiles mix; a lone media item renders full-width. -->
+      <!-- Masonry: independent column stacks (staggered heights), the
+           first column hugging the sender's edge. -->
       <span
         v-if="mediaItems.length > 1"
-        :class="['w-full max-w-80 gap-1', mediaItems.length >= 5 ? 'columns-3' : 'columns-2']"
+        :class="['flex w-full max-w-80 gap-1', isOwnMessage ? 'flex-row-reverse' : '']"
         data-testid="chat-attachment-gallery"
       >
-        <template v-for="item in mediaItems" :key="item.kind === 'instance' ? `${item.ref.type}-${item.ref.id}` : item.attachment.fileId">
-          <span
-            v-if="item.kind === 'instance'"
-            class="mb-1 block w-full break-inside-avoid overflow-hidden rounded-ui border border-content-border"
-          >
-            <InstanceInlineRef v-bind="previewRefProps(item.ref)" />
-          </span>
-          <span v-else class="mb-1 block w-full break-inside-avoid overflow-hidden rounded-ui">
-            <button
-              type="button"
-              class="block w-full cursor-zoom-in bg-transparent"
-              :aria-label="$t('support.attachmentPreview', { name: item.attachment.name || '' })"
-              @click="previewAttachment = item.attachment"
+        <span
+          v-for="(column, columnIndex) in masonryColumns"
+          :key="columnIndex"
+          class="flex min-w-0 flex-1 flex-col gap-1"
+          data-testid="chat-masonry-column"
+        >
+          <template v-for="item in column" :key="item.kind === 'instance' ? `${item.ref.type}-${item.ref.id}` : item.attachment.fileId">
+            <span
+              v-if="item.kind === 'instance'"
+              class="block w-full overflow-hidden rounded-ui border border-content-border"
             >
-              <img class="w-full rounded-ui" :src="url(item.attachment)" :alt="item.attachment.name || ''">
-            </button>
-          </span>
-        </template>
+              <InstanceInlineRef v-bind="previewRefProps(item.ref)" />
+            </span>
+            <span v-else class="block w-full overflow-hidden rounded-ui">
+              <button
+                type="button"
+                class="block w-full cursor-zoom-in bg-transparent"
+                :aria-label="$t('support.attachmentPreview', { name: item.attachment.name || '' })"
+                @click="previewAttachment = item.attachment"
+              >
+                <img class="w-full rounded-ui" :src="url(item.attachment)" :alt="item.attachment.name || ''">
+              </button>
+            </span>
+          </template>
+        </span>
       </span>
       <span
         v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'instance'"
@@ -222,6 +231,19 @@ const mediaItems = computed(() => [
   ...(props.refs || []).map(ref => refHasPreview(ref) ? { kind: 'instance', ref } : null).filter(Boolean),
   ...images.value.map(attachment => ({ kind: 'image', attachment }))
 ]);
+
+const isOwnMessage = computed(() => Boolean(
+  props.senderUserId && props.viewerUserId === props.senderUserId
+));
+
+// Round-robin column fill: heights stagger naturally, unlike balanced
+// multicol which pairs equal rows into a grid.
+const masonryColumns = computed(() => {
+  const columnCount = mediaItems.value.length >= 5 ? 3 : 2;
+  const columns = Array.from({ length: columnCount }, () => []);
+  mediaItems.value.forEach((item, index) => columns[index % columnCount].push(item));
+  return columns;
+});
 
 const previewRefProps = (ref = {}) => ({
   type: ref.type,

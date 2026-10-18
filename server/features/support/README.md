@@ -125,7 +125,8 @@ binding, a renderable stored payload, or a declared geometry value — the
 channels the shared preview mounts); a ref with media renders
 `InstanceInlineRef`'s stacked compact card (flush preview band over a
 compact label strip) — media attachments (preview cards and image
-tiles) flow together as one masonry (two columns, three past four; a
+tiles) flow together as one masonry of independent column stacks (two
+columns, three past four; the first column hugs the sender's edge; a
 lone media item full-width), other refs
 the outlined chip carrying the type glyph. File
 documents render the filled chip; images and video embed inline (gallery

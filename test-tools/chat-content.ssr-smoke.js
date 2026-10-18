@@ -161,8 +161,7 @@ describe('chat content SSR smoke', () => {
       globalThis.$fetch.mockImplementation(async () => ({}));
     }
     expect(html).toContain('data-testid="chat-attachment-gallery"');
-    expect(html).toContain('columns-2');
-    expect(html).toContain('break-inside-avoid');
+    expect((html.match(/data-testid="chat-masonry-column"/g) || []).length).toBe(2);
     expect((html.match(/instance-inline-compact--stacked/g) || []).length).toBe(2);
   });
 
