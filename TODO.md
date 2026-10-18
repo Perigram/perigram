@@ -6733,14 +6733,3 @@ in-process, and command_runs/task_runs are the audit trail.
 - Stored collections drop via `server/scripts/retire-process-runs.js`;
   action-evaluation specs run Mongo-free.
 
-
-## Tidy compactness and loop pairing (2026-10-17)
-
-- [ ] Columns span their widest card plus air (floored); lane rows
-      pitch to the lane tallest card, floored at the resting row; a
-      mutual pair shares one column; weakly connected components pack
-      side by side; polish medians stay same-lane.
-      Lane membership, grants, drop acceptance, and the acyclic LTR law
-      are untouched.
-
-Status: WAITING
