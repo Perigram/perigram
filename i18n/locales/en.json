@@ -583,7 +583,8 @@
                 "start": "start",
                 "end": "end",
                 "parameters": "Parameters",
-                "dimensions": "Dimensions"
+                "dimensions": "Dimensions",
+                "resultClipped": "Result lies outside the material half of the axis — draw on the hatched side or flip the material side."
             },
             "placementModes": {
                 "point": "Point",
