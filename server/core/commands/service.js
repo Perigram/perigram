@@ -237,6 +237,9 @@ function normalizeCommandInput(input = {}) {
 
 function validateCommandParameters(command, parameters = {}) {
   const fields = command.input?.parameters || [];
+  // A plugin connector's signature lives in its executor: parameters
+  // pass through, and the endpoint owns validation.
+  if (command.plugin) return { ...parameters };
   const result = {};
   for (const field of fields) {
     const value = parameters[field.name] ?? field.default;
