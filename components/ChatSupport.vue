@@ -98,6 +98,7 @@
                 />
                 <Listbox
                     v-else
+                    :key="activeConversation ? 'docked' : 'live'"
                     :model-value="activeConversation?.conversationKey || null"
                     :options="conversationSections"
                     option-label="label"
@@ -4025,8 +4026,6 @@ watch([() => props.conversationKey, () => supportChatStore.conversations], ([key
 // Function declaration: the immediate watcher below runs during setup and
 // must be able to call this before its textual position.
 function openConversationByKey(key) {
-    // The option keeps its click-focus tint after the thread opens.
-    if (import.meta.client && document.activeElement instanceof HTMLElement) document.activeElement.blur()
     const summary = supportChatStore.conversations.find(item => item.conversationKey === key)
     if (summary) {
         activeConversation.value = { ...summary, resolved: true }
