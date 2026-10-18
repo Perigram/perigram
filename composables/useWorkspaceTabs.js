@@ -5,7 +5,7 @@ import { useInstancesStore } from '~/stores/instances';
 import { useRegistryStore } from '~/stores/registry';
 import { localizedLabel, titleFor, typeLabelKey } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
-import { emptyTabItem, emptyTabKey, isEmptyTabKey } from '~/utils/workspace-empty-tabs.js';
+import { emptyTabKey, isEmptyTabKey } from '~/utils/workspace-empty-tabs.js';
 import {
   closeWorkspaceLeaf,
   createWorkspaceLeaf,
@@ -599,11 +599,8 @@ export function useWorkspaceTabs({ storageKey, sectionItems, sidebarCollapsed })
   }
 
   function tabItemsForPane(pane) {
-    // Empty placeholders render as their own strip item; real keys that
-    // resolve to nothing close through the pruning watcher.
     return (pane?.tabKeys || [])
-      .map(key => workspaceItems.value.find(item => item.key === key)
-        || (isEmptyTabKey(key) ? emptyTabItem(key) : null))
+      .map(key => workspaceItems.value.find(item => item.key === key))
       .filter(Boolean);
   }
 
