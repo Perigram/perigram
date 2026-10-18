@@ -174,7 +174,7 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
       .toEqual(['fields', 'lineage', 'relations']);
   });
 
-  it('offers the minted name row as a construction input (no hardcoded Name)', () => {
+  it('construction inputs are authored rows only — the minted name row authors nothing', () => {
     const reg = registry();
     reg.defineType({
       id: 'blank',
@@ -187,11 +187,11 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     });
     const projected = projectDomainFromView(reg, 'org-1');
     const construction = projected.construction.blank;
-    // Identifier totality: the boundary minted the `name` row, so it is a
-    // real declared row input — never a compiler-invented bare identity
-    // prompt, and never absent (creates of this type name their records).
-    expect(construction.inputs.map(input => input.id)).toEqual(['fields.geometry', 'fields.name']);
-    expect(construction.inputs.some(input => input.id === 'name' || input.path === 'name')).toBe(false);
+    // The identifier-totality mint renders the unnamed placeholder; it is
+    // identity vocabulary, so it constructs and mutates nothing.
+    expect(construction.inputs.map(input => input.id)).toEqual(['fields.geometry']);
+    expect(projected.fieldSchemas.blank.find(schema => schema.path === 'fields.name'))
+      .toMatchObject({ constructible: false, writable: false });
   });
 
   it('synthesizes containment from children edges with camel-case lineage keys', () => {

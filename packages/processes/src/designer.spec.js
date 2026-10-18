@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { applyFieldDisplayRole, compileTreeDeclarations, createProcessDesignerContract, declarationNodePorts, declarationWireLegality, interpretDeclarationEdges, orientChildrenWire, syncProcessNodeProducerOutputs } from './designer.js';
+import { applyFieldDisplayRole, compileTreeDeclarations, createProcessDesignerContract, declarationNodePorts, declarationWireLegality, childrenWireLegality, interpretDeclarationEdges, syncProcessNodeProducerOutputs } from './designer.js';
 import { getProcessNodeDefinition } from './node-catalog.js';
 
 describe('process designer domain contract', () => {
@@ -462,25 +462,16 @@ describe('declaration wire legality', () => {
     expect(legality({ sourceType: 'ctsState', targetType: 'ctsState' })).toBe('nested');
   });
 
-  it('children wires orient to the only end that can parent — drag direction is ceremony', () => {
-    // The reported gesture: type card / file class dragged FROM a group
-    // class — the only legal parent is the source, the edge lands
-    // child-first either way (the child's output into the parent's
-    // declare input).
-    expect(orientChildrenWire({ source: { type: 'ctsType' }, target: { type: 'ctsClass', class: 'group' } }))
-      .toEqual({ ok: true, parent: 'target' });
-    expect(orientChildrenWire({ source: { type: 'ctsClass', class: 'file' }, target: { type: 'ctsClass', class: 'group' } }))
-      .toEqual({ ok: true, parent: 'target' });
-    expect(orientChildrenWire({ source: { type: 'ctsClass', class: 'group' }, target: { type: 'ctsType' } }))
-      .toEqual({ ok: true, parent: 'source' });
-    // Both ends can parent: the drag direction is the author's choice
-    // (the dragged source is the child).
-    expect(orientChildrenWire({ source: { type: 'ctsClass', class: 'group' }, target: { type: 'ctsClass', class: 'item' } }))
-      .toEqual({ ok: true, parent: 'target' });
-    // Neither end can parent: no orientation exists.
-    expect(orientChildrenWire({ source: { type: 'ctsClass', class: 'file' }, target: { type: 'ctsClass', class: 'file' } }).ok).toBe(false);
-    expect(orientChildrenWire({ source: { type: 'ctsClass', class: 'file' }, target: { type: 'ctsType' } }).ok).toBe(false);
-    expect(orientChildrenWire({ source: { type: 'ctsType' }, target: { type: 'ctsType' } }).ok).toBe(false);
+  it('children wires are legal exactly as drawn — the drawn target must parent', () => {
+    // The wire leaves the child (in-tree class or type card) and enters
+    // the parenting class's declare input; the pair below is the whole
+    // legality surface (SPEC §5).
+    expect(childrenWireLegality({ source: { type: 'ctsType' }, target: { type: 'ctsClass', class: 'group' } })).toBe(true);
+    expect(childrenWireLegality({ source: { type: 'ctsClass', class: 'file' }, target: { type: 'ctsClass', class: 'group' } })).toBe(true);
+    expect(childrenWireLegality({ source: { type: 'ctsClass', class: 'group' }, target: { type: 'ctsClass', class: 'item' } })).toBe(true);
+    expect(childrenWireLegality({ source: { type: 'ctsClass', class: 'group' }, target: { type: 'ctsClass', class: 'file' } })).toBe(false);
+    expect(childrenWireLegality({ source: { type: 'ctsClass', class: 'group' }, target: { type: 'ctsClass', class: 'party' } })).toBe(false);
+    expect(childrenWireLegality({ source: { type: 'ctsClass', class: 'group' }, target: { type: 'ctsType' } })).toBe(false);
   });
 });
 

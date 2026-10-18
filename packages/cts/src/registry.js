@@ -102,13 +102,9 @@ export function normalizeType(declaration = {}) {
   if (legacyRender.identityField && Object.hasOwn(fields, legacyRender.identityField)) {
     fields = { ...fields, [legacyRender.identityField]: { ...fields[legacyRender.identityField], identifier: true } };
   }
-  // Identifier totality: every compiled type carries exactly one
-  // identifier field — an explicit flag always wins, else the first
-  // declared string field is minted once here at the boundary, else a
-  // nullable `name` row is minted (first free of name/title/label) and
-  // flagged. Unnameable types are unrepresentable, so the unnamed
-  // placeholder only ever means "the identifier field's value is null".
-  // Contract home: SPEC §4, packages/cts README.
+  // Identifier totality (contract home: SPEC §4, cts README). The
+  // minted row is identity vocabulary only — it renders the unnamed
+  // placeholder and authors nothing, hence writable/constructible false.
   if (!Object.values(fields).some(descriptor => descriptor?.identifier === true)) {
     const firstString = Object.entries(fields)
       .find(([, descriptor]) => descriptor?.base === 'string');
@@ -121,7 +117,7 @@ export function normalizeType(declaration = {}) {
         while (Object.hasOwn(fields, `name${index}`)) index += 1;
         minted = `name${index}`;
       }
-      fields = { ...fields, [minted]: { base: 'string', nullable: true, identifier: true } };
+      fields = { ...fields, [minted]: { base: 'string', nullable: true, identifier: true, writable: false, constructible: false } };
     }
   }
   // Authored preview declaration: the first `render.groups` row flagged
