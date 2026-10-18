@@ -2,7 +2,8 @@
 // engine ("Auto-arrangement (Tidy)" and "Lanes"). Pure: nodes, edges,
 // lane band membership in → positions plus content-hugging band
 // geometry out. x = column (condensation layering: mutual pairs share
-// a column; columns span their widest card plus air). Within each
+// a column; weakly connected components pack side by side, largest
+// first; columns span their widest card plus air). Within each
 // lane×column cell, barycenter sweeps over wired neighbors pick the
 // row order; y = lane row pitch, then a same-lane median polish whose
 // clamps keep the in-cell order and the lane bounds. Deterministic and
@@ -60,6 +61,40 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     if (!predecessors.has(edge.target)) predecessors.set(edge.target, []);
     predecessors.get(edge.target).push(edge.source);
   }
+
+  // Weakly connected components arrange independently and pack side by
+  // side, largest first: unwired clusters keep their own columns
+  // instead of piling onto the flow's.
+  const weakAdj = new Map(nodes.map(node => [node.id, new Set()]));
+  for (const edge of edges) {
+    if (!weakAdj.has(edge.source) || !weakAdj.has(edge.target)) continue;
+    weakAdj.get(edge.source).add(edge.target);
+    weakAdj.get(edge.target).add(edge.source);
+  }
+  const weakOf = new Map();
+  const weakComponents = [];
+  for (const node of nodes) {
+    if (weakOf.has(node.id)) continue;
+    const members = [];
+    const stack = [node.id];
+    weakOf.set(node.id, weakComponents.length);
+    while (stack.length) {
+      const current = stack.pop();
+      members.push(current);
+      for (const next of weakAdj.get(current) || []) {
+        if (weakOf.has(next)) continue;
+        weakOf.set(next, weakComponents.length);
+        stack.push(next);
+      }
+    }
+    weakComponents.push(members);
+  }
+  const weakOrder = weakComponents
+    .map((members, index) => ({ index, members }))
+    .sort((left, right) => right.members.length - left.members.length
+      || (left.members[0] < right.members[0] ? -1 : 1))
+    .map(entry => entry.index);
+  const weakRank = new Map(weakOrder.map((componentIndex, rank) => [componentIndex, rank]));
 
   // x = column: longest-path layering over the condensation of the flow
   // edges — a strongly connected component (an authoring loop, a
@@ -298,7 +333,7 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     const band = bandOf.get(node.id);
     const column = columns.get(node.id);
     if (!band || column === undefined) continue;
-    const key = `${band.id}|${column}`;
+    const key = `${band.id}|${weakRank.get(weakOf.get(node.id))}|${column}`;
     let cell = cellKey.get(key);
     if (!cell) {
       cell = [];
@@ -419,19 +454,32 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
   }
 
   // Columns span their widest card plus air, floored at the resting
-  // span: neighbors keep readable distance at any card size.
-  const usedColumns = [...new Set([...columns.values()])].sort((left, right) => left - right);
-  const columnWidth = new Map(usedColumns.map(column => [column, 0]));
+  // span: neighbors keep readable distance at any card size. Components
+  // pack in rank order, each counting its own columns from zero.
+  const columnWidth = new Map();
   for (const node of nodes) {
     const column = columns.get(node.id);
     if (column === undefined) continue;
-    columnWidth.set(column, Math.max(columnWidth.get(column), cardWidthOf(node)));
+    const key = `${weakRank.get(weakOf.get(node.id))}|${column}`;
+    columnWidth.set(key, Math.max(columnWidth.get(key) || 0, cardWidthOf(node)));
   }
   const columnStart = new Map();
+  const componentColumns = new Map();
+  for (const node of nodes) {
+    const column = columns.get(node.id);
+    if (column === undefined) continue;
+    const component = weakRank.get(weakOf.get(node.id));
+    if (!componentColumns.has(component)) componentColumns.set(component, new Set());
+    componentColumns.get(component).add(column);
+  }
   let columnX = 0;
-  for (const column of usedColumns) {
-    columnStart.set(column, columnX);
-    columnX += Math.max(COLUMN_MIN_SPAN, columnWidth.get(column) + COLUMN_AIR);
+  for (const component of [...componentColumns.keys()].sort((left, right) => left - right)) {
+    let spanX = 0;
+    for (const column of [...componentColumns.get(component)].sort((left, right) => left - right)) {
+      columnStart.set(`${component}|${column}`, columnX + spanX);
+      spanX += Math.max(COLUMN_MIN_SPAN, columnWidth.get(`${component}|${column}`) + COLUMN_AIR);
+    }
+    columnX += spanX;
   }
 
   const arranged = new Map();
@@ -440,7 +488,7 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     const band = bandOf.get(node.id);
     const absolute = band ? tops.get(band.id) + y.get(node.id) : y.get(node.id);
     arranged.set(node.id, {
-      x: Math.round(columnStart.get(columns.get(node.id))),
+      x: Math.round(columnStart.get(`${weakRank.get(weakOf.get(node.id))}|${columns.get(node.id)}`)),
       y: Math.round(absolute)
     });
   }
