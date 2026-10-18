@@ -35,14 +35,14 @@
           >
             <InstanceInlineRef v-bind="previewRefProps(item.ref)" />
           </span>
-          <span v-else class="mb-1 block h-32 w-full break-inside-avoid overflow-hidden rounded-ui">
+          <span v-else class="mb-1 block w-full break-inside-avoid overflow-hidden rounded-ui">
             <button
               type="button"
-              class="block h-full w-full cursor-zoom-in bg-transparent"
+              class="block w-full cursor-zoom-in bg-transparent"
               :aria-label="$t('support.attachmentPreview', { name: item.attachment.name || '' })"
               @click="previewAttachment = item.attachment"
             >
-              <img class="h-full w-full object-cover" :src="url(item.attachment)" :alt="item.attachment.name || ''">
+              <img class="w-full rounded-ui" :src="url(item.attachment)" :alt="item.attachment.name || ''">
             </button>
           </span>
         </template>

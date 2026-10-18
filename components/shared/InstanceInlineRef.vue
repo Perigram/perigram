@@ -320,7 +320,7 @@ onUnmounted(() => {
       </span>
       <span
         class="instance-inline-compact-main"
-        :class="compactLayout === 'stacked' ? 'px-2 pt-0.5 pb-1.5' : null"
+        :class="compactLayout === 'stacked' ? 'p-2' : null"
       >
         <span class="instance-inline-compact-header">
           <template v-if="compactLayout === 'stacked' && resolved">
