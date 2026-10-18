@@ -170,14 +170,14 @@ are inspection-only.
 
 ## Action evaluation and async completion
 
-A definition never "runs": activation compiles the contract, and the
-organization backend serves it continuously. A manual action executes by
-evaluating the authored dataflow in-process — the same graph evaluator
-preview uses (`packages/processes` orchestration) over the lowered
-definition, driven to settled or the first async boundary, with every
-effect re-entering its registered service/command/status boundary under
-the originating actor's access snapshot. Evaluation keeps no records:
-`command_runs` and `task_runs` are the audit trail.
+Activation compiles the contract; the organization backend serves it
+continuously. A manual action executes by evaluating the authored
+dataflow in-process — the same graph evaluator preview uses
+(`packages/processes` orchestration) over the lowered definition,
+driven to settled or the first async boundary, with every effect
+re-entering its registered service/command/status boundary under the
+originating actor's access snapshot. `command_runs` and `task_runs`
+are the audit trail.
 
 An async command effect (a command whose result carries task/job refs)
 parks the evaluation at the task boundary. The enqueued task-run id keys
@@ -186,11 +186,10 @@ an in-process continuation; the task runtime's terminal boundary
 from `server/core/tasks`) resumes the parked evaluation with the task's
 projected completion output — terminal `TaskResult` entities land on the
 sockets the effect declared — and drives it to settled with the
-originating actor context. A task outcome with no parked continuation is
-an uncorrelated no-op. A server restart between dispatch and completion
-drops the continuation: the task's own terminal handler still applies
-its domain effects, and `command_runs`/`task_runs` still record what
-happened.
+originating actor context. A task outcome with an unknown task-run id
+is an uncorrelated no-op. A server restart between dispatch and
+completion drops the continuation; the task's terminal handler still
+applies its domain effects.
 
 Effect nodes are
 either manual or automatic-from-socket. Date or event-triggered automation is
@@ -262,15 +261,13 @@ validation and activation so operators do not edit a guessed reconstruction.
 Edits save in place; an identity-only PATCH never touches data. A save
 carries a structural floor — every graph node needs a unique id, a type,
 and a numeric position, every edge must address existing nodes, and every
-data edge must name both its sockets (`sourceHandle`/`targetHandle`): an
-edge wired node-to-node binds nothing at compile time while looking
-connected — the exact wire a hand-authored graph replacement guesses.
-Declaration edges (the tree's `role: 'type'` wires) are node-to-node by
-design and stay exempt
+data edge must name both its sockets (`sourceHandle`/`targetHandle`;
+declaration edges — the tree's `role: 'type'` wires — are node-to-node
+by design and exempt)
 (`graphIntegrityProblems` from the
-[processes package](../../../packages/processes/README.md)) — while
-semantic validity stays the validator's job, so drafts may fail
-validation mid-edit but never persist as corruption. Each
+[processes package](../../../packages/processes/README.md)). Semantic
+validity stays the validator's job; drafts may fail validation
+mid-edit but never persist as corruption. Each
 activation writes the activated snapshot to `data.activated` — the
 runtime compiles `data.activated ?? data` for every active-set member,
 never live draft data. Re-activation records the superseded snapshot in
@@ -317,10 +314,8 @@ re-seats the session onto `declarationOverlayDomain` over the projected
 domain, and `editDefinition` seats the stored draft's own unapplied
 declarations before the first step — the tree's declarations are ports
 immediately, so a field declares and wires in one session with no
-intermediate apply (the same overlay law the acceptance adapter follows;
-live defect 2026-10-17: unapplied fields' connects were refused with
-`Unknown port` until an activation posted them). The overlay never skips
-silently: a declaration the registry refuses, or field records whose
+intermediate apply. The overlay names its skips: a declaration the
+registry refuses, or field records whose
 `typeId` matches no class, ride the very `Unknown port` step error as a
 named cause (`draft overlay: <type> skipped: <reason>` / `… field
 record(s) matched no class typeId`) — the failure names its cause and
@@ -330,16 +325,12 @@ the next action instead of a wall.
 step as a service entry (the agent tool `apply_declarations`): it
 compiles the draft's in-tree declaration tree and posts each
 declaration through the cts-types `defineType` boundary — the same
-posts the designer's APPLY makes client-side before activating. The
-law it closes: **validation overlays the draft's own declarations, but
-the activation compile resolves types against the registry** — an
-in-tree-declared draft validates green and still fails activation with
-`unknown entity type` until its declarations are applied (live defect
-2026-10-17: the tool catalog taught the declaration gestures with no
-way to post them, so every agent-authored in-tree definition died at
-activate). A refused declaration (breaking type diff without covering
-migrate steps, SPEC §11) returns as a structured per-type failure;
-successful posts are idempotent re-posts.
+posts the designer's APPLY makes client-side before activating.
+**Validation overlays the draft's own declarations; the activation
+compile resolves types against the registry** — an in-tree-declared
+draft needs its declarations applied before activation. A registry
+refusal (breaking type diff, SPEC §11) returns as a structured
+per-type failure; posts are idempotent re-posts.
 
 Process definitions never store role identities or user assignments. Their
 `data.roleGrants` record maps stable organization role ids to process-owned base

@@ -115,8 +115,8 @@ Three pieces share one tool catalog:
   typing `@` opens the room's candidate list, the seated AI first, then
   the room's human participants, and user tags are composer text) — and
   drives the tool-calling loop until the
-  model answers (owner direction 2026-10-16: no round budget) — the room's stop
-  control and the provider idle guard are the only terminators — over
+  model answers — the room's stop control and the provider idle guard
+  are the only terminators — over
   the [LLM capability module](../llm/README.md) on the `chat`
   capability route. The run executes with the **triggering sender's**
   request-shaped auth (`buildPrincipalAuth` — the same construction the
@@ -177,13 +177,11 @@ Three pieces share one tool catalog:
   coalesced, never dropped — the latest re-fires when the current run
   lands, with a fresh history snapshot covering everything said
   meanwhile; a stopped room's coalesced trigger dies with the stop.
-  Identical-call repetition is the one in-loop brake (not a round
-  budget, which the owner rejected): the same tool with the same
-  arguments landing a third time is blocked before execution and
-  answered with a structured instruction to change inputs, change
-  approach, or ask the room — a changed argument list always proceeds
-  (live defect 2026-10-17: a model repeated one failing edit five
-  times verbatim).
+  Identical-call repetition is the one in-loop brake: the same tool
+  with the same arguments landing a third time is blocked before
+  execution and answered with a structured instruction to change
+  inputs, change approach, or ask the room; a changed argument list
+  always proceeds.
 
 ## Conversation membership
 

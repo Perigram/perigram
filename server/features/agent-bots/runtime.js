@@ -398,10 +398,8 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, co
             } : null,
             onText: stream ? (text) => stream.answer(text) : null
         }).catch(error => {
-            // A dead provider must not discard the run's chronology: the
-            // failure notice rides the same provenance as an answer, so
-            // the room keeps what the run had done (owner defect
-            // 2026-10-17: "all thinking disappeared").
+            // A dead provider keeps the run's chronology: the failure
+            // notice rides the same provenance as an answer.
             if (signal?.aborted) throw error;
             return { content: '', thinking: '', toolCalls: [], failed: error };
         });

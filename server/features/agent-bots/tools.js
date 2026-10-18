@@ -55,12 +55,11 @@ function instanceRow(dto) {
     };
 }
 
-// Activation-written records ride the stored document but never the
-// authoring surface: `compiled` (inspection-only snapshot, nulled on every
-// save), `history` (superseded graphs), `activated` (the activation
-// snapshot). The definition tools strip them on load and preserve them on
-// save so a tool loop moves only authored data — the full record runs to
-// megabytes, which no model can echo back through a full-replace save.
+// Activation-written records stay out of the authoring surface:
+// `compiled` (inspection-only snapshot, nulled on every save), `history`
+// (superseded graphs), `activated` (the activation snapshot). The
+// definition tools strip them on load and preserve them on save — a tool
+// loop moves only authored data (the full record runs to megabytes).
 const SERVER_OWNED_DATA_KEYS = ['compiled', 'history', 'activated'];
 
 // The bot-facing authoring recipe served with the vocabulary: the compose
@@ -143,8 +142,7 @@ function definitionDigest(row) {
     return {
         id: row?.identity?.uid ?? row?._id ?? null,
         name: row?.identity?.name ?? null,
-        // The wire shape is the entity DTO (`states.main`), not the
-        // stored status block.
+        // The wire shape is the entity DTO (`states.main`).
         status: row?.states?.main ?? row?.status?.state?.primary ?? row?.status?.state ?? null,
         nodes,
         edges,
@@ -376,9 +374,8 @@ export const TOOL_SPECS = [
             additionalProperties: false
         },
         execute: async (args, auth) => {
-            // The digest, never the saved document: whole-document echoes
-            // (megabytes on real definitions) blind small contexts and
-            // drown the transcript (live defect 2026-10-17).
+            // The digest: a whole-document echo (megabytes on real
+            // definitions) blinds small contexts.
             return definitionDigest(await processDefinitionsService.composeDefinition(
                 { name: requireString(args.name, 'name'), steps: Array.isArray(args.steps) ? args.steps : [] },
                 auth

@@ -140,9 +140,9 @@ against the configured `E2E_BASE_URL`.
 Dev-stack filesystem runbook (compose mounts the repo at `/src`):
 - Global stylesheets ride `plugins/global-styles.js`, not the Nuxt `css:`
   array: with Nuxt 3.19's vite builder, css-array entries land only in the
-  SSR `entry-styles` sidecar, so production browsers never received
-  tailwind/primeicons/main.css/the PrimeVue theme (2026-09-29 staging —
-  "another css" broken layouts; dev and scoped styles were unaffected).
+  SSR `entry-styles` sidecar, so production browsers miss
+  tailwind/primeicons/main.css/the PrimeVue theme; dev and scoped
+  styles are unaffected.
 
 - `node_modules` is an anonymous container volume (`/src/node_modules`):
   host-side installs never reach the running container. To refresh
@@ -168,8 +168,7 @@ Dev-stack filesystem runbook (compose mounts the repo at `/src`):
   the recreate.
 Agent session worktrees are nested under `.agent-worktrees/` (plus scratch
 dirs `.agent-wt*`) in the project root; a worktree is removed once its
-branch merges — 21 stale September worktrees inflated the dev watch
-surface ~35× before the 2026-10-16 cleanup. Nuxt scanning and the dev
+branch merges. Nuxt scanning and the dev
 watchers ignore that tree — plus the equally dev-foreign `.opencode/`
 agent tooling state and the `video/` renderer tree — via a path predicate
 in `nuxt.config.js`: chokidar v4 leaks glob-ignored nested file events,
@@ -185,11 +184,9 @@ config; dev and the guards do not exercise the SSR bundle emit.
   (`assets/tokens/index.js` → `assets/presets/re_l.js` → `nuxt.config.js`)
   bakes component tokens into the running theme at boot. Nuxt restarts
   when `nuxt.config.js` itself changes but not when its imports do, so a
-  token-table edit never reaches a running dev server — component pt
-  and CSS changes hot-reload, token changes need an app restart
-  (measured 2026-10-13: the transparent editor tokens computed white in
-  the live app until `docker compose -f docker-compose.dev.yml restart
-  app`).
+  token-table edit stays invisible to a running dev server — component
+  pt and CSS changes hot-reload, token changes need an app restart
+  (`docker compose -f docker-compose.dev.yml restart app`).
 Server-side `xlsx` imports target the package's ESM build
 (`import … from 'xlsx/xlsx.mjs'`): the CJS main carries an
 `export `-leading prose comment that nitro's import-validity check
@@ -197,18 +194,15 @@ misreads as ESM syntax, so nitro refuses to externalize the package and
 rollup bundles it instead — the CJS interop then demands a default
 export from the externalized `node:fs` and every nitro server-bundle
 rebuild fails with `"default" is not exported by "…node:fs?
-commonjs-external"` (first hit 2026-09-29, when the facade order process
-added the first server-side xlsx import). A `nitro.alias` rewrite is NOT
+commonjs-external"`. A `nitro.alias` rewrite is NOT
 the fix: rollup's alias matches prefixes, so an aliased
 `xlsx → xlsx/xlsx.mjs` re-matches itself and resolves
 `xlsx/xlsx.mjs/xlsx.mjs` (ENOENT).
-- Server-side imports of workspace packages use the `#packages/…` alias,
-  never `~/packages/…`: chunk-relative `~` externals can hoist into the
-  root dev entry with the wrong depth and crash startup
-  (`Cannot find module '/packages/…'`, first hit 2026-10-09 after the
-  plugins routes shifted nitro chunking; `#packages` externalizes
-  absolutely — the pack-declarations fix `1705c1d8` established the
-  pattern).
+- Server-side imports of workspace packages use the `#packages/…` alias:
+  chunk-relative `~` externals can hoist into the root dev entry with the
+  wrong depth and crash startup
+  (`Cannot find module '/packages/…'`); `#packages` externalizes
+  absolutely.
 
 ## Progressive Web App
 

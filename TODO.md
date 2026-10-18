@@ -204,45 +204,26 @@ stands; repetition protection is not a budget).
   ports exist in-session once `wireDeclaration` lands and that
   `construction.inputs` is never hand-edited (an authoring-time
   snapshot).
-- The live session also confirmed the good halves: `read_attachment`
-  read the budget workbook, `run_action` created the category tasks, and
-  the activation-gate structure returned as readable results — the wall
-  was the seam, not the catalog.
+- Live-session confirmations: `read_attachment`, `run_action`, and the
+  activation-gate result structure all behave as designed.
 
 ### Agent Notes (2026-10-17 — activation loop closed, unit-pinned)
 
-- The activation struggle's missing half, found and fixed: the tool
-  catalog taught the declaration gestures but had no way to POST them.
-  `applyTreeDeclarations` (service) / `apply_declarations` (tool) is
+- Added `applyTreeDeclarations` (service) / `apply_declarations` (tool):
   the designer Apply's declaration step server-side — compile the
   draft's tree, post each declaration through cts-types `defineType`.
-  The law: validation overlays the draft's declarations, the
-  activation compile resolves the registry, so an in-tree draft
-  validated green and died at activate with `unknown entity type`
-  until applied. The compose guide now carries the apply step.
-- The save floor now refuses socket-less data edges (node-to-node
-  wires) on every write path (`graphIntegrityProblems`): a hand-written
-  graph replacement carrying `{source, target}` edges persisted wires
-  that bound nothing while looking connected — the model-guessed graph
-  shape. Declaration edges (`role: 'type'`) stay exempt.
-- Digest status fixed: `definitionDigest` read `status.state.primary`,
-  the wire DTO carries `states.main` — every tool digest answered
-  `status: null` in production.
-- New spec `agent-bots/agent-tooling-loop.spec.js` (16 tests): drives
-  `executeTool` over the real service + seam on test definitions —
-  compose→validate→activate, in-tree apply loop, the socket wall
-  (unknown/missing ports, control-into-data, single-wire inputs,
-  handle-less graph and full-document replaces), the migration gate
-  through the tool (structured `activationBlocked` plan, off-target
-  400, re-target + applied summary), and the control-node audit: a
-  control-only graph is refused (`not reachable from a trigger`) and a
-  reachable finish compiles to no action/screen of its own — control
-  nodes never compile to runtime surface.
-- Finding, not fixed here: the activate-path specs in
-  `process-definitions.spec.js` are not hermetic —
-  `findTypeDeathCandidates` reads the cts-types repository (Mongo), so
-  26 activate-path tests fail on any machine without
-  `MONGODB_URI`; they pass only against a live dev database.
+  Validation overlays the draft's declarations; the activation compile
+  resolves the registry. The compose guide carries the apply step.
+- `graphIntegrityProblems` now requires both sockets on data edges;
+  declaration edges (`role: 'type'`) are exempt.
+- `definitionDigest` read `status.state.primary`; the wire DTO carries
+  `states.main` — fixed.
+- New spec `agent-bots/agent-tooling-loop.spec.js` (16 tests):
+  `executeTool` over the real service + seam — compose/validate/
+  activate, the in-tree apply loop, the socket wall, the migration gate
+  through the tool, the control-node compiled-surface audit.
+- Open: activate-path specs in `process-definitions.spec.js` read Mongo
+  via `findTypeDeathCandidates`; they pass only with `MONGODB_URI` set.
 
 ## Composer lineage strip: always-drill mechanics, no id names (owner defect 2026-10-17)
 
@@ -6740,20 +6721,17 @@ in-process, and command_runs/task_runs are the audit trail.
 
 ### Agent Notes (2026-10-17 — retired)
 
-- Deleted: `run-repository.js` (+ its node:test spec), the
-  `POST /api/process-definitions/:id/runs` route, the
+- Deleted `run-repository.js` (+ spec), the `:id/runs` route, the
   `process-reconciliation` plugin, `npm run test:durable`, and the
   `ingestTaskCompletion`/`failTaskInvocation`/`reconcileProcessTaskRuns`
-  service entries. Definitions repository lost its dead `getConnection`.
-- Added: in-process evaluation in the service (`evaluateDefinitionDataflow`,
-  `evaluateDataflow`) over the unchanged pure evaluator
-  (`createProcessRun`/`advanceProcessRun`/`resumeProcessRun`); async
+  entries; `getConnection` off the definitions repository.
+- Added `evaluateDefinitionDataflow`/`evaluateDataflow` (in-process,
+  over `createProcessRun`/`advanceProcessRun`/`resumeProcessRun`); async
   command effects park on an in-process continuation keyed by the
-  enqueued task-run id, and the task runtime's terminal boundary calls
-  `continueActionFromTask`/`failActionFromTask`. Stored execution
-  collections are dropped by `server/scripts/retire-process-runs.js`.
-- The manual-action spec paths no longer need the run-repository mock;
-  the action-evaluation specs run Mongo-free.
+  task-run id; the task runtime calls
+  `continueActionFromTask`/`failActionFromTask`.
+- Stored collections drop via `server/scripts/retire-process-runs.js`;
+  action-evaluation specs run Mongo-free.
 
 
 ## Tidy compactness and loop pairing (2026-10-17)

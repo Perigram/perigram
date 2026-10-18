@@ -1,35 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// The agent tooling loop on REAL definitions: executeTool — the exact
-// catalog the model drives on both surfaces (chat runtime and MCP) —
-// over the real process-definitions service and the real headless
-// authoring seam. Faked: the definition repository (in-memory), the
-// type registry's persistence (no stored org types — no type death),
-// and the app registry's instance services. The loop under test is the
-// one the compose guide teaches: vocabulary → compose/edit → validate
-// → activate → (migration gate) → declare → re-activate.
+// executeTool — the catalog the model drives on chat and MCP — over the
+// real process-definitions service and headless authoring seam, on an
+// in-memory definition store. Faked persistence: no stored org types
+// (type death stays empty), app-registry instance services per test.
 //
-// Failure modes enumerated before the tests — the contract each pins:
-//  1. compose/edit answers a compact digest whose edges address
-//     node:socket; the stored graph never carries a data wire bound
-//     to no socket.
-//  2. Illegal gestures (unknown or missing port, control into a data
-//     socket, second wire on a single-value input) are refused BY NAME
-//     and persist nothing — an edit's steps apply atomically.
-//  3. A hand-written graph replacement carrying handle-less data edges
-//     (a wire stuck to the node body — what a model writes when it
-//     guesses the graph shape) is refused at the same wall the gesture
-//     path enforces: the save floor.
-//  4. Declaration edges (role 'type') keep their node-to-node shape —
-//     the floor never rejects the declaration tree's own wires.
-//  5. The activation migration gate returns THROUGH the tool as a
-//     structured activationBlocked result carrying the plan; a declared
-//     mapping outside the plan's retained targets fails activation with
-//     the plan attached; a correct declaration re-activates, re-targets
-//     the stranded instances, and records the applied summary.
-//  6. Control-only graphs (the palette's control section) author,
-//     validate, and activate — but contribute nothing to the compiled
-//     surface: no actions or screens derive from them.
+// Contracts pinned:
+//  1. compose/edit answer a digest whose edges address node:socket.
+//  2. Illegal gestures (unknown port, control into a data socket,
+//     second wire on a single-value input) fail BY NAME and persist
+//     nothing — steps apply atomically.
+//  3. Graph replacements carrying handle-less data edges fail at the
+//     save floor.
+//  4. Declaration edges (role 'type') keep their node-to-node shape.
+//  5. The activation migration gate returns as a structured
+//     activationBlocked result carrying the plan; off-target
+//     declarations fail activation with the plan attached; a correct
+//     declaration re-activates, re-targets stranded instances, records
+//     the applied summary.
+//  6. Control-only graphs fail reachability; a reachable control node
+//     compiles to no action or screen of its own.
 
 vi.mock('../plugins/repository.js', () => ({
     listDisabledPacks: vi.fn(async () => []),
@@ -51,8 +41,8 @@ vi.mock('../cts-types/service.js', async () => {
     return {
         compileRegistryForOrganization: vi.fn(async () => registry),
         describeOrganizationTypes: vi.fn(async () => ({ bundle: { types: [] } })),
-        // The registry flip a real apply makes: defineType persists the
-        // org declaration, and the next registry compile serves it.
+        // defineType persists the org declaration; the next registry
+        // compile serves it.
         defineType: vi.fn(async declaration => {
             registry.defineType(declaration);
             return declaration;
@@ -303,9 +293,7 @@ describe('illegal wires never persist — the socket wall', () => {
     it('refuses a graph replacement whose data edges carry no socket handles', async () => {
         const digest = await call('compose_process_definition', { name: 'Spec task', steps: TASK_STEPS });
         const full = await call('get_process_definition', { definitionId: digest.id, full: true });
-        // What a model writes when it guesses the graph shape: edge
-        // endpoints and nothing else — a wire stuck to the node body,
-        // bound to no socket. The save floor must answer it.
+        // Edge endpoints alone: a node-body wire. The save floor answers.
         const graph = {
             nodes: full.data.graph.nodes,
             edges: [{ id: 'guessed', source: 'make', target: 'make', sourceHandle: null, targetHandle: null }]
