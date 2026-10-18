@@ -6,6 +6,7 @@ import { arrangeProcessGraph, deriveLaneFacts, laneContainerLayout } from '~/uti
 
 const BAND_A = { id: 'role:a', kind: 'role', label: 'A', top: 0, height: 340 };
 const BAND_B = { id: 'role:b', kind: 'role', label: 'B', top: 340, height: 340 };
+const BAND_C = { id: 'role:c', kind: 'role', label: 'C', top: 680, height: 340 };
 
 function processNode(id, x, y) {
   return { id, type: 'processNode', position: { x, y } };
@@ -47,6 +48,77 @@ describe('arrangeProcessGraph', () => {
       const inside = result.bands.filter(band => point.y >= band.top && point.y + 96 <= band.top + band.height);
       expect(inside).toHaveLength(1);
     }
+  });
+
+  it('seats a declaration cluster in the anchor effect\'s lane regardless of node order', () => {
+    // The declaration cards precede their anchor in the nodes array and
+    // author-position near the top lanes; the cluster still rides the
+    // granted construct's lane (order-independent band assignment).
+    const nodes = [
+      declarationNode('card', 'ctsType', -60, 40),
+      processNode('eff', 300, 40),
+      declarationNode('clsA', 'ctsClass', -60, 110),
+      declarationNode('fldA', 'ctsField', -60, 180),
+      declarationNode('clsB', 'ctsClass', -60, 250),
+      declarationNode('fldB', 'ctsField', -60, 320)
+    ];
+    const edges = [
+      { source: 'card', target: 'eff', role: 'type', label: 'type' },
+      { source: 'fldA', target: 'clsA', role: 'type', label: 'field' },
+      { source: 'fldB', target: 'clsB', role: 'type', label: 'field' },
+      { source: 'card', target: 'clsA', role: 'type', label: 'children' },
+      { source: 'card', target: 'clsB', role: 'type', label: 'children' }
+    ];
+    const result = arrangeFull({
+      nodes,
+      edges,
+      effects: ['eff'],
+      bands: [BAND_A, BAND_B, BAND_C],
+      bandOfNodeId: new Map([['eff', BAND_C]])
+    });
+    const band = result.bands[2];
+    for (const node of nodes) {
+      const point = result.positions.get(node.id);
+      const card = node.type === 'processNode' ? 140 : 96;
+      expect(point.y).toBeGreaterThanOrEqual(band.top);
+      expect(point.y + card).toBeLessThanOrEqual(band.top + band.height);
+    }
+  });
+
+  it('bounds the median polish by the lane\'s stacked rows', () => {
+    // The same wired cluster chases its own medians; the polish may only
+    // redistribute inside the stacked extent (5 rows at the 156 pitch,
+    // 96-tall declaration cards, insets and padding).
+    const nodes = [
+      declarationNode('card', 'ctsType', -60, 1900),
+      processNode('eff', 300, 1900),
+      declarationNode('clsA', 'ctsClass', -60, 1970),
+      declarationNode('fldA', 'ctsField', -60, 2040),
+      declarationNode('clsB', 'ctsClass', -60, 2110),
+      declarationNode('fldB', 'ctsField', -60, 2250)
+    ];
+    const edges = [
+      { source: 'card', target: 'eff', role: 'type', label: 'type' },
+      { source: 'fldA', target: 'clsA', role: 'type', label: 'field' },
+      { source: 'fldB', target: 'clsB', role: 'type', label: 'field' },
+      { source: 'card', target: 'clsA', role: 'type', label: 'children' }
+    ];
+    const result = arrangeFull({
+      nodes,
+      edges,
+      effects: ['eff'],
+      bands: [BAND_A, BAND_B, BAND_C],
+      bandOfNodeId: new Map([['eff', BAND_C]])
+    });
+    expect(result.bands[2].height).toBeLessThanOrEqual(24 + 4 * 156 + 140 + 24 + 16);
+    const again = arrangeFull({
+      nodes: nodes.map(node => ({ ...node, position: result.positions.get(node.id) })),
+      edges,
+      effects: ['eff'],
+      bands: [BAND_A, BAND_B, BAND_C],
+      bandOfNodeId: new Map([['eff', BAND_C]])
+    });
+    expect([...again.positions.entries()]).toEqual([...result.positions.entries()]);
   });
 
   it('keeps flow direction: every acyclic flow edge reads left-to-right', () => {

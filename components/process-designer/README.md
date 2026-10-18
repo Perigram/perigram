@@ -535,16 +535,19 @@ is the pure helper `utils/processDesignerArrangement.js` (see
   resting span. A pred-less node pulls up to the column before its
   first consumer.
 - **Every node lives in exactly one band** — effects by grant,
-  secondaries and declarations by their anchor node's band, anchorless
-  nodes by nearest band — so nothing crosses a lane divider.
+  secondaries and declarations by their anchor node's band (the anchor
+  chain resolves through the grant, so node order in the array decides
+  nothing), anchorless nodes by nearest band — so nothing crosses a
+  lane divider.
 - **y = cell rows plus median polish.** Within each lane×column cell,
   barycenter sweeps over wired neighbors (flow and declaration wires
   alike) pick the row order, seeded from the authored y; a lane's cells
   share row indices at the lane's row pitch — its tallest card plus the
   gap. A bounded polish then moves each card toward the median of its
   wired same-lane neighbors, clamped below its in-cell predecessor and
-  inside its band — those two clamps are the no-overlap and
-  lane-containment laws.
+  inside the band's stacked extent (the rows the pass just produced) —
+  those two clamps are the no-overlap and lane-containment laws, and the
+  extent cap keeps the polish a redistribution.
 
 ### Card behavior details
 

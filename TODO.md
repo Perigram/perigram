@@ -1,5 +1,44 @@
 # TODO
 
+## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
+
+Owner report: "tidy often gets nodes thrown to very far places
+vertically." Root-caused on the live org draft (59 nodes): two defects
+in the pure pass compounded.
+
+- [ ] WAITING — owner verification on the live stack: Tidy on a dense
+  draft seats every card inside its lane's row stack (no card thousands
+  of pixels below its wired neighbors), declaration clusters ride their
+  anchor effect's lane, and a second Tidy moves nothing.
+
+### Agent Notes (2026-10-18)
+
+Session `agent/tidy-vertical-throw-20261018-110500`. Reproduced on the
+live draft through the real pipeline: stack 32,784px, wired pairs up to
+31,496px apart. Two defects, both in
+`utils/processDesignerArrangement.js`:
+
+1. The median polish's lane ceiling added the band's ABSOLUTE top to a
+   BAND-RELATIVE y — every band below the first got a ceiling inflated
+   by its top, and because band heights recompute from content, the
+   ceiling chased the content: a wired cluster ratcheted downward a
+   fixed step per polish pass forever (probe: constant 15,000px/pass).
+   The ceiling now anchors to the stacked extent computed once after
+   row stacking — the polish redistributes inside the arrangement and
+   can no longer grow it.
+2. Declaration band assignment read the partially-built band map, so a
+   declaration preceding its anchor in the nodes array fell to
+   nearest-band and piled into the unassigned lane. Process nodes
+   (effects by grant, everything else by nearest wired effect's grant)
+   now seed the map first — order decides nothing.
+
+Delta-debugged the live draft to a 6-node reproducer (original stack
+6,304px, fixed 1,070px) and pinned both laws in
+`utils/processDesignerArrangement.spec.js` (both fail on the previous
+code). Live-draft result after the fix: stack 4,726px, idempotent.
+README "Auto-arrangement (Tidy)" updated to the extent cap and the
+order-independent anchor chain.
+
 ## Profile shape model (owner direction 2026-10-18)
 
 The profile sketch becomes a list of parametric shapes with per-shape
