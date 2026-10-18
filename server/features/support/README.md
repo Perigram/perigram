@@ -120,14 +120,15 @@ Chat messages can carry structured `instanceRefs`:
 
 `MessageAttachments.vue` renders everything attached to a message as one
 stacked family under the message body on the page surface. Instance refs
-resolve preview media over their snapshot (a renderable stored payload or
-a declared geometry value — the two channels the shared preview media
-renders); a ref with media renders `InstanceInlineRef`'s compact card
-(preview band, identifier chip, state), every other ref the same bordered
-chip anatomy file documents use. Click inspects the instance through the
-shared popover. Files: images and video embed inline (gallery tiles,
-players), other files render the bordered chips whose click opens the
-shared preview dialog (download for opaque kinds). Inline
+resolve preview media over their snapshot (a served plugin preview
+binding, a renderable stored payload, or a declared geometry value — the
+channels the shared preview mounts); a ref with media renders
+`InstanceInlineRef`'s compact card (preview band, identifier chip,
+state), other refs the outlined chip carrying the type glyph. File
+documents render the filled chip; images and video embed inline (gallery
+tiles, players), other files open the shared preview dialog on click
+(download for opaque kinds). Click on a ref inspects the instance through
+the shared popover. Inline
 `{{instance:type:id}}` tokens inside authored text strip from display.
 The chat composer stores selected
 instances only in `instanceRefs`; it does not inject attachment tokens into the
