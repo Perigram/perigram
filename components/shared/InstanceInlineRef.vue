@@ -308,6 +308,7 @@ onUnmounted(() => {
       <span
         v-if="resolved && compactHasPreview"
         class="instance-inline-compact-preview"
+        :class="compactLayout === 'stacked' ? 'bg-subtle' : null"
         data-instance-card-interactive="true"
       >
         <InstancePreview
@@ -317,11 +318,14 @@ onUnmounted(() => {
           hide-dimension-layer
         />
       </span>
-      <span class="instance-inline-compact-main">
+      <span
+        class="instance-inline-compact-main"
+        :class="compactLayout === 'stacked' ? 'px-2 pt-0.5 pb-1.5' : null"
+      >
         <span class="instance-inline-compact-header">
           <template v-if="compactLayout === 'stacked' && resolved">
-            <i v-if="icon" :class="icon" class="shrink-0 text-xs text-muted" aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate text-xs text-supporting" :title="identityLabel">{{ identityLabel }}</span>
+            <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate text-supporting" :title="identityLabel">{{ identityLabel }}</span>
           </template>
           <Chip
             v-else-if="resolved"

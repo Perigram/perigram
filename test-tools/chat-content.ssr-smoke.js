@@ -113,7 +113,6 @@ describe('chat content SSR smoke', () => {
     } finally {
       globalThis.$fetch.mockImplementation(async () => ({}));
     }
-    expect(html).toContain('data-testid="chat-instance-refs"');
     expect(html).toContain('instance-inline-compact--stacked');
     expect(html).toContain('instance-inline-compact-preview');
     expect(html).toContain('instance-inline-compact-header');
@@ -161,8 +160,9 @@ describe('chat content SSR smoke', () => {
     } finally {
       globalThis.$fetch.mockImplementation(async () => ({}));
     }
-    expect(html).toContain('data-testid="chat-instance-refs-grid"');
-    expect(html).toContain('grid-cols-2');
+    expect(html).toContain('data-testid="chat-attachment-gallery"');
+    expect(html).toContain('columns-2');
+    expect(html).toContain('break-inside-avoid');
     expect((html.match(/instance-inline-compact--stacked/g) || []).length).toBe(2);
   });
 
