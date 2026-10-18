@@ -75,18 +75,24 @@ modules — no platform imports.
   `resolveOccsProfileSectionPolygons` folds the section — union of the
   add shapes minus the subtract shapes, clipped to the material half —
   through the vendored Clipper pass, yielding ordered outer polygons
-  and hole rings; every ring is cut geometry. The editor draws the
-  material half as a faint tint and the resolved result as the one
-  strong figure — outer rings hatched with a solid outline, holes
-  punching through — over the editable primitives; the zero axis
-  renders as a drafting centerline (dash-dot).
+  and hole rings; every ring is cut geometry. The editor's canvas
+  carries exactly two surface states (owner law 2026-10-18): the
+  material half hatches as the face, and cuts — subtract footprints,
+  holes, the void half — stay empty; the resolved result overlays as
+  the one strong figure (denser hatch, solid outline) over the
+  editable primitives, and the zero axis renders as a solid basis
+  line.
   Primitive parameters author as on-canvas dimension annotations (the
   cassette editor's dimension law): every rect field (width, height,
   position from the axis, height from the origin) and circle field
   (diameter, position) renders as a dimension labeled by its parameter
   expression where one is bound — measured numbers otherwise — and
-  edits in place, typing commits the field; rect corner indexes label
-  the corners so the per-corner fillet radii address them. The default
+  edits in place, typing commits the field; stacked dimensions on one
+  baseline chain outward, and every dimension line terminates in
+  arrowheads. The sketch's expression table lives in the parameter
+  strip above the canvas (the `fx` row — its one home); a selected
+  primitive's popup carries its op, rotation, and fillet radii, and
+  opens on clicking the primitive — face, edge, or cutout. The default
   hanger
   template is parametric by law: a rect (W/H the rectangle, R the four
   corner fillets) plus a subtract circle (D the hole), with L resolving
