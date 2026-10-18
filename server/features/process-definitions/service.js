@@ -991,7 +991,7 @@ async function resolveManualRelationMutation(typeId, targetId, mutation = {}, ac
     if (contract.operation === 'unlink' && currentValue) {
       const currentRef = normalizeRelationRef(currentValue, contract.targetTypes);
       if (`${currentRef.type}:${currentRef.id}` !== `${targetRef.type}:${targetRef.id}`) {
-        throw createError({ statusCode: 400, message: `Selected ${contract.targetType} is not linked through ${key}` });
+        throw createError({ statusCode: 400, message: `Selected ${targetRef.type} is not linked through ${key}` });
       }
     }
     return {
@@ -1556,15 +1556,18 @@ async function normalizeProcessPatchRelations(typeId, patch = {}, contracts = []
 }
 
 async function assertRelationTargetAvailable(ref, relation = {}, auth = {}) {
-  const service = getAppRegistry().getInstanceService(relation.targetType);
+  // A relation entry may accept a union of target types; each stored ref
+  // carries its own type, so the ref wins over any singular field.
+  const targetTypeId = ref?.type || relation.targetType || [].concat(relation.targetTypes || [])[0];
+  const service = getAppRegistry().getInstanceService(targetTypeId);
   const target = await service?.processGetById?.(ref.id, auth);
-  if (!target) throw createError({ statusCode: 404, message: `${relation.targetType} relation target not found` });
+  if (!target) throw createError({ statusCode: 404, message: `${targetTypeId} relation target not found` });
   const entity = target?.toJSON ? target.toJSON() : target;
-  const definition = (getDomain().entities || []).find(item => normalizeTypeId(item.type) === normalizeTypeId(relation.targetType));
+  const definition = (getDomain().entities || []).find(item => normalizeTypeId(item.type) === normalizeTypeId(targetTypeId));
   assertEntityAccess({
     entity,
-    typeId: relation.targetType,
-    feature: resolveInstanceFeature(definition?.type || relation.targetType),
+    typeId: targetTypeId,
+    feature: resolveInstanceFeature(definition?.type || targetTypeId),
     level: 'read',
     action: 'view',
     auth
@@ -1737,7 +1740,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     const commandAuth = command
       ? createActionExecutionAuth(auth, { actionKind: 'runCommand', commandId: record.commandId, access: command.access })
       : auth;
-    const commandResult = await executeCommand(record.commandId, commandEffectPayload(record.commandId, inputs), commandAuth);
+    const commandResult = await executeCommand(record.commandId, commandEffectPayload(record.commandId, inputs, auth), commandAuth);
     // The value boundary (SPEC §8 s species): a cts.service's declared
     // output is the handler's value. The command envelope (recording,
     // events, billing) stays in command_runs — spreading it onto the
@@ -1940,9 +1943,20 @@ async function applyTypedConstructionBlocks(record = {}, blockDraft = {}, create
   return await service.processUpdate(targetId, patch, auth);
 }
 
-function commandEffectPayload(commandId, inputs = {}) {
-  const command = getAppRegistry().getCommandDefinition(commandId);
+async function commandEffectPayload(commandId, inputs = {}, auth = {}) {
+  let command = getAppRegistry().getCommandDefinition(commandId);
+  if (!command) {
+    // Plugin connector services declare their command on the install
+    // snapshot; the registry stays static (the commands-runtime law).
+    const { commandDefinitionFor } = await import('../plugins/service.js');
+    command = await commandDefinitionFor(commandId, auth);
+  }
   if (!command) throw new Error(`Unknown command: ${commandId}`);
+  // A plugin connector's input is its value signature: the service
+  // sockets travel as parameters straight to the endpoint.
+  if (command.plugin) {
+    return { parameters: Object.fromEntries(Object.entries(inputs).filter(([id]) => id !== 'in')) };
+  }
   const entities = {};
   for (const input of command.input?.abstractEntities || []) {
     const id = input.name || input.type || input.capability;
