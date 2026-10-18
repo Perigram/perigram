@@ -1,14 +1,15 @@
 <template>
   <!-- The message's attached instance refs, sibling of ChatAttachments
-       (the support feature README owns the contract): full mode renders
-       the refs as inline-ref chips in a wrapping row on the page
-       surface — never inside a contrast bubble; singleLine is the inbox
-       preview summary (type icon, name, overflow count). -->
+       (the support feature README owns the contract): full mode stacks
+       bordered cards on the page surface — the InstanceInlineRef compact
+       card (preview band, identifier chip, state) where the type's
+       compact surface carries one, a plain chip otherwise; singleLine is
+       the inbox preview summary (type icon, name, overflow count). -->
   <span
     v-if="refs.length"
     :class="singleLine
       ? 'inline-flex max-w-full min-w-0 flex-nowrap items-center gap-1 overflow-hidden align-middle'
-      : 'flex max-w-full flex-wrap items-center gap-1'"
+      : 'flex max-w-full flex-col items-start gap-1'"
     :data-testid="singleLine ? 'chat-instance-refs-summary' : 'chat-instance-refs'"
   >
     <template v-if="singleLine">
@@ -17,15 +18,20 @@
       <span v-if="refs.length > 1" class="shrink-0 text-muted">+{{ refs.length - 1 }}</span>
     </template>
     <template v-else>
-      <InstanceInlineRef
+      <span
         v-for="ref in refs"
         :key="`${ref.type}-${ref.id}`"
-        :type="ref.type"
-        :id="ref.id"
-        :entity="ref.instance || null"
-        :fetch="canFetch(ref)"
-        :allow-detail-route="!(viewerUserId && senderUserId && senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
-      />
+        class="block w-full max-w-80 overflow-hidden rounded-ui border border-content-border bg-subtle p-1.5"
+      >
+        <InstanceInlineRef
+          :type="ref.type"
+          :id="ref.id"
+          :entity="ref.instance || null"
+          :fetch="canFetch(ref)"
+          variant="compact"
+          :allow-detail-route="!(viewerUserId && senderUserId && senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
+        />
+      </span>
     </template>
   </span>
 </template>

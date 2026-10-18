@@ -60,14 +60,14 @@
         class="min-w-0 max-w-full"
         @play="onMediaPlay($event, attachment)"
       />
-      <span v-if="documents.length" class="flex max-w-full flex-wrap items-center gap-1" data-testid="chat-attachment-files">
+      <span v-if="documents.length" class="flex max-w-full flex-col items-start gap-1" data-testid="chat-attachment-files">
         <Chip
           v-for="attachment in documents"
           :key="attachment.fileId"
           :label="attachment.name || attachment.mimeType"
           :icon="fileIcon(attachment)"
           :pt="chipPt"
-          class="min-w-0 max-w-full cursor-pointer"
+          class="min-w-0 w-full max-w-80 cursor-pointer border border-content-border bg-subtle"
           :title="chipTitle(attachment)"
           @click="openAttachment(attachment)"
         />
@@ -184,7 +184,7 @@ const openAttachment = (attachment) => {
   download(attachment);
 };
 
-const chipPt = { label: { class: 'truncate' } };
+const chipPt = { label: { class: 'truncate text-supporting' } };
 const chipTitle = (attachment = {}) => {
   const name = attachment.name || attachment.mimeType || '';
   const size = formatBytes(attachment.size);

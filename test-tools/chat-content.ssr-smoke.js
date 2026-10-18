@@ -102,9 +102,9 @@ describe('chat content SSR smoke', () => {
       { kind: 'file', fileId: 'f2', mimeType: 'application/octet-stream', name: 'cut.dxf', size: 4096 },
       { kind: 'image', fileId: 'f3', mimeType: 'image/png', name: 'site.png' }
     ];
-    // Documents render one raw PrimeVue chip each — the instance-ref
-    // anatomy — in a wrapping row; no inline download chrome (the chip
-    // click owns open-or-download), images keep their gallery path.
+    // Documents render one bordered chip each, stacked in a column —
+    // click opens the preview dialog (no inline download chrome); images
+    // keep their gallery path.
     const row = await boot({
       setup: () => () => h(ChatAttachments, { attachments })
     });
