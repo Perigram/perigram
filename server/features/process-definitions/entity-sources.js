@@ -13,7 +13,7 @@ export async function processChildEntities(containment = [], queryEntities, enti
   if (!instanceId) return [];
   const relations = containment.filter(item => sameTypeId(item.parentType, typeId));
   const children = await Promise.all(relations.map(relation => (
-    queryEntities(relation.childType, { [relation.lineageKey]: String(instanceId) })
+    queryEntities(relation.childType, { [`lineage.${relation.lineageKey}`]: String(instanceId) })
   )));
   return children.flat();
 }
