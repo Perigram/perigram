@@ -122,9 +122,10 @@ wire with their own membership gates and the derived `user.roles` row
 A process definition is data and its authoring path is one seam:
 `createDefinitionAuthoring(domain, capabilities, seedData)` (`src/authoring.js`)
 composes a definition exactly the way the designer does — declaration-tree
-authoring (`declareClass`/`declareField`/`declareTypeRef` plus
-`wireDeclaration` for declares/targets/children/binds wires, gated by
-`declarationWireLegality` and interpreted by `interpretDeclarationEdges`),
+authoring (`declareClass`/`declareField`/`declareTypeRef`/`declareState`
+plus `wireDeclaration` for declares/targets/children/binds/entry wires,
+gated by `declarationWireLegality` and interpreted by
+`interpretDeclarationEdges`),
 palette-item drops (record factory + preset), record configuration (the
 same writes the inspector performs, including socket input defaults), and
 port-gated connections (the same `processSocketsCompatible` gate the
@@ -188,6 +189,10 @@ The declaration graph uses Class/Field/State/Transition/Operator nodes and
 typed declaration edges. `declarationWireLegality` and `declarationNodePorts`
 are its only connection contracts. A state connected to a class is a root
 state; a state connected to another state declares its single parent. A
+state's authored scope survives only its class wire — a state declared
+against a registry type stays an unscoped value token. A state wired into
+a construct or transition state socket (wire role `entry`) authors that
+operation's state: the construct's initial, the transition's target. A
 transition declaration connects explicit `from` and `to` states. The compiler
 builds recursive state machines through `compileTreeDeclarations`, including
 one initial state per machine, cycle/duplicate checks, explicit terminal

@@ -59,7 +59,9 @@ Three pieces share one tool catalog:
   designer gestures through the same authoring seam the designer shell
   drives, with the same legality gates; the grammar is constructive and
   destructive — `disconnect`, `unwireDeclaration`, and `removeNode`
-  remove what `connect`, `wireDeclaration`, and `drop` create; editing
+  remove what `connect`, `wireDeclaration`, and `drop` create, and
+  `declareState` plus `wireDeclaration` role `entry` author lifecycle
+  vocabulary and its construct-initial/transition-target wires; editing
   seeds the seam onto the
   stored draft, so "add a node, wire it" is two small gestures with no
   graph echo-back), the type
