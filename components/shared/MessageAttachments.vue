@@ -21,26 +21,48 @@
       <span v-if="summaryOverflow > 0" class="shrink-0 text-muted">+{{ summaryOverflow }}</span>
     </template>
     <template v-else>
-      <span v-if="refs.length" class="flex w-full max-w-80 flex-col items-start gap-1" data-testid="chat-instance-refs">
-        <span
-          v-if="previewRefs.length === 1"
-          class="block w-full overflow-hidden rounded-ui border border-content-border"
-        >
-          <InstanceInlineRef v-bind="previewRefProps(previewRefs[0])" />
-        </span>
-        <span
-          v-else-if="previewRefs.length > 1"
-          :class="['grid w-full gap-1', previewRefs.length >= 5 ? 'grid-cols-3' : 'grid-cols-2']"
-          data-testid="chat-instance-refs-grid"
-        >
+      <!-- Media attachments flow as one masonry: instance preview cards
+           and image tiles mix; a lone media item renders full-width. -->
+      <span
+        v-if="mediaItems.length > 1"
+        :class="['w-full max-w-80 gap-1', mediaItems.length >= 5 ? 'columns-3' : 'columns-2']"
+        data-testid="chat-attachment-gallery"
+      >
+        <template v-for="item in mediaItems" :key="item.kind === 'instance' ? `${item.ref.type}-${item.ref.id}` : item.attachment.fileId">
           <span
-            v-for="ref in previewRefs"
-            :key="`${ref.type}-${ref.id}`"
-            class="block min-w-0 overflow-hidden rounded-ui border border-content-border"
+            v-if="item.kind === 'instance'"
+            class="mb-1 block w-full break-inside-avoid overflow-hidden rounded-ui border border-content-border"
           >
-            <InstanceInlineRef v-bind="previewRefProps(ref)" />
+            <InstanceInlineRef v-bind="previewRefProps(item.ref)" />
           </span>
-        </span>
+          <span v-else class="mb-1 block h-32 w-full break-inside-avoid overflow-hidden rounded-ui">
+            <button
+              type="button"
+              class="block h-full w-full cursor-zoom-in bg-transparent"
+              :aria-label="$t('support.attachmentPreview', { name: item.attachment.name || '' })"
+              @click="previewAttachment = item.attachment"
+            >
+              <img class="h-full w-full object-cover" :src="url(item.attachment)" :alt="item.attachment.name || ''">
+            </button>
+          </span>
+        </template>
+      </span>
+      <span
+        v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'instance'"
+        class="block w-full max-w-80 overflow-hidden rounded-ui border border-content-border"
+      >
+        <InstanceInlineRef v-bind="previewRefProps(mediaItems[0].ref)" />
+      </span>
+      <button
+        v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'image'"
+        type="button"
+        class="block max-w-full cursor-zoom-in rounded-ui bg-transparent p-0"
+        :aria-label="$t('support.attachmentPreview', { name: mediaItems[0].attachment.name || '' })"
+        @click="previewAttachment = mediaItems[0].attachment"
+      >
+        <img class="h-auto max-h-64 max-w-full rounded-ui" :src="url(mediaItems[0].attachment)" :alt="mediaItems[0].attachment.name || ''">
+      </button>
+      <span v-if="chipRefs.length" class="flex w-full max-w-80 flex-col items-start gap-1" data-testid="chat-instance-refs">
         <InstanceInlineRef
           v-for="ref in chipRefs"
           :key="`${ref.type}-${ref.id}`"
@@ -51,30 +73,6 @@
           :chip-class="instanceChipClass"
           :allow-detail-route="!(viewerUserId && senderUserId && senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
         />
-      </span>
-      <!-- One image renders at natural aspect inside fixed bounds; a set
-           renders as fixed-size gallery tiles. Either opens the standard
-           full dialog on click. -->
-      <button
-        v-if="images.length === 1"
-        type="button"
-        class="block max-w-full cursor-zoom-in rounded-ui bg-transparent p-0"
-        :aria-label="$t('support.attachmentPreview', { name: images[0].name || '' })"
-        @click="previewAttachment = images[0]"
-      >
-        <img class="h-auto max-h-64 max-w-full rounded-ui" :src="url(images[0])" :alt="images[0].name || ''">
-      </button>
-      <span v-else-if="images.length" :class="galleryClass" data-testid="chat-attachment-gallery">
-        <span v-for="attachment in images" :key="attachment.fileId" class="h-28 w-28 overflow-hidden rounded-ui">
-          <button
-            type="button"
-            class="block h-full w-full cursor-zoom-in bg-transparent"
-            :aria-label="$t('support.attachmentPreview', { name: attachment.name || '' })"
-            @click="previewAttachment = attachment"
-          >
-            <img class="h-full w-full object-cover" :src="url(attachment)" :alt="attachment.name || ''">
-          </button>
-        </span>
       </span>
       <video
         v-for="attachment in videos"
@@ -219,6 +217,12 @@ const refHasPreview = (ref = {}) => {
 const previewRefs = computed(() => (props.refs || []).filter(refHasPreview));
 const chipRefs = computed(() => (props.refs || []).filter(ref => !refHasPreview(ref)));
 
+// The masonry flow: preview cards and image tiles in send order.
+const mediaItems = computed(() => [
+  ...(props.refs || []).map(ref => refHasPreview(ref) ? { kind: 'instance', ref } : null).filter(Boolean),
+  ...images.value.map(attachment => ({ kind: 'image', attachment }))
+]);
+
 const previewRefProps = (ref = {}) => ({
   type: ref.type,
   id: ref.id,
@@ -340,9 +344,6 @@ const images = computed(() => ofKind('image'));
 const videos = computed(() => ofKind('video'));
 const audio = computed(() => ofKind('audio'));
 const documents = computed(() => ofKind('file'));
-
-// Fixed-size tiles for sets: 2 columns up to four images, 3 beyond.
-const galleryClass = computed(() => ['grid gap-1', images.value.length >= 5 ? 'grid-cols-3' : 'grid-cols-2']);
 
 const url = (attachment) => chatAttachmentUrl(attachment);
 
