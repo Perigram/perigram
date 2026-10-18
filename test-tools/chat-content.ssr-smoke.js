@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createSSRApp, h, ref } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import { createI18n } from 'vue-i18n';
-import { createPinia } from 'pinia';
+import { createPinia, setActivePinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import Re_L from '~/assets/presets/re_l';
 import enLocale from '~/i18n/locales/en.json';
@@ -69,6 +69,54 @@ describe('chat content SSR smoke', () => {
     expect(preview).toContain('preview text');
     expect(preview).toContain('tail');
     expect(preview).not.toContain('instance:cassette');
+  });
+
+  it('renders the stacked preview card for refs with resolving preview media', async () => {
+    // The served type view rides the mocked $fetch: a cassette type with
+    // payload traits plus a plugin preview binding flips both gates
+    // (MessageAttachments' refHasPreview and the compact card's preview
+    // surface). The org-scoped user picks a fresh type-view cache key.
+    globalThis.$fetch.mockImplementation(async (url) => (
+      String(url).includes('/api/admin/cts/types')
+        ? {
+            types: [{ id: 'cassette', payload: { maxSize: null }, fields: {}, sections: [] }],
+            editors: [],
+            surfaces: [],
+            previews: [{
+              type: 'cassette',
+              surface: 'cassette-preview',
+              url: '/api/plugins/facade/module/surfaces/cassette-preview.mjs',
+              surfaceContract: 1
+            }]
+          }
+        : {}
+    ));
+    const i18n = createI18n({ legacy: false, missingWarn: false, fallbackWarn: false, messages: { en: enLocale } });
+    const app = createSSRApp({
+      setup: () => () => h(MessageAttachments, {
+        refs: [{ type: 'cassette', id: 'abc', instance: { _id: 'abc', name: 'Колхозная', fields: {} } }]
+      })
+    });
+    const pinia = createPinia();
+    app.use(i18n);
+    app.use(pinia);
+    app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
+    const { useAuthStore } = await import('~/stores/auth');
+    useAuthStore(pinia).user = { organizationId: 'org-preview-smoke' };
+    const { useFileTypeView } = await import('~/composables/useFileTypeView.js');
+    setActivePinia(pinia);
+    useFileTypeView();
+    await new Promise(resolve => setTimeout(resolve));
+    let html;
+    try {
+      html = await renderToString(app);
+    } finally {
+      globalThis.$fetch.mockImplementation(async () => ({}));
+    }
+    expect(html).toContain('data-testid="chat-instance-refs"');
+    expect(html).toContain('instance-inline-compact--stacked');
+    expect(html).toContain('instance-inline-compact-preview');
+    expect(html).toContain('instance-inline-compact-header');
   });
 
   it('renders attached instance refs and their preview summary', async () => {
