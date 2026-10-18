@@ -2,9 +2,10 @@
   <!-- The message attachment surface (the support feature README owns
        the contract): one stacked family under the message body on the
        page surface. Instance refs with resolving preview media render
-       the InstanceInlineRef compact card; every other item — file or
-       instance — renders the same bordered chip. singleLine is the
-       inbox preview summary (icon, name, overflow count). -->
+       the InstanceInlineRef compact card; other refs render the
+       outlined chip (type glyph), file documents the filled chip — same
+       scale, distinct kinds. singleLine is the inbox preview summary
+       (icon, name, overflow count). -->
   <span
     v-if="attachments.length || refs.length"
     :class="singleLine
@@ -39,7 +40,7 @@
             :id="ref.id"
             :entity="ref.instance || null"
             :fetch="canFetch(ref)"
-            :chip-class="attachmentChipClass"
+            :chip-class="instanceChipClass"
             :allow-detail-route="!(viewerUserId && senderUserId && senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
           />
         </template>
@@ -93,7 +94,7 @@
           :label="attachment.name || attachment.mimeType"
           :icon="fileIcon(attachment)"
           :pt="chipPt"
-          :class="attachmentChipClass"
+          :class="fileChipClass"
           :title="chipTitle(attachment)"
           @click="openAttachment(attachment)"
         />
@@ -165,6 +166,7 @@ import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { instanceRecordTitle, previewSourceValue } from '~/utils/instance-shape.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { resolveFilePreview } from '~/components/generated/file-preview-contract.js';
+import { resolvePluginPreview } from '~/components/generated/plugin-preview-bindings.js';
 
 const props = defineProps({
   attachments: { type: Array, default: () => [] },
@@ -182,7 +184,8 @@ const media = useMediaStore();
 const instances = useInstancesStore();
 const { typeById } = useFileTypeView();
 
-const attachmentChipClass = 'min-w-0 w-full max-w-80 cursor-pointer border border-content-border bg-subtle text-supporting';
+const fileChipClass = 'min-w-0 w-full max-w-80 cursor-pointer border border-content-border bg-subtle text-supporting';
+const instanceChipClass = 'min-w-0 w-full max-w-80 cursor-pointer border border-content-border bg-transparent text-supporting';
 const chipPt = { label: { class: 'truncate' } };
 
 const restrictedView = computed(() => Boolean(
@@ -190,13 +193,16 @@ const restrictedView = computed(() => Boolean(
 ));
 const canFetch = (ref = {}) => !restrictedView.value || !ref.chatOnlyForRecipient;
 
-// A ref earns the preview card only when preview media actually
-// resolves over its snapshot: a renderable stored payload or a declared
-// geometry value (the two channels InstancePreviewMedia renders).
+// A ref earns the preview card when preview media resolves over its
+// snapshot: a served plugin preview binding, a renderable stored
+// payload, or a declared geometry value — the channels InstancePreview
+// mounts.
 const refHasPreview = (ref = {}) => {
   const typeRecord = ref.type ? typeById(ref.type) : null;
   const dto = ref.instance;
-  if (!typeRecord || !dto) return false;
+  if (!ref.type || !dto) return false;
+  if (resolvePluginPreview(ref.type)) return true;
+  if (!typeRecord) return false;
   const file = resolveFilePreview(dto, typeRecord);
   if (file.hasPayload && file.renderable) return true;
   return typeRecord.previewSource?.display === 'geometry'
