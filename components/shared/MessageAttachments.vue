@@ -3,7 +3,8 @@
        the contract): one stacked family under the message body on the
        page surface. Instance refs with resolving preview media render
        the InstanceInlineRef compact card stacked (preview band over
-       identity); other refs render the
+       identity) — one full-width, several as a tile grid; other refs
+       render the
        outlined chip (type glyph), file documents the filled chip — same
        scale, distinct kinds. singleLine is the inbox preview summary
        (icon, name, overflow count). -->
@@ -21,31 +22,35 @@
     </template>
     <template v-else>
       <span v-if="refs.length" class="flex w-full max-w-80 flex-col items-start gap-1" data-testid="chat-instance-refs">
-        <template v-for="ref in refs" :key="`${ref.type}-${ref.id}`">
+        <span
+          v-if="previewRefs.length === 1"
+          class="block w-full overflow-hidden rounded-ui border border-content-border bg-subtle p-1.5"
+        >
+          <InstanceInlineRef v-bind="previewRefProps(previewRefs[0])" />
+        </span>
+        <span
+          v-else-if="previewRefs.length > 1"
+          :class="['grid w-full gap-1', previewRefs.length >= 5 ? 'grid-cols-3' : 'grid-cols-2']"
+          data-testid="chat-instance-refs-grid"
+        >
           <span
-            v-if="refHasPreview(ref)"
-            class="block w-full overflow-hidden rounded-ui border border-content-border bg-subtle p-1.5"
+            v-for="ref in previewRefs"
+            :key="`${ref.type}-${ref.id}`"
+            class="block min-w-0 overflow-hidden rounded-ui border border-content-border bg-subtle p-1"
           >
-            <InstanceInlineRef
-              :type="ref.type"
-              :id="ref.id"
-              :entity="ref.instance || null"
-              :fetch="canFetch(ref)"
-              variant="compact"
-              compact-layout="stacked"
-              :allow-detail-route="!(viewerUserId && senderUserId && senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
-            />
+            <InstanceInlineRef v-bind="previewRefProps(ref)" />
           </span>
-          <InstanceInlineRef
-            v-else
-            :type="ref.type"
-            :id="ref.id"
-            :entity="ref.instance || null"
-            :fetch="canFetch(ref)"
-            :chip-class="instanceChipClass"
-            :allow-detail-route="!(viewerUserId && senderUserId && senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
-          />
-        </template>
+        </span>
+        <InstanceInlineRef
+          v-for="ref in chipRefs"
+          :key="`${ref.type}-${ref.id}`"
+          :type="ref.type"
+          :id="ref.id"
+          :entity="ref.instance || null"
+          :fetch="canFetch(ref)"
+          :chip-class="instanceChipClass"
+          :allow-detail-route="!(viewerUserId && senderUserId && senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
+        />
       </span>
       <!-- One image renders at natural aspect inside fixed bounds; a set
            renders as fixed-size gallery tiles. Either opens the standard
@@ -210,6 +215,19 @@ const refHasPreview = (ref = {}) => {
   return typeRecord.previewSource?.display === 'geometry'
     && Boolean(previewSourceValue(dto, typeRecord));
 };
+
+const previewRefs = computed(() => (props.refs || []).filter(refHasPreview));
+const chipRefs = computed(() => (props.refs || []).filter(ref => !refHasPreview(ref)));
+
+const previewRefProps = (ref = {}) => ({
+  type: ref.type,
+  id: ref.id,
+  entity: ref.instance || null,
+  fetch: canFetch(ref),
+  variant: 'compact',
+  compactLayout: 'stacked',
+  allowDetailRoute: !(props.viewerUserId && props.senderUserId && props.senderUserId !== props.viewerUserId && ref.chatOnlyForRecipient)
+});
 
 // Naming law: the support README — empty names localize the type label.
 const firstRefLabel = computed(() => {
