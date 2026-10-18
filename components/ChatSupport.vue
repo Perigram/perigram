@@ -228,14 +228,10 @@
                                 </div>
                                 <div class="flex min-w-0 items-center gap-1">
                                     <small class="min-w-0 flex-1 truncate text-muted text-supporting">
-                                        <ChatAttachments
-                                            v-if="(option.attachments || []).length"
-                                            :attachments="option.attachments"
-                                            single-line
-                                        />
-                                        <ChatInstanceRefs
-                                            v-else-if="(option.instanceRefs || []).length"
-                                            :refs="option.instanceRefs"
+                                        <MessageAttachments
+                                            v-if="(option.attachments || []).length || (option.instanceRefs || []).length"
+                                            :attachments="option.attachments || []"
+                                            :refs="option.instanceRefs || []"
                                             single-line
                                         />
                                         <SupportMessageContent
@@ -716,15 +712,11 @@
                                     v-if="(messageItem.attachments || []).length || (messageItem.instanceRefs || []).length"
                                     class="group relative flex max-w-full flex-col items-start gap-1"
                                 >
-                                    <ChatInstanceRefs
+                                    <MessageAttachments
+                                        :attachments="messageItem.attachments || []"
                                         :refs="messageItem.instanceRefs || []"
                                         :viewer-user-id="currentUserId"
                                         :sender-user-id="messageItem.senderUserId || ''"
-                                    />
-                                    <ChatAttachments
-                                        v-if="(messageItem.attachments || []).length"
-                                        :attachments="messageItem.attachments"
-                                        class="min-w-0 max-w-full"
                                     />
                                     <!-- Media-only rows have no tappable bubble
                                          (the elements eat taps and long-presses
@@ -1499,8 +1491,7 @@ import { useToast } from 'primevue/usetoast'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
 import { stripInstanceTokens } from '#shared/instance-tokens.js'
 import AgentActivity from '~/components/shared/AgentActivity.vue'
-import ChatAttachments from '~/components/shared/ChatAttachments.vue'
-import ChatInstanceRefs from '~/components/shared/ChatInstanceRefs.vue'
+import MessageAttachments from '~/components/shared/MessageAttachments.vue'
 import StateBlock from '~/components/shared/StateBlock.vue'
 import StandardDialog from '~/components/shared/StandardDialog.vue'
 import ChatAttachmentPicker from '~/components/shared/ChatAttachmentPicker.vue'

@@ -1,25 +1,52 @@
 <template>
-  <!-- Pure presentation over a message's attachment descriptors (the
-       support feature README owns the contract): image galleries, video
-       players, audio players, and file chip rows with download. The host
-       composer owns uploading, materialization, and transcription. The
-       root hugs its content so sender-side columns can right-align it;
-       every name crops through the min-w-0/truncate chain. -->
+  <!-- The message attachment surface (the support feature README owns
+       the contract): one stacked family under the message body on the
+       page surface. Instance refs with resolving preview media render
+       the InstanceInlineRef compact card; every other item — file or
+       instance — renders the same bordered chip. singleLine is the
+       inbox preview summary (icon, name, overflow count). -->
   <span
+    v-if="attachments.length || refs.length"
     :class="singleLine
       ? 'inline-flex max-w-full min-w-0 flex-nowrap items-center gap-1 overflow-hidden align-middle'
-      : 'flex max-w-full min-w-0 flex-col items-start gap-1'"
+      : 'flex max-w-full flex-col items-start gap-1'"
     :data-testid="singleLine ? 'chat-attachment-summary' : 'chat-attachments'"
   >
     <template v-if="singleLine">
-      <i :class="summaryIcon" class="shrink-0 text-muted" aria-hidden="true" />
-      <span class="min-w-0 truncate text-inherit">{{ summaryLabel }}</span>
-      <span v-if="attachments.length > 1" class="shrink-0 text-muted">+{{ attachments.length - 1 }}</span>
+      <i :class="summaryIcon" class="shrink-0 scale-90 text-muted" aria-hidden="true" />
+      <span v-if="summaryLabel" class="min-w-0 truncate text-inherit">{{ summaryLabel }}</span>
+      <span v-if="summaryOverflow > 0" class="shrink-0 text-muted">+{{ summaryOverflow }}</span>
     </template>
     <template v-else>
+      <span v-if="refs.length" class="flex w-full max-w-80 flex-col items-start gap-1" data-testid="chat-instance-refs">
+        <template v-for="ref in refs" :key="`${ref.type}-${ref.id}`">
+          <span
+            v-if="refHasPreview(ref)"
+            class="block w-full overflow-hidden rounded-ui border border-content-border bg-subtle p-1.5"
+          >
+            <InstanceInlineRef
+              :type="ref.type"
+              :id="ref.id"
+              :entity="ref.instance || null"
+              :fetch="canFetch(ref)"
+              variant="compact"
+              :allow-detail-route="!(viewerUserId && senderUserId && senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
+            />
+          </span>
+          <InstanceInlineRef
+            v-else
+            :type="ref.type"
+            :id="ref.id"
+            :entity="ref.instance || null"
+            :fetch="canFetch(ref)"
+            :chip-class="attachmentChipClass"
+            :allow-detail-route="!(viewerUserId && senderUserId && senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
+          />
+        </template>
+      </span>
       <!-- One image renders at natural aspect inside fixed bounds; a set
            renders as fixed-size gallery tiles. Either opens the standard
-           full dialog on click — no ad-hoc lightbox chrome. -->
+           full dialog on click. -->
       <button
         v-if="images.length === 1"
         type="button"
@@ -33,7 +60,7 @@
         <span v-for="attachment in images" :key="attachment.fileId" class="h-28 w-28 overflow-hidden rounded-ui">
           <button
             type="button"
-            class="block h-full w-full cursor-zoom-in rounded-ui bg-transparent p-0"
+            class="block h-full w-full cursor-zoom-in bg-transparent"
             :aria-label="$t('support.attachmentPreview', { name: attachment.name || '' })"
             @click="previewAttachment = attachment"
           >
@@ -56,7 +83,6 @@
         :key="attachment.fileId"
         :src="url(attachment)"
         controls
-        preload="metadata"
         class="min-w-0 max-w-full"
         @play="onMediaPlay($event, attachment)"
       />
@@ -67,7 +93,7 @@
           :label="attachment.name || attachment.mimeType"
           :icon="fileIcon(attachment)"
           :pt="chipPt"
-          class="min-w-0 w-full max-w-80 cursor-pointer border border-content-border bg-subtle"
+          :class="attachmentChipClass"
           :title="chipTitle(attachment)"
           @click="openAttachment(attachment)"
         />
@@ -126,23 +152,95 @@
 
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Chip from 'primevue/chip';
-import { useI18n } from 'vue-i18n';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { chatAttachmentUrl } from '~/utils/chat-file-targets.js';
 import { useMediaStore } from '~/stores/media';
+import { useInstancesStore } from '~/stores/instances';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { instanceRecordTitle, previewSourceValue } from '~/utils/instance-shape.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
+import { resolveFilePreview } from '~/components/generated/file-preview-contract.js';
 
 const props = defineProps({
   attachments: { type: Array, default: () => [] },
-  // Inbox preview mode: one icon + label line, cropping like the text
-  // preview beside it.
+  refs: { type: Array, default: () => [] },
+  // Recipient-scoped gating for chat-only snapshots (support README):
+  // another sender's restricted refs keep their embedded snapshot and
+  // lose the detail route; everything else hydrates freely.
+  viewerUserId: { type: String, default: '' },
+  senderUserId: { type: String, default: '' },
   singleLine: { type: Boolean, default: false }
 });
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const media = useMediaStore();
+const instances = useInstancesStore();
+const { typeById } = useFileTypeView();
+
+const attachmentChipClass = 'min-w-0 w-full max-w-80 cursor-pointer border border-content-border bg-subtle text-supporting';
+const chipPt = { label: { class: 'truncate' } };
+
+const restrictedView = computed(() => Boolean(
+  props.viewerUserId && props.senderUserId && props.senderUserId !== props.viewerUserId
+));
+const canFetch = (ref = {}) => !restrictedView.value || !ref.chatOnlyForRecipient;
+
+// A ref earns the preview card only when preview media actually
+// resolves over its snapshot: a renderable stored payload or a declared
+// geometry value (the two channels InstancePreviewMedia renders).
+const refHasPreview = (ref = {}) => {
+  const typeRecord = ref.type ? typeById(ref.type) : null;
+  const dto = ref.instance;
+  if (!typeRecord || !dto) return false;
+  const file = resolveFilePreview(dto, typeRecord);
+  if (file.hasPayload && file.renderable) return true;
+  return typeRecord.previewSource?.display === 'geometry'
+    && Boolean(previewSourceValue(dto, typeRecord));
+};
+
+// Naming law: the support README — empty names localize the type label.
+const firstRefLabel = computed(() => {
+  const ref = (props.refs || [])[0] || {};
+  const typeView = ref.type ? typeById(ref.type) : null;
+  const title = instanceRecordTitle(ref.instance || null, typeView);
+  if (title) return title;
+  const storedName = ref.label && ref.label !== String(ref.id) ? ref.label : '';
+  return storedName || generatedEntityLabel(ref.type, { t, te });
+});
+
+const summaryUsesAttachments = computed(() => (props.attachments || []).length > 0);
+const summaryItems = computed(() => (summaryUsesAttachments.value ? props.attachments : props.refs));
+const summaryKind = computed(() => {
+  for (const kind of ['image', 'video', 'audio', 'file']) {
+    if ((props.attachments || []).some(attachment => attachment?.kind === kind)) return kind;
+  }
+  return 'instance';
+});
+const summaryIcon = computed(() => ({
+  image: 'pi pi-image',
+  video: 'pi pi-video',
+  audio: 'pi pi-microphone',
+  file: 'pi pi-file',
+  instance: instances.iconFor((props.refs || [])[0]?.type || '')
+}[summaryKind.value]));
+const summaryLabel = computed(() => {
+  if (summaryUsesAttachments.value) {
+    const kind = {
+      image: t('support.attachmentPhoto'),
+      video: t('support.attachmentVideo'),
+      audio: t('support.attachmentVoice'),
+      file: t('support.attachmentFile')
+    }[summaryKind.value];
+    return props.attachments.find(attachment => attachment.name?.trim())?.name?.trim() || kind;
+  }
+  return firstRefLabel.value;
+});
+const summaryOverflow = computed(() => Math.max(0, (summaryItems.value || []).length - 1));
 
 // The descriptor is held so the dialog serves the same URL as the inline render.
 const previewAttachment = ref(null);
@@ -184,7 +282,6 @@ const openAttachment = (attachment) => {
   download(attachment);
 };
 
-const chipPt = { label: { class: 'truncate text-supporting' } };
 const chipTitle = (attachment = {}) => {
   const name = attachment.name || attachment.mimeType || '';
   const size = formatBytes(attachment.size);
@@ -235,30 +332,6 @@ const fileIcon = (attachment = {}) => {
   if (mime.includes('word')) return 'pi pi-file-word';
   return 'pi pi-file';
 };
-
-const summaryKind = computed(() => {
-  for (const kind of ['image', 'video', 'audio', 'file']) {
-    if (ofKind(kind).length) return kind;
-  }
-  return 'file';
-});
-
-const summaryIcon = computed(() => ({
-  image: 'pi pi-image',
-  video: 'pi pi-video',
-  audio: 'pi pi-microphone',
-  file: 'pi pi-file'
-}[summaryKind.value]));
-
-const summaryLabel = computed(() => {
-  const kind = ({
-    image: t('support.attachmentPhoto'),
-    video: t('support.attachmentVideo'),
-    audio: t('support.attachmentVoice'),
-    file: t('support.attachmentFile')
-  }[summaryKind.value]);
-  return props.attachments.find(attachment => attachment.name?.trim())?.name?.trim() || kind;
-});
 
 function formatBytes(size = 0) {
   if (!Number.isFinite(size) || size <= 0) return '';

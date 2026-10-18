@@ -1,10 +1,10 @@
 // SSR smoke for the chat content components: boots the real SFCs
-// (SupportMessageContent in every mode, ChatInstanceRefs, AgentActivity,
-// InstanceInlineRef's chip branches) and renders them to string with the
-// Nuxt globals stubbed. Import-only checks cannot see a dropped setup
-// binding — the defect class where a render-time symbol goes missing
-// (the missing renderMarkdown import that 500'd every chat surface) —
-// so these components must RENDER, not merely compile.
+// (SupportMessageContent in every mode, MessageAttachments,
+// AgentActivity, InstanceInlineRef's chip branches) and renders them to
+// string with the Nuxt globals stubbed. Import-only checks cannot see a
+// dropped setup binding — the defect class where a render-time symbol
+// goes missing (the missing renderMarkdown import that 500'd every chat
+// surface) — so these components must RENDER, not merely compile.
 import { describe, expect, it, vi } from 'vitest';
 import { createSSRApp, h, ref } from 'vue';
 import { renderToString } from 'vue/server-renderer';
@@ -14,8 +14,7 @@ import PrimeVue from 'primevue/config';
 import Re_L from '~/assets/presets/re_l';
 import enLocale from '~/i18n/locales/en.json';
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue';
-import ChatAttachments from '~/components/shared/ChatAttachments.vue';
-import ChatInstanceRefs from '~/components/shared/ChatInstanceRefs.vue';
+import MessageAttachments from '~/components/shared/MessageAttachments.vue';
 import AgentActivity from '~/components/shared/AgentActivity.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 
@@ -77,20 +76,18 @@ describe('chat content SSR smoke', () => {
       { type: 'cassette', id: 'abc', label: 'Cassette One', instance: { _id: 'abc', name: 'Cassette One', fields: {} } },
       { type: 'sheetDesign', id: 'def' }
     ];
-    // Full mode renders one chip per resolved ref; a ref without a
-    // snapshot renders the muted unresolved fallback. Labels resolve
-    // through the registry's type view, which this smoke does not load —
-    // the chip and fallback render the localized unnamed placeholder, and
-    // the raw id never renders.
+    // Without the CTS type view (which this smoke does not load) no ref
+    // resolves preview media, so every ref renders the plain bordered
+    // chip; the raw id never renders.
     const row = await boot({
-      setup: () => () => h(ChatInstanceRefs, { refs })
+      setup: () => () => h(MessageAttachments, { refs })
     });
     expect(row).toContain('data-testid="chat-instance-refs"');
     expect(row.match(/p-chip-label/g)?.length).toBe(1);
     expect(row).not.toContain('>def<');
 
     const summary = await boot({
-      setup: () => () => h(ChatInstanceRefs, { refs, singleLine: true })
+      setup: () => () => h(MessageAttachments, { refs, singleLine: true })
     });
     expect(summary).toContain('Cassette One');
     expect(summary).toContain('+1');
@@ -106,7 +103,7 @@ describe('chat content SSR smoke', () => {
     // click opens the preview dialog (no inline download chrome); images
     // keep their gallery path.
     const row = await boot({
-      setup: () => () => h(ChatAttachments, { attachments })
+      setup: () => () => h(MessageAttachments, { attachments })
     });
     expect(row).toContain('data-testid="chat-attachment-files"');
     expect(row.match(/p-chip-label/g)?.length).toBe(2);
@@ -115,7 +112,7 @@ describe('chat content SSR smoke', () => {
     expect(row).not.toContain('pi-download');
 
     const summary = await boot({
-      setup: () => () => h(ChatAttachments, { attachments, singleLine: true })
+      setup: () => () => h(MessageAttachments, { attachments, singleLine: true })
     });
     expect(summary).toContain('data-testid="chat-attachment-summary"');
   });

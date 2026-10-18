@@ -46,7 +46,8 @@ const props = defineProps({
   allowDetailRoute: { type: Boolean, default: true },
   interactive: { type: Boolean, default: true },
   variant: { type: String, default: 'inline' },
-  contextActionEntries: { type: Array, default: () => [] }
+  contextActionEntries: { type: Array, default: () => [] },
+  chipClass: { type: [String, Array, Object], default: '' }
 });
 
 const loaded = ref(null);
@@ -360,7 +361,7 @@ onUnmounted(() => {
       :icon="icon || undefined"
       :pt="chipPt"
       class="min-w-0 max-w-full"
-      :class="{ 'cursor-pointer': interactive }"
+      :class="[chipClass, { 'cursor-pointer': interactive }]"
       :role="interactive ? 'button' : undefined"
       :tabindex="interactive ? 0 : undefined"
       :title="identityLabel"
