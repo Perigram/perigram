@@ -1086,14 +1086,24 @@ export default function createSketchEditor({ vue, components, locale }) {
       watch(selectedCorner, () => { fieldDraft.clear(); });
       watch(selectedShape, () => { fieldDraft.clear(); });
 
-      const expressionField = (value, hint, onInput, ariaLabel, widthClass = 'w-16') => h(InputText, {
-        modelValue: fieldDraft.text(ariaLabel, value),
-        ...fieldDraft.handlers(ariaLabel, value, onInput),
-        size: 'small',
-        class: `${widthClass} font-mono text-xs`,
-        title: hint,
-        'aria-label': ariaLabel
+      // Authoring inputs size to their content in `ch` so the whole
+      // value stays readable, growing while typing.
+      const inputSizeStyle = (text, min = 6, max = 22) => ({
+        width: `${Math.min(Math.max(String(text ?? '').length + 2, min), max)}ch`
       });
+
+      const expressionField = (value, hint, onInput, ariaLabel) => {
+        const shown = fieldDraft.text(ariaLabel, value);
+        return h(InputText, {
+          modelValue: shown,
+          ...fieldDraft.handlers(ariaLabel, value, onInput),
+          size: 'small',
+          class: 'font-mono text-xs',
+          style: inputSizeStyle(shown),
+          title: hint,
+          'aria-label': ariaLabel
+        });
+      };
 
       const opButton = (shape) => h(Button, {
         icon: OP_ICONS[shape.op] || OP_ICONS.none,
@@ -1131,14 +1141,13 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!popup) return null;
         const { shape, sketch } = popup;
         const rows = [];
-        const labeledField = (label, value, readEvaluated, apply, widthClass = 'w-14') => h('div', { class: 'flex items-center gap-1' }, [
+        const labeledField = (label, value, readEvaluated, apply) => h('div', { class: 'flex items-center gap-1' }, [
           h('span', { class: 'w-5 shrink-0 text-right font-mono text-xs text-muted' }, label),
           expressionField(
             value,
             `${label}${resolvedHint(sketch, value)}`,
             applyShapeField(shape.id, readEvaluated, apply),
-            `${label} ${shape.id}`,
-            widthClass
+            `${label} ${shape.id}`
           )
         ]);
         if (shape.type === 'rect') {
@@ -1211,7 +1220,8 @@ export default function createSketchEditor({ vue, components, locale }) {
               modelValue: fieldDraft.text(`name ${key}`, key),
               ...fieldDraft.handlers(`name ${key}`, key, next => { renameParameter(key, next); }),
               size: 'small',
-              class: 'w-12 font-mono text-xs',
+              class: 'font-mono text-xs',
+              style: inputSizeStyle(fieldDraft.text(`name ${key}`, key), 5, 12),
               'aria-label': `${t('cassette.v2.profileEditor.parameterName')} ${key}`
             }),
             expressionField(value, `${key}${resolvedHint(sketch, value)}`, next => { applyParameterValue(key, next); }, key),
@@ -1259,18 +1269,31 @@ export default function createSketchEditor({ vue, components, locale }) {
         ];
         const { axis, face } = annotations;
         // Two surface states (owner law): the material half hatches as
-        // the face; the section is cut from it — empty interior, solid
-        // outline.
-        const outlinePath = annotations.outline.length
+        // the face; every section ring is cut geometry and punches the
+        // hatch out — the cut reads as the hole it is, with its solid
+        // contour.
+        const ringPaths = annotations.outline
+          .filter(ring => ring.length >= 3)
+          .map(ring => `${ring.map((point, index) => `${index ? 'L' : 'M'} ${point[0]} ${point[1]}`).join(' ')} Z`);
+        const outlinePath = ringPaths.length
           ? h('path', {
               key: 'result-outline',
-              d: annotations.outline
-                .map(ring => `${ring.map((point, index) => `${index ? 'L' : 'M'} ${point[0]} ${point[1]}`).join(' ')} Z`)
-                .join(' '),
+              d: ringPaths.join(' '),
               fill: 'none',
               stroke: PRIMARY,
               'stroke-width': 2.5,
               'stroke-linejoin': 'round'
+            })
+          : null;
+        const faceHatchPath = face.width > 0
+          ? h('path', {
+              key: 'material-face',
+              d: [
+                `M ${face.x} 0 H ${face.x + face.width} V ${face.height} H ${face.x} Z`,
+                ...ringPaths
+              ].join(' '),
+              'fill-rule': 'evenodd',
+              fill: 'url(#profile-face-hatch)'
             })
           : null;
         return [
@@ -1299,16 +1322,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               h('path', { d: 'M 0 1 L 10 5 L 0 9 z', fill: DIM_STROKE })
             ])
           ]),
-          face.width > 0
-            ? h('rect', {
-                key: 'material-face',
-                x: face.x,
-                y: 0,
-                width: face.width,
-                height: face.height,
-                fill: 'url(#profile-face-hatch)'
-              })
-            : null,
+          faceHatchPath,
           outlinePath,
           // The zero axis is the solid basis line every field measures
           // from (SPEC law).
@@ -1340,24 +1354,26 @@ export default function createSketchEditor({ vue, components, locale }) {
       // The editable parameter dimensions: one small input per bound
       // field, centered on its dimension line (the input's background
       // breaks the line — drafting law) and clamped inside the canvas so
-      // the whole field stays visible.
+      // the whole field stays visible. Width follows the value.
       const renderDimensionInputs = () => {
         const annotations = canvasAnnotations.value;
         if (!annotations) return [];
         const width = containerRef.value?.clientWidth || 0;
         const height = containerRef.value?.clientHeight || 0;
-        const INPUT_WIDTH = 56;
+        const CH_PX = 8.5;
         return annotations.dimensions
           .filter(dimension => dimension.editable)
           .map(dimension => {
             const { editable } = dimension;
-            const left = Math.min(Math.max(dimension.labelAt[0] - INPUT_WIDTH / 2, 2), Math.max(2, width - INPUT_WIDTH - 2));
+            const shown = fieldDraft.text(editable.ariaLabel, editable.value);
+            const boxWidth = Math.min(Math.max(String(shown ?? '').length + 2, 6), 12) * CH_PX;
+            const left = Math.min(Math.max(dimension.labelAt[0] - boxWidth / 2, 2), Math.max(2, width - boxWidth - 2));
             const top = Math.min(Math.max(dimension.labelAt[1] - 13, 2), Math.max(2, height - 28));
             return h(InputText, {
               key: dimension.key,
-              class: 'profile-dim absolute z-20 w-14 bg-content text-center font-mono text-xs shadow-sm',
-              style: { left: `${left}px`, top: `${top}px` },
-              modelValue: fieldDraft.text(editable.ariaLabel, editable.value),
+              class: 'profile-dim absolute z-20 bg-content text-center font-mono text-xs shadow-sm',
+              style: { left: `${left}px`, top: `${top}px`, width: `${boxWidth}px` },
+              modelValue: shown,
               ...fieldDraft.handlers(editable.ariaLabel, editable.value, next => {
                 applyShapeField(editable.shapeId, editable.readEvaluated, editable.apply)(next);
               }),
@@ -1387,7 +1403,8 @@ export default function createSketchEditor({ vue, components, locale }) {
             modelValue: fieldDraft.text(`r ${id}`, popup.fillet),
             ...fieldDraft.handlers(`r ${id}`, popup.fillet, next => { applyFilletRadius(shapeId, id, next); }),
             size: 'small',
-            class: 'w-14 font-mono text-xs',
+            class: 'font-mono text-xs',
+            style: inputSizeStyle(fieldDraft.text(`r ${id}`, popup.fillet), 4, 14),
             disabled: popup.openEnd,
             title: `r${resolvedHint(sketch, popup.fillet)}`,
             'aria-label': `${t('cassette.v2.profileEditor.filletRadius')} ${id}`

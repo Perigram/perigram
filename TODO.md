@@ -65,6 +65,21 @@ editable fillets, and a one-shot migration for stored sketches.
   run) against production data and `--apply` once the counts look
   right.
 
+### Agent Notes (2026-10-18, round 7 — owner review, the cut and field sizes)
+
+- Owner report: the cut never showed — nothing ever removed hatch.
+  Root cause: round 6 drew the section outline with `fill: none` over
+  the face-hatch rect, so the hatch showed through inside the section
+  and the cut was invisible. The face hatch is now one evenodd path
+  (half-rect subpath + every resolved ring as a punched hole); the
+  solid outline rides on top. Verified: one path, one pattern, rings
+  as subpaths.
+- Authoring fields (strip names/values, popup fields, vertex x/y/r,
+  canvas dimension inputs) size to their content in `ch`, growing
+  while typing (harness: a value field grows 40→67px typing
+  `W*2+13.5`, commits on Enter; scrollWidth never exceeds
+  clientWidth). Fixed `w-12`/`w-14`/`w-16` classes are gone.
+
 ### Agent Notes (2026-10-18, round 6 — owner review, hatch and popup chrome)
 
 - Owner report: two hatch densities on the canvas, and the popup had
