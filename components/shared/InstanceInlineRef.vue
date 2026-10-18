@@ -46,6 +46,7 @@ const props = defineProps({
   allowDetailRoute: { type: Boolean, default: true },
   interactive: { type: Boolean, default: true },
   variant: { type: String, default: 'inline' },
+  compactLayout: { type: String, default: 'row' },
   contextActionEntries: { type: Array, default: () => [] },
   chipClass: { type: [String, Array, Object], default: '' }
 });
@@ -294,7 +295,10 @@ onUnmounted(() => {
   >
     <span
       class="instance-inline-compact min-w-0 max-w-full"
-      :class="{ 'cursor-pointer': Boolean(resolved) && interactive }"
+      :class="[
+        { 'cursor-pointer': Boolean(resolved) && interactive },
+        compactLayout === 'stacked' ? 'instance-inline-compact--stacked' : null
+      ]"
       :role="resolved && interactive ? 'button' : undefined"
       :tabindex="resolved && interactive ? 0 : undefined"
       :data-instance-card-interactive="interactive ? 'true' : undefined"

@@ -2,7 +2,8 @@
   <!-- The message attachment surface (the support feature README owns
        the contract): one stacked family under the message body on the
        page surface. Instance refs with resolving preview media render
-       the InstanceInlineRef compact card; other refs render the
+       the InstanceInlineRef compact card stacked (preview band over
+       identity); other refs render the
        outlined chip (type glyph), file documents the filled chip — same
        scale, distinct kinds. singleLine is the inbox preview summary
        (icon, name, overflow count). -->
@@ -31,6 +32,7 @@
               :entity="ref.instance || null"
               :fetch="canFetch(ref)"
               variant="compact"
+              compact-layout="stacked"
               :allow-detail-route="!(viewerUserId && senderUserId && senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
             />
           </span>
