@@ -69,7 +69,9 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
     throw createError({ statusCode: 502, message: `Construction service ${serviceRef} returned no object output` });
   }
   const data = output.data && typeof output.data === 'object' && !Array.isArray(output.data) ? output.data : {};
-  return { ...draft, data: { ...(draft.data || {}), ...data } };
+  // The executor's computed rows land in the draft's FIELDS — the declared
+  // home the projection and the wire read (fields.geometry et al).
+  return { ...draft, fields: { ...(draft.fields || {}), ...data } };
 }
 
 function serviceAuth(context = {}) {
