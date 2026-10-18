@@ -144,6 +144,26 @@ exact trap that session hit twice).
 - Specs: the vocabulary test pins the concepts, the ask_user rule, and
   the family teacher error.
 
+### Agent Notes (2026-10-18 — cassettes-into-libraries composed live via MCP)
+
+- The restructure authored end to end against Org1 through
+  `edit_process_definition` gestures: library/project/queue classes,
+  cassette children under library, queues under projects, queue
+  contents (xlsx/csv/cassette-design/nesting-attempt), sheet designs
+  under the attempt, the many-libraries relation (Link persisted in
+  storage), the nesting solve chain dispatched to the facade executor,
+  and the DRAFT→PRODUCTION sheet transition. One session, no
+  whole-graph echo.
+- Gap found and shipped: headless state authoring
+  (`declareState` + `entry` wire handles, `8dac2ca2c`).
+- Runtime defects the live run surfaced, all fixed and merged:
+  control-handle leak into mutation fields (`4e08bcd90`), unmaterialized
+  manual-run data environment plus the transition branch's out-of-scope
+  patch read (`c96031f68`), untyped context-entity binding and the
+  dropped children-read filter (`27b4179a3`), plugin connector dispatch
+  from the effect boundary (`511ed49a8`, `724ff7d91`), relation writes
+  persisting through the nested patch shape (`80a206a9b`).
+
 ## Model-traffic timeouts removed + authoring removal grammar (owner direction 2026-10-18)
 
 Two orders. (1) The LLM seam's synthetic deadlines — the 120 s idle
