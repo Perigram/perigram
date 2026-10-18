@@ -643,7 +643,9 @@ async function evaluateDataflow(definition, payload = {}, { auth, actor, domain 
       });
       return { __processEffectPending: true };
     },
-    data: current => base.data(current)
+    // The orchestration seam consumes the materialized data environment
+    // object (it spreads environment.data per evaluated node).
+    data: base.data(current)
   });
   return await advanceToBoundary(run, runnableDefinition.data, environment);
 }
@@ -677,11 +679,11 @@ export async function continueActionFromTask({ taskRunId, taskResult = {} } = {}
   }, {
     catalogContext: catalogContextFromDefinition(definition.data, domain),
     domain,
-    data: current => processDataEnvironment(actor, current, domain)
+    data: processDataEnvironment(actor, run, domain)
   });
   await advanceToBoundary(resumed, definition.data, current => ({
     ...manualRunEnvironment(definition, actor, domain),
-    data: () => processDataEnvironment(actor, current, domain)
+    data: processDataEnvironment(actor, current, domain)
   }));
   return { applied: true };
 }
@@ -1888,8 +1890,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       targetId: target.id,
       targetState,
       auth,
-      context: effectTransitionContext(record, inputs),
-      patch: Object.keys(patch).length ? patch : null
+      context: effectTransitionContext(record, inputs)
     });
     return result.entity;
   }
