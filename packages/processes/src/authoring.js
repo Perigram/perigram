@@ -3,9 +3,8 @@
 // drops (record factory + preset), record configuration (the writes the
 // inspector performs), and port-gated connections (the same compatibility
 // gate the canvas applies). The designer page is a presentation adapter
-// over this module; everything authorable in the browser is authorable
-// without one. A palette item that cannot be dropped, configured, and
-// round-tripped through this seam is a defect (authoring.spec.js pins it).
+// over this module. A palette item that cannot be dropped, configured,
+// and round-tripped through this seam is a defect (authoring.spec.js).
 import { operationKindOf, typeIdOf, setTypeBinding } from '../../cts/src/index.js';
 import { PROCESS_OPERATION_REGISTRY } from './operations.js';
 import {
@@ -117,10 +116,9 @@ export function createProcessNodeRecord(id, kind = 'source.literalItem', { defau
 // presentation hook (the page decorates i18n labels; headless authoring
 // keeps raw labels).
 export function createProcessRecordSync({ contract, defaultEntityTypeId = () => '', portLabel = null }) {
-  // The domain is read per call, never captured: the designer rescaffolds its
-  // projected domain when the served organization projection arrives (mounted
-  // packs plus installed plugins), and every later sync — a drop, a reload, a
-  // connect — must resolve ports against that current domain.
+  // The domain is read per call: the designer rescaffolds its projected
+  // domain when the served organization projection arrives, and every
+  // later sync must resolve ports against that current domain.
   function catalogContext(node = {}) {
     const bound = typeIdOf(node);
     const fields = node.kind === 'cts.field' || bound
@@ -249,9 +247,8 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       // destroy intent authored before the wire exists. Validation
       // owns the report when the path is genuinely undeclared.
       if (!available.length) return;
-      // `path === '_id'` is the pre-fix machine default (the old sync
-      // picked the first projected entry, always `_id`) — derived, never
-      // authored, so it re-defaults like an unset path.
+      // `path === '_id'` is the derived default; it re-defaults like an
+      // unset path.
       if (node.path && node.path !== '_id' && available.some(field => field.value === node.path)) return;
       node.path = preferredFieldDefault(available);
     } else {
@@ -394,11 +391,8 @@ export function graphIntegrityProblems(graph = null) {
         problems.push(`edge ${edge?.id || index} references a missing node`);
         return;
       }
-      // A data wire addresses sockets, never the node body: an edge
-      // without handles binds nothing at compile time — it silently
-      // does nothing while looking connected. Declaration edges (the
-      // tree's role:'type' wires and their 'decl*' ids) are
-      // node-to-node by design.
+      // A handle-less data edge binds nothing while looking connected;
+      // declaration edges (role 'type', 'decl*' ids) are node-to-node.
       const declaration = edge.role === 'type' || String(edge?.id || '').startsWith('decl');
       if (!declaration && (!String(edge.sourceHandle || '').trim() || !String(edge.targetHandle || '').trim())) {
         problems.push(`edge ${edge.id || index} wires ${edge.source} to ${edge.target} without sockets — data edges address node:socket`);
@@ -445,8 +439,7 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
   const defaultEntityTypeId = () => contract.entityOptions[0]?.value || '';
   let sync = createProcessRecordSync({ contract, defaultEntityTypeId });
   // Headless drops have no mouse: every new canvas node takes the next slot
-  // of a default grid so a composed definition renders readably (a lane of
-  // declarations, then the graph below) instead of a pile at the origin.
+  // of a default grid — a lane of declarations, then the graph below.
   let layoutCursor = 0;
   const nextPosition = () => {
     const position = { x: (layoutCursor % 4) * 300, y: Math.floor(layoutCursor / 4) * 190 };
@@ -479,10 +472,8 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
   };
   const declarationNodes = new Map();
 
-  // Seeding (the edit path): re-seat the seam onto an existing authored
-  // document so gestures apply to the stored graph instead of a fresh one.
-  // Only authored keys seed — activation-written records (compiled,
-  // history, activated) never enter the seam.
+  // Seeding (the edit path): gestures apply to the stored document;
+  // only authored keys seed.
   const AUTHORED_DATA_KEYS = ['graph', 'roleGrants', 'producerOutputs', 'actions', 'services', 'sockets', 'screens', 'ctsTypes', 'processNodes', 'valueInputs'];
   if (seedData && typeof seedData === 'object') {
     for (const key of AUTHORED_DATA_KEYS) {
@@ -691,9 +682,8 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
   function configure(recordId, updates = {}) {
     const record = recordOf(recordId);
     if (!record) throw new Error(`No process node ${recordId}`);
-    // No explicit path/relation reset on rebind: normalization keeps a
-    // still-valid selection and defaults an invalid one, so a shared
-    // field name survives a type change instead of being wiped.
+    // Rebind keeps a still-valid path/relation selection and defaults
+    // an invalid one.
     const { typeId, ...rest } = updates;
     Object.assign(record, rest);
     if (typeId !== undefined) setTypeBinding(record, typeId);
@@ -778,9 +768,8 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     const record = recordOf(recordId);
     if (!record) throw new Error(`No process node ${recordId}`);
     sync.syncProcessNode(record, { draftData: data });
-    // Trigger mode derives from the graph, never authored: an effect
-    // runs automatically iff its event input is wired (the page derives
-    // the same fact from canvas edges).
+    // Trigger mode derives from the graph: an effect runs automatically
+    // iff its event input is wired.
     if (EFFECT_SPECIES_KINDS.has(record.kind)) {
       const wired = data.graph.edges.some(edge => (
         edge.target === recordId && parseProcessSocketHandleId(edge.targetHandle) === 'in'

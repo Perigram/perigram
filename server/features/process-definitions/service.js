@@ -96,8 +96,8 @@ export async function list(auth) {
  * Picker data over the active set's compiled machines: one row per
  * emitted type with its primary-region state paths. Scan-input law
  * (deadline scanner): this reads activation-written `data.compiled`
- * snapshots only — auth decisions always recompile and never read this
- * path. Consumers: agent bot wake-rule pickers.
+ * snapshots only — auth decisions always recompile. Consumers: agent
+ * bot wake-rule pickers.
  */
 export async function listActiveWorkflowStates(auth) {
   const organizationId = resolveOrganizationId(auth);
@@ -208,7 +208,7 @@ export async function getById(id, auth) {
 // The save floor: a persisted graph is structurally sound — nodes carry a
 // unique id, a type, and a numeric position; edges address existing nodes.
 // Semantic validity stays the validator's job (drafts may fail it
-// mid-edit); integrity never saves.
+// mid-edit); integrity failures block the save.
 function assertGraphIntegrity(data) {
   if (!data || typeof data !== 'object' || !data.graph) return;
   const problems = graphIntegrityProblems(data.graph);
@@ -244,7 +244,7 @@ export async function create(payload = {}, auth) {
 export async function update(id, payload = {}, auth) {
   const process = await loadAuthorized(id, auth, 'write');
   const renaming = payload.identity?.name || payload.name;
-  // An identity-only PATCH never touches data (the rename path).
+  // An identity-only PATCH leaves data untouched (the rename path).
   if (renaming && !payload.data) {
     process.identity.name = renaming;
     return new ProcessDefinition(await repository.updateById(id, process)).toJSON();
@@ -262,10 +262,9 @@ export async function update(id, payload = {}, auth) {
 }
 
 // The semantic Apply diff recomputes both sides from the canonical authored
-// definitions instead of trusting the stored `compiled` snapshot (which is
-// inspection-only). The baseline is the MERGED contract of the OTHER active
-// definitions; returns null when there are none or the previous contract
-// can no longer be compiled for comparison.
+// definitions (the stored `compiled` snapshot is inspection-only). The
+// baseline is the MERGED contract of the OTHER active definitions; null
+// when none exist or the previous contract fails to compile.
 async function activeContractBaseline(process, auth) {
   const actives = (await repository.findActiveSetByOrganization(process.lineage.organizationId))
     .filter(active => String(active._id) !== String(process._id));
@@ -387,7 +386,7 @@ export async function activate(id, auth, { confirmTypeDeath = false } = {}) {
   };
   // The gate and the migration both resolve against the NEXT merged
   // contract — this definition atop the other actives — so states owned
-  // by other active definitions are never falsely stranded.
+  // by other active definitions stay valid targets.
   const mergedNext = await compileActiveProcessRuntime(
     mergeActiveDefinitions([
       ...(await repository.findActiveSetByOrganization(process.lineage.organizationId))
@@ -581,8 +580,7 @@ function manualRunEnvironment(definition, auth = {}, domain = null) {
 
 // Async command effects park the evaluation on the task boundary; the
 // task runtime's terminal boundary continues it in this process.
-// command_runs and task_runs are the audit trail — evaluation itself
-// keeps no records.
+// command_runs and task_runs are the audit trail.
 const pendingActionContinuations = new Map();
 
 function dispatchTaskRunId(dispatch = {}) {
@@ -652,7 +650,7 @@ export async function evaluateDefinitionDataflow(id, payload = {}, auth = {}) {
 /**
  * The task runtime's terminal boundary for succeeded tasks: continues a
  * parked action evaluation with the task's projected completion output.
- * An unknown task-run id is an uncorrelated no-op — command_runs and
+ * An unknown task-run id is an uncorrelated no-op; command_runs and
  * task_runs remain the completion record.
  */
 export async function continueActionFromTask({ taskRunId, taskResult = {} } = {}) {
@@ -740,8 +738,7 @@ function catalogContextFromDefinition(processData, domain = null) {
       command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null,
       // The projected domain carries the registered serviceContracts: a
       // cts.service record resolves its signature-derived sockets from it
-      // at run time exactly as the designer does — without it the service
-      // resolves empty ports and its parameters never reach the handler.
+      // at run time exactly as the designer does.
       domain: domain || getDomain()
     };
   };
@@ -1869,8 +1866,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     if (targetState == null) {
       // Activation refuses target-less transitions (graph-protocol binding
       // check); reaching here means the ACTIVE definition predates the
-      // authored target — name the node and the remedy instead of handing
-      // the status runtime an undefined target.
+      // authored target — name the node and the remedy.
       throw new Error(
         `transition ${record.id || '(unnamed)'} declares no target state — author the target in the process designer and re-activate the process (actions execute the activated definition, not the draft)`
       );
@@ -2065,8 +2061,7 @@ function relationInputValue(supplied) {
 // input policy); the row/schema layer and stored patches speak the bare
 // path. One spelling per concern, but both ADDRESS the same field: the
 // effect boundary accepts either, so a wired-or-prompted `fields.done`
-// writes row `done` (owner defect 2026-10-17: the socket spelling was
-// dropped silently and mutate actions became no-ops).
+// writes row `done`.
 function normalizeFieldSocketInputs(inputs = {}, schemas = []) {
     if (!inputs || typeof inputs !== 'object' || !Array.isArray(schemas)) return inputs;
     let mapped = null;
@@ -2082,19 +2077,15 @@ function normalizeFieldSocketInputs(inputs = {}, schemas = []) {
 }
 
 // Effect inputs arrive as data packets (the orchestration's one wire
-// shape); a stored patch speaks scalars. Unwrap once, here — a packet
-// that reached the patch intact was silently rejected by the instance
-// write while the save still bumped updatedAt (owner defect 2026-10-17:
-// "it can't even change a single boolean value").
+// shape); a stored patch speaks scalars. Unwrap once, here.
 function unwrapEffectInput(value, field = {}) {
     if (!isDataTree(value)) return value;
     return packetValue(value, field.type?.base === 'array' ? 'list' : 'item');
 }
 
 // The instance wire speaks NESTED blocks (`fields.done` travels as
-// patch.fields.done); a dotted key matches no block branch and the write
-// silently empties (owner defect 2026-10-17 — the four-layer boolean
-// drop). One conversion home for every patch the process seam builds.
+// patch.fields.done); a dotted key matches no block branch. One
+// conversion home for every patch the process seam builds.
 function wirePatchFromChanges(changes = []) {
   const patch = {};
   const write = (segments, value) => {
@@ -2282,10 +2273,7 @@ export function applyAuthoringSteps(authoring, steps = [], domain = null) {
     }
     // Declaration steps re-seat the seam onto the draft-overlay domain:
     // the tree's own declarations become ports immediately, so a field
-    // declares and wires in ONE session — no intermediate apply (the
-    // draft-overlay rule the acceptance adapter already follows; live
-    // defect 2026-10-17: an unapplied field's connect was refused with
-    // `Unknown port` until activation posted it).
+    // declares and wires in ONE session.
     if (domain && DECLARATION_STEP_OPS.has(op)) {
       authoring.withDomain(declarationOverlayDomain(authoring.definition(), domain));
     }
@@ -2370,11 +2358,10 @@ export async function editDefinition({ definitionId = '', steps = [] } = {}, aut
  * registry through the cts-types boundary — the same posts the
  * designer's APPLY makes before it activates. Required before
  * activation whenever the draft declares types in-tree: validation
- * overlays the draft's own declarations, but the activation compile
- * resolves types against the registry. A declaration the registry
- * refuses (breaking diff without covering migrate steps, SPEC §11)
- * returns as a structured failure; nothing partially applied is rolled
- * back — successful posts are idempotent re-posts on retry.
+ * overlays the draft's own declarations, the activation compile
+ * resolves types against the registry. A registry refusal (breaking
+ * diff, SPEC §11) returns as a structured per-type failure; posts are
+ * idempotent re-posts on retry.
  */
 export async function applyTreeDeclarations(id, auth) {
   const process = await loadAuthorized(id, auth, 'write');
@@ -2405,7 +2392,7 @@ export async function applyTreeDeclarations(id, auth) {
 
 // The compiler consumes the CTS-projected domain: strangler-converted system
 // declarations plus the organization's authored types (cts_types). A broken
-// stored type fails loudly here rather than silently compiling without it.
+// stored type fails loudly here.
 async function getProjectedDomain(organizationId = null) {
   const registry = await compileRegistryForOrganization(organizationId);
   return projectDomainFromView(registry, organizationId, await projectedDomainsForOrganization(organizationId), {
@@ -2416,8 +2403,7 @@ async function getProjectedDomain(organizationId = null) {
 // The rewrites that PERSIST: producer-identity migration and the retired
 // Name-input surgery apply to the authored data itself (pre-protocol
 // records only for identities; cts records carry their identities from the
-// designer). Protocol acceptance runs on a lowered copy and never mutates
-// what is stored.
+// designer). Protocol acceptance runs on a lowered copy.
 function persistedRewrites(data, domain) {
   const migration = migrateProducerOutputIdentities(data, domain);
   if (migration.errors.length) {

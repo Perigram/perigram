@@ -67,7 +67,7 @@ describe('headless authoring draft overlay', () => {
         expect(edges.some(edge => edge.target === 'nodeMake' && String(edge.targetHandle || '').includes('fields.organization'))).toBe(true);
     });
 
-    it('without the overlay re-seat the same connect is refused (the live defect, pinned)', () => {
+    it('a session without the overlay re-seat refuses the same connect', () => {
         // The base composes WITH the overlay (as the fixed seam does); the
         // refusal under test is the second session resolving ports against
         // the raw projection only.
