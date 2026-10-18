@@ -45,7 +45,8 @@ export async function executeCommand(commandId, input = {}, auth = {}) {
     let handler = registry.getCommandHandler(commandId);
     if (!handler && command.plugin) {
       const { executeConnectorService } = await import('../../features/plugins/service.js');
-      handler = executeConnectorService;
+      // Handlers receive one payload ({ command, parameters, auth }).
+      handler = payload => executeConnectorService(payload.command, { parameters: payload.parameters, auth: payload.auth });
     }
     if (!handler) throw createError({ statusCode: 500, message: `Command handler not registered: ${commandId}` });
 
