@@ -12,7 +12,7 @@
     :data-testid="singleLine ? 'chat-instance-refs-summary' : 'chat-instance-refs'"
   >
     <template v-if="singleLine">
-      <i :class="firstIcon" class="shrink-0 text-muted" aria-hidden="true" />
+      <i :class="firstIcon" class="shrink-0 scale-90 text-muted" aria-hidden="true" />
       <span v-if="firstLabel" class="min-w-0 truncate text-inherit">{{ firstLabel }}</span>
       <span v-if="refs.length > 1" class="shrink-0 text-muted">+{{ refs.length - 1 }}</span>
     </template>
