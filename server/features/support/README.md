@@ -124,8 +124,9 @@ resolve preview media over their snapshot (a served plugin preview
 binding, a renderable stored payload, or a declared geometry value — the
 channels the shared preview mounts); a ref with media renders
 `InstanceInlineRef`'s stacked compact card (flush preview band over a
-compact label strip) — one card full-width, several as a tile grid (two
-columns, three past four, the image gallery's column law), other refs
+compact label strip) — media attachments (preview cards and image
+tiles) flow together as one masonry (two columns, three past four; a
+lone media item full-width), other refs
 the outlined chip carrying the type glyph. File
 documents render the filled chip; images and video embed inline (gallery
 tiles, players), other files open the shared preview dialog on click
