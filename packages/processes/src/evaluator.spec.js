@@ -4,6 +4,22 @@ import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js
 import { missingFieldMarker } from './missing-field.js';
 
 describe('process v4 data execution', () => {
+  it('drops foreign-type items from a union entity stream feeding a typed extract', async () => {
+    const record = { kind: 'cts.read', typeId: 'cassette-design', select: 'extract', projection: 'nesting-polygons' };
+    const project = vi.fn(async (typeId, projectionId, value) => ({ polygons: value.id }));
+    const packet = await executeProcessDataNode(record, {
+      entity: createDataPacket([
+        { type: 'cassette-design', id: 'd1' },
+        { type: 'xlsx-workbook', id: 't1' },
+        { type: 'cassette-design', id: 'd2' }
+      ], 'list')
+    }, { projectEntity: project });
+
+    const items = packet.branches.flatMap(branch => branch.items);
+    expect(items).toEqual([{ polygons: 'd1' }, { polygons: 'd2' }]);
+    expect(project.mock.calls.map(call => call[2].id)).toEqual(['d1', 'd2']);
+  });
+
   it.each(['cts.mutate', 'cts.transition', 'cts.remove'])(
     'maps %s over item, list, and branched-tree inputs', async kind => {
     const record = { kind, typeId: 'project' };

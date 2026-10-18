@@ -418,12 +418,24 @@ async function executeRead(record, packets, context) {
       const normalizedSource = normalizeDataTree(source);
       const single = normalizedSource.branches.length === 1
         && normalizedSource.branches[0].items.length === 1;
-      const projected = await mapDataPacketAsync(source, value => project(record.typeId, record.projection, value));
+      // A union entity stream (children of a parent with several child
+      // types) legally wires into a typed extract; items of other types
+      // drop instead of projecting through the wrong declaration.
+      const projected = await mapDataPacketAsync(source, async value => {
+        if (value && typeof value === 'object' && value.type
+          && record.typeId && String(value.type) !== String(record.typeId)) return undefined;
+        return project(record.typeId, record.projection, value);
+      });
+      const filtered = {
+        branches: projected.branches
+          .map(branch => ({ ...branch, items: branch.items.filter(item => item !== undefined) }))
+          .filter(branch => branch.items.length || branch.path.length)
+      };
       if (single) {
-        const value = packetValue(projected);
-        return Array.isArray(value) ? createDataPacket(value, 'list') : projected;
+        const value = packetValue(filtered.length ? filtered : projected);
+        return Array.isArray(value) ? createDataPacket(value, 'list') : filtered;
       }
-      return projected;
+      return filtered;
     }
     default:
       throw new Error(`Read node ${record.id || '(unnamed)'} has no declared select`);
