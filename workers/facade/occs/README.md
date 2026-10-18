@@ -55,189 +55,117 @@ modules — no platform imports.
   same contract as edge margin, normal offset, edge, count/spacing value, and
   profile mirror controls on the attachment relation; hanger width/height is
   not duplicated in the workpiece row when a saved profile supplies geometry.
-- `profiles.js` declares the reusable OCCS profile sketch helper used by
-  Cassette Designer v2. It keeps profile sketches declarative but direct:
-  editable snap points, point-by-point polylines with explicit open/closed
-  state, circle holes, and per-corner fillet modifiers are normalized into
-  `profile.section` polygon/polyline data plus a linear `profile.sweep`.
-  The default hanger template is parametric by law: its geometry binds to
-  its table (W/H the rectangle, R the corner fillets, D the hole, L the
-  sweep at evaluation), so a cassette's instance parameters drive it the
-  moment it is attached — the workpiece row's chips are live. The
+- `profiles.js` declares the OCCS profile shape model used by Cassette
+  Designer v2 (owner decision 2026-10-18): a sketch is a list of
+  parametric shapes combined by per-shape boolean operations and
+  evaluated on the zero axis. Shape kinds: `rect` (center, width,
+  height, rotation, per-corner fillet radii), `circle` (center,
+  diameter), and `chain` (point-by-point polyline with its own closure,
+  per-vertex fillet modifiers, extracted chord tags). Every authoring
+  field carries a number or an expression string evaluated against the
+  parameter table through `expressions.js`; a single unknown identifier
+  authored into a field adopts that parameter at the field's current
+  value (`adoptOccsProfileBindingParameter`). Each shape carries its
+  op — `add`, `subtract`, or `none`; a `none` shape is reference
+  geometry (a DXF import lands every shape at `none` through
+  `occProfileSketchFromEntities`' `reference` option) and evaluation
+  ignores it. The zero vertical axis is the evaluation basis every
+  field measures from, and the material half of it
+  (`sketch.material`, `'positive'` hatches X>0) is a boolean body:
+  `resolveOccsProfileSectionPolygons` folds the section — union of the
+  add shapes minus the subtract shapes, clipped to the material half —
+  through the vendored Clipper pass, yielding ordered outer polygons
+  and hole rings; every ring is cut geometry. The default hanger
+  template is parametric by law: a rect (W/H the rectangle, R the four
+  corner fillets) plus a subtract circle (D the hole), with L resolving
+  the sweep at evaluation, so a cassette's instance parameters drive it
+  the moment it is attached — the workpiece row's chips are live. The
   template is the renderer's fallback for sketch-less workpieces, never
   the dialog's starting draft (owner decision 2026-10-17: every dialog
   session drafts blank — empty canvas, empty table), and an attached
   workpiece's table is its derived sketch's table with the instance values
-  on top, so the row renders a chip for every parameter the sketch binds,
-  never only the ones an instance happened to override. The numeric
-  geometry seed that `normalizeOccsProfileSketch` fills MISSING sketch
-  fields with stays literal: seeded fields belong to sketches that never
-  authored them and carry no table for the expressions to resolve against.
-  A blank authoring session starts with an empty
-  table — parameters are added when a sketch
-  needs them, nothing is pre-seeded there; the dialog opens that blank
-  session, and clearing the canvas restarts it (the previous session's
-  table dies with its geometry, never riding the next hand-drawn
-  profile). Every authoring field (point
-  coordinates, hole centers and diameters, fillet radii, parameter
-  values) carries a number or an expression string evaluated
-  against the parameter table through `expressions.js` — the same
-  evaluator the cassette tree uses. `evaluateOccsProfileSketch` resolves
-  the whole sketch (parameters may reference each other; cycles and
-  unknown identifiers throw); the savable gate and the editors' save
-  buttons turn those throws into authoring feedback, never silent zeros.
-  Points that an extracted arc flattened to chords carry a `chord` flag —
-  real geometry, but not authored corners; the editor collapses their
-  runs into single read-only chips. Anchors are the placement basis of a
-  closed profile: one chosen vertex — picked ON the canvas (the Basis
-  toggle arms a modal pick; dashed targets highlight every corner) and
-  shown as a datum mark — that lands on the attachment snap+offset point
-  when inserted, with cut geometry taken anchor-relative. Open shapes
-  carry two anchors — their first and last vertices, the same vertices
-  that break the host contour — shown as datum marks beside the sketch
-  origin, which the canvas always marks (0,0), empty sketch included;
-  insertion places by the origin and breaks the host contour at the
-  endpoints. Anchors are model state, not geometry: extraction preserves
-  them instead of re-deriving (open-shape anchors are derived from the
-  chain ends, never stored). One connected chain is the law: when drawn
-  or imported entities hold pieces no chain joins, extraction keeps the
-  longest chain but records the leftovers as the sketch's `unchained`
-  count, the savable gate refuses while it is non-zero, and the editor
-  surfaces it — never a silent drop, never an auto-connect with lines. Dimensions are
-  automatic annotations over the canvas: a derived overlay (a computed
-  keyed on the view's render frame) draws one linear dimension per
-  authored edge — extension lines, ticks, the measured length —
-  tracking pan and zoom; display-only, never written to the drawing
-  database, the sketch model, or saved documents. The same module
-  normalizes CAD entity records (LINE/ARC/CIRCLE/polyline) into the
-  sketch model (`occProfileSketchFromEntities`) and back
-  (`occProfileEntitiesFromSketch`): the browser sketch canvas — the
-  vendored MLightCAD CAD engine — seeds from the sketch and is
-  re-extracted through this one path. A tangent corner arc between two
-  line segments maps to the corner's fillet modifier (the polygon keeps
-  the theoretical sharp corner); any other arc flattens to chords within
-  a 0.05 mm sagitta tolerance; circles become holes. Expression binding
-  adopts: authoring a single unknown identifier into a field (vertex
-  coordinate, hole center or diameter, fillet radius) creates that
-  parameter WITH the field's current evaluated value
-  (`adoptOccsProfileBindingParameter`) — the geometry never jumps, the
-  evaluation resolves immediately, and the merge law keeps the binding
-  because evaluation matches the drawn geometry by construction;
-  existing parameters and compound expressions pass through untouched
-  (their formula is the truth). Document transitions (DXF import) bind
-  the database listeners without scheduling an extraction: the import's
-  own explicit extraction is the one that lands — a mid-transition
-  empty read merged into the authored sketch would wipe it and take
-  every binding with it. A fillet radius
-  larger than the corner's adjacent segments allow renders as the largest
-  tangent fillet that fits — the emitted arc is derived from the trimmed
-  tangent points, so it round-trips back through extraction instead of
-  degenerating into chords. The stored section keeps the theoretical
-  sharp corners and its fillet modifiers;
-  `occProfileSectionChainedVertices` resolves them to arc points (same
-  trim/bisector math, same clamp, same chord tolerance) — the walk every
-  cassette consumer draws: the open-profile edge embedding, the
-  closed-section cut polygons, and the 3D preview bodies. A fillet
-  modifier resolves by its slot in the section's vertex walk — the
-  derivation stamps `vertexIndex` on it, because point ids are identity,
-  not position (a merged sketch mints fresh ids, so `p4` can sit first
-  and parsing the id as an index would drop or misplace the fillet);
-  sections authored without slots keep the `p<index>` id convention. A sketch is authored
-  closed or open (the editor's toggle; drawn chains keep their extracted
-  closure — closed boundaries with three or more points save closed, open
-  chains with two or more save open). An open profile saves as a
-  `polyline` section whose first and last vertices are its break points:
-  the composite chain splices into the host face's contour where the
-  profile lands (the designer draws the stitched boundary; the evaluated
-  layerData carries the composite into production redraw on
-  `contour.cassette_face`). The
-  sketch editor's authoring rows edit the parameter table and hole
-  geometry directly on the sketch model in the strip above the canvas,
-  while the tool toolbar floats inside the canvas over the drawing and
-  the dialog stands near-viewport height (the canvas owns every
-  remaining pixel); vertex coordinates and fillet radii edit through a
-  canvas popup
-  that opens on the selected corner (Select-tool click near an authored
-  vertex; Escape or clicking away closes it). Every authoring field — the
-  popup's coordinates and fillet radius, the parameter and hole rows, and
-  the designer's instance-parameter chips — holds the text being typed and
-  commits it on blur or Enter (`surfaces/lib/components/fieldDraft.mjs`): a
-  per-keystroke commit runs each character through normalization (`''`
-  becomes 0, `42.` becomes 42) and rewrites the field under the caret, and
-  adopt-on-bind would mint a parameter from a half-typed identifier. The
-  attachment popup's expression fields (edge margin, normal offset,
-  rotation, array value) caption as plain blocks, never `<label>`s: the
-  expression editor's token panel carries buttons, and a label wrapping
-  more than one control forwards a native click onto its first button —
-  focusing the field inserted a phantom parameter token.
-  Escape routes at the window
-  level: it closes the popup, cancels the engine's active command, and
-  clears the selection — from any focus, including a toolbar button or an
-  authoring field. Editor teardown lets the engine's font preload settle
-  (plus its glyph-redraw delay) before destroying the manager singleton:
-  a redraw timer firing after the singleton dies is an uncaught page
-  error. The canvas reseeds (clear + redraw) on every authored
-  edit, and the engine's selection dies with the removed entities — a
-  selection left standing over reseeded geometry references dead object
-  ids and the next erase fails inside the engine. The sketch model is the
-  single truth and the canvas is its render and input surface:
-  extraction MERGES back (`mergeOccsProfileSketchGeometry`) — a corner
-  whose extracted position matches its authored evaluation keeps the
-  authored id, expressions, and fillet radius, so drawing, importing,
-  or undoing never destroys parametric authoring; moved or new
-  geometry goes numeric, and an authored sketch whose expressions no
-  longer resolve falls back to the plain extraction until fixed.
-  Parametric instantiation: a profile
+  on top, so the row renders a chip for every parameter the sketch binds.
+  The numeric geometry seed that `normalizeOccsProfileSketch` fills a
+  sketch-less read with stays literal. A blank authoring session starts
+  with an empty table — parameters are added when a sketch needs them;
+  the dialog opens that blank session, and clearing the canvas restarts
+  it (the previous session's table dies with its geometry).
+  `evaluateOccsProfileSketch` resolves the whole sketch (parameters may
+  reference each other; cycles and unknown identifiers throw); the
+  savable gate (`isOccsProfileSketchSavable`) turns those throws into
+  authoring feedback and requires at least one participating shape — a
+  closed shape with an op, or an open chain as a cut path. Fillets are
+  non-destructive: they live as modifiers on their shape (per-corner on
+  rects, per-vertex on chains), stay editable after application, and a
+  radius larger than the corner's adjacent segments allow resolves as
+  the largest tangent fillet that fits — the emitted arc derives from
+  the trimmed tangent points, so it round-trips back through extraction.
+  A fillet modifier on a chain resolves by its point id (ids are
+  identity, not position); sections keep the `vertexIndex` convention
+  only on polyline sections, where `occProfileSectionChainedVertices`
+  remains the walk that resolves fillet corners to arc points.
+  A single open chain with no boolean shapes keeps the `polyline`
+  section: its first and last vertices are the break points where the
+  composite chain splices into the host face's contour (the embedding
+  law below); boolean shapes never apply to it. Extraction keeps every
+  drawn piece as its own shape — a closed four-vertex right-angle chain
+  detects as a `rect` primitive, circles become `subtract` shapes on a
+  draw, and `mergeOccsProfileSketchGeometry` merges back under the
+  one-way truth rule: an extracted shape sitting on an authored shape's
+  evaluated position keeps the authored id, op, expressions, and
+  fillets (chains match per point within a rounding epsilon), so
+  drawing, importing, or undoing never destroys parametric authoring;
+  moved or new geometry goes numeric, authored shapes with no extracted
+  counterpart were erased and drop, and an authored sketch whose
+  expressions do not resolve falls back to the plain extraction.
+  Document transitions (DXF import) bind the database listeners without
+  scheduling an extraction: the import's own explicit extraction is the
+  one that lands. Legacy chain sketches (points/edges/holes/closed/
+  anchors) upgrade into the shape model at `normalizeOccsProfileSketch`
+  — the chain becomes one chain shape, holes become subtract circles,
+  and a closed sketch's basis anchor becomes the axis (the chain
+  translates so the anchor vertex sits on X=0, coordinates numeric);
+  `upgradeLegacyOccsProfileSketch` is the same upgrade for the one-shot
+  migration script. Parametric instantiation: a profile
   workpiece's instance parameters override the profile's authored table —
   the workpiece's own table is the derived table with those instance
-  values on top — and
-  its snapshot re-derives from the authored sketch (the stored section is
-  a last-good cache — a transient invalid parameter holds it);
-  the workpiece rows edit instance parameters in place, instance values may
-  be cassette expressions — they resolve in the joined scope where the
-  profile's own table shadows the cassette's globals (inner over outer: a
-  same-named local parameter is never silently overridden by a global,
-  and a bare identifier reads its innermost binding) while the raw
-  expression stays stored and the cassette's globals join the evaluation
-  scope but never bake into the stored table. Parameter names rename in
-  place: a profile parameter's rename moves its key (order preserved)
-  and rewrites every reference as whole identifiers
-  (`renameOccsProfileSketchParameter`), and a cassette global's rename
-  rewrites the whole tree — node parameters and fold angles (the deg
-  suffix survives), workpiece instance values, profile sketches (a
-  sketch field referencing the global rebinds; the sketch's own
-  same-named parameter is its local and stays), and joint placements
-  (`renameCassetteV2TreeParameter`). Invalid or colliding names refuse.
-  The row's chips are the
-  shared expression editor (`surfaces/lib/components/expressionEditor.mjs`)
-  over the cassette's variables — the token panel offers them, a value
-  naming one reads it live — and adopt-on-bind
-  (`adoptOccsProfileBindingParameter`'s `externalParameters`) never mints
-  an identifier that scope defines: the profile editor evaluates and
-  saves against the joined scope the same way. Profiles live on
-  the tree: the designer's profile dialog writes profile workpieces
-  (their `profileSnapshot` is the renderer's geometry source) that ride
-  the cassette template's own document. The plugin's `profile` library
-  type (listing declarations, class `item`) holds reusable profiles as
-  org records: the dialog's Save to library writes the authored truth
-  (kind, process, prepared sketch) through the records host capability,
-  and picking a library record copies it into the draft — a snapshot
-  copy, never a live reference, so the cassette document stays
-  self-contained. Library records are authored only from the designer
-  dialog; the type carries no editor surface of its own. Placed
-  workpieces carry their library origin (`profileTemplateId`): edits
-  are local, and the dialog's Update library rewrites the origin record
-  explicitly (authored truth; the record keeps its name) — a rewrite
-  never reaches already-placed workpieces. The type's
-  write access inherits the cassette grant (`access.inherits` in the
-  listing — whoever may write cassettes may write library profiles).
-  The add-profile affordance is a picker: library rows with
-  evaluated-sketch thumbnails (`occProfileSketchLayerData` → the
-  drawing-preview normalizer — the same projection the bound
-  `profile-preview` surface renders in the platform's preview slots)
+  values on top — and its snapshot re-derives from the authored sketch
+  (the stored section is a last-good cache — a transient invalid
+  parameter holds it); the workpiece rows edit instance parameters in
+  place, instance values may be cassette expressions resolved in the
+  joined scope where the profile's own table shadows the cassette's
+  globals (inner over outer) while the raw expression stays stored.
+  Parameter names rename in place
+  (`renameOccsProfileSketchParameter` moves the key, order preserved,
+  and rewrites every reference as whole identifiers), and a cassette
+  global's rename rewrites the whole tree
+  (`renameCassetteV2TreeParameter`). The row's chips are the
+  shared expression editor
+  (`surfaces/lib/components/expressionEditor.mjs`)
+  over the cassette's variables, and adopt-on-bind never mints an
+  identifier the surrounding scope defines: the profile editor
+  evaluates and saves against the joined scope the same way. Profiles
+  live on the tree: the designer's profile dialog writes profile
+  workpieces (their `profileSnapshot` is the renderer's geometry
+  source) that ride the cassette template's own document. The plugin's
+  `profile` library type (listing declarations, class `item`) holds
+  reusable profiles as org records: the dialog's Save to library writes
+  the authored truth (kind, process, prepared sketch) through the
+  records host capability, and picking a library record copies it into
+  the draft — a snapshot copy, never a live reference. Library records
+  are authored only from the designer dialog; the type carries no
+  editor surface of its own, and its write access inherits the cassette
+  grant (`access.inherits` in the listing). The add-profile affordance
+  is a picker: library rows with evaluated-sketch thumbnails
+  (`resolveOccsProfileSketchLayerData` → the drawing-preview normalizer
+  — the same projection the bound `profile-preview` surface renders in
+  the platform's preview slots; the boolean fold makes it async)
   beside Create new (the blank dialog draft); picking a row places the
-  profile as a workpiece directly. The
-  current editor does not run a parametric constraint solver.
+  profile as a workpiece directly. Placed workpieces carry their
+  library origin (`profileTemplateId`): edits are local, and the
+  dialog's Update library rewrites the origin record explicitly — a
+  rewrite never reaches already-placed workpieces. The current editor
+  does not run a parametric constraint solver.
 - `production-layout.js` wraps the Clipper-backed face union/fold-route pass and
   returns semantic `cut.outer` / `fold.route` layer intent.
 - `evaluate.js` resolves OCCS graph-tree templates into production data. It
@@ -274,15 +202,18 @@ modules — no platform imports.
   child of the workpiece its attachment relation targets (breadcrumb,
   status, positioning, edit, and delete inline), and every other
   relation renders as a relation row under its workpiece.
-  Closed profile sections produce their production effect through the
-  same pass (owner law 2026-10-15, profiles are terminal): the array
-  settings (or the point placement) place the section copies and each
-  copy cuts the host face where it intersects — the boolean difference
-  the integral-cut hanger clips ride — with the cut polygons named on
-  `cut.inner` in the evaluated layerData and the designer drawing
-  (a dedicated registry row awaits an owner-named production name; the
-  inner-cut layer is the existing production home of exactly this
-  operation). A fold edge never carries a profile (owner law
+  Closed profiles produce their production effect through the
+  same pass (owner law 2026-10-15, profiles are terminal; owner law
+  2026-10-18, axis placement): the boolean result's rings are placed by
+  the axis law — the zero axis lands on the attachment edge (snap +
+  offsets), material half toward the host face; a point placement
+  rotates by the relation's rotation alone — and each copy cuts the
+  host face where it intersects, every ring a cut operand (the boolean
+  difference the integral-cut hanger clips ride), with the cut paths
+  named on `cut.inner` in the evaluated layerData and the designer
+  drawing (a dedicated registry row awaits an owner-named production
+  name; the inner-cut layer is the existing production home of exactly
+  this operation). A fold edge never carries a profile (owner law
   2026-10-16): `profileFoldEdgeRefusalsForTree` refuses the arrangement
   — both profile passes skip it and the designer drawing surfaces the
   refusal through `profileEmbeddingErrors` — and the attachment popup's

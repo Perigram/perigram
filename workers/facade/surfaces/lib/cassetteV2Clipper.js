@@ -447,6 +447,48 @@ export const differenceCassetteV2FacePolygon = async (
   }
 };
 
+// Multi-subject difference for profile boolean folds: every positive
+// result ring is a polygon, every negative ring a hole.
+export const differenceCassetteV2Polygons = async (
+  subjects = [],
+  clips = [],
+  { precision = CASSETTE_V2_CLIPPER_PRECISION } = {}
+) => {
+  const clipper = await getCassetteV2Clipper();
+  const subjectPaths = pathsDFromPolygons(clipper, subjects);
+  const clipPaths = pathsDFromPolygons(clipper, clips);
+
+  try {
+    if (!subjectPaths.size()) return { polygons: [], holes: [] };
+    if (!clipPaths.size()) {
+      const rings = verticesFromPathsD(subjectPaths, precision).map(path => ({
+        vertices: path,
+        area: polygonArea(path)
+      }));
+      return {
+        polygons: rings.filter(ring => ring.area > 0).map(ring => ring.vertices),
+        holes: rings.filter(ring => ring.area < 0).map(ring => ring.vertices)
+      };
+    }
+    const solution = clipper.DifferenceD(subjectPaths, clipPaths, clipper.FillRule.NonZero, precision);
+    try {
+      const rings = verticesFromPathsD(solution, precision).map(path => ({
+        vertices: path,
+        area: polygonArea(path)
+      }));
+      return {
+        polygons: rings.filter(ring => ring.area > 0).map(ring => ring.vertices),
+        holes: rings.filter(ring => ring.area < 0).map(ring => ring.vertices)
+      };
+    } finally {
+      solution.delete();
+    }
+  } finally {
+    subjectPaths.delete();
+    clipPaths.delete();
+  }
+};
+
 export const buildCassetteV2ClipperLayout = async (
   faces = [],
   { precision = CASSETTE_V2_CLIPPER_PRECISION } = {}

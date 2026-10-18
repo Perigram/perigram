@@ -50,8 +50,8 @@ import { embedOccsProfileEdge, embedOccsProfilesIntoContour } from '../../occs/p
 import {
   createDefaultOccsProfileTemplateData,
   normalizeOccsProfileSketch,
-  occProfileSectionChainedVertices,
   occsProfileFromSketch,
+  resolveOccsProfileSectionPolygons,
   rewriteOccsProfileSketchExpressions
 } from '../../occs/profiles.js';
 
@@ -312,7 +312,7 @@ export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
     rawSketch ? { ...rawSketch, parameters: evaluationTable } : data.sketch,
     data.parameters
   );
-  const deriveFromSketch = rawSketch && sketch.points.length > 0;
+  const deriveFromSketch = rawSketch && sketch.shapes.length > 0;
   let occsProfile = null;
   if (source.section && source.sweep && !deriveFromSketch) {
     occsProfile = { section: source.section, sweep: source.sweep, sketch };
@@ -1494,7 +1494,7 @@ const dimensionLabelsForNode = (node) => {
   };
 };
 
-export const createCassetteV2OccsDocument = (definition = {}, context = {}) => {
+export const createCassetteV2OccsDocument = async (definition = {}, context = {}) => {
   if (isGraphTree(definition)) {
     return createCassetteV2OccsDocumentFromTree(definition, context);
   }
@@ -1574,7 +1574,7 @@ export const createCassetteV2OccsDocument = (definition = {}, context = {}) => {
   };
 };
 
-export const createCassetteV2OccsDocumentFromTree = (tree = createCassetteV2GraphTree(), context = {}) => {
+export const createCassetteV2OccsDocumentFromTree = async (tree = createCassetteV2GraphTree(), context = {}) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const nodes = Array.isArray(sourceTree.nodes) ? sourceTree.nodes : [];
   const nodesByWorkpieceId = new Map();
@@ -1585,7 +1585,7 @@ export const createCassetteV2OccsDocumentFromTree = (tree = createCassetteV2Grap
   const curves = buildCassetteV2TrapezoidTreeCurves(sourceTree, { mode: 'assembly' });
   const curveByNodeId = new Map(curves.map(curve => [curve.node.id, curve]));
   const productionEntitiesByTarget = new Map();
-  for (const entity of hardwareProductionEntitiesForTree(curves, sourceTree)) {
+  for (const entity of await hardwareProductionEntitiesForTree(curves, sourceTree)) {
     if (!productionEntitiesByTarget.has(entity.target)) productionEntitiesByTarget.set(entity.target, []);
     productionEntitiesByTarget.get(entity.target).push(entity);
   }
@@ -1636,7 +1636,8 @@ export const createCassetteV2OccsDocumentFromTree = (tree = createCassetteV2Grap
         const cassetteMarkEntity = cassetteMarkEntityForWorkpiece(workpiece, workpieceIndex);
         const faces = workpieceNodes.map((node) => {
           const hookCuts = (productionEntitiesByTarget.get(node.id) || [])
-            .filter(entity => !entity.booleanOnly && entity.layer === OCCS_LAYER_CUT_INNER && entity.geometry?.type === 'polygon');
+            .filter(entity => !entity.booleanOnly && entity.layer === OCCS_LAYER_CUT_INNER
+              && (entity.geometry?.type === 'polygon' || entity.geometry?.type === 'polygons'));
           const curve = curveByNodeId.get(node.id);
           const shape = hookCuts.length && curve
             ? {
@@ -1645,10 +1646,10 @@ export const createCassetteV2OccsDocumentFromTree = (tree = createCassetteV2Grap
                   String(vertex[0]),
                   String(vertex[1])
                 ]),
-                holes: hookCuts.map(entity => entity.geometry.vertices.map(vertex => [
+                holes: hookCuts.flatMap(entity => productionEntityCutRings(entity).map(ring => ring.map(vertex => [
                   String(vertex[0]),
                   String(vertex[1])
-                ]))
+                ])))
               }
             : shapeFromNode(node);
           return {
@@ -1678,33 +1679,46 @@ export const createCassetteV2OccsDocumentFromTree = (tree = createCassetteV2Grap
             })),
           entities: [
             ...faces.flatMap(face => dimensionEntitiesForFaceShape(face.id, face.shape)),
-            ...faces.flatMap(face => (productionEntitiesByTarget.get(face.id) || []).filter(entity => !entity.booleanOnly).map(entity => ({
-              id: entity.id,
-              layer: entity.layer,
-              target: entity.target,
-              geometry: entity.geometry.type === 'circle'
-                ? {
-                    type: 'circle',
-                    diameter: String(entity.geometry.diameter),
-                    center: [
-                      String(entity.geometry.center[0]),
-                      String(entity.geometry.center[1])
-                    ]
-                  }
-                : {
-                    type: 'polygon',
-                    vertices: entity.geometry.vertices.map(vertex => [
-                      String(vertex[0]),
-                      String(vertex[1])
-                    ])
-                  },
-              extensions: {
-                perigram: {
-                  relationId: entity.relationId,
-                  hardwareWorkpieceId: entity.hardwareWorkpieceId
-                }
-              }
-            }))),
+            ...faces.flatMap(face => (productionEntitiesByTarget.get(face.id) || []).filter(entity => !entity.booleanOnly).flatMap(entity => (
+              entity.geometry.type === 'circle'
+                ? [{
+                    id: entity.id,
+                    layer: entity.layer,
+                    target: entity.target,
+                    geometry: {
+                      type: 'circle',
+                      diameter: String(entity.geometry.diameter),
+                      center: [
+                        String(entity.geometry.center[0]),
+                        String(entity.geometry.center[1])
+                      ]
+                    },
+                    extensions: {
+                      perigram: {
+                        relationId: entity.relationId,
+                        hardwareWorkpieceId: entity.hardwareWorkpieceId
+                      }
+                    }
+                  }]
+                : productionEntityCutRings(entity).map(ring => ({
+                    id: entity.id,
+                    layer: entity.layer,
+                    target: entity.target,
+                    geometry: {
+                      type: 'polygon',
+                      vertices: ring.map(vertex => [
+                        String(vertex[0]),
+                        String(vertex[1])
+                      ])
+                    },
+                    extensions: {
+                      perigram: {
+                        relationId: entity.relationId,
+                        hardwareWorkpieceId: entity.hardwareWorkpieceId
+                      }
+                    }
+                  }))
+            ))),
             {
               ...cassetteMarkEntity,
               geometry: {
@@ -2617,11 +2631,11 @@ export const cassetteV2AttachableProfileEdgesForTree = (
 
 // Closed profile sections arranged on a face produce their production
 // effect (owner law 2026-10-15): the array settings (or the point
-// placement) place the section copies and each copy cuts the host face
+// placement) place the boolean result and each copy cuts the host face
 // where it intersects — the same boolean pipeline and the same
-// cut.inner layer the integral-cut hanger clips ride. Sections that
-// fall entirely outside the face stay boolean-only operands.
-export const profileCutEntitiesForTree = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
+// cut.inner layer the integral-cut hanger clips ride. Copies that fall
+// entirely outside the face stay boolean-only operands.
+export const profileCutEntitiesForTree = async (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
   const foldRefusals = profileFoldEdgeRefusalsForTree(sourceTree);
@@ -2639,9 +2653,10 @@ export const profileCutEntitiesForTree = (curves = [], tree = createCassetteV2Gr
     const profile = normalizeCassetteV2Profile(workpiece, parameters);
     const open = profile.section?.open || profile.section?.type === 'polyline';
     if (open) continue; // open profiles consume the edge through the contour embedding
-    hardwarePointsForRelation(targetCurve, relation, parameters).forEach((point, index) => {
-      const vertices = profileCutPolygon(workpiece, point, relation, parameters);
-      if (!vertices) return;
+    const points = hardwarePointsForRelation(targetCurve, relation, parameters);
+    for (let index = 0; index < points.length; index += 1) {
+      const polygons = await profileCutPolygons(profile, points[index], relation, targetCurve, parameters);
+      if (!polygons) continue;
       entities.push({
         id: `${relation.id}:profile_cut:${index}`,
         layer: OCCS_LAYER_CUT_INNER,
@@ -2649,14 +2664,14 @@ export const profileCutEntitiesForTree = (curves = [], tree = createCassetteV2Gr
         workpieceId: relation.targetWorkpieceId,
         profileWorkpieceId: relation.sourceWorkpieceId,
         relationId: relation.id,
-        geometry: { type: 'polygon', vertices },
+        geometry: { type: 'polygons', polygons },
         booleanOperation: true,
-        booleanOnly: !polygonInsideFace(
+        booleanOnly: !polygons.every(vertices => polygonInsideFace(
           vertices,
           targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices
-        )
+        ))
       });
-    });
+    }
   }
   return entities;
 };
@@ -2704,27 +2719,44 @@ const mirroredProfileVertex = (vertex = [], relation = {}) => [
   numeric(vertex?.[1], 0) * (relation.mirrorY ? -1 : 1)
 ];
 
-const profileCutPolygon = (workpiece = {}, point = [0, 0, 0], relation = {}, scope = {}) => {
-  if (!workpiece.profileSnapshot && !workpiece.profile) return null;
-  const profile = normalizeCassetteV2Profile(workpiece, scope);
-  const section = Array.isArray(profile.section?.vertices) ? profile.section : null;
-  if (!section) return null;
-  // The cut follows the drawable chain — authored fillet corners
-  // resolved to their arc points.
-  const vertices = occProfileSectionChainedVertices(section);
-  if (vertices.length < 3) return null;
-  // An anchored profile cuts anchor-relative: the anchor vertex lands on
-  // the placement point. Mirrors apply before the relation's rotation,
-  // the same order every profile placement uses.
-  const anchor = profile.section?.anchor;
-  const rotation = resolveCassetteV2AngleExpression(relation.rotation || '0', scope, 0);
-  return vertices.map((vertex) => {
-    const local = anchor
-      ? [numeric(vertex?.[0], 0) - numeric(anchor[0], 0), numeric(vertex?.[1], 0) - numeric(anchor[1], 0)]
-      : [numeric(vertex?.[0], 0), numeric(vertex?.[1], 0)];
+// Axis placement (owner law 2026-10-18): the profile's zero axis lands
+// on the attachment edge — +X maps onto the edge's inward normal, +Y
+// onto the edge direction — with the material half toward the host
+// face. Mirrors apply before the relation's rotation; a point placement
+// (no edge array) rotates by the relation's rotation alone in the face
+// frame.
+const profileAxisRotationDegrees = (relation = {}, targetCurve = null) => {
+  if (relation.pattern?.type !== 'edgeArray' || !targetCurve) return 0;
+  const edgeIndex = edgeIndexFromLabel(relation.pattern.edge, 0);
+  const contour = withoutClosingVertex(rawFaceVertices(targetCurve))
+    .map(vertex => [numeric(vertex?.[0], 0), numeric(vertex?.[1], 0)]);
+  if (contour.length < 3) return 0;
+  const start = contour[edgeIndex % contour.length];
+  const end = contour[(edgeIndex + 1) % contour.length];
+  const edge = [end[0] - start[0], end[1] - start[1]];
+  const length = Math.hypot(edge[0], edge[1]);
+  if (length <= 1e-6) return 0;
+  const centroid = contour
+    .reduce((sum, vertex) => [sum[0] + vertex[0], sum[1] + vertex[1]], [0, 0])
+    .map(value => value / contour.length);
+  const inward = [-(edge[1] / length), edge[0] / length];
+  if (inward[0] * (centroid[0] - start[0]) + inward[1] * (centroid[1] - start[1]) < 0) {
+    inward[0] = -inward[0];
+    inward[1] = -inward[1];
+  }
+  // +X (the material half) onto the inward normal: the axis rotation is
+  // the normal's angle minus the profile's own +X direction.
+  return (Math.atan2(inward[1], inward[0]) * 180) / Math.PI - 90;
+};
+
+const placeProfileRing = (ring = [], point = [0, 0, 0], relation = {}, axisRotation = 0, scope = {}) => {
+  const rotation = axisRotation
+    + resolveCassetteV2AngleExpression(relation.rotation || '0', scope, 0);
+  return ring.map((vertex) => {
+    const local = mirroredProfileVertex(vertex, relation);
     const placed = rotation
-      ? rotate2d(mirroredProfileVertex(local, relation), rotation)
-      : mirroredProfileVertex(local, relation);
+      ? rotate2d(local, rotation)
+      : local;
     return [
       numeric(point?.[0], 0) + placed[0],
       numeric(point?.[1], 0) + placed[1],
@@ -2733,41 +2765,67 @@ const profileCutPolygon = (workpiece = {}, point = [0, 0, 0], relation = {}, sco
   });
 };
 
-const hardwareProductionEntitiesForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
+// The placed boolean result of a closed profile: the resolved polygon
+// rings (outer and holes alike — every ring is cut geometry), placed by
+// the axis law at the given point. Open/polyline sections cut nothing.
+const profileCutPolygons = async (profile, point = [0, 0, 0], relation = {}, targetCurve = null, scope = {}) => {
+  const section = profile?.section;
+  if (!section || section.open || section.type === 'polyline') return null;
+  const resolved = await resolveOccsProfileSectionPolygons(section);
+  if (!resolved) return null;
+  const rings = [...resolved.polygons, ...resolved.holes].filter(ring => ring.length >= 3);
+  if (!rings.length) return null;
+  const axisRotation = profileAxisRotationDegrees(relation, targetCurve);
+  return rings.map(ring => placeProfileRing(ring, point, relation, axisRotation, scope));
+};
+
+const hardwareProductionEntitiesForTree = async (curves = [], tree = createCassetteV2GraphTree()) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
   const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
-  return getCassetteV2WorkpieceRelations(sourceTree)
-    .flatMap((relation) => {
-      const workpiece = relationHardwareWorkpiece(sourceTree, relation);
-      if (!workpiece) return [];
-      const hardware = normalizeCassetteV2Hardware(workpiece);
-      const targetCurve = curveById.get(relation.targetFaceId);
-      if (!targetCurve) return [];
-      const points = hardwarePointsForRelation(targetCurve, relation, parameters);
-      if (hardware.family === 'hanger_clip' && hardware.productionMode === 'integralCut') {
-        return points.map((point, index) => ({
+  const entities = [];
+  for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
+    const workpiece = relationHardwareWorkpiece(sourceTree, relation);
+    if (!workpiece) continue;
+    const hardware = normalizeCassetteV2Hardware(workpiece);
+    const targetCurve = curveById.get(relation.targetFaceId);
+    if (!targetCurve) continue;
+    const points = hardwarePointsForRelation(targetCurve, relation, parameters);
+    if (hardware.family === 'hanger_clip' && hardware.productionMode === 'integralCut') {
+      const profile = workpiece.profileSnapshot || workpiece.profile
+        ? normalizeCassetteV2Profile(workpiece, parameters)
+        : null;
+      for (let index = 0; index < points.length; index += 1) {
+        const polygons = profile
+          ? await profileCutPolygons(profile, points[index], relation, targetCurve, parameters)
+          : null;
+        const geometry = polygons
+          ? { type: 'polygons', polygons }
+          : { type: 'polygon', vertices: hangerClipCutPolygon(hardware.parameters, points[index]) };
+        entities.push({
           id: `${relation.id}:hook_cut:${index}`,
           layer: OCCS_LAYER_CUT_INNER,
           target: relation.targetFaceId,
           workpieceId: relation.targetWorkpieceId,
           hardwareWorkpieceId: relation.sourceWorkpieceId,
           relationId: relation.id,
-          geometry: {
-            type: 'polygon',
-            vertices: profileCutPolygon(workpiece, point, relation, parameters) || hangerClipCutPolygon(hardware.parameters, point)
-          }
-        })).map((entity) => ({
-          ...entity,
+          geometry,
           booleanOperation: true,
-          booleanOnly: !polygonInsideFace(
-            entity.geometry.vertices,
-            targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices
-          )
-        }));
+          booleanOnly: geometry.type === 'polygons'
+            ? !geometry.polygons.every(vertices => polygonInsideFace(
+                vertices,
+                targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices
+              ))
+            : !polygonInsideFace(
+                geometry.vertices,
+                targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices
+              )
+        });
       }
-      if (OCCS_HOLE_HARDWARE_FAMILIES.includes(hardware.family)) {
-        return points.map((point, index) => ({
+    }
+    if (OCCS_HOLE_HARDWARE_FAMILIES.includes(hardware.family)) {
+      points.forEach((point, index) => {
+        entities.push({
           id: `${relation.id}:hole:${index}`,
           layer: OCCS_LAYER_CUT_HOLE,
           target: relation.targetFaceId,
@@ -2779,10 +2837,11 @@ const hardwareProductionEntitiesForTree = (curves = [], tree = createCassetteV2G
             center: point,
             diameter: hardwareHoleDiameter(hardware)
           }
-        }));
-      }
-      return [];
-    });
+        });
+      });
+    }
+  }
+  return entities;
 };
 
 const hardwareProductionLayers = (entities = []) => {
@@ -2791,7 +2850,7 @@ const hardwareProductionLayers = (entities = []) => {
     .map(entity => ({
       d: entity.geometry.type === 'circle'
         ? circlePathAt(entity.geometry.center, entity.geometry.diameter)
-        : occsCurveToPath(entity.geometry.vertices),
+        : productionEntityCutRings(entity).map(occsCurveToPath).join(' '),
       fill: 'none',
       stroke: 'layer',
       workpieceId: entity.workpieceId,
@@ -2831,12 +2890,22 @@ const hookCutEntitiesByTarget = (entities = []) => {
   const byTarget = new Map();
   for (const entity of entities) {
     if (!entity.booleanOperation && entity.layer !== OCCS_LAYER_CUT_INNER) continue;
-    if (entity.geometry?.type !== 'polygon') continue;
+    if (entity.geometry?.type !== 'polygon' && entity.geometry?.type !== 'polygons') continue;
     if (!byTarget.has(entity.target)) byTarget.set(entity.target, []);
     byTarget.get(entity.target).push(entity);
   }
   return byTarget;
 };
+
+// A cut entity's operand rings: a polygons entity carries many, a
+// polygon entity one.
+const productionEntityCutRings = (entity = {}) => (
+  entity.geometry?.type === 'polygons'
+    ? entity.geometry.polygons
+    : entity.geometry?.type === 'polygon'
+      ? [entity.geometry.vertices]
+      : []
+);
 
 const applyHardwareBooleanDifferences = async (curves = [], productionEntities = []) => {
   const cutsByTarget = hookCutEntitiesByTarget(productionEntities);
@@ -2847,7 +2916,7 @@ const applyHardwareBooleanDifferences = async (curves = [], productionEntities =
     if (!cuts?.length) return curve;
     const difference = await differenceCassetteV2FacePolygon(
       curve.boundaryVertices || curve.vertices,
-      cuts.map(entity => entity.geometry.vertices)
+      cuts.flatMap(entity => productionEntityCutRings(entity))
     );
     if (!difference.outer?.length) return curve;
     return {
@@ -3202,8 +3271,8 @@ const mergeCassetteMarkLayers = (...layers) => {
   };
 };
 
-const foldedPreviewProductionEntitiesForTree = (curves = [], tree = createCassetteV2GraphTree()) => (
-  hardwareProductionEntitiesForTree(curves, tree)
+const foldedPreviewProductionEntitiesForTree = async (curves = [], tree = createCassetteV2GraphTree()) => (
+  (await hardwareProductionEntitiesForTree(curves, tree))
     .filter(entity => !entity.booleanOnly)
     .map(entity => ({
       id: entity.id,
@@ -3256,7 +3325,7 @@ const foldedPreviewBodiesForTree = (tree = createCassetteV2GraphTree(), paramete
     .filter(Boolean);
 };
 
-const foldedPreviewForTree = (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
+const foldedPreviewForTree = async (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const parameters = treeParameters(tree);
   const faces = curves.map(curve => ({
     nodeId: curve.node.id,
@@ -3304,7 +3373,7 @@ const foldedPreviewForTree = (curves = [], tree = createCassetteV2GraphTree(), o
       }))
     : [];
   const bodies = foldedPreviewBodiesForTree(tree, parameters);
-  const cutouts = foldedPreviewProductionEntitiesForTree(curves, tree);
+  const cutouts = await foldedPreviewProductionEntitiesForTree(curves, tree);
 
   return buildOccsFoldedPreviewPayload({ faces, folds, joints, bodies, cutouts });
 };
@@ -3359,8 +3428,8 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
   const embeddedCurves = spliceProfileEmbeddings(curves, profileEmbeddingErrors);
   const terminalEdges = profileTerminalEdgesForTree(tree);
   const productionEntities = [
-    ...hardwareProductionEntitiesForTree(curves, tree),
-    ...profileCutEntitiesForTree(curves, tree)
+    ...await hardwareProductionEntitiesForTree(curves, tree),
+    ...await profileCutEntitiesForTree(curves, tree)
   ];
   const shapedCurves = await applyHardwareBooleanDifferences(embeddedCurves, productionEntities);
   // The folded 3D rides the local (untransformed) curves in assembly
@@ -3371,8 +3440,8 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
   if (options.foldedPreviewCurves) {
     const localEmbedded = spliceProfileEmbeddings(options.foldedPreviewCurves, []);
     const localEntities = [
-      ...hardwareProductionEntitiesForTree(options.foldedPreviewCurves, tree),
-      ...profileCutEntitiesForTree(options.foldedPreviewCurves, tree)
+      ...await hardwareProductionEntitiesForTree(options.foldedPreviewCurves, tree),
+      ...await profileCutEntitiesForTree(options.foldedPreviewCurves, tree)
     ];
     foldedPreviewCurves = await applyHardwareBooleanDifferences(localEmbedded, localEntities);
   }
@@ -3392,7 +3461,7 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
     designerEdgesForBoundary(curve.node.id, curve.labelBoundaryVertices, foldedEdges, terminalEdges)
   ));
   const designerFoldEdges = designerFoldEdgesForTree(shapedCurves, tree);
-  const foldedPreview = foldedPreviewForTree(foldedPreviewCurves, tree, { includeJoints: options.includeFoldedPreviewJoints });
+  const foldedPreview = await foldedPreviewForTree(foldedPreviewCurves, tree, { includeJoints: options.includeFoldedPreviewJoints });
   const designerSections = designerSectionsForTree(shapedCurves, foldedPreview, tree);
   const hardwareLayers = hardwareProductionLayers(productionEntities);
   const cassetteMarkLayer = buildCassetteV2CassetteMarkLayer(shapedCurves, tree, options.cassetteMarkContext || {});

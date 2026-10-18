@@ -3,7 +3,7 @@
 // through the shared drawing-preview normalizer — the same projection
 // the cassette designer's library picker draws. Quiet blank for
 // records whose sketch does not resolve.
-import { occProfileSketchLayerData } from '../occs/profiles.js';
+import { resolveOccsProfileSketchLayerData } from '../occs/profiles.js';
 import { normalizeGeometryDrawing } from './lib/drawingPreview.js';
 
 export default function createSurface({ vue, components }) {
@@ -19,8 +19,8 @@ export default function createSurface({ vue, components }) {
     setup(props) {
       const drawing = ref(null);
 
-      function resolveDrawing() {
-        const layerData = occProfileSketchLayerData(props.record?.fields?.sketch);
+      async function resolveDrawing() {
+        const layerData = await resolveOccsProfileSketchLayerData(props.record?.fields?.sketch);
         drawing.value = layerData ? normalizeGeometryDrawing({ data: { layerData } }) : null;
       }
 

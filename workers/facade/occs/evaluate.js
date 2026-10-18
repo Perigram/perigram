@@ -110,7 +110,7 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
     // Closed profile sections cut the host face where they intersect
     // (owner law 2026-10-15): the same boolean difference the designer
     // applies, and their polygons ride the production cut layer.
-    const profileCutEntities = profileCutEntitiesForTree(workpieceCurves, tree)
+    const profileCutEntities = (await profileCutEntitiesForTree(workpieceCurves, tree))
       .filter(entity => faceCurves.has(entity.target));
     const cutEmbeddedCurves = [];
     for (const curve of embeddedCurves) {
@@ -121,7 +121,9 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
       }
       const difference = await differenceCassetteV2FacePolygon(
         curve.boundaryVertices || curve.vertices,
-        cuts.map(entity => entity.geometry.vertices)
+        cuts.flatMap(entity => entity.geometry.type === 'polygons'
+          ? entity.geometry.polygons
+          : [entity.geometry.vertices])
       );
       cutEmbeddedCurves.push({
         ...curve,
@@ -132,15 +134,20 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
     }
 
     for (const entity of profileCutEntities) {
-      profileCutLayerData.push({
-        layer: entity.layer,
-        coordinates: entity.geometry.vertices.map(vertex => [vertex[0], vertex[1]]),
-        handles: [entity.id],
-        workpieceId: workpiece.id,
-        workpieceDefinitionId: definitionIdForWorkpiece(workpiece),
-        occurrenceId: occurrenceIdForWorkpiece(workpiece),
-        profileWorkpieceId: entity.profileWorkpieceId,
-        relationId: entity.relationId
+      const rings = entity.geometry.type === 'polygons'
+        ? entity.geometry.polygons
+        : [entity.geometry.vertices];
+      rings.forEach((ring, ringIndex) => {
+        profileCutLayerData.push({
+          layer: entity.layer,
+          coordinates: ring.map(vertex => [vertex[0], vertex[1]]),
+          handles: [`${entity.id}:${ringIndex}`],
+          workpieceId: workpiece.id,
+          workpieceDefinitionId: definitionIdForWorkpiece(workpiece),
+          occurrenceId: occurrenceIdForWorkpiece(workpiece),
+          profileWorkpieceId: entity.profileWorkpieceId,
+          relationId: entity.relationId
+        });
       });
     }
 

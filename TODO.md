@@ -1,5 +1,56 @@
 # TODO
 
+## Profile shape model (owner direction 2026-10-18)
+
+The profile sketch becomes a list of parametric shapes with per-shape
+boolean ops, evaluated on the zero axis (SPEC §Owner decision
+2026-10-18, profile shape model): primitives (circle, rectangle, chain)
+with expression fields measured from the basis axis, per-shape
+add/subtract/none ops (none = reference geometry), the hatched material
+half-plane as a boolean body, axis-on-edge placement, non-destructive
+editable fillets, and a one-shot migration for stored sketches.
+
+- [ ] WAITING — owner verification on the live stack: the profile
+  dialog authors shapes (circle/rect/chain rows with per-shape ops,
+  expression fields, always-editable fillets), the zero axis with the
+  hatched material half renders and flips, drawn/imported geometry
+  lands as shapes (imports as reference), and a closed profile cuts
+  through its boolean result placed axis-on-edge.
+- [ ] WAITING — owner verification on the live stack: run
+  `node server/scripts/migrate-profile-sketches-to-shapes.js` (dry
+  run) against production data and `--apply` once the counts look
+  right.
+
+### Agent Notes (2026-10-18 — shipped)
+
+- Model: `sketch.shapes` (rect/circle/chain) with per-shape
+  `add`/`subtract`/`none` ops and `sketch.material` (the hatched
+  boolean half of X=0); legacy chain sketches upgrade at
+  `normalizeOccsProfileSketch` and through the one-shot script
+  (anchors translate onto the axis, coordinates numeric).
+- `resolveOccsProfileSectionPolygons` folds the boolean section
+  (union of adds − subtracts, clipped to the material half) through
+  the vendored Clipper; cut consumers (`evaluate.js`,
+  `profileCutEntitiesForTree`, hardware hook cuts, folded 3D) place
+  the RESULT rings by the axis law — axis on the attachment edge,
+  material half toward the face; ring-per-entity emission keeps the
+  document wire single-polygon.
+- The single-open-chain polyline section survives unchanged (the
+  embedding path and its laws); profileCut/document-builder chains
+  went async for the WASM fold — `createCassetteV2OccsDocument` is
+  now async throughout.
+- Editor: shape rows (op cycle, expression fields with adopt-on-bind,
+  fillet chips/inputs always editable), axis + hatch overlay, material
+  flip toggle; the basis pick, the closed toggle, and the unchained
+  gate are retired (every drawn piece becomes its own shape; imports
+  land as reference).
+- Thumbnails and the bound `profile-preview` surface resolve async.
+- Validation: 128 facade tests, SSR smoke (12), `check-arch`,
+  `framework:validate`, plugin listing validate — all pass.
+  `perigram-plugin surfaces` fails with an empty-specifier error
+  REPRODUCED ON CLEAN `local` BEFORE THIS CHANGE (pre-existing defect,
+  not introduced here); e2e needs the live stack and was not run.
+
 ## The authoring skill teaches the domain (owner direction 2026-10-18)
 
 The served guide was a gesture syntax manual: the model learned op

@@ -38,8 +38,8 @@ import {
   createEmptyOccsProfileSketch,
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
-  occProfileSketchLayerData,
-  occsProfileFromSketch
+  occsProfileFromSketch,
+  resolveOccsProfileSketchLayerData
 } from '../occs/profiles.js';
 import createExpressionEditor from './lib/components/expressionEditor.mjs';
 import createFieldDraft from './lib/components/fieldDraft.mjs';
@@ -302,12 +302,10 @@ export default function createSurface({ vue, components, locale, queries, record
         // gate resolves against them too.
         { ...(profileDraft.value.parameters || {}), ...globalParameters.value }
       ));
-      const preparedProfileDraftSketch = computed(() => {
-        const sketch = profileDraftSketch.value;
-        return sketch.closed
-          ? closeOccsProfileSketchBoundary(sketch, profileDraft.value.parameters || {})
-          : sketch;
-      });
+      const preparedProfileDraftSketch = computed(() => closeOccsProfileSketchBoundary(
+        profileDraftSketch.value,
+        profileDraft.value.parameters || {}
+      ));
 
       const selectedTemplateId = computed(() => persistedTemplateIdOverride.value || props.record?._id || '');
       const autosaveStorageKey = computed(() => `perigram:cassette-designer-v2:draft:${selectedTemplateId.value || 'draft'}`);
@@ -408,12 +406,21 @@ export default function createSurface({ vue, components, locale, queries, record
             // Half-authored values surface at evaluation; nothing binds.
           }
         };
-        (sketch.points || []).forEach(point => { collect(point.x); collect(point.y); });
-        (sketch.holes || []).forEach(hole => {
-          (hole.center || []).forEach(collect);
-          collect(hole.diameter);
+        (sketch.shapes || []).forEach(shape => {
+          if (shape.type === 'circle' || shape.type === 'rect') {
+            (shape.center || []).forEach(collect);
+            if (shape.type === 'circle') collect(shape.diameter);
+            else {
+              collect(shape.width);
+              collect(shape.height);
+              collect(shape.rotation);
+              (shape.fillets || []).forEach(fillet => collect(fillet.radius));
+            }
+            return;
+          }
+          (shape.points || []).forEach(point => { collect(point.x); collect(point.y); });
+          (shape.modifiers || []).forEach(modifier => collect(modifier.radius));
         });
-        (sketch.modifiers || []).forEach(modifier => collect(modifier.radius));
         Object.values(sketch.parameters || {}).forEach(collect);
         return used;
       };
@@ -882,7 +889,7 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const saveTemplate = async ({ saveAs = false } = {}) => {
         const tree = JSON.parse(JSON.stringify(cassetteTree.value));
-        const definition = createCassetteV2OccsDocument(tree, cassetteMarkContext.value);
+        const definition = await createCassetteV2OccsDocument(tree, cassetteMarkContext.value);
         const name = cassetteNameDraft.value || t('cassette.newCassette');
         try {
           // A blank editor tab has no record prop: the first save creates
@@ -1574,10 +1581,19 @@ export default function createSurface({ vue, components, locale, queries, record
         profilePicker.value?.hide?.();
       };
 
-      const profileRecordThumbnail = (record) => {
-        const layerData = occProfileSketchLayerData(record?.fields?.sketch);
-        return layerData ? normalizeGeometryDrawing({ data: { layerData } }) : null;
+      // Thumbnails resolve asynchronously (the boolean section folds
+      // through the Clipper runtime); the picker renders from the map
+      // as each record's drawing lands.
+      const profileThumbnails = ref({});
+      const resolveProfileThumbnails = async () => {
+        for (const record of profileLibraryRecords.value) {
+          const id = record?._id?.toString();
+          if (!id || profileThumbnails.value[id]) continue;
+          const layerData = await resolveOccsProfileSketchLayerData(record?.fields?.sketch);
+          profileThumbnails.value = { ...profileThumbnails.value, [id]: layerData ? normalizeGeometryDrawing({ data: { layerData } }) : null };
+        }
       };
+      watch(profileLibraryRecords, () => { resolveProfileThumbnails(); });
 
       const addProfileFromLibrary = (record) => {
         if (!record) return;
@@ -2811,7 +2827,7 @@ export default function createSurface({ vue, components, locale, queries, record
           profileLibraryAvailable.value && profileLibraryRecords.value.length
             ? h('div', { class: 'mt-1 flex flex-col border-t border-content-border pt-1' },
                 profileLibraryRecords.value.map(record => {
-                  const thumbnail = profileRecordThumbnail(record);
+                  const thumbnail = profileThumbnails.value[record?._id?.toString()] || null;
                   return h('button', {
                     key: record?._id,
                     type: 'button',

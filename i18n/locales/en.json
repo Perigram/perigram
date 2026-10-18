@@ -550,8 +550,7 @@
                 "library": "Library",
                 "saveToLibrary": "Save to library",
                 "createNew": "New profile",
-                "invalidSketch": "Close a profile polyline with at least three points before saving.",
-                "unchained": "Unconnected geometry: {count} piece(s) outside the chain — connect or erase before saving.",
+                "invalidSketch": "Author at least one shape with an operation before saving.",
                 "tools": {
                     "select": "Select",
                     "line": "Line",
@@ -559,6 +558,11 @@
                     "circle": "Circle",
                     "arc": "Arc",
                     "rectangle": "Rectangle"
+                },
+                "ops": {
+                    "none": "Reference",
+                    "add": "Add",
+                    "subtract": "Subtract"
                 },
                 "actions": {
                     "erase": "Erase",
@@ -569,19 +573,16 @@
                     "ortho": "Ortho",
                     "tangentSnap": "Tangent snap",
                     "commandLine": "Command line",
-                    "basis": "Basis"
+                    "material": "Material side"
                 },
                 "kind": "Kind",
                 "process": "Process",
                 "filletRadius": "Fillet radius",
                 "addParameter": "Add parameter",
                 "parameterName": "Parameter name",
-                "closedShape": "Closed shape",
-                "openShape": "Open shape",
                 "start": "start",
                 "end": "end",
                 "parameters": "Parameters",
-                "anchor": "Basis",
                 "dimensions": "Dimensions"
             },
             "placementModes": {
