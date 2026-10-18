@@ -361,16 +361,23 @@ function declarationNode(nodeType, { id, data, position }) {
   return { id, type: nodeType, position: position || { x: 0, y: 0 }, data: { refId: id, ...data } };
 }
 
+const CANVAS_NODE_TYPES = new Set(['processNode', ...Object.keys(DECLARATION_NODE_KINDS)]);
+
 // The structural floor every persisted graph must pass: nodes are
-// addressable (unique non-empty id), typed, and placed (numeric position —
-// a canvas node without coordinates renders nowhere), and edges address
-// existing nodes. Semantic validity is the validator's job; this is
-// integrity, enforced at the save seam.
-export function graphIntegrityProblems(graph = null) {
+// addressable (unique non-empty id), typed with a canvas type the
+// designer renders, placed (numeric position — a canvas node without
+// coordinates renders nowhere), resolvable (a processNode addresses a
+// processNodes record, a declaration node a ctsTypes record), and edges
+// address existing nodes. Semantic validity is the validator's job; this
+// is integrity, enforced at the save seam.
+export function graphIntegrityProblems(authored = null) {
+  const graph = authored?.graph;
   if (!graph || typeof graph !== 'object') return ['graph must be an object'];
   const problems = [];
   if (!Array.isArray(graph.nodes)) return ['graph.nodes must be an array'];
   const ids = new Set();
+  const records = authored?.processNodes || {};
+  const declarations = authored?.ctsTypes || {};
   graph.nodes.forEach((node, index) => {
     if (!node || typeof node !== 'object') {
       problems.push(`node ${index} is not an object`);
@@ -380,9 +387,18 @@ export function graphIntegrityProblems(graph = null) {
     else if (ids.has(node.id)) problems.push(`duplicate node id ${node.id}`);
     else ids.add(node.id);
     if (!node.type) problems.push(`node ${node.id || index} has no type`);
+    else if (!CANVAS_NODE_TYPES.has(node.type)) {
+      problems.push(`node ${node.id} has unknown canvas type ${node.type}`);
+    }
     const position = node.position;
     if (!position || typeof position.x !== 'number' || typeof position.y !== 'number') {
       problems.push(`node ${node.id || index} has no numeric position`);
+    }
+    if (node.type === 'processNode' && !records[node.data?.refId]) {
+      problems.push(`node ${node.id} addresses no processNodes record`);
+    }
+    if (DECLARATION_NODE_KINDS[node.type] && !declarations[node.data?.refId]) {
+      problems.push(`node ${node.id} addresses no ctsTypes record`);
     }
   });
   if (Array.isArray(graph.edges)) {
@@ -400,6 +416,51 @@ export function graphIntegrityProblems(graph = null) {
     });
   }
   return problems;
+}
+
+// Data edges address sockets: a handle the addressed record does not
+// carry renders as a wire pinned to the node body. Called at the save
+// seam AFTER the persisted rewrites — a rewrite may drop retired
+// handles this pass would flag.
+export function graphEdgeSocketProblems(authored = null) {
+  const graph = authored?.graph;
+  if (!graph || typeof graph !== 'object' || !Array.isArray(graph.edges)) return [];
+  const records = authored?.processNodes || {};
+  const nodesById = new Map((Array.isArray(graph.nodes) ? graph.nodes : [])
+    .filter(Boolean).map(node => [node.id, node]));
+  const problems = [];
+  graph.edges.forEach((edge, index) => {
+    if (!edge || typeof edge !== 'object') return;
+    const declaration = edge.role === 'type' || String(edge.id || '').startsWith('decl');
+    if (declaration) return;
+    for (const [nodeKey, handleKey, portList] of [['source', 'sourceHandle', 'outputs'], ['target', 'targetHandle', 'inputs']]) {
+      if (!String(edge[handleKey] || '').trim()) continue;
+      const node = nodesById.get(edge[nodeKey]);
+      const record = node?.type === 'processNode' ? records[node.data?.refId] : null;
+      const socketId = parseProcessSocketHandleId(edge[handleKey]);
+      const carried = Array.isArray(record?.[portList])
+        && record[portList].some(port => port?.id === socketId);
+      if (!carried) {
+        problems.push(`edge ${edge.id || index} handle ${edge[handleKey]} addresses no ${portList} socket on ${edge[nodeKey]}`);
+      }
+    }
+  });
+  return problems;
+}
+
+// One grant per effect (the lane law): a stored record carrying several
+// grants collapses to its primary — the lane projection already seats
+// the node by grants[0].
+export function collapseEffectAccessGrants(authored = null) {
+  const records = authored?.processNodes;
+  if (!records || typeof records !== 'object') return authored;
+  for (const record of Object.values(records)) {
+    if (!record || !EFFECT_SPECIES_KINDS.has(record.kind)) continue;
+    const grants = record.access?.grants;
+    if (!Array.isArray(grants) || grants.length < 2) continue;
+    record.access = normalizeDesignerAccess({ grants: [grants[0]] });
+  }
+  return authored;
 }
 
 function syncDeclarationRecordFromNode(record, nodeType, data) {
@@ -682,6 +743,13 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
   function configure(recordId, updates = {}) {
     const record = recordOf(recordId);
     if (!record) throw new Error(`No process node ${recordId}`);
+    // An effect's lane is its one grant.
+    if (updates.access !== undefined && EFFECT_SPECIES_KINDS.has(record.kind)) {
+      const grants = normalizeDesignerAccess(updates.access).grants;
+      if (grants.length > 1) {
+        throw new Error(`Effect ${recordId} carries one role grant (its lane) — got ${grants.length}: ${grants.map(grant => grant.roleId).join(', ')}`);
+      }
+    }
     // Rebind keeps a still-valid path/relation selection and defaults
     // an invalid one.
     const { typeId, ...rest } = updates;

@@ -303,6 +303,40 @@ describe('illegal wires never persist — the socket wall', () => {
         expect(after.edges.filter(edge => !edge.declaration)).toEqual([]);
     });
 
+    it('refuses agent shapes the designer cannot author', async () => {
+        const digest = await call('compose_process_definition', { name: 'Spec task', steps: TASK_STEPS });
+        const full = await call('get_process_definition', { definitionId: digest.id, full: true });
+
+        const faked = {
+            nodes: full.data.graph.nodes,
+            edges: [{ id: 'invented', source: 'make', target: 'make', sourceHandle: 'data:value', targetHandle: 'data:top' }]
+        };
+        await expect(call('update_definition_graph', { definitionId: digest.id, graph: faked })).rejects.toThrow(/addresses no/);
+
+        const phantom = {
+            nodes: [...full.data.graph.nodes, { id: 'ghost', type: 'processNode', position: { x: 0, y: 0 }, data: { refId: 'ghost' } }],
+            edges: full.data.graph.edges
+        };
+        await expect(call('update_definition_graph', { definitionId: digest.id, graph: phantom })).rejects.toThrow(/addresses no processNodes record/);
+
+        await expect(call('edit_process_definition', {
+            definitionId: digest.id,
+            steps: [{ op: 'configure', id: 'make', values: { access: { grants: [
+                { roleId: 'role_admin', level: 'admin' },
+                { roleId: 'fixture-role-operator', level: 'write' }
+            ] } } }]
+        })).rejects.toThrow(/one role grant/);
+
+        const multi = JSON.parse(JSON.stringify(full.data));
+        multi.processNodes.make.access = { grants: [
+            { roleId: 'role_admin', level: 'admin' },
+            { roleId: 'fixture-role-operator', level: 'write' }
+        ] };
+        await call('update_process_definition', { definitionId: digest.id, data: multi });
+        const stored = store().rows.get(digest.id);
+        expect(stored.data.processNodes.make.access.grants).toEqual([{ roleId: 'role_admin', level: 'admin' }]);
+    });
+
     it('keeps declaration edges legal — the tree wires node to node by design', async () => {
         const digest = await call('compose_process_definition', {
             name: 'Spec declarations',

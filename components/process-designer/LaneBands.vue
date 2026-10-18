@@ -12,12 +12,6 @@
         :style="labelStyle"
       >{{ band.label }}</span>
     </div>
-    <div
-      v-for="corridor in corridors"
-      :key="`corridor:${corridor.id}`"
-      class="absolute bg-primary-surface"
-      :style="{ left: `${corridor.x}px`, width: `${corridor.width}px`, top: `${corridor.top}px`, height: `${corridor.height}px` }"
-    />
   </div>
 </template>
 
@@ -31,12 +25,11 @@ import { useVueFlow } from '@vue-flow/core';
 // zoom-pane slot at a negative z-index — a background layer beneath
 // edges and nodes. Lane titles are the org's own role names at label
 // size, counter-scaled by the canvas zoom (absolute screen size). Pure
-// projection — the page derives bands and corridors from grant records;
-// this component only paints. It reads the viewport itself so the page
+// projection — the page derives bands from grant records; this
+// component only paints. It reads the viewport itself so the page
 // never tracks the per-frame viewport ref.
 const props = defineProps({
   bands: { type: Array, default: () => [] },
-  corridors: { type: Array, default: () => [] },
   left: { type: Number, default: 0 },
   right: { type: Number, default: 0 }
 });

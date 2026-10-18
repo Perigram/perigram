@@ -28,7 +28,7 @@ import {
   isDataTree,
   packetValue
 } from '~/packages/processes/src/index.js';
-import { createDefinitionAuthoring, graphIntegrityProblems } from '~/packages/processes/src/authoring.js';
+import { createDefinitionAuthoring, collapseEffectAccessGrants, graphEdgeSocketProblems, graphIntegrityProblems } from '~/packages/processes/src/authoring.js';
 import {
   getBlockFieldSchema,
   getBlockFieldSchemas,
@@ -206,12 +206,22 @@ export async function getById(id, auth) {
 }
 
 // The save floor: a persisted graph is structurally sound — nodes carry a
-// unique id, a type, and a numeric position; edges address existing nodes.
-// Semantic validity stays the validator's job (drafts may fail it
-// mid-edit); integrity failures block the save.
+// unique id, a canvas type, and a numeric position, address their records,
+// and edges address existing nodes and, after the persisted rewrites,
+// sockets the addressed record carries. Semantic validity stays the
+// validator's job (drafts may fail it mid-edit); integrity failures block
+// the save.
 function assertGraphIntegrity(data) {
   if (!data || typeof data !== 'object' || !data.graph) return;
-  const problems = graphIntegrityProblems(data.graph);
+  const problems = graphIntegrityProblems(data);
+  if (problems.length) {
+    throw createError({ statusCode: 400, message: `Graph integrity: ${problems.slice(0, 5).join('; ')}` });
+  }
+}
+
+function assertEdgeSocketIntegrity(data) {
+  if (!data || typeof data !== 'object' || !data.graph) return;
+  const problems = graphEdgeSocketProblems(data);
   if (problems.length) {
     throw createError({ statusCode: 400, message: `Graph integrity: ${problems.slice(0, 5).join('; ')}` });
   }
@@ -227,6 +237,7 @@ export async function create(payload = {}, auth) {
   const domain = await getProjectedDomain(organizationId);
   assertGraphIntegrity(payload.data || payload);
   const authored = persistedRewrites(structuredClone(payload.data || payload), domain);
+  assertEdgeSocketIntegrity(authored);
   const process = new ProcessDefinition({
     identity: {
       uid: `process-${new ObjectId().toString()}`,
@@ -255,6 +266,7 @@ export async function update(id, payload = {}, auth) {
   assertGraphIntegrity(payload.data);
   const domain = await getProjectedDomain(process.lineage.organizationId);
   const authored = persistedRewrites(structuredClone(payload.data), domain);
+  assertEdgeSocketIntegrity(authored);
   process.data = authored;
   process.data.compiled = null;
   const updated = await repository.updateById(id, process);
@@ -2414,7 +2426,7 @@ function persistedRewrites(data, domain) {
   // own the report, so a draft with access rules on a still-unbound node
   // remains savable.
   tryAcceptGraphProtocol(migration.data, domain);
-  return rewriteRetiredWirePaths(orientChildrenEdgesChildFirst(migration.data));
+  return rewriteRetiredWirePaths(orientChildrenEdgesChildFirst(collapseEffectAccessGrants(migration.data)));
 }
 
 // One compile path: protocol acceptance (v5 lowering) through

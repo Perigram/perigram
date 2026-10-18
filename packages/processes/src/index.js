@@ -22,10 +22,13 @@ export {
 export {
   ACCESS_LEVEL_RANK,
   PROCESS_NODE_OPERATIONS_BY_KIND,
+  collapseEffectAccessGrants,
   createDefinitionAuthoring,
   createProcessNodeRecord,
   createProcessRecordSync,
   defaultProcessNodeOperation,
+  graphEdgeSocketProblems,
+  graphIntegrityProblems,
   humanizeNodeLabel,
   iconForProcessNode,
   normalizeAccessLevel,
