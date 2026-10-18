@@ -1059,7 +1059,9 @@ async function executeDataflowActionRun({ process, actionId, instanceId, data, p
       entity: instanceId || entities?.entity || null,
       entities: {
         ...(entities || {}),
-        ...(effect.typeId && (instanceId || entities?.entity)
+        // The transport's instanceId is the operated entity for consumer
+        // actions; for a construct it is parent context and stays untyped.
+        ...(['cts.mutate', 'cts.transition', 'cts.remove'].includes(effect.kind) && effect.typeId && (instanceId || entities?.entity)
           ? { [effect.typeId]: instanceId || entities.entity }
           : {})
       },
