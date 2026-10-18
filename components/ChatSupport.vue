@@ -103,6 +103,7 @@
                     option-label="label"
                     option-value="conversationKey"
                     data-key="conversationKey"
+                    :auto-option-focus="false"
                     class="min-h-0 flex-1 border-0"
                     :aria-label="$t('support.chatTitle')"
                     scroll-height="100%"
