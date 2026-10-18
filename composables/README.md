@@ -411,31 +411,6 @@ contract — it stays the bar's own route tab navigating `/chats`.
 
 ---
 
-## useWorkspaceTabs
-
-```js
-const tabs = useWorkspaceTabs({ storageKey, sectionItems, sidebarCollapsed });
-```
-
-The desktop pane tab lifecycle owner (full contract:
-[components/generated/README.md](../components/generated/README.md) §Home
-Workspace): the pane tree with per-pane tab selections, the per-pane
-navigation history of in-place replacements, the open-content reference
-pools — compiled screen refs, workspace page refs, entity pool payloads,
-session entities (explorer children), call stages, pinned conversations —
-and their versioned persistence (`utils/home-workspace-state.js`).
-Reference entities resolve through their payload or an id stub while
-hydration lands; a reference whose record resolves to nothing once auth
-has settled drops together with its tab. The host supplies the storage
-key scope, the manifest-derived section items, and the sidebar wrap ref;
-the open verbs (`openScreenTab`, `openInstanceTab`, `openWorkspacePage`,
-`openChatTab`, `openCallTab`) resolve destinations through the generated
-surface registries. Pure tree/tab math lives in
-`utils/workspace-splits.js`, the tab key grammar in
-`utils/workspace-tab-keys.js`.
-
----
-
 ## usePageBack
 
 ```js

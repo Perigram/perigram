@@ -90,24 +90,6 @@ export function withPaneTab(pane, key, { newTab = false } = {}) {
   return tabs.map(tabKey => (tabKey === replacing ? key : tabKey));
 }
 
-// Tabs whose content no longer resolves close themselves: every leaf keeps
-// its empty placeholders plus resolvable keys, and a leaf left with none
-// resets to a fresh empty tab (the one-tab invariant).
-export function pruneLeafTabs(root, resolvableKeys, isPlaceholder = () => false) {
-  if (!root) return root;
-  if (root.kind === 'leaf') {
-    const tabKeys = (root.tabKeys || []).filter(key => isPlaceholder(key) || resolvableKeys.has(key));
-    if (tabKeys.length === (root.tabKeys || []).length) return root;
-    if (!tabKeys.length) return createWorkspaceLeaf(root.id, emptyTabKey());
-    return {
-      ...root,
-      tabKeys,
-      selectionKey: tabKeys.includes(root.selectionKey) ? root.selectionKey : tabKeys[0]
-    };
-  }
-  return { ...root, children: root.children.map(child => pruneLeafTabs(child, resolvableKeys, isPlaceholder)) };
-}
-
 function normalizeSplitSizes(sizes) {
   const normalized = sizes.map(size => Number(size));
   if (normalized.some(size => !Number.isFinite(size) || size <= 0)) return [50, 50];

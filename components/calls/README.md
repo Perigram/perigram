@@ -48,10 +48,9 @@ enters the main bundle).
   Only *new* calls float; ongoing rooms are listed in the home sidebar and
   in chats. Joining opens the call as a home workspace tab (mobile keeps
   the full-screen dialog).
-- `CallFloatingWindow.vue` is the floating call window: a detached call
-  tab hosted by the shared `FloatingSurface` shell (see
-  [components/shared](../shared/README.md)) above the app, whose docking
-  action returns the call to a home workspace tab. The mobile counterpart — the
+- `CallFloatingWindow.vue` is the absolute floating call window: a draggable
+  fixed panel above the app that hosts a popped-out `CallPanel`. Docking
+  returns the call to a home workspace tab. The mobile counterpart — the
   parked-call entry in the top lane with its reopen dialog — lives beside
   the now-playing dock in [components/media](../media/README.md).
 
@@ -171,15 +170,11 @@ the conversation (chat host) or the caller (mobile invites).
   their live source proportions — `CallTile` reports the video's aspect
   from the element's own resize events and the tile caps itself to the
   stage box — while cameras fill the stage (`object-cover`).
-- Grid view fills the stage with equal cells, meet-style: the participant
-  count and the measured container choose the column/row layout
-  (`utils/call-grid.js` ports the LiveKit components-js grid-layout
-  selection and visual-stable ordering), tiles keep their screen
-  positions while the speaker-priority sort changes membership
-  underneath, and participant overflow paginates (chevron controls and a
-  page indicator) instead of scrolling. Speakers, screen shares, and the
-  local camera lead the order; a pure reorder moves nothing until
-  someone joins or leaves.
+- Grid view is a self-fitting masonry: `repeat(auto-fit, minmax(min(100%,
+  14rem), 1fr))` with fixed-aspect 16:9 cells, so the participant count and
+  the pane width choose the column count together and the grid never
+  produces collapsed columns. The grid is also the only vertical scroller
+  in the panel.
 - Screen shares render `object-contain`; cameras `object-cover`.
   `CallPanel` itself carries no chat — app chat owns messaging; the panel
   only emits `closed` so hosts can tear the surface down. The dock's record

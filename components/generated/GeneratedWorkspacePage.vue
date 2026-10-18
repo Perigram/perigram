@@ -1,6 +1,24 @@
 <template>
-  <div class="flex h-full min-h-0 flex-col overflow-hidden">
-    <!-- The page content shell: non-flush pages (the organization
+  <section
+    v-if="definition"
+    class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
+  >
+    <GeneratedPaneHeader
+      :tabs="tabs"
+      :active-key="page.key"
+      :closeable="closeable"
+      :splittable="splittable"
+      :back="back"
+      @back="$emit('back')"
+      @refresh="$emit('refresh')"
+      @select-tab="$emit('select-tab', $event)"
+      @close-tab="$emit('close-tab', $event)"
+      @add="$emit('add-tab', $event)"
+      @split="orientation => $emit('split', orientation)"
+      @close="$emit('close')"
+    />
+
+    <!-- The pane's content shell: non-flush pages (the organization
          management surfaces) render inside the padded scroll area every
          other pane surface uses; flush pages (canvas designer, call
          stage, self-padding directory surface) own their own shell. -->
@@ -11,22 +29,27 @@
         @execute-action="(action, entry) => $emit('execute-action', action, entry)"
         @open-page="page => $emit('open-page', page)"
         @open-call="request => $emit('open-call', request)"
-        @closed="$emit('closed')"
+        @closed="$emit('close-tab', page.key)"
         @refresh="$emit('refresh')"
       />
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 
 const props = defineProps({
-  page: { type: Object, required: true }
+  page: { type: Object, required: true },
+  tabs: { type: Array, default: () => [] },
+  closeable: { type: Boolean, default: false },
+  splittable: { type: Boolean, default: true },
+  back: { type: Boolean, default: false }
 });
 
-defineEmits(['execute-action', 'open-page', 'open-call', 'closed', 'refresh']);
+defineEmits(['execute-action', 'open-page', 'open-call', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'back']);
 
 const definition = computed(() => resolveGeneratedWorkspacePage(props.page?.pageId));
 const pageProps = computed(() => definition.value?.props?.(props.page) || {});

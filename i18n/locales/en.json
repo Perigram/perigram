@@ -2126,8 +2126,6 @@
         },
         "layout": "Layout",
         "layoutSpeaker": "Speaker",
-        "prevPage": "Previous page",
-        "nextPage": "Next page",
         "layoutGrid": "Grid",
         "reactions": "Reactions",
         "settings": "Call settings",

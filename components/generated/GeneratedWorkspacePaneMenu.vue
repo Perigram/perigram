@@ -1,5 +1,5 @@
 <template>
-  <span class="inline-flex shrink-0 self-stretch items-stretch">
+  <span v-if="splittable || closeable" class="inline-flex shrink-0 self-stretch items-stretch">
     <Button
       icon="pi pi-ellipsis-v"
       text
@@ -12,6 +12,7 @@
     <Popover ref="popover">
       <div class="flex min-w-44 flex-col gap-1" @click="hide">
         <Button
+          v-if="splittable"
           :label="$t('project.splitRight')"
           icon="pi pi-arrows-h"
           text
@@ -20,6 +21,7 @@
           @click="$emit('split', 'horizontal')"
         />
         <Button
+          v-if="splittable"
           :label="$t('project.splitDown')"
           icon="pi pi-arrows-v"
           text
@@ -28,6 +30,7 @@
           @click="$emit('split', 'vertical')"
         />
         <Button
+          v-if="closeable"
           :label="$t('common.close')"
           icon="pi pi-times"
           text
@@ -47,7 +50,8 @@ import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 
 defineProps({
-  closeable: { type: Boolean, default: false }
+  closeable: { type: Boolean, default: false },
+  splittable: { type: Boolean, default: true }
 });
 
 defineEmits(['split', 'close']);

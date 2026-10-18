@@ -507,81 +507,61 @@ from the compiled manifest.
   wrapped rail), so on this route the desktop top
   navbar is hidden and its user controls live in the sidebar
   (`layouts/app.vue` resolves this from the active screen template).
-- The pane area is the recursive `WorkspaceSplitNode` tree, with every
-  leaf wrapped in a PrimeVue `Panel` on the zero canvas — transparent
-  background, the default Panel hairline border as the pane box, no
-  content padding (the hosted surface owns its own chrome). Split cells
-  carry no padding: the 6px gutters between the panels are the only
-  inter-pane gap and the pane-area host owns the workspace-edge inset, so
-  nested splits never compound spacing; gutters are never drawn — the
-  division stays draggable without a visible divider. Every pane exists
-  with at least one tab: fresh panes (initial and split) start on a
-  default empty tab, persisted tabless leaves are normalized to one at
-  load, and closing a pane's last tab closes the pane — except the
-  workspace's last pane, which resets to a fresh empty tab: IDE-style
-  file tabs, wheel-scrollable tab strips, split right/down, pane-local
-  close, registered workspace pages (every editor surface — cassette
-  designer, sheet layout editor, sketch, text/csv, table import — plus
-  chats and calls), and screen panes (`GeneratedScreenPane`): type
+- The pane area is the same recursive `WorkspaceSplitNode` tree used by the
+  project workspace, with every leaf wrapped in a PrimeVue `Panel` on the
+  zero canvas — transparent background, the default Panel hairline border
+  as the pane box, no content padding (the hosted surface owns its own
+  chrome). Split cells carry no padding: the 6px gutters between the
+  panels are the only inter-pane gap and the pane-area host owns the
+  workspace-edge inset, so nested splits never compound spacing; gutters
+  are never drawn — the division stays draggable without a visible
+  divider. Every pane exists with at least one tab: fresh panes (initial
+  and split) start on a default empty tab, persisted tabless leaves are
+  normalized to one at load, and closing a pane's last tab closes the
+  pane — except the workspace's last pane, which resets to a fresh empty
+  tab: IDE-style file tabs, wheel-scrollable tab strips, split
+  right/down, pane-local close, registered workspace pages (every editor
+  surface — cassette designer, sheet layout editor, sketch, text/csv,
+  table import — plus chats and calls), and screen panes
+  (`GeneratedScreenPane`): type
   screens and instance-bound detail screens both render through
   `GeneratedScreenHost` — the single generator host, with the instance id
-  in the screen scope for detail panes. The artifact detail overload
-  keeps the legacy renderer inside the pane, exactly like the routed
-  page. Collection creation belongs to sidebar sections and entity
-  operations belong to the detail screens' own action surfaces.
-- The tab lifecycle has one owner: `useWorkspaceTabs`
-  ([composables](../../composables/README.md)) holds the pane tree and
-  tab selections, the per-pane navigation history, the open-content
-  reference pools (screens, pages, entity payloads, call stages, pinned
-  conversations), and their persisted state. Tab keys come from the one
-  grammar module (`utils/workspace-tab-keys.js`); the pane tree math is
-  pure in `utils/workspace-splits.js`, including `pruneLeafTabs` — tabs
-  whose content died close themselves, and a leaf left with nothing
-  resets to a fresh empty tab. Tab references die with their last tab:
-  closing the last tab holding a reference forgets it in every pool
-  together with its one-shot page params. A reference whose record
-  resolves to nothing once auth has settled is dead (registry churn,
-  deleted record) and drops together with its tab; reference entities
-  resolve immediately through their payload or an id stub, so a restored
-  tab always renders as its kind while hydration lands.
+  in the screen scope for detail panes. The artifact detail overload keeps the legacy
+  renderer inside the pane, exactly like
+  the routed page. There is no Explorer header or project
+  action strip; collection creation belongs to sidebar sections and
+  entity operations belong to the detail screens' own action surfaces.
 - Tab creation is explicit: new tabs come only from the tab strip's add
-  control, sidebar type screens, explorer instance rows, and live call
-  stages (a call keeps its own tab so the live stage holds its surface
-  across workspace navigation). Every other navigation — explorer rows,
-  nested entity links, workspace pages — reuses the pane's selected tab
-  in place (replacing an empty placeholder like any content), and opening
-  an item that already has a tab in the pane just selects it; a new tab
-  opened onto a selected empty placeholder consumes the placeholder. Each
-  tab keeps its own selected content while switching because pane tab
-  keys and the selected key are persisted pane state. In-place
-  replacement is a navigation step: the workspace keeps a per-pane
-  history stack of the replaced content keys (session-only, capped), and
-  the pane header renders its Back control — always visible, disabled
-  while the pane has no history — so navigation stays discoverable; Back
-  walks the pane's navigation path, skipping entries whose content no
-  longer resolves. Detail tab titles follow the one title resolver
-  (`titleFor` from the mapping contract over the instances pool), so the
-  declared identity field wins and raw ids never render; type-screen
-  tabs carry procedural labels (the generated type key with a locale
-  override over the manifest label).
-- One pane header, one host: `GeneratedWorkspacePane` mounts
-  `GeneratedPaneHeader` (Back, the tab strip, and the pane menu) exactly
-  once per pane and dispatches the selected tab's body —
-  `GeneratedScreenPane` for compiled screens, `GeneratedWorkspacePage`
-  for registered pages, and the open-content prompt for an empty tab.
-  Body components carry content only: their tab-strip wiring, tab props,
-  and pane controls live in the pane shell.
+  control, sidebar type screens, explorer instance rows, and live call stages (calls stay in their own tab so workspace
+  navigation never unmounts an active call). Every other navigation —
+  explorer rows, nested entity links, workspace pages — reuses the pane's
+  selected tab in place (replacing an empty placeholder like any content), and
+  opening an item that already has a tab in the pane just selects it; a
+  new tab opened onto a selected empty placeholder consumes the
+  placeholder instead of leaving a dead "new tab" behind. Each
+  tab keeps its own selected content while switching because pane tab keys
+  and the selected key are persisted pane state. In-place replacement is a
+  navigation step: the workspace keeps a per-pane history stack of the
+  replaced content keys (session-only, capped), and the pane header
+  renders its Back control — always visible, disabled while the pane has
+  no history — so navigation stays discoverable; Back walks the pane's
+  navigation path, skipping entries whose content
+  no longer resolves. Detail tab titles follow
+  the one title resolver (`titleFor` from the mapping
+  contract over the instances pool), so the declared identity field wins
+  and raw ids never render; type-screen tabs carry procedural labels
+  (the generated type key with a locale override over the manifest
+  label).
 - Tab and pane state persists as versioned browser UI state scoped to the
   current user and organization (`utils/home-workspace-state.js`,
   version 3 — instance surfaces are instance-bound screen references).
   It stores the pane tree, tab selections, opened screen references
-  (type and instance-bound), opened page references, and the sidebar
-  wrap, normalized through the same module on load and save. Records for
-  open tabs and explorer rows hydrate through the instances store pool;
-  lazily fetched explorer children stay session-local. The persisted
-  state is applied after mount: production Vue does not rectify
-  hydration mismatches, so SSR and the hydration render stay identical
-  and the workspace swap-in rides normal reactivity. A user or
-  organization switch re-applies the stored state and resets the
-  session-scoped half (histories, call stages, pinned conversations,
-  page params, explorer children).
+  (type and instance-bound), and opened page
+  references using the same normalization contract as the project workspace,
+  minus explorer fields. Explorer rows and editor pages keep their
+  records hydrated through the instances store pool for nesting and
+  page props; lazily
+  fetched explorer children stay session-local. The persisted state is
+  applied after mount: production Vue does not rectify hydration
+  mismatches, so SSR and the hydration render stay identical and the
+  workspace swap-in rides normal reactivity.
