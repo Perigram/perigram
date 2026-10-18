@@ -287,21 +287,25 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     return best.band;
   };
   const bandOf = new Map();
+  // Process nodes first: effects by grant, everything else by its nearest
+  // wired effect's grant — both order-independent, so the map is complete
+  // before declarations read it.
   for (const node of nodes) {
+    if (isDeclaration(node)) continue;
     if (effects.has(node.id)) {
       const band = grantedBand(node.id);
       if (band) bandOf.set(node.id, band);
       continue;
     }
-    if (!isDeclaration(node)) {
-      const downstream = nearestEffect(node.id, successors);
-      const anchor = grantedBand(downstream) ? downstream
-        : grantedBand(nearestEffect(node.id, predecessors)) ? nearestEffect(node.id, predecessors)
-          : null;
-      const band = anchor ? grantedBand(anchor) : nearestBand(node);
-      if (band) bandOf.set(node.id, band);
-      continue;
-    }
+    const downstream = nearestEffect(node.id, successors);
+    const anchor = grantedBand(downstream) ? downstream
+      : grantedBand(nearestEffect(node.id, predecessors)) ? nearestEffect(node.id, predecessors)
+        : null;
+    const band = anchor ? grantedBand(anchor) : nearestBand(node);
+    if (band) bandOf.set(node.id, band);
+  }
+  for (const node of nodes) {
+    if (bandOf.has(node.id) || !isDeclaration(node)) continue;
     const anchor = declarationAnchor(node.id);
     const band = (anchor && bandOf.get(anchor)) || nearestBand(node);
     if (band) bandOf.set(node.id, band);
@@ -395,6 +399,14 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     const pitch = bandPitch.get(bandOf.get(cell[0].id).id);
     cell.forEach((node, index) => y.set(node.id, LANE_INSET + index * pitch));
   }
+  // The stacked extent caps the polish: medians redistribute cards inside
+  // the arrangement the rows produced, so the pass cannot grow it.
+  const stackedBottom = new Map();
+  for (const node of nodes) {
+    const band = bandOf.get(node.id);
+    if (!band || !y.has(node.id)) continue;
+    stackedBottom.set(band.id, Math.max(stackedBottom.get(band.id) || 0, y.get(node.id) + cardHeightOf(node)));
+  }
 
   const bandGeometry = () => {
     const heights = new Map();
@@ -417,12 +429,10 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     return { tops, geometry };
   };
   let { tops } = bandGeometry();
-  let bandHeights = new Map(bandGeometry().geometry.map(band => [band.id, band.height]));
 
   // Median polish: each card moves toward the median of its wired
-  // SAME-LANE neighbors (cross-lane medians chase the lane below and
-  // inflate the stack), clamped below its in-cell predecessor and
-  // inside its band — those two clamps are the no-overlap and
+  // SAME-LANE neighbors, clamped below its in-cell predecessor and
+  // inside the band's stacked extent — the no-overlap and
   // lane-containment laws.
   const inCellAbove = id => {
     const index = order.get(id);
@@ -442,13 +452,12 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
       if (target === null) continue;
       const above = inCellAbove(id);
       const min = above ? y.get(above.id) + cardHeightOf(byId.get(above.id)) + COLUMN_GAP : LANE_INSET;
-      const max = Math.max(min, tops.get(band.id) + bandHeights.get(band.id) - LANE_INSET - cardHeightOf(byId.get(id)));
+      const max = Math.max(min, (stackedBottom.get(band.id) || 0) - cardHeightOf(byId.get(id)));
       const next = Math.round(Math.min(max, Math.max(min, target)));
       moved += Math.abs(next - y.get(id));
       y.set(id, next);
     }
-    const { tops: newTops, geometry } = bandGeometry();
-    bandHeights = new Map(geometry.map(band => [band.id, band.height]));
+    const { tops: newTops } = bandGeometry();
     tops = newTops;
     if (moved < POLISH_EPSILON) break;
   }
