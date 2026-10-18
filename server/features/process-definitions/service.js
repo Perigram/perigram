@@ -2218,13 +2218,16 @@ const STEP_REQUIRED_FIELDS = {
   declareTypeRef: ['id', 'typeId'],
   declareField: ['id', 'ownerClassId', 'name'],
   wireDeclaration: ['from', 'to', 'role'],
+  unwireDeclaration: ['from', 'to', 'role'],
   drop: ['item'],
   configure: ['id'],
   setInputDefault: ['id', 'input'],
-  connect: ['id', 'fromPort', 'to', 'toPort']
+  connect: ['id', 'fromPort', 'to', 'toPort'],
+  disconnect: ['id', 'fromPort', 'to', 'toPort'],
+  removeNode: ['id']
 };
 
-const DECLARATION_STEP_OPS = new Set(['declareClass', 'declareTypeRef', 'declareField', 'wireDeclaration']);
+const DECLARATION_STEP_OPS = new Set(['declareClass', 'declareTypeRef', 'declareField', 'wireDeclaration', 'unwireDeclaration']);
 
 /**
  * The headless step runner shared by compose and edit (exported for the
@@ -2251,6 +2254,8 @@ export function applyAuthoringSteps(authoring, steps = [], domain = null) {
         authoring.declareField({ id, ownerClassId: String(step.ownerClassId || ''), name: step.name, descriptor: step.descriptor });
       } else if (op === 'wireDeclaration') {
         authoring.wireDeclaration(String(step.from || ''), String(step.to || ''), String(step.role || ''));
+      } else if (op === 'unwireDeclaration') {
+        authoring.unwireDeclaration(String(step.from || ''), String(step.to || ''), String(step.role || ''));
       } else if (op === 'drop') {
         authoring.drop(String(step.item || ''), { id });
       } else if (op === 'configure') {
@@ -2259,6 +2264,10 @@ export function applyAuthoringSteps(authoring, steps = [], domain = null) {
         authoring.setInputDefault(id, String(step.input || ''), step.value ?? null);
       } else if (op === 'connect') {
         authoring.connect(id, String(step.fromPort || ''), String(step.to || ''), String(step.toPort || ''));
+      } else if (op === 'disconnect') {
+        authoring.disconnect(id, String(step.fromPort || ''), String(step.to || ''), String(step.toPort || ''));
+      } else if (op === 'removeNode') {
+        authoring.removeNode(id);
       } else {
         throw new Error(`Unknown authoring step: ${op || '(none)'}`);
       }

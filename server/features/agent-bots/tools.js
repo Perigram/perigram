@@ -78,6 +78,9 @@ const AUTHORING_GUIDE = [
     "- {op:'setInputDefault', id, input, value} — literal value on an input socket (input = bare socket id);",
     "- a declared field's port exists in the SAME session once wireDeclaration lands (fields.* on construct/mutate nodes) — never hand-edit construction.inputs, it is an authoring-time snapshot that derives from the class's declared fields;",
     "- {op:'connect', id, fromPort, to, toPort} — id is the FROM node; ports are bare socket ids or 'data:<socketId>' handles; both work.",
+    "- {op:'disconnect', id, fromPort, to, toPort} — removes the data wire those addresses name (same addressing as connect);",
+    "- {op:'unwireDeclaration', from, to, role} — removes the declaration wire (same addressing as wireDeclaration);",
+    "- {op:'removeNode', id} — removes a node: its record, its wires, and the producer outputs it anchored;",
     'The first illegal gesture fails with the gate message — read it, fix, retry.',
     '3. validate_process_definition: its anchored diagnostics name exactly what to fix.',
     '4. In-tree declarations (declareClass/declareField/declareTypeRef/wireDeclaration) MUST be posted into the registry with apply_declarations before activation — validation overlays the draft, the activation compile resolves the registry.',
@@ -348,7 +351,7 @@ export const TOOL_SPECS = [
                     items: {
                         type: 'object',
                         properties: {
-                            op: { type: 'string', enum: ['declareClass', 'declareTypeRef', 'declareField', 'wireDeclaration', 'drop', 'configure', 'setInputDefault', 'connect'] },
+                            op: { type: 'string', enum: ['declareClass', 'declareTypeRef', 'declareField', 'wireDeclaration', 'unwireDeclaration', 'drop', 'configure', 'setInputDefault', 'connect', 'disconnect', 'removeNode'] },
                             id: { type: 'string' },
                             typeId: { type: 'string' },
                             name: { type: 'string' },
@@ -384,7 +387,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'edit_process_definition',
-        description: 'Applies the same ordered designer gestures to an EXISTING definition — drop nodes, configure records, wire sockets, set input defaults, declare — with the same legality gates as the designer and no whole-graph echo-back. Get the compact digest first (get_process_definition) for current node ids and wired sockets, then edit, then validate_process_definition. Each step is small; the first failing step stops with its gate message.',
+        description: 'Applies the same ordered designer gestures to an EXISTING definition — drop and remove nodes, configure records, wire and unwire sockets, set input defaults, declare and undeclare — with the same legality gates as the designer and no whole-graph echo-back. Get the compact digest first (get_process_definition) for current node ids and wired sockets, then edit, then validate_process_definition. Each step is small; the first failing step stops with its gate message.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -394,7 +397,7 @@ export const TOOL_SPECS = [
                     items: {
                         type: 'object',
                         properties: {
-                            op: { type: 'string', enum: ['declareClass', 'declareTypeRef', 'declareField', 'wireDeclaration', 'drop', 'configure', 'setInputDefault', 'connect'] },
+                            op: { type: 'string', enum: ['declareClass', 'declareTypeRef', 'declareField', 'wireDeclaration', 'unwireDeclaration', 'drop', 'configure', 'setInputDefault', 'connect', 'disconnect', 'removeNode'] },
                             id: { type: 'string' },
                             typeId: { type: 'string' },
                             name: { type: 'string' },

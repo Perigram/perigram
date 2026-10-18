@@ -832,6 +832,76 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     return edge;
   }
 
+  // The disconnect gesture: removes the data wire those addresses name
+  // (addressing mirrors connect). Bindings the wire carried re-derive.
+  function disconnect(sourceId, sourcePortId, targetId, targetPortId) {
+    const source = recordOf(sourceId);
+    const target = recordOf(targetId);
+    if (!source || !target) throw new Error(`disconnect requires composed nodes (${sourceId} → ${targetId})`);
+    const sourcePort = portOf(source, sourcePortId, 'output');
+    const targetPort = portOf(target, targetPortId, 'input');
+    if (!sourcePort || !targetPort) {
+      throw new Error(`Unknown port ${!sourcePort ? `${sourceId}:${sourcePortId}` : `${targetId}:${targetPortId}`}`);
+    }
+    const index = data.graph.edges.findIndex(edge => (
+      edge.source === sourceId
+      && edge.target === targetId
+      && parseProcessSocketHandleId(edge.sourceHandle) === sourcePort.id
+      && parseProcessSocketHandleId(edge.targetHandle) === targetPort.id
+    ));
+    if (index < 0) {
+      throw new Error(`No wire ${sourceId}:${sourcePort.id} → ${targetId}:${targetPort.id}`);
+    }
+    const [edge] = data.graph.edges.splice(index, 1);
+    interpretNow();
+    syncProcessNode(targetId);
+    return edge;
+  }
+
+  // The unwire gesture: removes the declaration wire (addressing mirrors
+  // wireDeclaration). Bindings the wire supplied re-derive.
+  function unwireDeclaration(sourceId, targetId, label) {
+    const id = label === 'declares' ? `declares:${sourceId}-${targetId}` : `decl:${label}:${sourceId}-${targetId}`;
+    const index = data.graph.edges.findIndex(edge => edge.id === id);
+    if (index < 0) {
+      throw new Error(`No declaration wire ${sourceId} -${label}-> ${targetId}`);
+    }
+    const [edge] = data.graph.edges.splice(index, 1);
+    interpretNow();
+    return edge;
+  }
+
+  // The remove gesture: a node goes with everything anchored to it — its
+  // record, every wire touching it, and the producer outputs it owned;
+  // join selections pointing at those outputs reset.
+  function removeNode(nodeId) {
+    const node = data.graph.nodes.find(candidate => candidate.id === nodeId);
+    if (!node) throw new Error(`No node ${nodeId}`);
+    const recordId = node.data?.refId || nodeId;
+    data.graph.edges = data.graph.edges.filter(edge => edge.source !== nodeId && edge.target !== nodeId);
+    data.graph.nodes = data.graph.nodes.filter(candidate => candidate.id !== nodeId);
+    declarationNodes.delete(recordId);
+    if (node.type === 'processNode') {
+      delete data.processNodes[recordId];
+      const orphanedOutputs = new Set();
+      for (const [producerOutputId, output] of Object.entries(data.producerOutputs || {})) {
+        if (output?.nodeId === recordId) {
+          orphanedOutputs.add(producerOutputId);
+          delete data.producerOutputs[producerOutputId];
+        }
+      }
+      for (const record of Object.values(data.processNodes)) {
+        if (record?.selectedProducerOutputId && orphanedOutputs.has(record.selectedProducerOutputId)) {
+          delete record.selectedProducerOutputId;
+        }
+      }
+    } else {
+      delete data.ctsTypes[recordId];
+    }
+    interpretNow();
+    return node;
+  }
+
   function syncProcessNode(recordId) {
     const record = recordOf(recordId);
     if (!record) throw new Error(`No process node ${recordId}`);
@@ -856,9 +926,12 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     declareField,
     declareTypeRef,
     wireDeclaration,
+    unwireDeclaration,
     configure,
     setInputDefault,
     connect,
+    disconnect,
+    removeNode,
     record: recordOf,
     records: data.processNodes,
     edges: data.graph.edges,

@@ -1,5 +1,5 @@
 import { createError } from 'h3';
-import { EnvHttpProxyAgent, fetch as undiciFetch } from 'undici';
+import { Agent, EnvHttpProxyAgent, fetch as undiciFetch, setGlobalDispatcher } from 'undici';
 import * as organizationsService from '~/server/features/organizations/service.js';
 
 // One egress seam for every outbound LLM request (completions and model
@@ -7,14 +7,17 @@ import * as organizationsService from '~/server/features/organizations/service.j
 // egress to cloud providers is proxy-gated in proxy-fronted networks —
 // when proxy env is present, requests ride undici's env-aware agent
 // (NO_PROXY honored, CIDR included, so LAN endpoints stay direct);
-// otherwise the global fetch. Built once, lazily, from the process env.
-let egressDispatcher = null;
+// otherwise the global fetch. The platform's stall deadlines are off
+// (owner direction 2026-10-18): a dead peer surfaces as a network
+// error, and caller AbortSignals are the only cancellation.
+setGlobalDispatcher(new Agent({ headersTimeout: 0, bodyTimeout: 0 }));
+let proxyDispatcher = null;
 export function egressFetch(url, options = {}) {
     const proxyEnv = process.env.HTTPS_PROXY || process.env.https_proxy
         || process.env.HTTP_PROXY || process.env.http_proxy;
     if (!proxyEnv) return fetch(url, options);
-    if (!egressDispatcher) egressDispatcher = new EnvHttpProxyAgent();
-    return undiciFetch(url, { ...options, dispatcher: egressDispatcher });
+    if (!proxyDispatcher) proxyDispatcher = new EnvHttpProxyAgent({ headersTimeout: 0, bodyTimeout: 0 });
+    return undiciFetch(url, { ...options, dispatcher: proxyDispatcher });
 }
 
 /**
@@ -58,9 +61,6 @@ export function egressFetch(url, options = {}) {
  */
 
 const PROVIDERS = new Set(['ollama', 'anthropic', 'openai']);
-// The idle guard on one request: time to first response bytes, and between
-// stream chunks once streaming. `LLM_TIMEOUT_MS` overrides it.
-const REQUEST_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS) > 0 ? Number(process.env.LLM_TIMEOUT_MS) : 120000;
 const ANTHROPIC_VERSION = '2023-06-01';
 
 async function orgLlmSetting(organizationId) {
@@ -289,13 +289,12 @@ export async function testLlmConnection(auth = {}, { profileId = '' } = {}) {
         return { ok: false, reason: 'No provider resolves — save a routed profile or check the environment defaults' };
     }
     try {
-        const { release } = await openCompletion(config, JSON.stringify(wireRequest(
+        await openCompletion(config, JSON.stringify(wireRequest(
             config.provider, config,
             'Reply with the single word: ok',
             [{ role: 'user', content: 'Reply with the single word: ok' }],
             []
         )));
-        release();
         return { ok: true, provider: config.provider, model: config.model };
     } catch (error) {
         return { ok: false, provider: config.provider, model: config.model, reason: error?.message || 'Connection failed' };
@@ -343,15 +342,11 @@ export async function listEndpointModels(auth = {}, { provider = '', baseUrl = '
 async function probeEndpointModels(provider, baseUrl, apiKey) {
     const attempts = [];
     for (const url of listingCandidates(provider, baseUrl)) {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
         try {
             const response = await egressFetch(url, {
                 method: 'GET',
-                headers: wireHeaders(provider, apiKey || undefined),
-                signal: controller.signal
+                headers: wireHeaders(provider, apiKey || undefined)
             });
-            clearTimeout(timeout);
             if (!response.ok) {
                 attempts.push(`${url}: ${response.status}`);
                 continue;
@@ -368,7 +363,6 @@ async function probeEndpointModels(provider, baseUrl, apiKey) {
             if (models.length) return { models, endpoint: url };
             attempts.push(`${url}: empty`);
         } catch (error) {
-            clearTimeout(timeout);
             attempts.push(`${url}: unreachable (${error?.cause?.code || error?.name || 'unknown'})`);
         }
     }
@@ -745,10 +739,9 @@ const resolvedCompletionPaths = new Map();
 
 /**
  * One HTTP request against the completion path, with the same-dialect
- * fallback candidate and the idle guard. Returns `{ response, keepAlive,
- * release }`: `keepAlive` re-arms the idle timer (streaming callers call it
- * per chunk so a long generation is never killed mid-flight while bytes
- * keep arriving), `release` drops it.
+ * fallback candidate. Returns `{ response }`. No synthetic deadline:
+ * caller cancellation rides the request signal; a dead peer surfaces as
+ * a network error.
  */
 async function openCompletion(config, requestBodyJson, signal = null) {
     const paths = completionPaths(config.provider, config.baseUrl);
@@ -759,42 +752,22 @@ async function openCompletion(config, requestBodyJson, signal = null) {
     let lastStatus = 0;
     let lastDetail = '';
     for (const url of ordered) {
-        const controller = new AbortController();
-        // Caller cancellation rides the same controller as the idle guard;
-        // an aborted caller is not an unreachable endpoint and must not
-        // fall through to the next candidate.
-        const abortFromCaller = () => controller.abort();
-        if (signal) {
-            if (signal.aborted) controller.abort();
-            else signal.addEventListener('abort', abortFromCaller, { once: true });
-        }
-        let timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-        const keepAlive = () => {
-            clearTimeout(timer);
-            timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-        };
-        const release = () => {
-            clearTimeout(timer);
-            signal?.removeEventListener('abort', abortFromCaller);
-        };
         let response;
         try {
             response = await egressFetch(url, {
                 method: 'POST',
                 headers: wireHeaders(config.provider, config.apiKey),
                 body: requestBodyJson,
-                signal: controller.signal
+                signal
             });
         } catch (error) {
-            release();
             if (signal?.aborted) throw error;
             throw createError({ statusCode: 502, message: `LLM service is unreachable (${error?.cause?.code || error?.name || error?.message || 'unknown'})` });
         }
         if (response.ok) {
             if (ordered.length > 1) resolvedCompletionPaths.set(cacheKey, url);
-            return { response, keepAlive, release };
+            return { response };
         }
-        release();
         lastStatus = response.status;
         lastDetail = (await response.text().catch(() => '')).trim().slice(0, 200);
         // Only a missing route justifies the next same-dialect candidate;
@@ -824,24 +797,19 @@ export async function chatCompletion({ organizationId = null, capability = CHAT_
     if (config.provider === 'none') {
         throw createError({ statusCode: 503, message: 'LLM provider is not configured' });
     }
-    const { response, release } = await openCompletion(config, JSON.stringify(wireRequest(config.provider, config, system, messages, tools)));
-    try {
-        const payload = await response.json().catch(() => null);
-        if (!payload) throw createError({ statusCode: 502, message: 'LLM service returned no completion' });
-        return wireResponseToNeutral(config, payload);
-    } finally {
-        release();
-    }
+    const { response } = await openCompletion(config, JSON.stringify(wireRequest(config.provider, config, system, messages, tools)));
+    const payload = await response.json().catch(() => null);
+    if (!payload) throw createError({ statusCode: 502, message: 'LLM service returned no completion' });
+    return wireResponseToNeutral(config, payload);
 }
 
 // --- Streaming ------------------------------------------------------------
 
 /**
- * Yields decoded lines from a streaming response body, re-arming the idle
- * guard per chunk, so a stalled endpoint aborts exactly like a dead
- * connection instead of hanging the worker forever.
+ * Yields decoded lines from a streaming response body. A dead connection
+ * rejects the read and surfaces as a 502.
  */
-async function* readLines(response, keepAlive) {
+async function* readLines(response) {
     const body = response.body;
     if (!body) return;
     const reader = body.getReader();
@@ -856,7 +824,6 @@ async function* readLines(response, keepAlive) {
                 throw createError({ statusCode: 502, message: `LLM stream interrupted (${error?.name || error?.message || 'unknown'})` });
             }
             if (step.done) break;
-            keepAlive();
             buffer += decoder.decode(step.value, { stream: true });
             let index;
             while ((index = buffer.indexOf('\n')) >= 0) {
@@ -914,10 +881,10 @@ function streamAccumulator({ reasoningFirst = false } = {}) {
  * fragments (OpenAI/Messages split `arguments` across events, Ollama sends
  * them whole), so every reader accumulates before parsing.
  */
-async function* streamOpenAI(response, keepAlive, options = {}) {
+async function* streamOpenAI(response, options = {}) {
     const acc = streamAccumulator(options);
     const calls = [];
-    for await (const line of readLines(response, keepAlive)) {
+    for await (const line of readLines(response)) {
         const data = sseData(line);
         if (!data) continue;
         let chunk;
@@ -945,10 +912,10 @@ async function* streamOpenAI(response, keepAlive, options = {}) {
     };
 }
 
-async function* streamOllama(response, keepAlive, options = {}) {
+async function* streamOllama(response, options = {}) {
     const acc = streamAccumulator(options);
     const toolCalls = [];
-    for await (const line of readLines(response, keepAlive)) {
+    for await (const line of readLines(response)) {
         const trimmed = line.trim();
         if (!trimmed) continue;
         let chunk;
@@ -968,11 +935,11 @@ async function* streamOllama(response, keepAlive, options = {}) {
     return { content: acc.totals.content, thinking: acc.totals.thinking, toolCalls };
 }
 
-async function* streamAnthropic(response, keepAlive, options = {}) {
+async function* streamAnthropic(response, options = {}) {
     const acc = streamAccumulator(options);
     const toolCalls = [];
     let openBlock = null;
-    for await (const line of readLines(response, keepAlive)) {
+    for await (const line of readLines(response)) {
         const data = sseData(line);
         if (!data) continue;
         let event;
@@ -1011,14 +978,14 @@ export async function* streamChatCompletion({ organizationId = null, capability 
     if (config.provider === 'none') {
         throw createError({ statusCode: 503, message: 'LLM provider is not configured' });
     }
-    const { response, keepAlive, release } = await openCompletion(
+    const { response } = await openCompletion(
         config,
         JSON.stringify(wireRequest(config.provider, config, system, messages, tools, { stream: true })),
         signal
     );
-    const reader = config.provider === 'ollama' ? streamOllama(response, keepAlive)
-        : config.provider === 'anthropic' ? streamAnthropic(response, keepAlive)
-            : streamOpenAI(response, keepAlive, { reasoningFirst: reasoningFirstContent(config) });
+    const reader = config.provider === 'ollama' ? streamOllama(response)
+        : config.provider === 'anthropic' ? streamAnthropic(response)
+            : streamOpenAI(response, { reasoningFirst: reasoningFirstContent(config) });
     try {
         const iterator = reader[Symbol.asyncIterator]();
         let step = await iterator.next();
@@ -1032,6 +999,6 @@ export async function* streamChatCompletion({ organizationId = null, capability 
         }
         yield { type: 'message', content: message.content, thinking: message.thinking || '', toolCalls: message.toolCalls };
     } finally {
-        release();
+        if (response.body) await response.body.cancel().catch(() => {});
     }
 }

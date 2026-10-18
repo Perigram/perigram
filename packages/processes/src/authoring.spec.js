@@ -386,4 +386,32 @@ describe('headless layout and graph integrity', () => {
     expect(collapsed.processNodes.make.access.grants).toEqual([{ roleId: 'role_admin', level: 'admin' }]);
     expect(collapsed.processNodes.lit.access).toBe('item');
   });
+
+  it('removes through the same addresses the wiring gestures use', () => {
+    const seam = authoring();
+    seam.declareClass({ id: 'cls', typeId: 'task', name: 'Task' });
+    seam.declareField({ id: 'fld', ownerClassId: 'cls', name: 'title' });
+    seam.drop('literal', { id: 'lit' });
+    seam.drop('logic', { id: 'dec' });
+    seam.configure('lit', { type: { base: 'boolean' }, value: true });
+    seam.connect('lit', 'value', 'dec', 'left');
+
+    const removed = seam.disconnect('lit', 'value', 'dec', 'left');
+    expect(removed.source).toBe('lit');
+    expect(seam.edges.filter(edge => edge.role !== 'type')).toHaveLength(0);
+    expect(() => seam.disconnect('lit', 'value', 'dec', 'left')).toThrow(/No wire/);
+
+    seam.unwireDeclaration('fld', 'cls', 'declares');
+    expect(seam.edges.some(edge => edge.id === 'declares:fld-cls')).toBe(false);
+    expect(() => seam.unwireDeclaration('fld', 'cls', 'declares')).toThrow(/No declaration wire/);
+
+    seam.removeNode('dec');
+    expect(seam.definition().graph.nodes.some(node => node.id === 'dec')).toBe(false);
+    expect(seam.definition().processNodes.dec).toBeUndefined();
+    expect(() => seam.removeNode('dec')).toThrow(/No node/);
+
+    seam.removeNode('cls');
+    expect(seam.definition().ctsTypes.cls).toBeUndefined();
+    expect(seam.definition().graph.edges).toHaveLength(0);
+  });
 });

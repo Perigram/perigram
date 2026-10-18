@@ -337,6 +337,35 @@ describe('illegal wires never persist — the socket wall', () => {
         expect(stored.data.processNodes.make.access.grants).toEqual([{ roleId: 'role_admin', level: 'admin' }]);
     });
 
+    it('restructures an existing definition through the removal grammar', async () => {
+        const digest = await call('compose_process_definition', { name: 'Spec task', steps: [...TASK_STEPS, ...LITERAL_STEPS] });
+        const wired = await call('get_process_definition', { definitionId: digest.id });
+        expect(wired.edges).toContainEqual({ from: 'nameLit:value', to: 'make:fields.title' });
+
+        const unwired = await call('edit_process_definition', {
+            definitionId: digest.id,
+            steps: [{ op: 'disconnect', id: 'nameLit', fromPort: 'value', to: 'make', toPort: 'fields.title' }]
+        });
+        expect(unwired.edges).not.toContainEqual({ from: 'nameLit:value', to: 'make:fields.title' });
+
+        const trimmed = await call('edit_process_definition', {
+            definitionId: digest.id,
+            steps: [{ op: 'removeNode', id: 'nameLit' }]
+        });
+        expect(trimmed.nodes.some(node => node.id === 'nameLit')).toBe(false);
+        expect(trimmed.counts.processNodes).toBe(1);
+
+        const undeclared = await call('edit_process_definition', {
+            definitionId: digest.id,
+            steps: [{ op: 'unwireDeclaration', from: 'fldTitle', to: 'clsTask', role: 'declares' }]
+        });
+        expect(undeclared.edges.some(edge => edge.declaration === 'declares')).toBe(false);
+        await expect(call('edit_process_definition', {
+            definitionId: digest.id,
+            steps: [{ op: 'disconnect', id: 'nameLit', fromPort: 'value', to: 'make', toPort: 'fields.title' }]
+        })).rejects.toThrow(/composed nodes/);
+    });
+
     it('keeps declaration edges legal — the tree wires node to node by design', async () => {
         const digest = await call('compose_process_definition', {
             name: 'Spec declarations',

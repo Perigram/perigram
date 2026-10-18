@@ -376,8 +376,8 @@ async function runAgentLoop({ organizationId, execAuth, system, conversation, co
         if (stream) stream.activity(visibleSteps().map(step => (step.kind === 'tool' ? { ...step } : { kind: 'thinking', text: step.text })));
     };
     // No round budget (owner direction 2026-10-16): the loop runs until the
-    // model answers; the room's stop control and the provider idle guard
-    // are the only terminators. Identical-call repetition tracking is the
+    // model answers; the room's stop control is the only terminator.
+    // Identical-call repetition tracking is the
     // one in-loop brake (see the tool execution loop).
     let lastCallSignature = null;
     let repeatCount = 0;
