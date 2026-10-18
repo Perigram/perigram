@@ -179,16 +179,26 @@ export default function createSketchEditor({ vue, components, locale }) {
         outlineTimer = setTimeout(resolveOutline, 120);
       };
 
-      // Canvas annotations: the zero axis with its hatched material half,
-      // the resolved boolean result, parameter dimensions on every
-      // primitive, per-edge dimensions for chain shapes, datum marks for
-      // the sketch origin and open chains' break ends — a derived overlay
-      // (never stored, never extracted). The pure descriptor builder runs
-      // through a computed keyed on a tick bumped from the view's render
-      // frame, so pan/zoom redraw it like any other reactive render. The
-      // origin datum renders on an empty canvas too.
+      // Canvas annotations are a derived overlay — extraction never
+      // reads them back. The computed re-runs on a tick bumped from the
+      // view's render frame, so pan/zoom redraw it.
       const viewTick = ref(0);
       const bumpViewTick = () => { viewTick.value += 1; };
+
+      // Dimension stacking: dims on the same side of the same baseline
+      // chain outward (18px, then 40, 62…).
+      const createDimStack = () => {
+        const slots = new Map();
+        return (a1, b1, ux, uy) => {
+          const horizontal = Math.abs(b1[0] - a1[0]) >= Math.abs(b1[1] - a1[1]);
+          const baseline = horizontal ? (a1[1] + b1[1]) / 2 : (a1[0] + b1[0]) / 2;
+          const side = horizontal ? (uy > 0 ? 'below' : 'above') : (ux > 0 ? 'right' : 'left');
+          const slotKey = `${side}:${Math.round(baseline / 48)}`;
+          const slot = slots.get(slotKey) || 0;
+          slots.set(slotKey, slot + 1);
+          return 18 + slot * 22;
+        };
+      };
 
       // One linear dimension between world points a and b, drawn on the
       // side away from `inward` (the side the geometry occupies) —
@@ -196,11 +206,11 @@ export default function createSketchEditor({ vue, components, locale }) {
       // the dimension line. Editable dims carry their field binding —
       // the label shows the parameter expression where one is bound,
       // the measured number otherwise; the input's background breaks
-      // the line.
-      const linearDim = (key, a, b, inward, label, editable, toScreen) => {
+      // the line. Short spans keep their line and label; only the
+      // arrowheads are dropped.
+      const linearDim = (key, a, b, inward, label, editable, toScreen, stack) => {
         const [ax, ay] = toScreen(a[0], a[1]);
         const [bx, by] = toScreen(b[0], b[1]);
-        if (Math.hypot(bx - ax, by - ay) < 28) return null;
         const nx = b[1] - a[1];
         const ny = a[0] - b[0];
         const outward = (inward[0] - (a[0] + b[0]) / 2) * nx + (inward[1] - (a[1] + b[1]) / 2) * ny > 0
@@ -213,21 +223,24 @@ export default function createSketchEditor({ vue, components, locale }) {
         const ul = Math.hypot(ux, uy) || 1;
         ux /= ul;
         uy /= ul;
-        const off = 18;
+        const a0 = [ax + ux * 2, ay + uy * 2];
+        const b0 = [bx + ux * 2, by + uy * 2];
+        const off = stack ? stack(a0, b0, ux, uy) : 18;
         const a1 = [ax + ux * off, ay + uy * off];
         const b1 = [bx + ux * off, by + uy * off];
         return {
           key,
-          extensionA: [ax + ux * 2, ay + uy * 2, a1[0] + ux * 4, a1[1] + uy * 4],
-          extensionB: [bx + ux * 2, by + uy * 2, b1[0] + ux * 4, b1[1] + uy * 4],
+          extensionA: [...a0, a1[0] + ux * 4, a1[1] + uy * 4],
+          extensionB: [...b0, b1[0] + ux * 4, b1[1] + uy * 4],
           line: [...a1, ...b1],
           labelAt: [(a1[0] + b1[0]) / 2, (a1[1] + b1[1]) / 2],
+          arrows: Math.hypot(b1[0] - a1[0], b1[1] - a1[1]) >= 36,
           text: label,
           editable
         };
       };
 
-      const chainDimensions = (shape, toScreen) => {
+      const chainDimensions = (shape, toScreen, stack) => {
         const corners = shape.points.filter(point => !point.chord);
         const closed = shape.closed && corners.length >= 3;
         const centroid = corners.length
@@ -242,7 +255,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           const b = corners[(index + 1) % corners.length];
           const worldLength = Math.hypot(b.x - a.x, b.y - a.y);
           if (worldLength < 1e-6) continue;
-          const dim = linearDim(`${shape.id}-${a.id}-${b.id}`, [a.x, a.y], [b.x, b.y], centroid, worldLength.toFixed(1), null, toScreen);
+          const dim = linearDim(`${shape.id}-${a.id}-${b.id}`, [a.x, a.y], [b.x, b.y], centroid, worldLength.toFixed(1), null, toScreen, stack);
           if (dim) dimensions.push(dim);
         }
         return dimensions;
@@ -256,7 +269,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // axis, height from the origin) and circle (diameter, distance
       // from the axis, height from the origin) — each bound to its field,
       // editable in place.
-      const primitiveDimensions = (authoredShape, shape, toScreen) => {
+      const primitiveDimensions = (authoredShape, shape, toScreen, stack) => {
         const dims = [];
         const editable = (fieldKey, value, readEvaluated, apply) => ({
           shapeId: shape.id,
@@ -271,7 +284,8 @@ export default function createSketchEditor({ vue, components, locale }) {
             `${shape.id}:${fieldKey}`, a, b, side,
             fieldLabel(value, typeof value === 'number' ? value : null),
             editable(fieldKey, value, readEvaluated, apply),
-            toScreen
+            toScreen,
+            stack
           );
           if (dim) dims.push(dim);
         };
@@ -312,13 +326,14 @@ export default function createSketchEditor({ vue, components, locale }) {
           const point = view.worldToScreen({ x, y });
           return [point.x, point.y];
         };
+        const stack = createDimStack();
         const chains = evaluated.shapes.filter(shape => shape.type === 'chain');
         const authoredById = new Map((authored?.shapes || []).map(shape => [shape.id, shape]));
         const dimensions = [
-          ...chains.flatMap(shape => chainDimensions(shape, toScreen)),
+          ...chains.flatMap(shape => chainDimensions(shape, toScreen, stack)),
           ...evaluated.shapes.flatMap(shape => (
             shape.type === 'rect' || shape.type === 'circle'
-              ? primitiveDimensions(authoredById.get(shape.id), shape, toScreen)
+              ? primitiveDimensions(authoredById.get(shape.id), shape, toScreen, stack)
               : []
           ))
         ];
@@ -333,8 +348,8 @@ export default function createSketchEditor({ vue, components, locale }) {
               .filter(ring => ring.length >= 3)
               .map(ring => ring.map(vertex => toScreen(Number(vertex[0]), Number(vertex[1]))))
           : [];
-        // The axis spans the viewport in world Y; the tint covers the
-        // material half of the screen.
+        // The axis spans the viewport in world Y; the face hatch covers
+        // the material half of the screen.
         const span = 1e5;
         const axisTop = toScreen(0, span);
         const axisBottom = toScreen(0, -span);
@@ -347,7 +362,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           origin: toScreen(0, 0),
           openEnds,
           axis: { top: axisTop, bottom: axisBottom },
-          hatch: {
+          face: {
             x: materialRight ? Math.max(axisTop[0], axisBottom[0]) : 0,
             width: materialRight ? Math.max(width - axisTop[0], width - axisBottom[0], 0) : Math.min(axisTop[0], axisBottom[0], width),
             height
@@ -439,11 +454,81 @@ export default function createSketchEditor({ vue, components, locale }) {
         return best || null;
       };
 
-      // Selection is the engine's: entities are picked and highlighted
-      // by the engine; the seeded entities carry their shape's id, so a
-      // single selected shape drives the parameter popup. The corner
-      // popup stays a grip-style affordance (click near an authored
-      // chain corner).
+      // Shape hit-testing for the selection popup: the topmost shape
+      // under the click — inside a rect, within a circle, or near a
+      // chain's segments (screen-space tolerance). Face clicks are the
+      // natural pick gesture; the engine's edge pick and this test
+      // drive the same popup.
+      const shapeAt = (clientX, clientY) => {
+        const view = manager?.curView;
+        const bounds = overlayRef.value?.getBoundingClientRect();
+        if (!view || !bounds) return null;
+        let evaluated = null;
+        try {
+          evaluated = evaluateOccsProfileSketch(props.modelValue || {}, externalScope());
+        } catch {
+          return null;
+        }
+        // Topmost for picking: subtract shapes over add shapes (a
+        // cutout is the specific target inside its host body), later
+        // shapes over earlier within each group.
+        const authored = normalizeOccsProfileSketch(props.modelValue || {});
+        const byId = new Map(evaluated.shapes.map(shape => [shape.id, shape]));
+        const groups = { subtract: [], rest: [] };
+        for (const shape of authored.shapes) {
+          const resolved = byId.get(shape.id);
+          if (resolved) groups[shape.op === 'subtract' ? 'subtract' : 'rest'].push(resolved);
+        }
+        const ordered = [...groups.subtract.reverse(), ...groups.rest.reverse()];
+        const px = clientX - bounds.x;
+        const py = clientY - bounds.y;
+        const screenOf = (x, y) => view.worldToScreen({ x, y });
+        const distanceToSegment = (ax, ay, bx, by) => {
+          const dx = bx - ax;
+          const dy = by - ay;
+          const lengthSq = dx * dx + dy * dy || 1;
+          const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSq));
+          return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+        };
+        for (const shape of ordered) {
+          if (shape.type === 'circle') {
+            const center = screenOf(shape.center[0], shape.center[1]);
+            const edge = screenOf(shape.center[0] + shape.diameter / 2, shape.center[1]);
+            const radius = Math.max(Math.abs(edge.x - center.x), 10);
+            if (Math.hypot(px - center.x, py - center.y) <= radius) return shape;
+            continue;
+          }
+          if (shape.type === 'rect') {
+            const corners = occProfileRectCornerVertices(shape).map(([x, y]) => screenOf(x, y));
+            let inside = false;
+            for (let index = 0, previous = corners.length - 1; index < corners.length; previous = index, index += 1) {
+              const a = corners[previous];
+              const b = corners[index];
+              if ((b.y > py) !== (a.y > py)
+                && px < ((a.x - b.x) * (py - b.y)) / ((a.y - b.y) || 1) + b.x) {
+                inside = !inside;
+              }
+            }
+            if (inside) return shape;
+            for (let index = 0; index < corners.length; index += 1) {
+              const a = corners[index];
+              const b = corners[(index + 1) % corners.length];
+              if (distanceToSegment(a.x, a.y, b.x, b.y) <= 6) return shape;
+            }
+            continue;
+          }
+          const points = shape.points.map(point => screenOf(point.x, point.y));
+          for (let index = 0; index + 1 < points.length; index += 1) {
+            if (distanceToSegment(points[index].x, points[index].y, points[index + 1].x, points[index + 1].y) <= 6) {
+              return shape;
+            }
+          }
+        }
+        return null;
+      };
+
+      // Seeded entities carry their shape's id — the engine's selection
+      // maps back onto the authored shape for the popup.
       let entityShapeByObjectId = new Map();
       let unbindSelectionEvents = null;
 
@@ -496,10 +581,15 @@ export default function createSketchEditor({ vue, components, locale }) {
           clearEngineSelection();
           return;
         }
-        // The engine picks the entity; its selection events open the
-        // popup. A click over empty space clears the corner popup —
-        // the engine's own deselection clears the shape popup.
+        // The engine picks entities on their edges; face clicks fall
+        // through to the surface's hit test. Either path opens the
+        // popup; empty space clears it.
         selectedCorner.value = null;
+        const bounds = overlayRef.value?.getBoundingClientRect();
+        const shape = shapeAt(event.clientX, event.clientY);
+        selectedShape.value = shape && bounds
+          ? { shapeId: shape.id, at: [event.clientX - bounds.x, event.clientY - bounds.y] }
+          : null;
       };
 
       // The surface owns Escape routing: the engine's own handling needs
@@ -1099,47 +1189,50 @@ export default function createSketchEditor({ vue, components, locale }) {
             }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
             opButton(shape)
           ]),
-          ...rows,
-          renderParameterRows(sketch)
+          ...rows
         ]);
       };
 
-      // The shape popup's parameter table — the sketch's expression
-      // table rides the selected primitive (the only authoring panel).
-      const renderParameterRows = (sketch) => h('div', { class: 'mt-1 flex flex-col gap-1 border-t border-content-border pt-1' }, [
-        ...Object.entries(sketch.parameters).map(([key, value]) => h('div', {
-          key,
-          class: 'flex items-center gap-1'
-        }, [
-          h(InputText, {
-            modelValue: fieldDraft.text(`name ${key}`, key),
-            ...fieldDraft.handlers(`name ${key}`, key, next => { renameParameter(key, next); }),
-            size: 'small',
-            class: 'w-10 font-mono text-xs',
-            'aria-label': `${t('cassette.v2.profileEditor.parameterName')} ${key}`
-          }),
-          expressionField(value, `${key}${resolvedHint(sketch, value)}`, next => { applyParameterValue(key, next); }, key),
+      // The parameter strip above the canvas — the one home of the
+      // sketch's expression table (owner direction 2026-10-18).
+      const renderParameterStrip = () => {
+        const sketch = normalizeOccsProfileSketch(props.modelValue || {});
+        return h('div', { class: 'flex shrink-0 flex-wrap items-center gap-1' }, [
+          h('span', { class: 'font-mono text-xs text-muted-color' }, 'fx'),
+          ...Object.entries(sketch.parameters).map(([key, value]) => h('div', {
+            key,
+            class: 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5'
+          }, [
+            h(InputText, {
+              modelValue: fieldDraft.text(`name ${key}`, key),
+              ...fieldDraft.handlers(`name ${key}`, key, next => { renameParameter(key, next); }),
+              size: 'small',
+              class: 'w-12 font-mono text-xs',
+              'aria-label': `${t('cassette.v2.profileEditor.parameterName')} ${key}`
+            }),
+            expressionField(value, `${key}${resolvedHint(sketch, value)}`, next => { applyParameterValue(key, next); }, key),
+            h(Button, {
+              icon: 'pi pi-times',
+              severity: 'secondary',
+              text: true,
+              rounded: true,
+              size: 'small',
+              'aria-label': `${t('common.delete')} ${key}`,
+              onClick: () => { removeParameter(key); }
+            })
+          ])),
           h(Button, {
-            icon: 'pi pi-times',
+            icon: 'pi pi-plus',
             severity: 'secondary',
             text: true,
             rounded: true,
             size: 'small',
-            'aria-label': `${t('common.delete')} ${key}`,
-            onClick: () => { removeParameter(key); }
+            'aria-label': t('cassette.v2.profileEditor.addParameter'),
+            title: t('cassette.v2.profileEditor.addParameter'),
+            onClick: addParameter
           })
-        ])),
-        h(Button, {
-          icon: 'pi pi-plus',
-          severity: 'secondary',
-          text: true,
-          rounded: true,
-          size: 'small',
-          'aria-label': t('cassette.v2.profileEditor.addParameter'),
-          title: t('cassette.v2.profileEditor.addParameter'),
-          onClick: addParameter
-        })
-      ]);
+        ]);
+      };
 
 
       const DIM_STROKE = 'var(--p-text-muted-color)';
@@ -1160,10 +1253,11 @@ export default function createSketchEditor({ vue, components, locale }) {
           h('line', { key: `${key}-h`, x1: x - 8, y1: y, x2: x + 8, y2: y, stroke: PRIMARY, 'stroke-width': 1 }),
           h('line', { key: `${key}-v`, x1: x, y1: y - 8, x2: x, y2: y + 8, stroke: PRIMARY, 'stroke-width': 1 })
         ];
-        const { axis, hatch } = annotations;
-        // The material half reads as a faint solid tint; the resolved
-        // result carries the hatch and the strong outline — one clear
-        // figure on a quiet ground.
+        const { axis, face } = annotations;
+        // Two surface states (owner law): the material half hatches as
+        // the face, cuts and the void half stay empty; the resolved
+        // result is the one strong figure — denser hatch, solid
+        // outline.
         const outlinePath = annotations.outline.length
           ? h('path', {
               key: 'result-outline',
@@ -1171,7 +1265,7 @@ export default function createSketchEditor({ vue, components, locale }) {
                 .map(ring => `${ring.map((point, index) => `${index ? 'L' : 'M'} ${point[0]} ${point[1]}`).join(' ')} Z`)
                 .join(' '),
               'fill-rule': 'evenodd',
-              fill: 'url(#profile-material-hatch)',
+              fill: 'url(#profile-result-hatch)',
               stroke: PRIMARY,
               'stroke-width': 2.5,
               'stroke-linejoin': 'round'
@@ -1180,34 +1274,60 @@ export default function createSketchEditor({ vue, components, locale }) {
         return [
           h('defs', { key: 'hatch-defs' }, [
             h('pattern', {
-              key: 'hatch-pattern',
-              id: 'profile-material-hatch',
+              key: 'face-hatch-pattern',
+              id: 'profile-face-hatch',
+              width: 14,
+              height: 14,
+              patternTransform: 'rotate(45)',
+              patternUnits: 'userSpaceOnUse'
+            }, [
+              h('line', { x1: 0, y1: 0, x2: 0, y2: 14, stroke: HATCH_STROKE, 'stroke-width': 1, 'stroke-opacity': 0.22 })
+            ]),
+            h('pattern', {
+              key: 'result-hatch-pattern',
+              id: 'profile-result-hatch',
               width: 7,
               height: 7,
               patternTransform: 'rotate(45)',
               patternUnits: 'userSpaceOnUse'
             }, [
               h('line', { x1: 0, y1: 0, x2: 0, y2: 7, stroke: HATCH_STROKE, 'stroke-width': 1.2, 'stroke-opacity': 0.55 })
+            ]),
+            h('marker', {
+              key: 'dim-arrow',
+              id: 'profile-dim-arrow',
+              viewBox: '0 0 10 10',
+              refX: 9,
+              refY: 5,
+              markerWidth: 7,
+              markerHeight: 7,
+              orient: 'auto-start-reverse',
+              markerUnits: 'userSpaceOnUse'
+            }, [
+              h('path', { d: 'M 0 1 L 10 5 L 0 9 z', fill: DIM_STROKE })
             ])
           ]),
-          hatch.width > 0
+          face.width > 0
             ? h('rect', {
-                key: 'material-hatch',
-                x: hatch.x,
+                key: 'material-face',
+                x: face.x,
                 y: 0,
-                width: hatch.width,
-                height: hatch.height,
-                fill: PRIMARY,
-                'fill-opacity': 0.045
+                width: face.width,
+                height: face.height,
+                fill: 'url(#profile-face-hatch)'
               })
             : null,
           outlinePath,
-          // Datum axis: drafting centerline style (long-short-long).
-          line('axis', [axis.top[0], axis.top[1], axis.bottom[0], axis.bottom[1]], PRIMARY, 1, { 'stroke-dasharray': '16 5 3 5' }),
+          // The zero axis is the solid basis line every field measures
+          // from (SPEC law).
+          line('axis', [axis.top[0], axis.top[1], axis.bottom[0], axis.bottom[1]], PRIMARY, 1.25),
           ...annotations.dimensions.flatMap(dimension => [
             line(`${dimension.key}-ea`, dimension.extensionA, DIM_STROKE, 0.75),
             line(`${dimension.key}-eb`, dimension.extensionB, DIM_STROKE, 0.75),
-            line(`${dimension.key}-d`, dimension.line),
+            line(`${dimension.key}-d`, dimension.line, DIM_STROKE, 1, dimension.arrows ? {
+              'marker-start': 'url(#profile-dim-arrow)',
+              'marker-end': 'url(#profile-dim-arrow)'
+            } : {}),
             dimension.editable ? null : h('text', {
               key: `${dimension.key}-t`,
               x: dimension.labelAt[0], y: dimension.labelAt[1],
@@ -1228,21 +1348,22 @@ export default function createSketchEditor({ vue, components, locale }) {
       // The editable parameter dimensions: one small input per bound
       // field, centered on its dimension line (the input's background
       // breaks the line — drafting law) and clamped inside the canvas so
-      // it is never cut.
+      // the whole field stays visible.
       const renderDimensionInputs = () => {
         const annotations = canvasAnnotations.value;
         if (!annotations) return [];
         const width = containerRef.value?.clientWidth || 0;
         const height = containerRef.value?.clientHeight || 0;
+        const INPUT_WIDTH = 56;
         return annotations.dimensions
           .filter(dimension => dimension.editable)
           .map(dimension => {
             const { editable } = dimension;
-            const left = Math.min(Math.max(dimension.labelAt[0], 28), Math.max(28, width - 28));
-            const top = Math.min(Math.max(dimension.labelAt[1], 12), Math.max(12, height - 12));
+            const left = Math.min(Math.max(dimension.labelAt[0] - INPUT_WIDTH / 2, 2), Math.max(2, width - INPUT_WIDTH - 2));
+            const top = Math.min(Math.max(dimension.labelAt[1] - 13, 2), Math.max(2, height - 28));
             return h(InputText, {
               key: dimension.key,
-              class: 'profile-dim absolute z-20 w-14 -translate-x-1/2 -translate-y-1/2 bg-content-background text-center font-mono text-xs shadow-sm',
+              class: 'profile-dim absolute z-20 w-14 bg-content-background text-center font-mono text-xs shadow-sm',
               style: { left: `${left}px`, top: `${top}px` },
               modelValue: fieldDraft.text(editable.ariaLabel, editable.value),
               ...fieldDraft.handlers(editable.ariaLabel, editable.value, next => {
@@ -1438,15 +1559,13 @@ export default function createSketchEditor({ vue, components, locale }) {
         class: 'flex min-h-0 flex-1 flex-col gap-2',
         'data-keyboard-scope': 'cad'
       }, [
-        // Authoring strip above the canvas: parameters and shape rows
-        // (owner decision 2026-10-17 — the canvas keeps every remaining
-        // pixel of height).
         importError.value
           ? h(Message, { severity: 'error', size: 'small', closable: false }, () => importError.value)
           : null,
         outlineError.value
           ? h(Message, { severity: 'error', size: 'small', closable: false }, () => outlineError.value)
           : null,
+        renderParameterStrip(),
         h('input', {
           ref: fileInputRef,
           type: 'file',
