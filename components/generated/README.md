@@ -256,8 +256,9 @@ the import graph author-side). The persistence callbacks
 (`remote-surface-mount.js`) are the one generic binding over the instance
 transports: blank-create through the type's compiled construct, documents
 through the payload channel, renames through the update transport —
-editor modules never touch the API. Remote editors are online-only; the
-loader's failure states say so. The supported mount-contract versions live
+editor modules never touch the API. Remote editors are online-only; a
+failed mount surfaces the module proxy's error message (the executor
+state). The supported mount-contract versions live
 in `shared/plugin-surfaces.js` — the install/upgrade gates and the loader
 read the same set.
 
