@@ -451,7 +451,9 @@ const openChainSection = (evaluated = {}) => {
   };
 };
 
-const rectCornerVertices = (shape = {}) => {
+// The evaluated rect's world corners, canonical order: counter-clockwise
+// from the local (-w/2, -h/2) corner.
+export const occProfileRectCornerVertices = (shape = {}) => {
   const halfWidth = shape.width / 2;
   const halfHeight = shape.height / 2;
   const angle = (shape.rotation * Math.PI) / 180;
@@ -516,7 +518,7 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
         };
       }
       if (shape.type === 'rect') {
-        const corners = rectCornerVertices(shape);
+        const corners = occProfileRectCornerVertices(shape);
         const radiusByIndex = new Map(shape.fillets.map(fillet => [fillet.corner, fillet.radius]));
         return {
           shapeId: shape.id,
@@ -1077,11 +1079,57 @@ const chainAsRect = (points = []) => {
   };
 };
 
+// Canonical closed-polygon order: counter-clockwise from the leftmost
+// corner (ties on lowest y) — the same rectangle extracts to the same
+// settings from any draw direction.
+const canonicalPolygonPoints = (points = []) => {
+  const area = points.reduce((sum, point, index) => {
+    const next = points[(index + 1) % points.length];
+    return sum + (point.x * next.y - next.x * point.y);
+  }, 0) / 2;
+  const ordered = area < 0 ? [...points].reverse() : [...points];
+  let start = 0;
+  for (let index = 1; index < ordered.length; index += 1) {
+    if (ordered[index].x < ordered[start].x
+      || (ordered[index].x === ordered[start].x && ordered[index].y < ordered[start].y)) {
+      start = index;
+    }
+  }
+  return ordered.slice(start).concat(ordered.slice(0, start));
+};
+
 const chainShapeFromGeometry = (geometry, closed, fallbackOp, index) => {
   const points = geometry.points;
   const pointIds = points.map((_, at) => `p${at}`);
-  // A fillet modifier references the polygon vertex nearest the recorded
-  // theoretical corner (the corner itself is not a segment endpoint).
+  const shapeClosed = closed && points.length >= 3;
+  const rectPoints = shapeClosed ? canonicalPolygonPoints(points) : points;
+  const rect = shapeClosed ? chainAsRect(rectPoints) : null;
+  if (rect) {
+    // A fillet modifier references the polygon vertex nearest the recorded
+    // theoretical corner (the corner itself is not a segment endpoint).
+    const fillets = geometry.modifiers.map(fillet => {
+      let nearest = 0;
+      let nearestDistance = Infinity;
+      rectPoints.forEach((point, at) => {
+        const distance = Math.hypot(point.x - fillet.vertex.x, point.y - fillet.vertex.y);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearest = at;
+        }
+      });
+      return { corner: nearest, radius: fillet.radius };
+    });
+    return {
+      id: `s${index}`,
+      type: 'rect',
+      op: fallbackOp,
+      center: rect.center,
+      width: rect.width,
+      height: rect.height,
+      rotation: rect.rotation,
+      fillets
+    };
+  }
   const modifiers = geometry.modifiers.map(fillet => {
     let nearest = 0;
     let nearestDistance = Infinity;
@@ -1094,28 +1142,12 @@ const chainShapeFromGeometry = (geometry, closed, fallbackOp, index) => {
     });
     return { type: 'fillet', vertexId: pointIds[nearest], radius: fillet.radius };
   });
-  const shapeClosed = closed && points.length >= 3;
   const edgeCount = shapeClosed ? points.length : Math.max(0, points.length - 1);
   const edges = [];
   for (let at = 0; at < edgeCount; at += 1) {
     const from = pointIds[at];
     const to = pointIds[(at + 1) % points.length];
     if (from !== to) edges.push({ id: `e${at}`, type: 'line', from, to });
-  }
-  const rect = shapeClosed ? chainAsRect(points) : null;
-  if (rect) {
-    return {
-      id: `s${index}`,
-      type: 'rect',
-      op: fallbackOp,
-      center: rect.center,
-      width: rect.width,
-      height: rect.height,
-      rotation: rect.rotation,
-      fillets: modifiers
-        .map(modifier => ({ corner: pointIds.indexOf(modifier.vertexId), radius: modifier.radius }))
-        .filter(fillet => fillet.corner >= 0)
-    };
   }
   return {
     id: `s${index}`,
@@ -1368,7 +1400,7 @@ export const occProfileEntitiesFromSketch = (sketch = {}, options = {}) => {
       }
     }
     const vertices = shape.type === 'rect'
-      ? rectCornerVertices(shape).map(([x, y]) => ({ x, y }))
+      ? occProfileRectCornerVertices(shape).map(([x, y]) => ({ x, y }))
       : shape.points.map(point => ({ x: point.x, y: point.y }));
     const corners = [];
     // Rectangles are closed by kind; chains carry their own closure.

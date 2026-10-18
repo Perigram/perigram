@@ -238,6 +238,21 @@ describe('OCCS profile helpers', () => {
       height: 20,
       rotation: 0
     });
+    // The same rectangle from any corner and direction extracts to the
+    // same settings — canonical order, stable corner labels.
+    const corners = [[0, 0], [40, 0], [40, 20], [0, 20]];
+    for (let start = 0; start < 4; start += 1) {
+      for (const direction of [1, -1]) {
+        const walk = Array.from({ length: 4 }, (_, step) => corners[(start + direction * step + 8) % 4]);
+        const entities = walk.map((point, index) => ({
+          type: 'LINE',
+          start: { x: point[0], y: point[1] },
+          end: { x: walk[(index + 1) % 4][0], y: walk[(index + 1) % 4][1] }
+        }));
+        const extracted = occProfileSketchFromEntities(entities, {}).shapes[0];
+        expect(extracted).toMatchObject({ type: 'rect', center: [20, 10], width: 40, height: 20, rotation: 0 });
+      }
+    }
     // The seed emits four corners; a fillet radius authored on a corner
     // comes back as the same corner's fillet after extraction.
     const authored = normalizeOccsProfileSketch({
