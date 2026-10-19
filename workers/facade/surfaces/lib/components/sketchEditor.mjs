@@ -16,7 +16,7 @@ import {
   occProfileSketchFromEntities,
   occsProfileFromSketch,
   renameOccsProfileSketchParameter,
-  resolveOccsProfileFacePolygons
+  resolveOccsProfileSectionPolygons
 } from '../../../occs/profiles.js';
 import { resolveOccsExpression } from '../../../occs/expressions.js';
 import { toolIcon } from './toolIcons.mjs';
@@ -138,21 +138,13 @@ export default function createSketchEditor({ vue, components, locale }) {
         settings.isShowCommandLine = commandLine.value;
       };
 
-      // The material half of the zero axis is the boolean body — the
-      // toggle flips which side of the axis hatches and clips.
-      const toggleMaterialSide = () => {
-        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
-        commitSketch({ ...normalized, material: normalized.material === 'positive' ? 'negative' : 'positive' });
-      };
-
-      // The resolved boolean result (outer rings and holes, world
+      // The resolved profile section (outer rings and holes, world
       // coordinates) — recomputed debounced from the authored model; the
-      // overlay draws it as one solid outline so the ordered steps and
-      // the material-half clip read at a glance.
-      // The face after the profile's ordered operations: each step
-      // applies to the accumulated face region — the hatch IS the
-      // resulting face.
-      const resolvedFace = shallowRef(null);
+      // overlay draws it as one solid outline so the boolean result
+      // reads at a glance.
+      // The hatch IS the section the author is drawing: adds union,
+      // subtracts cut, drawing order never matters.
+      const resolvedSection = shallowRef(null);
       const outlineError = ref('');
       let outlineTimer = null;
       const resolveOutline = async () => {
@@ -163,21 +155,17 @@ export default function createSketchEditor({ vue, components, locale }) {
           const normalized = normalizeOccsProfileSketch(props.modelValue || {});
           const { section } = occsProfileFromSketch(normalized, { parameters: externalScope() });
           if (section?.type !== 'shapes') {
-            resolvedFace.value = null;
+            resolvedSection.value = null;
             return;
           }
-          const span = 1e5;
-          const half = normalized.material === 'negative'
-            ? [[0, -span], [-span, -span], [-span, span], [0, span]]
-            : [[0, -span], [span, -span], [span, span], [0, span]];
-          const resolved = await resolveOccsProfileFacePolygons(section, half);
-          resolvedFace.value = resolved;
+          const resolved = await resolveOccsProfileSectionPolygons(section);
+          resolvedSection.value = resolved;
           const participates = section.shapes.some(shape => shape.op !== 'construction');
           if (participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
             outlineError.value = t('cassette.v2.profileEditor.resultClipped');
           }
         } catch (error) {
-          resolvedFace.value = null;
+          resolvedSection.value = null;
           outlineError.value = error?.message || String(error);
         }
       };
@@ -361,8 +349,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           seenPosition.add(dedupeKey);
           return true;
         });
-        const outline = resolvedFace.value
-          ? [...resolvedFace.value.polygons, ...resolvedFace.value.holes]
+        const outline = resolvedSection.value
+          ? [...resolvedSection.value.polygons, ...resolvedSection.value.holes]
               .filter(ring => ring.length >= 3)
               .map(ring => ring.map(vertex => toScreen(Number(vertex[0]), Number(vertex[1]))))
           : [];
@@ -370,20 +358,12 @@ export default function createSketchEditor({ vue, components, locale }) {
         const span = 1e5;
         const axisTop = toScreen(0, span);
         const axisBottom = toScreen(0, -span);
-        const width = containerRef.value?.clientWidth || 0;
-        const height = containerRef.value?.clientHeight || 0;
-        const materialRight = evaluated.material !== 'negative';
         return {
           dimensions,
           outline,
           origin: toScreen(0, 0),
           openEnds: [],
-          axis: { top: axisTop, bottom: axisBottom },
-          face: {
-            x: materialRight ? Math.max(axisTop[0], axisBottom[0]) : 0,
-            width: materialRight ? Math.max(width - axisTop[0], width - axisBottom[0], 0) : Math.min(axisTop[0], axisBottom[0], width),
-            height
-          }
+          axis: { top: axisTop, bottom: axisBottom }
         };
       };
 
@@ -650,7 +630,6 @@ export default function createSketchEditor({ vue, components, locale }) {
           { command: 'redo', icon: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo' }
         ],
         [
-          { icon: 'materialSide', labelKey: 'cassette.v2.profileEditor.actions.material', isOn: () => normalizeOccsProfileSketch(props.modelValue || {}).material === 'negative', onActivate: toggleMaterialSide },
           { icon: 'ortho', labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
           { icon: 'tangentSnap', labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
           { icon: 'commandLine', labelKey: 'cassette.v2.profileEditor.actions.commandLine', isOn: () => commandLine.value, onActivate: toggleCommandLine }
@@ -1323,11 +1302,10 @@ export default function createSketchEditor({ vue, components, locale }) {
           h('line', { key: `${key}-h`, x1: x - 8, y1: y, x2: x + 8, y2: y, stroke: PRIMARY, 'stroke-width': 1 }),
           h('line', { key: `${key}-v`, x1: x, y1: y - 8, x2: x, y2: y + 8, stroke: PRIMARY, 'stroke-width': 1 })
         ];
-        const { axis, face } = annotations;
-        // Two surface states (owner law): the hatch IS the face after
-        // the profile's boolean operations — polygons hatch, holes stay
-        // empty, the void side stays empty. An empty sketch hatches the
-        // material half as the base face.
+        const { axis } = annotations;
+        // Two surface states (owner law): the hatch IS the drawn
+        // section — polygons hatch, holes stay empty, everything outside
+        // the section stays empty. A blank canvas hatches nothing.
         const ringPaths = annotations.outline
           .filter(ring => ring.length >= 3)
           .map(ring => `${ring.map((point, index) => `${index ? 'L' : 'M'} ${point[0]} ${point[1]}`).join(' ')} Z`);
@@ -1341,20 +1319,14 @@ export default function createSketchEditor({ vue, components, locale }) {
               'stroke-linejoin': 'round'
             })
           : null;
-        const faceHatchPath = ringPaths.length
+        const sectionHatchPath = ringPaths.length
           ? h('path', {
-              key: 'material-face',
+              key: 'section-hatch',
               d: ringPaths.join(' '),
               'fill-rule': 'evenodd',
               fill: 'url(#profile-face-hatch)'
             })
-          : face.width > 0
-            ? h('path', {
-                key: 'material-face',
-                d: `M ${face.x} 0 H ${face.x + face.width} V ${face.height} H ${face.x} Z`,
-                fill: 'url(#profile-face-hatch)'
-              })
-            : null;
+          : null;
         return [
           h('defs', { key: 'hatch-defs' }, [
             h('pattern', {
@@ -1381,7 +1353,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               h('path', { d: 'M 0 1 L 10 5 L 0 9 z', fill: DIM_STROKE })
             ])
           ]),
-          faceHatchPath,
+          sectionHatchPath,
           outlinePath,
           // The zero axis is the solid basis line every field measures
           // from (SPEC law).

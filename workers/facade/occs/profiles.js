@@ -30,12 +30,6 @@ const normalizeOp = (op, fallback = 'add') => (
   OCCS_PROFILE_SHAPE_OPS.includes(op) ? op : fallback
 );
 
-// The material half of the zero axis (X=0) is a boolean body: the
-// evaluated section is clipped to it. 'positive' hatches X>0.
-export const normalizeOccsProfileMaterial = (material) => (
-  material === 'negative' ? 'negative' : 'positive'
-);
-
 const RECT_TEMPLATE_FILLET_CORNERS = [0, 1, 2, 3];
 
 const PROFILE_GEOMETRY_SEED = Object.freeze({
@@ -59,7 +53,6 @@ export const createDefaultOccsProfileSketch = (parameters = {}) => ({
     ...DEFAULT_OCCS_PROFILE_PARAMETERS,
     ...parameters
   },
-  material: 'positive',
   shapes: [
     {
       id: 's0',
@@ -83,7 +76,6 @@ export const createEmptyOccsProfileSketch = (parameters = {}) => ({
   version: '0.2',
   units: 'mm',
   parameters: { ...parameters },
-  material: 'positive',
   shapes: []
 });
 
@@ -289,7 +281,6 @@ export const upgradeLegacyOccsProfileSketch = (sketch = {}) => {
     version: '0.2',
     units: sketch.units || 'mm',
     parameters,
-    material: normalizeOccsProfileMaterial(sketch.material),
     shapes
   };
 };
@@ -306,7 +297,6 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
       parameters: Object.fromEntries(
         Object.entries(rawParameters).map(([key, value]) => [key, sketchValue(value, 0)])
       ),
-      material: normalizeOccsProfileMaterial(sketch.material),
       shapes: sketch.shapes
         .map((shape, index) => normalizeShape(shape, index))
         .filter(Boolean)
@@ -504,7 +494,6 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   const section = polyline || {
     type: 'shapes',
     open: false,
-    axis: { material: normalized.material },
     shapes: normalized.shapes.map(shape => {
       if (shape.type === 'circle') {
         return {
@@ -549,20 +538,26 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   };
 };
 
-// The section's ordered boolean steps on the face: every participating
-// shape in authored order — the list order IS the application order.
-// Construction geometry never joins a step. Polyline sections have no
-// boolean meaning (null).
+// The section's boolean steps on the face: every participating shape,
+// grouped — all adds before all subtracts (owner law: ops apply to the
+// face; the fold is order-independent, so drawing order never changes
+// the result). Construction geometry never joins a step. Polyline
+// sections have no boolean meaning (null).
 export const resolveOccsProfileSectionOperations = (section = {}) => {
   if (section.type !== 'shapes') return null;
-  return section.shapes
-    .filter(shape => (shape.op === 'add' || shape.op === 'subtract') && shape.vertices.length >= 3)
-    .map(shape => ({ op: shape.op, polygons: [shape.vertices] }));
+  const participating = section.shapes
+    .filter(shape => (shape.op === 'add' || shape.op === 'subtract') && shape.vertices.length >= 3);
+  return [
+    ...participating.filter(shape => shape.op === 'add')
+      .map(shape => ({ op: 'add', polygons: [shape.vertices] })),
+    ...participating.filter(shape => shape.op === 'subtract')
+      .map(shape => ({ op: 'subtract', polygons: [shape.vertices] }))
+  ];
 };
 
-// The section as a standalone figure (previews, thumbnails): the steps
-// folded from an empty base. A sketch that only cuts carries its cut
-// rings as holes so the preview still shows them.
+// The section as a standalone figure (the editor's preview, thumbnails):
+// the steps folded from an empty base. A sketch that only cuts carries
+// its cut rings as holes so the preview still shows them.
 export const resolveOccsProfileSectionPolygons = async (section = {}) => {
   const operations = resolveOccsProfileSectionOperations(section);
   if (!operations) return null;
@@ -571,16 +566,6 @@ export const resolveOccsProfileSectionPolygons = async (section = {}) => {
   const subtracts = operations.filter(operation => operation.op === 'subtract')
     .flatMap(operation => operation.polygons);
   return subtracts.length ? { polygons: [], holes: subtracts } : folded;
-};
-
-// The face after the profile's ordered operations: each step applies to
-// the accumulated face region — the editor's material half is the base
-// face stand-in; production folds the placed steps the same way.
-export const resolveOccsProfileFacePolygons = async (section = {}, baseFace = []) => {
-  const operations = resolveOccsProfileSectionOperations(section);
-  if (!operations) return null;
-  const base = baseFace.length >= 3 ? { polygons: [baseFace], holes: [] } : { polygons: [], holes: [] };
-  return foldCassetteV2Region(base, operations);
 };
 
 // Preview projection: a sketch's evaluated section as drawing layerData
@@ -1230,7 +1215,6 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
     version: '0.2',
     units: 'mm',
     parameters,
-    material: 'positive',
     shapes
   }, parameters);
 };
@@ -1335,8 +1319,6 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
   }
   const usedAuthored = new Set();
   const keptShapeIds = new Set();
-  const authoredOrder = new Map([...(authored.shapes || []), ...adoptShapes]
-    .map((shape, index) => [shape.id, index]));
   const shapes = extracted.shapes.map((shape) => {
     let best = null;
     let bestMatches = 0;
@@ -1366,9 +1348,9 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     if (shape.type === 'chain' && original.type === 'chain') {
       // Point ids are per-shape identity: the authored ids ride the kept
       // shape so its fillet modifiers stay referenced.
-      return { ...mergeChainShape(shape, original, best), __order: authoredOrder.get(original.id) };
+      return mergeChainShape(shape, original, best);
     }
-    return { ...original, __order: authoredOrder.get(original.id) };
+    return { ...original };
   });
   // Field-wise revive: a leftover extracted shape pairs with a leftover
   // authored shape of the same kind and keeps the authored expression on
@@ -1397,7 +1379,6 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     delete shape.__fresh;
     shape.id = authoredShape.id;
     shape.op = authoredShape.op;
-    shape.__order = authoredOrder.get(authoredShape.id);
     keptShapeIds.add(authoredShape.id);
     if (shape.type === 'circle') {
       shape.diameter = keepAuthoredField(authoredShape.diameter, evaluatedShape.diameter, shape.diameter);
@@ -1415,11 +1396,6 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
       }))
       .filter(fillet => fillet.radius !== 0);
   }
-  // The authored order is the boolean application order: kept and
-  // revived shapes hold their authored slots, fresh shapes append in
-  // extraction order.
-  shapes.sort((left, right) => (left.__order ?? Infinity) - (right.__order ?? Infinity));
-  shapes.forEach(shape => { delete shape.__order; });
   // Fresh shapes renumber against every kept id — an extracted id that
   // happens to equal a kept id still renumbers (identity, not the id,
   // decides kept-ness).
@@ -1435,7 +1411,6 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
   }
   return {
     ...extracted,
-    material: authored.material || extracted.material,
     parameters: authored.parameters || extracted.parameters,
     shapes
   };

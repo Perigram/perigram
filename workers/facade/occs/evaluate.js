@@ -1,6 +1,7 @@
 import {
   buildCassetteV2CassetteMarkLayerData,
   buildCassetteV2TrapezoidTreeCurves,
+  cassetteV2BooleanOperationsForEntities,
   profileCutEntitiesForTree,
   profileEdgeEmbeddingsForTree
 } from '../surfaces/lib/cassetteV2Renderer.js';
@@ -107,21 +108,16 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
       });
     }
 
-    // Closed profiles carry ordered boolean operations on the host face
-    // (owner law 2026-10-19): each step applies to the accumulated face
-    // region in entity order — the same fold the designer applies.
+    // Closed profiles carry boolean operations on the host face (owner
+    // law 2026-10-19): adds unite into the face, subtracts cut from it —
+    // the same grouped fold the designer applies.
     const profileCutEntities = (await profileCutEntitiesForTree(workpieceCurves, tree))
       .filter(entity => faceCurves.has(entity.target));
     const cutEmbeddedCurves = [];
     for (const curve of embeddedCurves) {
-      const operations = profileCutEntities
-        .filter(entity => entity.target === curve.node.id)
-        .map(entity => ({
-          op: entity.booleanOperation === 'add' ? 'add' : 'subtract',
-          polygons: entity.geometry.type === 'polygons'
-            ? entity.geometry.polygons
-            : [entity.geometry.vertices]
-        }));
+      const operations = cassetteV2BooleanOperationsForEntities(
+        profileCutEntities.filter(entity => entity.target === curve.node.id)
+      );
       if (!operations.length) {
         cutEmbeddedCurves.push(curve);
         continue;

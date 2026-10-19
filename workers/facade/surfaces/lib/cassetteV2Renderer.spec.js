@@ -448,7 +448,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(cutInner?.paths.length || 0).toBe(0);
   });
 
-  it('applies the profile steps in authored order — a late add restores cut material', async () => {
+  it('applies the profile steps grouped — the production fold ignores shape order', async () => {
     const tab = { type: 'rect', op: 'add', center: [10, 0], width: 40, height: 24, rotation: 0 };
     const hole = { type: 'circle', op: 'subtract', center: [10, 0], diameter: 10 };
     const patch = { type: 'rect', op: 'add', center: [12, 0], width: 6, height: 40, rotation: 0 };
@@ -460,7 +460,7 @@ describe('cassette v2 trapezoid renderer', () => {
       const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
         referenceWorkpieceId: 'wp_1',
         referenceNodeId: 'face_1',
-        name: 'Ordered steps',
+        name: 'Grouped steps',
         sketch
       });
       const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
@@ -491,11 +491,12 @@ describe('cassette v2 trapezoid renderer', () => {
         });
       return Math.min(...rings);
     };
-    // The patch after the hole fills most of it; the same shapes with
-    // the subtract last erase the patch inside the hole instead.
-    const restored = await holeArea([tab, hole, patch]);
-    const erased = await holeArea([tab, patch, hole]);
-    expect(restored).toBeLessThan(erased * 0.5);
+    // The cut always wins inside the hole ring, whatever order the
+    // shapes were drawn in.
+    const first = await holeArea([tab, hole, patch]);
+    const second = await holeArea([patch, hole, tab]);
+    expect(first).toBeGreaterThan(0);
+    expect(second).toBe(first);
   });
 
   it('keeps authored array values untouched on the relation read', () => {
@@ -1301,7 +1302,6 @@ describe('cassette v2 trapezoid renderer', () => {
           version: '0.2',
           units: 'mm',
           parameters: {},
-          material: 'positive',
           shapes: [{
             id: 's0',
             type: 'rect',

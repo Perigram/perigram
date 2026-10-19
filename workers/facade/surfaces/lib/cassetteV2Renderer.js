@@ -2637,12 +2637,11 @@ export const cassetteV2AttachableProfileEdgesForTree = (
 };
 
 // Closed profile sections arranged on a face produce their production
-// effect (owner law 2026-10-15, op-sequence amendment 2026-10-19): the
-// array settings (or the point placement) place the boolean steps and
-// each copy's steps apply to the host face in authored order — the
-// same boolean pipeline and the same cut.inner layer the integral-cut
-// hanger clips ride. Copies that fall entirely outside the face stay
-// boolean-only operands.
+// effect (owner law 2026-10-15): the array settings (or the point
+// placement) place the boolean steps and each copy's steps apply to the
+// host face — the same boolean pipeline and the same cut.inner layer
+// the integral-cut hanger clips ride. Copies that fall entirely
+// outside the face stay boolean-only operands.
 export const profileCutEntitiesForTree = async (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
@@ -2666,10 +2665,8 @@ export const profileCutEntitiesForTree = async (curves = [], tree = createCasset
     for (let index = 0; index < points.length; index += 1) {
       const operations = await profileOperationPolygons(profile, points[index], relation, targetCurve, parameters);
       if (!operations) continue;
-      // The entity stream order is the application order: each step
-      // applies to the accumulated face region. Add steps reshape the
-      // face contour only; a subtract step renders as an inner cut
-      // while it sits fully inside the face.
+      // Add steps reshape the face contour only; a subtract step
+      // renders as an inner cut while it sits fully inside the face.
       operations.forEach((operation, operationIndex) => {
         entities.push({
           id: `${relation.id}:profile_${operation.op}:${index}:${operationIndex}`,
@@ -2778,9 +2775,9 @@ const placeProfileRing = (ring = [], point = [0, 0, 0], relation = {}, axisRotat
   });
 };
 
-// The placed boolean steps of a closed profile, in authored order —
-// each step applies to the host face region, add uniting and subtract
-// cutting. Polyline sections carry no steps.
+// The placed boolean steps of a closed profile: add rings unite into
+// the host face, subtract rings cut from it — placed by the axis law at
+// the given point. Polyline sections carry no steps.
 const profileOperationPolygons = async (profile, point = [0, 0, 0], relation = {}, targetCurve = null, scope = {}) => {
   const section = profile?.section;
   if (!section || section.type === 'polyline') return null;
@@ -2934,25 +2931,31 @@ const productionEntityCutRings = (entity = {}) => (
       : []
 );
 
-// The face boolean pass: entities apply in stream order — profile steps
-// first in authored order, hardware cuts after — each add uniting into
-// the face region, each subtract cutting from it. The face is the
-// largest ring of the fold (rings sort by area), so material islanded
-// off the face stays off its contour.
+// The boolean steps a target face's entities carry, grouped — every add
+// before every subtract (owner law: ops apply to the face; the fold is
+// order-independent, so stream order never changes the result).
+export const cassetteV2BooleanOperationsForEntities = (entities = []) => [
+  ...entities.filter(entity => entity.booleanOperation === 'add'),
+  ...entities.filter(entity => entity.booleanOperation !== 'add')
+].map(entity => ({
+  op: entity.booleanOperation === 'add' ? 'add' : 'subtract',
+  polygons: productionEntityCutRings(entity)
+})).filter(operation => operation.polygons.length);
+
+// The face boolean pass: adds unite into the face region, subtracts cut
+// from it. The face is the largest ring of the fold (rings sort by
+// area), so material islanded off the face stays off its contour.
 const applyHardwareBooleanDifferences = async (curves = [], productionEntities = []) => {
   const cutsByTarget = hookCutEntitiesByTarget(productionEntities);
   if (!cutsByTarget.size) return curves;
 
   return Promise.all(curves.map(async (curve) => {
-    const operations = cutsByTarget.get(curve.node?.id);
-    if (!operations?.length) return curve;
+    const operations = cassetteV2BooleanOperationsForEntities(cutsByTarget.get(curve.node?.id) || []);
+    if (!operations.length) return curve;
     const baseBoundary = curve.boundaryVertices || curve.vertices;
     const region = await foldCassetteV2Region(
       { polygons: [baseBoundary], holes: curve.holes || [] },
-      operations.map(entity => ({
-        op: entity.booleanOperation === 'add' ? 'add' : 'subtract',
-        polygons: productionEntityCutRings(entity)
-      }))
+      operations
     );
     const outer = region.polygons[0];
     if (!outer?.length) return curve;
