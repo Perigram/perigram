@@ -82,14 +82,22 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
 
   await runDrawTool('Circle', [0.60, 0.30], [0.67, 0.30]);
   await runDrawTool('Rectangle', [0.30, 0.60], [0.60, 0.85]);
-  await expect(
-    dialog.locator('button[aria-label^="Subtract s"]'),
-    'the drawn circle lands as a subtract shape'
-  ).toBeVisible({ timeout: 10_000 });
-  await expect(
-    dialog.locator('button[aria-label^="Add s"]'),
-    'the drawn rect lands as an add shape'
-  ).toBeVisible({ timeout: 10_000 });
+
+  // The primitives panel lists every shape as a row with its boolean
+  // op as the direct segmented control (owner direction 2026-10-19).
+  const circleRow = dialog.locator('button[aria-label^="Circle s"]').first();
+  const rectRow = dialog.locator('button[aria-label^="Rectangle s"]').first();
+  await expect(circleRow, 'the drawn circle lists in the panel').toBeVisible({ timeout: 10_000 });
+  await expect(rectRow, 'the drawn rect lists in the panel').toBeVisible({ timeout: 10_000 });
+  await expect(circleRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Subtract' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(rectRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Add' })).toHaveAttribute('aria-pressed', 'true');
+
+  // The op control switches the operation directly — and the row
+  // re-groups (adds before subtracts, construction apart).
+  await circleRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Construction' }).click();
+  await expect(circleRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Construction' })).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 });
+  await circleRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Subtract' }).click();
+  await expect(circleRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Subtract' })).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 });
 
   const drawn = await dimState(dialog);
   expect(Object.keys(drawn).length, 'dimension annotations for the drawn shapes').toBeGreaterThan(0);

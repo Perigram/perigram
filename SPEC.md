@@ -925,10 +925,20 @@ region fold.
 Owner direction (2026-10-19, authoring): a dragged shape keeps its
 parameter bindings — a moved field bound to a bare parameter edits that
 parameter, compound expressions and numerics carry the drawn value.
-Every shape lists in a strip as a chip showing its kind and its op
-state (add, subtract, construction) at a glance; clicking the chip
-selects and opens its settings, clicking the state cycles the op, and
-selection strokes the shape's footprint dashed on the canvas.
+Selection strokes the shape's footprint dashed on the canvas.
+
+Owner direction (2026-10-19, evening — primitives panel): the
+primitive listing is a panel inside the editor canvas — a real list,
+one row per shape (kind glyph, kind name, its boolean operation as the
+direct segmented Add/Subtract/Construction control, every option's
+tooltip naming the face as the target). Rows group in the evaluation
+order — adds, subtracts, construction — so the boolean fold reads off
+the list itself; hidden three-state cycling controls are gone.
+Clicking a row selects its shape. Placing a library record whose
+sketch carries no participating shape refuses with the authoring
+message — the parametric default hanger stands in only for
+sketch-less workpieces, and authored-but-empty snapshots never place
+template geometry.
 
 Owner review (2026-10-18, profile editor readout): the parameter table
 lives in the strip above the canvas — its one home, visible with no
