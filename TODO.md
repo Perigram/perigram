@@ -1,5 +1,39 @@
 # TODO
 
+## Sheet-design editor panels and interactions (owner report 2026-10-19)
+
+Owner report: the sheet-design editor needs the side panels the editor
+contract provides, with layers like the cassette editor; cassettes must
+be addable from the dropdown (was a silent no-op); move must snap with a
+working margin; selection must grab cassette faces; a speed dial carries
+open-instance, rotate, and delete.
+
+- [ ] WAITING — owner verification on the live stack: the palette and
+  inspector rails render (cassette picker adds placements, margin row
+  spaces drags and rotations off neighbors and the sheet edge, layer rows
+  toggle visibility), a placement drags by its face and snaps flush, and
+  the selection speed dial opens the placed cassette in a workspace tab.
+
+### Agent Notes (2026-10-19)
+
+Session `agent/sheet-editor-panels-20261019`. The dropdown add was dead
+because `cassetteSheetItem` read the retired `{ data, identity }` value
+shape while the query transport returns §3 record DTOs — it now reads
+`fields.polygonParts`/`fields.layerData` and refuses records without
+extracted geometry (toast). Drag suffered from edges-only hit testing
+(placements now hit-test by face) and an off-by-one undo stack (commits
+follow mutations). Margin is a palette parameter feeding clearance and
+boundary offset into drag snap, rotate, and add (0 keeps solved layouts
+as solved); the editor mounts the lanes chrome with palette (picker,
+margin, layer rows) and inspector; the selection speed dial carries
+open/rotate/delete. Opening a placed cassette needed a navigation
+channel the surface contract lacked: contract 4 adds `open.instance`
+(the workspace owns tabs); the facade listing bumps to v17 with the
+sheet-design-editor at contract 4, and the SDK stub smoke carries the
+contract-4 superset. Specs: sheetLayoutEditor 12/12; listing validates;
+all four facade surfaces pass `perigram-plugin surfaces`. Not run: the
+live-stack e2e (no running dev stack in this session).
+
 ## Designer drag performance and declaration columns (owner report 2026-10-19)
 
 Owner report: node drag lags awfully on the process canvas, and type

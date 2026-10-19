@@ -995,6 +995,17 @@ face frames in 2D and folded 3D alike.
 Snap points and array bindings are computed from the raw authored
 face, never from the profile-merged boundary.
 
+Owner decision (2026-10-19, sheet-design editor interactions): the
+sheet-design editor runs the operational-designer lanes chrome — palette
+(cassette picker, layout margin, layer visibility rows) and inspector
+(selected placement facts, else the sheet summary). Cassettes are added
+from the picker over the cassette record wire; a placement grabs by face;
+drag snaps magnetically with the margin row feeding both the part gap and
+the sheet-edge offset; the selection's speed dial carries open cassette,
+rotate, and delete. Opening a placed cassette is host navigation: the
+surface asks through the mount's workspace-open channel (surface contract
+4), and the workspace owns the tab.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,
