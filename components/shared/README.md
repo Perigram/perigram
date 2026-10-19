@@ -432,10 +432,11 @@ resolve to their name-level card), resolves the matching design-system
 entity card, and renders that card with
 `variant="inline"`. The record preview popup is the shared entity popup
 ([`EntityPopup.vue`](#entitypopupvue-with-useentitypopup): the referenced
-record's compiled detail screen in the standard dialog); the chip, the
+record's compiled detail screen — or its record floor — in the standard
+dialog); the chip, the
 compact micro card, and the referenced entity card all open it through
-`useEntityPopup`'s `open`/`openable` seam, so a type with no record surface
-(directory profile or compiled/synthesizable detail screen) renders an inert
+`useEntityPopup`'s `open`/`openable` seam, so a type absent from the
+served type view renders an inert
 chip — no dead link. `interactive: false` renders the inline card
 non-expandable for non-interactive rows such as explorer entries and static
 summaries. Contextual relation operations (the owner-bound Unlink a
@@ -642,19 +643,21 @@ The header carries the record's display name (never an id; resolved from
 the instances store cache, falling back to its readable-reference
 resolution) with exactly one expansion affordance beside it: the
 icon-only expand action that steps the record up to its page. The
-composable's `openable(typeId)` is the guard: a type with neither a
-directory profile nor a resolvable detail screen has no record surface
-anywhere (panes stay silent for it too), so `open()` refuses it and
-callers (chat thread headers, message links, inline refs, card chips)
-render an inert surface instead of a link — an empty popup shell with
-dead chrome never renders. The
-expand step-up renders only where it has somewhere to go: desktop always
-(the home pane tab), mobile only for records with a routed page — a
-compiled detail screen, or the **active organization**, whose real page
-is the org overview system screen (`/organization`) rather than the
-directory profile. On mobile the workspace-open seam routes the active
-org there directly; other records without a routed page open this dialog
-as the bounded terminal surface (the item-popup header pattern — the
+composable's `openable(typeId)` is the guard: a type with a
+directory profile, a compiled/synthesizable detail screen, or a served
+type record opens; a type absent from the served view has no record
+surface anywhere (panes stay silent for it too), so `open()` refuses it
+and callers (chat thread headers, message links, inline refs, card
+chips) render an inert surface instead of a link. Types without a
+compiled screen render the **record floor** — a synthesized
+single-source detail screen over the served type view (`recordFloorScreen`
+in [generated surfaces](../generated/README.md)). The
+expand step-up renders only where a page exists: a compiled or
+list-synthesized detail screen, or the directory surface for
+`user`/`organization` (the active organization's real page
+is the org overview system screen, `/organization`); a record-floor
+record opens this dialog as
+the bounded terminal surface (the item-popup header pattern — the
 dialog's own close affordance dismisses; there is no footer). Identity
 opens from the generator swap the popup subject in place. Mounted once by
 the app layout so floating chrome (chat thread headers) can inspect a
@@ -696,9 +699,8 @@ contract lives in the
 [support feature](../../../server/features/support/README.md) — Message
 Attachments). Media flows as one masonry in send order; instance refs
 with media render `InstanceInlineRef`'s stacked compact card, preview-less
-refs render chips. A ref carrying a stored file payload opens the shared
-file viewer on click (download for opaque kinds — SPEC §Chat files); every
-other ref keeps its own record-popup click. One image renders at natural
+refs render chips; every ref opens the shared record popup on click. One
+image renders at natural
 aspect inside fixed bounds (`max-h`); clicking any image opens it centered
 in a full-size `StandardDialog` (the standard modal surface; no component
 -local lightbox chrome). Videos render native `<video controls>` players

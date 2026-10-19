@@ -134,10 +134,9 @@ to a following text message; a lone media item full-width). Preview-less
 refs render the outlined chip (type glyph), file documents the filled
 chip — chips inline-wrap to lines at the sender edge. Images and video
 embed inline (gallery tiles, players), other files open the shared preview
-dialog on click (download for opaque kinds). A ref with a stored file
-payload opens the same viewer for its file — download for opaque kinds
-(SPEC §Chat files); every other ref opens the shared record popup
-(`EntityPopup`, the record's compiled detail screen). Inline
+dialog on click (download for opaque kinds). Every instance ref opens the
+shared record popup (`EntityPopup` — the record's compiled detail screen,
+or the record floor for types without a compiled screen). Inline
 `{{instance:type:id}}` tokens inside authored text strip from display.
 The chat composer stores selected
 instances only in `instanceRefs`; it does not inject attachment tokens into the
