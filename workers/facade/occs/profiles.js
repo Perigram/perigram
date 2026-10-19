@@ -1047,6 +1047,30 @@ const chainToSketchGeometry = (chain, closed, chordTolerance) => {
   return { points, modifiers };
 };
 
+const roundNumeric = (value) => Math.round((value + Number.EPSILON) * 1000) / 1000;
+
+// Canonical extracted rect: rotation kept in [−45°, 45°) by swapping
+// width and height past the quarter-turn — one geometry, one
+// representation, whichever corner the ring starts from.
+const canonicalRectSettings = ({ center, width, height, rotation }) => {
+  let nextWidth = width;
+  let nextHeight = height;
+  let nextRotation = rotation;
+  while (nextRotation >= 135 || nextRotation < -135) {
+    nextRotation -= Math.sign(nextRotation) * 180;
+  }
+  while (nextRotation >= 45 || nextRotation < -45) {
+    nextRotation -= Math.sign(nextRotation) * 90;
+    [nextWidth, nextHeight] = [nextHeight, nextWidth];
+  }
+  return {
+    center: [roundNumeric(center[0]), roundNumeric(center[1])],
+    width: roundNumeric(nextWidth),
+    height: roundNumeric(nextHeight),
+    rotation: roundNumeric(nextRotation)
+  };
+};
+
 // A closed four-vertex chain with right angles and equal opposite sides
 // is a rectangle primitive (any rotation): parametric width, height,
 // rotation, and per-corner fillets author it from then on.
@@ -1073,16 +1097,16 @@ const chainAsRect = (points = []) => {
   }
   const width = (widths[0] + widths[1]) / 2;
   const height = (heights[0] + heights[1]) / 2;
-  const angle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
-  return {
+  const angle = (Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x) * 180) / Math.PI;
+  return canonicalRectSettings({
     center: [
       (points[0].x + points[2].x) / 2,
       (points[0].y + points[2].y) / 2
     ],
     width,
     height,
-    rotation: (angle * 180) / Math.PI
-  };
+    rotation: angle
+  });
 };
 
 // Canonical closed-polygon order: counter-clockwise from the leftmost
@@ -1184,7 +1208,7 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
     if (!entity) continue;
     if (entity.type === 'CIRCLE') {
       const radius = numericValue(entity.radius);
-      if (radius > 0) circles.push({ center: roundPoint(entity.center), diameter: radius * 2 });
+      if (radius > 0) circles.push({ center: roundPoint(entity.center), diameter: roundNumeric(radius * 2) });
       continue;
     }
     if (entity.type === 'POLYLINE') {
@@ -1239,7 +1263,29 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
 // shapes with no extracted counterpart were erased and drop. An authored
 // sketch whose expressions do not resolve falls back to the plain
 // extraction (the save gate reports it).
-const MERGE_EPSILON_MM = 1e-3;
+// Drawing-scale identity: reconstruction from engine geometry carries
+// µm-level noise (rounded entity endpoints, tangent-arc
+// reintersections), so shape identity and unchanged-field detection
+// work at 0.05 mm — below the smallest intentional edit at drawing
+// scale.
+const MERGE_EPSILON_MM = 0.05;
+
+// Rect identity is the corner ring: the same four corners (as a set —
+// ring start is draw-direction noise) are the same rect whatever
+// width/height/rotation triple describes them.
+const rectCornersMatch = (extracted = {}, authored = {}) => {
+  const extractedCorners = occProfileRectCornerVertices(extracted);
+  const authoredCorners = occProfileRectCornerVertices(authored);
+  const used = new Set();
+  return authoredCorners.every((corner) => {
+    const match = extractedCorners.findIndex((candidate, index) => (
+      !used.has(index) && Math.hypot(candidate[0] - corner[0], candidate[1] - corner[1]) <= MERGE_EPSILON_MM
+    ));
+    if (match < 0) return false;
+    used.add(match);
+    return true;
+  });
+};
 
 const shapesWithinEpsilon = (extracted = {}, authored = {}) => {
   if (extracted.type !== authored.type) return false;
@@ -1247,12 +1293,7 @@ const shapesWithinEpsilon = (extracted = {}, authored = {}) => {
     return Math.hypot(authored.center[0] - extracted.center[0], authored.center[1] - extracted.center[1]) <= MERGE_EPSILON_MM
       && Math.abs(authored.diameter - extracted.diameter) <= MERGE_EPSILON_MM;
   }
-  if (extracted.type === 'rect') {
-    return Math.hypot(authored.center[0] - extracted.center[0], authored.center[1] - extracted.center[1]) <= MERGE_EPSILON_MM
-      && Math.abs(authored.width - extracted.width) <= MERGE_EPSILON_MM
-      && Math.abs(authored.height - extracted.height) <= MERGE_EPSILON_MM
-      && Math.abs(authored.rotation - extracted.rotation) <= MERGE_EPSILON_MM;
-  }
+  if (extracted.type === 'rect') return rectCornersMatch(extracted, authored);
   if (Boolean(authored.closed) !== Boolean(extracted.closed)) return false;
   const authoredPoints = authored.points || [];
   const extractedPoints = extracted.points || [];
@@ -1289,8 +1330,8 @@ const mergeChainShape = (extractedShape, authoredShape, evaluatedShape, mergeFie
     if (!original) return { ...point };
     return {
       id: original.id,
-      x: mergeField(original.x, point.x),
-      y: mergeField(original.y, point.y),
+      x: mergeField(original.x, evaluatedPoints[index]?.x, point.x),
+      y: mergeField(original.y, evaluatedPoints[index]?.y, point.y),
       ...(point.chord ? { chord: true } : {})
     };
   });
