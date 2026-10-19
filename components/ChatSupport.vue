@@ -548,13 +548,22 @@
                         <div
                             :data-message-id="messageItem._id"
                             class="relative flex min-w-0 max-w-support-chat-message touch-pan-y flex-col"
-                            :class="docksRight(messageItem) ? 'ml-auto' : 'mr-auto'"
+                            :class="docksRight(messageItem) ? 'ml-auto' : ['mr-auto', threadIsWide ? 'ml-14' : '']"
                             @touchstart="onTouchStart($event, messageItem)"
                             @touchmove="onTouchMove($event, messageItem)"
                             @touchend="onTouchEnd(messageItem)"
                             @touchcancel="onTouchCancel(messageItem)"
                             @contextmenu="openMessageMenuFromRow($event, messageItem, true)"
                         >
+                            <!-- Avatar gutter mark: wide panes seat the
+                                 sender's avatar in the left gutter at the
+                                 run's last message (SPEC §Chat thread). -->
+                            <UserChip
+                                v-if="showSenderAvatar(messageItem)"
+                                :user-id="messageSenderKey(messageItem)"
+                                avatar-only
+                                class="absolute -left-14 bottom-0"
+                            />
                             <!-- Swipe reveal icon: it sits in the gap the
                                  dragged row vacates at its dock edge and
                                  fades in with the drag distance; the row
@@ -4083,14 +4092,15 @@ const isOwnMessage = (chatMessage) => {
     return chatMessage.sender === 'user'
 }
 
-// Wide thread panes align every message left (SPEC §Chat thread); the
-// right dock is the narrow-pane arrangement for the viewer's messages.
+// Wide thread panes align every message left with an avatar gutter
+// (SPEC §Chat thread); the right dock is the narrow-pane arrangement for
+// the viewer's messages.
 const threadIsWide = ref(false)
 const docksRight = (chatMessage) => isOwnMessage(chatMessage) && !threadIsWide.value
 
 let threadWidthObserver = null
 const syncThreadWidth = () => {
-    threadIsWide.value = (messagesContainer.value?.clientWidth || 0) >= 640
+    threadIsWide.value = (messagesContainer.value?.clientWidth || 0) >= 1024
 }
 watch(() => messagesContainer.value, (element) => {
     threadWidthObserver?.disconnect()
@@ -4102,11 +4112,18 @@ watch(() => messagesContainer.value, (element) => {
 })
 
 // AI-only rooms are two-party: every non-own message is the assistant's.
-const showSenderLabel = (messageItem) => ((['group', 'instance'].includes(activeConversation.value?.conversationKind)
-    && !isAiOnlyRoom.value) || isAiOnlyRoom.value)
+const senderIdentityRoom = computed(() => ((['group', 'instance'].includes(activeConversation.value?.conversationKind)
+    && !isAiOnlyRoom.value) || isAiOnlyRoom.value))
+const showSenderLabel = (messageItem) => senderIdentityRoom.value
+    && !threadIsWide.value
     && Boolean(messageItem?.senderUserId)
     && !docksRight(messageItem)
     && messageItem.firstOfSenderRun
+
+const showSenderAvatar = (messageItem) => senderIdentityRoom.value
+    && threadIsWide.value
+    && Boolean(messageItem?.senderUserId)
+    && messageItem.lastOfSenderRun
 
 const openConversation = async (conversation) => {
     activeConversation.value = conversation
