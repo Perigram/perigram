@@ -343,6 +343,37 @@ accordion live (select the circle row, type a diameter, the canvas
 dim follows, re-click collapses) — green twice against the merged
 tree.
 
+### Agent Notes (2026-10-19, round 8 — owner report: panel looks bad; deleting one shape broke another into lines)
+
+Owner report: "random PrimeVue would look 10x better", and erasing
+one primitive degraded another into loose lines. Two fixes:
+
+1. The panel now rides the workpieces tree's row anatomy (the one
+   surface that survived owner review): a quiet full-width select row
+   per shape — kind glyph, truncated kind name, the op as a state tag
+   (success/danger/secondary) — with the segmented op control, the
+   property table, and a trash action expanding on selection only.
+   Fixed rhythm (border-b rows, px-2 py-1), content-driven panel
+   width capped at 22rem, evaluation-order listing. The per-row
+   segmented walls are gone. The E2E now enforces the anatomy
+   invariants (equal row widths, consistent heights, zero horizontal
+   overflow) since agents in this environment cannot eyeball renders.
+2. Primitives are atomic (SPEC, evening direction): the engine's
+   Erase works on raw entities, so erasing one line of a rect left a
+   half-primitive that extraction degraded into a chain — "deleting
+   one shape broke another". An entityErased handler now detects a
+   partial primitive (some tagged entities alive, some gone) and
+   deletes the whole shape through the model commit, whose reseed
+   clears the leftover entities. The row's trash deletes directly.
+   Chains keep their per-segment nature (documented).
+
+Validation: 142/142 in workers/facade, arch and docs guards green;
+e2e/cassette-profile-editor.spec.js covers the tag states, the
+row-scoped op control, the collapse, the atomic row delete, and the
+anatomy invariants — green twice against the merged tree. The dev
+app container flapped twice mid-session (another session's
+restarts); runs retried after it settled.
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places
