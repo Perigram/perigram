@@ -71,7 +71,7 @@
       >
         <img class="h-auto max-h-64 max-w-full rounded-ui" :src="url(mediaItems[0].attachment)" :alt="mediaItems[0].attachment.name || ''">
       </button>
-      <span v-if="chipRefs.length" class="flex w-full max-w-80 flex-col items-start gap-1" data-testid="chat-instance-refs">
+      <span v-if="chipRefs.length" class="flex w-full max-w-80 flex-col gap-1" data-testid="chat-instance-refs">
         <InstanceInlineRef
           v-for="ref in chipRefs"
           :key="`${ref.type}-${ref.id}`"
