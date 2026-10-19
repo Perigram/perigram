@@ -117,12 +117,13 @@ preference implementation.
 ## useScreenSourceSync
 
 `useScreenSourceSync(screenGetter, reload)` reconciles a generated surface
-with the shared instance-event contract: a change (local optimistic mutation,
-outbox replay, or a server-published event) for one of the screen's source
-types triggers one debounced source reload. The instances store's
-reconciliation listener has already upserted or invalidated the pool record,
-and stale list observations refetch through the normal read path. The routed
-generated screen page and the workspace detail pane both mount it; the legacy
+with the shared instance-event contract. A change carrying a complete
+snapshot reconciles the instances pool reactively (the store's
+reconciliation listener) and triggers no reload; a snapshot-less
+invalidation (another session's published event) triggers one debounced
+source reload, and stale list observations refetch through the normal
+read path. The routed generated screen page and the workspace detail pane
+both mount it through `GeneratedScreenHost`; the legacy
 `useGeneratedScreen` keeps its own listener of the same shape.
 
 ## useStateController
@@ -295,8 +296,9 @@ positional: a changed entity replaces the matching item in place and is
 appended to a list source only when it satisfies that source's resolved
 filters; a delete event removes the id from every list source of that entity
 type. Single-mode sources patch only when the changed id matches the source's
-resolved identifier. Filter matching is the pure `entityMatchesFilters`
-contract in
+resolved identifier. Filter matching and `$screen.` reference resolution
+(`entityMatchesFilters`, `resolveSourceFilters`, `resolveSourceIdentifier`)
+are pure contracts in
 [utils/generated-screen-source.js](../utils/README.md): bare declared
 lineage keys read through the wire DTO's `lineage` block, so a created child
 carrying its parent ref lands in the open parent detail's child region — the
@@ -436,17 +438,8 @@ app-level `ProfileSettingsDialog` host).
 
 ## State Management (Pinia) — stores/
 
-| Store | Contents |
-|---|---|
-| `auth.js` | Session, user profile, global organization context |
-| `cassettes.js` | User templates and designs |
-| `global.js` | Layout, notifications, shared lookup lists |
-| `outbox.js` | Offline mutation queue, connectivity state, replay |
-
-`auth.js` prefers server-provided `effectivePermissions` and `navigation` when
-the active organization has an active process definition. Membership
-permissions remain the fallback for organizations that have not activated a
-process.
+The store inventory and the client state model live in
+[stores/README.md](../stores/README.md).
 
 ## Related
 

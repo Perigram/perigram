@@ -118,7 +118,6 @@ process vocabulary; none may gain new consumers.
   (personal pens become org pens), stroke data under `pen.data.stroke`,
   and editor form payloads map onto the wire row in
   `createPen`/`updatePen`.
-- `artifacts.js`: Batch artifacts fetching and cache.
 - `supportChat.js`: Chats drawer conversation snapshot state, unread totals,
   and read acknowledgement for the app-shell chat badge and drawer inbox. The
   store loads `/api/support/conversations` only after `auth.userIsSet` is true
@@ -216,11 +215,6 @@ process vocabulary; none may gain new consumers.
   workflow overrides, users, and support. Admin workbench breadcrumbs also
   receive route query so `/admin?section=...` can expose
   Designer/Entities/Context/Commands as navigation siblings.
-- `workbenchFixtures.js` owns the admin workbench fixture context. Manual
-  entities and command/task outputs are upserted into the same context used for
-  typed entity options; seeding preserves that context instead of regenerating
-  fixtures and dropping manual entries. Preview status transitions update this
-  context locally so draft/manual entities do not call the persisted status API.
 - Long-running operations start optimistic UI updates and polling until
   terminal states. The legacy queue-nesting polling store was deleted with
   the queue editor flow: nesting solves run as process actions

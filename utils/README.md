@@ -68,6 +68,14 @@ Shared frontend utility modules used by Vue pages/components.
   server re-validates every send — this is only the early check the
   [support feature](../server/features/support/README.md) contract
   describes.
+- `generated-screen-source.js`: The pure generated-screen source
+  contracts: `entityMatchesFilters` (wire-DTO filter matching; bare
+  lineage keys read the `lineage` block, status windows read `state`),
+  `resolveSourceFilters`/`resolveSourceIdentifier` (`$screen.`-reference
+  resolution over a compiled screen's scope), plus the home-tree helpers
+  (`filterRootSourceItems`, `typeParentOf`, `shouldRenderHomeSection`)
+  the legacy renderer and the generator host
+  ([components/generated](../components/generated/README.md)) consume.
 - `action-visibility.js`: The one home for action-kind questions over the
   projected manifest vocabulary (`createInstance`/`updateInstance`/
   `deleteInstance`/`link`/`unlink`/`runCommand`): kind predicates,
