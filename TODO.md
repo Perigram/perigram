@@ -65,6 +65,32 @@ editable fillets, and a one-shot migration for stored sketches.
   run) against production data and `--apply` once the counts look
   right.
 
+### Agent Notes (2026-10-19, round 11 — owner review, boolean selection restored)
+
+- Owner questions — "What is section/construction?" then "Where is
+  boolean ops selection?" — rule the round-10 containment fold out:
+  the explicit per-shape boolean selection is required. Round 10's
+  model reverted; the surviving round-10 fixes stay (field-wise merge,
+  axis rotation, chips, cycling, save voice).
+- Model: per-shape ops in the 2D pathfinder vocabulary — `union`
+  joins the profile body, `subtract` cuts from it, `construction` is
+  excluded. Fold: union(unions) − union(subtracts), clipped to the
+  material half. A subtract straddling the body edge is a notch —
+  the case pure containment could not express.
+- The popup's segmented Union/Subtract/Construction carries a tooltip
+  per option naming its target (the profile body) — the "applied to
+  WHAT" answer lives on the control itself. Extraction defaults: drawn
+  rects/closed chains union, drawn circles subtract, imports
+  construction.
+- Migration gains the vocabulary pass: add→union, none→construction,
+  a construction flag→op construction; the dry-run/–apply WAITING
+  item covers production.
+- Validation: 129 facade tests green (fixtures carried inert
+  round-10 `construction` literals — rewritten to the real contract);
+  harness proves the fold (rect union cut, subtract circle island),
+  the three-state control, construction flip and back, zero page
+  errors.
+
 ### Agent Notes (2026-10-19, round 10 — owner review, CAD law)
 
 - Owner direction: stop inventing; the CAD world solved these a million

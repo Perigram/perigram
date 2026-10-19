@@ -860,22 +860,22 @@ parameter/holes strip sits above the canvas, the tool toolbar floats
 inside the canvas over the drawing, and the dialog stands near-viewport
 height so the canvas takes everything left.
 
-Owner decision (2026-10-18, profile shape model; containment amendment
-2026-10-19): a profile sketch is a list of parametric shapes evaluated
+Owner decision (2026-10-18, profile shape model; pathfinder-ops
+amendment 2026-10-19): a profile sketch is a list of parametric shapes evaluated
 on the edge axis. Any number of shapes may exist in one profile; the
 profile-level open/closed distinction is retired — closure is a chain
 shape's own state. Shape kinds: circle, rectangle, and chain (drawn on
 the canvas or imported); every authoring field is an expression over
 the parameter table (distances from the basis axis, radii,
-width/height, rotation). Per-shape boolean operations retire for the
-classical CAD sketch law: every closed participating shape folds by
-containment — inner loops are holes, nesting alternates material and
-hole, siblings unite — and the only per-shape flag is construction
-geometry (a shape excluded from the section; an imported drawing lands
-as construction). The editor displays the zero vertical axis — the
-basis every parameter measures from — and hatches the material
-half-plane beside it; the hatched half is a body that participates in
-the fold, the resolved section clipping to it. The axis is the
+width/height, rotation). Each shape carries an explicit boolean
+operation in the 2D pathfinder vocabulary — union (joins the profile
+body), subtract (cuts from it), construction (excluded from the
+profile; an imported drawing lands as construction). The section is
+the union of the union shapes minus the union of the subtract shapes,
+clipped to the material half. The editor displays the zero vertical
+axis — the basis every parameter measures from — and hatches the
+material half-plane beside it; the hatched half is a body that
+participates in the fold, the resolved section clipping to it. The axis is the
 placement basis: placed into a cassette, the axis lands on the
 attachment edge (snap + offsets) with +X — the material half — on the
 edge's inward normal, material toward the host face. Fillets are
@@ -929,11 +929,10 @@ to that parameter — every field bound to it follows; a local field
 edit touches its own primitive only, and primitives bound to the same
 position expression share one dimension for it. Erasing a shape and
 undoing the erase revives the shape with its parameter bindings, and
-shape ids stay unique through every merge. A shape's section membership
-is a segmented Section/Construction control (the classical
-construction-geometry flag); containment decides every closed shape's
-role in the fold. A refused profile save states its reason beside the
-Save action.
+shape ids stay unique through every merge. A shape's boolean operation is a
+segmented Union/Subtract/Construction control; each option's tooltip
+names its target (the profile body). A refused profile save states
+its reason beside the Save action.
 
 
 Owner decision (2026-10-17, assembly tree layout): the designer's

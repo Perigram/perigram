@@ -56,7 +56,7 @@ modules — no platform imports.
   profile mirror controls on the attachment relation; hanger width/height is
   not duplicated in the workpiece row when a saved profile supplies geometry.
 - `profiles.js` declares the OCCS profile shape model used by Cassette
-  Designer v2 (owner decision 2026-10-18, containment amendment
+  Designer v2 (owner decision 2026-10-18, pathfinder-ops amendment
   2026-10-19): a sketch is a list of parametric shapes evaluated on the
   zero axis. Shape kinds: `rect` (center, width, height, rotation,
   per-corner fillet radii), `circle` (center, diameter), and `chain`
@@ -65,16 +65,16 @@ modules — no platform imports.
   number or an expression string evaluated against the parameter table
   through `expressions.js`; a single unknown identifier authored into a
   field adopts that parameter at the field's current value
-  (`adoptOccsProfileBindingParameter`). A shape either participates in
-  the section or is `construction` geometry (a DXF import lands every
-  shape at construction through `occProfileSketchFromEntities`'
-  `reference` option; the flag clears and the shape joins the fold).
-  The zero vertical axis is the evaluation basis every
+  (`adoptOccsProfileBindingParameter`). Each shape carries its boolean
+  op — `union` (joins the profile body), `subtract` (cuts from it), or
+  `construction` (excluded; a DXF import lands every shape at
+  construction through `occProfileSketchFromEntities`' `reference`
+  option). The zero vertical axis is the evaluation basis every
   field measures from, and the material half of it
   (`sketch.material`, `'positive'` hatches X>0) is a boolean body:
-  `resolveOccsProfileSectionPolygons` folds the closed participants by
-  containment depth (even depths unite, odd depths subtract), clipped
-  to the material half, through the vendored Clipper pass, yielding
+  `resolveOccsProfileSectionPolygons` folds the section — union of
+  the union shapes minus the union of the subtract shapes, clipped to
+  the material half — through the vendored Clipper pass, yielding
   ordered outer polygons and hole rings; every ring is cut geometry. The editor's canvas
   carries exactly two surface states (owner law 2026-10-18): the
   material half hatches as the face — the one hatch — and the resolved
@@ -107,8 +107,7 @@ modules — no platform imports.
   The default
   hanger
   template is parametric by law: a rect (W/H the rectangle, R the four
-  corner fillets) plus a contained circle (D, a hole by the
-  containment fold), with L resolving
+  corner fillets) plus a subtract circle (D, the hole), with L resolving
   the sweep at evaluation, so a cassette's instance parameters drive it
   the moment it is attached — the workpiece row's chips are live. The
   template is the renderer's fallback for sketch-less workpieces, never
@@ -142,8 +141,8 @@ modules — no platform imports.
   drawn piece as its own shape — a closed four-vertex right-angle chain
   detects as a `rect` primitive in canonical order (counter-clockwise
   from the leftmost corner, so the draw direction leaves the stored
-  settings and corner labels unchanged), circles land contained
-  (holes by the fold) on a
+  settings and corner labels unchanged), circles land as `subtract`
+  shapes on a
   draw, and `mergeOccsProfileSketchGeometry` merges back under the
   one-way truth rule: an extracted shape sitting on an authored shape's
   evaluated position keeps the authored id, construction, expressions, and
@@ -159,8 +158,8 @@ modules — no platform imports.
   the geometry back on the canvas). Fresh ids renumber against every
   kept id by object identity — an extracted id colliding with a kept id
   still renumbers. The shape popup carries a segmented
-  Section/Construction control — the classical construction-geometry
-  flag; containment decides every closed shape's role in the fold.
+  Union/Subtract/Construction control — the boolean selection, each
+  option's tooltip naming its target (the profile body).
   Document transitions (DXF import) bind the database listeners without
   scheduling an extraction: the import's own explicit extraction is the
   one that lands. Legacy chain sketches (points/edges/holes/closed/
