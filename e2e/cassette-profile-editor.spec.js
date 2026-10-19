@@ -65,18 +65,23 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   // The circle first — its clicks land on a dim-free canvas; the rect
   // follows in the far quadrant, away from the circle's dimension
   // annotations (the dim inputs are HTML overlays that swallow clicks).
-  await dialog.locator('button[aria-label="Circle"]').first().click();
-  await page.waitForTimeout(500);
-  await click(0.25, 0.22);
-  await page.waitForTimeout(200);
-  await click(0.32, 0.22);
-  await page.waitForTimeout(700);
-  await dialog.locator('button[aria-label="Rectangle"]').first().click();
-  await page.waitForTimeout(500);
-  await click(0.55, 0.55);
-  await page.waitForTimeout(200);
-  await click(0.85, 0.80);
-  await page.waitForTimeout(1200);
+  // The toolbar's active state is the command lifecycle: draw clicks
+  // land only while the command runs, and the chip strip appears when
+  // the extraction lands.
+  const runDrawTool = async (tool, from, to) => {
+    const button = dialog.locator(`button[aria-label="${tool}"]`).first();
+    await button.click();
+    await expect(button, `${tool} command started`).toHaveClass(/p-button-primary/, { timeout: 15_000 });
+    await page.waitForTimeout(150);
+    await click(...from);
+    await page.waitForTimeout(250);
+    await click(...to);
+    await expect(button, `${tool} command ended`).not.toHaveClass(/p-button-primary/, { timeout: 15_000 });
+    await page.waitForTimeout(600);
+  };
+
+  await runDrawTool('Circle', [0.60, 0.30], [0.67, 0.30]);
+  await runDrawTool('Rectangle', [0.30, 0.60], [0.60, 0.85]);
   await expect(
     dialog.locator('button[aria-label^="Subtract s"]'),
     'the drawn circle lands as a subtract shape'
