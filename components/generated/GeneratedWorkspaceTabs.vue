@@ -52,13 +52,13 @@ import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import { useI18n } from 'vue-i18n';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRegistryStore } from '~/stores/registry';
 import { titleFor } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 
-defineProps({
+const props = defineProps({
   tabs: { type: Array, default: () => [] },
   activeKey: { type: String, default: '' }
 });
@@ -80,31 +80,24 @@ const tabListPt = {
 
 // PrimeVue's scroll-end check compares fractional widths against rounded
 // integers, so the next chevron outstays the strip's end and covers the
-// last tab; the strip measures the last tab's edge against the viewport
-// (the tab row is a block whose rect matches the viewport — its shrink-0
-// children carry the real extent) and hides it exactly at the end.
+// last tab; the strip hides it once ≤4px of scroll distance remains (the
+// subpixel slack the rounded scroll geometry leaves behind).
 const tabList = ref(null);
 const atScrollEnd = ref(false);
 let stripObserver;
 let viewportEl;
-let innerEl;
 
 const measureScrollEnd = () => {
-  if (!viewportEl || !innerEl) return;
-  const last = [...innerEl.children].findLast(el => el.getBoundingClientRect().width > 0);
-  if (!last) return;
-  atScrollEnd.value = last.getBoundingClientRect().right - viewportEl.getBoundingClientRect().right <= 1;
+  if (!viewportEl) return;
+  atScrollEnd.value = viewportEl.scrollWidth - viewportEl.clientWidth - viewportEl.scrollLeft <= 4;
 };
 
 onMounted(() => {
-  const refs = tabList.value?.$refs;
-  viewportEl = refs?.content || null;
-  innerEl = refs?.tabs || null;
-  if (!viewportEl || !innerEl) return;
+  viewportEl = tabList.value?.$refs?.content || null;
+  if (!viewportEl) return;
   viewportEl.addEventListener('scroll', measureScrollEnd);
   stripObserver = new ResizeObserver(measureScrollEnd);
   stripObserver.observe(viewportEl);
-  stripObserver.observe(innerEl);
   measureScrollEnd();
 });
 
@@ -112,6 +105,10 @@ onBeforeUnmount(() => {
   viewportEl?.removeEventListener('scroll', measureScrollEnd);
   stripObserver?.disconnect();
 });
+
+// Tab additions and removals change the scrollable extent with no scroll
+// event; re-measure after the DOM catches up.
+watch(() => props.tabs, () => nextTick(measureScrollEnd));
 
 function tabLabel(tab = {}) {
   if (tab.kind === 'empty') return t('project.newTab');
