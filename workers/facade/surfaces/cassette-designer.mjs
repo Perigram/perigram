@@ -1517,12 +1517,23 @@ export default function createSurface({ vue, components, locale, queries, record
         const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;
         if (workpiece) {
           const profile = workpiece.profileSnapshot || workpiece.profile || null;
+          const snapshotSketch = profile?.sketch || createEmptyOccsProfileSketch();
           profileDraft.value = {
             name: workpiece.name || t('cassette.v2.profileEditor.defaultName'),
             kind: workpiece.role || profile?.kind || 'hanger',
             process: workpiece.process || profile?.process || 'extruded',
             parameters: workpiece.parameters || profile?.parameters || {},
-            sketch: profile?.sketch || createEmptyOccsProfileSketch(),
+            // The instance values ride on top of the snapshot's table
+            // (the instantiation law: the workpiece's table is the
+            // derived table) — the editor edits what this workpiece
+            // renders, not the library original.
+            sketch: {
+              ...snapshotSketch,
+              parameters: {
+                ...(snapshotSketch.parameters || {}),
+                ...(workpiece.parameters || {})
+              }
+            },
             occsProfile: profile?.section ? { section: profile.section, sweep: profile.sweep, sketch: profile.sketch } : profile?.occsProfile || null,
             libraryId: workpiece.profileTemplateId?.toString() || ''
           };

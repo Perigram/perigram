@@ -164,6 +164,25 @@ export default function createSketchEditor({ vue, components, locale }) {
       const resolvedFace = shallowRef(null);
       const outlineError = ref('');
       let outlineTimer = null;
+
+      // Owner law: nothing breaks the drawing. A mid-edit expression
+      // keeps the canvas on the last good evaluation — geometry, dims,
+      // and hatch render from it, the message states the error, and
+      // the next resolved pass restores live evaluation.
+      const lastGoodEvaluated = shallowRef(null);
+      const evaluateForRender = () => {
+        try {
+          const evaluated = evaluateOccsProfileSketch(
+            normalizeOccsProfileSketch(props.modelValue || {}),
+            externalScope()
+          );
+          lastGoodEvaluated.value = evaluated;
+          return evaluated;
+        } catch {
+          return lastGoodEvaluated.value;
+        }
+      };
+
       const resolveOutline = async () => {
         outlineTimer = null;
         if (disposed) return;
@@ -189,7 +208,8 @@ export default function createSketchEditor({ vue, components, locale }) {
             outlineError.value = t('cassette.v2.profileEditor.resultClipped');
           }
         } catch (error) {
-          resolvedFace.value = null;
+          // The last good face stays on the canvas; the error rides
+          // the message alone.
           outlineError.value = error?.message || String(error);
         }
       };
@@ -421,12 +441,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         viewTick.value;
         const view = manager?.curView;
         if (!view) return null;
-        let evaluated = null;
-        try {
-          evaluated = evaluateOccsProfileSketch(props.modelValue || {}, externalScope());
-        } catch {
-          return null;
-        }
+        const evaluated = evaluateForRender();
+        if (!evaluated) return null;
         return buildCanvasAnnotations(evaluated, normalizeOccsProfileSketch(props.modelValue || {}), view);
       });
 
@@ -445,13 +461,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         const shape = findShape(sketch, selection.shapeId);
         const authored = shape?.points.find(item => item.id === selection.vertexId && !item.chord);
         if (!shape || !authored) return null;
-        let evaluated = null;
-        try {
-          evaluated = evaluateOccsProfileSketch(sketch, externalScope());
-        } catch {
-          return null;
-        }
-        const evaluatedShape = findShape(evaluated, selection.shapeId);
+        const evaluated = evaluateForRender();
+        const evaluatedShape = evaluated ? findShape(evaluated, selection.shapeId) : null;
         const corner = evaluatedShape?.points.find(item => item.id === selection.vertexId);
         if (!corner) return null;
         const corners = evaluatedShape.points.filter(item => !item.chord);
@@ -481,12 +492,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         const view = manager?.curView;
         const rect = overlayRef.value?.getBoundingClientRect();
         if (!view || !rect) return null;
-        let evaluated = null;
-        try {
-          evaluated = evaluateOccsProfileSketch(props.modelValue || {}, externalScope());
-        } catch {
-          return null;
-        }
+        const evaluated = evaluateForRender();
+        if (!evaluated) return null;
         let best = null;
         for (const shape of evaluated.shapes) {
           if (shape.type !== 'chain') continue;
@@ -510,12 +517,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         const view = manager?.curView;
         const bounds = overlayRef.value?.getBoundingClientRect();
         if (!view || !bounds) return null;
-        let evaluated = null;
-        try {
-          evaluated = evaluateOccsProfileSketch(props.modelValue || {}, externalScope());
-        } catch {
-          return null;
-        }
+        const evaluated = evaluateForRender();
+        if (!evaluated) return null;
         const authored = normalizeOccsProfileSketch(props.modelValue || {});
         const byId = new Map(evaluated.shapes.map(shape => [shape.id, shape]));
         const ordered = authored.shapes
@@ -968,7 +971,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         try {
           entities = entitiesPerShape(normalizeOccsProfileSketch(normalized, externalScope()));
         } catch {
-          // Unresolvable expressions: no drawable geometry this pass.
+          // A mid-edit expression reseeds the last good geometry —
+          // the canvas keeps the drawing.
+          entities = lastGoodEvaluated.value
+            ? entitiesPerShape(lastGoodEvaluated.value)
+            : [];
         }
         clearDrawingEntities();
         importedFileName.value = '';
@@ -1045,7 +1052,9 @@ export default function createSketchEditor({ vue, components, locale }) {
         try {
           seedEntities({ entities: entitiesPerShape(normalizeOccsProfileSketch(normalized, externalScope())) });
         } catch {
-          // Unresolvable expressions: no drawable geometry this pass.
+          if (lastGoodEvaluated.value) {
+            seedEntities({ entities: entitiesPerShape(lastGoodEvaluated.value) });
+          }
         }
         bindDatabase({ schedule: false });
       };

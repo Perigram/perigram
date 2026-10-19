@@ -1378,7 +1378,10 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
       ? evaluateOccsProfileSketch({ ...authored, shapes: adoptShapes }, externalParameters).shapes
       : [];
   } catch {
-    return extracted;
+    // A mid-edit expression keeps the authored sketch whole (owner
+    // law: what the user did is sacred) — canvas geometry merges on
+    // the next pass once the text resolves.
+    return normalizeOccsProfileSketch(authored, externalParameters);
   }
   const usedAuthored = new Set();
   const keptShapeIds = new Set();
