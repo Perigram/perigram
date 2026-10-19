@@ -1084,6 +1084,12 @@ like files do: a wrapping chip row under the message body
 (`ChatInstanceRefs`), tokens in authored text strip from display —
 refs never render inline inside a contrast bubble.
 Conversations with bots carry a model select above the composer: it
+shows while the room calls its AI — always in the AI's own chats (a
+composing AI draft, a direct thread, a two-participant assistant room),
+in multi-human group and instance rooms only while the draft names the
+assistant through the shared wake gate
+(`shared/assistant-mention.js`, see the
+[agent-bots README](../server/features/agent-bots/README.md)). It
 lists the models the org's chat endpoints actually serve (not the
 profiles — the endpoint's own model listing) and pins the choice on the
 room for its subscribed bots, or the bot participant of a direct chat.

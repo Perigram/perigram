@@ -7513,3 +7513,19 @@ carry an icon only.
 - `resolveParentMessage` denormalizes `instanceRefs` beside attachments,
   and the thread quote renders the same single-line summary when the
   snippet is empty.
+
+## AI model select only while calling the AI (2026-10-19)
+
+Owner direction: the model select above the composer shows only when the
+room actually calls its AI — a direct AI chat or a draft that names the
+assistant — keeping multi-human rooms clean.
+
+- [ ] WAITING — owner verification on the live stack: the select shows in
+      AI chats and while a group/instance draft mentions the assistant;
+      it stays hidden otherwise.
+
+### Agent Notes (2026-10-19 — model select visibility)
+
+- The wake-gate matcher (`@Name`, word-boundary, case-insensitive) is
+  single-homed in `shared/assistant-mention.js`; the agent-bots runtime
+  and the composer's `modelSelectVisible` both consume it.

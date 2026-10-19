@@ -3,6 +3,7 @@ import * as supportService from '~/server/features/support/service.js';
 import * as connectionsService from '~/server/features/connections/service.js';
 import * as organizationsService from '~/server/features/organizations/service.js';
 import { MESSAGE_SENDER } from '~/server/features/support/const.js';
+import { assistantMentioned } from '~/shared/assistant-mention.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { buildPrincipalAuth, ensureOrganizationAssistant, getBotIdentity, ASSISTANT_NAME } from './service.js';
 import * as botRepository from './repository.js';
@@ -178,18 +179,6 @@ async function senderIsBot(userId) {
 }
 
 /**
- * The multi-human room's wake gate (SPEC: agent access): `@` plus the
- * assistant's name, case-insensitive, ending at a word boundary.
- */
-function messageMentionsAssistant(message, assistantName) {
-    const text = String(message?.message || '');
-    const name = String(assistantName || '').trim();
-    if (!text || !name) return false;
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(`@${escaped}(?![\\p{L}\\p{N}_])`, 'iu').test(text);
-}
-
-/**
  * Conversation keys a message belongs to, in execution-point order: its own
  * thread first, then the instance path's ancestors nearest-first — the AI
  * subscribed to any of them answers beside the message, and the first
@@ -260,11 +249,11 @@ export async function resolveAssistantTarget(context, message) {
         if (!participants.includes(assistantId)) return null;
         if (participants.length > 2) {
             const identity = await cachedBotIdentity(assistantId);
-            if (!messageMentionsAssistant(message, identity?.name || ASSISTANT_NAME)) return null;
+            if (!assistantMentioned(message?.message, identity?.name || ASSISTANT_NAME)) return null;
         }
     } else {
         const identity = await cachedBotIdentity(assistantId);
-        if (!messageMentionsAssistant(message, identity?.name || ASSISTANT_NAME)) return null;
+        if (!assistantMentioned(message?.message, identity?.name || ASSISTANT_NAME)) return null;
     }
     return {
         assistantId,
