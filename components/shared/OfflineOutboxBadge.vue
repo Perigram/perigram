@@ -11,7 +11,8 @@
             :aria-label="label"
             @click="togglePanel"
         >
-            <i :class="['pi mr-1', icon]" />
+            <ProgressSpinner v-if="outbox.syncing" class="mr-1 h-3.5 w-3.5" />
+            <i v-else :class="['pi mr-1', icon]" />
             <span>{{ label }}</span>
         </Button>
         <Popover ref="panel">
@@ -56,6 +57,7 @@
     import { useI18n } from 'vue-i18n'
     import Button from 'primevue/button'
     import Popover from 'primevue/popover'
+    import ProgressSpinner from 'primevue/progressspinner'
     import { useOutboxStore } from '~/stores/outbox'
 
     const { t } = useI18n()
@@ -76,7 +78,7 @@
     })
 
     const icon = computed(() => {
-        if (outbox.syncing) return 'pi-spin pi-spinner'
+        if (outbox.syncing) return ''
         if (!online.value) return 'pi-cloud-lock'
         return failedCount.value ? 'pi-exclamation-triangle' : 'pi-cloud-upload'
     })

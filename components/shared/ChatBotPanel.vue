@@ -10,7 +10,7 @@
         </template>
         <div class="flex min-w-0 flex-col gap-3">
             <div v-if="loading" class="flex items-center justify-center p-3">
-                <i class="pi pi-spin pi-spinner text-muted" aria-hidden="true" />
+                <ProgressSpinner class="h-5 w-5 text-muted" />
             </div>
             <div v-else-if="aiRow" class="flex min-w-0 items-center gap-2">
                 <AiAvatar class="shrink-0" />
@@ -110,6 +110,7 @@
 import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
+import ProgressSpinner from 'primevue/progressspinner';
 import Select from 'primevue/select';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';

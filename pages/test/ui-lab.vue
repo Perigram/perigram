@@ -158,7 +158,7 @@
             <template v-else-if="primitive.key === 'ResponsiveGrid'">
               <ResponsiveGrid variant="dense">
                 <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-inbox" />
-                <StateBlock :message="$t('common.loading')" icon="pi pi-spin pi-spinner" />
+                <StateBlock :message="$t('common.loading')" state="loading" />
               </ResponsiveGrid>
             </template>
 

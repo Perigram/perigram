@@ -76,7 +76,7 @@
             v-else-if="node.data?.kind === 'loading'"
             class="flex min-w-0 flex-1 items-center gap-1 text-muted"
           >
-            <i class="pi pi-spinner pi-spin shrink-0" aria-hidden="true" />
+            <ProgressSpinner class="h-3.5 w-3.5 shrink-0" />
             <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
           </span>
           <InstanceInlineRef
@@ -98,6 +98,7 @@
 import { computed, ref } from 'vue'
 import Button from 'primevue/button'
 import Popover from 'primevue/popover'
+import ProgressSpinner from 'primevue/progressspinner'
 import Tree from 'primevue/tree'
 import { useI18n } from 'vue-i18n'
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue'
