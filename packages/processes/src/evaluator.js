@@ -469,6 +469,31 @@ function convertUnit(value, from, to, custom = {}) {
   return Number(value) * factors[from] / factors[to];
 }
 
+// `value.cast` re-bases a value whose shape already satisfies the target
+// base; pairs beyond the structural re-bases refuse loudly.
+function cast(value, base = '') {
+  if (base === 'record') {
+    if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+    throw new Error(`cast to record requires an object (got ${castKind(value)})`);
+  }
+  if (base === 'list' || base === 'array') {
+    if (Array.isArray(value)) return value;
+    throw new Error(`cast to ${base} requires an array (got ${castKind(value)})`);
+  }
+  if (base === 'json') return value;
+  if (['string', 'number', 'boolean'].includes(base)) {
+    if (typeof value === base) return value;
+    throw new Error(`cast to ${base} requires a ${base} (got ${castKind(value)})`);
+  }
+  throw new Error(`cast does not define → ${base || '(no base)'}`);
+}
+
+function castKind(value) {
+  if (Array.isArray(value)) return 'array';
+  if (value === null) return 'null';
+  return typeof value;
+}
+
 function format(record, value, row = null) {
   let text = record.template != null ? String(record.template) : '';
   if (record.template && row && typeof row === 'object' && !Array.isArray(row)) {
