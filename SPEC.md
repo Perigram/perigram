@@ -243,6 +243,13 @@ control steps the record up to its page surface (pane/route); no dead
 chrome — a type with no record surface never renders a popup link, and
 popups never carry duplicate or non-functional expansion buttons.
 
+One generative UI engine (owner direction 2026-10-19): every compiled
+screen — lists, details, home, system screens — renders through the
+ui-mapping generator; records carry one header and body anatomy; the app
+layout resolves one route-shell mode per route; StandardDialog is the
+single dialog container. The legacy generated renderer family retires
+phase by phase, each phase complete with guards and docs.
+
 Pages, layouts, and popups are unified and deslopped: management
 surfaces (organization, plugins, team, billing, partners, designer) never
 route the user out of the home workspace — they open as home pane tabs

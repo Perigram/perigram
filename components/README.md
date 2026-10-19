@@ -100,7 +100,7 @@ All entity-related components MUST use these patterns:
 | Structured key/value data (specs, parameters, tool dims) | `<DataBlock type-id="..." :entity="..." :fields="ENTITY_FIELDS" />` |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StateHistory :entity="..." type-id="..." />` |
-| Detail page header | `<InstancePage :entity="..." type-id="..." />` |
+| Detail page header | Generated record pages: the ui-mapping record header (`SurfaceHeader`); `InstancePage` for surfaces pending the engine collapse (see TODO) |
 | CRUD + status operations | `useEntity(type, id)` |
 | Entity/container structure | Entity cards: `<InstanceCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout; Aura owns generic chrome |
 | Section/page action rows | `<ActionToolbar>` |

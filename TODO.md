@@ -1,5 +1,27 @@
 # TODO
 
+## Generative UI collapse to one engine (owner direction 2026-10-19)
+
+Every compiled screen renders through the ui-mapping generator with one
+record chrome, one route-shell mode, and one dialog container; the legacy
+generated renderer family (`GeneratedScreen`, `GeneratedRegion`,
+`GeneratedInstanceDetail`, `InstancePage` header chrome) retires in
+phases.
+
+- [ ] Phase 1 — survivor seams: one shared instance-chat entry
+  (`InstanceChatEntry`); `SurfaceDetailBody` structural-edit dedupe;
+  generator create/link dialogs on `StandardDialog`; screens route
+  wrapper/error chrome removed; `BreadcrumbTrail` self-gating.
+- [ ] Phase 2 — record chrome pass: `SurfaceHeader`/`SurfaceBody` design
+  polish (relation-row labels, typography roles, editor-action resolution
+  host-side through the engine contract).
+- [ ] Phase 3 — detail migration onto the generator (artifact detail,
+  editor-bound pane details); legacy detail family deleted.
+- [ ] Phase 4 — system screens (org overview/account, `workspaceLanes`)
+  migrate or die; `InstancePage` retires.
+- [ ] Phase 5 — deletion sweep, audit/docs reconciliation, e2e rewritten
+  against the one engine.
+
 ## Sheet-design editor panels and interactions (owner report 2026-10-19)
 
 Owner report: the sheet-design editor needs the side panels the editor
