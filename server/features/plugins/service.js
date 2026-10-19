@@ -579,14 +579,49 @@ export async function projectedDomainsForOrganization(organizationId) {
     }
     // Plugin value services are commands: `plugin.<x>.<y>` executes
     // through the connector path (the compiler's command table and the
-    // command runtime agree on this shape).
+    // command runtime agree on this shape). Scalar signature fields are
+    // the command's prompted parameters; structured fields stay graph
+    // data sockets.
     for (const service of install.services || []) {
       if (!service?.id) continue;
       const commandId = `plugin.${install.pluginId}.${service.id}`;
-      merged.commands[commandId] = { id: commandId, service: `plugin.${install.pluginId}`, action: 'run', plugin: true };
+      merged.commands[commandId] = {
+        id: commandId,
+        service: `plugin.${install.pluginId}`,
+        action: 'run',
+        plugin: true,
+        input: { parameters: serviceParameters(service.signature) }
+      };
     }
   }
   return merged;
+}
+
+const PARAMETER_BASES = Object.freeze({
+  string: 'string',
+  id: 'string',
+  quantity: 'number',
+  number: 'number',
+  boolean: 'boolean',
+  enum: 'enum',
+  dateTime: 'dateTime'
+});
+
+function serviceParameters(signature = {}) {
+  const fields = signature?.input?.base === 'record' ? signature.input.fields || {} : {};
+  return Object.entries(fields).flatMap(([name, descriptor = {}]) => {
+    const type = PARAMETER_BASES[descriptor.base];
+    if (!type) return [];
+    return [{
+      name,
+      label: name,
+      type,
+      ...(type === 'number' && descriptor.unit ? { unit: descriptor.unit } : {}),
+      ...(Array.isArray(descriptor.options) ? { options: descriptor.options } : {}),
+      required: descriptor.nullable !== true,
+      ...(Object.hasOwn(descriptor, 'default') ? { default: descriptor.default } : {})
+    }];
+  });
 }
 
 // Service-backed construction bindings (installed plugins): typeId ->

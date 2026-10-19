@@ -52,7 +52,7 @@ import * as repository from './repository.js';
 import * as typeStore from '../cts-types/repository.js';
 import {
   install, installFromCatalog, uninstall, listInstalled, listCatalog, servicesForOrganization,
-  projectedServicesForOrganization, commandDefinitionFor, executeConnectorService,
+  projectedServicesForOrganization, projectedDomainsForOrganization, commandDefinitionFor, executeConnectorService,
   regenerateConnectorToken, upgradePreview, applyUpgrade, publishListing,
   retractListing, settingsFor, updateSettings,
   fetchSurfaceModule, starterConstructsForOrganization, resolveProjectionValue, uninstallPreview
@@ -578,6 +578,34 @@ describe('connector services', () => {
     const merged = await projectedServicesForOrganization(ORG);
     expect(merged.some(service => service.id === 'plugin.coatings.mix')).toBe(true);
     expect(merged.some(service => service.id === 'plugin.coatings.match')).toBe(false);
+  });
+
+  it('projects scalar signature fields as the plugin command parameters', async () => {
+    repository.listInstallsByOrganization.mockResolvedValue([{
+      ...coatingInstall,
+      services: [
+        {
+          id: 'mix',
+          label: 'Color mix',
+          signature: {
+            input: {
+              base: 'record',
+              fields: {
+                parts: { base: 'list', itemType: { base: 'quantity', unit: 'ml' } },
+                coats: { base: 'quantity', unit: 'count', default: 2 },
+                tint: { base: 'string', nullable: true }
+              }
+            },
+            output: { base: 'json' }
+          }
+        }
+      ]
+    }]);
+    const domain = await projectedDomainsForOrganization(ORG);
+    expect(domain.commands['plugin.coatings.mix'].input.parameters).toEqual([
+      { name: 'coats', label: 'coats', type: 'number', unit: 'count', required: true, default: 2 },
+      { name: 'tint', label: 'tint', type: 'string', required: false }
+    ]);
   });
 
   it('resolves the command definition only for the installing organization', async () => {
