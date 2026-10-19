@@ -85,10 +85,9 @@ describe('arrangeProcessGraph', () => {
     }
   });
 
-  it('bounds the median polish by the lane\'s stacked rows', () => {
-    // The same wired cluster chases its own medians; the polish may only
-    // redistribute inside the stacked extent (5 rows at the 156 pitch,
-    // 96-tall declaration cards, insets and padding).
+  it('caps a lane at its tallest cell stack', () => {
+    // Five declarations share one column cell; rows pitch to their own
+    // tallest card (96 + gap), so the lane never exceeds that stack.
     const nodes = [
       declarationNode('card', 'ctsType', -60, 1900),
       processNode('eff', 300, 1900),
@@ -110,13 +109,13 @@ describe('arrangeProcessGraph', () => {
       bands: [BAND_A, BAND_B, BAND_C],
       bandOfNodeId: new Map([['eff', BAND_C]])
     });
-    expect(result.bands[2].height).toBeLessThanOrEqual(24 + 4 * 156 + 140 + 24 + 16);
+    expect(result.bands[2].height).toBeLessThanOrEqual(24 + 4 * (96 + 16) + 96 + 24);
     const again = arrangeFull({
       nodes: nodes.map(node => ({ ...node, position: result.positions.get(node.id) })),
       edges,
       effects: ['eff'],
-      bands: [BAND_A, BAND_B, BAND_C],
-      bandOfNodeId: new Map([['eff', BAND_C]])
+      bands: result.bands,
+      bandOfNodeId: new Map([['eff', result.bands[2]]])
     });
     expect([...again.positions.entries()]).toEqual([...result.positions.entries()]);
   });
