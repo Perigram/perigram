@@ -655,7 +655,7 @@
                                 />
                                 <div
                                     v-if="messageBubbleText(messageItem)"
-                                    class="group relative max-w-full min-w-0 text-body"
+                                    class="relative max-w-full min-w-0 text-body"
                                     :class="[
                                         // An agent answer is room content, not a
                                         // chat bubble: markdown in document flow.
@@ -694,24 +694,6 @@
                                             :markdown="Boolean(messageItem.agent)"
                                         />
                                     </div>
-                                    <!-- Plain wrapper owns hover visibility: PrimeVue's runtime
-                                         .p-button display rule would defeat utility classes on the
-                                         button itself. The menu aligns with the bubble's vertical
-                                         center, beside its outer edge. -->
-                                    <span
-                                        class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:block"
-                                        :class="docksRight(messageItem) ? '-left-8' : '-right-8'"
-                                    >
-                                        <Button
-                                            icon="pi pi-ellipsis-v"
-                                            severity="secondary"
-                                            text
-                                            rounded
-                                            size="small"
-                                            :aria-label="$t('common.more')"
-                                            @click.stop="openMessageMenu($event, messageItem)"
-                                        />
-                                    </span>
                                 </div>
                                 <!-- The attachment surface: files, media, and
                                      attached instance refs ride one row group
@@ -720,7 +702,7 @@
                                      bubble. -->
                                 <div
                                     v-if="(messageItem.attachments || []).length || (messageItem.instanceRefs || []).length"
-                                    class="group relative flex max-w-full flex-col items-start gap-1"
+                                    class="flex max-w-full flex-col items-start gap-1"
                                 >
                                     <MessageAttachments
                                         :attachments="messageItem.attachments || []"
@@ -729,29 +711,6 @@
                                         :sender-user-id="messageItem.senderUserId || ''"
                                         :own-message="docksRight(messageItem)"
                                     />
-                                    <!-- Media-only rows have no tappable bubble
-                                         (the elements eat taps and long-presses
-                                         for playback), so the ellipsis stays
-                                         mounted there on touch too — the only
-                                         message shape that needs it. -->
-                                    <span
-                                        class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:block"
-                                        :class="[
-                                            docksRight(messageItem) ? '-left-8' : '-right-8',
-                                            !messageItem.message && !(messageItem.instanceRefs || []).length
-                                                ? 'max-md:block max-md:opacity-60' : ''
-                                        ]"
-                                    >
-                                        <Button
-                                            icon="pi pi-ellipsis-v"
-                                            severity="secondary"
-                                            text
-                                            rounded
-                                            size="small"
-                                            :aria-label="$t('common.more')"
-                                            @click.stop="openMessageMenu($event, messageItem)"
-                                        />
-                                    </span>
                                 </div>
                                 <span
                                     v-if="transcribingMessageIds.has(messageItem._id)"
@@ -1463,7 +1422,7 @@
                 </Listbox>
             </div>
         </StandardDialog>
-        <Menu ref="messageMenu" :model="messageMenuItems" :popup="true" />
+        <ContextMenu ref="messageMenu" :model="messageMenuItems" />
         <ChatBotPanel
             v-model:visible="botPanelVisible"
             :conversation-key="botPanelConversationKey"
@@ -1494,6 +1453,7 @@ import PrimeSelect from 'primevue/select'
 import InstanceMultiSelect from '~/components/shared/InstanceMultiSelect.vue'
 import Textarea from 'primevue/textarea'
 import Menu from 'primevue/menu'
+import ContextMenu from 'primevue/contextmenu'
 import ProgressBar from 'primevue/progressbar'
 import ToggleSwitch from 'primevue/toggleswitch'
 import DatePicker from 'primevue/datepicker'
@@ -3095,13 +3055,11 @@ const messageMenuItems = computed(() => {
             }
         })
     }
-    // One download entry per attachment, labeled by a cropped file name —
-    // the every-kind download affordance beside the inline file-chip
-    // buttons.
+    // One download entry per attachment, labeled by the full file name.
     for (const attachment of target.attachments || []) {
         const name = attachment.name || attachment.mimeType || attachment.fileId
         items.push({
-            label: t('support.download', { name: name.length > 32 ? `${name.slice(0, 29)}…` : name }),
+            label: t('support.download', { name }),
             icon: 'pi pi-download',
             command: () => {
                 messageMenu.value?.hide?.()
@@ -3129,7 +3087,7 @@ const messageMenuItems = computed(() => {
 
 const openMessageMenu = (event, messageItem) => {
     messageMenuTarget.value = messageItem || null
-    messageMenu.value?.toggle(event)
+    messageMenu.value?.show(event)
 }
 
 // Forwarding (support feature README, Forwarding): the target picker lists
@@ -3168,10 +3126,10 @@ const forwardToConversation = async (conversationKey) => {
 }
 
 // The context menu opens from right-click or long-press (contextmenu) and
-// the hover ellipsis action — media-only messages carry no text bubble, so
-// the row-level paths are the only ones that reach them. Touches that land
-// on interactive children (media elements and their native controls, the
-// reply-quote jump, links, inputs) or select text never open it.
+// drops under the cursor (the shared ContextMenu positions at the event
+// point). Touches that land on interactive children (media elements and
+// their native controls, the reply-quote jump, links, inputs) or select
+// text never open it.
 const openMessageMenuFromRow = (event, messageItem, longPress = false) => {
     if (event?.target?.closest?.('button, a, video, audio, input, textarea, [data-no-menu]')) return
     if (!longPress && typeof window !== 'undefined' && String(window.getSelection?.() || '').length) return
