@@ -71,9 +71,6 @@ export default function createSurface({ vue, components, locale, queries, notify
         null
       ));
       const sheetPolygonPoints = computed(() => sheetPolygon.value?.outer?.map(point => point.join(',')).join(' ') || '');
-      const solveEffective = computed(() => props.record?.provenance?.solve?.effective || {});
-      const toolKerf = computed(() => Math.max(Number(solveEffective.value.tool?.kerf ?? 0) || 0, 0));
-      const boundaryOffset = computed(() => Math.max(Number(solveEffective.value.machine?.boundaryOffset || 0), 0));
       const editorPadding = computed(() => Math.max(sheetWidth.value, sheetHeight.value) * 0.025);
       const editorViewBox = computed(() => {
         const width = (sheetWidth.value + editorPadding.value * 2) * viewZoom.value;
@@ -226,10 +223,12 @@ export default function createSurface({ vue, components, locale, queries, notify
         return resolvedStyle(sourceLayerCode(layer));
       }
 
+      // Layer standards' pen weights render at a fixed px-per-pen-unit
+      // scale, bounded for visibility — relative weights survive.
       function displayStrokeWidth(weight, fallback = 1.5) {
         const numeric = Number(weight);
         if (!Number.isFinite(numeric) || numeric <= 0) return fallback;
-        return Math.max(1, Math.min(numeric * 2, 4));
+        return Math.max(0.5, Math.min(numeric * 2, 4));
       }
 
       function placementSvgTransform(placement) {
@@ -254,9 +253,25 @@ export default function createSurface({ vue, components, locale, queries, notify
         svgRef.value?.setPointerCapture?.(event.pointerId);
       }
 
+      // Snap resolution costs a polygon sweep per candidate, so drags
+      // compute once per animation frame — pointermove fires far more often.
+      // The stored layout is the baseline the gates must accept: the solver
+      // packs kerf-compensated shapes flush to the sheet edge, so drag and
+      // rotate enforce sheet containment and non-overlap only.
+      let dragFrame = 0;
+      let pendingDragEvent = null;
+
       function dragPlacement(event) {
+        pendingDragEvent = event;
+        if (!dragFrame) dragFrame = requestAnimationFrame(applyDragFrame);
+      }
+
+      function applyDragFrame() {
+        dragFrame = 0;
+        const event = pendingDragEvent;
+        pendingDragEvent = null;
         const drag = dragState.value;
-        if (!drag || drag.pointerId !== event.pointerId) return;
+        if (!event || !drag || drag.pointerId !== event.pointerId) return;
         const pointer = sheetPoint(event);
         const bounded = magneticSheetPlacement({
           items: items.value,
@@ -266,17 +281,19 @@ export default function createSurface({ vue, components, locale, queries, notify
           y: pointer.y - drag.dy,
           sheetWidth: sheetWidth.value,
           sheetHeight: sheetHeight.value,
-          sheetPolygon: sheetPolygon.value,
-          boundaryOffset: boundaryOffset.value,
-          clearance: toolKerf.value
+          sheetPolygon: sheetPolygon.value
         });
         if (!bounded) return;
-        const { x, y } = bounded;
-        placedItems.value[drag.index] = placementWithTranslation(placedItems.value[drag.index], x, y);
+        placedItems.value[drag.index] = placementWithTranslation(placedItems.value[drag.index], bounded.x, bounded.y);
       }
 
       function finishDrag(event) {
         if (dragState.value?.pointerId === event.pointerId) dragState.value = null;
+        pendingDragEvent = null;
+        if (dragFrame) {
+          cancelAnimationFrame(dragFrame);
+          dragFrame = 0;
+        }
       }
 
       function removePlacement(index) {
@@ -299,9 +316,7 @@ export default function createSurface({ vue, components, locale, queries, notify
           index: selectedIndex.value,
           sheetWidth: sheetWidth.value,
           sheetHeight: sheetHeight.value,
-          sheetPolygon: sheetPolygon.value,
-          boundaryOffset: boundaryOffset.value,
-          clearance: toolKerf.value
+          sheetPolygon: sheetPolygon.value
         });
         if (rotated) placedItems.value[selectedIndex.value] = rotated;
       }
@@ -321,13 +336,12 @@ export default function createSurface({ vue, components, locale, queries, notify
         history.commit();
         items.value.push(item);
         const start = clampSheetPlacement({
-          x: boundaryOffset.value,
-          y: boundaryOffset.value,
+          x: 0,
+          y: 0,
           item,
           sheetWidth: sheetWidth.value,
           sheetHeight: sheetHeight.value,
-          sheetPolygon: sheetPolygon.value,
-          boundaryOffset: boundaryOffset.value
+          sheetPolygon: sheetPolygon.value
         });
         placedItems.value.push({
           item_id: id,

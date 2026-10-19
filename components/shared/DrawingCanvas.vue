@@ -174,10 +174,12 @@ const canvasFrameClass = computed(() => {
 const canvasPreserveAspectRatio = computed(() => (
   props.fill && props.sourceType === 'sketch' ? 'xMidYMid slice' : 'xMidYMid meet'
 ));
+// Pen weights render at a fixed px-per-pen-unit scale, bounded for
+// visibility — the layer standards' relative weights survive.
 const displayStrokeWidth = (weight, fallback = 1.5) => {
   const numericWeight = Number(weight);
   if (!Number.isFinite(numericWeight) || numericWeight <= 0) return fallback;
-  return Math.max(1, Math.min(numericWeight * 2, 4));
+  return Math.max(0.5, Math.min(numericWeight * 2, 4));
 };
 
 const updateSvgViewport = () => {
