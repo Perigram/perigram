@@ -105,24 +105,22 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await circleOps().filter({ hasText: 'Subtract' }).click();
   await expect(circleOps().filter({ hasText: 'Subtract' })).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 });
 
-  // The rows list in the evaluation order: the add (drawn second)
-  // sits above the subtract (drawn first) — the fold reads off the
-  // list. Row anatomy holds: one height, fixed panel width, nothing
-  // overflows horizontally.
+  // The rows list the authored CSG sequence (drawing order): the
+  // circle drawn first sits above the rect drawn second. Row anatomy
+  // holds: one width, consistent heights, nothing overflows.
   const panelOrder = await dialog.locator('.profile-shapes-panel').evaluate(panel => (
     Array.from(panel.querySelectorAll('button[aria-label]'))
       .map(button => button.getAttribute('aria-label'))
       .filter(label => /^((Rectangle)|(Circle)) s/.test(label || ''))
   ));
-  expect(panelOrder[0]?.startsWith('Rectangle'), `adds list first: ${panelOrder.join(', ')}`).toBe(true);
-  expect(panelOrder[1]?.startsWith('Circle'), `subtracts follow: ${panelOrder.join(', ')}`).toBe(true);
+  expect(panelOrder[0]?.startsWith('Circle'), `sequence follows drawing order: ${panelOrder.join(', ')}`).toBe(true);
+  expect(panelOrder[1]?.startsWith('Rectangle'), `sequence follows drawing order: ${panelOrder.join(', ')}`).toBe(true);
   const metrics = await dialog.locator('.profile-shapes-panel').evaluate(panel => {
     const rows = Array.from(panel.children);
     const rect = panel.getBoundingClientRect();
     return {
       widths: [...new Set(rows.map(row => Math.round(row.getBoundingClientRect().width)))],
       heights: rows.map(row => Math.round(row.querySelector('button')?.getBoundingClientRect().height ?? 0)),
-      panelWidth: Math.round(rect.width),
       overflow: panel.scrollWidth > Math.ceil(rect.width) + 1
     };
   });
@@ -146,8 +144,17 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
 
   // Deleting a shape is atomic and panel-owned: the rect row's trash
   // removes the whole primitive; the circle keeps its op, fields, and
-  // geometry.
+  // geometry. Reordering moves the rect ahead of the circle first —
+  // the sequence control is real.
   await rectRow.click();
+  await rowBlock('Rectangle').getByRole('button', { name: /^Move earlier/ }).click();
+  await page.waitForTimeout(400);
+  const reordered = await dialog.locator('.profile-shapes-panel').evaluate(panel => (
+    Array.from(panel.querySelectorAll('button[aria-label]'))
+      .map(button => button.getAttribute('aria-label'))
+      .filter(label => /^((Rectangle)|(Circle)) s/.test(label || ''))
+  ));
+  expect(reordered[0]?.startsWith('Rectangle'), `move earlier reorders the sequence: ${reordered.join(', ')}`).toBe(true);
   await rowBlock('Rectangle').getByRole('button', { name: /^Delete/ }).click();
   await expect(rectRow).toBeHidden({ timeout: 10_000 });
   await expect(circleRow).toBeVisible({ timeout: 10_000 });

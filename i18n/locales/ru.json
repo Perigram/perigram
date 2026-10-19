@@ -585,6 +585,8 @@
                 "process": "Техпроцесс",
                 "filletRadius": "Радиус скругления",
                 "addParameter": "Добавить параметр",
+                "moveUp": "Раньше",
+                "moveDown": "Позже",
                 "parameterName": "Имя параметра",
                 "start": "начало",
                 "end": "конец",

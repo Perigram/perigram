@@ -69,10 +69,12 @@ modules — no platform imports.
   op applied to the FACE — `add` (the footprint unites into the face),
   `subtract` (cuts from it), `construction` (excluded; a DXF import
   lands every shape at construction through
-  `occProfileSketchFromEntities`' `reference` option). The fold is
-  grouped and order-independent (owner law 2026-10-19): every add
-  before every subtract, so drawing order never changes the result.
-  `resolveOccsProfileSectionOperations` returns the grouped steps;
+  `occProfileSketchFromEntities`' `reference` option). The fold is an
+  ordered CSG sequence (owner direction 2026-10-19, ordered sequence):
+  each participating shape applies to the face in authored list
+  order — a later add refills an earlier cut.
+  `resolveOccsProfileSectionOperations` returns the authored steps in
+  list order;
   `foldCassetteV2Region` (the vendored Clipper pass) is the one fold
   every consumer rides, over a full region — outer polygons plus hole
   rings — so a hole survives every later op. The editor hatches the
@@ -112,14 +114,15 @@ modules — no platform imports.
   panel floats inside the canvas beside it and rides the workpieces
   tree's row anatomy: a quiet full-width select row per shape — kind
   glyph, truncated kind name, the op as a state tag (success/danger/
-  secondary) — with rows in the evaluation order (adds before
-  subtracts, construction apart), so the grouped fold reads off the
-  list. Selecting a row expands it: the segmented
+  secondary) — with rows in the authored CSG sequence (drawing and
+  import order; the sequence is semantic). Selecting a row replaces
+  the tag with the settings: the move-earlier/move-later controls
+  (the sequence is the evaluation), the segmented
   Add/Subtract/Construction control, the shape's whole authoring
-  table as expression inputs (sizes, position, rotation, fillet
-  radii — the same model the canvas dims edit), and the row's delete
-  action. A repeat click collapses. Canvas picks open the compact
-  popup instead. Primitives are atomic: the row's delete and a
+  table as wrapping expression inputs (sizes, position, rotation,
+  fillet radii — the same model the canvas dims edit), and the row's
+  delete action. A repeat click collapses. Canvas picks select their
+  shape the same way. Primitives are atomic: the row's delete and a
   partial engine erase both remove the whole shape (the reseed clears
   the leftover entities — a half-erased rect never degrades into
   loose lines); chains keep their per-segment nature. A selected
@@ -182,7 +185,9 @@ modules — no platform imports.
   shape keeps the authored id, op, expressions, and fillets whole, so
   drawing, importing, and undoing preserve parametric authoring; the
   op rides the authored shape, and extraction defaults apply only to
-  genuinely new shapes. A moved field keeps its authored expression
+  genuinely new shapes. Kept shapes ride their authored sequence
+  slots and fresh shapes append — the CSG order survives every
+  extraction roundtrip. A moved field keeps its authored expression
   when it names a parameter — the drag edits that parameter (the
   dimension is that parameter's editor) — while compound expressions
   and numerics carry the extracted value. Authored shapes with no

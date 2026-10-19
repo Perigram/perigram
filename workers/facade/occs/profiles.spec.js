@@ -444,7 +444,7 @@ describe('OCCS profile helpers', () => {
     expect(resolved.every(point => Number.isFinite(point[0]) && Number.isFinite(point[1]))).toBe(true);
   });
 
-  it('evaluates the boolean steps grouped — adds union, subtracts cut, order never matters', async () => {
+  it('evaluates the boolean steps — adds union, subtracts cut, construction excluded', async () => {
     const section = occsProfileFromSketch(normalizeOccsProfileSketch({
       shapes: [
         { id: 's0', type: 'rect', center: [20, 0], width: 40, height: 20, rotation: 0 },
@@ -479,25 +479,52 @@ describe('OCCS profile helpers', () => {
     )).toBeNull();
   });
 
-  it('folds the same section whatever the shape order — drawing order never changes the result', async () => {
+  it('applies ops as an ordered sequence — a later add refills an earlier cut', async () => {
     const sectionFor = (shapes) => occsProfileFromSketch(normalizeOccsProfileSketch({ shapes })).section;
-    const outline = await resolveOccsProfileSectionPolygons(sectionFor([
+    // Cut the slot first, then bridge over half of it: the add refills
+    // the covered half of the cut.
+    const cutThenBridge = await resolveOccsProfileSectionPolygons(sectionFor([
       { id: 's0', type: 'rect', op: 'add', center: [20, 0], width: 40, height: 20 },
-      { id: 's1', type: 'circle', op: 'subtract', center: [20, 0], diameter: 10 },
-      { id: 's2', type: 'circle', op: 'add', center: [35, 0], diameter: 8 }
+      { id: 's1', type: 'rect', op: 'subtract', center: [20, 0], width: 12, height: 8 },
+      { id: 's2', type: 'rect', op: 'add', center: [16, 0], width: 8, height: 6 }
     ]));
-    const reordered = await resolveOccsProfileSectionPolygons(sectionFor([
-      { id: 's2', type: 'circle', op: 'add', center: [35, 0], diameter: 8 },
-      { id: 's1', type: 'circle', op: 'subtract', center: [20, 0], diameter: 10 },
-      { id: 's0', type: 'rect', op: 'add', center: [20, 0], width: 40, height: 20 }
+    // The same shapes with the bridge before the cut: the cut punches
+    // through everything.
+    const bridgeThenCut = await resolveOccsProfileSectionPolygons(sectionFor([
+      { id: 's0', type: 'rect', op: 'add', center: [20, 0], width: 40, height: 20 },
+      { id: 's2', type: 'rect', op: 'add', center: [16, 0], width: 8, height: 6 },
+      { id: 's1', type: 'rect', op: 'subtract', center: [20, 0], width: 12, height: 8 }
     ]));
-    const ringSignature = (region) => [
-      ...region.polygons.map(ring => Math.round(Math.abs(ring.length))),
-      ...region.holes.map(ring => Math.round(Math.abs(ring.length)))
-    ].join(',');
-    expect(outline.polygons).toHaveLength(1);
-    expect(outline.holes).toHaveLength(1);
-    expect(ringSignature(reordered)).toBe(ringSignature(outline));
+    const ringArea = (ring) => Math.abs(ring.map((vertex, index) => {
+      const next = ring[(index + 1) % ring.length];
+      return vertex[0] * next[1] - next[0] * vertex[1];
+    }).reduce((sum, term) => sum + term, 0) / 2);
+    const area = (region) => region.polygons.reduce((sum, ring) => sum + ringArea(ring), 0)
+      - region.holes.reduce((sum, ring) => sum + ringArea(ring), 0);
+    // The bridge order keeps the covered half of the slot filled:
+    // strictly more material than the punch-through order.
+    expect(area(cutThenBridge)).toBeGreaterThan(area(bridgeThenCut));
+    expect(bridgeThenCut.holes.length + bridgeThenCut.polygons.length).toBeGreaterThan(0);
+  });
+
+  it('keeps the authored sequence through the extraction merge', () => {
+    const authored = normalizeOccsProfileSketch({
+      parameters: { A: 10 },
+      shapes: [
+        { id: 's0', type: 'circle', op: 'subtract', center: ['A', 5], diameter: 4 },
+        { id: 's1', type: 'rect', op: 'add', center: [30, 5], width: 20, height: 10 }
+      ]
+    });
+    const merged = mergeOccsProfileSketchGeometry(
+      occProfileSketchFromEntities(
+        occProfileEntitiesFromSketch(authored),
+        { parameters: authored.parameters }
+      ),
+      authored,
+      {}
+    );
+    expect(merged.shapes.map(shape => shape.id)).toEqual(['s0', 's1']);
+    expect(merged.shapes.map(shape => shape.op)).toEqual(['subtract', 'add']);
   });
 
   it('projects a sketch to preview layerData through the boolean fold', async () => {

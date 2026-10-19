@@ -585,6 +585,8 @@
                 "process": "Process",
                 "filletRadius": "Fillet radius",
                 "addParameter": "Add parameter",
+                "moveUp": "Move earlier",
+                "moveDown": "Move later",
                 "parameterName": "Parameter name",
                 "start": "start",
                 "end": "end",
