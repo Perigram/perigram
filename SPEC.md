@@ -921,9 +921,11 @@ edit touches its own primitive only, and primitives bound to the same
 position expression share one dimension for it. Erasing a shape and
 undoing the erase revives the shape with its parameter bindings, and
 shape ids stay unique through every merge. A shape's boolean operation
-is a segmented Reference/Add/Subtract control — the whole state set
-reads at a glance, cycling through states one click at a time does
-not.
+is a segmented control in face-material terms: Reference (guide),
+Cut (the footprint is cut from the face), Keep (the footprint stays
+face material — the hatched island inside the cut). Stored operation
+ids keep the section-algebra names. A refused profile save states
+its reason beside the Save action.
 
 
 Owner decision (2026-10-17, assembly tree layout): the designer's

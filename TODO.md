@@ -65,6 +65,27 @@ editable fillets, and a one-shot migration for stored sketches.
   run) against production data and `--apply` once the counts look
   right.
 
+### Agent Notes (2026-10-19, round 9 — owner review, op vocabulary and save voice)
+
+- Owner question: "boolean ops are applied TO WHAT?" — the segmented
+  Add/Subtract control spoke section algebra while the canvas speaks
+  face material (an `add` footprint renders as the cut, a `subtract`
+  footprint as the kept-material island; verified by isPointInFill on
+  the hatch path). The control now reads Reference/Cut/Keep
+  (en) and Подложка/Вырезать/Оставить (ru); stored op ids stay
+  add/subtract/none (wire contract untouched).
+- Owner report: authored variables never reached the cassette item and
+  the profile was "not added at all". The full save chain traced clean
+  in Node (parameters ride the workpiece, its snapshot, and the
+  sketch; the joint targets the selected workpiece; chips collect the
+  referenced identifiers), so the live failure is the save gate: any
+  unresolvable identifier or reference-only sketch silently greys the
+  Save button. The dialog now shows the gate's reason beside the
+  button (profileDraftError) and the button's tooltip carries it.
+  Needs the owner's repro to confirm which state his session hit —
+  if the button was enabled and the profile still vanished, that is a
+  separate defect on the live stack worth its own report.
+
 ### Agent Notes (2026-10-18, round 8 — owner review, parameter lifecycle)
 
 - Owner report: typing a value into one primitive's dimension changed
