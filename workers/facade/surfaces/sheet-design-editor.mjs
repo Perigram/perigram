@@ -16,7 +16,7 @@ import {
   sheetPlacementSource,
   sheetPlacementTransform
 } from './lib/sheetLayoutEditor.js';
-import { DEFAULT_DRAWING_PEN, applyLayerPens } from './lib/layerPens.js';
+import { DEFAULT_DRAWING_PEN, applyLayerPens } from './lib/drawingPreview.js';
 
 export default function createSurface({ vue, components, locale, queries, notify, access }) {
   const { h, ref, computed, watch, onMounted, defineComponent } = vue;
@@ -102,7 +102,7 @@ export default function createSurface({ vue, components, locale, queries, notify
         }, {
           standards: standards.value,
           pens: pens.value,
-          defaultPen: systemPens()[0] || DEFAULT_DRAWING_PEN
+          defaultPen: DEFAULT_DRAWING_PEN
         });
         return new Map((drawing.layers || []).map(layer => [layer.standardCode || layer.name, layer]));
       });
@@ -133,10 +133,6 @@ export default function createSurface({ vue, components, locale, queries, notify
         }
       });
 
-      function systemPens() {
-        return pens.value.filter(pen => pen.lineage?.organizationId == null);
-      }
-
       function resetLayout() {
         const state = sheetLayoutState(props.record);
         items.value = state.items;
@@ -147,7 +143,13 @@ export default function createSurface({ vue, components, locale, queries, notify
         history.reset();
       }
 
-      watch(() => props.record?._id, resetLayout, { immediate: true });
+      // The workspace opens editor tabs from an id stub; the record body
+      // hydrates afterwards under the same id.
+      watch(
+        () => [props.record?._id, Boolean(props.record?.fields?.geometry)],
+        resetLayout,
+        { immediate: true }
+      );
 
       const dockMenu = ref(null);
       const renamePanelOpen = ref(false);

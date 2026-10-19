@@ -215,6 +215,19 @@ describe('drawing preview contract', () => {
     expect(drawing.layers[0].penId).toBeNull();
   });
 
+  it('bases unstyled standard layers on the shipped OCCS pens', () => {
+    const drawing = applyLayerPens({
+      viewBox: '0 0 10 10',
+      layers: [
+        { name: 'fold.route', standardCode: 'fold.route', paths: ['M 0 0 L 10 0'] },
+        { name: 'custom.helper', dasharray: '2 6', paths: ['M 0 5 L 10 5'] }
+      ]
+    });
+
+    expect(drawing.layers[0]).toMatchObject({ color: '#D97706', weight: 0.35, dasharray: '5,5' });
+    expect(drawing.layers[1]).toMatchObject({ color: 'currentColor', weight: 0.5, dasharray: '2 6' });
+  });
+
   it('selects cassette preview layers by standardCode under localized export names', () => {
     const selection = cassettePreviewLayerSelection({
       layers: [

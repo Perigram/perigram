@@ -23,6 +23,7 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import InputNumber from 'primevue/inputnumber';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
+import { useRegistryStore } from '~/stores/registry';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { resolveTypeFeature } from '#shared/field-access-policies.js';
 import { onInstanceChanged } from '#utils/instance-events.js';
@@ -132,11 +133,11 @@ export function surfaceNotify() {
 // surface degrades to view-only.
 export function editorSurfaceAccess(typeId) {
   const authStore = useAuthStore();
-  const feature = resolveTypeFeature(typeId);
+  const registry = useRegistryStore();
   return Object.freeze({
     canWrite: record => hasPermissionGrant({
       permissions: authStore.activePermissions,
-      feature,
+      feature: resolveTypeFeature(typeId, registry.typeRecord(typeId)),
       level: 'write',
       entity: record,
       typeId

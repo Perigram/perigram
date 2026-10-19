@@ -1,3 +1,5 @@
+import { occsLayerStandard, penForLayer } from '../../occs/layerStandards.js';
+
 export const DEFAULT_DRAWING_PEN = {
   stroke: { color: 'currentColor', weight: 0.5, pattern: 'SOLID' }
 };
@@ -46,6 +48,9 @@ export const resolveLayerPen = (options = {}) => {
 
 const penStroke = (pen) => pen?.fields?.stroke || {};
 
+// Plugin pen base (owner law, occs/README): the shipped OCCS pen styles
+// every layer its registry covers; a resolved org standard/pen overrides
+// it, and unknown layers keep the layer's own style.
 export const applyLayerPens = (drawing, options = {}) => {
   if (!drawing?.layers) return drawing;
   return {
@@ -53,6 +58,8 @@ export const applyLayerPens = (drawing, options = {}) => {
     layers: drawing.layers.map(layer => {
       const standard = resolveLayerStandard({ layerName: layer.name, standardCode: layer.standardCode, ...options });
       const pen = standard ? resolveStandardPen(standard, options.pens, null) : null;
+      const occsCode = !standard && (layer.standardCode || layer.name);
+      const occsPen = occsCode && occsLayerStandard(occsCode) ? penForLayer(occsCode) : null;
       const fallbackStroke = penStroke(options.defaultPen || DEFAULT_DRAWING_PEN);
       const stroke = penStroke(pen);
       return {
@@ -60,9 +67,11 @@ export const applyLayerPens = (drawing, options = {}) => {
         standardCode: standardCode(standard) || layer.standardCode || null,
         standardId: standard?._id || null,
         penId: pen?._id || null,
-        color: stroke.color || layer.color || fallbackStroke.color || 'currentColor',
-        weight: stroke.weight || layer.weight || fallbackStroke.weight || 0.5,
-        dasharray: strokeDasharray(stroke.pattern) || layer.dasharray || 'none'
+        color: stroke.color || occsPen?.color || layer.color || fallbackStroke.color || 'currentColor',
+        weight: stroke.weight || occsPen?.weight || layer.weight || fallbackStroke.weight || 0.5,
+        dasharray: stroke.pattern
+          ? strokeDasharray(stroke.pattern)
+          : (occsPen ? strokeDasharray(occsPen.pattern) : (layer.dasharray || 'none'))
       };
     })
   };
