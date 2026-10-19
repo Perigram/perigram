@@ -133,13 +133,13 @@ function sheetPolygonCentroid(sheetPolygon = null, fallback = [0, 0]) {
   return [sum[0] / sheet.outer.length, sum[1] / sheet.outer.length];
 }
 
-export function clampSheetPlacement({ x = 0, y = 0, item = {}, rotation = 0, sheetWidth = 0, sheetHeight = 0, boundaryOffset = 0, sheetPolygon = null } = {}) {
-  const bounds = sheetItemBounds(item, rotation);
+export function clampSheetPlacement({ x = 0, y = 0, item = {}, rotation = 0, sheetWidth = 0, sheetHeight = 0, boundaryOffset = 0, sheetPolygon = null, bounds = null } = {}) {
+  const itemBounds = bounds || sheetItemBounds(item, rotation);
   const inset = Math.max(Number(boundaryOffset) || 0, 0);
-  const minX = inset - bounds.minX;
-  const minY = inset - bounds.minY;
-  const maxX = Math.max((Number(sheetWidth) || 0) - inset - bounds.maxX, minX);
-  const maxY = Math.max((Number(sheetHeight) || 0) - inset - bounds.maxY, minY);
+  const minX = inset - itemBounds.minX;
+  const minY = inset - itemBounds.minY;
+  const maxX = Math.max((Number(sheetWidth) || 0) - inset - itemBounds.maxX, minX);
+  const maxY = Math.max((Number(sheetHeight) || 0) - inset - itemBounds.maxY, minY);
   const rectangular = {
     x: Math.min(Math.max(Number(x) || 0, minX), maxX),
     y: Math.min(Math.max(Number(y) || 0, minY), maxY)
@@ -149,7 +149,7 @@ export function clampSheetPlacement({ x = 0, y = 0, item = {}, rotation = 0, she
   }
 
   const centroid = sheetPolygonCentroid(sheetPolygon, [Number(sheetWidth) / 2 || 0, Number(sheetHeight) / 2 || 0]);
-  const itemCenter = [(bounds.minX + bounds.maxX) / 2, (bounds.minY + bounds.maxY) / 2];
+  const itemCenter = [(itemBounds.minX + itemBounds.maxX) / 2, (itemBounds.minY + itemBounds.maxY) / 2];
   const target = { x: centroid[0] - itemCenter[0], y: centroid[1] - itemCenter[1] };
   let low = 0;
   let high = 1;
@@ -287,19 +287,29 @@ function dot(a, b) {
   return a[0] * b[0] + a[1] * b[1];
 }
 
-function edgeSnapCandidates({ items = [], placement = {}, bounded = {}, other = {}, clearance = 0 } = {}) {
-  const movingPoints = transformedPlacementPoints(items, placementWithTranslation(placement, bounded.x, bounded.y));
-  const otherPoints = transformedPlacementPoints(items, other);
-  const movingEdges = polygonEdges(movingPoints);
-  const otherEdges = polygonEdges(otherPoints);
+function edgeLength(edge) {
+  return Math.hypot(edge[1][0] - edge[0][0], edge[1][1] - edge[0][1]);
+}
+
+// Snap alignment pairs meaningful straight runs: real cassette features
+// measure ≥ 5 mm while flattened-arc facets stay below ~2 mm, and a
+// contour carries hundreds of those facets.
+const SNAP_EDGE_MIN_LENGTH = 5;
+
+function snapableEdges(points = [], minLength = SNAP_EDGE_MIN_LENGTH) {
+  return polygonEdges(points).filter(edge => edgeLength(edge) >= minLength);
+}
+
+function edgeSnapCandidates({ movingPoints = [], otherPoints = [], bounded = {}, clearance = 0, minEdgeLength = SNAP_EDGE_MIN_LENGTH } = {}) {
+  const movingEdges = snapableEdges(movingPoints, minEdgeLength);
+  const otherEdges = snapableEdges(otherPoints, minEdgeLength)
+    .map(edge => ({ edge, direction: unitEdgeDirection(edge), normal: edgeUnitNormal(edge) }))
+    .filter(entry => entry.direction && entry.normal);
   const candidates = [];
   for (const movingEdge of movingEdges) {
     const movingDirection = unitEdgeDirection(movingEdge);
     if (!movingDirection) continue;
-    for (const otherEdge of otherEdges) {
-      const otherDirection = unitEdgeDirection(otherEdge);
-      const otherNormal = edgeUnitNormal(otherEdge);
-      if (!otherDirection || !otherNormal) continue;
+    for (const { edge: otherEdge, direction: otherDirection, normal: otherNormal } of otherEdges) {
       const parallel = Math.abs(dot(movingDirection, otherDirection));
       if (1 - parallel > 0.01) continue;
       const currentDistance = dot([
@@ -319,13 +329,13 @@ function edgeSnapCandidates({ items = [], placement = {}, bounded = {}, other = 
   return candidates;
 }
 
-function polygonsClear(leftPoints = [], rightPoints = [], clearance = 0) {
+function polygonsClear(leftPoints = [], rightPoints = [], clearance = 0, rightEdges = null) {
   const gap = Math.max(Number(clearance) || 0, 0);
   if (leftPoints.length < 3 || rightPoints.length < 3) return true;
   const leftEdges = polygonEdges(leftPoints);
-  const rightEdges = polygonEdges(rightPoints);
+  const otherEdges = rightEdges || polygonEdges(rightPoints);
   for (const leftEdge of leftEdges) {
-    for (const rightEdge of rightEdges) {
+    for (const rightEdge of otherEdges) {
       if (segmentsProperlyIntersect(leftEdge[0], leftEdge[1], rightEdge[0], rightEdge[1])) {
         return false;
       }
@@ -338,8 +348,20 @@ function polygonsClear(leftPoints = [], rightPoints = [], clearance = 0) {
     return false;
   }
   if (gap <= GEOMETRY_EPSILON) return true;
-  const minDistance = Math.min(...leftEdges.flatMap(leftEdge => rightEdges.map(rightEdge => segmentDistance(leftEdge, rightEdge))));
-  return minDistance + GEOMETRY_EPSILON >= gap;
+  for (const leftEdge of leftEdges) {
+    const minX = Math.min(leftEdge[0][0], leftEdge[1][0]) - gap;
+    const maxX = Math.max(leftEdge[0][0], leftEdge[1][0]) + gap;
+    const minY = Math.min(leftEdge[0][1], leftEdge[1][1]) - gap;
+    const maxY = Math.max(leftEdge[0][1], leftEdge[1][1]) + gap;
+    for (const rightEdge of otherEdges) {
+      if (rightEdge[0][0] < minX && rightEdge[1][0] < minX) continue;
+      if (rightEdge[0][0] > maxX && rightEdge[1][0] > maxX) continue;
+      if (rightEdge[0][1] < minY && rightEdge[1][1] < minY) continue;
+      if (rightEdge[0][1] > maxY && rightEdge[1][1] > maxY) continue;
+      if (segmentDistance(leftEdge, rightEdge) + GEOMETRY_EPSILON < gap) return false;
+    }
+  }
+  return true;
 }
 
 export function placementHasClearance({ items = [], placements = [], placement, index = -1, clearance = 0 } = {}) {
@@ -352,6 +374,9 @@ export function placementHasClearance({ items = [], placements = [], placement, 
   ));
 }
 
+// Drag-time snap resolution: one call per pointer frame. Candidate
+// geometry against the OTHER placements is transform-invariant through a
+// drag, so it is computed once here — never per candidate.
 export function magneticSheetPlacement({
   items = [],
   placements = [],
@@ -373,11 +398,25 @@ export function magneticSheetPlacement({
   const moving = sheetItemBounds(source, rotation);
   const gap = Math.max(Number(clearance) || 0, 0);
   const snapThreshold = threshold === null ? Math.max(gap * 2, 12) : Math.max(Number(threshold) || 0, 0);
-  const candidates = [{ ...bounded, snapped: false }];
+  const others = placements
+    .map((other, otherIndex) => {
+      if (otherIndex === index) return null;
+      const points = transformedPlacementPoints(items, other);
+      return { bounds: sheetPlacementBounds(items, other), points, edges: polygonEdges(points) };
+    })
+    .filter(Boolean);
 
-  placements.forEach((other, otherIndex) => {
-    if (otherIndex === index) return;
-    const bounds = sheetPlacementBounds(items, other);
+  // Duplicate snap lines (parallel edges, repeated bounds offsets) collapse
+  // into one candidate at 0.1 mm — every duplicate would evaluate identically.
+  const candidateByKey = new Map();
+  const offer = candidate => {
+    const key = `${Math.round(candidate.x * 10)}:${Math.round(candidate.y * 10)}`;
+    if (!candidateByKey.has(key)) candidateByKey.set(key, candidate);
+  };
+  offer({ ...bounded, snapped: false });
+  const boundedPoints = translatedItemPoints(source, rotation, bounded.x, bounded.y);
+  for (const other of others) {
+    const { bounds } = other;
     const xCandidates = [
       bounds.minX - gap - moving.maxX,
       bounds.maxX + gap - moving.minX
@@ -388,39 +427,52 @@ export function magneticSheetPlacement({
     ];
     const alignedX = [bounds.minX - moving.minX, bounds.maxX - moving.maxX];
     const alignedY = [bounds.minY - moving.minY, bounds.maxY - moving.maxY];
-    xCandidates.forEach(candidateX => candidates.push({ x: candidateX, y: bounded.y, snapped: true }));
-    yCandidates.forEach(candidateY => candidates.push({ x: bounded.x, y: candidateY, snapped: true }));
-    alignedX.forEach(candidateX => candidates.push({ x: candidateX, y: bounded.y, snapped: true }));
-    alignedY.forEach(candidateY => candidates.push({ x: bounded.x, y: candidateY, snapped: true }));
-    xCandidates.forEach(candidateX => alignedY.forEach(candidateY => candidates.push({ x: candidateX, y: candidateY, snapped: true })));
-    yCandidates.forEach(candidateY => alignedX.forEach(candidateX => candidates.push({ x: candidateX, y: candidateY, snapped: true })));
-    candidates.push(...edgeSnapCandidates({
-      items,
-      placement,
+    xCandidates.forEach(candidateX => offer({ x: candidateX, y: bounded.y, snapped: true }));
+    yCandidates.forEach(candidateY => offer({ x: bounded.x, y: candidateY, snapped: true }));
+    alignedX.forEach(candidateX => offer({ x: candidateX, y: bounded.y, snapped: true }));
+    alignedY.forEach(candidateY => offer({ x: bounded.x, y: candidateY, snapped: true }));
+    xCandidates.forEach(candidateX => alignedY.forEach(candidateY => offer({ x: candidateX, y: candidateY, snapped: true })));
+    yCandidates.forEach(candidateY => alignedX.forEach(candidateX => offer({ x: candidateX, y: candidateY, snapped: true })));
+    for (const candidate of edgeSnapCandidates({
+      movingPoints: boundedPoints,
+      otherPoints: other.points,
       bounded,
-      other,
       clearance: gap
-    }));
-  });
+    })) {
+      offer(candidate);
+    }
+  }
 
-  return candidates
+  // Cheapest tests first, in rank order, returning on the first survivor:
+  // clamp and rank cost bounds math; containment, threshold, and clearance
+  // cost polygon sweeps that most candidates never reach.
+  const ranked = [...candidateByKey.values()]
     .map(candidate => ({
-      ...clampSheetPlacement({ ...candidate, item: source, rotation, sheetWidth, sheetHeight, boundaryOffset, sheetPolygon }),
+      ...clampSheetPlacement({ ...candidate, item: source, rotation, sheetWidth, sheetHeight, boundaryOffset, sheetPolygon, bounds: moving }),
       snapped: candidate.snapped
-    }))
-    .filter(candidate => polygonInsideSheet(translatedItemPoints(source, rotation, candidate.x, candidate.y), sheetPolygon))
-    .filter(candidate => Math.hypot(candidate.x - bounded.x, candidate.y - bounded.y) <= snapThreshold || !candidate.snapped)
-    .filter(candidate => placementHasClearance({
-      items,
-      placements,
-      index,
-      clearance: gap,
-      placement: placementWithTranslation(placement, candidate.x, candidate.y)
     }))
     .sort((left, right) => {
       if (left.snapped !== right.snapped) return left.snapped ? -1 : 1;
       return Math.hypot(left.x - bounded.x, left.y - bounded.y) - Math.hypot(right.x - bounded.x, right.y - bounded.y);
-    })[0] || null;
+    });
+
+  for (const candidate of ranked) {
+    if (candidate.snapped && Math.hypot(candidate.x - bounded.x, candidate.y - bounded.y) > snapThreshold) continue;
+    const points = translatedItemPoints(source, rotation, candidate.x, candidate.y);
+    if (sheetPolygon && !polygonInsideSheet(points, sheetPolygon)) continue;
+    const absolute = {
+      minX: candidate.x + moving.minX,
+      minY: candidate.y + moving.minY,
+      maxX: candidate.x + moving.maxX,
+      maxY: candidate.y + moving.maxY
+    };
+    if (others.every(other => (
+      boundsClear(absolute, other.bounds, gap) || polygonsClear(points, other.points, gap, other.edges)
+    ))) {
+      return candidate;
+    }
+  }
+  return null;
 }
 
 export function rotateSheetPlacementQuarterTurn({ items = [], placements = [], index = -1, sheetWidth = 0, sheetHeight = 0, sheetPolygon = null, boundaryOffset = 0, clearance = 0 } = {}) {

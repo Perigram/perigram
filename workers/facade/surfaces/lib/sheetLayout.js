@@ -7,16 +7,13 @@
 
 import { penForLayer, strokeDasharray } from '../../occs/layerStandards.js';
 
-// The sheet preview draws on its own SVG (not the host canvas), so pen
-// weights scale up to stroke-width range; colors and dash patterns are
-// the layer standards' own.
-const SHEET_DISPLAY_WEIGHT_SCALE = 2.5;
-
+// Preview layers carry the layer standards' pens verbatim (color, weight,
+// dash); stroke-width scaling to screen pixels is the renderer's concern.
 function layerStyle(code) {
   const pen = penForLayer(code);
   return {
     color: pen.color,
-    weight: Math.max(0.7, pen.weight * SHEET_DISPLAY_WEIGHT_SCALE),
+    weight: pen.weight,
     dasharray: strokeDasharray(pen.pattern)
   };
 }
