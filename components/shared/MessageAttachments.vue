@@ -23,7 +23,8 @@
     <template v-else>
       <!-- Media attachments flow as one masonry: instance preview cards
            and image tiles mix; a lone media item renders full-width. -->
-      <!-- Masonry: column stacks filling from the sender's edge. -->
+      <!-- Masonry: column stacks resting on the bottom edge, filling
+           from the sender's bottom corner upward. -->
       <span
         v-if="mediaItems.length > 1"
         :class="['flex w-full max-w-80 gap-1', ownMessage ? 'flex-row-reverse' : '']"
@@ -32,7 +33,7 @@
         <span
           v-for="(column, columnIndex) in masonryColumns"
           :key="columnIndex"
-          class="flex min-w-0 flex-1 flex-col gap-1"
+          class="flex min-w-0 flex-1 flex-col justify-end gap-1"
           data-testid="chat-masonry-column"
         >
           <template v-for="item in column" :key="item.kind === 'instance' ? `${item.ref.type}-${item.ref.id}` : item.attachment.fileId">
@@ -234,9 +235,10 @@ const mediaItems = computed(() => [
   ...images.value.map(attachment => ({ kind: 'image', attachment }))
 ]);
 
-// Column-major fill: the first items own the sender-side column (SPEC
-// §Chat files); row-reverse renders DOM column 0 at that edge for own
-// messages.
+// Fill starts at the sender-side bottom corner and grows upward (SPEC
+// §Chat files): chunks are column-major from the sender edge, reversed
+// inside each column, and columns pack against the bottom. Row-reverse
+// renders DOM column 0 at the sender edge for own messages.
 const masonryColumns = computed(() => {
   const total = mediaItems.value.length;
   const columnCount = total >= 5 ? 3 : 2;
@@ -246,7 +248,7 @@ const masonryColumns = computed(() => {
   let cursor = 0;
   for (let column = 0; column < columnCount; column++) {
     const size = baseCount + (column < extra ? 1 : 0);
-    columns.push(mediaItems.value.slice(cursor, cursor + size));
+    columns.push(mediaItems.value.slice(cursor, cursor + size).reverse());
     cursor += size;
   }
   return columns;
