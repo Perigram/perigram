@@ -1038,10 +1038,11 @@ organization-wide total. Message bubbles own a `min-w-0`/`max-w-full` chain with
 the chat bounds; a message row caps at 70% of the thread column
 (`support-chat-message`). Narrow thread panes dock the viewer's own
 messages right and the counterpart's left; thread columns 64rem and wider
-align every message left with an avatar gutter (`ml-14` on left-docked
+align every message left with an avatar gutter (`ml-12` on left-docked
 rows, `docksRight` in `ChatSupport`, measured on the messages container):
 each sender run closes with an avatar-only `UserChip`
-(`avatar-only`, h-9) seated at the row's bottom in the gutter.
+(`avatar-only`, h-9) anchored to the last message's content bottom, the
+trailing timestamp caption below the anchor.
 Messages group into sender runs (SPEC §Chat thread):
 consecutive messages from one sender within a short window render as one
 tight stack — the timestamp trails under the last message of the run only

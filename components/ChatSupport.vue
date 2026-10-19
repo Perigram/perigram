@@ -548,22 +548,13 @@
                         <div
                             :data-message-id="messageItem._id"
                             class="relative flex min-w-0 max-w-support-chat-message touch-pan-y flex-col"
-                            :class="docksRight(messageItem) ? 'ml-auto' : ['mr-auto', threadIsWide ? 'ml-14' : '']"
+                            :class="docksRight(messageItem) ? 'ml-auto' : ['mr-auto', threadIsWide ? 'ml-12' : '']"
                             @touchstart="onTouchStart($event, messageItem)"
                             @touchmove="onTouchMove($event, messageItem)"
                             @touchend="onTouchEnd(messageItem)"
                             @touchcancel="onTouchCancel(messageItem)"
                             @contextmenu="openMessageMenuFromRow($event, messageItem, true)"
                         >
-                            <!-- Avatar gutter mark: wide panes seat the
-                                 sender's avatar in the left gutter at the
-                                 run's last message (SPEC §Chat thread). -->
-                            <UserChip
-                                v-if="showSenderAvatar(messageItem)"
-                                :user-id="messageSenderKey(messageItem)"
-                                avatar-only
-                                class="absolute -left-14 bottom-0"
-                            />
                             <!-- Swipe reveal icon: it sits in the gap the
                                  dragged row vacates at its dock edge and
                                  fades in with the drag distance; the row
@@ -595,11 +586,24 @@
                                 ]"
                                 :style="swipeStyle(messageItem)"
                             >
+                                <!-- Content zone: the avatar gutter mark
+                                     anchors to the last message content;
+                                     the timestamp caption trails below
+                                     that anchor (SPEC §Chat thread). -->
+                                <div
+                                    :class="['relative flex min-w-0 max-w-full flex-col gap-1', docksRight(messageItem) ? 'items-end' : 'items-start']"
+                                >
                                 <!-- Sender label: group threads lead others'
                                      runs with the sender's avatar and name (the
                                      shared user chip, which opens the entity
                                      popup) — once per run, never for the
                                      viewer's own messages. -->
+                                <UserChip
+                                    v-if="showSenderAvatar(messageItem)"
+                                    :user-id="messageSenderKey(messageItem)"
+                                    avatar-only
+                                    class="absolute -left-12 bottom-0"
+                                />
                                 <UserChip
                                     v-if="showSenderLabel(messageItem)"
                                     :user-id="messageSenderKey(messageItem)"
@@ -756,6 +760,7 @@
                                     <i class="pi pi-spin pi-spinner shrink-0" aria-hidden="true" />
                                     <span class="min-w-0 truncate">{{ $t('support.transcribing') }}</span>
                                 </span>
+                                </div>
                                 <!-- Timestamp trails the sender run: only the
                                      last message of a run carries it (SPEC
                                      §Chat thread); the caption row stays
@@ -763,7 +768,7 @@
                                      regardless. -->
                                 <span
                                     v-if="messageItem.lastOfSenderRun || lowerInstanceChip(messageItem)"
-                                    class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting order-last"
+                                    class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting"
                                 >
                                     <template v-if="messageItem.lastOfSenderRun">
                                         {{ formatTime(messageItem.timestamp) }}
