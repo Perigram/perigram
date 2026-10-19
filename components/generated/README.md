@@ -21,6 +21,9 @@ to their own open seams. `EntityPopup` (the record preview popup) also
 renders through the host; for a type without a compiled screen,
 `recordFloorScreen` (`detail-screen-actions.js`, beside the list-screen
 synthesizer) builds the single-source detail screen — the record floor.
+Single sources hydrate through the readable-reference seam
+(`resolveReadableReference`), so a record readable outside its class
+list (chat-materialized files) still opens.
 
 Every organization management surface — team, bots, partners, billing, the
 plugin marketplace, and the process designer canvas — is a registered
