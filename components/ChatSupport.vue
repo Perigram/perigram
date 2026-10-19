@@ -807,7 +807,7 @@
                     <!-- The conversation is an execution point: the AI in
                          this room runs on the chosen model off the served
                          endpoints (blank = the org chat route). -->
-                    <div v-if="roomAI && conversationModelOptions.length" class="flex items-center justify-end px-1">
+                    <div v-if="modelSelectVisible" class="flex items-center justify-end px-1">
                         <PrimeSelect
                             :model-value="conversationModel"
                             :options="conversationModelOptions"
@@ -1443,6 +1443,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
+import { assistantMentioned } from '~/shared/assistant-mention.js'
 import { conversationKeyForRoom } from '~/utils/call-rooms.js'
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue'
 import UserChip from '~/components/shared/UserChip.vue'
@@ -1761,6 +1762,14 @@ const conversationModelRows = computed(() => {
     }));
 });
 const conversationModelOptions = computed(() => conversationModelRows.value);
+// The select shows while the room calls its AI: always in the AI's own
+// chats, in multi-human rooms only while the draft names the assistant
+// (the shared wake gate).
+const modelSelectVisible = computed(() => {
+    if (!activeConversation.value || !roomAI.value || !conversationModelOptions.value.length) return false
+    if (isAiOnlyRoom.value) return true
+    return assistantMentioned(message.value, roomAI.value.name)
+});
 // The select never sits blank: the room's pin when it carries a model,
 // else the model the org chat route would actually serve.
 const conversationModel = computed(() => {
