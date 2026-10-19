@@ -3,8 +3,8 @@
 // as base64 values, the executor returns computed fields and files; it
 // never calls back into the platform). Geometry extraction, OCCS bake
 // evaluation, the nesting solve (delegated to the nesting solver worker
-// over HTTP), the STANDARD cassette import, and the sheet-design DXF
-// export live here.
+// over HTTP), the STANDARD cassette import, the sheet-design DXF export,
+// and the sheet-design layout construction live here.
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from './vendor/dxf-extractor.js';
 import { generateLayeredDxf } from './vendor/dxf-writer.js';
 import { OCCS_LAYER_CUT_OUTER } from './occs/layers.js';
@@ -17,6 +17,7 @@ import {
   nestingLayouts,
   summarizeNestingResult
 } from './nesting-projections.js';
+import { cassettesForNestingResult, nestingResultToPreview } from './surfaces/lib/sheetLayout.js';
 
 const IDENTITY_LAYERS = [OCCS_LAYER_CUT_OUTER];
 
@@ -171,6 +172,52 @@ export async function generateSheetDxf({ data = {} } = {}) {
   return { dxf };
 }
 
+// The sheet-design fromLayout construction: a solved layout value in →
+// the stored geometry record and its cassette parts out. The layout is
+// the solve's self-contained output (sourceItems + sheetPolygon); the
+// geometry record and preview are the editor's own save shape, so a
+// constructed sheet opens and re-saves in the sheet-design editor.
+// Input: { mode, draft: { data: { layout } } }. Output:
+// { data: { geometry, parts } }.
+export async function constructSheet({ draft = {} } = {}) {
+  const layout = draft?.data?.layout;
+  if (!layout || typeof layout !== 'object' || Array.isArray(layout)) {
+    badRequest('Sheet construction requires a layout value');
+  }
+  const placements = layout.placed_items || layout.items || [];
+  if (!Array.isArray(placements) || !placements.length) {
+    badRequest('Sheet construction requires a layout with placed items');
+  }
+  const items = Array.isArray(layout.sourceItems) ? layout.sourceItems : [];
+  if (!items.length) {
+    badRequest('Sheet construction requires a layout with item sources — re-run the nesting solve');
+  }
+  const { sourceItems, sheetPolygon: solvedPolygon, ...storedLayout } = layout;
+  const sheetPolygon = solvedPolygon && Array.isArray(solvedPolygon.outer)
+    ? { outer: solvedPolygon.outer, inner: Array.isArray(solvedPolygon.inner) ? solvedPolygon.inner : [] }
+    : null;
+  const { width, height } = sheetPolygonBounds(sheetPolygon);
+  const result = { items, solution: { layouts: [storedLayout] } };
+  return {
+    data: {
+      geometry: {
+        data: { ...result, ...(sheetPolygon ? { sheetPolygon } : {}), solveParams: { width, height } },
+        preview: nestingResultToPreview(result, { width, height }, { layoutIndex: 0 })
+      },
+      parts: cassettesForNestingResult(result).flatMap(({ cassetteId, count }) =>
+        Array.from({ length: count }, () => ({ type: 'cassette', id: String(cassetteId) })))
+    }
+  };
+}
+
+function sheetPolygonBounds(polygon) {
+  const outer = polygon?.outer || [];
+  if (outer.length < 2) return { width: 1220, height: 2440 };
+  const xs = outer.map(point => Number(point?.[0]) || 0);
+  const ys = outer.map(point => Number(point?.[1]) || 0);
+  return { width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
+}
+
 async function callNestingWorker(request) {
   const url = process.env.NESTING_WORKER_URL || 'http://nesting-worker:8000/nest';
   const response = await fetch(url, {
@@ -191,5 +238,6 @@ export const services = {
   'extract-geometry': extractGeometry,
   bake,
   'import-cassette': importCassette,
-  'generate-sheet-dxf': generateSheetDxf
+  'generate-sheet-dxf': generateSheetDxf,
+  'construct-sheet': constructSheet
 };

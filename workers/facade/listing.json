@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassettes, cassette designs, sheet designs, and the nesting solver as an installable plugin with an external executor",
-  "version": "13",
+  "version": "14",
   "requires": [
     "tech-drawing"
   ],
@@ -267,7 +267,6 @@
         "class": "file",
         "scope": "system",
         "version": 1,
-        "derived": true,
         "fields": {
           "title": {
             "base": "string",
@@ -305,6 +304,24 @@
               ]
             }
           ]
+        },
+        "operators": {
+          "fromLayout": {
+            "id": "fromLayout",
+            "species": "construct",
+            "input": {
+              "base": "record",
+              "fields": {
+                "name": {
+                  "base": "string",
+                  "nullable": true
+                },
+                "layout": {
+                  "base": "json"
+                }
+              }
+            }
+          }
         },
         "name": "Sheet design",
         "glyph": "ck-entity-icon ck-entity-icon-sheet-design"
@@ -494,6 +511,19 @@
             "base": "json"
           }
         }
+      },
+      {
+        "id": "construct-sheet",
+        "label": "Construct sheet design",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": {
+            "base": "json"
+          }
+        }
       }
     ],
     "editors": [
@@ -593,6 +623,9 @@
         "upload": "plugin.facade.extract-geometry",
         "bake": "plugin.facade.bake",
         "convertDxf": "plugin.facade.extract-geometry"
+      },
+      "sheet-design": {
+        "fromLayout": "plugin.facade.construct-sheet"
       }
     },
     "exports": [

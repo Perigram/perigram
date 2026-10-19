@@ -33,4 +33,11 @@ describe('nesting projections', () => {
     expect(layouts[0].placed_items).toHaveLength(2);
     expect(summarizeNestingResult(enriched, request.params)).toMatchObject({ sheetCount: 1, placedCount: 2 });
   });
+
+  it('ships each layout self-contained for sheet construction', () => {
+    const layouts = nestingLayouts(enrichNestingResult(workerResult, request));
+    expect(layouts[0].sourceItems).toHaveLength(1);
+    expect(layouts[0].sourceItems[0]).toMatchObject({ id: 0, cassette_id: 'c1' });
+    expect(layouts[0].sheetPolygon).toEqual(workerResult.bins[0].shape.data);
+  });
 });
