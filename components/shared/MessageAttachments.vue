@@ -24,15 +24,17 @@
           data-testid="chat-masonry-column"
         >
           <template v-for="item in column" :key="item.kind === 'instance' ? `${item.ref.type}-${item.ref.id}` : item.attachment.fileId">
-            <button
+            <span
               v-if="item.kind === 'instance' && refOpensFile(item.ref)"
-              type="button"
-              class="block w-full cursor-zoom-in overflow-hidden rounded-ui border border-content-border bg-transparent p-0"
+              class="block w-full cursor-pointer overflow-hidden rounded-ui border border-content-border"
+              role="button"
+              tabindex="0"
               :aria-label="$t('support.attachmentPreview', { name: refLabel(item.ref) })"
               @click="openRefFile(item.ref)"
+              @keydown="onRefFileKeydown($event, item.ref)"
             >
               <InstanceInlineRef v-bind="previewRefProps(item.ref)" />
-            </button>
+            </span>
             <span
               v-else-if="item.kind === 'instance'"
               class="block w-full overflow-hidden rounded-ui border border-content-border"
@@ -52,15 +54,17 @@
           </template>
         </span>
       </span>
-      <button
+      <span
         v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'instance' && refOpensFile(mediaItems[0].ref)"
-        type="button"
-        class="block w-full max-w-80 cursor-zoom-in overflow-hidden rounded-ui border border-content-border bg-transparent p-0"
+        class="block w-full max-w-80 cursor-pointer overflow-hidden rounded-ui border border-content-border"
+        role="button"
+        tabindex="0"
         :aria-label="$t('support.attachmentPreview', { name: refLabel(mediaItems[0].ref) })"
         @click="openRefFile(mediaItems[0].ref)"
+        @keydown="onRefFileKeydown($event, mediaItems[0].ref)"
       >
         <InstanceInlineRef v-bind="previewRefProps(mediaItems[0].ref)" />
-      </button>
+      </span>
       <span
         v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'instance'"
         class="block w-full max-w-80 overflow-hidden rounded-ui border border-content-border"
@@ -82,15 +86,17 @@
         data-testid="chat-instance-refs"
       >
         <template v-for="ref in chipRefs" :key="`${ref.type}-${ref.id}`">
-          <button
+          <span
             v-if="refOpensFile(ref)"
-            type="button"
-            class="inline-flex max-w-full items-center bg-transparent p-0"
+            class="inline-flex min-w-0 max-w-full cursor-pointer"
+            role="button"
+            tabindex="0"
             :aria-label="$t('support.download', { name: refLabel(ref) })"
             @click="openRefFile(ref)"
+            @keydown="onRefFileKeydown($event, ref)"
           >
             <InstanceInlineRef v-bind="chipRefProps(ref)" />
-          </button>
+          </span>
           <InstanceInlineRef v-else v-bind="chipRefProps(ref)" />
         </template>
       </span>
@@ -287,6 +293,12 @@ const openRefFile = (ref = {}) => {
   };
   if (file.renderable) previewAttachment.value = attachment;
   else download(attachment);
+};
+
+const onRefFileKeydown = (event, ref) => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  openRefFile(ref);
 };
 
 const previewRefProps = (ref = {}) => ({
