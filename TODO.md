@@ -7572,3 +7572,20 @@ the PrimeVue spinner.
   row); the message menu draws it through the ContextMenu `itemicon`
   slot, and the ui-lab loading demo goes through `StateBlock`'s loading
   state. The law is pinned in the components README style guide.
+
+## Media messages overload their context menu (2026-10-19)
+
+Owner direction: media-only messages have no bubble surface for the
+message menu — their media elements hand the native context menu to the
+message menu.
+
+- [ ] WAITING — owner verification on the live stack: right-click or
+      long-press on an image/video/audio opens the message menu at the
+      cursor; other interactive children keep their own behavior.
+
+### Agent Notes (2026-10-19 — media menu overload)
+
+- `openMessageMenuFromRow` swallows interactive-child contextmenu events
+  except when the target sits on an img/video/audio: the media's context
+  menu is the message menu (native menu suppressed), so media-only rows
+  regain reply/download/copy access.
