@@ -141,8 +141,9 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       // A blank canvas opens at drawing scale — a 200×150 mm window with
       // the zero axis in view — so freehand drawing lands in millimetres
-      // (occs/README.md owns the law).
-      const BLANK_WINDOW_COMMAND = 'zoom w -50,-75 150,75';
+      // (occs/README.md owns the law). Script inputs are newline-tokenized
+      // (AutoCAD .scr semantics).
+      const BLANK_WINDOW_COMMAND = 'zoom\nw\n-50,-75\n150,75';
       const zoomToBlankWindow = () => {
         manager?.sendStringToExecute?.(BLANK_WINDOW_COMMAND);
       };
