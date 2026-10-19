@@ -1,5 +1,5 @@
 import { resolveOccsExpression, rewriteOccsExpressionIdentifiers } from './expressions.js';
-import { differenceCassetteV2Polygons, unionCassetteV2FacePolygons } from '../surfaces/lib/cassetteV2Clipper.js';
+import { foldCassetteV2Region } from '../surfaces/lib/cassetteV2Clipper.js';
 
 export const OCCS_PROFILE_KINDS = Object.freeze([
   'hanger',
@@ -549,45 +549,38 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   };
 };
 
-// The section's operand sets on the face: adds and subtracts, each
-// group unioned into rings. Construction geometry never joins an
-// operand set. Polyline sections have no boolean meaning (null).
-export const resolveOccsProfileSectionOperations = async (section = {}) => {
+// The section's ordered boolean steps on the face: every participating
+// shape in authored order — the list order IS the application order.
+// Construction geometry never joins a step. Polyline sections have no
+// boolean meaning (null).
+export const resolveOccsProfileSectionOperations = (section = {}) => {
   if (section.type !== 'shapes') return null;
-  const rings = op => section.shapes
-    .filter(shape => shape.op === op && shape.vertices.length >= 3)
-    .map(shape => shape.vertices)
-    .filter(ring => ring.length >= 3);
-  const adds = rings('add');
-  const subtracts = rings('subtract');
-  return {
-    adds: adds.length ? await unionCassetteV2FacePolygons(adds) : [],
-    subtracts: subtracts.length ? await unionCassetteV2FacePolygons(subtracts) : []
-  };
+  return section.shapes
+    .filter(shape => (shape.op === 'add' || shape.op === 'subtract') && shape.vertices.length >= 3)
+    .map(shape => ({ op: shape.op, polygons: [shape.vertices] }));
 };
 
-// The section as a standalone figure (previews, thumbnails): the add
-// footprint minus the subtract footprint.
+// The section as a standalone figure (previews, thumbnails): the steps
+// folded from an empty base. A sketch that only cuts carries its cut
+// rings as holes so the preview still shows them.
 export const resolveOccsProfileSectionPolygons = async (section = {}) => {
-  const operations = await resolveOccsProfileSectionOperations(section);
+  const operations = resolveOccsProfileSectionOperations(section);
   if (!operations) return null;
-  if (!operations.adds.length) return { polygons: [], holes: [...operations.subtracts] };
-  if (!operations.subtracts.length) return { polygons: operations.adds, holes: [] };
-  const difference = await differenceCassetteV2Polygons(operations.adds, operations.subtracts);
-  return { polygons: difference.polygons, holes: difference.holes };
+  const folded = await foldCassetteV2Region({ polygons: [], holes: [] }, operations);
+  if (folded.polygons.length) return folded;
+  const subtracts = operations.filter(operation => operation.op === 'subtract')
+    .flatMap(operation => operation.polygons);
+  return subtracts.length ? { polygons: [], holes: subtracts } : folded;
 };
 
-// The face after the profile's boolean operations: the base face
-// united with the adds, minus the subtracts — the editor's material
-// half is the base face stand-in; production passes the host face.
+// The face after the profile's ordered operations: each step applies to
+// the accumulated face region — the editor's material half is the base
+// face stand-in; production folds the placed steps the same way.
 export const resolveOccsProfileFacePolygons = async (section = {}, baseFace = []) => {
-  const operations = await resolveOccsProfileSectionOperations(section);
+  const operations = resolveOccsProfileSectionOperations(section);
   if (!operations) return null;
-  const base = baseFace.length >= 3 ? [baseFace] : [];
-  const united = await unionCassetteV2FacePolygons([...base, ...operations.adds]);
-  if (!operations.subtracts.length) return { polygons: united, holes: [] };
-  const difference = await differenceCassetteV2Polygons(united, operations.subtracts);
-  return { polygons: difference.polygons, holes: difference.holes };
+  const base = baseFace.length >= 3 ? { polygons: [baseFace], holes: [] } : { polygons: [], holes: [] };
+  return foldCassetteV2Region(base, operations);
 };
 
 // Preview projection: a sketch's evaluated section as drawing layerData
@@ -1342,6 +1335,8 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
   }
   const usedAuthored = new Set();
   const keptShapeIds = new Set();
+  const authoredOrder = new Map([...(authored.shapes || []), ...adoptShapes]
+    .map((shape, index) => [shape.id, index]));
   const shapes = extracted.shapes.map((shape) => {
     let best = null;
     let bestMatches = 0;
@@ -1371,9 +1366,9 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     if (shape.type === 'chain' && original.type === 'chain') {
       // Point ids are per-shape identity: the authored ids ride the kept
       // shape so its fillet modifiers stay referenced.
-      return mergeChainShape(shape, original, best);
+      return { ...mergeChainShape(shape, original, best), __order: authoredOrder.get(original.id) };
     }
-    return { ...original };
+    return { ...original, __order: authoredOrder.get(original.id) };
   });
   // Field-wise revive: a leftover extracted shape pairs with a leftover
   // authored shape of the same kind and keeps the authored expression on
@@ -1402,6 +1397,7 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     delete shape.__fresh;
     shape.id = authoredShape.id;
     shape.op = authoredShape.op;
+    shape.__order = authoredOrder.get(authoredShape.id);
     keptShapeIds.add(authoredShape.id);
     if (shape.type === 'circle') {
       shape.diameter = keepAuthoredField(authoredShape.diameter, evaluatedShape.diameter, shape.diameter);
@@ -1419,6 +1415,11 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
       }))
       .filter(fillet => fillet.radius !== 0);
   }
+  // The authored order is the boolean application order: kept and
+  // revived shapes hold their authored slots, fresh shapes append in
+  // extraction order.
+  shapes.sort((left, right) => (left.__order ?? Infinity) - (right.__order ?? Infinity));
+  shapes.forEach(shape => { delete shape.__order; });
   // Fresh shapes renumber against every kept id — an extracted id that
   // happens to equal a kept id still renumbers (identity, not the id,
   // decides kept-ness).

@@ -19,9 +19,9 @@ const APPLY = process.argv.includes('--apply');
 const upgradedSketch = (sketch) => {
   if (!sketch || typeof sketch !== 'object') return null;
   if (Array.isArray(sketch.shapes)) {
-    // Shape-model passes (owner direction 2026-10-19): per-shape boolean
-    // ops take the pathfinder vocabulary — add→union, none→construction;
-    // a round-10 construction flag maps back to construction.
+    // Shape-model passes: per-shape boolean ops take the contract
+    // vocabulary — union→add, none→construction; a round-10
+    // construction flag maps back to construction.
     if (!sketch.shapes.some(shape => shape && (
       Object.prototype.hasOwnProperty.call(shape, 'op')
       || Object.prototype.hasOwnProperty.call(shape, 'construction')
@@ -36,8 +36,8 @@ const upgradedSketch = (sketch) => {
         }
         if (!Object.prototype.hasOwnProperty.call(shape, 'op')) return shape;
         const { op, ...rest } = shape;
-        if (op === 'union' || op === 'subtract' || op === 'construction') return shape;
-        return { ...rest, op: op === 'none' ? 'construction' : 'union' };
+        if (op === 'add' || op === 'subtract' || op === 'construction') return shape;
+        return { ...rest, op: op === 'none' ? 'construction' : 'add' };
       })
     };
   }
