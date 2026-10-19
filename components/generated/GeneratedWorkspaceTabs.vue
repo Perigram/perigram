@@ -12,7 +12,7 @@
           :key="tab.key"
           :value="tab.key"
           as="div"
-          class="group/workspace-tab m-0 flex max-w-64 items-center gap-1.5 rounded-ui border px-2 py-0.5 text-supporting transition-colors"
+          class="group/workspace-tab m-0 flex max-w-64 items-center gap-1.5 rounded-ui border px-2 py-0.5 text-label transition-colors"
           :class="tab.key === activeKey
             ? 'bg-[var(--p-button-secondary-background)] text-[var(--p-button-secondary-color)] border-[var(--p-button-secondary-border-color)] hover:bg-[var(--p-button-secondary-hover-background)] hover:text-[var(--p-button-secondary-hover-color)] hover:border-[var(--p-button-secondary-hover-border-color)]'
             : 'border-transparent text-muted hover:bg-subtle'"
