@@ -199,7 +199,8 @@ chips (`ChatSupport.vue`): the selected tab wears the secondary button
 surface, idle tabs stay transparent with muted text (`bg-subtle` hover
 tint), and labels render at body size. The close
 affordance is the app's compact 24px icon button, revealed on tab hover
-or focus with its space reserved so labels do not shift. The add-tab
+or focus with its space reserved so labels do not shift; its hover
+surface rides one step above the host chip. The add-tab
 control sits directly after the last tab, browser-style, and the empty
 tab carries its label alone. The stripe is SINGLE-HOMED in
 `components/generated/GeneratedPaneHeader.vue`: every pane host mounts
@@ -208,7 +209,9 @@ are defined once, never pasted into hosts (a host pasting its own
 header row is a defect even when visually identical). No control
 overflows or clips against the stripe's edges.
 Overflow stays wheel/touchpad-scrollable while native scrollbar chrome remains
-hidden.
+hidden, and the viewport's side padding (the global tabs strip pt in
+`assets/tokens/index.js`, sized by `--p-tabs-nav-button-width`) keeps the
+scroll chevrons off the tabs.
 Pane split/close commands live in a pane-level ellipsis menu. Generated entity
 actions not already owned by an operational editor belong to the active tab body
 below the tab strip. Action presentation has one concern-based owner: collection
