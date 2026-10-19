@@ -7465,3 +7465,23 @@ menu under the click point.
 - The message menu is PrimeVue `ContextMenu` now (drops at the event
   point with viewport flip); the JS 32-char name crop on download entries
   is gone, and the hover ellipsis buttons with it.
+
+## Reply quotes name the sender and mention non-text (2026-10-19)
+
+Owner report: the replying draft shows "User" for the quoted sender and
+nothing at all when the quoted message is media or refs; sent reply quotes
+carry an icon only.
+
+- [ ] WAITING — owner verification on the live stack: replying drafts show
+      the quoted sender's name and the attachment/ref summary for non-text
+      messages; sent reply quotes render the same summary line.
+
+### Agent Notes (2026-10-19 — reply quote fix)
+
+- The draft read `replyTo.parent?.senderName` — the live message carries
+  no parent, so every draft fell back to "User"; the draft now resolves
+  the quoted sender through the shared `UserChip` (same key the thread
+  labels use) and renders `MessageAttachments` single-line for non-text.
+- `resolveParentMessage` denormalizes `instanceRefs` beside attachments,
+  and the thread quote renders the same single-line summary when the
+  snippet is empty.

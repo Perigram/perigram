@@ -281,9 +281,13 @@ key or, for instance messages, the same organization (an aggregated view can
 reply to a message linked to a child instance); the composer links the reply
 to the same instance the quoted message belongs to. The reply persists a
 denormalized `parent { _id, senderUserId, senderName, snippet, attachments?,
-timestamp }` quote (text clipped to 140 characters; voice messages carry
-their attachment descriptor), so rendering and inbox previews never need the
-parent loaded.
+instanceRefs?, timestamp }` quote (text clipped to 140 characters; voice
+messages carry their attachment descriptor), so rendering and inbox
+previews never need the parent loaded. Quotes of text messages show the
+snippet; quotes of media or ref messages render the attachment/ref
+summary line through `MessageAttachments` single-line (the same summary
+the inbox preview uses), and the composer draft resolves the quoted
+sender through the shared user chip.
 
 ## Message Attachments
 
