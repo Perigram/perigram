@@ -597,6 +597,24 @@ contour).
 
 Validation: 148/148 in workers/facade, arch and docs guards green.
 
+### Agent Notes (2026-10-20, round 13 — owner report: spacing 0 in a profile array overlaps instead of stacking)
+
+Boundary break points measured exact first (subtract circle r20 on
+the edge breaks it at precisely 230..270, straddling tab at 235..265)
+— the reported defect was the array pitch, not the boundary:
+`expandOccsEdgeArray2d` accepted no copy length, so profile copies
+(real extent along the edge) arrayed with point-like pitch — spacing
+0 stacked every anchor on one point. The documented butts-together
+law (`edgeArrayDistances` already carried `copyLength`; the 2d
+expansion dropped it on the floor) now reaches the profile pass: the
+section's edge extent (local Y span of the participating rings) feeds
+the expansion, pitch = extent + spacing, zero spacing butts footprints
+(pinned: d10 circle at spacing 0 anchors 10 apart, cuts touching,
+zero overlap). Hardware arrays and count mode keep their semantics.
+
+Validation: 149/149 in workers/facade, arch and docs guards green;
+e2e/cassette-profile-editor.spec.js green against the merged tree.
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places
