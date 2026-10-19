@@ -25,7 +25,7 @@
             rounded
             size="small"
             severity="secondary"
-            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-6 !w-6 !text-current"
+            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-6 !w-6 !text-current hover:bg-[var(--p-button-secondary-active-background)]"
             :aria-label="$t('common.close')"
             @click.stop="$emit('close-tab', tab.key)"
           />
