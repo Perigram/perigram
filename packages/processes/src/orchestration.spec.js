@@ -631,7 +631,7 @@ describe('durable process orchestration', () => {
     }));
   });
 
-  it('binds a construct lineage input from its manual parent context', async () => {
+  it('binds a construct lineage input from the manual context entity', async () => {
     const definition = process([
       {
         id: 'create-queue',
@@ -645,18 +645,69 @@ describe('durable process orchestration', () => {
       }
     ], ['create-queue']);
     const executeEffect = vi.fn().mockResolvedValue({ _id: 'queue-1' });
+    const project = { _id: 'project-1', type: 'project', lineage: {} };
+    const parents = { queue: project };
 
     const completed = await runProcessUntilSettled(
       createProcessRun(definition, { nodeId: 'create-queue' }, {
-        context: { inputs: { entity: { type: 'project', id: 'project-1' } } }
+        context: { inputs: { entity: { type: 'queue', id: 'queue-1' } } }
       }),
       definition,
-      { executeEffect, catalogContext }
+      {
+        executeEffect,
+        catalogContext,
+        domain: { containment: [{ parentType: 'project', childType: 'queue', lineageKey: 'projectId' }] },
+        data: {
+          resolveEntityRef: async ref => (ref.type === 'queue' ? { _id: 'queue-1', type: 'queue', lineage: { projectId: 'project-1' } } : project),
+          parentEntity: async entity => parents[entity.type]
+        }
+      }
     );
 
     expect(completed.status).toBe('succeeded');
     expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
-      inputs: { 'lineage.projectId': { type: 'project', id: 'project-1' } }
+      inputs: { 'lineage.projectId': project }
+    }));
+  });
+
+  it('walks containment for a lineage input declared above the context entity', async () => {
+    const definition = process([
+      {
+        id: 'create-sheet',
+        kind: 'cts.construct',
+        typeId: 'sheet',
+        trigger: { mode: 'manual' },
+        construction: {
+          mode: 'genericCreate',
+          inputs: [{ id: 'lineage.projectId', path: 'lineage.projectId', type: 'entity', typeId: 'project' }]
+        }
+      }
+    ], ['create-sheet']);
+    const executeEffect = vi.fn().mockResolvedValue({ _id: 'sheet-1' });
+    const attempt = { _id: 'attempt-1', type: 'attempt', lineage: { queueId: 'queue-1' } };
+    const queue = { _id: 'queue-1', type: 'queue', lineage: { projectId: 'project-1' } };
+    const project = { _id: 'project-1', type: 'project', lineage: {} };
+    const parents = { attempt: queue, queue: project };
+
+    const completed = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'create-sheet' }, {
+        context: { inputs: { entity: { type: 'attempt', id: 'attempt-1' } } }
+      }),
+      definition,
+      {
+        executeEffect,
+        catalogContext,
+        domain: { containment: [{ parentType: 'attempt', childType: 'sheet', lineageKey: 'attemptId' }] },
+        data: {
+          resolveEntityRef: async ref => (ref.type === 'attempt' ? attempt : project),
+          parentEntity: async entity => parents[entity.type]
+        }
+      }
+    );
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
+      inputs: { 'lineage.projectId': project }
     }));
   });
 

@@ -371,6 +371,10 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
         inputs[port.id] = socketPacket(record.inputDefaults[port.id], port.access);
         continue;
       }
+      if (port.id.startsWith('lineage.')) {
+        const ancestor = await resolveLineageContext(record, port, run, environment);
+        if (ancestor !== undefined) inputs[port.id] = socketPacket(ancestor, port.access);
+      }
       continue;
     }
     try {
@@ -381,6 +385,39 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
     }
   }
   return inputs;
+}
+
+// An unbound lineage socket takes the entity of its declared type among
+// the run-context entity and that entity's ancestors over the declared
+// containment. The run-context entity of a construct action is its
+// parent, so the walk starts there.
+async function resolveLineageContext(record = {}, port = {}, run = {}, environment = {}) {
+  const wanted = port?.type?.typeId;
+  const supplied = run.context?.inputs?.entity;
+  if (!wanted || supplied == null) return undefined;
+  const data = environment.data || {};
+  const ref = typeof supplied === 'object'
+    ? { type: supplied.type || '', id: supplied.id || supplied._id }
+    : { type: '', id: supplied };
+  if (!ref.id) return undefined;
+  const parentTypes = (environment.domain?.containment || [])
+    .filter(edge => edge.childType === record.typeId)
+    .map(edge => edge.parentType);
+  let current = null;
+  for (const type of [...new Set([ref.type, ...parentTypes].filter(Boolean))]) {
+    try {
+      current = await data.resolveEntityRef?.({ type, id: ref.id });
+    } catch {
+      current = null;
+    }
+    if (current) break;
+  }
+  for (let depth = 0; current && depth < 16; depth += 1) {
+    if (current.type === wanted) return current;
+    if (!data.parentEntity) return undefined;
+    current = await data.parentEntity(current, current.type);
+  }
+  return undefined;
 }
 
 // The broadcast rule for socket-shaped values (run-context inputs and
@@ -414,7 +451,6 @@ function processRunInput(inputs = {}, record = {}, portId = '', environment = {}
   if (relatedType && Object.hasOwn(inputs.entities || {}, relatedType)) {
     return inputs.entities[relatedType];
   }
-  if (portId.startsWith('lineage.') && inputs.entity != null) return inputs.entity;
   if (Object.hasOwn(inputs.parameters || {}, portId)) return inputs.parameters[portId];
   return undefined;
 }
