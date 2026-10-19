@@ -13,7 +13,7 @@ entries, no floating card chrome), beneath the bottom-nav stacking.
 
 `stores/media.js` owns the single-play policy: a media element starting
 playback claims the channel and pauses whatever played before it — inline
-players in different messages, or the dock itself. `ChatAttachments` (the
+players in different messages, or the dock itself. `MessageAttachments` (the
 only inline media renderer today) claims on every `play` and registers the
 playing element with its descriptor; when its surface unmounts while the
 element is still playing (route change, thread switch, dialog close), it

@@ -24,8 +24,17 @@
           data-testid="chat-masonry-column"
         >
           <template v-for="item in column" :key="item.kind === 'instance' ? `${item.ref.type}-${item.ref.id}` : item.attachment.fileId">
+            <button
+              v-if="item.kind === 'instance' && refOpensFile(item.ref)"
+              type="button"
+              class="block w-full cursor-zoom-in overflow-hidden rounded-ui border border-content-border bg-transparent p-0"
+              :aria-label="$t('support.attachmentPreview', { name: refLabel(item.ref) })"
+              @click="openRefFile(item.ref)"
+            >
+              <InstanceInlineRef v-bind="previewRefProps(item.ref)" />
+            </button>
             <span
-              v-if="item.kind === 'instance'"
+              v-else-if="item.kind === 'instance'"
               class="block w-full overflow-hidden rounded-ui border border-content-border"
             >
               <InstanceInlineRef v-bind="previewRefProps(item.ref)" />
@@ -43,6 +52,15 @@
           </template>
         </span>
       </span>
+      <button
+        v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'instance' && refOpensFile(mediaItems[0].ref)"
+        type="button"
+        class="block w-full max-w-80 cursor-zoom-in overflow-hidden rounded-ui border border-content-border bg-transparent p-0"
+        :aria-label="$t('support.attachmentPreview', { name: refLabel(mediaItems[0].ref) })"
+        @click="openRefFile(mediaItems[0].ref)"
+      >
+        <InstanceInlineRef v-bind="previewRefProps(mediaItems[0].ref)" />
+      </button>
       <span
         v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'instance'"
         class="block w-full max-w-80 overflow-hidden rounded-ui border border-content-border"
@@ -63,11 +81,18 @@
         :class="['flex max-w-80 flex-wrap gap-1', ownMessage ? 'justify-end' : 'justify-start']"
         data-testid="chat-instance-refs"
       >
-        <InstanceInlineRef
-          v-for="ref in chipRefs"
-          :key="`${ref.type}-${ref.id}`"
-          v-bind="chipRefProps(ref)"
-        />
+        <template v-for="ref in chipRefs" :key="`${ref.type}-${ref.id}`">
+          <button
+            v-if="refOpensFile(ref)"
+            type="button"
+            class="inline-flex max-w-full items-center bg-transparent p-0"
+            :aria-label="$t('support.download', { name: refLabel(ref) })"
+            @click="openRefFile(ref)"
+          >
+            <InstanceInlineRef v-bind="chipRefProps(ref)" />
+          </button>
+          <InstanceInlineRef v-else v-bind="chipRefProps(ref)" />
+        </template>
       </span>
       <video
         v-for="attachment in videos"
@@ -163,7 +188,7 @@ import Chip from 'primevue/chip';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
-import { chatAttachmentUrl } from '~/utils/chat-file-targets.js';
+import { chatAttachmentKind, chatAttachmentUrl } from '~/utils/chat-file-targets.js';
 import { useMediaStore } from '~/stores/media';
 import { useInstancesStore } from '~/stores/instances';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
@@ -230,11 +255,46 @@ const masonryColumns = computed(() => {
   return columns;
 });
 
+// SPEC §Chat files: a ref carrying a stored file payload opens the file
+// itself — the shared preview dialog for renderable modes, direct
+// download for opaque ones. Plugin previews and declared geometry are
+// record previews: those refs keep the shared record popup click.
+const refOpensFile = (ref = {}) => {
+  const typeRecord = ref.type ? typeById(ref.type) : null;
+  if (!typeRecord || !ref.instance || resolvePluginPreview(ref.type)) return false;
+  return resolveFilePreview(ref.instance, typeRecord).hasPayload;
+};
+
+const refLabel = (ref = {}) => {
+  const typeView = ref.type ? typeById(ref.type) : null;
+  const title = instanceRecordTitle(ref.instance || null, typeView);
+  if (title) return title;
+  const storedName = ref.label && ref.label !== String(ref.id) ? ref.label : '';
+  return storedName || generatedEntityLabel(ref.type, { t, te });
+};
+
+const openRefFile = (ref = {}) => {
+  if (!refOpensFile(ref)) return;
+  const typeRecord = typeById(ref.type);
+  const file = resolveFilePreview(ref.instance, typeRecord);
+  const payload = ref.instance?.payload || {};
+  const attachment = {
+    kind: chatAttachmentKind(payload.mime),
+    fileId: payload.fileId || '',
+    mimeType: payload.mime || '',
+    name: refLabel(ref),
+    size: payload.size || 0
+  };
+  if (file.renderable) previewAttachment.value = attachment;
+  else download(attachment);
+};
+
 const previewRefProps = (ref = {}) => ({
   type: ref.type,
   id: ref.id,
   entity: ref.instance || null,
   fetch: canFetch(ref),
+  interactive: !refOpensFile(ref),
   variant: 'compact',
   compactLayout: 'stacked'
 });
@@ -244,18 +304,12 @@ const chipRefProps = (ref = {}) => ({
   id: ref.id,
   entity: ref.instance || null,
   fetch: canFetch(ref),
+  interactive: !refOpensFile(ref),
   chipClass: instanceChipClass
 });
 
 // Naming law: the support README — empty names localize the type label.
-const firstRefLabel = computed(() => {
-  const ref = (props.refs || [])[0] || {};
-  const typeView = ref.type ? typeById(ref.type) : null;
-  const title = instanceRecordTitle(ref.instance || null, typeView);
-  if (title) return title;
-  const storedName = ref.label && ref.label !== String(ref.id) ? ref.label : '';
-  return storedName || generatedEntityLabel(ref.type, { t, te });
-});
+const firstRefLabel = computed(() => refLabel((props.refs || [])[0] || {}));
 
 const summaryUsesAttachments = computed(() => (props.attachments || []).length > 0);
 const summaryItems = computed(() => (summaryUsesAttachments.value ? props.attachments : props.refs));

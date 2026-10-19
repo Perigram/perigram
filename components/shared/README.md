@@ -665,7 +665,7 @@ record from any route; the composable state is the single
 Renders support-chat message bodies as text only. `{{instance:type:id}}`
 tokens strip from display — instance refs render attached to the
 message through
-[`ChatInstanceRefs.vue`](#chatinstancerefsvue), beside files and media,
+[`MessageAttachments.vue`](#messageattachmentsvue), beside files and media,
 never inline in the bubble (a chip cannot inherit a contrast bubble's
 surface). With the `markdown` prop (agent answers), text parts render
 through the shared sanitized markdown pipeline
@@ -689,24 +689,18 @@ parts parse http(s) URLs into safe anchors (`noopener`, inherit-colored so
 both bubble sides stay readable); trailing punctuation peels off the link and
 stays text.
 
-### `ChatInstanceRefs.vue`
-The message's attached instance refs, the sibling of
-[`ChatAttachments.vue`](#chatattachmentsvue): full mode renders the
-refs as `InstanceInlineRef` chips in a wrapping row under the message
-(on the page surface, never inside a contrast bubble); `singleLine` is
-the inbox preview summary (type icon, name, overflow count) mirroring
-the attachment summary. It owns the recipient-scoped fetch gating the
-chat-only snapshot contract requires (restricted recipient views keep
-their embedded snapshots and lose detail routes).
-
-### `ChatAttachments.vue`
-Renders a support message's `attachments[]` (the contract lives in the
+### `MessageAttachments.vue`
+Renders everything attached to a support message — `attachments[]` and
+`instanceRefs[]` — as one stacked family under the message body (the
+contract lives in the
 [support feature](../../../server/features/support/README.md) — Message
-Attachments). One image renders at natural aspect inside fixed bounds
-(`max-h`); a set renders as fixed-size square tiles (two columns up to
-four images, three beyond) — deterministic tile geometry, not
-content-sized tracks — and clicking any image opens it centered in a
-full-size `StandardDialog` (the standard modal surface; no component
+Attachments). Media flows as one masonry in send order; instance refs
+with media render `InstanceInlineRef`'s stacked compact card, preview-less
+refs render chips. A ref carrying a stored file payload opens the shared
+file viewer on click (download for opaque kinds — SPEC §Chat files); every
+other ref keeps its own record-popup click. One image renders at natural
+aspect inside fixed bounds (`max-h`); clicking any image opens it centered
+in a full-size `StandardDialog` (the standard modal surface; no component
 -local lightbox chrome). Videos render native `<video controls>` players
 (bounded width and height); audio keeps the native audio player. Audio and
 video players claim the app's now-playing channel on `play` (one media
