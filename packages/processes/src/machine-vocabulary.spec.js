@@ -131,4 +131,35 @@ describe('machine vocabulary seeding follows the entry wires', () => {
       guard: { op: 'lt', args: [{ op: 'field', path: ['value', 'count'] }, { op: 'lit', value: 3 }] }
     }));
   });
+
+  it('marks an event-wired transition edge process-owned; a manual transition stays a user edge', () => {
+    const source = definition();
+    source.ctsTypes.sharedState.typeId = 'folder';
+    source.ctsTypes.orphanState.typeId = 'folder';
+    source.ctsTypes.doneState = { id: 'doneState', kind: 'state', typeId: 'folder', value: 'done' };
+    source.processNodes.toDone = {
+      id: 'toDone', kind: 'cts.transition', typeId: 'folder',
+      state: { from: 'inbox', to: 'done' },
+      trigger: { mode: 'event' }, access: { level: 'write', grants: [] }
+    };
+    source.processNodes.toFloating = {
+      id: 'toFloating', kind: 'cts.transition', typeId: 'folder',
+      state: { from: 'inbox', to: 'floating' },
+      trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
+    };
+    source.graph.nodes.push(
+      { id: 'toDone', type: 'processNode', data: { refId: 'toDone' } },
+      { id: 'toFloating', type: 'processNode', data: { refId: 'toFloating' } }
+    );
+    source.graph.edges.push({
+      id: 'e3', source: 'folderCreate', target: 'toDone',
+      sourceHandle: 'control:completed', targetHandle: 'control:in', role: 'control'
+    });
+    const compiled = compileProcessDefinition(source, domain(), { roles: {} });
+    const workflow = compiled.producerOutputs['folderCreate:result'].workflow;
+    const region = workflow.regions[workflow.primaryRegion];
+    expect(region.transitions).toContainEqual(expect.objectContaining({ from: 'inbox', to: 'done', processOwned: true }));
+    const manualEdge = region.transitions.find(transition => transition.from === 'inbox' && transition.to === 'floating');
+    expect(manualEdge.processOwned).toBeUndefined();
+  });
 });

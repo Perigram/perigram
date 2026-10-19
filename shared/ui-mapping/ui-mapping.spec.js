@@ -218,6 +218,7 @@ describe('field control resolution', () => {
                 { from: 'queued', to: 'running', intent: 'start' },
                 { from: 'running', to: 'done' },
                 { from: 'running', to: 'done', intent: 'duplicate-edge-loses' },
+                { from: 'running', to: 'failed', processOwned: true },
                 { from: '', to: 'running' },
                 { to: 'done' },
                 null

@@ -211,6 +211,9 @@ export const stateService = {
       const currentState = resolveWorkflowStatePath(region, rawState) || rawState;
       for (const transition of region.transitions || []) {
       if (transition.from !== currentState) continue;
+      // Process-owned edges (event-wired transitions) belong to the
+      // orchestration: the process executes them, availability keeps them.
+      if (transition.processOwned === true) continue;
 
       const validation = validateTransition({
         workflow: normalizedMachine,

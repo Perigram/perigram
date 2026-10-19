@@ -673,6 +673,7 @@ export function stateTransitionsByType(producerOutputs = {}) {
     for (const [regionKey, region] of Object.entries(output.workflow.regions || {})) {
       for (const transition of region.transitions || []) {
         if (!transition?.from || !transition?.to) continue;
+        if (transition.processOwned === true) continue;
         if (edges.some(edge => edge.from === transition.from && edge.to === transition.to)) continue;
         edges.push(Object.freeze({
           from: transition.from,
