@@ -479,8 +479,8 @@ describe('action launch plan', () => {
     };
     expect(planActionLaunch(action)).toBe('dialog');
     expect(resolveRunDialogInputs(action)).toEqual([
-      { id: 'sheetWidth', label: 'sheetWidth', descriptor: { base: 'quantity', unit: 'mm' }, span: 'half', required: false, default: 1220 },
-      { id: 'sheetHeight', label: 'sheetHeight', descriptor: { base: 'quantity', unit: 'mm' }, span: 'half', required: false, default: 2440 }
+      { id: 'sheetWidth', label: 'sheetWidth', descriptor: { base: 'quantity', unit: 'mm' }, span: 'half', required: false, default: { value: 1220, unit: 'mm' } },
+      { id: 'sheetHeight', label: 'sheetHeight', descriptor: { base: 'quantity', unit: 'mm' }, span: 'half', required: false, default: { value: 2440, unit: 'mm' } }
     ]);
     expect(planActionLaunch({ actionKind: 'runCommand', inputs: [{ id: 'items', prompt: false }] })).toBe('run');
   });

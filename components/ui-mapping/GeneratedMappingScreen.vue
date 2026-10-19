@@ -301,12 +301,14 @@ const visibleDialogRows = computed(() => {
 const submitting = ref(false);
 // Required rows gate the submit (the create never runs with its record
 // unnamed or its required construction inputs empty): a row counts as
-// unfilled when its draft value is nullish, an empty string, or an empty
-// list — picker/file models are objects and count as filled.
+// unfilled when its draft value is nullish, an empty string, an empty
+// list, or a quantity control whose value was cleared — picker/file
+// models are objects and count as filled.
 const rowUnfilled = row => {
   if (!row.required) return false;
   const value = dialogDraft[row.id];
-  return value == null || value === '' || (Array.isArray(value) && !value.length);
+  return value == null || value === '' || (Array.isArray(value) && !value.length)
+    || (value && typeof value === 'object' && value.unit !== undefined && (value.value == null || value.value === ''));
 };
 const dialogIncomplete = computed(() => visibleDialogRows.value.some(rowUnfilled));
 const runAction = async (action, draft = {}, context = {}) => {
@@ -334,13 +336,20 @@ const submitDialog = () => {
 };
 
 // Lineage pickers model `{ type, id }`; the construction path wants the
-// bare instance id. File references (`{ fileId, ... }`) already are the
-// payload the construct path validates — unwrapping them to `.id`
-// would silently drop the upload.
+// bare instance id. Quantity controls model the SPEC §2 `{ value, unit }`
+// shape; the run parameter channel wants the scalar. File references
+// (`{ fileId, ... }`) already are the payload the construct path validates.
+const scalarDraftValue = value => {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value.fileId) return value;
+  if (value.id !== undefined) return value.id;
+  if (value.unit !== undefined && value.value !== undefined) return value.value;
+  return value;
+};
+
 const draftPayload = () => {
   const payload = {};
   for (const [key, value] of Object.entries(dialogDraft)) {
-    payload[key] = value && typeof value === 'object' && !Array.isArray(value) && !value.fileId ? value.id : value;
+    payload[key] = scalarDraftValue(value);
   }
   return payload;
 };

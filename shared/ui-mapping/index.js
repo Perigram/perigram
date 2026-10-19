@@ -750,7 +750,8 @@ export function planActionLaunch(action = {}) {
 
 // The run dialog rows: one per prompted exposure input. Descriptor derives
 // from the input's declared parameter type so FieldControl renders the
-// same controls row fields use; the authored default prefills the draft.
+// same controls row fields use; a unit-carrying default arrives in the
+// quantity shape its control models.
 export function resolveRunDialogInputs(action = {}) {
   return (action.inputs || [])
     .filter(input => input && input.prompt !== false)
@@ -760,7 +761,9 @@ export function resolveRunDialogInputs(action = {}) {
       descriptor: runInputDescriptor(input),
       span: 'half',
       required: input.required === true,
-      ...(input.default !== undefined && input.default !== null ? { default: input.default } : {})
+      ...(input.default !== undefined && input.default !== null
+        ? { default: input.unit ? { value: input.default, unit: input.unit } : input.default }
+        : {})
     }));
 }
 
