@@ -457,7 +457,10 @@ never do.
 An exposed status-mutating action is the machine's edge: when the machine
 compiles no edge for it (a no-op arrival-to-target pair), the action is part
 of neither the compiled execution channel nor the manifest, so no surface
-offers a transition the runtime would refuse. The compiled construction
+offers a transition the runtime would refuse. An event-triggered
+transition's edge compiles as process-owned (`processOwned: true`): the
+orchestration executes it, and no manual surface offers it — the trigger
+mode, the availability window, and the edge carry one ownership fact. The compiled construction
 contract is the create form: only create actions carry it — a delete or
 transition hydrating the type's default contract would open the create
 dialog for a non-create action. Action captions derive from the action
