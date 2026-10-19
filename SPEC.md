@@ -894,7 +894,10 @@ subtracts`. The zero vertical axis stays the placement basis and the
 parameter origin. The axis is the
 placement basis: placed into a cassette, the axis lands on the
 attachment edge (snap + offsets) with +X on the
-edge's inward normal, toward the host face. Fillets are
+edge's inward normal, toward the host face, and the section's tight
+extent starts at the axis — the leftmost operand hugs the edge
+whatever the authored distances from the axis (the stored sketch
+keeps its coordinates). Fillets are
 non-destructive: they live as modifiers on their shape — per-corner on
 rectangles, per-vertex on chains — and stay editable after application
 (position and radius). Profiles are closed operand sets: an open
