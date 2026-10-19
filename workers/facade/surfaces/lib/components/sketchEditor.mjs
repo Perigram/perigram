@@ -1427,7 +1427,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           ]);
         });
         return h('div', {
-          class: 'profile-shapes-panel absolute right-2 top-14 z-20 flex max-h-[calc(100%-4rem)] w-64 flex-col overflow-y-auto rounded-ui border border-content-border bg-content py-0.5 shadow-card',
+          class: 'profile-shapes-panel absolute right-2 top-14 z-20 flex max-h-[calc(100%-4rem)] w-max max-w-[22rem] min-w-[16rem] flex-col overflow-y-auto rounded-ui border border-content-border bg-content py-0.5 shadow-card',
           'aria-label': t('cassette.v2.profileEditor.shapes')
         }, rows);
       };
