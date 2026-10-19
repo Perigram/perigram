@@ -614,7 +614,8 @@ export default function createSketchEditor({ vue, components, locale }) {
       const handleVertexSelectPointerDown = (event) => {
         if (event.target?.closest?.('.profile-vertex-popup')
           || event.target?.closest?.('.profile-dim')
-          || event.target?.closest?.('.profile-shape-popup')) return;
+          || event.target?.closest?.('.profile-shape-popup')
+          || event.target?.closest?.('.profile-shapes-panel')) return;
         lastPointerAt.value = [event.clientX, event.clientY];
         if (activeTool.value !== 'select') {
           selectedCorner.value = null;
@@ -1293,59 +1294,60 @@ export default function createSketchEditor({ vue, components, locale }) {
         ]);
       };
 
-      // The shape strip: one chip per shape — its kind, its op state at
-      // a glance (glyph + color), selection highlighted. Clicking the
-      // chip selects the shape and opens its popup at a fixed anchor;
-      // clicking the op glyph cycles add → subtract → construction.
-      const OP_GLYPH = { add: '+', subtract: '−', construction: '·' };
-      const OP_COLOR = {
-        add: 'var(--p-primary-color)',
-        subtract: 'var(--p-red-400)',
-        construction: 'var(--p-text-muted-color)'
-      };
-      const cycleOp = op => (
-        op === 'add' ? 'subtract' : op === 'subtract' ? 'construction' : 'add'
-      );
-      const renderShapeStrip = () => {
+      // The primitives panel — one row per shape, grouped in the
+      // evaluation order (adds before subtracts, construction apart),
+      // each row carrying its boolean op as the direct segmented
+      // control. Clicking a row selects its shape on the canvas.
+      const shapeOrder = { add: 0, subtract: 1, construction: 2 };
+      const renderShapesPanel = () => {
         const sketch = normalizeOccsProfileSketch(props.modelValue || {});
         if (!sketch.shapes.length) return null;
-        return h('div', {
-          class: 'flex shrink-0 flex-wrap items-center gap-1',
-          'aria-label': t('cassette.v2.profileEditor.shapes')
-        }, sketch.shapes.map(shape => {
+        const ordered = [...sketch.shapes].sort((left, right) => (
+          shapeOrder[left.op] - shapeOrder[right.op]
+        ));
+        let previousGroup = null;
+        const rows = ordered.map(shape => {
           const selected = selectedShape.value?.shapeId === shape.id
             || selectedCorner.value?.shapeId === shape.id;
-          return h('div', {
+          const row = h('div', {
             key: shape.id,
-            class: selected
-              ? 'flex items-center gap-0.5 rounded-ui border border-primary bg-content px-1 py-0.5'
-              : 'flex items-center gap-0.5 rounded-ui border border-content-border px-1 py-0.5'
+            class: 'flex items-center gap-1 rounded-ui border px-1 py-0.5'
+              + (selected ? ' border-primary bg-content' : ' border-transparent')
           }, [
             h(Button, {
               text: true,
               rounded: true,
               size: 'small',
               severity: 'secondary',
-              class: 'h-6 w-6 !p-0 text-muted',
+              class: 'h-7 !px-1 text-xs',
               title: t(SHAPE_KIND_LABEL[shape.type]),
               'aria-label': `${t(SHAPE_KIND_LABEL[shape.type])} ${shape.id}`,
-              onClick: () => {
+              onClick: event => {
                 selectedCorner.value = null;
-                selectedShape.value = { shapeId: shape.id, at: [16, 16] };
+                const bounds = overlayRef.value?.getBoundingClientRect();
+                selectedShape.value = {
+                  shapeId: shape.id,
+                  at: bounds
+                    ? [event.clientX - bounds.x, event.clientY - bounds.y + 16]
+                    : [24, 24]
+                };
               }
-            }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
-            h(Button, {
-              text: true,
-              rounded: true,
-              size: 'small',
-              class: 'h-6 w-6 !p-0 font-mono text-xs font-bold',
-              style: { color: OP_COLOR[shape.op] },
-              title: t(`cassette.v2.profileEditor.ops.${shape.op}`),
-              'aria-label': `${t(`cassette.v2.profileEditor.ops.${shape.op}`)} ${shape.id}`,
-              onClick: () => updateShape(shape.id, subject => ({ ...subject, op: cycleOp(subject.op) }))
-            }, () => [OP_GLYPH[shape.op]])
+            }, () => [
+              toolIcon(h, SHAPE_KIND_ICON[shape.type]),
+              h('span', { class: 'ml-1' }, t(SHAPE_KIND_LABEL[shape.type]))
+            ]),
+            opToggle(shape)
           ]);
-        }));
+          const divider = previousGroup !== null && previousGroup !== shape.op
+            ? h('div', { key: `sep-${previousGroup}-${shape.op}`, class: 'my-0.5 h-px bg-content-border' })
+            : null;
+          previousGroup = shape.op;
+          return divider ? [divider, row] : [row];
+        });
+        return h('div', {
+          class: 'profile-shapes-panel absolute right-2 top-14 z-20 flex max-h-[calc(100%-4rem)] w-max max-w-[calc(100%-1rem)] flex-col gap-0.5 overflow-y-auto rounded-ui border border-content-border bg-content p-1 shadow-card',
+          'aria-label': t('cassette.v2.profileEditor.shapes')
+        }, rows);
       };
 
       // The parameter strip above the canvas — the one home of the
@@ -1724,7 +1726,6 @@ export default function createSketchEditor({ vue, components, locale }) {
           ? h(Message, { severity: 'error', size: 'small', closable: false }, () => outlineError.value)
           : null,
         renderParameterStrip(),
-        renderShapeStrip(),
         h('input', {
           ref: fileInputRef,
           type: 'file',
@@ -1750,6 +1751,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             start: () => renderToolGroupButtons(0, 2),
             end: () => renderToolGroupButtons(2, 4)
           }),
+          renderShapesPanel(),
           h('svg', {
             ref: overlayRef,
             class: 'pointer-events-none absolute inset-0 z-10 h-full w-full',

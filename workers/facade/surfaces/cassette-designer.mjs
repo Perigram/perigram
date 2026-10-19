@@ -1588,6 +1588,12 @@ export default function createSurface({ vue, components, locale, queries, record
           record?.fields?.sketch || createEmptyOccsProfileSketch(),
           {}
         );
+        // An authored-but-empty snapshot never places template geometry
+        // (the default hanger stands in for sketch-less workpieces only).
+        if (!isOccsProfileSketchSavable(sketch)) {
+          notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
+          return;
+        }
         let occsProfile = null;
         try {
           occsProfile = occsProfileFromSketch(sketch, {});
