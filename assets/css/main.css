@@ -30,14 +30,6 @@ body {
     }
 }
 
-.workspace-tab-strip {
-    scrollbar-width: none;
-}
-
-.workspace-tab-strip::-webkit-scrollbar {
-    display: none;
-}
-
 /* App-wide themed scrollbars: a floating rounded pill thumb on a fully
    transparent track, no arrow buttons, with a hover step. Tokens ride the
    PrimeVue text color so both schemes stay in theme.

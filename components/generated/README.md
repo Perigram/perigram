@@ -525,7 +525,9 @@ from the compiled manifest.
   and split) start on a default empty tab, persisted tabless leaves are
   normalized to one at load, and closing a pane's last tab closes the
   pane — except the workspace's last pane, which resets to a fresh empty
-  tab: IDE-style file tabs, wheel-scrollable tab strips, split
+  tab: chats-folder-style chip tabs (see
+  [components/README.md](../../components/README.md)), wheel-scrollable
+  tab strips, split
   right/down, pane-local close, registered workspace pages (every editor
   surface — cassette designer, sheet layout editor, sketch, text/csv,
   table import — plus chats and calls), and screen panes
