@@ -624,7 +624,7 @@
                                     </small>
                                     <span class="flex min-w-0 items-center gap-1 text-supporting">
                                         <i
-                                            v-if="(messageItem.parent.attachments || []).length"
+                                            v-if="messageItem.parent.snippet && (messageItem.parent.attachments || []).length"
                                             :class="parentAttachmentIcon(messageItem.parent)"
                                             class="shrink-0 text-muted"
                                             aria-hidden="true"
@@ -632,6 +632,16 @@
                                         <span v-if="messageItem.parent.snippet" class="min-w-0 truncate [overflow-wrap:anywhere]">
                                             {{ messageItem.parent.snippet }}
                                         </span>
+                                        <!-- Non-text quotes carry the attachment
+                                             or ref summary, the same line the
+                                             inbox preview renders. -->
+                                        <MessageAttachments
+                                            v-else-if="(messageItem.parent.attachments || []).length || (messageItem.parent.instanceRefs || []).length"
+                                            :attachments="messageItem.parent.attachments || []"
+                                            :refs="messageItem.parent.instanceRefs || []"
+                                            single-line
+                                            class="min-w-0"
+                                        />
                                     </span>
                                 </button>
                                 <!-- Forwarded provenance rides directly over
@@ -820,18 +830,17 @@
                     >
                         <i class="pi pi-reply shrink-0 text-muted" aria-hidden="true"></i>
                         <div class="min-w-0 flex-1">
-                            <small class="block truncate text-muted text-supporting">
-                                {{ replyTo.parent?.senderName || $t('common.user') }}
-                            </small>
-                            <span class="block truncate text-supporting">
-                                <template v-if="replyTo.parent?.snippet || replyTo.message">
-                                    {{ replyTo.parent?.snippet || replyTo.message }}
-                                </template>
-                                <i
-                                    v-else-if="(replyTo.attachments || []).length"
-                                    :class="parentAttachmentIcon(replyTo)"
-                                    class="text-muted"
-                                    aria-hidden="true"
+                            <UserChip :user-id="messageSenderKey(replyTo)" class="max-w-full" />
+                            <span class="flex min-w-0 items-center gap-1 text-supporting">
+                                <span v-if="replyTo.message" class="min-w-0 truncate">
+                                    {{ replyTo.message }}
+                                </span>
+                                <MessageAttachments
+                                    v-else-if="(replyTo.attachments || []).length || (replyTo.instanceRefs || []).length"
+                                    :attachments="replyTo.attachments || []"
+                                    :refs="replyTo.instanceRefs || []"
+                                    single-line
+                                    class="min-w-0"
                                 />
                             </span>
                         </div>
