@@ -1083,7 +1083,7 @@ identity face is the shared microchip avatar
 headers, pickers, and sender chips — and it is the only AI marker:
 chat surfaces carry no text badges. Instance refs attach to messages
 like files do: a wrapping chip row under the message body
-(`ChatInstanceRefs`), tokens in authored text strip from display —
+(`MessageAttachments`), tokens in authored text strip from display —
 refs never render inline inside a contrast bubble.
 Conversations with bots carry a model select above the composer: it
 shows while the room calls its AI — always in the AI's own chats (a
@@ -1136,7 +1136,7 @@ above the tree — device upload and camera photo/video capture — no second
 composer control): staging multiple
 files as removable chips (image thumbnails for image files, type icons
 otherwise) whose `attachments[]` render through the shared
-`ChatAttachments` gallery (`components/shared/README.md`). Dragging files
+`MessageAttachments` gallery (`components/shared/README.md`). Dragging files
 onto the thread stages them through the same attachment flow (a dashed
 drop zone over the messages while a file drag hovers). In instance
 chats the composer resolves the composer target's accepting file children
