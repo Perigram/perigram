@@ -1237,10 +1237,9 @@ selected — the root pill or the deepest trail pill; unnamed chips carry
 their localized type label, never an id. Replies quote their parent message above the bubble (sender
 name plus snippet or voice marker, without a leading border) and jump to the quoted message when
 loaded, loading earlier pages while staying scroll-anchored otherwise; they
-open through the message menu — right-click or long-press the message, or
-the desktop hover ellipsis (PrimeVue Menu with reply and
-copy actions, vertically aligned with the bubble's center beside its outer
-edge; media-only rows keep the ellipsis mounted on touch too) — and direction-aware swipe-to-reply on mobile: own (right-aligned)
+open through the message menu — right-click or long-press the message; the
+menu is the shared ContextMenu, dropping under the cursor with full file
+names on download entries — and direction-aware swipe-to-reply on mobile: own (right-aligned)
 messages swipe left and opponent messages right, the row follows the
 finger, and a reply icon fades in inside the vacated gap until the release
 past the threshold commits the reply. A left click on an instance-linked
