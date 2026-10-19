@@ -880,13 +880,11 @@ boolean operation applied to the FACE — add (the footprint unites
 into the face, extending it), subtract (the footprint cuts from the
 face), construction (excluded; an imported drawing lands as
 construction). The face after the profile is `(base face ∪ adds) −
-subtracts`; the editor's material half is the base-face stand-in, so
-an add visibly extends the hatch past the axis and a subtract visibly
-empties it. The zero vertical axis stays the placement basis and the
+subtracts`. The zero vertical axis stays the placement basis and the
 parameter origin. The axis is the
 placement basis: placed into a cassette, the axis lands on the
-attachment edge (snap + offsets) with +X — the material half — on the
-edge's inward normal, material toward the host face. Fillets are
+attachment edge (snap + offsets) with +X on the
+edge's inward normal, toward the host face. Fillets are
 non-destructive: they live as modifiers on their shape — per-corner on
 rectangles, per-vertex on chains — and stay editable after application
 (position and radius). Profiles are closed operand sets: an open
@@ -903,33 +901,31 @@ dimension annotation on the canvas, labeled by its parameter expression
 where one is bound (measured numbers otherwise), and set directly in
 place — typing in the dimension commits the field. Selection is the
 CAD engine's entity pick; a single selected shape opens its popup
-(op, rotation, fillet radii) at the click point. The editor overlays the resolved
-boolean result as the one strong figure over the editable primitives —
-the result hatched with a solid
-outline — so the union, difference, and material-half clip read at a
+(op, rotation, fillet radii) at the click point. The editor overlays
+the resolved section as the one strong figure over the editable
+primitives — the section hatched with a solid
+outline — so the boolean result reads at a
 glance; the zero axis renders as a solid basis line. Rectangle
 extraction canonicalizes corner order (counter-clockwise from the
 leftmost corner), so the draw direction leaves the stored settings
 unchanged.
 
-Owner decision (2026-10-19, profile op sequence): the shape list order
-is the boolean application order. Each shape's operation applies to the
-accumulated face region — an add after a subtract restores material, a
-subtract after an add cuts it — so any edge modification composes from
-ordered add/subtract steps. The editor, the production entity stream
-(profile steps first, hardware cuts after), and the nesting evaluation
-fold the same sequence; canvas extraction keeps the authored order and
-appends new shapes after it.
+Owner decision (2026-10-19, profile drawing): the fold is grouped and
+order-independent — every add before every subtract — so drawing order
+never changes the profile. The editor previews the SECTION itself: the
+hatch IS the drawn figure (adds union, subtracts cut, holes empty),
+never a host-face stand-in; the material-half model is retired. The
+editor, the production entity stream, and the nesting evaluation ride
+the same region fold.
 
 Owner review (2026-10-18, profile editor readout): the parameter table
 lives in the strip above the canvas — its one home, visible with no
 selection. Clicking a primitive — face, edge, or cutout — opens its
 popup; a repeat click on the same spot cycles to the shape beneath.
 The canvas carries exactly two surface states, hatch and empty: the
-material half hatches as the face — the one hatch — and the resolved
-section is the cut from it (empty interior, solid outline), holes in
-the section staying face material. Stacked dimensions chain outward on
-their baseline and every dimension line carries arrowheads.
+resolved section hatches — the one hatch — with holes staying empty
+and everything outside the section empty. Stacked dimensions chain
+outward on their baseline and every dimension line carries arrowheads.
 
 Owner review (2026-10-19, profile items and bindings): a placed
 profile's workpiece row carries the profile's whole parameter table.

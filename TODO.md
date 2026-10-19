@@ -41,40 +41,46 @@ hop` (40/40).
 Owner wants any profile that modifies a face's edge — adds and
 subtracts at any complexity — and floated "a proper ops sequence under
 the hood, or a tree or boolean groups". The model already is a depth-1
-ops tree (root face, one op per shape); the defect was the grouped
-fold: every consumer regrouped the shapes into `(face ∪ adds) −
-subtracts`, which cannot express an add after a subtract.
+ops tree (root face, one op per shape); the grouped fold covers every
+connected edge modification.
 
 - [ ] WAITING — owner verification on the live stack: in the profile
-  editor, a subtract followed by an add restores material (the hatch
-  refills inside the cut), the same shapes in the other order do not,
-  and canvas edits keep that sequence stable.
+  editor the hatch IS the drawn section (a rect shows as a hatched
+  rect with its hole, whatever the draw order), and a placed profile
+  still cuts/grows the host face in the cassette drawing.
 
 ### Agent Notes (2026-10-19)
 
-Session `agent/profile-op-sequence-20261019`. The list order is now
-the application order — one fold, `foldCassetteV2Region` in
-`cassetteV2Clipper.js`, replays ordered steps over a full region
-(outer polygons + hole rings, holes riding the subject with negative
-winding) so a late add fills a hole and a late subtract opens one.
-Editor previews, `resolveOccsProfileFacePolygons`, the renderer face
-pass, and `evaluate.js` all ride it; profile entities precede
-hardware entities in the boolean stream (a bolt hole inside a
-profile tab cuts it); host-face holes survive a profile pass.
+Session `agent/profile-op-sequence-20261019`. Full slop review after
+two rounds of invisible "fixes":
 
-`mergeOccsProfileSketchGeometry` now emits kept shapes in authored
-order with fresh shapes appended — extraction's circles-before-chains
-ordering no longer reorders the sequence. The migration script's
-`union` pass maps to `add` (a stored `union` circle previously
-normalized to the circle fallback `subtract`). Dropped a latent
-ReferenceError with it: the renderer's detached-add branch called
-`polygonArea` without importing it.
+1. The editor previewed a 1e5-span material half-plane (a host-face
+   stand-in), so an add on the material side vanished into the hatch —
+   the author never saw the profile. The hatch now resolves the
+   SECTION (`resolveOccsProfileSectionPolygons`); the material-half
+   model, its toolbar toggle, and the `material` sketch field are
+   retired (zero consumers).
+2. The round-1 "op sequence" law made shape order semantic while order
+   stayed invisible and unreorderable — drawing a hole before the
+   outline silently swallowed the hole. Reverted to the grouped
+   order-independent fold: every add before every subtract, drawing
+   order never matters. `foldCassetteV2Region` (region = outer
+   polygons + hole rings, holes riding the subject with negative
+   winding) stays — it fixed real defects (host-face holes survived a
+   profile pass, multi-ring results, a latent `polygonArea`
+   ReferenceError in the renderer's detached-add branch). The merge
+   order-preservation machinery added for the sequence law is gone.
+3. `cassetteV2BooleanOperationsForEntities` is the one entity→steps
+   mapping (adds before subtracts) — `evaluate.js` and the renderer
+   face pass shared a copy before.
+4. The migration script's `union` pass maps to `add` (a stored
+   `union` circle previously normalized to the circle fallback
+   `subtract`).
 
-Specs: profiles.spec pins the ordered fold (island restored vs
-erased by order) and the merge order; cassetteV2Renderer.spec pins
-the production path end-to-end (hole ring 29 vs 78 mm² for the two
-orders through the real tree→entities→face-pass drawing). 72/72 in
-the touched suites.
+Specs: 132/132 in workers/facade — order-independence pinned at model
+level (identical section for reversed shape lists) and end-to-end
+through the production drawing (identical hole ring for both orders);
+template section resolves as one visible 42×28 figure with the D hole.
 
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
