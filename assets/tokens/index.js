@@ -84,7 +84,7 @@ export const designTokens = {
         callWindowMinHeight: '20rem',
         supportChatViewportMaxHeight: 'calc(100dvh - 6rem)',
         supportChatAdminHeight: 'calc(100vh - 12rem)',
-        supportChatMessageMax: '85%',
+        supportChatMessageMax: '70%',
         supportChatAdminMessageMax: '80%',
         entityPopoverMinWidth: '18.75rem',
         swatchSize: '2.625rem',

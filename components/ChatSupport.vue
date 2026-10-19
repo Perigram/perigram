@@ -548,7 +548,7 @@
                         <div
                             :data-message-id="messageItem._id"
                             class="relative flex min-w-0 max-w-support-chat-message touch-pan-y flex-col"
-                            :class="isOwnMessage(messageItem) ? 'ml-auto' : 'mr-auto'"
+                            :class="docksRight(messageItem) ? 'ml-auto' : 'mr-auto'"
                             @touchstart="onTouchStart($event, messageItem)"
                             @touchmove="onTouchMove($event, messageItem)"
                             @touchend="onTouchEnd(messageItem)"
@@ -556,17 +556,14 @@
                             @contextmenu="openMessageMenuFromRow($event, messageItem, true)"
                         >
                             <!-- Swipe reveal icon: it sits in the gap the
-                                 dragged row vacates (right edge for own
-                                 messages, left edge for others) and fades in
-                                 with the drag distance. The row itself hugs
-                                 its side through the auto margin (cross-axis
-                                 auto margins disable stretch), exactly like
-                                 the pre-swipe layout, so own bubbles stay
-                                 flush with the right edge. -->
+                                 dragged row vacates at its dock edge and
+                                 fades in with the drag distance; the row
+                                 keeps hugging its side through the auto
+                                 margin. -->
                             <span
                                 v-if="swipeDrag.id === messageItem._id"
                                 class="absolute top-1/2 -translate-y-1/2"
-                                :class="isOwnMessage(messageItem) ? 'right-1' : 'left-1'"
+                                :class="docksRight(messageItem) ? 'right-1' : 'left-1'"
                                 :style="{ opacity: swipeIconOpacity(messageItem) }"
                                 aria-hidden="true"
                             >
@@ -582,8 +579,8 @@
                                     // full width, or the ±2rem menu overhang
                                     // lands outside the thread column (whose
                                     // overflow-y-auto forces overflow-x auto).
-                                    isOwnMessage(messageItem) ? 'self-end' : 'self-start',
-                                    isOwnMessage(messageItem) ? 'items-end' : 'items-start',
+                                    docksRight(messageItem) ? 'self-end' : 'self-start',
+                                    docksRight(messageItem) ? 'items-end' : 'items-start',
                                     swipeDrag.id === messageItem._id ? '' : 'transition-transform',
                                     highlightKey === String(messageItem._id) ? 'animate-pulse' : ''
                                 ]"
@@ -690,7 +687,7 @@
                                          center, beside its outer edge. -->
                                     <span
                                         class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:block"
-                                        :class="isOwnMessage(messageItem) ? '-left-8' : '-right-8'"
+                                        :class="docksRight(messageItem) ? '-left-8' : '-right-8'"
                                     >
                                         <Button
                                             icon="pi pi-ellipsis-v"
@@ -717,7 +714,7 @@
                                         :refs="messageItem.instanceRefs || []"
                                         :viewer-user-id="currentUserId"
                                         :sender-user-id="messageItem.senderUserId || ''"
-                                        :own-message="isOwnMessage(messageItem)"
+                                        :own-message="docksRight(messageItem)"
                                     />
                                     <!-- Media-only rows have no tappable bubble
                                          (the elements eat taps and long-presses
@@ -727,7 +724,7 @@
                                     <span
                                         class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 md:block"
                                         :class="[
-                                            isOwnMessage(messageItem) ? '-left-8' : '-right-8',
+                                            docksRight(messageItem) ? '-left-8' : '-right-8',
                                             !messageItem.message && !(messageItem.instanceRefs || []).length
                                                 ? 'max-md:block max-md:opacity-60' : ''
                                         ]"
@@ -3237,9 +3234,8 @@ const onTouchStart = (event, messageItem) => {
         key: messageItem._id,
         x: touch.clientX,
         y: touch.clientY,
-        // Own messages sit right-aligned and swipe left; others sit
-        // left-aligned and swipe right.
-        direction: isOwnMessage(messageItem) ? -1 : 1,
+        // Docked rows swipe toward the thread's open side.
+        direction: docksRight(messageItem) ? -1 : 1,
         horizontal: false,
         armed: false
     }
@@ -3419,6 +3415,8 @@ onMounted(() => {
     else if (chatTarget.value?.conversationKey) openConversationByKey(chatTarget.value.conversationKey)
 })
 onBeforeUnmount(() => {
+    threadWidthObserver?.disconnect()
+    threadWidthObserver = null
     if (unsubscribeConversation) {
         unsubscribeConversation()
         unsubscribeConversation = null
@@ -4085,11 +4083,29 @@ const isOwnMessage = (chatMessage) => {
     return chatMessage.sender === 'user'
 }
 
+// Wide thread panes align every message left (SPEC §Chat thread); the
+// right dock is the narrow-pane arrangement for the viewer's messages.
+const threadIsWide = ref(false)
+const docksRight = (chatMessage) => isOwnMessage(chatMessage) && !threadIsWide.value
+
+let threadWidthObserver = null
+const syncThreadWidth = () => {
+    threadIsWide.value = (messagesContainer.value?.clientWidth || 0) >= 640
+}
+watch(() => messagesContainer.value, (element) => {
+    threadWidthObserver?.disconnect()
+    threadWidthObserver = null
+    if (!element || typeof ResizeObserver === 'undefined') return
+    threadWidthObserver = new ResizeObserver(syncThreadWidth)
+    threadWidthObserver.observe(element)
+    syncThreadWidth()
+})
+
 // AI-only rooms are two-party: every non-own message is the assistant's.
 const showSenderLabel = (messageItem) => ((['group', 'instance'].includes(activeConversation.value?.conversationKind)
     && !isAiOnlyRoom.value) || isAiOnlyRoom.value)
     && Boolean(messageItem?.senderUserId)
-    && !isOwnMessage(messageItem)
+    && !docksRight(messageItem)
     && messageItem.firstOfSenderRun
 
 const openConversation = async (conversation) => {
