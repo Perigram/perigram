@@ -7529,3 +7529,20 @@ assistant — keeping multi-human rooms clean.
 - The wake-gate matcher (`@Name`, word-boundary, case-insensitive) is
   single-homed in `shared/assistant-mention.js`; the agent-bots runtime
   and the composer's `modelSelectVisible` both consume it.
+
+## ProgressSpinner everywhere (2026-10-19)
+
+Owner direction: the pi-spinner glyph retires app-wide; loading marks are
+the PrimeVue spinner.
+
+- [ ] WAITING — owner verification on the live stack: transcribing rows,
+      the AI panel and attachment picker loaders, the outbox badge, agent
+      tool messages, and the transcribe menu entry all animate the
+      PrimeVue spinner.
+
+### Agent Notes (2026-10-19 — spinner sweep)
+
+- All seven pi-spinner sites now render `ProgressSpinner` (sized to the
+  row); the message menu draws it through the ContextMenu `itemicon`
+  slot, and the ui-lab loading demo goes through `StateBlock`'s loading
+  state. The law is pinned in the components README style guide.
