@@ -267,7 +267,7 @@ editor modules never touch the API. The mount's write-grant channel
 transports gate, with the registry type record for the class collection.
 Remote editors are online-only; a
 failed mount surfaces the module proxy's error message (the executor
-state). The supported mount-contract versions live
+state), else the module's own failure reason. The supported mount-contract versions live
 in `shared/plugin-surfaces.js` — the install/upgrade gates and the loader
 read the same set.
 

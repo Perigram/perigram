@@ -1,6 +1,7 @@
 {
     "pluginSurfaces": {
         "unavailable": "The editor could not be loaded — plugin editors are online-only.",
+        "moduleFailed": "The editor module failed to mount.",
         "notConnected": "Connect the plugin's executor in the plugin settings to use this editor.",
         "unsupported": "This editor needs a newer platform version."
     },

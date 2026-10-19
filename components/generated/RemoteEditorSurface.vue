@@ -91,7 +91,8 @@ onMounted(async () => {
     // undiagnosable.
     console.error('plugin surface module failed to mount', props.surface?.url, error);
     errorSeverity.value = 'warn';
-    errorMessage.value = (await proxyErrorDetail(props.surface?.url)) || t('pluginSurfaces.unavailable');
+    errorMessage.value = (await proxyErrorDetail(props.surface?.url))
+      || [t('pluginSurfaces.moduleFailed'), error?.message].filter(Boolean).join(' — ');
     status.value = 'error';
   }
 });
