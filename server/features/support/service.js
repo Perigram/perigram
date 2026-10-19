@@ -1008,6 +1008,7 @@ async function resolveParentMessage(auth, context, parentMessageId = '') {
         senderName,
         snippet: messageSnippet(parentMessage),
         ...(parentMessage.attachments?.length ? { attachments: parentMessage.attachments } : {}),
+        ...(parentMessage.instanceRefs?.length ? { instanceRefs: parentMessage.instanceRefs } : {}),
         timestamp: parentMessage.timestamp
     };
 }
