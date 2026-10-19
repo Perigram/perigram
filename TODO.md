@@ -7189,3 +7189,34 @@ in-process, and command_runs/task_runs are the audit trail.
 - Stored collections drop via `server/scripts/retire-process-runs.js`;
   action-evaluation specs run Mongo-free.
 
+
+## Chat attachment caption and masonry fill (2026-10-19)
+
+Owner follow-ups on the recent chat attachment fixes: the stacked preview
+card's state tag rides the label line at small size (one line overall,
+identity truncating around it), and the media masonry fills from the
+sender's dock edge (SPEC §Chat files: a gallery placed above the message
+text fills from the bottom).
+
+- [ ] WAITING — owner verification on the live stack: own-sender media
+      messages stack their first items at the docked edge with
+      continuation flowing outward; the stacked preview card's caption is
+      one line with the small state tag beside the name.
+
+### Agent Notes (2026-10-19 — chat attachment follow-ups)
+
+- `StateTag` gained a `small` mode (per-instance pt geometry: 0.625rem
+  label/icon, 2px/6px padding); the stacked compact card renders it
+  inside `instance-inline-compact-header`, and the standalone status row
+  now belongs to the row layout only.
+- `MessageAttachments` fills masonry columns column-major from the
+  sender's edge (first items own the leading column) and takes the dock
+  side from the thread's `ownMessage` prop — `ChatSupport`'s
+  `isOwnMessage` owns the decision, so the gallery follows the row it
+  rides in.
+- Above-the-text galleries (bottom fill) have no placement in the
+  current thread layout; the law is recorded in SPEC §Chat files and
+  support README for when one exists.
+- Reconciled stale docs met on the way: components README claimed preset
+  chip small-geometry tokens (reverted in 03c9ab13a); shared README
+  placed the row card's status badge "beside" identity.
