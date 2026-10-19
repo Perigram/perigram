@@ -83,25 +83,32 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await runDrawTool('Circle', [0.60, 0.30], [0.67, 0.30]);
   await runDrawTool('Rectangle', [0.30, 0.60], [0.60, 0.85]);
 
-  // The primitives panel lists every shape as a row with its boolean
-  // op as the direct segmented control (owner direction 2026-10-19).
+  // The primitives panel lists every shape as a row with its op state
+  // visible at a glance (owner direction 2026-10-19). Selecting a row
+  // expands its op control and property fields.
   const circleRow = dialog.locator('button[aria-label^="Circle s"]').first();
   const rectRow = dialog.locator('button[aria-label^="Rectangle s"]').first();
   await expect(circleRow, 'the drawn circle lists in the panel').toBeVisible({ timeout: 10_000 });
   await expect(rectRow, 'the drawn rect lists in the panel').toBeVisible({ timeout: 10_000 });
-  await expect(circleRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Subtract' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(rectRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Add' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(circleRow.locator('.p-tag')).toHaveText('Subtract');
+  await expect(rectRow.locator('.p-tag')).toHaveText('Add');
 
-  // The op control switches the operation directly — and the row
-  // re-groups (adds before subtracts, construction apart).
-  await circleRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Construction' }).click();
-  await expect(circleRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Construction' })).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 });
-  await circleRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Subtract' }).click();
-  await expect(circleRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Subtract' })).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 });
+  // The op control rides the selected row — switching it regroups the
+  // list (adds before subtracts, construction apart).
+  const rowBlock = (kind) => dialog.locator(`button[aria-label^="${kind} s"]`)
+    .locator('xpath=ancestor::div[contains(@class,"border-b")]');
+  const circleOps = () => rowBlock('Circle').locator('.p-selectbutton').getByRole('button');
+  await circleRow.click();
+  await expect(circleOps().filter({ hasText: 'Subtract' })).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 });
+  await circleOps().filter({ hasText: 'Construction' }).click();
+  await expect(circleOps().filter({ hasText: 'Construction' })).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 });
+  await circleOps().filter({ hasText: 'Subtract' }).click();
+  await expect(circleOps().filter({ hasText: 'Subtract' })).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 });
 
   // The rows list in the evaluation order: the add (drawn second)
   // sits above the subtract (drawn first) — the fold reads off the
-  // list.
+  // list. Row anatomy holds: one height, fixed panel width, nothing
+  // overflows horizontally.
   const panelOrder = await dialog.locator('.profile-shapes-panel').evaluate(panel => (
     Array.from(panel.querySelectorAll('button[aria-label]'))
       .map(button => button.getAttribute('aria-label'))
@@ -109,11 +116,23 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   ));
   expect(panelOrder[0]?.startsWith('Rectangle'), `adds list first: ${panelOrder.join(', ')}`).toBe(true);
   expect(panelOrder[1]?.startsWith('Circle'), `subtracts follow: ${panelOrder.join(', ')}`).toBe(true);
+  const metrics = await dialog.locator('.profile-shapes-panel').evaluate(panel => {
+    const rows = Array.from(panel.children);
+    const rect = panel.getBoundingClientRect();
+    return {
+      widths: [...new Set(rows.map(row => Math.round(row.getBoundingClientRect().width)))],
+      heights: rows.map(row => Math.round(row.querySelector('button')?.getBoundingClientRect().height ?? 0)),
+      panelWidth: Math.round(rect.width),
+      overflow: panel.scrollWidth > Math.ceil(rect.width) + 1
+    };
+  });
+  expect(metrics.widths).toHaveLength(1);
+  expect(new Set(metrics.heights).size).toBeLessThanOrEqual(2);
+  expect(metrics.overflow, 'panel rows never overflow horizontally').toBe(false);
 
   // Selecting a row expands its property fields — the shape's whole
   // authoring table edits in place (owner direction: shape properties
-  // in the same tree).
-  await circleRow.click();
+  // in the same tree). The row stays selected from the op switch.
   const circleDiameterField = dialog.locator('input[aria-label^="d s"]').first();
   await expect(circleDiameterField).toBeVisible({ timeout: 10_000 });
   await circleDiameterField.click();
@@ -122,6 +141,15 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await circleDiameterField.press('Enter');
   await page.waitForTimeout(600);
   await expect(dialog.locator('input.profile-dim[aria-label^="diameter"]')).toHaveValue('20', { timeout: 10_000 });
+
+  // Deleting a shape is atomic and panel-owned: the rect row's trash
+  // removes the whole primitive; the circle keeps its op, fields, and
+  // geometry.
+  await rectRow.click();
+  await rowBlock('Rectangle').getByRole('button', { name: /^Delete/ }).click();
+  await expect(rectRow).toBeHidden({ timeout: 10_000 });
+  await expect(circleRow).toBeVisible({ timeout: 10_000 });
+  await expect(circleRow.locator('.p-tag')).toHaveText('Subtract');
   await circleRow.click();
   await expect(circleDiameterField).toBeHidden({ timeout: 10_000 });
 
