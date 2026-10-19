@@ -109,18 +109,45 @@ async function reload() {
     return;
   }
   poolStates.value = Object.fromEntries(sources.map(source => [source.id, 'loading']));
-  try {
-    for (const source of sources) {
-      await instances.listInstances(instances.canonicalTypeKey(source.typeId));
-      poolStates.value[source.id] = Object.keys(instances.records[instances.canonicalTypeKey(source.typeId)] || {}).length
-        ? 'ready'
-        : 'empty';
+  await Promise.all(sources.map(async (source) => {
+    const typeKey = instances.canonicalTypeKey(source.typeId);
+    let state = 'ready';
+    try {
+      if (source.mode === 'single') {
+        // Single sources resolve the scoped record through the readable
+        // reference seam — the same access-filtered transport relation
+        // refs resolve through — so a record readable outside the class
+        // list (chat-materialized files) still opens.
+        const id = scopedRecordId(screenValue, source);
+        const dto = id
+          ? await instances.resolveReadableReference(typeKey, id, { silent: true })
+          : null;
+        state = dto ? 'ready' : 'missing';
+      } else {
+        await instances.listInstances(typeKey);
+        state = Object.keys(instances.records[typeKey] || {}).length ? 'ready' : 'empty';
+      }
+    } catch (err) {
+      const denied = err?.status === 403 || err?.statusCode === 403 || err?.data?.statusCode === 403;
+      state = denied ? 'denied' : 'error';
     }
-  } catch (err) {
-    const denied = err?.status === 403 || err?.statusCode === 403 || err?.data?.statusCode === 403;
-    poolStates.value = Object.fromEntries(Object.entries(poolStates.value)
-      .map(([id, value]) => [id, value === 'loading' ? (denied ? 'denied' : 'error') : value]));
+    poolStates.value = { ...poolStates.value, [source.id]: state };
+  }));
+}
+
+function scopedRecordId(screen = {}, source = {}) {
+  const identifier = source.identifier;
+  if (typeof identifier === 'string' && identifier.startsWith('$screen.')) {
+    const resolved = screenPathValue(screen, identifier.slice('$screen.'.length));
+    return resolved === undefined || resolved === null || resolved === '' ? null : String(resolved);
   }
+  return screen.scope?.instanceId
+    || screen.scope?.[`${source.typeId}Id`]
+    || (identifier ? String(identifier) : null);
+}
+
+function screenPathValue(screen = {}, path = '') {
+  return String(path).split('.').filter(Boolean).reduce((value, key) => (value == null ? undefined : value[key]), screen);
 }
 
 watch([() => props.screen, processBundle], () => reload(), { immediate: true });
