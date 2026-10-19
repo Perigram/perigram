@@ -45,7 +45,7 @@ const SHAPE_KIND_LABEL = {
 export default function createSketchEditor({ vue, components, locale }) {
   const { h, ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
-  const { Button, InputText, Message, Toolbar, SelectButton } = components;
+  const { Button, InputText, Message, Toolbar, SelectButton, Tag } = components;
 
   // The engine singleton is destroyed and re-created per mount; a pending
   // destroy must finish first or its teardown would clobber the new instance.
@@ -813,17 +813,53 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
+      // Primitives are atomic: an erase that takes part of a rect or
+      // circle deletes the whole shape (the model commit reseeds the
+      // canvas, clearing the leftover entities) — a half-erased
+      // primitive never degrades into loose lines. Chains keep their
+      // per-segment nature.
+      const eraseShapeAtomically = () => {
+        const aliveCounts = new Map();
+        for (const entity of modelSpaceEntities()) {
+          const shapeId = entityShapeByObjectId.get(String(entity.objectId));
+          if (shapeId) aliveCounts.set(shapeId, (aliveCounts.get(shapeId) || 0) + 1);
+        }
+        const taggedCounts = new Map();
+        for (const shapeId of entityShapeByObjectId.values()) {
+          taggedCounts.set(shapeId, (taggedCounts.get(shapeId) || 0) + 1);
+        }
+        const model = normalizeOccsProfileSketch(props.modelValue || {});
+        for (const shape of model.shapes) {
+          if (shape.type !== 'rect' && shape.type !== 'circle') continue;
+          const tagged = taggedCounts.get(shape.id) || 0;
+          const alive = aliveCounts.get(shape.id) || 0;
+          if (tagged > alive && alive > 0) {
+            deleteShape(shape.id);
+            return true;
+          }
+        }
+        return false;
+      };
+
       const bindDatabase = ({ schedule = true } = {}) => {
         unbindDatabase();
         ensureDefaultTables();
         const database = manager?.curDocument?.database;
         if (!database?.events) return;
         const handler = () => scheduleExtraction();
-        for (const name of ['entityAppended', 'entityModified', 'entityErased']) {
+        for (const name of ['entityAppended', 'entityModified']) {
           const event = database.events[name];
           if (!event?.addEventListener) continue;
           event.addEventListener(handler);
           dbListeners.push({ event, handler });
+        }
+        const erasedHandler = () => {
+          if (!eraseShapeAtomically()) scheduleExtraction();
+        };
+        const erasedEvent = database.events.entityErased;
+        if (erasedEvent?.addEventListener) {
+          erasedEvent.addEventListener(erasedHandler);
+          dbListeners.push({ event: erasedEvent, handler: erasedHandler });
         }
         if (schedule) scheduleExtraction();
       };
@@ -1312,28 +1348,39 @@ export default function createSketchEditor({ vue, components, locale }) {
       // each row carrying its boolean op as the direct segmented
       // control. Clicking a row selects its shape on the canvas.
       const shapeOrder = { add: 0, subtract: 1, construction: 2 };
+      const OP_TAG_SEVERITY = { add: 'success', subtract: 'danger', construction: 'secondary' };
+      const deleteShape = (shapeId) => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        commitSketch({
+          ...normalized,
+          shapes: normalized.shapes.filter(shape => shape.id !== shapeId)
+        });
+        if (selectedShape.value?.shapeId === shapeId) selectedShape.value = null;
+        if (selectedCorner.value?.shapeId === shapeId) selectedCorner.value = null;
+      };
+      // The primitives panel rides the workpieces tree's row anatomy:
+      // a quiet full-width select row (icon, truncated kind, op state
+      // tag), its actions and property fields expanding on selection.
       const renderShapesPanel = () => {
         const sketch = normalizeOccsProfileSketch(props.modelValue || {});
         if (!sketch.shapes.length) return null;
         const ordered = [...sketch.shapes].sort((left, right) => (
           shapeOrder[left.op] - shapeOrder[right.op]
         ));
-        let previousGroup = null;
         const rows = ordered.map(shape => {
           const selected = selectedShape.value?.shapeId === shape.id
             || selectedCorner.value?.shapeId === shape.id;
-          const row = h('div', {
+          return h('div', {
             key: shape.id,
-            class: 'flex flex-col gap-1 rounded-ui border px-1 py-0.5'
-              + (selected ? ' border-primary bg-content' : ' border-transparent')
+            class: 'border-b border-content-border px-1 py-1.5 last:border-b-0'
           }, [
-            h('div', { class: 'flex items-center gap-1' }, [
-              h(Button, {
-                text: true,
-                rounded: true,
-                size: 'small',
-                severity: 'secondary',
-                class: 'h-7 !px-1 text-xs',
+            h('div', { class: 'flex min-w-0 items-center gap-1' }, [
+              h('button', {
+                type: 'button',
+                class: [
+                  'flex min-w-0 flex-1 items-center gap-2 rounded-ui border px-2 py-1 text-left text-sm',
+                  selected ? 'border-primary bg-subtle' : 'border-transparent'
+                ].join(' '),
                 title: t(SHAPE_KIND_LABEL[shape.type]),
                 'aria-label': `${t(SHAPE_KIND_LABEL[shape.type])} ${shape.id}`,
                 'aria-expanded': selected ? 'true' : 'false',
@@ -1344,27 +1391,43 @@ export default function createSketchEditor({ vue, components, locale }) {
                     : { shapeId: shape.id, at: [24, 24], fromPanel: true };
                 }
               }, () => [
-                toolIcon(h, SHAPE_KIND_ICON[shape.type]),
-                h('span', { class: 'ml-1' }, t(SHAPE_KIND_LABEL[shape.type]))
+                h('span', { class: 'shrink-0 text-muted' }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
+                h('span', { class: 'truncate' }, t(SHAPE_KIND_LABEL[shape.type])),
+                h(Tag, {
+                  value: t(`cassette.v2.profileEditor.ops.${shape.op}`),
+                  severity: OP_TAG_SEVERITY[shape.op],
+                  size: 'small',
+                  class: 'ml-auto shrink-0'
+                })
               ]),
-              opToggle(shape)
+              selected
+                ? h(Button, {
+                    icon: 'pi pi-trash',
+                    severity: 'danger',
+                    text: true,
+                    rounded: true,
+                    size: 'small',
+                    class: 'shrink-0',
+                    'aria-label': `${t('common.delete')} ${shape.id}`,
+                    title: t('common.delete'),
+                    onClick: () => { deleteShape(shape.id); }
+                  })
+                : null
             ]),
             ...(selected
               ? [h('div', {
                   key: `${shape.id}-properties`,
-                  class: 'flex flex-wrap items-center gap-1 border-t border-content-border pl-2 pt-1',
+                  class: 'mt-1.5 flex flex-col gap-1.5 border-t border-content-border px-1 pt-1.5',
                   'aria-label': t('cassette.v2.profileEditor.parameters')
-                }, shapePropertyRows(shape, normalizeOccsProfileSketch(props.modelValue || {})))]
+                }, [
+                  opToggle(shape),
+                  ...shapePropertyRows(shape, sketch)
+                ])]
               : [])
           ]);
-          const divider = previousGroup !== null && previousGroup !== shape.op
-            ? h('div', { key: `sep-${previousGroup}-${shape.op}`, class: 'my-0.5 h-px bg-content-border' })
-            : null;
-          previousGroup = shape.op;
-          return divider ? [divider, row] : [row];
         });
         return h('div', {
-          class: 'profile-shapes-panel absolute right-2 top-14 z-20 flex max-h-[calc(100%-4rem)] w-max max-w-[calc(100%-1rem)] flex-col gap-0.5 overflow-y-auto rounded-ui border border-content-border bg-content p-1 shadow-card',
+          class: 'profile-shapes-panel absolute right-2 top-14 z-20 flex max-h-[calc(100%-4rem)] w-64 flex-col overflow-y-auto rounded-ui border border-content-border bg-content py-0.5 shadow-card',
           'aria-label': t('cassette.v2.profileEditor.shapes')
         }, rows);
       };

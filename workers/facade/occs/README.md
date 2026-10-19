@@ -109,16 +109,20 @@ modules — no platform imports.
   expressions each keep their own. The sketch's expression table lives
   in the parameter
   strip above the canvas (the `fx` row — its one home); the primitives
-  panel floats inside the canvas beside it: one row per shape — kind
-  glyph, kind name, and the shape's boolean op as the direct segmented
-  Add/Subtract/Construction control — grouped in the evaluation order
-  (adds before subtracts, construction apart), so the grouped fold
-  reads off the list. Clicking a row selects its shape (its footprint
-  strokes dashed on the canvas) and expands the row into the shape's
-  property fields — the whole authoring table as expression inputs
-  (sizes, position, rotation, fillet radii), the same model the
-  canvas dims edit; a repeat click collapses it. Canvas picks open
-  the compact popup instead. A selected
+  panel floats inside the canvas beside it and rides the workpieces
+  tree's row anatomy: a quiet full-width select row per shape — kind
+  glyph, truncated kind name, the op as a state tag (success/danger/
+  secondary) — with rows in the evaluation order (adds before
+  subtracts, construction apart), so the grouped fold reads off the
+  list. Selecting a row expands it: the segmented
+  Add/Subtract/Construction control, the shape's whole authoring
+  table as expression inputs (sizes, position, rotation, fillet
+  radii — the same model the canvas dims edit), and the row's delete
+  action. A repeat click collapses. Canvas picks open the compact
+  popup instead. Primitives are atomic: the row's delete and a
+  partial engine erase both remove the whole shape (the reseed clears
+  the leftover entities — a half-erased rect never degrades into
+  loose lines); chains keep their per-segment nature. A selected
   primitive's popup carries its op segmentation, rotation, and
   fillet radii as one compact panel (header, then a single field
   row), and opens on

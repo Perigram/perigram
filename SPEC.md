@@ -936,15 +936,19 @@ Selection strokes the shape's footprint dashed on the canvas.
 
 Owner direction (2026-10-19, evening — primitives panel): the
 primitive listing is a panel inside the editor canvas — a real list,
-one row per shape (kind glyph, kind name, its boolean operation as the
-direct segmented Add/Subtract/Construction control, every option's
-tooltip naming the face as the target). Rows group in the evaluation
-order — adds, subtracts, construction — so the boolean fold reads off
-the list itself; hidden three-state cycling controls are gone.
-Clicking a row selects its shape and expands the row into the shape's
-property fields (the whole authoring table — sizes, position,
-rotation, fillet radii — as expression inputs in the same tree);
-a repeat click collapses it. Placing a library record whose
+one row per shape in the workpieces-tree anatomy (kind glyph, kind
+name, the op as a state tag), rows in the evaluation order — adds,
+subtracts, construction — so the boolean fold reads off the list
+itself; hidden three-state cycling controls are gone. Selecting a row
+expands it into the shape's settings in the same tree: the segmented
+Add/Subtract/Construction control (every option's tooltip naming the
+face as the target), the shape's whole authoring table — sizes,
+position, rotation, fillet radii — as expression inputs, and the
+row's delete action; a repeat click collapses it. Primitives are
+atomic: deleting one — through the row or by erasing any of its
+entities on the canvas — removes the whole shape, and a partially
+erased rect or circle never degrades into loose lines. Placing a
+library record whose
 sketch carries no participating shape refuses with the authoring
 message — the parametric default hanger stands in only for
 sketch-less workpieces, and authored-but-empty snapshots never place
