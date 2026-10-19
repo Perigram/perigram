@@ -19,16 +19,25 @@ const APPLY = process.argv.includes('--apply');
 const upgradedSketch = (sketch) => {
   if (!sketch || typeof sketch !== 'object') return null;
   if (Array.isArray(sketch.shapes)) {
-    // Shape-model pass (owner direction 2026-10-19): per-shape boolean
-    // ops retire for the containment fold — `none` becomes construction
-    // geometry, add/subtract participants drop the field.
-    if (!sketch.shapes.some(shape => shape && Object.prototype.hasOwnProperty.call(shape, 'op'))) return null;
+    // Shape-model passes (owner direction 2026-10-19): per-shape boolean
+    // ops take the pathfinder vocabulary — add→union, none→construction;
+    // a round-10 construction flag maps back to construction.
+    if (!sketch.shapes.some(shape => shape && (
+      Object.prototype.hasOwnProperty.call(shape, 'op')
+      || Object.prototype.hasOwnProperty.call(shape, 'construction')
+    ))) return null;
     return {
       ...sketch,
       shapes: sketch.shapes.map(shape => {
-        if (!shape || !Object.prototype.hasOwnProperty.call(shape, 'op')) return shape;
+        if (!shape) return shape;
+        if (Object.prototype.hasOwnProperty.call(shape, 'construction')) {
+          const { construction, ...rest } = shape;
+          return construction ? { ...rest, op: 'construction' } : rest;
+        }
+        if (!Object.prototype.hasOwnProperty.call(shape, 'op')) return shape;
         const { op, ...rest } = shape;
-        return op === 'none' ? { ...rest, construction: true } : rest;
+        if (op === 'union' || op === 'subtract' || op === 'construction') return shape;
+        return { ...rest, op: op === 'none' ? 'construction' : 'union' };
       })
     };
   }

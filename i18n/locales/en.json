@@ -559,9 +559,15 @@
                     "arc": "Arc",
                     "rectangle": "Rectangle"
                 },
-                "construction": {
-                    "section": "Section",
+                "ops": {
+                    "union": "Union",
+                    "subtract": "Subtract",
                     "construction": "Construction"
+                },
+                "opsHints": {
+                    "union": "Joins the profile body",
+                    "subtract": "Cuts from the profile body",
+                    "construction": "Excluded from the profile"
                 },
                 "actions": {
                     "erase": "Erase",

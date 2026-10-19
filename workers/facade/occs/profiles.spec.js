@@ -24,7 +24,7 @@ const openChainSketch = () => normalizeOccsProfileSketch({
   shapes: [{
     id: 's0',
     type: 'chain',
-    construction: true,
+    op: 'construction',
     closed: false,
     points: [
       { id: 'a', x: 0, y: 0 },
@@ -73,7 +73,7 @@ describe('OCCS profile helpers', () => {
     });
     // Reference-only geometry participates in nothing.
     expect(isOccsProfileSketchSavable(normalizeOccsProfileSketch({
-      shapes: [{ id: 's0', type: 'circle', construction: true, center: [5, 5], diameter: 4 }]
+      shapes: [{ id: 's0', type: 'circle', op: 'construction', center: [5, 5], diameter: 4 }]
     }))).toBe(false);
     expect(isOccsProfileSketchSavable(createDefaultOccsProfileSketch())).toBe(true);
     expect(isOccsProfileSketchSavable(legacyClosedChain())).toBe(true);
@@ -149,7 +149,7 @@ describe('OCCS profile helpers', () => {
       shapes: [{
         id: 's0',
         type: 'chain',
-        construction: true,
+        op: 'construction',
         closed: false,
         points: [
           { id: 'p0', x: 0, y: 0 },
@@ -193,14 +193,14 @@ describe('OCCS profile helpers', () => {
     const imported = occProfileSketchFromEntities([
       { type: 'CIRCLE', center: { x: 5, y: 5 }, radius: 2 }
     ], { reference: true });
-    expect(imported.shapes[0]).toMatchObject({ type: 'circle', construction: true });
+    expect(imported.shapes[0]).toMatchObject({ type: 'circle', op: 'construction' });
   });
 
   it('starts sketches with an empty parameter table — nothing is pre-seeded', () => {
     expect(createEmptyOccsProfileSketch().parameters).toEqual({});
     expect(normalizeOccsProfileSketch({ shapes: [] }).parameters).toEqual({});
     const authored = normalizeOccsProfileSketch({
-      shapes: [{ id: 's0', type: 'chain', construction: true, points: [{ x: 0, y: 0 }, { x: 'W', y: 0 }] }],
+      shapes: [{ id: 's0', type: 'chain', op: 'construction', points: [{ x: 0, y: 0 }, { x: 'W', y: 0 }] }],
       parameters: { W: 10 }
     });
     expect(authored.parameters).toEqual({ W: 10 });
@@ -317,7 +317,7 @@ describe('OCCS profile helpers', () => {
       shapes: [{
         id: 's0',
         type: 'chain',
-        construction: true,
+        op: 'construction',
         closed: false,
         points: [
           { id: 'a0', x: 0, y: 0 },
@@ -443,7 +443,7 @@ describe('OCCS profile helpers', () => {
     // Reference shapes never participate.
     const referenceOnly = await resolveOccsProfileSectionPolygons(
       occsProfileFromSketch(normalizeOccsProfileSketch({
-        shapes: [{ id: 's0', type: 'circle', construction: true, center: [10, 0], diameter: 8 }]
+        shapes: [{ id: 's0', type: 'circle', op: 'construction', center: [10, 0], diameter: 8 }]
       })).section
     );
     expect(referenceOnly.polygons).toHaveLength(0);

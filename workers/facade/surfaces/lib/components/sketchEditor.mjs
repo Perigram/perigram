@@ -4,6 +4,7 @@
 // grips, and undo/redo run in the engine; entity records and the sketch
 // model normalize through occs/profiles.js.
 import {
+  OCCS_PROFILE_SHAPE_OPS,
   adoptOccsProfileBindingParameter,
   createEmptyOccsProfileSketch,
   evaluateOccsProfileSketch,
@@ -167,7 +168,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           // Add shapes whose whole boolean result clipped away on the
           // void side of the axis render nothing — that state gets a
           // voice instead of silence.
-          const participates = section.shapes.some(shape => !shape.construction);
+          const participates = section.shapes.some(shape => shape.op !== 'construction');
           if (participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
             outlineError.value = t('cassette.v2.profileEditor.resultClipped');
           }
@@ -1146,27 +1147,36 @@ export default function createSketchEditor({ vue, components, locale }) {
         });
       };
 
-      // The construction toggle (the CAD sketch law): a shape either
-      // participates in the section (containment decides its role) or
-      // is construction geometry.
-      const constructionToggle = (shape) => h(SelectButton, {
-        modelValue: shape.construction ? 'construction' : 'section',
-        options: ['section', 'construction'].map(value => ({
+      // The boolean selection (2D pathfinder vocabulary): union joins the
+      // profile body, subtract cuts from it, construction is excluded —
+      // each option's tooltip states its target.
+      const OP_TOOLTIPS = {
+        union: 'cassette.v2.profileEditor.opsHints.union',
+        subtract: 'cassette.v2.profileEditor.opsHints.subtract',
+        construction: 'cassette.v2.profileEditor.opsHints.construction'
+      };
+      const opToggle = (shape) => h(SelectButton, {
+        modelValue: shape.op,
+        options: OCCS_PROFILE_SHAPE_OPS.map(value => ({
           value,
-          label: t(`cassette.v2.profileEditor.construction.${value}`)
+          label: t(`cassette.v2.profileEditor.ops.${value}`)
         })),
         optionValue: 'value',
         optionLabel: 'label',
         allowEmpty: false,
         size: 'small',
-        'aria-label': `${t(`cassette.v2.profileEditor.construction.${shape.construction ? 'construction' : 'section'}`)} ${shape.id}`,
+        'aria-label': `${t(`cassette.v2.profileEditor.ops.${shape.op}`)} ${shape.id}`,
         'onUpdate:modelValue': value => {
-          updateShape(shape.id, subject => ({ ...subject, construction: value === 'construction' }));
+          updateShape(shape.id, subject => ({ ...subject, op: value }));
         }
+      }, {
+        option: slotProps => h('span', {
+          title: t(OP_TOOLTIPS[slotProps.option.value] || OP_TOOLTIPS[slotProps.option])
+        }, slotProps.option.label)
       });
 
       // The selected primitive's parameter popup — the one home for a
-      // shape's non-dimensional settings: its construction flag,
+      // shape's non-dimensional settings: its boolean op,
       // rotation and fillet radii on rects, fillet chips on chains.
       // Geometry (position, sizes) authors through the on-canvas
       // dimensions.
@@ -1250,7 +1260,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               class: 'text-muted',
               title: t(SHAPE_KIND_LABEL[shape.type])
             }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
-            constructionToggle(shape)
+            opToggle(shape)
           ]),
           ...rows
         ]);
