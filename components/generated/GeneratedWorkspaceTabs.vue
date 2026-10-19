@@ -3,10 +3,10 @@
     <Tabs
       :value="activeKey"
       scrollable
-      class="h-full min-w-0 w-fit"
+      :class="['h-full min-w-0 w-fit', atScrollEnd ? '[&_.p-tablist-next-button]:hidden' : '']"
       @update:value="key => key !== activeKey && $emit('select', key)"
     >
-      <TabList class="min-w-0 h-full" :pt="tabListPt">
+      <TabList ref="tabList" class="min-w-0 h-full" :pt="tabListPt">
         <Tab
           v-for="tab in tabs"
           :key="tab.key"
@@ -52,6 +52,7 @@ import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import { useI18n } from 'vue-i18n';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRegistryStore } from '~/stores/registry';
 import { titleFor } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
@@ -76,6 +77,35 @@ const tabListPt = {
   tabList: { class: 'h-full items-center gap-1', style: { borderWidth: 0 } },
   activeBar: { style: { display: 'none' } }
 };
+
+// PrimeVue's scroll-end check compares fractional widths, so the next
+// chevron outstays the strip's end and covers the last tab; the strip
+// tracks its own scroll and hides it exactly at the end.
+const tabList = ref(null);
+const atScrollEnd = ref(false);
+let stripObserver;
+let viewportEl;
+
+const measureScrollEnd = () => {
+  if (!viewportEl) return;
+  atScrollEnd.value = viewportEl.scrollWidth - viewportEl.clientWidth - viewportEl.scrollLeft <= 1;
+};
+
+onMounted(() => {
+  const refs = tabList.value?.$refs;
+  viewportEl = refs?.content || null;
+  if (!viewportEl) return;
+  viewportEl.addEventListener('scroll', measureScrollEnd);
+  stripObserver = new ResizeObserver(measureScrollEnd);
+  stripObserver.observe(viewportEl);
+  if (refs?.tabs) stripObserver.observe(refs.tabs);
+  measureScrollEnd();
+});
+
+onBeforeUnmount(() => {
+  viewportEl?.removeEventListener('scroll', measureScrollEnd);
+  stripObserver?.disconnect();
+});
 
 function tabLabel(tab = {}) {
   if (tab.kind === 'empty') return t('project.newTab');
