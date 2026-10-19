@@ -113,11 +113,13 @@ executors through the worker protocol.
   (`resolve: { service: 'plugin.<id>.<svc>' }`) — endpoint mode only, a
   projection is a synchronous read and cannot park on the claim queue (the
   SDK contract refuses the rest, including `handler` resolves, which only
-  endpoint executors bind). The platform reads the target instance and its
-  payload and dispatches `{ typeId, payloadBase64 }` to the service; the
-  service's JSON response is the projection value (`resolveProjectionValue`
-  here; the process runtime's `projectEntity` calls it). Pure compute over
-  values — the DXF-extraction shape; the platform carries no plugin code.
+  endpoint executors bind). The platform reads the target instance and
+  dispatches `{ typeId, instanceId, fields, payloadBase64? }` to the
+  service — the instance's §3 field values and, when it carries one, its
+  payload as base64; the service's JSON response is the projection value
+  (`resolveProjectionValue` here; the process runtime's `projectEntity`
+  calls it). Pure compute over values — the platform carries no plugin
+  code.
 - **Starter constructs**: a listing may declare `starterConstructs`
   (own file type, declared construction mode, one per type). Installs
   snapshot them, and the installing organization's initial process

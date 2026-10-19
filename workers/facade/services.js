@@ -15,6 +15,7 @@ import {
   buildValueWorkerRequest,
   enrichNestingResult,
   nestingLayouts,
+  nestingPartsProjection,
   summarizeNestingResult
 } from './nesting-projections.js';
 import { cassettesForNestingResult, nestingResultToPreview } from './surfaces/lib/sheetLayout.js';
@@ -111,6 +112,17 @@ export async function nestingSolve({ items, sheetWidth, sheetHeight, space, shee
     layouts: nestingLayouts(result),
     summary: summarizeNestingResult(result, request.params)
   };
+}
+
+// The cassette-design nesting-parts projection (SPEC §8 p): the instance's
+// stored geometry in → nesting polygon parts, each with its workpiece's
+// layers, out. Input: { fields }. Output: the parts list.
+export async function nestingParts({ fields = {} } = {}) {
+  const geometry = fields.geometry || null;
+  if (!geometry || !Array.isArray(geometry.nestingPolygons)) {
+    badRequest('Nesting parts projection requires stored cassette-design geometry');
+  }
+  return nestingPartsProjection(geometry);
 }
 
 // The cassette import (the dxfSourceToCassette conversion): the
@@ -235,6 +247,7 @@ async function callNestingWorker(request) {
 
 export const services = {
   'nesting-solve': nestingSolve,
+  'nesting-parts': nestingParts,
   'extract-geometry': extractGeometry,
   bake,
   'import-cassette': importCassette,

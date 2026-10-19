@@ -673,7 +673,10 @@ describe('upgrades', () => {
         // added file type with an editor binding
         { id: 'coating-sheet', class: 'file', fields: { code: { base: 'string' } } }
       ],
-      services: coatingListing.declarations.services,
+      services: [
+        ...coatingListing.declarations.services,
+        { id: 'polish', label: 'Polish', mode: 'endpoint', signature: { input: { base: 'json' }, output: { base: 'json' } } }
+      ],
       editors: [{ type: 'coating-sheet', surface: 'coating-designer', modes: ['edit'] }],
       surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }],
       attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } },
@@ -726,7 +729,11 @@ describe('upgrades', () => {
 
   it('applies a clean upgrade as the new pinned snapshot and runs covered steps', async () => {
     countInstancesOfType.mockResolvedValue(7);
-    repository.listInstallsByOrganization.mockResolvedValue([installedV2, primersInstall]);
+    const installedWithEndpoints = { ...installedV2, endpoints: { match: 'https://executor.example/match' } };
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings' ? installedWithEndpoints : null
+    ));
+    repository.listInstallsByOrganization.mockResolvedValue([installedWithEndpoints, primersInstall]);
     const result = await applyUpgrade({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
     expect(result).toMatchObject({ pluginId: 'coatings', version: '3' });
     const persisted = repository.updateInstallSnapshot.mock.calls[0][2];
@@ -737,6 +744,11 @@ describe('upgrades', () => {
     expect(persisted.declarations.attachmentKinds).toEqual({ COATING_DOC: { kind: 'COATING_DOC' } });
     expect(persisted.declarations.conversions).toHaveLength(1);
     expect(persisted.requires).toEqual(['primers']);
+    // a newly declared endpoint service inherits the install's origin
+    expect(persisted.endpoints).toEqual({
+      match: 'https://executor.example/match',
+      polish: 'https://executor.example/polish'
+    });
     // one-time steps never persist (SPEC §11)
     expect(persisted.declarations.types.some(type => type.migrate)).toBe(false);
     expect(applyTypeMigrationSteps).toHaveBeenCalledWith(expect.objectContaining({
@@ -923,10 +935,10 @@ describe('starter constructs and service-resolved projections', () => {
     endpoints: { 'table-rows': 'https://executor.example/table-rows' }
   };
 
-  it('dispatches a service-resolved projection with the instance payload as base64', async () => {
+  it('dispatches a service-resolved projection with the instance fields and payload', async () => {
     repository.findInstall.mockResolvedValue(projectionInstall);
     instanceServiceResolver.mockReturnValue({
-      getById: vi.fn(async () => ({ _id: 'inst-1', payload: { fileId: 'file-1' } }))
+      getById: vi.fn(async () => ({ _id: 'inst-1', fields: { name: 'Sheet 1' }, payload: { fileId: 'file-1' } }))
     });
     const fetchMock = vi.fn(async () => new Response(JSON.stringify([{ A: '1' }]), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
@@ -940,24 +952,37 @@ describe('starter constructs and service-resolved projections', () => {
       expect(value).toEqual([{ A: '1' }]);
       expect(fetchMock).toHaveBeenCalledWith('https://executor.example/table-rows', expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ typeId: 'csv-table', payloadBase64: Buffer.from('payload').toString('base64') })
+        body: JSON.stringify({
+          typeId: 'csv-table',
+          instanceId: 'inst-1',
+          fields: { name: 'Sheet 1' },
+          payloadBase64: Buffer.from('payload').toString('base64')
+        })
       }));
     } finally {
       vi.unstubAllGlobals();
     }
   });
 
-  it('refuses a projection over an instance without a payload', async () => {
+  it('dispatches a projection over a payload-less instance without a payload block', async () => {
     repository.findInstall.mockResolvedValue(projectionInstall);
     instanceServiceResolver.mockReturnValue({
-      getById: vi.fn(async () => ({ _id: 'inst-1' }))
+      getById: vi.fn(async () => ({ _id: 'inst-1', fields: { geometry: { layerData: [] } } }))
     });
-    await expect(resolveProjectionValue({
-      organizationId: ORG,
-      commandId: 'plugin.coatings.table-rows',
-      typeId: 'csv-table',
-      instanceId: 'inst-1'
-    })).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('no payload') });
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([]), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const value = await resolveProjectionValue({
+        organizationId: ORG,
+        commandId: 'plugin.coatings.table-rows',
+        typeId: 'csv-table',
+        instanceId: 'inst-1'
+      });
+      expect(value).toEqual([]);
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body)).not.toHaveProperty('payloadBase64');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('refuses a projection bound to a claim-mode service', async () => {

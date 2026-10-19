@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { enrichNestingResult, nestingLayouts, summarizeNestingResult } from './nesting-projections.js';
+import {
+  buildValueWorkerRequest,
+  enrichNestingResult,
+  nestingLayouts,
+  nestingPartsProjection,
+  summarizeNestingResult
+} from './nesting-projections.js';
 
 // The lbf worker's response shape (worker_service.py passes the solution
 // file through): placements live under `solution.layouts`.
@@ -39,5 +45,34 @@ describe('nesting projections', () => {
     expect(layouts[0].sourceItems).toHaveLength(1);
     expect(layouts[0].sourceItems[0]).toMatchObject({ id: 0, cassette_id: 'c1' });
     expect(layouts[0].sheetPolygon).toEqual(workerResult.bins[0].shape.data);
+  });
+});
+
+describe('nesting parts projection', () => {
+  const geometry = {
+    nestingPolygons: [
+      { coordinates: [[0, 0], [100, 0], [100, 50], [0, 50]], workpieceId: 'wp_1' },
+      { coordinates: [[0, 0], [50, 0], [50, 20], [0, 20]], workpieceId: 'wp_2' }
+    ],
+    layerData: [
+      { layer: 'cut.outer', workpieceId: 'wp_1', coordinates: [[0, 0], [100, 0]] },
+      { layer: 'fold.route', workpieceId: 'wp_2', coordinates: [[0, 0], [50, 0]] },
+      { layer: 'code.cassette_mark', coordinates: [[1, 1]] }
+    ]
+  };
+
+  it('rides each part with its workpiece layers, workpiece-free layers included', () => {
+    const parts = nestingPartsProjection(geometry);
+    expect(parts[0].sourceLayers.map(layer => layer.layer)).toEqual(['cut.outer', 'code.cassette_mark']);
+    expect(parts[1].sourceLayers.map(layer => layer.layer)).toEqual(['fold.route', 'code.cassette_mark']);
+  });
+
+  it('builds solve items from part-carried layers', () => {
+    const request = buildValueWorkerRequest([
+      { polygonParts: nestingPartsProjection(geometry), count: 1 }
+    ], { width: 1000, height: 1000, space: 3, sheetCount: 1 });
+    expect(request.items).toHaveLength(2);
+    expect(request.items[0].sourceLayers.map(layer => layer.layer)).toEqual(['cut.outer', 'code.cassette_mark']);
+    expect(request.items[1].sourceLayers.map(layer => layer.layer)).toEqual(['fold.route', 'code.cassette_mark']);
   });
 });

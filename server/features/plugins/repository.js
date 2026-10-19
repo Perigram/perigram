@@ -91,13 +91,14 @@ export async function deleteInstall(organizationId, pluginId) {
   });
 }
 
-// Upgrade apply: replace the pinned snapshot (declarations, services, and
-// pack requirements are the pin; the connector token survives).
-export async function updateInstallSnapshot(organizationId, pluginId, { version, declarations, services, requires = [] }) {
+// Upgrade apply: replace the pinned snapshot (declarations, services,
+// pack requirements, and the inherited endpoint wiring are the pin; the
+// connector token survives).
+export async function updateInstallSnapshot(organizationId, pluginId, { version, declarations, services, requires = [], endpoints = null }) {
   const db = await connectDB();
   await db.collection(INSTALLS_COLLECTION).updateOne(
     { organizationId: String(organizationId), pluginId: String(pluginId) },
-    { $set: { version, declarations, services: services || [], requires, upgradedAt: new Date() } }
+    { $set: { version, declarations, services: services || [], requires, ...(endpoints ? { endpoints } : {}), upgradedAt: new Date() } }
   );
 }
 
