@@ -1,5 +1,41 @@
 # TODO
 
+## Designer drag performance and declaration columns (owner report 2026-10-19)
+
+Owner report: node drag lags awfully on the process canvas, and type
+declarations with their fields/children declarations all land in one
+column after Tidy.
+
+- [ ] WAITING — owner verification on the live stack: dragging a node on
+  the dense org draft stays smooth (no compiler churn per frame), and
+  Tidy fans declaration clusters out — fields one column left of their
+  class, classes one left of their flow — level with their wired
+  partners.
+
+### Agent Notes (2026-10-19)
+
+Session `agent/designer-drag-perf-20261019`. Root cause of the drag lag:
+VueFlow's `v-model:nodes` replaces the page's node array on every drag
+frame, so every computed reading `nodes` re-ran per pointermove —
+`classDeclarationDiagnostics` ran `compileTreeDeclarations` +
+`normalizeType`, `typeMigrationVocabulary` ran `declarationVocabulary`,
+and the preview watch deep-traversed draft+nodes+edges. All three now
+gate on authoring signatures (the live-graph loop's idiom): the tree
+compiler and vocabulary run in signature-gated watchers writing refs,
+the preview watch reads an authoring signature, and the dirty check
+reads the draft payload through a cached computed. Drag-frame probe
+(120 frames over the live draft): compiler runs 120 → 1 (the settling
+pass), vocabulary likewise.
+
+Declaration columns: `declarationSeat` in
+`utils/processDesignerArrangement.js` returns the cluster anchor plus
+its wire distance; a declaration's column is the anchor's layer minus
+that hop count, so each declare hop fans one column left. Live draft:
+declaration tower dissolves (band 2 stack 2,328 → 1,704px), wired-pair
+mean row gap 229 → 161px, second Tidy still moves 0/61 nodes, no
+overlaps. Spec: `fans a declaration cluster out one column per declare
+hop` (40/40).
+
 ## Profile boolean op sequence (owner direction 2026-10-19)
 
 Owner wants any profile that modifies a face's edge — adds and

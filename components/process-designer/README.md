@@ -187,7 +187,9 @@ registry's kebab-case type id (an invalid id is why a class silently
 drops out of the overlay and bound sockets stop regenerating) and shows
 `compileTreeDeclarations` plus `normalizeType` diagnostics while
 authoring — what SAVE/APPLY would reject is visible immediately, not
-after a frozen canvas. Class identity is the authored name — a mutable label with zero
+after a frozen canvas. The compile is gated on the declaration plane's
+authoring signature (declaration cards, type wires, process records), so
+drags and selection churn re-evaluate nothing. Class identity is the authored name — a mutable label with zero
 coupling to identity. The registry id is an opaque, randomly generated
 identifier (`utils/processDesignerIdentity.js`, kebab-safe, minted at
 node creation): never derived from the name, never shown, never edited.
@@ -533,7 +535,10 @@ is the pure helper `utils/processDesignerArrangement.js` (see
   components arrange independently and pack side by side, largest
   first. Columns span their widest card plus air, floored at the
   resting span. A pred-less node pulls up to the column before its
-  first consumer.
+  first consumer. A declaration rides the column of the node it
+  declares on — one left of its anchor, one further per declaration
+  hop, so a cluster fans out leftward and fields sit beside their
+  class, classes beside their flow.
 - **Every node lives in exactly one band** — effects by grant,
   secondaries and declarations by their anchor node's band (the anchor
   chain resolves through the grant, so node order in the array decides
