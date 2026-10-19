@@ -554,16 +554,16 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
 // face; the fold is order-independent, so drawing order never changes
 // the result). Construction geometry never joins a step. Polyline
 // sections have no boolean meaning (null).
+// The section's boolean steps as an ordered CSG sequence: each
+// participating shape applies to the face in authored list order — a
+// later add refills an earlier cut (owner direction 2026-10-19,
+// ordered sequence). Construction geometry never joins a step.
+// Polyline sections have no boolean meaning (null).
 export const resolveOccsProfileSectionOperations = (section = {}) => {
   if (section.type !== 'shapes') return null;
-  const participating = section.shapes
-    .filter(shape => (shape.op === 'add' || shape.op === 'subtract') && shape.vertices.length >= 3);
-  return [
-    ...participating.filter(shape => shape.op === 'add')
-      .map(shape => ({ op: 'add', polygons: [shape.vertices] })),
-    ...participating.filter(shape => shape.op === 'subtract')
-      .map(shape => ({ op: 'subtract', polygons: [shape.vertices] }))
-  ];
+  return section.shapes
+    .filter(shape => (shape.op === 'add' || shape.op === 'subtract') && shape.vertices.length >= 3)
+    .map(shape => ({ op: shape.op, polygons: [shape.vertices] }));
 };
 
 // The section as a standalone figure (the editor's preview, thumbnails):
@@ -1489,13 +1489,23 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     taken.add(id);
     shape.id = id;
   }
+  // The sequence is semantic (ordered CSG): kept shapes ride their
+  // authored slots, fresh shapes append in drawing order.
+  const mergedById = new Map(shapes.map(shape => [shape.id, shape]));
+  const authoredOrder = authoredPool
+    .map(shape => mergedById.get(shape.id))
+    .filter(Boolean);
+  const sequenced = [
+    ...authoredOrder,
+    ...shapes.filter(shape => !authoredOrder.includes(shape))
+  ];
   return {
     ...extracted,
     material: authored.material || extracted.material,
     parameters: Object.keys(parameterEdits).length
       ? { ...(authored.parameters || extracted.parameters || {}), ...parameterEdits }
       : authored.parameters || extracted.parameters,
-    shapes
+    shapes: sequenced
   };
 };
 

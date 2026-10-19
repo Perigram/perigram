@@ -2969,16 +2969,15 @@ const productionEntityCutRings = (entity = {}) => (
       : []
 );
 
-// The boolean steps a target face's entities carry, grouped — every add
-// before every subtract (owner law: ops apply to the face; the fold is
-// order-independent, so stream order never changes the result).
-export const cassetteV2BooleanOperationsForEntities = (entities = []) => [
-  ...entities.filter(entity => entity.booleanOperation === 'add'),
-  ...entities.filter(entity => entity.booleanOperation !== 'add')
-].map(entity => ({
-  op: entity.booleanOperation === 'add' ? 'add' : 'subtract',
-  polygons: productionEntityCutRings(entity)
-})).filter(operation => operation.polygons.length);
+// The boolean steps a target face's entities carry, in entity order —
+// the authored CSG sequence (owner direction 2026-10-19: a later add
+// refills an earlier cut).
+export const cassetteV2BooleanOperationsForEntities = (entities = []) => entities
+  .map(entity => ({
+    op: entity.booleanOperation === 'add' ? 'add' : 'subtract',
+    polygons: productionEntityCutRings(entity)
+  }))
+  .filter(operation => operation.polygons.length);
 
 // The face boolean pass: adds unite into the face region, subtracts cut
 // from it. The face is the largest ring of the fold (rings sort by

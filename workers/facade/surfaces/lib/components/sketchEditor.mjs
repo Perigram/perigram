@@ -1239,26 +1239,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         }, slotProps.option.label)
       });
 
-      // The shape popup — canvas selections only; a panel selection
-      // expands its properties inside the panel instead.
-      const shapePopup = computed(() => {
-        const selection = selectedShape.value;
-        if (!selection || selection.fromPanel) return null;
-        const sketch = normalizeOccsProfileSketch(props.modelValue || {});
-        const shape = findShape(sketch, selection.shapeId);
-        if (!shape) return null;
-        const width = containerRef.value?.clientWidth || 0;
-        const height = containerRef.value?.clientHeight || 0;
-        return {
-          shape,
-          sketch,
-          left: Math.min(selection.at[0] + 14, Math.max(0, width - 440)),
-          top: Math.min(Math.max(selection.at[1] - 16, 0), Math.max(0, height - 120))
-        };
-      });
-
-      // A shape's property fields — the popup body and the panel's
-      // expanded row share them.
+      // A shape's property fields — the panel's expanded row is their
+      // one home (canvas dims mirror them as annotations).
       const shapePropertyRows = (shape, sketch) => {
         const rows = [];
         const labeledField = (label, value, readEvaluated, apply) => h('div', { class: 'flex items-center gap-1' }, [
@@ -1271,19 +1253,21 @@ export default function createSketchEditor({ vue, components, locale }) {
           )
         ]);
         if (shape.type === 'circle') {
-          rows.push(h('div', { class: 'flex items-center gap-1' }, [
+          rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' }, [
             labeledField('d', shape.diameter, s => s?.diameter, (s, next) => ({ ...s, diameter: next })),
             labeledField('x', shape.center[0], s => s?.center?.[0], (s, next) => ({ ...s, center: [next, s.center[1]] })),
             labeledField('y', shape.center[1], s => s?.center?.[1], (s, next) => ({ ...s, center: [s.center[0], next] }))
           ]));
         }
         if (shape.type === 'rect') {
-          rows.push(h('div', { class: 'flex items-center gap-1' }, [
+          rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' }, [
             labeledField('w', shape.width, s => s?.width, (s, next) => ({ ...s, width: next })),
             labeledField('h', shape.height, s => s?.height, (s, next) => ({ ...s, height: next })),
             labeledField('x', shape.center[0], s => s?.center?.[0], (s, next) => ({ ...s, center: [next, s.center[1]] })),
             labeledField('y', shape.center[1], s => s?.center?.[1], (s, next) => ({ ...s, center: [s.center[0], next] })),
-            labeledField('∠', shape.rotation, s => s?.rotation, (s, next) => ({ ...s, rotation: next })),
+            labeledField('∠', shape.rotation, s => s?.rotation, (s, next) => ({ ...s, rotation: next }))
+          ]));
+          rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' }, [
             ...[0, 1, 2, 3].map(corner => {
               const filletByCorner = new Map(shape.fillets.map(fillet => [fillet.corner, fillet.radius]));
               return labeledField(
@@ -1303,7 +1287,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (shape.type === 'chain') {
           const fillets = shape.modifiers.filter(item => item.type === 'fillet');
           for (let index = 0; index < fillets.length; index += 4) {
-            rows.push(h('div', { class: 'flex items-center gap-1' }, fillets.slice(index, index + 4).map(modifier => (
+            rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' }, fillets.slice(index, index + 4).map(modifier => (
               labeledField(
                 modifier.vertexId.replace(/^p/, 'r'),
                 modifier.radius,
@@ -1323,31 +1307,6 @@ export default function createSketchEditor({ vue, components, locale }) {
         return rows;
       };
 
-      const renderShapePopup = () => {
-        const popup = shapePopup.value;
-        if (!popup) return null;
-        const { shape, sketch } = popup;
-        return h('div', {
-          class: 'profile-shape-popup absolute z-20 flex flex-col gap-1.5 rounded-ui border border-content-border bg-content px-2 py-1.5 shadow-md',
-          style: { left: `${popup.left}px`, top: `${popup.top}px` },
-          onPointerdown: event => { event.stopPropagation(); }
-        }, [
-          h('div', { class: 'flex items-center gap-2 border-b border-content-border pb-1' }, [
-            h('span', {
-              class: 'text-muted',
-              title: t(SHAPE_KIND_LABEL[shape.type])
-            }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
-            opToggle(shape)
-          ]),
-          ...shapePropertyRows(shape, sketch)
-        ]);
-      };
-
-      // The primitives panel — one row per shape, grouped in the
-      // evaluation order (adds before subtracts, construction apart),
-      // each row carrying its boolean op as the direct segmented
-      // control. Clicking a row selects its shape on the canvas.
-      const shapeOrder = { add: 0, subtract: 1, construction: 2 };
       const OP_TAG_SEVERITY = { add: 'success', subtract: 'danger', construction: 'secondary' };
       const deleteShape = (shapeId) => {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
@@ -1358,16 +1317,28 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (selectedShape.value?.shapeId === shapeId) selectedShape.value = null;
         if (selectedCorner.value?.shapeId === shapeId) selectedCorner.value = null;
       };
-      // The primitives panel rides the workpieces tree's row anatomy:
-      // a quiet full-width select row (icon, truncated kind, op state
-      // tag), its actions and property fields expanding on selection.
+      // The sequence is semantic: moving a shape reorders the CSG
+      // steps (a later add refills an earlier cut).
+      const moveShape = (shapeId, delta) => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        const at = normalized.shapes.findIndex(shape => shape.id === shapeId);
+        const next = at + delta;
+        if (at < 0 || next < 0 || next >= normalized.shapes.length) return;
+        const shapes = [...normalized.shapes];
+        const [moved] = shapes.splice(at, 1);
+        shapes.splice(next, 0, moved);
+        commitSketch({ ...normalized, shapes });
+      };
+
+      // The primitives panel — the authored CSG sequence, one row per
+      // shape in evaluation order, riding the workpieces tree's row
+      // anatomy. A collapsed row carries its op as a state tag; the
+      // selected row replaces the tag with the op control, the
+      // property table, and its actions.
       const renderShapesPanel = () => {
         const sketch = normalizeOccsProfileSketch(props.modelValue || {});
         if (!sketch.shapes.length) return null;
-        const ordered = [...sketch.shapes].sort((left, right) => (
-          shapeOrder[left.op] - shapeOrder[right.op]
-        ));
-        const rows = ordered.map(shape => {
+        const rows = sketch.shapes.map((shape, index) => {
           const selected = selectedShape.value?.shapeId === shape.id
             || selectedCorner.value?.shapeId === shape.id;
           return h('div', {
@@ -1388,31 +1359,59 @@ export default function createSketchEditor({ vue, components, locale }) {
                   selectedCorner.value = null;
                   selectedShape.value = selectedShape.value?.shapeId === shape.id
                     ? null
-                    : { shapeId: shape.id, at: [24, 24], fromPanel: true };
+                    : { shapeId: shape.id };
                 }
               }, [
                 h('span', { class: 'shrink-0 text-muted' }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
                 h('span', { class: 'truncate' }, t(SHAPE_KIND_LABEL[shape.type])),
-                h(Tag, {
-                  value: t(`cassette.v2.profileEditor.ops.${shape.op}`),
-                  severity: OP_TAG_SEVERITY[shape.op],
-                  size: 'small',
-                  class: 'ml-auto shrink-0'
-                })
+                selected
+                  ? null
+                  : h(Tag, {
+                      value: t(`cassette.v2.profileEditor.ops.${shape.op}`),
+                      severity: OP_TAG_SEVERITY[shape.op],
+                      size: 'small',
+                      class: 'ml-auto shrink-0'
+                    })
               ]),
-              selected
-                ? h(Button, {
-                    icon: 'pi pi-trash',
-                    severity: 'danger',
-                    text: true,
-                    rounded: true,
-                    size: 'small',
-                    class: 'shrink-0',
-                    'aria-label': `${t('common.delete')} ${shape.id}`,
-                    title: t('common.delete'),
-                    onClick: () => { deleteShape(shape.id); }
-                  })
-                : null
+              ...(selected
+                ? [
+                    h(Button, {
+                      icon: 'pi pi-chevron-up',
+                      severity: 'secondary',
+                      text: true,
+                      rounded: true,
+                      size: 'small',
+                      class: 'shrink-0',
+                      disabled: index === 0,
+                      'aria-label': `${t('cassette.v2.profileEditor.moveUp')} ${shape.id}`,
+                      title: t('cassette.v2.profileEditor.moveUp'),
+                      onClick: () => { moveShape(shape.id, -1); }
+                    }),
+                    h(Button, {
+                      icon: 'pi pi-chevron-down',
+                      severity: 'secondary',
+                      text: true,
+                      rounded: true,
+                      size: 'small',
+                      class: 'shrink-0',
+                      disabled: index === sketch.shapes.length - 1,
+                      'aria-label': `${t('cassette.v2.profileEditor.moveDown')} ${shape.id}`,
+                      title: t('cassette.v2.profileEditor.moveDown'),
+                      onClick: () => { moveShape(shape.id, 1); }
+                    }),
+                    h(Button, {
+                      icon: 'pi pi-trash',
+                      severity: 'danger',
+                      text: true,
+                      rounded: true,
+                      size: 'small',
+                      class: 'shrink-0',
+                      'aria-label': `${t('common.delete')} ${shape.id}`,
+                      title: t('common.delete'),
+                      onClick: () => { deleteShape(shape.id); }
+                    })
+                  ]
+                : [])
             ]),
             ...(selected
               ? [h('div', {
@@ -1427,7 +1426,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           ]);
         });
         return h('div', {
-          class: 'profile-shapes-panel absolute right-2 top-14 z-20 flex max-h-[calc(100%-4rem)] w-max max-w-[22rem] min-w-[16rem] flex-col overflow-y-auto rounded-ui border border-content-border bg-content py-0.5 shadow-card',
+          class: 'profile-shapes-panel absolute right-2 top-14 z-20 flex max-h-[calc(100%-4rem)] w-[19rem] flex-col overflow-y-auto rounded-ui border border-content-border bg-content py-0.5 shadow-card',
           'aria-label': t('cassette.v2.profileEditor.shapes')
         }, rows);
       };
@@ -1841,7 +1840,6 @@ export default function createSketchEditor({ vue, components, locale }) {
           }, renderCanvasAnnotations()),
           ...renderDimensionInputs(),
           renderVertexPopup(),
-          renderShapePopup(),
           engineError.value
             ? h('div', { class: 'flex h-full items-center justify-center p-4' }, [
                 h(Message, { severity: 'error', closable: false }, () => t('cassette.v2.profileEditor.loadFailed'))

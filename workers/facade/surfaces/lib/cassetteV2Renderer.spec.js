@@ -448,7 +448,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(cutInner?.paths.length || 0).toBe(0);
   });
 
-  it('applies the profile steps grouped — the production fold ignores shape order', async () => {
+  it('applies the profile steps in authored order — the sequence is semantic', async () => {
     const tab = { type: 'rect', op: 'add', center: [10, 0], width: 40, height: 24, rotation: 0 };
     const hole = { type: 'circle', op: 'subtract', center: [10, 0], diameter: 10 };
     const patch = { type: 'rect', op: 'add', center: [12, 0], width: 6, height: 40, rotation: 0 };
@@ -460,7 +460,7 @@ describe('cassette v2 trapezoid renderer', () => {
       const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
         referenceWorkpieceId: 'wp_1',
         referenceNodeId: 'face_1',
-        name: 'Grouped steps',
+        name: 'Ordered steps',
         sketch
       });
       const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
@@ -473,10 +473,10 @@ describe('cassette v2 trapezoid renderer', () => {
         offsetY: '30'
       });
     };
-    const holeArea = async (shapes) => {
+    const ringAreas = async (shapes) => {
       const drawing = await renderCassetteV2TreeToDrawing(build(shapes), {});
       const face = drawing.designerFaces.map(item => item.d).join(' ');
-      const rings = face.split('M')
+      return face.split('M')
         .filter(Boolean)
         .map(sub => (sub.match(/-?[\d.]+ -?[\d.]+/g) || [])
           .map(pair => pair.split(' ').map(Number)))
@@ -488,15 +488,20 @@ describe('cassette v2 trapezoid renderer', () => {
             area += x1 * y2 - x2 * y1;
           }
           return Math.abs(area / 2);
-        });
-      return Math.min(...rings);
+        })
+        .sort((left, right) => left - right);
     };
-    // The cut always wins inside the hole ring, whatever order the
-    // shapes were drawn in.
-    const first = await holeArea([tab, hole, patch]);
-    const second = await holeArea([patch, hole, tab]);
-    expect(first).toBeGreaterThan(0);
-    expect(second).toBe(first);
+    // Cut, then bridge part of the cut: the later add refills the
+    // covered half of the hole.
+    const punched = await ringAreas([tab, hole]);
+    const bridged = await ringAreas([tab, hole, patch]);
+    // Cut through everything, then add the tab over the hole: the
+    // refill leaves no hole ring at all.
+    const refilled = await ringAreas([patch, hole, tab]);
+    expect(punched).toHaveLength(2);
+    expect(bridged).toHaveLength(2);
+    expect(bridged[0]).toBeLessThan(punched[0]);
+    expect(refilled).toHaveLength(1);
   });
 
   it('keeps authored array values untouched on the relation read', () => {
