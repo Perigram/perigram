@@ -1086,3 +1086,8 @@ hardcoded kind enums, type-id lists, or id-spelling rewrites in framework
 code or the artifacts seam are defects. Export affordances derive from the
 same composed view editors and previews derive from — a bound type's surfaces
 offer the export action without per-process action authoring.
+
+## Generative UI
+
+### Fields display
+Fields should be marked on creation according to CTS (required and identifier)

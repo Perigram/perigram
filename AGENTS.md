@@ -25,6 +25,9 @@ README that owns the concern, not here.
   may not understand how things work and his intent may be re-shaped to be delivered elegantly
   in terms of software architecture. DO NOT REJECT USER REQUESTS SILENTLY.
 
+- DO NOT EVER BLAME STALE BROWSER TAB OR DOCKER UNTIL ABSOLUTELY SURE THAT ITS THE PROBLEM!
+  PROBLEM IS ALMOST ALWAYS SLOP WRITTEN BY AI!
+
 ## Documentation Model
 
 Documentation consists of README.md, SPEC.md and TODO.md files across codebase.
@@ -230,6 +233,7 @@ unstaged files.
 
 - DON'T write unit tests after you write code unless it absolutely necessary to test core functionality. 
 - Highly prefer E2E tests as the sole testing mechanism. Use them to verify complex features work. At the end of E2E tests, produce a verifiable and repeatable artifact. 
+- DO NOT USE BROWSER OR PLAYWRIGHT UNLESS ABSOLUTERLY NECESSARY
 - If you must test a system in isolation, FIRST write all the ways it could fail, THEN write the code.
 
 ### UI labels
