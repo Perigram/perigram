@@ -75,20 +75,20 @@
                     class="mb-2 flex shrink-0 items-center gap-1 overflow-x-auto px-2"
                     data-testid="chats-folders"
                 >
-                    <button
+                    <Button
                         v-for="folder in inboxFolders"
                         :key="folder.key"
                         type="button"
                         class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors"
-                        :class="selectedFolder === folder.key
-                            ? 'bg-primary text-primary-contrast'
-                            : 'bg-subtle text-muted hover:opacity-80'"
+                        :severity="selectedFolder === folder.key
+                            ? 'primary'
+                            : 'secondary'"
                         :aria-current="selectedFolder === folder.key ? 'true' : undefined"
                         @click="selectedFolder = folder.key"
                     >
                         <i v-if="folder.icon" :class="folder.icon" class="shrink-0" aria-hidden="true"></i>
                         <span class="max-w-32 truncate">{{ folder.label }}</span>
-                    </button>
+                    </Button>
                 </div>
                 <StateBlock
                     v-if="!displayConversations.length"
