@@ -1390,7 +1390,7 @@ export default function createSketchEditor({ vue, components, locale }) {
                     ? null
                     : { shapeId: shape.id, at: [24, 24], fromPanel: true };
                 }
-              }, () => [
+              }, [
                 h('span', { class: 'shrink-0 text-muted' }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
                 h('span', { class: 'truncate' }, t(SHAPE_KIND_LABEL[shape.type])),
                 h(Tag, {
