@@ -7339,3 +7339,24 @@ text fills from the bottom).
   fills the masonry column-major from the sender edge; chips — preview-less
   refs and file documents — inline-wrap to lines at the sender edge,
   keeping compact width.
+
+## Chat thread width and wide-pane alignment (2026-10-19)
+
+Owner direction: message rows (and the wrapped chip lines) are too wide, and
+wide chat panes should align the viewer's messages left like the
+counterpart's, with the group-style sender indicator.
+
+- [ ] WAITING — owner verification on the live stack: messages cap at 70% of
+      the thread column with chip lines capped at the gallery width; a wide
+      thread pane aligns every message left with the viewer's runs led by
+      the sender chip; a narrow pane keeps the right/left dock split.
+
+### Agent Notes (2026-10-19 — wide-pane alignment)
+
+- `supportChatMessageMax` 85% → 70%; instance-ref and file chip lines cap
+  at the gallery width (max-w-80).
+- `ChatSupport` measures the messages container (ResizeObserver, 640px
+  threshold): wide panes dock every message left and lead the viewer's runs
+  with the sender chip; narrow panes keep the viewer's right dock. Row
+  dock, row alignment, swipe direction, menu offsets, sender labels, and
+  the attachment family's `ownMessage` all follow `docksRight`.
