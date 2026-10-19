@@ -206,24 +206,30 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
       typeNeighbors.get(from).push(to);
     }
   }
-  const declarationAnchor = id => {
-    const queue = [id];
+  const declarationSeat = id => {
+    // BFS over declaration wires to the cluster's anchor process node
+    // (shallowest layer wins) and the anchor's wire distance.
+    const queue = [[id, 0]];
     const seen = new Set([id]);
-    let best = null;
+    let anchor = null;
+    let hops = 0;
     while (queue.length) {
-      const current = queue.shift();
+      const [current, depth] = queue.shift();
       for (const next of typeNeighbors.get(current) || []) {
         if (seen.has(next)) continue;
         seen.add(next);
         if (isDeclaration(byId.get(next))) {
-          queue.push(next);
+          queue.push([next, depth + 1]);
           continue;
         }
-        if (!best || layer.get(next) < layer.get(best)
-          || (layer.get(next) === layer.get(best) && next < best)) best = next;
+        if (!anchor || layer.get(next) < layer.get(anchor)
+          || (layer.get(next) === layer.get(anchor) && next < anchor)) {
+          anchor = next;
+          hops = depth + 1;
+        }
       }
     }
-    return best;
+    return anchor ? { anchor, hops } : null;
   };
   const columns = new Map();
   for (const node of nodes) {
@@ -231,12 +237,14 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
       columns.set(node.id, layer.get(node.id));
       continue;
     }
-    const anchor = declarationAnchor(node.id);
-    // Anchored declarations sit one column left of their anchor; an
-    // island snaps to the column grid nearest its authored x so the
-    // per-column separation owns it like every other card.
-    columns.set(node.id, anchor
-      ? layer.get(anchor) - 1
+    const seat = declarationSeat(node.id);
+    // A declaration rides the column of the node it declares on: one
+    // left of its anchor, one further per declaration hop, so a cluster
+    // fans out leftward. An island snaps to the column grid nearest its
+    // authored x so the per-column separation owns it like every other
+    // card.
+    columns.set(node.id, seat
+      ? layer.get(seat.anchor) - seat.hops
       : Math.round((node.position?.x || 0) / COLUMN_SNAP));
   }
 
@@ -303,8 +311,8 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
   }
   for (const node of nodes) {
     if (bandOf.has(node.id) || !isDeclaration(node)) continue;
-    const anchor = declarationAnchor(node.id);
-    const band = (anchor && bandOf.get(anchor)) || nearestBand(node);
+    const seat = declarationSeat(node.id);
+    const band = (seat && bandOf.get(seat.anchor)) || nearestBand(node);
     if (band) bandOf.set(node.id, band);
   }
 
