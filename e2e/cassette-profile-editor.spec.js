@@ -62,18 +62,29 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(box, 'canvas box').toBeTruthy();
   const click = async (fx, fy) => page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
 
-  await dialog.locator('button[aria-label="Rectangle"]').first().click();
-  await page.waitForTimeout(500);
-  await click(0.45, 0.35);
-  await page.waitForTimeout(200);
-  await click(0.75, 0.60);
-  await page.waitForTimeout(700);
+  // The circle first — its clicks land on a dim-free canvas; the rect
+  // follows in the far quadrant, away from the circle's dimension
+  // annotations (the dim inputs are HTML overlays that swallow clicks).
   await dialog.locator('button[aria-label="Circle"]').first().click();
   await page.waitForTimeout(500);
-  await click(0.60, 0.47);
+  await click(0.25, 0.22);
   await page.waitForTimeout(200);
-  await click(0.67, 0.47);
+  await click(0.32, 0.22);
+  await page.waitForTimeout(700);
+  await dialog.locator('button[aria-label="Rectangle"]').first().click();
+  await page.waitForTimeout(500);
+  await click(0.55, 0.55);
+  await page.waitForTimeout(200);
+  await click(0.85, 0.80);
   await page.waitForTimeout(1200);
+  await expect(
+    dialog.locator('button[aria-label^="Subtract "]'),
+    'the drawn circle lands as a subtract shape'
+  ).toBeVisible({ timeout: 10_000 });
+  await expect(
+    dialog.locator('button[aria-label^="Add "]'),
+    'the drawn rect lands as an add shape'
+  ).toBeVisible({ timeout: 10_000 });
 
   const drawn = await dimState(dialog);
   expect(Object.keys(drawn).length, 'dimension annotations for the drawn shapes').toBeGreaterThan(0);
