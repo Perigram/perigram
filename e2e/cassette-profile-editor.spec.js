@@ -78,11 +78,11 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await click(0.85, 0.80);
   await page.waitForTimeout(1200);
   await expect(
-    dialog.locator('button[aria-label^="Subtract "]'),
+    dialog.locator('button[aria-label^="Subtract s"]'),
     'the drawn circle lands as a subtract shape'
   ).toBeVisible({ timeout: 10_000 });
   await expect(
-    dialog.locator('button[aria-label^="Add "]'),
+    dialog.locator('button[aria-label^="Add s"]'),
     'the drawn rect lands as an add shape'
   ).toBeVisible({ timeout: 10_000 });
 
