@@ -920,6 +920,18 @@ extraction canonicalizes corner order (counter-clockwise from the
 leftmost corner), so the draw direction leaves the stored settings
 unchanged.
 
+Owner declaration (2026-10-19, the drawing is sacred): nothing
+breaks the drawing, ever. A mid-edit or invalid expression holds the
+last good evaluation on the canvas — geometry, dimensions, hatch,
+panel, and editors stay live so the text can be fixed in place — and
+the authored model survives every extraction roundtrip whole:
+parametric shapes stay parametric, bindings keep their expressions,
+raw text stays stored as typed. Error states speak through messages
+beside the work; they never clear the canvas, replace authored
+geometry, or gate editing. A placed profile's editor opens on the
+workpiece's derived table (instance values over the snapshot's), so
+editing edits what that workpiece renders.
+
 Owner decision (2026-10-19, profile drawing; ordered-sequence
 amendment, same day): the fold is an ordered CSG sequence — each
 shape applies to the face in authored list order, so a later add

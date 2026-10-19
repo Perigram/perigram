@@ -144,7 +144,9 @@ modules — no platform imports.
   the dialog's starting draft (owner decision 2026-10-17: every dialog
   session drafts blank — empty canvas, empty table), and an attached
   workpiece's table is its derived sketch's table with the instance values
-  on top, so the row renders a chip for every parameter the sketch binds.
+  on top, so the row renders a chip for every parameter the sketch
+  binds, and the profile dialog opens a placed workpiece on that
+  derived table — the editor edits what the workpiece renders.
   The numeric geometry seed that `normalizeOccsProfileSketch` fills a
   sketch-less read with stays literal. A blank authoring session starts
   with an empty table — parameters are added when a sketch needs them;
@@ -191,9 +193,13 @@ modules — no platform imports.
   when it names a parameter — the drag edits that parameter (the
   dimension is that parameter's editor) — while compound expressions
   and numerics carry the extracted value. Authored shapes with no
-  extracted counterpart were erased and drop, and an authored sketch
-  whose expressions do not resolve falls back to the plain
-  extraction. A fourth argument offers dropped authored shapes back as
+  extracted counterpart were erased and drop. An authored sketch
+  whose expressions do not resolve keeps the authored model whole
+  (the drawing-is-sacred law): canvas geometry merges on the next
+  pass once the text resolves, and the editor renders from the last
+  good evaluation in between — geometry, dims, hatch, and popups
+  stay live while the invalid text sits in its field. A
+  fourth argument offers dropped authored shapes back as
   adoption candidates: the editor keeps the last drops in session
   memory, so an engine undo/redo that restores erased canvas geometry
   revives the shape with its expressions (an erase alone drops it; the
