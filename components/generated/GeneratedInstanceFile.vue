@@ -37,21 +37,10 @@
         :action-id="actionId"
         @execute="executeAction"
       />
-      <!-- A bounded detail host cannot carry the inline conversation section:
-           its column is an h-full no-scroll frame, so an in-flow thread would
-           collapse against the body. The pane therefore exposes the thread
-           through the shared chat popup, the same route every other entity
-           surface uses. -->
-      <Button
-        v-if="boundedDetail"
-        icon="pi pi-comments"
-        text
-        rounded
-        size="small"
-        severity="secondary"
-        :aria-label="$t('support.instanceChat')"
-        @click="openInstanceChat"
-      />
+      <!-- A bounded detail host exposes the thread through the shared chat
+           popup: its column is an h-full no-scroll frame, so an in-flow
+           section would collapse against the body. -->
+      <InstanceChatEntry v-if="boundedDetail" :type-id="item.type" :instance="item.entity" :name="identityLabel" />
     </div>
 
     <div :class="boundedDetail ? 'min-h-0 flex-1 overflow-hidden' : 'min-h-0 flex-1 overflow-auto p-4'">
@@ -97,7 +86,6 @@
 
 <script setup>
 import { computed } from 'vue';
-import Button from 'primevue/button';
 import GeneratedInstanceDetail from '~/components/generated/GeneratedInstanceDetail.vue';
 import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
@@ -109,12 +97,16 @@ import { actionAppliesToEntity, isFieldEditAction, isGeneratedSurfaceAction } fr
 import { generatedInstanceDetailConsumesAction } from '~/components/generated/detail-action-ownership.js';
 import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
-import { openInstanceChat as openSharedInstanceChat } from '~/utils/instance-chat.js';
+import InstanceChatEntry from '~/components/shared/InstanceChatEntry.vue';
 import {
   generatedDetailActionIds,
   generatedDetailScreenForTypeId
 } from '~/components/generated/detail-screen-actions.js';
 import { useAuthStore } from '~/stores/auth';
+import { useRegistryStore } from '~/stores/registry';
+import { useI18n } from 'vue-i18n';
+import { titleFor } from '#shared/ui-mapping/index.js';
+import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 
 const props = defineProps({
   item: { type: Object, default: null },
@@ -128,6 +120,8 @@ const props = defineProps({
 
 const emit = defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'back']);
 const authStore = useAuthStore();
+const registry = useRegistryStore();
+const { t } = useI18n();
 const instanceId = computed(() => props.item?.entity?._id || props.item?.entity?.id || '');
 const detailScreen = computed(() => generatedDetailScreenForTypeId({
   screens: authStore.screenManifest,
@@ -159,15 +153,14 @@ const boundedDetail = computed(() => (
     Boolean(resolveGeneratedInstanceDetailOverload(props.item?.type))
     && detailChildRegions.value.length === 0
 ));
-// The bounded pane's conversation entry: the shared chat popup, the one route
-// every entity surface opens its thread through.
-function openInstanceChat() {
-  openSharedInstanceChat({
-    type: props.item?.type || '',
-    id: instanceId.value,
-    name: props.item?.entity?.name || ''
-  });
-}
+// The chat target's display name resolves through the one title resolver
+// (the declared identifier field value; unnamed otherwise).
+const chatTypeView = computed(() => registry.typeRecord(props.item?.type));
+const identityLabel = computed(() => titleFor(
+    chatTypeView.value ? dtoToScreenInstance(props.item?.entity, chatTypeView.value) : null,
+    chatTypeView.value,
+    { unnamedLabel: t('common.unnamed') }
+));
 const detailChildActionIds = computed(() => [...new Set(detailChildRegions.value.flatMap(region => region.actions || []))]);
 const detailActionContext = computed(() => ({
   parentInstance: props.item?.entity || null,

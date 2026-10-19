@@ -24,8 +24,9 @@ registered shared primitive.
 In scope: every `.vue` file below `components/`, `layouts/`, and `pages/`,
 plus root `error.vue`, including dormant or version-suffixed files. Each ID is
 derived from its repository path by lowercasing and replacing non-alphanumeric
-runs with hyphens. `shared/design-system.spec.js` enumerates the filesystem and
-fails for missing, stale, duplicate, or non-path-derived inventory rows. It also
+runs with hyphens. The matrix is hand-maintained: derive a row's findings
+with the `analyzeVueVisuals` export of `scripts/ui-visual-inventory.js`
+and keep the row in sync in the same change that touches the file. It also
 reconciles the mechanism keys below. Existing projection tests reconcile token
 exports with runtime CSS, and registry tests reconcile registered primitives with
 their files and UI-lab examples.
@@ -123,10 +124,10 @@ longer override Aura borders, elevation, or interaction states.
 
 ## Component Inventory
 
-This generated matrix records durable ownership plus current source-derived
-visual findings. Counts are occurrences, not exemptions. Run
-`node scripts/ui-visual-inventory.js` after an intentional visual change;
-`shared/design-system.spec.js` fails when source and this matrix diverge.
+This matrix records durable ownership plus current source-derived
+visual findings. Counts are occurrences, not exemptions. Rows are
+hand-maintained from the `analyzeVueVisuals(file, source)` export in the
+same change that touches a file.
 
 | ID | Path | Primary ownership | Current disposition |
 |---|---|---|---|
@@ -162,7 +163,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedinstancecollection-vue` | `components/generated/GeneratedInstanceCollection.vue` | derived usage | replace:chrome (4); remove:important-override (2); compliant:scoped-layout |
 | `ui-components-generated-generatedinstancedetail-vue` | `components/generated/GeneratedInstanceDetail.vue` | derived usage | compliant |
 | `ui-components-generated-generatedinstancedetailbody-vue` | `components/generated/GeneratedInstanceDetailBody.vue` | derived usage | compliant |
-| `ui-components-generated-generatedinstancefile-vue` | `components/generated/GeneratedInstanceFile.vue` | derived usage | replace:chrome (3); remove:important-override (3) |
+| `ui-components-generated-generatedinstancefile-vue` | `components/generated/GeneratedInstanceFile.vue` | derived usage | replace:chrome (1) |
 | `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | compliant |
 | `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | replace:chrome (11) |
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
@@ -206,7 +207,8 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-filterbuilder-vue` | `components/shared/FilterBuilder.vue` | derived usage | remove:important-override (2) |
 | `ui-components-shared-geometrypreview-vue` | `components/shared/GeometryPreview.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instanceactionspopover-vue` | `components/shared/InstanceActionsPopover.vue` | derived usage | compliant |
-| `ui-components-shared-instancecard-vue` | `components/shared/InstanceCard.vue` | shared/domain primitive | centralize:layout (1) |
+| `ui-components-shared-instancecard-vue` | `components/shared/InstanceCard.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-instancechatentry-vue` | `components/shared/InstanceChatEntry.vue` | derived usage | compliant |
 | `ui-components-shared-instanceinlineref-vue` | `components/shared/InstanceInlineRef.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-shared-instancemultiselect-vue` | `components/shared/InstanceMultiSelect.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instancepage-vue` | `components/shared/InstancePage.vue` | shared/domain primitive | replace:chrome (3); compliant:scoped-layout |
@@ -269,9 +271,10 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-sortcontrol-vue` | `components/ui-mapping/SortControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-statetag-vue` | `components/ui-mapping/StateTag.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-statgrid-vue` | `components/ui-mapping/StatGrid.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-structuralfieldpanel-vue` | `components/ui-mapping/StructuralFieldPanel.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-surfacebody-vue` | `components/ui-mapping/SurfaceBody.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-surfacedetailbody-vue` | `components/ui-mapping/SurfaceDetailBody.vue` | derived usage | replace:chrome (2); remove:state (1) |
-| `ui-components-ui-mapping-surfaceheader-vue` | `components/ui-mapping/SurfaceHeader.vue` | derived usage | remove:important-override (2); compliant:scoped-layout |
+| `ui-components-ui-mapping-surfacedetailbody-vue` | `components/ui-mapping/SurfaceDetailBody.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-surfaceheader-vue` | `components/ui-mapping/SurfaceHeader.vue` | derived usage | compliant:scoped-layout |
 | `ui-components-ui-mapping-timelinecollection-vue` | `components/ui-mapping/TimelineCollection.vue` | derived usage | remove:important-override (1) |
 | `ui-components-ui-mapping-varianteditor-vue` | `components/ui-mapping/VariantEditor.vue` | derived usage | compliant |
 | `ui-components-userform-vue` | `components/UserForm.vue` | derived usage | compliant |

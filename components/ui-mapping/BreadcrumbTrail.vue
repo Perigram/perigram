@@ -1,5 +1,5 @@
 <template>
-  <Breadcrumb :model="crumbs" class="w-full">
+  <Breadcrumb v-if="crumbs.length > 1" :model="crumbs" class="w-full">
     <template #item="{ item, props: breadcrumbProps }">
       <!-- Ancestors are navigation: each crumb opens its instance through
            the screen's identity-open channel. The last crumb is the
