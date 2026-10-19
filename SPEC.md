@@ -418,13 +418,17 @@ quotes, and inbox previews never carry it.
 
 Messages from one sender sent in a row read as one run: the sender label
 leads the run and the timestamp trails it under the last message only;
-consecutive messages sit close together. Group chats and instance chats
+consecutive messages sit close together. A message row caps at 70% of the
+thread column. Narrow thread panes dock the viewer's own messages right
+and the counterpart's left; panes 40rem and wider align every message
+left, the viewer's included, its runs led by the same sender chip (owner
+direction 2026-10-19). Group chats and instance chats
 (the organization chat included) show the sender on others' messages as
 avatar plus display name (resolved names, never
 ids, never the identifier/email). The assistant's own chat (the AI 1:1
 thread) leads the assistant's runs with the same sender chip — the AI
-face plus name; the viewer's own messages never carry a stamp, and human
-1:1 chats never do (owner direction 2026-10-17). Forwarded messages carry a distinct
+face plus name; the viewer's docked messages carry no stamp, and human
+1:1 chats carry none. Forwarded messages carry a distinct
 forwarded-from header above
 their content, on every message shape — text, media, or files.
 

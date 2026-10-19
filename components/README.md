@@ -1035,13 +1035,18 @@ message entity tokens through `SupportMessageContent`; the per-row unread
 badge counts that conversation only, while the app-shell badge keeps the
 organization-wide total. Message bubbles own a `min-w-0`/`max-w-full` chain with
 `overflow-wrap: anywhere` text wrapping, so long unbroken strings stay inside
-the chat bounds. Messages group into sender runs (SPEC §Chat thread):
+the chat bounds; a message row caps at 70% of the thread column
+(`support-chat-message`). Narrow thread panes dock the viewer's own
+messages right and the counterpart's left; thread columns 40rem and wider
+align every message left, the viewer's runs joining the sender-chip runs
+(`docksRight` in `ChatSupport`, measured on the messages container).
+Messages group into sender runs (SPEC §Chat thread):
 consecutive messages from one sender within a short window render as one
 tight stack — the timestamp trails under the last message of the run only
 (the instance leaf link keeps its caption row regardless), and group and
 instance threads (the organization chat included) lead others' runs with
 the sender's avatar and display name through the shared user chip
-(`components/shared/UserChip.vue`, once per run, on others' messages);
+(`components/shared/UserChip.vue`, once per run);
 the assistant's own chat — a two-party room — leads the assistant's runs
 with the same chip. Forwarded messages lead their content with the
 forwarded-from caption line (forward icon + original sender) on every

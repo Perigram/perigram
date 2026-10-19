@@ -60,7 +60,7 @@
       </button>
       <span
         v-if="chipRefs.length"
-        :class="['flex max-w-full flex-wrap gap-1', ownMessage ? 'justify-end' : 'justify-start']"
+        :class="['flex max-w-80 flex-wrap gap-1', ownMessage ? 'justify-end' : 'justify-start']"
         data-testid="chat-instance-refs"
       >
         <InstanceInlineRef
@@ -89,7 +89,7 @@
       />
       <span
         v-if="documents.length"
-        :class="['flex max-w-full flex-wrap gap-1', ownMessage ? 'justify-end' : 'justify-start']"
+        :class="['flex max-w-80 flex-wrap gap-1', ownMessage ? 'justify-end' : 'justify-start']"
         data-testid="chat-attachment-files"
       >
         <Chip
