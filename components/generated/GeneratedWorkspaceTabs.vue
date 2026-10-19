@@ -12,29 +12,20 @@
           :key="tab.key"
           :value="tab.key"
           as="div"
-          class="group/workspace-tab m-0 flex max-w-64 items-center gap-1.5 rounded-ui border px-2 py-1 text-supporting transition-colors"
+          class="group/workspace-tab m-0 flex max-w-64 items-center gap-1 rounded-ui border px-2 py-1 text-supporting transition-colors"
           :class="tab.key === activeKey
             ? 'bg-[var(--p-button-primary-background)] text-[var(--p-button-primary-color)] border-[var(--p-button-primary-border-color)] hover:bg-[var(--p-button-primary-hover-background)] hover:text-[var(--p-button-primary-hover-color)] hover:border-[var(--p-button-primary-hover-border-color)]'
             : 'bg-[var(--p-button-secondary-background)] text-[var(--p-button-secondary-color)] border-[var(--p-button-secondary-border-color)] hover:bg-[var(--p-button-secondary-hover-background)] hover:text-[var(--p-button-secondary-hover-color)] hover:border-[var(--p-button-secondary-hover-border-color)]'"
         >
           <i v-if="tabIcon(tab)" :class="tabIcon(tab)" class="shrink-0" aria-hidden="true" />
           <span class="min-w-0 truncate">{{ tabLabel(tab) }}</span>
-          <InstanceState
-            v-if="tab.kind === 'instance'"
-            :instance="tab.instance"
-            :type-id="tab.type"
-            variant="icon"
-            @click.stop
-            @refresh="$emit('refresh', tab)"
-            @transitioned="$emit('refresh', tab)"
-          />
           <Button
             icon="pi pi-times"
             text
             rounded
             size="small"
             severity="secondary"
-            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-6 !w-6 !text-current"
+            class="invisible group-hover/workspace-tab:visible group-focus-within/workspace-tab:visible !h-4 !w-4 !text-current"
             :aria-label="$t('common.close')"
             @click.stop="$emit('close-tab', tab.key)"
           />
@@ -65,14 +56,13 @@ import { useRegistryStore } from '~/stores/registry';
 import { titleFor } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
-import InstanceState from '~/components/shared/state/InstanceState.vue';
 
 defineProps({
   tabs: { type: Array, default: () => [] },
   activeKey: { type: String, default: '' }
 });
 
-defineEmits(['select', 'close-tab', 'add', 'refresh']);
+defineEmits(['select', 'close-tab', 'add']);
 
 const { t } = useI18n();
 const registry = useRegistryStore();

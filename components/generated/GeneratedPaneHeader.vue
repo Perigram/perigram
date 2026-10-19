@@ -25,7 +25,6 @@
       @select="$emit('select-tab', $event)"
       @close-tab="$emit('close-tab', $event)"
       @add="$emit('add')"
-      @refresh="$emit('refresh')"
     />
     <div class="flex shrink-0 items-stretch pr-0.5">
       <GeneratedWorkspacePaneMenu
@@ -54,5 +53,5 @@ defineProps({
 
 const { t } = useI18n();
 
-defineEmits(['refresh', 'select-tab', 'close-tab', 'add', 'split', 'close', 'back']);
+defineEmits(['select-tab', 'close-tab', 'add', 'split', 'close', 'back']);
 </script>
