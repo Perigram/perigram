@@ -1,11 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('~/composables/useGeneratedScreen.js', () => ({
-  resolveSourceFilters: (source, screen) => Object.fromEntries(Object.entries(source.filters || {}).map(([key, value]) => [
-    key,
-    value === '$screen.scope.instanceId' ? screen.scope.instanceId : value
-  ]))
-}));
+import { describe, expect, it } from 'vitest';
 
 import { linkedExplorerChildSources } from './project-linked-child-sources.js';
 

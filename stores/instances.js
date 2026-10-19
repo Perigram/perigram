@@ -151,14 +151,14 @@ export const useInstancesStore = defineStore('instances', () => {
     const bucket = bucketFor(typeKey);
     const id = ids[0];
     bucket[id] = { dto, instance: deriveInstance(typeKey, dto) };
-    markObservationsFresh(typeKey);
+    markObservationsStale(typeKey);
     return bucket[id];
   }
 
   function removeRecord(typeKey = '', id = '') {
     if (!records[typeKey] || !id) return;
     delete records[typeKey][String(id)];
-    markObservationsFresh(typeKey);
+    markObservationsStale(typeKey);
   }
 
   function recordFor(typeKey = '', id = '') {
@@ -202,7 +202,7 @@ export const useInstancesStore = defineStore('instances', () => {
     return `${typeKey}?${new URLSearchParams(filters || {}).toString()}`;
   }
 
-  function markObservationsFresh(typeKey = '') {
+  function markObservationsStale(typeKey = '') {
     for (const [key, observation] of Object.entries(observations.value)) {
       if (key.startsWith(`${typeKey}?`)) observation.stale = true;
     }

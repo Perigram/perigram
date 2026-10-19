@@ -35,6 +35,7 @@ import { useInstancesStore } from '~/stores/instances';
 import { useStateController } from '~/composables/useStateController.js';
 import { applyOptimisticState } from '~/utils/optimistic-state.js';
 import { useScreenSourceSync } from '~/composables/useScreenSourceSync.js';
+import { resolveSourceIdentifier } from '~/utils/generated-screen-source.js';
 import { isCreateAction } from '~/utils/action-visibility.js';
 import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
@@ -118,7 +119,8 @@ async function reload() {
         // reference seam — the same access-filtered transport relation
         // refs resolve through — so a record readable outside the class
         // list (chat-materialized files) still opens.
-        const id = scopedRecordId(screenValue, source);
+        const resolvedId = resolveSourceIdentifier(source, screenValue);
+        const id = resolvedId ? String(resolvedId) : null;
         const dto = id
           ? await instances.resolveReadableReference(typeKey, id, { silent: true })
           : null;
@@ -133,21 +135,6 @@ async function reload() {
     }
     poolStates.value = { ...poolStates.value, [source.id]: state };
   }));
-}
-
-function scopedRecordId(screen = {}, source = {}) {
-  const identifier = source.identifier;
-  if (typeof identifier === 'string' && identifier.startsWith('$screen.')) {
-    const resolved = screenPathValue(screen, identifier.slice('$screen.'.length));
-    return resolved === undefined || resolved === null || resolved === '' ? null : String(resolved);
-  }
-  return screen.scope?.instanceId
-    || screen.scope?.[`${source.typeId}Id`]
-    || (identifier ? String(identifier) : null);
-}
-
-function screenPathValue(screen = {}, path = '') {
-  return String(path).split('.').filter(Boolean).reduce((value, key) => (value == null ? undefined : value[key]), screen);
 }
 
 watch([() => props.screen, processBundle], () => reload(), { immediate: true });

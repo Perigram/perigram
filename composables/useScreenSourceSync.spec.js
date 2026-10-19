@@ -16,7 +16,7 @@ describe('useScreenSourceSync', () => {
     vi.useRealTimers();
   });
 
-  it('reloads once (debounced) for changes touching a source type', () => {
+  it('reloads once (debounced) for snapshot-less invalidations of a source type', () => {
     const screen = () => ({ sources: [{ id: 'a', typeId: 'widget' }] });
     const reload = vi.fn();
     useScreenSourceSync(screen, reload);
@@ -25,6 +25,15 @@ describe('useScreenSourceSync', () => {
     expect(reload).not.toHaveBeenCalled();
     vi.advanceTimersByTime(80);
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('never reloads for changes that carry a complete snapshot', () => {
+    const screen = () => ({ sources: [{ id: 'a', typeId: 'widget' }] });
+    const reload = vi.fn();
+    useScreenSourceSync(screen, reload);
+    emitInstanceUpdated({ type: 'widget', id: 'w1', instance: { _id: 'w1', name: 'wrenched' } });
+    vi.advanceTimersByTime(200);
+    expect(reload).not.toHaveBeenCalled();
   });
 
   it('ignores changes for types the screen does not source', () => {

@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { useAuthStore } from './auth';
-import { useGlobalStore } from './global';
 import { useI18n } from 'vue-i18n';
 import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions';
 import { processOperationalScreens, resolveVisibleNavigation, resolveVisibleScreens } from '~/utils/process-navigation';
@@ -15,7 +14,6 @@ import { isDetailScreenTemplate } from '~/utils/action-visibility.js';
 
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
-    const globalStore = useGlobalStore();
     const instances = useInstancesStore();
     const registry = useRegistryStore();
     const { t, te } = useI18n();
