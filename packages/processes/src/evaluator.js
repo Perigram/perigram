@@ -73,10 +73,10 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   }
   if (kind.startsWith('source.')) return executeSource(record, context);
   if (kind === 'value.cast') return mapDataPacket(required(packets, 'value', record), value => cast(value, record.outputType?.base || record.base));
-  if (kind === 'value.recordField') return mapDataPacket(required(packets, 'value', record), value => {
+  if (kind === 'value.recordField') return spreadListValues(mapDataPacket(required(packets, 'value', record), value => {
     const fieldValue = readPath(value, String(record.path || ''));
     return isMissingField(fieldValue) ? missingFieldMarker(record.path) : fieldValue;
-  });
+  }));
   if (kind === 'value.convertUnit') return mapDataPacket(required(packets, 'value', record), value => convertUnit(value, record.fromUnit, record.toUnit, context.units));
   if (kind === 'value.required') return mapDataPacket(required(packets, 'value', record), value => {
     if (isMissingField(value)) throw new Error(`${record.id || kind} requires a value that is missing at ${value.path}`);
@@ -492,6 +492,17 @@ function castKind(value) {
   if (Array.isArray(value)) return 'array';
   if (value === null) return 'null';
   return typeof value;
+}
+
+// The record-elimination output socket declares List access: a field whose
+// value is an array itemizes into one packet item per entry.
+function spreadListValues(packet) {
+  return {
+    branches: packet.branches.map(branch => ({
+      path: [...branch.path],
+      items: branch.items.flatMap(item => (Array.isArray(item) ? item : [item]))
+    }))
+  };
 }
 
 function format(record, value, row = null) {

@@ -11,6 +11,14 @@ describe('process v4 data execution', () => {
     await expect(executeProcessDataNode(record, { value: createDataPacket([1, 2]) })).rejects.toThrow('cast to record requires an object');
   });
 
+  it('itemizes a record field whose value is an array into one packet item per entry', async () => {
+    const record = { kind: 'value.recordField', path: 'layouts' };
+    const packet = await executeProcessDataNode(record, { value: createDataPacket({ layouts: [{ id: 0 }, { id: 1 }], summary: {} }) });
+    expect(packet.branches[0].items).toEqual([{ id: 0 }, { id: 1 }]);
+    const scalar = await executeProcessDataNode({ kind: 'value.recordField', path: 'summary' }, { value: createDataPacket({ summary: { placed: 2 } }) });
+    expect(scalar.branches[0].items).toEqual([{ placed: 2 }]);
+  });
+
   it('drops foreign-type items from a union entity stream feeding a typed extract', async () => {
     const record = { kind: 'cts.read', typeId: 'cassette-design', select: 'extract', projection: 'nesting-polygons' };
     const project = vi.fn(async (typeId, projectionId, value) => ({ polygons: value.id }));
