@@ -94,7 +94,7 @@ describe('chat content SSR smoke', () => {
     const i18n = createI18n({ legacy: false, missingWarn: false, fallbackWarn: false, messages: { en: enLocale } });
     const app = createSSRApp({
       setup: () => () => h(MessageAttachments, {
-        refs: [{ type: 'cassette', id: 'abc', instance: { _id: 'abc', name: 'Колхозная', fields: {} } }]
+        refs: [{ type: 'cassette', id: 'abc', instance: { _id: 'abc', name: 'Колхозная', state: 'READY', fields: {} } }]
       })
     });
     const pinia = createPinia();
@@ -116,6 +116,12 @@ describe('chat content SSR smoke', () => {
     expect(html).toContain('instance-inline-compact--stacked');
     expect(html).toContain('instance-inline-compact-preview');
     expect(html).toContain('instance-inline-compact-header');
+    // The stacked card's caption strip is one line: the small state tag
+    // rides the header, the standalone status row stays with the row
+    // layout.
+    const header = html.split('instance-inline-compact-header')[1] || '';
+    expect(header.slice(0, 2000)).toContain('p-tag');
+    expect(html).not.toContain('instance-inline-compact-status-row');
   });
 
   it('tiles several preview refs into a grid', async () => {
@@ -135,34 +141,44 @@ describe('chat content SSR smoke', () => {
         : {}
     ));
     const i18n = createI18n({ legacy: false, missingWarn: false, fallbackWarn: false, messages: { en: enLocale } });
-    const app = createSSRApp({
-      setup: () => () => h(MessageAttachments, {
-        refs: ['a', 'b'].map(id => ({
-          type: 'cassette',
-          id,
-          instance: { _id: id, fields: {} }
-        }))
-      })
-    });
-    const pinia = createPinia();
-    app.use(i18n);
-    app.use(pinia);
-    app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
-    const { useAuthStore } = await import('~/stores/auth');
-    useAuthStore(pinia).user = { organizationId: 'org-preview-grid-smoke' };
-    const { useFileTypeView } = await import('~/composables/useFileTypeView.js');
-    setActivePinia(pinia);
-    useFileTypeView();
-    await new Promise(resolve => setTimeout(resolve));
-    let html;
-    try {
-      html = await renderToString(app);
-    } finally {
-      globalThis.$fetch.mockImplementation(async () => ({}));
-    }
+    const renderGallery = async (props) => {
+      const app = createSSRApp({
+        setup: () => () => h(MessageAttachments, {
+          refs: ['a', 'b', 'c'].map(id => ({
+            type: 'cassette',
+            id,
+            instance: { _id: id, fields: {} }
+          })),
+          ...props
+        })
+      });
+      const pinia = createPinia();
+      app.use(i18n);
+      app.use(pinia);
+      app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
+      const { useAuthStore } = await import('~/stores/auth');
+      useAuthStore(pinia).user = { organizationId: 'org-preview-grid-smoke' };
+      const { useFileTypeView } = await import('~/composables/useFileTypeView.js');
+      setActivePinia(pinia);
+      useFileTypeView();
+      await new Promise(resolve => setTimeout(resolve));
+      try {
+        return await renderToString(app);
+      } finally {
+        globalThis.$fetch.mockImplementation(async () => ({}));
+      }
+    };
+    let html = await renderGallery({});
     expect(html).toContain('data-testid="chat-attachment-gallery"');
-    expect((html.match(/data-testid="chat-masonry-column"/g) || []).length).toBe(2);
-    expect((html.match(/instance-inline-compact--stacked/g) || []).length).toBe(2);
+    // Column-major fill: three items split 2/1 across the two columns.
+    const columns = html.split('data-testid="chat-masonry-column"').slice(1);
+    expect(columns).toHaveLength(2);
+    expect((columns[0].match(/instance-inline-compact--stacked/g) || []).length).toBe(2);
+    expect((columns[1].match(/instance-inline-compact--stacked/g) || []).length).toBe(1);
+    expect(html).not.toContain('flex-row-reverse');
+
+    html = await renderGallery({ ownMessage: true });
+    expect(html).toContain('flex-row-reverse');
   });
 
   it('renders attached instance refs and their preview summary', async () => {

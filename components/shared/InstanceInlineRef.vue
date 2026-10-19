@@ -326,6 +326,15 @@ onUnmounted(() => {
           <template v-if="compactLayout === 'stacked' && resolved">
             <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true" />
             <span class="min-w-0 flex-1 truncate text-supporting" :title="identityLabel">{{ identityLabel }}</span>
+            <!-- One caption line: identity truncates, the small state
+                 tag stays whole. -->
+            <StateTag
+              v-if="compactStatusState"
+              :value="compactStatusState"
+              :policy="compactPolicy"
+              small
+              class="max-w-full shrink-0"
+            />
           </template>
           <Chip
             v-else-if="resolved"
@@ -339,7 +348,7 @@ onUnmounted(() => {
             {{ compactTypeLabel || $t('common.notAvailable') }}
           </span>
         </span>
-        <span class="instance-inline-compact-status-row">
+        <span v-if="compactLayout !== 'stacked'" class="instance-inline-compact-status-row">
           <StateTag
             v-if="compactStatusState"
             :value="compactStatusState"
