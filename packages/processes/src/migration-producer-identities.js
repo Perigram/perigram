@@ -91,7 +91,11 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
 
     const actionId = String(node.entryTriggerId || node.id || recordId);
     const action = actions[actionId];
+    // Identity binds entity-emitting species to their producer output; a
+    // value-output service or command owns no producer identity however
+    // it is typed (its type only places the run action).
     const requiresActionIdentity = ACTION_EFFECT_KINDS.has(opKind)
+      && candidates.length > 0
       && Boolean(node.typeId || action?.typeId);
     const selectedId = node.producerOutputId || action?.producerOutputId || '';
 
