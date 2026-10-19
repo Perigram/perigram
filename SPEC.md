@@ -370,8 +370,9 @@ download action beside the preview; kinds without an
 in-app viewer download directly. Message actions (reply, transcribe,
 per-attachment downloads, copy) live in one context menu, reachable on
 every viewport and for every message shape — right-click or long-press
-the message; the menu drops under the cursor and carries full file
-names on download entries. The chats rail header is
+the message; media elements overload their native context menu to it, so
+media-only messages stay reachable. The menu drops under the cursor and
+carries full file names on download entries. The chats rail header is
 three controls: the archive toggle (the same control leaves the archived
 view), the search field filtering conversations by title and last
 message, and one + control whose menu owns every conversation start — a
