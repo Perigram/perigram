@@ -170,9 +170,9 @@ describe('chat content SSR smoke', () => {
     };
     let html = await renderGallery({});
     expect(html).toContain('data-testid="chat-attachment-gallery"');
-    // Round-robin fill: items alternate across columns from the sender
-    // edge, each column reversed so its earliest item renders at the
-    // base; columns rest on the gallery's bottom edge.
+    // Column-major fill: three items split 2/1 across the two columns,
+    // each chunk reversed so its first item renders at the column base;
+    // columns rest on the gallery's bottom edge.
     const columns = html.split('data-testid="chat-masonry-column"').slice(1);
     expect(columns).toHaveLength(2);
     expect((columns[0].match(/instance-inline-compact--stacked/g) || []).length).toBe(2);
@@ -190,12 +190,13 @@ describe('chat content SSR smoke', () => {
       { type: 'sheetDesign', id: 'def' }
     ];
     // Without the CTS type view (which this smoke does not load) no ref
-    // resolves preview media, so every ref rides the masonry as a
-    // compact chip; the raw id never renders.
+    // resolves preview media, so every ref renders the compact chip in
+    // the wrapping row; the raw id never renders.
     const row = await boot({
       setup: () => () => h(MessageAttachments, { refs })
     });
-    expect(row).toContain('data-testid="chat-attachment-gallery"');
+    expect(row).toContain('data-testid="chat-instance-refs"');
+    expect(row).toContain('flex-wrap');
     expect(row.match(/p-chip-label/g)?.length).toBe(1);
     expect(row).not.toContain('>def<');
 
@@ -212,13 +213,14 @@ describe('chat content SSR smoke', () => {
       { kind: 'file', fileId: 'f2', mimeType: 'application/octet-stream', name: 'cut.dxf', size: 4096 },
       { kind: 'image', fileId: 'f3', mimeType: 'image/png', name: 'site.png' }
     ];
-    // Documents render one bordered chip each, stacked in a column —
+    // Documents render one bordered chip each, inline-wrapped to lines —
     // click opens the preview dialog (no inline download chrome); images
     // keep their gallery path.
     const row = await boot({
       setup: () => () => h(MessageAttachments, { attachments })
     });
     expect(row).toContain('data-testid="chat-attachment-files"');
+    expect(row).toContain('flex-wrap');
     expect(row.match(/p-chip-label/g)?.length).toBe(2);
     expect(row).toContain('>report.pdf<');
     expect(row).toContain('>cut.dxf<');

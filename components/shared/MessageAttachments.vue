@@ -23,18 +23,12 @@
           class="flex min-w-0 flex-1 flex-col justify-end gap-1"
           data-testid="chat-masonry-column"
         >
-          <template v-for="item in column" :key="item.ref ? `${item.ref.type}-${item.ref.id}` : item.attachment.fileId">
+          <template v-for="item in column" :key="item.kind === 'instance' ? `${item.ref.type}-${item.ref.id}` : item.attachment.fileId">
             <span
               v-if="item.kind === 'instance'"
               class="block w-full overflow-hidden rounded-ui border border-content-border"
             >
               <InstanceInlineRef v-bind="previewRefProps(item.ref)" />
-            </span>
-            <span
-              v-else-if="item.kind === 'chip'"
-              :class="['flex w-full', ownMessage ? 'justify-end' : 'justify-start']"
-            >
-              <InstanceInlineRef v-bind="chipRefProps(item.ref)" />
             </span>
             <span v-else class="block w-full overflow-hidden rounded-ui">
               <button
@@ -55,10 +49,6 @@
       >
         <InstanceInlineRef v-bind="previewRefProps(mediaItems[0].ref)" />
       </span>
-      <InstanceInlineRef
-        v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'chip'"
-        v-bind="chipRefProps(mediaItems[0].ref)"
-      />
       <button
         v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'image'"
         type="button"
@@ -68,6 +58,17 @@
       >
         <img class="h-auto max-h-64 max-w-full rounded-ui" :src="url(mediaItems[0].attachment)" :alt="mediaItems[0].attachment.name || ''">
       </button>
+      <span
+        v-if="chipRefs.length"
+        :class="['flex max-w-full flex-wrap gap-1', ownMessage ? 'justify-end' : 'justify-start']"
+        data-testid="chat-instance-refs"
+      >
+        <InstanceInlineRef
+          v-for="ref in chipRefs"
+          :key="`${ref.type}-${ref.id}`"
+          v-bind="chipRefProps(ref)"
+        />
+      </span>
       <video
         v-for="attachment in videos"
         :key="attachment.fileId"
@@ -86,7 +87,11 @@
         class="min-w-0 max-w-full"
         @play="onMediaPlay($event, attachment)"
       />
-      <span v-if="documents.length" class="flex max-w-full flex-col items-start gap-1" data-testid="chat-attachment-files">
+      <span
+        v-if="documents.length"
+        :class="['flex max-w-full flex-wrap gap-1', ownMessage ? 'justify-end' : 'justify-start']"
+        data-testid="chat-attachment-files"
+      >
         <Chip
           v-for="attachment in documents"
           :key="attachment.fileId"
@@ -181,7 +186,7 @@ const media = useMediaStore();
 const instances = useInstancesStore();
 const { typeById } = useFileTypeView();
 
-const fileChipClass = 'min-w-0 w-full max-w-80 cursor-pointer border border-content-border bg-subtle text-supporting';
+const fileChipClass = 'min-w-0 max-w-full cursor-pointer border border-content-border bg-subtle text-supporting';
 const instanceChipClass = 'min-w-0 max-w-full cursor-pointer border border-content-border bg-transparent text-supporting';
 const chipPt = { label: { class: 'truncate' } };
 
@@ -202,20 +207,27 @@ const refHasPreview = (ref = {}) => {
     && Boolean(previewSourceValue(dto, typeRecord));
 };
 
-// The attachment flow: preview cards, preview-less ref chips, and image
-// tiles in send order.
+const chipRefs = computed(() => (props.refs || []).filter(ref => !refHasPreview(ref)));
+
+// The media flow: preview cards and image tiles in send order.
 const mediaItems = computed(() => [
-  ...(props.refs || []).map(ref => ({ kind: refHasPreview(ref) ? 'instance' : 'chip', ref })),
+  ...(props.refs || []).map(ref => refHasPreview(ref) ? { kind: 'instance', ref } : null).filter(Boolean),
   ...images.value.map(attachment => ({ kind: 'image', attachment }))
 ]);
 
-// Items alternate across columns from the sender edge, each column's
-// earliest item at its base (SPEC §Chat files).
 const masonryColumns = computed(() => {
   const total = mediaItems.value.length;
   const columnCount = total >= 5 ? 3 : 2;
-  return Array.from({ length: columnCount }, (_, column) =>
-    mediaItems.value.filter((_, index) => index % columnCount === column).reverse());
+  const baseCount = Math.floor(total / columnCount);
+  const extra = total % columnCount;
+  const columns = [];
+  let cursor = 0;
+  for (let column = 0; column < columnCount; column++) {
+    const size = baseCount + (column < extra ? 1 : 0);
+    columns.push(mediaItems.value.slice(cursor, cursor + size).reverse());
+    cursor += size;
+  }
+  return columns;
 });
 
 const previewRefProps = (ref = {}) => ({
