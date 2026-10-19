@@ -908,6 +908,15 @@ extraction canonicalizes corner order (counter-clockwise from the
 leftmost corner), so the draw direction leaves the stored settings
 unchanged.
 
+Owner decision (2026-10-19, profile op sequence): the shape list order
+is the boolean application order. Each shape's operation applies to the
+accumulated face region — an add after a subtract restores material, a
+subtract after an add cuts it — so any edge modification composes from
+ordered add/subtract steps. The editor, the production entity stream
+(profile steps first, hardware cuts after), and the nesting evaluation
+fold the same sequence; canvas extraction keeps the authored order and
+appends new shapes after it.
+
 Owner review (2026-10-18, profile editor readout): the parameter table
 lives in the strip above the canvas — its one home, visible with no
 selection. Clicking a primitive — face, edge, or cutout — opens its

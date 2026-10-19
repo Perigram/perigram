@@ -489,6 +489,49 @@ export const differenceCassetteV2Polygons = async (
   }
 };
 
+// Ordered region fold (owner law 2026-10-19, profile op sequence): a
+// region is outer polygons plus hole rings; every operation applies to
+// the whole region in sequence — add unions, subtract cuts. Hole rings
+// ride the subject with negative winding (NonZero fill), so a later add
+// fills a hole and a later subtract opens one.
+export const foldCassetteV2Region = async (
+  region = { polygons: [], holes: [] },
+  operations = [],
+  { precision = CASSETTE_V2_CLIPPER_PRECISION } = {}
+) => {
+  const clipper = await getCassetteV2Clipper();
+  const orientedRing = (ring, positive) => {
+    const vertices = withoutClosingVertex(ring).map(point3);
+    if (vertices.length < 3) return null;
+    return polygonArea(vertices) * (positive ? 1 : -1) < 0 ? [...vertices].reverse() : vertices;
+  };
+  const outerRings = (region.polygons || []).map(ring => orientedRing(ring, true)).filter(Boolean);
+  const holeRings = (region.holes || []).map(ring => orientedRing(ring, false)).filter(Boolean);
+  let subject = pathsDFromPolygons(clipper, [...outerRings, ...holeRings]);
+  try {
+    for (const operation of operations) {
+      const clip = pathsDFromPolygons(clipper, operation.polygons || []);
+      try {
+        if (!clip.size()) continue;
+        const solution = operation.op === 'add'
+          ? clipper.UnionD(subject, clip, clipper.FillRule.NonZero, precision)
+          : clipper.DifferenceD(subject, clip, clipper.FillRule.NonZero, precision);
+        subject.delete();
+        subject = solution;
+      } finally {
+        clip.delete();
+      }
+    }
+    const rings = verticesFromPathsD(subject, precision);
+    return {
+      polygons: rings.filter(ring => polygonArea(ring) > 0),
+      holes: rings.filter(ring => polygonArea(ring) < 0)
+    };
+  } finally {
+    subject.delete();
+  }
+};
+
 export const buildCassetteV2ClipperLayout = async (
   faces = [],
   { precision = CASSETTE_V2_CLIPPER_PRECISION } = {}

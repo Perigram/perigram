@@ -448,6 +448,56 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(cutInner?.paths.length || 0).toBe(0);
   });
 
+  it('applies the profile steps in authored order — a late add restores cut material', async () => {
+    const tab = { type: 'rect', op: 'add', center: [10, 0], width: 40, height: 24, rotation: 0 };
+    const hole = { type: 'circle', op: 'subtract', center: [10, 0], diameter: 10 };
+    const patch = { type: 'rect', op: 'add', center: [12, 0], width: 6, height: 40, rotation: 0 };
+    const build = (shapes) => {
+      const sketch = normalizeOccsProfileSketch({
+        parameters: {},
+        shapes: shapes.map((shape, index) => ({ id: `s${index}`, ...shape }))
+      });
+      const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+        referenceWorkpieceId: 'wp_1',
+        referenceNodeId: 'face_1',
+        name: 'Ordered steps',
+        sketch
+      });
+      const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+      return updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+        placementMode: 'edgeArray',
+        arrayEdge: 'E2',
+        arrayMode: 'count',
+        arrayCount: '1',
+        offsetX: '50',
+        offsetY: '30'
+      });
+    };
+    const holeArea = async (shapes) => {
+      const drawing = await renderCassetteV2TreeToDrawing(build(shapes), {});
+      const face = drawing.designerFaces.map(item => item.d).join(' ');
+      const rings = face.split('M')
+        .filter(Boolean)
+        .map(sub => (sub.match(/-?[\d.]+ -?[\d.]+/g) || [])
+          .map(pair => pair.split(' ').map(Number)))
+        .map(points => {
+          let area = 0;
+          for (let index = 0; index < points.length; index += 1) {
+            const [x1, y1] = points[index];
+            const [x2, y2] = points[(index + 1) % points.length];
+            area += x1 * y2 - x2 * y1;
+          }
+          return Math.abs(area / 2);
+        });
+      return Math.min(...rings);
+    };
+    // The patch after the hole fills most of it; the same shapes with
+    // the subtract last erase the patch inside the hole instead.
+    const restored = await holeArea([tab, hole, patch]);
+    const erased = await holeArea([tab, patch, hole]);
+    expect(restored).toBeLessThan(erased * 0.5);
+  });
+
   it('keeps authored array values untouched on the relation read', () => {
     // An empty string or a zero is the author's text while typing, never
     // a missing value: a falsy read rewrote the field with the default

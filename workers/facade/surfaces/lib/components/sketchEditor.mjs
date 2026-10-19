@@ -147,11 +147,11 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       // The resolved boolean result (outer rings and holes, world
       // coordinates) — recomputed debounced from the authored model; the
-      // overlay draws it as one solid outline so the union, difference,
-      // and material-half clip read at a glance.
-      // The face after the profile's boolean operations: the material
-      // half united with the adds, minus the subtracts — the hatch IS
-      // the resulting face.
+      // overlay draws it as one solid outline so the ordered steps and
+      // the material-half clip read at a glance.
+      // The face after the profile's ordered operations: each step
+      // applies to the accumulated face region — the hatch IS the
+      // resulting face.
       const resolvedFace = shallowRef(null);
       const outlineError = ref('');
       let outlineTimer = null;

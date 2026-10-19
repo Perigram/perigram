@@ -27,7 +27,7 @@ import { buildOccsProductionLayout } from '../../occs/production-layout.js';
 import { buildOccsFaceDimensionEntities } from '../../occs/dimensions.js';
 import { buildOccsFoldedPreviewPayload } from '../../occs/folded-3d.js';
 import { applyOccsLayerPens, OCCS_LAYER_STANDARDS, occsLayerExportName, occsLayerStandard } from '../../occs/layerStandards.js';
-import { differenceCassetteV2FacePolygon, unionCassetteV2FacePolygons } from './cassetteV2Clipper.js';
+import { foldCassetteV2Region } from './cassetteV2Clipper.js';
 import {
   OCCS_EDGE_ARRAY_DEFAULTS,
   OCCS_HANGER_PRODUCTION_MODES,
@@ -1591,8 +1591,8 @@ export const createCassetteV2OccsDocumentFromTree = async (tree = createCassette
       productionEntitiesByTarget.get(entity.target).push(entity);
     }
   };
-  await collectEntities(hardwareProductionEntitiesForTree(curves, sourceTree));
   await collectEntities(profileCutEntitiesForTree(curves, sourceTree));
+  await collectEntities(hardwareProductionEntitiesForTree(curves, sourceTree));
 
   return {
     occs: '0.4-draft',
@@ -2637,11 +2637,12 @@ export const cassetteV2AttachableProfileEdgesForTree = (
 };
 
 // Closed profile sections arranged on a face produce their production
-// effect (owner law 2026-10-15): the array settings (or the point
-// placement) place the boolean result and each copy cuts the host face
-// where it intersects — the same boolean pipeline and the same
-// cut.inner layer the integral-cut hanger clips ride. Copies that fall
-// entirely outside the face stay boolean-only operands.
+// effect (owner law 2026-10-15, op-sequence amendment 2026-10-19): the
+// array settings (or the point placement) place the boolean steps and
+// each copy's steps apply to the host face in authored order — the
+// same boolean pipeline and the same cut.inner layer the integral-cut
+// hanger clips ride. Copies that fall entirely outside the face stay
+// boolean-only operands.
 export const profileCutEntitiesForTree = async (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
@@ -2665,34 +2666,24 @@ export const profileCutEntitiesForTree = async (curves = [], tree = createCasset
     for (let index = 0; index < points.length; index += 1) {
       const operations = await profileOperationPolygons(profile, points[index], relation, targetCurve, parameters);
       if (!operations) continue;
-      // Add operands reshape the face contour only; subtract operands
-      // render as inner cuts while they sit fully inside the face.
-      if (operations.adds.length) {
+      // The entity stream order is the application order: each step
+      // applies to the accumulated face region. Add steps reshape the
+      // face contour only; a subtract step renders as an inner cut
+      // while it sits fully inside the face.
+      operations.forEach((operation, operationIndex) => {
         entities.push({
-          id: `${relation.id}:profile_add:${index}`,
+          id: `${relation.id}:profile_${operation.op}:${index}:${operationIndex}`,
           layer: OCCS_LAYER_CUT_INNER,
           target: relation.targetFaceId,
           workpieceId: relation.targetWorkpieceId,
           profileWorkpieceId: relation.sourceWorkpieceId,
           relationId: relation.id,
-          geometry: { type: 'polygons', polygons: operations.adds },
-          booleanOperation: 'add',
-          booleanOnly: true
+          geometry: { type: 'polygons', polygons: operation.polygons },
+          booleanOperation: operation.op,
+          booleanOnly: operation.op === 'add'
+            || !operation.polygons.every(vertices => polygonInsideFace(vertices, face))
         });
-      }
-      if (operations.subtracts.length) {
-        entities.push({
-          id: `${relation.id}:profile_cut:${index}`,
-          layer: OCCS_LAYER_CUT_INNER,
-          target: relation.targetFaceId,
-          workpieceId: relation.targetWorkpieceId,
-          profileWorkpieceId: relation.sourceWorkpieceId,
-          relationId: relation.id,
-          geometry: { type: 'polygons', polygons: operations.subtracts },
-          booleanOperation: 'subtract',
-          booleanOnly: !operations.subtracts.every(vertices => polygonInsideFace(vertices, face))
-        });
-      }
+      });
     }
   }
   return entities;
@@ -2787,21 +2778,24 @@ const placeProfileRing = (ring = [], point = [0, 0, 0], relation = {}, axisRotat
   });
 };
 
-// The placed boolean operands of a closed profile: add rings unite
-// into the host face, subtract rings cut from it — placed by the axis
-// law at the given point. Polyline sections carry no operands.
+// The placed boolean steps of a closed profile, in authored order —
+// each step applies to the host face region, add uniting and subtract
+// cutting. Polyline sections carry no steps.
 const profileOperationPolygons = async (profile, point = [0, 0, 0], relation = {}, targetCurve = null, scope = {}) => {
   const section = profile?.section;
   if (!section || section.type === 'polyline') return null;
-  const operations = await resolveOccsProfileSectionOperations(section);
+  const operations = resolveOccsProfileSectionOperations(section);
   if (!operations) return null;
   const axisRotation = profileAxisRotationDegrees(relation, targetCurve);
-  const place = rings => rings
-    .filter(ring => ring.length >= 3)
-    .map(ring => placeProfileRing(ring, point, relation, axisRotation, scope));
-  const adds = place(operations.adds);
-  const subtracts = place(operations.subtracts);
-  return adds.length || subtracts.length ? { adds, subtracts } : null;
+  const placed = operations
+    .map(operation => ({
+      op: operation.op,
+      polygons: operation.polygons
+        .filter(ring => ring.length >= 3)
+        .map(ring => placeProfileRing(ring, point, relation, axisRotation, scope))
+    }))
+    .filter(operation => operation.polygons.length);
+  return placed.length ? placed : null;
 };
 
 const hardwareProductionEntitiesForTree = async (curves = [], tree = createCassetteV2GraphTree()) => {
@@ -2826,32 +2820,20 @@ const hardwareProductionEntitiesForTree = async (curves = [], tree = createCasse
           ? await profileOperationPolygons(profile, points[index], relation, targetCurve, parameters)
           : null;
         if (profileOperations) {
-          if (profileOperations.adds.length) {
+          profileOperations.forEach((operation, operationIndex) => {
             entities.push({
-              id: `${relation.id}:hook_add:${index}`,
+              id: `${relation.id}:hook_${operation.op}:${index}:${operationIndex}`,
               layer: OCCS_LAYER_CUT_INNER,
               target: relation.targetFaceId,
               workpieceId: relation.targetWorkpieceId,
               hardwareWorkpieceId: relation.sourceWorkpieceId,
               relationId: relation.id,
-              geometry: { type: 'polygons', polygons: profileOperations.adds },
-              booleanOperation: 'add',
-              booleanOnly: true
+              geometry: { type: 'polygons', polygons: operation.polygons },
+              booleanOperation: operation.op,
+              booleanOnly: operation.op === 'add'
+                || !operation.polygons.every(vertices => polygonInsideFace(vertices, hookFace))
             });
-          }
-          if (profileOperations.subtracts.length) {
-            entities.push({
-              id: `${relation.id}:hook_cut:${index}`,
-              layer: OCCS_LAYER_CUT_INNER,
-              target: relation.targetFaceId,
-              workpieceId: relation.targetWorkpieceId,
-              hardwareWorkpieceId: relation.sourceWorkpieceId,
-              relationId: relation.id,
-              geometry: { type: 'polygons', polygons: profileOperations.subtracts },
-              booleanOperation: 'subtract',
-              booleanOnly: !profileOperations.subtracts.every(vertices => polygonInsideFace(vertices, hookFace))
-            });
-          }
+          });
           continue;
         }
         const geometry = { type: 'polygon', vertices: hangerClipCutPolygon(hardware.parameters, points[index]) };
@@ -2952,9 +2934,11 @@ const productionEntityCutRings = (entity = {}) => (
       : []
 );
 
-// The face boolean pass: add operands unite into the face boundary,
-// subtract operands cut from it (profiles and hook cuts ride the same
-// stream — `booleanOperation: 'add' | 'subtract'`).
+// The face boolean pass: entities apply in stream order — profile steps
+// first in authored order, hardware cuts after — each add uniting into
+// the face region, each subtract cutting from it. The face is the
+// largest ring of the fold (rings sort by area), so material islanded
+// off the face stays off its contour.
 const applyHardwareBooleanDifferences = async (curves = [], productionEntities = []) => {
   const cutsByTarget = hookCutEntitiesByTarget(productionEntities);
   if (!cutsByTarget.size) return curves;
@@ -2962,43 +2946,23 @@ const applyHardwareBooleanDifferences = async (curves = [], productionEntities =
   return Promise.all(curves.map(async (curve) => {
     const operations = cutsByTarget.get(curve.node?.id);
     if (!operations?.length) return curve;
-    const addRings = operations
-      .filter(entity => entity.booleanOperation === 'add')
-      .flatMap(entity => productionEntityCutRings(entity));
-    const subtractRings = operations
-      .filter(entity => entity.booleanOperation !== 'add')
-      .flatMap(entity => productionEntityCutRings(entity));
     const baseBoundary = curve.boundaryVertices || curve.vertices;
-    const unitedFaces = addRings.length
-      ? await unionCassetteV2FacePolygons([baseBoundary, ...addRings])
-      : [baseBoundary];
-    if (!subtractRings.length) {
-      if (!addRings.length) return curve;
-      // A detached add islands off the face: the grown face is the
-      // largest ring of the union.
-      const unionRing = unitedFaces
-        .filter(ring => ring.length >= 3)
-        .sort((a, b) => polygonArea(withoutClosingVertex(b)) - polygonArea(withoutClosingVertex(a)))[0];
-      if (!unionRing) return curve;
-      return {
-        ...curve,
-        originalBoundaryVertices: curve.originalBoundaryVertices || baseBoundary,
-        referenceVertices: curve.referenceVertices || baseBoundary,
-        boundaryVertices: unionRing,
-        vertices: unionRing,
-        shapeType: 'polygon'
-      };
-    }
-    const face = await unionCassetteV2FacePolygons(unitedFaces);
-    const difference = await differenceCassetteV2FacePolygon(face[0] || baseBoundary, subtractRings);
-    if (!difference.outer?.length) return curve;
+    const region = await foldCassetteV2Region(
+      { polygons: [baseBoundary], holes: curve.holes || [] },
+      operations.map(entity => ({
+        op: entity.booleanOperation === 'add' ? 'add' : 'subtract',
+        polygons: productionEntityCutRings(entity)
+      }))
+    );
+    const outer = region.polygons[0];
+    if (!outer?.length) return curve;
     return {
       ...curve,
-      originalBoundaryVertices: curve.originalBoundaryVertices || curve.boundaryVertices || curve.vertices,
-      referenceVertices: curve.referenceVertices || curve.boundaryVertices || curve.vertices,
-      boundaryVertices: difference.outer,
-      vertices: difference.outer,
-      holes: difference.holes,
+      originalBoundaryVertices: curve.originalBoundaryVertices || baseBoundary,
+      referenceVertices: curve.referenceVertices || baseBoundary,
+      boundaryVertices: outer,
+      vertices: outer,
+      holes: region.holes,
       shapeType: 'polygon'
     };
   }));
@@ -3501,8 +3465,8 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
   const embeddedCurves = spliceProfileEmbeddings(curves, profileEmbeddingErrors);
   const terminalEdges = profileTerminalEdgesForTree(tree);
   const productionEntities = [
-    ...await hardwareProductionEntitiesForTree(curves, tree),
-    ...await profileCutEntitiesForTree(curves, tree)
+    ...await profileCutEntitiesForTree(curves, tree),
+    ...await hardwareProductionEntitiesForTree(curves, tree)
   ];
   const shapedCurves = await applyHardwareBooleanDifferences(embeddedCurves, productionEntities);
   // The folded 3D rides the local (untransformed) curves in assembly
@@ -3513,8 +3477,8 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
   if (options.foldedPreviewCurves) {
     const localEmbedded = spliceProfileEmbeddings(options.foldedPreviewCurves, []);
     const localEntities = [
-      ...await hardwareProductionEntitiesForTree(options.foldedPreviewCurves, tree),
-      ...await profileCutEntitiesForTree(options.foldedPreviewCurves, tree)
+      ...await profileCutEntitiesForTree(options.foldedPreviewCurves, tree),
+      ...await hardwareProductionEntitiesForTree(options.foldedPreviewCurves, tree)
     ];
     foldedPreviewCurves = await applyHardwareBooleanDifferences(localEmbedded, localEntities);
   }

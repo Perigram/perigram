@@ -69,15 +69,22 @@ modules — no platform imports.
   op applied to the FACE — `add` (the footprint unites into the face),
   `subtract` (cuts from it), `construction` (excluded; a DXF import
   lands every shape at construction through
-  `occProfileSketchFromEntities`' `reference` option).
-  `resolveOccsProfileSectionOperations` unions each operand group into
-  rings; `resolveOccsProfileFacePolygons` folds `(base face ∪ adds) −
-  subtracts` through the vendored Clipper pass (the editor passes the
-  material half as the base, production the host face), yielding
-  ordered outer polygons and hole rings. Adds land as
-  `booleanOperation: 'add'` entities that reshape the face contour;
-  subtracts ride `cut.inner` while inside the face and dispatch
-  through the modified contour when they break its edge. The editor's canvas
+  `occProfileSketchFromEntities`' `reference` option). The shape list
+  order is the application order (owner law 2026-10-19): each step
+  applies to the accumulated face region — an add after a subtract
+  restores material, a subtract after an add cuts it.
+  `resolveOccsProfileSectionOperations` returns the ordered steps;
+  `resolveOccsProfileFacePolygons` folds them through the vendored
+  Clipper pass (`foldCassetteV2Region`, the one fold every consumer
+  rides — the editor passes the material half as the base, production
+  the host face with its holes), yielding outer polygons and hole
+  rings. Steps land as ordered `booleanOperation` entities — the
+  stream order is the application order, profile steps before hardware
+  cuts; the face is the largest ring of the fold, so material islanded
+  off the face stays off its contour. Add steps reshape the face
+  contour only; a subtract rides `cut.inner` while it sits fully
+  inside the face and dispatches through the modified contour when it
+  breaks its edge. The editor's canvas
   carries exactly two surface states (owner law 2026-10-18): the
   material half hatches as the face — the one hatch — and the resolved
   section is cut from it (empty interior, solid outline), the void
@@ -150,7 +157,10 @@ modules — no platform imports.
   evaluated position keeps the authored id, construction, expressions, and
   fillets (chains match per point within a rounding epsilon), so
   drawing, importing, or undoing never destroys parametric authoring;
-  moved or new geometry goes numeric, authored shapes with no extracted
+  the merged list keeps the authored order (the boolean application
+  order) with fresh shapes appended after it — extraction's
+  circles-before-chains ordering never reorders the sequence. Moved or
+  new geometry goes numeric, authored shapes with no extracted
   counterpart were erased and drop, and an authored sketch whose
   expressions do not resolve falls back to the plain extraction. A
   fourth argument offers dropped authored shapes back as adoption

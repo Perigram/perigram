@@ -6,7 +6,7 @@ import {
 } from '../surfaces/lib/cassetteV2Renderer.js';
 import { buildOccsEvaluatedDimensionEntities } from './dimensions.js';
 import { buildOccsProductionLayout } from './production-layout.js';
-import { differenceCassetteV2FacePolygon, unionCassetteV2FacePolygons } from '../surfaces/lib/cassetteV2Clipper.js';
+import { foldCassetteV2Region } from '../surfaces/lib/cassetteV2Clipper.js';
 import { embedOccsProfilesIntoContour } from './profileEmbedding.js';
 import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER, OCCS_LAYER_FOLD_ROUTE } from './layers.js';
 
@@ -107,39 +107,41 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
       });
     }
 
-    // Closed profiles carry boolean operations on the host face (owner
-    // law 2026-10-19): add operands unite into the face, subtract
-    // operands cut from it — the same fold the designer applies.
+    // Closed profiles carry ordered boolean operations on the host face
+    // (owner law 2026-10-19): each step applies to the accumulated face
+    // region in entity order — the same fold the designer applies.
     const profileCutEntities = (await profileCutEntitiesForTree(workpieceCurves, tree))
       .filter(entity => faceCurves.has(entity.target));
     const cutEmbeddedCurves = [];
     for (const curve of embeddedCurves) {
-      const operations = profileCutEntities.filter(entity => entity.target === curve.node.id);
+      const operations = profileCutEntities
+        .filter(entity => entity.target === curve.node.id)
+        .map(entity => ({
+          op: entity.booleanOperation === 'add' ? 'add' : 'subtract',
+          polygons: entity.geometry.type === 'polygons'
+            ? entity.geometry.polygons
+            : [entity.geometry.vertices]
+        }));
       if (!operations.length) {
         cutEmbeddedCurves.push(curve);
         continue;
       }
-      const ringsOf = filterOp => operations
-        .filter(entity => entity.booleanOperation === filterOp)
-        .flatMap(entity => entity.geometry.type === 'polygons'
-          ? entity.geometry.polygons
-          : [entity.geometry.vertices]);
-      const addRings = ringsOf('add');
-      const subtractRings = ringsOf('subtract');
       const baseBoundary = curve.boundaryVertices || curve.vertices;
-      const unitedFaces = addRings.length
-        ? await unionCassetteV2FacePolygons([baseBoundary, ...addRings])
-        : [baseBoundary];
-      const face = await unionCassetteV2FacePolygons(unitedFaces);
-      const boundary = face[0] || baseBoundary;
-      const difference = subtractRings.length
-        ? await differenceCassetteV2FacePolygon(boundary, subtractRings)
-        : { outer: boundary, holes: curve.holes || [] };
+      // The face is the largest ring of the fold (rings sort by area).
+      const region = await foldCassetteV2Region(
+        { polygons: [baseBoundary], holes: curve.holes || [] },
+        operations
+      );
+      const outer = region.polygons[0];
+      if (!outer?.length) {
+        cutEmbeddedCurves.push(curve);
+        continue;
+      }
       cutEmbeddedCurves.push({
         ...curve,
-        boundaryVertices: difference.outer?.length ? difference.outer : boundary,
-        vertices: difference.outer?.length ? difference.outer : boundary,
-        holes: difference.holes || curve.holes || []
+        boundaryVertices: outer,
+        vertices: outer,
+        holes: region.holes
       });
     }
 
