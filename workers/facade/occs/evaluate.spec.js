@@ -94,11 +94,12 @@ describe('OCCS cassette evaluation', () => {
     const definition = await createCassetteV2OccsDocument(tree);
     const result = await evaluateOccsCassetteTemplate(definition, {});
     const profileCuts = result.layerData.filter(item => item.layer === 'cut.inner');
-    // Three placed copies; each copy's boolean result carries its outer
-    // ring and its subtracted hole as separate cut paths.
+    // Three placed copies; each copy's subtract operand (the template's
+    // D circle) rides the inner-cut layer, the copy's add operand
+    // (the template rect) unites into the face contour instead.
     const cutIds = new Set(profileCuts.map(cut => cut.handles[0].replace(/:\d+$/, '')));
     expect(cutIds.size).toBe(3);
-    expect(profileCuts).toHaveLength(6);
+    expect(profileCuts).toHaveLength(3);
     for (const cut of profileCuts) {
       expect(cut.relationId).toBe(relation.id);
       expect(cut.profileWorkpieceId).toBeTruthy();

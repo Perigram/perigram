@@ -6,7 +6,7 @@ import {
 } from '../surfaces/lib/cassetteV2Renderer.js';
 import { buildOccsEvaluatedDimensionEntities } from './dimensions.js';
 import { buildOccsProductionLayout } from './production-layout.js';
-import { differenceCassetteV2FacePolygon } from '../surfaces/lib/cassetteV2Clipper.js';
+import { differenceCassetteV2FacePolygon, unionCassetteV2FacePolygons } from '../surfaces/lib/cassetteV2Clipper.js';
 import { embedOccsProfilesIntoContour } from './profileEmbedding.js';
 import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER, OCCS_LAYER_FOLD_ROUTE } from './layers.js';
 
@@ -107,33 +107,43 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
       });
     }
 
-    // Closed profile sections cut the host face where they intersect
-    // (owner law 2026-10-15): the same boolean difference the designer
-    // applies, and their polygons ride the production cut layer.
+    // Closed profiles carry boolean operations on the host face (owner
+    // law 2026-10-19): add operands unite into the face, subtract
+    // operands cut from it — the same fold the designer applies.
     const profileCutEntities = (await profileCutEntitiesForTree(workpieceCurves, tree))
       .filter(entity => faceCurves.has(entity.target));
     const cutEmbeddedCurves = [];
     for (const curve of embeddedCurves) {
-      const cuts = profileCutEntities.filter(entity => entity.target === curve.node.id);
-      if (!cuts.length) {
+      const operations = profileCutEntities.filter(entity => entity.target === curve.node.id);
+      if (!operations.length) {
         cutEmbeddedCurves.push(curve);
         continue;
       }
-      const difference = await differenceCassetteV2FacePolygon(
-        curve.boundaryVertices || curve.vertices,
-        cuts.flatMap(entity => entity.geometry.type === 'polygons'
+      const ringsOf = filterOp => operations
+        .filter(entity => entity.booleanOperation === filterOp)
+        .flatMap(entity => entity.geometry.type === 'polygons'
           ? entity.geometry.polygons
-          : [entity.geometry.vertices])
-      );
+          : [entity.geometry.vertices]);
+      const addRings = ringsOf('add');
+      const subtractRings = ringsOf('subtract');
+      const baseBoundary = curve.boundaryVertices || curve.vertices;
+      const unitedFaces = addRings.length
+        ? await unionCassetteV2FacePolygons([baseBoundary, ...addRings])
+        : [baseBoundary];
+      const face = await unionCassetteV2FacePolygons(unitedFaces);
+      const boundary = face[0] || baseBoundary;
+      const difference = subtractRings.length
+        ? await differenceCassetteV2FacePolygon(boundary, subtractRings)
+        : { outer: boundary, holes: curve.holes || [] };
       cutEmbeddedCurves.push({
         ...curve,
-        boundaryVertices: difference.outer?.length ? difference.outer : curve.boundaryVertices || curve.vertices,
-        vertices: difference.outer?.length ? difference.outer : curve.vertices,
+        boundaryVertices: difference.outer?.length ? difference.outer : boundary,
+        vertices: difference.outer?.length ? difference.outer : boundary,
         holes: difference.holes || curve.holes || []
       });
     }
 
-    for (const entity of profileCutEntities) {
+    for (const entity of profileCutEntities.filter(entity => !entity.booleanOnly)) {
       const rings = entity.geometry.type === 'polygons'
         ? entity.geometry.polygons
         : [entity.geometry.vertices];
