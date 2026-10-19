@@ -8,10 +8,33 @@ generated renderer family (`GeneratedScreen`, `GeneratedRegion`,
 `GeneratedInstanceDetail`, `InstancePage` header chrome) retires in
 phases.
 
-- [ ] Phase 1 — survivor seams: one shared instance-chat entry
-  (`InstanceChatEntry`); `SurfaceDetailBody` structural-edit dedupe;
-  generator create/link dialogs on `StandardDialog`; screens route
-  wrapper/error chrome removed; `BreadcrumbTrail` self-gating.
+- [ ] WAITING — Phase 1 owner verification on the live stack: record
+  headers, card footers, and bounded pane strips open the conversation
+  through the shared entry ("Conversation" tooltip, title-resolver name);
+  generator create/link dialogs render as StandardDialogs with disabled
+  submit while required rows are empty; structural panels still edit one
+  at a time with confirm/discard.
+
+### Agent Notes (2026-10-19)
+
+Session `agent/gen-ui-collapse-20261019`. `InstanceChatEntry.vue` is the
+one composed chat entry (store-free, store-coupled resolution stays at
+call sites through the title resolver); mounted by SurfaceHeader,
+InstanceCard, GeneratedInstanceDetail, GeneratedInstanceFile — the
+duplicated chat buttons, the raw-`name` targets, and the
+`_id || id || _id` copies are gone. `StructuralFieldPanel.vue` owns the
+structural edit cluster + draft (parent keeps one-editing exclusivity).
+Generator create/link dialogs ride `StandardDialog` (new `saveDisabled`
+prop). Screens route drops its wrapper div and page-level error Message
+(per-source data states already own failures). `BreadcrumbTrail`
+self-gates on a single crumb; SurfaceHeader's duplicate lineage walk is
+deleted. Audit matrix rows updated by hand; the audit doc and scripts
+README claimed a spec-driven matrix reconciliation that does not exist —
+both now state the hand-maintained flow. Guards: framework-packages +
+design-system 38✓, localization + v24 10✓, module-imports ✓, SSR smoke
+13✓, check-arch ✓, framework:validate ✓. Pre-existing failure on
+`local`: `detail-action-ownership.spec.js` `cassette` row (fails before
+this branch). E2E not run (no dev stack in session).
 - [ ] Phase 2 — record chrome pass: `SurfaceHeader`/`SurfaceBody` design
   polish (relation-row labels, typography roles, editor-action resolution
   host-side through the engine contract).

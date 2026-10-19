@@ -619,13 +619,14 @@ carry member chips inline through [`UserChip.vue`](#userchipvue).
 
 ### Detail-surface conversation entry
 The record header owns the conversation affordance — there is no embedded
-comments section. `SurfaceHeader` (ui-mapping detail routes) and
-`GeneratedInstanceDetail`'s `InstancePage` actions both carry the composed
-instance-chat entry: an icon-only chat button routing through
-`utils/instance-chat.js`, the same seam as `InstanceCard` footers and pane
-strips (a user-typed record opens the direct thread; every other type the
-composed instance thread). Bounded/flush editor hosts expose the same entry
-from their own chrome.
+comments section. `InstanceChatEntry.vue` is the one component:
+an icon-only chat button routing through `utils/instance-chat.js`
+(a user-typed record opens the direct thread; every other type the
+composed instance thread), mounted by `SurfaceHeader`, `InstanceCard`
+footers, and the generated detail/pane strips. Bounded/flush editor hosts
+expose the same entry from their own chrome. Directory-shaped surfaces
+(organization overview, directory detail) call the seam directly with
+their `identity.name` display source.
 
 ### `EntityPopup.vue` (with `useEntityPopup`)
 The shared entity popup — the one record preview popup: the standard centered
