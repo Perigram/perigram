@@ -1252,25 +1252,35 @@ const shapesWithinEpsilon = (extracted = {}, authored = {}) => {
 
 // Chain merge: the per-point position law — an extracted point sitting
 // on an authored point's evaluated position keeps the authored id and
-// expression coordinates; moved or new points carry the extracted
-// numerics. Fillet modifiers survive the same way: an authored fillet
-// whose vertex survived stays, extracted fillets remap onto the merged
-// ids of their slots.
-const mergeChainShape = (extractedShape, authoredShape, evaluatedShape) => {
+// expression coordinates; a moved point keeps its authored expression
+// when it names a parameter (the drag edits that parameter), otherwise
+// it carries the extracted numerics. Fillet modifiers survive the same
+// way: an authored fillet whose vertex survived stays, extracted
+// fillets remap onto the merged ids of their slots.
+const mergeChainShape = (extractedShape, authoredShape, evaluatedShape, mergeField) => {
   const evaluatedPoints = evaluatedShape?.points || [];
   const authoredPoints = authoredShape?.points || [];
   const used = new Set();
-  const points = extractedShape.points.map(point => {
+  const points = extractedShape.points.map((point, index) => {
     let best = null;
     for (const candidate of evaluatedPoints) {
       if (used.has(candidate.id) || Boolean(candidate.chord) !== Boolean(point.chord)) continue;
       const distance = Math.hypot(candidate.x - point.x, candidate.y - point.y);
       if (distance <= MERGE_EPSILON_MM && (!best || distance < best.distance)) best = candidate;
     }
-    if (!best) return { ...point };
-    used.add(best.id);
-    const original = authoredPoints.find(item => item.id === best.id);
-    return original ? { id: original.id, x: original.x, y: original.y } : { ...point };
+    if (best) {
+      used.add(best.id);
+      const original = authoredPoints.find(item => item.id === best.id);
+      return original ? { id: original.id, x: original.x, y: original.y } : { ...point };
+    }
+    const original = authoredPoints[index];
+    if (!original) return { ...point };
+    return {
+      id: original.id,
+      x: mergeField(original.x, point.x),
+      y: mergeField(original.y, point.y),
+      ...(point.chord ? { chord: true } : {})
+    };
   });
   const authoredFillet = new Map(
     (authoredShape?.modifiers || [])
@@ -1319,6 +1329,28 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
   }
   const usedAuthored = new Set();
   const keptShapeIds = new Set();
+  // A moved field keeps its authored expression when it names a
+  // parameter — the drag edits that parameter (the dimension is that
+  // parameter's editor); compound expressions and numerics carry the
+  // extracted value.
+  const parameterEdits = {};
+  const bareParameter = (value) => (
+    typeof value === 'string'
+    && /^[A-Za-z_][A-Za-z0-9_]*$/.test(value)
+    && Object.prototype.hasOwnProperty.call(authored.parameters || {}, value)
+    && Number.isFinite(Number(authored.parameters[value]))
+  );
+  const mergeField = (authoredValue, evaluatedValue, extractedValue) => {
+    if (typeof authoredValue === 'string'
+      && Number.isFinite(evaluatedValue)
+      && Number.isFinite(extractedValue)
+      && Math.abs(evaluatedValue - extractedValue) <= MERGE_EPSILON_MM) return authoredValue;
+    if (bareParameter(authoredValue) && Number.isFinite(extractedValue)) {
+      parameterEdits[authoredValue] = extractedValue;
+      return authoredValue;
+    }
+    return Number.isFinite(extractedValue) ? extractedValue : authoredValue;
+  };
   const shapes = extracted.shapes.map((shape) => {
     let best = null;
     let bestMatches = 0;
@@ -1348,25 +1380,16 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     if (shape.type === 'chain' && original.type === 'chain') {
       // Point ids are per-shape identity: the authored ids ride the kept
       // shape so its fillet modifiers stay referenced.
-      return mergeChainShape(shape, original, best);
+      return mergeChainShape(shape, original, best, mergeField);
     }
     return { ...original };
   });
   // Field-wise revive: a leftover extracted shape pairs with a leftover
   // authored shape of the same kind and keeps the authored expression on
   // every field whose evaluated value still matches the extracted
-  // geometry — a drag costs the position fields, sizes and fillet radii
-  // keep their bindings.
+  // geometry.
   const authoredPool = [...(authored.shapes || []), ...adoptShapes];
   const evaluatedById = new Map([...source.shapes, ...adoptSource].map(shape => [shape.id, shape]));
-  const keepAuthoredField = (authoredValue, evaluatedValue, extractedValue) => (
-    typeof authoredValue === 'string'
-    && Number.isFinite(evaluatedValue)
-    && Number.isFinite(extractedValue)
-    && Math.abs(evaluatedValue - extractedValue) <= MERGE_EPSILON_MM
-      ? authoredValue
-      : extractedValue
-  );
   const paired = new Set();
   for (const shape of shapes) {
     if (!shape.__fresh || (shape.type !== 'rect' && shape.type !== 'circle')) continue;
@@ -1380,19 +1403,23 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     shape.id = authoredShape.id;
     shape.op = authoredShape.op;
     keptShapeIds.add(authoredShape.id);
+    shape.center = [
+      mergeField(authoredShape.center[0], evaluatedShape.center[0], shape.center[0]),
+      mergeField(authoredShape.center[1], evaluatedShape.center[1], shape.center[1])
+    ];
     if (shape.type === 'circle') {
-      shape.diameter = keepAuthoredField(authoredShape.diameter, evaluatedShape.diameter, shape.diameter);
+      shape.diameter = mergeField(authoredShape.diameter, evaluatedShape.diameter, shape.diameter);
       continue;
     }
-    shape.width = keepAuthoredField(authoredShape.width, evaluatedShape.width, shape.width);
-    shape.height = keepAuthoredField(authoredShape.height, evaluatedShape.height, shape.height);
-    shape.rotation = keepAuthoredField(authoredShape.rotation, evaluatedShape.rotation, shape.rotation);
+    shape.width = mergeField(authoredShape.width, evaluatedShape.width, shape.width);
+    shape.height = mergeField(authoredShape.height, evaluatedShape.height, shape.height);
+    shape.rotation = mergeField(authoredShape.rotation, evaluatedShape.rotation, shape.rotation);
     const authoredFillets = new Map((authoredShape.fillets || []).map(fillet => [fillet.corner, fillet.radius]));
     const evaluatedFillets = new Map((evaluatedShape.fillets || []).map(fillet => [fillet.corner, fillet.radius]));
     shape.fillets = (shape.fillets || [])
       .map(fillet => ({
         corner: fillet.corner,
-        radius: keepAuthoredField(authoredFillets.get(fillet.corner), evaluatedFillets.get(fillet.corner), fillet.radius)
+        radius: mergeField(authoredFillets.get(fillet.corner), evaluatedFillets.get(fillet.corner), fillet.radius)
       }))
       .filter(fillet => fillet.radius !== 0);
   }
@@ -1411,7 +1438,9 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
   }
   return {
     ...extracted,
-    parameters: authored.parameters || extracted.parameters,
+    parameters: Object.keys(parameterEdits).length
+      ? { ...(authored.parameters || extracted.parameters || {}), ...parameterEdits }
+      : authored.parameters || extracted.parameters,
     shapes
   };
 };

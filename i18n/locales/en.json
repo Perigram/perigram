@@ -588,7 +588,8 @@
                 "end": "end",
                 "parameters": "Parameters",
                 "dimensions": "Dimensions",
-                "resultClipped": "Result lies outside the material half of the axis — draw on the hatched side or flip the material side."
+                "resultClipped": "The section resolves to nothing — check the shapes' ops and geometry.",
+                "shapes": "Shapes"
             },
             "placementModes": {
                 "point": "Point",
