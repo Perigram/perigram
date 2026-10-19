@@ -48,7 +48,7 @@ import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
-import { resolveDetailScreen } from '~/components/generated/detail-screen-actions.js';
+import { resolveDetailScreen, recordFloorScreen } from '~/components/generated/detail-screen-actions.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { useCallRouting } from '~/composables/useCallRouting.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
@@ -101,7 +101,8 @@ const detailScreen = computed(() => {
     || resolveDetailScreen({
       screens: authStore.screenManifest || [],
       typeId: current.typeId
-    });
+    })
+    || recordFloorScreen(current.typeId);
   if (!base) return null;
   return {
     ...base,
@@ -126,15 +127,23 @@ function expand() {
   openInstanceInWorkspace({ typeId: current.typeId, instanceId: current.instanceId });
 }
 
-// The expand step-up goes where a page exists: desktop always opens the
-// home pane (the popup only renders types with a pane destination);
-// mobile has no panes, so it needs the record's routed page — a
-// compiled detail screen or the active organization's overview.
+// The expand step-up goes where a page exists: a compiled/synthesizable
+// detail screen, or the directory surface for user/organization. The
+// record floor is popup-only (workspace tabs stay manifest-driven), so a
+// floor record renders the dialog as its bounded terminal surface — the
+// dialog's own close dismisses.
 function expandable() {
-  if (!isMobileViewport()) return true;
   const current = request.value;
   if (!current) return false;
   if (current.typeId === 'organization' && isActiveOrganization(current.instanceId)) return true;
+  const paneDestination = isDirectoryType.value
+    || Boolean(resolveDetailScreen({
+      screens: authStore.screenManifest || [],
+      typeId: current.typeId
+    }));
+  if (!paneDestination) return false;
+  if (!isMobileViewport()) return true;
+  if (isDirectoryType.value) return false;
   return Boolean(detailRouteForInstance({
     entity: { _id: current.instanceId },
     typeId: current.typeId,

@@ -17,7 +17,10 @@ channel): the routed screens page feeds it so a detail deep link can
 return to where the user came from. Instance opens emit
 `{ typeId, instanceId }` to the host consumer — the routed page
 navigates to the compiler-paired detail screen, panes and mobile map it
-to their own open seams.
+to their own open seams. `EntityPopup` (the record preview popup) also
+renders through the host; for a type without a compiled screen,
+`recordFloorScreen` (`detail-screen-actions.js`, beside the list-screen
+synthesizer) builds the single-source detail screen — the record floor.
 
 Every organization management surface — team, bots, partners, billing, the
 plugin marketplace, and the process designer canvas — is a registered
