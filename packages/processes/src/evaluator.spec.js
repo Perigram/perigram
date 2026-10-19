@@ -4,6 +4,13 @@ import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js
 import { missingFieldMarker } from './missing-field.js';
 
 describe('process v4 data execution', () => {
+  it('casts a json object to a record and refuses a shape mismatch', async () => {
+    const record = { kind: 'value.cast', sourceType: { base: 'json' }, outputType: { base: 'record' } };
+    const cast = await executeProcessDataNode(record, { value: createDataPacket({ layouts: [] }) });
+    expect(cast.branches[0].items[0]).toEqual({ layouts: [] });
+    await expect(executeProcessDataNode(record, { value: createDataPacket([1, 2]) })).rejects.toThrow('cast to record requires an object');
+  });
+
   it('drops foreign-type items from a union entity stream feeding a typed extract', async () => {
     const record = { kind: 'cts.read', typeId: 'cassette-design', select: 'extract', projection: 'nesting-polygons' };
     const project = vi.fn(async (typeId, projectionId, value) => ({ polygons: value.id }));
