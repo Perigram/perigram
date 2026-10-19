@@ -187,6 +187,24 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   const boundDiameter = Object.entries(bound).find(([label]) => label.startsWith('diameter'));
   expect(boundDiameter?.[1], 'the diameter dim carries its parameter expression').toBe('A');
 
+  // A mid-edit expression never breaks the drawing (owner law: what
+  // the user did is sacred) — '=' holds the last good geometry, dims,
+  // and panel; finishing the text restores live evaluation.
+  await diameterDim.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await diameterDim.pressSequentially('=', { delay: 60 });
+  await diameterDim.press('Enter');
+  await page.waitForTimeout(700);
+  await expect(dialog.locator('input.profile-dim[aria-label^="diameter"]'), 'dims survive an invalid expression').toBeVisible();
+  await expect(circleRow, 'the panel survives an invalid expression').toBeVisible();
+  await expect(dialog.locator('.profile-shapes-panel')).toContainText('Circle');
+  await diameterDim.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await diameterDim.pressSequentially('A', { delay: 60 });
+  await diameterDim.press('Enter');
+  await page.waitForTimeout(700);
+  await expect(dialog.locator('input.profile-dim[aria-label^="diameter"]')).toHaveValue('A');
+
   // Save places the profile; reopening it shows the same authored
   // state — expressions intact, values unchanged.
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();

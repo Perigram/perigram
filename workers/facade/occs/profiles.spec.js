@@ -327,6 +327,31 @@ describe('OCCS profile helpers', () => {
     expect(chain.points.find(point => point.id === 'a1')).toMatchObject({ x: 'G' });
   });
 
+  it('keeps the authored sketch whole when an expression is mid-edit (owner law: what the user did is sacred)', () => {
+    const authored = normalizeOccsProfileSketch({
+      parameters: { W: 42, BROKEN: '=' },
+      shapes: [{
+        id: 's0',
+        type: 'rect',
+        op: 'add',
+        center: ['W/2', 5],
+        width: 'W',
+        height: 10,
+        rotation: 0,
+        fillets: []
+      }]
+    });
+    const extracted = occProfileSketchFromEntities(
+      occProfileEntitiesFromSketch({ ...authored, parameters: { ...authored.parameters, BROKEN: 0 } }),
+      { parameters: { ...authored.parameters, BROKEN: 0 } }
+    );
+    const merged = mergeOccsProfileSketchGeometry(extracted, authored, {});
+    // The authored model survives the transient-invalid expression:
+    // bindings intact, the raw text kept for editing.
+    expect(merged.shapes).toEqual(authored.shapes);
+    expect(merged.parameters).toEqual(authored.parameters);
+  });
+
   it('merges by position: unchanged shapes keep authoring, moved ones go numeric', () => {
     const authored = normalizeOccsProfileSketch({
       shapes: [
