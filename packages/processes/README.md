@@ -854,7 +854,9 @@ nodes and authorized reads through it. Record Field (`value.recordField`)
 is the record elimination form: one authored key read off each record
 value of the List input (a service row, a composed parameter record),
 with the authored output type — the same authoring gesture open-block Get
-Field uses, for plain record values. The structure species execute natively
+Field uses, for plain record values; a field whose value is an array
+emits one item per entry (the output socket's List access — list
+projections itemize the same way at extract reads). The structure species execute natively
 with the same semantics their catalog ports declare: `cts.compose` composes
 open entries into one block per aligned tuple, and `cts.decompose` reads
 each declared facet path off the instance (one facet when a specific
