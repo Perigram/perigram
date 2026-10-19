@@ -39,6 +39,23 @@ code). Live-draft result after the fix: stack 4,726px, idempotent.
 README "Auto-arrangement (Tidy)" updated to the extent cap and the
 order-independent anchor chain.
 
+### Agent Notes (2026-10-19)
+
+Session `agent/tidy-cell-pitch-20261019-093000`. Owner re-report: Tidy
+still bangs cards far vertically. The free-y median polish had no stable
+fixed point — it spread each cell toward the band bottom and settled
+differently on a second run (live probe: lane 4,092px, moves up to
+4,286px, second pass moved again).
+
+y now derives from the row order alone: a sweep reads an order snapshot
+and counts cross-cell wires (same-cell wires move together and would
+feed the sort itself), and rows pitch to the cell's own tallest card
+plus the gap. Live draft: stack 4,730 → 2,386px, wire length 62,052 →
+52,639px, a second Tidy moves nothing, no overlaps, every card inside
+its band. Spec renamed `caps a lane at its tallest cell stack`; a
+randomized harness over 400 page-shaped graphs holds idempotence,
+containment, and no-overlap.
+
 ## Profile shape model (owner direction 2026-10-18)
 
 The profile sketch becomes a list of parametric shapes with per-shape
