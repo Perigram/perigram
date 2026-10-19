@@ -60,8 +60,43 @@ localization + v24 + module-imports 48✓, SSR smoke 13✓, check-arch ✓,
 framework:validate ✓, generated/ui-mapping specs 65✓ with the known
 pre-existing `detail-action-ownership` `cassette` failure. E2E not run
 (no dev stack in session).
-- [ ] Phase 3 — detail migration onto the generator (artifact detail,
-  editor-bound pane details); legacy detail family deleted.
+- [ ] WAITING — Phase 3 owner verification on the live stack: every
+  routed detail screen and every pane detail tab renders through the
+  generator (record header anatomy everywhere), and no surface references
+  the deleted legacy detail family.
+
+### Agent Notes (2026-10-20, Phase 3)
+
+Session `agent/gen-ui-collapse-p3-20261020`. Reachability audit before
+cutting: the artifact detail chain was unreachable — no pack declares
+`artifact` (facade/documents/tech-drawing listings checked), the process
+compiler carries zero artifact references (screens compile only for
+stationed types), and `ArtifactDetail.vue`'s only mount was the overload
+registry. The workspace pane's `kind: 'instance'` file branch was dead
+the same way: every pane tab selection produces `screen:`/`page:` keys
+(`openInstanceTab`), and home-workspace state v3 normalizes persisted
+tabs to screen references. Deleted: `GeneratedInstanceDetail.vue`,
+`GeneratedInstanceDetailBody.vue`, `GeneratedInstanceFile.vue`,
+`GeneratedFilePreview.vue`, `ArtifactDetail.vue`,
+`ArtifactLayoutEditor.vue`, `utils/artifact-detail.js`,
+`detail-action-ownership.js` (+ specs; its stale failing `cassette` row
+died with it), `artifact-detail.spec.js`. `GeneratedRegion` is list-only
+(`workspaceLanes` keeps it until Phase 4); `GeneratedScreen` drops its
+instanceDetail branch and detail helpers; screens route and
+`GeneratedScreenPane` render every detail through the host;
+`GeneratedWorkspacePane` is the screen/page dispatcher (its stale
+project-overload comment fixed). Artifact records keep card/preview
+surfaces; a future pack-declared artifact type renders through the
+generator like every file type. Docs: overload list (home only), preview
+contract re-homed to PreviewBox/InstancePreview, artifact entity README
+(card-only contract), chat-entry mount list, components README chat-rail
+passage rewritten to current reality (it described a removed
+InstanceChatPanel rail). Known stale docs deferred to Phase 5: the
+components README project-workspace narrative (describes a project
+overload absent from overloads.js). Guards: design-system +
+framework-packages + localization + v24 + module-imports + generated
+specs 103✓, SSR smoke 13✓, check-arch ✓, framework:validate ✓. E2E not
+run (no dev stack in session).
 - [ ] Phase 4 — system screens (org overview/account, `workspaceLanes`)
   migrate or die; `InstancePage` retires.
 - [ ] Phase 5 — deletion sweep, audit/docs reconciliation, e2e rewritten
