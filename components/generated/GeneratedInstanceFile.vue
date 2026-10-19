@@ -10,7 +10,6 @@
       :splittable="splittable"
       :back="back"
       @back="$emit('back')"
-      @refresh="$emit('refresh')"
       @select-tab="$emit('select-tab', $event)"
       @close-tab="$emit('close-tab', $event)"
       @add="$emit('add-tab', $event)"

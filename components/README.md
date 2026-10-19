@@ -197,9 +197,9 @@ single hairline spans the whole stripe — tab list and the right-side pane
 controls alike. Tab chips follow the chats folder strip anatomy
 (`ChatSupport.vue`): the selected tab wears the primary button surface,
 idle tabs the secondary one, and labels render at the supporting role
-size. Each entity tab carries its compact
-lifecycle status and a close affordance that appears only on tab hover or
-focus (its space stays reserved so labels do not shift). The add-tab
+size. Chip height is fixed by the supporting text line: inner controls
+(the 16px close affordance, revealed only on tab hover or focus with its
+space reserved so labels do not shift) size within that line. The add-tab
 control sits directly after the last tab, browser-style, and the empty
 tab carries its label alone. The stripe is SINGLE-HOMED in
 `components/generated/GeneratedPaneHeader.vue`: every pane host mounts
