@@ -170,11 +170,14 @@ describe('chat content SSR smoke', () => {
     };
     let html = await renderGallery({});
     expect(html).toContain('data-testid="chat-attachment-gallery"');
-    // Column-major fill: three items split 2/1 across the two columns.
+    // Column-major fill: three items split 2/1 across the two columns,
+    // each chunk reversed so its first item renders at the column base;
+    // columns rest on the gallery's bottom edge.
     const columns = html.split('data-testid="chat-masonry-column"').slice(1);
     expect(columns).toHaveLength(2);
     expect((columns[0].match(/instance-inline-compact--stacked/g) || []).length).toBe(2);
     expect((columns[1].match(/instance-inline-compact--stacked/g) || []).length).toBe(1);
+    expect(html).toContain('justify-end');
     expect(html).not.toContain('flex-row-reverse');
 
     html = await renderGallery({ ownMessage: true });
