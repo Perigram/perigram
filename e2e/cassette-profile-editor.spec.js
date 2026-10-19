@@ -99,6 +99,17 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await circleRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Subtract' }).click();
   await expect(circleRow.locator('xpath=following-sibling::*').getByRole('button', { name: 'Subtract' })).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 });
 
+  // The rows list in the evaluation order: the add (drawn second)
+  // sits above the subtract (drawn first) — the fold reads off the
+  // list.
+  const panelOrder = await dialog.locator('.profile-shapes-panel').evaluate(panel => (
+    Array.from(panel.querySelectorAll('button[aria-label]'))
+      .map(button => button.getAttribute('aria-label'))
+      .filter(label => /^((Rectangle)|(Circle)) s/.test(label || ''))
+  ));
+  expect(panelOrder[0]?.startsWith('Rectangle'), `adds list first: ${panelOrder.join(', ')}`).toBe(true);
+  expect(panelOrder[1]?.startsWith('Circle'), `subtracts follow: ${panelOrder.join(', ')}`).toBe(true);
+
   const drawn = await dimState(dialog);
   expect(Object.keys(drawn).length, 'dimension annotations for the drawn shapes').toBeGreaterThan(0);
   expectDrawingScale(drawn);
