@@ -205,6 +205,11 @@ Three pieces share one tool catalog:
 | Group chat | Subscription + group participants entry (posting admission is participant-scoped) | Subscription on `group:<id>`, mention-gated above two participants |
 | Instance/org chat | Subscription only (instance conversations have no participant list) | Subscription on the instance key or any ancestor key on the message's stored `instancePath` (own thread before the nearest ancestor — the first subscribed key pins the run's model), mention-gated |
 
+The mention gate is `@` plus the assistant's name, case-insensitive, ending
+at a word boundary — one matcher (`shared/assistant-mention.js`) serves the
+server's trigger resolution and the composer's model-select visibility
+([components README](../../../components/README.md)).
+
 Every new chat with the AI is a **fresh thread** (SPEC: agent access): the
 new-chat picker's AI row opens an empty draft — nothing is persisted until
 the first message is sent, which creates the room titled by that message
