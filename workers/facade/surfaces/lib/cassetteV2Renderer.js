@@ -1582,8 +1582,7 @@ export const createCassetteV2OccsDocumentFromTree = async (tree = createCassette
     if (!nodesByWorkpieceId.has(node.workpieceId)) nodesByWorkpieceId.set(node.workpieceId, []);
     nodesByWorkpieceId.get(node.workpieceId).push(node);
   }
-  const curves = buildCassetteV2TrapezoidTreeCurves(sourceTree, { mode: 'assembly' });
-  const curveByNodeId = new Map(curves.map(curve => [curve.node.id, curve]));
+  const rawCurves = buildCassetteV2TrapezoidTreeCurves(sourceTree, { mode: 'assembly' });
   const productionEntitiesByTarget = new Map();
   const collectEntities = async entities => {
     for (const entity of await entities) {
@@ -1591,8 +1590,15 @@ export const createCassetteV2OccsDocumentFromTree = async (tree = createCassette
       productionEntitiesByTarget.get(entity.target).push(entity);
     }
   };
-  await collectEntities(profileCutEntitiesForTree(curves, sourceTree));
-  await collectEntities(hardwareProductionEntitiesForTree(curves, sourceTree));
+  await collectEntities(profileCutEntitiesForTree(rawCurves, sourceTree));
+  await collectEntities(hardwareProductionEntitiesForTree(rawCurves, sourceTree));
+  // Face shapes ride the region fold: the result's outer ring and
+  // hole rings are the document's derived geometry.
+  const curves = await applyHardwareBooleanDifferences(
+    rawCurves,
+    Array.from(productionEntitiesByTarget.values()).flat()
+  );
+  const curveByNodeId = new Map(curves.map(curve => [curve.node.id, curve]));
 
   return {
     occs: '0.4-draft',
@@ -1639,21 +1645,21 @@ export const createCassetteV2OccsDocumentFromTree = async (tree = createCassette
         }
         const cassetteMarkEntity = cassetteMarkEntityForWorkpiece(workpiece, workpieceIndex);
         const faces = workpieceNodes.map((node) => {
-          const hookCuts = (productionEntitiesByTarget.get(node.id) || [])
-            .filter(entity => !entity.booleanOnly && entity.layer === OCCS_LAYER_CUT_INNER
-              && (entity.geometry?.type === 'polygon' || entity.geometry?.type === 'polygons'));
           const curve = curveByNodeId.get(node.id);
-          const shape = hookCuts.length && curve
+          const hasBooleanResult = curve && (
+            (curve.holes || []).length > 0 || curve.shapeType === 'polygon'
+          );
+          const shape = hasBooleanResult
             ? {
                 type: 'polygon',
                 vertices: (curve.boundaryVertices || curve.vertices || []).map(vertex => [
                   String(vertex[0]),
                   String(vertex[1])
                 ]),
-                holes: hookCuts.flatMap(entity => productionEntityCutRings(entity).map(ring => ring.map(vertex => [
+                holes: (curve.holes || []).map(ring => ring.map(vertex => [
                   String(vertex[0]),
                   String(vertex[1])
-                ])))
+                ]))
               }
             : shapeFromNode(node);
           return {
@@ -2868,47 +2874,79 @@ const hardwareProductionEntitiesForTree = async (curves = [], tree = createCasse
   return entities;
 };
 
-const hardwareProductionLayers = (entities = []) => {
-  const pathsForLayer = (layer) => entities
-    .filter(entity => entity.layer === layer && !entity.booleanOnly)
-    .map(entity => ({
-      d: entity.geometry.type === 'circle'
-        ? circlePathAt(entity.geometry.center, entity.geometry.diameter)
-        : productionEntityCutRings(entity).map(occsCurveToPath).join(' '),
-      fill: 'none',
-      stroke: 'layer',
-      workpieceId: entity.workpieceId,
-      hardwareWorkpieceId: entity.hardwareWorkpieceId,
-      relationId: entity.relationId,
-      productionEntityId: entity.id
-    }));
-  const layers = [];
-  const innerPaths = pathsForLayer(OCCS_LAYER_CUT_INNER);
-  const holePaths = pathsForLayer(OCCS_LAYER_CUT_HOLE);
-  if (innerPaths.length) {
-    layers.push({
-      name: occsLayerExportName(OCCS_LAYER_CUT_INNER),
-      standardCode: OCCS_LAYER_CUT_INNER,
-      role: 'cut',
-      color: 'currentColor',
-      weight: 1,
-      dasharray: 'none',
-      paths: innerPaths
-    });
-  }
-  if (holePaths.length) {
-    layers.push({
-      name: occsLayerExportName(OCCS_LAYER_CUT_HOLE),
-      standardCode: OCCS_LAYER_CUT_HOLE,
-      role: 'cut',
-      color: 'currentColor',
-      weight: 1,
-      dasharray: 'none',
-      paths: holePaths
-    });
-  }
-  return layers;
+// The boolean result's hole rings — the inner cut geometry every
+// output carries (owner law 2026-10-19: the production entity stream
+// rides the region fold; operand primitives are the recipe, the
+// folded region is the product). A ring attributes to the relation
+// of the operand it swallows (selection metadata; merged rings stamp
+// the first contributor).
+const ringCentroid = (ring = []) => {
+  const points = withoutClosingVertex(ring);
+  if (!points.length) return null;
+  const total = points.reduce((acc, point) => [acc[0] + numeric(point?.[0], 0), acc[1] + numeric(point?.[1], 0)], [0, 0]);
+  return [total[0] / points.length, total[1] / points.length];
 };
+
+export const resultInnerCutEntities = (curves = [], operandEntities = []) => curves.flatMap(curve => {
+  const operands = operandEntities
+    .filter(entity => entity.target === curve.node?.id && entity.booleanOperation !== 'add')
+    .map(entity => ({
+      relationId: entity.relationId,
+      profileWorkpieceId: entity.profileWorkpieceId,
+      hardwareWorkpieceId: entity.hardwareWorkpieceId,
+      centroids: productionEntityCutRings(entity).map(ringCentroid)
+    }));
+  return (curve.holes || [])
+    .filter(ring => withoutClosingVertex(ring).length >= 3)
+    .map((ring, index) => {
+      const contributor = operands.find(candidate => (
+        candidate.centroids.some(centroid => centroid && pointInPolygon(centroid, ring))
+      ));
+      return {
+        id: `${curve.node?.id || 'face'}:IH${index}`,
+        layer: OCCS_LAYER_CUT_INNER,
+        target: curve.node?.id,
+        workpieceId: curve.node?.workpieceId,
+        relationId: contributor?.relationId,
+        profileWorkpieceId: contributor?.profileWorkpieceId,
+        hardwareWorkpieceId: contributor?.hardwareWorkpieceId,
+        geometry: { type: 'polygon', vertices: ring }
+      };
+    });
+});
+
+const cutLayerFor = (code, entities = []) => {
+  const paths = entities.map(entity => ({
+    d: entity.geometry.type === 'circle'
+      ? circlePathAt(entity.geometry.center, entity.geometry.diameter)
+      : productionEntityCutRings(entity).map(occsCurveToPath).join(' '),
+    fill: 'none',
+    stroke: 'layer',
+    workpieceId: entity.workpieceId,
+    hardwareWorkpieceId: entity.hardwareWorkpieceId,
+    relationId: entity.relationId,
+    productionEntityId: entity.id
+  }));
+  return paths.length
+    ? [{
+        name: occsLayerExportName(code),
+        standardCode: code,
+        role: 'cut',
+        color: 'currentColor',
+        weight: 1,
+        dasharray: 'none',
+        paths
+      }]
+    : [];
+};
+
+const hardwareProductionLayers = (entities = [], curves = []) => [
+  ...cutLayerFor(OCCS_LAYER_CUT_INNER, resultInnerCutEntities(curves, entities)),
+  ...cutLayerFor(
+    OCCS_LAYER_CUT_HOLE,
+    entities.filter(entity => entity.layer === OCCS_LAYER_CUT_HOLE && !entity.booleanOnly)
+  )
+];
 
 const hookCutEntitiesByTarget = (entities = []) => {
   const byTarget = new Map();
@@ -3311,18 +3349,33 @@ const mergeCassetteMarkLayers = (...layers) => {
   };
 };
 
-const foldedPreviewProductionEntitiesForTree = async (curves = [], tree = createCassetteV2GraphTree()) => (
-  (await hardwareProductionEntitiesForTree(curves, tree))
-    .filter(entity => !entity.booleanOnly)
-    .map(entity => ({
+const foldedPreviewProductionEntitiesForTree = async (curves = [], tree = createCassetteV2GraphTree()) => {
+  // The curves arrive folded — their holes are the boolean result.
+  const operandEntities = [
+    ...(await profileCutEntitiesForTree(curves, tree)),
+    ...(await hardwareProductionEntitiesForTree(curves, tree))
+  ];
+  return [
+    ...resultInnerCutEntities(curves, operandEntities).map(entity => ({
       id: entity.id,
       layer: entity.layer,
       targetFaceId: entity.target,
       workpieceId: entity.workpieceId,
       relationId: entity.relationId,
       geometry: entity.geometry
-    }))
-);
+    })),
+    ...operandEntities
+      .filter(entity => entity.layer === OCCS_LAYER_CUT_HOLE)
+      .map(entity => ({
+        id: entity.id,
+        layer: entity.layer,
+        targetFaceId: entity.target,
+        workpieceId: entity.workpieceId,
+        relationId: entity.relationId,
+        geometry: entity.geometry
+      }))
+  ];
+};
 
 const foldedPreviewBodiesForTree = (tree = createCassetteV2GraphTree(), parameters = {}) => {
   const sourceTree = cloneCassetteV2Tree(tree);
@@ -3503,7 +3556,7 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
   const designerFoldEdges = designerFoldEdgesForTree(shapedCurves, tree);
   const foldedPreview = await foldedPreviewForTree(foldedPreviewCurves, tree, { includeJoints: options.includeFoldedPreviewJoints });
   const designerSections = designerSectionsForTree(shapedCurves, foldedPreview, tree);
-  const hardwareLayers = hardwareProductionLayers(productionEntities);
+  const hardwareLayers = hardwareProductionLayers(productionEntities, shapedCurves);
   const cassetteMarkLayer = buildCassetteV2CassetteMarkLayer(shapedCurves, tree, options.cassetteMarkContext || {});
   const hardwareLayer = hardwareSchematicLayer(shapedCurves, tree, {
     contextWorkpieceId: options.contextWorkpieceId,

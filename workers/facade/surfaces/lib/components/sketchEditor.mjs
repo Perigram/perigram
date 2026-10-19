@@ -1203,14 +1203,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         }, slotProps.option.label)
       });
 
-      // The selected primitive's parameter popup — the one home for a
-      // shape's non-dimensional settings: its boolean op,
-      // rotation and fillet radii on rects, fillet chips on chains.
-      // Geometry (position, sizes) authors through the on-canvas
-      // dimensions.
+      // The shape popup — canvas selections only; a panel selection
+      // expands its properties inside the panel instead.
       const shapePopup = computed(() => {
         const selection = selectedShape.value;
-        if (!selection) return null;
+        if (!selection || selection.fromPanel) return null;
         const sketch = normalizeOccsProfileSketch(props.modelValue || {});
         const shape = findShape(sketch, selection.shapeId);
         if (!shape) return null;
@@ -1224,10 +1221,9 @@ export default function createSketchEditor({ vue, components, locale }) {
         };
       });
 
-      const renderShapePopup = () => {
-        const popup = shapePopup.value;
-        if (!popup) return null;
-        const { shape, sketch } = popup;
+      // A shape's property fields — the popup body and the panel's
+      // expanded row share them.
+      const shapePropertyRows = (shape, sketch) => {
         const rows = [];
         const labeledField = (label, value, readEvaluated, apply) => h('div', { class: 'flex items-center gap-1' }, [
           h('span', { class: 'w-5 shrink-0 text-right font-mono text-xs text-muted' }, label),
@@ -1238,10 +1234,20 @@ export default function createSketchEditor({ vue, components, locale }) {
             `${label} ${shape.id}`
           )
         ]);
+        if (shape.type === 'circle') {
+          rows.push(h('div', { class: 'flex items-center gap-1' }, [
+            labeledField('d', shape.diameter, s => s?.diameter, (s, next) => ({ ...s, diameter: next })),
+            labeledField('x', shape.center[0], s => s?.center?.[0], (s, next) => ({ ...s, center: [next, s.center[1]] })),
+            labeledField('y', shape.center[1], s => s?.center?.[1], (s, next) => ({ ...s, center: [s.center[0], next] }))
+          ]));
+        }
         if (shape.type === 'rect') {
           rows.push(h('div', { class: 'flex items-center gap-1' }, [
+            labeledField('w', shape.width, s => s?.width, (s, next) => ({ ...s, width: next })),
+            labeledField('h', shape.height, s => s?.height, (s, next) => ({ ...s, height: next })),
+            labeledField('x', shape.center[0], s => s?.center?.[0], (s, next) => ({ ...s, center: [next, s.center[1]] })),
+            labeledField('y', shape.center[1], s => s?.center?.[1], (s, next) => ({ ...s, center: [s.center[0], next] })),
             labeledField('∠', shape.rotation, s => s?.rotation, (s, next) => ({ ...s, rotation: next })),
-            h('span', { class: 'mx-0.5 h-4 w-px shrink-0 bg-content-border' }),
             ...[0, 1, 2, 3].map(corner => {
               const filletByCorner = new Map(shape.fillets.map(fillet => [fillet.corner, fillet.radius]));
               return labeledField(
@@ -1278,6 +1284,13 @@ export default function createSketchEditor({ vue, components, locale }) {
             ))));
           }
         }
+        return rows;
+      };
+
+      const renderShapePopup = () => {
+        const popup = shapePopup.value;
+        if (!popup) return null;
+        const { shape, sketch } = popup;
         return h('div', {
           class: 'profile-shape-popup absolute z-20 flex flex-col gap-1.5 rounded-ui border border-content-border bg-content px-2 py-1.5 shadow-md',
           style: { left: `${popup.left}px`, top: `${popup.top}px` },
@@ -1290,7 +1303,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
             opToggle(shape)
           ]),
-          ...rows
+          ...shapePropertyRows(shape, sketch)
         ]);
       };
 
@@ -1311,32 +1324,38 @@ export default function createSketchEditor({ vue, components, locale }) {
             || selectedCorner.value?.shapeId === shape.id;
           const row = h('div', {
             key: shape.id,
-            class: 'flex items-center gap-1 rounded-ui border px-1 py-0.5'
+            class: 'flex flex-col gap-1 rounded-ui border px-1 py-0.5'
               + (selected ? ' border-primary bg-content' : ' border-transparent')
           }, [
-            h(Button, {
-              text: true,
-              rounded: true,
-              size: 'small',
-              severity: 'secondary',
-              class: 'h-7 !px-1 text-xs',
-              title: t(SHAPE_KIND_LABEL[shape.type]),
-              'aria-label': `${t(SHAPE_KIND_LABEL[shape.type])} ${shape.id}`,
-              onClick: event => {
-                selectedCorner.value = null;
-                const bounds = overlayRef.value?.getBoundingClientRect();
-                selectedShape.value = {
-                  shapeId: shape.id,
-                  at: bounds
-                    ? [event.clientX - bounds.x, event.clientY - bounds.y + 16]
-                    : [24, 24]
-                };
-              }
-            }, () => [
-              toolIcon(h, SHAPE_KIND_ICON[shape.type]),
-              h('span', { class: 'ml-1' }, t(SHAPE_KIND_LABEL[shape.type]))
+            h('div', { class: 'flex items-center gap-1' }, [
+              h(Button, {
+                text: true,
+                rounded: true,
+                size: 'small',
+                severity: 'secondary',
+                class: 'h-7 !px-1 text-xs',
+                title: t(SHAPE_KIND_LABEL[shape.type]),
+                'aria-label': `${t(SHAPE_KIND_LABEL[shape.type])} ${shape.id}`,
+                'aria-expanded': selected ? 'true' : 'false',
+                onClick: () => {
+                  selectedCorner.value = null;
+                  selectedShape.value = selectedShape.value?.shapeId === shape.id
+                    ? null
+                    : { shapeId: shape.id, at: [24, 24], fromPanel: true };
+                }
+              }, () => [
+                toolIcon(h, SHAPE_KIND_ICON[shape.type]),
+                h('span', { class: 'ml-1' }, t(SHAPE_KIND_LABEL[shape.type]))
+              ]),
+              opToggle(shape)
             ]),
-            opToggle(shape)
+            ...(selected
+              ? [h('div', {
+                  key: `${shape.id}-properties`,
+                  class: 'flex flex-wrap items-center gap-1 border-t border-content-border pl-2 pt-1',
+                  'aria-label': t('cassette.v2.profileEditor.parameters')
+                }, shapePropertyRows(shape, normalizeOccsProfileSketch(props.modelValue || {})))]
+              : [])
           ]);
           const divider = previousGroup !== null && previousGroup !== shape.op
             ? h('div', { key: `sep-${previousGroup}-${shape.op}`, class: 'my-0.5 h-px bg-content-border' })

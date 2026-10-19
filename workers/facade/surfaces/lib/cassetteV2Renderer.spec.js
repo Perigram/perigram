@@ -1388,6 +1388,42 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(folded.cutouts || []).toEqual([]);
   });
 
+  it('ships the boolean result only — overlapping subtract operands merge into one inner cut', async () => {
+    // Two overlapping subtract circles cut one merged hole: the
+    // operand rings themselves never reach the cassette outputs
+    // (owner law: production rides the region fold).
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      sketch: {
+        version: '0.2', units: 'mm', parameters: {}, material: 'positive',
+        shapes: [
+          { id: 's0', type: 'circle', op: 'subtract', center: [100, 100], diameter: 30 },
+          { id: 's1', type: 'circle', op: 'subtract', center: [115, 100], diameter: 30 },
+          { id: 's2', type: 'rect', op: 'construction', center: [200, 100], width: 20, height: 20, rotation: 0, fillets: [] }
+        ]
+      }
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    const tree = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1' },
+      offsetX: '0', offsetY: '0'
+    });
+
+    const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
+    const occs = await createCassetteV2OccsDocument(tree);
+    const innerCut = drawing.layers.find(layer => layer.standardCode === 'cut.inner');
+    expect(innerCut?.paths, 'the two overlapping operands ship as ONE merged result ring').toHaveLength(1);
+    expect(innerCut.paths[0].relationId).toBe(relation.id);
+    // The document's face shape carries the folded result; the
+    // construction helper stays out of every output.
+    const face = occs.definitions.workpieces[0].faces[0];
+    expect(face.shape.holes).toHaveLength(1);
+    const folded = buildCassetteV2FoldedPreview(drawing.foldedPreview);
+    expect(folded.faces[0].holes).toHaveLength(1);
+    expect(folded.cutouts.filter(cutout => cutout.layer === 'cut.inner')).toHaveLength(1);
+  });
+
   it('keeps face labels and dimension controls on the original boundary for integral cuts', async () => {
     const cleanTree = createCassetteV2GraphTree();
     const cleanDrawing = await renderCassetteV2TreeToDrawing(cleanTree, { mode: 'assembly' });

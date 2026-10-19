@@ -934,11 +934,18 @@ direct segmented Add/Subtract/Construction control, every option's
 tooltip naming the face as the target). Rows group in the evaluation
 order — adds, subtracts, construction — so the boolean fold reads off
 the list itself; hidden three-state cycling controls are gone.
-Clicking a row selects its shape. Placing a library record whose
+Clicking a row selects its shape and expands the row into the shape's
+property fields (the whole authoring table — sizes, position,
+rotation, fillet radii — as expression inputs in the same tree);
+a repeat click collapses it. Placing a library record whose
 sketch carries no participating shape refuses with the authoring
 message — the parametric default hanger stands in only for
 sketch-less workpieces, and authored-but-empty snapshots never place
-template geometry.
+template geometry. Production outputs carry the folded boolean result
+only: the drawing's inner-cut layer, the evaluated data stream, the
+folded cutouts, and the document's face shapes read the result's
+rings — operand primitives consumed by the result (overlapping or
+nested cuts dissolving into merged rings) never draw on the cassette.
 
 Owner review (2026-10-18, profile editor readout): the parameter table
 lives in the strip above the canvas — its one home, visible with no

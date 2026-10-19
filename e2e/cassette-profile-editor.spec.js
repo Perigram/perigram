@@ -110,6 +110,21 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(panelOrder[0]?.startsWith('Rectangle'), `adds list first: ${panelOrder.join(', ')}`).toBe(true);
   expect(panelOrder[1]?.startsWith('Circle'), `subtracts follow: ${panelOrder.join(', ')}`).toBe(true);
 
+  // Selecting a row expands its property fields — the shape's whole
+  // authoring table edits in place (owner direction: shape properties
+  // in the same tree).
+  await circleRow.click();
+  const circleDiameterField = dialog.locator('input[aria-label^="d s"]').first();
+  await expect(circleDiameterField).toBeVisible({ timeout: 10_000 });
+  await circleDiameterField.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await circleDiameterField.pressSequentially('20', { delay: 50 });
+  await circleDiameterField.press('Enter');
+  await page.waitForTimeout(600);
+  await expect(dialog.locator('input.profile-dim[aria-label^="diameter"]')).toHaveValue('20', { timeout: 10_000 });
+  await circleRow.click();
+  await expect(circleDiameterField).toBeHidden({ timeout: 10_000 });
+
   const drawn = await dimState(dialog);
   expect(Object.keys(drawn).length, 'dimension annotations for the drawn shapes').toBeGreaterThan(0);
   expectDrawingScale(drawn);
