@@ -78,27 +78,30 @@ const tabListPt = {
   activeBar: { style: { display: 'none' } }
 };
 
-// PrimeVue's scroll-end check compares fractional widths, so the next
-// chevron outstays the strip's end and covers the last tab; the strip
-// tracks its own scroll and hides it exactly at the end.
+// PrimeVue's scroll-end check compares fractional widths against rounded
+// integers, so the next chevron outstays the strip's end and covers the
+// last tab; the strip measures the tab row's edge against the viewport
+// and hides it exactly at the end.
 const tabList = ref(null);
 const atScrollEnd = ref(false);
 let stripObserver;
 let viewportEl;
+let innerEl;
 
 const measureScrollEnd = () => {
-  if (!viewportEl) return;
-  atScrollEnd.value = viewportEl.scrollWidth - viewportEl.clientWidth - viewportEl.scrollLeft <= 1;
+  if (!viewportEl || !innerEl) return;
+  atScrollEnd.value = innerEl.getBoundingClientRect().right - viewportEl.getBoundingClientRect().right <= 1;
 };
 
 onMounted(() => {
   const refs = tabList.value?.$refs;
   viewportEl = refs?.content || null;
-  if (!viewportEl) return;
+  innerEl = refs?.tabs || null;
+  if (!viewportEl || !innerEl) return;
   viewportEl.addEventListener('scroll', measureScrollEnd);
   stripObserver = new ResizeObserver(measureScrollEnd);
   stripObserver.observe(viewportEl);
-  if (refs?.tabs) stripObserver.observe(refs.tabs);
+  stripObserver.observe(innerEl);
   measureScrollEnd();
 });
 
