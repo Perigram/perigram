@@ -484,12 +484,15 @@ when the active user has a concrete `sheet_designs:write` grant — a
 plugin-delivered module (`workers/facade/surfaces/`, see
 [workers/facade](../workers/facade/README.md)) loaded through the
 remote-surface contract, running on the shared designer shell
-(`DesignerSurface` + `DesignerWorkspace` from the vetted pack) with a
-full-bleed sheet canvas and its commands (add/rotate/delete/save) in the
-shared dock. The editor mutates nesting source
+(`DesignerSurface` + `DesignerWorkspace` from the vetted pack) in the
+lanes layout: palette (cassette picker, margin, layer rows) and inspector
+beside the sheet canvas, canvas commands (undo/redo/zoom) in the shared
+dock, and the selection's speed dial (open cassette, rotate, delete). The
+editor mutates nesting source
 items and placements, resolves OCCS layer pens through the shared layer
-standards, snaps transformed cassette production-contour edges with tool-kerf
-clearance, checks transformed polygon clearance before accepting a placement,
+standards, drags placements by face with magnetic snap at the margin
+(part gap and sheet-edge offset), checks transformed polygon clearance
+before accepting a placement,
 clamps complete rotated geometry inside the usable sheet polygon when one is
 present, falls back to rectangular sheet bounds for virtual rectangle sheets,
 and persists through immutable

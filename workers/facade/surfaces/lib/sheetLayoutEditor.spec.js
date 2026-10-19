@@ -148,16 +148,20 @@ describe('sheet layout editor helpers', () => {
     expect(placements[0].transformation.rotation).toBeCloseTo(0);
   });
 
-  it('creates a nesting source item from uploaded cassette geometry', () => {
+  it('creates a sheet item from a cassette record with extracted geometry', () => {
     const item = cassetteSheetItem({
-      _id: 'design-1',
-      identity: { name: 'Panel' },
-      data: {
+      _id: 'cassette-1',
+      name: 'Panel',
+      fields: {
         polygonParts: [{ layer: 'cut.outer', coordinates: [[0, 0], [20, 0], [20, 10], [0, 10], [0, 0]] }],
         layerData: [{ layer: 'fold.route', coordinates: [[0, 5], [20, 5]] }]
       }
     }, 'manual-1');
-    expect(item).toMatchObject({ id: 'manual-1', cassette_id: 'design-1', name: 'Panel' });
+    expect(item).toMatchObject({ id: 'manual-1', cassette_id: 'cassette-1', name: 'Panel' });
     expect(item.sourceLayers[0].layer).toBe('fold.route');
+  });
+
+  it('refuses a cassette record without extracted polygon geometry', () => {
+    expect(cassetteSheetItem({ _id: 'cassette-2', name: 'Authored', fields: {} }, 'manual-2')).toBe(null);
   });
 });

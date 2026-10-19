@@ -503,30 +503,28 @@ export function rotateSheetPlacementQuarterTurn({ items = [], placements = [], i
   return placementHasClearance({ items, placements, placement: rotated, index, clearance }) ? rotated : null;
 }
 
-function designLayerData(design = {}) {
-  const data = design.data || {};
-  const geometry = data.geometry?.data || {};
-  return [data.layerData, geometry.layerData].find(items => Array.isArray(items) && items.length) || [];
+// Cassette records on the §3 wire: geometry extraction fields beside the
+// identifier name (`fields.polygonParts`, `fields.layerData` — DXF import
+// writes them; a cassette with none has no placeable geometry).
+function cassetteRecordParts(cassette = {}) {
+  const fields = cassette.fields || {};
+  return Array.isArray(fields.polygonParts) && fields.polygonParts.length
+    ? { polygonParts: fields.polygonParts, layerData: fields.layerData }
+    : { polygonParts: [], layerData: [] };
 }
 
-function designPolygonParts(design = {}) {
-  const data = design.data || {};
-  const geometry = data.geometry?.data || {};
-  return [data.polygonParts, geometry.polygonParts, geometry.layerData, data.layerData]
-    .find(items => Array.isArray(items) && items.some(item => Array.isArray(item?.coordinates) && item.coordinates.length >= 3)) || [];
-}
-
-export function cassetteSheetItem(design = {}, id) {
-  const polygon = designPolygonParts(design)
-    .find(item => (item.layer || item.standardCode) === 'cut.outer')
-    || designPolygonParts(design)[0];
+export function cassetteSheetItem(cassette = {}, id) {
+  const { polygonParts, layerData } = cassetteRecordParts(cassette);
+  const polygon = polygonParts
+    .find(part => (part.layer || part.standardCode) === 'cut.outer')
+    || polygonParts[0];
   if (!polygon?.coordinates?.length) return null;
   return {
     id,
-    cassette_id: design._id,
-    name: design.identity?.name || design.identity?.slug || design._id,
+    cassette_id: cassette._id,
+    name: cassette.name || cassette._id,
     shape: { type: 'simple_polygon', data: clone(polygon.coordinates) },
-    sourceLayers: designLayerData(design).map(layer => ({
+    sourceLayers: (Array.isArray(layerData) ? layerData : []).map(layer => ({
       ...clone(layer),
       layer: layer.layer || layer.standardCode || layer.name
     }))

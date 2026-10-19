@@ -79,7 +79,7 @@ persistence callbacks, never stores, routing, or auth:
   consistency law), and `{ t, te, locale }`. The pack is the PrimeVue
   primitives (`Button`, `Checkbox`, `ColorPicker`, `Dialog`, `InputText`,
   `InputNumber`, `Message`, `Popover`, `ScrollPanel`, `Select`,
-  `SelectButton`, `Tag`, `Textarea`, `Toolbar`) plus
+  `SelectButton`, `SpeedDial`, `Tag`, `Textarea`, `Toolbar`) plus
   the host designer chrome (`DesignerSurface`, `DesignerWorkspace`,
   `DrawingCanvas`, `InstanceSelect`, `StandardDialog`).
 - The returned component declares props `{ record, persistence }`.
@@ -115,7 +115,10 @@ persistence callbacks, never stores, routing, or auth:
   surface's own publications are skipped host-side) and
   `upload.file(blob, { fileName })` stores an asset through the host's
   file channel and returns the stored ref — the module calls, never
-  fetches. The plugin serves its own third-party runtimes
+  fetches. Navigation mounts (`surfaceContract: 4`, owner decision
+  2026-10-19) add `open.instance({ typeId, instanceId, editor })`: the
+  workspace owns tabs, so a surface that needs another record opened
+  asks the host through it. The plugin serves its own third-party runtimes
   beside its modules — either vendored as static assets under the
   executor root, imported by relative URL, or as declared runtime
   dependencies (owner decision 2026-10-17): `perigram-plugin vendor

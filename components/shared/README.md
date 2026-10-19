@@ -180,9 +180,10 @@ content compiles in the parent scope, so designer code drives panels
 through the workspace ref API (`panels`, `toggle`, `setPanel`), never
 provide/inject.
 
-Every operational designer uses this contract: cassette and facade design
-use `layout="lanes"`; the process designer and the sheet-design editor use
-`layout="canvas"`. Every designer first mounts through `DesignerSurface`,
+Every operational designer uses this contract: cassette design and the
+sheet-design editor use `layout="lanes"` (persistent palette and inspector
+rails); the process designer uses `layout="canvas"`. Every designer first
+mounts through `DesignerSurface`,
 and `DesignerDialog` uses the same surface for dialog entry points.
 
 `layout="lanes"` is for editors with persistent side panels. The canvas is

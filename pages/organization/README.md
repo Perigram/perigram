@@ -160,8 +160,9 @@ The route uses the authenticated app layout with a full canvas workspace and
 the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell.
 Document and canvas commands render in the shell's floating PrimeVue
 `Toolbar` (the shared designer contract in
-[components/shared](../../components/shared/README.md)), matching the shell
-used by the cassette and sheet-design editors; the palette and
+[components/shared](../../components/shared/README.md)); the cassette and
+sheet-design editors ride the same chrome in `layout="lanes"`. The
+palette and
 inspector render as PrimeVue `Drawer` side panels inside the canvas workspace.
 The graph palette is operation vocabulary followed by
 the operation, value, and list groups: registry types (pack or
