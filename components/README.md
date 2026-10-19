@@ -7,7 +7,9 @@
   image. Pass the label only when no image resolves
   (`:label="imageUrl ? null : letter"`); this once made every chat avatar
   render as its letter while the image endpoint answered 200.
-- **Zero Styling Policy:** Components MUST avoid manual visual styling. Feature code may own layout and data-driven styling only. Reusable domain entity surfaces, operational workspaces, geometry/process designers, and recurring layouts use the registered shared primitives and semantic aliases from `assets/tokens/`.
+- **Loading marks:** every inline spinner is PrimeVue `ProgressSpinner`
+  sized to its row; menu items render it through the `itemicon` slot,
+  and full loading surfaces stay with `StateBlock`.- **Zero Styling Policy:** Components MUST avoid manual visual styling. Feature code may own layout and data-driven styling only. Reusable domain entity surfaces, operational workspaces, geometry/process designers, and recurring layouts use the registered shared primitives and semantic aliases from `assets/tokens/`.
 - **Motion:** Motion is contextual behavior, not an application theme concern.
   Keep interaction-specific motion inside the owning derived composition, use
   the preset's transition duration for generic states, and respect

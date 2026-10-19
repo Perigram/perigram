@@ -726,7 +726,7 @@
                                     v-if="transcribingMessageIds.has(messageItem._id)"
                                     class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting"
                                 >
-                                    <i class="pi pi-spin pi-spinner shrink-0" aria-hidden="true" />
+                                    <ProgressSpinner class="h-3.5 w-3.5 shrink-0" />
                                     <span class="min-w-0 truncate">{{ $t('support.transcribing') }}</span>
                                 </span>
                                 </div>
@@ -1431,7 +1431,12 @@
                 </Listbox>
             </div>
         </StandardDialog>
-        <ContextMenu ref="messageMenu" :model="messageMenuItems" />
+        <ContextMenu ref="messageMenu" :model="messageMenuItems">
+            <template #itemicon="{ item, class: itemIconClass }">
+                <ProgressSpinner v-if="item.spinner" class="h-4 w-4" :class="itemIconClass" />
+                <i v-else-if="item.icon" :class="[itemIconClass, item.icon]" />
+            </template>
+        </ContextMenu>
         <ChatBotPanel
             v-model:visible="botPanelVisible"
             :conversation-key="botPanelConversationKey"
@@ -1463,6 +1468,7 @@ import PrimeSelect from 'primevue/select'
 import InstanceMultiSelect from '~/components/shared/InstanceMultiSelect.vue'
 import Textarea from 'primevue/textarea'
 import Menu from 'primevue/menu'
+import ProgressSpinner from 'primevue/progressspinner';
 import ContextMenu from 'primevue/contextmenu'
 import ProgressBar from 'primevue/progressbar'
 import ToggleSwitch from 'primevue/toggleswitch'
@@ -3064,7 +3070,8 @@ const messageMenuItems = computed(() => {
     if (canTranscribe(target)) {
         items.push({
             label: t('support.transcribe'),
-            icon: transcribing ? 'pi pi-spin pi-spinner' : 'pi pi-eye',
+            icon: transcribing ? undefined : 'pi pi-eye',
+            spinner: transcribing,
             disabled: transcribing,
             command: () => {
                 messageMenu.value?.hide?.()

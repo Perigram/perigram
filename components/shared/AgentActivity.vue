@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Fieldset from 'primevue/fieldset';
 import Message from 'primevue/message';
+import ProgressSpinner from 'primevue/progressspinner';
 import { useRegistryStore } from '~/stores/registry';
 
 // An agent run's chronology: reasoning in collapsible Fieldsets, one
@@ -25,7 +26,7 @@ const toolSeverity = (status) => ({
 const toolIcon = (status) => ({
     done: 'pi pi-check',
     error: 'pi pi-exclamation-triangle'
-}[status] || 'pi pi-spin pi-spinner');
+}[status] || '');
 // Unknown tools fall back to the raw name; the t-versus-key idiom covers
 // missing keys (te is locale-strict).
 const toolLabel = (step) => {
@@ -103,12 +104,15 @@ const thinkingPtFor = (index) => {
             <Message
                 v-else
                 :severity="toolSeverity(step.status)"
-                :icon="toolIcon(step.status)"
                 size="small"
                 :closable="false"
                 class="mx-1 self-start min-w-0 max-w-full"
                 data-testid="agent-tool"
             >
+                <template #icon>
+                    <i v-if="['done', 'error'].includes(step.status)" :class="toolIcon(step.status)" />
+                    <ProgressSpinner v-else class="h-4 w-4" />
+                </template>
                 <span class="min-w-0 break-words [overflow-wrap:anywhere]">{{ toolText(step) }}</span>
             </Message>
         </template>
