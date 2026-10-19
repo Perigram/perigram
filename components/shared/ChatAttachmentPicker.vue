@@ -109,7 +109,7 @@ import { useAuthStore } from '~/stores/auth'
 import { useInstancesStore } from '~/stores/instances'
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
-import { resolveSourceFilters } from '~/composables/useGeneratedScreen.js'
+import { resolveSourceFilters } from '~/utils/generated-screen-source.js'
 
 /**
  * Attachment picker: the one attach surface for entity refs AND files

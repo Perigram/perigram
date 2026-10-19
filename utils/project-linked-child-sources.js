@@ -1,5 +1,5 @@
 import { generatedDetailScreenForTypeId } from '~/components/generated/detail-screen-actions.js';
-import { resolveSourceFilters } from '~/composables/useGeneratedScreen.js';
+import { resolveSourceFilters } from './generated-screen-source.js';
 import { normalizeHierarchyType } from './instance-hierarchy.js';
 
 export function linkedExplorerChildSources({ linkedItems = [], screens = [], containment = [] } = {}) {

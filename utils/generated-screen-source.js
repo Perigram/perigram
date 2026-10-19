@@ -60,6 +60,53 @@ function readFilterPath(entity = {}, path = '') {
   return entity?.lineage?.[segments[0]];
 }
 
+// The $screen.-reference resolution contract: a source's identifier and
+// filter values may address the screen's own scope (`$screen.scope.id`
+// and friends); strings resolve against the screen object, composites
+// resolve recursively, everything else passes through.
+export function resolveSourceFilters(source = {}, screen = {}) {
+  const filters = resolveScreenValue(source.filters || {}, screen) || {};
+  const statuses = statusFiltersFromRequirement(source.required || screen.required || {});
+  if (!statuses.length) return filters;
+  if (statuses.length === 1) return { ...filters, primaryState: statuses[0] };
+  return { ...filters, primaryStates: statuses.join(',') };
+}
+
+export function resolveSourceIdentifier(source = {}, screen = {}) {
+  return resolveScreenValue(source.identifier, screen)
+    || screen.scope?.instanceId
+    || screen.scope?.[`${source.typeId}Id`]
+    || '';
+}
+
+function statusFiltersFromRequirement(requirement = {}) {
+  return [...new Set(statusesFromRule(requirement.rule))];
+}
+
+function statusesFromRule(rule) {
+  if (!rule || typeof rule !== 'object') return [];
+  if (Array.isArray(rule)) return rule.flatMap(statusesFromRule);
+  if (Array.isArray(rule.any)) return rule.any.flatMap(statusesFromRule);
+  if (Array.isArray(rule.all)) return rule.all.flatMap(statusesFromRule);
+  if (rule.not) return [];
+  if ((rule.fact === 'primaryState' || rule.fact === 'status.primary') && rule.equals) return [String(rule.equals)];
+  if ((rule.fact === 'primaryState' || rule.fact === 'status.primary') && Array.isArray(rule.in)) return rule.in.map(String);
+  return [];
+}
+
+function resolveScreenValue(value, screen = {}) {
+  if (Array.isArray(value)) return value.map(item => resolveScreenValue(item, screen));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, resolveScreenValue(item, screen)]));
+  }
+  if (typeof value !== 'string' || !value.startsWith('$screen.')) return value;
+  return screenPathValue(screen, value.slice('$screen.'.length));
+}
+
+function screenPathValue(screen = {}, path = '') {
+  return String(path || '').split('.').filter(Boolean).reduce((value, key) => (value == null ? undefined : value[key]), screen);
+}
+
 function accessibleEntityIds(sourceStates = {}) {
   const result = new Map();
   for (const state of Object.values(sourceStates || {})) {

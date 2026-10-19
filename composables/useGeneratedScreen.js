@@ -5,7 +5,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { hasProcessRequirement } from '~/utils/process-navigation.js';
 import { onInstanceChanged } from '~/utils/instance-events.js';
-import { entityMatchesFilters, filterRootSourceItems } from '~/utils/generated-screen-source.js';
+import { entityMatchesFilters, filterRootSourceItems, resolveSourceFilters, resolveSourceIdentifier } from '~/utils/generated-screen-source.js';
 
 export function useGeneratedScreen(screenRef) {
   const authStore = useAuthStore();
@@ -182,49 +182,6 @@ function emptyState(source = {}) {
     items: [],
     error: null
   };
-}
-
-function resolveSourceIdentifier(source = {}, screen = {}) {
-  return resolveValue(source.identifier, screen)
-    || screen.scope?.instanceId
-    || screen.scope?.[`${source.typeId}Id`]
-    || '';
-}
-
-export function resolveSourceFilters(source = {}, screen = {}) {
-  const filters = resolveValue(source.filters || {}, screen) || {};
-  const statuses = statusFiltersFromRequirement(source.required || screen.required || {});
-  if (!statuses.length) return filters;
-  if (statuses.length === 1) return { ...filters, primaryState: statuses[0] };
-  return { ...filters, primaryStates: statuses.join(',') };
-}
-
-function statusFiltersFromRequirement(requirement = {}) {
-  return [...new Set(statusesFromRule(requirement.rule))];
-}
-
-function statusesFromRule(rule) {
-  if (!rule || typeof rule !== 'object') return [];
-  if (Array.isArray(rule)) return rule.flatMap(statusesFromRule);
-  if (Array.isArray(rule.any)) return rule.any.flatMap(statusesFromRule);
-  if (Array.isArray(rule.all)) return rule.all.flatMap(statusesFromRule);
-  if (rule.not) return [];
-  if ((rule.fact === 'primaryState' || rule.fact === 'status.primary') && rule.equals) return [String(rule.equals)];
-  if ((rule.fact === 'primaryState' || rule.fact === 'status.primary') && Array.isArray(rule.in)) return rule.in.map(String);
-  return [];
-}
-
-function resolveValue(value, screen = {}) {
-  if (Array.isArray(value)) return value.map(item => resolveValue(item, screen));
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, resolveValue(item, screen)]));
-  }
-  if (typeof value !== 'string' || !value.startsWith('$screen.')) return value;
-  return getByPath(screen, value.slice('$screen.'.length));
-}
-
-function getByPath(source, path) {
-  return String(path || '').split('.').filter(Boolean).reduce((value, key) => value?.[key], source);
 }
 
 function entityFetchOptions(options = {}) {
