@@ -530,7 +530,9 @@ relationship.
 The user identity chip: a small plain avatar plus display name (no chip
 chrome — caption-size caption line, not a boxed control) for person
 identity in conversation surfaces — thread sender labels, member list
-popups — replacing the generic inline-ref face for users. That face is
+popups — replacing the generic inline-ref face for users. The
+`avatar-only` variant renders the avatar alone at message scale (h-9)
+for the wide thread's sender gutter. That face is
 wrong for people: `InstanceCard`'s inline variant renders the type glyph
 plus the identifier-flagged field (the served `user` type declares
 `identifier: "email"` and the users glyph) and carries no avatar slot, so

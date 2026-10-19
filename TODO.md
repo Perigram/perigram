@@ -7424,15 +7424,19 @@ counterpart's, with the group-style sender indicator.
 
 - [ ] WAITING — owner verification on the live stack: messages cap at 70% of
       the thread column with chip lines capped at the gallery width; a wide
-      thread pane aligns every message left with the viewer's runs led by
-      the sender chip; a narrow pane keeps the right/left dock split.
+      thread pane (64rem+) aligns every message left, each sender run
+      closing with the avatar gutter mark at its last message; a narrow
+      pane keeps the right/left dock split with the chip lead.
 
 ### Agent Notes (2026-10-19 — wide-pane alignment)
 
 - `supportChatMessageMax` 85% → 70%; instance-ref and file chip lines cap
   at the gallery width (max-w-80).
-- `ChatSupport` measures the messages container (ResizeObserver, 640px
-  threshold): wide panes dock every message left and lead the viewer's runs
-  with the sender chip; narrow panes keep the viewer's right dock. Row
-  dock, row alignment, swipe direction, menu offsets, sender labels, and
-  the attachment family's `ownMessage` all follow `docksRight`.
+- `ChatSupport` measures the messages container (ResizeObserver): wide
+  panes dock every message left; narrow panes keep the viewer's right
+  dock. Row dock, row alignment, swipe direction, menu offsets, sender
+  labels, and the attachment family's `ownMessage` all follow `docksRight`.
+- Wide threshold raised to 1024px per owner direction; the wide sender
+  mark is `UserChip` `avatar-only` (h-9) seated in a left gutter
+  (`ml-14`) at the run's last message bottom, the narrow chip lead
+  unchanged.

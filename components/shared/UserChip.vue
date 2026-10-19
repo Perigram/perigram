@@ -5,18 +5,15 @@
         :aria-label="displayName"
         @click.stop="open"
     >
-        <AiAvatar
-            v-if="isBot"
-            class="h-5 w-5 shrink-0 [&_.p-avatar-icon]:text-[0.75rem]"
-        />
+        <AiAvatar v-if="isBot" :class="avatarClass" />
         <Avatar
             v-else
             :image="avatarUrl"
             :label="avatarUrl ? null : displayName.charAt(0).toUpperCase()"
             shape="circle"
-            class="h-5 w-5 shrink-0 bg-subtle text-supporting [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+            :class="avatarClass"
         />
-        <span class="min-w-0 truncate text-supporting">{{ displayName }}</span>
+        <span v-if="!avatarOnly" class="min-w-0 truncate text-supporting">{{ displayName }}</span>
     </button>
 </template>
 
@@ -36,7 +33,9 @@ import { useInstancesStore } from '~/stores/instances';
 const props = defineProps({
     userId: { type: [String, Number], required: true },
     // Optional display-name hint while (or instead of) the record resolves.
-    name: { type: String, default: '' }
+    name: { type: String, default: '' },
+    // The avatar-gutter variant: avatar at message scale, no name text.
+    avatarOnly: { type: Boolean, default: false }
 });
 
 const { t } = useI18n();
@@ -57,6 +56,9 @@ const displayName = computed(() => resolved.value?.name
 const avatarUrl = computed(() => resolved.value?.fields?.avatarUrl
     || resolved.value?.data?.avatarUrl
     || '');
+const avatarClass = computed(() => props.avatarOnly
+    ? 'h-9 w-9 shrink-0 bg-subtle text-supporting [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover [&_.p-avatar-icon]:text-[0.875rem]'
+    : 'h-5 w-5 shrink-0 bg-subtle text-supporting [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover [&_.p-avatar-icon]:text-[0.75rem]');
 // The bot marker drives the shared AI glyph.
 const isBot = computed(() => Boolean(resolved.value?.fields?.bot || resolved.value?.data?.bot));
 
