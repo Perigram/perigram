@@ -46,7 +46,7 @@ targets a surface mount contract
 |---|---|---|
 | `extract-geometry` | cassette-design `upload`/`convertDxf` | DXF payload (base64) in → `{ data: { geometry } }` out |
 | `bake` | cassette-design `bake` | template ref (payload = OCCS document, base64) + parameters in → evaluated geometry out |
-| `nesting-solve` | the `plugin.facade.nesting-solve` value service | SPEC §8 signature; calls the nesting worker (`NESTING_WORKER_URL`); every output layout ships self-contained (`sourceItems` resolve its placements, `sheetPolygon` carries its bin shape) |
+| `nesting-solve` | the `plugin.facade.nesting-solve` value service | SPEC §8 signature (`sheetWidth`/`sheetHeight` default 1220×2440 mm — the prompted run parameters); calls the nesting worker (`NESTING_WORKER_URL`); every output layout ships self-contained (`sourceItems` resolve its placements, `sheetPolygon` carries its bin shape) |
 | `import-cassette` | the `dxfSourceToCassette` conversion | artifact buffer + layer mapping in → cassette payload + extracted fields out |
 | `generate-sheet-dxf` | the sheet-design `LAYOUT_DXF` export binding | stored geometry values in → DXF text out |
 | `construct-sheet` | sheet-design `fromLayout` | one solved layout value in → `{ data: { geometry, parts } }` out (the editor's stored geometry shape; one cassette ref per placement) |

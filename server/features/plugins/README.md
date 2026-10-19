@@ -83,7 +83,12 @@ executors through the worker protocol.
   list the designer, compiler, and admin domain route resolve), as species
   records whose id and command are the same plugin-qualified id
   `plugin.<pluginId>.<serviceId>`; they obey the same active-process
-  service gating. Palette law (SPEC §20 — the palette is
+  service gating. The same services compose into the projected command
+  table (`projectedDomainsForOrganization`): a service's scalar signature
+  fields ride as the command's `input.parameters` — the inputs a run
+  dialog prompts, prefilled by an authored field `default`, and the
+  required-input availability check counts as promptable — while
+  structured fields (`list`/`record`) stay graph data sockets. Palette law (SPEC §20 — the palette is
   operations, never an implementation-mechanism catalog): only wireable
   services compose — a signature input of `record` projects data sockets
   (the s-species port projection maps record fields only); a bare-value

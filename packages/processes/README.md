@@ -229,6 +229,9 @@ contract on every sync pass rather than captured at setup: the designer
 replaces its domain when the served organization projection (mounted packs
 plus installed plugins) arrives, and a service node loaded before it
 re-resolves its ports. An unknown operator is a compile-time diagnostic.
+A type configured on the service node binds the derived run action to
+that type's screens — the run button executes against the opened
+instance, and the command's scalar parameters are its prompted inputs.
 Palette translations are presentation only; generated action captions
 derive from typed declarations. Callers provide the current semantic
 graph directly; normalization never infers a missing protocol version.
