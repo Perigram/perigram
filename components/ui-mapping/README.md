@@ -345,7 +345,10 @@ surface concerns:
   stepper); instances without a state render nothing (no state is
   information — nothing synthesizes one). The action cluster sits
   right (the identity's flex-1 is the push): the composed instance-chat
-  entry, at most `HEADER_ACTIONS_INLINE` generated buttons inline — a
+  entry, the host-resolved editor action component (`editorActions`
+  channel: the app host resolves the file-surface registry per type and
+  the engine renders what it receives), at most `HEADER_ACTIONS_INLINE`
+  generated buttons inline — a
   third and every further action join one popup ellipsis menu (no
   reserved layout space) with the same localized labels — and every
   available runtime transition renders as a dedicated transition button
@@ -372,7 +375,9 @@ surface concerns:
   screen's `onOpen` contract, like every collection identity.
 - `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
   scalar facts strip (`DETAIL_FACT_BUDGET`), structural fields as an Accordion,
-  budgeted relation chips with show-more toggles for relations not already
+  labeled relation sections (the field label override channel over the
+  relation key, start-cased fallback) with budgeted chips and show-more
+  toggles for relations not already
   covered by a child region, and the hierarchy tree for groups. Every
   scalar and simple structural field renders through `InlineField.vue`,
   the one detail value cell (plain display; the click-to-edit Inplace

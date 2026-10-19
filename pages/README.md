@@ -97,8 +97,11 @@ the same reason. The routed surface owns the back affordance
 header carries it for list screens and the record header's navigation
 channel carries it for detail screens, following in-app history with the
 home entry ladder as the deep-link fallback — routed surfaces never
-dead-end without a way back. The route renders the compiled screen
-label as its page title. Process screens arrive in the compiled UI
+dead-end without a way back. List screens render the compiled screen
+label as their page title; routed detail screens render the record
+header as the page head (the type label and back affordance render once,
+through the record header's anatomy and navigation channel). Process
+screens arrive in the compiled UI
 contract vocabulary (`typeList`/`instanceDetail`/`home` plus `typeId`) and
 render through the UI generator (`composeScreen` +
 [components/ui-mapping](../components/ui-mapping/README.md)) with the client

@@ -19,6 +19,7 @@
             :resolve-transitions="onFetchTransitions"
             :load-type="onLoadType"
             :navigation="navigation"
+            :editor-actions="editorActions"
             embedded
             @run="openAction"
             @transition="executeTransition"
@@ -41,6 +42,7 @@
       :resolve-transitions="onFetchTransitions"
       :load-type="onLoadType"
       :navigation="navigation"
+      :editor-actions="editorActions"
       @run="openAction"
       @transition="executeTransition"
       @open="openInstance"
@@ -177,6 +179,9 @@ const props = defineProps({
   // `{ [typeId]: [{ __command, commandId, kind, actionKind: 'runCommand', ... }] }`
   // — one manual command action per the org's export bindings.
   exportActions: { type: Object, default: null },
+  // Editor action components by type (the host resolves the file-surface
+  // registry; the engine renders what it is given): `{ [typeId]: Component }`.
+  editorActions: { type: Object, default: null },
   // Machine-authority transition resolver for board drags:
   // `async (instance) => [{ to, intent, region }]` over the host's state
   // service — the same machine the transition buttons dispatch through.

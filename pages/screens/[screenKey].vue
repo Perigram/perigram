@@ -1,9 +1,9 @@
 <template>
   <StateBlock v-if="refreshingAuth" state="loading" :message="$t('common.loading')" />
   <GeneratedScreen v-else-if="screen && !isGeneratedScreen" :screen="screen" :back="back" />
-  <StandardPage v-else-if="screen" workspace :title="screen.label || screen.screenKey" :back="back">
+  <StandardPage v-else-if="screen" workspace :title="pageTitle" :back="pageTitle ? back : null">
     <template #actions>
-      <Button icon="pi pi-refresh" :label="$t('common.refresh')" severity="secondary" outlined size="small" :loading="poolLoading" @click="reload" />
+      <Button v-if="pageTitle" icon="pi pi-refresh" :label="$t('common.refresh')" severity="secondary" outlined size="small" :loading="poolLoading" @click="reload" />
     </template>
     <GeneratedScreenHost
       ref="host"
@@ -70,6 +70,14 @@ const detailOverload = computed(() => (
 const isGeneratedScreen = computed(() => (
   screen.value?.template === 'typeList'
   || (screen.value?.template === 'instanceDetail' && !detailOverload.value)
+));
+// The routed detail's record header owns the page: the type label and
+// back affordance render once, through the record header's anatomy and
+// navigation channel. List screens keep the route title strip.
+const pageTitle = computed(() => (
+  screen.value?.template === 'instanceDetail' && !detailOverload.value
+    ? null
+    : screen.value?.label || screen.value?.screenKey
 ));
 
 const screen = computed(() => {

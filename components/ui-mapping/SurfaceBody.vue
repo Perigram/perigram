@@ -111,7 +111,7 @@ import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
 import { useI18n } from 'vue-i18n';
-import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, titleFor, iconFor, stateDisplayFor } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, titleFor, iconFor, stateDisplayFor, startCaseKey } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import SurfaceDetailBody from './SurfaceDetailBody.vue';
@@ -144,7 +144,6 @@ const toggleRelation = key => {
 };
 
 const { t } = useI18n();
-const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const instanceLabel = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
 const glyph = computed(() => iconFor(props.type, props.instance));
 const statusValue = computed(() => props.instance?.state || null);
@@ -156,7 +155,7 @@ const statusTag = computed(() => {
   // has none for it (the neutral stop-line); list rows render nothing —
   // bulk surfaces speak only the declared vocabulary.
   if (props.variant === 'row' || props.variant === 'inline') return null;
-  return { label: startCase(statusValue.value), severity: 'secondary' };
+  return { label: startCaseKey(statusValue.value), severity: 'secondary' };
 });
 
 const fieldEntries = computed(() => Object.entries(props.type.fields || {}).map(([name, descriptor]) => ({ name, descriptor })));
