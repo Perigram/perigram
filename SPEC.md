@@ -920,9 +920,11 @@ extraction canonicalizes corner order (counter-clockwise from the
 leftmost corner), so the draw direction leaves the stored settings
 unchanged.
 
-Owner decision (2026-10-19, profile drawing): the fold is grouped and
-order-independent — every add before every subtract — so drawing order
-never changes the profile. The editor hatches the FACE: the material
+Owner decision (2026-10-19, profile drawing; ordered-sequence
+amendment, same day): the fold is an ordered CSG sequence — each
+shape applies to the face in authored list order, so a later add
+refills an earlier cut; the shape list's order is semantic and the
+editor reorders it. The editor hatches the FACE: the material
 half (flippable) folded through the profile's ops — adds extend the
 hatch past the axis, subtracts punch it empty — while drawn primitives
 stay bare lines beneath it: hatch and strong outline are what goes to
@@ -937,14 +939,17 @@ Selection strokes the shape's footprint dashed on the canvas.
 Owner direction (2026-10-19, evening — primitives panel): the
 primitive listing is a panel inside the editor canvas — a real list,
 one row per shape in the workpieces-tree anatomy (kind glyph, kind
-name, the op as a state tag), rows in the evaluation order — adds,
-subtracts, construction — so the boolean fold reads off the list
-itself; hidden three-state cycling controls are gone. Selecting a row
-expands it into the shape's settings in the same tree: the segmented
+name, the op as a state tag), rows in the authored CSG sequence —
+drawing and import order, the sequence being the evaluation — so
+hidden three-state cycling controls are gone. Selecting a row
+expands it into the shape's settings in the same tree: the
+move-earlier/move-later controls, the segmented
 Add/Subtract/Construction control (every option's tooltip naming the
 face as the target), the shape's whole authoring table — sizes,
-position, rotation, fillet radii — as expression inputs, and the
-row's delete action; a repeat click collapses it. Primitives are
+position, rotation, fillet radii — as wrapping expression inputs, and
+the row's delete action; a repeat click collapses it. The op has one
+home at a time: the collapsed row shows its state tag, the selected
+row shows the control. Primitives are
 atomic: deleting one — through the row or by erasing any of its
 entities on the canvas — removes the whole shape, and a partially
 erased rect or circle never degrades into loose lines. Placing a
