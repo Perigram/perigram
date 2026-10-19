@@ -212,7 +212,9 @@ operators — mode inputs are the operator's record fields, and the
 construct-addressable lineage/relation edge inputs ride every mode beside
 them (`constructionInputsForContract` is the one derivation the catalog
 ports, the compiler's construction normalization, and the designer's node
-sync share). Services expose registered V→V signatures — a service node
+sync share). An unbound lineage input resolves from a construct action's
+context entity; explicit input data and typed entity context take priority.
+Services expose registered V→V signatures — a service node
 is an effect species: the event contract (`control:in` → `completed`)
 wraps its signature-derived data sockets, a `list` signature field
 projects as the element-typed socket with List access (a runtime
