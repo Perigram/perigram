@@ -146,7 +146,8 @@ module layout and how the code maps to the spec's build-order tiers.
   { glyph, thumb }` (thumb = the depiction flag field id or null),
   `fields` (descriptors including the normalized naming facet),
   `previewSource` (`{ path, display, fallbackPaths? }` adopted from the
-  authored `render.groups` row flagged `previewSource` — the declared
+  authored `render.groups` row flagged `previewSource` or from a stored
+  normalized record — the declared
   data-field preview channel, or null; `fallbackPaths` are stored-shape
   fallbacks the preview channel walks in order, the same vocabulary
   `DataBlock` rows use, so a type whose renderable source exists in
