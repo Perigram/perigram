@@ -693,6 +693,11 @@ describe('Design system manifest', () => {
     expect(generatedCollection).toContain('relation-variant="compact"');
     expect(generatedCollection).toContain('instanceEditorActionFor');
     expect(generatedCollection).toContain('pi pi-external-link');
+    // Chat chip refs stretch to the family width: the row leaves
+    // align-items at stretch so the chip's w-full resolves against a
+    // definite width instead of the inline wrapper's fit-content.
+    const messageAttachments = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/MessageAttachments.vue'), 'utf8');
+    expect(messageAttachments).toContain('class="flex w-full max-w-80 flex-col gap-1" data-testid="chat-instance-refs"');
     expect(relationsBlock).toContain('overflow-x-auto');
     expect(relationsBlock).toContain('instance-relations-gallery--compact');
     expect(relationsBlock).toContain('isCompactGallery.value ? 2 : 4');
