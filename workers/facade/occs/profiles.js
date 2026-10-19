@@ -22,11 +22,11 @@ export const DEFAULT_OCCS_PROFILE_PARAMETERS = Object.freeze({
   L: 120
 });
 
-// The per-shape boolean selection (the 2D pathfinder vocabulary): a
-// shape unions into the profile body, subtracts from it, or is
-// construction geometry the fold ignores.
-export const OCCS_PROFILE_SHAPE_OPS = Object.freeze(['union', 'subtract', 'construction']);
-const normalizeOp = (op, fallback = 'union') => (
+// The per-shape boolean operation applies to the FACE: add unites the
+// shape's footprint into the face, subtract cuts it out, construction
+// is excluded geometry.
+export const OCCS_PROFILE_SHAPE_OPS = Object.freeze(['add', 'subtract', 'construction']);
+const normalizeOp = (op, fallback = 'add') => (
   OCCS_PROFILE_SHAPE_OPS.includes(op) ? op : fallback
 );
 
@@ -141,7 +141,7 @@ const normalizeRectFillets = (fillets = [], width = 0, height = 0) => {
 const normalizeRectShape = (shape = {}, index = 0) => ({
   id: shape.id || `s${index}`,
   type: 'rect',
-  op: normalizeOp(shape.op, 'union'),
+  op: normalizeOp(shape.op, 'add'),
   center: normalizeCenter(shape.center),
   width: sketchValue(shape.width, 0),
   height: sketchValue(shape.height, 0),
@@ -201,7 +201,7 @@ const normalizeChainShape = (shape = {}, index = 0) => {
   return {
     id: shape.id || `s${index}`,
     type: 'chain',
-    op: normalizeOp(shape.op, shape.closed ? 'union' : 'construction'),
+    op: normalizeOp(shape.op, shape.closed ? 'add' : 'construction'),
     closed,
     points,
     edges,
@@ -266,7 +266,7 @@ export const upgradeLegacyOccsProfileSketch = (sketch = {}) => {
     shapes.push({
       id: 's0',
       type: 'chain',
-      op: closed ? 'union' : 'construction',
+      op: closed ? 'add' : 'construction',
       closed,
       points: chainPoints,
       edges: edges.filter(edge => chainPointIds.has(edge.from) && chainPointIds.has(edge.to)),
@@ -330,15 +330,13 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
   });
 };
 
-// A sketch participates when at least one closed shape carries a boolean
-// op or an open chain rides it as a cut path.
+// A sketch participates when at least one closed shape carries a
+// boolean op — the profile is a closed operand set on the face.
 const sketchParticipates = (evaluated = {}) => evaluated.shapes.some(shape => (
-  shape.type === 'chain' && !shape.closed
-    ? shape.points.length >= 2
-    : shape.op !== 'construction'
-      && (shape.type === 'chain'
-        ? shape.points.length >= 3
-        : true)
+  shape.op !== 'construction'
+    && (shape.type === 'chain'
+      ? shape.closed && shape.points.length >= 3
+      : true)
 ));
 
 export const isOccsProfileSketchSavable = (sketch = {}, fallbackParameters = {}) => {
@@ -551,27 +549,45 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   };
 };
 
-// Boolean fold of a shapes section: the union shapes unite into the
-// profile body, the subtract shapes cut from it, construction geometry
-// is ignored; the result clips to the material half of the zero axis.
-// Polyline sections have no boolean meaning (null).
-export const resolveOccsProfileSectionPolygons = async (section = {}) => {
+// The section's operand sets on the face: adds and subtracts, each
+// group unioned into rings. Construction geometry never joins an
+// operand set. Polyline sections have no boolean meaning (null).
+export const resolveOccsProfileSectionOperations = async (section = {}) => {
   if (section.type !== 'shapes') return null;
-  const unions = section.shapes.filter(shape => shape.op === 'union' && shape.vertices.length >= 3);
-  const subtracts = section.shapes.filter(shape => shape.op === 'subtract' && shape.vertices.length >= 3);
-  let polygons = unions.length ? await unionCassetteV2FacePolygons(unions.map(shape => shape.vertices)) : [];
-  let holes = [];
-  if (subtracts.length) {
-    const difference = await differenceCassetteV2Polygons(polygons, subtracts.map(shape => shape.vertices));
-    polygons = difference.polygons;
-    holes = difference.holes;
-  }
-  const span = 1e6;
-  const voidHalf = section.axis?.material === 'negative'
-    ? [[0, -span], [span, -span], [span, span], [0, span]]
-    : [[0, -span], [-span, -span], [-span, span], [0, span]];
-  const clipped = await differenceCassetteV2Polygons(polygons, [voidHalf]);
-  return { polygons: clipped.polygons, holes: [...holes, ...clipped.holes] };
+  const rings = op => section.shapes
+    .filter(shape => shape.op === op && shape.vertices.length >= 3)
+    .map(shape => shape.vertices)
+    .filter(ring => ring.length >= 3);
+  const adds = rings('add');
+  const subtracts = rings('subtract');
+  return {
+    adds: adds.length ? await unionCassetteV2FacePolygons(adds) : [],
+    subtracts: subtracts.length ? await unionCassetteV2FacePolygons(subtracts) : []
+  };
+};
+
+// The section as a standalone figure (previews, thumbnails): the add
+// footprint minus the subtract footprint.
+export const resolveOccsProfileSectionPolygons = async (section = {}) => {
+  const operations = await resolveOccsProfileSectionOperations(section);
+  if (!operations) return null;
+  if (!operations.adds.length) return { polygons: [], holes: [...operations.subtracts] };
+  if (!operations.subtracts.length) return { polygons: operations.adds, holes: [] };
+  const difference = await differenceCassetteV2Polygons(operations.adds, operations.subtracts);
+  return { polygons: difference.polygons, holes: difference.holes };
+};
+
+// The face after the profile's boolean operations: the base face
+// united with the adds, minus the subtracts — the editor's material
+// half is the base face stand-in; production passes the host face.
+export const resolveOccsProfileFacePolygons = async (section = {}, baseFace = []) => {
+  const operations = await resolveOccsProfileSectionOperations(section);
+  if (!operations) return null;
+  const base = baseFace.length >= 3 ? [baseFace] : [];
+  const united = await unionCassetteV2FacePolygons([...base, ...operations.adds]);
+  if (!operations.subtracts.length) return { polygons: united, holes: [] };
+  const difference = await differenceCassetteV2Polygons(united, operations.subtracts);
+  return { polygons: difference.polygons, holes: difference.holes };
 };
 
 // Preview projection: a sketch's evaluated section as drawing layerData
@@ -1213,7 +1229,7 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
   for (const { segments, closed } of chains) {
     const geometry = chainToSketchGeometry(segments, closed, chordTolerance);
     if (geometry.points.length >= 2) {
-      shapes.push(chainShapeFromGeometry(geometry, closed, reference ? 'construction' : 'union', shapes.length));
+      shapes.push(chainShapeFromGeometry(geometry, closed, reference ? 'construction' : 'add', shapes.length));
     }
   }
 

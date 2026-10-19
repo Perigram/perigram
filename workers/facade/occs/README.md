@@ -66,16 +66,18 @@ modules — no platform imports.
   through `expressions.js`; a single unknown identifier authored into a
   field adopts that parameter at the field's current value
   (`adoptOccsProfileBindingParameter`). Each shape carries its boolean
-  op — `union` (joins the profile body), `subtract` (cuts from it), or
-  `construction` (excluded; a DXF import lands every shape at
-  construction through `occProfileSketchFromEntities`' `reference`
-  option). The zero vertical axis is the evaluation basis every
-  field measures from, and the material half of it
-  (`sketch.material`, `'positive'` hatches X>0) is a boolean body:
-  `resolveOccsProfileSectionPolygons` folds the section — union of
-  the union shapes minus the union of the subtract shapes, clipped to
-  the material half — through the vendored Clipper pass, yielding
-  ordered outer polygons and hole rings; every ring is cut geometry. The editor's canvas
+  op applied to the FACE — `add` (the footprint unites into the face),
+  `subtract` (cuts from it), `construction` (excluded; a DXF import
+  lands every shape at construction through
+  `occProfileSketchFromEntities`' `reference` option).
+  `resolveOccsProfileSectionOperations` unions each operand group into
+  rings; `resolveOccsProfileFacePolygons` folds `(base face ∪ adds) −
+  subtracts` through the vendored Clipper pass (the editor passes the
+  material half as the base, production the host face), yielding
+  ordered outer polygons and hole rings. Adds land as
+  `booleanOperation: 'add'` entities that reshape the face contour;
+  subtracts ride `cut.inner` while inside the face and dispatch
+  through the modified contour when they break its edge. The editor's canvas
   carries exactly two surface states (owner law 2026-10-18): the
   material half hatches as the face — the one hatch — and the resolved
   section is cut from it (empty interior, solid outline), the void
@@ -158,8 +160,8 @@ modules — no platform imports.
   the geometry back on the canvas). Fresh ids renumber against every
   kept id by object identity — an extracted id colliding with a kept id
   still renumbers. The shape popup carries a segmented
-  Union/Subtract/Construction control — the boolean selection, each
-  option's tooltip naming its target (the profile body).
+  Add/Subtract/Construction control — the boolean selection applied to
+  the face, each option's tooltip naming it.
   Document transitions (DXF import) bind the database listeners without
   scheduling an extraction: the import's own explicit extraction is the
   one that lands. Legacy chain sketches (points/edges/holes/closed/

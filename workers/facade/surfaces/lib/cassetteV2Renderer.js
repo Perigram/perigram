@@ -27,7 +27,7 @@ import { buildOccsProductionLayout } from '../../occs/production-layout.js';
 import { buildOccsFaceDimensionEntities } from '../../occs/dimensions.js';
 import { buildOccsFoldedPreviewPayload } from '../../occs/folded-3d.js';
 import { applyOccsLayerPens, OCCS_LAYER_STANDARDS, occsLayerExportName, occsLayerStandard } from '../../occs/layerStandards.js';
-import { differenceCassetteV2FacePolygon } from './cassetteV2Clipper.js';
+import { differenceCassetteV2FacePolygon, unionCassetteV2FacePolygons } from './cassetteV2Clipper.js';
 import {
   OCCS_EDGE_ARRAY_DEFAULTS,
   OCCS_HANGER_PRODUCTION_MODES,
@@ -51,7 +51,7 @@ import {
   createDefaultOccsProfileTemplateData,
   normalizeOccsProfileSketch,
   occsProfileFromSketch,
-  resolveOccsProfileSectionPolygons,
+  resolveOccsProfileSectionOperations,
   rewriteOccsProfileSketchExpressions
 } from '../../occs/profiles.js';
 
@@ -1585,10 +1585,14 @@ export const createCassetteV2OccsDocumentFromTree = async (tree = createCassette
   const curves = buildCassetteV2TrapezoidTreeCurves(sourceTree, { mode: 'assembly' });
   const curveByNodeId = new Map(curves.map(curve => [curve.node.id, curve]));
   const productionEntitiesByTarget = new Map();
-  for (const entity of await hardwareProductionEntitiesForTree(curves, sourceTree)) {
-    if (!productionEntitiesByTarget.has(entity.target)) productionEntitiesByTarget.set(entity.target, []);
-    productionEntitiesByTarget.get(entity.target).push(entity);
-  }
+  const collectEntities = async entities => {
+    for (const entity of await entities) {
+      if (!productionEntitiesByTarget.has(entity.target)) productionEntitiesByTarget.set(entity.target, []);
+      productionEntitiesByTarget.get(entity.target).push(entity);
+    }
+  };
+  await collectEntities(hardwareProductionEntitiesForTree(curves, sourceTree));
+  await collectEntities(profileCutEntitiesForTree(curves, sourceTree));
 
   return {
     occs: '0.4-draft',
@@ -1679,12 +1683,14 @@ export const createCassetteV2OccsDocumentFromTree = async (tree = createCassette
             })),
           entities: [
             ...faces.flatMap(face => dimensionEntitiesForFaceShape(face.id, face.shape)),
-            ...faces.flatMap(face => (productionEntitiesByTarget.get(face.id) || []).filter(entity => !entity.booleanOnly).flatMap(entity => (
+            ...faces.flatMap(face => (productionEntitiesByTarget.get(face.id) || [])
+              .filter(entity => entity.booleanOperation === 'add' || !entity.booleanOnly).flatMap(entity => (
               entity.geometry.type === 'circle'
                 ? [{
                     id: entity.id,
                     layer: entity.layer,
                     target: entity.target,
+                    ...(entity.booleanOperation ? { booleanOperation: entity.booleanOperation } : {}),
                     geometry: {
                       type: 'circle',
                       diameter: String(entity.geometry.diameter),
@@ -1704,6 +1710,7 @@ export const createCassetteV2OccsDocumentFromTree = async (tree = createCassette
                     id: entity.id,
                     layer: entity.layer,
                     target: entity.target,
+                    ...(entity.booleanOperation ? { booleanOperation: entity.booleanOperation } : {}),
                     geometry: {
                       type: 'polygon',
                       vertices: ring.map(vertex => [
@@ -2653,24 +2660,39 @@ export const profileCutEntitiesForTree = async (curves = [], tree = createCasset
     const profile = normalizeCassetteV2Profile(workpiece, parameters);
     const open = profile.section?.open || profile.section?.type === 'polyline';
     if (open) continue; // open profiles consume the edge through the contour embedding
+    const face = targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices;
     const points = hardwarePointsForRelation(targetCurve, relation, parameters);
     for (let index = 0; index < points.length; index += 1) {
-      const polygons = await profileCutPolygons(profile, points[index], relation, targetCurve, parameters);
-      if (!polygons) continue;
-      entities.push({
-        id: `${relation.id}:profile_cut:${index}`,
-        layer: OCCS_LAYER_CUT_INNER,
-        target: relation.targetFaceId,
-        workpieceId: relation.targetWorkpieceId,
-        profileWorkpieceId: relation.sourceWorkpieceId,
-        relationId: relation.id,
-        geometry: { type: 'polygons', polygons },
-        booleanOperation: true,
-        booleanOnly: !polygons.every(vertices => polygonInsideFace(
-          vertices,
-          targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices
-        ))
-      });
+      const operations = await profileOperationPolygons(profile, points[index], relation, targetCurve, parameters);
+      if (!operations) continue;
+      // Add operands reshape the face contour only; subtract operands
+      // render as inner cuts while they sit fully inside the face.
+      if (operations.adds.length) {
+        entities.push({
+          id: `${relation.id}:profile_add:${index}`,
+          layer: OCCS_LAYER_CUT_INNER,
+          target: relation.targetFaceId,
+          workpieceId: relation.targetWorkpieceId,
+          profileWorkpieceId: relation.sourceWorkpieceId,
+          relationId: relation.id,
+          geometry: { type: 'polygons', polygons: operations.adds },
+          booleanOperation: 'add',
+          booleanOnly: true
+        });
+      }
+      if (operations.subtracts.length) {
+        entities.push({
+          id: `${relation.id}:profile_cut:${index}`,
+          layer: OCCS_LAYER_CUT_INNER,
+          target: relation.targetFaceId,
+          workpieceId: relation.targetWorkpieceId,
+          profileWorkpieceId: relation.sourceWorkpieceId,
+          relationId: relation.id,
+          geometry: { type: 'polygons', polygons: operations.subtracts },
+          booleanOperation: 'subtract',
+          booleanOnly: !operations.subtracts.every(vertices => polygonInsideFace(vertices, face))
+        });
+      }
     }
   }
   return entities;
@@ -2765,18 +2787,21 @@ const placeProfileRing = (ring = [], point = [0, 0, 0], relation = {}, axisRotat
   });
 };
 
-// The placed boolean result of a closed profile: the resolved polygon
-// rings (outer and holes alike — every ring is cut geometry), placed by
-// the axis law at the given point. Open/polyline sections cut nothing.
-const profileCutPolygons = async (profile, point = [0, 0, 0], relation = {}, targetCurve = null, scope = {}) => {
+// The placed boolean operands of a closed profile: add rings unite
+// into the host face, subtract rings cut from it — placed by the axis
+// law at the given point. Polyline sections carry no operands.
+const profileOperationPolygons = async (profile, point = [0, 0, 0], relation = {}, targetCurve = null, scope = {}) => {
   const section = profile?.section;
-  if (!section || section.open || section.type === 'polyline') return null;
-  const resolved = await resolveOccsProfileSectionPolygons(section);
-  if (!resolved) return null;
-  const rings = [...resolved.polygons, ...resolved.holes].filter(ring => ring.length >= 3);
-  if (!rings.length) return null;
+  if (!section || section.type === 'polyline') return null;
+  const operations = await resolveOccsProfileSectionOperations(section);
+  if (!operations) return null;
   const axisRotation = profileAxisRotationDegrees(relation, targetCurve);
-  return rings.map(ring => placeProfileRing(ring, point, relation, axisRotation, scope));
+  const place = rings => rings
+    .filter(ring => ring.length >= 3)
+    .map(ring => placeProfileRing(ring, point, relation, axisRotation, scope));
+  const adds = place(operations.adds);
+  const subtracts = place(operations.subtracts);
+  return adds.length || subtracts.length ? { adds, subtracts } : null;
 };
 
 const hardwareProductionEntitiesForTree = async (curves = [], tree = createCassetteV2GraphTree()) => {
@@ -2795,13 +2820,41 @@ const hardwareProductionEntitiesForTree = async (curves = [], tree = createCasse
       const profile = workpiece.profileSnapshot || workpiece.profile
         ? normalizeCassetteV2Profile(workpiece, parameters)
         : null;
+      const hookFace = targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices;
       for (let index = 0; index < points.length; index += 1) {
-        const polygons = profile
-          ? await profileCutPolygons(profile, points[index], relation, targetCurve, parameters)
+        const profileOperations = profile
+          ? await profileOperationPolygons(profile, points[index], relation, targetCurve, parameters)
           : null;
-        const geometry = polygons
-          ? { type: 'polygons', polygons }
-          : { type: 'polygon', vertices: hangerClipCutPolygon(hardware.parameters, points[index]) };
+        if (profileOperations) {
+          if (profileOperations.adds.length) {
+            entities.push({
+              id: `${relation.id}:hook_add:${index}`,
+              layer: OCCS_LAYER_CUT_INNER,
+              target: relation.targetFaceId,
+              workpieceId: relation.targetWorkpieceId,
+              hardwareWorkpieceId: relation.sourceWorkpieceId,
+              relationId: relation.id,
+              geometry: { type: 'polygons', polygons: profileOperations.adds },
+              booleanOperation: 'add',
+              booleanOnly: true
+            });
+          }
+          if (profileOperations.subtracts.length) {
+            entities.push({
+              id: `${relation.id}:hook_cut:${index}`,
+              layer: OCCS_LAYER_CUT_INNER,
+              target: relation.targetFaceId,
+              workpieceId: relation.targetWorkpieceId,
+              hardwareWorkpieceId: relation.sourceWorkpieceId,
+              relationId: relation.id,
+              geometry: { type: 'polygons', polygons: profileOperations.subtracts },
+              booleanOperation: 'subtract',
+              booleanOnly: !profileOperations.subtracts.every(vertices => polygonInsideFace(vertices, hookFace))
+            });
+          }
+          continue;
+        }
+        const geometry = { type: 'polygon', vertices: hangerClipCutPolygon(hardware.parameters, points[index]) };
         entities.push({
           id: `${relation.id}:hook_cut:${index}`,
           layer: OCCS_LAYER_CUT_INNER,
@@ -2810,16 +2863,8 @@ const hardwareProductionEntitiesForTree = async (curves = [], tree = createCasse
           hardwareWorkpieceId: relation.sourceWorkpieceId,
           relationId: relation.id,
           geometry,
-          booleanOperation: true,
-          booleanOnly: geometry.type === 'polygons'
-            ? !geometry.polygons.every(vertices => polygonInsideFace(
-                vertices,
-                targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices
-              ))
-            : !polygonInsideFace(
-                geometry.vertices,
-                targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices
-              )
+          booleanOperation: 'subtract',
+          booleanOnly: !polygonInsideFace(geometry.vertices, hookFace)
         });
       }
     }
@@ -2907,17 +2952,45 @@ const productionEntityCutRings = (entity = {}) => (
       : []
 );
 
+// The face boolean pass: add operands unite into the face boundary,
+// subtract operands cut from it (profiles and hook cuts ride the same
+// stream — `booleanOperation: 'add' | 'subtract'`).
 const applyHardwareBooleanDifferences = async (curves = [], productionEntities = []) => {
   const cutsByTarget = hookCutEntitiesByTarget(productionEntities);
   if (!cutsByTarget.size) return curves;
 
   return Promise.all(curves.map(async (curve) => {
-    const cuts = cutsByTarget.get(curve.node?.id);
-    if (!cuts?.length) return curve;
-    const difference = await differenceCassetteV2FacePolygon(
-      curve.boundaryVertices || curve.vertices,
-      cuts.flatMap(entity => productionEntityCutRings(entity))
-    );
+    const operations = cutsByTarget.get(curve.node?.id);
+    if (!operations?.length) return curve;
+    const addRings = operations
+      .filter(entity => entity.booleanOperation === 'add')
+      .flatMap(entity => productionEntityCutRings(entity));
+    const subtractRings = operations
+      .filter(entity => entity.booleanOperation !== 'add')
+      .flatMap(entity => productionEntityCutRings(entity));
+    const baseBoundary = curve.boundaryVertices || curve.vertices;
+    const unitedFaces = addRings.length
+      ? await unionCassetteV2FacePolygons([baseBoundary, ...addRings])
+      : [baseBoundary];
+    if (!subtractRings.length) {
+      if (!addRings.length) return curve;
+      // A detached add islands off the face: the grown face is the
+      // largest ring of the union.
+      const unionRing = unitedFaces
+        .filter(ring => ring.length >= 3)
+        .sort((a, b) => polygonArea(withoutClosingVertex(b)) - polygonArea(withoutClosingVertex(a)))[0];
+      if (!unionRing) return curve;
+      return {
+        ...curve,
+        originalBoundaryVertices: curve.originalBoundaryVertices || baseBoundary,
+        referenceVertices: curve.referenceVertices || baseBoundary,
+        boundaryVertices: unionRing,
+        vertices: unionRing,
+        shapeType: 'polygon'
+      };
+    }
+    const face = await unionCassetteV2FacePolygons(unitedFaces);
+    const difference = await differenceCassetteV2FacePolygon(face[0] || baseBoundary, subtractRings);
     if (!difference.outer?.length) return curve;
     return {
       ...curve,

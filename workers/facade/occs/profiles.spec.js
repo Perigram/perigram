@@ -15,6 +15,7 @@ import {
   mergeOccsProfileSketchGeometry,
   occsProfileFromSketch,
   resolveOccsProfileSectionPolygons,
+  resolveOccsProfileFacePolygons,
   resolveOccsProfileSketchLayerData,
   upgradeLegacyOccsProfileSketch
 } from './profiles.js';
@@ -61,16 +62,9 @@ describe('OCCS profile helpers', () => {
     expect(normalizeOccsProfileSketch(sketch).parameters).toEqual({});
   });
 
-  it('saves participating shapes and open chains, keeps open chains as polyline sections', () => {
+  it('saves closed operand sets — an open chain alone never saves (owner law: profiles are closed)', () => {
     expect(isOccsProfileSketchSavable(createEmptyOccsProfileSketch())).toBe(false);
-    // An open chain with at least two points is a saveable cut path.
-    expect(isOccsProfileSketchSavable(openChainSketch())).toBe(true);
-    const openProfile = occsProfileFromSketch(openChainSketch());
-    expect(openProfile.section).toMatchObject({
-      type: 'polyline',
-      open: true,
-      breakPoints: [['0', '0'], ['10', '10']]
-    });
+    expect(isOccsProfileSketchSavable(openChainSketch())).toBe(false);
     // Reference-only geometry participates in nothing.
     expect(isOccsProfileSketchSavable(normalizeOccsProfileSketch({
       shapes: [{ id: 's0', type: 'circle', op: 'construction', center: [5, 5], diameter: 4 }]
@@ -176,8 +170,8 @@ describe('OCCS profile helpers', () => {
     const sketch = occProfileSketchFromEntities(entities, {});
     const chains = sketch.shapes.filter(shape => shape.type === 'chain');
     expect(chains).toHaveLength(2);
-    expect(chains.every(chain => !chain.construction)).toBe(true);
-    expect(isOccsProfileSketchSavable(sketch)).toBe(true);
+    expect(chains.every(chain => chain.op === 'construction')).toBe(true);
+    expect(isOccsProfileSketchSavable(sketch)).toBe(false);
 
     // A lone arc is its own chain piece.
     const arcOnly = occProfileSketchFromEntities([
@@ -410,7 +404,7 @@ describe('OCCS profile helpers', () => {
     expect(resolved.every(point => Number.isFinite(point[0]) && Number.isFinite(point[1]))).toBe(true);
   });
 
-  it('evaluates the boolean fold: adds union, subtracts cut, the material half clips', async () => {
+  it('evaluates the operand sets: adds union, subtracts cut — the standalone section spans the axis freely', async () => {
     const section = occsProfileFromSketch(normalizeOccsProfileSketch({
       shapes: [
         { id: 's0', type: 'rect', center: [20, 0], width: 40, height: 20, rotation: 0 },
@@ -421,24 +415,29 @@ describe('OCCS profile helpers', () => {
     expect(resolved.polygons).toHaveLength(1);
     expect(resolved.holes).toHaveLength(1);
 
-    // A shape crossing the zero axis clips to the material half.
+    // A shape crossing the zero axis keeps its full footprint: adds
+    // extend the face, the axis never clips them.
     const crossing = await resolveOccsProfileSectionPolygons(
       occsProfileFromSketch(normalizeOccsProfileSketch({
         shapes: [{ id: 's0', type: 'rect', center: [-10, 0], width: 40, height: 20 }]
       })).section
     );
     const xs = crossing.polygons[0].map(vertex => vertex[0]);
-    expect(Math.min(...xs)).toBeGreaterThanOrEqual(-1e-3);
+    expect(Math.min(...xs)).toBeLessThanOrEqual(-30);
 
-    // Flipping the material side clips the other half.
-    const flipped = await resolveOccsProfileSectionPolygons(
+    // The face fold: base face united with adds, minus subtracts — an
+    // add beyond the axis grows the base, a subtract cuts it away.
+    const face = await resolveOccsProfileFacePolygons(
       occsProfileFromSketch(normalizeOccsProfileSketch({
-        material: 'negative',
-        shapes: [{ id: 's0', type: 'rect', center: [10, 0], width: 40, height: 20 }]
-      })).section
+        shapes: [
+          { id: 's0', type: 'rect', op: 'add', center: [30, 0], width: 20, height: 20 },
+          { id: 's1', type: 'circle', op: 'subtract', center: [30, 0], diameter: 6 }
+        ]
+      })).section,
+      [[0, -100], [100, -100], [100, 100], [0, 100]]
     );
-    const flippedXs = flipped.polygons[0].map(vertex => vertex[0]);
-    expect(Math.max(...flippedXs)).toBeLessThanOrEqual(1e-3);
+    expect(face.polygons.length).toBeGreaterThanOrEqual(1);
+    expect(face.holes).toHaveLength(1);
 
     // Reference shapes never participate.
     const referenceOnly = await resolveOccsProfileSectionPolygons(

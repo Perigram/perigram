@@ -496,7 +496,7 @@ describe('cassette v2 trapezoid renderer', () => {
         modifiers: fillet ? [{ type: 'fillet', vertexId: 'p1', radius: 6 }] : []
       }]
     });
-    const filleted = rectSketch([{ corner: 1, radius: 6 }]);
+    const filleted = rectSketch([0, 1, 2, 3].map(corner => ({ corner, radius: 6 })));
     const sharp = rectSketch([]);
 
     const build = (sketch) => {
@@ -517,15 +517,16 @@ describe('cassette v2 trapezoid renderer', () => {
         arrayMode: 'count',
         arrayCount: '1',
         offsetX: '100',
-        offsetY: '30'
+        offsetY: '-20'
       });
     };
 
     const filletedDrawing = await renderCassetteV2TreeToDrawing(build(filleted), { mode: 'workpiece' });
     const sharpDrawing = await renderCassetteV2TreeToDrawing(build(sharp), { mode: 'workpiece' });
-    const filletCut = filletedDrawing.layers.find(layer => layer.standardCode === 'cut.inner').paths[0].d;
-    const sharpCut = sharpDrawing.layers.find(layer => layer.standardCode === 'cut.inner').paths[0].d;
-    expect(filletCut.match(/L/g).length).toBeGreaterThan(sharpCut.match(/L/g).length);
+    // The filleted add operand straddles the face edge: the union grows
+    // the contour and its rounded corners ride the boundary.
+    const contourD = drawing => drawing.designerFaces.find(face => face.nodeId === 'face_1').d;
+    expect(contourD(filletedDrawing).match(/[LA]/g).length).toBeGreaterThan(contourD(sharpDrawing).match(/[LA]/g).length);
 
     // Open profile: the stitched boundary carries the rounded corner.
     const openFilleted = await renderCassetteV2TreeToDrawing(build(openRectChain(true)), { mode: 'workpiece' });
@@ -1270,12 +1271,11 @@ describe('cassette v2 trapezoid renderer', () => {
       offsetY: '10'
     });
     const occs = await createCassetteV2OccsDocument(placed);
-    const cut = occs.definitions.workpieces[0].entities.find(entity => entity.layer === 'cut.inner');
-    // The document emits the boolean result ring-by-ring (the wire keeps
-    // one polygon per entity); the axis law lands +X (the material half)
-    // on the edge's inward normal: the 12mm material depth runs into the
-    // face, the 8mm height along the edge.
-    const ring = cut.geometry.vertices.map(vertex => [Number(vertex[0]), Number(vertex[1])]);
+    const add = occs.definitions.workpieces[0].entities.find(entity => entity.booleanOperation === 'add');
+    // The wire keeps one polygon per entity; the axis law lands +X (the
+    // material half) on the edge's inward normal: the 12mm material
+    // depth runs into the face, the 8mm height along the edge.
+    const ring = add.geometry.vertices.map(vertex => [Number(vertex[0]), Number(vertex[1])]);
     expect(xsOf(ring)).toEqual(expectCloseToBounds([242, 250]));
     expect(ysOf(ring)).toEqual(expectCloseToBounds([10, 22]));
 
@@ -1283,8 +1283,8 @@ describe('cassette v2 trapezoid renderer', () => {
       mirrorY: true
     });
     const mirroredOccs = await createCassetteV2OccsDocument(mirrored);
-    const mirroredCut = mirroredOccs.definitions.workpieces[0].entities.find(entity => entity.layer === 'cut.inner');
-    const mirroredRing = mirroredCut.geometry.vertices.map(vertex => [Number(vertex[0]), Number(vertex[1])]);
+    const mirroredAdd = mirroredOccs.definitions.workpieces[0].entities.find(entity => entity.booleanOperation === 'add');
+    const mirroredRing = mirroredAdd.geometry.vertices.map(vertex => [Number(vertex[0]), Number(vertex[1])]);
     const mirroredXs = [...new Set(mirroredRing.map(vertex => Math.round(vertex[0])))].sort((a, b) => a - b);
     const mirroredYs = [...new Set(mirroredRing.map(vertex => Math.round(vertex[1])))].sort((a, b) => a - b);
     expect(mirroredXs).toEqual([250, 258]);

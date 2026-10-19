@@ -376,12 +376,19 @@ describe('cassette v2 folded preview', () => {
     expect(rectRingOf(after).length).toBeGreaterThan(rectRingOf(before).length);
     expect(rectRingOf(after).length).toBeGreaterThan(4);
 
-    // And the drawing's cut follows the parameter too (point-mode
-    // placement cuts at the snap point).
-    const drawAt = async (tree) => (await renderCassetteV2TreeToDrawing(tree, { mode: 'workpiece' }))
-      .layers.find(layer => layer.standardCode === 'cut.inner')?.paths[0]?.d ?? '';
-    expect((await drawAt(added.tree)).length).toBeGreaterThan(0);
-    expect((await drawAt(updated)).length).toBeGreaterThan((await drawAt(added.tree)).length);
+    // And the drawing's subtract operand follows its parameter: grow D
+    // and the inner cut grows with it.
+    const grownD = updateCassetteV2Workpiece(updated, added.workpieceId, {
+      parameters: { D: 14 }
+    });
+    const cutSpanAt = async (tree) => {
+      const d = (await renderCassetteV2TreeToDrawing(tree, { mode: 'workpiece' }))
+        .layers.find(layer => layer.standardCode === 'cut.inner')?.paths[0]?.d ?? '';
+      const xs = [...d.matchAll(/([\d.-]+) ([\d.-]+)/g)].map(m => Number(m[1]));
+      return Math.max(...xs) - Math.min(...xs);
+    };
+    expect((await cutSpanAt(updated))).toBeGreaterThan(0);
+    expect((await cutSpanAt(grownD))).toBeGreaterThan((await cutSpanAt(updated)));
   });
 
   it('carries profile modifications into the folded 3D faces', async () => {    const { renderCassetteV2TreeToDrawing, addCassetteV2ProfileWorkpiece, updateCassetteV2WorkpieceRelation, getCassetteV2WorkpieceRelations, createCassetteV2GraphTree } =

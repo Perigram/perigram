@@ -560,14 +560,14 @@
                     "rectangle": "Rectangle"
                 },
                 "ops": {
-                    "union": "Union",
+                    "add": "Add",
                     "subtract": "Subtract",
                     "construction": "Construction"
                 },
                 "opsHints": {
-                    "union": "Joins the profile body",
-                    "subtract": "Cuts from the profile body",
-                    "construction": "Excluded from the profile"
+                    "add": "Unites into the face",
+                    "subtract": "Cuts from the face",
+                    "construction": "Excluded from the face"
                 },
                 "actions": {
                     "erase": "Erase",
