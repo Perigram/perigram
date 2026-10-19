@@ -24,7 +24,7 @@ const openChainSketch = () => normalizeOccsProfileSketch({
   shapes: [{
     id: 's0',
     type: 'chain',
-    op: 'none',
+    construction: true,
     closed: false,
     points: [
       { id: 'a', x: 0, y: 0 },
@@ -73,7 +73,7 @@ describe('OCCS profile helpers', () => {
     });
     // Reference-only geometry participates in nothing.
     expect(isOccsProfileSketchSavable(normalizeOccsProfileSketch({
-      shapes: [{ id: 's0', type: 'circle', op: 'none', center: [5, 5], diameter: 4 }]
+      shapes: [{ id: 's0', type: 'circle', construction: true, center: [5, 5], diameter: 4 }]
     }))).toBe(false);
     expect(isOccsProfileSketchSavable(createDefaultOccsProfileSketch())).toBe(true);
     expect(isOccsProfileSketchSavable(legacyClosedChain())).toBe(true);
@@ -87,10 +87,10 @@ describe('OCCS profile helpers', () => {
       axis: { material: 'positive' }
     });
     expect(profile.section.shapes).toHaveLength(2);
-    expect(profile.section.shapes[0]).toMatchObject({ kind: 'rect', op: 'add' });
+    expect(profile.section.shapes[0]).toMatchObject({ kind: 'rect' });
     // The template's corner fillets resolve to arc points in the walk.
     expect(profile.section.shapes[0].vertices.length).toBeGreaterThan(4);
-    expect(profile.section.shapes[1]).toMatchObject({ kind: 'circle', op: 'subtract' });
+    expect(profile.section.shapes[1]).toMatchObject({ kind: 'circle' });
     expect(profile.sweep).toEqual({ type: 'linear', length: '120' });
   });
 
@@ -149,7 +149,7 @@ describe('OCCS profile helpers', () => {
       shapes: [{
         id: 's0',
         type: 'chain',
-        op: 'none',
+        construction: true,
         closed: false,
         points: [
           { id: 'p0', x: 0, y: 0 },
@@ -176,7 +176,7 @@ describe('OCCS profile helpers', () => {
     const sketch = occProfileSketchFromEntities(entities, {});
     const chains = sketch.shapes.filter(shape => shape.type === 'chain');
     expect(chains).toHaveLength(2);
-    expect(chains.every(chain => chain.op === 'none')).toBe(true);
+    expect(chains.every(chain => !chain.construction)).toBe(true);
     expect(isOccsProfileSketchSavable(sketch)).toBe(true);
 
     // A lone arc is its own chain piece.
@@ -189,18 +189,18 @@ describe('OCCS profile helpers', () => {
     const drawn = occProfileSketchFromEntities([
       { type: 'CIRCLE', center: { x: 5, y: 5 }, radius: 2 }
     ], {});
-    expect(drawn.shapes[0]).toMatchObject({ type: 'circle', op: 'subtract' });
+    expect(drawn.shapes[0]).toMatchObject({ type: 'circle' });
     const imported = occProfileSketchFromEntities([
       { type: 'CIRCLE', center: { x: 5, y: 5 }, radius: 2 }
     ], { reference: true });
-    expect(imported.shapes[0]).toMatchObject({ type: 'circle', op: 'none' });
+    expect(imported.shapes[0]).toMatchObject({ type: 'circle', construction: true });
   });
 
   it('starts sketches with an empty parameter table — nothing is pre-seeded', () => {
     expect(createEmptyOccsProfileSketch().parameters).toEqual({});
     expect(normalizeOccsProfileSketch({ shapes: [] }).parameters).toEqual({});
     const authored = normalizeOccsProfileSketch({
-      shapes: [{ id: 's0', type: 'chain', op: 'none', points: [{ x: 0, y: 0 }, { x: 'W', y: 0 }] }],
+      shapes: [{ id: 's0', type: 'chain', construction: true, points: [{ x: 0, y: 0 }, { x: 'W', y: 0 }] }],
       parameters: { W: 10 }
     });
     expect(authored.parameters).toEqual({ W: 10 });
@@ -215,9 +215,9 @@ describe('OCCS profile helpers', () => {
     expect(sketch.parameters).toEqual({ W: 42, H: 28, R: 3, D: 6, L: 120 });
     const rect = sketch.shapes.find(shape => shape.type === 'rect');
     const circle = sketch.shapes.find(shape => shape.type === 'circle');
-    expect(rect).toMatchObject({ center: ['W/2', 'H/2'], width: 'W', height: 'H', op: 'add' });
+    expect(rect).toMatchObject({ center: ['W/2', 'H/2'], width: 'W', height: 'H' });
     expect(rect.fillets.map(fillet => fillet.radius)).toEqual(['R', 'R', 'R', 'R']);
-    expect(circle).toMatchObject({ center: ['W/2', 'H/2'], diameter: 'D', op: 'subtract' });
+    expect(circle).toMatchObject({ center: ['W/2', 'H/2'], diameter: 'D' });
     expect(isOccsProfileSketchSavable(sketch, draft.parameters)).toBe(true);
     expect(occsProfileFromSketch(sketch).sweep).toEqual({ type: 'linear', length: '120' });
   });
@@ -232,7 +232,6 @@ describe('OCCS profile helpers', () => {
     const rect = sketch.shapes[0];
     expect(rect).toMatchObject({
       type: 'rect',
-      op: 'add',
       center: [20, 10],
       width: 40,
       height: 20,
@@ -301,8 +300,8 @@ describe('OCCS profile helpers', () => {
     const upgraded = normalizeOccsProfileSketch(legacy);
     expect(upgraded.shapes).toHaveLength(2);
     const chain = upgraded.shapes[0];
-    expect(chain).toMatchObject({ type: 'chain', closed: true, op: 'add' });
-    expect(upgraded.shapes[1]).toMatchObject({ type: 'circle', op: 'subtract', diameter: 5 });
+    expect(chain).toMatchObject({ type: 'chain', closed: true });
+    expect(upgraded.shapes[1]).toMatchObject({ type: 'circle', diameter: 5 });
 
     // An anchored sketch translates so the anchor vertex sits on X=0 —
     // the axis replaces the anchor as the placement basis.
@@ -318,7 +317,7 @@ describe('OCCS profile helpers', () => {
       shapes: [{
         id: 's0',
         type: 'chain',
-        op: 'none',
+        construction: true,
         closed: false,
         points: [
           { id: 'a0', x: 0, y: 0 },
@@ -339,8 +338,8 @@ describe('OCCS profile helpers', () => {
   it('merges by position: unchanged shapes keep authoring, moved ones go numeric', () => {
     const authored = normalizeOccsProfileSketch({
       shapes: [
-        { id: 'c1', type: 'circle', op: 'subtract', center: ['D', 10], diameter: 8 },
-        { id: 'r1', type: 'rect', op: 'add', center: [20, 10], width: 'W', height: 10 }
+        { id: 'c1', type: 'circle', center: ['D', 10], diameter: 8 },
+        { id: 'r1', type: 'rect', center: [20, 10], width: 'W', height: 10 }
       ],
       parameters: { D: 5, W: 30 }
     });
@@ -356,7 +355,7 @@ describe('OCCS profile helpers', () => {
     const rect = merged.shapes.find(shape => shape.id === 'r1');
     // Unchanged circle keeps its expressions; the unchanged rect keeps
     // its id and bound width.
-    expect(circle).toMatchObject({ center: ['D', 10], diameter: 8, op: 'subtract' });
+    expect(circle).toMatchObject({ center: ['D', 10], diameter: 8 });
     expect(rect).toMatchObject({ id: 'r1', width: 'W' });
 
     // A moved circle matches nothing authored: numeric, fresh op.
@@ -374,7 +373,7 @@ describe('OCCS profile helpers', () => {
 
   it('adopts a single unknown identifier at the field\'s evaluated value', () => {
     const sketch = normalizeOccsProfileSketch({
-      shapes: [{ id: 's0', type: 'circle', op: 'subtract', center: [12, 8], diameter: 6 }],
+      shapes: [{ id: 's0', type: 'circle', center: [12, 8], diameter: 6 }],
       parameters: {}
     });
     expect(adoptOccsProfileBindingParameter(sketch, 'K', 12, {})).toEqual({ K: 12 });
@@ -386,7 +385,7 @@ describe('OCCS profile helpers', () => {
     const sketch = normalizeOccsProfileSketch({
       parameters: { W: 30, Other: 1 },
       shapes: [
-        { id: 's0', type: 'rect', op: 'add', center: ['W/2', 5], width: 'W', height: 'W-10' }
+        { id: 's0', type: 'rect', center: ['W/2', 5], width: 'W', height: 'W-10' }
       ]
     });
     const renamed = renameOccsProfileSketchParameter(sketch, 'W', 'Width');
@@ -414,8 +413,8 @@ describe('OCCS profile helpers', () => {
   it('evaluates the boolean fold: adds union, subtracts cut, the material half clips', async () => {
     const section = occsProfileFromSketch(normalizeOccsProfileSketch({
       shapes: [
-        { id: 's0', type: 'rect', op: 'add', center: [20, 0], width: 40, height: 20, rotation: 0 },
-        { id: 's1', type: 'circle', op: 'subtract', center: [20, 0], diameter: 10 }
+        { id: 's0', type: 'rect', center: [20, 0], width: 40, height: 20, rotation: 0 },
+        { id: 's1', type: 'circle', center: [20, 0], diameter: 10 }
       ]
     })).section;
     const resolved = await resolveOccsProfileSectionPolygons(section);
@@ -425,7 +424,7 @@ describe('OCCS profile helpers', () => {
     // A shape crossing the zero axis clips to the material half.
     const crossing = await resolveOccsProfileSectionPolygons(
       occsProfileFromSketch(normalizeOccsProfileSketch({
-        shapes: [{ id: 's0', type: 'rect', op: 'add', center: [-10, 0], width: 40, height: 20 }]
+        shapes: [{ id: 's0', type: 'rect', center: [-10, 0], width: 40, height: 20 }]
       })).section
     );
     const xs = crossing.polygons[0].map(vertex => vertex[0]);
@@ -435,7 +434,7 @@ describe('OCCS profile helpers', () => {
     const flipped = await resolveOccsProfileSectionPolygons(
       occsProfileFromSketch(normalizeOccsProfileSketch({
         material: 'negative',
-        shapes: [{ id: 's0', type: 'rect', op: 'add', center: [10, 0], width: 40, height: 20 }]
+        shapes: [{ id: 's0', type: 'rect', center: [10, 0], width: 40, height: 20 }]
       })).section
     );
     const flippedXs = flipped.polygons[0].map(vertex => vertex[0]);
@@ -444,7 +443,7 @@ describe('OCCS profile helpers', () => {
     // Reference shapes never participate.
     const referenceOnly = await resolveOccsProfileSectionPolygons(
       occsProfileFromSketch(normalizeOccsProfileSketch({
-        shapes: [{ id: 's0', type: 'circle', op: 'none', center: [10, 0], diameter: 8 }]
+        shapes: [{ id: 's0', type: 'circle', construction: true, center: [10, 0], diameter: 8 }]
       })).section
     );
     expect(referenceOnly.polygons).toHaveLength(0);
@@ -458,8 +457,8 @@ describe('OCCS profile helpers', () => {
   it('projects a sketch to preview layerData through the boolean fold', async () => {
     const layers = await resolveOccsProfileSketchLayerData(normalizeOccsProfileSketch({
       shapes: [
-        { id: 's0', type: 'rect', op: 'add', center: [20, 0], width: 40, height: 20 },
-        { id: 's1', type: 'circle', op: 'subtract', center: [20, 0], diameter: 10 }
+        { id: 's0', type: 'rect', center: [20, 0], width: 40, height: 20 },
+        { id: 's1', type: 'circle', center: [20, 0], diameter: 10 }
       ]
     }));
     expect(layers).toHaveLength(2);

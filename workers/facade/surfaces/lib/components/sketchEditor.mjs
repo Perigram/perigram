@@ -4,7 +4,6 @@
 // grips, and undo/redo run in the engine; entity records and the sketch
 // model normalize through occs/profiles.js.
 import {
-  OCCS_PROFILE_SHAPE_OPS,
   adoptOccsProfileBindingParameter,
   createEmptyOccsProfileSketch,
   evaluateOccsProfileSketch,
@@ -168,8 +167,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           // Add shapes whose whole boolean result clipped away on the
           // void side of the axis render nothing — that state gets a
           // voice instead of silence.
-          const hasAdds = section.shapes.some(shape => shape.op === 'add');
-          if (hasAdds && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
+          const participates = section.shapes.some(shape => !shape.construction);
+          if (participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
             outlineError.value = t('cassette.v2.profileEditor.resultClipped');
           }
         } catch (error) {
@@ -474,12 +473,12 @@ export default function createSketchEditor({ vue, components, locale }) {
         return best || null;
       };
 
-      // Shape hit-testing for the selection popup: the topmost shape
-      // under the click — inside a rect, within a circle, or near a
-      // chain's segments (screen-space tolerance). Face clicks are the
-      // natural pick gesture; the engine's edge pick and this test
-      // drive the same popup.
-      const shapeAt = (clientX, clientY) => {
+      // Shape hit-testing for the selection popup: every shape under
+      // the click — inside a rect, within a circle, or near a chain's
+      // segments (screen-space tolerance) — topmost first. Repeated
+      // clicks on the same point cycle the stack (selection cycling).
+      let pickCycle = null;
+      const shapesAt = (clientX, clientY) => {
         const view = manager?.curView;
         const bounds = overlayRef.value?.getBoundingClientRect();
         if (!view || !bounds) return null;
@@ -489,19 +488,15 @@ export default function createSketchEditor({ vue, components, locale }) {
         } catch {
           return null;
         }
-        // Topmost for picking: subtract shapes over add shapes (a
-        // cutout is the specific target inside its host body), later
-        // shapes over earlier within each group.
         const authored = normalizeOccsProfileSketch(props.modelValue || {});
         const byId = new Map(evaluated.shapes.map(shape => [shape.id, shape]));
-        const groups = { subtract: [], rest: [] };
-        for (const shape of authored.shapes) {
-          const resolved = byId.get(shape.id);
-          if (resolved) groups[shape.op === 'subtract' ? 'subtract' : 'rest'].push(resolved);
-        }
-        const ordered = [...groups.subtract.reverse(), ...groups.rest.reverse()];
+        const ordered = authored.shapes
+          .map(shape => byId.get(shape.id))
+          .filter(Boolean)
+          .reverse();
         const px = clientX - bounds.x;
         const py = clientY - bounds.y;
+        const hits = [];
         const screenOf = (x, y) => view.worldToScreen({ x, y });
         const distanceToSegment = (ax, ay, bx, by) => {
           const dx = bx - ax;
@@ -515,7 +510,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             const center = screenOf(shape.center[0], shape.center[1]);
             const edge = screenOf(shape.center[0] + shape.diameter / 2, shape.center[1]);
             const radius = Math.max(Math.abs(edge.x - center.x), 10);
-            if (Math.hypot(px - center.x, py - center.y) <= radius) return shape;
+            if (Math.hypot(px - center.x, py - center.y) <= radius) hits.push(shape);
             continue;
           }
           if (shape.type === 'rect') {
@@ -529,22 +524,23 @@ export default function createSketchEditor({ vue, components, locale }) {
                 inside = !inside;
               }
             }
-            if (inside) return shape;
+            if (inside) { hits.push(shape); continue; }
             for (let index = 0; index < corners.length; index += 1) {
               const a = corners[index];
               const b = corners[(index + 1) % corners.length];
-              if (distanceToSegment(a.x, a.y, b.x, b.y) <= 6) return shape;
+              if (distanceToSegment(a.x, a.y, b.x, b.y) <= 6) { hits.push(shape); break; }
             }
             continue;
           }
           const points = shape.points.map(point => screenOf(point.x, point.y));
           for (let index = 0; index + 1 < points.length; index += 1) {
             if (distanceToSegment(points[index].x, points[index].y, points[index + 1].x, points[index + 1].y) <= 6) {
-              return shape;
+              hits.push(shape);
+              break;
             }
           }
         }
-        return null;
+        return hits;
       };
 
       // Seeded entities carry their shape's id — the engine's selection
@@ -558,6 +554,9 @@ export default function createSketchEditor({ vue, components, locale }) {
         const shapeIds = [...new Set([...ids]
           .map(id => entityShapeByObjectId.get(String(id)))
           .filter(Boolean))];
+        // An empty engine pick carries no command — the surface's own
+        // pointerdown owns clearing on empty space.
+        if (!shapeIds.length) return;
         if (shapeIds.length !== 1) {
           selectedShape.value = null;
           return;
@@ -594,22 +593,32 @@ export default function createSketchEditor({ vue, components, locale }) {
           selectedShape.value = null;
           return;
         }
-        const found = cornerAt(event.clientX, event.clientY, 14);
+        const found = cornerAt(event.clientX, event.clientY, 10);
         if (found) {
           selectedCorner.value = { shapeId: found.shapeId, vertexId: found.point.id };
           selectedShape.value = null;
+          pickCycle = null;
           clearEngineSelection();
           return;
         }
         // The engine picks entities on their edges; face clicks fall
-        // through to the surface's hit test. Either path opens the
-        // popup; empty space clears it.
+        // through to the surface's hit test. A repeat click on the same
+        // point cycles to the next shape beneath (covered shapes stay
+        // reachable); a click elsewhere picks the topmost again.
         selectedCorner.value = null;
         const bounds = overlayRef.value?.getBoundingClientRect();
-        const shape = shapeAt(event.clientX, event.clientY);
-        selectedShape.value = shape && bounds
-          ? { shapeId: shape.id, at: [event.clientX - bounds.x, event.clientY - bounds.y] }
-          : null;
+        const hits = shapesAt(event.clientX, event.clientY);
+        if (!hits.length || !bounds) {
+          pickCycle = null;
+          selectedShape.value = null;
+          return;
+        }
+        const sameSpot = pickCycle
+          && Math.hypot(pickCycle.at[0] - event.clientX, pickCycle.at[1] - event.clientY) <= 6;
+        const index = sameSpot ? (pickCycle.index + 1) % hits.length : 0;
+        pickCycle = { at: [event.clientX, event.clientY], index };
+        const shape = hits[index];
+        selectedShape.value = { shapeId: shape.id, at: [event.clientX - bounds.x, event.clientY - bounds.y] };
       };
 
       // The surface owns Escape routing: the engine's own handling needs
@@ -1137,24 +1146,30 @@ export default function createSketchEditor({ vue, components, locale }) {
         });
       };
 
-      const opButton = (shape) => h(SelectButton, {
-        modelValue: shape.op,
-        options: OCCS_PROFILE_SHAPE_OPS.map(op => ({
-          value: op,
-          label: t(`cassette.v2.profileEditor.ops.${op}`)
+      // The construction toggle (the CAD sketch law): a shape either
+      // participates in the section (containment decides its role) or
+      // is construction geometry.
+      const constructionToggle = (shape) => h(SelectButton, {
+        modelValue: shape.construction ? 'construction' : 'section',
+        options: ['section', 'construction'].map(value => ({
+          value,
+          label: t(`cassette.v2.profileEditor.construction.${value}`)
         })),
         optionValue: 'value',
         optionLabel: 'label',
         allowEmpty: false,
         size: 'small',
-        'aria-label': `${t(`cassette.v2.profileEditor.ops.${shape.op}`)} ${shape.id}`,
-        'onUpdate:modelValue': value => { updateShape(shape.id, subject => ({ ...subject, op: value })); }
+        'aria-label': `${t(`cassette.v2.profileEditor.construction.${shape.construction ? 'construction' : 'section'}`)} ${shape.id}`,
+        'onUpdate:modelValue': value => {
+          updateShape(shape.id, subject => ({ ...subject, construction: value === 'construction' }));
+        }
       });
 
       // The selected primitive's parameter popup — the one home for a
-      // shape's non-dimensional settings: its op, rotation and fillet
-      // radii on rects, fillet chips on chains. Geometry (position,
-      // sizes) authors through the on-canvas dimensions.
+      // shape's non-dimensional settings: its construction flag,
+      // rotation and fillet radii on rects, fillet chips on chains.
+      // Geometry (position, sizes) authors through the on-canvas
+      // dimensions.
       const shapePopup = computed(() => {
         const selection = selectedShape.value;
         if (!selection) return null;
@@ -1235,7 +1250,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               class: 'text-muted',
               title: t(SHAPE_KIND_LABEL[shape.type])
             }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
-            opButton(shape)
+            constructionToggle(shape)
           ]),
           ...rows
         ]);

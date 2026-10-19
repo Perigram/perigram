@@ -559,10 +559,9 @@
                     "arc": "Arc",
                     "rectangle": "Rectangle"
                 },
-                "ops": {
-                    "none": "Reference",
-                    "add": "Cut",
-                    "subtract": "Keep"
+                "construction": {
+                    "section": "Section",
+                    "construction": "Construction"
                 },
                 "actions": {
                     "erase": "Erase",

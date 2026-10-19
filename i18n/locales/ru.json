@@ -559,10 +559,9 @@
                     "arc": "Дуга",
                     "rectangle": "Прямоугольник"
                 },
-                "ops": {
-                    "none": "Подложка",
-                    "add": "Вырезать",
-                    "subtract": "Оставить"
+                "construction": {
+                    "section": "Сечение",
+                    "construction": "Конструкция"
                 },
                 "actions": {
                     "erase": "Удалить",
