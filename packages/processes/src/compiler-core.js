@@ -4078,7 +4078,7 @@ function displayActionLabel(action = {}, id = '', process = {}, domain = {}) {
     return ['Delete', typeIdLabel(domain, typeId)].filter(Boolean).join(' ');
   }
   if (action.actionKind === 'runCommand') {
-    return ['Run', action.commandId].filter(Boolean).join(' ');
+    return ['Run', serviceRenderLabel(domain, action.commandId) || action.commandId].filter(Boolean).join(' ');
   }
   if (action.actionKind === 'sendToOrganization') {
     return ['Send', typeIdLabel(domain, typeId)].filter(Boolean).join(' ');
@@ -4095,6 +4095,12 @@ function stateTargetLabel(action = {}, process = {}) {
     || action.access?.stateTo
     || action.outputs?.find(output => output.status)?.status
     || '';
+}
+
+// A plugin service's declared render label — the authored caption source
+// for its run action (a raw command id never reaches a button).
+function serviceRenderLabel(domain = {}, commandId = '') {
+  return domain.serviceContracts?.[commandId]?.render?.label || '';
 }
 
 function isGenericActionLabel(label, actionKind = '') {
