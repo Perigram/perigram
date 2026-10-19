@@ -62,7 +62,7 @@ export const applyLayerPens = (drawing, options = {}) => {
         penId: pen?._id || null,
         color: stroke.color || layer.color || fallbackStroke.color || 'currentColor',
         weight: stroke.weight || layer.weight || fallbackStroke.weight || 0.5,
-        dasharray: strokeDasharray(stroke.pattern) || layer.dasharray || 'none'
+        dasharray: stroke.pattern ? strokeDasharray(stroke.pattern) : (layer.dasharray || 'none')
       };
     })
   };

@@ -124,11 +124,12 @@ export function normalizeType(declaration = {}) {
   // `previewSource` (the pack authoring vocabulary for "this data field is
   // the card/detail preview") adopts into the normalized record as
   // `{ path, display }`, so generators can render declared previews even
-  // before a payload exists. Adopt-and-delete: the raw groups never ride
-  // the compiled record.
+  // before a payload exists. A stored normalized declaration already
+  // carries `previewSource`, so defineType round-trips keep it.
   const previewSourceRow = (legacyRender.groups || [])
     .flatMap(group => group.fields || [])
-    .find(field => field?.role === 'previewSource' && field?.path);
+    .find(field => field?.role === 'previewSource' && field?.path)
+    || (declaration.previewSource?.path ? declaration.previewSource : null);
 
   const type = {
     id: declaration.id,
