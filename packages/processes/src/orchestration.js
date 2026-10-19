@@ -414,6 +414,7 @@ function processRunInput(inputs = {}, record = {}, portId = '', environment = {}
   if (relatedType && Object.hasOwn(inputs.entities || {}, relatedType)) {
     return inputs.entities[relatedType];
   }
+  if (portId.startsWith('lineage.') && inputs.entity != null) return inputs.entity;
   if (Object.hasOwn(inputs.parameters || {}, portId)) return inputs.parameters[portId];
   return undefined;
 }

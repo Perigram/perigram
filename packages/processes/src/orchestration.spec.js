@@ -631,6 +631,35 @@ describe('durable process orchestration', () => {
     }));
   });
 
+  it('binds a construct lineage input from its manual parent context', async () => {
+    const definition = process([
+      {
+        id: 'create-queue',
+        kind: 'cts.construct',
+        typeId: 'queue',
+        trigger: { mode: 'manual' },
+        construction: {
+          mode: 'genericCreate',
+          inputs: [{ id: 'lineage.projectId', path: 'lineage.projectId', type: 'entity', typeId: 'project' }]
+        }
+      }
+    ], ['create-queue']);
+    const executeEffect = vi.fn().mockResolvedValue({ _id: 'queue-1' });
+
+    const completed = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'create-queue' }, {
+        context: { inputs: { entity: { type: 'project', id: 'project-1' } } }
+      }),
+      definition,
+      { executeEffect, catalogContext }
+    );
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
+      inputs: { 'lineage.projectId': { type: 'project', id: 'project-1' } }
+    }));
+  });
+
   it('omits an optional relation whose manual source has not run', async () => {
     const definition = process([
       {
