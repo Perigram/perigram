@@ -221,7 +221,8 @@ pure helpers own every state-presentation decision:
   region, intent }] }` from the same compiled producer workflows'
   `regions[*].transitions`: the authored machine edges, the board
   projection's instant legal-move map. First edge per from→to pair wins,
-  mirroring the policy derivation. Edges compile only from wired update
+  mirroring the policy derivation; process-owned edges (event-wired
+  transitions) stay out — manual moves ride user edges only. Edges compile only from wired update
   actions in the process, so the contract copy can lag the served
   machine (override or default machines serve transitions the producer
   copy never carried) — the board replaces this map at dragstart with

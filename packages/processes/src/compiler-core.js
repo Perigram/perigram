@@ -1869,6 +1869,7 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
             from,
             to,
             processRoleIds: actionExposureRoleIdsForInput(action, access, null),
+            ...(action.trigger?.mode === 'event' ? { processOwned: true } : {}),
             ...(action.guard ? { guard: action.guard } : {})
           });
         }
@@ -1902,6 +1903,7 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
         from,
         to,
         processRoleIds: actionExposureRoleIdsForInput(action, access, source.window),
+        ...(action.trigger?.mode === 'event' ? { processOwned: true } : {}),
         ...(action.guard ? { guard: action.guard } : {})
       });
     }

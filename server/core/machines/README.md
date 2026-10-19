@@ -36,7 +36,11 @@ graph-derived (SPEC §7) — this module never defines machines itself.
   A compiled transition may instead be a deadline edge (`deadline: true`
   with system-only access): declared on the state record (SPEC §7),
   executable only by the system actor, and driven by the deadline
-  scanner — never a user action.
+  scanner — never a user action. A transition declared by an
+  event-wired process action compiles its edge as process-owned
+  (`processOwned: true`): availability (`GET /api/state/actions`, the
+  ui-mapping legal-move contract) keeps it out of every manual surface,
+  while the transition boundary executes it for the orchestration.
   Every flat state write stamps `stateChangedAt` (the §3 entered-state
   clock, SPEC §3/§7): creation through the instance boundary and every
   status transition. The deadline scanner

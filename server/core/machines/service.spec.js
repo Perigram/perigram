@@ -125,6 +125,33 @@ describe('status service lifecycle payloads', () => {
     expect(denied.actions).toEqual([]);
   });
 
+  it('keeps process-owned edges out of availability while the transition boundary still executes them', async () => {
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'ACTIVE',
+          states: { ACTIVE: {}, ARCHIVED: { terminal: true } },
+          transitions: [{ from: 'ACTIVE', to: 'ARCHIVED', processOwned: true }]
+        }
+      }
+    });
+    await db.collection('files').insertOne(cassetteDoc('cassette-process-owned'));
+
+    const offered = await statusService.getActions('cassette', 'cassette-process-owned', {
+      userId: 'admin-1',
+      memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }]
+    });
+    expect(offered.actions).toEqual([]);
+
+    await statusService.transition('cassette', 'cassette-process-owned', 'ARCHIVED', 'admin-1', {
+      userId: 'admin-1',
+      memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }]
+    });
+    const entity = await db.collection('files').findOne({ _id: 'cassette-process-owned' });
+    expect(entity.status.state.primary).toBe('ARCHIVED');
+  });
+
   it('preflights a named intent without mutating status', async () => {
     mockCassetteWorkflow();
     await db.collection('files').insertOne(cassetteDoc('cassette-intent-preflight'));
