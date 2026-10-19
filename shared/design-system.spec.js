@@ -399,7 +399,6 @@ describe('Design system manifest', () => {
     const rawTypography = /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl|\[(?:\d+(?:\.\d+)?)(?:px|rem|em)\])|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black|mono|serif)|tracking-(?:tighter|tight|normal|wide|wider|widest|\[[^\]]+\])|leading-(?:none|tight|snug|normal|relaxed|loose|\[[^\]]+\]))\b/;
     const staticFontSize = /\bfont-size=["']\d/;
     const dynamicFontSizeFiles = new Set([
-      'components/ArtifactLayoutEditor.vue',
       'components/shared/DrawingCanvas.vue'
     ]);
     const rawSurfaceBorder = /\bborder-surface-\d+\b/;

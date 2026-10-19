@@ -54,38 +54,6 @@
         />
       </template>
     </WorkspaceLanes>
-    <GeneratedRegion
-      v-else-if="screen.template === 'instanceDetail' && detailMainRegion"
-      :region="detailMainRegion"
-      :screen-key="screen.screenKey || screen.id"
-      :source-state="sourceState(detailMainRegion.sourceId)"
-      :template="screen.template"
-      :screen-actions="screen.actions || []"
-      :excluded-actions="detailChildActionIds"
-      :body-actions="detailChildActionIds"
-      :suppress-child-summaries="detailChildRegions.length > 0"
-      :trace-exclusions="detailTraceExclusions"
-      @refresh="load"
-      @execute-action="executeAction"
-    >
-      <GeneratedRegion
-        v-for="region in detailChildRegions"
-        :key="region.id"
-        :region="region"
-        :screen-key="screen.screenKey || screen.id"
-        :source-state="sourceState(region.sourceId)"
-        :template="screen.template"
-        :screen-actions="[]"
-        :action-context="detailActionContext"
-        @refresh="load"
-        @execute-action="executeAction"
-      />
-      <!-- The instance conversation is NOT mounted here: GeneratedRegion
-           renders GeneratedInstanceDetail, which owns the thread inside the
-           detail column (both the abstract and bounded flush branches). A
-           second mount here would either duplicate the thread or — as the
-           dead `detailEntity` guard proved — never render at all. -->
-    </GeneratedRegion>
     <div v-else class="flex flex-col gap-4">
       <GeneratedRegion
         v-for="region in screen.regions"
@@ -315,7 +283,6 @@ import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
-import { routeContextTraceExclusions } from '~/utils/instance-hierarchy.js';
 import {
   artifactCreatorForAction,
   collectActionInputFields,
@@ -337,7 +304,6 @@ const toast = useToast();
 const confirm = useConfirm();
 const { t, te } = useI18n();
 const authStore = useAuthStore();
-const route = useRoute();
 const instances = useInstancesStore();
 const screenRef = toRef(props, 'screen');
 const { screen, loading, error, load, applyInstanceSnapshot, sourceState } = useGeneratedScreen(screenRef);
@@ -366,29 +332,6 @@ const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadF
 const regionBySlot = computed(() => Object.fromEntries(
   screen.value.regions.map(region => [region.slot || 'main', region])
 ));
-const detailMainRegion = computed(() => screen.value.regions.find(region => sourceState(region.sourceId).source?.mode === 'single') || screen.value.regions[0] || null);
-const detailChildRegions = computed(() => screen.value.regions.filter(region => region !== detailMainRegion.value));
-const detailChildActionIds = computed(() => [...new Set(detailChildRegions.value.flatMap(region => region.actions || []))]);
-const detailActionContext = computed(() => {
-  const state = detailMainRegion.value ? sourceState(detailMainRegion.value.sourceId) : null;
-  return {
-    parentInstance: state?.entity || null,
-    parentTypeId: state?.source?.typeId || ''
-  };
-});
-const detailTraceExclusions = computed(() => {
-  const state = detailMainRegion.value ? sourceState(detailMainRegion.value.sourceId) : null;
-  return routeContextTraceExclusions(
-    state?.entity || {},
-    state?.source?.typeId || '',
-    (authStore.lineageBindings || []).map(binding => ({
-      parentType: binding.parentTypeId,
-      childType: binding.childTypeId,
-      lineageKey: binding.lineageKey
-    })),
-    route.query
-  );
-});
 const actionInputFields = computed(() => collectActionInputFields(pendingAction.value));
 // Launch-context bindings (SPEC §UI): a lineage/relation input whose
 // reference the context already carries never prompts — the entities

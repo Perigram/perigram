@@ -1,22 +1,13 @@
 import GeneratedHomeWorkspace from '~/components/generated/GeneratedHomeWorkspace.vue';
-import ArtifactDetail from '~/components/entities/Artifact/ArtifactDetail.vue';
 
-// The artifact detail overload: artifacts are the framework file service
-// (SPEC §13) with their own read/manage detail surface. Editors are NOT
-// detail overloads — they register workspace pages through the
-// file-surface registry and open as pane tabs.
+// Screen overloads: templates whose surface a registered component owns
+// outright. Detail surfaces render through the ui-mapping generator;
+// editors are workspace pages registered through the file-surface
+// registry.
 export const generatedScreenOverloads = [
   {
     template: 'home',
     component: GeneratedHomeWorkspace
-  }
-];
-
-export const generatedInstanceDetailOverloads = [
-  {
-    typeId: 'artifact',
-    component: ArtifactDetail,
-    props: ({ entity }) => ({ artifact: entity })
   }
 ];
 
@@ -26,10 +17,6 @@ export function resolveGeneratedScreenOverload(screen = {}) {
     overload.template === screen.template
     && (overload.typeId == null || overload.typeId === detailScreenTypeId(screen))
   )) || null;
-}
-
-export function resolveGeneratedInstanceDetailOverload(typeId = '') {
-  return generatedInstanceDetailOverloads.find(overload => overload.typeId === typeId) || null;
 }
 
 function detailScreenTypeId(screen = {}) {

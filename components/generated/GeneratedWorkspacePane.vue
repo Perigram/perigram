@@ -1,28 +1,9 @@
 <template>
-  <!-- The project overload still owns entity tabs through the legacy
-       renderer family; generated home screens never produce entity items
-       — their instance surfaces are compiled screen tabs. -->
-  <GeneratedInstanceFile
-    v-if="item?.kind === 'instance'"
-    :item="item"
-    :tabs="tabs"
-    :action-entries="actionEntries"
-    :closeable="closeable"
-    :splittable="splittable"
-    :back="back"
-    @back="$emit('back')"
-    @execute-action="(action, entry) => $emit('execute-action', action, entry)"
-    @open-entity="request => $emit('open-entity', request)"
-    @open-page="page => $emit('open-page', page)"
-    @refresh="$emit('refresh')"
-    @select-tab="$emit('select-tab', $event)"
-    @close-tab="$emit('close-tab', $event)"
-    @add-tab="$emit('add-tab', $event)"
-    @split="orientation => $emit('split', orientation)"
-    @close="$emit('close')"
-  />
+  <!-- Opened screens (type screens and instance-bound detail screens) and
+       registered workspace pages: every pane tab is a screen or page
+       reference. -->
   <GeneratedScreenPane
-    v-else-if="item?.kind === 'screen'"
+    v-if="item?.kind === 'screen'"
     :item="item"
     :tabs="tabs"
     :closeable="closeable"
@@ -81,11 +62,7 @@
 
 <script setup>
 // The workspace pane dispatcher: opened screens (type screens and
-// instance-bound detail screens), registered workspace pages, and — for
-// the project overload only — legacy entity file tabs. Generated home
-// screens produce no entity items: every instance surface there is a
-// compiled screen rendered through the generator.
-import GeneratedInstanceFile from '~/components/generated/GeneratedInstanceFile.vue';
+// instance-bound detail screens) and registered workspace pages.
 import GeneratedWorkspacePage from '~/components/generated/GeneratedWorkspacePage.vue';
 import GeneratedScreenPane from '~/components/generated/GeneratedScreenPane.vue';
 import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
@@ -93,7 +70,6 @@ import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue'
 defineProps({
   item: { type: Object, default: null },
   tabs: { type: Array, default: () => [] },
-  actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true },
   // The pane's navigation history has somewhere to go: renders the Back

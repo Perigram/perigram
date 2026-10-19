@@ -177,7 +177,7 @@ screen contract directly and must not reintroduce role-level duplicate routes.
 App default screen/body overloads are registered in
 `components/generated/overloads.js` and are resolved only after that
 user-specific manifest has been composed and loaded. Do not hardcode new
-entity-specific generated branches in `GeneratedScreen` or `GeneratedInstanceDetail`;
+entity-specific generated branches in `GeneratedScreen`;
 register the overload there so it receives only the sources, regions, actions,
 and scope available to the current user. Project `entityDetail` screens use
 this path to render an IDE-style operational workspace over the generated
@@ -1266,21 +1266,13 @@ jump) keep their own click behavior. The composer shows a cancelable
 reply bar that renders like the in-bubble quote (sender plus snippet), not
 an alert-style PrimeVue Message. The composer input is a PrimeVue InputGroup — attach
 and voice sit in addons around the textarea while send is the trailing
-primary button (a direct InputGroup child, not an addon). Abstract generated
-detail pages expose the same composed conversation as the detail page's
-**sidebar rail** through [`InstanceChatPanel`](./shared/README.md) — the one
-in-page thread surface; bounded hosts cannot (their `flush` frame is `h-full`
-and non-scrolling, so a rail has no track) and therefore carry a chat entry
-that opens the shared popup instead. Every entity
+primary button (a direct InputGroup child, not an addon). Every entity
 surface carries a chat entry — the shared `InstanceCard` renders it in the
 full-card footer row, and the inline faces open the shared record popup,
 whose detail surface carries its own entry — all opening the entity thread through
 `utils/instance-chat.js` (the single PrimeVue Dialog popup — consumed on chat
-mount). The
-detail rail rides `GeneratedInstanceDetail` — the canonical detail chrome —
-in its abstract branch, through `InstancePage`'s sidebar slot; the bounded
-branch mounts no rail and its host (`GeneratedInstanceFile`) supplies the popup
-entry from the pane action strip.
+mount). Generated record headers render the shared `InstanceChatEntry`
+beside the action cluster.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock type-id="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `type-id` must match a declared type in the registry view; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data

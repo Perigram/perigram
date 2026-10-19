@@ -131,7 +131,6 @@ same change that touches a file.
 
 | ID | Path | Primary ownership | Current disposition |
 |---|---|---|---|
-| `ui-components-artifactlayouteditor-vue` | `components/ArtifactLayoutEditor.vue` | derived usage | centralize:layout (1); replace:chrome (4) |
 | `ui-components-artifacts-artifacttexteditor-vue` | `components/artifacts/ArtifactTextEditor.vue` | derived usage | replace:chrome (2) |
 | `ui-components-artifacts-artifactviewer-vue` | `components/artifacts/ArtifactViewer.vue` | derived usage | replace:chrome (2) |
 | `ui-components-artifacts-sketcheditor-vue` | `components/artifacts/SketchEditor.vue` | derived usage | replace:chrome (1) |
@@ -145,7 +144,6 @@ same change that touches a file.
 | `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (21); remove:state (7); remove:important-override (10); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-directory-directorydetailsurface-vue` | `components/directory/DirectoryDetailSurface.vue` | derived usage | replace:chrome (5); remove:state (1); remove:important-override (6) |
 | `ui-components-entities-artifact-artifactcard-vue` | `components/entities/Artifact/ArtifactCard.vue` | derived usage | compliant |
-| `ui-components-entities-artifact-artifactdetail-vue` | `components/entities/Artifact/ArtifactDetail.vue` | derived usage | centralize:layout (1) |
 | `ui-components-entities-artifacttemplate-artifacttemplatecard-vue` | `components/entities/ArtifactTemplate/ArtifactTemplateCard.vue` | derived usage | compliant |
 | `ui-components-entities-entityrevision-entityrevisioncard-vue` | `components/entities/EntityRevision/EntityRevisionCard.vue` | derived usage | compliant |
 | `ui-components-entities-layerstandard-layerstandardcard-vue` | `components/entities/LayerStandard/LayerStandardCard.vue` | derived usage | compliant |
@@ -158,12 +156,8 @@ same change that touches a file.
 | `ui-components-generated-generateddeletebutton-vue` | `components/generated/GeneratedDeleteButton.vue` | derived usage | compliant |
 | `ui-components-generated-generateddetailscreen-vue` | `components/generated/GeneratedDetailScreen.vue` | derived usage | remove:important-override (2) |
 | `ui-components-generated-generatededitorpageaction-vue` | `components/generated/GeneratedEditorPageAction.vue` | derived usage | compliant |
-| `ui-components-generated-generatedfilepreview-vue` | `components/generated/GeneratedFilePreview.vue` | derived usage | compliant |
 | `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | centralize:layout (1); replace:chrome (1); remove:important-override (12) |
 | `ui-components-generated-generatedinstancecollection-vue` | `components/generated/GeneratedInstanceCollection.vue` | derived usage | replace:chrome (4); remove:important-override (2); compliant:scoped-layout |
-| `ui-components-generated-generatedinstancedetail-vue` | `components/generated/GeneratedInstanceDetail.vue` | derived usage | compliant |
-| `ui-components-generated-generatedinstancedetailbody-vue` | `components/generated/GeneratedInstanceDetailBody.vue` | derived usage | compliant |
-| `ui-components-generated-generatedinstancefile-vue` | `components/generated/GeneratedInstanceFile.vue` | derived usage | replace:chrome (1) |
 | `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | compliant |
 | `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | replace:chrome (11) |
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
