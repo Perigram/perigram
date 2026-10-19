@@ -124,15 +124,15 @@ resolve preview media over their snapshot (a served plugin preview
 binding, a renderable stored payload, or a declared geometry value — the
 channels the shared preview mounts); a ref with media renders
 `InstanceInlineRef`'s stacked compact card (flush preview band over a
-one-line label strip: identity truncating beside the small state tag) —
-media attachments (preview cards and image
-tiles) flow together as one masonry of independent column stacks (two
-columns, three past four; the fill starts at the sender-side bottom
-corner — the thread's dock decision selects the leading column, chunks
-are column-major with each chunk's first item at its base, so the
-stacks rest on the gallery's bottom edge and connect to a following
-text message; a lone media item full-width), other refs
-the outlined chip carrying the type glyph at the sender edge. File
+one-line label strip: identity truncating beside the small state tag),
+other refs the outlined chip carrying the type glyph. Refs and image
+tiles flow together as one masonry of independent column stacks in send
+order (two columns, three past four); the fill starts at the sender-side
+bottom corner — the thread's dock decision selects the leading column,
+items alternate across columns with each column's earliest item at its
+base, so the stacks rest on the gallery's bottom edge and connect to a
+following text message. A lone media item renders full-width; chips keep
+compact width, hugging the sender edge inside their cells. File
 documents render the filled chip; images and video embed inline (gallery
 tiles, players), other files open the shared preview dialog on click
 (download for opaque kinds). Click on a ref inspects the instance through

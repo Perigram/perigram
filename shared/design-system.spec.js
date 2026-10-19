@@ -695,6 +695,7 @@ describe('Design system manifest', () => {
     expect(generatedCollection).toContain('pi pi-external-link');
     const messageAttachments = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/MessageAttachments.vue'), 'utf8');
     expect(messageAttachments).toContain("ownMessage ? 'items-end' : 'items-start'");
+    expect(messageAttachments).toContain("ownMessage ? 'justify-end' : 'justify-start'");
     expect(relationsBlock).toContain('overflow-x-auto');
     expect(relationsBlock).toContain('instance-relations-gallery--compact');
     expect(relationsBlock).toContain('isCompactGallery.value ? 2 : 4');

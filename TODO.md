@@ -7313,7 +7313,8 @@ text fills from the bottom).
 - [ ] WAITING — owner verification on the live stack: own-sender media
       messages stack their first items at the docked edge with
       continuation flowing outward; the stacked preview card's caption is
-      one line with the small state tag beside the name.
+      one line with the small state tag beside the name; preview-less
+      refs ride the masonry as compact chips.
 
 ### Agent Notes (2026-10-19 — chat attachment follow-ups)
 
@@ -7321,11 +7322,9 @@ text fills from the bottom).
   label/icon, 2px/6px padding); the stacked compact card renders it
   inside `instance-inline-compact-header`, and the standalone status row
   now belongs to the row layout only.
-- `MessageAttachments` fills masonry columns column-major from the
-  sender's edge (first items own the leading column) and takes the dock
-  side from the thread's `ownMessage` prop — `ChatSupport`'s
-  `isOwnMessage` owns the decision, so the gallery follows the row it
-  rides in.
+- The masonry takes the dock side from the thread's `ownMessage` prop —
+  `ChatSupport`'s `isOwnMessage` owns the decision, so the gallery
+  follows the row it rides in.
 - Above-the-text galleries (bottom fill) have no placement in the
   current thread layout; the law is recorded in SPEC §Chat files and
   support README for when one exists.
@@ -7335,5 +7334,8 @@ text fills from the bottom).
 
 ### Agent Notes (2026-10-19 — sender-edge attachment arrangement)
 
-- Previewless refs retain compact chips. The attachment family and its
-  chip row align content-width children with the message dock edge.
+- Previewless refs ride the masonry in send order as compact chips; the
+  separate chip row is gone. Items alternate across columns from the
+  sender edge, each column's earliest item at its base; chips keep
+  compact width hugging the sender edge inside their cells, and the
+  family aligns content-width children with the dock edge.

@@ -23,12 +23,18 @@
           class="flex min-w-0 flex-1 flex-col justify-end gap-1"
           data-testid="chat-masonry-column"
         >
-          <template v-for="item in column" :key="item.kind === 'instance' ? `${item.ref.type}-${item.ref.id}` : item.attachment.fileId">
+          <template v-for="item in column" :key="item.ref ? `${item.ref.type}-${item.ref.id}` : item.attachment.fileId">
             <span
               v-if="item.kind === 'instance'"
               class="block w-full overflow-hidden rounded-ui border border-content-border"
             >
               <InstanceInlineRef v-bind="previewRefProps(item.ref)" />
+            </span>
+            <span
+              v-else-if="item.kind === 'chip'"
+              :class="['flex w-full', ownMessage ? 'justify-end' : 'justify-start']"
+            >
+              <InstanceInlineRef v-bind="chipRefProps(item.ref)" />
             </span>
             <span v-else class="block w-full overflow-hidden rounded-ui">
               <button
@@ -49,6 +55,10 @@
       >
         <InstanceInlineRef v-bind="previewRefProps(mediaItems[0].ref)" />
       </span>
+      <InstanceInlineRef
+        v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'chip'"
+        v-bind="chipRefProps(mediaItems[0].ref)"
+      />
       <button
         v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'image'"
         type="button"
@@ -58,22 +68,6 @@
       >
         <img class="h-auto max-h-64 max-w-full rounded-ui" :src="url(mediaItems[0].attachment)" :alt="mediaItems[0].attachment.name || ''">
       </button>
-      <span
-        v-if="chipRefs.length"
-        :class="['flex w-full max-w-80 flex-col gap-1', ownMessage ? 'items-end' : 'items-start']"
-        data-testid="chat-instance-refs"
-      >
-        <InstanceInlineRef
-          v-for="ref in chipRefs"
-          :key="`${ref.type}-${ref.id}`"
-          :type="ref.type"
-          :id="ref.id"
-          :entity="ref.instance || null"
-          :fetch="canFetch(ref)"
-          :chip-class="instanceChipClass"
-          :allow-detail-route="!(viewerUserId && senderUserId && senderUserId !== viewerUserId && ref.chatOnlyForRecipient)"
-        />
-      </span>
       <video
         v-for="attachment in videos"
         :key="attachment.fileId"
@@ -208,27 +202,20 @@ const refHasPreview = (ref = {}) => {
     && Boolean(previewSourceValue(dto, typeRecord));
 };
 
-const previewRefs = computed(() => (props.refs || []).filter(refHasPreview));
-const chipRefs = computed(() => (props.refs || []).filter(ref => !refHasPreview(ref)));
-
+// The attachment flow: preview cards, preview-less ref chips, and image
+// tiles in send order.
 const mediaItems = computed(() => [
-  ...(props.refs || []).map(ref => refHasPreview(ref) ? { kind: 'instance', ref } : null).filter(Boolean),
+  ...(props.refs || []).map(ref => ({ kind: refHasPreview(ref) ? 'instance' : 'chip', ref })),
   ...images.value.map(attachment => ({ kind: 'image', attachment }))
 ]);
 
+// Items alternate across columns from the sender edge, each column's
+// earliest item at its base (SPEC §Chat files).
 const masonryColumns = computed(() => {
   const total = mediaItems.value.length;
   const columnCount = total >= 5 ? 3 : 2;
-  const baseCount = Math.floor(total / columnCount);
-  const extra = total % columnCount;
-  const columns = [];
-  let cursor = 0;
-  for (let column = 0; column < columnCount; column++) {
-    const size = baseCount + (column < extra ? 1 : 0);
-    columns.push(mediaItems.value.slice(cursor, cursor + size).reverse());
-    cursor += size;
-  }
-  return columns;
+  return Array.from({ length: columnCount }, (_, column) =>
+    mediaItems.value.filter((_, index) => index % columnCount === column).reverse());
 });
 
 const previewRefProps = (ref = {}) => ({
@@ -238,6 +225,15 @@ const previewRefProps = (ref = {}) => ({
   fetch: canFetch(ref),
   variant: 'compact',
   compactLayout: 'stacked',
+  allowDetailRoute: !(props.viewerUserId && props.senderUserId && props.senderUserId !== props.viewerUserId && ref.chatOnlyForRecipient)
+});
+
+const chipRefProps = (ref = {}) => ({
+  type: ref.type,
+  id: ref.id,
+  entity: ref.instance || null,
+  fetch: canFetch(ref),
+  chipClass: instanceChipClass,
   allowDetailRoute: !(props.viewerUserId && props.senderUserId && props.senderUserId !== props.viewerUserId && ref.chatOnlyForRecipient)
 });
 
