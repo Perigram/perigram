@@ -185,6 +185,37 @@ consecutive green runs. The engine's script inputs are
 newline-tokenized (AutoCAD .scr semantics) — the blank-window zoom
 rides one line per token.
 
+### Agent Notes (2026-10-19, round 6 — owner report: interface unchanged, primitives still leak, ops order obscure, cycle buttons nonsense)
+
+Owner report: the round-5 fixes were invisible — the strip of chips
+with hidden three-state cycling stayed, boolean order stayed
+unreadable, and primitives still appeared on the cassette. Found and
+shipped:
+
+1. The primitives panel (SPEC, owner direction 2026-10-19 evening):
+   a floating panel inside the canvas lists every shape as a row —
+   kind glyph, kind name, and the boolean op as the direct segmented
+   Add/Subtract/Construction control (tooltips name the face). Rows
+   group in the evaluation order — adds before subtracts,
+   construction apart — so the grouped fold reads off the list; row
+   click selects the shape (dashed footprint, popup at the click).
+   The chip strip and its cycle buttons are deleted.
+2. A placement leak closed: picking a library record whose sketch has
+   no participating shape silently stood the default hanger template
+   in on the face (a saved record with an empty sketch was found in
+   the live DB this way). The picker now refuses with the authoring
+   message; the template stays the fallback for sketch-less
+   workpieces only.
+3. Stored documents saved before round 5 keep their corrupted ops
+   (helpers flipped to add/subtract by the old merge) — those need
+   one re-authoring pass in the editor; no migration can guess which
+   shapes were meant as helpers.
+
+Validation: 140/140 in workers/facade, arch and docs guards green;
+e2e/cassette-profile-editor.spec.js extended — rows list in the panel,
+the op control switches directly, and the add row lists above the
+subtract row regardless of draw order.
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places
