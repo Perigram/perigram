@@ -21,7 +21,7 @@ class FakeCache {
     }
 
     async match(request) {
-        const key = typeof request === 'string' ? new URL(request, ORIGIN).href : request.url
+        const key = new URL(typeof request === 'string' ? request : request.url, ORIGIN).href
         return this.entries.get(key)
     }
 
@@ -30,7 +30,8 @@ class FakeCache {
         if (response.status === 206) {
             throw new TypeError("Failed to execute 'put' on 'Cache': Partial response (status code 206) is unsupported")
         }
-        this.entries.set(request.url, response)
+        const key = new URL(typeof request === 'string' ? request : request.url, ORIGIN).href
+        this.entries.set(key, response)
     }
 }
 
@@ -179,6 +180,44 @@ describe('service worker fetch contract', () => {
 
         const offlineReload = dispatchFetch(get(`${ORIGIN}/orders`, 'navigate'), offline)
         expect(await (await offlineReload.responded()).text()).toBe('<html>live</html>')
+    })
+
+    it('remembers the last cached navigation document as the offline shell', async () => {
+        const event = dispatchFetch(get(`${ORIGIN}/orders`, 'navigate'), () => Promise.resolve(browserResponse('<html>live</html>')))
+        await event.responded()
+        await event.waited()
+        const marker = await (await caches.open(RUNTIME_CACHE)).match('/__perigram-shell')
+        expect(await marker.text()).toBe(`${ORIGIN}/orders`)
+    })
+
+    it('never caches opaque-redirect navigations or disturbs the shell marker', async () => {
+        await seed(RUNTIME_CACHE, '/__perigram-shell', `${ORIGIN}/orders`)
+        // Navigation requests carry redirect mode 'manual': the fetch
+        // resolves to an opaque-redirect response (authenticated `/` is an
+        // SSR redirect), which must stay out of the cache.
+        const redirect = { ok: false, status: 0, type: 'opaqueredirect', clone() { return this } }
+        const event = dispatchFetch(get(`${ORIGIN}/`, 'navigate'), () => Promise.resolve(redirect))
+        expect(await event.responded()).toBe(redirect)
+        await event.waited()
+        const runtime = await caches.open(RUNTIME_CACHE)
+        expect(runtime.entries.has(`${ORIGIN}/`)).toBe(false)
+        const marker = await runtime.match('/__perigram-shell')
+        expect(await marker.text()).toBe(`${ORIGIN}/orders`)
+    })
+
+    it('serves the remembered shell to an offline launch when `/` was never cached', async () => {
+        await seed(RUNTIME_CACHE, `${ORIGIN}/orders`, '<html>orders</html>')
+        await seed(RUNTIME_CACHE, '/__perigram-shell', `${ORIGIN}/orders`)
+        const launch = dispatchFetch(get(`${ORIGIN}/`, 'navigate'), offline)
+        expect(await (await launch.responded()).text()).toBe('<html>orders</html>')
+    })
+
+    it('prefers the exact cached document over the shell marker', async () => {
+        await seed(RUNTIME_CACHE, `${ORIGIN}/orders`, '<html>orders</html>')
+        await seed(RUNTIME_CACHE, `${ORIGIN}/other`, '<html>other</html>')
+        await seed(RUNTIME_CACHE, '/__perigram-shell', `${ORIGIN}/orders`)
+        const event = dispatchFetch(get(`${ORIGIN}/other`, 'navigate'), offline)
+        expect(await (await event.responded()).text()).toBe('<html>other</html>')
     })
 
     it('purges caches outside the current version set on activate', async () => {

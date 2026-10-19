@@ -219,9 +219,13 @@ builds only).
   the worker's cache version purges every client cache on activate.
 - Everything the app needs to load and read offline — HTML navigations,
   `/_nuxt/` app chunks, and `GET /api/**` reads — is cached network-first:
-  online loads stay fresh from the network, offline loads fall back to the
-  last successful response, and a navigation that misses the cache
-  entirely falls back to the cached root shell. The `/api/connections`
+  online loads stay fresh from the network, and offline loads fall back to
+  the last successful response. An offline navigation falls back to the
+  exact cached document, then the cached root shell, then the shell marker
+  — the URL of the last navigation document that entered the cache
+  (authenticated visits to `/` are SSR redirects, and redirect responses
+  never enter the cache). The fetch-handler chain is pinned by
+  `utils/sw.spec.js`. The `/api/connections`
   SSE stream is never intercepted or cached. (`/_nuxt/` was once excluded
   from caching entirely — that concern targets cache-first staleness;
   network-first serves fresh code whenever the network is reachable, so
