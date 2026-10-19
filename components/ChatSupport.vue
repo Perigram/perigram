@@ -3152,11 +3152,15 @@ const forwardToConversation = async (conversationKey) => {
 
 // The context menu opens from right-click or long-press (contextmenu) and
 // drops under the cursor (the shared ContextMenu positions at the event
-// point). Touches that land on interactive children (media elements and
-// their native controls, the reply-quote jump, links, inputs) or select
-// text never open it.
+// point). Media elements overload their native context menu to it —
+// media-only messages have no other surface. Other interactive children
+// (the reply-quote jump, links, inputs) and text selection keep their
+// own behavior.
+const MENU_SWALLOW_SELECTOR = 'button, a, video, audio, input, textarea, [data-no-menu]'
+const MENU_MEDIA_SELECTOR = 'img, video, audio'
 const openMessageMenuFromRow = (event, messageItem, longPress = false) => {
-    if (event?.target?.closest?.('button, a, video, audio, input, textarea, [data-no-menu]')) return
+    const target = event?.target
+    if (target?.closest?.(MENU_SWALLOW_SELECTOR) && !target.closest(MENU_MEDIA_SELECTOR)) return
     if (!longPress && typeof window !== 'undefined' && String(window.getSelection?.() || '').length) return
     if (longPress) event?.preventDefault?.()
     openMessageMenu(event, messageItem)
