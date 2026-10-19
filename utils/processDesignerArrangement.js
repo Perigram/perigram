@@ -5,13 +5,11 @@
 // a column; weakly connected components pack side by side, largest
 // first; columns span their widest card plus air). Within each
 // lane×column cell, barycenter sweeps over wired neighbors pick the
-// row order; y = lane row pitch, then a same-lane median polish whose
-// clamps keep the in-cell order and the lane bounds. Deterministic and
-// idempotent: running it over its own output moves nothing.
+// row order; y = inset + row × the cell's own row pitch. Deterministic
+// and idempotent: running it over its own output moves nothing.
 const COLUMN_SNAP = 420;
 const COLUMN_AIR = 120;
 const COLUMN_MIN_SPAN = 360;
-const ROW_MIN_PITCH = 170;
 const LANE_INSET = 24;
 const LANE_MIN_HEIGHT = 150;
 const LANE_PADDING = 24;
@@ -21,8 +19,6 @@ const DECLARATION_CARD_HEIGHT = 96;
 const PROCESS_CARD_WIDTH = 384;
 const DECLARATION_CARD_WIDTH = 224;
 const ORDER_SWEEPS = 8;
-const POLISH_PASSES = 24;
-const POLISH_EPSILON = 0.5;
 
 function isDeclaration(node) {
   return node?.type !== 'processNode';
@@ -36,12 +32,6 @@ function cardHeightOf(node) {
 function cardWidthOf(node) {
   if (node?.dimensions?.width) return node.dimensions.width;
   return isDeclaration(node) ? DECLARATION_CARD_WIDTH : PROCESS_CARD_WIDTH;
-}
-
-function medianOf(values) {
-  if (!values.length) return null;
-  const sorted = [...values].sort((left, right) => left - right);
-  return sorted[(sorted.length - 1) >> 1];
 }
 
 export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands = [], bandOfNodeId } = {}) {
@@ -311,16 +301,11 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     if (band) bandOf.set(node.id, band);
   }
 
-  // Relaxation neighbors: every wire counts, flow and declaration alike.
-  const neighbors = new Map();
+  // Sweep wires: every wire counts, flow and declaration alike.
   const wiresFrom = new Map();
   const wiresTo = new Map();
   for (const edge of edges) {
     if (!byId.has(edge.source) || !byId.has(edge.target)) continue;
-    for (const [from, to] of [[edge.source, edge.target], [edge.target, edge.source]]) {
-      if (!neighbors.has(from)) neighbors.set(from, []);
-      if (!neighbors.get(from).includes(to)) neighbors.get(from).push(to);
-    }
     if (!wiresFrom.has(edge.source)) wiresFrom.set(edge.source, []);
     wiresFrom.get(edge.source).push(edge.target);
     if (!wiresTo.has(edge.target)) wiresTo.set(edge.target, []);
@@ -355,57 +340,51 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
   }
 
   // A node's sweep position: band rank plus its fraction inside the
-  // cell, so barycenters read the lane stack as one axis.
+  // cell, so barycenters read the lane stack as one axis. A sweep reads
+  // the order snapshotted at its start, so the pass cannot chase its own
+  // writes.
   const KEY_SPAN = 1024;
-  const keyOf = id => {
+  const keyOf = (orderNow, id) => {
     const band = bandOf.get(id);
     const size = Math.max(1, cellFor.get(id).length);
     return (bandRank.get(band.id) || 0) * KEY_SPAN
-      + ((order.get(id) + 0.5) / size) * KEY_SPAN;
+      + ((orderNow.get(id) + 0.5) / size) * KEY_SPAN;
   };
 
   const columnValues = [...new Set([...columns.values()])].sort((left, right) => left - right);
   for (let sweep = 0; sweep < ORDER_SWEEPS; sweep += 1) {
     const rightward = sweep % 2 === 0;
+    const before = new Map(order);
     for (const column of rightward ? [...columnValues].reverse() : columnValues) {
       for (const cell of cells) {
         if (columns.get(cell[0].id) !== column) continue;
         const bary = new Map();
         for (const node of cell) {
           const side = rightward ? wiresFrom.get(node.id) : wiresTo.get(node.id);
-          const keys = (side || []).filter(other => order.has(other)).map(keyOf);
+          // Same-cell wires say nothing about the row order: both ends
+          // move together, so reading them would feed the sort itself.
+          const keys = (side || [])
+            .filter(other => order.has(other) && cellFor.get(other) !== cell)
+            .map(other => keyOf(before, other));
           bary.set(node.id, keys.length
             ? keys.reduce((sum, key) => sum + key, 0) / keys.length
-            : keyOf(node.id));
+            : keyOf(before, node.id));
         }
         cell.sort((left, right) => (bary.get(left.id) - bary.get(right.id))
           || (left.id < right.id ? -1 : 1));
         cell.forEach((node, index) => order.set(node.id, index));
       }
     }
+    if ([...order].every(([id, index]) => before.get(id) === index)) break;
   }
 
-  // Row stacking: a lane's cells share row indices; the lane's row
-  // pitch is its tallest card plus the gap, floored at the resting row.
-  const bandPitch = new Map(bands.map(band => [band.id, ROW_MIN_PITCH]));
-  for (const node of nodes) {
-    const band = bandOf.get(node.id);
-    if (band && cellFor.has(node.id)) {
-      bandPitch.set(band.id, Math.max(bandPitch.get(band.id), cardHeightOf(node) + COLUMN_GAP));
-    }
-  }
+  // Row stacking: a cell's rows pitch to its own tallest card plus the
+  // gap, and y follows the order alone, so a lane is at most its tallest
+  // cell stack.
   const y = new Map();
   for (const cell of cells) {
-    const pitch = bandPitch.get(bandOf.get(cell[0].id).id);
+    const pitch = Math.max(...cell.map(node => cardHeightOf(node))) + COLUMN_GAP;
     cell.forEach((node, index) => y.set(node.id, LANE_INSET + index * pitch));
-  }
-  // The stacked extent caps the polish: medians redistribute cards inside
-  // the arrangement the rows produced, so the pass cannot grow it.
-  const stackedBottom = new Map();
-  for (const node of nodes) {
-    const band = bandOf.get(node.id);
-    if (!band || !y.has(node.id)) continue;
-    stackedBottom.set(band.id, Math.max(stackedBottom.get(band.id) || 0, y.get(node.id) + cardHeightOf(node)));
   }
 
   const bandGeometry = () => {
@@ -428,39 +407,7 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     }
     return { tops, geometry };
   };
-  let { tops } = bandGeometry();
-
-  // Median polish: each card moves toward the median of its wired
-  // SAME-LANE neighbors, clamped below its in-cell predecessor and
-  // inside the band's stacked extent — the no-overlap and
-  // lane-containment laws.
-  const inCellAbove = id => {
-    const index = order.get(id);
-    return index > 0 ? cellFor.get(id)[index - 1] : null;
-  };
-  const polishOrder = [...y.keys()]
-    .sort((left, right) => columns.get(left) - columns.get(right)
-      || order.get(left) - order.get(right)
-      || (left < right ? -1 : 1));
-  for (let pass = 0; pass < POLISH_PASSES; pass += 1) {
-    let moved = 0;
-    for (const id of polishOrder) {
-      const band = bandOf.get(id);
-      const target = medianOf((neighbors.get(id) || [])
-        .filter(other => y.has(other) && bandOf.get(other)?.id === band.id)
-        .map(other => y.get(other)));
-      if (target === null) continue;
-      const above = inCellAbove(id);
-      const min = above ? y.get(above.id) + cardHeightOf(byId.get(above.id)) + COLUMN_GAP : LANE_INSET;
-      const max = Math.max(min, (stackedBottom.get(band.id) || 0) - cardHeightOf(byId.get(id)));
-      const next = Math.round(Math.min(max, Math.max(min, target)));
-      moved += Math.abs(next - y.get(id));
-      y.set(id, next);
-    }
-    const { tops: newTops } = bandGeometry();
-    tops = newTops;
-    if (moved < POLISH_EPSILON) break;
-  }
+  const { tops } = bandGeometry();
 
   // Columns span their widest card plus air, floored at the resting
   // span: neighbors keep readable distance at any card size. Components
