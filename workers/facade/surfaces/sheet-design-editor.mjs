@@ -1,7 +1,8 @@
-// The facade plugin's sheet-design editor surface (surface contract 2).
+// The facade plugin's sheet-design editor surface (surface contract 4).
 // The mounted module receives the record and the generic persistence
 // callbacks — never stores, routing, or auth; cross-type reads (layer
-// standards, pen templates, cassettes) ride the host's query transport.
+// standards, pen templates, cassettes) ride the host's query transport,
+// and opening a placed cassette rides the host's workspace-open channel.
 // The layout compute is the pure lib beside this file; saving patches
 // the recomputed geometry through the generic update transport.
 import { recomputeSheetLayout } from './lib/sheetLayout.js';
@@ -11,21 +12,23 @@ import {
   magneticSheetPlacement,
   placementWithTranslation,
   rotateSheetPlacementQuarterTurn,
+  sheetItemBounds,
   sheetItemPoints,
   sheetLayoutState,
   sheetPlacementSource,
   sheetPlacementTransform
 } from './lib/sheetLayoutEditor.js';
+import { occsLayerExportName } from '../occs/layerStandards.js';
 import { DEFAULT_DRAWING_PEN, applyLayerPens } from './lib/drawingPreview.js';
 
-export default function createSurface({ vue, components, locale, queries, notify, access }) {
+export default function createSurface({ vue, components, locale, queries, notify, access, open }) {
   const { h, ref, computed, watch, onMounted, defineComponent } = vue;
   const t = locale.t;
 
-  // The editor-grade io is required (contract 2); a host that cannot
+  // The navigation-grade io is required (contract 4); a host that cannot
   // provide it should have refused the install, not the mount.
-  if (!queries || !notify || !access) {
-    throw new Error('sheet-design-editor requires the contract-2 mount context');
+  if (!queries || !notify || !access || !open) {
+    throw new Error('sheet-design-editor requires the contract-4 mount context');
   }
 
   return defineComponent({
@@ -41,7 +44,6 @@ export default function createSurface({ vue, components, locale, queries, notify
       const selectedIndex = ref(-1);
       const dragState = ref(null);
       const saving = ref(false);
-      const addVisible = ref(false);
       const cassettes = ref([]);
       const selectedCassetteId = ref('');
       const viewZoom = ref(1);
@@ -49,6 +51,8 @@ export default function createSurface({ vue, components, locale, queries, notify
       const renameDraft = ref('');
       const standards = ref([]);
       const pens = ref([]);
+      const margin = ref(0);
+      const visibleLayerCodes = ref([]);
 
       const editable = computed(() => access.canWrite(props.record));
 
@@ -114,14 +118,32 @@ export default function createSurface({ vue, components, locale, queries, notify
         entity: cassette
       })));
       const displayName = computed(() => localName.value || props.record?.fields?.title || t('sheetDesign.editor'));
+      const selectedPlacement = computed(() => selectedIndex.value >= 0
+        ? placedItems.value[selectedIndex.value] || null
+        : null);
+      const selectedSource = computed(() => selectedPlacement.value
+        ? sheetPlacementSource(items.value, selectedPlacement.value)
+        : null);
+      const selectedTransform = computed(() => selectedPlacement.value
+        ? sheetPlacementTransform(selectedPlacement.value)
+        : null);
+      const selectedBounds = computed(() => {
+        if (!selectedPlacement.value || !selectedSource.value) return null;
+        return sheetItemBounds(
+          selectedSource.value,
+          selectedPlacement.value.transformation?.rotation ?? selectedPlacement.value.rotation ?? 0
+        );
+      });
 
       onMounted(() => {
         queries.list('layer-standard').then(rows => { standards.value = rows || []; }).catch(() => {});
         queries.list('pen-template').then(rows => { pens.value = rows || []; }).catch(() => {});
+        queries.list('cassette').then(rows => { cassettes.value = rows || []; }).catch(() => {});
       });
 
       // Layout history: snapshots are the serialized placements; a record
-      // switch re-baselines instead of undoing across documents.
+      // switch re-baselines instead of undoing across documents. Commits
+      // follow mutations — undo restores the state before the last one.
       const history = snapshotHistory({
         snapshot: () => JSON.stringify(placedItems.value),
         apply: (entry) => {
@@ -137,6 +159,7 @@ export default function createSurface({ vue, components, locale, queries, notify
         selectedIndex.value = -1;
         viewZoom.value = 1;
         localName.value = '';
+        visibleLayerCodes.value = layerCodes.value;
         history.reset();
       }
 
@@ -148,24 +171,24 @@ export default function createSurface({ vue, components, locale, queries, notify
         { immediate: true }
       );
 
+      // Layers that appear with later edits join the visible set; codes
+      // that disappear leave it.
+      watch(layerCodes, (codes, previous) => {
+        const known = new Set(previous || []);
+        visibleLayerCodes.value = codes.filter(code => !known.has(code) || layerVisible(code));
+      });
+
       const dockMenu = ref(null);
-      const renamePanelOpen = ref(false);
 
-      function openRenameDock(event) {
-        renameDraft.value = displayName.value;
-        dockMenu.value?.show?.(event);
-      }
-
-      async function applyRename() {
+      function applyRename() {
         const name = renameDraft.value.trim();
         dockMenu.value?.hide?.();
         if (!name || name === displayName.value) return;
-        try {
-          await props.persistence.rename(props.record, name);
-          localName.value = name;
-        } catch (error) {
-          notify({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '' });
-        }
+        props.persistence.rename(props.record, name)
+          .then(() => { localName.value = name; })
+          .catch(error => {
+            notify({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '' });
+          });
       }
 
       function placementKey(placement, index) {
@@ -203,6 +226,14 @@ export default function createSurface({ vue, components, locale, queries, notify
             .map(point => [Number(point[0]) || 0, Number(point[1]) || 0]);
         }
         return [];
+      }
+
+      function layerVisible(code) {
+        return visibleLayerCodes.value.includes(code);
+      }
+
+      function updateVisibleLayerCodes(codes) {
+        visibleLayerCodes.value = Array.isArray(codes) ? codes.filter(Boolean) : [];
       }
 
       function placementHasContour(placement) {
@@ -248,18 +279,19 @@ export default function createSurface({ vue, components, locale, queries, notify
         const pointer = sheetPoint(event);
         const transform = sheetPlacementTransform(placedItems.value[index]);
         selectedIndex.value = index;
-        history.commit();
+        dragMoved = false;
         dragState.value = { index, pointerId: event.pointerId, dx: pointer.x - transform.x, dy: pointer.y - transform.y };
         svgRef.value?.setPointerCapture?.(event.pointerId);
       }
 
       // Snap resolution costs a polygon sweep per candidate, so drags
       // compute once per animation frame — pointermove fires far more often.
-      // The stored layout is the baseline the gates must accept: the solver
-      // packs kerf-compensated shapes flush to the sheet edge, so drag and
-      // rotate enforce sheet containment and non-overlap only.
+      // The margin row owns both gate distances — between parts and off
+      // the sheet edge. The solver packs kerf-compensated shapes flush,
+      // so margin 0 keeps a solved layout draggable exactly as solved.
       let dragFrame = 0;
       let pendingDragEvent = null;
+      let dragMoved = false;
 
       function dragPlacement(event) {
         pendingDragEvent = event;
@@ -281,14 +313,24 @@ export default function createSurface({ vue, components, locale, queries, notify
           y: pointer.y - drag.dy,
           sheetWidth: sheetWidth.value,
           sheetHeight: sheetHeight.value,
-          sheetPolygon: sheetPolygon.value
+          sheetPolygon: sheetPolygon.value,
+          boundaryOffset: margin.value,
+          clearance: margin.value
         });
         if (!bounded) return;
+        const current = sheetPlacementTransform(placedItems.value[drag.index]);
+        dragMoved = dragMoved || Math.abs(current.x - bounded.x) > 0.01 || Math.abs(current.y - bounded.y) > 0.01;
         placedItems.value[drag.index] = placementWithTranslation(placedItems.value[drag.index], bounded.x, bounded.y);
       }
 
       function finishDrag(event) {
-        if (dragState.value?.pointerId === event.pointerId) dragState.value = null;
+        if (dragState.value?.pointerId === event.pointerId) endDrag();
+      }
+
+      function endDrag() {
+        if (dragMoved) history.commit();
+        dragMoved = false;
+        dragState.value = null;
         pendingDragEvent = null;
         if (dragFrame) {
           cancelAnimationFrame(dragFrame);
@@ -298,9 +340,9 @@ export default function createSurface({ vue, components, locale, queries, notify
 
       function removePlacement(index) {
         if (!editable.value || index < 0) return;
-        history.commit();
         placedItems.value.splice(index, 1);
         selectedIndex.value = -1;
+        history.commit();
       }
 
       function removeSelected() {
@@ -309,52 +351,53 @@ export default function createSurface({ vue, components, locale, queries, notify
 
       function rotateSelected() {
         if (!editable.value || selectedIndex.value < 0) return;
-        history.commit();
         const rotated = rotateSheetPlacementQuarterTurn({
           items: items.value,
           placements: placedItems.value,
           index: selectedIndex.value,
           sheetWidth: sheetWidth.value,
           sheetHeight: sheetHeight.value,
-          sheetPolygon: sheetPolygon.value
+          sheetPolygon: sheetPolygon.value,
+          boundaryOffset: margin.value,
+          clearance: margin.value
         });
-        if (rotated) placedItems.value[selectedIndex.value] = rotated;
-      }
-
-      async function openAddDialog() {
-        addVisible.value = true;
-        if (!cassettes.value.length) {
-          cassettes.value = await queries.list('cassette').catch(() => []);
+        if (rotated) {
+          placedItems.value[selectedIndex.value] = rotated;
+          history.commit();
         }
       }
 
-      function addCassette(cassetteEntity) {
-        if (!cassetteEntity?._id) return;
-        const id = `manual-${cassetteEntity._id}-${Date.now()}-${items.value.length}`;
-        const item = cassetteSheetItem(cassetteEntity, id);
-        if (!item) return;
-        history.commit();
-        items.value.push(item);
-        const start = clampSheetPlacement({
-          x: 0,
-          y: 0,
-          item,
-          sheetWidth: sheetWidth.value,
-          sheetHeight: sheetHeight.value,
-          sheetPolygon: sheetPolygon.value
-        });
-        placedItems.value.push({
-          item_id: id,
-          transformation: { rotation: 0, translation: [start.x, start.y] }
-        });
-        selectedIndex.value = placedItems.value.length - 1;
+      function openSelectedCassette() {
+        const cassetteId = selectedSource.value?.cassette_id;
+        if (!cassetteId) return;
+        open.instance({ typeId: 'cassette', instanceId: String(cassetteId) });
       }
 
       function addSelectedCassette() {
-        const cassetteEntity = cassettes.value.find(item => String(item._id) === String(selectedCassetteId.value));
-        addCassette(cassetteEntity);
-        selectedCassetteId.value = '';
-        addVisible.value = false;
+        const cassette = cassettes.value.find(item => String(item._id) === String(selectedCassetteId.value));
+        const item = cassette
+          ? cassetteSheetItem(cassette, `manual-${cassette._id}-${Date.now()}-${items.value.length}`)
+          : null;
+        if (!item) {
+          notify({ severity: 'error', summary: t('common.error'), detail: t('sheetDesign.cassetteNoGeometry') });
+          return;
+        }
+        items.value.push(item);
+        const start = clampSheetPlacement({
+          x: margin.value,
+          y: margin.value,
+          item,
+          sheetWidth: sheetWidth.value,
+          sheetHeight: sheetHeight.value,
+          sheetPolygon: sheetPolygon.value,
+          boundaryOffset: margin.value
+        });
+        placedItems.value.push({
+          item_id: item.id,
+          transformation: { rotation: 0, translation: [start.x, start.y] }
+        });
+        selectedIndex.value = placedItems.value.length - 1;
+        history.commit();
       }
 
       async function save() {
@@ -413,6 +456,11 @@ export default function createSurface({ vue, components, locale, queries, notify
         }
       ]);
 
+      function openRenameDock(event) {
+        renameDraft.value = displayName.value;
+        dockMenu.value?.show?.(event);
+      }
+
       const canvasDockItems = computed(() => [
         {
           icon: 'pi pi-undo',
@@ -441,27 +489,40 @@ export default function createSurface({ vue, components, locale, queries, notify
           icon: 'pi pi-times-circle',
           label: t('drawing.resetView'),
           onClick: () => { viewZoom.value = 1; }
-        },
-        { separator: true },
-        {
-          icon: 'pi pi-plus',
-          label: t('sheetDesign.addCassette'),
-          disabled: !editable.value,
-          onClick: () => openAddDialog()
-        },
-        {
-          icon: 'pi pi-refresh',
-          label: t('common.rotate'),
-          disabled: !editable.value || selectedIndex.value < 0,
-          onClick: rotateSelected
-        },
-        {
-          icon: 'pi pi-trash',
-          label: t('common.delete'),
-          disabled: !editable.value || selectedIndex.value < 0,
-          onClick: removeSelected
         }
       ]);
+
+      const layerRows = computed(() => layerCodes.value.map(code => ({
+        key: code,
+        code,
+        label: occsLayerExportName(code) || code,
+        color: resolvedStyle(code).color
+      })));
+
+      const speedDialItems = computed(() => {
+        const cassetteId = selectedSource.value?.cassette_id;
+        return [
+          cassetteId
+            ? {
+                icon: 'pi pi-external-link',
+                label: t('common.open'),
+                command: openSelectedCassette
+              }
+            : null,
+          {
+            icon: 'pi pi-refresh',
+            label: t('common.rotate'),
+            disabled: !editable.value,
+            command: rotateSelected
+          },
+          {
+            icon: 'pi pi-trash',
+            label: t('common.delete'),
+            disabled: !editable.value,
+            command: removeSelected
+          }
+        ].filter(Boolean);
+      });
 
       function renderSheetShape(filled) {
         const stroke = sheetBoundaryStyle.value;
@@ -496,8 +557,10 @@ export default function createSurface({ vue, components, locale, queries, notify
         const selected = selectedIndex.value === index;
         const layers = placementLayers(placement)
           .map((layer, layerIndex) => {
+            const code = sourceLayerCode(layer);
             const points = layerPoints(layer);
             if (points.length >= 2) {
+              if (!layerVisible(code)) return null;
               return h('polyline', {
                 key: `${placementKey(placement, index)}-layer-${layerIndex}`,
                 points: points.map(point => point.join(',')).join(' '),
@@ -512,6 +575,7 @@ export default function createSurface({ vue, components, locale, queries, notify
             }
             const text = layerText(layer);
             if (text) {
+              if (!layerVisible(code)) return null;
               return h('text', {
                 key: `${placementKey(placement, index)}-layer-${layerIndex}`,
                 x: text.x,
@@ -539,8 +603,16 @@ export default function createSurface({ vue, components, locale, queries, notify
             removePlacement(index);
           }
         }, [
+          // The face grab target — pointer-events: fill hit-tests the
+          // unpainted interior.
+          h('polygon', {
+            points: placementPoints(placement),
+            fill: 'none',
+            stroke: 'none',
+            'pointer-events': 'fill'
+          }),
           ...layers,
-          !placementHasContour(placement) ? h('polygon', {
+          !placementHasContour(placement) && layerVisible('contour.cassette_face') ? h('polygon', {
             points: placementPoints(placement),
             fill: 'none',
             stroke: fallbackPlacementStyle.value.color,
@@ -559,119 +631,219 @@ export default function createSurface({ vue, components, locale, queries, notify
         ]);
       }
 
+      const factRow = (label, value) => h('div', { class: 'flex items-baseline justify-between gap-3' }, [
+        h('span', { class: 'shrink-0 text-muted' }, label),
+        h('span', { class: 'min-w-0 truncate font-medium', title: String(value) }, String(value))
+      ]);
+      const rounded = value => Math.round(Number(value) * 10) / 10;
+
+      const renderPalette = () => h('aside', { class: 'flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3' }, [
+        h('div', { class: 'flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto' }, [
+          h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
+            h('small', { class: 'uppercase text-muted text-supporting' }, t('sheetDesign.cassettes')),
+            h('div', { class: 'flex min-w-0 items-start gap-2' }, [
+              h(components.InstanceSelect, {
+                modelValue: selectedCassetteId.value,
+                'onUpdate:modelValue': value => { selectedCassetteId.value = value; },
+                options: cassetteOptions.value,
+                optionLabel: 'label',
+                optionValue: 'value',
+                typeId: 'cassette',
+                filter: true,
+                class: 'min-w-0 flex-1',
+                placeholder: t('sheetDesign.selectCassette')
+              }),
+              h(components.Button, {
+                icon: 'pi pi-plus',
+                severity: 'secondary',
+                outlined: true,
+                rounded: true,
+                size: 'small',
+                'aria-label': t('sheetDesign.addCassette'),
+                disabled: !editable.value || !selectedCassetteId.value,
+                onClick: addSelectedCassette
+              })
+            ])
+          ]),
+          h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
+            h('small', { class: 'uppercase text-muted text-supporting' }, t('sheetDesign.margin')),
+            h(components.InputNumber, {
+              modelValue: margin.value,
+              'onUpdate:modelValue': value => { margin.value = Math.max(0, Number(value) || 0); },
+              min: 0,
+              max: 100,
+              step: 1,
+              suffix: ' mm',
+              size: 'small',
+              class: 'w-full',
+              disabled: !editable.value,
+              'aria-label': t('sheetDesign.margin')
+            })
+          ]),
+          h('section', { class: 'flex min-w-0 flex-col gap-1' }, [
+            h('small', { class: 'uppercase text-muted text-supporting' }, t('common.layers')),
+            ...layerRows.value.map(row => h('div', {
+              key: row.key,
+              class: 'flex min-w-0 items-center gap-2 py-0.5'
+            }, [
+              h(components.Checkbox, {
+                modelValue: visibleLayerCodes.value,
+                value: row.code,
+                inputId: `sheet-layer-${row.key.replace(/[^A-Za-z0-9_-]/g, '-')}`,
+                size: 'small',
+                'onUpdate:modelValue': updateVisibleLayerCodes
+              }),
+              h('label', {
+                for: `sheet-layer-${row.key.replace(/[^A-Za-z0-9_-]/g, '-')}`,
+                class: 'min-w-0 flex-1 truncate',
+                title: row.label
+              }, row.label),
+              row.color && row.color !== 'currentColor'
+                ? h('span', {
+                    class: 'block h-[3px] w-8 shrink-0 rounded-full',
+                    style: { backgroundColor: row.color },
+                    'aria-hidden': 'true'
+                  })
+                : null
+            ]))
+          ])
+        ])
+      ]);
+
+      const renderInspector = () => h('aside', { class: 'flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3' }, [
+        h('div', { class: 'flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto' },
+          selectedPlacement.value
+            ? [
+                h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
+                  h('small', { class: 'uppercase text-muted text-supporting' }, t('common.name')),
+                  h('span', { class: 'min-w-0 truncate font-medium', title: selectedSource.value?.name || '' },
+                    selectedSource.value?.name || '')
+                ]),
+                h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
+                  ...selectedBounds.value ? [
+                    factRow(t('sheetDesign.size'), `${rounded(selectedBounds.value.width)}×${rounded(selectedBounds.value.height)} mm`)
+                  ] : [],
+                  ...selectedTransform.value ? [
+                    factRow(t('sheetDesign.position'), `${rounded(selectedTransform.value.x)}, ${rounded(selectedTransform.value.y)} mm`),
+                    factRow(t('sheetDesign.rotation'), `${Math.round(((selectedTransform.value.rotation % 360) + 360) % 360)}°`)
+                  ] : []
+                ])
+              ]
+            : [
+                h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
+                  h('small', { class: 'uppercase text-muted text-supporting' }, t('sheetDesign.sheet')),
+                  factRow(t('sheetDesign.size'), `${rounded(sheetWidth.value)}×${rounded(sheetHeight.value)} mm`),
+                  factRow(t('sheetDesign.placements'), placedItems.value.length),
+                  factRow(t('sheetDesign.cassettes'),
+                    new Set(placedItems.value
+                      .map(placement => sheetPlacementSource(items.value, placement)?.cassette_id)
+                      .filter(Boolean)).size)
+                ])
+              ])
+      ]);
+
       return () => h(components.DesignerSurface, () => [
         h(components.DesignerWorkspace, {
           layout: 'lanes',
           class: 'h-full',
           documentItems: documentDockItems.value,
           canvasItems: canvasDockItems.value
-        }, () => [
-          h('div', { class: 'relative h-full w-full overflow-hidden' }, [
-            h('svg', {
-              ref: svgRef,
-              class: 'h-full w-full touch-none',
-              viewBox: editorViewBox.value,
-              role: 'application',
-              'aria-label': t('sheetDesign.editor'),
-              onPointermove: dragPlacement,
-              onPointerup: finishDrag,
-              onPointercancel: finishDrag,
-              onKeydown: event => {
-                if (event.key !== 'Escape') return;
-                event.stopPropagation();
-                event.preventDefault();
-                selectedIndex.value = -1;
-              }
-            }, [
-              h('defs', [
-                h('pattern', {
-                  id: gridPatternId.value,
-                  width: majorGridSize.value,
-                  height: majorGridSize.value,
-                  patternUnits: 'userSpaceOnUse'
-                }, [
-                  h('path', {
-                    d: `M ${majorGridSize.value} 0 L 0 0 0 ${majorGridSize.value}`,
-                    fill: 'none',
-                    stroke: 'var(--p-text-muted-color)',
-                    'stroke-opacity': 0.28,
-                    'stroke-width': Math.max(majorGridSize.value / 80, 0.4)
-                  })
-                ])
-              ]),
-              renderSheetShape('var(--p-content-background)'),
-              renderSheetShape(`url(#${gridPatternId.value})`),
-              renderSheetShape(null),
-              selectedSnapPoint.value ? h('g', { 'pointer-events': 'none' }, [
-                h('line', {
-                  x1: selectedSnapPoint.value.x, y1: 0,
-                  x2: selectedSnapPoint.value.x, y2: sheetHeight.value,
-                  stroke: 'var(--p-primary-color)', 'stroke-dasharray': '4 4', 'vector-effect': 'non-scaling-stroke'
-                }),
-                h('line', {
-                  x1: 0, y1: selectedSnapPoint.value.y,
-                  x2: sheetWidth.value, y2: selectedSnapPoint.value.y,
-                  stroke: 'var(--p-primary-color)', 'stroke-dasharray': '4 4', 'vector-effect': 'non-scaling-stroke'
-                })
-              ]) : null,
-              ...placedItems.value.map(renderPlacement)
-            ])
-          ]),
-          h(components.Popover, { ref: dockMenu }, () => [
-            h('div', {
-              class: 'flex min-w-72 flex-col gap-2',
-              onMousedown: event => event.stopPropagation(),
-              onClick: event => event.stopPropagation()
-            }, [
-              h(components.InputText, {
-                modelValue: renameDraft.value,
-                'onUpdate:modelValue': value => { renameDraft.value = value; },
-                placeholder: t('sheetDesign.sheetDesigns'),
-                class: 'w-full',
-                'aria-label': t('common.rename'),
+        }, {
+          palette: renderPalette,
+          inspector: renderInspector,
+          default: () => [
+            h('div', { class: 'relative h-full w-full overflow-hidden' }, [
+              h('svg', {
+                ref: svgRef,
+                class: 'h-full w-full touch-none',
+                viewBox: editorViewBox.value,
+                role: 'application',
+                'aria-label': t('sheetDesign.editor'),
+                onPointermove: dragPlacement,
+                onPointerup: finishDrag,
+                onPointercancel: finishDrag,
                 onKeydown: event => {
-                  if (event.key !== 'Enter') return;
+                  if (event.key !== 'Escape') return;
                   event.stopPropagation();
                   event.preventDefault();
-                  applyRename();
+                  endDrag();
+                  selectedIndex.value = -1;
                 }
-              }),
-              h(components.Button, {
-                icon: 'pi pi-check',
-                label: t('common.save'),
-                size: 'small',
-                disabled: !renameDraft.value.trim(),
-                onClick: applyRename
-              })
+              }, [
+                h('defs', [
+                  h('pattern', {
+                    id: gridPatternId.value,
+                    width: majorGridSize.value,
+                    height: majorGridSize.value,
+                    patternUnits: 'userSpaceOnUse'
+                  }, [
+                    h('path', {
+                      d: `M ${majorGridSize.value} 0 L 0 0 0 ${majorGridSize.value}`,
+                      fill: 'none',
+                      stroke: 'var(--p-text-muted-color)',
+                      'stroke-opacity': 0.28,
+                      'stroke-width': Math.max(majorGridSize.value / 80, 0.4)
+                    })
+                  ])
+                ]),
+                renderSheetShape('var(--p-content-background)'),
+                renderSheetShape(`url(#${gridPatternId.value})`),
+                layerVisible('contour.material_sheet') ? renderSheetShape(null) : null,
+                selectedSnapPoint.value ? h('g', { 'pointer-events': 'none' }, [
+                  h('line', {
+                    x1: selectedSnapPoint.value.x, y1: 0,
+                    x2: selectedSnapPoint.value.x, y2: sheetHeight.value,
+                    stroke: 'var(--p-primary-color)', 'stroke-dasharray': '4 4', 'vector-effect': 'non-scaling-stroke'
+                  }),
+                  h('line', {
+                    x1: 0, y1: selectedSnapPoint.value.y,
+                    x2: sheetWidth.value, y2: selectedSnapPoint.value.y,
+                    stroke: 'var(--p-primary-color)', 'stroke-dasharray': '4 4', 'vector-effect': 'non-scaling-stroke'
+                  })
+                ]) : null,
+                ...placedItems.value.map(renderPlacement)
+              ]),
+              selectedPlacement.value ? h(components.SpeedDial, {
+                model: speedDialItems.value,
+                direction: 'up',
+                style: { position: 'absolute', right: '1rem', bottom: '1rem' },
+                buttonProps: {
+                  rounded: true,
+                  severity: 'secondary',
+                  outlined: true,
+                  'aria-label': t('sheetDesign.actions')
+                },
+                tooltipOptions: { position: 'left' }
+              }) : null
+            ]),
+            h(components.Popover, { ref: dockMenu }, () => [
+              h('div', {
+                class: 'flex min-w-72 flex-col gap-2',
+                onMousedown: event => event.stopPropagation(),
+                onClick: event => event.stopPropagation()
+              }, [
+                h(components.InputText, {
+                  modelValue: renameDraft.value,
+                  'onUpdate:modelValue': value => { renameDraft.value = value; },
+                  placeholder: t('sheetDesign.sheetDesigns'),
+                  class: 'w-full',
+                  'aria-label': t('common.rename'),
+                  onKeydown: event => {
+                    if (event.key !== 'Enter') return;
+                    event.stopPropagation();
+                    event.preventDefault();
+                    applyRename();
+                  }
+                }),
+                h(components.Button, {
+                  icon: 'pi pi-check',
+                  label: t('common.save'),
+                  size: 'small',
+                  disabled: !renameDraft.value.trim(),
+                  onClick: () => applyRename()
+                })
+              ])
             ])
-          ])
-        ]),
-        h(components.StandardDialog, {
-          visible: addVisible.value,
-          'onUpdate:visible': value => { addVisible.value = value; },
-          header: t('sheetDesign.addCassette'),
-          size: 'md'
-        }, {
-          default: () => h(components.InstanceSelect, {
-            modelValue: selectedCassetteId.value,
-            'onUpdate:modelValue': value => { selectedCassetteId.value = value; },
-            options: cassetteOptions.value,
-            optionLabel: 'label',
-            optionValue: 'value',
-            typeId: 'cassette',
-            class: 'w-full',
-            placeholder: t('sheetDesign.selectCassette')
-          }),
-          footer: () => [
-            h(components.Button, {
-              label: t('common.cancel'), severity: 'secondary', text: true, size: 'small',
-              onClick: () => { addVisible.value = false; }
-            }),
-            h(components.Button, {
-              label: t('common.add'), icon: 'pi pi-plus', size: 'small',
-              disabled: !selectedCassetteId.value,
-              onClick: addSelectedCassette
-            })
           ]
         })
       ]);
@@ -681,6 +853,8 @@ export default function createSurface({ vue, components, locale, queries, notify
 
 // Snapshot undo/redo history (the editor-side contract of the host's
 // shared composable, module-local so the surface owns its own stack).
+// `commit` runs after a mutation: the pre-mutation baseline enters the
+// past stack and the mutated state becomes the next baseline.
 function snapshotHistory({ snapshot, apply, limit = 50 } = {}) {
   const state = { past: [], future: [], baseline: null, canUndo: false, canRedo: false };
   const gate = () => {

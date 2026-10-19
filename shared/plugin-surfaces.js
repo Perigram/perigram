@@ -27,6 +27,10 @@
 //     stores an asset through the host's file channel, returning the
 //     stored file ref. Both are host-executed transports: the module
 //     calls, never fetches.
+// 4 — the navigation mount (owner decision 2026-10-19): everything in 3
+//     plus `open`. `open.instance({ typeId, instanceId, editor })` asks
+//     the host workspace to open a record as a tab (the workspace owns
+//     tabs; a surface never navigates on its own).
 //
 // Kinds (M7): a surface entry is an `editor` (the default — mounts over
 // `{ record, persistence }` inside the editor chrome) or a `preview`
@@ -37,7 +41,7 @@
 // The listing contract validates the kind and its bindings (SDK
 // `parseListing`); the platform serves resolved preview bindings on the
 // type view.
-export const SUPPORTED_SURFACE_CONTRACTS = [1, 2, 3];
+export const SUPPORTED_SURFACE_CONTRACTS = [1, 2, 3, 4];
 
 export function isSupportedSurfaceContract(version) {
   return SUPPORTED_SURFACE_CONTRACTS.includes(Number(version));

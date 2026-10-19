@@ -10,7 +10,7 @@ import { useI18n } from 'vue-i18n';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import {
-  surfaceHostContext, editorSurfacePersistence, editorSurfaceQueries, editorSurfaceRecords, surfaceNotify, editorSurfaceAccess, editorSurfaceSync, editorSurfaceUpload
+  surfaceHostContext, editorSurfacePersistence, editorSurfaceQueries, editorSurfaceRecords, surfaceNotify, editorSurfaceAccess, editorSurfaceSync, editorSurfaceUpload, editorSurfaceOpen
 } from '~/components/generated/remote-surface-mount.js';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
@@ -37,14 +37,16 @@ const persistence = editorSurfacePersistence(props.typeId);
 // Contract 2 mounts receive the editor-grade io beside the base context
 // (cross-type queries, host notifications, write-grant resolution);
 // contract 3 mounts additionally receive sync (record-change
-// reconciliation) and upload (the host file channel).
+// reconciliation) and upload (the host file channel); contract 4 mounts
+// additionally receive open (workspace tab navigation).
 const hostIo = {
   queries: editorSurfaceQueries(),
   records: editorSurfaceRecords(),
   notify: surfaceNotify(),
   access: editorSurfaceAccess(props.typeId),
   sync: editorSurfaceSync(props.typeId, () => props.record),
-  upload: editorSurfaceUpload()
+  upload: editorSurfaceUpload(),
+  open: editorSurfaceOpen()
 };
 
 function fail(severity, key) {

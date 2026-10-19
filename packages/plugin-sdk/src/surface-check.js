@@ -106,9 +106,9 @@ function resolveLocalModule(entry, specifier) {
 
 function stubContext() {
   const component = new Proxy({}, { get: (_target, key) => ({ name: String(key) }) });
-  // The stub carries the contract-3 superset: the factory smoke proves a
-  // module composes against the capability mount (queries, notify,
-  // access, sync, upload) without reaching anything real.
+  // The stub carries the contract-4 superset: the factory smoke proves a
+  // module composes against the navigation mount (queries, notify,
+  // access, sync, upload, open) without reaching anything real.
   return {
     vue: {
       h: () => null,
@@ -126,6 +126,7 @@ function stubContext() {
     notify: () => {},
     access: { canWrite: () => true },
     sync: { onRecordChanged: () => () => {} },
-    upload: { file: async () => ({ id: 'stub', filename: 'stub' }) }
+    upload: { file: async () => ({ id: 'stub', filename: 'stub' }) },
+    open: { instance: () => false }
   };
 }

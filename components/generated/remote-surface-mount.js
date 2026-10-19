@@ -12,6 +12,7 @@ import Popover from 'primevue/popover';
 import ScrollPanel from 'primevue/scrollpanel';
 import Select from 'primevue/select';
 import SelectButton from 'primevue/selectbutton';
+import SpeedDial from 'primevue/speeddial';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import Toolbar from 'primevue/toolbar';
@@ -27,6 +28,7 @@ import { useRegistryStore } from '~/stores/registry';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { resolveTypeFeature } from '#shared/field-access-policies.js';
 import { onInstanceChanged } from '#utils/instance-events.js';
+import { openInstanceInWorkspace } from '#utils/instance-workspace-open.js';
 import { instancePayloadPersistence, instancePayloadFileUrl, runBlankFileConstruct } from './file-surfaces.js';
 import { renderMarkdown } from '#shared/markdown.js';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
@@ -56,7 +58,7 @@ import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 let surfacePack = null;
 function surfaceComponentPack() {
   surfacePack ||= Object.freeze({
-    Button, Checkbox, ColorPicker, Column, DataTable, Dialog, InputText, InputNumber, Message, Popover, ScrollPanel, Select, SelectButton, Tag, Textarea, Toolbar,
+    Button, Checkbox, ColorPicker, Column, DataTable, Dialog, InputText, InputNumber, Message, Popover, ScrollPanel, Select, SelectButton, SpeedDial, Tag, Textarea, Toolbar,
     DesignerSurface, DesignerWorkspace, DrawingCanvas, InstanceSelect, StandardDialog
   });
   return surfacePack;
@@ -66,8 +68,9 @@ const SURFACE_VUE = Object.freeze({ h, ref, shallowRef, computed, reactive, watc
 
 // Contract 1 mounts the base context; contract 2 (the editor-grade
 // mount) adds queries, notify, and access beside it; contract 3 (the
-// capability mount, owner decision 2026-10-17) adds sync and upload.
-// The base context carries the host's markdown read pipeline
+// capability mount, owner decision 2026-10-17) adds sync and upload;
+// contract 4 (the navigation mount, owner decision 2026-10-19) adds
+// open. The base context carries the host's markdown read pipeline
 // (`renderMarkdown`, the single marked+DOMPurify+pele home — mermaid
 // fences render as diagrams): surfaces receive it instead of vendoring
 // marked/dompurify/pele (the never-vendor law).
@@ -87,10 +90,15 @@ export function surfaceHostContext({ t, te, locale }, surfaceContract = 1, io = 
     access: io.access || { canWrite: () => false }
   });
   if (Number(surfaceContract) < 3) return editorGrade;
-  return Object.freeze({
+  const capability = Object.freeze({
     ...editorGrade,
     sync: io.sync || null,
     upload: io.upload || null
+  });
+  if (Number(surfaceContract) < 4) return capability;
+  return Object.freeze({
+    ...capability,
+    open: io.open || { instance: () => false }
   });
 }
 
@@ -142,6 +150,18 @@ export function editorSurfaceAccess(typeId) {
       entity: record,
       typeId
     })
+  });
+}
+
+// Workspace navigation (contract 4, owner decision 2026-10-19): the
+// workspace owns tabs, so a surface that needs another record opened
+// asks the host instead of navigating. Same seam the generated screens
+// ride — a mounted home workspace opens the pane tab immediately,
+// otherwise the app navigates home and the request lands on mount.
+export function editorSurfaceOpen() {
+  return Object.freeze({
+    instance: ({ typeId = '', instanceId = '', editor = false } = {}) =>
+      openInstanceInWorkspace({ typeId, instanceId, editor })
   });
 }
 
