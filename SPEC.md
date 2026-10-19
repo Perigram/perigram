@@ -860,27 +860,29 @@ parameter/holes strip sits above the canvas, the tool toolbar floats
 inside the canvas over the drawing, and the dialog stands near-viewport
 height so the canvas takes everything left.
 
-Owner decision (2026-10-18, profile shape model): a profile sketch is a
-list of parametric shapes combined by per-shape boolean operations and
-evaluated on the edge axis. Any number of shapes may exist in one
-profile; the profile-level open/closed distinction is retired — closure
-is a chain shape's own state. Shape kinds: circle, rectangle, and chain
-(drawn on the canvas or imported); every authoring field is an
-expression over the parameter table (distances from the basis axis,
-radii, width/height, rotation). Each shape carries its own operation —
-add, subtract, or none; a shape with no operation is reference geometry
-(an imported drawing used as a visual guide) and evaluation ignores it.
-The editor displays the zero vertical axis — the basis every parameter
-measures from — and hatches the material half-plane beside it; the
-hatched half is a body that participates in the boolean evaluation: the
-profile section is the union of the add shapes minus the subtract
-shapes, clipped to the material half. The axis is the placement basis:
-placed into a cassette, the axis lands on the attachment edge (snap +
-offsets), material half toward the host face. Fillets are
+Owner decision (2026-10-18, profile shape model; containment amendment
+2026-10-19): a profile sketch is a list of parametric shapes evaluated
+on the edge axis. Any number of shapes may exist in one profile; the
+profile-level open/closed distinction is retired — closure is a chain
+shape's own state. Shape kinds: circle, rectangle, and chain (drawn on
+the canvas or imported); every authoring field is an expression over
+the parameter table (distances from the basis axis, radii,
+width/height, rotation). Per-shape boolean operations retire for the
+classical CAD sketch law: every closed participating shape folds by
+containment — inner loops are holes, nesting alternates material and
+hole, siblings unite — and the only per-shape flag is construction
+geometry (a shape excluded from the section; an imported drawing lands
+as construction). The editor displays the zero vertical axis — the
+basis every parameter measures from — and hatches the material
+half-plane beside it; the hatched half is a body that participates in
+the fold, the resolved section clipping to it. The axis is the
+placement basis: placed into a cassette, the axis lands on the
+attachment edge (snap + offsets) with +X — the material half — on the
+edge's inward normal, material toward the host face. Fillets are
 non-destructive: they live as modifiers on their shape — per-corner on
 rectangles, per-vertex on chains — and stay editable after application
-(position and radius). Boolean evaluation is for closed shapes; an open
-chain shape keeps the cut-path role (the composite-chain embedding law).
+(position and radius). The fold is for closed shapes; an open chain
+shape keeps the cut-path role (the composite-chain embedding law).
 Stored profiles — library records and cassette documents — cross into
 the shape model through a one-shot migration script; chain sketches
 become chain shapes, holes become subtract circles, and a closed
@@ -903,29 +905,35 @@ unchanged.
 Owner review (2026-10-18, profile editor readout): the parameter table
 lives in the strip above the canvas — its one home, visible with no
 selection. Clicking a primitive — face, edge, or cutout — opens its
-popup. The canvas carries exactly two surface states, hatch and empty:
-the material half hatches as the face — the one hatch — and the
-resolved section is the cut from it (empty interior, solid outline);
-a primitive is either added or subtracted from the face. Stacked
-dimensions chain outward on their baseline and every dimension line
-carries arrowheads.
+popup; a repeat click on the same spot cycles to the shape beneath.
+The canvas carries exactly two surface states, hatch and empty: the
+material half hatches as the face — the one hatch — and the resolved
+section is the cut from it (empty interior, solid outline), holes in
+the section staying face material. Stacked dimensions chain outward on
+their baseline and every dimension line carries arrowheads.
+
+Owner review (2026-10-19, profile items and bindings): a placed
+profile's workpiece row carries the profile's whole parameter table.
+A moved shape keeps its authored expressions on every field whose value
+survived the move — position fields go numeric, sizes and fillet radii
+keep their bindings.
 
 Owner review (2026-10-18, profile editor popup chrome): the popup and
 every floating authoring field carry the theme's surface background
 and border. The primitive popup lays out as one compact panel: header
-(kind, operation), then one row with rotation and the fillet radii.
+(kind, construction toggle), then one row with rotation and the fillet
+radii.
 Authoring fields size to their content so their values stay visible.
 Typing a number into a dimension labeled by a bare parameter commits
 to that parameter — every field bound to it follows; a local field
 edit touches its own primitive only, and primitives bound to the same
 position expression share one dimension for it. Erasing a shape and
 undoing the erase revives the shape with its parameter bindings, and
-shape ids stay unique through every merge. A shape's boolean operation
-is a segmented control in face-material terms: Reference (guide),
-Cut (the footprint is cut from the face), Keep (the footprint stays
-face material — the hatched island inside the cut). Stored operation
-ids keep the section-algebra names. A refused profile save states
-its reason beside the Save action.
+shape ids stay unique through every merge. A shape's section membership
+is a segmented Section/Construction control (the classical
+construction-geometry flag); containment decides every closed shape's
+role in the fold. A refused profile save states its reason beside the
+Save action.
 
 
 Owner decision (2026-10-17, assembly tree layout): the designer's

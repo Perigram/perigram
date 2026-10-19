@@ -18,7 +18,20 @@ const APPLY = process.argv.includes('--apply');
 
 const upgradedSketch = (sketch) => {
   if (!sketch || typeof sketch !== 'object') return null;
-  if (Array.isArray(sketch.shapes)) return null;
+  if (Array.isArray(sketch.shapes)) {
+    // Shape-model pass (owner direction 2026-10-19): per-shape boolean
+    // ops retire for the containment fold — `none` becomes construction
+    // geometry, add/subtract participants drop the field.
+    if (!sketch.shapes.some(shape => shape && Object.prototype.hasOwnProperty.call(shape, 'op'))) return null;
+    return {
+      ...sketch,
+      shapes: sketch.shapes.map(shape => {
+        if (!shape || !Object.prototype.hasOwnProperty.call(shape, 'op')) return shape;
+        const { op, ...rest } = shape;
+        return op === 'none' ? { ...rest, construction: true } : rest;
+      })
+    };
+  }
   const upgraded = upgradeLegacyOccsProfileSketch(sketch);
   return upgraded && upgraded.shapes.length ? upgraded : null;
 };

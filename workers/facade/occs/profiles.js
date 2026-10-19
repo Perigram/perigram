@@ -22,7 +22,11 @@ export const DEFAULT_OCCS_PROFILE_PARAMETERS = Object.freeze({
   L: 120
 });
 
-export const OCCS_PROFILE_SHAPE_OPS = Object.freeze(['add', 'subtract', 'none']);
+// Construction geometry (the CAD sketch law): a shape either
+// participates in the section or is construction — closed participants
+// fold by containment (inner loops are holes), the flag never changes
+// geometry.
+const normalizeConstruction = (value) => Boolean(value);
 
 // The material half of the zero axis (X=0) is a boolean body: the
 // evaluated section is clipped to it. 'positive' hatches X>0.
@@ -58,7 +62,6 @@ export const createDefaultOccsProfileSketch = (parameters = {}) => ({
     {
       id: 's0',
       type: 'rect',
-      op: 'add',
       center: ['W/2', 'H/2'],
       width: 'W',
       height: 'H',
@@ -68,7 +71,6 @@ export const createDefaultOccsProfileSketch = (parameters = {}) => ({
     {
       id: 's1',
       type: 'circle',
-      op: 'subtract',
       center: ['W/2', 'H/2'],
       diameter: 'D'
     }
@@ -109,19 +111,15 @@ const sketchValue = (value, fallback = 0) => {
   return fallback;
 };
 
-const normalizeOp = (op, fallback = 'none') => (
-  OCCS_PROFILE_SHAPE_OPS.includes(op) ? op : fallback
-);
-
 const normalizeCenter = (center = []) => [
   sketchValue(Array.isArray(center) ? center[0] : 0, 0),
   sketchValue(Array.isArray(center) ? center[1] : 0, 0)
 ];
 
-const normalizeCircleShape = (shape = {}, index = 0, fallbackOp) => ({
+const normalizeCircleShape = (shape = {}, index = 0) => ({
   id: shape.id || `s${index}`,
   type: 'circle',
-  op: normalizeOp(shape.op, fallbackOp),
+  construction: normalizeConstruction(shape.construction),
   center: normalizeCenter(shape.center),
   diameter: sketchValue(shape.diameter, 0)
 });
@@ -138,10 +136,10 @@ const normalizeRectFillets = (fillets = [], width = 0, height = 0) => {
     .map(([corner, radius]) => ({ corner, radius }));
 };
 
-const normalizeRectShape = (shape = {}, index = 0, fallbackOp) => ({
+const normalizeRectShape = (shape = {}, index = 0) => ({
   id: shape.id || `s${index}`,
   type: 'rect',
-  op: normalizeOp(shape.op, fallbackOp),
+  construction: normalizeConstruction(shape.construction),
   center: normalizeCenter(shape.center),
   width: sketchValue(shape.width, 0),
   height: sketchValue(shape.height, 0),
@@ -183,7 +181,7 @@ const normalizeFilletModifiers = (modifiers = [], pointIds = new Set()) => {
   return [...filletsByVertex.values()];
 };
 
-const normalizeChainShape = (shape = {}, index = 0, fallbackOp) => {
+const normalizeChainShape = (shape = {}, index = 0) => {
   const points = (Array.isArray(shape.points) ? shape.points : [])
     .map(normalizePoint);
   const pointIds = new Set(points.map(point => point.id));
@@ -201,7 +199,7 @@ const normalizeChainShape = (shape = {}, index = 0, fallbackOp) => {
   return {
     id: shape.id || `s${index}`,
     type: 'chain',
-    op: normalizeOp(shape.op, fallbackOp),
+    construction: normalizeConstruction(shape.construction),
     closed,
     points,
     edges,
@@ -209,10 +207,10 @@ const normalizeChainShape = (shape = {}, index = 0, fallbackOp) => {
   };
 };
 
-const normalizeShape = (shape = {}, index = 0, fallbackOp = 'none') => {
-  if (shape?.type === 'circle') return normalizeCircleShape(shape, index, fallbackOp === 'subtract' ? 'subtract' : fallbackOp);
-  if (shape?.type === 'rect') return normalizeRectShape(shape, index, fallbackOp);
-  if (shape?.type === 'chain') return normalizeChainShape(shape, index, fallbackOp);
+const normalizeShape = (shape = {}, index = 0) => {
+  if (shape?.type === 'circle') return normalizeCircleShape(shape, index);
+  if (shape?.type === 'rect') return normalizeRectShape(shape, index);
+  if (shape?.type === 'chain') return normalizeChainShape(shape, index);
   return null;
 };
 
@@ -266,7 +264,7 @@ export const upgradeLegacyOccsProfileSketch = (sketch = {}) => {
     shapes.push({
       id: 's0',
       type: 'chain',
-      op: closed ? 'add' : 'none',
+      construction: !closed,
       closed,
       points: chainPoints,
       edges: edges.filter(edge => chainPointIds.has(edge.from) && chainPointIds.has(edge.to)),
@@ -279,7 +277,7 @@ export const upgradeLegacyOccsProfileSketch = (sketch = {}) => {
       shapes.push({
         id: `s${shapes.length}`,
         type: 'circle',
-        op: 'subtract',
+
         center: normalizeCenter(hole.center),
         diameter: sketchValue(hole.diameter, 0)
       });
@@ -331,11 +329,11 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
 };
 
 // A sketch participates when at least one closed shape carries a boolean
-// op or an open chain rides it as a cut path.
+// construction flag or an open chain rides it as a cut path.
 const sketchParticipates = (evaluated = {}) => evaluated.shapes.some(shape => (
   shape.type === 'chain' && !shape.closed
     ? shape.points.length >= 2
-    : (shape.op === 'add' || shape.op === 'subtract')
+    : !shape.construction
       && (shape.type === 'chain'
         ? shape.points.length >= 3
         : true)
@@ -494,7 +492,7 @@ const chainSectionShape = (shape = {}) => {
   return {
     shapeId: shape.id,
     kind: 'chain',
-    op: shape.op,
+    construction: shape.construction,
     closed: shape.closed,
     vertices: occProfileSectionChainedVertices(section)
   };
@@ -512,7 +510,7 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
         return {
           shapeId: shape.id,
           kind: 'circle',
-          op: shape.op,
+          construction: shape.construction,
           closed: true,
           vertices: circlePolygon(shape.center, shape.diameter)
         };
@@ -523,7 +521,7 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
         return {
           shapeId: shape.id,
           kind: 'rect',
-          op: shape.op,
+          construction: shape.construction,
           closed: true,
           vertices: occProfileSectionChainedVertices({
             open: false,
@@ -551,19 +549,54 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   };
 };
 
-// Boolean fold of a shapes section: union of the add shapes minus the
-// subtract shapes, clipped to the material half of the zero axis (the
-// hatched body). Polyline sections have no boolean meaning (null).
+// Containment fold of a shapes section (the CAD sketch law): closed
+// participants alternate material and hole by nesting depth — depth 0
+// unites, odd depths subtract from their parents, even depths unite
+// back as islands; the result clips to the material half of the zero
+// axis. Polyline sections have no boolean meaning (null).
+const ringContainsPoint = (ring = [], point = []) => {
+  const vertices = ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+    ? ring.slice(0, -1)
+    : ring;
+  if (vertices.length < 3) return false;
+  let inside = false;
+  for (let index = 0, previous = vertices.length - 1; index < vertices.length; previous = index, index += 1) {
+    const [xi, yi] = vertices[index];
+    const [xj, yj] = vertices[previous];
+    if ((yi > point[1]) !== (yj > point[1])
+      && point[0] < ((xj - xi) * (point[1] - yi)) / ((yj - yi) || 1) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+};
+
 export const resolveOccsProfileSectionPolygons = async (section = {}) => {
   if (section.type !== 'shapes') return null;
-  const adds = section.shapes.filter(shape => shape.op === 'add');
-  const subtracts = section.shapes.filter(shape => shape.op === 'subtract');
-  let polygons = adds.length ? await unionCassetteV2FacePolygons(adds.map(shape => shape.vertices)) : [];
+  const participants = section.shapes
+    .filter(shape => !shape.construction && shape.vertices.length >= 3);
+  if (!participants.length) return { polygons: [], holes: [] };
+  const depthOf = (shape) => participants.filter(other => (
+    other !== shape && ringContainsPoint(other.vertices, shape.vertices[0])
+  )).length;
+  const byDepth = new Map();
+  for (const shape of participants) {
+    const depth = depthOf(shape);
+    byDepth.set(depth, [...(byDepth.get(depth) || []), shape.vertices]);
+  }
+  const depths = [...byDepth.keys()].sort((a, b) => a - b);
+  let polygons = await unionCassetteV2FacePolygons(byDepth.get(depths[0]) || []);
   let holes = [];
-  if (subtracts.length) {
-    const difference = await differenceCassetteV2Polygons(polygons, subtracts.map(shape => shape.vertices));
-    polygons = difference.polygons;
-    holes = difference.holes;
+  for (const depth of depths.slice(1)) {
+    const group = byDepth.get(depth);
+    if (!group?.length) continue;
+    if (depth % 2 === 1) {
+      const difference = await differenceCassetteV2Polygons(polygons, group);
+      polygons = difference.polygons;
+      holes = [...holes, ...difference.holes];
+    } else {
+      polygons = await unionCassetteV2FacePolygons([...polygons, ...group]);
+    }
   }
   const span = 1e6;
   const voidHalf = section.axis?.material === 'negative'
@@ -695,7 +728,7 @@ const pointFromDxf = (point = {}) => ({
 // every other arc flattens to chords within `chordTolerance` mm. Every
 // chainable piece becomes its own shape — nothing is dropped. With
 // `reference: true` (a DXF import used as a visual guide) every shape
-// lands with op none.
+// lands as construction geometry.
 
 const CHORD_TOLERANCE_MM = 0.05;
 const POINT_EPSILON = 0.001;
@@ -1098,7 +1131,7 @@ const canonicalPolygonPoints = (points = []) => {
   return ordered.slice(start).concat(ordered.slice(0, start));
 };
 
-const chainShapeFromGeometry = (geometry, closed, fallbackOp, index) => {
+const chainShapeFromGeometry = (geometry, closed, construction, index) => {
   const points = geometry.points;
   const pointIds = points.map((_, at) => `p${at}`);
   const shapeClosed = closed && points.length >= 3;
@@ -1122,7 +1155,7 @@ const chainShapeFromGeometry = (geometry, closed, fallbackOp, index) => {
     return {
       id: `s${index}`,
       type: 'rect',
-      op: fallbackOp,
+      construction,
       center: rect.center,
       width: rect.width,
       height: rect.height,
@@ -1152,7 +1185,7 @@ const chainShapeFromGeometry = (geometry, closed, fallbackOp, index) => {
   return {
     id: `s${index}`,
     type: 'chain',
-    op: shapeClosed ? fallbackOp : 'none',
+    construction: construction && shapeClosed,
     closed: shapeClosed,
     points: points.map((point, at) => ({
       id: pointIds[at],
@@ -1191,14 +1224,13 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
   }
 
   const reference = Boolean(options.reference);
-  const chainDefaultOp = reference ? 'none' : 'add';
   const shapes = [];
 
   for (const circle of circles) {
     shapes.push({
       id: `s${shapes.length}`,
       type: 'circle',
-      op: reference ? 'none' : 'subtract',
+      construction: reference,
       center: [circle.center.x, circle.center.y],
       diameter: circle.diameter
     });
@@ -1213,7 +1245,7 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
   for (const { segments, closed } of chains) {
     const geometry = chainToSketchGeometry(segments, closed, chordTolerance);
     if (geometry.points.length >= 2) {
-      shapes.push(chainShapeFromGeometry(geometry, closed, chainDefaultOp, shapes.length));
+      shapes.push(chainShapeFromGeometry(geometry, closed, reference, shapes.length));
     }
   }
 
@@ -1228,7 +1260,7 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
 
 // Extraction merges into the authored sketch instead of replacing it: an
 // extracted shape sitting on an authored shape's evaluated position
-// (within a rounding epsilon) keeps the authored id, op, expressions,
+// (within a rounding epsilon) keeps the authored id, construction, expressions,
 // and fillets — drawing, importing, or undoing never destroys parametric
 // authoring. Moved or new shapes carry the extracted numerics; authored
 // shapes with no extracted counterpart were erased and drop. An authored
@@ -1359,6 +1391,50 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     }
     return { ...original };
   });
+  // Field-wise revive: a leftover extracted shape pairs with a leftover
+  // authored shape of the same kind and keeps the authored expression on
+  // every field whose evaluated value still matches the extracted
+  // geometry — a drag costs the position fields, sizes and fillet radii
+  // keep their bindings.
+  const authoredPool = [...(authored.shapes || []), ...adoptShapes];
+  const evaluatedById = new Map([...source.shapes, ...adoptSource].map(shape => [shape.id, shape]));
+  const keepAuthoredField = (authoredValue, evaluatedValue, extractedValue) => (
+    typeof authoredValue === 'string'
+    && Number.isFinite(evaluatedValue)
+    && Number.isFinite(extractedValue)
+    && Math.abs(evaluatedValue - extractedValue) <= MERGE_EPSILON_MM
+      ? authoredValue
+      : extractedValue
+  );
+  const paired = new Set();
+  for (const shape of shapes) {
+    if (!shape.__fresh || (shape.type !== 'rect' && shape.type !== 'circle')) continue;
+    const authoredShape = authoredPool.find(candidate => (
+      !usedAuthored.has(candidate.id) && !paired.has(candidate.id) && candidate.type === shape.type
+    ));
+    const evaluatedShape = authoredShape ? evaluatedById.get(authoredShape.id) : null;
+    if (!authoredShape || !evaluatedShape) continue;
+    paired.add(authoredShape.id);
+    delete shape.__fresh;
+    shape.id = authoredShape.id;
+    shape.construction = authoredShape.construction;
+    keptShapeIds.add(authoredShape.id);
+    if (shape.type === 'circle') {
+      shape.diameter = keepAuthoredField(authoredShape.diameter, evaluatedShape.diameter, shape.diameter);
+      continue;
+    }
+    shape.width = keepAuthoredField(authoredShape.width, evaluatedShape.width, shape.width);
+    shape.height = keepAuthoredField(authoredShape.height, evaluatedShape.height, shape.height);
+    shape.rotation = keepAuthoredField(authoredShape.rotation, evaluatedShape.rotation, shape.rotation);
+    const authoredFillets = new Map((authoredShape.fillets || []).map(fillet => [fillet.corner, fillet.radius]));
+    const evaluatedFillets = new Map((evaluatedShape.fillets || []).map(fillet => [fillet.corner, fillet.radius]));
+    shape.fillets = (shape.fillets || [])
+      .map(fillet => ({
+        corner: fillet.corner,
+        radius: keepAuthoredField(authoredFillets.get(fillet.corner), evaluatedFillets.get(fillet.corner), fillet.radius)
+      }))
+      .filter(fillet => fillet.radius !== 0);
+  }
   // Fresh shapes renumber against every kept id — an extracted id that
   // happens to equal a kept id still renumbers (identity, not the id,
   // decides kept-ness).

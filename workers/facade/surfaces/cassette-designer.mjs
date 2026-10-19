@@ -405,38 +405,11 @@ export default function createSurface({ vue, components, locale, queries, record
         }
         return rows;
       });
-      // Only parameters the profile's sketch actually references drive
-      // its geometry — a numeric sketch (drawn or imported without
-      // bindings) has none, and its workpiece row shows no dead chips.
+      // The workpiece row carries the profile's whole parameter table
+      // (the item is the profile's parameter home on the cassette).
       const profileBoundParameterKeys = (workpiece) => {
         const sketch = workpiece.profileSnapshot?.sketch || workpiece.profile?.sketch;
-        if (!sketch) return new Set();
-        const used = new Set();
-        const collect = (value) => {
-          if (typeof value !== 'string') return;
-          try {
-            collectCassetteV2ExpressionIdentifiers(value).forEach(identifier => used.add(identifier));
-          } catch {
-            // Half-authored values surface at evaluation; nothing binds.
-          }
-        };
-        (sketch.shapes || []).forEach(shape => {
-          if (shape.type === 'circle' || shape.type === 'rect') {
-            (shape.center || []).forEach(collect);
-            if (shape.type === 'circle') collect(shape.diameter);
-            else {
-              collect(shape.width);
-              collect(shape.height);
-              collect(shape.rotation);
-              (shape.fillets || []).forEach(fillet => collect(fillet.radius));
-            }
-            return;
-          }
-          (shape.points || []).forEach(point => { collect(point.x); collect(point.y); });
-          (shape.modifiers || []).forEach(modifier => collect(modifier.radius));
-        });
-        Object.values(sketch.parameters || {}).forEach(collect);
-        return used;
+        return new Set(Object.keys(sketch?.parameters || {}));
       };
       // Tree law (owner, 2026-10-17): every workpiece renders as a
       // top-level row — sheets and hardware never nest under each

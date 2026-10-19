@@ -296,11 +296,11 @@ describe('cassette v2 trapezoid renderer', () => {
         section: {
           type: 'shapes',
           // The default template is parametric: the template's own
-          // parameters drive the evaluated section (the W/2 x H/2
-          // subtract circle of diameter D — inert numbers before the
-          // binding).
+          // parameters drive the evaluated section (the centered
+          // circle of diameter D — a contained hole by the containment
+          // fold).
           shapes: expect.arrayContaining([
-            expect.objectContaining({ kind: 'circle', op: 'subtract' })
+            expect.objectContaining({ kind: 'circle', construction: false })
           ])
         },
         sweep: { type: 'linear', length: '100' }
@@ -1273,22 +1273,23 @@ describe('cassette v2 trapezoid renderer', () => {
     const occs = await createCassetteV2OccsDocument(placed);
     const cut = occs.definitions.workpieces[0].entities.find(entity => entity.layer === 'cut.inner');
     // The document emits the boolean result ring-by-ring (the wire keeps
-    // one polygon per entity); the axis law lands the profile's zero
-    // axis on the arranged edge, material half into the face.
+    // one polygon per entity); the axis law lands +X (the material half)
+    // on the edge's inward normal: the 12mm material depth runs into the
+    // face, the 8mm height along the edge.
     const ring = cut.geometry.vertices.map(vertex => [Number(vertex[0]), Number(vertex[1])]);
-    expect(xsOf(ring)).toEqual(expectCloseToBounds([250, 262]));
-    expect(ysOf(ring)).toEqual(expectCloseToBounds([10, 18]));
+    expect(xsOf(ring)).toEqual(expectCloseToBounds([242, 250]));
+    expect(ysOf(ring)).toEqual(expectCloseToBounds([10, 22]));
 
     const mirrored = updateCassetteV2WorkpieceRelation(placed, relation.id, {
-      mirrorX: true
+      mirrorY: true
     });
     const mirroredOccs = await createCassetteV2OccsDocument(mirrored);
     const mirroredCut = mirroredOccs.definitions.workpieces[0].entities.find(entity => entity.layer === 'cut.inner');
     const mirroredRing = mirroredCut.geometry.vertices.map(vertex => [Number(vertex[0]), Number(vertex[1])]);
     const mirroredXs = [...new Set(mirroredRing.map(vertex => Math.round(vertex[0])))].sort((a, b) => a - b);
     const mirroredYs = [...new Set(mirroredRing.map(vertex => Math.round(vertex[1])))].sort((a, b) => a - b);
-    expect(mirroredXs[0]).toBeLessThan(mirroredXs[mirroredXs.length - 1]);
-    expect(mirroredYs).toEqual([10, 18]);
+    expect(mirroredXs).toEqual([250, 258]);
+    expect(mirroredYs).toEqual([10, 22]);
   });
 
   it('dispatches edge-breaking integral cuts only through the modified parent contour', async () => {

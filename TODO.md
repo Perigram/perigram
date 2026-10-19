@@ -65,6 +65,45 @@ editable fillets, and a one-shot migration for stored sketches.
   run) against production data and `--apply` once the counts look
   right.
 
+### Agent Notes (2026-10-19, round 10 — owner review, CAD law)
+
+- Owner direction: stop inventing; the CAD world solved these a million
+  times. Five defects reported; all addressed on the settled
+  conventions:
+- Dimensions serialized to values: one drag severed every binding
+  (merge law: moved shapes went wholly numeric). The merge is now
+  field-wise — a moved shape keeps the authored expression on every
+  field whose evaluated value survived (sizes, fillet radii); position
+  fields go numeric. Verified: a translated rect keeps W/H/R.
+- Item chips showed only referenced parameters (2 of 4). The workpiece
+  row now carries the profile's whole parameter table.
+- Boolean ops: per-shape add/subtract retired for the classical sketch
+  law — closed participants fold by containment (inner loops are
+  holes, nesting alternates, siblings unite; `ringContainsPoint`
+  depths, even unite / odd subtract through the Clipper pass). The only
+  per-shape flag is construction geometry (segmented
+  Section/Construction control; imports land as construction; open
+  chains keep the cut-path role). Drawn circles no longer pre-tag as
+  subtract — containment decides.
+- Selection cycling: a repeat click on the same spot cycles to the
+  shape beneath (the settled answer for covered entities); an empty
+  engine pick no longer kills an open popup.
+- Orientation: `profileAxisRotationDegrees` computed the inward-normal
+  angle minus 90°, landing +Y on the normal — the material half ran
+  ALONG the edge. +X (the material half) now lands on the inward
+  normal; the spec's own expectations encoded the bug and moved with
+  the fix (12mm depth now runs into the face). The wrong-side rings
+  also explain the "wrong layers" report: rings outside the face are
+  boolean-only edge-breakers dispatched through the modified contour.
+- Data: stored sketches' `op` fields retire — the one-shot
+  `migrate-profile-sketches-to-shapes.js` gains a shape-model pass
+  (`none` → `construction: true`, add/subtract drop the field);
+  run its dry-run then `--apply` on production (WAITING item exists).
+- Validation: 129 facade tests + 13 SSR smoke green under the new
+  contract; harness proves the containment fold (circle = hatched
+  island inside the cut), the construction flip (hatch restores under
+  the rect), cycling (rect → circle → rect), zero page errors.
+
 ### Agent Notes (2026-10-19, round 9 — owner review, op vocabulary and save voice)
 
 - Owner question: "boolean ops are applied TO WHAT?" — the segmented

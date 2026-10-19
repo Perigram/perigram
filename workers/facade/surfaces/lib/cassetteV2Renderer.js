@@ -2745,8 +2745,8 @@ const profileAxisRotationDegrees = (relation = {}, targetCurve = null) => {
     inward[1] = -inward[1];
   }
   // +X (the material half) onto the inward normal: the axis rotation is
-  // the normal's angle minus the profile's own +X direction.
-  return (Math.atan2(inward[1], inward[0]) * 180) / Math.PI - 90;
+  // the normal's angle — the profile's own +X sits at 0°.
+  return (Math.atan2(inward[1], inward[0]) * 180) / Math.PI;
 };
 
 const placeProfileRing = (ring = [], point = [0, 0, 0], relation = {}, axisRotation = 0, scope = {}) => {
