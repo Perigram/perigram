@@ -322,6 +322,9 @@ same-type ownership return graph-addressable diagnostics; the migration
 never selects the first same-type producer. A type the supplied vocabulary
 does not know is left to validation's anchored unknown-type report rather
 than refused here — without a supplied vocabulary the strict rewrite stays.
+Identity is an entity-emitting concern: a typed effect with no entity
+output (a value-output service or command) demands no producer identity —
+its type places the run action and nothing more.
 
 Authored definitions are current-vocabulary only: `prepareAuthoredDefinition`
 resolves CTS ids and declared row paths through `@perigram/cts`

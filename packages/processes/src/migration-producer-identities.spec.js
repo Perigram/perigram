@@ -223,4 +223,25 @@ describe('persisted producer output identity migration', () => {
       'Process node processNode_1785860422855 selects missing producer output someone-else:entity'
     ]);
   });
+
+  it('demands no producer identity for a typed value-output service', () => {
+    const result = migrateProducerOutputIdentities({
+      dataflowVersion: 5,
+      graph: { nodes: [{ id: 'solve', type: 'processNode', data: { refId: 'solve' } }], edges: [] },
+      producerOutputs: {},
+      actions: {},
+      processNodes: {
+        solve: {
+          id: 'solve',
+          kind: 'cts.service',
+          typeId: 'nesting-attempt',
+          operator: 'plugin.facade.nesting-solve',
+          outputs: [{ id: 'result', role: 'data', type: { base: 'json' } }]
+        }
+      }
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.data.processNodes.solve.producerOutputId).toBeUndefined();
+  });
 });
