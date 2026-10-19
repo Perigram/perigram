@@ -437,6 +437,45 @@ anatomy invariants — green twice against the merged tree. The dev
 app container flapped twice mid-session (another session's
 restarts); runs retried after it settled.
 
+### Agent Notes (2026-10-19, round 9 — owner picks the ordered CSG sequence; one op home; wrapping fields)
+
+Owner reports: the op showed three times (row tag, accordion control,
+popup control) and the property fields stretched the panel instead of
+wrapping. Owner then picked the ordered CSG sequence over the grouped
+fold (asked directly: interleaving — a later add refilling an earlier
+cut — is wanted). Shipped:
+
+1. Ordered CSG sequence (SPEC amendment, 2026-10-19):
+   `resolveOccsProfileSectionOperations` and
+   `cassetteV2BooleanOperationsForEntities` apply steps in authored
+   list order — a later add refills an earlier cut. The merge keeps
+   authored sequence slots (fresh shapes append), so extraction
+   roundtrips preserve the order — the round-2 shuffle bug cannot
+   recur. Pinned at model level (refill case: cut-then-bridge keeps
+   more material than bridge-then-cut) and end-to-end through the
+   production drawing (partial-hole vs refilled-hole rings).
+2. The panel lists the authored sequence with move-earlier/move-later
+   controls on the selected row (the sequence is the evaluation).
+3. One op home at a time: the collapsed row shows the state tag; the
+   selected row replaces it with the segmented control — the shape
+   popup is retired (canvas picks select the shape, the row expands).
+   Property field rows wrap (`flex-wrap`, rect split into
+   size/position and fillet rows); panel width fixed at 19rem.
+4. `server/scripts/migrate-profile-ops-to-sequence.js` sequences
+   stored sketches grouped (adds, subtracts, construction — stored
+   order within each) so the semantic change preserves every stored
+   evaluation. Dry-run against the live dev DB: 0/3 profiles, 0/11
+   cassettes need it — every stored sketch already adds before
+   subtracting. Run inside the app container (its connectDB resolves
+   the compose mongo host).
+
+Validation: 146/146 in workers/facade (two new specs: ordered refill
+at model level, sequence preservation through the merge; the grouped
+specs rewritten for ordered semantics), arch and docs guards green;
+e2e/cassette-profile-editor.spec.js drives the sequence order, the
+move control, the single op home, wrapping, and the atomic delete —
+green twice against the merged tree.
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places
