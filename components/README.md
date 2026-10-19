@@ -192,22 +192,23 @@ Project-context actions live in a fixed workspace strip above both Explorer and
 panes; the strip's left control owns Explorer visibility. Explorer contains
 source navigation only, while panes contain the canonical entity page for their
 selected entity or a registered workspace page, plus pane-local controls. Each
-pane header owns its IDE-style file tabs in one compact fixed-height row whose
+pane header owns its tab chips in one compact fixed-height row whose
 single hairline spans the whole stripe — tab list and the right-side pane
-controls alike: each entity tab carries its compact
+controls alike. Tab chips follow the chats folder strip anatomy
+(`ChatSupport.vue`): the selected tab wears the primary button surface,
+idle tabs the secondary one, and labels render at the supporting role
+size. Each entity tab carries its compact
 lifecycle status and a close affordance that appears only on tab hover or
-focus (its space stays reserved so labels do not shift), followed by a
-standalone add-tab control. The stripe is SINGLE-HOMED in
+focus (its space stays reserved so labels do not shift). The add-tab
+control sits directly after the last tab, browser-style, and the empty
+tab carries its label alone. The stripe is SINGLE-HOMED in
 `components/generated/GeneratedPaneHeader.vue`: every pane host mounts
-that one component — the row, its height (40px), and the control fill
+that one component — the row and its height (40px)
 are defined once, never pasted into hosts (a host pasting its own
-header row is a defect even when visually identical). Every control in
-the stripe — close, add, and
-the pane menu — fills the stripe height through stretch (`h-full`), the
-tab labels render at the text-label role size, and no control overflows
-or clips against the stripe's edges.
+header row is a defect even when visually identical). No control
+overflows or clips against the stripe's edges.
 Overflow stays wheel/touchpad-scrollable while native scrollbar chrome remains
-hidden, matching an IDE file-tab strip.
+hidden.
 Pane split/close commands live in a pane-level ellipsis menu. Generated entity
 actions not already owned by an operational editor belong to the active tab body
 below the tab strip. Action presentation has one concern-based owner: collection
