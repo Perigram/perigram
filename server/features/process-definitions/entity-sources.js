@@ -3,7 +3,10 @@ import { normalizeInstanceRef } from '~/packages/core/src/index.js';
 export async function processParentEntity(containment = [], resolveEntity, entity, typeId) {
   const relation = containment.find(item => sameTypeId(item.childType, typeId));
   if (!relation) return null;
-  const lineageId = entityLineageId(entity, relation.lineageKey);
+  let lineageId = entityLineageId(entity, relation.lineageKey);
+  if (!lineageId && normalizeInstanceRef(entity)) {
+    lineageId = entityLineageId(await resolveEntity(typeId, entity), relation.lineageKey);
+  }
   if (!lineageId) return null;
   return resolveEntity(relation.parentType, lineageId);
 }
