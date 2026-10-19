@@ -2999,6 +2999,34 @@ describe('@perigram/processes compiler', () => {
     expect(compiled.actions.create_worksite.label).toBe('Create Worksite');
   });
 
+  it('captions a run action with the service declaration render label', () => {
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator' }
+      },
+      actions: {
+        solve: {
+          id: 'solve',
+          label: 'cts.service',
+          actionKind: 'runCommand',
+          commandId: 'plugin.facade.nesting-solve',
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_operator'] }
+        }
+      }
+    }, {
+      ...domain,
+      commands: {
+        'plugin.facade.nesting-solve': { id: 'plugin.facade.nesting-solve', service: 'plugin.facade', action: 'run', plugin: true }
+      },
+      serviceContracts: {
+        'plugin.facade.nesting-solve': { id: 'plugin.facade.nesting-solve', command: 'plugin.facade.nesting-solve', render: { label: 'Nesting solver' } }
+      }
+    });
+
+    expect(compiled.actions.solve.label).toBe('Run Nesting solver');
+  });
+
   it('rejects generic creation for derived construction contracts', () => {
     const validation = validateProcessDefinition({
       producerOutputs: producerOutputRecords([['create_design', 'cassette_design']]),
