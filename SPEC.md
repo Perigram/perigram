@@ -1016,13 +1016,18 @@ face, never from the profile-merged boundary.
 Owner decision (2026-10-19, sheet-design editor interactions): the
 sheet-design editor runs the operational-designer lanes chrome — palette
 (cassette picker, layout margin, layer visibility rows) and inspector
-(selected placement facts, else the sheet summary). Cassettes are added
-from the picker over the cassette record wire; a placement grabs by face;
-drag snaps magnetically with the margin row feeding both the part gap and
-the sheet-edge offset; the selection's speed dial carries open cassette,
-rotate, and delete. Opening a placed cassette is host navigation: the
-surface asks through the mount's workspace-open channel (surface contract
-4), and the workspace owns the tab.
+(selected placement facts, else the sheet summary). A cassette record
+carries its evaluated geometry fields on every designer save, so the
+picker adds any authored cassette from the record wire (one placement per
+extracted polygon, swept to the first free position); a placement grabs
+by face; drag snaps magnetically with the margin row feeding both the
+part gap and the sheet-edge offset; drag, rotate, and add gate on sheet
+containment plus non-overlap, and a placement already in violation stays
+draggable so it can be pulled out; the selection's action dial anchors
+at the placement and carries open cassette, rotate, and delete; clicking
+empty canvas clears the selection. Opening a placed cassette is host
+navigation: the surface asks through the mount's workspace-open channel
+(surface contract 4), and the workspace owns the tab.
 
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components

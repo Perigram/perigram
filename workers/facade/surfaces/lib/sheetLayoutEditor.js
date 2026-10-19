@@ -209,6 +209,10 @@ function polygonEdges(points = []) {
   return clean.map((point, index) => [point, clean[(index + 1) % clean.length]]);
 }
 
+function edgeMidpoint(edge) {
+  return [(edge[0][0] + edge[1][0]) / 2, (edge[0][1] + edge[1][1]) / 2];
+}
+
 function cross(a, b, c) {
   return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
 }
@@ -339,12 +343,19 @@ function polygonsClear(leftPoints = [], rightPoints = [], clearance = 0, rightEd
       if (segmentsProperlyIntersect(leftEdge[0], leftEdge[1], rightEdge[0], rightEdge[1])) {
         return false;
       }
-      if (segmentsIntersect(leftEdge[0], leftEdge[1], rightEdge[0], rightEdge[1])) {
-        return gap <= GEOMETRY_EPSILON;
-      }
     }
   }
   if (leftPoints.some(point => pointInPolygon(point, rightPoints)) || rightPoints.some(point => pointInPolygon(point, leftPoints))) {
+    return false;
+  }
+  // Aligned overlaps hide between shared edge lines: every crossing is a
+  // touch and every corner sits on a boundary. An edge midpoint strictly
+  // inside the other polygon exposes them; flush neighbors keep their
+  // midpoints on the shared line and stay legal.
+  if (
+    leftEdges.some(edge => pointInPolygon(edgeMidpoint(edge), rightPoints)) ||
+    otherEdges.some(edge => pointInPolygon(edgeMidpoint(edge), leftPoints))
+  ) {
     return false;
   }
   if (gap <= GEOMETRY_EPSILON) return true;
@@ -472,7 +483,55 @@ export function magneticSheetPlacement({
       return candidate;
     }
   }
+  // A placement already sitting in violation stays draggable so it can be
+  // pulled out; the gates re-engage once it clears.
+  if (!placementHasClearance({ items, placements, placement, index, clearance: gap })) {
+    return { ...bounded, snapped: false };
+  }
   return null;
+}
+
+// First free position for a new item: a coarse sweep of the sheet from the
+// top-left, gated like a drag; the fallback is the clamped corner.
+export function freeSheetPlacement({
+  item = {},
+  items = [],
+  placements = [],
+  sheetWidth = 0,
+  sheetHeight = 0,
+  sheetPolygon = null,
+  boundaryOffset = 0,
+  clearance = 0,
+  step = 25
+} = {}) {
+  const bounds = sheetItemBounds(item, 0);
+  const startX = Math.max(boundaryOffset - bounds.minX, 0);
+  const startY = Math.max(boundaryOffset - bounds.minY, 0);
+  const maxX = Math.max((Number(sheetWidth) || 0) - boundaryOffset - bounds.maxX, startX);
+  const maxY = Math.max((Number(sheetHeight) || 0) - boundaryOffset - bounds.maxY, startY);
+  const withItem = [...items, item];
+  const sweep = Math.max(Number(step) || 25, 1);
+  for (let y = startY; y <= maxY + sweep; y += sweep) {
+    for (let x = startX; x <= maxX + sweep; x += sweep) {
+      const bounded = clampSheetPlacement({
+        x: Math.min(x, maxX),
+        y: Math.min(y, maxY),
+        item,
+        sheetWidth,
+        sheetHeight,
+        boundaryOffset,
+        sheetPolygon
+      });
+      const candidate = {
+        item_id: item.id,
+        transformation: { rotation: 0, translation: [bounded.x, bounded.y] }
+      };
+      if (placementHasClearance({ items: withItem, placements, placement: candidate, clearance })) {
+        return bounded;
+      }
+    }
+  }
+  return clampSheetPlacement({ x: startX, y: startY, item, sheetWidth, sheetHeight, boundaryOffset, sheetPolygon });
 }
 
 export function rotateSheetPlacementQuarterTurn({ items = [], placements = [], index = -1, sheetWidth = 0, sheetHeight = 0, sheetPolygon = null, boundaryOffset = 0, clearance = 0 } = {}) {
@@ -505,30 +564,43 @@ export function rotateSheetPlacementQuarterTurn({ items = [], placements = [], i
 
 // Cassette records on the §3 wire: geometry extraction fields beside the
 // identifier name (`fields.polygonParts`, `fields.layerData` — DXF import
-// writes them; a cassette with none has no placeable geometry).
+// and designer saves write them; a cassette with none has no placeable
+// geometry).
 function cassetteRecordParts(cassette = {}) {
   const fields = cassette.fields || {};
-  return Array.isArray(fields.polygonParts) && fields.polygonParts.length
-    ? { polygonParts: fields.polygonParts, layerData: fields.layerData }
-    : { polygonParts: [], layerData: [] };
+  return {
+    polygonParts: Array.isArray(fields.polygonParts) ? fields.polygonParts : [],
+    layerData: Array.isArray(fields.layerData) ? fields.layerData : []
+  };
 }
 
-export function cassetteSheetItem(cassette = {}, id) {
+// One sheet item per extracted polygon (each sheet workpiece nests as its
+// own part); the item's source layers are the layer rows of its workpiece.
+export function cassetteSheetItems(cassette = {}, idPrefix = 'item') {
   const { polygonParts, layerData } = cassetteRecordParts(cassette);
-  const polygon = polygonParts
-    .find(part => (part.layer || part.standardCode) === 'cut.outer')
-    || polygonParts[0];
-  if (!polygon?.coordinates?.length) return null;
-  return {
-    id,
-    cassette_id: cassette._id,
-    name: cassette.name || cassette._id,
-    shape: { type: 'simple_polygon', data: clone(polygon.coordinates) },
-    sourceLayers: (Array.isArray(layerData) ? layerData : []).map(layer => ({
-      ...clone(layer),
-      layer: layer.layer || layer.standardCode || layer.name
-    }))
-  };
+  return polygonParts
+    .map((part, index) => {
+      const coordinates = (Array.isArray(part.coordinates) ? part.coordinates : [])
+        .map(point => Array.isArray(point) && point.length >= 2
+          ? [Number(point[0]) || 0, Number(point[1]) || 0]
+          : null)
+        .filter(point => point && Number.isFinite(point[0]) && Number.isFinite(point[1]));
+      if (coordinates.length < 3) return null;
+      const workpieceId = part.workpieceId || null;
+      return {
+        id: `${idPrefix}-${index}`,
+        cassette_id: cassette._id,
+        name: polygonParts.length > 1 ? `${cassette.name || cassette._id} ${index + 1}` : (cassette.name || cassette._id),
+        shape: { type: 'simple_polygon', data: clone(coordinates) },
+        sourceLayers: layerData
+          .filter(layer => !workpieceId || !layer.workpieceId || layer.workpieceId === workpieceId)
+          .map(layer => ({
+            ...clone(layer),
+            layer: layer.layer || layer.standardCode || layer.name
+          }))
+      };
+    })
+    .filter(Boolean);
 }
 
 export function placementWithTranslation(placement = {}, x, y) {

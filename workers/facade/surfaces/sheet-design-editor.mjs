@@ -7,8 +7,8 @@
 // the recomputed geometry through the generic update transport.
 import { recomputeSheetLayout } from './lib/sheetLayout.js';
 import {
-  cassetteSheetItem,
-  clampSheetPlacement,
+  cassetteSheetItems,
+  freeSheetPlacement,
   magneticSheetPlacement,
   placementWithTranslation,
   rotateSheetPlacementQuarterTurn,
@@ -145,6 +145,7 @@ export default function createSurface({ vue, components, locale, queries, notify
       // switch re-baselines instead of undoing across documents. Commits
       // follow mutations — undo restores the state before the last one.
       const history = snapshotHistory({
+        ref,
         snapshot: () => JSON.stringify(placedItems.value),
         apply: (entry) => {
           placedItems.value = JSON.parse(entry);
@@ -375,28 +376,30 @@ export default function createSurface({ vue, components, locale, queries, notify
 
       function addSelectedCassette() {
         const cassette = cassettes.value.find(item => String(item._id) === String(selectedCassetteId.value));
-        const item = cassette
-          ? cassetteSheetItem(cassette, `manual-${cassette._id}-${Date.now()}-${items.value.length}`)
-          : null;
-        if (!item) {
+        const prefix = cassette ? `manual-${cassette._id}-${Date.now()}` : '';
+        const added = cassette ? cassetteSheetItems(cassette, prefix) : [];
+        if (!added.length) {
           notify({ severity: 'error', summary: t('common.error'), detail: t('sheetDesign.cassetteNoGeometry') });
           return;
         }
-        items.value.push(item);
-        const start = clampSheetPlacement({
-          x: margin.value,
-          y: margin.value,
-          item,
-          sheetWidth: sheetWidth.value,
-          sheetHeight: sheetHeight.value,
-          sheetPolygon: sheetPolygon.value,
-          boundaryOffset: margin.value
-        });
-        placedItems.value.push({
-          item_id: item.id,
-          transformation: { rotation: 0, translation: [start.x, start.y] }
-        });
-        selectedIndex.value = placedItems.value.length - 1;
+        for (const item of added) {
+          items.value.push(item);
+          const start = freeSheetPlacement({
+            item,
+            items: items.value,
+            placements: placedItems.value,
+            sheetWidth: sheetWidth.value,
+            sheetHeight: sheetHeight.value,
+            sheetPolygon: sheetPolygon.value,
+            boundaryOffset: margin.value,
+            clearance: margin.value
+          });
+          placedItems.value.push({
+            item_id: item.id,
+            transformation: { rotation: 0, translation: [start.x, start.y] }
+          });
+          selectedIndex.value = placedItems.value.length - 1;
+        }
         history.commit();
       }
 
@@ -523,6 +526,50 @@ export default function createSurface({ vue, components, locale, queries, notify
           }
         ].filter(Boolean);
       });
+
+      // The selection's action dial anchors at the placement's top-right
+      // corner in screen space; SVG geometry changes (drag, zoom) recompute
+      // it through the render pass.
+      function speedDialAnchor() {
+        const matrix = svgRef.value?.getScreenCTM?.();
+        if (!matrix || !selectedTransform.value || !selectedBounds.value || !svgRef.value) return null;
+        const canvas = svgRef.value.getBoundingClientRect();
+        const point = new DOMPoint(
+          selectedTransform.value.x + selectedBounds.value.maxX,
+          selectedTransform.value.y + selectedBounds.value.minY
+        ).matrixTransform(matrix);
+        return {
+          left: Math.min(Math.max(point.x - canvas.left, 48), Math.max(canvas.width - 48, 48)),
+          top: Math.min(Math.max(point.y - canvas.top, 8), Math.max(canvas.height - 8, 8)),
+          expandUp: point.y - canvas.top > 180
+        };
+      }
+
+      function renderSpeedDial() {
+        const anchor = selectedPlacement.value ? speedDialAnchor() : null;
+        if (!anchor) return null;
+        return h('div', {
+          style: {
+            position: 'absolute',
+            left: `${anchor.left}px`,
+            top: `${anchor.top}px`,
+            transform: 'translate(50%, -50%)',
+            zIndex: 25
+          }
+        }, [
+          h(components.SpeedDial, {
+            model: speedDialItems.value,
+            direction: anchor.expandUp ? 'up' : 'down',
+            buttonProps: {
+              rounded: true,
+              severity: 'secondary',
+              outlined: true,
+              'aria-label': t('sheetDesign.actions')
+            },
+            tooltipOptions: { position: anchor.expandUp ? 'left' : 'right' }
+          })
+        ]);
+      }
 
       function renderSheetShape(filled) {
         const stroke = sheetBoundaryStyle.value;
@@ -759,6 +806,10 @@ export default function createSurface({ vue, components, locale, queries, notify
                 viewBox: editorViewBox.value,
                 role: 'application',
                 'aria-label': t('sheetDesign.editor'),
+                onPointerdown: () => {
+                  endDrag();
+                  selectedIndex.value = -1;
+                },
                 onPointermove: dragPlacement,
                 onPointerup: finishDrag,
                 onPointercancel: finishDrag,
@@ -803,18 +854,7 @@ export default function createSurface({ vue, components, locale, queries, notify
                 ]) : null,
                 ...placedItems.value.map(renderPlacement)
               ]),
-              selectedPlacement.value ? h(components.SpeedDial, {
-                model: speedDialItems.value,
-                direction: 'up',
-                style: { position: 'absolute', right: '1rem', bottom: '1rem' },
-                buttonProps: {
-                  rounded: true,
-                  severity: 'secondary',
-                  outlined: true,
-                  'aria-label': t('sheetDesign.actions')
-                },
-                tooltipOptions: { position: 'left' }
-              }) : null
+              renderSpeedDial()
             ]),
             h(components.Popover, { ref: dockMenu }, () => [
               h('div', {
@@ -854,16 +894,20 @@ export default function createSurface({ vue, components, locale, queries, notify
 // Snapshot undo/redo history (the editor-side contract of the host's
 // shared composable, module-local so the surface owns its own stack).
 // `commit` runs after a mutation: the pre-mutation baseline enters the
-// past stack and the mutated state becomes the next baseline.
-function snapshotHistory({ snapshot, apply, limit = 50 } = {}) {
-  const state = { past: [], future: [], baseline: null, canUndo: false, canRedo: false };
+// past stack and the mutated state becomes the next baseline. The gate
+// flags are real refs from the injected runtime — a plain getter would
+// freeze the toolbar's disabled state.
+function snapshotHistory({ ref, snapshot, apply, limit = 50 } = {}) {
+  const canUndo = ref(false);
+  const canRedo = ref(false);
+  const state = { past: [], future: [], baseline: null };
   const gate = () => {
-    state.canUndo = state.past.length > 0;
-    state.canRedo = state.future.length > 0;
+    canUndo.value = state.past.length > 0;
+    canRedo.value = state.future.length > 0;
   };
   return {
-    canUndo: { get value() { return state.canUndo; } },
-    canRedo: { get value() { return state.canRedo; } },
+    canUndo,
+    canRedo,
     reset() {
       state.past = [];
       state.future = [];

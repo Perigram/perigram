@@ -665,7 +665,7 @@ describe('Design system manifest', () => {
 
     expect(editor).toContain('applyLayerPens');
     expect(editor).toContain("resolvedStyle('contour.material_sheet')");
-    expect(editor).toContain('clampSheetPlacement');
+    expect(editor).toContain('freeSheetPlacement');
     expect(editor).toContain('majorGridSize');
     expect(editor).toContain('selectedSnapPoint');
     expect(relationBlock).toContain(':variant="itemVariant"');

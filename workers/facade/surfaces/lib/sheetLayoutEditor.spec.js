@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  cassetteSheetItem,
+  cassetteSheetItems,
   clampSheetPlacement,
+  freeSheetPlacement,
   magneticSheetPlacement,
   placementHasClearance,
   rotateSheetPlacementQuarterTurn,
@@ -148,20 +149,69 @@ describe('sheet layout editor helpers', () => {
     expect(placements[0].transformation.rotation).toBeCloseTo(0);
   });
 
-  it('creates a sheet item from a cassette record with extracted geometry', () => {
-    const item = cassetteSheetItem({
+  it('creates sheet items from a cassette record with extracted geometry', () => {
+    const items = cassetteSheetItems({
       _id: 'cassette-1',
       name: 'Panel',
       fields: {
-        polygonParts: [{ layer: 'cut.outer', coordinates: [[0, 0], [20, 0], [20, 10], [0, 10], [0, 0]] }],
-        layerData: [{ layer: 'fold.route', coordinates: [[0, 5], [20, 5]] }]
+        polygonParts: [
+          { layer: 'cut.outer', workpieceId: 'wp-a', coordinates: [[0, 0], [20, 0], [20, 10], [0, 10], [0, 0]] },
+          { layer: 'cut.outer', workpieceId: 'wp-b', coordinates: [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]] }
+        ],
+        layerData: [
+          { layer: 'fold.route', workpieceId: 'wp-a', coordinates: [[0, 5], [20, 5]] },
+          { layer: 'fold.route', workpieceId: 'wp-b', coordinates: [[0, 5], [10, 5]] }
+        ]
       }
     }, 'manual-1');
-    expect(item).toMatchObject({ id: 'manual-1', cassette_id: 'cassette-1', name: 'Panel' });
-    expect(item.sourceLayers[0].layer).toBe('fold.route');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({ id: 'manual-1-0', cassette_id: 'cassette-1', name: 'Panel 1' });
+    expect(items[0].sourceLayers).toHaveLength(1);
+    expect(items[0].sourceLayers[0].layer).toBe('fold.route');
+    expect(items[1].sourceLayers[0].coordinates).toEqual([[0, 5], [10, 5]]);
   });
 
   it('refuses a cassette record without extracted polygon geometry', () => {
-    expect(cassetteSheetItem({ _id: 'cassette-2', name: 'Authored', fields: {} }, 'manual-2')).toBe(null);
+    expect(cassetteSheetItems({ _id: 'cassette-2', name: 'Authored', fields: {} }, 'manual-2')).toEqual([]);
+  });
+
+  it('places a new item at the first free sweep position', () => {
+    const existing = { id: 'a', shape: { data: [[0, 0], [100, 0], [100, 100], [0, 100]] } };
+    const item = { id: 'b', shape: { data: [[0, 0], [40, 0], [40, 40], [0, 40]] } };
+    const placements = [{ item_id: 'a', transformation: { rotation: 0, translation: [0, 0] } }];
+    const placed = freeSheetPlacement({
+      item,
+      items: [existing],
+      placements,
+      sheetWidth: 200,
+      sheetHeight: 200,
+      clearance: 5,
+      boundaryOffset: 5,
+      step: 10
+    });
+    const candidate = { item_id: 'b', transformation: { rotation: 0, translation: [placed.x, placed.y] } };
+    expect(placementHasClearance({ items: [existing, item], placements, placement: candidate, clearance: 5 })).toBe(true);
+    expect(placed.x).toBeGreaterThanOrEqual(5);
+    expect(placed.y).toBeGreaterThanOrEqual(5);
+  });
+
+  it('keeps an already-overlapping placement draggable so it can be pulled out', () => {
+    const items = [{ id: 1, shape: { data: [[0, 0], [20, 0], [20, 10], [0, 10]] } }];
+    const overlapping = [
+      { item_id: 1, transformation: { rotation: 0, translation: [0, 0] } },
+      { item_id: 1, transformation: { rotation: 0, translation: [5, 0] } }
+    ];
+    const escaped = magneticSheetPlacement({ items, placements: overlapping, index: 1, x: 60, y: 60, sheetWidth: 100, sheetHeight: 100 });
+    expect(escaped).toMatchObject({ x: 60, y: 60, snapped: false });
+  });
+
+  it('refuses a clear placement dragged into overlap', () => {
+    const items = [{ id: 1, shape: { data: [[0, 0], [20, 0], [20, 10], [0, 10]] } }];
+    const placements = [
+      { item_id: 1, transformation: { rotation: 0, translation: [0, 0] } },
+      { item_id: 1, transformation: { rotation: 0, translation: [30, 0] } }
+    ];
+    const result = magneticSheetPlacement({ items, placements, index: 1, x: 14, y: 0, sheetWidth: 100, sheetHeight: 100, threshold: 0 });
+    expect(result === null || result.x >= 20).toBe(true);
   });
 });

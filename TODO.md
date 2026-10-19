@@ -81,7 +81,48 @@ open-instance, rotate, and delete.
   toggle visibility), a placement drags by its face and snaps flush, and
   the selection speed dial opens the placed cassette in a workspace tab.
 
-### Agent Notes (2026-10-19)
+### Agent Notes (2026-10-19, third report — owner verification findings)
+
+Five reports, all reproduced against the live data. (1) Every cassette
+in the dev org is designer-authored, and designer saves wrote only the
+OCCS payload — `fields.polygonParts` existed solely on the DXF import
+path, so the picker had nothing placeable: saves now evaluate the
+document through `evaluateOccsCassetteTemplate` and patch the record's
+declared geometry fields (verified: the default tree yields a cut.outer
+polygon plus mark/dimension layers, and the picker builds a placement
+from them; pre-existing cassettes need one re-save). (2) Undo/redo never
+enabled: both editors' module-local `snapshotHistory` exposed the gate
+flags as plain getters, so the toolbar computeds never re-evaluated —
+the flags are real refs from the injected runtime now (same fix in the
+cassette designer). (3) Clicking empty canvas clears the selection (svg
+pointerdown; placements stop propagation). (4) The action dial anchors
+at the selected placement's top-right corner in screen space (expands
+away from the canvas edge) — "show instance" appears when the placement
+carries a cassette ref: adds do, but the org's SOLVED layouts carry
+`cassette_id: ''` because the seeded order process builds job items
+without the cassette ref (`test-data/order-process-authoring.js` — the
+`jobItems` construct omits `cassetteId` and the nesting-parts projection
+does not emit it); tracked below. (5) Overlap had a real gate hole:
+aligned rectangles sharing an edge line passed `polygonsClear` because
+every crossing is a touch and every corner sits on a boundary — the
+gate now also tests edge midpoints strictly inside the other polygon
+(flush neighbors stay legal); adds sweep to the first free position, and
+a placement already in violation stays draggable so it can be pulled
+out.
+
+## Nesting job items lose the cassette ref (follow-up, found 2026-10-19)
+
+Solved sheet layouts store `cassette_id: ''` on every item: the seeded
+order process constructs job items from the cassette-design
+`nesting-polygons` projection without a cassette ref (`jobItems` builds
+`['polygonParts', 'count']` only), and the projection output declares
+no ref field either. Sheet placements therefore have nothing for the
+open-instance action or the `parts` refs to resolve.
+
+- [ ] WAITING — owner decision: carry the cassette ref through the
+  nesting-parts projection output and the seeded process's job-item
+  construct (new orgs), and decide whether existing org processes
+  re-author their job-item constructs.
 
 ### Agent Notes (2026-10-19, second report)
 

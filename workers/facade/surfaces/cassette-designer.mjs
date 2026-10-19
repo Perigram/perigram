@@ -48,6 +48,7 @@ import createFoldedPreview from './lib/components/foldedPreview.mjs';
 import createSketchEditor from './lib/components/sketchEditor.mjs';
 import { buildCassetteV2FoldedPreview } from './lib/cassetteV2FoldedPreview.js';
 import { cassettePreviewLayerSelection, normalizeGeometryDrawing } from './lib/drawingPreview.js';
+import { evaluateOccsCassetteTemplate } from '../occs/evaluate.js';
 import { hardwareDefaultParameters, hardwareLabel } from '../occs/hardware.js';
 
 const OCCS_MIME = 'application/perigram+occs';
@@ -68,15 +69,19 @@ const entitySelectLabel = (entity, fallback = '') => entitySelectText(
 const entitySelectValue = (entity) => String(entity?._id || entity?.id || '');
 
 // Snapshot undo/redo history, module-local (the editor owns its stack).
-function snapshotHistory({ snapshot, apply, limit = 50 } = {}) {
-  const state = { past: [], future: [], baseline: null, canUndo: false, canRedo: false };
+// The gate flags are real refs from the injected runtime — a plain getter
+// would freeze the toolbar's disabled state.
+function snapshotHistory({ ref, snapshot, apply, limit = 50 } = {}) {
+  const canUndo = ref(false);
+  const canRedo = ref(false);
+  const state = { past: [], future: [], baseline: null };
   const gate = () => {
-    state.canUndo = state.past.length > 0;
-    state.canRedo = state.future.length > 0;
+    canUndo.value = state.past.length > 0;
+    canRedo.value = state.future.length > 0;
   };
   return {
-    canUndo: { get value() { return state.canUndo; } },
-    canRedo: { get value() { return state.canRedo; } },
+    canUndo,
+    canRedo,
     reset() {
       state.past = [];
       state.future = [];
@@ -695,6 +700,7 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const designerHistory = snapshotHistory({
+        ref,
         snapshot: designerSnapshot,
         apply: applyDesignerSnapshot
       });
@@ -893,6 +899,26 @@ export default function createSurface({ vue, components, locale, queries, record
           });
           if (recordTitle(target) !== name) {
             await props.persistence.rename(target, name);
+          }
+          // The record's declared geometry fields ride the same save: the
+          // evaluated nesting polygons and layer rows are what sheet
+          // layouts and nesting consume without loading the payload.
+          try {
+            const evaluation = await evaluateOccsCassetteTemplate(definition, tree.parameters || {}, {
+              templateId: target._id?.toString() || '',
+              templateName: name
+            });
+            await props.persistence.patch(target, {
+              polygonParts: evaluation.nestingPolygons,
+              layerData: evaluation.layerData
+            });
+          } catch (evaluationError) {
+            notify({
+              severity: 'warn',
+              summary: t('common.error'),
+              detail: evaluationError?.message || t('cassette.errors.saveFailed'),
+              life: 6000
+            });
           }
           persistedTemplateIdOverride.value = target._id?.toString() || persistedTemplateIdOverride.value;
           loadedDocument.value = { ...target, definition };
