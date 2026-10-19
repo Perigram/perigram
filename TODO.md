@@ -1,5 +1,45 @@
 # TODO
 
+## Profile boolean op sequence (owner direction 2026-10-19)
+
+Owner wants any profile that modifies a face's edge — adds and
+subtracts at any complexity — and floated "a proper ops sequence under
+the hood, or a tree or boolean groups". The model already is a depth-1
+ops tree (root face, one op per shape); the defect was the grouped
+fold: every consumer regrouped the shapes into `(face ∪ adds) −
+subtracts`, which cannot express an add after a subtract.
+
+- [ ] WAITING — owner verification on the live stack: in the profile
+  editor, a subtract followed by an add restores material (the hatch
+  refills inside the cut), the same shapes in the other order do not,
+  and canvas edits keep that sequence stable.
+
+### Agent Notes (2026-10-19)
+
+Session `agent/profile-op-sequence-20261019`. The list order is now
+the application order — one fold, `foldCassetteV2Region` in
+`cassetteV2Clipper.js`, replays ordered steps over a full region
+(outer polygons + hole rings, holes riding the subject with negative
+winding) so a late add fills a hole and a late subtract opens one.
+Editor previews, `resolveOccsProfileFacePolygons`, the renderer face
+pass, and `evaluate.js` all ride it; profile entities precede
+hardware entities in the boolean stream (a bolt hole inside a
+profile tab cuts it); host-face holes survive a profile pass.
+
+`mergeOccsProfileSketchGeometry` now emits kept shapes in authored
+order with fresh shapes appended — extraction's circles-before-chains
+ordering no longer reorders the sequence. The migration script's
+`union` pass maps to `add` (a stored `union` circle previously
+normalized to the circle fallback `subtract`). Dropped a latent
+ReferenceError with it: the renderer's detached-add branch called
+`polygonArea` without importing it.
+
+Specs: profiles.spec pins the ordered fold (island restored vs
+erased by order) and the merge order; cassetteV2Renderer.spec pins
+the production path end-to-end (hole ring 29 vs 78 mm² for the two
+orders through the real tree→entities→face-pass drawing). 72/72 in
+the touched suites.
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places
