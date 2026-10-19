@@ -319,7 +319,9 @@ every state-changing button is iconned.
 `planActionLaunch(action)` is the launch contract the screen engine
 consumes: `'link'` for relation link (its picker dialog), `'dialog'` when
 the action carries construction inputs (the generated create dialog —
-regardless of grant level), `'confirm'` when the resolved action button
+regardless of grant level) or when a run action carries prompted
+exposure inputs (`resolveRunDialogInputs` builds one row per input from
+its declared parameter type, prefilled with the authored default), `'confirm'` when the resolved action button
 declares confirmation (the destructive kinds), else `'run'`. Grant level is
 an access signal, never a presentation one: an admin-level create still
 opens its construction dialog, so no create executes with an empty draft
