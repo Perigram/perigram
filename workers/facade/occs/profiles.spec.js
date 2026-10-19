@@ -514,4 +514,137 @@ describe('OCCS profile helpers', () => {
     const open = await resolveOccsProfileSketchLayerData(openChainSketch());
     expect(open).toEqual([{ layer: 'cut.inner', coordinates: [[0, 0], [10, 0], [10, 10]] }]);
   });
+
+  it('keeps a rotated expression-bound rect identical through seed-extract-merge roundtrips', () => {
+    const authored = normalizeOccsProfileSketch({
+      parameters: { W: 42, H: 28, R: 3 },
+      shapes: [{
+        id: 's0', type: 'rect', op: 'add',
+        center: ['W/2', 'H/2'], width: 'W', height: 'H', rotation: 30,
+        fillets: [0, 1, 2, 3].map(corner => ({ corner, radius: 'R' }))
+      }]
+    });
+    let current = authored;
+    for (let round = 0; round < 3; round += 1) {
+      current = mergeOccsProfileSketchGeometry(
+        occProfileSketchFromEntities(
+          occProfileEntitiesFromSketch(current),
+          { parameters: current.parameters }
+        ),
+        authored,
+        {}
+      );
+    }
+    expect(current.shapes[0]).toEqual(authored.shapes[0]);
+    expect(current.parameters).toEqual({ W: 42, H: 28, R: 3 });
+  });
+
+  it('keeps a construction helper through a roundtrip — its op never becomes a draw default', () => {
+    const authored = normalizeOccsProfileSketch({
+      parameters: { W: 42, H: 28 },
+      shapes: [
+        { id: 's0', type: 'rect', op: 'add', center: ['W/2', 'H/2'], width: 'W', height: 'H', rotation: 30, fillets: [] },
+        { id: 's1', type: 'rect', op: 'construction', center: [60, 0], width: 10, height: 10, rotation: 15, fillets: [] }
+      ]
+    });
+    const merged = mergeOccsProfileSketchGeometry(
+      occProfileSketchFromEntities(occProfileEntitiesFromSketch(authored), { parameters: authored.parameters }),
+      authored,
+      {}
+    );
+    expect(merged.shapes.find(shape => shape.id === 's1')).toEqual(authored.shapes[1]);
+    expect(merged.shapes.find(shape => shape.id === 's0')).toEqual(authored.shapes[0]);
+  });
+
+  it('commits a dragged chain vertex and edits the bare parameter it is bound to', () => {
+    const authored = normalizeOccsProfileSketch({
+      parameters: { A: 10, B: 20 },
+      shapes: [{
+        id: 's0', type: 'chain', op: 'add', closed: true,
+        points: [
+          { id: 'p0', x: 0, y: 0 },
+          { id: 'p1', x: 'A', y: 0 },
+          { id: 'p2', x: 'A', y: 'B' },
+          { id: 'p3', x: 0, y: 'B' }
+        ],
+        edges: [
+          { id: 'e0', type: 'line', from: 'p0', to: 'p1' },
+          { id: 'e1', type: 'line', from: 'p1', to: 'p2' },
+          { id: 'e2', type: 'line', from: 'p2', to: 'p3' },
+          { id: 'e3', type: 'line', from: 'p3', to: 'p0' }
+        ],
+        modifiers: []
+      }]
+    });
+    const moved = occProfileSketchFromEntities([
+      { type: 'LINE', start: { x: 0, y: 0 }, end: { x: 10, y: 0 } },
+      { type: 'LINE', start: { x: 10, y: 0 }, end: { x: 14, y: 25 } },
+      { type: 'LINE', start: { x: 14, y: 25 }, end: { x: 0, y: 20 } },
+      { type: 'LINE', start: { x: 0, y: 20 }, end: { x: 0, y: 0 } }
+    ], { A: 10, B: 20 });
+    const merged = normalizeOccsProfileSketch(mergeOccsProfileSketchGeometry(moved, authored));
+    const points = merged.shapes[0].points;
+    expect(points.find(point => point.id === 'p0')).toMatchObject({ x: 0, y: 0 });
+    expect(points.find(point => point.id === 'p1')).toMatchObject({ x: 'A', y: 0 });
+    expect(points.find(point => point.id === 'p3')).toMatchObject({ x: 0, y: 'B' });
+    // The dragged vertex is bound to the compound-free identifier pair
+    // x: 'A' — a bare parameter — so the drag edits it.
+    expect(points.find(point => point.id === 'p2')).toMatchObject({ x: 'A', y: 'B' });
+    expect(merged.parameters).toMatchObject({ A: 14, B: 25 });
+    const reevaluated = evaluateOccsProfileSketch(merged);
+    expect(reevaluated.shapes[0].points.find(point => point.id === 'p2')).toEqual(
+      expect.objectContaining({ x: 14, y: 25 })
+    );
+  });
+
+  it('carries numerics on a dragged unbound chain vertex', () => {
+    const authored = normalizeOccsProfileSketch({
+      parameters: {},
+      shapes: [{
+        id: 's0', type: 'chain', op: 'add', closed: true,
+        points: [
+          { id: 'p0', x: 0, y: 0 },
+          { id: 'p1', x: 10, y: 0 },
+          { id: 'p2', x: 10, y: 20 },
+          { id: 'p3', x: 0, y: 20 }
+        ],
+        edges: [
+          { id: 'e0', type: 'line', from: 'p0', to: 'p1' },
+          { id: 'e1', type: 'line', from: 'p1', to: 'p2' },
+          { id: 'e2', type: 'line', from: 'p2', to: 'p3' },
+          { id: 'e3', type: 'line', from: 'p3', to: 'p0' }
+        ],
+        modifiers: []
+      }]
+    });
+    const moved = occProfileSketchFromEntities([
+      { type: 'LINE', start: { x: 0, y: 0 }, end: { x: 10, y: 0 } },
+      { type: 'LINE', start: { x: 10, y: 0 }, end: { x: 14, y: 25 } },
+      { type: 'LINE', start: { x: 14, y: 25 }, end: { x: 0, y: 20 } },
+      { type: 'LINE', start: { x: 0, y: 20 }, end: { x: 0, y: 0 } }
+    ], {});
+    const merged = normalizeOccsProfileSketch(mergeOccsProfileSketchGeometry(moved, authored));
+    expect(merged.shapes[0].points.find(point => point.id === 'p2')).toMatchObject({ x: 14, y: 25 });
+  });
+
+  it('rounds every extracted numeric to 1e-3 mm', () => {
+    const extracted = occProfileSketchFromEntities([
+      { type: 'CIRCLE', center: { x: 280.06949999999995, y: 28.632499999999993 }, radius: 195.16129032258064 },
+      { type: 'LINE', start: { x: 0.0004999999, y: 0 }, end: { x: 844.0094999, y: 0 } },
+      { type: 'LINE', start: { x: 844.0094999, y: 0 }, end: { x: 844.0094999, y: 276.2674999 } },
+      { type: 'LINE', start: { x: 844.0094999, y: 276.2674999 }, end: { x: 0.0004999999, y: 276.2674999 } },
+      { type: 'LINE', start: { x: 0.0004999999, y: 276.2674999 }, end: { x: 0.0004999999, y: 0 } }
+    ], {});
+    const assertRounded = (value) => expect(Math.abs(value * 1000 - Math.round(value * 1000))).toBeLessThan(1e-9);
+    const circle = extracted.shapes.find(shape => shape.type === 'circle');
+    assertRounded(circle.center[0]);
+    assertRounded(circle.center[1]);
+    assertRounded(circle.diameter);
+    const rect = extracted.shapes.find(shape => shape.type === 'rect');
+    assertRounded(rect.center[0]);
+    assertRounded(rect.center[1]);
+    assertRounded(rect.width);
+    assertRounded(rect.height);
+    assertRounded(rect.rotation);
+  });
 });

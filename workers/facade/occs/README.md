@@ -132,7 +132,9 @@ modules — no platform imports.
   sketch-less read with stays literal. A blank authoring session starts
   with an empty table — parameters are added when a sketch needs them;
   the dialog opens that blank session, and clearing the canvas restarts
-  it (the previous session's table dies with its geometry).
+  it (the previous session's table dies with its geometry). The blank
+  canvas opens at drawing scale — a 200×150 mm window with the zero
+  axis in view — so freehand drawing lands in millimetres.
   `evaluateOccsProfileSketch` resolves the whole sketch (parameters may
   reference each other; cycles and unknown identifiers throw); the
   savable gate (`isOccsProfileSketchSavable`) turns those throws into
@@ -154,26 +156,31 @@ modules — no platform imports.
   drawn piece as its own shape — a closed four-vertex right-angle chain
   detects as a `rect` primitive in canonical order (counter-clockwise
   from the leftmost corner, so the draw direction leaves the stored
-  settings and corner labels unchanged), circles land as `subtract`
-  shapes on a
-  draw, and `mergeOccsProfileSketchGeometry` merges back under the
-  one-way truth rule: an extracted shape sitting on an authored shape's
-  evaluated position keeps the authored id, construction, expressions, and
-  fillets (chains match per point within a rounding epsilon), so
-  drawing, importing, or undoing never destroys parametric authoring;
-  a moved field keeps its authored expression when it names a
-  parameter — the drag edits that parameter (the dimension is that
-  parameter's editor) — while compound expressions and numerics carry
-  the extracted value. Authored shapes with no extracted
-  counterpart were erased and drop, and an authored sketch whose
-  expressions do not resolve falls back to the plain extraction. A
-  fourth argument offers dropped authored shapes back as adoption
-  candidates: the editor keeps the last drops in session memory, so an
-  engine undo/redo that restores erased canvas geometry revives the
-  shape with its expressions (an erase alone drops it; the revive needs
-  the geometry back on the canvas). Fresh ids renumber against every
-  kept id by object identity — an extracted id colliding with a kept id
-  still renumbers. The shape popup carries a segmented
+  settings and corner labels unchanged; rotation normalizes into
+  (−90°, 90°] with width and height swapping past the half-turn, and
+  every extracted numeric — rect center, width, height, rotation,
+  circle center and diameter — rounds to 1e-3 mm), circles land as
+  `subtract` shapes on a draw, and `mergeOccsProfileSketchGeometry`
+  merges back under the one-way truth rule: shapes match by geometry
+  identity — a rect when its four corners match the authored
+  evaluation's corners as a set (ring start is draw-direction noise),
+  a circle by center plus diameter, a chain per point — and a matched
+  shape keeps the authored id, op, expressions, and fillets whole, so
+  drawing, importing, and undoing preserve parametric authoring; the
+  op rides the authored shape, and extraction defaults apply only to
+  genuinely new shapes. A moved field keeps its authored expression
+  when it names a parameter — the drag edits that parameter (the
+  dimension is that parameter's editor) — while compound expressions
+  and numerics carry the extracted value. Authored shapes with no
+  extracted counterpart were erased and drop, and an authored sketch
+  whose expressions do not resolve falls back to the plain
+  extraction. A fourth argument offers dropped authored shapes back as
+  adoption candidates: the editor keeps the last drops in session
+  memory, so an engine undo/redo that restores erased canvas geometry
+  revives the shape with its expressions (an erase alone drops it; the
+  revive needs the geometry back on the canvas). Fresh ids renumber
+  against every kept id by object identity — an extracted id colliding
+  with a kept id still renumbers. The shape popup carries a segmented
   Add/Subtract/Construction control — the boolean selection applied to
   the face, each option's tooltip naming it.
   Document transitions (DXF import) bind the database listeners without

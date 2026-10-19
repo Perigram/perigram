@@ -139,6 +139,14 @@ export default function createSketchEditor({ vue, components, locale }) {
         settings.isShowCommandLine = commandLine.value;
       };
 
+      // A blank canvas opens at drawing scale — a 200×150 mm window with
+      // the zero axis in view — so freehand drawing lands in millimetres
+      // (occs/README.md owns the law).
+      const BLANK_WINDOW_COMMAND = 'zoom w -50,-75 150,75';
+      const zoomToBlankWindow = () => {
+        manager?.sendStringToExecute?.(BLANK_WINDOW_COMMAND);
+      };
+
       // The material half of the zero axis is the boolean body — the
       // toggle flips which side of the axis hatches and clips.
       const toggleMaterialSide = () => {
@@ -908,6 +916,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         emit('update:modelValue', sketch);
         emit('profile', null);
         bindDatabase({ schedule: false });
+        zoomToBlankWindow();
       };
 
       const reseedFromModel = () => {
@@ -1641,6 +1650,9 @@ export default function createSketchEditor({ vue, components, locale }) {
           lastEmitted = '';
           reseedFromModel();
           emitSketch();
+          if (!normalizeOccsProfileSketch(props.modelValue || {}).shapes.length) {
+            zoomToBlankWindow();
+          }
           // A dialog mount can race the container's real size (open
           // animation, late flex layout); the first time the canvas
           // reaches working size, re-fit the view so the seed is framed.
