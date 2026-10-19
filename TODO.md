@@ -7449,3 +7449,19 @@ counterpart's, with the group-style sender indicator.
 - Gutter gap tightened (`ml-12`); the avatar anchors inside a content
   zone that ends at the last message content (bubble/attachments), so
   the trailing timestamp caption sits below the anchor.
+
+## Message context menu under cursor (2026-10-19)
+
+Owner direction: drop the hover ellipsis (right-click owns the menu), fix
+the menu width so download entries carry full file names, and open the
+menu under the click point.
+
+- [ ] WAITING — owner verification on the live stack: right-click/long-press
+      opens the message menu at the cursor; download entries show full file
+      names; no hover ellipsis on any message shape.
+
+### Agent Notes (2026-10-19 — cursor context menu)
+
+- The message menu is PrimeVue `ContextMenu` now (drops at the event
+  point with viewport flip); the JS 32-char name crop on download entries
+  is gone, and the hover ellipsis buttons with it.
