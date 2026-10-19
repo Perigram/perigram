@@ -3,13 +3,14 @@ import {
   buildCassetteV2TrapezoidTreeCurves,
   cassetteV2BooleanOperationsForEntities,
   profileCutEntitiesForTree,
-  profileEdgeEmbeddingsForTree
+  profileEdgeEmbeddingsForTree,
+  resultInnerCutEntities
 } from '../surfaces/lib/cassetteV2Renderer.js';
 import { buildOccsEvaluatedDimensionEntities } from './dimensions.js';
 import { buildOccsProductionLayout } from './production-layout.js';
 import { foldCassetteV2Region } from '../surfaces/lib/cassetteV2Clipper.js';
 import { embedOccsProfilesIntoContour } from './profileEmbedding.js';
-import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_OUTER, OCCS_LAYER_FOLD_ROUTE } from './layers.js';
+import { OCCS_LAYER_CONTOUR_CASSETTE_FACE, OCCS_LAYER_CUT_INNER, OCCS_LAYER_CUT_OUTER, OCCS_LAYER_FOLD_ROUTE } from './layers.js';
 
 const clonePlain = (value) => JSON.parse(JSON.stringify(value || {}));
 
@@ -141,21 +142,18 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
       });
     }
 
-    for (const entity of profileCutEntities.filter(entity => !entity.booleanOnly)) {
-      const rings = entity.geometry.type === 'polygons'
-        ? entity.geometry.polygons
-        : [entity.geometry.vertices];
-      rings.forEach((ring, ringIndex) => {
-        profileCutLayerData.push({
-          layer: entity.layer,
-          coordinates: ring.map(vertex => [vertex[0], vertex[1]]),
-          handles: [`${entity.id}:${ringIndex}`],
-          workpieceId: workpiece.id,
-          workpieceDefinitionId: definitionIdForWorkpiece(workpiece),
-          occurrenceId: occurrenceIdForWorkpiece(workpiece),
-          profileWorkpieceId: entity.profileWorkpieceId,
-          relationId: entity.relationId
-        });
+    // Inner cut paths ride the fold's result rings: the operands are
+    // the recipe, the folded holes are the product.
+    for (const entity of resultInnerCutEntities(cutEmbeddedCurves, profileCutEntities)) {
+      profileCutLayerData.push({
+        layer: entity.layer,
+        coordinates: entity.geometry.vertices.map(vertex => [vertex[0], vertex[1]]),
+        handles: [entity.id],
+        workpieceId: workpiece.id,
+        workpieceDefinitionId: definitionIdForWorkpiece(workpiece),
+        occurrenceId: occurrenceIdForWorkpiece(workpiece),
+        profileWorkpieceId: entity.profileWorkpieceId,
+        relationId: entity.relationId
       });
     }
 
