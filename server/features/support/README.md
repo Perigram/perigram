@@ -127,10 +127,11 @@ channels the shared preview mounts); a ref with media renders
 one-line label strip: identity truncating beside the small state tag) —
 media attachments (preview cards and image
 tiles) flow together as one masonry of independent column stacks (two
-columns, three past four; column-major fill from the sender's edge — the
-thread's dock decision selects the leading column's edge; a gallery
-placed above the message text fills from the bottom; a lone media item
-full-width), other refs
+columns, three past four; the fill starts at the sender-side bottom
+corner — the thread's dock decision selects the leading column, chunks
+are column-major with each chunk's first item at its base, so the
+stacks rest on the gallery's bottom edge and connect to a following
+text message; a lone media item full-width), other refs
 the outlined chip carrying the type glyph. File
 documents render the filled chip; images and video embed inline (gallery
 tiles, players), other files open the shared preview dialog on click
