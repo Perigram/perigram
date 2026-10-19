@@ -83,11 +83,16 @@ modules — no platform imports.
   bare lines are what is authored. Production folds the placed steps
   against the host face with its holes, the face being the largest
   ring of the fold so material islanded off the face stays off its
-  contour. Steps land as `booleanOperation` entities; add steps
-  reshape the face contour only, a subtract rides `cut.inner` while it
-  sits fully inside the face and dispatches through the modified
-  contour when it breaks its edge; the zero axis renders as a solid
-  basis line.
+  contour. The folded region's outer and hole rings are the only
+  geometry the outputs carry — the drawing's `cut.inner` layer, the
+  evaluated layerData, the folded cutouts, and the OCCS document's
+  face shapes all read the result rings (`resultInnerCutEntities`;
+  overlapping operands dissolve into one merged ring, each ring
+  attributing to the relation of the operand it swallows). The
+  operand entities stay on the OCCS wire as authored truth
+  (`booleanOperation` steps: an add reshapes the contour only, a
+  subtract inside the face becomes one of the result's hole rings,
+  one breaking the edge dispatches through the modified contour).
   Primitive parameters author as on-canvas dimension annotations (the
   cassette editor's dimension law): every rect field (width, height,
   position from the axis, height from the origin) and circle field
@@ -109,8 +114,11 @@ modules — no platform imports.
   Add/Subtract/Construction control — grouped in the evaluation order
   (adds before subtracts, construction apart), so the grouped fold
   reads off the list. Clicking a row selects its shape (its footprint
-  strokes dashed on the canvas, its popup opens at the click) and
-  highlights the row. A selected
+  strokes dashed on the canvas) and expands the row into the shape's
+  property fields — the whole authoring table as expression inputs
+  (sizes, position, rotation, fillet radii), the same model the
+  canvas dims edit; a repeat click collapses it. Canvas picks open
+  the compact popup instead. A selected
   primitive's popup carries its op segmentation, rotation, and
   fillet radii as one compact panel (header, then a single field
   row), and opens on
