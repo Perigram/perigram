@@ -185,13 +185,11 @@ route has no generated screen; the resolver treats non-object inputs as no
 overload instead of dereferencing a partial screen contract.
 
 Use the registry instead of adding entity checks directly inside
-`GeneratedScreen.vue`, `GeneratedInstanceDetail.vue`, or generated collections.
+`GeneratedScreen.vue` or generated collections.
 The current default overloads are:
 
 - `home` screens render `GeneratedHomeWorkspace.vue`, the Discord-style
   operational shell described below.
-- `artifact` detail bodies render `ArtifactDetail.vue` (framework file
-  service; static until the artifact type is declared in a pack).
 
 ### File surfaces (CTS file types)
 
@@ -337,11 +335,11 @@ the stored file's real content type inline — image/iframe contexts (SVG
 canvases, PDF frames) refuse sniffed or octet-stream responses — and
 `?download=1` flips the disposition to an attachment.
 `file-surfaces.js` re-exports the
-helpers for its editor-surface consumers.
-`GeneratedFilePreview.vue` mounts that contract inside
-`GeneratedInstanceDetailBody`'s non-overload branch, so every file-typed
-instance opened through generated screens and project panes shows its
-payload preview without a hand-written surface. The preview is a bounded
+helpers for its editor-surface consumers. File-typed instances preview
+through the served render policy: the mapping generator's `PreviewBox`
+renders payload previews on generated details and cards, and
+`InstancePreview` renders the same contract on entity-card surfaces. The
+preview is a bounded
 non-scrolling surface (see
 [components/artifacts/README.md](../artifacts/README.md)); the payload
 download stays the escape hatch. The type records come from
@@ -536,9 +534,7 @@ from the compiled manifest.
   (`GeneratedScreenPane`): type
   screens and instance-bound detail screens both render through
   `GeneratedScreenHost` — the single generator host, with the instance id
-  in the screen scope for detail panes. The artifact detail overload keeps the legacy
-  renderer inside the pane, exactly like
-  the routed page. There is no Explorer header or project
+  in the screen scope for detail panes. There is no Explorer header or project
   action strip; collection creation belongs to sidebar sections and
   entity operations belong to the detail screens' own action surfaces.
 - Tab creation is explicit: new tabs come only from the tab strip's add

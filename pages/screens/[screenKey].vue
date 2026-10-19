@@ -26,7 +26,6 @@ import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue'
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { usePageBack } from '~/composables/usePageBack.js';
-import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
 import { resolveDefaultHomeScreen } from '~/utils/process-navigation.js';
 import { HOME_SCREEN_ROUTE } from '~/packages/processes/src/screen-contract.js';
 
@@ -58,24 +57,18 @@ const screenKey = computed(() => Array.isArray(route.params.screenKey)
 
 // Process screens arrive in the compiled UI contract vocabulary
 // (typeList/instanceDetail/home + typeId) and render through the
-// generator host; workspace overloads (the home shell and editor-backed
-// detail types) stay on the legacy renderer, which owns their data
-// loader and action surface, until the generator grows workspace
-// equivalents.
-const detailOverload = computed(() => (
-  screen.value?.template === 'instanceDetail' && screen.value?.typeId
-    ? resolveGeneratedInstanceDetailOverload(screen.value.typeId)
-    : null
-));
+// generator host; workspace overloads (the home shell) and the system
+// screen templates stay on the legacy renderer, which owns their
+// surfaces, until the generator grows workspace equivalents.
 const isGeneratedScreen = computed(() => (
   screen.value?.template === 'typeList'
-  || (screen.value?.template === 'instanceDetail' && !detailOverload.value)
+  || screen.value?.template === 'instanceDetail'
 ));
 // The routed detail's record header owns the page: the type label and
 // back affordance render once, through the record header's anatomy and
 // navigation channel. List screens keep the route title strip.
 const pageTitle = computed(() => (
-  screen.value?.template === 'instanceDetail' && !detailOverload.value
+  screen.value?.template === 'instanceDetail'
     ? null
     : screen.value?.label || screen.value?.screenKey
 ));
