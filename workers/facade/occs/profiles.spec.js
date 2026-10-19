@@ -15,7 +15,6 @@ import {
   mergeOccsProfileSketchGeometry,
   occsProfileFromSketch,
   resolveOccsProfileSectionPolygons,
-  resolveOccsProfileFacePolygons,
   resolveOccsProfileSketchLayerData,
   upgradeLegacyOccsProfileSketch
 } from './profiles.js';
@@ -57,7 +56,7 @@ const legacyClosedChain = () => ({
 describe('OCCS profile helpers', () => {
   it('creates an empty sketch for blank profile drawing sessions', () => {
     const sketch = createEmptyOccsProfileSketch();
-    expect(sketch).toMatchObject({ material: 'positive', shapes: [] });
+    expect(sketch).toMatchObject({ shapes: [] });
     expect(normalizeOccsProfileSketch(sketch)).toMatchObject({ shapes: [] });
     expect(normalizeOccsProfileSketch(sketch).parameters).toEqual({});
   });
@@ -73,12 +72,11 @@ describe('OCCS profile helpers', () => {
     expect(isOccsProfileSketchSavable(legacyClosedChain())).toBe(true);
   });
 
-  it('exports a shapes section with per-shape ops and the axis', () => {
+  it('exports a shapes section with per-shape ops', () => {
     const profile = occsProfileFromSketch(createDefaultOccsProfileSketch());
     expect(profile.section).toMatchObject({
       type: 'shapes',
-      open: false,
-      axis: { material: 'positive' }
+      open: false
     });
     expect(profile.section.shapes).toHaveLength(2);
     expect(profile.section.shapes[0]).toMatchObject({ kind: 'rect' });
@@ -404,7 +402,7 @@ describe('OCCS profile helpers', () => {
     expect(resolved.every(point => Number.isFinite(point[0]) && Number.isFinite(point[1]))).toBe(true);
   });
 
-  it('evaluates the ordered steps: the list order is the application order — the standalone section spans the axis freely', async () => {
+  it('evaluates the boolean steps grouped — adds union, subtracts cut, order never matters', async () => {
     const section = occsProfileFromSketch(normalizeOccsProfileSketch({
       shapes: [
         { id: 's0', type: 'rect', center: [20, 0], width: 40, height: 20, rotation: 0 },
@@ -416,7 +414,7 @@ describe('OCCS profile helpers', () => {
     expect(resolved.holes).toHaveLength(1);
 
     // A shape crossing the zero axis keeps its full footprint: adds
-    // extend the face, the axis never clips them.
+    // extend the section, the axis never clips them.
     const crossing = await resolveOccsProfileSectionPolygons(
       occsProfileFromSketch(normalizeOccsProfileSketch({
         shapes: [{ id: 's0', type: 'rect', center: [-10, 0], width: 40, height: 20 }]
@@ -424,20 +422,6 @@ describe('OCCS profile helpers', () => {
     );
     const xs = crossing.polygons[0].map(vertex => vertex[0]);
     expect(Math.min(...xs)).toBeLessThanOrEqual(-30);
-
-    // The face fold: each step applies to the accumulated region — an
-    // add beyond the axis grows the base, a subtract cuts it away.
-    const face = await resolveOccsProfileFacePolygons(
-      occsProfileFromSketch(normalizeOccsProfileSketch({
-        shapes: [
-          { id: 's0', type: 'rect', op: 'add', center: [30, 0], width: 20, height: 20 },
-          { id: 's1', type: 'circle', op: 'subtract', center: [30, 0], diameter: 6 }
-        ]
-      })).section,
-      [[0, -100], [100, -100], [100, 100], [0, 100]]
-    );
-    expect(face.polygons.length).toBeGreaterThanOrEqual(1);
-    expect(face.holes).toHaveLength(1);
 
     // Reference shapes never participate.
     const referenceOnly = await resolveOccsProfileSectionPolygons(
@@ -453,52 +437,25 @@ describe('OCCS profile helpers', () => {
     )).toBeNull();
   });
 
-  it('folds steps in authored order — a subtract followed by an add restores material', async () => {
-    const holeThenIsland = occsProfileFromSketch(normalizeOccsProfileSketch({
-      shapes: [
-        { id: 's0', type: 'rect', op: 'add', center: [20, 0], width: 40, height: 20 },
-        { id: 's1', type: 'circle', op: 'subtract', center: [20, 0], diameter: 10 },
-        { id: 's2', type: 'circle', op: 'add', center: [20, 0], diameter: 4 }
-      ]
-    })).section;
-    const restored = await resolveOccsProfileSectionPolygons(holeThenIsland);
-    // The late add survives inside the cut: an island ring and the hole
-    // remainder both live in the result.
-    expect(restored.polygons).toHaveLength(2);
-    expect(restored.holes).toHaveLength(1);
-
-    const islandThenHole = occsProfileFromSketch(normalizeOccsProfileSketch({
-      shapes: [
-        { id: 's0', type: 'rect', op: 'add', center: [20, 0], width: 40, height: 20 },
-        { id: 's2', type: 'circle', op: 'add', center: [20, 0], diameter: 4 },
-        { id: 's1', type: 'circle', op: 'subtract', center: [20, 0], diameter: 10 }
-      ]
-    })).section;
-    const erased = await resolveOccsProfileSectionPolygons(islandThenHole);
-    // The same shapes with the subtract last erase the island — the
-    // order is the semantics.
-    expect(erased.polygons).toHaveLength(1);
-    expect(erased.holes).toHaveLength(1);
-  });
-
-  it('merges extraction back in authored order — the op sequence survives canvas edits', () => {
-    const authored = normalizeOccsProfileSketch({
-      shapes: [
-        { id: 'r1', type: 'rect', center: [20, 10], width: 30, height: 10 },
-        { id: 'c1', type: 'circle', center: [5, 10], diameter: 8 }
-      ]
-    });
-    // Extraction emits circles before chains; the merge must not let
-    // that reorder the authored sequence.
-    const extracted = occProfileSketchFromEntities([
-      { type: 'CIRCLE', center: { x: 5, y: 10 }, radius: 4 },
-      { type: 'LINE', start: { x: 5, y: 5 }, end: { x: 35, y: 5 } },
-      { type: 'LINE', start: { x: 35, y: 5 }, end: { x: 35, y: 15 } },
-      { type: 'LINE', start: { x: 35, y: 15 }, end: { x: 5, y: 15 } },
-      { type: 'LINE', start: { x: 5, y: 15 }, end: { x: 5, y: 5 } }
-    ], {});
-    const merged = normalizeOccsProfileSketch(mergeOccsProfileSketchGeometry(extracted, authored));
-    expect(merged.shapes.map(shape => shape.id)).toEqual(['r1', 'c1']);
+  it('folds the same section whatever the shape order — drawing order never changes the result', async () => {
+    const sectionFor = (shapes) => occsProfileFromSketch(normalizeOccsProfileSketch({ shapes })).section;
+    const outline = await resolveOccsProfileSectionPolygons(sectionFor([
+      { id: 's0', type: 'rect', op: 'add', center: [20, 0], width: 40, height: 20 },
+      { id: 's1', type: 'circle', op: 'subtract', center: [20, 0], diameter: 10 },
+      { id: 's2', type: 'circle', op: 'add', center: [35, 0], diameter: 8 }
+    ]));
+    const reordered = await resolveOccsProfileSectionPolygons(sectionFor([
+      { id: 's2', type: 'circle', op: 'add', center: [35, 0], diameter: 8 },
+      { id: 's1', type: 'circle', op: 'subtract', center: [20, 0], diameter: 10 },
+      { id: 's0', type: 'rect', op: 'add', center: [20, 0], width: 40, height: 20 }
+    ]));
+    const ringSignature = (region) => [
+      ...region.polygons.map(ring => Math.round(Math.abs(ring.length))),
+      ...region.holes.map(ring => Math.round(Math.abs(ring.length)))
+    ].join(',');
+    expect(outline.polygons).toHaveLength(1);
+    expect(outline.holes).toHaveLength(1);
+    expect(ringSignature(reordered)).toBe(ringSignature(outline));
   });
 
   it('projects a sketch to preview layerData through the boolean fold', async () => {

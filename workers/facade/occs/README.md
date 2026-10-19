@@ -69,27 +69,22 @@ modules — no platform imports.
   op applied to the FACE — `add` (the footprint unites into the face),
   `subtract` (cuts from it), `construction` (excluded; a DXF import
   lands every shape at construction through
-  `occProfileSketchFromEntities`' `reference` option). The shape list
-  order is the application order (owner law 2026-10-19): each step
-  applies to the accumulated face region — an add after a subtract
-  restores material, a subtract after an add cuts it.
-  `resolveOccsProfileSectionOperations` returns the ordered steps;
-  `resolveOccsProfileFacePolygons` folds them through the vendored
-  Clipper pass (`foldCassetteV2Region`, the one fold every consumer
-  rides — the editor passes the material half as the base, production
-  the host face with its holes), yielding outer polygons and hole
-  rings. Steps land as ordered `booleanOperation` entities — the
-  stream order is the application order, profile steps before hardware
-  cuts; the face is the largest ring of the fold, so material islanded
-  off the face stays off its contour. Add steps reshape the face
-  contour only; a subtract rides `cut.inner` while it sits fully
-  inside the face and dispatches through the modified contour when it
-  breaks its edge. The editor's canvas
-  carries exactly two surface states (owner law 2026-10-18): the
-  material half hatches as the face — the one hatch — and the resolved
-  section is cut from it (empty interior, solid outline), the void
-  half staying empty; the zero axis renders as a solid basis
-  line.
+  `occProfileSketchFromEntities`' `reference` option). The fold is
+  grouped and order-independent (owner law 2026-10-19): every add
+  before every subtract, so drawing order never changes the result.
+  `resolveOccsProfileSectionOperations` returns the grouped steps;
+  `foldCassetteV2Region` (the vendored Clipper pass) is the one fold
+  every consumer rides, over a full region — outer polygons plus hole
+  rings — so a hole survives every later op. The editor previews the
+  SECTION (`resolveOccsProfileSectionPolygons`): the hatch IS the drawn
+  figure, holes empty, everything outside it empty; production folds
+  the placed steps against the host face with its holes, the face being
+  the largest ring of the fold so material islanded off the face stays
+  off its contour. Steps land as `booleanOperation` entities; add steps
+  reshape the face contour only, a subtract rides `cut.inner` while it
+  sits fully inside the face and dispatches through the modified
+  contour when it breaks its edge; the zero axis renders as a solid
+  basis line.
   Primitive parameters author as on-canvas dimension annotations (the
   cassette editor's dimension law): every rect field (width, height,
   position from the axis, height from the origin) and circle field
@@ -157,9 +152,7 @@ modules — no platform imports.
   evaluated position keeps the authored id, construction, expressions, and
   fillets (chains match per point within a rounding epsilon), so
   drawing, importing, or undoing never destroys parametric authoring;
-  the merged list keeps the authored order (the boolean application
-  order) with fresh shapes appended after it — extraction's
-  circles-before-chains ordering never reorders the sequence. Moved or
+  moved or
   new geometry goes numeric, authored shapes with no extracted
   counterpart were erased and drop, and an authored sketch whose
   expressions do not resolve falls back to the plain extraction. A
@@ -260,7 +253,7 @@ modules — no platform imports.
   same pass (owner law 2026-10-15, profiles are terminal; owner law
   2026-10-18, axis placement): the boolean result's rings are placed by
   the axis law — the zero axis lands on the attachment edge (snap +
-  offsets), material half toward the host face; a point placement
+  offsets), +X toward the host face; a point placement
   rotates by the relation's rotation alone — and each copy cuts the
   host face where it intersects, every ring a cut operand (the boolean
   difference the integral-cut hanger clips ride), with the cut paths
