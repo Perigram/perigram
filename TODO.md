@@ -35,9 +35,31 @@ design-system 38✓, localization + v24 10✓, module-imports ✓, SSR smoke
 13✓, check-arch ✓, framework:validate ✓. Pre-existing failure on
 `local`: `detail-action-ownership.spec.js` `cassette` row (fails before
 this branch). E2E not run (no dev stack in session).
-- [ ] Phase 2 — record chrome pass: `SurfaceHeader`/`SurfaceBody` design
-  polish (relation-row labels, typography roles, editor-action resolution
-  host-side through the engine contract).
+- [ ] WAITING — Phase 2 owner verification on the live stack: a routed
+  detail screen renders the record header as the page head (one type
+  label, one back control, type name once), relation rows on details
+  carry section labels, and editor-bound record headers still open their
+  editor from the header cluster.
+
+### Agent Notes (2026-10-19, Phase 2)
+
+Session `agent/gen-ui-collapse-p2-20261019`. Routed detail screens drop
+the route title strip: the record header owns the page, which also
+removes the double back control (page strip + navigation channel) and
+the duplicated type name. Relation rows on detail bodies render as
+labeled sections (field label override channel, `startCaseKey`
+fallback). The editor action in `SurfaceHeader` now arrives through the
+host-resolved `editorActions` channel
+(`GeneratedScreenHost` → engine → `RegionBlock` → header, the
+`exportActions` precedent) — `components/ui-mapping` imports from
+`components/generated` nowhere. `SurfaceBody`'s local start-case copy
+deleted for the shared `startCaseKey`. Audit matrix rows reconciled for
+touched files (`GeneratedScreenHost` and `RegionBlock` rows were stale
+before this branch). Guards: design-system + framework-packages +
+localization + v24 + module-imports 48✓, SSR smoke 13✓, check-arch ✓,
+framework:validate ✓, generated/ui-mapping specs 65✓ with the known
+pre-existing `detail-action-ownership` `cassette` failure. E2E not run
+(no dev stack in session).
 - [ ] Phase 3 — detail migration onto the generator (artifact detail,
   editor-bound pane details); legacy detail family deleted.
 - [ ] Phase 4 — system screens (org overview/account, `workspaceLanes`)
