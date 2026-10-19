@@ -36,6 +36,7 @@ import {
   OCCS_PROFILE_PROCESSES,
   closeOccsProfileSketchBoundary,
   createEmptyOccsProfileSketch,
+  evaluateOccsProfileSketch,
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
   occsProfileFromSketch,
@@ -302,6 +303,19 @@ export default function createSurface({ vue, components, locale, queries, record
         // gate resolves against them too.
         { ...(profileDraft.value.parameters || {}), ...globalParameters.value }
       ));
+      // The refused save states its reason beside the button — a greyed
+      // Save with no voice loses authored sessions.
+      const profileDraftError = computed(() => {
+        try {
+          evaluateOccsProfileSketch(
+            profileDraftSketch.value,
+            { ...(profileDraft.value.parameters || {}), ...globalParameters.value }
+          );
+          return '';
+        } catch (error) {
+          return error?.message || String(error);
+        }
+      });
       const preparedProfileDraftSketch = computed(() => closeOccsProfileSketchBoundary(
         profileDraftSketch.value,
         profileDraft.value.parameters || {}
@@ -3052,7 +3066,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 size: 'small',
                 disabled: !profileDraftReady.value,
                 'aria-label': t('common.save'),
-                title: t('common.save'),
+                title: profileDraftReady.value ? t('common.save') : profileDraftError.value || t('common.save'),
                 onClick: saveProfileDraft
               }),
               profileLibraryAvailable.value
@@ -3073,6 +3087,11 @@ export default function createSurface({ vue, components, locale, queries, record
                 })
                 : null
             ]),
+            profileDraftReady.value
+              ? null
+              : h(Message, { severity: 'warn', size: 'small', closable: false, class: 'shrink-0' }, () => (
+                  profileDraftError.value || t('cassette.v2.profileEditor.invalidSketch')
+                )),
             h(ProfileSketchEditor, {
               modelValue: profileDraft.value.sketch,
               externalParameters: globalParameters.value,
