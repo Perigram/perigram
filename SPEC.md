@@ -870,22 +870,24 @@ profile-level open/closed distinction is retired — closure is a chain
 shape's own state. Shape kinds: circle, rectangle, and chain (drawn on
 the canvas or imported); every authoring field is an expression over
 the parameter table (distances from the basis axis, radii,
-width/height, rotation). Each shape carries an explicit boolean
-operation in the 2D pathfinder vocabulary — union (joins the profile
-body), subtract (cuts from it), construction (excluded from the
-profile; an imported drawing lands as construction). The section is
-the union of the union shapes minus the union of the subtract shapes,
-clipped to the material half. The editor displays the zero vertical
-axis — the basis every parameter measures from — and hatches the
-material half-plane beside it; the hatched half is a body that
-participates in the fold, the resolved section clipping to it. The axis is the
+width/height, rotation). Each shape carries an explicit
+boolean operation applied to the FACE — add (the footprint unites
+into the face, extending it), subtract (the footprint cuts from the
+face), construction (excluded; an imported drawing lands as
+construction). The face after the profile is `(base face ∪ adds) −
+subtracts`; the editor's material half is the base-face stand-in, so
+an add visibly extends the hatch past the axis and a subtract visibly
+empties it. The zero vertical axis stays the placement basis and the
+parameter origin. The axis is the
 placement basis: placed into a cassette, the axis lands on the
 attachment edge (snap + offsets) with +X — the material half — on the
 edge's inward normal, material toward the host face. Fillets are
 non-destructive: they live as modifiers on their shape — per-corner on
 rectangles, per-vertex on chains — and stay editable after application
-(position and radius). The fold is for closed shapes; an open chain
-shape keeps the cut-path role (the composite-chain embedding law).
+(position and radius). Profiles are closed operand sets: an open
+chain alone never saves, and the open-profile embedding path carries
+no new authoring (stored legacy documents keep their read path until
+the one-shot migration retires them).
 Stored profiles — library records and cassette documents — cross into
 the shape model through a one-shot migration script; chain sketches
 become chain shapes, holes become subtract circles, and a closed
@@ -933,9 +935,9 @@ edit touches its own primitive only, and primitives bound to the same
 position expression share one dimension for it. Erasing a shape and
 undoing the erase revives the shape with its parameter bindings, and
 shape ids stay unique through every merge. A shape's boolean operation is a
-segmented Union/Subtract/Construction control; each option's tooltip
-names its target (the profile body). A refused profile save states
-its reason beside the Save action.
+segmented Add/Subtract/Construction control; each option's tooltip
+names the face as the target. A refused profile save states its
+reason beside the Save action.
 
 
 Owner decision (2026-10-17, assembly tree layout): the designer's

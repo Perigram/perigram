@@ -65,6 +65,36 @@ editable fillets, and a one-shot migration for stored sketches.
   run) against production data and `--apply` once the counts look
   right.
 
+### Agent Notes (2026-10-19, round 12 — owner ruling, boolean ops on the face)
+
+- Owner ruling after two pushes: boolean operations apply TO THE FACE.
+  The intermediate "profile body that only cuts" model is the slop —
+  nothing could ever be added. Open profiles are also ruled out ("no
+  such thing as open profile").
+- Model: op vocabulary `add`/`subtract`/`construction` with face
+  semantics; `resolveOccsProfileSectionOperations` unions each operand
+  group; `resolveOccsProfileFacePolygons` folds
+  `(base ∪ adds) − subtracts` — the editor's material half is the
+  base-face stand-in, production passes the host face. The void-half
+  clip retires (adds may extend past the axis by design).
+- Editor: the hatch IS the resulting face — an add extends the hatch
+  beyond the material half (verified: hatch at world −15 with the add
+  crossing the axis; hole empty under the subtract; void beyond the
+  add's edge). Toggle: Add/Subtract/Construction, tooltips name the
+  face. Open-end datums and the start/end chip retire with open
+  profiles; an open chain alone refuses to save.
+- Placement: the profile emits add operands (contour-reshaping,
+  booleanOnly) and subtract operands (cut.inner inside, contour
+  dispatch on edge-break). The face pass unions adds before
+  differencing subtracts — renderer, folded preview, and evaluate.js
+  share the fold; the wire entity carries `booleanOperation`. The OCCS
+  document gains the profile operand entities and keeps them for
+  `booleanOperation: 'add'`.
+- Specs moved to the new law (129 pass): interior adds change nothing
+  (material already there), straddling adds grow the contour (fillet
+  test straddles and fillets the surviving corners), the template's D
+  circle rides cut.inner and grows with its parameter.
+
 ### Agent Notes (2026-10-19, round 11 — owner review, boolean selection restored)
 
 - Owner questions — "What is section/construction?" then "Where is
