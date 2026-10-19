@@ -74,6 +74,14 @@ export function resolveDetailScreen({ screens = [], typeId = '' } = {}) {
     || synthesizeDetailScreen(typeListScreenForTypeId({ screens, typeId }));
 }
 
+// The record floor: a minimal single-source detail screen for a type
+// with no compiled screen — the record popup's inspect surface over the
+// served type view.
+export function recordFloorScreen(typeId = '') {
+  if (!typeId) return null;
+  return synthesizeDetailScreen({ id: typeId, screenKey: typeId, typeId, sources: [{ id: typeId, typeId }] });
+}
+
 function detailMainRegion(screen = {}, typeId = '') {
   const regions = Array.isArray(screen.regions) ? screen.regions : [];
   return regions.find(region => (

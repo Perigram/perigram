@@ -1,7 +1,7 @@
-// The entity popup's openable guard: a popup renders only for types with
-// a real record surface (directory profile or compiled/synthesizable
-// detail screen). Anything else is refused — an empty popup shell with
-// dead chrome never renders, and callers render plain text instead.
+// The entity popup's openable guard: a popup renders for types with a
+// real record surface (directory profile, compiled/synthesizable detail
+// screen, or the record floor over the served type view). A type absent
+// from the served view is refused — callers render plain text instead.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => {
@@ -24,6 +24,12 @@ vi.mock('~/stores/auth', () => ({
   useAuthStore: () => ({ screenManifest: manifest })
 }));
 
+vi.mock('~/composables/useFileTypeView', () => ({
+  useFileTypeView: () => ({
+    typeById: (typeId) => (['text-document', 'entityRevision'].includes(typeId) ? { id: typeId } : null)
+  })
+}));
+
 async function loadPopup() {
   const refs = {};
   vi.stubGlobal('useState', (key, init) => (key in refs ? refs[key] : (refs[key] = { value: init() })));
@@ -41,7 +47,12 @@ describe('useEntityPopup openable guard', () => {
     expect(popup.openable('order')).toBe(true);
   });
 
-  it('refuses types with no record surface anywhere', async () => {
+  it('opens served types without a compiled screen on the record floor', async () => {
+    const popup = await loadPopup();
+    expect(popup.openable('text-document')).toBe(true);
+  });
+
+  it('refuses types absent from the served view', async () => {
     const popup = await loadPopup();
     expect(popup.openable('unknown-type')).toBe(false);
     expect(popup.openable('')).toBe(false);

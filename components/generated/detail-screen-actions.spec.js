@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   generatedDetailActionIds,
-  generatedDetailScreenForTypeId
+  generatedDetailScreenForTypeId,
+  recordFloorScreen
 } from './detail-screen-actions.js';
 
 const screens = [
@@ -42,5 +43,19 @@ describe('generated detail screen actions', () => {
       screens: [{ ...screens[0], template: 'typeList' }],
       typeId: 'queue'
     })).toBeNull();
+  });
+
+  it('builds the record floor as a single-source detail screen', () => {
+    const floor = recordFloorScreen('text-document');
+    expect(floor.template).toBe('instanceDetail');
+    expect(floor.typeId).toBe('text-document');
+    expect(floor.sources).toEqual([{
+      id: 'text-document',
+      typeId: 'text-document',
+      mode: 'single',
+      required: null,
+      identifier: '$screen.scope.instanceId'
+    }]);
+    expect(recordFloorScreen('')).toBeNull();
   });
 });
