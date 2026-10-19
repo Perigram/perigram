@@ -914,18 +914,20 @@ unchanged.
 
 Owner decision (2026-10-19, profile drawing): the fold is grouped and
 order-independent — every add before every subtract — so drawing order
-never changes the profile. The editor previews the SECTION itself: the
-hatch IS the drawn figure (adds union, subtracts cut, holes empty),
-never a host-face stand-in; the material-half model is retired. The
-editor, the production entity stream, and the nesting evaluation ride
-the same region fold.
+never changes the profile. The editor hatches the FACE: the material
+half (flippable) folded through the profile's ops — adds extend the
+hatch past the axis, subtracts punch it empty — while drawn primitives
+stay bare lines beneath it: hatch and strong outline are what goes to
+the cassette, bare lines are what is authored. The editor, the
+production entity stream, and the nesting evaluation ride the same
+region fold.
 Owner direction (2026-10-19, authoring): a dragged shape keeps its
 parameter bindings — a moved field bound to a bare parameter edits that
 parameter, compound expressions and numerics carry the drawn value.
-Every shape lists in a strip with its kind and its
-Add/Subtract/Construction op — the boolean control sits beside the
-expression table, never behind a canvas popup hunt. A sketch that only
-cuts draws its cut rings as bare outlines.
+Every shape lists in a strip as a chip showing its kind and its op
+state (add, subtract, construction) at a glance; clicking the chip
+selects and opens its settings, clicking the state cycles the op, and
+selection strokes the shape's footprint dashed on the canvas.
 
 Owner review (2026-10-18, profile editor readout): the parameter table
 lives in the strip above the canvas — its one home, visible with no
