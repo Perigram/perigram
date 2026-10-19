@@ -250,6 +250,37 @@ e2e/cassette-profile-editor.spec.js extended — rows list in the panel,
 the op control switches directly, and the add row lists above the
 subtract row regardless of draw order.
 
+### Agent Notes (2026-10-19, round 7 — owner report: no shape properties in the tree; operand primitives still on the cassette)
+
+Owner report: the panel carried no shape properties, and primitives
+consumed by the boolean result still drew on the cassette. Both were
+code defects against standing law (SPEC 2026-10-19: "the production
+entity stream … rides the same region fold"):
+
+1. Four consumers built their inner-cut output from the operand
+   entities instead of the fold's result rings — the drawing's
+   `cut.inner` layer, the evaluated layerData, the folded-preview
+   cutouts, and the OCCS document's face shapes (holes from operand
+   rings, boundary unfolded). Overlapping or nested subtracts drew
+   every operand ring beside the merged result hole. All four now
+   read `resultInnerCutEntities` (the folded hole rings; a ring
+   attributes to the relation of the operand it swallows), and the
+   document's face shapes ride the fold for boundary and holes
+   alike. Pinned by a new spec: two overlapping subtract circles ship
+   as ONE merged ring in every output.
+2. Panel rows select-and-expand (SPEC, evening direction): a
+   selected row shows the shape's whole authoring table — sizes,
+   position, rotation, fillet radii — as expression inputs inside
+   the panel; a repeat click collapses. Circles gained their d/x/y
+   fields in the shared property rows (popup included). Canvas picks
+   keep the compact popup.
+
+Validation: 142/142 in workers/facade (one new model spec), arch and
+docs guards green; e2e/cassette-profile-editor.spec.js drives the
+accordion live (select the circle row, type a diameter, the canvas
+dim follows, re-click collapses) — green twice against the merged
+tree.
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places
