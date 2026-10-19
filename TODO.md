@@ -177,9 +177,13 @@ window with the axis in view, and Clear re-zooms it.
 Specs: 5 regressions added to occs/profiles.spec.js (rotated-rect
 roundtrip identity, construction-op survival, chain drag commit with
 parameter edit, dragged numerics, 1e-3 rounding); 140/140 in
-workers/facade. Live probe: e2e/zz-profile-facts.spec.js drives the
-real dialog (draw rect+circle, add parameter, bind a dim, drag,
-save).
+workers/facade. Live verification: e2e/cassette-profile-editor.spec.js
+drives the real dialog (draw rect+circle at millimetre scale, bind a
+dim to a parameter, save, reopen) — the binding survives the
+save-load roundtrip and every authored numeric stays clean; three
+consecutive green runs. The engine's script inputs are
+newline-tokenized (AutoCAD .scr semantics) — the blank-window zoom
+rides one line per token.
 
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
