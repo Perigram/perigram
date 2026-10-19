@@ -539,12 +539,12 @@ is the pure helper `utils/processDesignerArrangement.js` (see
   chain resolves through the grant, so node order in the array decides
   nothing), anchorless nodes by nearest band — so nothing crosses a
   lane divider.
-- **y = cell rows.** Within each lane×column cell, barycenter sweeps over
-  wired neighbors (flow and declaration wires alike) pick the row order,
-  seeded from the authored y. Rows pitch to the cell's own tallest card
-  plus the gap, and a card's y follows its row alone — no card leaves its
-  cell, no two cards in a column overlap, and a lane is at most its
-  tallest cell stack.
+- **y = band rows.** One row grid per band, pitched to the band's tallest
+  card plus the gap. Every card takes the free row nearest the median row
+  of its wired neighbors in other cells (flow and declaration wires alike),
+  so a sequence reads level; the authored y seeds the rows and the row
+  sweep in column order settles them. No two cards in a column overlap,
+  and a lane hugs its content.
 
 ### Card behavior details
 

@@ -3,10 +3,12 @@
 // lane band membership in → positions plus content-hugging band
 // geometry out. x = column (condensation layering: mutual pairs share
 // a column; weakly connected components pack side by side, largest
-// first; columns span their widest card plus air). Within each
-// lane×column cell, barycenter sweeps over wired neighbors pick the
-// row order; y = inset + row × the cell's own row pitch. Deterministic
-// and idempotent: running it over its own output moves nothing.
+// first; columns span their widest card plus air). y = inset plus a row
+// on the band's grid: each card takes the free row nearest the median
+// row of its wired neighbors in other cells, sweeping to a fixed point.
+// Deterministic and idempotent: running it over its own output moves
+// nothing.
+const ROW_PASSES = 32;
 const COLUMN_SNAP = 420;
 const COLUMN_AIR = 120;
 const COLUMN_MIN_SPAN = 360;
@@ -18,7 +20,6 @@ const PROCESS_CARD_HEIGHT = 140;
 const DECLARATION_CARD_HEIGHT = 96;
 const PROCESS_CARD_WIDTH = 384;
 const DECLARATION_CARD_WIDTH = 224;
-const ORDER_SWEEPS = 8;
 
 function isDeclaration(node) {
   return node?.type !== 'processNode';
@@ -32,6 +33,12 @@ function cardHeightOf(node) {
 function cardWidthOf(node) {
   if (node?.dimensions?.width) return node.dimensions.width;
   return isDeclaration(node) ? DECLARATION_CARD_WIDTH : PROCESS_CARD_WIDTH;
+}
+
+function medianOf(values) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[(sorted.length - 1) >> 1];
 }
 
 export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands = [], bandOfNodeId } = {}) {
@@ -301,20 +308,18 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     if (band) bandOf.set(node.id, band);
   }
 
-  // Sweep wires: every wire counts, flow and declaration alike.
-  const wiresFrom = new Map();
-  const wiresTo = new Map();
+  // Undirected wires: a card's row follows the median row of its wired
+  // neighbors in other cells of the same band.
+  const neighbors = new Map();
   for (const edge of edges) {
     if (!byId.has(edge.source) || !byId.has(edge.target)) continue;
-    if (!wiresFrom.has(edge.source)) wiresFrom.set(edge.source, []);
-    wiresFrom.get(edge.source).push(edge.target);
-    if (!wiresTo.has(edge.target)) wiresTo.set(edge.target, []);
-    wiresTo.get(edge.target).push(edge.source);
+    if (!neighbors.has(edge.source)) neighbors.set(edge.source, []);
+    if (!neighbors.get(edge.source).includes(edge.target)) neighbors.get(edge.source).push(edge.target);
+    if (!neighbors.has(edge.target)) neighbors.set(edge.target, []);
+    if (!neighbors.get(edge.target).includes(edge.source)) neighbors.get(edge.target).push(edge.source);
   }
 
-  // Cells: one row stack per (band, column). The authored y seeds the
-  // first order.
-  const bandRank = new Map(bands.map((band, index) => [band.id, index]));
+  // Cells: one row stack per (band, column).
   const cells = [];
   const cellFor = new Map();
   const cellKey = new Map();
@@ -332,59 +337,91 @@ export function arrangeProcessGraph({ nodes = [], edges = [], effectIds, bands =
     cell.push(node);
     cellFor.set(node.id, cell);
   }
-  const order = new Map();
-  for (const cell of cells) {
-    cell.sort((left, right) => (left.position?.y || 0) - (right.position?.y || 0)
-      || (left.id < right.id ? -1 : 1));
-    cell.forEach((node, index) => order.set(node.id, index));
-  }
 
-  // A node's sweep position: band rank plus its fraction inside the
-  // cell, so barycenters read the lane stack as one axis. A sweep reads
-  // the order snapshotted at its start, so the pass cannot chase its own
-  // writes.
-  const KEY_SPAN = 1024;
-  const keyOf = (orderNow, id) => {
+  // Rows: one grid per band, its tallest card plus the gap. Every card
+  // sits on the free row nearest the median row of its wired neighbors in
+  // other cells (a sequence reads level). The rows settle by sweeping to a
+  // fixed point; a sweep loop is cut at its smallest state.
+  const bandPitch = new Map();
+  for (const node of nodes) {
+    const band = bandOf.get(node.id);
+    if (!band || !cellFor.has(node.id)) continue;
+    bandPitch.set(band.id, Math.max(bandPitch.get(band.id) || 0, cardHeightOf(node) + COLUMN_GAP));
+  }
+  const pitchOf = id => {
     const band = bandOf.get(id);
-    const size = Math.max(1, cellFor.get(id).length);
-    return (bandRank.get(band.id) || 0) * KEY_SPAN
-      + ((orderNow.get(id) + 0.5) / size) * KEY_SPAN;
+    return bandPitch.get(band.id) || PROCESS_CARD_HEIGHT + COLUMN_GAP;
   };
-
-  const columnValues = [...new Set([...columns.values()])].sort((left, right) => left - right);
-  for (let sweep = 0; sweep < ORDER_SWEEPS; sweep += 1) {
-    const rightward = sweep % 2 === 0;
-    const before = new Map(order);
-    for (const column of rightward ? [...columnValues].reverse() : columnValues) {
-      for (const cell of cells) {
-        if (columns.get(cell[0].id) !== column) continue;
-        const bary = new Map();
-        for (const node of cell) {
-          const side = rightward ? wiresFrom.get(node.id) : wiresTo.get(node.id);
-          // Same-cell wires say nothing about the row order: both ends
-          // move together, so reading them would feed the sort itself.
-          const keys = (side || [])
-            .filter(other => order.has(other) && cellFor.get(other) !== cell)
-            .map(other => keyOf(before, other));
-          bary.set(node.id, keys.length
-            ? keys.reduce((sum, key) => sum + key, 0) / keys.length
-            : keyOf(before, node.id));
+  const authoredRow = id => {
+    const band = bandOf.get(id);
+    return Math.max(0, Math.round(((byId.get(id).position?.y || 0) - band.top - LANE_INSET) / pitchOf(id)));
+  };
+  const stackCell = cell => {
+    const placed = [];
+    const used = new Set();
+    const queue = cell
+      .map(node => {
+        const band = bandOf.get(node.id);
+        const keys = (neighbors.get(node.id) || [])
+          .filter(other => cellFor.get(other) !== cell
+            && bandOf.get(other)?.id === band.id
+            && rowOf.has(other))
+          .map(other => rowOf.get(other));
+        return { node, target: keys.length ? medianOf(keys) : rowOf.get(node.id) };
+      })
+      .sort((left, right) => left.target - right.target || (left.node.id < right.node.id ? -1 : 1));
+    for (const { node, target } of queue) {
+      const seat = Math.max(0, Math.round(target));
+      let row = seat;
+      if (used.has(row)) {
+        for (let step = 1; ; step += 1) {
+          const lower = seat - step;
+          if (lower >= 0 && !used.has(lower)) { row = lower; break; }
+          if (!used.has(seat + step)) { row = seat + step; break; }
         }
-        cell.sort((left, right) => (bary.get(left.id) - bary.get(right.id))
-          || (left.id < right.id ? -1 : 1));
-        cell.forEach((node, index) => order.set(node.id, index));
       }
+      used.add(row);
+      placed.push([node.id, row]);
     }
-    if ([...order].every(([id, index]) => before.get(id) === index)) break;
+    return placed;
+  };
+  const bandRank = new Map(bands.map((band, index) => [band.id, index]));
+  const cellColumn = cell => Math.min(...cell.map(node => columns.get(node.id)));
+  const sweepOrder = [...cells].sort((left, right) => (cellColumn(left) - cellColumn(right))
+    || (bandRank.get(bandOf.get(left[0].id).id) - bandRank.get(bandOf.get(right[0].id).id))
+    || (left.map(node => node.id).sort()[0] < right.map(node => node.id).sort()[0] ? -1 : 1));
+  const serializeRows = state => [...state.keys()].sort()
+    .map(id => `${id}:${state.get(id)}`)
+    .join(',');
+  let rowOf = new Map();
+  for (const node of nodes) if (cellFor.has(node.id)) rowOf.set(node.id, authoredRow(node.id));
+  const history = [];
+  const seenAt = new Map();
+  for (let pass = 0; pass < ROW_PASSES; pass += 1) {
+    const before = serializeRows(rowOf);
+    const seen = seenAt.get(before);
+    if (seen !== undefined && pass > 0) {
+      rowOf = history.slice(seen)
+        .reduce((best, state) => (serializeRows(state) < serializeRows(best) ? state : best));
+      break;
+    }
+    seenAt.set(before, history.length);
+    history.push(new Map(rowOf));
+    for (const cell of sweepOrder) for (const [id, row] of stackCell(cell)) rowOf.set(id, row);
+    if (serializeRows(rowOf) === before) break;
   }
-
-  // Row stacking: a cell's rows pitch to its own tallest card plus the
-  // gap, and y follows the order alone, so a lane is at most its tallest
-  // cell stack.
+  // Bands hug their content: every row index is relative to the band's
+  // first used row.
+  for (const band of bands) {
+    const members = nodes.filter(node => bandOf.get(node.id)?.id === band.id && rowOf.has(node.id));
+    if (!members.length) continue;
+    const first = Math.min(...members.map(node => rowOf.get(node.id)));
+    for (const node of members) rowOf.set(node.id, rowOf.get(node.id) - first);
+  }
   const y = new Map();
-  for (const cell of cells) {
-    const pitch = Math.max(...cell.map(node => cardHeightOf(node))) + COLUMN_GAP;
-    cell.forEach((node, index) => y.set(node.id, LANE_INSET + index * pitch));
+  for (const node of nodes) {
+    if (!rowOf.has(node.id)) continue;
+    y.set(node.id, LANE_INSET + rowOf.get(node.id) * pitchOf(node.id));
   }
 
   const bandGeometry = () => {
