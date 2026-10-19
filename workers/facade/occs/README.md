@@ -56,26 +56,26 @@ modules — no platform imports.
   profile mirror controls on the attachment relation; hanger width/height is
   not duplicated in the workpiece row when a saved profile supplies geometry.
 - `profiles.js` declares the OCCS profile shape model used by Cassette
-  Designer v2 (owner decision 2026-10-18): a sketch is a list of
-  parametric shapes combined by per-shape boolean operations and
-  evaluated on the zero axis. Shape kinds: `rect` (center, width,
-  height, rotation, per-corner fillet radii), `circle` (center,
-  diameter), and `chain` (point-by-point polyline with its own closure,
-  per-vertex fillet modifiers, extracted chord tags). Every authoring
-  field carries a number or an expression string evaluated against the
-  parameter table through `expressions.js`; a single unknown identifier
-  authored into a field adopts that parameter at the field's current
-  value (`adoptOccsProfileBindingParameter`). Each shape carries its
-  op — `add`, `subtract`, or `none`; a `none` shape is reference
-  geometry (a DXF import lands every shape at `none` through
-  `occProfileSketchFromEntities`' `reference` option) and evaluation
-  ignores it. The zero vertical axis is the evaluation basis every
+  Designer v2 (owner decision 2026-10-18, containment amendment
+  2026-10-19): a sketch is a list of parametric shapes evaluated on the
+  zero axis. Shape kinds: `rect` (center, width, height, rotation,
+  per-corner fillet radii), `circle` (center, diameter), and `chain`
+  (point-by-point polyline with its own closure, per-vertex fillet
+  modifiers, extracted chord tags). Every authoring field carries a
+  number or an expression string evaluated against the parameter table
+  through `expressions.js`; a single unknown identifier authored into a
+  field adopts that parameter at the field's current value
+  (`adoptOccsProfileBindingParameter`). A shape either participates in
+  the section or is `construction` geometry (a DXF import lands every
+  shape at construction through `occProfileSketchFromEntities`'
+  `reference` option; the flag clears and the shape joins the fold).
+  The zero vertical axis is the evaluation basis every
   field measures from, and the material half of it
   (`sketch.material`, `'positive'` hatches X>0) is a boolean body:
-  `resolveOccsProfileSectionPolygons` folds the section — union of the
-  add shapes minus the subtract shapes, clipped to the material half —
-  through the vendored Clipper pass, yielding ordered outer polygons
-  and hole rings; every ring is cut geometry. The editor's canvas
+  `resolveOccsProfileSectionPolygons` folds the closed participants by
+  containment depth (even depths unite, odd depths subtract), clipped
+  to the material half, through the vendored Clipper pass, yielding
+  ordered outer polygons and hole rings; every ring is cut geometry. The editor's canvas
   carries exactly two surface states (owner law 2026-10-18): the
   material half hatches as the face — the one hatch — and the resolved
   section is cut from it (empty interior, solid outline), the void
@@ -96,8 +96,9 @@ modules — no platform imports.
   same position expression render one dim for it; divergent
   expressions each keep their own. The sketch's expression table lives in the parameter
   strip above the canvas (the `fx` row — its one home); a selected
-  primitive's popup carries its op, rotation, and fillet radii as one
-  compact panel (header, then a single field row), and opens on
+  primitive's popup carries its construction toggle, rotation, and
+  fillet radii as one compact panel (header, then a single field
+  row), and opens on
   clicking the primitive — face, edge, or cutout. Floating authoring
   chrome (popups, dimension inputs) styles through the design-token
   utilities `bg-content`, `border-content-border`, and `text-muted`,
@@ -106,7 +107,8 @@ modules — no platform imports.
   The default
   hanger
   template is parametric by law: a rect (W/H the rectangle, R the four
-  corner fillets) plus a subtract circle (D the hole), with L resolving
+  corner fillets) plus a contained circle (D, a hole by the
+  containment fold), with L resolving
   the sweep at evaluation, so a cassette's instance parameters drive it
   the moment it is attached — the workpiece row's chips are live. The
   template is the renderer's fallback for sketch-less workpieces, never
@@ -123,7 +125,7 @@ modules — no platform imports.
   reference each other; cycles and unknown identifiers throw); the
   savable gate (`isOccsProfileSketchSavable`) turns those throws into
   authoring feedback and requires at least one participating shape — a
-  closed shape with an op, or an open chain as a cut path. Fillets are
+  closed participant, or an open chain as a cut path. Fillets are
   non-destructive: they live as modifiers on their shape (per-corner on
   rects, per-vertex on chains), stay editable after application, and a
   radius larger than the corner's adjacent segments allow resolves as
@@ -140,11 +142,11 @@ modules — no platform imports.
   drawn piece as its own shape — a closed four-vertex right-angle chain
   detects as a `rect` primitive in canonical order (counter-clockwise
   from the leftmost corner, so the draw direction leaves the stored
-  settings and corner labels unchanged), circles become `subtract`
-  shapes on a
+  settings and corner labels unchanged), circles land contained
+  (holes by the fold) on a
   draw, and `mergeOccsProfileSketchGeometry` merges back under the
   one-way truth rule: an extracted shape sitting on an authored shape's
-  evaluated position keeps the authored id, op, expressions, and
+  evaluated position keeps the authored id, construction, expressions, and
   fillets (chains match per point within a rounding epsilon), so
   drawing, importing, or undoing never destroys parametric authoring;
   moved or new geometry goes numeric, authored shapes with no extracted
@@ -156,12 +158,9 @@ modules — no platform imports.
   shape with its expressions (an erase alone drops it; the revive needs
   the geometry back on the canvas). Fresh ids renumber against every
   kept id by object identity — an extracted id colliding with a kept id
-  still renumbers. The shape popup's operation is a segmented
-  control reading in face-material terms — Reference (op `none`,
-  guide geometry), Cut (op `add`: the footprint is cut from the face),
-  Keep (op `subtract`: the footprint stays face material, the hatched
-  island inside the cut) — the whole state set reads at a glance and
-  the canvas proves each state.
+  still renumbers. The shape popup carries a segmented
+  Section/Construction control — the classical construction-geometry
+  flag; containment decides every closed shape's role in the fold.
   Document transitions (DXF import) bind the database listeners without
   scheduling an extraction: the import's own explicit extraction is the
   one that lands. Legacy chain sketches (points/edges/holes/closed/
