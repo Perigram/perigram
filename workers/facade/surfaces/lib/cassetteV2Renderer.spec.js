@@ -1429,36 +1429,30 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(folded.cutouts.filter(cutout => cutout.layer === 'cut.inner')).toHaveLength(1);
   });
 
-  it('hugs the attachment edge — geometry drawn far from the axis starts at it when placed', async () => {
-    // A freehand profile drawn in the blank window's middle (local
-    // ~(70, 38)) lands with its leftmost material ON the edge, the
-    // same way the template (minX 0) always did.
+  it('keeps inner cuts inside the face — straddling corner material carries no cut path', async () => {
+    // The template on E1 from its start snap centers the profile on
+    // the corner; the hole lands in material hanging past the face
+    // boundary and stays off the inner-cut layer (the contour carries
+    // that material).
     const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
-      sketch: {
-        version: '0.2', units: 'mm', parameters: {}, material: 'positive',
-        shapes: [
-          { id: 's0', type: 'rect', op: 'add', center: [70, 38], width: 20, height: 12, rotation: 0, fillets: [] },
-          { id: 's1', type: 'circle', op: 'subtract', center: [70, 38], diameter: 6 }
-        ]
-      }
+      sketch: createDefaultOccsProfileSketch()
     });
     const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
     const tree = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
-      pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1' },
-      targetSnap: 'center', offsetX: '0', offsetY: '0'
+      pattern: { type: 'edgeArray', edge: 'E1', mode: 'count', count: '1' },
+      targetSnap: 'start', offsetX: '0', offsetY: '0'
     });
     const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
     const inner = drawing.layers.find(layer => layer.standardCode === 'cut.inner');
-    expect(inner?.paths).toHaveLength(1);
-    const pts = (inner.paths[0].d.match(/-?[\d.]+ -?[\d.]+/g) || []).map(s => s.split(' ').map(Number));
-    const worldY = pts.map(point => -point[1]);
-    // The cut's deepest point reaches only the operand's own extent
-    // past the edge (rect spans local x 60..80 → minX 60 hugs 0; the
-    // circle sits 67..73 in). 70-deep burial is gone.
-    expect(Math.max(...worldY)).toBeLessThan(20);
-    expect(Math.max(...worldY)).toBeGreaterThan(0);
+    expect(inner?.paths || []).toHaveLength(0);
+    // Authored placement is untouched: the straddling tab still grows
+    // the contour outward.
+    const outer = drawing.layers.find(layer => layer.standardCode === 'cut.outer');
+    const pts = (outer.paths[0].d.match(/-?[\d.]+ -?[\d.]+/g) || []).map(s => s.split(' ').map(Number));
+    const ys = pts.map(point => -point[1]);
+    expect(Math.min(...ys)).toBeLessThan(0);
   });
 
   it('keeps face labels and dimension controls on the original boundary for integral cuts', async () => {

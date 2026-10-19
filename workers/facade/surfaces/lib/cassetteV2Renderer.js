@@ -2783,33 +2783,19 @@ const placeProfileRing = (ring = [], point = [0, 0, 0], relation = {}, axisRotat
 
 // The placed boolean steps of a closed profile: add rings unite into
 // the host face, subtract rings cut from it — placed by the axis law at
-// the given point. The section's tight extent starts at the axis: the
-// operand rings translate by their minX, so the leftmost material hugs
-// the attachment edge whatever the authored distances from the axis
-// (the stored sketch keeps its coordinates). Polyline sections carry
-// no steps.
+// the given point. Polyline sections carry no steps.
 const profileOperationPolygons = async (profile, point = [0, 0, 0], relation = {}, targetCurve = null, scope = {}) => {
   const section = profile?.section;
   if (!section || section.type === 'polyline') return null;
   const operations = resolveOccsProfileSectionOperations(section);
   if (!operations) return null;
-  const ringXs = operations.flatMap(operation => operation.polygons)
-    .flatMap(ring => ring.map(vertex => Number(vertex?.[0])))
-    .filter(Number.isFinite);
-  const axisOffset = ringXs.length ? -Math.min(...ringXs) : 0;
   const axisRotation = profileAxisRotationDegrees(relation, targetCurve);
   const placed = operations
     .map(operation => ({
       op: operation.op,
       polygons: operation.polygons
         .filter(ring => ring.length >= 3)
-        .map(ring => placeProfileRing(
-          ring.map(vertex => [Number(vertex?.[0]) + axisOffset, vertex?.[1], vertex?.[2]]),
-          point,
-          relation,
-          axisRotation,
-          scope
-        ))
+        .map(ring => placeProfileRing(ring, point, relation, axisRotation, scope))
     }))
     .filter(operation => operation.polygons.length);
   return placed.length ? placed : null;
@@ -2910,8 +2896,16 @@ export const resultInnerCutEntities = (curves = [], operandEntities = []) => cur
       hardwareWorkpieceId: entity.hardwareWorkpieceId,
       centroids: productionEntityCutRings(entity).map(ringCentroid)
     }));
+  // Inner cut paths ride the face's own material: a result hole in
+  // material hanging past the authored boundary (a straddling tab)
+  // stays off the layer — the contour carries that material.
+  const face = curve.originalBoundaryVertices
+    || curve.referenceVertices
+    || curve.boundaryVertices
+    || curve.vertices;
   return (curve.holes || [])
     .filter(ring => withoutClosingVertex(ring).length >= 3)
+    .filter(ring => polygonInsideFace(ring, face))
     .map((ring, index) => {
       const contributor = operands.find(candidate => (
         candidate.centroids.some(centroid => centroid && pointInPolygon(centroid, ring))

@@ -567,6 +567,36 @@ lands at 27 — within the drawn section's own extent).
 Validation: 148/148 in workers/facade, arch and docs guards green;
 e2e/cassette-profile-editor.spec.js green against the merged tree.
 
+### Agent Notes (2026-10-20, round 12 — owner report: placement still broken, in another way; "never like this before today")
+
+An A/B probe (identical trees rendered at the pre-session commit and
+at HEAD, seven placement cases diffed) found both of today's
+placement regressions and their authors:
+
+1. Round 7's result-ring `cut.inner` dropped the face-containment
+   gate: result holes sitting in material hanging past the authored
+   face boundary (a tab straddling a corner or edge) started
+   rendering as inner-cut paths outside the face — the owner's first
+   "broken again" report. `resultInnerCutEntities` now keeps only
+   rings inside the authored face boundary; hanging material rides
+   the contour.
+2. Round 11's hug-axis translation was the "another way": it clamped
+   straddling tabs (authored to grow the face outward) fully inside
+   and shifted freehand placements. Reverted — the axis law stands as
+   before: the axis anchors the edge and authored distances ride
+   along as drawn.
+
+The restored tree renders the A/B probe byte-identical to the
+pre-session state on all seven cases (edge/snap/offset matrix,
+straddler, point placement, spacing array) while keeping round 7's
+merged-ring semantics for rings inside the face (overlapping
+operands still dissolve into one ring — spec unchanged and green).
+Round 11's hug spec is replaced by the containment spec (straddling
+corner material carries no inner-cut path; the tab still grows the
+contour).
+
+Validation: 148/148 in workers/facade, arch and docs guards green.
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places
