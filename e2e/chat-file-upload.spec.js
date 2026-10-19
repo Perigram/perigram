@@ -39,7 +39,10 @@ test.describe('chat file uploads', () => {
       edges: { children: { photos: { types: [PHOTO_TYPE], onRemove: 'restrict' } } },
       fields: { name: { base: 'string' } }
     });
-    await app.seedSpeciesProcess({ types: [BOX_TYPE], declares: [PHOTO_TYPE] });
+    await app.seedSpeciesProcess({
+      types: [BOX_TYPE, PHOTO_TYPE],
+      via: { [PHOTO_TYPE]: 'upload' }
+    });
     const box = await app.createInstance(BOX_TYPE, { name: app.uniqueName('Chat upload box') });
     expect(box._id, 'Expected the box instance').toBeTruthy();
 
@@ -134,13 +137,14 @@ test.describe('chat file uploads', () => {
       contentType: 'image/png'
     });
 
-    // Pressing the materialized instance chip opens its inspect popover.
+    // Pressing the materialized instance card opens the shared record
+    // popup: the compiled detail surface in the standard dialog.
     const refChip = app.page.getByText('facade-evidence.png').first();
     await refChip.click({ timeout: 10000 });
-    const anyPopover = app.page.locator('.p-popover:visible');
-    await expect(anyPopover.first()).toBeVisible({ timeout: 10000 });
-    await testInfo.attach('chat-ref-popover', {
-      body: await anyPopover.first().screenshot(),
+    const recordPopup = app.page.locator('.p-dialog:visible', { hasText: 'facade-evidence.png' }).first();
+    await expect(recordPopup).toBeVisible({ timeout: 15000 });
+    await testInfo.attach('chat-ref-record-popup', {
+      body: await recordPopup.screenshot(),
       contentType: 'image/png'
     });
     await app.page.keyboard.press('Escape');

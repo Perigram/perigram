@@ -456,7 +456,6 @@ describe('Design system manifest', () => {
 
     const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
     expect(runtimeCss).not.toMatch(/:where\(button, a, input[^}]+outline:\s*none/s);
-    expect(runtimeCss).not.toMatch(/\.instance-card-popup-content[^{}]*\{[^}]*(?:font-size|background|border|padding)\s*:/s);
   });
 
   it('uses existing semantic variables for SVG designer label contrast', () => {
@@ -707,8 +706,8 @@ describe('Design system manifest', () => {
     expect(surfaceContent).toContain("props.suppressChildSummaries && (field.role === 'childCount' || field.replacesCountPath)");
     expect(surfaceContent).toContain('relationVariant');
     expect(inlineRef).toContain("variant === 'compact'");
-    expect(inlineRef).toContain('class="inline-flex w-full');
-    expect(inlineRef).toContain('variant="inline"');
+    expect(inlineRef).toContain("'w-full' : null");
+    expect(inlineRef).toContain('useEntityPopup');
     expect(inlineRef).toContain('StateTag');
     expect(inlineRef).toContain('compactStatusState');
     // The stacked chat card carries its state tag inside the one-line

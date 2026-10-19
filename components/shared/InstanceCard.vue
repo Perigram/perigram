@@ -1,13 +1,13 @@
 <template>
-    <!-- Inline: pill chip with popup -->
+    <!-- Inline: pill chip; the click opens the shared record popup -->
     <template v-if="variant === 'inline'">
         <span
             class="inline-flex min-w-0 max-w-full items-center gap-2 align-middle"
-            :class="{ 'cursor-pointer': expandable }"
-            :role="expandable ? 'button' : undefined"
-            :tabindex="expandable ? 0 : undefined"
+            :class="{ 'cursor-pointer': popupOpenable }"
+            :role="popupOpenable ? 'button' : undefined"
+            :tabindex="popupOpenable ? 0 : undefined"
             data-instance-card-interactive="true"
-            @click="togglePopup"
+            @click="openPopup"
             @keydown="onToggleKeydown"
         >
             <Chip
@@ -25,11 +25,11 @@
     <template v-else-if="variant === 'compact'">
         <Card
             class="h-full overflow-hidden"
-            :class="{ 'cursor-pointer': expandable }"
-            :role="expandable ? 'button' : undefined"
-            :tabindex="expandable ? 0 : undefined"
+            :class="{ 'cursor-pointer': popupOpenable }"
+            :role="popupOpenable ? 'button' : undefined"
+            :tabindex="popupOpenable ? 0 : undefined"
             data-instance-card-interactive="true"
-            @click="togglePopup"
+            @click="openPopup"
             @keydown="onToggleKeydown"
         >
             <template #content>
@@ -128,91 +128,10 @@
             </template>
         </Card>
     </template>
-
-    <!-- One shared expansion surface for inline and compact variants: type
-         label + identity header, lineage context, the same canonical body
-         the full card uses, and an inline action row — generated commands
-         and the detail route render directly, never behind a second
-         ellipsis inside the popover. -->
-    <Popover v-if="variant === 'inline' || variant === 'compact'" ref="op">
-        <div class="w-[min(34rem,calc(100vw-3rem))]">
-            <div class="flex flex-col gap-3 p-4">
-                <!-- The popup identity block (type label, status, identity
-                     row, trace) is replaceable: cards with their own
-                     directory-grade face (user, organization) render the
-                     avatar-forward header and own the whole block. -->
-                <slot name="popup-identity">
-                    <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                        <small v-if="inlineTypeLabel" class="uppercase text-muted text-supporting">
-                            {{ inlineTypeLabel }}
-                        </small>
-                        <InstanceState
-                            v-if="effectiveShowStatus"
-                            :instance="instance"
-                            :type-id="typeId"
-                            variant="inline"
-                            :actions="stateActions"
-                            @refresh="$emit('refresh')"
-                            @transitioned="$emit('refresh')"
-                        />
-                    </div>
-                    <div class="flex min-w-0 items-center gap-2">
-                        <i v-if="instanceConfig.icon" :class="instanceConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
-                        <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
-                    </div>
-                    <TraceChain
-                        v-if="effectivePopupShowTrace"
-                        :entity="instance"
-                        :type-id="typeId"
-                        :exclude="traceExclusions"
-                    />
-                </slot>
-                <div class="instance-card-popup-content flex flex-col gap-3">
-                    <slot name="expanded">
-                        <slot />
-                    </slot>
-                    <slot name="footer" />
-                </div>
-                <!-- The instance chat entry always renders: every card opens its
-                     composed conversation. -->
-                <Divider class="m-0" />
-                <div class="flex flex-wrap items-center justify-end gap-2" @click.stop>
-                    <Button
-                        icon="pi pi-comments"
-                        text
-                        size="small"
-                        :aria-label="$t('support.instanceChat')"
-                        @click="openCardChat"
-                    />
-                    <GeneratedEditorPageAction
-                        v-if="inlineHasEditorAction"
-                        :entity="inlineActionInstance"
-                        :type-id="inlineEditorTypeId"
-                    />
-                    <GeneratedActionButton
-                        v-for="actionId in inlineActionIds"
-                        :key="actionId"
-                        :action-id="actionId"
-                        size="small"
-                        @execute="executeInlineAction"
-                    />
-                    <Button
-                        v-if="inlineDetailRoute || inlineOpenDetailRef"
-                        :label="$t('common.open')"
-                        icon="pi pi-external-link"
-                        text
-                        size="small"
-                        :aria-label="$t('common.open')"
-                        @click="inlineOpenDetailRef || openInlineDetail"
-                    />
-                </div>
-            </div>
-        </div>
-    </Popover>
 </template>
 
 <script setup>
-import { computed, inject, onMounted, onUnmounted, ref, unref } from 'vue';
+import { computed } from 'vue';
 /**
  * InstanceCard - v24 Standardized
  * Shared instance card structure: TraceChain + identity chrome + InstanceState.
@@ -235,11 +154,6 @@ import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.v
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Chip from 'primevue/chip';
-import Divider from 'primevue/divider';
-import Popover from 'primevue/popover';
-import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
-import GeneratedEditorPageAction from '~/components/generated/GeneratedEditorPageAction.vue';
-import { instanceHasEditorAction } from '~/components/generated/instance-editor-action.js';
 import { useRegistryStore } from '~/stores/registry';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
@@ -248,7 +162,8 @@ import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useI18n } from 'vue-i18n';
 import { useStatePolicy } from '~/composables/useStatePolicy';
 import { instanceHierarchyIds } from '~/utils/instance-hierarchy.js';
-import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
+import { openInstanceChat } from '~/utils/instance-chat.js';
+import { useEntityPopup } from '~/composables/useEntityPopup';
 
 const props = defineProps({
     instance: { type: Object, required: true },
@@ -275,26 +190,12 @@ const cardInstanceId = computed(() => {
 });
 
 function openCardChat() {
-    op.value?.hide?.();
     openInstanceChat({
         type: props.typeId,
         id: cardInstanceId.value,
         name: props.instance?.name || ''
     });
 }
-const inlineDetailRouteRef = inject('instanceInlineDetailRoute', null);
-// Workspace-aware open handler from the hosting inline ref: when present,
-// the open action routes through it (pane tab / home dialog) instead of a
-// raw navigateTo, so card popovers obey the same everything-inside-home
-// rule the compact popover does.
-const inlineOpenDetailRef = inject('instanceInlineOpenDetail', null);
-const inlineForceTraceRef = inject('instanceInlineForceTrace', false);
-const inlineTypeLabelRef = inject('instanceInlineTypeLabel', '');
-const inlineActionIdsRef = inject('instanceInlineActionIds', []);
-const inlineActionEntityRef = inject('instanceInlineActionEntity', null);
-const inlineActionTypeIdRef = inject('instanceInlineActionTypeId', '');
-const inlineHasEditorActionRef = inject('instanceInlineHasEditorAction', false);
-const inlineExecuteActionRef = inject('instanceInlineExecuteAction', null);
 
 const { t } = useI18n();
 const registry = useRegistryStore();
@@ -320,7 +221,6 @@ const effectiveShowTrace = computed(() => {
     if (props.showTrace !== null) return props.showTrace;
     return displayPlan.value.surfaceContract.trace !== 'hidden';
 });
-const effectivePopupShowTrace = computed(() => effectiveShowTrace.value || Boolean(unref(inlineForceTraceRef)));
 const traceExclusions = computed(() => {
     if (!props.contextInstance || !props.contextTypeId) return [];
     return instanceHierarchyIds(props.contextInstance).map(id => ({
@@ -338,50 +238,25 @@ const identityLabel = computed(() => titleFor(
   typeView.value,
   { unnamedLabel: t('common.unnamed') }
 ));
-const inlineDetailRoute = computed(() => unref(inlineDetailRouteRef));
-const inlineTypeLabel = computed(() => unref(inlineTypeLabelRef) || '');
-const inlineActionIds = computed(() => unref(inlineActionIdsRef) || []);
-const inlineActionInstance = computed(() => unref(inlineActionEntityRef) || props.instance);
-const inlineEditorTypeId = computed(() => unref(inlineActionTypeIdRef) || '');
-const inlineHasEditorAction = computed(() => Boolean(unref(inlineHasEditorActionRef)) || instanceHasEditorAction(inlineEditorTypeId.value));
-const inlinePopupHasActions = computed(() => (
-    inlineHasEditorAction.value
-    || inlineActionIds.value.length
-));
 
-function openInlineDetail(event) {
-    event.stopPropagation();
-    requestCloseMobileTransientSurfaces();
-    if (inlineDetailRoute.value) navigateTo(inlineDetailRoute.value);
+// The inline/compact expansion is the shared entity popup: the record's
+// compiled detail surface in the standard dialog. A type with no record
+// surface (the popup composable's openable law) renders an inert chip.
+const { open: openEntityPopup, openable: entityPopupOpenable } = useEntityPopup();
+const popupOpenable = computed(() => props.expandable
+    && Boolean(cardInstanceId.value)
+    && entityPopupOpenable(props.typeId));
+
+function openPopup(event) {
+    if (!popupOpenable.value) return;
+    if (isInteractiveEventTarget(event)) return;
+    openEntityPopup({ typeId: props.typeId, instanceId: cardInstanceId.value });
 }
 
-function executeInlineAction(action) {
-    const executor = unref(inlineExecuteActionRef);
-    if (typeof executor !== 'function') return;
-    executor(action);
-}
-
-const op = ref();
-const togglePopup = (event) => {
-    if (!props.expandable || isInteractiveEventTarget(event)) return;
-    op.value.toggle(event);
-};
 const onToggleKeydown = (event) => {
-    if (!props.expandable || isInteractiveEventTarget(event)) return;
+    if (!popupOpenable.value || isInteractiveEventTarget(event)) return;
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
-    togglePopup(event);
+    openPopup(event);
 };
-
-function closePopup() {
-    op.value?.hide?.();
-}
-
-onMounted(() => {
-    window.addEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closePopup);
-});
-
-onUnmounted(() => {
-    window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closePopup);
-});
 </script>

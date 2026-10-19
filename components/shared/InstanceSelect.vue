@@ -15,7 +15,6 @@
           :type="typeFor(option)"
           :entity="entityFor(option)"
           :fetch="false"
-          :allow-detail-route="false"
           :interactive="false"
           variant="compact"
         />
@@ -28,7 +27,6 @@
           :type="typeFor(selectedOptionRef)"
           :entity="selectedEntityRef"
           :fetch="false"
-          :allow-detail-route="false"
           :interactive="false"
           variant="compact"
         />
