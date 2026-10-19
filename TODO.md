@@ -136,6 +136,51 @@ Probe (repeatable): blank sketch folds to the half-plane (0..1e5),
 rect+circle folds to a tab past the axis with one punched hole,
 `material: 'negative'` flips the side. 133/133 in workers/facade.
 
+### Agent Notes (2026-10-19, round 5 — owner report: variables become values on the fly, helpers land in the cassette, garbage numbers)
+
+Root causes at model level, each reproduced as a failing spec before
+the fix:
+
+1. `mergeChainShape` passed two arguments to `mergeField`, so a
+   dragged chain vertex kept its stale authored value — the canvas
+   reseeded from the old model and the drag reverted; the
+   drag-edits-parameter law was unreachable for chain points.
+2. Rect identity in the merge compared (center, width, height,
+   rotation) tuples. Canonical extraction starts the ring at the
+   leftmost corner, whose first edge is the height edge past 45°, so a
+   rotated rect extracted as width↔height swapped with rotation ±90°;
+   the tuple compare failed, the authored shape dropped, and the
+   field-wise revive wrote the swap into the parameter table (W and H
+   traded values, rotation 30 went numeric −59.999…). A dropped
+   helper lost its construction op and returned as the draw default
+   `add` — every primitive then rode the booleans into the cassette.
+   That is the "every single thing goes to cassette" report; the
+   cut.inner dispatch itself was verified correct end-to-end (probe:
+   inner subtract → cut.inner, edge-breaking subtract → contour,
+   construction → nothing).
+3. Extraction carried float noise — circle diameter from an unrounded
+   radius, rect center from unrounded corner averages; live dialog
+   showed width 844.009 with center 280.06949999999995 on a blank
+   canvas booting at pixel scale.
+
+Fixes: extraction canonicalizes the rect (rotation kept in [−45°,
+45°) by swapping width/height past the quarter-turn; every extracted
+numeric rounds to 1e-3 mm); the merge matches by geometry identity —
+rect corner ring as a set, circle center plus diameter, chain per
+point — at a 0.05 mm drawing tolerance, and a matched shape keeps its
+id, op, expressions, and fillets whole; the chain point merge passes
+the evaluated authored value, so a moved vertex commits (bare
+parameter bindings take the value into the parameter, numerics carry
+the drawn value); the blank canvas opens zoomed to a 200×150 mm
+window with the axis in view, and Clear re-zooms it.
+
+Specs: 5 regressions added to occs/profiles.spec.js (rotated-rect
+roundtrip identity, construction-op survival, chain drag commit with
+parameter edit, dragged numerics, 1e-3 rounding); 140/140 in
+workers/facade. Live probe: e2e/zz-profile-facts.spec.js drives the
+real dialog (draw rect+circle, add parameter, bind a dim, drag,
+save).
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places
