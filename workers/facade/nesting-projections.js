@@ -79,9 +79,31 @@ export function enrichNestingResult(result = {}, request = {}) {
 }
 
 // The worker returns its placements under `solution.layouts` (lbf output);
-// the value boundary exposes them as the service's `layouts` half.
+// the value boundary exposes them as the service's `layouts` half, each
+// layout self-contained for sheet construction: `sourceItems` resolves its
+// placements to the request items (shape, source layers, cassette
+// provenance) and `sheetPolygon` carries its bin shape.
 export function nestingLayouts(result = {}) {
-  return result.solution?.layouts || result.layouts || [];
+  const layouts = result.solution?.layouts || result.layouts || [];
+  const itemsById = new Map((result.items || [])
+    .map(item => [item.id?.toString(), item])
+    .filter(([id]) => id !== undefined));
+  const binsById = new Map((result.bins || [])
+    .map(bin => [bin.id?.toString(), bin])
+    .filter(([id]) => id !== undefined));
+  return layouts.map(layout => {
+    const placements = layout.placed_items || layout.items || [];
+    const sourceItems = [...new Map(placements
+      .map(placed => itemsById.get(String(placed.item_id ?? placed.itemId ?? placed.id ?? '')))
+      .filter(Boolean)
+      .map(item => [item.id?.toString(), item])).values()];
+    const bin = binsById.get(String(layout.container_id ?? layout.bin_id ?? '')) || null;
+    return {
+      ...layout,
+      ...(sourceItems.length ? { sourceItems } : {}),
+      ...(bin?.shape?.data ? { sheetPolygon: bin.shape.data } : {})
+    };
+  });
 }
 
 export function summarizeNestingResult(result = {}, params = {}) {
