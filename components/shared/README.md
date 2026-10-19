@@ -464,8 +464,11 @@ relation galleries never lay out grids of empty cards for data without
 visual fields. That
 compact ref uses the compact surface contract directly: a real preview on the
 left when the entity has one, the same semantic inline chip for identity on the
-right, a read-only status badge beside identity, compact facts below, and the
-same expanded popover for trace/type/detail context. Icons stay with the
+right, a read-only status badge under identity, compact facts below, and the
+same expanded popover for trace/type/detail context. `compactLayout:
+'stacked'` (chat preview cards) swaps the row for a flush preview band over
+a one-line label strip whose small state tag rides beside the truncating
+identity. Icons stay with the
 identity chip and are not used as fake preview images. Generated card relation
 galleries use a bounded responsive grid instead of in-card horizontal
 scrolling; compact galleries show two refs and then an in-grid overflow tile so

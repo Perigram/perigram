@@ -15,6 +15,7 @@
         :value="labelOf(segment)"
         severity="secondary"
         class="min-w-0 shrink-0"
+        :pt="small ? smallPt : undefined"
       >
         <span class="min-w-0 truncate">{{ labelOf(segment) }}</span>
       </Tag>
@@ -23,6 +24,7 @@
       :severity="display.severity"
       :icon="display.icon || undefined"
       class="min-w-0"
+      :pt="small ? smallPt : undefined"
     >
       <span class="min-w-0 truncate">{{ display.label }}</span>
     </Tag>
@@ -45,8 +47,16 @@ import { stateDisplayFor, stateSegmentsOf } from '#shared/ui-mapping/index.js';
 const props = defineProps({
   value: { type: String, default: '' },
   // The region's per-type state policy map (contract.statePolicy[typeId]).
-  policy: { type: Object, default: null }
+  policy: { type: Object, default: null },
+  // Caption density (chat preview cards): per-instance pt sizing, the
+  // design system's channel for per-use chrome geometry.
+  small: { type: Boolean, default: false }
 });
+
+const smallPt = {
+  root: { style: { fontSize: '0.625rem', padding: '0.125rem 0.375rem', gap: '0.125rem' } },
+  icon: { style: { fontSize: '0.625rem' } }
+};
 
 const startCase = segment => String(segment).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const labelOf = segment => startCase(segment);

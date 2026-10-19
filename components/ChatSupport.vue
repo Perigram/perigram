@@ -717,6 +717,7 @@
                                         :refs="messageItem.instanceRefs || []"
                                         :viewer-user-id="currentUserId"
                                         :sender-user-id="messageItem.senderUserId || ''"
+                                        :own-message="isOwnMessage(messageItem)"
                                     />
                                     <!-- Media-only rows have no tappable bubble
                                          (the elements eat taps and long-presses

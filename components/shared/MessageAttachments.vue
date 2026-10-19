@@ -23,11 +23,10 @@
     <template v-else>
       <!-- Media attachments flow as one masonry: instance preview cards
            and image tiles mix; a lone media item renders full-width. -->
-      <!-- Masonry: independent column stacks (staggered heights), the
-           first column hugging the sender's edge. -->
+      <!-- Masonry: column stacks filling from the sender's edge. -->
       <span
         v-if="mediaItems.length > 1"
-        :class="['flex w-full max-w-80 gap-1', isOwnMessage ? 'flex-row-reverse' : '']"
+        :class="['flex w-full max-w-80 gap-1', ownMessage ? 'flex-row-reverse' : '']"
         data-testid="chat-attachment-gallery"
       >
         <span
@@ -190,6 +189,9 @@ const props = defineProps({
   // lose the detail route; everything else hydrates freely.
   viewerUserId: { type: String, default: '' },
   senderUserId: { type: String, default: '' },
+  // The thread's dock decision — the masonry's leading column follows
+  // the row's edge.
+  ownMessage: { type: Boolean, default: false },
   singleLine: { type: Boolean, default: false }
 });
 
@@ -232,16 +234,21 @@ const mediaItems = computed(() => [
   ...images.value.map(attachment => ({ kind: 'image', attachment }))
 ]);
 
-const isOwnMessage = computed(() => Boolean(
-  props.senderUserId && props.viewerUserId === props.senderUserId
-));
-
-// Round-robin column fill: heights stagger naturally, unlike balanced
-// multicol which pairs equal rows into a grid.
+// Column-major fill: the first items own the sender-side column (SPEC
+// §Chat files); row-reverse renders DOM column 0 at that edge for own
+// messages.
 const masonryColumns = computed(() => {
-  const columnCount = mediaItems.value.length >= 5 ? 3 : 2;
-  const columns = Array.from({ length: columnCount }, () => []);
-  mediaItems.value.forEach((item, index) => columns[index % columnCount].push(item));
+  const total = mediaItems.value.length;
+  const columnCount = total >= 5 ? 3 : 2;
+  const baseCount = Math.floor(total / columnCount);
+  const extra = total % columnCount;
+  const columns = [];
+  let cursor = 0;
+  for (let column = 0; column < columnCount; column++) {
+    const size = baseCount + (column < extra ? 1 : 0);
+    columns.push(mediaItems.value.slice(cursor, cursor + size));
+    cursor += size;
+  }
   return columns;
 });
 

@@ -357,7 +357,9 @@ the `artifact` entity and its overload die when chat/proof/capture/upload flows 
 ## Chat files
 
 Any file may be attached to chat messages. Images and videos preview inline
-(single items and their sets as galleries); audio keeps its native player.
+(single items and their sets as galleries); media galleries fill from the
+sender's edge, and a gallery placed above the message text fills from the
+bottom. Audio keeps its native player.
 Non-media attachments render as the same chip anatomy instance refs use —
 raw PrimeVue chips (type icon, cropped name, compact preset geometry) in
 a wrapping row. A chip click opens the file inside the app when a viewer
