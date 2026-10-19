@@ -665,10 +665,10 @@ export async function starterConstructsForOrganization(organizationId) {
 }
 
 // Service-resolved projections (SPEC §8 p extract): the platform reads
-// the target instance and its payload, and the plugin's endpoint-mode
-// service computes the projected value over them — pure compute over
-// values, the DXF-extraction shape; the service response is the
-// projection value.
+// the target instance, and the plugin's endpoint-mode service computes
+// the projected value over the instance's own values — its §3 fields and,
+// when it carries one, its payload as base64; the service response is
+// the projection value.
 export async function resolveProjectionValue({ organizationId, commandId, typeId, instanceId }) {
   const install = await installForCommand(commandId, organizationId);
   if (!install) {
@@ -683,11 +683,12 @@ export async function resolveProjectionValue({ organizationId, commandId, typeId
   if (!instance) throw createError({ statusCode: 400, message: `Instance ${instanceId} not found for projection` });
   const payloadRef = instance.payload || null;
   const fileId = payloadRef?.fileId || payloadRef?.id || null;
-  if (!fileId) throw createError({ statusCode: 400, message: `Instance ${instanceId} carries no payload` });
-  const buffer = await filesService.getFileBuffer(fileId, 'files');
+  const buffer = fileId ? await filesService.getFileBuffer(fileId, 'files') : null;
   return await callEndpointService(install, serviceId, {
     typeId: String(typeId),
-    payloadBase64: Buffer.from(buffer).toString('base64')
+    instanceId: String(instanceId),
+    fields: instance.fields || {},
+    ...(buffer ? { payloadBase64: Buffer.from(buffer).toString('base64') } : {})
   });
 }
 
@@ -968,7 +969,8 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
       previews: layer.previews
     },
     services: layer.services,
-    requires: layer.requires
+    requires: layer.requires,
+    endpoints: upgradedEndpointsFor(install, layer.services)
   });
 
   // Covered breaking changes execute against live instances (SPEC §11
@@ -1013,6 +1015,20 @@ async function loadUpgradePair(organizationId, pluginId) {
   const types = listing.declarations?.types || [];
   if (!types.length) throw createError({ statusCode: 400, message: 'Plugin declares no types' });
   return { install, listing };
+}
+
+// Upgrades inherit connection settings: a newly declared endpoint-mode
+// service derives its URL from the origin the install already
+// configured for the plugin's other services.
+function upgradedEndpointsFor(install, services = []) {
+  const endpoints = { ...(install.endpoints || {}) };
+  const origin = Object.values(endpoints)[0]?.replace(/\/[^/]+$/, '') || null;
+  for (const service of services) {
+    if (serviceModeOf(service) === 'endpoint' && !endpoints[service.id] && origin) {
+      endpoints[service.id] = `${origin}/${service.id}`;
+    }
+  }
+  return endpoints;
 }
 
 // The diff before the apply: additions, removals (drain-gated), and

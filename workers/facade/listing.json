@@ -246,7 +246,7 @@
         "projections": [
           {
             "id": "nesting-polygons",
-            "label": "Nesting polygons",
+            "label": "Nesting parts",
             "group": "facade",
             "output": {
               "base": "list",
@@ -268,12 +268,19 @@
                         }
                       }
                     }
+                  },
+                  "sourceLayers": {
+                    "base": "list",
+                    "nullable": true,
+                    "itemType": {
+                      "base": "json"
+                    }
                   }
                 }
               }
             },
             "resolve": {
-              "field": "fields.geometry.nestingPolygons"
+              "service": "plugin.facade.nesting-parts"
             }
           }
         ]
@@ -440,6 +447,13 @@
                                 }
                               }
                             }
+                          },
+                          "sourceLayers": {
+                            "base": "list",
+                            "nullable": true,
+                            "itemType": {
+                              "base": "json"
+                            }
                           }
                         }
                       }
@@ -533,6 +547,19 @@
       {
         "id": "construct-sheet",
         "label": "Construct sheet design",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "nesting-parts",
+        "label": "Nesting parts projection",
         "mode": "endpoint",
         "signature": {
           "input": {

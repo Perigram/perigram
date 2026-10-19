@@ -24,6 +24,19 @@ export function buildValueWorkerRequest(jobFiles, params = {}) {
   };
 }
 
+// The nesting-parts projection (SPEC §8 p, service-resolved): each nesting
+// polygon part rides with its own workpiece layers, so a solve's source
+// items carry what the sheet composition transforms — parts and layers
+// join by workpieceId.
+export function nestingPartsProjection(geometry = null) {
+  const parts = Array.isArray(geometry?.nestingPolygons) ? geometry.nestingPolygons : [];
+  const layerData = Array.isArray(geometry?.layerData) ? geometry.layerData : [];
+  return parts.map(part => ({
+    ...part,
+    sourceLayers: sourceLayersForPart(layerData, part)
+  }));
+}
+
 export function enrichNestingResult(result = {}, request = {}) {
   const params = request.params || {};
   const width = Number(params.width || 1220);
@@ -143,7 +156,9 @@ function buildNestingItems(jobFiles = []) {
           cassette_id: String(file.cassetteId ?? ''),
           coords,
           handles: part.handles || [],
-          sourceLayers: sourceLayersForPart(layerData, part),
+          sourceLayers: part.sourceLayers?.length
+            ? part.sourceLayers
+            : sourceLayersForPart(layerData, part),
           count
         });
         id += 1;
