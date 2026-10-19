@@ -190,7 +190,7 @@ export const edgeArrayDistances = ({ edgeLength = 0, pattern = {}, startOffset =
   return normalizedBinding === 'end' ? distances.reverse() : distances;
 };
 
-export const expandOccsEdgeArray2d = ({ vertices = [], pattern = {}, origin = [0, 0], binding = 'start', resolve = numeric } = {}) => {
+export const expandOccsEdgeArray2d = ({ vertices = [], pattern = {}, origin = [0, 0], binding = 'start', copyLength = 0, resolve = numeric } = {}) => {
   const points = withoutClosingVertex(vertices).map(normalizePoint);
   if (points.length < 2) return [];
   const match = String(pattern.edge || 'E0').match(/\d+/);
@@ -205,7 +205,7 @@ export const expandOccsEdgeArray2d = ({ vertices = [], pattern = {}, origin = [0
   const normal = normalize2([-axis[1], axis[0]], [0, 1]);
   const startOffset = Math.max(0, resolve(origin?.[0], 0));
   const normalOffset = resolve(origin?.[1], 0);
-  const distances = edgeArrayDistances({ edgeLength, pattern, startOffset, binding, resolve });
+  const distances = edgeArrayDistances({ edgeLength, pattern, startOffset, binding, copyLength, resolve });
 
   return distances.map((along, index) => {
     return {
