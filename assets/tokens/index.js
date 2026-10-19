@@ -660,10 +660,11 @@ export const primeFormFluidPT = {
     treeselect: { root: { class: 'p-treeselect-fluid' } }
 };
 
-// Scrollable tab strips pad their viewport by the nav-button width, so
-// the prev/next chevrons sit over the gutter and cover no tab.
+// Scrollable tab strips scroll their tabs clear of the overlay chevrons:
+// scroll-padding (layout-neutral) keeps PrimeVue's overflow math honest —
+// real padding would flip strips into scroll mode while tabs still fit.
 export const primeTabsStripPT = {
     tablist: {
-        content: { style: { paddingInline: 'var(--p-tabs-nav-button-width)' } }
+        content: { style: { scrollPaddingInline: 'var(--p-tabs-nav-button-width)' } }
     }
 };
