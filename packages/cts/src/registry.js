@@ -125,10 +125,12 @@ export function normalizeType(declaration = {}) {
   // the card/detail preview") adopts into the normalized record as
   // `{ path, display }`, so generators can render declared previews even
   // before a payload exists. Adopt-and-delete: the raw groups never ride
-  // the compiled record.
+  // the compiled record. Stored normalized records carry `previewSource`
+  // directly, so a recompile keeps it.
   const previewSourceRow = (legacyRender.groups || [])
     .flatMap(group => group.fields || [])
-    .find(field => field?.role === 'previewSource' && field?.path);
+    .find(field => field?.role === 'previewSource' && field?.path)
+    || declaration.previewSource;
 
   const type = {
     id: declaration.id,
@@ -145,7 +147,7 @@ export function normalizeType(declaration = {}) {
     // any bounded embed). Absent declaration strips heavy keys — a
     // snapshot is a preview, never a copy.
     ...(declaration.snapshot ? { snapshot: normalizeSnapshot(declaration.snapshot) } : {}),
-    ...(previewSourceRow ? { previewSource: Object.freeze({
+    ...(previewSourceRow?.path ? { previewSource: Object.freeze({
       path: wireRowPath(previewSourceRow.path),
       display: previewSourceRow.display || 'geometry',
       // Stored-shape fallbacks: the preview channel resolves the first

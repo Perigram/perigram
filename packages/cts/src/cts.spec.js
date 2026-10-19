@@ -620,6 +620,15 @@ describe('display policy (SPEC §4/§7)', () => {
     expect(normalizeType({ id: 'engineer-thing', class: 'file', fields: {} }).name).toBe('Engineer Thing');
   });
 
+  it('keeps a normalized preview declaration across a recompile', () => {
+    const declared = normalizeType({
+      id: 'previewed-widget', class: 'file', fields: { name: { base: 'string' } },
+      render: { groups: [{ id: 'geometry', fields: [{ path: 'fields.geometry.preview', role: 'previewSource', display: 'geometry' }] }] }
+    });
+    expect(declared.previewSource).toEqual({ path: 'fields.geometry.preview', display: 'geometry' });
+    expect(normalizeType(declared).previewSource).toEqual(declared.previewSource);
+  });
+
   it('enforces the display-flag laws at compile', () => {
     const registry = createTypeRegistry({ id: 'render-flag-spec' });
     registry.defineType({
