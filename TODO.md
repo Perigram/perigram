@@ -7440,3 +7440,6 @@ counterpart's, with the group-style sender indicator.
   mark is `UserChip` `avatar-only` (h-9) seated in a left gutter
   (`ml-14`) at the run's last message bottom, the narrow chip lead
   unchanged.
+- Gutter gap tightened (`ml-12`); the avatar anchors inside a content
+  zone that ends at the last message content (bubble/attachments), so
+  the trailing timestamp caption sits below the anchor.

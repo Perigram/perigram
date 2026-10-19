@@ -422,7 +422,8 @@ consecutive messages sit close together. A message row caps at 70% of the
 thread column. Narrow thread panes dock the viewer's own messages right
 and the counterpart's left; panes 64rem and wider align every message
 left, the viewer's included, and each sender run closes with an
-avatar-only sender mark in the left gutter beside its last message (owner
+avatar-only sender mark in the left gutter, aligned with the last
+message's content bottom (owner
 direction 2026-10-19). Group chats and instance chats
 (the organization chat included) show the sender on others' messages as
 avatar plus display name (resolved names, never
