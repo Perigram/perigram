@@ -110,6 +110,32 @@ end (authored expressions → canvas move → merge keeps bindings,
 parameter takes the value, re-evaluation lands on the dragged
 geometry).
 
+### Agent Notes (2026-10-19, round 4 — owner report: face hatch gone, strip degenerate, selection invisible)
+
+Owner report: "where is global face hatch now?", "primitives settings
+in most degenerative way lying on top of a panel", "how do I see what
+is selected and which state does it have". Round-3's section-only
+preview and SelectButton wall were both wrong; fixed:
+
+1. The global face hatch is back: the editor folds the profile's ops
+   against the material half (`material` field, toggle, and locale key
+   restored — round 3 over-deleted them), so a blank session hatches
+   the half, adds extend it past the axis, subtracts punch it empty.
+   Primitives stay bare engine lines beneath the hatch — hatch plus
+   strong outline are what goes to the cassette.
+2. The shape strip is one compact chip per shape: kind icon plus an op
+   state glyph (`+` primary / `−` red / `·` muted) — state reads at a
+   glance, no wall of segmented buttons. Chip click selects and opens
+   the popup at a fixed anchor; op glyph click cycles
+   add→subtract→construction.
+3. Selection is visible twice: the chip highlights, and the selected
+   shape's own footprint strokes dashed primary on the canvas (rects,
+   circles, chains).
+
+Probe (repeatable): blank sketch folds to the half-plane (0..1e5),
+rect+circle folds to a tab past the axis with one punched hole,
+`material: 'negative'` flips the side. 133/133 in workers/facade.
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places

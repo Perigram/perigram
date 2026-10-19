@@ -577,7 +577,8 @@
                     "clear": "Clear canvas",
                     "ortho": "Ortho",
                     "tangentSnap": "Tangent snap",
-                    "commandLine": "Command line"
+                    "commandLine": "Command line",
+                    "material": "Material side"
                 },
                 "kind": "Kind",
                 "process": "Process",
