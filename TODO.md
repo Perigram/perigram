@@ -7315,7 +7315,7 @@ text fills from the bottom).
       messages stack their first items at the docked edge with
       continuation flowing outward; the stacked preview card's caption is
       one line with the small state tag beside the name; preview-less
-      refs ride the masonry as compact chips.
+      refs and file chips inline-wrap to lines at the sender edge.
 
 ### Agent Notes (2026-10-19 — chat attachment follow-ups)
 
@@ -7335,8 +7335,7 @@ text fills from the bottom).
 
 ### Agent Notes (2026-10-19 — sender-edge attachment arrangement)
 
-- Previewless refs ride the masonry in send order as compact chips; the
-  separate chip row is gone. Items alternate across columns from the
-  sender edge, each column's earliest item at its base; chips keep
-  compact width hugging the sender edge inside their cells, and the
-  family aligns content-width children with the dock edge.
+- Cards and chips arrange separately: media (preview cards, image tiles)
+  fills the masonry column-major from the sender edge; chips — preview-less
+  refs and file documents — inline-wrap to lines at the sender edge,
+  keeping compact width.
