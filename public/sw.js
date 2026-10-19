@@ -1,5 +1,11 @@
 const STATIC_CACHE = 'perigram-static-v5'
 const RUNTIME_CACHE = 'perigram-runtime-v1'
+// Offline launch fallback chain key: holds the URL of the last
+// navigation document that entered the runtime cache. Authenticated
+// visits to `/` are SSR redirects (opaque-redirect responses are
+// uncacheable), so an installed-PWA launch offline finds neither the
+// requested route nor `/` — the marker is the shell it falls back to.
+const SHELL_MARKER = '/__perigram-shell'
 // Caching contract lives in the root README (PWA section): static
 // decoration is cache-first; navigations, /_nuxt/ chunks, and GET /api/**
 // reads are network-first with offline cache fallback. The /api/connections
@@ -61,7 +67,7 @@ function cachePut(cacheName, event, response) {
     // the full request would corrupt the offline fallback regardless.
     if (!response || !response.ok || response.status === 206 || response.type !== 'basic') return Promise.resolve()
     const copy = response.clone()
-    return caches.open(cacheName).then((cache) => cache.put(event.request, copy))
+    return caches.open(cacheName).then((cache) => cache.put(event.request, copy).then(() => true))
 }
 
 // Fresh while online, last-known while offline; a never-cached URL that
@@ -76,6 +82,24 @@ function networkFirst(event) {
             .catch(() => caches.match(event.request).then((cached) => cached
                 || Promise.reject(new Error('offline and not cached'))))
     )
+}
+
+async function cacheShell(event, response) {
+    if (!(await cachePut(RUNTIME_CACHE, event, response))) return
+    const cache = await caches.open(RUNTIME_CACHE)
+    await cache.put(SHELL_MARKER, new Response(event.request.url))
+}
+
+async function offlineNavigation(event) {
+    const cache = await caches.open(RUNTIME_CACHE)
+    return (await cache.match(event.request))
+        || (await cache.match('/'))
+        || (await shellFromMarker(cache))
+}
+
+async function shellFromMarker(cache) {
+    const marker = await cache.match(SHELL_MARKER)
+    return marker ? cache.match(await marker.text()) : undefined
 }
 
 self.addEventListener('fetch', (event) => {
@@ -100,11 +124,10 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             fetch(event.request)
                 .then((response) => {
-                    event.waitUntil(cachePut(RUNTIME_CACHE, event, response))
+                    event.waitUntil(cacheShell(event, response))
                     return response
                 })
-                .catch(() => caches.match(event.request)
-                    .then((cached) => cached || caches.match('/')))
+                .catch(() => offlineNavigation(event))
         )
     }
 })
