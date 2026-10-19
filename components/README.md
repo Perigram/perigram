@@ -209,9 +209,9 @@ are defined once, never pasted into hosts (a host pasting its own
 header row is a defect even when visually identical). No control
 overflows or clips against the stripe's edges.
 Overflow stays wheel/touchpad-scrollable while native scrollbar chrome remains
-hidden, and the viewport's side padding (the global tabs strip pt in
-`assets/tokens/index.js`, sized by `--p-tabs-nav-button-width`) keeps the
-scroll chevrons off the tabs.
+hidden; the viewport's scroll-padding (the global tabs strip pt in
+`assets/tokens/index.js`, sized by `--p-tabs-nav-button-width`) lands scrolled
+tabs clear of the chevrons.
 Pane split/close commands live in a pane-level ellipsis menu. Generated entity
 actions not already owned by an operational editor belong to the active tab body
 below the tab strip. Action presentation has one concern-based owner: collection

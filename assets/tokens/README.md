@@ -36,9 +36,10 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   the `primevue` cascade layer), and buttons are excluded — fluid buttons
   stretch, and only a `Fluid` wrapper region opts actions into that.
 - `index.js` also exports `primeTabsStripPT`, the global passthrough that
-  pads every scrollable tab strip's viewport by the nav-button width
-  (`--p-tabs-nav-button-width`), so the prev/next chevrons sit over the
-  gutter and cover no tab.
+  gives every scrollable tab strip's viewport `scroll-padding-inline` equal
+  to the nav-button width (`--p-tabs-nav-button-width`), so scrolled tabs
+  land clear of the prev/next chevrons. Scroll-padding is layout-neutral:
+  real padding would flip strips into scroll mode while tabs still fit.
 - Nuxt emits the exported `cssVariableTokens` and `darkCssVariableTokens`
   directly. `assets/css/main.css` consumes those variables but must not
   duplicate their values or bridge PrimeVue `--p-*` variables.

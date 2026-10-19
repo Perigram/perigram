@@ -298,8 +298,10 @@ provide('displayedEntityContexts', computed(() => []));
 // submenu scaffold is a track-less grid whose items grow to content
 // width, so its column takes minmax(0,1fr) before a label can crop.
 const menuPt = {
-  headerLabel: { class: 'min-w-0 flex-1 truncate', style: { lineHeight: '1' } },
-  itemLabel: { class: 'min-w-0 flex-1 truncate' },
+  // Labels carry the muted tone directly: PanelMenu colors the content
+  // wrappers, so inherited per-item classes never reach the text.
+  headerLabel: { class: 'min-w-0 flex-1 truncate text-muted', style: { lineHeight: '1' } },
+  itemLabel: { class: 'min-w-0 flex-1 truncate text-muted' },
   contentContainer: { class: 'grid-cols-1' }
 };
 
@@ -612,9 +614,7 @@ function typePanelItem(node) {
     id: `home-type-${node.data.typeId}`,
     label: node.label,
     // Class names carry no icon: the glyph is the instance signal, so a
-    // type panel never reads as one of its own rows. Headers ride the
-    // same muted text as rows; hover restores the readable color.
-    headerClass: 'text-muted',
+    // type panel never reads as one of its own rows.
     typeId: node.data.typeId,
     command: menuCommand(node.key, () => openTypeScreen(node.data.screen)),
     items: (node.children || []).map(child => (
@@ -631,14 +631,14 @@ const pendingChildrenItem = Object.freeze({ visible: false });
 
 function entityPanelItem(node) {
   const instanceIdValue = instanceId(node.data.item.entity);
-  // Rows mute unless THEIR instance is open — opening the type screen
-  // never unmutes the whole list.
+  // The selected row carries the chrome-subtle surface; text stays at
+  // the menu's muted tone.
   const selected = selectedMenuKeys.value.has(`${node.data.item.type}:${instanceIdValue}`);
   return {
     key: node.key,
     icon: instances.iconFor(node.data.item.type),
     label: instanceLabelOf(node.data.item.type, instanceIdValue),
-    class: selected ? 'rounded-ui bg-[var(--ck-chrome-subtle)]' : 'text-muted',
+    class: selected ? 'rounded-ui bg-[var(--ck-chrome-subtle)]' : undefined,
     workspaceItem: node.data.item,
     command: menuCommand(node.key, () => openInstanceTab(node.data.item.type, instanceIdValue)),
     items: node.children?.length
@@ -664,14 +664,13 @@ function communicationPanelModels() {
       key: 'communication:chats',
       label: t('support.chatTitle'),
       icon: 'pi pi-comments',
-      headerClass: chatsSelected ? 'rounded-ui bg-[var(--ck-chrome-subtle)]' : 'text-muted',
+      headerClass: chatsSelected ? 'rounded-ui bg-[var(--ck-chrome-subtle)]' : undefined,
       command: menuCommand('communication:chats', () => openChatsPage())
     },
     {
       key: 'communication:calls',
       label: t('call.calls'),
       icon: 'pi pi-phone',
-      headerClass: 'text-muted',
       command: menuCommand('communication:calls', ({ originalEvent }) => callsFlyout.value?.toggle(originalEvent)),
       ...(rooms.length ? { items: rooms } : {})
     }
