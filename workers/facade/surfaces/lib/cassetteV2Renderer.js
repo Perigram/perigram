@@ -2387,7 +2387,7 @@ const relationProfileWorkpiece = (tree, relation) => (
   tree.workpieces.find(workpiece => workpiece.id === relation.sourceWorkpieceId && isCassetteV2ProfileWorkpiece(workpiece)) || null
 );
 
-const hardwarePointsForRelation = (curve, relation, parameters = {}) => {
+const hardwarePointsForRelation = (curve, relation, parameters = {}, copyLength = 0) => {
   const vertices = rawFaceVertices(curve);
   if (relation.pattern?.type === 'edgeArray') {
     return expandOccsEdgeArray2d({
@@ -2395,6 +2395,7 @@ const hardwarePointsForRelation = (curve, relation, parameters = {}) => {
       pattern: relation.pattern,
       origin: [relation.offsetX, relation.offsetY],
       binding: relation.targetSnap,
+      copyLength,
       resolve: (value, fallback = 0) => resolveCassetteV2Expression(value, parameters, fallback)
     }).map(point => [point.x, point.y, 0]);
   }
@@ -2667,7 +2668,17 @@ export const profileCutEntitiesForTree = async (curves = [], tree = createCasset
     const open = profile.section?.open || profile.section?.type === 'polyline';
     if (open) continue; // open profiles consume the edge through the contour embedding
     const face = targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices;
-    const points = hardwarePointsForRelation(targetCurve, relation, parameters);
+    // Array spacing is the gap between adjacent copies' footprints:
+    // the pitch each copy consumes is its own extent along the edge
+    // (the section's local Y span — the axis law maps +Y onto the
+    // edge) plus the authored spacing, so zero butts copies together.
+    const sectionOperations = resolveOccsProfileSectionOperations(profile.section || {});
+    const sectionYs = (sectionOperations || [])
+      .flatMap(operation => operation.polygons)
+      .flatMap(ring => ring.map(vertex => Number(vertex?.[1])))
+      .filter(Number.isFinite);
+    const edgeExtent = sectionYs.length ? Math.max(...sectionYs) - Math.min(...sectionYs) : 0;
+    const points = hardwarePointsForRelation(targetCurve, relation, parameters, edgeExtent);
     for (let index = 0; index < points.length; index += 1) {
       const operations = await profileOperationPolygons(profile, points[index], relation, targetCurve, parameters);
       if (!operations) continue;

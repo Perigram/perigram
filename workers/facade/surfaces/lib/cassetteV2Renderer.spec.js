@@ -1429,6 +1429,40 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(folded.cutouts.filter(cutout => cutout.layer === 'cut.inner')).toHaveLength(1);
   });
 
+  it('butts profile array copies at zero spacing — pitch carries the copy extent', async () => {
+    // A subtract circle d10 (extent 10 along the edge) arrayed with
+    // spacing 0: adjacent anchors sit 10 apart, cuts touching —
+    // never stacked on one point.
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      sketch: {
+        version: '0.2', units: 'mm', parameters: {}, material: 'positive',
+        shapes: [{ id: 's0', type: 'circle', op: 'subtract', center: [5, 0], diameter: 10 }]
+      }
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    const tree = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      pattern: { type: 'edgeArray', edge: 'E0', mode: 'spacing', spacing: '0' },
+      targetSnap: 'start', offsetX: '0', offsetY: '0'
+    });
+    const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
+    const inner = drawing.layers.find(layer => layer.standardCode === 'cut.inner');
+    const spans = (inner?.paths || []).map(path => {
+      const pts = (path.d.match(/-?[\d.]+ -?[\d.]+/g) || []).map(s => s.split(' ').map(Number));
+      const xs = pts.map(point => point[0]);
+      return [Math.min(...xs), Math.max(...xs)];
+    }).sort((left, right) => left[0] - right[0]);
+    expect(spans.length).toBeGreaterThan(10);
+    for (let index = 1; index < spans.length; index += 1) {
+      const gap = spans[index][0] - spans[index - 1][1];
+      expect(gap).toBeGreaterThanOrEqual(-0.05);
+      expect(gap).toBeLessThan(0.5);
+    }
+    const pitch = spans[1][0] - spans[0][0];
+    expect(pitch).toBeCloseTo(10, 0);
+  });
+
   it('keeps inner cuts inside the face — straddling corner material carries no cut path', async () => {
     // The template on E1 from its start snap centers the profile on
     // the corner; the hole lands in material hanging past the face
