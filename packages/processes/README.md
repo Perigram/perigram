@@ -461,8 +461,9 @@ offers a transition the runtime would refuse. The compiled construction
 contract is the create form: only create actions carry it — a delete or
 transition hydrating the type's default contract would open the create
 dialog for a non-create action. Action captions derive from the action
-kind and the target type's authored name (`Delete <Type>`); a raw
-node-kind echo (`cts.remove`) is machinery vocabulary, never a caption. A producer whose type carries none of these
+kind and the target type's authored name (`Delete <Type>`); a raw node-kind echo (`cts.remove`) is machinery vocabulary, never a caption, and
+a run action names the service's declared render label (`Run Nesting
+solver`), never its command id. A producer whose type carries none of these
 compiles NO machine: instances of such types are stateless, creation writes
 no status, and the status runtime refuses transitions for them. No
 synthesized CREATED lifecycle exists — a state nobody declared is not
