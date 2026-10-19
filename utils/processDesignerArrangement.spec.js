@@ -85,39 +85,32 @@ describe('arrangeProcessGraph', () => {
     }
   });
 
-  it('caps a lane at its tallest cell stack', () => {
-    // Five declarations share one column cell; rows pitch to their own
-    // tallest card (96 + gap), so the lane never exceeds that stack.
+  it('levels a wired chain onto shared rows', () => {
+    // The authored rows are far apart; the row sweep lands the chain on
+    // one level, and a rerun over its own output moves nothing.
     const nodes = [
-      declarationNode('card', 'ctsType', -60, 1900),
-      processNode('eff', 300, 1900),
-      declarationNode('clsA', 'ctsClass', -60, 1970),
-      declarationNode('fldA', 'ctsField', -60, 2040),
-      declarationNode('clsB', 'ctsClass', -60, 2110),
-      declarationNode('fldB', 'ctsField', -60, 2250)
+      processNode('a', 0, 0),
+      processNode('b', 0, 600),
+      processNode('c', 0, 1200)
     ];
     const edges = [
-      { source: 'card', target: 'eff', role: 'type', label: 'type' },
-      { source: 'fldA', target: 'clsA', role: 'type', label: 'field' },
-      { source: 'fldB', target: 'clsB', role: 'type', label: 'field' },
-      { source: 'card', target: 'clsA', role: 'type', label: 'children' }
+      { source: 'a', target: 'b', role: 'control' },
+      { source: 'b', target: 'c', role: 'control' }
     ];
-    const result = arrangeFull({
+    const input = {
       nodes,
       edges,
-      effects: ['eff'],
-      bands: [BAND_A, BAND_B, BAND_C],
-      bandOfNodeId: new Map([['eff', BAND_C]])
+      effects: ['a', 'b', 'c'],
+      bandOfNodeId: new Map([['a', BAND_A], ['b', BAND_A], ['c', BAND_A]])
+    };
+    const result = arrange(input);
+    expect(result.get('a').y).toBe(result.get('b').y);
+    expect(result.get('b').y).toBe(result.get('c').y);
+    const rerun = arrange({
+      ...input,
+      nodes: nodes.map(node => ({ ...node, position: result.get(node.id) }))
     });
-    expect(result.bands[2].height).toBeLessThanOrEqual(24 + 4 * (96 + 16) + 96 + 24);
-    const again = arrangeFull({
-      nodes: nodes.map(node => ({ ...node, position: result.positions.get(node.id) })),
-      edges,
-      effects: ['eff'],
-      bands: result.bands,
-      bandOfNodeId: new Map([['eff', result.bands[2]]])
-    });
-    expect([...again.positions.entries()]).toEqual([...result.positions.entries()]);
+    expect([...rerun]).toEqual([...result]);
   });
 
   it('keeps flow direction: every acyclic flow edge reads left-to-right', () => {
@@ -228,9 +221,9 @@ describe('arrangeProcessGraph', () => {
     expect(result.has('stray')).toBe(false);
   });
 
-  it('barycenter ordering untangles a crossing two-lane chain', () => {
+  it('untangles a crossing two-column chain', () => {
     // Authored rows deliberately cross: a1 below a2 wires up while a2
-    // wires down. After tidy the per-band orders must agree in sign.
+    // wires down. Tidy lands each wire level on its own row.
     const nodes = [
       processNode('a1', 0, 500), processNode('a2', 0, 0),
       processNode('b1', 0, 0), processNode('b2', 0, 500)
@@ -242,13 +235,13 @@ describe('arrangeProcessGraph', () => {
         { source: 'a2', target: 'b2', role: 'control' }
       ],
       effects: ['a1', 'a2', 'b1', 'b2'],
-      bandOfNodeId: new Map([['a1', BAND_A], ['a2', BAND_A], ['b1', BAND_B], ['b2', BAND_B]])
+      bandOfNodeId: new Map([
+        ['a1', BAND_A], ['a2', BAND_A], ['b1', BAND_A], ['b2', BAND_A]
+      ])
     });
-    const signA = Math.sign(result.get('a1').y - result.get('a2').y);
-    const signB = Math.sign(result.get('b1').y - result.get('b2').y);
-    // The two wires cross iff the per-band orders disagree; equal orders
-    // (including both level) is the untangled arrangement.
-    expect(signA).toBe(signB);
+    expect(result.get('a1').y).toBe(result.get('b1').y);
+    expect(result.get('a2').y).toBe(result.get('b2').y);
+    expect(result.get('a1').y).not.toBe(result.get('a2').y);
   });
 
   it('pulls a pred-less source up to its first consumer\'s column', () => {
@@ -452,11 +445,13 @@ describe('arrangeProcessGraph', () => {
     });
     const eff = result.get('eff');
     for (const id of ['cls', 'fld']) {
-      const point = result.get(id);
-      expect(point.x).toBeLessThan(eff.x);
-      expect(Math.abs(point.y - eff.y)).toBeLessThanOrEqual(140);
+      expect(result.get(id).x).toBeLessThan(eff.x);
     }
     expect(result.get('cls').x).toBe(result.get('fld').x);
+    // The cluster rides its anchor: the class is level with the effect,
+    // the field the next row down.
+    expect(result.get('cls').y).toBe(eff.y);
+    expect(result.get('fld').y - result.get('cls').y).toBe(140 + 16);
   });
 
   it('seats a declaration island inside a lane on the column grid', () => {
@@ -558,7 +553,7 @@ describe('arrangeProcessGraph', () => {
       effects: ['a1', 'a2', 'm1', 'm2', 'b1', 'b2'],
       bandOfNodeId: new Map([
         ['a1', BAND_A], ['a2', BAND_A], ['m1', BAND_A], ['m2', BAND_A],
-        ['b1', BAND_B], ['b2', BAND_B]
+        ['b1', BAND_A], ['b2', BAND_A]
       ])
     };
     const result = arrange(input);
