@@ -919,6 +919,13 @@ hatch IS the drawn figure (adds union, subtracts cut, holes empty),
 never a host-face stand-in; the material-half model is retired. The
 editor, the production entity stream, and the nesting evaluation ride
 the same region fold.
+Owner direction (2026-10-19, authoring): a dragged shape keeps its
+parameter bindings — a moved field bound to a bare parameter edits that
+parameter, compound expressions and numerics carry the drawn value.
+Every shape lists in a strip with its kind and its
+Add/Subtract/Construction op — the boolean control sits beside the
+expression table, never behind a canvas popup hunt. A sketch that only
+cuts draws its cut rings as bare outlines.
 
 Owner review (2026-10-18, profile editor readout): the parameter table
 lives in the strip above the canvas — its one home, visible with no

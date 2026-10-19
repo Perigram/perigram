@@ -82,6 +82,34 @@ level (identical section for reversed shape lists) and end-to-end
 through the production drawing (identical hole ring for both orders);
 template section resolves as one visible 42×28 figure with the D hole.
 
+### Agent Notes (2026-10-19, round 3 — owner report: dims serialized, hatch gone, popups random)
+
+Owner report: "dims get serialized to values", "global face hatch
+disappeared", "still no way to properly control booleans", "popups
+with shape settings appear randomly". Four fixes:
+
+1. Merge law: a moved field bound to a bare parameter now edits that
+   parameter (the dimension is that parameter's editor) instead of
+   collapsing to a number — drags keep bindings; centers join the
+   field-wise revive (they were always numeric before); chain points
+   get the same fallback through the authored point at their index.
+   Compound expressions still carry the drawn value (not invertible).
+2. The section hatch filled `[...polygons, ...holes]` — a cut-only
+   sketch hatched its hole rings (inverted) and any empty resolution
+   blanked the canvas. The hatch now fills only when polygons exist;
+   cut-only sketches draw bare cut-ring outlines.
+3. The shape strip: every shape renders beside the fx row with its
+   kind icon and its Add/Subtract/Construction control — boolean
+   control is visible and deterministic, the canvas pick highlights
+   the row, and the popup demotes to rotation/fillets detail.
+4. `resultClipped` told the owner to flip a material-side toggle that
+   no longer exists; the message now states the actual condition.
+
+Spec: 133/133 in workers/facade; the drag round-trip is pinned end to
+end (authored expressions → canvas move → merge keeps bindings,
+parameter takes the value, re-evaluation lands on the dragged
+geometry).
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places

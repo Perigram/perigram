@@ -99,7 +99,10 @@ modules — no platform imports.
   line terminates in arrowheads. Concentric primitives bound to the
   same position expression render one dim for it; divergent
   expressions each keep their own. The sketch's expression table lives in the parameter
-  strip above the canvas (the `fx` row — its one home); a selected
+  strip above the canvas (the `fx` row — its one home); the shape strip
+  beside it carries every shape as a row with its kind and its
+  Add/Subtract/Construction op — the one home of boolean control, the
+  canvas pick highlighting its row; a selected
   primitive's popup carries its construction toggle, rotation, and
   fillet radii as one compact panel (header, then a single field
   row), and opens on
@@ -152,8 +155,10 @@ modules — no platform imports.
   evaluated position keeps the authored id, construction, expressions, and
   fillets (chains match per point within a rounding epsilon), so
   drawing, importing, or undoing never destroys parametric authoring;
-  moved or
-  new geometry goes numeric, authored shapes with no extracted
+  a moved field keeps its authored expression when it names a
+  parameter — the drag edits that parameter (the dimension is that
+  parameter's editor) — while compound expressions and numerics carry
+  the extracted value. Authored shapes with no extracted
   counterpart were erased and drop, and an authored sketch whose
   expressions do not resolve falls back to the plain extraction. A
   fourth argument offers dropped authored shapes back as adoption

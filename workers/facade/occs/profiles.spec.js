@@ -350,17 +350,59 @@ describe('OCCS profile helpers', () => {
     expect(circle).toMatchObject({ center: ['D', 10], diameter: 8 });
     expect(rect).toMatchObject({ id: 'r1', width: 'W' });
 
-    // A moved circle matches nothing authored: numeric, fresh op.
+    // A moved circle matches nothing authored by position: its
+    // parameter-bound field keeps the binding and the drag edits the
+    // parameter; unbound fields go numeric.
     const moved = occProfileSketchFromEntities([
       { type: 'CIRCLE', center: { x: 50, y: 50 }, radius: 3 }
     ], {});
     const mergedMoved = mergeOccsProfileSketchGeometry(moved, authored);
-    expect(mergedMoved.shapes[0]).toMatchObject({ center: [50, 50], diameter: 6 });
+    expect(mergedMoved.shapes[0]).toMatchObject({ center: ['D', 50], diameter: 6 });
+    expect(mergedMoved.parameters).toMatchObject({ D: 50, W: 30 });
 
     // Erased authored shapes drop.
     const empty = occProfileSketchFromEntities([], {});
     const mergedEmpty = mergeOccsProfileSketchGeometry(empty, authored);
     expect(mergedEmpty.shapes).toHaveLength(0);
+  });
+
+  it('keeps parameter bindings through a drag — the moved value lands in the parameter', () => {
+    const authored = normalizeOccsProfileSketch({
+      parameters: { W: 40, H: 20 },
+      shapes: [{
+        id: 's0', type: 'rect', op: 'add',
+        center: ['W/2', 'H/2'], width: 'W', height: 'H', rotation: 0, fillets: []
+      }]
+    });
+    // The canvas move: same rect dragged to a new center, sizes intact.
+    const moved = occProfileSketchFromEntities([
+      { type: 'LINE', start: { x: 25, y: 25 }, end: { x: 65, y: 25 } },
+      { type: 'LINE', start: { x: 65, y: 25 }, end: { x: 65, y: 45 } },
+      { type: 'LINE', start: { x: 65, y: 45 }, end: { x: 25, y: 45 } },
+      { type: 'LINE', start: { x: 25, y: 45 }, end: { x: 25, y: 25 } }
+    ], { W: 40, H: 20 });
+    const merged = normalizeOccsProfileSketch(mergeOccsProfileSketchGeometry(moved, authored, { W: 40, H: 20 }));
+    const rect = merged.shapes[0];
+    // Compound expressions cannot take a drag: sizes keep their
+    // bindings (values survived), position carries numerics.
+    expect(rect).toMatchObject({ width: 'W', height: 'H' });
+    expect(rect.center[0]).toEqual(45);
+
+    // The same drag on a bare-parameter binding edits the parameter —
+    // the dim stays the parameter's editor.
+    const authoredBare = normalizeOccsProfileSketch({
+      parameters: { CX: 20, CY: 35, D: 6 },
+      shapes: [{ id: 's0', type: 'circle', op: 'subtract', center: ['CX', 'CY'], diameter: 'D' }]
+    });
+    const dragged = occProfileSketchFromEntities([
+      { type: 'CIRCLE', center: { x: 32, y: 50 }, radius: 3 }
+    ], { CX: 20, CY: 35, D: 6 });
+    const mergedDrag = mergeOccsProfileSketchGeometry(dragged, authoredBare, { CX: 20, CY: 35, D: 6 });
+    expect(mergedDrag.shapes[0]).toMatchObject({ center: ['CX', 'CY'], diameter: 'D' });
+    expect(mergedDrag.parameters).toMatchObject({ CX: 32, CY: 50 });
+    // Re-evaluation lands exactly on the dragged geometry.
+    const reevaluated = evaluateOccsProfileSketch(normalizeOccsProfileSketch(mergedDrag));
+    expect(reevaluated.shapes[0].center).toEqual([32, 50]);
   });
 
   it('adopts a single unknown identifier at the field\'s evaluated value', () => {

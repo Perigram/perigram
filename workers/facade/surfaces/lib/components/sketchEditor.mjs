@@ -1241,6 +1241,30 @@ export default function createSketchEditor({ vue, components, locale }) {
         ]);
       };
 
+      // The shape strip — the one home of boolean control: every shape
+      // as a row carrying its kind and its Add/Subtract/Construction
+      // op applied to the face. No popup hunting; the canvas pick
+      // highlights the row.
+      const renderShapeStrip = () => {
+        const sketch = normalizeOccsProfileSketch(props.modelValue || {});
+        if (!sketch.shapes.length) return null;
+        return h('div', {
+          class: 'flex shrink-0 flex-wrap items-center gap-1',
+          'aria-label': t('cassette.v2.profileEditor.shapes')
+        }, sketch.shapes.map(shape => h('div', {
+          key: shape.id,
+          class: selectedShape.value?.shapeId === shape.id
+            ? 'flex items-center gap-1 rounded-ui border border-primary px-1.5 py-0.5'
+            : 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5'
+        }, [
+          h('span', {
+            class: 'text-muted',
+            title: t(SHAPE_KIND_LABEL[shape.type])
+          }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
+          opToggle(shape)
+        ])));
+      };
+
       // The parameter strip above the canvas — the one home of the
       // sketch's expression table (owner direction 2026-10-18).
       const renderParameterStrip = () => {
@@ -1304,8 +1328,9 @@ export default function createSketchEditor({ vue, components, locale }) {
         ];
         const { axis } = annotations;
         // Two surface states (owner law): the hatch IS the drawn
-        // section — polygons hatch, holes stay empty, everything outside
-        // the section stays empty. A blank canvas hatches nothing.
+        // section — polygons hatch with holes carved empty; everything
+        // outside the section stays empty. A sketch that only cuts
+        // draws its cut rings as bare outlines.
         const ringPaths = annotations.outline
           .filter(ring => ring.length >= 3)
           .map(ring => `${ring.map((point, index) => `${index ? 'L' : 'M'} ${point[0]} ${point[1]}`).join(' ')} Z`);
@@ -1319,7 +1344,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               'stroke-linejoin': 'round'
             })
           : null;
-        const sectionHatchPath = ringPaths.length
+        const sectionHatchPath = resolvedSection.value?.polygons?.length
           ? h('path', {
               key: 'section-hatch',
               d: ringPaths.join(' '),
@@ -1601,6 +1626,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           ? h(Message, { severity: 'error', size: 'small', closable: false }, () => outlineError.value)
           : null,
         renderParameterStrip(),
+        renderShapeStrip(),
         h('input', {
           ref: fileInputRef,
           type: 'file',
