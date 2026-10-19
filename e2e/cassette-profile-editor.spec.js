@@ -141,6 +141,8 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await circleDiameterField.press('Enter');
   await page.waitForTimeout(600);
   await expect(dialog.locator('input.profile-dim[aria-label^="diameter"]')).toHaveValue('20', { timeout: 10_000 });
+  await circleRow.click();
+  await expect(circleDiameterField).toBeHidden({ timeout: 10_000 });
 
   // Deleting a shape is atomic and panel-owned: the rect row's trash
   // removes the whole primitive; the circle keeps its op, fields, and
@@ -150,8 +152,6 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await expect(rectRow).toBeHidden({ timeout: 10_000 });
   await expect(circleRow).toBeVisible({ timeout: 10_000 });
   await expect(circleRow.locator('.p-tag')).toHaveText('Subtract');
-  await circleRow.click();
-  await expect(circleDiameterField).toBeHidden({ timeout: 10_000 });
 
   const drawn = await dimState(dialog);
   expect(Object.keys(drawn).length, 'dimension annotations for the drawn shapes').toBeGreaterThan(0);
