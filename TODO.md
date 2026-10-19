@@ -7285,3 +7285,14 @@ text fills from the bottom).
 - Reconciled stale docs met on the way: components README claimed preset
   chip small-geometry tokens (reverted in 03c9ab13a); shared README
   placed the row card's status badge "beside" identity.
+
+### Agent Notes (2026-10-19 — chip row void)
+
+- The reported "hangs in a void leaving space to the right" was the
+  project chip: `InstanceInlineRef`'s inline branch wraps the Chip in a
+  content-sized `inline-flex` span, so the chip's `w-full` resolved to
+  fit-content — 102px inside the 320px family, void to its right
+  (reproduced with the owner's Org1 message under the live app CSS).
+- The chip row keeps default stretch now (`flex-col` alone), the chip
+  fills the family width — same scale as the filled file chips; pinned
+  in the design-system spec.
