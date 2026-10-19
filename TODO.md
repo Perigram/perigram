@@ -476,6 +476,39 @@ e2e/cassette-profile-editor.spec.js drives the sequence order, the
 move control, the single op home, wrapping, and the atomic delete —
 green twice against the merged tree.
 
+### Agent Notes (2026-10-19, round 10 — owner reports: '=' breaks the drawing, shapes serialize to value-polylines, instance values revert in the editor)
+
+Owner reports: "Invalid OCCS expression token: =" with the drawing
+breaking beyond restore; parametric shapes coming back as value
+polylines; instance parameter values reverting to the profile
+originals in the editor. Root causes and fixes (SPEC: the
+drawing-is-sacred law):
+
+1. The extraction merge's failure path returned the plain numeric
+   extraction whenever the authored model failed to evaluate — one
+   half-typed expression destroyed every binding and replaced
+   parametric shapes with value chains on the next canvas event. The
+   merge now keeps the authored sketch whole on evaluation failure;
+   canvas geometry merges on the next pass once the text resolves
+   (spec-pinned).
+2. The editor evaluated all-or-nothing: an invalid expression nulled
+   annotations, the hatch, hit-testing, and popups, and both seeding
+   paths cleared the canvas with nothing to reseed — the only editors
+   that could fix the text were gone. A last-good evaluation cache now
+   feeds every render path, and reseeds seed the last good entities:
+   geometry, dims, hatch, and panel stay live while invalid text sits
+   in its field (E2E: typing '=' keeps dims and panel; re-typing
+   restores live evaluation).
+3. The dialog opened a placed workpiece on the snapshot's original
+   table — the workpiece's instance values (row chips) were passed as
+   fallback parameters that the sketch's own table shadowed. The draft
+   sketch now layers instance values over the snapshot table (the
+   instantiation law: the editor edits what the workpiece renders).
+
+Validation: 147/147 in workers/facade, arch and docs guards green;
+e2e/cassette-profile-editor.spec.js extended with the '=' torture —
+green twice against the merged tree.
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places
