@@ -101,14 +101,16 @@ modules — no platform imports.
   position, so navigation keeps them in place), and every dimension
   line terminates in arrowheads. Concentric primitives bound to the
   same position expression render one dim for it; divergent
-  expressions each keep their own. The sketch's expression table lives in the parameter
-  strip above the canvas (the `fx` row — its one home); the shape strip
-  beside it carries one chip per shape — kind icon plus op state glyph
-  (`+` add, `−` subtract, `·` construction) colored primary/red/muted,
-  so every shape's boolean state reads at a glance. Clicking a chip
-  selects the shape and opens its popup at a fixed anchor; clicking the
-  op glyph cycles the op; selection highlights the chip and strokes the
-  shape's own footprint dashed on the canvas. A selected
+  expressions each keep their own. The sketch's expression table lives
+  in the parameter
+  strip above the canvas (the `fx` row — its one home); the primitives
+  panel floats inside the canvas beside it: one row per shape — kind
+  glyph, kind name, and the shape's boolean op as the direct segmented
+  Add/Subtract/Construction control — grouped in the evaluation order
+  (adds before subtracts, construction apart), so the grouped fold
+  reads off the list. Clicking a row selects its shape (its footprint
+  strokes dashed on the canvas, its popup opens at the click) and
+  highlights the row. A selected
   primitive's popup carries its op segmentation, rotation, and
   fillet radii as one compact panel (header, then a single field
   row), and opens on
@@ -226,7 +228,10 @@ modules — no platform imports.
   — the same projection the bound `profile-preview` surface renders in
   the platform's preview slots; the boolean fold makes it async)
   beside Create new (the blank dialog draft); picking a row places the
-  profile as a workpiece directly. Placed workpieces carry their
+  profile as a workpiece directly, and a record whose sketch carries no
+  participating shape refuses with the authoring message — the default
+  hanger stands in for sketch-less workpieces only, an authored-but-
+  empty snapshot never places template geometry. Placed workpieces carry their
   library origin (`profileTemplateId`): edits are local, and the
   dialog's Update library rewrites the origin record explicitly — a
   rewrite never reaches already-placed workpieces. The current editor
