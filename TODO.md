@@ -509,6 +509,29 @@ Validation: 147/147 in workers/facade, arch and docs guards green;
 e2e/cassette-profile-editor.spec.js extended with the '=' torture —
 green twice against the merged tree.
 
+### Agent Notes (2026-10-19, round 11 — owner report: profile position on face is broken again)
+
+Model-level placement verified correct on every edge and snap (probe
+matrix: E0–E3 all land axis-on-edge with +X inward; start/center
+bindings and offsets behave per contract). The live-browser probe
+found the real defect: a freehand profile drawn in the blank window's
+middle (local ≈(70, 38)) buried itself ~88 mm into the face at
+placement — the axis anchored the edge and the authored distances
+from the axis rode along. It read as "worked before" because the
+dialog used to seed the template, whose geometry already hugs the
+axis (minX 0); the blank-session law (owner's own direction) exposed
+freehand geometry. Fix (SPEC: the section-extent placement law):
+placed rings translate by the operands' minX, so the section's tight
+extent starts at the axis and the leftmost material hugs the
+attachment edge whatever the authored distances — the stored sketch
+keeps its coordinates and the template is unchanged (minX 0).
+Spec-pinned (far-from-axis profile hugs the edge, <20 mm deep) and
+live-verified (the same browser flow that landed at depth 88 now
+lands at 27 — within the drawn section's own extent).
+
+Validation: 148/148 in workers/facade, arch and docs guards green;
+e2e/cassette-profile-editor.spec.js green against the merged tree.
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places
