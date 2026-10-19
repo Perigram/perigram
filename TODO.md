@@ -16,6 +16,23 @@ open-instance, rotate, and delete.
 
 ### Agent Notes (2026-10-19)
 
+### Agent Notes (2026-10-19, second report)
+
+Report: "The editor could not be loaded — plugin editors are
+online-only." Root cause was the deploy step I owed, not connectivity:
+the executor serves module bytes live from the repo, the org's install
+still pinned v16 (contract 2), and the v17 module refuses the
+contract-2 mount context — the loader's catch then showed the offline
+text for a mount failure. Completed the deploy on the dev stack through
+the real channels: v17 published to the catalog (operator publish API),
+the org upgraded through `applyUpgrade` with a short-lived minted
+session for the org owner (the station-scripts pattern); plan was clean
+(16→17, nothing blocked), and the served type view now reports
+`surfaceContract: 4` with the module proxy at 200. Follow-up repair
+(session `agent/sheet-editor-mount-error-20261019`): a module that loads
+but fails to mount now shows its own failure reason beside the
+localized line instead of pretending an offline cause.
+
 Session `agent/sheet-editor-panels-20261019`. The dropdown add was dead
 because `cassetteSheetItem` read the retired `{ data, identity }` value
 shape while the query transport returns §3 record DTOs — it now reads
