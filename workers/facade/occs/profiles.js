@@ -30,6 +30,13 @@ const normalizeOp = (op, fallback = 'add') => (
   OCCS_PROFILE_SHAPE_OPS.includes(op) ? op : fallback
 );
 
+// The material half of the zero axis (X=0) is the face stand-in the
+// editor hatches: 'positive' means X>0. The axis placement maps +X onto
+// the host edge's inward normal, so the hatched side faces the host.
+export const normalizeOccsProfileMaterial = (material) => (
+  material === 'negative' ? 'negative' : 'positive'
+);
+
 const RECT_TEMPLATE_FILLET_CORNERS = [0, 1, 2, 3];
 
 const PROFILE_GEOMETRY_SEED = Object.freeze({
@@ -53,6 +60,7 @@ export const createDefaultOccsProfileSketch = (parameters = {}) => ({
     ...DEFAULT_OCCS_PROFILE_PARAMETERS,
     ...parameters
   },
+  material: 'positive',
   shapes: [
     {
       id: 's0',
@@ -76,6 +84,7 @@ export const createEmptyOccsProfileSketch = (parameters = {}) => ({
   version: '0.2',
   units: 'mm',
   parameters: { ...parameters },
+  material: 'positive',
   shapes: []
 });
 
@@ -281,6 +290,7 @@ export const upgradeLegacyOccsProfileSketch = (sketch = {}) => {
     version: '0.2',
     units: sketch.units || 'mm',
     parameters,
+    material: normalizeOccsProfileMaterial(sketch.material),
     shapes
   };
 };
@@ -297,6 +307,7 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
       parameters: Object.fromEntries(
         Object.entries(rawParameters).map(([key, value]) => [key, sketchValue(value, 0)])
       ),
+      material: normalizeOccsProfileMaterial(sketch.material),
       shapes: sketch.shapes
         .map((shape, index) => normalizeShape(shape, index))
         .filter(Boolean)
@@ -1215,6 +1226,7 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
     version: '0.2',
     units: 'mm',
     parameters,
+    material: 'positive',
     shapes
   }, parameters);
 };
@@ -1438,6 +1450,7 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
   }
   return {
     ...extracted,
+    material: authored.material || extracted.material,
     parameters: Object.keys(parameterEdits).length
       ? { ...(authored.parameters || extracted.parameters || {}), ...parameterEdits }
       : authored.parameters || extracted.parameters,

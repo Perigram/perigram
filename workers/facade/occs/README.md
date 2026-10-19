@@ -75,12 +75,15 @@ modules — no platform imports.
   `resolveOccsProfileSectionOperations` returns the grouped steps;
   `foldCassetteV2Region` (the vendored Clipper pass) is the one fold
   every consumer rides, over a full region — outer polygons plus hole
-  rings — so a hole survives every later op. The editor previews the
-  SECTION (`resolveOccsProfileSectionPolygons`): the hatch IS the drawn
-  figure, holes empty, everything outside it empty; production folds
-  the placed steps against the host face with its holes, the face being
-  the largest ring of the fold so material islanded off the face stays
-  off its contour. Steps land as `booleanOperation` entities; add steps
+  rings — so a hole survives every later op. The editor hatches the
+  FACE: the material half (`material` flips its side) folded through
+  the profile's ops — adds extend the hatch past the axis, subtracts
+  punch it empty — while the drawn primitives stay bare engine lines
+  beneath it: hatch and strong outline are what goes to the cassette,
+  bare lines are what is authored. Production folds the placed steps
+  against the host face with its holes, the face being the largest
+  ring of the fold so material islanded off the face stays off its
+  contour. Steps land as `booleanOperation` entities; add steps
   reshape the face contour only, a subtract rides `cut.inner` while it
   sits fully inside the face and dispatches through the modified
   contour when it breaks its edge; the zero axis renders as a solid
@@ -100,10 +103,13 @@ modules — no platform imports.
   same position expression render one dim for it; divergent
   expressions each keep their own. The sketch's expression table lives in the parameter
   strip above the canvas (the `fx` row — its one home); the shape strip
-  beside it carries every shape as a row with its kind and its
-  Add/Subtract/Construction op — the one home of boolean control, the
-  canvas pick highlighting its row; a selected
-  primitive's popup carries its construction toggle, rotation, and
+  beside it carries one chip per shape — kind icon plus op state glyph
+  (`+` add, `−` subtract, `·` construction) colored primary/red/muted,
+  so every shape's boolean state reads at a glance. Clicking a chip
+  selects the shape and opens its popup at a fixed anchor; clicking the
+  op glyph cycles the op; selection highlights the chip and strokes the
+  shape's own footprint dashed on the canvas. A selected
+  primitive's popup carries its op segmentation, rotation, and
   fillet radii as one compact panel (header, then a single field
   row), and opens on
   clicking the primitive — face, edge, or cutout. Floating authoring

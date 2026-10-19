@@ -56,8 +56,8 @@ const legacyClosedChain = () => ({
 describe('OCCS profile helpers', () => {
   it('creates an empty sketch for blank profile drawing sessions', () => {
     const sketch = createEmptyOccsProfileSketch();
-    expect(sketch).toMatchObject({ shapes: [] });
-    expect(normalizeOccsProfileSketch(sketch)).toMatchObject({ shapes: [] });
+    expect(sketch).toMatchObject({ material: 'positive', shapes: [] });
+    expect(normalizeOccsProfileSketch(sketch)).toMatchObject({ material: 'positive', shapes: [] });
     expect(normalizeOccsProfileSketch(sketch).parameters).toEqual({});
   });
 

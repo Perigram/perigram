@@ -16,9 +16,10 @@ import {
   occProfileSketchFromEntities,
   occsProfileFromSketch,
   renameOccsProfileSketchParameter,
-  resolveOccsProfileSectionPolygons
+  resolveOccsProfileSectionOperations
 } from '../../../occs/profiles.js';
 import { resolveOccsExpression } from '../../../occs/expressions.js';
+import { foldCassetteV2Region } from '../cassetteV2Clipper.js';
 import { toolIcon } from './toolIcons.mjs';
 import createFieldDraft from './fieldDraft.mjs';
 
@@ -138,13 +139,20 @@ export default function createSketchEditor({ vue, components, locale }) {
         settings.isShowCommandLine = commandLine.value;
       };
 
-      // The resolved profile section (outer rings and holes, world
-      // coordinates) — recomputed debounced from the authored model; the
-      // overlay draws it as one solid outline so the boolean result
-      // reads at a glance.
-      // The hatch IS the section the author is drawing: adds union,
-      // subtracts cut, drawing order never matters.
-      const resolvedSection = shallowRef(null);
+      // The material half of the zero axis is the boolean body — the
+      // toggle flips which side of the axis hatches and clips.
+      const toggleMaterialSide = () => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        commitSketch({ ...normalized, material: normalized.material === 'positive' ? 'negative' : 'positive' });
+      };
+
+      // The resolved face after the profile's operations (outer rings
+      // and holes, world coordinates) — recomputed debounced from the
+      // authored model. The hatch IS the face: the material half united
+      // with the adds, minus the subtracts. The authored primitives
+      // stay plain engine lines beneath it — hatch and strong outline
+      // are what goes to the cassette, bare lines are what is drawn.
+      const resolvedFace = shallowRef(null);
       const outlineError = ref('');
       let outlineTimer = null;
       const resolveOutline = async () => {
@@ -155,17 +163,24 @@ export default function createSketchEditor({ vue, components, locale }) {
           const normalized = normalizeOccsProfileSketch(props.modelValue || {});
           const { section } = occsProfileFromSketch(normalized, { parameters: externalScope() });
           if (section?.type !== 'shapes') {
-            resolvedSection.value = null;
+            resolvedFace.value = null;
             return;
           }
-          const resolved = await resolveOccsProfileSectionPolygons(section);
-          resolvedSection.value = resolved;
+          const span = 1e5;
+          const half = normalized.material === 'negative'
+            ? [[0, -span], [-span, -span], [-span, span], [0, span]]
+            : [[0, -span], [span, -span], [span, span], [0, span]];
+          const resolved = await foldCassetteV2Region(
+            { polygons: [half], holes: [] },
+            resolveOccsProfileSectionOperations(section)
+          );
+          resolvedFace.value = resolved;
           const participates = section.shapes.some(shape => shape.op !== 'construction');
           if (participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
             outlineError.value = t('cassette.v2.profileEditor.resultClipped');
           }
         } catch (error) {
-          resolvedSection.value = null;
+          resolvedFace.value = null;
           outlineError.value = error?.message || String(error);
         }
       };
@@ -349,11 +364,36 @@ export default function createSketchEditor({ vue, components, locale }) {
           seenPosition.add(dedupeKey);
           return true;
         });
-        const outline = resolvedSection.value
-          ? [...resolvedSection.value.polygons, ...resolvedSection.value.holes]
+        const outline = resolvedFace.value
+          ? [...resolvedFace.value.polygons, ...resolvedFace.value.holes]
               .filter(ring => ring.length >= 3)
               .map(ring => ring.map(vertex => toScreen(Number(vertex[0]), Number(vertex[1]))))
           : [];
+        // The selected primitive's own footprint, stroked dashed over
+        // the canvas — selection reads on the drawing plane, not only
+        // in the strip.
+        const selected = evaluated.shapes.find(shape => shape.id === selectedShape.value?.shapeId)
+          || evaluated.shapes.find(shape => shape.id === selectedCorner.value?.shapeId);
+        let selection = null;
+        if (selected) {
+          const points = selected.type === 'circle'
+            ? Array.from({ length: 33 }, (_, index) => {
+              const angle = (index / 32) * Math.PI * 2;
+              return toScreen(
+                selected.center[0] + Math.cos(angle) * selected.diameter / 2,
+                selected.center[1] + Math.sin(angle) * selected.diameter / 2
+              );
+            })
+            : selected.type === 'rect'
+              ? occProfileRectCornerVertices(selected).map(vertex => toScreen(vertex[0], vertex[1]))
+              : selected.points.filter(point => !point.chord).map(point => toScreen(point.x, point.y));
+          if (points.length >= 2) {
+            selection = {
+              points,
+              closed: selected.type !== 'chain' || Boolean(selected.closed)
+            };
+          }
+        }
         // The axis spans the viewport in world Y.
         const span = 1e5;
         const axisTop = toScreen(0, span);
@@ -361,6 +401,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         return {
           dimensions,
           outline,
+          selection,
           origin: toScreen(0, 0),
           openEnds: [],
           axis: { top: axisTop, bottom: axisBottom }
@@ -630,6 +671,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           { command: 'redo', icon: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo' }
         ],
         [
+          { icon: 'materialSide', labelKey: 'cassette.v2.profileEditor.actions.material', isOn: () => normalizeOccsProfileSketch(props.modelValue || {}).material === 'negative', onActivate: toggleMaterialSide },
           { icon: 'ortho', labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
           { icon: 'tangentSnap', labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
           { icon: 'commandLine', labelKey: 'cassette.v2.profileEditor.actions.commandLine', isOn: () => commandLine.value, onActivate: toggleCommandLine }
@@ -1241,28 +1283,59 @@ export default function createSketchEditor({ vue, components, locale }) {
         ]);
       };
 
-      // The shape strip — the one home of boolean control: every shape
-      // as a row carrying its kind and its Add/Subtract/Construction
-      // op applied to the face. No popup hunting; the canvas pick
-      // highlights the row.
+      // The shape strip: one chip per shape — its kind, its op state at
+      // a glance (glyph + color), selection highlighted. Clicking the
+      // chip selects the shape and opens its popup at a fixed anchor;
+      // clicking the op glyph cycles add → subtract → construction.
+      const OP_GLYPH = { add: '+', subtract: '−', construction: '·' };
+      const OP_COLOR = {
+        add: 'var(--p-primary-color)',
+        subtract: 'var(--p-red-400)',
+        construction: 'var(--p-text-muted-color)'
+      };
+      const cycleOp = op => (
+        op === 'add' ? 'subtract' : op === 'subtract' ? 'construction' : 'add'
+      );
       const renderShapeStrip = () => {
         const sketch = normalizeOccsProfileSketch(props.modelValue || {});
         if (!sketch.shapes.length) return null;
         return h('div', {
           class: 'flex shrink-0 flex-wrap items-center gap-1',
           'aria-label': t('cassette.v2.profileEditor.shapes')
-        }, sketch.shapes.map(shape => h('div', {
-          key: shape.id,
-          class: selectedShape.value?.shapeId === shape.id
-            ? 'flex items-center gap-1 rounded-ui border border-primary px-1.5 py-0.5'
-            : 'flex items-center gap-1 rounded-ui border border-content-border px-1.5 py-0.5'
-        }, [
-          h('span', {
-            class: 'text-muted',
-            title: t(SHAPE_KIND_LABEL[shape.type])
-          }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
-          opToggle(shape)
-        ])));
+        }, sketch.shapes.map(shape => {
+          const selected = selectedShape.value?.shapeId === shape.id
+            || selectedCorner.value?.shapeId === shape.id;
+          return h('div', {
+            key: shape.id,
+            class: selected
+              ? 'flex items-center gap-0.5 rounded-ui border border-primary bg-content px-1 py-0.5'
+              : 'flex items-center gap-0.5 rounded-ui border border-content-border px-1 py-0.5'
+          }, [
+            h(Button, {
+              text: true,
+              rounded: true,
+              size: 'small',
+              severity: 'secondary',
+              class: 'h-6 w-6 !p-0 text-muted',
+              title: t(SHAPE_KIND_LABEL[shape.type]),
+              'aria-label': `${t(SHAPE_KIND_LABEL[shape.type])} ${shape.id}`,
+              onClick: () => {
+                selectedCorner.value = null;
+                selectedShape.value = { shapeId: shape.id, at: [16, 16] };
+              }
+            }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
+            h(Button, {
+              text: true,
+              rounded: true,
+              size: 'small',
+              class: 'h-6 w-6 !p-0 font-mono text-xs font-bold',
+              style: { color: OP_COLOR[shape.op] },
+              title: t(`cassette.v2.profileEditor.ops.${shape.op}`),
+              'aria-label': `${t(`cassette.v2.profileEditor.ops.${shape.op}`)} ${shape.id}`,
+              onClick: () => updateShape(shape.id, subject => ({ ...subject, op: cycleOp(subject.op) }))
+            }, () => [OP_GLYPH[shape.op]])
+          ]);
+        }));
       };
 
       // The parameter strip above the canvas — the one home of the
@@ -1326,11 +1399,11 @@ export default function createSketchEditor({ vue, components, locale }) {
           h('line', { key: `${key}-h`, x1: x - 8, y1: y, x2: x + 8, y2: y, stroke: PRIMARY, 'stroke-width': 1 }),
           h('line', { key: `${key}-v`, x1: x, y1: y - 8, x2: x, y2: y + 8, stroke: PRIMARY, 'stroke-width': 1 })
         ];
-        const { axis } = annotations;
-        // Two surface states (owner law): the hatch IS the drawn
-        // section — polygons hatch with holes carved empty; everything
-        // outside the section stays empty. A sketch that only cuts
-        // draws its cut rings as bare outlines.
+        const { axis, selection } = annotations;
+        // Two figures on the plane: the hatched FACE (the material half
+        // after the profile's ops — what goes to the cassette) and the
+        // bare engine lines of the drawn primitives beneath it. Holes
+        // carve empty; a subtract-only sketch punches through the hatch.
         const ringPaths = annotations.outline
           .filter(ring => ring.length >= 3)
           .map(ring => `${ring.map((point, index) => `${index ? 'L' : 'M'} ${point[0]} ${point[1]}`).join(' ')} Z`);
@@ -1344,12 +1417,23 @@ export default function createSketchEditor({ vue, components, locale }) {
               'stroke-linejoin': 'round'
             })
           : null;
-        const sectionHatchPath = resolvedSection.value?.polygons?.length
+        const faceHatchPath = resolvedFace.value?.polygons?.length
           ? h('path', {
-              key: 'section-hatch',
+              key: 'face-hatch',
               d: ringPaths.join(' '),
               'fill-rule': 'evenodd',
               fill: 'url(#profile-face-hatch)'
+            })
+          : null;
+        const selectionPath = selection
+          ? h('path', {
+              key: 'selection-outline',
+              d: `M ${selection.points.map(point => `${point[0]} ${point[1]}`).join(' L ')}${selection.closed ? ' Z' : ''}`,
+              fill: 'none',
+              stroke: PRIMARY,
+              'stroke-width': 1.75,
+              'stroke-dasharray': '6 4',
+              'stroke-linejoin': 'round'
             })
           : null;
         return [
@@ -1378,8 +1462,9 @@ export default function createSketchEditor({ vue, components, locale }) {
               h('path', { d: 'M 0 1 L 10 5 L 0 9 z', fill: DIM_STROKE })
             ])
           ]),
-          sectionHatchPath,
+          faceHatchPath,
           outlinePath,
+          selectionPath,
           // The zero axis is the solid basis line every field measures
           // from (SPEC law).
           line('axis', [axis.top[0], axis.top[1], axis.bottom[0], axis.bottom[1]], PRIMARY, 1.25),
