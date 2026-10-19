@@ -735,7 +735,8 @@ export function resolveInstanceActions(actions = {}, typeId = null) {
 
 // planActionLaunch(action): how a screen launches one manual action —
 // 'link' (the relation picker dialog), 'dialog' (the generated create
-// dialog for any action carrying construction inputs), 'confirm' (the
+// dialog for any action carrying construction inputs, the run dialog for
+// a run action carrying prompted inputs), 'confirm' (the
 // resolved action button's confirmation, i.e. the destructive kinds),
 // else 'run'. The construction dialog wins over confirmation, and grant
 // level is never a presentation signal: an admin-level create still opens
@@ -743,7 +744,31 @@ export function resolveInstanceActions(actions = {}, typeId = null) {
 export function planActionLaunch(action = {}) {
   if (action.actionKind === 'link') return 'link';
   if (action.construction?.inputs?.length) return 'dialog';
+  if (action.actionKind === 'runCommand' && resolveRunDialogInputs(action).length) return 'dialog';
   return defaultMapping.resolveActionButton(action).confirm ? 'confirm' : 'run';
+}
+
+// The run dialog rows: one per prompted exposure input. Descriptor derives
+// from the input's declared parameter type so FieldControl renders the
+// same controls row fields use; the authored default prefills the draft.
+export function resolveRunDialogInputs(action = {}) {
+  return (action.inputs || [])
+    .filter(input => input && input.prompt !== false)
+    .map(input => ({
+      id: input.id,
+      label: input.label || input.id,
+      descriptor: runInputDescriptor(input),
+      span: 'half',
+      required: input.required === true,
+      ...(input.default !== undefined && input.default !== null ? { default: input.default } : {})
+    }));
+}
+
+function runInputDescriptor(input = {}) {
+  if (input.type === 'number') return { base: 'quantity', ...(input.unit ? { unit: input.unit } : {}) };
+  if (input.type === 'boolean') return { base: 'boolean' };
+  if (input.type === 'enum') return { base: 'enum', ...(Array.isArray(input.options) ? { options: input.options } : {}) };
+  return { base: 'string' };
 }
 
 const VALUE_FALLBACK = '—';

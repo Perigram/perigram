@@ -132,7 +132,7 @@ import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
-import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, typeLabelKey, localizedLabel, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
+import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, typeLabelKey, localizedLabel, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
 import InstancePicker from './InstancePicker.vue';
@@ -278,7 +278,11 @@ const dialogType = computed(() => (props.bundle.types || []).find(type => type.i
 // pickers over reverse containment — construction inputs are never dropped
 // for a path/name mismatch again. The draft is keyed by the compiled input
 // id, so the submitted payload lands exactly on the construction paths.
-const dialogRows = computed(() => resolveCreateDialogInputs(dialogAction.value || {}, dialogType.value, props.bundle));
+const dialogRows = computed(() => (
+  dialogAction.value?.actionKind === 'runCommand'
+    ? resolveRunDialogInputs(dialogAction.value)
+    : resolveCreateDialogInputs(dialogAction.value || {}, dialogType.value, props.bundle)
+));
 
 // The opened record on a scoped detail surface — the launch context's
 // parent binding for creates (SPEC §UI): lineage rows accepting that type
@@ -373,6 +377,9 @@ const openAction = (action, context = {}) => {
   if (launch === 'dialog') {
     dialogAction.value = action;
     for (const key of Object.keys(dialogDraft)) delete dialogDraft[key];
+    for (const row of dialogRows.value) {
+      if (row.default !== undefined && row.default !== null) dialogDraft[row.id] = row.default;
+    }
     // Parent-scoped creates (SPEC §UI): on a detail surface whose scope
     // carries the opened instance, lineage rows accepting that type
     // submit the context's reference — never re-asked. When every row is

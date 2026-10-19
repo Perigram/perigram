@@ -165,6 +165,12 @@ export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
   if (action.inputPolicy) {
     projected.inputPolicy = action.inputPolicy;
   }
+  // The exposure inputs (the run dialog's parameter rows) ride both
+  // action channels — the manifest and the contract — so every renderer
+  // prompts from one vocabulary.
+  if (Array.isArray(action.inputs)) {
+    projected.inputs = action.inputs;
+  }
   return projected;
 }
 

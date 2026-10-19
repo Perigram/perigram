@@ -56,6 +56,24 @@ describe('ui-contract projection', () => {
     expect(projected.actions.send).toBeUndefined();
   });
 
+  it('carries run action exposure inputs on the contract channel', () => {
+    const projected = projectUiContractChannels({
+      actions: {
+        run: {
+          id: 'run',
+          actionKind: 'runCommand',
+          typeId: 'queue',
+          commandId: 'nesting.solve',
+          inputs: [{ id: 'sheetWidth', type: 'number', unit: 'mm', default: 1220, prompt: true }]
+        }
+      },
+      screens: {}
+    });
+    expect(projected.actions.run.inputs).toEqual([
+      { id: 'sheetWidth', type: 'number', unit: 'mm', default: 1220, prompt: true }
+    ]);
+  });
+
   it('keeps action construction inputs and fields across repeated projection', () => {
     // The assignment manifest projects twice (assignment access, then
     // hydration): id-string inputs must pass through instead of dropping

@@ -37,6 +37,7 @@ import {
   actionLabelKey,
   localizedLabel,
   resolveCreateDialogInputs,
+  resolveRunDialogInputs,
   planActionLaunch,
   childrenOfParent,
   statePolicyByType,
@@ -465,6 +466,23 @@ describe('action launch plan', () => {
     expect(planActionLaunch({ actionKind: 'updateInstance' })).toBe('run');
     expect(planActionLaunch({ actionKind: 'updateInstance', access: { level: 'admin' }, state: { to: 'DONE' } })).toBe('run');
     expect(planActionLaunch({ actionKind: 'runCommand' })).toBe('run');
+  });
+
+  it('opens the run dialog for a run action carrying prompted inputs', () => {
+    const action = {
+      actionKind: 'runCommand',
+      inputs: [
+        { id: 'sheetWidth', type: 'number', unit: 'mm', default: 1220, prompt: true },
+        { id: 'sheetHeight', type: 'number', unit: 'mm', default: 2440, prompt: true },
+        { id: 'items', type: 'object', prompt: false }
+      ]
+    };
+    expect(planActionLaunch(action)).toBe('dialog');
+    expect(resolveRunDialogInputs(action)).toEqual([
+      { id: 'sheetWidth', label: 'sheetWidth', descriptor: { base: 'quantity', unit: 'mm' }, span: 'half', required: false, default: 1220 },
+      { id: 'sheetHeight', label: 'sheetHeight', descriptor: { base: 'quantity', unit: 'mm' }, span: 'half', required: false, default: 2440 }
+    ]);
+    expect(planActionLaunch({ actionKind: 'runCommand', inputs: [{ id: 'items', prompt: false }] })).toBe('run');
   });
 });
 
