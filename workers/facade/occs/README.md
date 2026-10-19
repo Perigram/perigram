@@ -157,8 +157,11 @@ modules — no platform imports.
   the geometry back on the canvas). Fresh ids renumber against every
   kept id by object identity — an extracted id colliding with a kept id
   still renumbers. The shape popup's operation is a segmented
-  Reference/Add/Subtract control; the whole state set reads at a
-  glance.
+  control reading in face-material terms — Reference (op `none`,
+  guide geometry), Cut (op `add`: the footprint is cut from the face),
+  Keep (op `subtract`: the footprint stays face material, the hatched
+  island inside the cut) — the whole state set reads at a glance and
+  the canvas proves each state.
   Document transitions (DXF import) bind the database listeners without
   scheduling an extraction: the import's own explicit extraction is the
   one that lands. Legacy chain sketches (points/edges/holes/closed/
