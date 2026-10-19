@@ -194,12 +194,12 @@ source navigation only, while panes contain the canonical entity page for their
 selected entity or a registered workspace page, plus pane-local controls. Each
 pane header owns its tab chips in one compact fixed-height row whose
 single hairline spans the whole stripe — tab list and the right-side pane
-controls alike. Tab chips follow the chats folder strip anatomy
-(`ChatSupport.vue`): the selected tab wears the primary button surface,
-idle tabs the secondary one, and labels render at the supporting role
-size. Chip height is fixed by the supporting text line: inner controls
-(the 16px close affordance, revealed only on tab hover or focus with its
-space reserved so labels do not shift) size within that line. The add-tab
+controls alike. Tab chips ride the zero canvas one step under the folder
+chips (`ChatSupport.vue`): the selected tab wears the secondary button
+surface, idle tabs stay transparent with muted text (`bg-subtle` hover
+tint), and labels render at the supporting role size. The close
+affordance is the app's compact 24px icon button, revealed on tab hover
+or focus with its space reserved so labels do not shift. The add-tab
 control sits directly after the last tab, browser-style, and the empty
 tab carries its label alone. The stripe is SINGLE-HOMED in
 `components/generated/GeneratedPaneHeader.vue`: every pane host mounts
