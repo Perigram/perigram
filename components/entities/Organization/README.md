@@ -20,11 +20,9 @@ Organization card surface for tenant/manufacturer records.
 - Profile uses one action per membership: switch to an inactive organization or
   open the active generated organization overview. Billing, team, and process
   screens are children of that overview rather than flat profile-card actions.
-- The popup is the card's directory face: the `#popup-identity` slot
-  replaces the generic instance chrome (type label, icon row, trace) with
-  the avatar-forward header — large initial avatar, name, the type tag
-  plus the caller's `context` slot. The `#expanded` body carries only the
-  `DataBlock` fact rows; the action row stays owned by `InstanceCard`.
+- The record popup is the shared entity popup (`useEntityPopup`): the
+  organization's directory profile (`DirectoryDetailSurface`). The card owns
+  only the inline face.
 
 ## Related
 

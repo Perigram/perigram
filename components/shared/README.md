@@ -56,12 +56,8 @@ Values are formatted through `utils/data-display.js`: scalar arrays render as co
 Default layout renders a semantic `<dl>` grid for card bodies; compact layout renders inline facts for popovers, relation rows, and tight embedded surfaces.
 The default `DataBlock` layout uses its own inline-size container, so columns
 follow the width assigned by a page or split pane rather than the browser
-viewport.
-Inline entity popovers mark their body with `instance-card-popup-content`, and
-`DataBlock` collapses default grid rows to compact inline facts inside that
-scope. Do not add entity-local popup data layouts just to make popovers denser;
-use the shared popup scope or pass `variant="compact"` for explicit compact
-surfaces.
+viewport. Pass `variant="compact"` wherever a dense surface needs inline
+facts.
 The reusable descriptor vocabulary is the compiled type view: fact groups are
 authored `render.groups` on type declarations, normalized into the served CTS
 client bundle by `@perigram/cts` `renderPolicyFor`, and resolved by
@@ -434,16 +430,19 @@ access-filtered optional-reference lookup (with a directory-card fallback for
 the framework party types, so cross-tenant users and organizations still
 resolve to their name-level card), resolves the matching design-system
 entity card, and renders that card with
-`variant="inline"`. The referenced entity card owns the click/keyboard popover
-and reuses its canonical body inside that popover; `interactive: false`
-renders the inline card non-expandable for non-interactive rows such as
-explorer entries and static summaries. In generated surfaces,
-the popover action row is access-aware: `InstanceInlineRef` resolves the
-referenced entity's generated detail-screen actions, forwards them to
-`InstanceCard`, and invokes the surrounding generated screen's action executor
-instead of running process actions from shared UI code. Route, preview, and
-popup-action providers share the same normalized generated entity type so
-aliases such as `sheetDesign` / `sheet_design` stay consistent. Use this for entity relation
+`variant="inline"`. The record preview popup is the shared entity popup
+([`EntityPopup.vue`](#entitypopupvue-with-useentitypopup): the referenced
+record's compiled detail screen in the standard dialog); the chip, the
+compact micro card, and the referenced entity card all open it through
+`useEntityPopup`'s `open`/`openable` seam, so a type with no record surface
+(directory profile or compiled/synthesizable detail screen) renders an inert
+chip — no dead link. `interactive: false` renders the inline card
+non-expandable for non-interactive rows such as explorer entries and static
+summaries. Contextual relation operations (the owner-bound Unlink a
+relation gallery passes through `contextActionEntries`) render as the ref's
+own ellipsis menu and execute through the surrounding generated screen's
+action executor — process actions never run from shared UI code. Use this
+for entity relation
 context where an always-expanded nested card would overload the surface; do not
 render extra lifecycle badges next to these relation chips because status
 belongs on the actual entity card/detail.
@@ -452,20 +451,20 @@ Aura's own chrome. There is no per-type tint: a tone mapping would mean
 branching on authored type names inside shared code, and per-type
 presentation vocabulary rides declarations (the registry's `glyph` is
 the model) — no tone declaration exists, so none is synthesized. The
-Chip is the popover trigger everywhere the ref renders — chat
+Chip is the popup trigger everywhere the ref renders — chat
 message refs read as chips, not inline text — keeping the one-line,
 no-line-height-inflation behavior inside prose and dense surfaces
 (tables, field controls, relation rows) alike.
 `variant="compact"` renders a horizontal micro card instead of a chip —
 but only when the type's compact surface earns the card: a preview band
 or compact fact rows beside identity. Preview-less, fact-less relations
-degrade to the plain identity chip (still the popover trigger), so
+degrade to the plain identity chip (still the popup trigger), so
 relation galleries never lay out grids of empty cards for data without
 visual fields. That
 compact ref uses the compact surface contract directly: a real preview on the
 left when the entity has one, the same semantic inline chip for identity on the
-right, a read-only status badge under identity, compact facts below, and the
-same expanded popover for trace/type/detail context. `compactLayout:
+right, a read-only status badge under identity, and compact facts below.
+`compactLayout:
 'stacked'` (chat preview cards) swaps the row for a flush preview band over
 a one-line label strip whose small state tag rides beside the truncating
 identity. Icons stay with the
@@ -490,41 +489,9 @@ When an `entityContext` provider is present, `InstanceInlineRef` resolves the
 entity from that context before calling the API. This keeps workbench fixture
 and project-local previews from requesting protected entities already loaded in
 the surrounding surface.
-For the framework party types (`user`, `organization`), the open action has no
-generated route and no standalone page: it routes through the workspace-open
-seam, so user/org popovers open the directory surface as a home pane tab on
-desktop or the home dialog on mobile (see
-[components/directory](../directory/README.md)). Card popovers honor the same
-path through the `instanceInlineOpenDetail` inject, so every open action obeys
-the everything-inside-home rule.
-When the active generated screen manifest exposes a detail route for the
-reference type, `InstanceInlineRef` provides that route to the expanded inline
-entity-card popover. The popover footer renders an icon-only open action that
-navigates through generated `/screens/:screenKey` detail routing, not legacy
-feature routes. Cassette and sheet-design compact refs
+Cassette and sheet-design compact refs
 suppress dimension annotation layers in their micro preview so annotation text
-does not overpower the gallery thumbnail. Inline-ref popovers also force the shared `TraceChain` even
-when the base card surface normally hides trace in compact contexts, and show a
-small localized type-id label above the identity row so the operator can
-see both lineage context and exact entity kind without adding extra chrome to
-the collapsed chip or compact micro card itself. Their expanded body uses the
-card surface contract with compact data display, suppressed child counts, and
-compact relation galleries, so nested outputs such as nesting-run sheet designs
-or library cassette previews render the same way as in generated cards.
-Nesting-run inline refs may receive partial preview DTOs from queue cards; the
-popover hydrates the full run through `useEntity('nestingRun')` when output refs
-are missing, then loads access-filtered `sheetDesign` rows with `runId` so the
-sheet-design compact gallery is based on the canonical child lineage endpoint
-rather than queue-card-local child state.
-On mobile, detail-route buttons and lineage links inside inline-ref popovers
-dispatch the shared mobile transient-surface close event before navigation.
-`InstanceCard`/`InstanceInlineRef` hide their popovers and the app shell closes the
-chat drawer, so the destination screen is not covered by stale overlays. Chat
-open actions also dispatch that close event before opening the drawer, which
-keeps inline popovers mutually exclusive with chat.
-Revision/provenance rows should use this component with `type="entityRevision"`
-so the shared entity popover shows the immutable revision summary and source
-relationship.
+does not overpower the gallery thumbnail.
 
 ### `UserChip.vue`
 The user identity chip: a small plain avatar plus display name (no chip
@@ -628,9 +595,10 @@ owns the draft `entityRefs`, the create-action flows, and file staging;
 the picker only emits `select`/`create-action`/`files`.
 
 ### `InstanceCard.vue` (chat entry)
-Every card variant carries the composed instance-chat entry: full cards render
-it in the footer row (before parent footer actions), and inline/compact
-variants render it in the expansion popover action row. The entry routes
+Full cards carry the composed instance-chat entry in the footer row (before
+parent footer actions); the inline/compact faces open the shared record
+popup, whose detail surface carries its own conversation entry. The entry
+routes
 through `utils/instance-chat.js`, so the surface the card lives on decides how
 the thread opens (desktop drawer, mobile `/chats` target). The thread kind
 follows the support conversation contract at the seam itself: a `user` target
@@ -647,32 +615,29 @@ thread header's title opens the entity popup (`EntityPopup.vue` +
 `useEntityPopup`) — titled by display name (never an id); group headers
 carry member chips inline through [`UserChip.vue`](#userchipvue).
 
-### `InstanceCard.vue` popup identity slot
-The popover's identity block — type label, status surface, icon+name row, and
-the forced trace — is a replaceable `#popup-identity` slot with the generic
-chrome as its default. Cards with a directory-grade face (`UserCard`,
-`OrganizationCard`) override it with their avatar-forward header and own the
-whole block; overriding cards are responsible for any status surface they
-still need (the party types carry none). The expanded body, footer slot, and
-action row remain common chrome.
-
 ### Detail-surface conversation entry
 The record header owns the conversation affordance — there is no embedded
 comments section. `SurfaceHeader` (ui-mapping detail routes) and
 `GeneratedInstanceDetail`'s `InstancePage` actions both carry the composed
 instance-chat entry: an icon-only chat button routing through
-`utils/instance-chat.js`, the same seam as `InstanceCard` popovers and pane
+`utils/instance-chat.js`, the same seam as `InstanceCard` footers and pane
 strips (a user-typed record opens the direct thread; every other type the
 composed instance thread). Bounded/flush editor hosts expose the same entry
+from their own chrome.
 
 ### `EntityPopup.vue` (with `useEntityPopup`)
-The shared entity popup: the standard centered `StandardDialog` (size
+The shared entity popup — the one record preview popup: the standard centered
+`StandardDialog` (size
 `md` for directory profiles, `xl` for instance detail screens; bounded
 scroll body) hosting the entity's real detail surface — the directory
 profile for `user`/`organization`
 ([components/directory](../directory/README.md)), and the compiled detail
 screen through the generator host
 ([components/generated](../generated/README.md)) for instance types.
+Inline refs, compact micro cards, and inline entity-card chips open it
+(see [`InstanceInlineRef.vue`](#instanceinlinerefvue)); its expand action
+steps the record up to its page, so a ref discovered inside a workspace
+still lands in the pane.
 The header carries the record's display name (never an id; resolved from
 the instances store cache, falling back to its readable-reference
 resolution) with exactly one expansion affordance beside it: the
@@ -680,8 +645,9 @@ icon-only expand action that steps the record up to its page. The
 composable's `openable(typeId)` is the guard: a type with neither a
 directory profile nor a resolvable detail screen has no record surface
 anywhere (panes stay silent for it too), so `open()` refuses it and
-callers (chat thread headers, message links) render plain text instead
-of a link — an empty popup shell with dead chrome never renders. The
+callers (chat thread headers, message links, inline refs, card chips)
+render an inert surface instead of a link — an empty popup shell with
+dead chrome never renders. The
 expand step-up renders only where it has somewhere to go: desktop always
 (the home pane tab), mobile only for records with a routed page — a
 compiled detail screen, or the **active organization**, whose real page
@@ -694,7 +660,6 @@ opens from the generator swap the popup subject in place. Mounted once by
 the app layout so floating chrome (chat thread headers) can inspect a
 record from any route; the composable state is the single
 `open`/`close` channel.
-from their own chrome.
 
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies as text only. `{{instance:type:id}}`

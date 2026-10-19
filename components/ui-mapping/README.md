@@ -457,9 +457,8 @@ surface concerns:
   by contract — context, not navigation). Instance references (relation
   chips, table relation columns, `ref` field values) render through the
   shared [InstanceInlineRef](../shared/README.md) — the app's one
-  interactive reference surface, everywhere: inspect popover on click,
-  keyboard activation, and open through the workspace-open seam or the
-  compiled detail route, exactly like relation refs on every other
+  interactive reference surface, everywhere: the shared record popup on
+  click/keyboard activation, exactly like relation refs on every other
   instance surface. Action and field labels
   resolve through the stable generated keys first
   (`actionLabelKey`/`fieldLabelKey`/`typeLabelKey` + `localizedLabel`),

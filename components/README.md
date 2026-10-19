@@ -443,13 +443,13 @@ Displayed contexts form a propagated stack, so project workspaces also remove
 the project already represented by the shell from every nested entity trace.
 Generated card collections use bounded token-backed tracks; parent width adds
 tracks without squeezing operational cards into arbitrarily narrow columns.
-Entity reference popovers inside generated surfaces mirror the action affordances
-available on the referenced entity's generated detail screen. They resolve
-compiled detail-screen action ids through the same access/status visibility
-helpers as detail headers, consume workspace-specific actions such as queue
-nesting controls, and execute generated buttons through the surrounding
-generated screen's process action handler instead of calling process endpoints
-locally.
+Entity reference chips inside generated surfaces open the shared entity popup
+(`EntityPopup` + `useEntityPopup`): the referenced record's own compiled
+detail screen, whose action surface resolves through the same access/status
+visibility helpers as every detail header. Contextual relation operations
+(the per-ref Unlink) render as the ref's own ellipsis menu and execute
+through the surrounding generated screen's process action handler instead of
+calling process endpoints locally.
 Entity-detail templates render child collection regions inside the `InstancePage`
 body so parent-child graph flows, such as project-to-queue creation, stay in the
 opened parent context.
@@ -1261,9 +1261,9 @@ detail pages expose the same composed conversation as the detail page's
 in-page thread surface; bounded hosts cannot (their `flush` frame is `h-full`
 and non-scrolling, so a rail has no track) and therefore carry a chat entry
 that opens the shared popup instead. Every entity
-surface carries a chat entry — the shared `InstanceCard` renders it for all
-card variants (footer row and expansion popover), and `InstanceInlineRef`
-popovers carry it too, all opening the entity thread through
+surface carries a chat entry — the shared `InstanceCard` renders it in the
+full-card footer row, and the inline faces open the shared record popup,
+whose detail surface carries its own entry — all opening the entity thread through
 `utils/instance-chat.js` (the single PrimeVue Dialog popup — consumed on chat
 mount). The
 detail rail rides `GeneratedInstanceDetail` — the canonical detail chrome —
