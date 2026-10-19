@@ -428,7 +428,7 @@ describe('arrangeProcessGraph', () => {
     expect(byX.get(secondColumnX).length).toBe(1);
   });
 
-  it('anchors a declaration cluster one column left of its bound process node', () => {
+  it('fans a declaration cluster out one column per declare hop', () => {
     const nodes = [
       declarationNode('cls', 'ctsClass', 0, 0),
       declarationNode('fld', 'ctsField', 0, 0),
@@ -443,15 +443,12 @@ describe('arrangeProcessGraph', () => {
       effects: ['eff'],
       bandOfNodeId: new Map([['eff', BAND_A]])
     });
-    const eff = result.get('eff');
-    for (const id of ['cls', 'fld']) {
-      expect(result.get(id).x).toBeLessThan(eff.x);
-    }
-    expect(result.get('cls').x).toBe(result.get('fld').x);
-    // The cluster rides its anchor: the class is level with the effect,
-    // the field the next row down.
-    expect(result.get('cls').y).toBe(eff.y);
-    expect(result.get('fld').y - result.get('cls').y).toBe(140 + 16);
+    // The class rides one column left of the effect; the field one
+    // column left of the class, level with it.
+    expect(result.get('cls').x).toBeLessThan(result.get('eff').x);
+    expect(result.get('fld').x).toBeLessThan(result.get('cls').x);
+    expect(result.get('cls').y).toBe(result.get('eff').y);
+    expect(result.get('fld').y).toBe(result.get('cls').y);
   });
 
   it('seats a declaration island inside a lane on the column grid', () => {

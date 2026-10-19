@@ -1051,11 +1051,7 @@ const {
 // Authored vocabulary for the type-migration step dialog: class names,
 // field labels (tree first, stored descriptors for removed fields), and
 // the tree's current state values as rename targets.
-const typeMigrationVocabulary = computed(() => declarationVocabulary(
-  nodes.value,
-  edges.value,
-  ctsOrgTypes.value
-));
+const typeMigrationVocabulary = ref([]);
 
 const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, normalizeScreenContract, defaultTypeId, featureForTypeId });
 
@@ -1562,10 +1558,20 @@ const declarationTypeOptions = computed(() => [
 // canvas as "sockets stopped regenerating". Validity is authored live.
 const classTypeIdValid = computed(() => /^[a-z][a-z0-9-]*$/.test(selectedNode.value?.type === 'ctsClass' ? selectedNode.value.data?.typeId || '' : 'x'));
 // Declaration diagnostics against the registry's own normalizer: what
-// SAVE/APPLY would reject is visible while authoring, not after.
-const classDeclarationDiagnostics = computed(() => {
-  const classes = nodes.value.filter(node => node.type === 'ctsClass');
-  if (!classes.length) return [];
+// SAVE/APPLY would reject is visible while authoring, not after. The
+// compile is gated on the declaration plane's authoring signature, so
+// position drags and selection churn never recompile it.
+const declarationPlaneSignature = computed(() => JSON.stringify({
+  cards: nodes.value.filter(node => node.type !== 'processNode').map(node => [node.id, node.type, node.data]),
+  wires: edges.value.filter(edge => edge.role === 'type').map(edge => [edge.id, edge.source, edge.target, edge.sourceHandle, edge.targetHandle, edge.label]),
+  records: draft.value?.data?.processNodes ?? null
+}));
+const classDeclarationDiagnostics = ref([]);
+watch(declarationPlaneSignature, () => {
+  if (!nodes.value.some(node => node.type === 'ctsClass')) {
+    classDeclarationDiagnostics.value = [];
+    return;
+  }
   const { declarations, diagnostics } = compileTreeDeclarations(
     nodes.value,
     edges.value,
@@ -1578,8 +1584,15 @@ const classDeclarationDiagnostics = computed(() => {
       diagnostics.push(`${declaration.id || '(unnamed type)'}: ${error.message}`);
     }
   }
-  return diagnostics;
-});
+  classDeclarationDiagnostics.value = diagnostics;
+}, { immediate: true });
+watch([declarationPlaneSignature, ctsOrgTypes], () => {
+  typeMigrationVocabulary.value = declarationVocabulary(
+    nodes.value,
+    edges.value,
+    ctsOrgTypes.value
+  );
+}, { immediate: true });
 const declarationNodeTypes = DECLARATION_NODE_TYPES;
 const selectedDeclarationEdge = computed(() => edges.value.find(edge => edge.id === selectedEdgeId.value && edge.role === 'type') || null);
 
@@ -1770,7 +1783,15 @@ watch(selectedScreenRecord, () => syncSelectedScreenUi(), { immediate: true });
 
 let previewRecomputeTimer = null;
 let previewRecomputeSequence = 0;
-watch([draft, nodes, edges], () => schedulePreviewRecompute(), { deep: true });
+const draftDataSignature = computed(() => JSON.stringify(draft.value?.data ?? null));
+// Preview recompute follows the authoring signature — the content the
+// compiler reads — so a drag never queues a compile.
+const previewAuthoringSignature = computed(() => JSON.stringify({
+  data: draftDataSignature.value,
+  nodes: nodes.value.map(node => [node.id, node.type, node.data]),
+  edges: edges.value.map(edge => [edge.id, edge.source, edge.target, edge.sourceHandle, edge.targetHandle, edge.role, edge.label])
+}));
+watch(previewAuthoringSignature, () => schedulePreviewRecompute());
 watch(inspectTab, () => schedulePreviewRecompute());
 
 function schedulePreviewRecompute() {
@@ -2259,7 +2280,7 @@ function onCanvasNodesChange(changes = []) {
 
 function designerSignature() {
   return JSON.stringify({
-    data: draft.value?.data || null,
+    data: draftDataSignature.value,
     nodes: nodes.value.map(node => ({ id: node.id, type: node.type, position: node.position, data: { refId: node.data?.refId } })),
     edges: edges.value.map(edge => ({
       id: edge.id,
