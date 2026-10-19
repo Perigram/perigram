@@ -31,7 +31,10 @@ export function useEntityPopup() {
         openable,
         open({ typeId = '', instanceId = '' } = {}) {
             if (!typeId || !instanceId || !openable(typeId)) return;
-            request.value = { typeId: String(typeId), instanceId: String(instanceId) };
+            // The served type record's id is the pool key and the manifest
+            // vocabulary — refs may carry aliases.
+            const servedTypeId = typeById(typeId)?.id || String(typeId);
+            request.value = { typeId: servedTypeId, instanceId: String(instanceId) };
         },
         close() {
             request.value = null;
