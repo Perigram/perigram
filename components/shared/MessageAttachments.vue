@@ -236,8 +236,7 @@ const previewRefProps = (ref = {}) => ({
   entity: ref.instance || null,
   fetch: canFetch(ref),
   variant: 'compact',
-  compactLayout: 'stacked',
-  allowDetailRoute: !(props.viewerUserId && props.senderUserId && props.senderUserId !== props.viewerUserId && ref.chatOnlyForRecipient)
+  compactLayout: 'stacked'
 });
 
 const chipRefProps = (ref = {}) => ({
@@ -245,8 +244,7 @@ const chipRefProps = (ref = {}) => ({
   id: ref.id,
   entity: ref.instance || null,
   fetch: canFetch(ref),
-  chipClass: instanceChipClass,
-  allowDetailRoute: !(props.viewerUserId && props.senderUserId && props.senderUserId !== props.viewerUserId && ref.chatOnlyForRecipient)
+  chipClass: instanceChipClass
 });
 
 // Naming law: the support README — empty names localize the type label.

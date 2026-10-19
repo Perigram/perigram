@@ -13,24 +13,6 @@
       <template #compact-content>
         <div v-if="organization.data?.email" class="mt-3 text-muted text-body">{{ organization.data.email }}</div>
       </template>
-      <!-- The popup's directory face: the avatar-forward identity block
-           replaces the generic instance chrome; the expanded body carries
-           only the fact rows. -->
-      <template #popup-identity>
-        <div class="flex items-start gap-4">
-          <Avatar :label="avatarLabel" shape="circle" size="xlarge" class="shrink-0" />
-          <div class="flex min-w-0 flex-1 flex-col gap-1 pt-1">
-            <span class="truncate text-section-heading">{{ organization.identity?.name }}</span>
-            <div class="mt-1 flex flex-wrap gap-2">
-              <Tag v-if="organization.data?.type" :value="organization.data.type" severity="secondary" size="small" />
-              <slot name="context" />
-            </div>
-          </div>
-        </div>
-      </template>
-      <template #expanded>
-        <DataBlock type-id="organization" :entity="organization" :fields="ORGANIZATION_FIELDS" variant="compact" />
-      </template>
       <div v-if="$slots.context && variant === 'card'" class="mb-3 flex flex-wrap gap-2">
         <slot name="context" />
       </div>
