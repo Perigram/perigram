@@ -80,8 +80,9 @@ const tabListPt = {
 
 // PrimeVue's scroll-end check compares fractional widths against rounded
 // integers, so the next chevron outstays the strip's end and covers the
-// last tab; the strip measures the tab row's edge against the viewport
-// and hides it exactly at the end.
+// last tab; the strip measures the last tab's edge against the viewport
+// (the tab row is a block whose rect matches the viewport — its shrink-0
+// children carry the real extent) and hides it exactly at the end.
 const tabList = ref(null);
 const atScrollEnd = ref(false);
 let stripObserver;
@@ -90,7 +91,9 @@ let innerEl;
 
 const measureScrollEnd = () => {
   if (!viewportEl || !innerEl) return;
-  atScrollEnd.value = innerEl.getBoundingClientRect().right - viewportEl.getBoundingClientRect().right <= 1;
+  const last = [...innerEl.children].findLast(el => el.getBoundingClientRect().width > 0);
+  if (!last) return;
+  atScrollEnd.value = last.getBoundingClientRect().right - viewportEl.getBoundingClientRect().right <= 1;
 };
 
 onMounted(() => {
