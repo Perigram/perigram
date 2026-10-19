@@ -90,7 +90,10 @@ modules — no platform imports.
   evaluated layerData, the folded cutouts, and the OCCS document's
   face shapes all read the result rings (`resultInnerCutEntities`;
   overlapping operands dissolve into one merged ring, each ring
-  attributing to the relation of the operand it swallows). The
+  attributing to the relation of the operand it swallows). A result
+  hole in material hanging past the authored face boundary (a
+  straddling tab) rides the contour, staying off the inner-cut
+  layer. The
   operand entities stay on the OCCS wire as authored truth
   (`booleanOperation` steps: an add reshapes the contour only, a
   subtract inside the face becomes one of the result's hole rings,
@@ -299,11 +302,8 @@ modules — no platform imports.
   same pass (owner law 2026-10-15, profiles are terminal; owner law
   2026-10-18, axis placement): the boolean result's rings are placed by
   the axis law — the zero axis lands on the attachment edge (snap +
-  offsets), +X toward the host face, and the section's tight extent
-  starts at the axis: placed rings translate by the operands' minX,
-  so the leftmost material hugs the edge whatever the authored
-  distances from the axis (the stored sketch keeps its coordinates);
-  a point placement
+  offsets), +X toward the host face, authored distances from the axis
+  riding along as drawn; a point placement
   rotates by the relation's rotation alone — and each copy cuts the
   host face where it intersects, every ring a cut operand (the boolean
   difference the integral-cut hanger clips ride), with the cut paths
