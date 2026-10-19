@@ -22,11 +22,13 @@ export const DEFAULT_OCCS_PROFILE_PARAMETERS = Object.freeze({
   L: 120
 });
 
-// Construction geometry (the CAD sketch law): a shape either
-// participates in the section or is construction — closed participants
-// fold by containment (inner loops are holes), the flag never changes
-// geometry.
-const normalizeConstruction = (value) => Boolean(value);
+// The per-shape boolean selection (the 2D pathfinder vocabulary): a
+// shape unions into the profile body, subtracts from it, or is
+// construction geometry the fold ignores.
+export const OCCS_PROFILE_SHAPE_OPS = Object.freeze(['union', 'subtract', 'construction']);
+const normalizeOp = (op, fallback = 'union') => (
+  OCCS_PROFILE_SHAPE_OPS.includes(op) ? op : fallback
+);
 
 // The material half of the zero axis (X=0) is a boolean body: the
 // evaluated section is clipped to it. 'positive' hatches X>0.
@@ -119,7 +121,7 @@ const normalizeCenter = (center = []) => [
 const normalizeCircleShape = (shape = {}, index = 0) => ({
   id: shape.id || `s${index}`,
   type: 'circle',
-  construction: normalizeConstruction(shape.construction),
+  op: normalizeOp(shape.op, 'subtract'),
   center: normalizeCenter(shape.center),
   diameter: sketchValue(shape.diameter, 0)
 });
@@ -139,7 +141,7 @@ const normalizeRectFillets = (fillets = [], width = 0, height = 0) => {
 const normalizeRectShape = (shape = {}, index = 0) => ({
   id: shape.id || `s${index}`,
   type: 'rect',
-  construction: normalizeConstruction(shape.construction),
+  op: normalizeOp(shape.op, 'union'),
   center: normalizeCenter(shape.center),
   width: sketchValue(shape.width, 0),
   height: sketchValue(shape.height, 0),
@@ -199,7 +201,7 @@ const normalizeChainShape = (shape = {}, index = 0) => {
   return {
     id: shape.id || `s${index}`,
     type: 'chain',
-    construction: normalizeConstruction(shape.construction),
+    op: normalizeOp(shape.op, shape.closed ? 'union' : 'construction'),
     closed,
     points,
     edges,
@@ -264,7 +266,7 @@ export const upgradeLegacyOccsProfileSketch = (sketch = {}) => {
     shapes.push({
       id: 's0',
       type: 'chain',
-      construction: !closed,
+      op: closed ? 'union' : 'construction',
       closed,
       points: chainPoints,
       edges: edges.filter(edge => chainPointIds.has(edge.from) && chainPointIds.has(edge.to)),
@@ -329,11 +331,11 @@ export const normalizeOccsProfileSketch = (sketch = {}, fallbackParameters = {})
 };
 
 // A sketch participates when at least one closed shape carries a boolean
-// construction flag or an open chain rides it as a cut path.
+// op or an open chain rides it as a cut path.
 const sketchParticipates = (evaluated = {}) => evaluated.shapes.some(shape => (
   shape.type === 'chain' && !shape.closed
     ? shape.points.length >= 2
-    : !shape.construction
+    : shape.op !== 'construction'
       && (shape.type === 'chain'
         ? shape.points.length >= 3
         : true)
@@ -492,7 +494,7 @@ const chainSectionShape = (shape = {}) => {
   return {
     shapeId: shape.id,
     kind: 'chain',
-    construction: shape.construction,
+    op: shape.op,
     closed: shape.closed,
     vertices: occProfileSectionChainedVertices(section)
   };
@@ -510,7 +512,7 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
         return {
           shapeId: shape.id,
           kind: 'circle',
-          construction: shape.construction,
+          op: shape.op,
           closed: true,
           vertices: circlePolygon(shape.center, shape.diameter)
         };
@@ -521,7 +523,7 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
         return {
           shapeId: shape.id,
           kind: 'rect',
-          construction: shape.construction,
+          op: shape.op,
           closed: true,
           vertices: occProfileSectionChainedVertices({
             open: false,
@@ -549,54 +551,20 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   };
 };
 
-// Containment fold of a shapes section (the CAD sketch law): closed
-// participants alternate material and hole by nesting depth — depth 0
-// unites, odd depths subtract from their parents, even depths unite
-// back as islands; the result clips to the material half of the zero
-// axis. Polyline sections have no boolean meaning (null).
-const ringContainsPoint = (ring = [], point = []) => {
-  const vertices = ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
-    ? ring.slice(0, -1)
-    : ring;
-  if (vertices.length < 3) return false;
-  let inside = false;
-  for (let index = 0, previous = vertices.length - 1; index < vertices.length; previous = index, index += 1) {
-    const [xi, yi] = vertices[index];
-    const [xj, yj] = vertices[previous];
-    if ((yi > point[1]) !== (yj > point[1])
-      && point[0] < ((xj - xi) * (point[1] - yi)) / ((yj - yi) || 1) + xi) {
-      inside = !inside;
-    }
-  }
-  return inside;
-};
-
+// Boolean fold of a shapes section: the union shapes unite into the
+// profile body, the subtract shapes cut from it, construction geometry
+// is ignored; the result clips to the material half of the zero axis.
+// Polyline sections have no boolean meaning (null).
 export const resolveOccsProfileSectionPolygons = async (section = {}) => {
   if (section.type !== 'shapes') return null;
-  const participants = section.shapes
-    .filter(shape => !shape.construction && shape.vertices.length >= 3);
-  if (!participants.length) return { polygons: [], holes: [] };
-  const depthOf = (shape) => participants.filter(other => (
-    other !== shape && ringContainsPoint(other.vertices, shape.vertices[0])
-  )).length;
-  const byDepth = new Map();
-  for (const shape of participants) {
-    const depth = depthOf(shape);
-    byDepth.set(depth, [...(byDepth.get(depth) || []), shape.vertices]);
-  }
-  const depths = [...byDepth.keys()].sort((a, b) => a - b);
-  let polygons = await unionCassetteV2FacePolygons(byDepth.get(depths[0]) || []);
+  const unions = section.shapes.filter(shape => shape.op === 'union' && shape.vertices.length >= 3);
+  const subtracts = section.shapes.filter(shape => shape.op === 'subtract' && shape.vertices.length >= 3);
+  let polygons = unions.length ? await unionCassetteV2FacePolygons(unions.map(shape => shape.vertices)) : [];
   let holes = [];
-  for (const depth of depths.slice(1)) {
-    const group = byDepth.get(depth);
-    if (!group?.length) continue;
-    if (depth % 2 === 1) {
-      const difference = await differenceCassetteV2Polygons(polygons, group);
-      polygons = difference.polygons;
-      holes = [...holes, ...difference.holes];
-    } else {
-      polygons = await unionCassetteV2FacePolygons([...polygons, ...group]);
-    }
+  if (subtracts.length) {
+    const difference = await differenceCassetteV2Polygons(polygons, subtracts.map(shape => shape.vertices));
+    polygons = difference.polygons;
+    holes = difference.holes;
   }
   const span = 1e6;
   const voidHalf = section.axis?.material === 'negative'
@@ -1131,7 +1099,7 @@ const canonicalPolygonPoints = (points = []) => {
   return ordered.slice(start).concat(ordered.slice(0, start));
 };
 
-const chainShapeFromGeometry = (geometry, closed, construction, index) => {
+const chainShapeFromGeometry = (geometry, closed, op, index) => {
   const points = geometry.points;
   const pointIds = points.map((_, at) => `p${at}`);
   const shapeClosed = closed && points.length >= 3;
@@ -1155,7 +1123,7 @@ const chainShapeFromGeometry = (geometry, closed, construction, index) => {
     return {
       id: `s${index}`,
       type: 'rect',
-      construction,
+      op,
       center: rect.center,
       width: rect.width,
       height: rect.height,
@@ -1185,7 +1153,7 @@ const chainShapeFromGeometry = (geometry, closed, construction, index) => {
   return {
     id: `s${index}`,
     type: 'chain',
-    construction: construction && shapeClosed,
+    op: shapeClosed ? op : 'construction',
     closed: shapeClosed,
     points: points.map((point, at) => ({
       id: pointIds[at],
@@ -1230,7 +1198,7 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
     shapes.push({
       id: `s${shapes.length}`,
       type: 'circle',
-      construction: reference,
+      op: reference ? 'construction' : 'subtract',
       center: [circle.center.x, circle.center.y],
       diameter: circle.diameter
     });
@@ -1245,7 +1213,7 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
   for (const { segments, closed } of chains) {
     const geometry = chainToSketchGeometry(segments, closed, chordTolerance);
     if (geometry.points.length >= 2) {
-      shapes.push(chainShapeFromGeometry(geometry, closed, reference, shapes.length));
+      shapes.push(chainShapeFromGeometry(geometry, closed, reference ? 'construction' : 'union', shapes.length));
     }
   }
 
@@ -1260,7 +1228,7 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
 
 // Extraction merges into the authored sketch instead of replacing it: an
 // extracted shape sitting on an authored shape's evaluated position
-// (within a rounding epsilon) keeps the authored id, construction, expressions,
+// (within a rounding epsilon) keeps the authored id, op, expressions,
 // and fillets — drawing, importing, or undoing never destroys parametric
 // authoring. Moved or new shapes carry the extracted numerics; authored
 // shapes with no extracted counterpart were erased and drop. An authored
@@ -1417,7 +1385,7 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     paired.add(authoredShape.id);
     delete shape.__fresh;
     shape.id = authoredShape.id;
-    shape.construction = authoredShape.construction;
+    shape.op = authoredShape.op;
     keptShapeIds.add(authoredShape.id);
     if (shape.type === 'circle') {
       shape.diameter = keepAuthoredField(authoredShape.diameter, evaluatedShape.diameter, shape.diameter);

@@ -297,10 +297,9 @@ describe('cassette v2 trapezoid renderer', () => {
           type: 'shapes',
           // The default template is parametric: the template's own
           // parameters drive the evaluated section (the centered
-          // circle of diameter D — a contained hole by the containment
-          // fold).
+          // subtract circle of diameter D cuts the hole).
           shapes: expect.arrayContaining([
-            expect.objectContaining({ kind: 'circle', construction: false })
+            expect.objectContaining({ kind: 'circle', op: 'subtract' })
           ])
         },
         sweep: { type: 'linear', length: '100' }

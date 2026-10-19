@@ -559,9 +559,15 @@
                     "arc": "Дуга",
                     "rectangle": "Прямоугольник"
                 },
-                "construction": {
-                    "section": "Сечение",
+                "ops": {
+                    "union": "Объединить",
+                    "subtract": "Вычесть",
                     "construction": "Конструкция"
+                },
+                "opsHints": {
+                    "union": "Присоединяется к телу профиля",
+                    "subtract": "Вырезается из тела профиля",
+                    "construction": "Исключена из профиля"
                 },
                 "actions": {
                     "erase": "Удалить",
