@@ -112,6 +112,7 @@
           :bundle="bundle"
           :state-policy="node.statePolicy"
           :navigation="depth === 0 ? navigation : null"
+          :editor-action="editorActions?.[node.type?.id] || null"
           @run="emitRun"
           @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
           @refresh="emit('refresh')"
@@ -228,7 +229,10 @@ const props = defineProps({
   resolveTransitions: { type: Function, default: null },
   // Host-injected contextual back affordance for the record header
   // (`{ icon, label, command }` — SurfaceHeader's navigation channel).
-  navigation: { type: Object, default: null }
+  navigation: { type: Object, default: null },
+  // Editor action components by type (the host resolves them over the
+  // file-surface registry; the header renders what it is given).
+  editorActions: { type: Object, default: null }
 });
 
 const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh']);

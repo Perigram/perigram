@@ -63,8 +63,9 @@
              surface uses (InstanceCard footers, pane strips): the record
              header owns the conversation affordance. -->
         <InstanceChatEntry :type-id="type?.id" :instance="instance" :name="identity" />
-        <GeneratedEditorPageAction
-          v-if="editorActionAvailable"
+        <component
+          :is="editorAction"
+          v-if="editorAction"
           :entity="instance"
           :type-id="type?.id"
           @refresh="$emit('refresh')"
@@ -117,8 +118,6 @@ import ActionButton from './ActionButton.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import StateTag from './StateTag.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
-import GeneratedEditorPageAction from '~/components/generated/GeneratedEditorPageAction.vue';
-import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import InstanceChatEntry from '../shared/InstanceChatEntry.vue';
 import StateHistory from '../shared/state/StateHistory.vue';
 
@@ -137,7 +136,10 @@ const props = defineProps({
   // Host-injected contextual back affordance as data (the template
   // `#navigation` slot is the same channel for direct hosts):
   // `{ icon, label, command }`.
-  navigation: { type: Object, default: null }
+  navigation: { type: Object, default: null },
+  // Editor action component for this record's type, resolved by the host
+  // over the file-surface registry (null when the type has no editor).
+  editorAction: { type: [Object, Function], default: null }
 });
 
 const emit = defineEmits(['run', 'transition', 'refresh', 'open-instance']);
@@ -166,9 +168,6 @@ const glyph = computed(() => iconFor(props.type, props.instance));
 // state-carrying ones are the machine buttons.
 const transitionActions = computed(() => props.actions
   .filter(action => action?.__runtime && action?.state?.to));
-// Editor-bound types carry the editor open action instead of the edit-mode
-// toggle: the editor page owns their editing.
-const editorActionAvailable = computed(() => Boolean(instanceEditorActionFor(props.type?.id)));
 const manualActions = computed(() => props.actions
   .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime)
   .filter(action => action?.actionKind !== 'updateInstance')

@@ -14,6 +14,7 @@
     :on-open="openInstance"
     :navigation="navigation"
     :export-actions="exportActionsByType"
+    :editor-actions="editorActionsByType"
     @instance-mounted="loadRuntimeTransitions"
   />
 </template>
@@ -39,6 +40,7 @@ import { resolveSourceIdentifier } from '~/utils/generated-screen-source.js';
 import { isCreateAction } from '~/utils/action-visibility.js';
 import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
+import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { useOutboxStore } from '~/stores/outbox';
@@ -91,6 +93,14 @@ const exportActionsByType = computed(() => {
 });
 const statePolicy = computed(() => statePolicyByType(authStore.processPayload?.producerOutputs || {}));
 const stateTransitions = computed(() => stateTransitionsByType(authStore.processPayload?.producerOutputs || {}));
+// Editor availability for record headers: the host resolves the
+// file-surface registry's action component per bundle type (app-side
+// per-type logic stays out of the mapping engine).
+const editorActionsByType = computed(() => Object.fromEntries(
+  (processBundle.value.types || [])
+    .map(type => [type.id, instanceEditorActionFor(type.id)])
+    .filter(([, component]) => component)
+));
 
 // The store exposes the keyed pool ({ type -> { id -> instance }}); the
 // generator's instances prop is the grouped-array shape.
