@@ -1,18 +1,9 @@
 <template>
-  <!-- The message attachment surface (the support feature README owns
-       the contract): one stacked family under the message body on the
-       page surface. Instance refs with resolving preview media render
-       the InstanceInlineRef compact card stacked (preview band over
-       identity) — one full-width, several as a tile grid; other refs
-       render the
-       outlined chip (type glyph), file documents the filled chip — same
-       scale, distinct kinds. singleLine is the inbox preview summary
-       (icon, name, overflow count). -->
   <span
     v-if="attachments.length || refs.length"
     :class="singleLine
       ? 'inline-flex max-w-full min-w-0 flex-nowrap items-center gap-1 overflow-hidden align-middle'
-      : 'flex max-w-full flex-col items-start gap-1'"
+      : ['flex max-w-full flex-col gap-1', ownMessage ? 'items-end' : 'items-start']"
     :data-testid="singleLine ? 'chat-attachment-summary' : 'chat-attachments'"
   >
     <template v-if="singleLine">
@@ -21,10 +12,6 @@
       <span v-if="summaryOverflow > 0" class="shrink-0 text-muted">+{{ summaryOverflow }}</span>
     </template>
     <template v-else>
-      <!-- Media attachments flow as one masonry: instance preview cards
-           and image tiles mix; a lone media item renders full-width. -->
-      <!-- Masonry: column stacks resting on the bottom edge, filling
-           from the sender's bottom corner upward. -->
       <span
         v-if="mediaItems.length > 1"
         :class="['flex w-full max-w-80 gap-1', ownMessage ? 'flex-row-reverse' : '']"
@@ -71,7 +58,11 @@
       >
         <img class="h-auto max-h-64 max-w-full rounded-ui" :src="url(mediaItems[0].attachment)" :alt="mediaItems[0].attachment.name || ''">
       </button>
-      <span v-if="chipRefs.length" class="flex w-full max-w-80 flex-col gap-1" data-testid="chat-instance-refs">
+      <span
+        v-if="chipRefs.length"
+        :class="['flex w-full max-w-80 flex-col gap-1', ownMessage ? 'items-end' : 'items-start']"
+        data-testid="chat-instance-refs"
+      >
         <InstanceInlineRef
           v-for="ref in chipRefs"
           :key="`${ref.type}-${ref.id}`"
@@ -185,13 +176,8 @@ import { resolvePluginPreview } from '~/components/generated/plugin-preview-bind
 const props = defineProps({
   attachments: { type: Array, default: () => [] },
   refs: { type: Array, default: () => [] },
-  // Recipient-scoped gating for chat-only snapshots (support README):
-  // another sender's restricted refs keep their embedded snapshot and
-  // lose the detail route; everything else hydrates freely.
   viewerUserId: { type: String, default: '' },
   senderUserId: { type: String, default: '' },
-  // The thread's dock decision — the masonry's leading column follows
-  // the row's edge.
   ownMessage: { type: Boolean, default: false },
   singleLine: { type: Boolean, default: false }
 });
@@ -202,7 +188,7 @@ const instances = useInstancesStore();
 const { typeById } = useFileTypeView();
 
 const fileChipClass = 'min-w-0 w-full max-w-80 cursor-pointer border border-content-border bg-subtle text-supporting';
-const instanceChipClass = 'min-w-0 w-full max-w-80 cursor-pointer border border-content-border bg-transparent text-supporting';
+const instanceChipClass = 'min-w-0 max-w-full cursor-pointer border border-content-border bg-transparent text-supporting';
 const chipPt = { label: { class: 'truncate' } };
 
 const restrictedView = computed(() => Boolean(
@@ -210,10 +196,6 @@ const restrictedView = computed(() => Boolean(
 ));
 const canFetch = (ref = {}) => !restrictedView.value || !ref.chatOnlyForRecipient;
 
-// A ref earns the preview card when preview media resolves over its
-// snapshot: a served plugin preview binding, a renderable stored
-// payload, or a declared geometry value — the channels InstancePreview
-// mounts.
 const refHasPreview = (ref = {}) => {
   const typeRecord = ref.type ? typeById(ref.type) : null;
   const dto = ref.instance;
@@ -229,16 +211,11 @@ const refHasPreview = (ref = {}) => {
 const previewRefs = computed(() => (props.refs || []).filter(refHasPreview));
 const chipRefs = computed(() => (props.refs || []).filter(ref => !refHasPreview(ref)));
 
-// The masonry flow: preview cards and image tiles in send order.
 const mediaItems = computed(() => [
   ...(props.refs || []).map(ref => refHasPreview(ref) ? { kind: 'instance', ref } : null).filter(Boolean),
   ...images.value.map(attachment => ({ kind: 'image', attachment }))
 ]);
 
-// Fill starts at the sender-side bottom corner and grows upward (SPEC
-// §Chat files): chunks are column-major from the sender edge, reversed
-// inside each column, and columns pack against the bottom. Row-reverse
-// renders DOM column 0 at the sender edge for own messages.
 const masonryColumns = computed(() => {
   const total = mediaItems.value.length;
   const columnCount = total >= 5 ? 3 : 2;

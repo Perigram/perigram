@@ -132,7 +132,7 @@ corner — the thread's dock decision selects the leading column, chunks
 are column-major with each chunk's first item at its base, so the
 stacks rest on the gallery's bottom edge and connect to a following
 text message; a lone media item full-width), other refs
-the outlined chip carrying the type glyph at the family width. File
+the outlined chip carrying the type glyph at the sender edge. File
 documents render the filled chip; images and video embed inline (gallery
 tiles, players), other files open the shared preview dialog on click
 (download for opaque kinds). Click on a ref inspects the instance through
