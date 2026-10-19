@@ -327,10 +327,10 @@ describe('Design system manifest', () => {
     expect(designTokens.typography.roles['page-title'].fontSize).toContain('clamp(');
     expect(Object.entries(designTokens.typography.roles).filter(([name, role]) => name !== 'page-title' && role.fontSize.includes('clamp('))).toEqual([]);
     expect(tailwindThemeExtension).not.toHaveProperty('fontSize');
-    expect(nuxtConfig).toContain("import { cssVariableTokens, darkCssVariableTokens, primeFormFluidPT } from './assets/tokens/index.js'");
+    expect(nuxtConfig).toContain("import { cssVariableTokens, darkCssVariableTokens, primeFormFluidPT, primeTabsStripPT } from './assets/tokens/index.js'");
     expect(nuxtConfig).toContain('cssDeclarations(cssVariableTokens)');
     expect(nuxtConfig).toContain('cssDeclarations(darkCssVariableTokens)');
-    expect(nuxtConfig).toContain('pt: primeFormFluidPT');
+    expect(nuxtConfig).toContain('pt: { ...primeFormFluidPT, ...primeTabsStripPT }');
     expect(nuxtConfig.match(/\n\s*app:\s*\{/g)).toHaveLength(1);
     expect(runtimeCss).not.toContain('.dark-mode');
     expect(runtimeCss).not.toMatch(/--p-[\w-]+\s*:/);

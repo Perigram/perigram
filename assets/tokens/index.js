@@ -659,3 +659,11 @@ export const primeFormFluidPT = {
     autocomplete: { root: { class: 'p-autocomplete-fluid' } },
     treeselect: { root: { class: 'p-treeselect-fluid' } }
 };
+
+// Scrollable tab strips pad their viewport by the nav-button width, so
+// the prev/next chevrons sit over the gutter and cover no tab.
+export const primeTabsStripPT = {
+    tablist: {
+        content: { style: { paddingInline: 'var(--p-tabs-nav-button-width)' } }
+    }
+};

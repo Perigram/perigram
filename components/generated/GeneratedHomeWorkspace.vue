@@ -612,9 +612,9 @@ function typePanelItem(node) {
     id: `home-type-${node.data.typeId}`,
     label: node.label,
     // Class names carry no icon: the glyph is the instance signal, so a
-    // type panel never reads as one of its own rows. Headers also keep
-    // full color — muting marks non-selected entries (instances,
-    // communication), categories stay legible.
+    // type panel never reads as one of its own rows. Headers ride the
+    // same muted text as rows; hover restores the readable color.
+    headerClass: 'text-muted',
     typeId: node.data.typeId,
     command: menuCommand(node.key, () => openTypeScreen(node.data.screen)),
     items: (node.children || []).map(child => (

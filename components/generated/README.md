@@ -446,10 +446,10 @@ from the compiled manifest.
   instance selects exactly its row (opening a type screen never selects
   the list), the chats page selects Chats; a selected entry carries the
   chrome-subtle surface (`rounded-ui bg-[var(--ck-chrome-subtle)]`)
-  beside its unmuted text, and every other entry — instance rows and
-  communication — renders muted through PanelMenu's official per-item
-  `class` channel, while type headers keep full color (categories stay
-  legible), so default rendering stays untouched. Pointer clicks blur
+  beside its unmuted text, and every other entry — instance rows,
+  communication, and type headers — renders muted through PanelMenu's
+  official per-item `class`/`headerClass` channel, so default rendering
+  stays untouched. Pointer clicks blur
   whatever PanelMenu focused inside the menu after its handlers run —
   the list's focus-tracked item styling (mousemove-driven while the
   list holds focus) otherwise keeps the last hovered row highlighted
