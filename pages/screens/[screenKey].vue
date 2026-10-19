@@ -5,16 +5,13 @@
     <template #actions>
       <Button icon="pi pi-refresh" :label="$t('common.refresh')" severity="secondary" outlined size="small" :loading="poolLoading" @click="reload" />
     </template>
-    <Message v-if="poolError" severity="error" :closable="false">{{ poolError }}</Message>
-    <div class="flex flex-col gap-3">
-      <GeneratedScreenHost
-        ref="host"
-        :screen="screen"
-        :screen-key="screenKey"
-        :navigation="detailNavigation"
-        @open-instance="openInstance"
-      />
-    </div>
+    <GeneratedScreenHost
+      ref="host"
+      :screen="screen"
+      :screen-key="screenKey"
+      :navigation="detailNavigation"
+      @open-instance="openInstance"
+    />
   </StandardPage>
 </template>
 
@@ -23,7 +20,6 @@ import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
-import Message from 'primevue/message';
 import { useAuthStore } from '~/stores/auth';
 import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
@@ -99,19 +95,15 @@ watch(() => screen.value?.template, template => {
   }
 }, { immediate: true });
 
-// The host owns pool hydration and action runs; the page keeps the
-// surfaced loading/error chrome for the refresh control.
+// The host owns pool hydration, per-source data states, and action runs;
+// the page keeps the refresh control's loading state.
 const host = ref(null);
 const poolLoading = ref(false);
-const poolError = ref('');
 async function reload() {
   if (!host.value?.reload) return;
   poolLoading.value = true;
-  poolError.value = '';
   try {
     await host.value.reload();
-  } catch (err) {
-    poolError.value = err?.data?.message || err?.message || String(err);
   } finally {
     poolLoading.value = false;
   }

@@ -1,5 +1,50 @@
 # TODO
 
+## Generative UI collapse to one engine (owner direction 2026-10-19)
+
+Every compiled screen renders through the ui-mapping generator with one
+record chrome, one route-shell mode, and one dialog container; the legacy
+generated renderer family (`GeneratedScreen`, `GeneratedRegion`,
+`GeneratedInstanceDetail`, `InstancePage` header chrome) retires in
+phases.
+
+- [ ] WAITING — Phase 1 owner verification on the live stack: record
+  headers, card footers, and bounded pane strips open the conversation
+  through the shared entry ("Conversation" tooltip, title-resolver name);
+  generator create/link dialogs render as StandardDialogs with disabled
+  submit while required rows are empty; structural panels still edit one
+  at a time with confirm/discard.
+
+### Agent Notes (2026-10-19)
+
+Session `agent/gen-ui-collapse-20261019`. `InstanceChatEntry.vue` is the
+one composed chat entry (store-free, store-coupled resolution stays at
+call sites through the title resolver); mounted by SurfaceHeader,
+InstanceCard, GeneratedInstanceDetail, GeneratedInstanceFile — the
+duplicated chat buttons, the raw-`name` targets, and the
+`_id || id || _id` copies are gone. `StructuralFieldPanel.vue` owns the
+structural edit cluster + draft (parent keeps one-editing exclusivity).
+Generator create/link dialogs ride `StandardDialog` (new `saveDisabled`
+prop). Screens route drops its wrapper div and page-level error Message
+(per-source data states already own failures). `BreadcrumbTrail`
+self-gates on a single crumb; SurfaceHeader's duplicate lineage walk is
+deleted. Audit matrix rows updated by hand; the audit doc and scripts
+README claimed a spec-driven matrix reconciliation that does not exist —
+both now state the hand-maintained flow. Guards: framework-packages +
+design-system 38✓, localization + v24 10✓, module-imports ✓, SSR smoke
+13✓, check-arch ✓, framework:validate ✓. Pre-existing failure on
+`local`: `detail-action-ownership.spec.js` `cassette` row (fails before
+this branch). E2E not run (no dev stack in session).
+- [ ] Phase 2 — record chrome pass: `SurfaceHeader`/`SurfaceBody` design
+  polish (relation-row labels, typography roles, editor-action resolution
+  host-side through the engine contract).
+- [ ] Phase 3 — detail migration onto the generator (artifact detail,
+  editor-bound pane details); legacy detail family deleted.
+- [ ] Phase 4 — system screens (org overview/account, `workspaceLanes`)
+  migrate or die; `InstancePage` retires.
+- [ ] Phase 5 — deletion sweep, audit/docs reconciliation, e2e rewritten
+  against the one engine.
+
 ## Sheet-design editor panels and interactions (owner report 2026-10-19)
 
 Owner report: the sheet-design editor needs the side panels the editor

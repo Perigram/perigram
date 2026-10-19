@@ -108,9 +108,10 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   (no `--org` = every org holding an ACTIVE definition).
 - `framework-inspect.js`: Framework/package inspection utility used during
   extraction checks.
-- `ui-visual-inventory.js`: Derives the canonical Vue visual inventory from
-  current source and rewrites the component matrix in
-  `docs/UI_COMPONENT_AUDIT.md`. It classifies typography, arbitrary layout,
+- `ui-visual-inventory.js`: Derives per-file visual findings for the
+  component matrix in `docs/UI_COMPONENT_AUDIT.md` through its
+  `analyzeVueVisuals(file, source)` export (the matrix rows are
+  hand-maintained from it). It classifies typography, arbitrary layout,
   chrome, state, important-override, scoped-style, inline-style, and render-style
   findings
   under the same dispositions consumed by `shared/design-system.spec.js`.

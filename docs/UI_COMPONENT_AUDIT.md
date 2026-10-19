@@ -24,8 +24,9 @@ registered shared primitive.
 In scope: every `.vue` file below `components/`, `layouts/`, and `pages/`,
 plus root `error.vue`, including dormant or version-suffixed files. Each ID is
 derived from its repository path by lowercasing and replacing non-alphanumeric
-runs with hyphens. `shared/design-system.spec.js` enumerates the filesystem and
-fails for missing, stale, duplicate, or non-path-derived inventory rows. It also
+runs with hyphens. The matrix is hand-maintained: derive a row's findings
+with the `analyzeVueVisuals` export of `scripts/ui-visual-inventory.js`
+and keep the row in sync in the same change that touches the file. It also
 reconciles the mechanism keys below. Existing projection tests reconcile token
 exports with runtime CSS, and registry tests reconcile registered primitives with
 their files and UI-lab examples.
@@ -74,15 +75,15 @@ concern, `replace` when an Aura component or registered primitive owns it,
 | Inventory finding | Disposition under this contract |
 |---|---|
 | PrimeVue/Aura/Tailwind/Nuxt foundation | compliant; add no design-system dependency. |
-| 25 registered primitives and UI-lab coverage | compliant semantic ownership; primitives delegate generic chrome and states to Material. |
+| 25 registered primitives and UI-lab coverage | compliant semantic ownership; primitives delegate generic chrome and states to Aura. |
 | Generic preset typography, spacing, borders, radii, shadows, and states | remove; the preset retains only the primary palette. |
-| Application motion scales and component-specific spacing tokens | remove; generic transitions and spacing belong to Material, while unavailable interaction behavior stays local to its owning derived composition. |
+| Application motion scales and component-specific spacing tokens | remove; generic transitions and spacing belong to Aura, while unavailable interaction behavior stays local to its owning derived composition. |
 | Duplicated runtime token values and `!important` PrimeVue overrides | remove; the token module is the sole textual source and Nuxt projects its CSS variables. |
 | Forced root size, two-level toolbar mapping, type utilities, and arbitrary 10/11px type | centralize into the eight complete application roles: page title, section heading, body, label, supporting, metric, technical, and prose. |
 | Element-wide `p`, `blockquote`, heading, and technical-element styling | remove; prose and technical text opt into their semantic aliases explicitly. |
-| Global focus suppression | remove and restore Material interaction states. |
-| Raw surface borders and `shadow-sm` | replace with Material components or an existing semantic contract. |
-| Hand-built bordered/rounded derived containers | replace with PrimeVue containers or a registered primitive. Domain primitives retain structure only; Material owns their generic chrome. |
+| Global focus suppression | remove and restore Aura interaction states. |
+| Raw surface borders and `shadow-sm` | replace with PrimeVue components or an existing semantic contract. |
+| Hand-built bordered/rounded derived containers | replace with PrimeVue containers or a registered primitive. Domain primitives retain structure only; Aura owns their generic chrome. |
 | Scoped CSS, inline bindings, render-function styles, and visual utilities | reusable layout and derived semantic composition are compliant; typography, color, border, radius, shadow, and state styling is remove, replace, or centralize. Render-function styles do not bypass classification. Only exact data-driven visuals, including data-driven geometry/process values, may be narrowly allowlisted. |
 | Missing canonical component audit | centralize here; reconciliation covers every repository Vue file and mechanism. |
 | Missing repository-wide guards | centralize in `shared/design-system.spec.js`; the audit and enforcement use this same boundary. |
@@ -99,8 +100,8 @@ overrides are explicitly counted below with their required disposition; updating
 the inventory records debt but does not authorize it as an exception.
 
 Application-owned radius and shadow values are removed. Reusable Tailwind aliases
-consume Material variables directly, and registered entity card/popover structures no
-longer override Material borders, elevation, or interaction states.
+consume Aura variables directly, and registered entity card/popover structures no
+longer override Aura borders, elevation, or interaction states.
 
 ## Mechanism Inventory
 
@@ -113,9 +114,9 @@ longer override Material borders, elevation, or interaction states.
 | `mechanism-css-variable-projection` | CSS variable projection | system-owned | Expose light and dark `--ck-*` values for app-owned semantic roles. | `assets/tokens/index.js` exports `cssVariableTokens` and `darkCssVariableTokens`; `nuxt.config.js`; `shared/design-system.spec.js` | owned: Nuxt emits both projections directly from the token source. |
 | `mechanism-preset` | PrimeVue preset | system-owned | Install Aura plus the bounded primary palette, zinc surface scale, and app-shell component tokens (transparent tab strips, explorer-density trees). | `assets/presets/re_l.js`; `nuxt.config.js` | default: no generic component overrides. |
 | `mechanism-tailwind-aliases` | Tailwind aliases | system-owned | Layout utilities plus token-backed app semantic aliases. | `tailwind.config.js:L1-L16`; `assets/tokens/index.js:L164-L343` | owned: aliases are projected from tokens; raw and arbitrary usage remains component drift. |
-| `mechanism-global-css` | Global CSS layers | system-owned | Font loading/inheritance, page background, app-shell behavior, and active global integrations only. | `assets/css/fonts.css`; `assets/css/main.css`; `assets/css/variants.css` | owned: HTML elements carry no application type role and generic controls remain Material-owned. |
+| `mechanism-global-css` | Global CSS layers | system-owned | Font loading/inheritance, page background, app-shell behavior, and active global integrations only. | `assets/css/fonts.css`; `assets/css/main.css`; `assets/css/variants.css` | owned: HTML elements carry no application type role and generic controls remain Aura-owned. |
 | `mechanism-runtime-overrides` | Runtime PrimeVue overrides | system-owned | No independent visual-value or generic PrimeVue override source. | `assets/css/main.css`; `shared/design-system.spec.js` | default: PrimeVue variable declarations, component selectors, and important rules are rejected. |
-| `mechanism-scoped-css` | Vue local/scoped CSS | shared/domain primitive | Exact reusable layout only; Material-owned padding is not layout. | Every inventory row with a CSS disposition; `shared/design-system.spec.js` allowlist. | compliant only at exact files and property sets; all other scoped CSS is a violation. |
+| `mechanism-scoped-css` | Vue local/scoped CSS | shared/domain primitive | Exact reusable layout only; Aura-owned padding is not layout. | Every inventory row with a CSS disposition; `shared/design-system.spec.js` allowlist. | compliant only at exact files and property sets; all other scoped CSS is a violation. |
 | `mechanism-primitive-registry` | Primitive registry | shared/domain primitive | Canonical registered shared/domain surfaces and component paths. | `utils/design-system-contract.js`; `shared/design-system.spec.js` | owned: exact registry paths define shared/domain primitive rows; all other Vue rows are derived usage. |
 | `mechanism-runtime-registry` | Vue runtime bindings | shared/domain primitive | Bind the domain contract to Vue components and factories. | `utils/design-system.js`; `framework.manifest.json` | owned: runtime binding remains distinct from the pure domain contract. |
 | `mechanism-ui-lab` | UI lab coverage | derived usage | Render every registered primitive and entity contract for visual inspection. | `pages/test/ui-lab.vue:L480-L547`; `pages/test/README.md:L8-L24` | owned: existing tests reconcile primitive keys with examples. |
@@ -123,10 +124,10 @@ longer override Material borders, elevation, or interaction states.
 
 ## Component Inventory
 
-This generated matrix records durable ownership plus current source-derived
-visual findings. Counts are occurrences, not exemptions. Run
-`node scripts/ui-visual-inventory.js` after an intentional visual change;
-`shared/design-system.spec.js` fails when source and this matrix diverge.
+This matrix records durable ownership plus current source-derived
+visual findings. Counts are occurrences, not exemptions. Rows are
+hand-maintained from the `analyzeVueVisuals(file, source)` export in the
+same change that touches a file.
 
 | ID | Path | Primary ownership | Current disposition |
 |---|---|---|---|
@@ -162,7 +163,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedinstancecollection-vue` | `components/generated/GeneratedInstanceCollection.vue` | derived usage | replace:chrome (4); remove:important-override (2); compliant:scoped-layout |
 | `ui-components-generated-generatedinstancedetail-vue` | `components/generated/GeneratedInstanceDetail.vue` | derived usage | compliant |
 | `ui-components-generated-generatedinstancedetailbody-vue` | `components/generated/GeneratedInstanceDetailBody.vue` | derived usage | compliant |
-| `ui-components-generated-generatedinstancefile-vue` | `components/generated/GeneratedInstanceFile.vue` | derived usage | replace:chrome (3); remove:important-override (3) |
+| `ui-components-generated-generatedinstancefile-vue` | `components/generated/GeneratedInstanceFile.vue` | derived usage | replace:chrome (1) |
 | `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | compliant |
 | `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | replace:chrome (11) |
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
@@ -206,7 +207,8 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-filterbuilder-vue` | `components/shared/FilterBuilder.vue` | derived usage | remove:important-override (2) |
 | `ui-components-shared-geometrypreview-vue` | `components/shared/GeometryPreview.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instanceactionspopover-vue` | `components/shared/InstanceActionsPopover.vue` | derived usage | compliant |
-| `ui-components-shared-instancecard-vue` | `components/shared/InstanceCard.vue` | shared/domain primitive | centralize:layout (1) |
+| `ui-components-shared-instancecard-vue` | `components/shared/InstanceCard.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-instancechatentry-vue` | `components/shared/InstanceChatEntry.vue` | derived usage | compliant |
 | `ui-components-shared-instanceinlineref-vue` | `components/shared/InstanceInlineRef.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-shared-instancemultiselect-vue` | `components/shared/InstanceMultiSelect.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instancepage-vue` | `components/shared/InstancePage.vue` | shared/domain primitive | replace:chrome (3); compliant:scoped-layout |
@@ -269,9 +271,10 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-sortcontrol-vue` | `components/ui-mapping/SortControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-statetag-vue` | `components/ui-mapping/StateTag.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-statgrid-vue` | `components/ui-mapping/StatGrid.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-structuralfieldpanel-vue` | `components/ui-mapping/StructuralFieldPanel.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-surfacebody-vue` | `components/ui-mapping/SurfaceBody.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-surfacedetailbody-vue` | `components/ui-mapping/SurfaceDetailBody.vue` | derived usage | replace:chrome (2); remove:state (1) |
-| `ui-components-ui-mapping-surfaceheader-vue` | `components/ui-mapping/SurfaceHeader.vue` | derived usage | remove:important-override (2); compliant:scoped-layout |
+| `ui-components-ui-mapping-surfacedetailbody-vue` | `components/ui-mapping/SurfaceDetailBody.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-surfaceheader-vue` | `components/ui-mapping/SurfaceHeader.vue` | derived usage | compliant:scoped-layout |
 | `ui-components-ui-mapping-timelinecollection-vue` | `components/ui-mapping/TimelineCollection.vue` | derived usage | remove:important-override (1) |
 | `ui-components-ui-mapping-varianteditor-vue` | `components/ui-mapping/VariantEditor.vue` | derived usage | compliant |
 | `ui-components-userform-vue` | `components/UserForm.vue` | derived usage | compliant |

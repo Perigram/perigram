@@ -45,16 +45,8 @@
     <slot />
     <template #actions>
       <!-- The composed instance-chat entry: the record header owns the
-           conversation affordance — no embedded comments section. -->
-      <Button
-        icon="pi pi-comments"
-        text
-        rounded
-        severity="secondary"
-        :aria-label="$t('support.openChat')"
-        :title="$t('support.openChat')"
-        @click="openConversation"
-      />
+           conversation affordance. -->
+      <InstanceChatEntry :type-id="typeId" :instance="instance" :name="identityLabel" />
       <component
         :is="editorActionComponent"
         v-if="editorActionComponent"
@@ -81,8 +73,11 @@ import { computed, inject, provide, unref } from 'vue';
 import InstancePage from '~/components/shared/InstancePage.vue';
 import GeneratedInstanceDetailBody from '~/components/generated/GeneratedInstanceDetailBody.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
-import Button from 'primevue/button';
-import { openInstanceChat } from '~/utils/instance-chat.js';
+import InstanceChatEntry from '~/components/shared/InstanceChatEntry.vue';
+import { useI18n } from 'vue-i18n';
+import { titleFor } from '#shared/ui-mapping/index.js';
+import { dtoToScreenInstance } from '~/utils/instance-shape.js';
+import { useRegistryStore } from '~/stores/registry';
 import { useAuthStore } from '~/stores/auth';
 import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import {
@@ -113,19 +108,17 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh', 'execute-action', 'open-page']);
 
+const { t } = useI18n();
 const authStore = useAuthStore();
-const instanceNameValue = computed(() => props.instance?.name || '');
-// The header's conversation entry: same seam as the card/pane chat
-// actions — a user-typed record opens the direct thread, every other
-// type the composed instance thread.
-const openConversation = () => {
-  if (!instanceIdValue.value) return;
-  openInstanceChat({ type: props.typeId, id: instanceIdValue.value, name: instanceNameValue.value });
-};
-const instanceIdValue = computed(() => {
-  const id = props.instance?._id || props.instance?.id || props.instance?.id || '';
-  return id ? String(id) : '';
-});
+const registry = useRegistryStore();
+// The chat target's display name resolves through the one title resolver
+// (the declared identifier field value; unnamed otherwise).
+const typeView = computed(() => registry.typeRecord(props.typeId));
+const identityLabel = computed(() => titleFor(
+  typeView.value ? dtoToScreenInstance(props.instance, typeView.value) : null,
+  typeView.value,
+  { unnamedLabel: t('common.unnamed') }
+));
 const editorActionComponent = computed(() => instanceEditorActionFor(props.typeId));
 const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
 if (props.flush) {

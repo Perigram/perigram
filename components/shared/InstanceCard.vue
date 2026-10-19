@@ -113,13 +113,7 @@
             </template>
             <template #footer>
                 <div class="flex flex-wrap items-center justify-end gap-2" @click.stop>
-                  <Button
-                    icon="pi pi-comments"
-                    text
-                    size="small"
-                    :aria-label="$t('support.instanceChat')"
-                    @click="openCardChat"
-                  />
+                  <InstanceChatEntry :type-id="typeId" :instance="instance" :name="identityLabel" />
                   <InstanceActionsPopover v-if="footerDisplay === 'menu' && $slots.footer">
                     <slot name="footer" />
                   </InstanceActionsPopover>
@@ -151,7 +145,6 @@ import { computed } from 'vue';
 import InstanceState from '~/components/shared/state/InstanceState.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
-import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Chip from 'primevue/chip';
 import { useRegistryStore } from '~/stores/registry';
@@ -162,7 +155,7 @@ import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useI18n } from 'vue-i18n';
 import { useStatePolicy } from '~/composables/useStatePolicy';
 import { instanceHierarchyIds } from '~/utils/instance-hierarchy.js';
-import { openInstanceChat } from '~/utils/instance-chat.js';
+import InstanceChatEntry from '~/components/shared/InstanceChatEntry.vue';
 import { useEntityPopup } from '~/composables/useEntityPopup';
 
 const props = defineProps({
@@ -185,17 +178,9 @@ const props = defineProps({
 const emit = defineEmits(['refresh']);
 
 const cardInstanceId = computed(() => {
-    const id = props.instance?._id || props.instance?.id || props.instance?._id || '';
+    const id = props.instance?._id ?? props.instance?.id;
     return id ? String(id) : '';
 });
-
-function openCardChat() {
-    openInstanceChat({
-        type: props.typeId,
-        id: cardInstanceId.value,
-        name: props.instance?.name || ''
-    });
-}
 
 const { t } = useI18n();
 const registry = useRegistryStore();

@@ -139,8 +139,8 @@ surface concerns:
 ## Components
 
 - `GeneratedMappingScreen.vue` — engine: composes and renders a compiled
-  screen; owns the generated create dialog, ConfirmDialog for destructive
-  actions, and Toast feedback on runs. Launch behavior follows
+  screen; owns the generated create and link dialogs (`StandardDialog`),
+  ConfirmDialog for destructive actions, and Toast feedback on runs. Launch behavior follows
   `planActionLaunch` (see the shared README's Actions section): a create
   with construction inputs always opens the dialog — grant level never
   replaces the form with a bare confirmation. The screen hosts its own
@@ -380,8 +380,9 @@ surface concerns:
   label placement, so facts, simple structural rows, and quantity maps
   share the same affordance. Rich
   structural values keep their panel chrome (Fieldset/Accordion) with
-  their own pencil: one panel edits at a time over a local draft with
-  confirm/discard. Unfilled fields follow the scalar law
+  their own pencil through `StructuralFieldPanel.vue`: one panel edits at
+  a time over a local draft with confirm/discard. Unfilled fields follow
+  the scalar law
   everywhere: display renders only fields that carry values (empty
   panels are junk).
 - `PreviewBox.vue` — preview materialization keyed on the declared payload,

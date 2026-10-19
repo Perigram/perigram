@@ -14,7 +14,7 @@
         <template #footer v-if="$slots.footer || showDefaultFooter">
             <slot name="footer">
                 <Button :label="cancelLabel" text severity="secondary" @click="$emit('cancel')" />
-                <Button :label="saveLabel" :loading="loading" @click="$emit('save')" />
+                <Button :label="saveLabel" :loading="loading" :disabled="saveDisabled" @click="$emit('save')" />
             </slot>
         </template>
     </Dialog>
@@ -34,7 +34,8 @@ const props = defineProps({
     showDefaultFooter: { type: Boolean, default: false },
     cancelLabel: { type: String, default: 'Cancel' },
     saveLabel: { type: String, default: 'Save' },
-    loading: { type: Boolean, default: false }
+    loading: { type: Boolean, default: false },
+    saveDisabled: { type: Boolean, default: false }
 });
 
 defineEmits(['cancel', 'save']);

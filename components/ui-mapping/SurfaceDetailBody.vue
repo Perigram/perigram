@@ -28,41 +28,16 @@
         toggleable
         class="w-full"
       >
-        <div :class="LAYOUT.panelBody">
-          <div class="flex items-center justify-end gap-1">
-            <template v-if="editingField === structuralOf(group)[0].name">
-              <Button icon="pi pi-check" size="small" :aria-label="$t('uiMapping.save')" :title="$t('uiMapping.save')" @click="confirmStructuralEdit" />
-              <Button icon="pi pi-times" size="small" severity="danger" text :aria-label="$t('uiMapping.discard')" :title="$t('uiMapping.discard')" @click="cancelStructuralEdit" />
-            </template>
-            <Button
-              v-else-if="editable"
-              icon="pi pi-pencil"
-              size="small"
-              severity="secondary"
-              text
-              rounded
-              :aria-label="$t('uiMapping.edit')"
-              :title="$t('uiMapping.edit')"
-              @click="beginStructuralEdit(structuralOf(group)[0])"
-            />
-          </div>
-          <FieldControl
-            v-if="editingField === structuralOf(group)[0].name"
-            v-model="structuralDraft"
-            :descriptor="structuralOf(group)[0].descriptor"
-            variant="detail"
-            :pool="pool"
-            :bundle="bundle"
-          />
-          <FieldControl
-            v-else
-            :model-value="instance.fields?.[structuralOf(group)[0].name]"
-            :descriptor="structuralOf(group)[0].descriptor"
-            variant="row"
-            :pool="pool"
-            :bundle="bundle"
-          />
-        </div>
+        <StructuralFieldPanel
+          :field="structuralOf(group)[0]"
+          :editable="editable"
+          :editing="editingField === structuralOf(group)[0].name"
+          :pool="pool"
+          :bundle="bundle"
+          @begin="editingField = structuralOf(group)[0].name"
+          @end="editingField = null"
+          @inline-change="change => emit('inline-change', change)"
+        />
       </Fieldset>
       <div v-else-if="structuralOf(group).length === 1" :class="d.specRow">
         <span class="text-body text-muted">{{ structuralOf(group)[0].label }}</span>
@@ -95,41 +70,16 @@
           :value="String(index)"
           :header="field.label"
         >
-          <div :class="LAYOUT.panelBody">
-            <div class="flex items-center justify-end gap-1">
-              <template v-if="editingField === field.name">
-                <Button icon="pi pi-check" size="small" :aria-label="$t('uiMapping.save')" :title="$t('uiMapping.save')" @click="confirmStructuralEdit" />
-                <Button icon="pi pi-times" size="small" severity="danger" text :aria-label="$t('uiMapping.discard')" :title="$t('uiMapping.discard')" @click="cancelStructuralEdit" />
-              </template>
-              <Button
-                v-else-if="editable"
-                icon="pi pi-pencil"
-                size="small"
-                severity="secondary"
-                text
-                rounded
-                :aria-label="$t('uiMapping.edit')"
-                :title="$t('uiMapping.edit')"
-                @click="beginStructuralEdit(field)"
-              />
-            </div>
-            <FieldControl
-              v-if="editingField === field.name"
-              v-model="structuralDraft"
-              :descriptor="field.descriptor"
-              variant="detail"
-              :pool="pool"
-              :bundle="bundle"
-            />
-            <FieldControl
-              v-else
-              :model-value="instance.fields?.[field.name]"
-              :descriptor="field.descriptor"
-              variant="row"
-              :pool="pool"
-              :bundle="bundle"
-            />
-          </div>
+          <StructuralFieldPanel
+            :field="field"
+            :editable="editable"
+            :editing="editingField === field.name"
+            :pool="pool"
+            :bundle="bundle"
+            @begin="editingField = field.name"
+            @end="editingField = null"
+            @inline-change="change => emit('inline-change', change)"
+          />
         </AccordionPanel>
       </Accordion>
     </section>
@@ -173,6 +123,7 @@ import Fieldset from 'primevue/fieldset';
 import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups, fieldLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import InlineField from './InlineField.vue';
+import StructuralFieldPanel from './StructuralFieldPanel.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import PreviewBox from './PreviewBox.vue';
 import HierarchyTree from './HierarchyTree.vue';
@@ -192,23 +143,9 @@ const props = defineProps({
 const emit = defineEmits(['toggle', 'inline-change', 'run', 'open-instance']);
 const d = inject('uiMappingSpacing');
 
-// Structural panels edit through their own pencil (SPEC UI: no record
-// edit mode): one panel edits at a time over a local draft, confirm
-// re-emits the field change through the shared inline channel.
+// One structural panel edits at a time (SPEC UI): the parent owns the
+// editing field name, StructuralFieldPanel owns its draft.
 const editingField = ref(null);
-const structuralDraft = ref(null);
-function beginStructuralEdit(field) {
-  editingField.value = field.name;
-  structuralDraft.value = JSON.parse(JSON.stringify(field.value ?? null));
-}
-function confirmStructuralEdit() {
-  if (!editingField.value) return;
-  emit('inline-change', { name: editingField.value, value: structuralDraft.value });
-  editingField.value = null;
-}
-function cancelStructuralEdit() {
-  editingField.value = null;
-}
 
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
 const hasPreview = computed(() => surface.value.slots.includes('preview'));

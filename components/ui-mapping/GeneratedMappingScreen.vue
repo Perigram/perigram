@@ -52,11 +52,17 @@
          carries the composed chat entry; there is no embedded comments
          section beside the body. -->
 
-    <Dialog
+    <StandardDialog
       v-model:visible="linkDialogVisible"
-      modal
+      size="sm"
       :header="linkAction?.label || ''"
-      :class="LAYOUT.dialog"
+      show-default-footer
+      :cancel-label="$t('uiMapping.dialogCancel')"
+      :save-label="$t('uiMapping.dialogSubmit')"
+      :loading="submitting"
+      :save-disabled="!linkTargetId"
+      @cancel="linkDialogVisible = false"
+      @save="submitLink"
     >
       <div class="flex min-w-72 flex-col gap-2">
         <span class="text-label">{{ linkAction?.relation?.key }}</span>
@@ -67,16 +73,18 @@
           :bundle="bundle"
         />
       </div>
-      <template #footer>
-        <Button :label="$t('uiMapping.dialogCancel')" severity="secondary" text :disabled="submitting" @click="linkDialogVisible = false" />
-        <Button :label="$t('uiMapping.dialogSubmit')" :loading="submitting" :disabled="!linkTargetId" @click="submitLink" />
-      </template>
-    </Dialog>
-    <Dialog
+    </StandardDialog>
+    <StandardDialog
       v-model:visible="dialogVisible"
-      modal
+      size="md"
       :header="dialogAction?.label || ''"
-      :class="LAYOUT.dialog"
+      show-default-footer
+      :cancel-label="$t('uiMapping.dialogCancel')"
+      :save-label="$t('uiMapping.dialogSubmit')"
+      :loading="submitting"
+      :save-disabled="dialogIncomplete"
+      @cancel="dialogVisible = false"
+      @save="submitDialog"
     >
       <div :class="LAYOUT.formGrid">
         <div
@@ -104,11 +112,7 @@
           />
         </div>
       </div>
-      <template #footer>
-        <Button :label="$t('uiMapping.dialogCancel')" severity="secondary" text :disabled="submitting" @click="dialogVisible = false" />
-        <Button :label="$t('uiMapping.dialogSubmit')" :loading="submitting" :disabled="dialogIncomplete" @click="submitDialog" />
-      </template>
-    </Dialog>
+    </StandardDialog>
     <!-- The screen hosts its own Toast (without a host in the tree,
           useToast fires into nothing); confirmations deliberately use NO
           group — the app layout owns the single default-group
@@ -121,11 +125,9 @@
 <script setup>
 import { computed, provide, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Dialog from 'primevue/dialog';
 import Toast from 'primevue/toast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
-import Button from 'primevue/button';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -137,6 +139,7 @@ import RegionBlock from './RegionBlock.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
 import InstancePicker from './InstancePicker.vue';
 import FieldControl from './FieldControl.vue';
+import StandardDialog from '../shared/StandardDialog.vue';
 
 const props = defineProps({
   screen: { type: Object, required: true },

@@ -7,7 +7,7 @@
        below; actions cluster to the right (the identity's flex-1 is the
        push) and wraps below on narrow containers. -->
   <div :class="[spacing ? spacing.stackTight : 'flex flex-col gap-3', 'surface-header']">
-    <BreadcrumbTrail v-if="trail.length > 1" :instance="instance" :bundle="bundle" :pool="pool" @open="target => emit('open-instance', target)" />
+    <BreadcrumbTrail :instance="instance" :bundle="bundle" :pool="pool" @open="target => emit('open-instance', target)" />
     <div :class="LAYOUT.headerRow" class="header-row">
       <!-- Contextual navigation slot: a host that opened this record
            inside another surface (a workspace tab reached from another
@@ -60,19 +60,9 @@
       </div>
       <div :class="LAYOUT.row" class="header-actions">
         <!-- The composed instance-chat entry, the same route every instance
-             surface uses (InstanceCard popovers, pane strips): the record
-             header owns the conversation affordance instead of an embedded
-             comments section. -->
-        <Button
-          icon="pi pi-comments"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="$t('support.openChat')"
-          :title="$t('support.openChat')"
-          @click="openConversation"
-        />
+             surface uses (InstanceCard footers, pane strips): the record
+             header owns the conversation affordance. -->
+        <InstanceChatEntry :type-id="type?.id" :instance="instance" :name="identity" />
         <GeneratedEditorPageAction
           v-if="editorActionAvailable"
           :entity="instance"
@@ -129,7 +119,7 @@ import StateTag from './StateTag.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
 import GeneratedEditorPageAction from '~/components/generated/GeneratedEditorPageAction.vue';
 import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
-import { openInstanceChat } from '~/utils/instance-chat.js';
+import InstanceChatEntry from '../shared/InstanceChatEntry.vue';
 import StateHistory from '../shared/state/StateHistory.vue';
 
 const spacing = inject('uiMappingSpacing', null);
@@ -157,33 +147,7 @@ const identity = computed(() => titleFor(props.instance, props.type, { unnamedLa
 const { localizedTypeLabel } = useLocalizedTypeLabel();
 const typeLabel = computed(() => localizedTypeLabel(props.type || {}));
 
-// The header's conversation entry: same seam as the card/pane chat
-// actions — a user-typed record opens the direct thread, every other
-// type the composed instance thread.
-function openConversation() {
-  const instanceId = String(props.instance?._id || props.instance?.id || '');
-  if (!instanceId) return;
-  openInstanceChat({
-    type: props.type?.id || '',
-    id: instanceId,
-    name: identity.value
-  });
-}
 const glyph = computed(() => iconFor(props.type, props.instance));
-const trail = computed(() => {
-  const chain = [];
-  let cursor = props.instance;
-  const seen = new Set([cursor?.id]);
-  while (cursor) {
-    chain.unshift(cursor.id);
-    const parentRef = Object.values(cursor.lineage || {})[0];
-    const parent = parentRef ? props.pool[parentRef.type]?.[parentRef.id] : null;
-    if (!parent || seen.has(parent.id)) break;
-    seen.add(parent.id);
-    cursor = parent;
-  }
-  return chain;
-});
 // Action placement budget: at most HEADER_ACTIONS_INLINE generated
 // buttons render beside the title; the rest join one popup overflow menu
 // (an ellipsis that reserves no layout space for its items) with the
