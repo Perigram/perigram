@@ -41,9 +41,9 @@ modules — no platform imports.
   tuned presets (family, mode, parameters) authored from the designer's
   hardware dialog — a parameter form over this catalog, never a canvas —
   and placed hardware workpieces edit their parameters on the nested row. Integral-cut hanger clips resolve through curve boolean difference:
-  the parent face becomes the resulting polygon. Fully internal cutouts remain
-  on `cut.inner`; edge-breaking hanger operands are boolean-only and dispatch
-  only through the modified `cut.outer` contour. Bolt/rivet/screw/spacer/standoff
+  the parent face becomes the resulting polygon. Cutouts landing as
+  holes ride `cut.inner`; operands breaking the region boundary dispatch
+  through the modified `cut.outer` contour. Bolt/rivet/screw/spacer/standoff
   placements resolve to exact `cut.hole` circles. Edge arrays use attachment X
   as a margin from both edge ends, attachment Y as the face-normal offset, and
   the target snap (`start`, `end`, or `center`) as the array binding before
@@ -90,14 +90,14 @@ modules — no platform imports.
   evaluated layerData, the folded cutouts, and the OCCS document's
   face shapes all read the result rings (`resultInnerCutEntities`;
   overlapping operands dissolve into one merged ring, each ring
-  attributing to the relation of the operand it swallows). A result
-  hole in material hanging past the authored face boundary (a
-  straddling tab) rides the contour, staying off the inner-cut
-  layer. The
+  attributing to the relation of the operand it swallows). Every result
+  hole ring rides the inner-cut layer — the material it punches,
+  authored face or added tab alike; the tab's outline rides the outer
+  contour. The
   operand entities stay on the OCCS wire as authored truth
   (`booleanOperation` steps: an add reshapes the contour only, a
-  subtract inside the face becomes one of the result's hole rings,
-  one breaking the edge dispatches through the modified contour).
+  subtract landing as a hole ships its operand ring, one breaking the
+  region boundary dispatches through the modified contour).
   Primitive parameters author as on-canvas dimension annotations (the
   cassette editor's dimension law): every rect field (width, height,
   position from the axis, height from the origin) and circle field
