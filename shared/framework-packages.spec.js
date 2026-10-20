@@ -266,8 +266,9 @@ describe('Framework package contracts', () => {
     // The legacy residual fact map died with the fact channel: no
     // design-system component carries legacy fact rows anymore.
     expect(committed.designSystem.primitives).toContainEqual(expect.objectContaining({
-      key: 'InstancePage',
-      componentPath: 'components/shared/InstancePage.vue'
+      key: 'InstanceCard',
+      componentPath: 'components/shared/InstanceCard.vue'
     }));
+    expect(committed.designSystem.primitives.map(primitive => primitive.key)).not.toContain('InstancePage');
   });
 });

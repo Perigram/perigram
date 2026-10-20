@@ -729,7 +729,7 @@ describe('Design system manifest', () => {
 
 
 
-  it('keeps entity details on shared InstancePage header chrome', () => {
+  it('keeps entity detail components on shared record chrome', () => {
     const offenders = walkFiles(
       path.join(REPO_ROOT, 'components/entities'),
       (file) => file.endsWith('Detail.vue') && !file.endsWith('.old.vue') && !file.endsWith('.v23.vue')

@@ -205,7 +205,6 @@ same change that touches a file.
 | `ui-components-shared-instancechatentry-vue` | `components/shared/InstanceChatEntry.vue` | derived usage | compliant |
 | `ui-components-shared-instanceinlineref-vue` | `components/shared/InstanceInlineRef.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-shared-instancemultiselect-vue` | `components/shared/InstanceMultiSelect.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-instancepage-vue` | `components/shared/InstancePage.vue` | shared/domain primitive | replace:chrome (3); compliant:scoped-layout |
 | `ui-components-shared-instancepreview-vue` | `components/shared/InstancePreview.vue` | derived usage | replace:chrome (1) |
 | `ui-components-shared-instancerefinput-vue` | `components/shared/InstanceRefInput.vue` | derived usage | compliant |
 | `ui-components-shared-instancerelationsblock-vue` | `components/shared/InstanceRelationsBlock.vue` | derived usage | centralize:layout (3) |

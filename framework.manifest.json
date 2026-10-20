@@ -191,12 +191,6 @@
         "purpose": "Standard entity card chrome with identity, optional trace, optional status, content, and footer slots."
       },
       {
-        "componentPath": "components/shared/InstancePage.vue",
-        "key": "InstancePage",
-        "kind": "entity-layout",
-        "purpose": "Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots."
-      },
-      {
         "componentPath": "components/shared/InstanceSelect.vue",
         "key": "InstanceSelect",
         "kind": "entity-input",

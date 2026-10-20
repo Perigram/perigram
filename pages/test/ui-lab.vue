@@ -68,18 +68,6 @@
               </InstanceCard>
             </template>
 
-            <template v-else-if="primitive.key === 'InstancePage'">
-              <InstancePage :instance="primitiveEntity" type-id="cassette">
-                <template #info>
-                  <small>{{ primitiveEntity.name }}</small>
-                </template>
-                <template #actions>
-                  <Button :label="$t('common.update')" icon="pi pi-refresh" text size="small" />
-                </template>
-                <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-inbox" />
-              </InstancePage>
-            </template>
-
             <template v-else-if="primitive.key === 'InstanceSelect'">
               <InstanceSelect
                 v-model="primitiveSelectedQueueId"
@@ -267,7 +255,6 @@ import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
-import InstancePage from '~/components/shared/InstancePage.vue';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import InstanceMultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
@@ -294,7 +281,6 @@ const { t } = useI18n();
 const ENTITY_COLLECTION_BY_TYPE = new Map((frameworkManifest.entities || []).map(entity => [entity.type, entity.collection]));
 const PRIMITIVE_EXAMPLE_KEYS = [
   'InstanceCard',
-  'InstancePage',
   'InstanceSelect',
   'InstanceMultiSelect',
   'DataBlock',

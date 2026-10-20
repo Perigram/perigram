@@ -78,15 +78,11 @@ export function routeContextTraceExclusions(entity = {}, typeId = '', containmen
   });
 }
 
-export function traceContextExclusions({ exclusions = [], displayedContexts = [], activeOrganizationId = '' } = {}) {
-  const displayed = (displayedContexts || []).flatMap(context => {
-    if (!context?.type) return [];
-    return instanceHierarchyIds(context.entity || {}).map(id => ({ type: context.type, id }));
-  });
+export function traceContextExclusions({ exclusions = [], activeOrganizationId = '' } = {}) {
   const activeOrganization = activeOrganizationId
     ? [{ type: 'organization', id: activeOrganizationId?.toString?.() || activeOrganizationId }]
     : [];
-  return [...exclusions, ...displayed, ...activeOrganization]
+  return [...exclusions, ...activeOrganization]
     .filter(ref => ref?.type && ref?.id !== undefined && ref?.id !== null && ref?.id !== '');
 }
 

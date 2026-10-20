@@ -5,7 +5,6 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/shared/AiAvatar.vue': 'layout',
   'components/shared/DesignerDialog.vue': 'layout',
   'components/shared/DesignerWorkspace.vue': 'layout',
-  'components/shared/InstancePage.vue': 'layout',
   'components/shared/InstanceSurfaceContent.vue': 'layout',
   'components/shared/InstanceWorkspace.vue': 'layout',
   'components/shared/ResponsiveGrid.vue': 'layout',

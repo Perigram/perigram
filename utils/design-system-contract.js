@@ -154,7 +154,6 @@ export const DESIGN_SYSTEM_GROUPS = [
 
 export const DESIGN_SYSTEM_PRIMITIVES = [
   { key: 'InstanceCard', kind: 'entity-chrome', componentPath: 'components/shared/InstanceCard.vue', purpose: 'Standard entity card chrome with identity, optional trace, optional status, content, and footer slots.' },
-  { key: 'InstancePage', kind: 'entity-layout', componentPath: 'components/shared/InstancePage.vue', purpose: 'Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots.' },
   { key: 'InstanceSelect', kind: 'entity-input', componentPath: 'components/shared/InstanceSelect.vue', purpose: 'PrimeVue Select wrapper that renders canonical entity options as compact cards and selected entities outside the value area with a compact change trigger.' },
   { key: 'InstanceMultiSelect', kind: 'entity-input', componentPath: 'components/shared/InstanceMultiSelect.vue', purpose: 'PrimeVue MultiSelect wrapper that renders canonical entity options as compact cards and selected chip area with a compact change trigger.' },
   { key: 'DataBlock', kind: 'block', componentPath: 'components/shared/blocks/DataBlock.vue', purpose: 'Canonical label/value rows for fact surfaces; descriptors resolve from the compiled type view (render.groups), rendered with the declared display policies.' },

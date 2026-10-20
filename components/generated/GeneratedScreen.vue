@@ -1,5 +1,12 @@
 <template>
-  <StandardPage :title="pageTitle" :workspace="Boolean(screenOverload)" :back="back">
+  <!-- The overview owns its page head: the organization's identity and
+       management actions render through its own StandardPage. -->
+  <GeneratedOrganizationOverview
+    v-if="isOverviewScreen && !loading && !error && !actionError"
+    :screen="screen"
+    :back="back"
+  />
+  <StandardPage v-else :title="pageTitle" :workspace="Boolean(screenOverload)" :back="back">
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <StateBlock v-else-if="error" state="error" :message="errorMessage" />
     <StateBlock v-else-if="actionError" state="error" :message="actionError" />
@@ -14,10 +21,6 @@
     />
     <GeneratedOrganizationAccount
       v-else-if="screen.template === 'organizationAccount'"
-      :screen="screen"
-    />
-    <GeneratedOrganizationOverview
-      v-else-if="screen.template === 'organizationOverview'"
       :screen="screen"
     />
     <WorkspaceLanes v-else-if="screen.template === 'workspaceLanes'" class="min-h-[32rem]">
@@ -357,6 +360,7 @@ const screenTitle = computed(() => generatedScreenLabel(screen.value, { t, te })
 // Workspace overloads (project IDE, home shell) own the whole viewport; they
 // render no outer page title.
 const pageTitle = computed(() => screenOverload.value || screen.value?.template === 'instanceDetail' ? '' : screenTitle.value);
+const isOverviewScreen = computed(() => screen.value?.template === 'organizationOverview');
 const screenOverload = computed(() => resolveGeneratedScreenOverload(screen.value));
 const booleanOptions = computed(() => [
   { label: t('common.yes'), value: true },

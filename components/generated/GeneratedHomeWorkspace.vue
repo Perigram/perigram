@@ -193,7 +193,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import Avatar from 'primevue/avatar';
@@ -290,7 +290,6 @@ const linkedChildrenByKey = ref(new Map());
 const loadedChildKeys = ref(new Set());
 let openedEntityLoadSequence = 0;
 let childLoadSequences = new Map();
-provide('displayedEntityContexts', computed(() => []));
 
 // Layout-only passthrough: panel headers inherit the 1.5 line-height item
 // labels dropped, which made top-level entries taller than their rows;

@@ -79,14 +79,14 @@ describe('entity containment hierarchy', () => {
     })).toEqual([]);
   });
 
-  it('omits the active organization and displayed entities from trace ancestry', () => {
+  it('omits the active organization and explicit exclusions from trace ancestry', () => {
     const ancestors = [
       { type: 'organization', id: 'org-1', lineageKey: 'organizationId' },
       { type: 'project', id: 'project-1', lineageKey: 'projectId' },
       { type: 'queue', id: 'queue-1', lineageKey: 'queueId' }
     ];
     const exclusions = traceContextExclusions({
-      displayedContexts: [{ type: 'project', entity: { _id: 'project-1' } }],
+      exclusions: [{ type: 'project', id: 'project-1' }],
       activeOrganizationId: 'org-1'
     });
 

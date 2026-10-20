@@ -115,7 +115,7 @@ The overflow popover passes the requested relation variant through to every
 
 ### `InstanceWorkspace.vue`
 Canonical entity-detail workspace layout for operational editors embedded
-inside `InstancePage`. Use it when an entity detail needs a primary working
+inside entity detail pages. Use it when an entity detail needs a primary working
 region plus a supporting/status/results region, such as queue composition with
 nesting runs. The layout is a CSS query container: it uses one column while its
 own allocated width is narrow and a stable 8/4 main/support split when the
@@ -327,8 +327,8 @@ status API.
 
 Successful server transitions emit the `transitioned` event from
 `InstanceState`; matching browser-local instance-change events emit `refresh`
-from the status component itself. `InstanceCard` and `InstancePage` forward
-both as `refresh` on their shells, so instance-specific cards and pages can
+from the status component itself. `InstanceCard` forwards
+both as `refresh` on its shell, so instance-specific cards can
 reload instance-local data after lifecycle changes without wiring listeners
 in each card. Status transition results and failures are surfaced through
 PrimeVue toast messages. Failed transitions also refresh server actions and
@@ -734,7 +734,7 @@ transcription stay in the host composer.
   location rows where direct route navigation is intended. Do not use it for
   entity relation summaries inside cards/details; use `InstanceInlineRef` so the
   relation resolves through `useEntity` and the registered entity card.
-- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` and an explicit canonical entity type—never pass raw ancestry arrays or infer types from lineage key spelling. Resolves names async via `useEntityStore`; cached per session. Its `exclude` refs remove explicit ancestry, and it omits every entity in the propagated displayed-context stack, including the project already represented by a project workspace and the nearest enclosing `InstancePage`. Generated detail routes also exclude an ancestor only when the route carries that compiled Lineage key with the same entity id, preventing the app breadcrumb and entity trace from repeating the same context. In process mode the chain follows the effective compiled Lineage bindings only.
+- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` and an explicit canonical entity type—never pass raw ancestry arrays or infer types from lineage key spelling. Resolves names async via `useEntityStore`; cached per session. Its `exclude` refs remove explicit ancestry. Generated detail routes also exclude an ancestor only when the route carries that compiled Lineage key with the same entity id, preventing the app breadcrumb and entity trace from repeating the same context. In process mode the chain follows the effective compiled Lineage bindings only.
   Card title chrome uses compact trace mode: it shows the nearest parent
   lineage item and an ellipsis expander when more ancestry exists. Expanded
   popovers and detail pages render the full lineage breadcrumb chain. Supported
@@ -800,10 +800,9 @@ transcription stay in the host composer.
   without being drawn. Split-tree mutation remains pure state owned by
   the caller.
 - **`InstanceActionsPopover.vue`**: Shared ellipsis trigger and compact action
-  popover for entity-local commands. Disclosure is opt-in, not the default:
-  `InstancePage` action slots and full `InstanceCard` footers render their
-  actions inline by default (`actionsDisplay` / `footerDisplay` default to
-  `inline`), and only a caller with a dense action set selects `menu`.
+  popover for entity-local commands. Disclosure is opt-in: full
+  `InstanceCard` footers render their actions inline by default, and only a
+  caller with a dense action set selects `menu`.
   Inline-card popovers never nest a second ellipsis: generated actions and
   the detail-route control render directly in the popover's action row.
   `InstanceCard footer-display="inline"` remains available for a
@@ -898,25 +897,6 @@ transcription stay in the host composer.
   Entity type comes from the picker prop or option record and is never inferred
   from `data.type` or lifecycle state.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
-- **`InstancePage.vue`**: Root layout for all entity detail views. The header
-  composes a small-caps localized type-id label, the identity, the inline
-  status beside it, an `info` slot for summary data below, and an `actions`
-  slot that renders inline by default (`actionsDisplay: 'menu'` collapses it
-  into the ellipsis popover for dense action sets). The header block closes
-  with a structural bottom border instead of a PrimeVue divider. Trace
-  breadcrumbs are hidden by default and appear only when a caller opts in
-  with `showTrace`; callers can pass exact `traceExclusions` derived from
-  the current compiled context. Generated entity-detail screens also
-  suppress the outer `StandardPage` title so the entity header is the only
-  title surface. Pane adapters pass `:show-header="false"` so their own
-  tabs/status/actions remain the sole chrome while the canonical body and
-  sidebar layout are retained. The wrapper is an inline-size query
-  container: the header splits at 32rem and the sidebar receives its second
-  track at 48rem of actual parent width. It appends its entity to the
-  displayed-context stack so nested traces do not repeat any represented
-  ancestor. Operational overloads compose their workspace primitives inside
-  this canonical shell instead of adding overload-specific layout modes to
-  `InstancePage`.
 - **`InstanceCard.vue`**: Shared entity card structure built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`) while the preset owns its border, radius, shadow, spacing, and interaction states. Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `stateActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title.
   Full-card footer actions render inline by default (`footer-display`);
   the ellipsis menu stays available for deliberately dense footers.
@@ -931,11 +911,9 @@ transcription stay in the host composer.
 
 `InstanceState` action objects support `display: 'inline' | 'menu' | 'hidden'`. Workflow transitions default to inline actions, self-loop metadata transitions are hidden, and only lifecycle transitions should be passed into the status surface. Inline/card status surfaces use the badge itself as the popover trigger and do not render a second ellipsis button beside the badge; expanded/full status surfaces show up to two inline actions by default and put overflow actions, current location, metadata, and compact status history in the popover. Entity card title/status rows and status menus are allowed to wrap, and inline status rails are deliberately bounded so compact containers do not let status text or action buttons displace identity content.
 
-`TraceChain` omits ancestry already represented by the surrounding entity
-context. The active organization is always part of the authenticated app
-context, so its lineage reference is not repeated on generated cards, entity
-pages, or inline popovers; other project and production ancestors remain
-visible unless their exact entity is also displayed by an enclosing context.
+`TraceChain` omits the active organization's lineage reference: it is always
+part of the authenticated app context, so it is not repeated on generated
+cards, entity pages, or inline popovers.
 
 `InstanceCard` owns inline and compact expansion. Inline and compact variants open
 the shared entity popover on click/keyboard activation. Entity-specific card

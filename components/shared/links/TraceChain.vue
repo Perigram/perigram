@@ -68,7 +68,6 @@ const instances = useInstancesStore();
 const authStore = useAuthStore();
 const effectiveContainment = useEffectiveContainment();
 const entityContext = inject('entityContext', null);
-const displayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
 const isExpanded = ref(!props.expandable);
 const { lineage: entityLineage } = useLineage(toRef(props, 'entity'));
 const labels = ref({});
@@ -82,7 +81,6 @@ const FALLBACK_LABELS = {
 const activeLineage = computed(() => props.lineage || entityLineage.value);
 const effectiveExclusions = computed(() => traceContextExclusions({
     exclusions: props.exclude,
-    displayedContexts: unref(displayedEntityContexts) || [],
     activeOrganizationId: authStore.organizationData?._id || authStore.userData?.organizationId || ''
 }));
 
