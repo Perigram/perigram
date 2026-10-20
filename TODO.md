@@ -615,6 +615,23 @@ zero overlap). Hardware arrays and count mode keep their semantics.
 Validation: 149/149 in workers/facade, arch and docs guards green;
 e2e/cassette-profile-editor.spec.js green against the merged tree.
 
+### Agent Notes (2026-10-20, round 14 — owner direction: no auto-rebuild while typing a parameter value)
+
+The shared expression editor (`expressionEditor.mjs`) emitted its
+model update on every keystroke, so every surface mounting it —
+cassette global parameters, attachment relation fields, and
+placed-profile instance chips — patched the tree and re-rendered the
+whole designer per character. The editor now holds its typed text and
+syntax highlighting locally and emits on blur or Enter only (the
+authoring-commit law the dialog's fieldDraft fields already ride);
+typing rebuilds nothing, one committed value rebuilds once. E2E
+pinned live: typing into a placed workpiece's instance chip leaves
+the canvas byte-identical, Enter commits and re-renders. The app
+container died (exit 137) mid-validation and was restarted per the
+dev runbook; both E2E runs green after.
+
+Validation: 149/149 in workers/facade, docs guard green.
+
 ## Tidy keeps wired clusters inside their lane's stacked rows (owner report 2026-10-18)
 
 Owner report: "tidy often gets nodes thrown to very far places
