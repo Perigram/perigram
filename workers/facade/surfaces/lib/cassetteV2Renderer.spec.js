@@ -1463,11 +1463,11 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(pitch).toBeCloseTo(10, 0);
   });
 
-  it('keeps inner cuts inside the face — straddling corner material carries no cut path', async () => {
+  it('cuts the hole in straddling corner material on the inner-cut layer', async () => {
     // The template on E1 from its start snap centers the profile on
-    // the corner; the hole lands in material hanging past the face
-    // boundary and stays off the inner-cut layer (the contour carries
-    // that material).
+    // the corner; the hole lands in material hanging past the authored
+    // face boundary and still carries its cut path — every result hole
+    // cuts, whichever material it punches.
     const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
@@ -1480,13 +1480,45 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
     const inner = drawing.layers.find(layer => layer.standardCode === 'cut.inner');
-    expect(inner?.paths || []).toHaveLength(0);
+    expect(inner?.paths || []).toHaveLength(1);
     // Authored placement is untouched: the straddling tab still grows
     // the contour outward.
     const outer = drawing.layers.find(layer => layer.standardCode === 'cut.outer');
     const pts = (outer.paths[0].d.match(/-?[\d.]+ -?[\d.]+/g) || []).map(s => s.split(' ').map(Number));
     const ys = pts.map(point => -point[1]);
     expect(Math.min(...ys)).toBeLessThan(0);
+  });
+
+  it('ships the hole in an authored tab as an inner cut and as its operand', async () => {
+    // An add rect hanging past the edge with a subtract circle inside
+    // the tab: the fold holes the tab, the result ring rides cut.inner,
+    // and the document ships the subtract operand.
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      sketch: normalizeOccsProfileSketch({
+        version: '0.2', units: 'mm', parameters: {}, material: 'positive',
+        shapes: [
+          { id: 's0', type: 'rect', op: 'add', center: [-5, 40], width: 42, height: 28, rotation: 0, fillets: [] },
+          { id: 's1', type: 'circle', op: 'subtract', center: [-12, 40], diameter: 8 }
+        ]
+      })
+    });
+    const relation = getCassetteV2WorkpieceRelations(added.tree)[0];
+    const tree = updateCassetteV2WorkpieceRelation(added.tree, relation.id, {
+      pattern: { type: 'edgeArray', edge: 'E0', mode: 'count', count: '1' },
+      targetSnap: 'center', offsetX: '0', offsetY: '0'
+    });
+    const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
+    const occs = await createCassetteV2OccsDocument(tree);
+    const folded = buildCassetteV2FoldedPreview(drawing.foldedPreview);
+    const inner = drawing.layers.find(layer => layer.standardCode === 'cut.inner');
+    expect(inner?.paths).toHaveLength(1);
+    expect(inner.paths[0].relationId).toBe(relation.id);
+    expect(occs.definitions.workpieces[0].faces[0].shape.holes).toHaveLength(1);
+    const operands = occs.definitions.workpieces[0].entities.filter(entity => entity.booleanOperation === 'subtract');
+    expect(operands).toHaveLength(1);
+    expect(folded.cutouts.filter(cutout => cutout.layer === 'cut.inner')).toHaveLength(1);
   });
 
   it('keeps face labels and dimension controls on the original boundary for integral cuts', async () => {

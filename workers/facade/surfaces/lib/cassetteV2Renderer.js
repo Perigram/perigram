@@ -1690,7 +1690,9 @@ export const createCassetteV2OccsDocumentFromTree = async (tree = createCassette
           entities: [
             ...faces.flatMap(face => dimensionEntitiesForFaceShape(face.id, face.shape)),
             ...faces.flatMap(face => (productionEntitiesByTarget.get(face.id) || [])
-              .filter(entity => entity.booleanOperation === 'add' || !entity.booleanOnly).flatMap(entity => (
+              .filter(entity => entity.booleanOperation !== 'subtract' || productionEntityCutRings(entity).every(
+                ring => polygonInsideFace(ring, curveByNodeId.get(entity.target)?.boundaryVertices || [])
+              )).flatMap(entity => (
               entity.geometry.type === 'circle'
                 ? [{
                     id: entity.id,
@@ -2647,8 +2649,7 @@ export const cassetteV2AttachableProfileEdgesForTree = (
 // effect (owner law 2026-10-15): the array settings (or the point
 // placement) place the boolean steps and each copy's steps apply to the
 // host face — the same boolean pipeline and the same cut.inner layer
-// the integral-cut hanger clips ride. Copies that fall entirely
-// outside the face stay boolean-only operands.
+// the integral-cut hanger clips ride.
 export const profileCutEntitiesForTree = async (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
@@ -2667,7 +2668,6 @@ export const profileCutEntitiesForTree = async (curves = [], tree = createCasset
     const profile = normalizeCassetteV2Profile(workpiece, parameters);
     const open = profile.section?.open || profile.section?.type === 'polyline';
     if (open) continue; // open profiles consume the edge through the contour embedding
-    const face = targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices;
     // Array spacing is the gap between adjacent copies' footprints:
     // the pitch each copy consumes is its own extent along the edge
     // (the section's local Y span — the axis law maps +Y onto the
@@ -2693,9 +2693,7 @@ export const profileCutEntitiesForTree = async (curves = [], tree = createCasset
           profileWorkpieceId: relation.sourceWorkpieceId,
           relationId: relation.id,
           geometry: { type: 'polygons', polygons: operation.polygons },
-          booleanOperation: operation.op,
-          booleanOnly: operation.op === 'add'
-            || !operation.polygons.every(vertices => polygonInsideFace(vertices, face))
+          booleanOperation: operation.op
         });
       });
     }
@@ -2828,7 +2826,6 @@ const hardwareProductionEntitiesForTree = async (curves = [], tree = createCasse
       const profile = workpiece.profileSnapshot || workpiece.profile
         ? normalizeCassetteV2Profile(workpiece, parameters)
         : null;
-      const hookFace = targetCurve.originalBoundaryVertices || targetCurve.referenceVertices || targetCurve.boundaryVertices || targetCurve.vertices;
       for (let index = 0; index < points.length; index += 1) {
         const profileOperations = profile
           ? await profileOperationPolygons(profile, points[index], relation, targetCurve, parameters)
@@ -2843,9 +2840,7 @@ const hardwareProductionEntitiesForTree = async (curves = [], tree = createCasse
               hardwareWorkpieceId: relation.sourceWorkpieceId,
               relationId: relation.id,
               geometry: { type: 'polygons', polygons: operation.polygons },
-              booleanOperation: operation.op,
-              booleanOnly: operation.op === 'add'
-                || !operation.polygons.every(vertices => polygonInsideFace(vertices, hookFace))
+              booleanOperation: operation.op
             });
           });
           continue;
@@ -2859,8 +2854,7 @@ const hardwareProductionEntitiesForTree = async (curves = [], tree = createCasse
           hardwareWorkpieceId: relation.sourceWorkpieceId,
           relationId: relation.id,
           geometry,
-          booleanOperation: 'subtract',
-          booleanOnly: !polygonInsideFace(geometry.vertices, hookFace)
+          booleanOperation: 'subtract'
         });
       }
     }
@@ -2907,16 +2901,8 @@ export const resultInnerCutEntities = (curves = [], operandEntities = []) => cur
       hardwareWorkpieceId: entity.hardwareWorkpieceId,
       centroids: productionEntityCutRings(entity).map(ringCentroid)
     }));
-  // Inner cut paths ride the face's own material: a result hole in
-  // material hanging past the authored boundary (a straddling tab)
-  // stays off the layer — the contour carries that material.
-  const face = curve.originalBoundaryVertices
-    || curve.referenceVertices
-    || curve.boundaryVertices
-    || curve.vertices;
   return (curve.holes || [])
     .filter(ring => withoutClosingVertex(ring).length >= 3)
-    .filter(ring => polygonInsideFace(ring, face))
     .map((ring, index) => {
       const contributor = operands.find(candidate => (
         candidate.centroids.some(centroid => centroid && pointInPolygon(centroid, ring))
@@ -2963,7 +2949,7 @@ const hardwareProductionLayers = (entities = [], curves = []) => [
   ...cutLayerFor(OCCS_LAYER_CUT_INNER, resultInnerCutEntities(curves, entities)),
   ...cutLayerFor(
     OCCS_LAYER_CUT_HOLE,
-    entities.filter(entity => entity.layer === OCCS_LAYER_CUT_HOLE && !entity.booleanOnly)
+    entities.filter(entity => entity.layer === OCCS_LAYER_CUT_HOLE)
   )
 ];
 
