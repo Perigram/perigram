@@ -97,8 +97,36 @@ overload absent from overloads.js). Guards: design-system +
 framework-packages + localization + v24 + module-imports + generated
 specs 103✓, SSR smoke 13✓, check-arch ✓, framework:validate ✓. E2E not
 run (no dev stack in session).
-- [ ] Phase 4 — system screens (org overview/account, `workspaceLanes`)
-  migrate or die; `InstancePage` retires.
+- [ ] WAITING — Phase 4 owner verification on the live stack: `/organization`
+  shows the organization name as its page title with chat and management
+  actions in one header (route and home pane), billing keeps its page
+  strip, and no surface renders the retired InstancePage anatomy.
+
+### Agent Notes (2026-10-20, Phase 4)
+
+Session `agent/gen-ui-collapse-p4-20261020`. The overview owns its page
+head: `GeneratedOrganizationOverview` renders `StandardPage` titled with
+the organization's name (chat entry + management actions in its action
+cluster), replacing the stacked route-title + InstancePage headers;
+`GeneratedScreen` renders it outside its own page shell with the route's
+back control threaded through, so the route and the directory pane share
+one anatomy. `InstancePage` is deleted: registry entry
+(`utils/design-system-contract.js`), `framework.manifest.json`
+regenerated via `write-manifest`, ui-lab demo section, audit row, and the
+v24 "Detail page header" row now names `SurfaceHeader` alone. The
+`displayedEntityContexts` propagation mechanism died with its last
+provider: TraceChain keeps explicit `exclude` refs plus the active-org
+exclusion (`traceContextExclusions` sheds the dead param; spec updated).
+`workspaceLanes` stays on `GeneratedScreen` for Phase 5: the compiler
+vocabulary still emits it (`source.kind === 'workspace'`), and cutting a
+compiler template is an owner contract decision. Discovered for Phase 5:
+`InstanceWorkspace.vue` has no consumers left. Guards: shared +
+components + utils suites 502✓, SSR smoke 13✓, check-arch ✓,
+framework:validate ✓, `check-manifest` ✓. Pre-existing failures on
+`local` (not this branch): `plugin-surfaces.spec` contract-majors test
+and `instance-select.spec` (offenders `ChatSupport.vue`,
+`ChatBotPanel.vue`, `pages/organization/models.vue`). E2E not run (no
+dev stack in session).
 - [ ] Phase 5 — deletion sweep, audit/docs reconciliation, e2e rewritten
   against the one engine.
 

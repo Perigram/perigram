@@ -100,7 +100,7 @@ All entity-related components MUST use these patterns:
 | Structured key/value data (specs, parameters, tool dims) | `<DataBlock type-id="..." :entity="..." :fields="ENTITY_FIELDS" />` |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StateHistory :entity="..." type-id="..." />` |
-| Detail page header | Generated record pages: the ui-mapping record header (`SurfaceHeader`); `InstancePage` for surfaces pending the engine collapse (see TODO) |
+| Detail page header | Generated record pages: the ui-mapping record header (`SurfaceHeader`) |
 | CRUD + status operations | `useEntity(type, id)` |
 | Entity/container structure | Entity cards: `<InstanceCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout; Aura owns generic chrome |
 | Section/page action rows | `<ActionToolbar>` |
@@ -157,7 +157,7 @@ contract, without fetching live entity data; the runtime data layer lives in
 the screens route (see [`TODO-process-designer.md`](../TODO-process-designer.md)).
 Generated operational screens live under `components/generated/`. They render
 compiled process screen manifests through a fixed template registry and shared
-entity primitives (`InstanceCard`, `InstancePage`, `InstanceSurfaceContent`,
+entity primitives (`InstanceCard`, `InstanceSurfaceContent`,
 `ResponsiveGrid`, `WorkspaceLanes`, and `TableFrame`). Process data may select
 registered templates, sources, regions, surfaces, and action ids; it must not
 select arbitrary Vue component names or inject page-local markup. App-owned
@@ -456,9 +456,9 @@ visibility helpers as every detail header. Contextual relation operations
 (the per-ref Unlink) render as the ref's own ellipsis menu and execute
 through the surrounding generated screen's process action handler instead of
 calling process endpoints locally.
-Entity-detail templates render child collection regions inside the `InstancePage`
-body so parent-child graph flows, such as project-to-queue creation, stay in the
-opened parent context.
+Entity-detail templates render child collection regions beside the record
+body (the composed detail split) so parent-child graph flows, such as
+project-to-queue creation, stay in the opened parent context.
 Generated entity details may provide registered entity-specific bodies when
 the domain has a real operational editor contract. Queue details mount the
 queue editor workspace inside the generated detail page as an entity-local
@@ -497,8 +497,8 @@ clamps complete rotated geometry inside the usable sheet polygon when one is
 present, falls back to rectangular sheet bounds for virtual rectangle sheets,
 and persists through immutable
 geometry revisions. Generated
-sheet-design details keep the sheet identity visible in `InstancePage`; read-only
-details keep the standard geometry display.
+sheet-design details keep the sheet identity visible in the record header;
+read-only details keep the standard geometry display.
 The queue detail support region for nesting runs follows the same contract:
 process mode separates command controls from result viewing. The nesting
 command/settings panel renders only when the opened queue detail receives a
@@ -631,7 +631,9 @@ pass their canonical body once through the default slot (see
 [components/shared/README.md](./shared/README.md)). Inline/compact/card
 branching inside entity cards is a smell unless the entity has a genuinely
 different structural surface.
-Entity detail components should use `InstancePage` for trace, identity, status, and page actions instead of rebuilding header rows locally.
+Entity detail surfaces use the ui-mapping record page (`SurfaceHeader` +
+`SurfaceBody`) for trace, identity, status, and page actions instead of
+rebuilding header rows locally.
 Single-field rename/edit actions should use `NameEditPopover` near the relevant
 identity or action cluster; reserve `StandardDialog` for creation flows,
 destructive confirmation, or forms with multiple fields.
