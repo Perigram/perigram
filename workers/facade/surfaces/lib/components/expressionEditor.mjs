@@ -235,8 +235,14 @@ export default function createExpressionEditor({ vue, components, locale }) {
 
       const updateText = (value, selection = null) => {
         internalText.value = value;
-        emit('update:modelValue', value);
         renderEditor(selection);
+      };
+      // Typing highlights live but rebuilds nothing: the model emits
+      // on blur or Enter only (the authoring-commit law), so the
+      // designer re-renders once per committed value.
+      const commitText = () => {
+        if (internalText.value === String(props.modelValue ?? '')) return;
+        emit('update:modelValue', internalText.value);
       };
 
       const handleEditorInput = () => {
@@ -296,10 +302,14 @@ export default function createExpressionEditor({ vue, components, locale }) {
             'aria-label': t('cassette.v2.expression.label'),
             onInput: handleEditorInput,
             onFocus: captureSelection,
+            onBlur: commitText,
             onMouseup: captureSelection,
             onKeyup: captureSelection,
             onKeydown: event => {
-              if (event.key === 'Enter') event.preventDefault();
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                commitText();
+              }
             },
             onPaste: event => {
               event.preventDefault();

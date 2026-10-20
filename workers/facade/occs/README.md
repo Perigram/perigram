@@ -237,7 +237,10 @@ modules — no platform imports.
   (`surfaces/lib/components/expressionEditor.mjs`)
   over the cassette's variables, and adopt-on-bind never mints an
   identifier the surrounding scope defines: the profile editor
-  evaluates and saves against the joined scope the same way. Profiles
+  evaluates and saves against the joined scope the same way. The
+  editor commits on blur or Enter everywhere it mounts — cassette
+  globals, attachment fields, and instance chips hold their typed
+  text and rebuild the designer once per committed value. Profiles
   live on the tree: the designer's profile dialog writes profile
   workpieces (their `profileSnapshot` is the renderer's geometry
   source) that ride the cassette template's own document. The plugin's
