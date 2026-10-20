@@ -210,6 +210,25 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await page.waitForTimeout(2000);
+
+  // Parameter fields rebuild on commit only (owner direction
+  // 2026-10-20): typing into the placed workpiece's instance chip
+  // changes nothing until Enter.
+  const canvasSignature = () => page.locator('.designer-workspace__canvas').first()
+    .evaluate(root => Array.from(root.querySelectorAll('path'))
+      .map(path => path.getAttribute('d')).filter(Boolean).sort().join('|').length);
+  const chip = page.locator('div[aria-label^="Parameters A"] div[contenteditable]').first();
+  await expect(chip).toBeVisible({ timeout: 20_000 });
+  const before = await canvasSignature();
+  await chip.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await chip.pressSequentially('55', { delay: 60 });
+  await page.waitForTimeout(700);
+  expect(await canvasSignature(), 'typing alone rebuilds nothing').toBe(before);
+  await chip.press('Enter');
+  await page.waitForTimeout(1200);
+  expect(await canvasSignature(), 'Enter commits and rebuilds').not.toBe(before);
+
   await page.getByRole('button', { name: /Edit/ }).first().click();
   const reopenedDialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
   await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });
