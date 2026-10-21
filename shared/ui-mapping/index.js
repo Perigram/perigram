@@ -872,16 +872,23 @@ export function estimateRegionWeight(node = {}) {
   return 2 + count * perRow + Math.ceil(relationRefs / 4);
 }
 
+// Screen-level section arrangement (the home template's top regions):
+// sections over the surface budget tab. Record-child arrangement uses
+// the richer ladder below.
 export function childrenModeFor(childRegions = [], level = 0) {
-  return arrangeChildren(childRegions, level).mode === 'tabs' ? 'tabs' : 'stack';
+  if (childRegions.length < CHILDREN_TABS_AT) return 'stack';
+  const weight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
+  if (weight > SURFACE_ROW_BUDGET && level === 0) return 'tabs';
+  return 'stack';
 }
 
 // Region arrangement: how sibling regions share a surface, decided at
-// compose time from estimated rendered weight. Light sets flow in one
-// stack; light peers share proportional columns (track fr from each
-// child's weight); a dominant sibling keeps the flow while the rest
-// arrange among themselves; heavy peers tab, ordered by descending
-// weight. Tabs are a top-level arrangement — nested heavy content stacks.
+// compose time from estimated rendered weight at card scale. Light sets
+// flow in one stack; peers up to COLUMN_MAX_WEIGHT rows each share
+// proportional columns (track fr from each child's weight); a dominant
+// sibling keeps the flow while the rest arrange among themselves;
+// heavier peers tab, ordered by descending weight. Tabs are a top-level
+// arrangement — nested heavy content stacks.
 export function arrangeChildren(childRegions = [], level = 0) {
   if (childRegions.length < CHILDREN_TABS_AT) return { mode: 'stack' };
   const weights = childRegions.map(region => estimateRegionWeight(region));

@@ -17,6 +17,24 @@ UI).
   popover actions render through the shared ActionButton with resolver
   presentation.
 
+### Agent Notes (2026-10-21, arrangement band recalibration)
+
+Session `agent/gen-ui-arr-vis-20261021`, worktree
+`.agent-worktrees/gen-ui-arr-vis-20261021`. The arrangement bands were
+calibrated for table rows while real child collections resolve to
+card/board layouts (4 rows per item), so the column cap admitted nothing
+and the side cap admitted 1-2 cards: columns were unreachable and no
+record qualified for the side rail. Bands recalibrated at card scale
+(SIDE_MAX_WEIGHT 16, COLUMN_MAX_WEIGHT 12, spans step at 4/10), and the
+side rail requires a stack-mode child set so peer sets keep their
+columns/tabs placement below. `childrenModeFor` keeps its standalone
+screen-level budget rule (home section semantics unchanged). The random
+world gains a deterministic arrangement cluster — every seed ships one
+detail screen per band (columns, tabs, side rail), pinned by its spec.
+Found pre-existing on `local`: the random-world currency-quantity
+conformance fails on seed 1 (`t7_epsilonga.deltath4`, integer minor
+units) — introduced by an earlier merge, out of this task's scope.
+
 ### Agent Notes (2026-10-21, arrangement container fix)
 
 Session `agent/gen-ui-arr-fix-20261021`, worktree

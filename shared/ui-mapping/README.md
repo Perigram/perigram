@@ -401,13 +401,16 @@ derives, so the weighted layout is the rendered layout),
 plus the wrapped
 relation-chip rows the first declared relation adds, with no sampling
 cap —
-and `arrangeChildren` decides how siblings share the surface from the same
-weights: a light set flows in one stack, light peers share proportional
-columns (track fr from each child's estimated rows), a sibling holding at
-least `DOMINANT_CHILD_SHARE` of the total keeps the vertical flow with the
-rest arranged after it, and heavy peers tab in descending weight order at
-the top level (`childrenModeFor` is the tabs/stack projection of that
-ladder; nested heavy content stacks). Never measured from the DOM. One global spacing coefficient (0.5–2, the showcase slider)
+and `arrangeChildren` decides how sibling regions share the surface from
+the same weights at card scale (a preview/board card is 4 rows, a table
+row 1): a stack-mode child set at or under `SIDE_MAX_WEIGHT` rides beside
+the record body, peers up to `COLUMN_MAX_WEIGHT` rows each share
+proportional columns (track fr from each child's estimated rows), a
+sibling holding at least `DOMINANT_CHILD_SHARE` of the total keeps the
+vertical flow with the rest arranged after it, and heavier peers tab in
+descending weight order at the top level (nested heavy content stacks).
+Screen-level sections keep their own budget rule (`childrenModeFor`:
+over-budget top-level sections tab). Never measured from the DOM. One global spacing coefficient (0.5–2, the showcase slider)
 selects the rhythm set (`spacingClasses` over the literal
 `SPACING_SCALES` table): stack rhythm, section gaps, fact-row padding,
 chip-row leading, toolbar gaps, control size, and
@@ -513,7 +516,9 @@ handwritten.
   create/transition/delete/link/hidden kinds; one volume collection over
   fifty instances (virtualized tables, paginated views, toolbar search);
   one guaranteed-empty type with its own list screen (empty state) and a
-  detail screen over it (missing state); and a seeded
+  detail screen over it (missing state); one detail screen per
+  arrangement band (proportional columns, weight-ordered tabs, and the
+  record side column) from a deterministic seeded cluster; and a seeded
   `sourceStatesMatrix` (loading/denied/error, one per screen) the
   showcase applies on demand. Its spec validates every generated
   instance against CTS `checkValue`, composes every screen across

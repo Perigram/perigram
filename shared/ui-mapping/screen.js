@@ -140,7 +140,7 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   const childWeight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
   const childArrangement = arrangeChildren(childRegions, depth);
   const besideBody = surfaceKind === 'detail' && depth === 0 && childRegions.length > 0
-    && childWeight <= SIDE_MAX_WEIGHT;
+    && childArrangement.mode === 'stack' && childWeight <= SIDE_MAX_WEIGHT;
   const sideSpan = besideBody ? regionSideSpanFor(childWeight) : 0;
   return Object.freeze({
     id: region.id,
