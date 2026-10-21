@@ -44,7 +44,7 @@
                   v-if="openable"
                   link
                   :label="identityOf(instance)"
-                  class="text-left [&_.p-button-label]:truncate"
+                  :class="LAYOUT.linkClamp"
                   @click="$emit('open', instance)"
                 />
                 <span v-else class="truncate">{{ identityOf(instance) }}</span>
@@ -122,7 +122,7 @@ import {
   fieldLabel, fieldLabelKey, localizedLabel, sortControlRows,
   resolveActionButton, actionLabelKey, stateDisplayFor
 } from '#shared/ui-mapping/index.js';
-import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
+import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import StateTag from './StateTag.vue';

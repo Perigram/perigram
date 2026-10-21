@@ -26,15 +26,15 @@
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <div class="flex flex-col gap-2">
-            <small class="text-muted">{{ $t('uiLab.variants.card') }}</small>
+            <span class="text-supporting text-muted">{{ $t('uiLab.variants.card') }}</span>
             <component :is="row.component" v-bind="row.props" variant="card" />
           </div>
           <div class="flex flex-col gap-2">
-            <small class="text-muted">{{ $t('uiLab.variants.compact') }}</small>
+            <span class="text-supporting text-muted">{{ $t('uiLab.variants.compact') }}</span>
             <component :is="row.component" v-bind="row.props" variant="compact" />
           </div>
           <div class="flex flex-col gap-2">
-            <small class="text-muted">{{ $t('uiLab.variants.inline') }}</small>
+            <span class="text-supporting text-muted">{{ $t('uiLab.variants.inline') }}</span>
             <div class="flex min-h-12 items-center">
               <component :is="row.component" v-bind="row.props" variant="inline" />
             </div>
@@ -57,7 +57,7 @@
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Panel v-for="primitive in primitiveRows" :key="primitive.key" :header="primitive.key">
           <div class="flex flex-col gap-4">
-            <small class="text-muted">{{ primitive.purpose }}</small>
+            <span class="text-supporting text-muted">{{ primitive.purpose }}</span>
 
             <template v-if="primitive.key === 'InstanceCard'">
               <InstanceCard :instance="primitiveEntity" type-id="cassette">

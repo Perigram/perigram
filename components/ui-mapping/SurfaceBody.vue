@@ -78,7 +78,7 @@
       v-if="openable"
       link
       :label="instanceLabel"
-      class="text-left [&_.p-button-label]:truncate"
+      :class="LAYOUT.linkClamp"
       @click="$emit('open', instance)"
     />
     <span v-else class="text-body">{{ instanceLabel }}</span>

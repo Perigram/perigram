@@ -648,7 +648,8 @@ function showActionError(err) {
 
 function entityOption(entity = {}, typeId = '') {
   return {
-    label: entity.identity?.name || entity.identity?.uid || entity._id,
+    // Identity name, else the localized unnamed placeholder (titleFor law).
+    label: entity.identity?.name || t('common.unnamed'),
     value: entity._id || entity.identity?.uid,
     typeId,
     entity

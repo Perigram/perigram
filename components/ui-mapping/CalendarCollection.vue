@@ -25,7 +25,7 @@
           link
           size="small"
           :label="identityOf(entry)"
-          class="min-w-0 text-left [&_.p-button-label]:truncate"
+          :class="LAYOUT.linkClamp"
           @click="$emit('open', entry)"
         />
         <span v-if="cell.hidden" class="text-supporting text-muted">+{{ cell.hidden }}</span>
