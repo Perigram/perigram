@@ -17,6 +17,20 @@ UI).
   popover actions render through the shared ActionButton with resolver
   presentation.
 
+### Agent Notes (2026-10-21, band cluster removed as slop)
+
+Session `agent/gen-ui-deslop-cluster-20261021`, worktree
+`.agent-worktrees/gen-ui-deslop-cluster-20261021`. Owner verdict: the
+deterministic band cluster was slop and sabotage — purpose-built screens
+engineered to hit the arrangement branches, a spec pinning its own
+construction, disguised as native world content. Removed in full
+(generator block, spec test, README clause); the generator is back to
+nothing-hand-authored. Measured reality it was hiding: across 50 seeds
+and 250 natural detail screens, columns fired once and tabs once (66%
+of detail screens resolve no children at all; the rest mostly go beside
+or stack). Follow-up in this session: realistic containment
+concentration in the generator replaces the fixtures.
+
 ### Agent Notes (2026-10-21, native arrangement cluster)
 
 Session `agent/gen-ui-native-cluster-20261021`, worktree
