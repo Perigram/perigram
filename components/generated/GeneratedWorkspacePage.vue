@@ -22,8 +22,11 @@
          other pane surface uses; flush pages (canvas designer, call
          stage, self-padding directory surface) own their own shell. -->
     <div :class="definition.flush ? 'min-h-0 flex-1 overflow-hidden' : 'min-h-0 flex-1 overflow-auto p-4'">
+      <!-- Every editor page resolves the same loader component; the page
+           key is what gives each tab its own content instance. -->
       <component
         :is="definition.component"
+        :key="page.key"
         v-bind="pageProps"
         @execute-action="(action, entry) => $emit('execute-action', action, entry)"
         @open-page="page => $emit('open-page', page)"

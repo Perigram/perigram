@@ -133,9 +133,14 @@ function tabLabel(tab = {}) {
   return definition ? t(definition.labelKey) : tab.key;
 }
 
+// Page tabs bound to a type (editor pages, directory surfaces) wear the
+// type's authored glyph; the page icon is the fallback for entity-less
+// pages and types without a declared glyph.
 function tabIcon(tab = {}) {
   if (tab.kind === 'empty') return null;
   if (tab.kind === 'instance' || tab.kind === 'screen') return registry.iconFor(tab.typeId);
-  return resolveGeneratedWorkspacePage(tab.pageId)?.icon || 'pi pi-file';
+  return (tab.typeId && registry.typeRecord(tab.typeId)?.glyph)
+    || resolveGeneratedWorkspacePage(tab.pageId)?.icon
+    || 'pi pi-file';
 }
 </script>

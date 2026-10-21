@@ -43,6 +43,7 @@
   >
     <GeneratedPaneHeader
       :tabs="tabs"
+      :active-key="activeKey"
       :closeable="closeable"
       :splittable="splittable"
       :back="back"
@@ -70,6 +71,9 @@ import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue'
 defineProps({
   item: { type: Object, default: null },
   tabs: { type: Array, default: () => [] },
+  // The pane's selected tab key: the empty branch has no item to derive it
+  // from, so the host feeds the pane's selection directly.
+  activeKey: { type: String, default: '' },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true },
   // The pane's navigation history has somewhere to go: renders the Back

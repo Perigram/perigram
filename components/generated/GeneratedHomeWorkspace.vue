@@ -144,6 +144,7 @@
             <GeneratedWorkspacePane
               :item="itemForPane(pane)"
               :tabs="tabItemsForPane(pane)"
+              :active-key="pane.selectionKey"
               :closeable="paneCount > 1"
               :back="paneHasHistory(pane.id)"
               @back="goBackFromPane(pane.id)"
