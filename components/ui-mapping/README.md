@@ -176,10 +176,13 @@ surface concerns:
   12-track grid span the children's weight earns, while peer sets
   arrange below through the weight-driven ladder (proportional columns
   for peers up to the column cap, dominant child in the flow with the
-  rest after it, weight-ordered tabs for heavier peers; the split and
-  the columns engage past 60rem of container width and stack in panes
-  and dialogs). Nested detail regions keep the Card surface. Empty
-  regions render a Message.
+  rest after it, weight-ordered tabs for heavier peers). Engagement is
+  container-gated: the split engages past 60rem of container width, peer
+  columns past 80rem for two tracks and 120rem for three (a column earns
+  ~40rem), stacking inside panes and dialogs; column tracks are
+  zero-floored (`minmax(0, Nfr)`), so wide tables scroll inside their
+  column. Nested detail regions keep the Card surface. Empty regions
+  render a Message.
 - `BoardCollection.vue` — the state board: the projection whose columns
   are the type's served state vocabulary
   (authored order, `StateTag` headers with per-column counts) and whose

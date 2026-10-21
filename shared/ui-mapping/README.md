@@ -436,9 +436,11 @@ overflow menu), the record page's weight-proportional split (scoped CSS in
 `RegionBlock`: past 60rem of container width the record body shares a
 12-track grid with the side column, whose span the children's combined
 weight earns through `REGION_SIDE_SPANS`; narrower hosts stack), peer
-columns (scoped CSS in `RegionChildren`: past 60rem of container width the
-children render on their weight-derived `--region-tracks` fr list;
-narrower hosts stack), and the form grid
+columns (scoped CSS in `RegionChildren`: the children render on their
+weight-derived zero-floored `--region-tracks` list — `minmax(0, Nfr)`,
+so wide content scrolls inside its column — engaging past 80rem of
+container width for two tracks and 120rem for three; narrower hosts
+stack), and the form grid
 (`LAYOUT.formGrid` names the global `.ck-form-grid` utility in
 `assets/css/main.css`: one column under 40rem of container width, two
 above; full-span rows opt in with `.ck-span-full`).

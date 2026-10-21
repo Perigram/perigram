@@ -78,6 +78,17 @@ UI).
   popover actions render through the shared ActionButton with resolver
   presentation.
 
+### Agent Notes (2026-10-21, column fit)
+
+Session `agent/gen-ui-col-fit-20261021`, worktree
+`.agent-worktrees/gen-ui-col-fit-20261021`. Peer-column tracks were bare
+`fr`, whose auto minimum is the content's min-content width — two tables
+stretched the grid past the host instead of sharing it. Tracks are now
+zero-floored (`minmax(0, Nfr)`, wide tables scroll inside their column)
+and column engagement is per track count: two tracks past 80rem of
+container width, three past 120rem (a column earns ~40rem). The split
+keeps its 60rem gate. Spec pins and the SSR markup verified.
+
 ### Agent Notes (2026-10-21, realistic lineage replaces the fixtures)
 
 Session `agent/gen-ui-deslop-cluster-20261021` (continued). The
