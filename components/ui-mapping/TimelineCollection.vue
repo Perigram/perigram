@@ -8,7 +8,7 @@
             link
             size="small"
             :label="identityOf(item)"
-            class="min-w-0 max-w-full text-left [&_.p-button-label]:truncate"
+            :class="LAYOUT.linkClamp"
             @click="$emit('open', item)"
           />
           <span v-else class="text-supporting text-muted">{{ identityOf(item) }}</span>

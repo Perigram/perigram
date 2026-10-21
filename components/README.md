@@ -598,16 +598,12 @@ Dormant components are inspected and may be refactored, but are not removed by
 automated cleanup. Legacy components such as old dashboard/footer widgets must
 be removed only by an explicit human cleanup decision.
 
-The canonical component and mechanism inventory lives in
-[docs/UI_COMPONENT_AUDIT.md](../docs/UI_COMPONENT_AUDIT.md). It classifies every
-repository Vue file as system-owned, a shared/domain primitive, or derived usage
-and records source-derived dispositions for typography, layout, chrome, states,
-important overrides, and scoped CSS. Run `node scripts/ui-visual-inventory.js`
-after an intentional visual change. The design-system test derives the same
-findings, checks path-derived IDs, and validates scoped layout declarations by
-property. It also rejects every runtime PrimeVue selector or variable
-declaration and all `!important` rules in global runtime CSS, so stale rows,
-broad whole-file CSS exceptions, and a second runtime visual layer fail.
+Visual findings derive mechanically: run `node scripts/ui-visual-inventory.js`
+after an intentional visual change. `shared/design-system.spec.js` derives the
+same findings per Vue file, validates scoped layout declarations by property,
+and rejects every runtime PrimeVue selector or variable declaration and all
+`!important` rules in global runtime CSS — a second runtime visual layer
+fails.
 
 ## Composables Rule
 
@@ -1117,14 +1113,6 @@ beside the action cluster.
 
 ## Localization
 
-Artifact-template management lives at `pages/assets/templates.vue` and uses the
-`ArtifactTemplateCard` entity surface. `ArtifactLayoutEditor` edits normalized
-template and generated-artifact items and emits data only; owning surfaces call
-the canonical revision-backed APIs. Template and artifact deletion uses
-`GeneratedDeleteButton` on these static management surfaces, so visibility
-follows the domain delete contract and ordinary entity permission grants. This
-component is not used by generated process surfaces, whose deletion contract is
-the compiled manual action described above.
 
 - User-visible labels, headings, dialog headers, toast summaries/details, placeholders, and accessible labels must use `$t(...)` in templates or `t(...)` from `useI18n()` in script.
 - Keep `i18n/locales/en.json` and `i18n/locales/ru.json` structurally aligned whenever adding keys.

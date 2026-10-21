@@ -114,6 +114,7 @@ import {
   LAYOUT, TYPE_BY_LEVEL, HEADER_ACTIONS_INLINE, titleFor, iconFor,
   resolveActionButton, actionLabelKey, localizedLabel
 } from '#shared/ui-mapping/index.js';
+import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import ActionButton from './ActionButton.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import StateTag from './StateTag.vue';
@@ -171,12 +172,7 @@ const transitionActions = computed(() => props.actions
 const manualActions = computed(() => props.actions
   .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime)
   .filter(action => action?.actionKind !== 'updateInstance')
-  .filter(action => {
-    const from = action.state?.from || '';
-    if (!from) return true;
-    const state = typeof props.instance?.state === 'string' ? props.instance.state : '';
-    return Boolean(state) && (state === from || state.endsWith(`.${from}`));
-  }));
+  .filter(action => actionAppliesToEntity(action, props.instance, props.type?.id)));
 const inlineActions = computed(() => manualActions.value.slice(0, HEADER_ACTIONS_INLINE));
 const overflowActions = computed(() => manualActions.value
   .filter(action => !inlineActions.value.includes(action)));

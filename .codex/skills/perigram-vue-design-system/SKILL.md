@@ -18,7 +18,7 @@ Before changing UI code, read project docs in this order:
 2. `README.md`
 3. `components/README.md`
 4. `components/shared/README.md`
-5. `docs/DESIGN_SYSTEM.md`
+5. `assets/tokens/README.md`
 6. The local component README for the area being changed, if present
 
 For compact reference, load

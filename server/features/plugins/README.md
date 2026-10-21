@@ -107,7 +107,7 @@ executors through the worker protocol.
   install record, which revokes the token; admins rotate it from the
   Plugins page's connector panel. Authoring and hosting (including the
   executor implementations for both modes) is documented in the
-  [plugin authoring guide](../../../docs/PLUGIN_AUTHORING.md).
+  [plugin SDK](../../../packages/plugin-sdk/README.md).
 - **Service-resolved projections** (SPEC §8 p extract): a listing's type
   projections may resolve through a declared plugin service
   (`resolve: { service: 'plugin.<id>.<svc>' }`) — endpoint mode only, a
@@ -235,5 +235,5 @@ publisher UI beyond the CLI are later slices of the marketplace plan.
 - [server/features/README.md](../README.md) — feature classification.
 - [cts-types](../cts-types/README.md) — org view composition.
 - [instances](../instances/README.md) — per-call declaration resolution.
-- [Plugin authoring guide](../../../docs/PLUGIN_AUTHORING.md) — authoring,
-  hosting, and publishing for agents and humans.
+- [Plugin SDK](../../../packages/plugin-sdk/README.md) — authoring loop,
+  surface mount contracts, CLI.

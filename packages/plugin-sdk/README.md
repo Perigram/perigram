@@ -10,8 +10,70 @@ contract home is this package, mirrored as
 tooling.
 
 Parent: [root README](../../README.md). Consumer contract:
-[plugins feature](../../server/features/plugins/README.md); authoring
-walkthrough: [plugin authoring guide](../../docs/PLUGIN_AUTHORING.md).
+[plugins feature](../../server/features/plugins/README.md); host-side
+surface mount:
+[generated screens](../../components/generated/README.md).
+
+## Authoring loop
+
+A plugin is declarations plus connectors: `listing.json` (the whole
+contract, `perigram-plugin validate listing.json`) and `services.mjs` (one
+handler per declared service). Two hosting models, one contract:
+
+| Model | Who runs the executor | How the platform reaches it |
+|---|---|---|
+| Self-hosted | The org (or an agent acting for it) | claim mode (poll) or endpoint mode (URL + key) |
+| Cloud-hosted | The publisher | endpoint mode (their URL + API key) |
+
+Run the executor locally (`perigram-plugin dev`), or poll in claim mode
+(`perigram-plugin run --token <connector token>`). Publish, install,
+connect, and test ride the CLI sequence under §CLI: `login` → `publish` →
+`install` → `connector` → `connect --set <svc>=<url> --key <key>` →
+`test`. A plugin release is two deploys at one version: the executor
+image and the listing (`publish`; built-in deployment plugins seed from
+`server/scripts/seed-plugin-catalog.js`). Installed organizations see the
+available version and apply it themselves through the upgrade diff
+preview.
+
+Acceptance is one clean loop through install → execute → upgrade →
+uninstall: the install gate (type-id no-shadowing, clean compile,
+claimable attachment kinds, required packs enabled), the upgrade preview,
+and the uninstall drain gate all refuse loudly.
+
+## Surface mount contracts
+
+A surface module default-exports the factory `createSurface(ctx) ->
+component`; the component declares props `{ record, persistence }` (the
+preview `kind`: `{ record, payload }`). The ctx ladder by
+`surfaceContract` major:
+
+- **1 (base)** — `{ vue, components, locale }`: the host's Vue runtime
+  subset (render functions only), the vetted component pack, and
+  `{ t, te, locale }`. The mount injects `vue`, `primevue`, and `pinia`;
+  surface modules receive them through the ctx.
+- **2 (editor-grade)** — adds `queries` (`list(typeId, params)` /
+  `get(typeId, id)`), `records` (`create` / `update` across types),
+  `notify` (host toast), `access` (`canWrite(record)` gates editing; a
+  denied surface degrades to view-only).
+- **3 (capability)** — adds `sync.onRecordChanged(callback)` (host
+  record-change bridge; own publications are skipped host-side) and
+  `upload.file(blob, { fileName })` (host file channel, returns the
+  stored ref).
+- **4 (navigation)** — adds `open.instance({ typeId, instanceId, editor })`:
+  the workspace owns tabs, surfaces ask through it.
+
+`persistence` carries `createBlank()`, `loadDocument(record)`,
+`saveDocument(record, document, { fileName, mimeType })`, `patch(record,
+body)`, `rename(record, name)` — the generic instance transports; the
+bound type must declare a revision scope (payload replacement requires
+one). Preview surfaces receive the read-only `{ record, payload }` mount:
+the host owns the chrome and keeps its generic preview while the module
+loads or cannot mount; render a quiet blank for records with nothing
+to show.
+Surface markup rides host-compiled utility classes — a class the host
+does not scan is dead, so the surface's sources join the scan (the
+plugins feature's surface-styles contract). Third-party runtimes ride
+declared vendor dependencies (§Vendor command).
 
 ## Listing contract (`parseListing` / `normalizeListing`)
 
@@ -91,8 +153,8 @@ module proxy resolves it); with `dependencies` and `pluginRoot`, every
 declared vendor module must also exist under the plugin root. The stub
 carries the contract-2 superset (queries, notify, access beside the base
 context), so editor-grade modules smoke against their full mount
-context; the author-facing contract shapes live in the
-[plugin authoring guide](../../docs/PLUGIN_AUTHORING.md) §1a. The real
+context; the author-facing contract shapes live in §Surface mount
+contracts. The real
 host-shell mount (save callbacks over the instance transports) is proven
 by the platform's fixture-plugin e2e. The CLI wraps it:
 `perigram-plugin surfaces <module.mjs> [--listing listing.json]`.
@@ -148,5 +210,5 @@ Env: `PERIGRAM_APP` (default `http://localhost:3000`),
 
 - [server/features/plugins](../../server/features/plugins/README.md) — the
   platform consumer of the contract.
-- [docs/PLUGIN_AUTHORING.md](../../docs/PLUGIN_AUTHORING.md) — the
-  authoring walkthrough.
+- [components/generated](../../components/generated/README.md) — the
+  host-side surface mount and preview slots.

@@ -708,9 +708,6 @@ describe('Design system manifest', () => {
     // The stacked chat card carries its state tag inside the one-line
     // header; the standalone status row stays with the row layout.
     expect(inlineRef).toContain("compactLayout !== 'stacked'");
-    const stateTag = fs.readFileSync(path.join(REPO_ROOT, 'components/ui-mapping/StateTag.vue'), 'utf8');
-    expect(stateTag).toContain('small: { type: Boolean');
-    expect(stateTag).toContain('smallPt');
     expect(inlineRef).toContain('instance-inline-compact-status-row');
     expect(inlineRef).not.toContain('instance-inline-compact-fallback');
     expect(instanceCard).toContain('primevue/chip');

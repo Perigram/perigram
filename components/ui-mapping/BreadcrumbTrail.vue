@@ -9,7 +9,7 @@
         v-bind="breadcrumbProps"
         link
         size="small"
-        class="max-w-44 [&_.p-button-label]:truncate"
+        :class="LAYOUT.linkClamp"
         @click="$emit('open', item.instance)"
       >
         {{ item.label }}
@@ -24,7 +24,7 @@ import { computed } from 'vue';
 import Breadcrumb from 'primevue/breadcrumb';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
-import { titleFor } from '#shared/ui-mapping/index.js';
+import { titleFor, LAYOUT } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   instance: { type: Object, required: true },

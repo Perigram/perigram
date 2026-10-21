@@ -133,7 +133,10 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   const childRegions = region.slot === 'children' ? [] : (screen.regions || [])
     .filter(child => child.slot === 'children' && child.id !== region.id)
     .map(child => composeRegion(child, screen, contract, pool, typesById, depth + 1, providedStates));
-  const childrenMode = childrenModeFor(childRegions, depth);
+  // A record page composes top to bottom: its child regions always stack
+  // below the record body. Tabs are a screen-level arrangement (a heavy
+  // home sections its top-level regions).
+  const childrenMode = surfaceKind === 'detail' ? 'stack' : childrenModeFor(childRegions, depth);
   return Object.freeze({
     id: region.id,
     slot: region.slot,

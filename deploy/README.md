@@ -174,7 +174,6 @@ Retired paths, kept for archaeology until deleted:
 
 ## Related
 
-- [Remote access runbook](../docs/REMOTE_ACCESS.md)
 - [System README](../README.md)
 
 - `debug-logs.yml` (manual dispatch from Forgejo Actions) prints the last

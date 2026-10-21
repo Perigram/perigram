@@ -28,7 +28,7 @@
             link
             size="small"
             :label="identityOf(data)"
-            class="max-w-72 text-left [&_.p-button-label]:truncate"
+            :class="LAYOUT.linkClamp"
             @click="$emit('open', data)"
           />
           <span v-else class="text-body max-w-72 truncate">{{ identityOf(data) }}</span>
@@ -88,7 +88,7 @@ import {
   titleFor, resolveListControls, stateDisplayFor,
   localizedLabel, fieldLabelKey, incomingChildrenEdges
 } from '#shared/ui-mapping/index.js';
-import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
+import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
 import FieldControl from './FieldControl.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import ParentRef from './ParentRef.vue';
@@ -162,7 +162,7 @@ const scalarFields = computed(() => resolvedControls.value.sortKeys
   }));
 // Sort selection is controlled and named: each sortable column maps to a
 // stable name (identity / status / field name) so the user's choice
-// persists per type (utils/ui-sort-preference.js) and survives remounts;
+// persists per type (utils/ui-view-state.js) and survives remounts;
 // without a preference the declared default sort applies.
 const sortFieldByName = name => {
   if (name === 'identity') return sortByIdentity;

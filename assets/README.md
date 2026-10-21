@@ -26,11 +26,12 @@
   border-defined rather than elevated; reserve shadow for overlays. Use
   `status-*` for feedback, `entity-*` for shared entity-reference families, and
   `signal-*` for process-canvas roles rather than raw Tailwind color utilities.
-- The authoritative visual ownership contract and complete repository inventory
-  live in [the UI component audit](../docs/UI_COMPONENT_AUDIT.md).
+- The visual ownership contract lives in
+  [components/README.md](../components/README.md) §Style Guide and §Visual
+  Tokens; `shared/design-system.spec.js` enforces it mechanically.
 
 ## Related
 
-- [Design system](../docs/DESIGN_SYSTEM.md)
+- [Visual tokens](./tokens/README.md)
 - [Components guide](../components/README.md)
 - [Animated brand mark](./rive/perigram-mark/README.md)

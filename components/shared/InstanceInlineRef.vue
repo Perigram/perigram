@@ -6,7 +6,7 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import StateTag from '~/components/ui-mapping/StateTag.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
-import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import ActionButton from '~/components/ui-mapping/ActionButton.vue';
 import { useInstancesStore } from '~/stores/instances';
 import { normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
 import { useAuthStore } from '~/stores/auth';
@@ -14,7 +14,7 @@ import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
 import { instanceRecordTitle } from '~/utils/instance-shape.js';
-import { generatedEntityLabel } from '~/utils/generated-labels.js';
+import { generatedEntityLabel, generatedActionLabel } from '~/utils/generated-labels.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useStatePolicy } from '~/composables/useStatePolicy';
 import { useEntityPopup } from '~/composables/useEntityPopup';
@@ -227,13 +227,12 @@ function executeContextualAction(action) {
           <template v-if="compactLayout === 'stacked' && resolved">
             <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true" />
             <span class="min-w-0 flex-1 truncate text-supporting" :title="identityLabel">{{ identityLabel }}</span>
-            <!-- One caption line: identity truncates, the small state
-                 tag stays whole. -->
+            <!-- One caption line: identity truncates, the state tag stays
+                 whole. -->
             <StateTag
               v-if="compactStatusState"
               :value="compactStatusState"
               :policy="compactPolicy"
-              small
               class="max-w-full shrink-0"
             />
           </template>
@@ -298,12 +297,14 @@ function executeContextualAction(action) {
     </template>
 
     <InstanceActionsPopover v-if="contextualActions.length">
-      <GeneratedActionButton
+      <ActionButton
         v-for="action in contextualActions"
         :key="action.id"
-        :action-id="action.id"
+        :action="action"
+        :state-policy="compactPolicy"
+        :label="generatedActionLabel(action, action.id, { t, te })"
         menu-item
-        @execute="executeContextualAction"
+        @run="executeContextualAction"
       />
     </InstanceActionsPopover>
   </span>

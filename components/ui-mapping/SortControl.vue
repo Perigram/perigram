@@ -47,7 +47,7 @@ import Popover from 'primevue/popover';
 // popover's DOM subtree, where the popover's outside-click handling
 // closes the control the moment a key is picked; the same trap the
 // filter builder documents. Picking a key and flipping the order emit
-// upward; persistence stays with the host (utils/ui-sort-preference).
+// upward; persistence stays with the host (utils/ui-view-state).
 const props = defineProps({
   options: { type: Array, default: () => [] },
   modelValue: { type: String, default: null },

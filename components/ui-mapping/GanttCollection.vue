@@ -29,7 +29,7 @@
           v-if="openable"
           link
           :label="identityOf(row.instance)"
-          class="min-w-0 text-left [&_.p-button-label]:truncate"
+          :class="LAYOUT.linkClamp"
           @click="$emit('open', row.instance)"
         />
         <span v-else class="truncate">{{ identityOf(row.instance) }}</span>

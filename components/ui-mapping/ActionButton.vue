@@ -5,10 +5,11 @@
     :aria-label="label"
     :title="iconOnly ? label : undefined"
     :severity="resolved.severity || (resolved.tone === 'danger' ? 'danger' : resolved.tone === 'primary' ? undefined : 'secondary')"
-    :outlined="!iconOnly && resolved.tone === 'secondary'"
-    :text="iconOnly || resolved.tone === 'text'"
+    :outlined="!iconOnly && !menuItem && resolved.tone === 'secondary'"
+    :text="iconOnly || menuItem || resolved.tone === 'text'"
     :rounded="iconOnly"
     :icon="resolved.icon || undefined"
+    :class="menuItem ? 'w-full justify-start whitespace-normal text-left' : null"
     size="small"
     @click="$emit('run', action)"
   />
@@ -29,7 +30,10 @@ const props = defineProps({
   label: { type: String, default: null },
   // The region's per-type state policy map: state-toned transition buttons
   // resolve their label/severity/icon from the compiled flat vocabulary.
-  statePolicy: { type: Object, default: null }
+  statePolicy: { type: Object, default: null },
+  // Menu-row presentation: the same button rendered as a full-width
+  // start-aligned row inside a popover menu.
+  menuItem: { type: Boolean, default: false }
 });
 
 defineEmits(['run']);

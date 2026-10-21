@@ -4,7 +4,7 @@
        containment a row rides in — the declaration the tree projection
        nests through, stated where nesting cannot happen. -->
   <span v-if="parent" class="inline-flex min-w-0 items-center gap-1 text-supporting text-muted" :title="parentLabel">
-    <i :class="parentIcon" class="shrink-0 text-[0.75rem]" aria-hidden="true" />
+    <i :class="parentIcon" class="shrink-0 text-supporting" aria-hidden="true" />
     <span class="truncate">{{ parentLabel }}</span>
   </span>
 </template>

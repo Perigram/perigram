@@ -20,7 +20,7 @@
                   v-if="openable"
                   link
                   :label="identityOf(instance)"
-                  class="text-left [&_.p-button-label]:truncate"
+                  :class="LAYOUT.linkClamp"
                   @click="$emit('open', instance)"
                 />
                 <span v-else class="truncate">{{ identityOf(instance) }}</span>
@@ -98,6 +98,7 @@ import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import ParentRef from './ParentRef.vue';
 import { incomingChildrenEdges } from '#shared/ui-mapping/index.js';
+import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 
 const spacing = inject('uiMappingSpacing', null);
 
@@ -156,19 +157,11 @@ function openCardMenu(event, instance) {
   menuInstance.value = instance;
   cardMenu.value?.toggle(event);
 }
-// A state-scoped action applies only in the state it leaves; the flat
-// instance state may be a nested path (parentState.state1), so the leaf
-// segment matches the authored local name.
-const stateMatches = (action = {}, instance = null) => {
-  const from = action.state?.from || '';
-  if (!from) return true;
-  const state = typeof instance?.state === 'string' ? instance.state : '';
-  if (!state) return false;
-  return state === from || state.endsWith(`.${from}`);
-};
-
+// Action applicability resolves through the canonical seam
+// (`actionAppliesToEntity`: type/parent match, authored state.from equality,
+// no-op suppression).
 const cardMenuItems = computed(() => props.actions
-  .filter(action => stateMatches(action, menuInstance.value))
+  .filter(action => actionAppliesToEntity(action, menuInstance.value, props.type?.id))
   .filter(action => !resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy }).hidden)
   .map(action => {
   const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });

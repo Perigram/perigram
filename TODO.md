@@ -1,5 +1,44 @@
 # TODO
 
+## Generated record pages compose top to bottom (owner direction 2026-10-21)
+
+Record pages are one vertical flow: header, body, child collections
+stacked below — no side column, no tabs; structural content renders
+open; presentation homes dedupe onto their canonical seams; the docs/
+tree is gone (SPEC §Generative UI).
+
+- [ ] WAITING — owner verification on the live stack: routed detail
+  screens and the record popup read top to bottom with the page-title
+  record title; wide fact groups expand through show-more; inline-ref
+  popover actions render through the shared ActionButton with resolver
+  presentation.
+
+### Agent Notes (2026-10-21)
+
+Session `agent/gen-ui-ttb-20261021`, worktree
+`.agent-worktrees/gen-ui-ttb-20261021`. RegionBlock's 7/5 detail split
+and its container-query block are gone; composeScreen forces stacked
+detail children (tabs remain a screen-level arrangement for heavy home
+sections); `TYPE_BY_LEVEL[0]` is `text-page-title`. SurfaceDetailBody
+renders structural fields as labeled open sections (Accordion/Fieldset
+chrome removed) and collapsed fact groups carry a show-more toggle
+behind a show-more toggle. `GeneratedActionButton` deleted —
+`ActionButton` gains `menuItem` and InstanceInlineRef's popover consumes
+it with `generatedActionLabel` as context label. CardGrid's and
+SurfaceHeader's inline `stateMatches` copies replaced by
+`actionAppliesToEntity` (canonical no-op suppression now applies to
+headers). InstanceMultiPicker and GeneratedScreen options label through
+`titleFor`/unnamed. Sort/filter/projection
+persistence merged into `utils/ui-view-state.js`. StateTag's 10px pt
+density channel removed (Aura tag size); ParentRef icon and `<small>`
+rows ride `text-supporting`. Identity-link truncation octuplet collapsed
+into `LAYOUT.linkClamp`. Dormant `GeneratedDeleteButton`,
+`delete-visibility`, `action-placement` deleted. `docs/` removed: the
+Cassette spec package moved to `workers/facade/occs/spec/`,
+PLUGIN_AUTHORING folded into `packages/plugin-sdk/README.md` (authoring
+loop + surface mount contracts), all README links repointed; root
+README doc map dropped the docs rows.
+
 ## Generative UI collapse to one engine (owner direction 2026-10-19)
 
 Every compiled screen renders through the ui-mapping generator with one
@@ -4646,7 +4685,7 @@ Plugins section (SPEC §Plugin marketplace, driving-goal paragraph).
 - [x] Hosting model + connection settings: services declare
   endpoint/claim mode; plugin settings carry per-service API endpoints and
   the executor API key; agent authoring guide
-  ([docs/PLUGIN_AUTHORING.md](./docs/PLUGIN_AUTHORING.md)).
+  ([plugin SDK](./packages/plugin-sdk/README.md)).
 - [x] Sheet-designs §13 migration (2026-10-09): the legacy entity service,
   model, and repository are deleted; sheet-design rides the generic
   instance machinery, the pack keeps only layout-update and DXF-export
