@@ -516,9 +516,7 @@ handwritten.
   create/transition/delete/link/hidden kinds; one volume collection over
   fifty instances (virtualized tables, paginated views, toolbar search);
   one guaranteed-empty type with its own list screen (empty state) and a
-  detail screen over it (missing state); one detail screen per
-  arrangement band (proportional columns, weight-ordered tabs, and the
-  record side column) from a deterministic seeded cluster; and a seeded
+  detail screen over it (missing state); and a seeded
   `sourceStatesMatrix` (loading/denied/error, one per screen) the
   showcase applies on demand. Its spec validates every generated
   instance against CTS `checkValue`, composes every screen across
