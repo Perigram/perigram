@@ -1159,13 +1159,18 @@ offer the export action without per-process action authoring.
 
 ## Generative UI
 
-### Instance pages compose top to bottom (owner direction 2026-10-21)
-The generative UI generates instance pages as one vertical flow — top to
-bottom (or bottom to top): record header, record body, then child
-collections stacked below at full width. No side columns, no tabs on
-record pages. Filled structural content renders open as labeled
-sections; nothing hides behind collapsed panel chrome, and a collapsed
-fact group always carries its show-more control.
+### Instance page arrangement is procedural and content-aware (owner
+direction 2026-10-21)
+The generative UI generates instance pages top to bottom (or bottom to
+top): the record header spans the page, the record body follows, and
+child collections arrange around the body by content weight — a light
+child set rides beside the body in a weight-proportional side column;
+below it, light peers share proportional columns, a dominant child
+keeps the flow with the rest arranged after it, and heavy peers tab in
+descending weight order. Column splits and tabs are layout tools the
+composed weights derive, at every level of the generated tree.
+Filled structural content renders open as labeled sections, and a
+collapsed fact group always carries its show-more control.
 
 ### Presentation has one home per concern (owner direction 2026-10-21)
 Action presentation, action applicability, and record/picker labels

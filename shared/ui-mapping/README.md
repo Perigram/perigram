@@ -401,9 +401,13 @@ derives, so the weighted layout is the rendered layout),
 plus the wrapped
 relation-chip rows the first declared relation adds, with no sampling
 cap —
-and `childrenModeFor` stacks siblings until their combined weight exceeds
-`SURFACE_ROW_BUDGET`, then arranges them into tabs at the top level. Never
-measured from the DOM. One global spacing coefficient (0.5–2, the showcase slider)
+and `arrangeChildren` decides how siblings share the surface from the same
+weights: a light set flows in one stack, light peers share proportional
+columns (track fr from each child's estimated rows), a sibling holding at
+least `DOMINANT_CHILD_SHARE` of the total keeps the vertical flow with the
+rest arranged after it, and heavy peers tab in descending weight order at
+the top level (`childrenModeFor` is the tabs/stack projection of that
+ladder; nested heavy content stacks). Never measured from the DOM. One global spacing coefficient (0.5–2, the showcase slider)
 selects the rhythm set (`spacingClasses` over the literal
 `SPACING_SCALES` table): stack rhythm, section gaps, fact-row padding,
 chip-row leading, toolbar gaps, control size, and
@@ -419,13 +423,19 @@ tokens) and card grids run through the shared `ResponsiveGrid` primitive
 (container queries), never viewport breakpoints inside panels.
 Container-relative layout that Tailwind variants cannot express (the
 build ships no container-queries plugin, so `@container`/`@[w]:` classes
-silently compile to nothing) lives in real CSS through two sanctioned
+silently compile to nothing) lives in real CSS through four sanctioned
 homes: record headers (scoped CSS in `SurfaceHeader`, which declares its
 own `container-type`; wide headers lay identity and actions on one
 wrapping row with a 16rem title floor — long names still truncate
 through the `min-w-0` chain — narrow headers stack, with at most
 `HEADER_ACTIONS_INLINE` generated buttons inline before the ellipsis
-overflow menu) and the form grid
+overflow menu), the record page's weight-proportional split (scoped CSS in
+`RegionBlock`: past 60rem of container width the record body shares a
+12-track grid with the side column, whose span the children's combined
+weight earns through `REGION_SIDE_SPANS`; narrower hosts stack), peer
+columns (scoped CSS in `RegionChildren`: past 60rem of container width the
+children render on their weight-derived `--region-tracks` fr list;
+narrower hosts stack), and the form grid
 (`LAYOUT.formGrid` names the global `.ck-form-grid` utility in
 `assets/css/main.css`: one column under 40rem of container width, two
 above; full-span rows opt in with `.ck-span-full`).
