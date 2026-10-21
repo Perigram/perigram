@@ -1,21 +1,22 @@
 <template>
-  <div
-    v-if="arrangement.mode === 'columns'"
-    class="region-columns grid w-full grid-cols-1 gap-6"
-    :style="{ '--region-tracks': arrangement.tracks }"
-  >
-    <RegionBlock
-      v-for="child in regions"
-      :key="child.id"
-      :node="child"
-      :pool="pool"
-      :bundle="bundle"
-      :depth="depth + 1"
-      :openable="openable"
-      :instance-actions="instanceActions"
-      @run="(action, context) => emit('run', action, context)"
-      @open="instance => emit('open', instance)"
-    />
+  <div v-if="arrangement.mode === 'columns'" class="region-columns-host">
+    <div
+      class="region-columns grid w-full grid-cols-1 gap-6"
+      :style="{ '--region-tracks': arrangement.tracks }"
+    >
+      <RegionBlock
+        v-for="child in regions"
+        :key="child.id"
+        :node="child"
+        :pool="pool"
+        :bundle="bundle"
+        :depth="depth + 1"
+        :openable="openable"
+        :instance-actions="instanceActions"
+        @run="(action, context) => emit('run', action, context)"
+        @open="instance => emit('open', instance)"
+      />
+    </div>
   </div>
 
   <template v-else-if="arrangement.mode === 'mixed'">
@@ -126,11 +127,12 @@ const orderedRegions = computed(() => (Array.isArray(props.arrangement.order)
 </script>
 
 <style scoped>
-/* Container-relative peer columns (the SurfaceHeader pattern): columns
-   engage past 60rem of container width and stack inside panes, dialogs,
-   and narrow hosts; the track list is the weight-derived custom property
-   set by the template. */
-.region-columns {
+/* Container-relative peer columns (the SurfaceHeader pattern). The host
+   is the query container; the grid inside responds: columns engage past
+   60rem of container width and stack inside panes, dialogs, and narrow
+   hosts. The track list is the weight-derived custom property set by the
+   template. */
+.region-columns-host {
   container-type: inline-size;
 }
 

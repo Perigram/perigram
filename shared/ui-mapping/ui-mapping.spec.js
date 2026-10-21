@@ -689,9 +689,9 @@ describe('weight-driven arrangement', () => {
 
   it('scales the record side column span with the children weight', () => {
     expect(regionSideSpanFor(1)).toBe(4);
-    expect(regionSideSpanFor(3)).toBe(4);
-    expect(regionSideSpanFor(4)).toBe(5);
+    expect(regionSideSpanFor(4)).toBe(4);
     expect(regionSideSpanFor(5)).toBe(5);
+    expect(regionSideSpanFor(8)).toBe(5);
   });
 });
 

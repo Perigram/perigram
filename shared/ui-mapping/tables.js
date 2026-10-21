@@ -157,12 +157,12 @@ export const SURFACE_ROW_BUDGET = 10;
 // DOMINANT_CHILD_SHARE of the total weight is the dominant child; columns
 // cap at REGION_COLUMNS_MAX tracks. The record side column earns width
 // with weight through REGION_SIDE_SPANS (12-track grid spans).
-export const SIDE_MAX_WEIGHT = 5;
+export const SIDE_MAX_WEIGHT = 8;
 export const COLUMN_MAX_WEIGHT = 6;
 export const DOMINANT_CHILD_SHARE = 0.6;
 export const REGION_COLUMNS_MAX = 3;
 export const REGION_SIDE_SPANS = Object.freeze([
-  { at: 3, span: 5 },
+  { at: 4, span: 5 },
   { at: 0, span: 4 }
 ]);
 
