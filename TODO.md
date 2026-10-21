@@ -17,6 +17,36 @@ UI).
   popover actions render through the shared ActionButton with resolver
   presentation.
 
+### Agent Notes (2026-10-21, realistic lineage replaces the fixtures)
+
+Session `agent/gen-ui-deslop-cluster-20261021` (continued). The
+generator's worlds now concentrate lineage the way real containment
+looks: each parent type has one loaded record holding most of its
+children across its edges, relations are sparse (0-3 refs), detail
+screens open the loaded record, and two host parents claim exclusive
+peer collections sized by estimated rendered weight (the contract's own
+layout estimator) — the volume/empty guarantee pattern applied to
+parent shapes. Measured across 50 seeds / 250 detail screens: columns
+40 seeds, tabs 35, beside 43, mixed 3 (before: columns 1, tabs 1).
+DEFAULT_RANDOM_SEED is 10 (columns+tabs+stack+beside); the showcase SSR
+smoke repins to seed 37 (adds board/gantt/calendar) with completed
+auth/instances/useState stubs. The spec guarantees the world property
+(loaded parents with sized peers), and the arrangement modes derive.
+
+### Agent Notes (2026-10-21, band cluster removed as slop)
+
+Session `agent/gen-ui-deslop-cluster-20261021`, worktree
+`.agent-worktrees/gen-ui-deslop-cluster-20261021`. Owner verdict: the
+deterministic band cluster was slop and sabotage — purpose-built screens
+engineered to hit the arrangement branches, a spec pinning its own
+construction, disguised as native world content. Removed in full
+(generator block, spec test, README clause); the generator is back to
+nothing-hand-authored. Measured reality it was hiding: across 50 seeds
+and 250 natural detail screens, columns fired once and tabs once (66%
+of detail screens resolve no children at all; the rest mostly go beside
+or stack). Follow-up in this session: realistic containment
+concentration in the generator replaces the fixtures.
+
 ### Agent Notes (2026-10-21, native arrangement cluster)
 
 Session `agent/gen-ui-native-cluster-20261021`, worktree

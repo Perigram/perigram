@@ -91,26 +91,16 @@ describe('showcase-reachable contracts in every world', () => {
     }
   });
 
-  it('guarantees every region-arrangement band is reachable', () => {
+  it('guarantees loaded parents with sized peer collections', () => {
     for (const seed of SEEDS) {
       const world = generateUiMappingWorld(seed);
       const pool = buildInstancePool(world.instances);
-      const composed = key => composeScreen(world.contract.screens[key], world.contract, world.bundle, pool).regions[0];
-      // Columns band: two peers over the surface budget, each inside the
-      // column cap, on proportional tracks.
-      const columns = composed('detail_arr_columns');
-      expect(columns.childArrangement.mode, `seed ${seed} columns`).toBe('columns');
-      expect(columns.childArrangement.tracks).toBe('11fr 11fr');
-      expect(columns.besideBody).toBe(false);
-      // Tabs band: two peers past the column cap, heaviest first.
-      const tabs = composed('detail_arr_tabs');
-      expect(tabs.childArrangement.mode, `seed ${seed} tabs`).toBe('tabs');
-      expect(tabs.childArrangement.order).toHaveLength(2);
-      // Side band: a single light child rides beside the record body.
-      const side = composed('detail_arr_side');
-      expect(side.childArrangement.mode, `seed ${seed} side mode`).toBe('stack');
-      expect(side.besideBody, `seed ${seed} side beside`).toBe(true);
-      expect(side.sideSpan).toBe(5);
+      const loaded = Object.values(world.contract.screens)
+        .filter(screen => screen.template === 'instanceDetail')
+        .some(screen => composeScreen(screen, world.contract, world.bundle, pool).regions
+          .some(region => region.childRegions
+            .filter(child => child.instances.length >= 2).length >= 2));
+      expect(loaded, `seed ${seed} loaded parent`).toBe(true);
     }
   });
 
