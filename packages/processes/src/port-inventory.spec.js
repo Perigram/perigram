@@ -114,7 +114,7 @@ describe('port inventory pin (every catalog kind, frozen surface)', () => {
       "cts.read": "data:type(entityRef:panel)*|data:result(entityRef:panel)",
       "cts.remove": "data:entity(entityRef:panel:list)!|control:completed(event)|data:result(entityRef:panel)",
       "cts.service": "control:in(event)!*|data:kerf(number)!|control:completed(event)|data:result(number)",
-      "cts.transition": "control:in(event)!*|data:entity(entityRef:panel:list)!|data:note(string:list)|data:state(status:panel:list)!|control:completed(event)|data:result(entityRef:panel)",
+      "cts.transition": "control:in(event)!*|data:entity(entityRef:panel:list)!|data:note(string:list)|data:state(status:panel:list)!|data:actors(entityRef:user:list)|control:completed(event)|data:result(entityRef:panel)",
       "record.construct": "data:record(record)",
       "source.currentTime": "data:value(dateTime)",
       "source.currentUser": "data:value(entityRef:user)",

@@ -24,6 +24,21 @@ export function camelCaseId(value = '') {
     + rest.map(segment => segment.charAt(0).toUpperCase() + segment.slice(1)).join('');
 }
 
+// Transition actor assignment (SPEC §7): the facet refines the actors
+// socket's write — scope names states of the bound type, the absent
+// scope assigns for every state (ownership).
+export function normalizeTransitionAssignment(assignment = null) {
+  if (!assignment || typeof assignment !== 'object' || Array.isArray(assignment)) return null;
+  const scope = Array.isArray(assignment.scope)
+    ? Object.freeze([...new Set(assignment.scope.map(item => String(item)).filter(Boolean))])
+    : null;
+  const normalized = {
+    ...(scope && scope.length ? { scope } : {}),
+    ...(assignment.capability ? { capability: String(assignment.capability) } : {})
+  };
+  return Object.keys(normalized).length ? Object.freeze(normalized) : null;
+}
+
 // Per-state field policy (SPEC §7 `fieldPolicy`, §10): whitelists over the
 // bound type's row. An absent facet or list leaves that axis unrestricted;
 // an authored empty list allows nothing.
@@ -433,6 +448,28 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
     const values = valuesByType.get(record.typeId);
     if (values && !values.has(target) && !unscopedStateValues.has(target)) {
       diagnostics.push(`${record.kind === 'cts.transition' ? 'transition' : 'construct'} ${record.id || '(unnamed)'}: state ${target} not declared for ${record.typeId}`);
+    }
+  }
+
+  // Transition assignment facets (SPEC §7): scope values name declared
+  // states of the bound type; capability is a string label.
+  for (const record of Object.values(records || {})) {
+    if (record?.kind !== 'cts.transition' || !record.assignment) continue;
+    const label = record.id || '(unnamed)';
+    const scope = record.assignment.scope;
+    if (scope !== undefined && !Array.isArray(scope)) {
+      diagnostics.push(`transition ${label}: assignment scope must be a state list`);
+    }
+    if (record.assignment.capability !== undefined && typeof record.assignment.capability !== 'string') {
+      diagnostics.push(`transition ${label}: assignment capability must be a label`);
+    }
+    if (!Array.isArray(scope) || !record.typeId) continue;
+    const values = valuesByType.get(record.typeId);
+    if (!values) continue;
+    for (const value of scope) {
+      if (!values.has(String(value)) && !unscopedStateValues.has(String(value))) {
+        diagnostics.push(`transition ${label}: assignment scope names undeclared state ${value}`);
+      }
     }
   }
 

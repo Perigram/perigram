@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   activate,
+  effectTransitionContext,
   executeActiveProcessAction,
   executeProcessQuery,
   hasProcessDefinitionMembershipAccess,
@@ -74,6 +75,29 @@ vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async (
 vi.mock('~/server/features/instance-revisions/service.js', () => ({
   getById: vi.fn()
 }));
+
+describe('transition actor assignment context (SPEC §7)', () => {
+  it('composes lifecycle actors from the actors value refined by the facet', () => {
+    const context = effectTransitionContext(
+      { id: 't1', assignment: { scope: ['DONE'], capability: 'reviewer' } },
+      { actors: [{ id: 'u-1' }, 'u-2'] }
+    );
+    expect(context.lifecycle).toEqual({
+      actors: [
+        { userId: 'u-1', states: ['DONE'], capability: 'reviewer' },
+        { userId: 'u-2', states: ['DONE'], capability: 'reviewer' }
+      ]
+    });
+  });
+
+  it('assigns for every state without a facet and omits the channel without actors', () => {
+    const owned = effectTransitionContext({ id: 't1' }, { actors: [{ userId: 'u-9' }] });
+    expect(owned.lifecycle).toEqual({ actors: [{ userId: 'u-9' }] });
+
+    const none = effectTransitionContext({ id: 't1', assignment: { scope: ['DONE'] } }, {});
+    expect(none.lifecycle).toBeUndefined();
+  });
+});
 
 describe('current process-definition service contract', () => {
   const organizationService = {

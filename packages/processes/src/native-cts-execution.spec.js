@@ -182,7 +182,7 @@ describe('native CTS process execution contract', () => {
     expect(construct.inputs.some(port => port.id === 'states.main')).toBe(false);
     expect(mutate.inputs.map(port => port.id)).toEqual(['in', 'entity', 'fields.name', 'fields.note']);
     expect(mutate.inputs.some(port => port.id === 'states.main')).toBe(false);
-    expect(transition.inputs.map(port => port.id)).toEqual(['in', 'entity', 'note', 'state']);
+    expect(transition.inputs.map(port => port.id)).toEqual(['in', 'entity', 'note', 'state', 'actors']);
     expect(read.inputs.map(port => port.id)).toEqual(['entity']);
     expect(field.inputs.map(port => port.id)).toEqual(['entity', 'field']);
     expect(field.inputs[0]).toMatchObject({ id: 'entity', type: { base: 'entityRef', typeId: 'panel' } });

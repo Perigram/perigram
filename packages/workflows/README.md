@@ -111,7 +111,9 @@ states: {
 `validateTransition()` checks declared attachment slots, required lifecycle
 attachments, declared snapshot keys, actor capability names, optional transition
 `capabilities`, and current `status.lifecycle.actors` assignments that apply to
-the target state. Runtime adapters may pass `requireLifecyclePayload: false`
+the target state. Actors are assignment facts: an actors-only payload passes a
+state without a lifecycle schema; evidence slots (attachments, data, snapshots)
+still refuse there. Runtime adapters may pass `requireLifecyclePayload: false`
 when listing available actions so required evidence can be collected by the UI
 before the transition is submitted.
 Application role names are not workflow policy. Runtime adapters evaluate

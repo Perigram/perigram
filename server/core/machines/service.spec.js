@@ -125,6 +125,80 @@ describe('status service lifecycle payloads', () => {
     expect(denied.actions).toEqual([]);
   });
 
+  it('persists lifecycle actors through schema-less states and replaces the set', async () => {
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'NEW',
+          states: { NEW: {}, REVIEW: {}, DONE: {} },
+          transitions: [
+            { from: 'NEW', to: 'REVIEW', access: { permissions: [{ feature: 'cassettes', typeId: 'cassette', level: 'admin' }] } },
+            { from: 'REVIEW', to: 'DONE', access: { permissions: [{ feature: 'cassettes', typeId: 'cassette', level: 'admin' }] } }
+          ]
+        }
+      }
+    });
+    const doc = cassetteDoc('cassette-actors', { status: { state: 'NEW', userId: 'creator', timestamp: new Date(), metadata: {} } });
+    await db.collection('files').insertOne(doc);
+    const auth = { userId: 'admin-1', memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }] };
+
+    await statusService.transition('cassette', 'cassette-actors', 'REVIEW', 'admin-1', auth, {
+      lifecycle: { actors: [{ userId: 'reviewer-1', states: ['DONE'] }] }
+    });
+    let entity = await db.collection('files').findOne({ _id: 'cassette-actors' });
+    expect(entity.status.lifecycle?.actors).toEqual([{ userId: 'reviewer-1', states: ['DONE'] }]);
+
+    // Entry-scoped guard (decided model): the assignee alone may enter
+    // DONE; the assignment write replaces the set.
+    await expect(statusService.transition('cassette', 'cassette-actors', 'DONE', 'admin-1', auth, {
+      lifecycle: { actors: [{ userId: 'qc-1' }] }
+    })).rejects.toThrow(/Unauthorized lifecycle actor/);
+    await statusService.transition('cassette', 'cassette-actors', 'DONE', 'reviewer-1', {
+      userId: 'reviewer-1',
+      memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }]
+    }, { lifecycle: { actors: [{ userId: 'qc-1' }] } });
+    entity = await db.collection('files').findOne({ _id: 'cassette-actors' });
+    expect(entity.status.lifecycle?.actors).toEqual([{ userId: 'qc-1' }]);
+  });
+
+  it('hides actor-denied edges from availability and admits the assignee', async () => {
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'NEW',
+          states: { NEW: {}, REVIEW: {}, DONE: {} },
+          transitions: [
+            { from: 'NEW', to: 'REVIEW', access: { permissions: [{ feature: 'cassettes', typeId: 'cassette', level: 'admin' }] } },
+            { from: 'REVIEW', to: 'DONE', access: { permissions: [{ feature: 'cassettes', typeId: 'cassette', level: 'admin' }] } }
+          ]
+        }
+      }
+    });
+    const doc = cassetteDoc('cassette-gated', {
+      status: {
+        state: 'REVIEW',
+        userId: 'creator',
+        timestamp: new Date(),
+        metadata: {},
+        lifecycle: { actors: [{ userId: 'reviewer-1', states: ['DONE'] }], attachments: {}, data: {} }
+      }
+    });
+    await db.collection('files').insertOne(doc);
+    const grants = { userId: '$id', memberships: [{ organizationId: 'org-1', permissions: { cassettes: 'admin' } }] };
+
+    const other = await statusService.getActions('cassette', 'cassette-gated', {
+      ...grants, userId: 'admin-1'
+    });
+    expect(other.actions.map(action => action.to)).toEqual([]);
+
+    const assignee = await statusService.getActions('cassette', 'cassette-gated', {
+      ...grants, userId: 'reviewer-1'
+    });
+    expect(assignee.actions.map(action => action.to)).toEqual(['DONE']);
+  });
+
   it('keeps process-owned edges out of availability while the transition boundary still executes them', async () => {
     vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
       primaryRegion: 'main',

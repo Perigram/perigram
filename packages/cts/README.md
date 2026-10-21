@@ -184,7 +184,9 @@ module layout and how the code maps to the spec's build-order tiers.
   declared state of the type's vocabulary, and the deadline guard follows
   the guard contract. State field policies (SPEC §7 `fieldPolicy`) are
   checked here as well: `visible`/`editable` are row field ids of the
-  bound type, and `editable` stays within `visible`.
+  bound type, and `editable` stays within `visible`. Transition
+  assignment scopes (SPEC §7) are checked against the same draft state
+  vocabulary.
 - `compat/graph-protocol.js` — the native species graph protocol (SPEC §20):
   `resolveCtsDefinition` resolves declaration ids and row paths while
   preserving species kinds, discriminators, socket ids, and graph edges;
