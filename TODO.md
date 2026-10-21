@@ -17,6 +17,22 @@ UI).
   popover actions render through the shared ActionButton with resolver
   presentation.
 
+### Agent Notes (2026-10-21, realistic lineage replaces the fixtures)
+
+Session `agent/gen-ui-deslop-cluster-20261021` (continued). The
+generator's worlds now concentrate lineage the way real containment
+looks: each parent type has one loaded record holding most of its
+children across its edges, relations are sparse (0-3 refs), detail
+screens open the loaded record, and two host parents claim exclusive
+peer collections sized by estimated rendered weight (the contract's own
+layout estimator) — the volume/empty guarantee pattern applied to
+parent shapes. Measured across 50 seeds / 250 detail screens: columns
+40 seeds, tabs 35, beside 43, mixed 3 (before: columns 1, tabs 1).
+DEFAULT_RANDOM_SEED is 10 (columns+tabs+stack+beside); the showcase SSR
+smoke repins to seed 37 (adds board/gantt/calendar) with completed
+auth/instances/useState stubs. The spec guarantees the world property
+(loaded parents with sized peers), and the arrangement modes derive.
+
 ### Agent Notes (2026-10-21, band cluster removed as slop)
 
 Session `agent/gen-ui-deslop-cluster-20261021`, worktree
