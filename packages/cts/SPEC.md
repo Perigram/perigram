@@ -353,7 +353,9 @@ state nodes authored in a process definition and wired into that type's
 create and transition operations.
 
 ```
-StateNode ::= { value: string, terminal?: true, policy?: { label?, icon?, severity? } }
+StateNode ::= { value: string, terminal?: true, policy?: { label?, icon?, severity? },
+                deadline?: { after, to, guard? },
+                fieldPolicy?: { visible?: [field], editable?: [field] } }
 ```
 
 - A state is a flat string value.
@@ -412,6 +414,15 @@ StateNode ::= { value: string, terminal?: true, policy?: { label?, icon?, severi
 - State display policy rides the state node. A missing label derives
   from the value, terminal severity defaults to `secondary`, other
   severity defaults to `info`, and icon defaults to none.
+- A state record may declare a field policy:
+  `fieldPolicy: { visible?: [field], editable?: [field] }`, each list
+  naming declared row fields of the bound type (row-checked like guard
+  paths). While an instance sits in the state, `visible` narrows which
+  row fields display and `editable` narrows which row fields the
+  instance write boundary accepts. An absent list leaves that axis
+  unrestricted; an absent facet leaves the type's policy whole. A field
+  outside `visible` is never editable. The lists narrow the type's
+  policy facet (§10): grants decide who, the state decides which fields.
 
 ## 8. Operators — six species
 
@@ -524,6 +535,14 @@ Field visibility and grants per role, declared on the type; the compiler
 projects them to DTO redaction and process grants. One home (today:
 `field-access.js` and `roleGrants` restate each other). Missing policy =
 hidden, as today.
+
+Per-state narrowing: a state record's `fieldPolicy` (§7) narrows row-field
+visibility and editability for instances sitting in that state. The write
+boundary rejects row-field writes outside the current state's `editable`
+list; display surfaces filter row fields outside the current state's
+`visible` list. Role access composes unchanged — grants, status-scoped
+windows included, decide who may read or write; the state facet decides
+which fields exist in the state.
 
 ## 11. Evolution
 

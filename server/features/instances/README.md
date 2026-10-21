@@ -130,7 +130,14 @@ hand-written services.
   on the class-collection feature, type-id filter — fail-closed). This
   is the generated detail surfaces' inline-edit persistence path; the
   process effect boundary keeps its own `processUpdate` with execution
-  auth.
+  auth. Both paths land in `processUpdate`, which also enforces the
+  current state's field policy (CTS SPEC §7 `fieldPolicy`): when the
+  resolved workflow declares `visible`/`editable` whitelists for the
+  instance's state, row-field writes outside them fail with 409. The
+  workflow resolves through
+  [workflow-overrides](../workflow-overrides/README.md) — the same seam
+  the status runtime uses; vocabularies without authored facets write
+  unrestricted and read no instance document.
 - Creates (`createForHttp`): `POST /api/instances/:type` carries the §3
   draft `createValidated` stores (the `name` rename channel, flat
   `fields`, `lineage` edges, payload references) under the same

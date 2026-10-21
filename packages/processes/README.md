@@ -443,7 +443,21 @@ system-only access — availability never offers it, and the deadline
 scanner moves overdue instances through the normal transition boundary
 as SYSTEM. The deadline's `after` is an ISO-8601 duration; the check
 seam refuses unparseable durations, undeclared or self targets, and
-non-boolean guards.
+non-boolean guards. The escalation target seeds from its own state
+record when one exists, so its authored facets survive the declaring
+record's position in the list.
+A state record may declare a `fieldPolicy` (SPEC §7/§10): `{ visible?,
+editable? }` row-field whitelists that ride the compiled workflow state
+beside the display policy. The instance write boundary enforces
+`editable` (and `visible`, since an invisible field is never editable);
+display surfaces filter by `visible` through
+[`shared/instance-field-access`](../../shared/README.md) with the
+per-state map derived by
+[`shared/ui-mapping`](../../shared/ui-mapping/README.md)
+`stateFieldPolicyByType`. `normalizeStateFieldPolicy` (in
+`designer.js`, re-exported with the authoring seam) is the one
+normalization home; the draft diagnostics and the declaration-check seam
+row-check the list ids and refuse `editable` outside `visible`.
 The same arrival state is projected onto the exposed (manifest) action as
 `state.from`, so generated surfaces scope the button to the states the
 transition actually leaves; the execution channel and the manifest carry

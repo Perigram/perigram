@@ -134,9 +134,10 @@ shape), pure output inspection, and the
 per-grant access LEVELS (role assignment itself is lane placement —
 see "Lanes"). It does not
 expose packet matching or transport transforms. `DeclarationInspector.vue`
-authors class, field, state (including initial/terminal and the deadline
+authors class, field, state (including initial/terminal, the deadline
 facet — hours plus target state, stored as an ISO-8601 duration on the
-record), transition, operator,
+record — and the field-policy facet: visible/editable row-field lists
+narrowing instances of that state, SPEC §7), operator,
 and type-reference records. `DeclarationEdgeInspector.vue` authors typed edge
 integrity. They are pure presentation: every mutation is an event back to the
 page's update/sync entry points.

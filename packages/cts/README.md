@@ -182,7 +182,9 @@ module layout and how the code maps to the spec's build-order tiers.
   paths rooted at `value` and row-checked. State deadlines are checked
   here too: `after` parses as an ISO-8601 duration, `to` names another
   declared state of the type's vocabulary, and the deadline guard follows
-  the guard contract.
+  the guard contract. State field policies (SPEC §7 `fieldPolicy`) are
+  checked here as well: `visible`/`editable` are row field ids of the
+  bound type, and `editable` stays within `visible`.
 - `compat/graph-protocol.js` — the native species graph protocol (SPEC §20):
   `resolveCtsDefinition` resolves declaration ids and row paths while
   preserving species kinds, discriminators, socket ids, and graph edges;
