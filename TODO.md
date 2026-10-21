@@ -17,6 +17,18 @@ UI).
   popover actions render through the shared ActionButton with resolver
   presentation.
 
+### Agent Notes (2026-10-21, native arrangement cluster)
+
+Session `agent/gen-ui-native-cluster-20261021`, worktree
+`.agent-worktrees/gen-ui-native-cluster-20261021`. The band screens
+carried fixture vocabulary ("Columns one", "Tab A", demo labels) inside
+the generated world — test scaffolding leaking into showcase data. The
+cluster now speaks the world's own vocabulary (seeded word names,
+palette glyphs, word values, normal `${type.name} detail` screen
+labels) through its own RNG stream (`seed ^ 0x5eed`), so it is
+RNG-neutral: pinned seeds keep their shapes and the showcase SSR smoke
+holds. The band guarantee spec still finds the screens by key.
+
 ### Agent Notes (2026-10-21, showcase order fix)
 
 Session `agent/gen-ui-showcase-order-20261021`, worktree
