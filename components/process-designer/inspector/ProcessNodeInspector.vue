@@ -54,7 +54,6 @@
             @update:model-value="value => updateTransitionReference('to', value)"
           />
         </div>
-        <small class="text-muted">{{ $t('processDesigner.transitionReferenceHint') }}</small>
       </div>
     </Panel>
     <Panel v-if="record.kind === 'cts.transition' && typeId" :header="$t('processDesigner.transitionGuard')" class="mt-0">
@@ -99,7 +98,6 @@
           <Button icon="pi pi-times" :aria-label="$t('common.delete')" size="small" text severity="danger" @click="removeGuardCondition(index)" />
         </div>
         <Button icon="pi pi-plus" :label="$t('processDesigner.addGuardCondition')" size="small" text @click="addGuardCondition" />
-        <small class="text-muted">{{ $t('processDesigner.transitionGuardHint') }}</small>
       </div>
     </Panel>
     <Panel v-if="record.kind === 'cts.transition' && typeId" :header="$t('processDesigner.transitionAssignment')" class="mt-0">
@@ -126,7 +124,6 @@
             @update:model-value="setAssignmentCapability"
           />
         </div>
-        <small class="text-muted">{{ $t('processDesigner.transitionAssignmentHint') }}</small>
       </div>
     </Panel>
     <Panel v-if="producerAvailable" :header="$t('processDesigner.createdEntity')" class="mt-0">
