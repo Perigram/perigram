@@ -664,9 +664,11 @@ describe('weight-driven arrangement', () => {
   it('arranges siblings by weight: stack, proportional columns, dominant flow, weight-ordered tabs', () => {
     // Light sets flow in one stack.
     expect(arrangeChildren([listNode(2), listNode(3)], 0)).toEqual({ mode: 'stack' });
-    // Light peers over the budget share proportional columns — track fr
-    // from each child's estimated rows.
+    // Peers over the budget, each within the column cap, share
+    // proportional columns — track fr from each child's estimated rows
+    // (card-scale: an 11-row peer is a 2-card collection).
     expect(arrangeChildren([listNode(4), listNode(4)], 0)).toEqual({ mode: 'columns', tracks: '6fr 6fr' });
+    expect(arrangeChildren([listNode(9), listNode(9)], 0)).toEqual({ mode: 'columns', tracks: '11fr 11fr' });
     // A dominant sibling keeps the flow; the light rest stacks after it.
     const dominant = arrangeChildren([
       { id: 'big', ...detailNode(14) },
@@ -676,22 +678,24 @@ describe('weight-driven arrangement', () => {
     expect(dominant.mode).toBe('mixed');
     expect(dominant.primary).toBe(0);
     expect(dominant.rest).toEqual({ mode: 'stack' });
-    // Heavy peers tab at the top level, ordered by descending weight.
+    // Peers past the column cap tab at the top level, ordered by
+    // descending weight.
     const tabbed = arrangeChildren([
-      { id: 'light', ...listNode(8) },
-      { id: 'heavy', ...listNode(10) }
+      { id: 'light', ...listNode(12) },
+      { id: 'heavy', ...listNode(15) }
     ], 0);
     expect(tabbed.mode).toBe('tabs');
     expect(tabbed.order).toEqual(['heavy', 'light']);
     // Nested heavy content stacks — tabs are a top-level arrangement.
-    expect(arrangeChildren([listNode(8), listNode(8)], 1).mode).toBe('stack');
+    expect(arrangeChildren([listNode(12), listNode(12)], 1).mode).toBe('stack');
   });
 
   it('scales the record side column span with the children weight', () => {
     expect(regionSideSpanFor(1)).toBe(4);
     expect(regionSideSpanFor(4)).toBe(4);
     expect(regionSideSpanFor(5)).toBe(5);
-    expect(regionSideSpanFor(8)).toBe(5);
+    expect(regionSideSpanFor(10)).toBe(5);
+    expect(regionSideSpanFor(11)).toBe(6);
   });
 });
 

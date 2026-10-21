@@ -337,6 +337,81 @@ export function generateUiMappingWorld(seed = 7) {
     });
   });
 
+  // Arrangement guarantees: a deterministic cluster appended after the
+  // random world keeps every band of the region-arrangement ladder
+  // reachable in every seed — a two-peer detail in the columns band
+  // (9+9 table rows = 11 estimated rows each: over the surface budget,
+  // inside the column cap), a two-peer detail in the tabs band (14 each:
+  // past the column cap), and a single-child detail light enough for the
+  // record side column (8 rows). Leaves are plain item-class tables so
+  // the weights are exactly the counts plus the list overhead.
+  const arrangementScreens = {};
+  {
+    const leaf = id => ({
+      id,
+      class: 'item',
+      version: 1,
+      name: id.replace(/(^arr_|_[a-z]+$)/g, '').replace(/^./, c => c.toUpperCase()),
+      glyph: 'pi pi-circle',
+      fields: {
+        name: { base: 'string', label: 'Name', identifier: true },
+        note: { base: 'string', label: 'Note' }
+      },
+      edges: { relations: {} }
+    });
+    const cluster = [
+      { id: 'arr_columns', children: { heldA: 'arr_columns_a', heldB: 'arr_columns_b' }, counts: { arr_columns_a: 9, arr_columns_b: 9 } },
+      { id: 'arr_tabs', children: { heldA: 'arr_tabs_a', heldB: 'arr_tabs_b' }, counts: { arr_tabs_a: 12, arr_tabs_b: 12 } },
+      { id: 'arr_side', children: { held: 'arr_side_leaf' }, counts: { arr_side_leaf: 6 } }
+    ];
+    const leafTypes = [];
+    cluster.forEach(group => {
+      const groupType = {
+        id: group.id,
+        class: 'group',
+        version: 1,
+        name: group.id.replace(/^arr_/, '').replace(/^./, c => c.toUpperCase()),
+        glyph: 'pi pi-objects-column',
+        fields: { title: { base: 'string', label: 'Title', identifier: true } },
+        edges: { children: {}, relations: {} }
+      };
+      Object.entries(group.children).forEach(([key, leafId]) => {
+        const leafType = leaf(leafId);
+        leafTypes.push(leafType);
+        groupType.edges.children[key] = { types: [leafId], onRemove: 'restrict' };
+      });
+      types.push(groupType);
+      const groupInstance = {
+        id: `${group.id}-i1`, type: group.id, typeVersion: 1,
+        fields: { title: `${groupType.name} one` }, lineage: {}, relations: {}, state: null, payload: null
+      };
+      instancesByType[group.id] = [groupInstance];
+      Object.entries(group.children).forEach(([key, leafId]) => {
+        const count = group.counts[leafId];
+        instancesByType[leafId] = Array.from({ length: count }, (_, index) => ({
+          id: `${leafId}-i${index + 1}`, type: leafId, typeVersion: 1,
+          fields: { name: `${leafId} ${index + 1}`, note: 'seeded' },
+          lineage: { [key]: { type: group.id, id: groupInstance.id } },
+          relations: {}, state: null, payload: null
+        }));
+      });
+      const key = `detail_${group.id}`;
+      arrangementScreens[key] = {
+        id: key, screenKey: key, label: `${groupType.name} detail`, kind: 'instanceDetail', template: 'instanceDetail',
+        route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'detail', typeId: group.id,
+        required: null, roleIds: ['operator'], scope: { instanceId: groupInstance.id }, bindings: {},
+        sources: [{ id: 'main', typeId: group.id, mode: 'single', required: null, identifier: '$screen.scope.instanceId' }],
+        regions: [{ id: 'main', slot: 'main', sourceId: 'main', surface: 'detail', actions: [] }],
+        actions: []
+      };
+      Object.entries(group.children).forEach(([edgeKey, leafId], index) => {
+        arrangementScreens[key].sources.push({ id: `c${index}`, typeId: leafId, mode: 'list', required: null, lineage: { sourceId: 'main', key: edgeKey } });
+        arrangementScreens[key].regions.push({ id: `c${index}`, slot: 'children', sourceId: `c${index}`, surface: 'list', actions: [] });
+      });
+    });
+    types.push(...leafTypes);
+  }
+
   const populated = types.filter(type => instancesByType[type.id].length);
   const detailTypes = populated.filter(type => type.class !== 'group' || true).slice(0, 4);
 
@@ -398,6 +473,7 @@ export function generateUiMappingWorld(seed = 7) {
   }
 
   const screens = {};
+  Object.assign(screens, arrangementScreens);
   screens.home_operator = {
     id: 'home_operator', screenKey: 'home_operator', label: `${rnd.word()} home`, kind: 'route', template: 'home',
     route: '/screens/home_operator', sourceRoute: '/screens/home_operator', placement: 'hub', typeId: null,
