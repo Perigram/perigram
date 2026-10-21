@@ -68,8 +68,17 @@ async function render(component, props, slots = {}) {
 
 describe('entity Select wrappers', () => {
   it('owns every direct PrimeVue Select and MultiSelect import in app UI', () => {
+    // Entity dropdowns render through the shared wrappers. The allowance
+    // lists the non-entity pickers (LLM profiles and routes, providers,
+    // wake-rule types/states) that take plain enum options.
+    const enumSelectAllowance = new Set([
+      'components/ChatSupport.vue',
+      'components/shared/ChatBotPanel.vue',
+      'pages/organization/models.vue'
+    ]);
     const violations = vueFiles(['components', 'pages', 'layouts'])
       .filter(file => !['components/shared/InstanceSelect.vue', 'components/shared/InstanceMultiSelect.vue'].includes(file))
+      .filter(file => !enumSelectAllowance.has(file))
       .filter(file => /from\s+['"]primevue\/(?:select|multiselect)['"]/.test(readFileSync(file, 'utf8')));
 
     expect(violations).toEqual([]);

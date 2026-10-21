@@ -3,9 +3,11 @@ import { endpointOriginOf, pluginModuleUrl, SUPPORTED_SURFACE_CONTRACTS, isSuppo
 
 describe('plugin surface origins and supported contracts', () => {
   it('supports contract majors through the capability mount (owner decision 2026-10-17)', () => {
-    expect(SUPPORTED_SURFACE_CONTRACTS).toEqual([1, 2, 3]);
+    // Major 4 added the sheet-design editor's open.instance channel.
+    expect(SUPPORTED_SURFACE_CONTRACTS).toEqual([1, 2, 3, 4]);
     expect(isSupportedSurfaceContract(3)).toBe(true);
-    expect(isSupportedSurfaceContract(4)).toBe(false);
+    expect(isSupportedSurfaceContract(4)).toBe(true);
+    expect(isSupportedSurfaceContract(5)).toBe(false);
   });
 
   it('derives the module origin from service endpoints first, then the surface origin', () => {
