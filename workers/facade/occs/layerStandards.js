@@ -2,7 +2,7 @@
 // layer vocabulary and its pens ship with the plugin — they were
 // system-seeded instance rows before the extraction. The registry of
 // record is the spec package
-// (docs/specs/Cassette spec/layers.json); this runtime table carries the
+// (workers/facade/occs/spec/layers.json); this runtime table carries the
 // rendering-relevant layer of it (code, group, kind, purpose, production,
 // pen) and the pinned spec below refuses drift between the two homes.
 // Pens are the historical system pen set (cut red 0.6 solid, fold amber
