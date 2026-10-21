@@ -30,7 +30,10 @@ graph-derived (SPEC §7) — this module never defines machines itself.
   re-evaluates it atomically at commit against the loaded instance and
   refuses the transition (409) when it no longer holds; the actions
   listing omits guard-failing edges (an evaluation error hides the
-  action — execution still surfaces it loudly). Intent availability
+  action — execution still surfaces it loudly). The same listing runs
+  the actor guard with the caller's id, so actor-denied and
+  capability-denied edges stay out of every manual surface.
+  Intent availability
   (`assertIntentAvailable`) does not guard-filter: named-intent callers
   receive the commit-time refusal.
   A compiled transition may instead be a deadline edge (`deadline: true`
@@ -109,7 +112,10 @@ status.lifecycle = {
 
 When a target state declares a lifecycle schema, existing lifecycle facts carry
 forward and incoming lifecycle fields patch over them. States without a
-lifecycle schema do not retain lifecycle facts.
+lifecycle schema keep actor assignments — actors are assignment facts (a
+transition context carrying actors merges and replaces the instance's actor
+set) — while evidence slots drop without one. States without a lifecycle
+schema do not retain lifecycle evidence.
 Lifecycle schemas may require transition descriptions, proof attachment slots,
 and named relation snapshots. Descriptions are stored in `status.metadata.note`.
 Uploaded proof files are persisted on the entity `attachments` block and

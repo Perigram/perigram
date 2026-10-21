@@ -1,5 +1,66 @@
 # TODO
 
+## Transition actor assignment (owner direction 2026-10-21)
+
+A transition operation assigns lifecycle actors: the user-typed `actors`
+socket (wire, default, or manual-run prompt) writes the instance's actor
+set at execution, an authored `assignment` facet refines scope and
+capability, and the existing actor guard governs later transitions
+([CTS SPEC](./packages/cts/SPEC.md) §7). Schema-less states accept
+actor-only lifecycle payloads; availability hides actor-denied edges.
+
+- [ ] IN PROGRESS — author the socket and assignment facet, compile the
+  prompt exposure, forward actors through the effect adapter, persist
+  them through schema-less transitions, and document the as-built
+  availability actor-filter.
+
+### Agent Notes (2026-10-21)
+
+Session `agent/state-actor-assignment-20261021` (worktree
+`.agent-worktrees/state-actor-assignment-20261021`). Implemented end to
+end under the decided entry-scoped model:
+
+- SPEC §7: transition operations carry an optional user-typed `actors`
+  input and an `assignment: { scope?, capability? }` facet; the
+  execution boundary writes lifecycle actors and the actor guard
+  governs later transitions.
+- Socket (`nativeTransitionPorts`) resolves by the input contract
+  (run input → wire → default); a wired or defaulted socket never
+  prompts, an unsupplied one exposes `{ id: 'actors', typeId: 'user',
+  multiple: true, prompt: true }` on the compiled action, so manual
+  runs prompt a user picker (`data.actors` reaches the port through
+  `processRunInput`).
+- `normalizeTransitionAssignment` (designer.js) is the one
+  normalization home; draft diagnostics and the declaration-check seam
+  refuse scopes naming undeclared states and non-string capabilities.
+- Compile: the derived transition action carries the facet and the
+  prompt exposure (`compileActions` whitelist gained `assignment`).
+- Effect adapter: `effectTransitionContext` (now exported, matching the
+  file's pure-helper convention) composes the resolved users into
+  `context.lifecycle.actors` — ids accepted as strings or id-carrying
+  objects; absent scope assigns for every state (ownership).
+- Workflows package: an actors-only lifecycle payload passes a state
+  without a lifecycle schema (assignments); evidence slots still
+  refuse there.
+- Machines runtime: actors merge and persist through schema-less
+  transitions (the previous behavior dropped the whole payload there);
+  the assignment write replaces the instance's actor set.
+- Availability: the listing ALREADY ran the actor guard with the
+  caller's id (`validateTransition` inside `getActions`) — the claimed
+  gap was a machines-README omission, now documented; no code change.
+- Designer: the transition inspector authors scope (state multiselect;
+  empty = every state) and capability; i18n en/ru.
+
+Validation: packages 627✓ (port pins updated for the actors socket:
+port-inventory, native-cts-execution, cts-designer-roundtrip; fixtures
+gained framework `user`), machines 22✓ (persistence, replacement,
+entry-scoped refusal, assignee-only availability), process-definitions
+adapter tests 2✓ beside 18 PRE-EXISTING Mongo-env failures that fail
+identically on base `local`. `check-arch` ✓, `check-docs` ✓,
+`framework:validate` ✓, SSR smoke 13✓. E2E not run — no dev stack in
+session. Status stays IN PROGRESS until owner verification on the live
+stack.
+
 ## Generated record page arrangement (owner direction 2026-10-21)
 
 Instance pages read top to bottom with content-aware arrangement: the

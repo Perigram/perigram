@@ -409,7 +409,9 @@ operations before Modify Block receives the replacement value, then persisted
 through the target feature's `processUpdate()` contract. Manual Update
 effects compile into the normal generated action manifest; Relations data
 connections without an effect remain non-executable dataflow.
-Change Status forwards authored region/path scope and lifecycle evidence to the
+Change Status forwards authored region/path scope, lifecycle evidence, and
+actor assignments (SPEC §7: the node's user-typed `actors` value composed
+with its `assignment` facet) to the
 status runtime and returns the updated entity DTO. Archive uses the compiled
 domain archive intent or `ARCHIVED` state, while hard deletion delegates to the
 registered `processDelete(id, auth)` adapter only after domain and runtime
