@@ -23,53 +23,7 @@
       v-else-if="screen.template === 'organizationAccount'"
       :screen="screen"
     />
-    <WorkspaceLanes v-else-if="screen.template === 'workspaceLanes'" class="min-h-[32rem]">
-      <template v-if="regionBySlot.left" #left>
-        <GeneratedRegion
-          :region="regionBySlot.left"
-          :screen-key="screen.screenKey || screen.id"
-          :source-state="sourceState(regionBySlot.left.sourceId)"
-          :template="screen.template"
-          :screen-actions="screen.actions || []"
-          @refresh="load"
-          @execute-action="executeAction"
-        />
-      </template>
-      <GeneratedRegion
-        v-if="regionBySlot.center || regionBySlot.main"
-        :region="regionBySlot.center || regionBySlot.main"
-        :screen-key="screen.screenKey || screen.id"
-        :source-state="sourceState((regionBySlot.center || regionBySlot.main).sourceId)"
-        :template="screen.template"
-        :screen-actions="screen.actions || []"
-        @refresh="load"
-        @execute-action="executeAction"
-      />
-      <template v-if="regionBySlot.right" #right>
-        <GeneratedRegion
-          :region="regionBySlot.right"
-          :screen-key="screen.screenKey || screen.id"
-          :source-state="sourceState(regionBySlot.right.sourceId)"
-          :template="screen.template"
-          :screen-actions="screen.actions || []"
-          @refresh="load"
-          @execute-action="executeAction"
-        />
-      </template>
-    </WorkspaceLanes>
-    <div v-else class="flex flex-col gap-4">
-      <GeneratedRegion
-        v-for="region in screen.regions"
-        :key="region.id"
-        :region="region"
-        :screen-key="screen.screenKey || screen.id"
-        :source-state="sourceState(region.sourceId)"
-        :template="screen.template"
-        :screen-actions="screen.actions || []"
-        @refresh="load"
-        @execute-action="executeAction"
-      />
-    </div>
+    <StateBlock v-else :message="$t('generatedScreen.notFound')" icon="pi pi-exclamation-triangle" />
     <StandardDialog
       v-model:visible="inputDialogVisible"
       size="sm"
@@ -268,10 +222,8 @@ import { isOfflineQueuedError } from '~/utils/outbox.js';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
 import GeneratedOrganizationAccount from '~/components/generated/GeneratedOrganizationAccount.vue';
 import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrganizationOverview.vue';
-import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCreator.vue';
 import GeneratedObjectInput from '~/components/generated/GeneratedObjectInput.vue';
 import { instanceIdentifier, isContextBoundInput, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
@@ -332,9 +284,6 @@ const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadF
   { onError: error => toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message, life: 8000 }) }
 );
 
-const regionBySlot = computed(() => Object.fromEntries(
-  screen.value.regions.map(region => [region.slot || 'main', region])
-));
 const actionInputFields = computed(() => collectActionInputFields(pendingAction.value));
 // Launch-context bindings (SPEC §UI): a lineage/relation input whose
 // reference the context already carries never prompts — the entities
@@ -369,7 +318,7 @@ const booleanOptions = computed(() => [
 
 async function executeAction(action, entity = null, context = {}) {
   actionError.value = '';
-  const actionId = action?.id || action?.id;
+  const actionId = action?.id;
   if (!actionId) return;
   try {
     if (isDeleteAction(action)) {
@@ -487,7 +436,7 @@ async function submitPromptedAction() {
 }
 
 async function postAction(action, entity = null, data = {}, context = {}) {
-  const actionId = action?.id || action?.id;
+  const actionId = action?.id;
   if (!actionId) return;
   try {
     const result = await instances.runAction({

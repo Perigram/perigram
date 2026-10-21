@@ -22,7 +22,7 @@
            to the workspace instead of routing: typeList screens through
            the shared type host, scoped (instance-bound) screens through
            the detail host. Screen-template overloads (home) stay on the
-           legacy renderer, which owns their surfaces, exactly like the
+           system-screen renderer, which owns their surfaces, exactly like the
            routed page. -->
       <GeneratedScreen
         v-else-if="screenOverload"
@@ -30,7 +30,7 @@
         @refresh="$emit('refresh')"
       />
       <GeneratedScreenHost
-        v-else-if="resolvedScreen.template === 'typeList' && !item.instanceId"
+        v-else-if="!item.instanceId && ['typeList', 'formAction'].includes(resolvedScreen.template)"
         :screen="resolvedScreen"
         @open-instance="payload => $emit('open-entity', { typeId: payload.typeId, instanceId: payload.instanceId })"
         @refresh="$emit('refresh')"
@@ -102,7 +102,7 @@ const activeKey = computed(() => (props.item.instanceId
   ? `screen:${props.item.screenKey}:${props.item.instanceId}`
   : (props.item.screenKey ? `screen:${props.item.screenKey}` : props.item.key)));
 // The pane's overload rule: screen-template overloads (home) keep the
-// legacy renderer that owns their surfaces, exactly like the routed page.
+// system-screen renderer that owns their surfaces, exactly like the routed page.
 const screenOverload = computed(() => Boolean(resolvedScreen.value && (
   resolveGeneratedScreenOverload(resolvedScreen.value)
 )));

@@ -216,7 +216,7 @@ function createRegion(screen, id, sourceId) {
   return {
     id,
     label: '',
-    slot: screen.template === 'workspaceLanes' ? (id === 'main' ? 'center' : 'right') : 'main',
+    slot: 'main',
     sourceId,
     surface: screen.template === 'instanceDetail' ? 'detail' : 'card',
     actions: []

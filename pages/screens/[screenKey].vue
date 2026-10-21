@@ -58,17 +58,18 @@ const screenKey = computed(() => Array.isArray(route.params.screenKey)
 // Process screens arrive in the compiled UI contract vocabulary
 // (typeList/instanceDetail/home + typeId) and render through the
 // generator host; workspace overloads (the home shell) and the system
-// screen templates stay on the legacy renderer, which owns their
-// surfaces, until the generator grows workspace equivalents.
+// screen templates stay on the system-screen renderer, which owns their
+// surfaces.
 const isGeneratedScreen = computed(() => (
   screen.value?.template === 'typeList'
   || screen.value?.template === 'instanceDetail'
+  || screen.value?.template === 'formAction'
 ));
 // The routed detail's record header owns the page: the type label and
 // back affordance render once, through the record header's anatomy and
 // navigation channel. List screens keep the route title strip.
 const pageTitle = computed(() => (
-  screen.value?.template === 'instanceDetail'
+  screen.value?.template === 'instanceDetail' || screen.value?.template === 'formAction'
     ? null
     : screen.value?.label || screen.value?.screenKey
 ));

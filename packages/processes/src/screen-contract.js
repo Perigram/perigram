@@ -1,13 +1,13 @@
-export const SCREEN_TEMPLATES = ['typeList', 'instanceDetail', 'workspaceLanes', 'table', 'formAction', 'home', 'route', 'organizationOverview', 'organizationAccount'];
+export const SCREEN_TEMPLATES = ['typeList', 'instanceDetail', 'table', 'formAction', 'home', 'route', 'organizationOverview', 'organizationAccount'];
 // The stable route every home screen is served at, compiled and
 // sourceless alike: home is the app's own shell, not a generated screen
 // URL — no screenKey vocabulary appears in the address bar for it.
 export const HOME_SCREEN_ROUTE = '/home';
 export const SCREEN_SOURCE_MODES = ['list', 'single'];
-export const SCREEN_REGION_SLOTS = ['main', 'children', 'left', 'center', 'right', 'supporting'];
+export const SCREEN_REGION_SLOTS = ['main', 'children', 'supporting'];
 // Canonical registry of region surfaces the generated screen runtime renders:
-// card/compact/table/workspace for list-mode regions, detail for single-mode.
-export const SCREEN_REGION_SURFACES = ['card', 'compact', 'detail', 'table', 'workspace'];
+// card/compact/table for list-mode regions, detail for single-mode.
+export const SCREEN_REGION_SURFACES = ['card', 'compact', 'detail', 'table'];
 export const SCREEN_LINEAGE_BINDING_FIELDS = [
   'childTypeId',
   'parentTypeId',
@@ -20,19 +20,13 @@ export const SCREEN_LINEAGE_BINDING_FIELDS = [
 export const GENERATED_SCREEN_ROUTE_PREFIX = '/screens';
 
 const TEMPLATE_DEFAULT_MODE = {
-  entityDetail: 'single',
-  entityList: 'list',
-  workspaceLanes: 'list',
+  instanceDetail: 'single',
   table: 'list',
   formAction: 'single'
 };
 
 // Per-template region rules: which slots the template's renderer consumes and
-// whether a slot collapses to a single region (workspace lanes key regions by
-// slot, so a second region in one slot would silently replace the first).
-const TEMPLATE_REGION_RULES = {
-  workspaceLanes: { slots: ['main', 'left', 'center', 'right'], uniqueSlots: true }
-};
+// whether a slot collapses to a single region.
 
 export function generatedScreenRoute(screenKey) {
   return `${GENERATED_SCREEN_ROUTE_PREFIX}/${encodeURIComponent(String(screenKey || ''))}`;
@@ -42,7 +36,6 @@ export function normalizeScreenTemplate(screen = {}) {
   const source = isPlainObject(screen) ? screen : {};
   if (SCREEN_TEMPLATES.includes(source.template)) return source.template;
   if (source.kind === 'instanceDetail') return 'instanceDetail';
-  if (source.kind === 'workspace') return 'workspaceLanes';
   return source.typeId ? 'typeList' : 'formAction';
 }
 
@@ -82,19 +75,10 @@ export function validateScreenContract(screen = {}, { screenId = isPlainObject(s
     validateSourceFilters(source, normalized, screenId, errors);
   }
   const regionIds = new Set();
-  const regionSlots = new Set();
-  const regionRules = TEMPLATE_REGION_RULES[normalized.template] || null;
   for (const region of normalized.regions) {
     if (regionIds.has(region.id)) errors.push(`Screen ${screenId} has duplicate region id ${region.id}`);
     regionIds.add(region.id);
     if (!SCREEN_REGION_SLOTS.includes(region.slot)) errors.push(`Screen ${screenId} region ${region.id} uses unknown slot ${region.slot}`);
-    if (regionRules && !regionRules.slots.includes(region.slot)) {
-      errors.push(`Screen ${screenId} region ${region.id} uses slot ${region.slot} that template ${normalized.template} does not render`);
-    }
-    if (regionRules?.uniqueSlots) {
-      if (regionSlots.has(region.slot)) errors.push(`Screen ${screenId} template ${normalized.template} allows only one region per slot (${region.slot})`);
-      regionSlots.add(region.slot);
-    }
     if (region.surface && !SCREEN_REGION_SURFACES.includes(region.surface)) {
       errors.push(`Screen ${screenId} region ${region.id} uses unknown surface ${region.surface}`);
     }
@@ -235,10 +219,9 @@ function normalizeSources(sources = [], screen = {}, template = 'typeList') {
 function defaultRegionsForScreen(sources = [], template = 'typeList') {
   const source = sources[0];
   if (!source) return [];
-  const slot = template === 'workspaceLanes' ? 'center' : 'main';
   return [{
     id: 'main',
-    slot,
+    slot: 'main',
     sourceId: source.id,
     surface: template === 'instanceDetail' ? 'detail' : 'card',
     actions: []

@@ -67,7 +67,7 @@ describe('validateScreenContract', () => {
   });
 
   it('exports the canonical region surface registry', () => {
-    expect(SCREEN_REGION_SURFACES).toEqual(['card', 'compact', 'detail', 'table', 'workspace']);
+    expect(SCREEN_REGION_SURFACES).toEqual(['card', 'compact', 'detail', 'table']);
   });
 
   it('rejects duplicate source ids', () => {
@@ -184,44 +184,17 @@ describe('validateScreenContract', () => {
     expect(validate(screen)).toContain('Screen projects region main references missing action missing_action');
   });
 
-  it('rejects workspaceLanes regions in slots the template does not render', () => {
-    const errors = validate({
+  it('normalizes retired lane slots onto main', () => {
+    const screen = {
       id: 'lanes',
-      template: 'workspaceLanes',
+      template: 'typeList',
       typeId: 'project',
       sources: [{ id: 'projects', typeId: 'project', mode: 'list' }],
-      regions: [{ id: 'side', slot: 'supporting', sourceId: 'projects', surface: 'card' }]
-    });
+      regions: [{ id: 'side', slot: 'left', sourceId: 'projects', surface: 'card' }]
+    };
 
-    expect(errors).toContain('Screen lanes region side uses slot supporting that template workspaceLanes does not render');
-  });
-
-  it('rejects duplicate slots in workspaceLanes regions', () => {
-    const errors = validate({
-      id: 'lanes',
-      template: 'workspaceLanes',
-      typeId: 'project',
-      sources: [{ id: 'projects', typeId: 'project', mode: 'list' }],
-      regions: [
-        { id: 'first', slot: 'left', sourceId: 'projects', surface: 'card' },
-        { id: 'second', slot: 'left', sourceId: 'projects', surface: 'compact' }
-      ]
-    });
-
-    expect(errors).toContain('Screen lanes template workspaceLanes allows only one region per slot (left)');
-  });
-
-  it('accepts distinct workspaceLanes slots', () => {
-    expect(validate({
-      id: 'lanes',
-      template: 'workspaceLanes',
-      typeId: 'project',
-      sources: [{ id: 'projects', typeId: 'project', mode: 'list' }],
-      regions: [
-        { id: 'first', slot: 'left', sourceId: 'projects', surface: 'card' },
-        { id: 'second', slot: 'right', sourceId: 'projects', surface: 'table' }
-      ]
-    })).toEqual([]);
+    expect(normalizeScreenContract(screen).regions[0].slot).toBe('main');
+    expect(validate(screen)).toEqual([]);
   });
 
   it('rejects non-object screen bindings', () => {
@@ -259,7 +232,7 @@ describe('activation enforcement', () => {
         broken: {
           id: 'broken',
           route: '/broken',
-          template: 'workspaceLanes',
+          template: 'typeList',
           typeId: 'project',
           bindings: { nested: { nope: true } },
           sources: [
@@ -269,8 +242,7 @@ describe('activation enforcement', () => {
           ],
           regions: [
             { id: 'lane', slot: 'supporting', sourceId: 'projects', surface: 'grid', actions: ['missing_action'] },
-            { id: 'lane', slot: 'left', sourceId: 'projects', surface: 'card' },
-            { id: 'other', slot: 'left', sourceId: 'projects', surface: 'card' }
+            { id: 'lane', slot: 'left', sourceId: 'projects', surface: 'card' }
           ]
         }
       }
@@ -284,8 +256,6 @@ describe('activation enforcement', () => {
     expect(report).toContain('filter status must be a scalar');
     expect(report).toContain('uses unknown surface grid');
     expect(report).toContain('region lane references missing action missing_action');
-    expect(report).toContain('uses slot supporting that template workspaceLanes does not render');
-    expect(report).toContain('allows only one region per slot (left)');
     expect(report).toContain('binding nested must be a literal value or $assignment reference');
   });
 

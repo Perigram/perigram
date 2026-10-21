@@ -680,20 +680,16 @@ describe('Design system manifest', () => {
   });
 
   it('keeps generated collection cards as horizontal carousel items', () => {
-    const generatedCollection = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedInstanceCollection.vue'), 'utf8');
     const relationsBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceRelationsBlock.vue'), 'utf8');
     const surfaceContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceSurfaceContent.vue'), 'utf8');
     const inlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceInlineRef.vue'), 'utf8');
     const instanceCard = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceCard.vue'), 'utf8');
     const entityPreview = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstancePreview.vue'), 'utf8');
 
-    expect(generatedCollection).toContain('suppress-child-summaries');
-    expect(generatedCollection).toContain('relation-variant="compact"');
-    expect(generatedCollection).toContain('instanceEditorActionFor');
-    expect(generatedCollection).toContain('pi pi-external-link');
     const messageAttachments = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/MessageAttachments.vue'), 'utf8');
     expect(messageAttachments).toContain("ownMessage ? 'items-end' : 'items-start'");
     expect(messageAttachments).toContain("ownMessage ? 'justify-end' : 'justify-start'");
+
     expect(relationsBlock).toContain('overflow-x-auto');
     expect(relationsBlock).toContain('instance-relations-gallery--compact');
     expect(relationsBlock).toContain('isCompactGallery.value ? 2 : 4');

@@ -157,12 +157,10 @@ same change that touches a file.
 | `ui-components-generated-generateddetailscreen-vue` | `components/generated/GeneratedDetailScreen.vue` | derived usage | remove:important-override (2) |
 | `ui-components-generated-generatededitorpageaction-vue` | `components/generated/GeneratedEditorPageAction.vue` | derived usage | compliant |
 | `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | centralize:layout (1); replace:chrome (1); remove:important-override (12) |
-| `ui-components-generated-generatedinstancecollection-vue` | `components/generated/GeneratedInstanceCollection.vue` | derived usage | replace:chrome (4); remove:important-override (2); compliant:scoped-layout |
 | `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | compliant |
 | `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | replace:chrome (11) |
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
 | `ui-components-generated-generatedpaneheader-vue` | `components/generated/GeneratedPaneHeader.vue` | derived usage | replace:chrome (3) |
-| `ui-components-generated-generatedregion-vue` | `components/generated/GeneratedRegion.vue` | derived usage | compliant |
 | `ui-components-generated-generatedscreen-vue` | `components/generated/GeneratedScreen.vue` | derived usage | centralize:layout (1); remove:important-override (5) |
 | `ui-components-generated-generatedscreenhost-vue` | `components/generated/GeneratedScreenHost.vue` | derived usage | compliant |
 | `ui-components-generated-generatedscreenpane-vue` | `components/generated/GeneratedScreenPane.vue` | derived usage | compliant |
@@ -210,7 +208,6 @@ same change that touches a file.
 | `ui-components-shared-instancerelationsblock-vue` | `components/shared/InstanceRelationsBlock.vue` | derived usage | centralize:layout (3) |
 | `ui-components-shared-instanceselect-vue` | `components/shared/InstanceSelect.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instancesurfacecontent-vue` | `components/shared/InstanceSurfaceContent.vue` | derived usage | compliant:scoped-layout |
-| `ui-components-shared-instanceworkspace-vue` | `components/shared/InstanceWorkspace.vue` | derived usage | compliant:scoped-layout |
 | `ui-components-shared-links-tracechain-vue` | `components/shared/links/TraceChain.vue` | shared/domain primitive | centralize:layout (1) |
 | `ui-components-shared-links-tracelink-vue` | `components/shared/links/TraceLink.vue` | shared/domain primitive | replace:chrome (2) |
 | `ui-components-shared-metricpanel-vue` | `components/shared/MetricPanel.vue` | derived usage | replace:chrome (3) |
@@ -228,7 +225,6 @@ same change that touches a file.
 | `ui-components-shared-tableframe-vue` | `components/shared/TableFrame.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-typedsettingsform-vue` | `components/shared/TypedSettingsForm.vue` | derived usage | compliant |
 | `ui-components-shared-useraccountmenu-vue` | `components/shared/UserAccountMenu.vue` | derived usage | replace:chrome (5); remove:important-override (3) |
-| `ui-components-shared-workspacelanes-vue` | `components/shared/WorkspaceLanes.vue` | derived usage | compliant |
 | `ui-components-shared-workspacesplitnode-vue` | `components/shared/WorkspaceSplitNode.vue` | derived usage | replace:chrome (3); remove:important-override (2) |
 | `workers-facade-surfaces-sheet-design-editor-mjs` | `workers/facade/surfaces/sheet-design-editor.mjs` | derived usage | compliant |
 | `ui-components-themeswitcher-vue` | `components/ThemeSwitcher.vue` | derived usage | compliant |

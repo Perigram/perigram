@@ -1211,7 +1211,7 @@ process definitions.
 Screen records are route-level UI entries attached to roles and are the source
 for process-composed app navigation. They compile into generated screen
 manifests, not arbitrary Vue component names. A screen declares a fixed
-template (`home`, `entityList`, `entityDetail`, `workspaceLanes`, `table`,
+template (`home`, `entityList`, `entityDetail`, `table`,
 `formAction`, or app-owned system templates such as `route`,
 `organizationOverview`, and `organizationAccount`), typed
 entity sources, template regions, required access, and manual process action
@@ -1254,9 +1254,9 @@ could only render a missing-identifier error); non-scalar identifiers and
 filter values; filters that are not flat scalar maps; malformed or empty
 `$screen.*`/`$assignment.*` placeholders; `$screen.bindings.<key>` references
 to bindings the screen does not declare; region surfaces outside the registry;
-region-level action ids missing from the process action manifest; template
-slot/cardinality violations (`workspaceLanes` renders only `main`/`left`/
-`center`/`right` and keys regions by slot, so one region per slot); and screen
+region-level action ids missing from the process action manifest; region
+slots outside `main`/`children`/`supporting` (others normalize onto `main`);
+and screen
 bindings that are neither literal scalars nor `$assignment.<key>` references
 and therefore can never resolve at compile time.
 Each user assignment also receives a compiler-synthesized `home` screen when

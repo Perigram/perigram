@@ -113,25 +113,6 @@ body.
 The overflow popover passes the requested relation variant through to every
 `InstanceInlineRef`, so compact galleries remain compact after opening `+N`.
 
-### `InstanceWorkspace.vue`
-Canonical entity-detail workspace layout for operational editors embedded
-inside entity detail pages. Use it when an entity detail needs a primary working
-region plus a supporting/status/results region, such as queue composition with
-nesting runs. The layout is a CSS query container: it uses one column while its
-own allocated width is narrow and a stable 8/4 main/support split when the
-container is wide enough. Callers whose support slot is conditional must pass a
-full-width `mainSpan` while that slot is absent; an invisible support region
-must not reserve four columns. This is intentionally independent from viewport
-breakpoints so entity workspaces remain usable inside recursively split file
-panes. `ResponsiveGrid` accepts `responsive-context="container"` for repeated
-content inside this layout. Its `wide` variant introduces a second column only
-at a 48rem container width, preserving useful card width inside split panes.
-The `bounded` variant uses token-defined minimum and maximum track widths with
-`auto-fill`: cards retain a finite readable width and extra container space
-creates additional tracks instead of enlarging existing cards without limit.
-Route-level production pages that need navigation, center work area, and right
-rail still use `WorkspaceLanes`.
-
 ### `DesignerNodeCard.vue` and `DesignerSocketHandle.vue`
 
 The shared designer-canvas card vocabulary. `DesignerNodeCard` is the one
@@ -773,13 +754,6 @@ transcription stay in the host composer.
   `bounded`. Grid
   children align to the start of each row so cards and panels keep natural
   height instead of stretching to the tallest item.
-- **`WorkspaceLanes.vue`**: Three-lane production workspace shell. The parent
-  route provides the viewport-sized frame; this component owns the left,
-  center, and right lane grid from the normal desktop breakpoint. Below that,
-  callers should provide their own compact selector/control surface because the
-  left lane is hidden. By default the center lane scrolls as a lane; pass
-  `:center-scroll="false"` when bounded child surfaces such as `ScrollablePanel`
-  own their own body scrolling.
 - **`WorkspaceSplitNode.vue`**: Recursive PrimeVue splitter renderer for
   IDE-style file workspaces. Split nodes select horizontal or vertical layout;
   leaf nodes expose one scoped file slot inside a PrimeVue `Panel` riding the
@@ -940,7 +914,7 @@ mark themselves as card-interactive targets. Parent card click handlers must use
 primary action is a custom preview, such as `ArtifactCard`, can pass
 `expandable="false"` to `InstanceCard` and own the click action themselves.
 
-Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `InstanceCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `WorkspaceLanes`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
+Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `InstanceCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
 
 Shared wrappers own semantic structure and reusable layout constraints, while PrimeVue/Aura owns their generic visual chrome. New application tokens are limited to semantic typography, layout, domain signals, visualization, and motion; wrappers must not add radius, shadow, border, or interaction-state values.
 
