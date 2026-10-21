@@ -146,9 +146,25 @@ export const HEADER_ACTIONS_INLINE = 2;
 
 // Weight-driven composition: sibling content whose estimated rendered
 // height (in rows) exceeds the surface budget stops stacking and arranges
-// into tabs at the top level — a compose-time decision over data. Record
-// pages always stack (composeScreen forces stacked detail children).
+// — a compose-time decision over data. The arrangement ladder lives in
+// `arrangeChildren` (index.js): light peers share proportional columns, a
+// dominant sibling keeps the flow, heavy peers tab.
 export const SURFACE_ROW_BUDGET = 10;
+
+// Arrangement budgets, all in estimated rendered rows. A child set at or
+// under SIDE_MAX_WEIGHT rides beside the record body; each column child
+// stays at or under COLUMN_MAX_WEIGHT; a sibling holding at least
+// DOMINANT_CHILD_SHARE of the total weight is the dominant child; columns
+// cap at REGION_COLUMNS_MAX tracks. The record side column earns width
+// with weight through REGION_SIDE_SPANS (12-track grid spans).
+export const SIDE_MAX_WEIGHT = 5;
+export const COLUMN_MAX_WEIGHT = 6;
+export const DOMINANT_CHILD_SHARE = 0.6;
+export const REGION_COLUMNS_MAX = 3;
+export const REGION_SIDE_SPANS = Object.freeze([
+  { at: 3, span: 5 },
+  { at: 0, span: 4 }
+]);
 
 // Full-height weight: every element counts, scaled by how tall its
 // presentation renders (a preview card is ~4 table rows, a timeline entry

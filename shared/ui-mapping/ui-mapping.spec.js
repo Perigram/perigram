@@ -9,6 +9,8 @@ import {
   resolveFieldGroups,
   estimateRegionWeight,
   childrenModeFor,
+  arrangeChildren,
+  regionSideSpanFor,
   spacingClasses,
   SPACING_STEPS,
   resolveFieldControl,
@@ -657,6 +659,39 @@ describe('weight-driven arrangement', () => {
     expect(childrenModeFor([listNode(2), listNode(3)], 0)).toBe('stack');
     expect(childrenModeFor([detailNode(16)], 0)).toBe('stack');
     expect(childrenModeFor([listNode(8), listNode(8)], 1)).toBe('stack');
+  });
+
+  it('arranges siblings by weight: stack, proportional columns, dominant flow, weight-ordered tabs', () => {
+    // Light sets flow in one stack.
+    expect(arrangeChildren([listNode(2), listNode(3)], 0)).toEqual({ mode: 'stack' });
+    // Light peers over the budget share proportional columns — track fr
+    // from each child's estimated rows.
+    expect(arrangeChildren([listNode(4), listNode(4)], 0)).toEqual({ mode: 'columns', tracks: '6fr 6fr' });
+    // A dominant sibling keeps the flow; the light rest stacks after it.
+    const dominant = arrangeChildren([
+      { id: 'big', ...detailNode(14) },
+      { id: 'a', ...listNode(2) },
+      { id: 'b', ...listNode(2) }
+    ], 0);
+    expect(dominant.mode).toBe('mixed');
+    expect(dominant.primary).toBe(0);
+    expect(dominant.rest).toEqual({ mode: 'stack' });
+    // Heavy peers tab at the top level, ordered by descending weight.
+    const tabbed = arrangeChildren([
+      { id: 'light', ...listNode(8) },
+      { id: 'heavy', ...listNode(10) }
+    ], 0);
+    expect(tabbed.mode).toBe('tabs');
+    expect(tabbed.order).toEqual(['heavy', 'light']);
+    // Nested heavy content stacks — tabs are a top-level arrangement.
+    expect(arrangeChildren([listNode(8), listNode(8)], 1).mode).toBe('stack');
+  });
+
+  it('scales the record side column span with the children weight', () => {
+    expect(regionSideSpanFor(1)).toBe(4);
+    expect(regionSideSpanFor(3)).toBe(4);
+    expect(regionSideSpanFor(4)).toBe(5);
+    expect(regionSideSpanFor(5)).toBe(5);
   });
 });
 

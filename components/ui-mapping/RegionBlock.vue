@@ -87,7 +87,7 @@
     <RegionChildren
       v-if="node.childRegions.length"
       :regions="node.childRegions"
-      :mode="node.childrenMode"
+      :arrangement="node.childArrangement"
       :depth="depth"
       :pool="pool"
       :bundle="bundle"
@@ -117,33 +117,71 @@
         @refresh="emit('refresh')"
         @open-instance="emitOpen"
       />
-      <SurfaceBody
-        :instance="node.instances[0]"
-        :type="node.type"
-        variant="full"
-        :actions="node.actions"
-        :chrome="node.chrome"
-        :covered-relations="coveredRelationKeys"
-        :editable="patchable"
-        :pool="pool"
-        :bundle="bundle"
-        :state-policy="node.statePolicy"
-        @run="emitRun"
-        @inline-change="inlineChange"
-        @open-instance="emitOpen"
-      />
-      <RegionChildren
-        v-if="node.childRegions.length"
-        :regions="node.childRegions"
-        :mode="node.childrenMode"
-        :depth="depth"
-        :pool="pool"
-        :bundle="bundle"
-        :openable="openable"
-        :instance-actions="instanceActions"
-        @run="emitRun"
-        @open="emitOpen"
-      />
+      <div
+        v-if="splitSide"
+        class="region-split grid w-full grid-cols-1 gap-6"
+        :style="splitTracks"
+      >
+        <div class="min-w-0 flex flex-col gap-6">
+          <SurfaceBody
+            :instance="node.instances[0]"
+            :type="node.type"
+            variant="full"
+            :actions="node.actions"
+            :chrome="node.chrome"
+            :covered-relations="coveredRelationKeys"
+            :editable="patchable"
+            :pool="pool"
+            :bundle="bundle"
+            :state-policy="node.statePolicy"
+            @run="emitRun"
+            @inline-change="inlineChange"
+            @open-instance="emitOpen"
+          />
+        </div>
+        <div class="min-w-0 flex flex-col gap-6">
+          <RegionChildren
+            :regions="node.childRegions"
+            :arrangement="{ mode: 'stack' }"
+            :depth="depth"
+            :pool="pool"
+            :bundle="bundle"
+            :openable="openable"
+            :instance-actions="instanceActions"
+            @run="emitRun"
+            @open="emitOpen"
+          />
+        </div>
+      </div>
+      <template v-else>
+        <SurfaceBody
+          :instance="node.instances[0]"
+          :type="node.type"
+          variant="full"
+          :actions="node.actions"
+          :chrome="node.chrome"
+          :covered-relations="coveredRelationKeys"
+          :editable="patchable"
+          :pool="pool"
+          :bundle="bundle"
+          :state-policy="node.statePolicy"
+          @run="emitRun"
+          @inline-change="inlineChange"
+          @open-instance="emitOpen"
+        />
+        <RegionChildren
+          v-if="node.childRegions.length"
+          :regions="node.childRegions"
+          :arrangement="node.childArrangement"
+          :depth="depth"
+          :pool="pool"
+          :bundle="bundle"
+          :openable="openable"
+          :instance-actions="instanceActions"
+          @run="emitRun"
+          @open="emitOpen"
+        />
+      </template>
     </template>
     <template v-else-if="showSurfaces">
       <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
@@ -163,7 +201,7 @@
       <RegionChildren
         v-if="node.childRegions.length"
         :regions="node.childRegions"
-        :mode="node.childrenMode"
+        :arrangement="node.childArrangement"
         :depth="depth"
         :pool="pool"
         :bundle="bundle"
@@ -232,6 +270,15 @@ const props = defineProps({
 
 const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh']);
 const emitOpen = instance => emit('open', instance);
+// The record page's weight-proportional split: a light child set (at or
+// under SIDE_MAX_WEIGHT rows) rides beside the record body, the side
+// column's grid share earned by the children's weight (REGION_SIDE_SPANS
+// over the 12-track record grid). Heavier child sets arrange below.
+const splitSide = computed(() => props.depth === 0 && Boolean(props.node.besideBody));
+const splitTracks = computed(() => ({
+  '--main-fr': String(12 - (props.node.sideSpan || 5)),
+  '--side-fr': String(props.node.sideSpan || 5)
+}));
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
 
@@ -449,3 +496,20 @@ const filteredInstances = computed(() => {
 });
 </script>
 
+
+<style scoped>
+/* Container-relative record split (the SurfaceHeader pattern — the
+   tailwindcss build has no container-queries plugin, so this lives in
+   real CSS): the split engages past 60rem of container width and stacks
+   inside panes, dialogs, and narrow columns. The track shares are
+   weight-derived custom properties set by the template. */
+.region-split {
+  container-type: inline-size;
+}
+
+@container (min-width: 60rem) {
+  .region-split {
+    grid-template-columns: minmax(0, calc(var(--main-fr) * 1fr)) minmax(0, calc(var(--side-fr) * 1fr));
+  }
+}
+</style>

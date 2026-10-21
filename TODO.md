@@ -1,17 +1,37 @@
 # TODO
 
-## Generated record pages compose top to bottom (owner direction 2026-10-21)
+## Generated record page arrangement (owner direction 2026-10-21)
 
-Record pages are one vertical flow: header, body, child collections
-stacked below — no side column, no tabs; structural content renders
-open; presentation homes dedupe onto their canonical seams; the docs/
-tree is gone (SPEC §Generative UI).
+Instance pages read top to bottom with content-aware arrangement: the
+record header spans the page, light children ride beside the body in a
+weight-proportional side column, heavier sets arrange below (proportional
+columns for light peers, dominant child in the flow, weight-ordered tabs
+for heavy peers); structural content renders open; presentation homes
+dedupe onto their canonical seams; the docs/ tree is gone (SPEC §Generative
+UI).
 
 - [ ] WAITING — owner verification on the live stack: routed detail
   screens and the record popup read top to bottom with the page-title
-  record title; wide fact groups expand through show-more; inline-ref
+  record title; the side split and peer columns engage on wide hosts and
+  stack in panes; wide fact groups expand through show-more; inline-ref
   popover actions render through the shared ActionButton with resolver
   presentation.
+
+### Agent Notes (2026-10-21, arrangement follow-up)
+
+Session `agent/gen-ui-arr-20261021`, worktree
+`.agent-worktrees/gen-ui-arr-20261021`. Columns and tabs return as
+content-aware arrangement (`arrangeChildren` in shared/ui-mapping):
+light peers share weight-proportional columns (track fr from estimated
+rows), a dominant sibling keeps the flow with the rest arranged after
+it, heavy peers tab in descending weight order (top level only), and
+the record side column returns weight-proportional — children at or
+under SIDE_MAX_WEIGHT ride beside the body with the span earned through
+REGION_SIDE_SPANS. `childrenModeFor` delegates to the ladder (screen-
+level tabs semantics pinned). Materialization: RegionBlock's split and
+RegionChildren's columns engage past 60rem of container width (scoped
+layout homes, guard-registered) with weight-derived custom properties;
+tabs render weight-ordered. Screen-level (home) behavior unchanged.
 
 ### Agent Notes (2026-10-21)
 

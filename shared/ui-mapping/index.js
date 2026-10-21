@@ -11,6 +11,11 @@ import {
   LIST_LAYOUT_VALUES,
   SEARCH_AT,
   SURFACE_ROW_BUDGET,
+  SIDE_MAX_WEIGHT,
+  COLUMN_MAX_WEIGHT,
+  DOMINANT_CHILD_SHARE,
+  REGION_COLUMNS_MAX,
+  REGION_SIDE_SPANS,
   SMALL_LIST_AT,
   SPACING_SCALES,
   SPACING_STEPS,
@@ -64,7 +69,12 @@ export {
   SUMMARY_BUDGET,
   ROW_RELATION_BUDGET,
   CHILDREN_TABS_AT,
-  HEADER_ACTIONS_INLINE
+  HEADER_ACTIONS_INLINE,
+  SIDE_MAX_WEIGHT,
+  COLUMN_MAX_WEIGHT,
+  DOMINANT_CHILD_SHARE,
+  REGION_COLUMNS_MAX,
+  REGION_SIDE_SPANS
 } from './tables.js';
 
 function pickEntry(entries, candidate) {
@@ -863,10 +873,47 @@ export function estimateRegionWeight(node = {}) {
 }
 
 export function childrenModeFor(childRegions = [], level = 0) {
-  if (childRegions.length < CHILDREN_TABS_AT) return 'stack';
-  const weight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
-  if (weight > SURFACE_ROW_BUDGET && level === 0) return 'tabs';
-  return 'stack';
+  return arrangeChildren(childRegions, level).mode === 'tabs' ? 'tabs' : 'stack';
+}
+
+// Region arrangement: how sibling regions share a surface, decided at
+// compose time from estimated rendered weight. Light sets flow in one
+// stack; light peers share proportional columns (track fr from each
+// child's weight); a dominant sibling keeps the flow while the rest
+// arrange among themselves; heavy peers tab, ordered by descending
+// weight. Tabs are a top-level arrangement — nested heavy content stacks.
+export function arrangeChildren(childRegions = [], level = 0) {
+  if (childRegions.length < CHILDREN_TABS_AT) return { mode: 'stack' };
+  const weights = childRegions.map(region => estimateRegionWeight(region));
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  if (total <= SURFACE_ROW_BUDGET) return { mode: 'stack' };
+  const primaryIndex = weights.indexOf(Math.max(...weights));
+  if (weights[primaryIndex] >= DOMINANT_CHILD_SHARE * total) {
+    const rest = childRegions.filter((_, index) => index !== primaryIndex);
+    return { mode: 'mixed', primary: primaryIndex, rest: arrangeChildren(rest, level + 1) };
+  }
+  if (weights.every(weight => weight <= COLUMN_MAX_WEIGHT) && childRegions.length <= REGION_COLUMNS_MAX) {
+    return {
+      mode: 'columns',
+      tracks: weights.map(weight => `${Math.max(1, Math.round(weight))}fr`).join(' ')
+    };
+  }
+  if (level > 0) return { mode: 'stack' };
+  return {
+    mode: 'tabs',
+    order: childRegions
+      .map((region, index) => ({ id: region.id, weight: weights[index] }))
+      .sort((a, b) => b.weight - a.weight)
+      .map(entry => entry.id)
+  };
+}
+
+// The record side column earns width with the weight of the children it
+// carries: a heavier child set claims a wider share of the 12-track
+// record grid.
+export function regionSideSpanFor(weight = 0) {
+  const step = REGION_SIDE_SPANS.find(entry => weight > entry.at);
+  return step ? step.span : REGION_SIDE_SPANS[REGION_SIDE_SPANS.length - 1].span;
 }
 
 // resolveFieldGroups(type): the derived-section projection — the bundle's

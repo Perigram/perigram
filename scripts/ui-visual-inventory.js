@@ -8,6 +8,8 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/shared/InstanceSurfaceContent.vue': 'layout',
   'components/shared/ResponsiveGrid.vue': 'layout',
   'components/ui-mapping/CollectionTable.vue': 'layout',
+  'components/ui-mapping/RegionBlock.vue': 'layout',
+  'components/ui-mapping/RegionChildren.vue': 'layout',
   'components/ui-mapping/SurfaceHeader.vue': 'layout',
   'pages/organization/users.vue': 'layout',
   'pages/organization/partners.vue': 'layout',
@@ -55,6 +57,8 @@ export const SCOPED_EXCEPTION_PROPERTIES = Object.freeze({
 });
 
 export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
+  'components/ui-mapping/RegionBlock.vue': ['layout', [':style="splitTracks"']],
+  'components/ui-mapping/RegionChildren.vue': ['layout', [':style="{ \'--region-tracks\': arrangement.tracks }"']],
   'components/calls/CallPanel.vue': ['data-driven', [':style="{ left: `${reaction.left}%` }"']],
   'components/calls/CallTile.vue': ['data-driven', [':style="hugAspect ? { aspectRatio: String(tile.aspect) } : null"']],
   'components/ChatSupport.vue': ['data-driven', [
