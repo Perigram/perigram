@@ -902,7 +902,7 @@ export function arrangeChildren(childRegions = [], level = 0) {
   if (weights.every(weight => weight <= COLUMN_MAX_WEIGHT) && childRegions.length <= REGION_COLUMNS_MAX) {
     return {
       mode: 'columns',
-      tracks: weights.map(weight => `${Math.max(1, Math.round(weight))}fr`).join(' ')
+      tracks: weights.map(weight => `minmax(0, ${Math.max(1, Math.round(weight))}fr)`).join(' ')
     };
   }
   if (level > 0) return { mode: 'stack' };
