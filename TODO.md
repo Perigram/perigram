@@ -17,6 +17,17 @@ UI).
   popover actions render through the shared ActionButton with resolver
   presentation.
 
+### Agent Notes (2026-10-21, showcase order fix)
+
+Session `agent/gen-ui-showcase-order-20261021`, worktree
+`.agent-worktrees/gen-ui-showcase-order-20261021`. The arrangement
+cluster's screens registered before the home screen, so the showcase
+opened with three generically-named synthetic details ("Columns/Tabs/
+Side detail") whose leaf types shared display names. The cluster now
+closes the screen list with self-describing labels ("Arrangement —
+columns/tabs/side column band") and distinct leaf names; the showcase
+opens with the home screen again (verified by SSR page dump).
+
 ### Agent Notes (2026-10-21, arrangement band recalibration)
 
 Session `agent/gen-ui-arr-vis-20261021`, worktree
