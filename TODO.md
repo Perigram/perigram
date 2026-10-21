@@ -127,8 +127,38 @@ framework:validate ✓, `check-manifest` ✓. Pre-existing failures on
 and `instance-select.spec` (offenders `ChatSupport.vue`,
 `ChatBotPanel.vue`, `pages/organization/models.vue`). E2E not run (no
 dev stack in session).
-- [ ] Phase 5 — deletion sweep, audit/docs reconciliation, e2e rewritten
-  against the one engine.
+- [ ] WAITING — Phase 5 owner verification on the live stack: the whole app
+  renders through the one engine (lists, details, form-action screens, home,
+  org surfaces), and no reference to the deleted family remains anywhere.
+
+### Agent Notes (2026-10-21, Phase 5)
+
+Session `agent/gen-ui-collapse-p5-20261021`. `workspaceLanes` cut end to end:
+nothing authors `kind: 'workspace'` sources (designer, packs, server seeds
+checked), so the template left the compiler vocabulary
+(`SCREEN_TEMPLATES`, slot rules, region surfaces, lane slots — retired lane
+slots normalize onto `main`, pinned by spec), the `TEMPLATE_REGION_RULES`
+mechanism died with its one entry, and `GeneratedScreen`'s lanes + generic
+fallback branches were replaced by an honest not-found state. Deleted:
+`GeneratedRegion.vue`, `GeneratedInstanceCollection.vue`,
+`WorkspaceLanes.vue`, `InstanceWorkspace.vue`. Found and fixed while cutting:
+`TEMPLATE_DEFAULT_MODE` carried dead `entityList`/`entityDetail` keys, so
+defaulted `instanceDetail` screens fell back to list mode — keys now match
+the live vocabulary; and `formAction` (live designer vocabulary,
+assignment-resolved identifiers compile to literal ids) renders through the
+generator host like `instanceDetail`, repairing the legacy-render fallback it
+lost in Phase 3. Docs: the stale project-workspace and queue-editor
+narrative left components/README (its live laws are canonically homed in the
+generated/ui-mapping/shared READMEs); sheet-design prose re-homed to the
+editor-page flow; v24 rows, shared README sections, processes README
+template vocabulary, and the e2e coverage boundary updated. Also fixed the
+`action?.id || action?.id` copy in `GeneratedScreen.executeAction`. Guards:
+shared + components + utils + packages/processes 1009✓ (two known
+pre-existing failures: `plugin-surfaces` contract majors, `instance-select`
+offenders), SSR smoke 13✓, check-arch ✓, framework:validate ✓,
+check-manifest ✓. E2E not run (no dev stack in session); the e2e suite
+targets generated screens already and carries no removed-surface
+references.
 
 ## Sheet-design editor panels and interactions (owner report 2026-10-19)
 

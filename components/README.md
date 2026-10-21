@@ -106,8 +106,6 @@ All entity-related components MUST use these patterns:
 | Section/page action rows | `<ActionToolbar>` |
 | Route-level aggregate facts | `<MetricPanel>` |
 | Repeated card grids | `<ResponsiveGrid>` |
-| Entity-local workspaces | `<InstanceWorkspace>` |
-| Three-lane production workspaces | `<WorkspaceLanes>` |
 | Operational designers | `<DesignerWorkspace layout="lanes|canvas">` owns layout; feature components own state and persistence |
 | Bounded scrolling workspace sections | `<ScrollablePanel>` |
 | Loading/empty/error surfaces | `<StateBlock>` |
@@ -158,7 +156,7 @@ the screens route (see [`TODO-process-designer.md`](../TODO-process-designer.md)
 Generated operational screens live under `components/generated/`. They render
 compiled process screen manifests through a fixed template registry and shared
 entity primitives (`InstanceCard`, `InstanceSurfaceContent`,
-`ResponsiveGrid`, `WorkspaceLanes`, and `TableFrame`). Process data may select
+`ResponsiveGrid`, and `TableFrame`). Process data may select
 registered templates, sources, regions, surfaces, and action ids; it must not
 select arbitrary Vue component names or inject page-local markup. App-owned
 system screens appended during auth hydration use the same generated template
@@ -179,131 +177,7 @@ App default screen/body overloads are registered in
 user-specific manifest has been composed and loaded. Do not hardcode new
 entity-specific generated branches in `GeneratedScreen`;
 register the overload there so it receives only the sources, regions, actions,
-and scope available to the current user. Project `entityDetail` screens use
-this path to render an IDE-style operational workspace over the generated
-project source and generated child collection sources. Its Explorer owns child
-rows from generated source regions and can collapse so the recursive pane area
-uses the full width without rebuilding or changing the recursive pane tree.
-Relations declared on the project are rendered in a dedicated **Linked entities**
-Explorer section. They use the same typed relation references and entity-detail
-workspace files as every other entity; this section is navigation, not a second
-containment model, and does not depend on relation-key naming conventions.
-Project-context actions live in a fixed workspace strip above both Explorer and
-panes; the strip's left control owns Explorer visibility. Explorer contains
-source navigation only, while panes contain the canonical entity page for their
-selected entity or a registered workspace page, plus pane-local controls. Each
-pane header owns its tab chips in one compact fixed-height row whose
-single hairline spans the whole stripe — tab list and the right-side pane
-controls alike. Tab chips ride the zero canvas one step under the folder
-chips (`ChatSupport.vue`): the selected tab wears the secondary button
-surface, idle tabs stay transparent with muted text (`bg-subtle` hover
-tint), and labels render at body size. The close
-affordance is the app's compact 24px icon button, revealed on tab hover
-or focus with its space reserved so labels do not shift; its hover
-surface rides one step above the host chip. The add-tab
-control sits directly after the last tab, browser-style, and the empty
-tab carries its label alone. The stripe is SINGLE-HOMED in
-`components/generated/GeneratedPaneHeader.vue`: every pane host mounts
-that one component — the row and its height (40px)
-are defined once, never pasted into hosts (a host pasting its own
-header row is a defect even when visually identical). No control
-overflows or clips against the stripe's edges.
-Overflow stays wheel/touchpad-scrollable while native scrollbar chrome remains
-hidden; the viewport's scroll-padding (the global tabs strip pt in
-`assets/tokens/index.js`, sized by `--p-tabs-nav-button-width`) lands scrolled
-tabs clear of the chevrons.
-Pane split/close commands live in a pane-level ellipsis menu. Generated entity
-actions not already owned by an operational editor belong to the active tab body
-below the tab strip. Action presentation has one concern-based owner: collection
-creation stays with its region, relation mutation stays with the relation-aware
-entity surface, and entity operations stay with the opened entity. Inside
-Project, CRUD deletion is a management action owned only by the Explorer
-entity-row ellipsis. It uses the canonical permission gate and confirmation and
-closes every affected entity/page tab after success.
-Explorer parent entities remain selectable files and become expandable folders
-when declared containment and loaded lineage establish children. Linked roots
-stay in the separate Linked entities section rather than being presented as
-containment; declared descendants may nest beneath a linked parent.
-Active-pane emphasis uses the neutral chrome-subtle token on its tab header,
-and empty panes retain an open-content prompt. The embedded entity page suppresses its
-duplicate title, lineage, lifecycle, and action header while retaining the full
-canonical detail body. A pane must not substitute a compact
-summary/detail-body-only surface. It scopes
-and loads the selected entity's own compiled detail screen so child regions
-remain available inside Project. Explorer starts as a compact 15% rail;
-project mutation actions, including relation Link, remain in the strip even
-when a child region references the same compiled action. Unlink is not an owner
-strip command: each linked `InstanceInlineRef` receives the matching contextual
-Unlink operation in its own actions, with both owner and target already bound.
-Only project-bound child-create actions move to collection context.
-When a generated Link input carries an artifact creator contract, its entity
-picker exposes a dedicated upload dialog for the allowed upload-backed kinds.
-The created artifact is selected into the same typed Link input; exact-id and
-existing-entity selection remain available. Entity Link prompts use one
-full-width picker with the creator as a separate labeled action below it; the
-shared entity picker renders its selected reference inside a normal full-width
-Select rather than replacing the control with a card and icon-only edit button.
-Artifact creator/editor surfaces render only domain-declared typed inputs. They
-must not expose the persisted `data.metadata` object as a raw JSON textarea.
-its tree starts directly below the workspace action strip without a redundant
-Explorer header. Collapse hides that mounted panel and its gutter so reopening
-restores the 15/85 split instead of inserting a new equally sized panel. The
-initial pane and new split targets stay unselected until an explicit Explorer
-selection, while still rendering a blank pane header with their local
-split/close controls. Nested workspace headers use neutral structural borders
-instead of the signal-orange action boundary. A workspace pane can be a pane-native entity
-file or an app-registered workspace page; process data selects neither arbitrary
-Vue components nor page-local markup. Entity files reuse registered entity-detail
-body overloads, so a queue file is the operational queue editor instead of a
-generic summary block; generic child entities continue to use their contract-driven
-detail surface. The project entity itself uses that standard detail body. The
-action strip receives only screen/main action ids
-compiled for the project plus direct project-child creation actions from its
-loaded child regions, then resolves and filters them through the effective user
-action manifest and project status. Create actions with different internal ids
-but the same visible entity/parent operation collapse to one button, matching
-the generated create-button label contract.
-An entity-bound registered page (for example the facade plugin's cassette
-designer, mounted through the remote-surface loader) mounts inside a
-pane. Source-loaded children and explicitly linked entities use the same
-page-opening contract, so an accessible linked entity can open the embedded
-surface. Entity links and
-actions inside a linked entity's own child regions stay in the active project
-pane as well; they must not fall back to route navigation or a dialog merely
-because the entity was discovered one detail level deeper. The recursive
-pane tree, split proportions, Explorer width/visibility, active pane, ordered
-tabs and their pane-local selections, and opened registered pages persist as
-versioned browser UI state
-scoped to the current user, organization, and project; only stable references
-are stored. Operational bodies
-receive file mode and remove redundant rounded panel borders when the file pane
-already owns the boundary. Panes can be recursively split right or down and
-retain pane-local selections. An overload must not discover extra sources or
-actions from domain registries or the global action manifest, and it must not
-invent upload/link controls outside compiled process actions.
-Child files resolve their own detail-screen actions from the same effective
-user screen manifest used by normal generated detail routes. Registered
-operational bodies may consume those actions—for example cassette-design
-producer actions—while the tab body keeps the remaining applicable
-commands. Operational bodies receive only this compiled action set;
-main/screen and child-region actions are delivered as separate channels so
-child operations can reach an editor without reappearing in its surrounding
-header. Operational bodies never supplement this set by scanning the global
-action manifest.
-Within a queue file, `InstanceWorkspace` gives the composition editor all twelve
-columns when no readable nesting-run/support region exists and uses the normal
-8/4 split only while that region is present. Queue entry cards use their own
-container width to place a bounded preview beside compact quantity/parameter
-controls; narrow cards stack internally. Queue composition uses the bounded
-grid contract, so entry cards have finite token-backed track and preview widths
-while additional pane space produces more columns. Editable queue-item
-parameter snapshots render regardless of `STATIC`/`PARAMETRIC` nesting
-behavior; that behavior flag is not a field-visibility policy. An entry's fixed
-fitted preview spans the left column; its source-template badge and row actions
-lead the right column, with inline-labeled parameter controls below.
-Registered screen overloads run in the app layout's flush bounded frame: the
-route body cannot scroll, and Explorer and file panes own their scrolling
-independently.
+and scope available to the current user.
 Role-prefixed compiled screens remain process/designer records, not separate
 operational navigation entries for a multi-role user. The auth store exposes
 that same effective screen manifest to frontend consumers, so stale
@@ -459,28 +333,8 @@ calling process endpoints locally.
 Entity-detail templates render child collection regions beside the record
 body (the composed detail split) so parent-child graph flows, such as
 project-to-queue creation, stay in the opened parent context.
-Generated entity details may provide registered entity-specific bodies when
-the domain has a real operational editor contract. Queue details mount the
-queue editor workspace inside the generated detail page as an entity-local
-editor: sibling queue navigation and project-route creation controls stay
-hidden, the editor renders through `InstanceWorkspace` instead of the route-level
-three-lane workspace, and editability comes from the active process
-`queues:write` grant on the current queue rather than hardcoded workflow states
-such as `DRAFT`. Queue-local command panels are separate from queue editing:
-generated detail resolves region action ids through the user's compiled action
-manifest and the current entity type/status before passing executable actions
-to the editor. The nesting controls render only from a resolved manual
-`runCommand` action for `solveNesting`; `queues:write` may enable queue
-job/settings mutation but must not invent a command panel. Actions consumed by
-registered entity workspaces are not duplicated as generic detail-header
-buttons. Entity-local operational editors should use the canonical
-main/supporting proportions from
-`InstanceWorkspace` rather than inventing local stacked or sidebar grids.
-`InstanceWorkspace` and queue card grids use container breakpoints, so the
-main/supporting split and repeated cards respond to the actual editor pane
-width after a workspace split instead of the browser viewport width.
-Sheet-design details mount the facade plugin's sheet-design editor surface
-when the active user has a concrete `sheet_designs:write` grant — a
+Sheet-design records open the facade plugin's sheet-design editor through
+the registered editor page action (write-grant gated) — a
 plugin-delivered module (`workers/facade/surfaces/`, see
 [workers/facade](../workers/facade/README.md)) loaded through the
 remote-surface contract, running on the shared designer shell
@@ -499,25 +353,6 @@ and persists through immutable
 geometry revisions. Generated
 sheet-design details keep the sheet identity visible in the record header;
 read-only details keep the standard geometry display.
-The queue detail support region for nesting runs follows the same contract:
-process mode separates command controls from result viewing. The nesting
-command/settings panel renders only when the opened queue detail receives a
-resolved manual `solveNesting` run-command action. The run result region may
-render for users who only have entity-scoped `nesting_runs:read` on concrete
-runs, but it must not expose command settings or a run button. Run cards gate
-destructive controls with `nesting_runs` grants for the concrete run, not with
-parent queue or global feature permissions. Process-authored result states
-such as organization-specific cut/done labels still render run metrics and
-sheet-design output when `data.results`, `data.sheetDesignIds`, or scoped
-sheet-design context exists. Queue details load sheet designs by the concrete
-readable run ids as well as queue lineage, so a run output card can display the
-layouts it owns without requiring a broad sheet-design list screen. Run cards
-must not treat only domain `COMPLETE/CHOSEN` as displayable output.
-Generated queue detail receives command actions from the compiled screen
-manifest. A queue command such as `solveNesting` must be present on that
-queue-detail screen because it is executed against the queue input; output
-entity grants for `nesting_runs` or `sheet_designs` must not be used to decide
-where the command panel renders.
 Generated command dialogs use the command input contract directly. A command
 can mark a context-bound entity input `prompt: false`; a process action wired
 to that entity then renders as its action button without a redundant picker.
@@ -719,8 +554,7 @@ the shared row-surface recipe rounds rows by clipping them —
 official `rowClass` channel — beside the layout-only scoped
 `border-collapse: separate` block with a `0.25rem` row gap and a muted
 transparent header band: the generated collection tables
-(`CollectionTable`), the legacy
-`GeneratedInstanceCollection`, and the organization users tables
+(`CollectionTable`) and the organization users tables
 register it. Surface paint belongs to the preset — one owner per
 concern. Rows are rounded, never outlined or ringed: the surface step
 over the canvas plus the hairline gap is the whole separation.

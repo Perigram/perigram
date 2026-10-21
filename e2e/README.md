@@ -116,8 +116,8 @@ definitions and their types die together.
   the home screen's per-source sections, and a live generated create form
   whose prompt data persists and opens the created entity detail. Pool
   endpoints are route-mocked so list/detail variants stay hermetic; the
-  create and patch flows run live. Coverage boundary: `workspaceLanes`,
-  `table`, and `formAction` templates are not covered because the seeded
+  create and patch flows run live. Coverage boundary: the `table` and
+  `formAction` templates are not covered because the seeded
   process authors no screens with them — once such screens exist, extend
   this spec with their variants.
 - `process-designer-cts.spec.js`: drives the retained palette through the
