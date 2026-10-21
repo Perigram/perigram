@@ -180,6 +180,22 @@ describe('declaration-check phase', () => {
     expect(errors).toContainEqual(expect.stringMatching(/badGuard deadline guard: op map is not boolean vocabulary/));
   });
 
+  it('checks state field policies: row-checked lists, array shape', () => {
+    const registry = registryWithOrgType();
+    const states = {
+      ...draftStateRecords(),
+      good: { id: 'good', kind: 'state', typeId: 'widget', value: 'held', fieldPolicy: { visible: ['name', 'stage'], editable: ['stage'] } },
+      offRow: { id: 'offRow', kind: 'state', typeId: 'widget', value: 'held2', fieldPolicy: { visible: ['ghost'] } },
+      stringy: { id: 'stringy', kind: 'state', typeId: 'widget', value: 'held3', fieldPolicy: { editable: 'name' } },
+      unscoped: { id: 'unscoped', kind: 'state', typeId: null, value: 'held4', fieldPolicy: { visible: ['anything'] } }
+    };
+    const errors = checkDeclarationsAgainstCts({ data: { ctsTypes: states } }, registry, 'org-1');
+    expect(errors).not.toContainEqual(expect.stringMatching(/^.*good fieldPolicy/));
+    expect(errors).toContainEqual(expect.stringMatching(/offRow fieldPolicy visible names field ghost outside the widget row/));
+    expect(errors).toContainEqual(expect.stringMatching(/stringy fieldPolicy editable must be a field list/));
+    expect(errors).not.toContainEqual(expect.stringMatching(/unscoped fieldPolicy/));
+  });
+
   it('org overlay is the view: other orgs see system types only', () => {
     const registry = registryWithOrgType();
     const errors = checkDeclarationsAgainstCts({

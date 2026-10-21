@@ -20,6 +20,7 @@ import * as filesService from '../files/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import { hasInstanceAccess } from '../../core/access/service.js';
 import { appendFieldChangeEvent } from '../../core/machines/service.js';
+import { resolveActiveWorkflow } from '../workflow-overrides/service.js';
 import { serviceAwareConstructionHandlers, applyConstructionService } from './construction-services.js';
 
 // The composed system view (framework + mounted packs in dependency
@@ -51,6 +52,39 @@ function fieldChangesFromPatch(patch = {}, current = {}) {
     if (!sameValue(value, before)) changes.push({ field: key, from: before, to: value });
   }
   return changes;
+}
+
+// Per-state field policy (CTS SPEC §7 `fieldPolicy`, §10): the current
+// state's `editable` whitelist gates row-field writes at this boundary.
+// The workflow resolves through the same seam the status runtime uses; a
+// vocabulary without authored facets writes unrestricted, and the current
+// document is read only when some state carries a facet.
+async function assertStateEditableFields(typeId, organizationId, collection, id, fieldIds) {
+  if (!fieldIds.length || !organizationId) return;
+  let workflow = null;
+  try {
+    workflow = await resolveActiveWorkflow({ typeId, organizationId });
+  } catch {
+    return;
+  }
+  const states = workflow?.states || {};
+  if (!Object.values(states).some(state => state?.fieldPolicy)) return;
+  const doc = await repository.findInstance(collection, id, typeId);
+  const state = String(doc?.state ?? '');
+  if (!state) return;
+  const facet = states[state]?.fieldPolicy || states[state.split('.').pop()]?.fieldPolicy;
+  if (!facet) return;
+  const editable = Array.isArray(facet.editable) ? facet.editable : null;
+  const visible = Array.isArray(facet.visible) ? facet.visible : null;
+  if (!editable && !visible) return;
+  const locked = fieldIds.filter(fieldId =>
+    (editable && !editable.includes(fieldId)) || (visible && !visible.includes(fieldId)));
+  if (locked.length) {
+    throw createError({
+      statusCode: 409,
+      message: `Fields ${locked.join(', ')} are locked in state ${state}`
+    });
+  }
 }
 
 function declaredLineageKeysOf(declarations = []) {
@@ -378,6 +412,8 @@ function instanceService(typeId) {
           message: `Type ${typeId} lifecycle transitions must run through the status runtime`
         });
       }
+      const patchedFieldIds = Object.keys(patch.fields || {}).filter(key => patch.fields[key] !== undefined);
+      await assertStateEditableFields(typeId, organizationId, collection, id, patchedFieldIds);
       const set = {};
       if (patch.name !== undefined) set.name = patch.name;
       if (patch.fields && typeof patch.fields === 'object') {

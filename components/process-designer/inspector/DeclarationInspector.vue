@@ -190,6 +190,40 @@
             />
           </div>
         </div>
+        <div v-if="stateFieldOptions.length" class="flex flex-col gap-2">
+          <label class="flex items-center gap-2">
+            <Checkbox :model-value="fieldPolicyAuthored" binary @update:model-value="toggleFieldPolicy" />
+            <span>{{ $t('processDesigner.stateFieldPolicy') }}</span>
+          </label>
+          <template v-if="fieldPolicyAuthored">
+            <div class="flex flex-col gap-1">
+              <label class="text-supporting text-muted">{{ $t('processDesigner.stateVisibleFields') }}</label>
+              <MultiSelect
+                :model-value="node.data.fieldPolicy?.visible || []"
+                :options="stateFieldOptions"
+                option-label="label"
+                option-value="value"
+                size="small"
+                filter
+                class="w-full"
+                @update:model-value="value => setFieldPolicyList('visible', value)"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-supporting text-muted">{{ $t('processDesigner.stateEditableFields') }}</label>
+              <MultiSelect
+                :model-value="node.data.fieldPolicy?.editable || []"
+                :options="stateFieldOptions"
+                option-label="label"
+                option-value="value"
+                size="small"
+                filter
+                class="w-full"
+                @update:model-value="value => setFieldPolicyList('editable', value)"
+              />
+            </div>
+          </template>
+        </div>
         <Message severity="info" size="small" :closable="false">{{ $t('processDesigner.stateNodeHint') }}</Message>
       </div>
     </template>
@@ -232,6 +266,7 @@ import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
+import MultiSelect from 'primevue/multiselect';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Checkbox from 'primevue/checkbox';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
@@ -247,7 +282,10 @@ const props = defineProps({
   typeAnchorOptions: { type: Array, default: () => [] },
   // Declared state values the deadline target may name: same-type records
   // plus unscoped tokens, the state node itself excluded (SPEC §7).
-  stateOptions: { type: Array, default: () => [] }
+  stateOptions: { type: Array, default: () => [] },
+  // Row field ids of the bound type — the state's field-policy lists
+  // select among them.
+  stateFieldOptions: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['sync', 'update-name', 'update-display-role']);
@@ -308,6 +346,29 @@ function setDeadlineTarget(to) {
 
 function clearDeadline() {
   delete props.node.data.deadline;
+  emit('sync');
+}
+
+// State field policy (SPEC §7): an empty selection removes that axis —
+// the facet exists only while a list is authored.
+const fieldPolicyAuthored = computed(() => props.node.data.fieldPolicy != null);
+
+function toggleFieldPolicy(enabled) {
+  if (enabled && props.node.data.fieldPolicy == null) {
+    props.node.data.fieldPolicy = {};
+  } else if (!enabled) {
+    delete props.node.data.fieldPolicy;
+  }
+  emit('sync');
+}
+
+function setFieldPolicyList(key, value) {
+  const list = Array.isArray(value) ? [...new Set(value.map(String).filter(Boolean))] : [];
+  const facet = { ...(props.node.data.fieldPolicy || {}) };
+  if (list.length) facet[key] = list;
+  else delete facet[key];
+  if (Object.keys(facet).length) props.node.data.fieldPolicy = facet;
+  else delete props.node.data.fieldPolicy;
   emit('sync');
 }
 

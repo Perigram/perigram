@@ -631,6 +631,30 @@ export function statePolicyByType(producerOutputs = {}) {
   return byType;
 }
 
+// stateFieldPolicyByType(producerOutputs): { [typeId]: { [value]:
+// { visible, editable } } } from the same compiled workflows
+// statePolicyByType reads (SPEC §7 `fieldPolicy`; the first authored
+// entry for a value wins, matching that merge). Only states carrying a
+// facet enter the map.
+export function stateFieldPolicyByType(producerOutputs = {}) {
+  const byType = {};
+  for (const output of Object.values(producerOutputs || {})) {
+    const typeId = output?.typeId;
+    if (!typeId || !output?.workflow) continue;
+    const policies = byType[typeId] || (byType[typeId] = {});
+    for (const region of Object.values(output.workflow.regions || {})) {
+      for (const [value, definition = {}] of Object.entries(region.states || {})) {
+        if (!definition.fieldPolicy || policies[value]) continue;
+        policies[value] = Object.freeze({
+          visible: definition.fieldPolicy.visible || null,
+          editable: definition.fieldPolicy.editable || null
+        });
+      }
+    }
+  }
+  return byType;
+}
+
 // temporalFieldsFor(type): the temporal projection's field derivation —
 // declared instants in declaration order are the interval for durational
 // types (first start, second end) and the lone instant is the schedule

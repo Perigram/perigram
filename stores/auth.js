@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { resolveUiPermission } from '~/shared/ui-permissions';
 import { hasPermissionGrant } from '~/shared/access-control';
+import { stateFieldPolicyByType } from '~/shared/ui-mapping/index.js';
 import { composeEffectiveScreens } from '~/utils/process-navigation';
 
 /**
@@ -39,6 +40,7 @@ export const useAuthStore = defineStore('auth', () => {
     const screenManifest = computed(() => composeEffectiveScreens(user.value?.screens || []));
     const actionManifest = computed(() => user.value?.roleAssignments?.actions || []);
     const fieldPolicies = computed(() => user.value?.fieldPolicies || {});
+    const stateFieldPolicies = computed(() => stateFieldPolicyByType(user.value?.process?.producerOutputs || {}));
     const processActive = computed(() => user.value?.process?.active === true);
   // The generator payload from auth hydration: the CTS client bundle and the
   // projected action contract for the screens renderer.
@@ -202,6 +204,7 @@ export const useAuthStore = defineStore('auth', () => {
         screenManifest,
         actionManifest,
         fieldPolicies,
+        stateFieldPolicies,
         processActive,
         processPayload,
         lineageBindings,

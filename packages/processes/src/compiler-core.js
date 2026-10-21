@@ -15,6 +15,7 @@ import {
   validateProcessEdges
 } from './ports.js';
 import { CONSUMER_SPECIES_KINDS, constructionInputsForContract, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
+import { normalizeStateFieldPolicy } from './designer.js';
 import { projectUiAction, projectUiContractChannels } from './ui-contract-projection.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
@@ -1810,20 +1811,34 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     const builder = workflowBuilderFromWorkflow();
     builders.set(output.producerOutputId, builder);
     const region = primaryRegionBuilder(builder);
+    const recordByValue = new Map(records.map(record => [String(record.value), record]));
     for (const record of records) {
+      const fieldPolicy = normalizeStateFieldPolicy(record.fieldPolicy);
       region.states[record.value] ||= {
         canUpdateMeta: true,
         ...(record.terminal === true ? { isTerminal: true } : {}),
         ...(record.label ? { label: record.label } : {}),
         ...((record.severity || record.color) ? { severity: record.severity || record.color } : {}),
         ...(record.icon ? { icon: record.icon } : {}),
-        ...(record.deadline ? { deadline: record.deadline } : {})
+        ...(record.deadline ? { deadline: record.deadline } : {}),
+        ...(fieldPolicy ? { fieldPolicy } : {})
       };
       // A declared deadline compiles its escalation edge (SPEC §7):
       // system-executed, never a user action — the scanner moves overdue
-      // instances through the normal transition boundary.
+      // instances through the normal transition boundary. The target
+      // seeds from its own record when one exists, so its authored
+      // facets survive this record's position in the list.
       if (record.deadline?.to && record.deadline.to !== record.value) {
-        addWorkflowState(region, record.deadline.to);
+        const target = recordByValue.get(String(record.deadline.to));
+        const targetFacet = target ? normalizeStateFieldPolicy(target.fieldPolicy) : null;
+        region.states[record.deadline.to] ||= {
+          canUpdateMeta: true,
+          ...(target?.terminal === true ? { isTerminal: true } : {}),
+          ...(target?.label ? { label: target.label } : {}),
+          ...((target?.severity || target?.color) ? { severity: target.severity || target.color } : {}),
+          ...(target?.icon ? { icon: target.icon } : {}),
+          ...(targetFacet ? { fieldPolicy: targetFacet } : {})
+        };
         upsertWorkflowTransition(region, {
           from: record.value,
           to: record.deadline.to,

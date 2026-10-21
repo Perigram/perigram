@@ -41,6 +41,7 @@ import {
   planActionLaunch,
   childrenOfParent,
   statePolicyByType,
+  stateFieldPolicyByType,
   stateTransitionsByType,
   hasStateVocabulary,
   temporalFieldsFor,
@@ -420,6 +421,19 @@ describe('state display policy (flat vocabulary)', () => {
     });
     expect(policy.widget.ready.label).toBe('Ready');
     expect(policy.widget.idle).toBeTruthy();
+  });
+
+  it('derives per-state field policies from the same workflows', () => {
+    const policies = stateFieldPolicyByType({
+      first: { typeId: 'widget', workflow: { regions: { main: { states: {
+        ready: { fieldPolicy: { visible: ['serial'], editable: [] } },
+        idle: {}
+      } } } } },
+      second: { typeId: 'widget', workflow: { regions: { main: { states: { ready: { fieldPolicy: { visible: ['ghost'] } } } } } } }
+    });
+    expect(policies).toEqual({
+      widget: { ready: { visible: ['serial'], editable: [] } }
+    });
   });
 
   it('applies SPEC defaults and resolves labels from the leaf segment', () => {

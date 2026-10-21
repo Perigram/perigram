@@ -69,7 +69,11 @@ function rowLabel(field) {
 
 const policyFields = computed(() => filterEntityFields({
     fields: props.fields,
-    auth: { permissions: authStore.activePermissions, fieldPolicies: authStore.fieldPolicies },
+    auth: {
+      permissions: authStore.activePermissions,
+      fieldPolicies: authStore.fieldPolicies,
+      stateFieldPolicies: authStore.stateFieldPolicies
+    },
     entity: props.accessEntity || props.entity,
     typeId: props.typeId
 }));

@@ -1,4 +1,5 @@
 import { orientChildrenEdgesChildFirst } from '../../cts/src/index.js';
+import { normalizeStateFieldPolicy } from './designer.js';
 
 const CANVAS_RECORD_KEYS = {
   entity: 'producerOutputs',
@@ -106,7 +107,8 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
   }
 
   // Declaration authoring state is written from the canvas itself — the
-  // record is the persisted form of the node, not a panel-edited twin.
+  // record is the persisted form of the node: authored keys only, so a
+  // cleared facet stays cleared.
   process.ctsTypes = { ...(process.ctsTypes || {}) };
   const kindByType = { ctsClass: 'class', ctsField: 'field', ctsState: 'state', ctsType: 'type' };
   for (const node of nodes) {
@@ -115,7 +117,6 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
     const refId = String(node.data?.refId || node.id);
     const data = node.data || {};
     process.ctsTypes[refId] = {
-      ...(process.ctsTypes[refId] || {}),
       id: refId,
       kind,
       // Binding normalizes one way everywhere: a non-empty string or null.
@@ -145,7 +146,8 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
         ...(data.label ? { label: data.label } : {}),
         ...(data.severity ? { severity: data.severity } : {}),
         ...(data.icon ? { icon: data.icon } : {}),
-        ...(data.deadline ? { deadline: data.deadline } : {})
+        ...(data.deadline ? { deadline: data.deadline } : {}),
+        ...(normalizeStateFieldPolicy(data.fieldPolicy) ? { fieldPolicy: normalizeStateFieldPolicy(data.fieldPolicy) } : {})
       } : {})
     };
   }
@@ -280,6 +282,7 @@ function projectDeclarationRecords(records = {}, x) {
           severity: record.severity || null,
           icon: record.icon || null,
           ...(record.deadline ? { deadline: record.deadline } : {}),
+          ...(normalizeStateFieldPolicy(record.fieldPolicy) ? { fieldPolicy: normalizeStateFieldPolicy(record.fieldPolicy) } : {}),
           // Authored booleans project so the rebuild (which writes them
           // explicitly from node data) reproduces the record exactly.
           terminal: record.terminal === true

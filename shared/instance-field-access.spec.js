@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   canDisplayEntityField,
   filterEntityFields,
-  redactEntityForAccess
+  redactEntityForAccess,
+  registerDeclarationFieldAccess
 } from './instance-field-access.js';
 
 // The policy-bearing guinea pig: a framework-served type with a legacy
@@ -126,6 +127,35 @@ describe('entity field access', () => {
       typeId: 'artifact',
       path: 'data.filename'
     })).toBe(false);
+  });
+
+  it('narrows display by the current state field policy (SPEC §7 fieldPolicy)', () => {
+    registerDeclarationFieldAccess({
+      panel: { feature: 'panels', read: ['fields.serial', 'fields.width'], write: [], admin: [] }
+    });
+    const auth = {
+      organizationId: 'org-1',
+      effectivePermissions: { panels: 'read' },
+      stateFieldPolicies: {
+        panel: {
+          review: { visible: ['serial'], editable: null }
+        }
+      }
+    };
+    // The entity sits in the facet's state: only listed row ids display.
+    expect(canDisplayEntityField({
+      auth, typeId: 'panel', entity: { state: 'review' }, path: 'fields.serial'
+    })).toBe(true);
+    expect(canDisplayEntityField({
+      auth, typeId: 'panel', entity: { state: 'review' }, path: 'fields.width'
+    })).toBe(false);
+    // Another state and a stateless entity stay unrestricted.
+    expect(canDisplayEntityField({
+      auth, typeId: 'panel', entity: { state: 'draft' }, path: 'fields.width'
+    })).toBe(true);
+    expect(canDisplayEntityField({
+      auth, typeId: 'panel', entity: {}, path: 'fields.width'
+    })).toBe(true);
   });
 
   it('redacts DTOs to allowed paths for the active membership', () => {
