@@ -1,7 +1,8 @@
 // SSR smoke for the UI-mapping showcase: boots the real page SFC over a
 // pinned random world and renders every screen to string. The world seed
 // is chosen so its type shapes derive the board, gantt, and calendar
-// projections — the guard for the defect class where a projection's
+// projections and its loaded parents derive the columns and tabs
+// arrangements — the guard for the defect class where a projection's
 // template reads a wrong property shape over real composed data (a
 // calendar chip once read entry.instance.id on bare instances and 500ed
 // the page; pure specs never render the SFC).
@@ -10,6 +11,7 @@ import { createSSRApp, h, ref, computed, watch, nextTick } from 'vue';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import { renderToString } from 'vue/server-renderer';
 import { createI18n, useI18n } from 'vue-i18n';
+import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
 import ConfirmService from 'primevue/confirmationservice';
@@ -17,7 +19,7 @@ import { useToast } from 'primevue/usetoast';
 import Re_L from '~/assets/presets/re_l';
 import ShowcasePage from '~/pages/test/ui-mapping.vue';
 
-const SEED = 10;
+const SEED = 37;
 
 globalThis.h = h;
 globalThis.ref = ref;
@@ -29,7 +31,12 @@ globalThis.useToast = useToast;
 globalThis.definePageMeta = () => {};
 globalThis.navigateTo = () => {};
 globalThis.$fetch = vi.fn(async () => ({}));
-globalThis.useAuthStore = () => ({ screenManifest: [] });
+globalThis.useAuthStore = () => ({ screenManifest: [], actionManifest: [] });
+globalThis.useInstancesStore = () => ({
+  canonicalTypeKey: key => key,
+  resolveReadableReference: async () => null
+});
+globalThis.useState = (_key, init) => ref(typeof init === 'function' ? init() : init || {});
 globalThis.useRoute = () => router.currentRoute.value;
 const router = createRouter({
   history: createMemoryHistory(),
@@ -50,6 +57,7 @@ describe('ui-mapping showcase SSR smoke', () => {
     const app = createSSRApp({ render: () => h(ShowcasePage) });
     app.use(i18n);
     app.use(router);
+    app.use(createPinia());
     app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
     app.use(ToastService);
     app.use(ConfirmService);

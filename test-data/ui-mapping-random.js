@@ -10,6 +10,7 @@
 // `compileClientBundle()` does (`renderPolicyFor` over the authored
 // declaration).
 import { renderPolicyFor } from '#packages/cts/src/index.js';
+import { resolveListLayout, ROW_WEIGHT_BY_LAYOUT, BOARD_MIN_COLUMNS } from '#shared/ui-mapping/index.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -271,14 +272,90 @@ export function generateUiMappingWorld(seed = 7) {
   // Budget guarantees, not chances: one file type always carries a large
   // collection (virtualized table >50, paginated views, toolbar search
   // past SEARCH_AT, large-size carousel), and one type always stays empty
-  // so the empty-state surface is reachable in every world.
+  // so the empty-state surface is reachable in every world. Two group
+  // hosts always carry populated peer children — moderate collections on
+  // one, heavy on the other — the parent shape real domains have, so
+  // sibling arrangements engage over realistic weight.
   const instancesByType = {};
   const fileTypes = types.filter(type => type.class === 'file');
   const volumeType = fileTypes[0] || types[types.length - 1];
-  const emptyType = types.find(type => type.id !== volumeType.id) || types[0];
+  const allGroups = types.filter(type => type.class === 'group');
+  let groupsWithEdges = allGroups.filter(type => Object.keys(type.edges.children || {}).length >= 2);
+  const ensureTwoEdges = host => {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      if (Object.keys(host.edges.children || {}).length >= 2) return;
+      const target = types.find(type => type.id !== host.id
+        && !Object.values(host.edges.children || {}).some(edge => edge.types.includes(type.id)));
+      if (!target) return;
+      host.edges.children[`held${attempt}`] = { types: [target.id], onRemove: 'restrict' };
+    }
+  };
+  while (groupsWithEdges.length < 2) {
+    const candidate = allGroups.find(type => !groupsWithEdges.includes(type));
+    if (!candidate) break;
+    ensureTwoEdges(candidate);
+    if (Object.keys(candidate.edges.children || {}).length >= 2) groupsWithEdges = [...groupsWithEdges, candidate];
+    else break;
+  }
+  const peerHosts = groupsWithEdges.slice(0, 2);
+  // Each host claims its peer types exclusively, so its collections
+  // resolve under its own loaded record and carry the sized weight.
+  const claimedPeers = new Set([volumeType.id]);
+  const hostPeerEdges = new Map();
+  const pickHostPeers = host => {
+    const chosen = [];
+    for (const [key, edge] of Object.entries(host.edges.children || {})) {
+      if (chosen.length >= 2) break;
+      const target = edge.types.find(id => !claimedPeers.has(id));
+      if (!target) continue;
+      claimedPeers.add(target);
+      chosen.push([key, edge]);
+    }
+    while (chosen.length < 2) {
+      const target = types.find(type => !claimedPeers.has(type.id) && type.id !== host.id);
+      if (!target) break;
+      claimedPeers.add(target.id);
+      const key = `peers${chosen.length}`;
+      host.edges.children[key] = { types: [target.id], onRemove: 'restrict' };
+      chosen.push([key, host.edges.children[key]]);
+    }
+    hostPeerEdges.set(host.id, chosen);
+  };
+  peerHosts.forEach(pickHostPeers);
+  const moderatePeers = new Set((hostPeerEdges.get(peerHosts[0]?.id) || []).flatMap(([, edge]) => edge.types));
+  const heavyPeers = new Set((hostPeerEdges.get(peerHosts[1]?.id) || []).flatMap(([, edge]) => edge.types));
+  // Peer collections are sized by estimated rendered weight, not raw
+  // count: a card collection of 3 weighs what a table of 12 does, so the
+  // two peers of a host land comparable whatever their class.
+  const weightToCount = (type, targetWeight) => {
+    const stateful = (stateVocabularies[type.id] || []).length >= BOARD_MIN_COLUMNS;
+    const perRow = ROW_WEIGHT_BY_LAYOUT[resolveListLayout(type, { stateful, size: null })] || 1;
+    return Math.max(1, Math.ceil((targetWeight - 2) / perRow));
+  };
+  const peerCounts = {};
+  [...moderatePeers, ...heavyPeers].forEach(id => {
+    const type = types.find(entry => entry.id === id);
+    if (!type) return;
+    const target = moderatePeers.has(id) ? 10 : 18;
+    peerCounts[id] = Math.min(60, weightToCount(type, target));
+  });
+  // The empty type stays outside the reserved set; on a tiny world the
+  // fallbacks avoid the hosts first — a missing peer degrades the band
+  // guarantee, an emptied host kills its screen.
+  const reserved = new Set([volumeType.id, ...moderatePeers, ...heavyPeers, ...peerHosts.map(host => host.id)]);
+  const emptyType = types.find(type => type.class === 'group' && !reserved.has(type.id))
+    || types.find(type => !reserved.has(type.id))
+    || types.find(type => !peerHosts.includes(type) && type.id !== volumeType.id)
+    || types[0];
   types.forEach(type => {
-    const max = type.id === volumeType.id ? 60 : type.class === 'file' ? (rnd.chance(0.25) ? 64 : 20) : 12;
-    const count = type.id === volumeType.id ? max : type.id === emptyType.id ? 0 : rnd.rand(0, max);
+    const max = type.id === volumeType.id ? 60
+      : (moderatePeers.has(type.id) || heavyPeers.has(type.id)) ? (peerCounts[type.id] || 0)
+      : peerHosts.some(host => host.id === type.id) ? rnd.rand(2, 5)
+      : type.class === 'file' ? (rnd.chance(0.25) ? 64 : 20) : 12;
+    const exact = moderatePeers.has(type.id) || heavyPeers.has(type.id)
+      || peerHosts.some(host => host.id === type.id);
+    const count = type.id === volumeType.id ? max : type.id === emptyType.id ? 0
+      : exact ? max : rnd.rand(0, max);
     instancesByType[type.id] = Array.from({ length: count }, (_, index) => ({ id: `${type.id}-i${index + 1}`, type: type.id }));
   });
   const refTargets = {};
@@ -311,13 +388,25 @@ export function generateUiMappingWorld(seed = 7) {
         const options = refTargets[edge.types[0]] || [];
         if (!options.length) return [key, edge.cardinality === 'single' ? null : []];
         if (edge.cardinality === 'single') return [key, rnd.chance(0.6) ? rnd.pick(options) : null];
-        return [key, Array.from({ length: rnd.rand(0, 10) }, () => rnd.pick(options))];
+        return [key, Array.from({ length: rnd.rand(0, 3) }, () => rnd.pick(options))];
       }));
       instance.state = stateVocabularies[type.id] ? rnd.pick(stateVocabularies[type.id]) : null;
       instance.payload = type.payload
         ? { fileId: `gridfs-${instance.id}`, mime: type.payload.mime[0], size: rnd.rand(1, 8000) * 1000 }
         : null;
     });
+  });
+  // Lineage: concentrated the way real containment looks — each parent
+  // type has one loaded record holding most of its children across every
+  // children edge (a queue holds many sheets of several kinds), the rest
+  // spread over the pool, a share floats free. Detail screens open the
+  // loaded record, so opened collections carry realistic weight and the
+  // arrangement ladder engages over real shapes.
+  const richParentByType = {};
+  types.forEach(type => {
+    if (Object.keys(type.edges.children || {}).length && instancesByType[type.id].length) {
+      richParentByType[type.id] = rnd.pick(instancesByType[type.id]).id;
+    }
   });
   types.forEach(type => {
     const parentEdges = [];
@@ -326,19 +415,29 @@ export function generateUiMappingWorld(seed = 7) {
         if (edge.types.includes(type.id)) parentEdges.push({ key, parentId: other.id });
       });
     });
+    const pools = parentEdges
+      .map(edge => ({ key: edge.key, parentId: edge.parentId, pool: instancesByType[edge.parentId] }))
+      .filter(entry => entry.pool.length);
+    if (!pools.length) return;
+    const claimingHost = moderatePeers.has(type.id) ? peerHosts[0] : heavyPeers.has(type.id) ? peerHosts[1] : null;
+    const guaranteedPeer = Boolean(claimingHost);
+    const hostPool = claimingHost ? pools.find(entry => entry.parentId === claimingHost.id) || null : null;
     instancesByType[type.id].forEach(instance => {
-      if (parentEdges.length && rnd.chance(0.85)) {
-        const parent = rnd.pick(parentEdges);
-        const parentPool = instancesByType[parent.parentId];
-        if (parentPool.length) {
-          instance.lineage[parent.key] = { type: parent.parentId, id: rnd.pick(parentPool).id };
-        }
-      }
+      if (!rnd.chance(guaranteedPeer ? 1 : 0.85)) return;
+      const target = guaranteedPeer && hostPool ? hostPool : rnd.pick(pools);
+      const richId = richParentByType[target.parentId];
+      const parentId = (richId && rnd.chance(guaranteedPeer ? 1 : 0.75)) ? richId : rnd.pick(instancesByType[target.parentId]).id;
+      instance.lineage[target.key] = { type: target.parentId, id: parentId };
     });
   });
 
   const populated = types.filter(type => instancesByType[type.id].length);
-  const detailTypes = populated.filter(type => type.class !== 'group' || true).slice(0, 4);
+  // Detail screens prefer the peer hosts — the populated parents a
+  // person would open.
+  const detailTypes = [
+    ...peerHosts.filter(type => instancesByType[type.id].length),
+    ...populated.filter(type => !peerHosts.includes(type))
+  ].slice(0, 4);
 
   const actions = {};
   const addAction = (id, action) => {
@@ -442,7 +541,16 @@ export function generateUiMappingWorld(seed = 7) {
   }
   detailTypes.forEach(type => {
     const key = `detail_${type.id}`;
-    const instance = instancesByType[type.id][0];
+    // Open the record whose child collections resolve the most instances
+    // — the populated record, the one a person would open.
+    const openableEdges = hostPeerEdges.get(type.id)
+      || Object.entries(type.edges.children || {}).slice(0, 2);
+    const childCount = inst => openableEdges.reduce((sum, [edgeKey, edge]) => sum
+      + (instancesByType[edge.types[0]] || [])
+        .filter(child => child.lineage[edgeKey]?.id === inst.id).length, 0);
+    const instance = instancesByType[type.id].reduce((best, candidate) => (
+      childCount(candidate) > childCount(best) ? candidate : best
+    ), instancesByType[type.id][0]);
     const sources = [{ id: 'main', typeId: type.id, mode: 'single', required: null, identifier: '$screen.scope.instanceId' }];
     const detailActionPool = [`a_create_${type.id}`, `a_stage_${type.id}`, `a_shift_${type.id}`, `a_delete_${type.id}`, `a_run_${type.id}`, `a_link_${type.id}`]
       .filter(id => actions[id]);
@@ -450,8 +558,7 @@ export function generateUiMappingWorld(seed = 7) {
       ? detailActionPool
       : detailActionPool.slice(0, rnd.rand(1, 3));
     const regions = [{ id: 'main', slot: 'main', sourceId: 'main', surface: 'detail', actions: detailActions }];
-    const childEdges = Object.entries(type.edges.children || {});
-    childEdges.slice(0, 2).forEach(([edgeKey, edge], index) => {
+    openableEdges.forEach(([edgeKey, edge], index) => {
       if (!instancesByType[edge.types[0]]?.length) return;
       sources.push({ id: `c${index}`, typeId: edge.types[0], mode: 'list', required: null, lineage: { sourceId: 'main', key: edgeKey } });
       regions.push({ id: `c${index}`, slot: 'children', sourceId: `c${index}`, surface: 'list', actions: [] });
@@ -559,4 +666,4 @@ export function generateUiMappingWorld(seed = 7) {
   };
 }
 
-export const DEFAULT_RANDOM_SEED = 7;
+export const DEFAULT_RANDOM_SEED = 10;

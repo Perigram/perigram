@@ -91,6 +91,19 @@ describe('showcase-reachable contracts in every world', () => {
     }
   });
 
+  it('guarantees loaded parents with sized peer collections', () => {
+    for (const seed of SEEDS) {
+      const world = generateUiMappingWorld(seed);
+      const pool = buildInstancePool(world.instances);
+      const loaded = Object.values(world.contract.screens)
+        .filter(screen => screen.template === 'instanceDetail')
+        .some(screen => composeScreen(screen, world.contract, world.bundle, pool).regions
+          .some(region => region.childRegions
+            .filter(child => child.instances.length >= 2).length >= 2));
+      expect(loaded, `seed ${seed} loaded parent`).toBe(true);
+    }
+  });
+
   it('guarantees the budget thresholds and data-state surfaces', () => {
     for (const seed of SEEDS) {
       const world = generateUiMappingWorld(seed);
