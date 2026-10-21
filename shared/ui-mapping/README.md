@@ -414,16 +414,13 @@ tokens) and card grids run through the shared `ResponsiveGrid` primitive
 (container queries), never viewport breakpoints inside panels.
 Container-relative layout that Tailwind variants cannot express (the
 build ships no container-queries plugin, so `@container`/`@[w]:` classes
-silently compile to nothing) lives in real CSS through three sanctioned
+silently compile to nothing) lives in real CSS through two sanctioned
 homes: record headers (scoped CSS in `SurfaceHeader`, which declares its
 own `container-type`; wide headers lay identity and actions on one
 wrapping row with a 16rem title floor — long names still truncate
 through the `min-w-0` chain — narrow headers stack, with at most
 `HEADER_ACTIONS_INLINE` generated buttons inline before the ellipsis
-overflow menu), the record page's detail split (scoped CSS in
-`RegionBlock`: header plus main content stack under 60rem of container
-width — panes, dialogs, narrow columns — and engage the 7/5 side column
-where child regions render beside the record), and the form grid
+overflow menu) and the form grid
 (`LAYOUT.formGrid` names the global `.ck-form-grid` utility in
 `assets/css/main.css`: one column under 40rem of container width, two
 above; full-span rows opt in with `.ck-span-full`).
@@ -464,8 +461,8 @@ controls), the per-type `statePolicy` map off the contract (see State
 display), and nested child regions. Region nesting is slot-driven and
 matches the compiler's emission: regions with `slot: 'children'` (the
 child collections inferred detail screens carry) nest under every
-top-level region — the detail record page renders them in its side
-column, and their relation keys cover the detail body's relation chips —
+top-level region — the detail record page stacks them below the record
+body, and their relation keys cover the detail body's relation chips —
 while every other slot composes top-level at depth 0.
 `buildInstancePool(instances)`
 normalizes instance groups into the `{ type -> { id -> instance } }` pool

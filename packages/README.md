@@ -19,7 +19,7 @@ Internal npm workspace packages used to extract the reusable industrial workflow
 
 Module boundaries, runtime relationships, and per-package contracts are
 documented in each package's own `README.md`; the system-level graph lives in
-[docs/SYSTEM_ARCHITECTURE.md](../docs/SYSTEM_ARCHITECTURE.md).
+the [root README](../README.md) §Architecture.
 
 The committed [framework.manifest.json](../framework.manifest.json) is the read-only contract for LLM/RAG/MCP inspection. It combines package metadata, entity definitions, workflows, routes, commands, tasks, attachment kinds, summaries, inferred relationships, entity component contracts, shared design-system primitives, and token projections.
 

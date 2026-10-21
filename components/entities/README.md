@@ -63,6 +63,6 @@ explicitly asks.
 ## Related
 
 - [Shared UI components](../shared/README.md)
-- [Design system](../../docs/DESIGN_SYSTEM.md)
+- [Visual tokens](../../assets/tokens/README.md)
 - [DTO factories](../../test-data/README.md)
 - [Facade plugin](../../workers/facade/README.md)

@@ -105,7 +105,7 @@ surface concerns:
   field, the primary status over the values actually present, and the
   relation, parent, and children traversal axes. Search stays a
   region-owned model; the composed tree is persisted view state per type
-  (`utils/filter-view-state.js`) and is evaluated with the one matcher
+  (`utils/ui-view-state.js`) and is evaluated with the one matcher
   (`instanceMatchesFilter`) against the region's pool. Columns keep only
   their native sorting. The region header stays one line (label, count,
   controls, actions), wrapping only when the opened controls or the
@@ -118,7 +118,7 @@ surface concerns:
   per-type-and-state preference over the same sortKeys contract).
   The projection switch is the one layout-shaped user view state,
   persisted per type beside sort and filters
-  (`utils/ui-projection-preference.js`): a collection whose type serves
+  (`utils/ui-view-state.js`): a collection whose type serves
   a state vocabulary and whose derived layout is a structural collection
   (table) may switch to the board, and a derived board may
   switch back to the table — one icon toggle in the header cluster, and
@@ -132,7 +132,7 @@ surface concerns:
   over the composed `listControls.sortKeys` contract. Keys render inline
   as buttons and the order toggle flips asc/desc beneath them; the host
   owns the value, the order, and their persistence
-  (`utils/ui-sort-preference.js`). The list is inline deliberately — a
+  (`utils/ui-view-state.js`). The list is inline deliberately — a
   select overlay would sit outside the popover's DOM subtree, where the
   popover's outside-click handling closes the control on every pick.
 
@@ -163,16 +163,15 @@ surface concerns:
   materialization of the layout switch embedded and standalone lists
   share) stack on the section rhythm, and nested child regions arrange
   through `RegionChildren.vue` (tabs when heavy, stacked otherwise) —
-  the same component the record page's side column uses. A create
+  the same component the record page's child stack uses. A create
   action for the region's own type collapses its caption to the bare
   localized `uiMapping.new` ("New") through ActionButton's context label:
   the header already names the class, so the caption never repeats it
   (creates for other types and every other action keep the full label).
-  Top-level detail regions compose a record page: `SurfaceHeader` plus the
-  main content in a 7-column lane with child regions in a 5-column lane —
-  container-relative through RegionBlock's scoped CSS (stacked under 60rem
-  of container width, so workspace panes and narrow columns never force
-  the split); nested detail regions
+  Top-level detail regions compose a record page top to bottom:
+  `SurfaceHeader`, the record body, then the child regions stacked below
+  at full width — one vertical flow, no side column and no tabs
+  (composeScreen forces stacked detail children). Nested detail regions
   keep the Card surface. Empty regions render a Message.
 - `BoardCollection.vue` — the state board: the projection whose columns
   are the type's served state vocabulary
@@ -218,7 +217,7 @@ surface concerns:
   Ordering belongs to the
   column: each lane carries its own `SortControl` over the composed
   `sortKeys` contract with a persisted per-type-and-state preference
-  (`board-column:` scopes through `utils/ui-sort-preference.js`).
+  (`board-column:` scopes through `utils/ui-view-state.js`).
   Column bodies are bounded (`--ck-board-column-max-height`,
   viewport-relative) and scroll independently — the board fits its
   container instead of growing the page, and the same flex contract
@@ -271,7 +270,7 @@ surface concerns:
   their numeric value), the list-controls contract's `defaultSort` (the
   first filled short scalar) is the default
   sort, the user's last sort persists per type through
-  `utils/ui-sort-preference.js`, and the paginate/virtualize thresholds are the shared
+  `utils/ui-view-state.js`, and the paginate/virtualize thresholds are the shared
   `TABLE_*` budgets from the mapping contract, never literals. Filtering
   belongs to the region toolbar above the table, not to a per-column
   filter row. The region toolbar renders type-level actions only (creates):
@@ -359,7 +358,7 @@ surface concerns:
   same policy map. The header is its own layout container: the
   identity/action row engages from the header container width through
   the scoped CSS block (never the viewport — headers render inside
-  panels and detail side columns); long names truncate through the
+  panels and detail child stacks); long names truncate through the
   `min-w-0` chain and wide headers floor the title at 16rem so a large
   action cluster wraps below the identity instead of crunching it.
 - `StateTag.vue` — the segmented state tag: one materialization of the
@@ -374,7 +373,8 @@ surface concerns:
   fields and relation chips; the row identity is a link button under the
   screen's `onOpen` contract, like every collection identity.
 - `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
-  scalar facts strip (`DETAIL_FACT_BUDGET`), structural fields as an Accordion,
+  scalar facts strip (`DETAIL_FACT_BUDGET`, collapsed behind one show-more
+  control per group), structural fields as labeled open sections,
   labeled relation sections (the field label override channel over the
   relation key, start-cased fallback) with budgeted chips and show-more
   toggles for relations not already
@@ -384,8 +384,8 @@ surface concerns:
   with pencil on patchable surfaces) — hosts own the
   label placement, so facts, simple structural rows, and quantity maps
   share the same affordance. Rich
-  structural values keep their panel chrome (Fieldset/Accordion) with
-  their own pencil through `StructuralFieldPanel.vue`: one panel edits at
+  structural values render open under their section label with their own
+  pencil through `StructuralFieldPanel.vue`: one panel edits at
   a time over a local draft with confirm/discard. Unfilled fields follow
   the scalar law
   everywhere: display renders only fields that carry values (empty

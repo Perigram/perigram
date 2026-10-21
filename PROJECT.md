@@ -24,7 +24,6 @@ updated: 2026-10-01
 | Протокол репо (documentation-first, README-дерево) | `AGENTS.md` |
 | Обзор системы (SYSTEM-уровень) | `README.md` |
 | Спека процесса/CTS (human-write only) | `SPEC.md` |
-| Архитектура, дизайн-система, remote-доступ | `docs/SYSTEM_ARCHITECTURE.md`, `docs/DESIGN_SYSTEM.md`, `docs/REMOTE_ACCESS.md` |
 | Runtime (K3s, hera/perigram-01) | `/home/cutkit/labsite` |
 | Каталог проектов контура | `/home/cutkit/agent-orchestrator/config/project-catalog.json` |
 

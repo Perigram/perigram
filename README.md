@@ -22,7 +22,7 @@ an installable plugin with an external executor.
 Domain vocabulary is authored, not hardcoded: packs and organizations
 declare CTS types, the process compiler turns process graphs into runtime
 contracts, and generic per-class instance services execute every declared
-type (see [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md)).
+type.
 
 ```mermaid
 flowchart LR
@@ -261,10 +261,6 @@ builds only).
 
 | Area | Doc |
 |---|---|
-| System graph | [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md) |
-| Platform convergence roadmap | [docs/PLATFORM_CONVERGENCE.md](./docs/PLATFORM_CONVERGENCE.md) |
-| Remote access and deployment | [docs/REMOTE_ACCESS.md](./docs/REMOTE_ACCESS.md) |
-| UI component audit | [docs/UI_COMPONENT_AUDIT.md](./docs/UI_COMPONENT_AUDIT.md) |
 | Backend | [server/README.md](./server/README.md) |
 | Runtime registry | [server/runtime/README.md](./server/runtime/README.md) |
 | Commands | [server/core/commands/README.md](./server/core/commands/README.md) |
@@ -284,8 +280,6 @@ builds only).
 | Scripts and guardrails | [scripts/README.md](./scripts/README.md) |
 | Deploy tooling (Forgejo autodeploy) | [deploy/README.md](./deploy/README.md) |
 | Facade explainer video | [video/README.md](./video/README.md) |
-| Schema specs | [docs/specs/README.md](./docs/specs/README.md) |
-| Plugin authoring guide | [docs/PLUGIN_AUTHORING.md](./docs/PLUGIN_AUTHORING.md) |
 | Plugin SDK | [packages/plugin-sdk/README.md](./packages/plugin-sdk/README.md) |
 | Animated brand mark (Rive) | [assets/rive/perigram-mark/README.md](./assets/rive/perigram-mark/README.md) |
 | Codex agent assets | [.codex/README.md](./.codex/README.md) |

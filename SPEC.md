@@ -1159,5 +1159,24 @@ offer the export action without per-process action authoring.
 
 ## Generative UI
 
+### Instance pages compose top to bottom (owner direction 2026-10-21)
+The generative UI generates instance pages as one vertical flow — top to
+bottom (or bottom to top): record header, record body, then child
+collections stacked below at full width. No side columns, no tabs on
+record pages. Filled structural content renders open as labeled
+sections; nothing hides behind collapsed panel chrome, and a collapsed
+fact group always carries its show-more control.
+
+### Presentation has one home per concern (owner direction 2026-10-21)
+Action presentation, action applicability, and record/picker labels
+resolve through their canonical seams (`shared/ui-mapping` resolver
+tables, `utils/action-visibility.js`, `titleFor`). Typography rides the
+system-level role tokens; a missing size becomes a new token.
+
+### Documentation tree (owner direction 2026-10-21)
+Documentation is the README.md / SPEC.md / TODO.md tree only; the docs/
+folder does not exist. Schema and spec data live beside the code that
+owns them.
+
 ### Fields display
 Fields should be marked on creation according to CTS (required and identifier)

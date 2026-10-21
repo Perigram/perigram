@@ -242,4 +242,3 @@ converter has no runtime path.
 
 - [SPEC.md](./SPEC.md) — normative type system contract (canonical home).
 - [packages/README.md](../README.md) — package map.
-- [docs/specs/README.md](../../docs/specs/README.md) — spec index entry.

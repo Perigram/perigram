@@ -21,7 +21,7 @@ modules — no platform imports.
   (code, group, kind, purpose, production, pen), replacing the pre-extraction
   system-seeded layer-standard instances. The renderer and every editor or
   preview surface bake these pens through `applyOccsLayerPens`; the spec
-  registry (docs/specs/Cassette spec/layers.json in the platform repo) stays
+  registry ([spec/layers.json](./spec/layers.json)) stays
   the vocabulary of record, pinned in sync by
   `shared/facade-layer-standards.spec.js`.
 - `dimensions.js` builds canonical `dimension.cassette` annotation entities

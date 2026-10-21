@@ -222,7 +222,7 @@ contract. It combines two halves:
   (SPEC §UI). Process data never selects components; the surface id does.
   Plugin-delivered editor modules resolve beside the registry through the
   served surface declarations (`RemoteEditorSurface`, see
-  [remote-surface contract](../../docs/PLUGIN_AUTHORING.md)) — the
+  [remote-surface contract](../../packages/plugin-sdk/README.md)) — the
   facade's cassette designer and sheet editor arrive that way.
 
 Two editor-binding guards live here: `validateEditorBindings(bindings,
