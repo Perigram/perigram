@@ -339,7 +339,10 @@ function nativeTransitionPorts(record = {}) {
       // The target state arrives by wire (SPEC §7): a state node wired
       // into this socket is the transition's target — the wire is the
       // value, and an authored socket default is equivalent.
-      socket('state', processType('status', { typeId }), DATA, true, 'list')
+      socket('state', processType('status', { typeId }), DATA, true, 'list'),
+      // Actor assignment (SPEC §7): users wired here (or prompted on a
+      // manual run) become the instance's lifecycle actors.
+      socket('actors', processType('entityRef', { typeId: 'user' }), DATA, false, 'list')
     ],
     outputs: [
       completedSocket(),

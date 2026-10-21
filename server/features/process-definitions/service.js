@@ -1910,13 +1910,43 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   throw new Error(`Unsupported process effect ${kind}`);
 }
 
-function effectTransitionContext(record = {}, inputs = {}) {
+function actorIdOf(value) {
+  if (value == null) return null;
+  if (typeof value === 'string') return value || null;
+  if (typeof value === 'object') return value.userId || value.id || value._id || null;
+  return null;
+}
+
+// Actor assignment (SPEC §7): the transition's actors value (wire,
+// default, or manual prompt) becomes the instance's lifecycle actor set,
+// refined by the authored assignment facet — a scope list entries carry
+// verbatim, the absent scope assigns for every state.
+function transitionActorEntries(record = {}, inputs = {}) {
+  const values = [].concat(inputs.actors ?? []).filter(Boolean);
+  if (!values.length) return [];
+  const assignment = record.assignment || {};
+  const states = Array.isArray(assignment.scope) && assignment.scope.length
+    ? assignment.scope.map(String)
+    : null;
+  return values
+    .map(actorIdOf)
+    .filter(Boolean)
+    .map(userId => ({
+      userId: String(userId),
+      ...(states ? { states } : {}),
+      ...(assignment.capability ? { capability: String(assignment.capability) } : {})
+    }));
+}
+
+export function effectTransitionContext(record = {}, inputs = {}) {
   const note = inputs.note ?? record.note;
+  const actors = transitionActorEntries(record, inputs);
   return {
     source: { kind: 'process-run', ...(record.id ? { actionId: record.id } : {}) },
     ...(record.state?.axis ? { region: record.state.axis } : {}),
     ...(record.producerOutputId ? { producerOutputId: record.producerOutputId } : {}),
-    ...(note != null && note !== '' ? { metadata: { note: String(note) } } : {})
+    ...(note != null && note !== '' ? { metadata: { note: String(note) } } : {}),
+    ...(actors.length ? { lifecycle: { actors } } : {})
   };
 }
 

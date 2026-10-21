@@ -15,7 +15,7 @@ import {
   validateProcessEdges
 } from './ports.js';
 import { CONSUMER_SPECIES_KINDS, constructionInputsForContract, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
-import { normalizeStateFieldPolicy } from './designer.js';
+import { normalizeStateFieldPolicy, normalizeTransitionAssignment } from './designer.js';
 import { projectUiAction, projectUiContractChannels } from './ui-contract-projection.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
@@ -333,6 +333,14 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       : (classification === 'cts.construct'
         ? (processDefaultValue(node.inputDefaults?.state) || '')
         : '');
+    const assignment = classification === 'cts.transition'
+      ? normalizeTransitionAssignment(node.assignment)
+      : null;
+    // The actors socket prompts only when nothing supplies it (wire or
+    // authored default): a supplied socket resolves at run time.
+    const actorsSupplied = classification !== 'cts.transition'
+      || wiredHandlePaths(nodeId, graph).includes('actors')
+      || Object.hasOwn(node.inputDefaults || {}, 'actors');
     const consumer = ['cts.mutate', 'cts.transition', 'cts.remove'].includes(classification);
     const producerOutputId = consumer
       ? node.producerOutputId || ''
@@ -385,8 +393,14 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
         }
       } : {}),
       ...(node.guard ? { guard: node.guard } : {}),
+      ...(assignment ? { assignment } : {}),
       stateRef: node.stateRef || derived[actionId]?.stateRef || '',
-      inputs: Array.isArray(node.inputs) ? node.inputs.map(input => ({ ...input })) : [],
+      inputs: [
+        ...(Array.isArray(node.inputs) ? node.inputs.map(input => ({ ...input })) : []),
+        ...(classification === 'cts.transition' && !actorsSupplied
+          ? [{ id: 'actors', label: 'user', typeId: 'user', required: false, multiple: true, prompt: true }]
+          : [])
+      ],
       outputs: Array.isArray(node.outputs) ? node.outputs.map(output => ({ ...output })) : [],
       events: [{ id: 'completed', label: `${node.label || actionKind} completed`, kind: 'event' }]
     };
@@ -3769,6 +3783,7 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
       inputPolicy: compiledInputPolicy(action, domain),
       stateRef: action.stateRef || null,
       guard: action.guard || null,
+      assignment: action.assignment || null,
       access: normalizeActionAccess(action.access),
       trigger: {
         mode: action.trigger?.mode || 'manual'

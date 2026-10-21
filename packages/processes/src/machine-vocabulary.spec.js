@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTypeRegistry } from '../../cts/src/index.js';
-import { projectDomainFromView } from '../../cts/src/index.js';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../../cts/src/index.js';
 import { compileProcessDefinition } from './compiler-core.js';
 
 // Machine vocabulary seeding (SPEC §7): state records seed the machines of
@@ -13,6 +12,7 @@ import { compileProcessDefinition } from './compiler-core.js';
 
 function domain() {
   const registry = createTypeRegistry();
+  for (const declaration of frameworkTypes) registry.defineType(declaration);
   registry.defineType({
     id: 'folder', class: 'group', name: 'Folder',
     fields: { name: { base: 'string' } }

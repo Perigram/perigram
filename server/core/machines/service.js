@@ -452,9 +452,13 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       targetStateDefinition
     );
     const targetLifecycleSchema = targetStateDefinition.lifecycle;
-    let lifecycleForValidation = targetLifecycleSchema
-      ? mergeLifecycle(entity.status?.lifecycle, transitionContext.lifecycle)
-      : transitionContext.lifecycle;
+    // Actors are assignment facts: they merge and persist through
+    // schema-less states. Evidence slots are schema facts — without a
+    // target schema the payload keeps actors only.
+    let lifecycleForValidation = mergeLifecycle(entity.status?.lifecycle, transitionContext.lifecycle);
+    if (!targetLifecycleSchema) {
+      lifecycleForValidation = { actors: lifecycleForValidation.actors, attachments: {}, data: {} };
+    }
     const eventId = new ObjectId();
     const evidence = await prepareStatusEvidence({
       db,
@@ -462,11 +466,11 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       typeId: normalizedTypeId,
       auth,
       eventId,
-      lifecycle: targetLifecycleSchema ? lifecycleForValidation : normalizeLifecycle(),
+      lifecycle: lifecycleForValidation,
       schema: targetLifecycleSchema
     });
     lifecycleForValidation = evidence.lifecycle;
-    const lifecycleForStatus = targetLifecycleSchema ? lifecycleForValidation : normalizeLifecycle();
+    const lifecycleForStatus = lifecycleForValidation;
     validateStatusMetadataPayload(transitionMetadata, targetLifecycleSchema);
     
     // 1. Validate Transition

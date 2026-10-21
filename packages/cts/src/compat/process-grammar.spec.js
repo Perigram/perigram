@@ -196,6 +196,22 @@ describe('declaration-check phase', () => {
     expect(errors).not.toContainEqual(expect.stringMatching(/unscoped fieldPolicy/));
   });
 
+  it('checks transition assignment scopes against the draft vocabulary', () => {
+    const registry = registryWithOrgType();
+    const data = {
+      ctsTypes: draftStateRecords(),
+      processNodes: {
+        good: { id: 'good', kind: 'cts.transition', typeId: 'widget', state: { to: 'done' }, assignment: { scope: ['done'], capability: 'reviewer' } },
+        offRow: { id: 'offRow', kind: 'cts.transition', typeId: 'widget', state: { to: 'done' }, assignment: { scope: ['FLYING'] } },
+        stringy: { id: 'stringy', kind: 'cts.transition', typeId: 'widget', state: { to: 'done' }, assignment: { scope: 'done' } }
+      }
+    };
+    const errors = checkDeclarationsAgainstCts({ data }, registry, 'org-1');
+    expect(errors).not.toContainEqual(expect.stringMatching(/^.*good assignment/));
+    expect(errors).toContainEqual(expect.stringMatching(/offRow assignment scope names undeclared state FLYING/));
+    expect(errors).toContainEqual(expect.stringMatching(/stringy assignment scope must be a state list/));
+  });
+
   it('org overlay is the view: other orgs see system types only', () => {
     const registry = registryWithOrgType();
     const errors = checkDeclarationsAgainstCts({

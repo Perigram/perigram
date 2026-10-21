@@ -55,7 +55,7 @@ describe('graph protocol v5 designer round trip', () => {
     const read = resolveCatalogNodePorts({ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, context({ type: 'sheet' }));
     expect(read.outputs).toHaveLength(1);
 
-    expect(transition.inputs.map(port => port.id)).toEqual(['in', 'entity', 'note', 'state']);
+    expect(transition.inputs.map(port => port.id)).toEqual(['in', 'entity', 'note', 'state', 'actors']);
     expect(transition.inputs.some(port => port.id === 'status' || port.id === 'changes')).toBe(false);
     expect(read.inputs.map(port => port.id)).toEqual(['entity']);
     const fieldProjection = resolveCatalogNodePorts(

@@ -161,7 +161,16 @@ export function validateLifecyclePayload(schema, lifecycle = {}, options = {}) {
   const { requireRequired = true } = options;
   const normalized = normalizeLifecycle(lifecycle);
   const hasPayload = hasLifecyclePayload(normalized);
-  if (!schema) return hasPayload ? { ok: false, reason: 'lifecycle_not_allowed' } : { ok: true };
+  if (!schema) {
+    // Actors are assignment facts (they ride states without a lifecycle
+    // schema); evidence slots are schema facts and refuse.
+    for (const actor of normalized.actors) {
+      if (!actor?.userId) return { ok: false, reason: 'invalid_lifecycle_actor' };
+    }
+    const hasEvidence = Object.keys(normalized.attachments).length > 0
+      || Object.keys(normalized.data).length > 0;
+    return hasEvidence ? { ok: false, reason: 'lifecycle_not_allowed' } : { ok: true };
+  }
 
   const allowedActors = Array.isArray(schema.actors) ? schema.actors : [];
   for (const actor of normalized.actors) {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compileActions, compileProcessDefinition, normalizeProcessDefinition, validateProcessDefinition } from './index.js';
 
 const domain = {
-  entities: [{ type: 'project', label: 'Project', fields: [] }],
+  entities: [{ type: 'project', label: 'Project', fields: [] }, { type: 'user', label: 'User', fields: [] }],
   relations: [],
   workflows: {},
   construction: {

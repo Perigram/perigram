@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyWorkflowTransitionState, createWorkflowState, getPrimaryState, getRegionState, normalizeWorkflow, resolveWorkflowStatePath, validateTransition } from './index.js';
+import { applyWorkflowTransitionState, createWorkflowState, getPrimaryState, getRegionState, normalizeWorkflow, resolveWorkflowStatePath, validateLifecyclePayload, validateTransition } from './index.js';
 
 const workflow = {
   schemaVersion: 2,
@@ -80,6 +80,14 @@ describe('workflow transition validation', () => {
     });
 
     expect(result.ok).toBe(true);
+  });
+
+  it('accepts actors without a lifecycle schema and refuses evidence there', () => {
+    const actorsOnly = validateLifecyclePayload(null, { actors: [{ userId: 'u1' }] });
+    expect(actorsOnly.ok).toBe(true);
+    expect(validateLifecyclePayload(null, { actors: [{}] }).reason).toBe('invalid_lifecycle_actor');
+    expect(validateLifecyclePayload(null, { attachments: { proof: { fileId: 'f1' } } }).reason).toBe('lifecycle_not_allowed');
+    expect(validateLifecyclePayload(null, { data: { measuredWidth: 1 } }).reason).toBe('lifecycle_not_allowed');
   });
 
   it('requires lifecycle attachment slots declared as required', () => {
