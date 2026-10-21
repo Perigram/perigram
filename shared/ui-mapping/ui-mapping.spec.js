@@ -667,8 +667,8 @@ describe('weight-driven arrangement', () => {
     // Peers over the budget, each within the column cap, share
     // proportional columns — track fr from each child's estimated rows
     // (card-scale: an 11-row peer is a 2-card collection).
-    expect(arrangeChildren([listNode(4), listNode(4)], 0)).toEqual({ mode: 'columns', tracks: '6fr 6fr' });
-    expect(arrangeChildren([listNode(9), listNode(9)], 0)).toEqual({ mode: 'columns', tracks: '11fr 11fr' });
+    expect(arrangeChildren([listNode(4), listNode(4)], 0)).toEqual({ mode: 'columns', tracks: 'minmax(0, 6fr) minmax(0, 6fr)' });
+    expect(arrangeChildren([listNode(9), listNode(9)], 0)).toEqual({ mode: 'columns', tracks: 'minmax(0, 11fr) minmax(0, 11fr)' });
     // A dominant sibling keeps the flow; the light rest stacks after it.
     const dominant = arrangeChildren([
       { id: 'big', ...detailNode(14) },

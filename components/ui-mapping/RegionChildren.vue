@@ -2,6 +2,7 @@
   <div v-if="arrangement.mode === 'columns'" class="region-columns-host">
     <div
       class="region-columns grid w-full grid-cols-1 gap-6"
+      :data-tracks="regions.length"
       :style="{ '--region-tracks': arrangement.tracks }"
     >
       <RegionBlock
@@ -128,16 +129,26 @@ const orderedRegions = computed(() => (Array.isArray(props.arrangement.order)
 
 <style scoped>
 /* Container-relative peer columns (the SurfaceHeader pattern). The host
-   is the query container; the grid inside responds: columns engage past
-   60rem of container width and stack inside panes, dialogs, and narrow
-   hosts. The track list is the weight-derived custom property set by the
-   template. */
+   is the query container; the grid inside responds and stacks inside
+   panes, dialogs, and narrow hosts. Engagement is per track count — a
+   column earns ~40rem of container width (two tracks engage past 80rem,
+   three past 120rem), so a side-by-side collection always fits its
+   share. The track list is the weight-derived custom property set by
+   the template; its tracks are zero-floored (minmax(0, Nfr)), so wide
+   tables scroll inside their column instead of stretching the grid past
+   the host. */
 .region-columns-host {
   container-type: inline-size;
 }
 
-@container (min-width: 60rem) {
-  .region-columns {
+@container (min-width: 80rem) {
+  .region-columns[data-tracks='2'] {
+    grid-template-columns: var(--region-tracks);
+  }
+}
+
+@container (min-width: 120rem) {
+  .region-columns[data-tracks='3'] {
     grid-template-columns: var(--region-tracks);
   }
 }
