@@ -347,12 +347,20 @@ export function generateUiMappingWorld(seed = 7) {
   // the weights are exactly the counts plus the list overhead.
   const arrangementScreens = {};
   {
-    const leaf = (id, name) => ({
+    // The cluster speaks the world's own vocabulary — generated names,
+    // palette glyphs, word values — so the band screens read as native
+    // world content. Its own seeded generator keeps the cluster
+    // RNG-neutral: the random world's stream is untouched, so pinned
+    // seeds keep their shapes.
+    const clusterRnd = makeRandom(seed ^ 0x5eed);
+    const naturalName = () => clusterRnd.word().replace(/^./, character => character.toUpperCase());
+    const naturalGlyph = () => `pi pi-${clusterRnd.pick(['circle', 'bolt', 'bookmark', 'box', 'tag', 'star', 'cog', 'send'])}`;
+    const leaf = id => ({
       id,
       class: 'item',
       version: 1,
-      name,
-      glyph: 'pi pi-circle',
+      name: naturalName(),
+      glyph: naturalGlyph(),
       fields: {
         name: { base: 'string', label: 'Name', identifier: true },
         note: { base: 'string', label: 'Note' }
@@ -360,21 +368,9 @@ export function generateUiMappingWorld(seed = 7) {
       edges: { relations: {} }
     });
     const cluster = [
-      {
-        id: 'arr_columns', label: 'Arrangement — columns band',
-        children: { heldA: ['arr_columns_a', 'Column A'], heldB: ['arr_columns_b', 'Column B'] },
-        counts: { arr_columns_a: 9, arr_columns_b: 9 }
-      },
-      {
-        id: 'arr_tabs', label: 'Arrangement — tabs band',
-        children: { heldA: ['arr_tabs_a', 'Tab A'], heldB: ['arr_tabs_b', 'Tab B'] },
-        counts: { arr_tabs_a: 12, arr_tabs_b: 12 }
-      },
-      {
-        id: 'arr_side', label: 'Arrangement — side column band',
-        children: { held: ['arr_side_leaf', 'Railed items'] },
-        counts: { arr_side_leaf: 6 }
-      }
+      { id: 'arr_columns', children: { heldA: 'arr_columns_a', heldB: 'arr_columns_b' }, counts: { arr_columns_a: 9, arr_columns_b: 9 } },
+      { id: 'arr_tabs', children: { heldA: 'arr_tabs_a', heldB: 'arr_tabs_b' }, counts: { arr_tabs_a: 12, arr_tabs_b: 12 } },
+      { id: 'arr_side', children: { held: 'arr_side_leaf' }, counts: { arr_side_leaf: 6 } }
     ];
     const leafTypes = [];
     cluster.forEach(group => {
@@ -382,41 +378,41 @@ export function generateUiMappingWorld(seed = 7) {
         id: group.id,
         class: 'group',
         version: 1,
-        name: group.id.replace(/^arr_/, '').replace(/^./, c => c.toUpperCase()),
-        glyph: 'pi pi-objects-column',
+        name: naturalName(),
+        glyph: naturalGlyph(),
         fields: { title: { base: 'string', label: 'Title', identifier: true } },
         edges: { children: {}, relations: {} }
       };
-      Object.entries(group.children).forEach(([key, [leafId, leafName]]) => {
-        const leafType = leaf(leafId, leafName);
+      Object.entries(group.children).forEach(([key, leafId]) => {
+        const leafType = leaf(leafId);
         leafTypes.push(leafType);
         groupType.edges.children[key] = { types: [leafId], onRemove: 'restrict' };
       });
       types.push(groupType);
       const groupInstance = {
         id: `${group.id}-i1`, type: group.id, typeVersion: 1,
-        fields: { title: `${groupType.name} one` }, lineage: {}, relations: {}, state: null, payload: null
+        fields: { title: clusterRnd.word() }, lineage: {}, relations: {}, state: null, payload: null
       };
       instancesByType[group.id] = [groupInstance];
-      Object.entries(group.children).forEach(([key, [leafId]]) => {
+      Object.entries(group.children).forEach(([key, leafId]) => {
         const count = group.counts[leafId];
         instancesByType[leafId] = Array.from({ length: count }, (_, index) => ({
           id: `${leafId}-i${index + 1}`, type: leafId, typeVersion: 1,
-          fields: { name: `${leafId} ${index + 1}`, note: 'seeded' },
+          fields: { name: clusterRnd.word(), note: clusterRnd.word() },
           lineage: { [key]: { type: group.id, id: groupInstance.id } },
           relations: {}, state: null, payload: null
         }));
       });
       const key = `detail_${group.id}`;
       arrangementScreens[key] = {
-        id: key, screenKey: key, label: group.label, kind: 'instanceDetail', template: 'instanceDetail',
+        id: key, screenKey: key, label: `${groupType.name} detail`, kind: 'instanceDetail', template: 'instanceDetail',
         route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'detail', typeId: group.id,
         required: null, roleIds: ['operator'], scope: { instanceId: groupInstance.id }, bindings: {},
         sources: [{ id: 'main', typeId: group.id, mode: 'single', required: null, identifier: '$screen.scope.instanceId' }],
         regions: [{ id: 'main', slot: 'main', sourceId: 'main', surface: 'detail', actions: [] }],
         actions: []
       };
-      Object.entries(group.children).forEach(([edgeKey, [leafId]], index) => {
+      Object.entries(group.children).forEach(([edgeKey, leafId], index) => {
         arrangementScreens[key].sources.push({ id: `c${index}`, typeId: leafId, mode: 'list', required: null, lineage: { sourceId: 'main', key: edgeKey } });
         arrangementScreens[key].regions.push({ id: `c${index}`, slot: 'children', sourceId: `c${index}`, surface: 'list', actions: [] });
       });
@@ -571,8 +567,8 @@ export function generateUiMappingWorld(seed = 7) {
     };
   }
 
-  // The arrangement-band demos close the screen list: every seed ends
-  // with one detail screen per band, labeled as demos.
+  // The arrangement-band screens close the screen list: every seed ends
+  // with one native detail screen per band.
   Object.assign(screens, arrangementScreens);
 
   // Data-state matrix: seeded assignments the showcase applies on demand
