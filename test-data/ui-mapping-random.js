@@ -347,11 +347,11 @@ export function generateUiMappingWorld(seed = 7) {
   // the weights are exactly the counts plus the list overhead.
   const arrangementScreens = {};
   {
-    const leaf = id => ({
+    const leaf = (id, name) => ({
       id,
       class: 'item',
       version: 1,
-      name: id.replace(/(^arr_|_[a-z]+$)/g, '').replace(/^./, c => c.toUpperCase()),
+      name,
       glyph: 'pi pi-circle',
       fields: {
         name: { base: 'string', label: 'Name', identifier: true },
@@ -360,9 +360,21 @@ export function generateUiMappingWorld(seed = 7) {
       edges: { relations: {} }
     });
     const cluster = [
-      { id: 'arr_columns', children: { heldA: 'arr_columns_a', heldB: 'arr_columns_b' }, counts: { arr_columns_a: 9, arr_columns_b: 9 } },
-      { id: 'arr_tabs', children: { heldA: 'arr_tabs_a', heldB: 'arr_tabs_b' }, counts: { arr_tabs_a: 12, arr_tabs_b: 12 } },
-      { id: 'arr_side', children: { held: 'arr_side_leaf' }, counts: { arr_side_leaf: 6 } }
+      {
+        id: 'arr_columns', label: 'Arrangement — columns band',
+        children: { heldA: ['arr_columns_a', 'Column A'], heldB: ['arr_columns_b', 'Column B'] },
+        counts: { arr_columns_a: 9, arr_columns_b: 9 }
+      },
+      {
+        id: 'arr_tabs', label: 'Arrangement — tabs band',
+        children: { heldA: ['arr_tabs_a', 'Tab A'], heldB: ['arr_tabs_b', 'Tab B'] },
+        counts: { arr_tabs_a: 12, arr_tabs_b: 12 }
+      },
+      {
+        id: 'arr_side', label: 'Arrangement — side column band',
+        children: { held: ['arr_side_leaf', 'Railed items'] },
+        counts: { arr_side_leaf: 6 }
+      }
     ];
     const leafTypes = [];
     cluster.forEach(group => {
@@ -375,8 +387,8 @@ export function generateUiMappingWorld(seed = 7) {
         fields: { title: { base: 'string', label: 'Title', identifier: true } },
         edges: { children: {}, relations: {} }
       };
-      Object.entries(group.children).forEach(([key, leafId]) => {
-        const leafType = leaf(leafId);
+      Object.entries(group.children).forEach(([key, [leafId, leafName]]) => {
+        const leafType = leaf(leafId, leafName);
         leafTypes.push(leafType);
         groupType.edges.children[key] = { types: [leafId], onRemove: 'restrict' };
       });
@@ -386,7 +398,7 @@ export function generateUiMappingWorld(seed = 7) {
         fields: { title: `${groupType.name} one` }, lineage: {}, relations: {}, state: null, payload: null
       };
       instancesByType[group.id] = [groupInstance];
-      Object.entries(group.children).forEach(([key, leafId]) => {
+      Object.entries(group.children).forEach(([key, [leafId]]) => {
         const count = group.counts[leafId];
         instancesByType[leafId] = Array.from({ length: count }, (_, index) => ({
           id: `${leafId}-i${index + 1}`, type: leafId, typeVersion: 1,
@@ -397,14 +409,14 @@ export function generateUiMappingWorld(seed = 7) {
       });
       const key = `detail_${group.id}`;
       arrangementScreens[key] = {
-        id: key, screenKey: key, label: `${groupType.name} detail`, kind: 'instanceDetail', template: 'instanceDetail',
+        id: key, screenKey: key, label: group.label, kind: 'instanceDetail', template: 'instanceDetail',
         route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'detail', typeId: group.id,
         required: null, roleIds: ['operator'], scope: { instanceId: groupInstance.id }, bindings: {},
         sources: [{ id: 'main', typeId: group.id, mode: 'single', required: null, identifier: '$screen.scope.instanceId' }],
         regions: [{ id: 'main', slot: 'main', sourceId: 'main', surface: 'detail', actions: [] }],
         actions: []
       };
-      Object.entries(group.children).forEach(([edgeKey, leafId], index) => {
+      Object.entries(group.children).forEach(([edgeKey, [leafId]], index) => {
         arrangementScreens[key].sources.push({ id: `c${index}`, typeId: leafId, mode: 'list', required: null, lineage: { sourceId: 'main', key: edgeKey } });
         arrangementScreens[key].regions.push({ id: `c${index}`, slot: 'children', sourceId: `c${index}`, surface: 'list', actions: [] });
       });
@@ -473,7 +485,6 @@ export function generateUiMappingWorld(seed = 7) {
   }
 
   const screens = {};
-  Object.assign(screens, arrangementScreens);
   screens.home_operator = {
     id: 'home_operator', screenKey: 'home_operator', label: `${rnd.word()} home`, kind: 'route', template: 'home',
     route: '/screens/home_operator', sourceRoute: '/screens/home_operator', placement: 'hub', typeId: null,
@@ -559,6 +570,10 @@ export function generateUiMappingWorld(seed = 7) {
       actions: []
     };
   }
+
+  // The arrangement-band demos close the screen list: every seed ends
+  // with one detail screen per band, labeled as demos.
+  Object.assign(screens, arrangementScreens);
 
   // Data-state matrix: seeded assignments the showcase applies on demand
   // (?state=matrix) so loading skeletons, denied, and error states render
