@@ -545,8 +545,12 @@ from the compiled manifest.
   opening an item that already has a tab in the pane just selects it; a
   new tab opened onto a selected empty placeholder consumes the
   placeholder instead of leaving a dead "new tab" behind. Each
-  tab keeps its own selected content while switching because pane tab keys
-  and the selected key are persisted pane state. In-place replacement is a
+  tab keeps its own selected content while switching: pane tab keys and
+  the selected key are persisted pane state, and the page content host is
+  keyed by the tab's page key, so a switch mounts the selected tab's own
+  content. Every plugin editor page resolves the same `RemoteEditorSurface`
+  loader, whose persistence and module mount bind to one type and record
+  per mount — the page key is the per-tab instance boundary. In-place replacement is a
   navigation step: the workspace keeps a per-pane history stack of the
   replaced content keys (session-only, capped), and the pane header
   renders its Back control — always visible, disabled while the pane has
@@ -557,7 +561,9 @@ from the compiled manifest.
   contract over the instances pool), so the declared identity field wins
   and raw ids never render; type-screen tabs carry procedural labels
   (the generated type key with a locale override over the manifest
-  label).
+  label). Type-bound page tabs (editor pages, directory surfaces) wear
+  the bound type's authored registry glyph; entity-less pages and
+  glyph-less types fall back to the registered page icon.
 - Tab and pane state persists as versioned browser UI state scoped to the
   current user and organization (`utils/home-workspace-state.js`,
   version 3 — instance surfaces are instance-bound screen references).
