@@ -1,7 +1,7 @@
 // Screen composition: projects a compiled screen contract
 // plus a CTS client bundle and an instance pool into a pure render tree.
 // No Vue here — the components/ui-mapping layer materializes this tree.
-import { resolveSurface, resolveChrome, childrenModeFor, estimateRegionWeight, resolveListControls } from './index.js';
+import { resolveSurface, resolveChrome, arrangeChildren, regionSideSpanFor, estimateRegionWeight, resolveListControls, childrenModeFor, SIDE_MAX_WEIGHT } from './index.js';
 import { filterFromFlatFilters, instanceMatchesFilter } from '#shared/instance-filters/index.js';
 
 // Region data state: the data layer may report per-source states
@@ -133,10 +133,15 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   const childRegions = region.slot === 'children' ? [] : (screen.regions || [])
     .filter(child => child.slot === 'children' && child.id !== region.id)
     .map(child => composeRegion(child, screen, contract, pool, typesById, depth + 1, providedStates));
-  // A record page composes top to bottom: its child regions always stack
-  // below the record body. Tabs are a screen-level arrangement (a heavy
-  // home sections its top-level regions).
-  const childrenMode = surfaceKind === 'detail' ? 'stack' : childrenModeFor(childRegions, depth);
+  // Sibling arrangement is weight-driven (arrangeChildren): light peers
+  // column, a dominant sibling keeps the flow, heavy peers tab. A record
+  // page additionally carries light children beside the body in a
+  // weight-proportional side column; heavier child sets arrange below.
+  const childWeight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
+  const childArrangement = arrangeChildren(childRegions, depth);
+  const besideBody = surfaceKind === 'detail' && depth === 0 && childRegions.length > 0
+    && childWeight <= SIDE_MAX_WEIGHT;
+  const sideSpan = besideBody ? regionSideSpanFor(childWeight) : 0;
   return Object.freeze({
     id: region.id,
     slot: region.slot,
@@ -144,7 +149,9 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     dataState: dataStateFor(source, surfaceKind, instances, providedStates),
     chrome,
     level: depth,
-    childrenMode,
+    childArrangement,
+    besideBody,
+    sideSpan,
     weight: estimateRegionWeight({
       surfaceKind,
       type,
