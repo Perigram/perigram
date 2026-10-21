@@ -17,6 +17,18 @@ UI).
   popover actions render through the shared ActionButton with resolver
   presentation.
 
+### Agent Notes (2026-10-21, arrangement container fix)
+
+Session `agent/gen-ui-arr-fix-20261021`, worktree
+`.agent-worktrees/gen-ui-arr-fix-20261021`. The split and peer columns
+declared `container-type` on the same element the `@container` rule
+targeted — an element is its descendants' container, its own rule never
+matched, so both arrangements rendered stacked. RegionBlock and
+RegionChildren now carry a host wrapper as the query container with the
+grid responding inside (the SurfaceHeader pattern). SIDE_MAX_WEIGHT
+rises to 8 rows so realistic child sets ride beside the record body;
+REGION_SIDE_SPANS steps at 4 (spans 4/5 of the 12-track grid).
+
 ### Agent Notes (2026-10-21, arrangement follow-up)
 
 Session `agent/gen-ui-arr-20261021`, worktree

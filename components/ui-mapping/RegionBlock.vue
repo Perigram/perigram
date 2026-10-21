@@ -117,40 +117,41 @@
         @refresh="emit('refresh')"
         @open-instance="emitOpen"
       />
-      <div
-        v-if="splitSide"
-        class="region-split grid w-full grid-cols-1 gap-6"
-        :style="splitTracks"
-      >
-        <div class="min-w-0 flex flex-col gap-6">
-          <SurfaceBody
-            :instance="node.instances[0]"
-            :type="node.type"
-            variant="full"
-            :actions="node.actions"
-            :chrome="node.chrome"
-            :covered-relations="coveredRelationKeys"
-            :editable="patchable"
-            :pool="pool"
-            :bundle="bundle"
-            :state-policy="node.statePolicy"
-            @run="emitRun"
-            @inline-change="inlineChange"
-            @open-instance="emitOpen"
-          />
-        </div>
-        <div class="min-w-0 flex flex-col gap-6">
-          <RegionChildren
-            :regions="node.childRegions"
-            :arrangement="{ mode: 'stack' }"
-            :depth="depth"
-            :pool="pool"
-            :bundle="bundle"
-            :openable="openable"
-            :instance-actions="instanceActions"
-            @run="emitRun"
-            @open="emitOpen"
-          />
+      <div v-if="splitSide" class="region-split-host">
+        <div
+          class="region-split grid w-full grid-cols-1 gap-6"
+          :style="splitTracks"
+        >
+          <div class="min-w-0 flex flex-col gap-6">
+            <SurfaceBody
+              :instance="node.instances[0]"
+              :type="node.type"
+              variant="full"
+              :actions="node.actions"
+              :chrome="node.chrome"
+              :covered-relations="coveredRelationKeys"
+              :editable="patchable"
+              :pool="pool"
+              :bundle="bundle"
+              :state-policy="node.statePolicy"
+              @run="emitRun"
+              @inline-change="inlineChange"
+              @open-instance="emitOpen"
+            />
+          </div>
+          <div class="min-w-0 flex flex-col gap-6">
+            <RegionChildren
+              :regions="node.childRegions"
+              :arrangement="{ mode: 'stack' }"
+              :depth="depth"
+              :pool="pool"
+              :bundle="bundle"
+              :openable="openable"
+              :instance-actions="instanceActions"
+              @run="emitRun"
+              @open="emitOpen"
+            />
+          </div>
         </div>
       </div>
       <template v-else>
@@ -500,10 +501,11 @@ const filteredInstances = computed(() => {
 <style scoped>
 /* Container-relative record split (the SurfaceHeader pattern — the
    tailwindcss build has no container-queries plugin, so this lives in
-   real CSS): the split engages past 60rem of container width and stacks
-   inside panes, dialogs, and narrow columns. The track shares are
-   weight-derived custom properties set by the template. */
-.region-split {
+   real CSS). The host is the query container; the grid inside responds:
+   the split engages past 60rem of container width and stacks inside
+   panes, dialogs, and narrow columns. The track shares are weight-derived
+   custom properties set by the template. */
+.region-split-host {
   container-type: inline-size;
 }
 
