@@ -171,14 +171,15 @@ surface concerns:
   (creates for other types and every other action keep the full label).
   Top-level detail regions compose a record page: a full-width
   `SurfaceHeader`, then the record body with the child regions arranged
-  around it — a light child set (at or under `SIDE_MAX_WEIGHT` rows)
-  rides beside the body in a side column whose 12-track grid span the
-  children's weight earns, while heavier sets arrange below through the
-  weight-driven ladder (columns for light peers, dominant child in the
-  flow with the rest after it, weight-ordered tabs for heavy peers; the
-  split and the columns engage past 60rem of container width and stack
-  in panes and dialogs). Nested detail regions keep the Card surface.
-  Empty regions render a Message.
+  around it — a stack-mode child set (at or under `SIDE_MAX_WEIGHT`
+  card-scale rows) rides beside the body in a side column whose
+  12-track grid span the children's weight earns, while peer sets
+  arrange below through the weight-driven ladder (proportional columns
+  for peers up to the column cap, dominant child in the flow with the
+  rest after it, weight-ordered tabs for heavier peers; the split and
+  the columns engage past 60rem of container width and stack in panes
+  and dialogs). Nested detail regions keep the Card surface. Empty
+  regions render a Message.
 - `BoardCollection.vue` — the state board: the projection whose columns
   are the type's served state vocabulary
   (authored order, `StateTag` headers with per-column counts) and whose
