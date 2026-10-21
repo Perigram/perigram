@@ -37,8 +37,62 @@ into `LAYOUT.linkClamp`. Dormant `GeneratedDeleteButton`,
 Cassette spec package moved to `workers/facade/occs/spec/`,
 PLUGIN_AUTHORING folded into `packages/plugin-sdk/README.md` (authoring
 loop + surface mount contracts), all README links repointed; root
-README doc map dropped the docs rows.
+README doc map dropped the docs rows.## Per-state field policy (owner direction 2026-10-21)
 
+A state declaration in the process designer can narrow which fields are
+visible or editable while instances sit in that state
+([CTS SPEC](./packages/cts/SPEC.md) §7 `fieldPolicy`, §10 per-state
+narrowing). The write boundary enforces `editable`; display surfaces
+filter by `visible`; role grants compose unchanged.
+
+- [ ] IN PROGRESS — author the state facet in the declaration inspector,
+  compile it onto workflow states, enforce it at the instance write
+  boundary, filter display by it, and validate it at the declaration
+  check seam.
+
+### Agent Notes (2026-10-21)
+
+Session `agent/state-field-policy-20261021` (worktree
+`.agent-worktrees/state-field-policy-20261021`). Implemented end to end:
+
+- SPEC §7 StateNode grammar gains `fieldPolicy: { visible?, editable? }`;
+  §10 gains the per-state narrowing paragraph (authored from the owner's
+  ask: see-or-edit different fields per instance state, roles composing
+  through existing grants).
+- `normalizeStateFieldPolicy` (packages/processes `designer.js`) is the
+  one normalization home; draft diagnostics row-check list ids against
+  the draft's own fields and refuse editable outside visible.
+- Canvas round trip carries the facet symmetrically (transpiler
+  projection + rebuild). Found and fixed a seam defect while there: the
+  rebuild spread the previous record under authored keys, so any cleared
+  authored key (deadline included) resurrected on save; the rebuild now
+  writes authored keys only, matching the stated "record is the
+  persisted form of the node" contract.
+- `compileWorkflows` rides the facet onto workflow states; deadline
+  escalation targets now seed from their own state record, so authored
+  facets/labels survive the declaring record's list position.
+- Activation checks (`compat/process-checks.js`): list shape, row ids,
+  editable-within-visible.
+- Write boundary: instances `processUpdate` enforces the current
+  state's whitelists (409, exact path then leaf lookup), workflow
+  resolved through workflow-overrides — the status runtime's seam;
+  unrestricted vocabularies take the no-read fast path. Covers HTTP
+  patch and process mutate effects (both land in `processUpdate`).
+- Display: `stateFieldPolicyByType` (shared/ui-mapping) derives the
+  per-type/state map from compiled producer outputs; the auth store
+  exposes it; `canDisplayEntityField`/`filterEntityFields` narrow
+  display (DataBlock passes it through).
+- Designer: the state inspector authors visible/editable lists over the
+  bound type's row fields (`stateFieldOptions` from the page); an empty
+  selection removes that axis.
+
+Validation: `packages/processes` + `packages/cts` 602✓,
+framework-packages + design-system + instance-field-access + ui-mapping
+145✓ (new cases in each home), instances service 31✓, process-grammar
++ state-field-policy + service 49✓, `check-arch` ✓, `check-docs` ✓,
+`framework:validate` ✓, SSR smoke 13✓. E2E not run — no dev stack in
+session; the repeatable artifact is the package/service suites above.
+Status stays IN PROGRESS until owner verification on the live stack.
 ## Generative UI collapse to one engine (owner direction 2026-10-19)
 
 Every compiled screen renders through the ui-mapping generator with one

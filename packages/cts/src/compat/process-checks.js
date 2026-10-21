@@ -133,6 +133,34 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
         errors.push(...checkGuardExpression(deadline.guard, rowNamesByType.get(typeId), `${path} deadline`));
       }
     }
+    // State field policy (SPEC §7 `fieldPolicy`): the visible/editable
+    // lists are arrays of row field ids of the bound type — row-checked
+    // like guard paths. An unscoped value token satisfies any type, so
+    // its lists check against no single row.
+    if (kind === 'state' && node.fieldPolicy) {
+      for (const listKey of ['visible', 'editable']) {
+        const list = node.fieldPolicy[listKey];
+        if (list === undefined) continue;
+        if (!Array.isArray(list)) {
+          errors.push(`${path} fieldPolicy ${listKey} must be a field list`);
+          continue;
+        }
+        const rows = rowNamesByType.get(node.typeId);
+        if (!rows) continue;
+        for (const fieldId of list) {
+          if (!rows.has(String(fieldId))) {
+            errors.push(`${path} fieldPolicy ${listKey} names field ${fieldId} outside the ${node.typeId} row`);
+          }
+        }
+      }
+      if (Array.isArray(node.fieldPolicy.visible) && Array.isArray(node.fieldPolicy.editable)) {
+        for (const fieldId of node.fieldPolicy.editable) {
+          if (!node.fieldPolicy.visible.includes(fieldId)) {
+            errors.push(`${path} fieldPolicy editable names ${fieldId} outside visible`);
+          }
+        }
+      }
+    }
   });
 
   return errors;

@@ -217,6 +217,11 @@ pure helpers own every state-presentation decision:
   workflows; the first authored entry wins when several producers emit
   one type. This is the only client-side derivation of the state
   vocabulary — types declare nothing about states.
+- `stateFieldPolicyByType(producerOutputs)` — `{ [typeId]: { [value]:
+  { visible, editable } } }` from the same workflows (CTS SPEC §7
+  `fieldPolicy`): the per-state field narrowing the display seam and the
+  instance write boundary consume; only states carrying a facet enter
+  the map, first authored entry winning like the policy derivation.
 - `stateTransitionsByType(producerOutputs)` — `{ [typeId]: [{ from, to,
   region, intent }] }` from the same compiled producer workflows'
   `regions[*].transitions`: the authored machine edges, the board

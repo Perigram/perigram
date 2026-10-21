@@ -25,7 +25,10 @@ imported through server modules that Nitro externalizes.
 - `instance-field-access.js`: Field-level display/redaction helpers shared by
   Nuxt cards and server API serialization. It consumes the facade plugin's listing declarations
   field policies plus the same grant evaluator used by UI actions and backend
-  access checks.
+  access checks. `canDisplayEntityField`/`filterEntityFields` also narrow
+  display by the current state's field policy when the auth context carries
+  `stateFieldPolicies` (the auth store derives it from the compiled producer
+  workflows; CTS SPEC §7 `fieldPolicy`, §10).
 - `ui-permissions.js`: Compatibility UI resolver backed by the same grant
   evaluator as the server access engine.
 - `role-access-summary.js`: Annotated derived role access summary for process

@@ -16,6 +16,9 @@ vi.mock('../plugins/repository.js', () => ({
   listDeclarationsByOrganization: vi.fn(async () => []),
   findDeclarationByTypeId: vi.fn(async () => null)
 }));
+vi.mock('../workflow-overrides/service.js', () => ({
+  resolveActiveWorkflow: vi.fn(async () => null)
+}));
 vi.mock('../cts-types/repository.js', () => ({
   findByTypeId: vi.fn(async (organizationId, typeId) => (
     typeId === 'panel'
@@ -51,6 +54,7 @@ vi.mock('../cts-types/repository.js', () => ({
 import { instanceServiceResolver } from './service.js';
 import * as repository from './repository.js';
 import { findByTypeId } from '../cts-types/repository.js';
+import { resolveActiveWorkflow } from '../workflow-overrides/service.js';
 import * as pluginInstalls from '../plugins/repository.js';
 import documentsListing from '../../../workers/documents/listing.json' with { type: 'json' };
 const documentsByType = new Map(documentsListing.declarations.types.map(type => [type.id, type]));
@@ -135,6 +139,48 @@ describe('generic instance service stored shape (SPEC §3)', () => {
       state: 'passed'
     }, 'org-1')).rejects.toThrow(/status runtime/);
     expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('locks row-field writes outside the current state field policy (SPEC §7)', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('panel');
+    resolveActiveWorkflow.mockResolvedValueOnce({
+      primaryRegion: 'main',
+      states: {
+        available: { fieldPolicy: { visible: ['serial', 'width'], editable: ['width'] } },
+        installed: {}
+      },
+      regions: { main: { initial: 'available', states: { available: { fieldPolicy: { visible: ['serial', 'width'], editable: ['width'] } }, installed: {} }, transitions: [] } }
+    });
+    coll.findOne.mockResolvedValue({ _id: '507f1f77bcf86cd799439011', type: 'panel', state: 'available', fields: {} });
+
+    await expect(service.processUpdate('507f1f77bcf86cd799439011', {
+      fields: { serial: 'AX-2' }
+    }, 'org-1')).rejects.toThrow(/serial.*locked in state available/);
+    expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
+
+    await service.processUpdate('507f1f77bcf86cd799439011', {
+      fields: { width: 1800 }
+    }, 'org-1');
+    expect(coll.findOneAndUpdate).toHaveBeenCalled();
+  });
+
+  it('writes unrestricted when no state carries a field policy', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('panel');
+    resolveActiveWorkflow.mockResolvedValueOnce({
+      primaryRegion: 'main',
+      states: { available: {} },
+      regions: { main: { initial: 'available', states: { available: {} }, transitions: [] } }
+    });
+
+    await service.processUpdate('507f1f77bcf86cd799439011', {
+      fields: { serial: 'AX-3' }
+    }, 'org-1');
+
+    // The unrestricted fast path reads no instance document.
+    expect(coll.findOne).not.toHaveBeenCalled();
+    expect(coll.findOneAndUpdate).toHaveBeenCalled();
   });
 
   it('maps wire patch paths to §3 field writes', async () => {

@@ -222,6 +222,7 @@
                   :type-options="declarationTypeOptions"
                   :type-anchor-options="typeAnchorOptions"
                   :state-options="declarationStateOptions"
+                  :state-field-options="declarationStateFieldOptions"
                   @sync="syncNodeData"
                   @update-name="value => updateClassName(selectedNode, value)"
                   @update-display-role="({ flag, value }) => setFieldDisplayRole(selectedNode, flag, value)"
@@ -1650,6 +1651,17 @@ const declarationStateOptions = computed(() => {
     .filter(record => record?.kind === 'state' && record.value && String(record.id) !== selfId
       && (typeId == null || record.typeId === typeId || record.typeId == null))
     .map(record => ({ label: record.label || record.value, value: record.value }));
+});
+// State field-policy lists select row field ids of the bound type (SPEC
+// §7): slot prefixes strip the same way guard paths do.
+const declarationStateFieldOptions = computed(() => {
+  const node = selectedNode.value;
+  if (node?.type !== 'ctsState') return [];
+  const typeId = node.data?.typeId;
+  if (!typeId) return [];
+  return designer.fieldsForEntity(typeId)
+    .map(field => ({ label: field.i18n ? t(field.i18n) : (field.label || field.value), value: String(field.value || '').replace(/^(data|specs)\./, '') }))
+    .filter(field => field.value);
 });
 function commandForId(commandId) {
   return servedCommands.value.find(command => command?.id === commandId) || null;

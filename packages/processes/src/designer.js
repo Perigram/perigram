@@ -24,6 +24,23 @@ export function camelCaseId(value = '') {
     + rest.map(segment => segment.charAt(0).toUpperCase() + segment.slice(1)).join('');
 }
 
+// Per-state field policy (SPEC §7 `fieldPolicy`, §10): whitelists over the
+// bound type's row. An absent facet or list leaves that axis unrestricted;
+// an authored empty list allows nothing.
+export function normalizeStateFieldPolicy(fieldPolicy = null) {
+  if (!fieldPolicy || typeof fieldPolicy !== 'object' || Array.isArray(fieldPolicy)) return null;
+  const list = value => Array.isArray(value)
+    ? Object.freeze([...new Set(value.map(item => String(item)).filter(Boolean))])
+    : null;
+  const visible = list(fieldPolicy.visible);
+  const editable = list(fieldPolicy.editable);
+  const normalized = {
+    ...(visible ? { visible } : {}),
+    ...(editable ? { editable } : {})
+  };
+  return Object.keys(normalized).length ? Object.freeze(normalized) : null;
+}
+
 // The single authored-definition seam (SPEC §20): every consumer of an
 // authored graph — server validation/activation, canvas round trip —
 // flows through here. Authored definitions speak the current species
@@ -299,6 +316,7 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
   // precondition.
   const unscopedStateValues = new Set();
   const valuesByType = new Map();
+  const rowIdsByType = new Map();
   for (const node of nodes) {
     if (node.type !== 'ctsState' || !node.data?.value) continue;
     if (node.data.typeId == null) {
@@ -309,8 +327,14 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
     values.add(String(node.data.value));
     valuesByType.set(node.data.typeId, values);
   }
-
   for (const node of nodes) {
+    if (node.type !== 'ctsField' || !node.data?.typeId || !node.data?.name) continue;
+    const ids = rowIdsByType.get(node.data.typeId) || new Set();
+    ids.add(camelCaseId(node.data.name));
+    rowIdsByType.set(node.data.typeId, ids);
+  }
+  for (const node of nodes) {
+    if (node.type !== 'ctsClass' && node.type !== 'ctsField') continue;
     if (node.type === 'ctsField') {
       const name = String(node.data?.name || '').trim();
       try {
@@ -332,6 +356,38 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
           });
         } catch (error) {
           diagnostics.push(`class ${labelOf(node)}: operator ${operator.id || '(unnamed)'}: ${error.message}`);
+        }
+      }
+    }
+  }
+
+  // Per-state field policy (SPEC §7): shape, declared rows, and the
+  // editable-within-visible invariant, against the draft's own field nodes
+  // (activation row-checks against the registry view beside this).
+  for (const node of nodes) {
+    if (node.type !== 'ctsState' || !node.data?.fieldPolicy) continue;
+    const facet = node.data.fieldPolicy;
+    const value = String(node.data?.value || '(state)');
+    for (const key of ['visible', 'editable']) {
+      if (facet[key] !== undefined && !Array.isArray(facet[key])) {
+        diagnostics.push(`state ${value}: fieldPolicy ${key} must be a field list`);
+      }
+    }
+    if (!node.data.typeId) continue;
+    const rowIds = rowIdsByType.get(node.data.typeId);
+    if (rowIds?.size) {
+      for (const key of ['visible', 'editable']) {
+        for (const fieldId of Array.isArray(facet[key]) ? facet[key] : []) {
+          if (!rowIds.has(String(fieldId))) {
+            diagnostics.push(`state ${value}: fieldPolicy ${key} names undeclared field ${fieldId}`);
+          }
+        }
+      }
+    }
+    if (Array.isArray(facet.visible) && Array.isArray(facet.editable)) {
+      for (const fieldId of facet.editable) {
+        if (!facet.visible.includes(fieldId)) {
+          diagnostics.push(`state ${value}: fieldPolicy editable names ${fieldId} outside visible`);
         }
       }
     }

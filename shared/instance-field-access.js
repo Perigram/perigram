@@ -96,6 +96,23 @@ export function findEntityFieldPolicy(typeId, path, auth = null) {
   return matches[0] || null;
 }
 
+// Per-state narrowing (CTS SPEC §7 `fieldPolicy`, §10): the compiled
+// per-state facets arrive on the auth context keyed by type and state
+// value. The instance's state resolves the exact machine path first,
+// then the leaf segment; an unrestricted facet or absent entry displays.
+function stateVisibleAllows(statePolicies, typeId, entity, path) {
+  const byValue = statePolicies?.[typeId];
+  if (!byValue) return true;
+  const state = String(entity?.state ?? '');
+  if (!state) return true;
+  const facet = byValue[state] || byValue[state.split('.').pop()];
+  if (!facet || !Array.isArray(facet.visible)) return true;
+  const fieldId = String(path || '').startsWith('fields.')
+    ? String(path).slice('fields.'.length)
+    : String(path || '');
+  return facet.visible.includes(fieldId);
+}
+
 export function canDisplayEntityField({
   permissions = {},
   auth = null,
@@ -107,6 +124,7 @@ export function canDisplayEntityField({
   const descriptor = normalizeFieldDescriptor(field);
   const requestedPath = path || descriptor.path;
   if (!typeId || !requestedPath) return false;
+  if (!stateVisibleAllows(auth?.stateFieldPolicies, typeId, entity, requestedPath)) return false;
 
   const policy = findEntityFieldPolicy(typeId, requestedPath, auth);
   if (!policy) return false;
