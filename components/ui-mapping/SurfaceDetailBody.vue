@@ -17,38 +17,45 @@
             />
           </div>
         </div>
-        <div v-if="hiddenFactCount(group) > 0" :class="d.specRow">
-          <span class="text-body text-muted">…</span>
-          <Tag :value="`+${hiddenFactCount(group)}`" severity="contrast" />
+        <div v-if="hiddenFactCount(group) > 0" class="py-1">
+          <Button
+            :label="factGroupExpanded(group)
+              ? $t('uiMapping.showLess')
+              : $t('uiMapping.showMore', { count: hiddenFactCount(group) })"
+            size="small"
+            text
+            @click="toggleFacts(group)"
+          />
         </div>
       </div>
-      <Fieldset
-        v-if="structuralOf(group).length === 1 && isRichStructure(structuralOf(group)[0])"
-        :legend="structuralOf(group)[0].label"
-        toggleable
-        class="w-full"
-      >
-        <StructuralFieldPanel
-          :field="structuralOf(group)[0]"
-          :editable="editable"
-          :editing="editingField === structuralOf(group)[0].name"
-          :pool="pool"
-          :bundle="bundle"
-          @begin="editingField = structuralOf(group)[0].name"
-          @end="editingField = null"
-          @inline-change="change => emit('inline-change', change)"
-        />
-      </Fieldset>
-      <div v-else-if="structuralOf(group).length === 1" :class="d.specRow">
-        <span class="text-body text-muted">{{ structuralOf(group)[0].label }}</span>
-        <InlineField
-          :field="structuralOf(group)[0]"
-          :editable="editable"
-          :pool="pool"
-          :bundle="bundle"
-          @inline-change="change => emit('inline-change', change)"
-        />
-      </div>
+      <!-- Structural fields follow the section grammar of everything else
+           on the record page: a labeled open block per field, rendered in
+           the open. -->
+      <template v-for="field in structuralOf(group)" :key="field.name">
+        <div v-if="isRichStructure(field)" class="flex w-full flex-col gap-1">
+          <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
+          <StructuralFieldPanel
+            :field="field"
+            :editable="editable"
+            :editing="editingField === field.name"
+            :pool="pool"
+            :bundle="bundle"
+            @begin="editingField = field.name"
+            @end="editingField = null"
+            @inline-change="change => emit('inline-change', change)"
+          />
+        </div>
+        <div v-else :class="d.specRow">
+          <span class="text-body text-muted">{{ field.label }}</span>
+          <InlineField
+            :field="field"
+            :editable="editable"
+            :pool="pool"
+            :bundle="bundle"
+            @inline-change="change => emit('inline-change', change)"
+          />
+        </div>
+      </template>
       <div
         v-for="field in inlineMapsOf(group)"
         :key="field.name"
@@ -63,25 +70,6 @@
           @inline-change="change => emit('inline-change', change)"
         />
       </div>
-      <Accordion v-if="structuralOf(group).length > 1" :value="['0']" multiple class="w-full">
-        <AccordionPanel
-          v-for="(field, index) in structuralOf(group)"
-          :key="field.name"
-          :value="String(index)"
-          :header="field.label"
-        >
-          <StructuralFieldPanel
-            :field="field"
-            :editable="editable"
-            :editing="editingField === field.name"
-            :pool="pool"
-            :bundle="bundle"
-            @begin="editingField = field.name"
-            @end="editingField = null"
-            @inline-change="change => emit('inline-change', change)"
-          />
-        </AccordionPanel>
-      </Accordion>
     </section>
 
     <section v-for="relation in relationViews" :key="relation.key" :class="d.stackTight">
@@ -120,11 +108,7 @@ import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import Accordion from 'primevue/accordion';
-import AccordionPanel from 'primevue/accordionpanel';
-import Fieldset from 'primevue/fieldset';
 import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups, fieldLabelKey, localizedLabel, startCaseKey } from '#shared/ui-mapping/index.js';
-import FieldControl from './FieldControl.vue';
 import InlineField from './InlineField.vue';
 import StructuralFieldPanel from './StructuralFieldPanel.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
@@ -149,6 +133,9 @@ const d = inject('uiMappingSpacing');
 // One structural panel edits at a time (SPEC UI): the parent owns the
 // editing field name, StructuralFieldPanel owns its draft.
 const editingField = ref(null);
+// Per-group fact expansion: the budget collapses a wide fact group behind
+// one show-more control that reaches every row.
+const expandedFacts = ref({});
 
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
 const hasPreview = computed(() => surface.value.slots.includes('preview'));
@@ -189,12 +176,19 @@ const hasValue = field => field.value !== null
 const scalarsOf = group => group.fields.filter(field => isScalarFact(field) && hasValue(field));
 const structuralOf = group => group.fields.filter(field => !isScalarFact(field) && !isQuantityMap(field) && editableNow(field));
 const shownFacts = group => {
-  const outcome = applyBudget(scalarsOf(group), DETAIL_FACT_BUDGET);
-  return outcome.mode === 'collapsed' ? outcome.visible : scalarsOf(group);
+  const scalars = scalarsOf(group);
+  if (expandedFacts.value[group.id]) return scalars;
+  const outcome = applyBudget(scalars, DETAIL_FACT_BUDGET);
+  return outcome.mode === 'collapsed' ? outcome.visible : scalars;
 };
 const hiddenFactCount = group => {
+  if (expandedFacts.value[group.id]) return 0;
   const outcome = applyBudget(scalarsOf(group), DETAIL_FACT_BUDGET);
   return outcome.mode === 'collapsed' ? outcome.hidden : 0;
+};
+const factGroupExpanded = group => Boolean(expandedFacts.value[group.id]);
+const toggleFacts = group => {
+  expandedFacts.value = { ...expandedFacts.value, [group.id]: !expandedFacts.value[group.id] };
 };
 
 const relationViews = computed(() => {

@@ -146,8 +146,8 @@ export const HEADER_ACTIONS_INLINE = 2;
 
 // Weight-driven composition: sibling content whose estimated rendered
 // height (in rows) exceeds the surface budget stops stacking and arranges
-// into tabs at the top level (stacked accordions deeper) — decided at
-// compose time from data, never measured from the DOM.
+// into tabs at the top level — a compose-time decision over data. Record
+// pages always stack (composeScreen forces stacked detail children).
 export const SURFACE_ROW_BUDGET = 10;
 
 // Full-height weight: every element counts, scaled by how tall its
@@ -173,18 +173,20 @@ export const CARD_VARIANT_RULES = Object.freeze({
 
 // Hierarchy-driven rhythm and type: the composed node's chrome level picks
 // the stack gap and the heading typography role, so spacing and type scale
-// follow position instead of per-component choices.
+// follow the tree position. The level-0 record header is the generated
+// instance page's own title — it carries the page-title role; nested
+// surfaces step down through the section-heading and label roles.
 export const GAP_BY_LEVEL = Object.freeze({
   0: 'stack',
   1: 'stackTight'
 });
 
 export const TYPE_BY_LEVEL = Object.freeze({
-  0: 'text-section-heading',
+  0: 'text-page-title',
   1: 'text-section-heading',
   2: 'text-label'
 });
-export const DETAIL_FACT_BUDGET = Object.freeze({ max: 4, overflow: 'count' });
+export const DETAIL_FACT_BUDGET = Object.freeze({ max: 4, overflow: 'more' });
 
 export const SCALAR_BASES = Object.freeze(['string', 'number', 'quantity', 'instant', 'boolean', 'enum']);
 
@@ -269,6 +271,10 @@ export const LAYOUT = Object.freeze({
   calendarCellToday: 'flex min-h-20 flex-col gap-1 rounded-panel bg-content p-1.5',
   nameClamp: 'min-w-0 truncate',
   chipClamp: 'max-w-48 [&_.p-chip-label]:truncate',
+  // Identity link buttons (collection rows, board/calendar/timeline cards,
+  // breadcrumbs): left-aligned, clamped at the label node so long names
+  // truncate inside their row.
+  linkClamp: 'min-w-0 max-w-full text-left [&_.p-button-label]:truncate',
   specList: 'flex flex-col divide-y divide-content-border',
   specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
   dialog: 'w-full max-w-full sm:w-[36rem]'

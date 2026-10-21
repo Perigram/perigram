@@ -98,56 +98,53 @@
     />
   </div>
 
-  <div v-else :class="[stackFor, 'w-full', 'region-detail']">
+  <div v-else :class="[stackFor, 'w-full']">
     <RegionDataState v-if="showState" :node="node" />
-    <div v-if="depth === 0 && showSurfaces" class="detail-split grid w-full grid-cols-1 gap-6">
-      <div class="detail-main-col min-w-0 flex flex-col gap-6">
-        <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
-        <SurfaceHeader
-          :type="node.type"
-          :instance="node.instances[0]"
-          :actions="headerActions"
-          :level="node.level"
-          :pool="pool"
-          :bundle="bundle"
-          :state-policy="node.statePolicy"
-          :navigation="depth === 0 ? navigation : null"
-          :editor-action="editorActions?.[node.type?.id] || null"
-          @run="emitRun"
-          @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
-          @refresh="emit('refresh')"
-          @open-instance="emitOpen"
-        />
-        <SurfaceBody
-          :instance="node.instances[0]"
-          :type="node.type"
-          variant="full"
-          :actions="node.actions"
-          :chrome="node.chrome"
-          :covered-relations="coveredRelationKeys"
-          :editable="patchable"
-          :pool="pool"
-          :bundle="bundle"
-          :state-policy="node.statePolicy"
-          @run="emitRun"
-          @inline-change="inlineChange"
-          @open-instance="emitOpen"
-        />
-      </div>
-      <div v-if="node.childRegions.length" class="detail-side-col min-w-0 flex flex-col gap-4">
-        <RegionChildren
-          :regions="node.childRegions"
-          :mode="node.childrenMode"
-          :depth="depth"
-          :pool="pool"
-          :bundle="bundle"
-          :openable="openable"
-          :instance-actions="instanceActions"
-          @run="emitRun"
-          @open="emitOpen"
-        />
-      </div>
-    </div>
+    <template v-if="depth === 0 && showSurfaces">
+      <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
+      <SurfaceHeader
+        :type="node.type"
+        :instance="node.instances[0]"
+        :actions="headerActions"
+        :level="node.level"
+        :pool="pool"
+        :bundle="bundle"
+        :state-policy="node.statePolicy"
+        :navigation="depth === 0 ? navigation : null"
+        :editor-action="editorActions?.[node.type?.id] || null"
+        @run="emitRun"
+        @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
+        @refresh="emit('refresh')"
+        @open-instance="emitOpen"
+      />
+      <SurfaceBody
+        :instance="node.instances[0]"
+        :type="node.type"
+        variant="full"
+        :actions="node.actions"
+        :chrome="node.chrome"
+        :covered-relations="coveredRelationKeys"
+        :editable="patchable"
+        :pool="pool"
+        :bundle="bundle"
+        :state-policy="node.statePolicy"
+        @run="emitRun"
+        @inline-change="inlineChange"
+        @open-instance="emitOpen"
+      />
+      <RegionChildren
+        v-if="node.childRegions.length"
+        :regions="node.childRegions"
+        :mode="node.childrenMode"
+        :depth="depth"
+        :pool="pool"
+        :bundle="bundle"
+        :openable="openable"
+        :instance-actions="instanceActions"
+        @run="emitRun"
+        @open="emitOpen"
+      />
+    </template>
     <template v-else-if="showSurfaces">
       <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
       <SurfaceBody
@@ -194,9 +191,7 @@ import {
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
-import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
-import { loadProjectionPreference, storeProjectionPreference } from '~/utils/ui-projection-preference.js';
-import { loadFilterViewState, storeFilterViewState } from '~/utils/filter-view-state.js';
+import { loadSortPreference, storeSortPreference, loadProjectionPreference, storeProjectionPreference, loadFilterViewState, storeFilterViewState } from '~/utils/ui-view-state.js';
 import SurfaceBody from './SurfaceBody.vue';
 import SortControl from './SortControl.vue';
 import ActionButton from './ActionButton.vue';
@@ -454,33 +449,3 @@ const filteredInstances = computed(() => {
 });
 </script>
 
-<style scoped>
-/* Container-relative record page (the SurfaceHeader pattern — the
-   tailwindcss build has no container-queries plugin, so this lives in
-   real CSS): the detail region is its own layout container. The record
-   header and main content stack under 60rem of container width (panes,
-   dialogs, narrow columns); wide surfaces engage the 7/5 side column
-   where child collections render beside the record instead of
-   below it. */
-.region-detail {
-  container-type: inline-size;
-}
-
-.detail-split {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-@container (min-width: 60rem) {
-  .detail-split {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-  }
-
-  .detail-main-col {
-    grid-column: span 7;
-  }
-
-  .detail-side-col {
-    grid-column: span 5;
-  }
-}
-</style>
