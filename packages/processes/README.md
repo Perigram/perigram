@@ -791,7 +791,9 @@ wire several targets — the union stays one entry and one storage key), and
 Unlink receives the already-rendered target reference, so it never opens an
 entity selector — its rendering home is that reference (the mapping
 contract's inline placement, see
-[shared/ui-mapping](../../shared/ui-mapping/README.md)). The compiled
+[shared/ui-mapping](../../shared/ui-mapping/README.md)). The pair belongs to
+the ENTRY, so sibling constructs over the same type and relation derive it
+once: the first manual action over the entry owns the derivation. The compiled
 contract carries the relation key, the accepted
 target types, cardinality, the declared target domain (`where`, CTS SPEC §6 —
 pickers offer what writes accept; the write boundary evaluates the same

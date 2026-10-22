@@ -67,7 +67,12 @@ Routes are grouped into sub-directories corresponding to features:
 - `process-definitions/`: Draft/activation endpoints, effect-free graph
   preview, plus durable orchestration. `POST /:id/runs` starts a trigger,
   `POST /runs/:id/resume` advances a running or due-waiting run, and
-  `GET /runs/:id` reads its status. Route handlers delegate authorization,
+  `GET /runs/:id` reads its status. The `active/` subtree serves the
+  active contract's runtime surface: `POST active/actions/:id/execute`
+  runs one compiled manual action, `GET active/actions/:id/options`
+  resolves Link-picker candidates, and `POST active/exports/run`
+  executes a declaration-derived export action (SPEC §Exports) with
+  action-scoped grants. Route handlers delegate authorization,
   persistence, scheduling, and effects to the process-definitions feature
   service. `POST /preview` evaluates pure/read nodes from an unsaved
   definition, bounds returned tree samples, and suppresses effects and
