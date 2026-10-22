@@ -1642,10 +1642,25 @@ const transitionGuardFieldOptions = computed(() => {
   if (record?.kind !== 'cts.transition') return [];
   return rowFieldIdOptions(nodeTypeId(record));
 });
+// A state wired into a typed create/transition operation authors its facet
+// against that operation's row — the same structural wire compileWorkflows
+// seeds the vocabulary by (an unscoped token is the pack-type case).
+function stateConsumerTypeId(stateNodeId) {
+  for (const edge of edges.value) {
+    if (String(edge.source) !== String(stateNodeId)) continue;
+    const target = nodes.value.find(node => String(node.id) === String(edge.target));
+    const record = draft.value?.data?.processNodes?.[String(target?.data?.refId || target?.id || '')];
+    const typeId = record?.typeId || record?.targetTypeId || '';
+    if (typeId) return typeId;
+  }
+  return '';
+}
 const declarationStateFieldOptions = computed(() => {
   const node = selectedNode.value;
-  if (node?.type !== 'ctsState' || !node.data?.typeId) return [];
-  return rowFieldIdOptions(node.data.typeId, { topLevelOnly: true });
+  if (node?.type !== 'ctsState') return [];
+  const typeId = node.data?.typeId || stateConsumerTypeId(node.id);
+  if (!typeId) return [];
+  return rowFieldIdOptions(typeId, { topLevelOnly: true });
 });
 // The class inspector's identifier dropdown (SPEC §4): options are the
 // sibling field nodes of the selected class; '' leaves the flag unowned
