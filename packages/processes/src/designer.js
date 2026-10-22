@@ -232,6 +232,10 @@ export const DECLARATION_NODE_TYPES = Object.freeze(['ctsClass', 'ctsType', 'cts
 
 export function declarationWireLegality({ sourceType = '', targetType = '', targetRecord = null, targetRecordKind = '' } = {}) {
   if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
+  // A state also declares on a type-reference node: the wire scopes it to
+  // that registry type (owner direction 2026-10-22) — pack-type lifecycles
+  // scope their state vocabulary through the anchor, one scope per state.
+  if (sourceType === 'ctsState' && targetType === 'ctsType') return 'declares';
   // Children edges land child-first: the source is the child (an in-tree
   // class or a type-reference card naming a registry type — SPEC §6, the
   // child edge's type list is not restricted to in-tree declarations),
@@ -635,7 +639,7 @@ export function declarationNodePorts(node = {}, types = []) {
   if (node.type === 'ctsType') {
     const entry = types.find(candidate => candidate.id === node.data?.typeId);
     return {
-      inputSpecs: [],
+      inputSpecs: [{ id: 'declare', label: 'states', role: 'data', type: processType('json'), access: 'item', plane: 'declaration' }],
       outputSpecs: entry
         ? [{ id: 'type', label: entry.id, role: 'data', type: processType('entityRef', { typeId: entry.id }), access: 'item', plane: 'declaration' }]
         : []
@@ -681,6 +685,8 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
       declaredBy.set(source.id, target.id);
       if (source.type === 'ctsField') fieldCounts.set(target.id, (fieldCounts.get(target.id) || 0) + 1);
       else stateCounts.set(target.id, (stateCounts.get(target.id) || 0) + 1);
+    } else if (source.type === 'ctsState' && target.type === 'ctsType') {
+      declaredBy.set(source.id, target.id);
     } else if (source.type === 'ctsClass' || source.type === 'ctsType') {
       if (target.type === 'processNode') {
         bindEdges.push([source, target]);

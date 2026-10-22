@@ -22,6 +22,7 @@ describe('declaration wire vocabulary (legality + interpretation agree)', () => 
     const legal = [
       ['ctsField', 'ctsClass', null, 'declares'],
       ['ctsState', 'ctsClass', null, 'declares'],
+      ['ctsState', 'ctsType', null, 'declares'],
       ['ctsClass', 'ctsClass', null, 'children'],
       ['ctsState', 'ctsState', null, 'nested'],
       ['ctsState', 'processNode', { kind: 'cts.construct' }, 'entry'],
@@ -85,5 +86,14 @@ describe('declaration wire vocabulary (legality + interpretation agree)', () => 
     const { mutations } = interpretDeclarationEdges(nodes, [edge('d1', 'f1', 'cls', 'field'), edge('e1', 'f1', 'gf', 'field')], { gf: record('gf', 'cts.field', 'panel') }, {}, {}, []);
     const applied = Object.fromEntries(mutations.map(m => [`${m.recordId}:${m.key}`, m.value]));
     expect(applied['gf:path']).toBe('fields.width');
+  });
+
+  it('a state wired into a type reference scopes to that registry type (owner direction 2026-10-22)', () => {
+    const nodes = [
+      typeNode('anchor', 'sheet-design'),
+      stateNode('s1', 'PRODUCTION', { typeId: null })
+    ];
+    const { mutations } = interpretDeclarationEdges(nodes, [edge('d1', 's1', 'anchor', 'state')], {}, {}, {}, []);
+    expect(mutations).toContainEqual({ scope: 'node', nodeId: 's1', key: 'typeId', value: 'sheet-design' });
   });
 });

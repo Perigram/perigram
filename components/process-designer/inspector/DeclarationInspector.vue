@@ -83,39 +83,6 @@
           :type-options="typeOptions"
           @update:model-value="value => { node.data.descriptor = value; $emit('sync'); }"
         />
-        <!-- The SPEC §4 naming facet clusters apart from the row grammar:
-             label defaults to the authored name, display kind derives
-             when absent, depiction marks the thumbnail source. -->
-        <div class="flex flex-col gap-2 rounded-ui bg-subtle p-2">
-          <div class="flex items-center gap-2">
-            <InputText
-              :model-value="node.data.descriptor?.label || ''"
-              size="small"
-              class="min-w-0 flex-1"
-              :placeholder="node.data.name || $t('processDesigner.fieldDisplayLabel')"
-              :aria-label="$t('processDesigner.fieldDisplayLabel')"
-              @update:model-value="value => patchDescriptor({ label: String(value || '').trim() || undefined })"
-            />
-            <Select
-              :model-value="node.data.descriptor?.display || ''"
-              :options="displayKindOptions"
-              option-label="label"
-              option-value="value"
-              size="small"
-              class="min-w-0 flex-1"
-              :aria-label="$t('processDesigner.fieldDisplayKind')"
-              @update:model-value="value => patchDescriptor({ display: value || undefined })"
-            />
-          </div>
-          <label class="flex items-center gap-2">
-            <Checkbox
-              :model-value="node.data.descriptor?.depiction === true"
-              :binary="true"
-              @update:model-value="value => $emit('update-display-role', { flag: 'depiction', value })"
-            />
-            <span class="text-supporting text-muted">{{ $t('processDesigner.picture') }}</span>
-          </label>
-        </div>
       </div>
     </template>
 
@@ -197,23 +164,21 @@
 // The declaration inspector: class (name + glyph + class preset + the
 // identifier dropdown over the class's field nodes + declaration
 // diagnostics), field (name + descriptor via the shared type-designer
-// editor + the SPEC §4 display tokens: label, display kind, and the
-// depiction flag), state (name, severity, icon, field policy — a
-// first-class canvas node wired into the class, into a Create node for
-// the entry, or into a status-mutating effect for the transition
+// editor), state (name, severity, icon, field policy — a first-class
+// canvas node wired into the class or a type anchor, into a Create node
+// for the entry, or into a status-mutating effect for the transition
 // target), and type reference selection. The identifier dropdown emits
 // `update-identifier-field` (the page's single-holder move across the
-// sibling field nodes); the depiction toggle emits
-// `update-display-role` the same way. Mutations write the canvas node's
-// declaration data and emit `sync`; the live-graph pass re-derives
-// records, ports, and the tree overlay from it.
+// sibling field nodes). Mutations write the canvas node's declaration
+// data and emit `sync`; the live-graph pass re-derives records, ports,
+// and the tree overlay from it.
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import MultiSelect from 'primevue/multiselect';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Checkbox from 'primevue/checkbox';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
-import { DECLARABLE_CLASSES, DISPLAY_KINDS } from '~/packages/cts/src/index.js';
+import { DECLARABLE_CLASSES } from '~/packages/cts/src/index.js';
 import { iconFontGlyphs } from '#shared/icon-fonts.js';
 import { computed } from 'vue';
 
@@ -232,7 +197,7 @@ const props = defineProps({
   identifierFieldValue: { type: String, default: '' }
 });
 
-const emit = defineEmits(['sync', 'update-name', 'update-display-role', 'update-identifier-field']);
+const emit = defineEmits(['sync', 'update-name', 'update-identifier-field']);
 
 const classOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
 
@@ -252,11 +217,6 @@ const glyphOptions = Object.freeze([
   { label: '', value: '' },
   ...GLYPH_CHOICES.map(value => ({ label: value, value })),
   ...iconFontGlyphs.map(value => ({ label: value, value }))
-]);
-
-const displayKindOptions = Object.freeze([
-  { label: 'auto', value: '' },
-  ...DISPLAY_KINDS.map(value => ({ label: value, value }))
 ]);
 
 // State field policy (SPEC §7): an empty selection removes that axis —
@@ -279,15 +239,6 @@ function setFieldPolicyList(key, value) {
   else delete facet[key];
   if (Object.keys(facet).length) props.node.data.fieldPolicy = facet;
   else delete props.node.data.fieldPolicy;
-  emit('sync');
-}
-
-function patchDescriptor(changes) {
-  const descriptor = { ...(props.node.data.descriptor || { base: 'string' }), ...changes };
-  for (const key of Object.keys(changes)) {
-    if (descriptor[key] === undefined) delete descriptor[key];
-  }
-  props.node.data.descriptor = descriptor;
   emit('sync');
 }
 </script>
