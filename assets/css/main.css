@@ -401,9 +401,8 @@ body {
 
     /* Container-relative record-body grids (the ui-mapping LAYOUT
        tokens factsGrid/bodyGrid): blocks render at content width and
-       pack — full width is earned by wide content (.ck-span-full),
-       never by default. Sections cap at fit-content(46rem) so long
-       fact lists wrap into columns inside one section. */
+       pack; sections cap at fit-content(46rem) so long fact lists wrap
+       inside one section. */
     .ck-facts-grid {
         display: flex;
         flex-wrap: wrap;
@@ -414,10 +413,6 @@ body {
     .ck-facts-grid > * {
         flex: 0 1 auto;
         max-width: 100%;
-    }
-
-    .ck-facts-grid .ck-span-full {
-        flex-basis: 100%;
     }
 
     .ck-body-grid {
@@ -432,10 +427,5 @@ body {
         flex: 0 1 auto;
         width: fit-content(46rem);
         max-width: 100%;
-    }
-
-    .ck-body-grid .ck-span-full {
-        flex-basis: 100%;
-        width: 100%;
     }
 }

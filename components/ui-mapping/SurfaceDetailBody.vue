@@ -11,7 +11,7 @@
       <section
         v-for="group in groups"
         :key="group.id"
-        :class="[d.stackTight, { 'ck-span-full': groupSpansFull(group) }]"
+        :class="d.stackTight"
       >
         <span v-if="group.label" :class="d.sectionTitle">{{ group.label }}</span>
         <div v-if="shownFacts(group).length" :class="variant === 'full' ? LAYOUT.factsGrid : LAYOUT.specList">
@@ -27,7 +27,7 @@
               />
             </div>
           </div>
-          <div v-if="hiddenFactCount(group) > 0" class="ck-span-full py-1">
+          <div v-if="hiddenFactCount(group) > 0" class="py-1">
             <Button
               :label="factGroupExpanded(group)
                 ? $t('uiMapping.showLess')
@@ -175,9 +175,6 @@ const isQuantityMap = field => field.descriptor.base === 'map'
 // nothing (empty panels are junk).
 const editableNow = field => hasValue(field);
 const inlineMapsOf = group => group.fields.filter(field => isQuantityMap(field) && editableNow(field));
-// A group carrying rich structural content or quantity maps spans the
-// full body-grid row: those blocks need the width.
-const groupSpansFull = group => structuralOf(group).some(isRichStructure) || inlineMapsOf(group).length > 0;
 const isRichStructure = field => {
   const value = field.value;
   if (field.descriptor.base === 'blob') return false;
