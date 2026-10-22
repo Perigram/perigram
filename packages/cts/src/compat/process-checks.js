@@ -161,24 +161,6 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
         }
       }
     }
-    // Transition assignment facets (SPEC §7): scope values name declared
-    // states of the bound type's draft vocabulary.
-    if (kind === 'cts.transition' && node.assignment) {
-      const scope = node.assignment.scope;
-      if (scope !== undefined && !Array.isArray(scope)) {
-        errors.push(`${path} assignment scope must be a state list`);
-      } else if (Array.isArray(scope) && typeId) {
-        const states = statesByType.get(typeId) || new Set();
-        for (const value of scope) {
-          if (!states.has(String(value)) && !unscopedStateValues.has(String(value))) {
-            errors.push(`${path} assignment scope names undeclared state ${value}`);
-          }
-        }
-      }
-      if (node.assignment.capability !== undefined && typeof node.assignment.capability !== 'string') {
-        errors.push(`${path} assignment capability must be a label`);
-      }
-    }
   });
 
   return errors;

@@ -1,10 +1,9 @@
-// Transition actor assignment (CTS SPEC §7): the actors socket, the
-// assignment facet's normalization, draft diagnostics, and the compiled
-// action's prompt exposure.
+// Transition actor assignment (CTS SPEC §7): the user-typed actors
+// socket and the compiled surface — assignment rides the graph (wire or
+// authored socket default) and never prompts at action time.
 import { describe, expect, it } from 'vitest';
-import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '../../cts/src/index.js';
+import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '../../cts/src/index.js';
 import { resolveCatalogNodePorts } from './node-catalog.js';
-import { normalizeTransitionAssignment, compileTreeDeclarations } from './designer.js';
 import { compileProcessDefinition } from './compiler-core.js';
 
 describe('transition actors socket', () => {
@@ -15,51 +14,7 @@ describe('transition actors socket', () => {
   });
 });
 
-describe('normalizeTransitionAssignment', () => {
-  it('keeps a deduped scope list and string capability; drops everything else', () => {
-    expect(normalizeTransitionAssignment({ scope: ['done', 'done'], capability: 'reviewer' }))
-      .toEqual({ scope: ['done'], capability: 'reviewer' });
-    expect(normalizeTransitionAssignment({ scope: [] })).toBeNull();
-    expect(normalizeTransitionAssignment({ scope: 'done' })).toBeNull();
-    expect(normalizeTransitionAssignment(null)).toBeNull();
-  });
-});
-
-describe('transition assignment draft diagnostics', () => {
-  const classNode = { id: 'cls', type: 'ctsClass', position: { x: 0, y: 0 }, data: { refId: 'cls', typeId: 'panel', class: 'item' } };
-  const stateNode = value => ({
-    id: `s-${value}`, type: 'ctsState', position: { x: 0, y: 240 },
-    data: { refId: `s-${value}`, typeId: 'panel', value, terminal: false }
-  });
-  const transitionNode = { id: 't1', type: 'processNode', position: { x: 240, y: 0 }, data: { refId: 't1' } };
-
-  function diagnosticsFor(records) {
-    return compileTreeDeclarations(
-      [classNode, stateNode('available'), stateNode('done'), transitionNode],
-      [
-        { id: 'd1', source: 's-available', target: 'cls', role: 'type', label: 'state' },
-        { id: 'd2', source: 's-done', target: 'cls', role: 'type', label: 'state' }
-      ],
-      records
-    ).diagnostics;
-  }
-
-  it('accepts a scope over declared states and names undeclared ones', () => {
-    const good = diagnosticsFor({
-      t1: { id: 't1', kind: 'cts.transition', typeId: 'panel', state: { to: 'done' }, assignment: { scope: ['done'], capability: 'reviewer' } }
-    });
-    expect(good).toEqual([]);
-
-    const bad = diagnosticsFor({
-      t1: { id: 't1', kind: 'cts.transition', typeId: 'panel', state: { to: 'done' }, assignment: { scope: ['ghost'] } },
-      t2: { id: 't2', kind: 'cts.transition', typeId: 'panel', state: { to: 'done' }, assignment: { scope: 'done' } }
-    });
-    expect(bad).toContainEqual(expect.stringMatching(/t1: assignment scope names undeclared state ghost/));
-    expect(bad).toContainEqual(expect.stringMatching(/t2: assignment scope must be a state list/));
-  });
-});
-
-describe('compiled transition actions expose the assignment', () => {
+describe('compiled transition actions expose no actors prompt', () => {
   function compiledWith(transition, extraNodes = [], extraEdges = []) {
     const registry = createTypeRegistry();
     for (const declaration of frameworkTypes) registry.defineType(declaration);
@@ -110,20 +65,16 @@ describe('compiled transition actions expose the assignment', () => {
     }, domain, {});
   }
 
-  it('carries the facet and prompts the actors input when nothing supplies it', () => {
-    const compiled = compiledWith({ assignment: { scope: ['done'], capability: 'reviewer' } });
-    const action = compiled.actions.t1;
-    expect(action.assignment).toEqual({ scope: ['done'], capability: 'reviewer' });
-    expect(action.inputs).toContainEqual(expect.objectContaining({ id: 'actors', typeId: 'user', prompt: true }));
-  });
+  it('keeps the action inputs empty wired or not', () => {
+    const unwired = compiledWith({ inputDefaults: { actors: ['u-1'] } });
+    expect(unwired.actions.t1.inputs).toEqual([]);
 
-  it('prompts nothing when a wire supplies the actors socket', () => {
-    const compiled = compiledWith(
-      { assignment: { capability: 'reviewer' } },
+    const wired = compiledWith(
+      {},
       [{ id: 'who', kind: 'source.currentUser', typeId: null }],
       [{ id: 'e1', source: 'who', sourceHandle: 'data:value', target: 't1', targetHandle: 'data:actors', role: 'data' }]
     );
-    const action = compiled.actions.t1;
-    expect(action.inputs.some(input => input.id === 'actors')).toBe(false);
+    expect(wired.actions.t1.inputs).toEqual([]);
+    expect(wired.actions.t1.assignment).toBeUndefined();
   });
 });

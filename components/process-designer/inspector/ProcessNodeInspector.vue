@@ -29,33 +29,6 @@
         >{{ item.label }}</span>
       </div>
     </div>
-    <Panel v-if="record.kind === 'cts.transition' && typeId" :header="$t('processDesigner.transitionStatusHeader')" class="mt-0">
-      <div class="flex flex-col gap-3">
-        <div class="flex flex-col gap-1">
-          <label>{{ $t('processDesigner.transitionAxis') }}</label>
-          <Select
-            :model-value="record.state?.axis || 'main'"
-            :options="transitionAxisOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
-            @update:model-value="value => updateTransitionReference('axis', value)"
-          />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label>{{ $t('processDesigner.transitionTo') }}</label>
-          <Select
-            :model-value="record.state?.to || ''"
-            :options="transitionPathOptions(record.state?.axis || 'main')"
-            option-label="label"
-            option-value="value"
-            size="small"
-            filter
-            @update:model-value="value => updateTransitionReference('to', value)"
-          />
-        </div>
-      </div>
-    </Panel>
     <Panel v-if="record.kind === 'cts.transition' && typeId" :header="$t('processDesigner.transitionGuard')" class="mt-0">
       <div class="flex flex-col gap-3">
         <div class="flex flex-col gap-1">
@@ -98,32 +71,6 @@
           <Button icon="pi pi-times" :aria-label="$t('common.delete')" size="small" text severity="danger" @click="removeGuardCondition(index)" />
         </div>
         <Button icon="pi pi-plus" :label="$t('processDesigner.addGuardCondition')" size="small" text @click="addGuardCondition" />
-      </div>
-    </Panel>
-    <Panel v-if="record.kind === 'cts.transition' && typeId" :header="$t('processDesigner.transitionAssignment')" class="mt-0">
-      <div class="flex flex-col gap-3">
-        <div class="flex flex-col gap-1">
-          <label>{{ $t('processDesigner.assignmentScope') }}</label>
-          <StateMultiSelect
-            :model-value="record.assignment?.scope || []"
-            :options="transitionPathOptions(record.state?.axis || 'main')"
-            option-label="label"
-            option-value="value"
-            size="small"
-            filter
-            class="w-full"
-            :placeholder="$t('processDesigner.assignmentScopeAll')"
-            @update:model-value="setAssignmentScope"
-          />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label>{{ $t('processDesigner.assignmentCapability') }}</label>
-          <InputText
-            :model-value="record.assignment?.capability || ''"
-            size="small"
-            @update:model-value="setAssignmentCapability"
-          />
-        </div>
       </div>
     </Panel>
     <Panel v-if="producerAvailable" :header="$t('processDesigner.createdEntity')" class="mt-0">
@@ -317,7 +264,6 @@ import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
-import StateMultiSelect from 'primevue/multiselect';
 import Panel from 'primevue/panel';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Tag from 'primevue/tag';
@@ -338,8 +284,6 @@ const props = defineProps({
   commandOptions: { type: Array, default: () => [] },
   commandService: { type: Object, default: null },
   servicePrincipalOptions: { type: Array, default: () => [] },
-  transitionAxisOptions: { type: Array, default: () => [{ label: 'main', value: 'main' }] },
-  transitionPathOptions: { type: Function, default: () => [] },
   // Row-relative field paths of the transition's bound type — guard
   // conditions select among them (SPEC §7 paths are row-relative).
   guardFieldOptions: { type: Array, default: () => [] },
@@ -427,44 +371,6 @@ const serviceBillingModeOptions = computed(() => [
   { label: t('processDesigner.serviceBillingNone'), value: 'none' },
   { label: t('processDesigner.serviceBillingPrepaidTokens'), value: 'prepaidTokens' }
 ]);
-
-// A transition operation references a declared transition; it never authors
-// state policy. Changing axis clears endpoints that do not belong to it.
-function updateTransitionReference(key, value) {
-  const previousAxis = props.record.state?.axis || 'main';
-  const state = { ...(props.record.state || {}) };
-  if (key === 'axis' && value !== previousAxis) {
-    state.from = '';
-    state.to = '';
-  }
-  state[key] = value;
-  props.record.state = state;
-  emit('sync');
-}
-
-// Assignment authoring (SPEC §7): an empty scope assigns the resolved
-// actors for every state (ownership); the facet exists only while a
-// fact is authored.
-function writeAssignment(patch) {
-  const assignment = { ...(props.record.assignment || {}), ...patch };
-  for (const key of Object.keys(patch)) {
-    if (assignment[key] === undefined || assignment[key] === null
-      || (Array.isArray(assignment[key]) && !assignment[key].length)) {
-      delete assignment[key];
-    }
-  }
-  if (Object.keys(assignment).length) props.record.assignment = assignment;
-  else delete props.record.assignment;
-  emit('sync');
-}
-
-function setAssignmentScope(value) {
-  writeAssignment({ scope: Array.isArray(value) ? value.map(String) : [] });
-}
-
-function setAssignmentCapability(value) {
-  writeAssignment({ capability: String(value || '').trim() || null });
-}
 
 // Guard authoring (SPEC §7): the guard is one boolean expression AST over
 // { value }; this editor is a projection over the flat comparison subset —

@@ -1917,25 +1917,15 @@ function actorIdOf(value) {
   return null;
 }
 
-// Actor assignment (SPEC §7): the transition's actors value (wire,
-// default, or manual prompt) becomes the instance's lifecycle actor set,
-// refined by the authored assignment facet — a scope list entries carry
-// verbatim, the absent scope assigns for every state.
+// Actor assignment (SPEC §7): the transition's actors value (wire or
+// authored socket default) becomes the instance's actor set — ownership,
+// applying to every state.
 function transitionActorEntries(record = {}, inputs = {}) {
   const values = [].concat(inputs.actors ?? []).filter(Boolean);
-  if (!values.length) return [];
-  const assignment = record.assignment || {};
-  const states = Array.isArray(assignment.scope) && assignment.scope.length
-    ? assignment.scope.map(String)
-    : null;
   return values
     .map(actorIdOf)
     .filter(Boolean)
-    .map(userId => ({
-      userId: String(userId),
-      ...(states ? { states } : {}),
-      ...(assignment.capability ? { capability: String(assignment.capability) } : {})
-    }));
+    .map(userId => ({ userId: String(userId) }));
 }
 
 export function effectTransitionContext(record = {}, inputs = {}) {

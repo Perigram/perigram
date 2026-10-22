@@ -241,8 +241,6 @@
                   :command-options="commandOptions"
                   :command-service="selectedCommandService"
                   :service-principal-options="servicePrincipalOptions"
-                  :transition-axis-options="transitionAxisOptions"
-                  :transition-path-options="transitionPathOptions"
                   :guard-field-options="transitionGuardFieldOptions"
                   :construction-modes="constructionModeOptions(nodeTypeId(selectedProcessNode))"
                   :artifact-kinds="artifactCreationKinds(selectedProcessNode)"
@@ -1539,15 +1537,6 @@ const typeIdOptions = computed(() => {
   const icons = new Map(ctsTypeView().map(entry => [entry.id, entry.icon]));
   return designer.entityOptions.map(option => ({ ...option, icon: icons.get(option.value) || null }));
 });
-const transitionAxisOptions = computed(() => {
-  const typeId = nodeTypeId(selectedProcessNode.value);
-  const workflow = typeId ? ctsProjectedDomain().workflows?.[typeId] : null;
-  return Object.keys(workflow?.regions || {}).map(axis => ({ label: axis, value: axis }));
-});
-function transitionPathOptions(axis = 'main') {
-  return processWorkflowPaths(selectedProcessNode.value, axis)
-    .map(({ label, value }) => ({ label, value }));
-}
 const declarationTypeOptions = computed(() => [
   ...new Set([
     ...ctsTypeView().map(entry => entry.id),
