@@ -9,23 +9,7 @@
       </TabList>
       <TabPanels>
         <TabPanel v-for="region in composed.regions" :key="region.id" :value="region.id">
-          <RegionBlock
-            :node="region"
-            :pool="pool"
-            :bundle="bundle"
-            :openable="openable"
-            :instance-actions="instanceActionsByType"
-            :patchable="patchable"
-            :resolve-transitions="onFetchTransitions"
-            :load-type="onLoadType"
-            :navigation="navigation"
-            :editor-actions="editorActions"
-            embedded
-            @run="openAction"
-            @transition="executeTransition"
-            @open="openInstance"
-            @patch="submitPatch"
-          />
+          <RegionBlock v-bind="regionBlockProps" v-on="regionBlockEvents" :node="region" embedded />
         </TabPanel>
       </TabPanels>
     </Tabs>
@@ -33,20 +17,9 @@
       v-for="region in composed.regions"
       v-else
       :key="region.id"
+      v-bind="regionBlockProps"
+      v-on="regionBlockEvents"
       :node="region"
-      :pool="pool"
-      :bundle="bundle"
-      :openable="openable"
-      :instance-actions="instanceActionsByType"
-      :patchable="patchable"
-      :resolve-transitions="onFetchTransitions"
-      :load-type="onLoadType"
-      :navigation="navigation"
-      :editor-actions="editorActions"
-      @run="openAction"
-      @transition="executeTransition"
-      @open="openInstance"
-      @patch="submitPatch"
     />
 
     <!-- The routed detail surface keeps the same conversation contract as
@@ -262,6 +235,18 @@ const openInstance = instance => {
 };
 
 const patchable = computed(() => typeof props.onPatch === 'function');
+// One binding set for every composed region block (tabs and stack).
+const regionBlockProps = computed(() => ({
+  pool: pool.value,
+  bundle: props.bundle,
+  openable: openable.value,
+  instanceActions: instanceActionsByType.value,
+  patchable: patchable.value,
+  resolveTransitions: props.onFetchTransitions,
+  loadType: props.onLoadType,
+  navigation: props.navigation,
+  editorActions: props.editorActions
+}));
 const submitPatch = async ({ instance, patch } = {}) => {
   if (!patchable.value || !instance) return;
   submitting.value = true;
@@ -428,5 +413,12 @@ const openAction = (action, context = {}) => {
     return;
   }
   runAction(action, {}, context);
+};
+
+const regionBlockEvents = {
+  run: openAction,
+  transition: executeTransition,
+  open: openInstance,
+  patch: submitPatch
 };
 </script>

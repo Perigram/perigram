@@ -1,9 +1,8 @@
 <template>
   <StateBlock v-if="refreshingAuth" state="loading" :message="$t('common.loading')" />
-  <GeneratedScreen v-else-if="screen && !isGeneratedScreen" :screen="screen" :back="back" />
-  <StandardPage v-else-if="screen" workspace :title="pageTitle" :back="pageTitle ? back : null">
+  <StandardPage v-else-if="screen && pageTitle" workspace :title="pageTitle" :back="back">
     <template #actions>
-      <Button v-if="pageTitle" icon="pi pi-refresh" :label="$t('common.refresh')" severity="secondary" outlined size="small" :loading="poolLoading" @click="reload" />
+      <Button icon="pi pi-refresh" :label="$t('common.refresh')" severity="secondary" outlined size="small" :loading="poolLoading" @click="reload" />
     </template>
     <GeneratedScreenHost
       ref="host"
@@ -13,6 +12,14 @@
       @open-instance="openInstance"
     />
   </StandardPage>
+  <GeneratedScreenHost
+    v-else-if="screen"
+    ref="host"
+    :screen="screen"
+    :screen-key="screenKey"
+    :navigation="detailNavigation"
+    @open-instance="openInstance"
+  />
 </template>
 
 <script setup>
@@ -21,12 +28,12 @@ import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import { useAuthStore } from '~/stores/auth';
-import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
+import { synthesizeDetailScreen } from '~/components/generated/detail-screen-actions.js';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { usePageBack } from '~/composables/usePageBack.js';
-import { resolveDefaultHomeScreen } from '~/utils/process-navigation.js';
+import { resolveDefaultHomeScreen, screenByKey } from '~/utils/process-navigation.js';
 import { HOME_SCREEN_ROUTE } from '~/packages/processes/src/screen-contract.js';
 
 definePageMeta({
@@ -55,27 +62,19 @@ const screenKey = computed(() => Array.isArray(route.params.screenKey)
   : route.params.screenKey
 );
 
-// Process screens arrive in the compiled UI contract vocabulary
-// (typeList/instanceDetail/home + typeId) and render through the
-// generator host; workspace overloads (the home shell) and the system
-// screen templates stay on the system-screen renderer, which owns their
-// surfaces.
-const isGeneratedScreen = computed(() => (
-  screen.value?.template === 'typeList'
-  || screen.value?.template === 'instanceDetail'
-  || screen.value?.template === 'formAction'
-));
-// The routed detail's record header owns the page: the type label and
-// back affordance render once, through the record header's anatomy and
-// navigation channel. List screens keep the route title strip.
+// Every compiled screen renders through the generator host: generator
+// templates directly, the home template as the host's overload branch.
+// Titled list screens keep the route title strip; detail and home
+// surfaces own their headers.
+const GENERATOR_TEMPLATES = ['typeList', 'instanceDetail', 'formAction'];
 const pageTitle = computed(() => (
-  screen.value?.template === 'instanceDetail' || screen.value?.template === 'formAction'
+  [...GENERATOR_TEMPLATES, 'home'].includes(screen.value?.template)
     ? null
     : screen.value?.label || screen.value?.screenKey
 ));
 
 const screen = computed(() => {
-  const base = authStore.screenManifest.find(item => item.screenKey === screenKey.value)
+  const base = screenByKey(authStore.screenManifest, screenKey.value)
     || synthesizedDetailScreen(screenKey.value)
     // Home is the default screen: an unresolvable key (no active
     // definition, one that no longer compiles, a stale bookmark) renders
@@ -89,11 +88,17 @@ const screen = computed(() => {
     }
   };
 });
-// Home serves at the stable shell route; a stale /screens/home* URL
-// replaces to it instead of rendering a second home surface.
-watch(() => screen.value?.template, template => {
-  if (template === 'home' && process.client && route.path !== HOME_SCREEN_ROUTE) {
+// A stale /screens/home* URL replaces to /home instead of rendering a
+// second home surface; system screens (organization overview/account,
+// route records) own their own routes and replace there.
+watch(() => [screen.value?.template, screen.value?.route], ([template, screenRoute]) => {
+  if (!process.client || !template) return;
+  if (template === 'home' && route.path !== HOME_SCREEN_ROUTE) {
     navigateTo(HOME_SCREEN_ROUTE, { replace: true });
+    return;
+  }
+  if (!GENERATOR_TEMPLATES.includes(template) && template !== 'home') {
+    navigateTo(screenRoute || HOME_SCREEN_ROUTE, { replace: true });
   }
 }, { immediate: true });
 
@@ -121,40 +126,14 @@ function openInstance({ typeId, instanceId } = {}) {
   navigateTo({ path: `/screens/${encodeURIComponent(detailKey)}`, query: { instanceId } });
 }
 
+// The synthesized fallback speaks the compiled UI contract vocabulary
+// (instanceDetail + typeId) from the type's list screen, exactly like
+// the workspace's detail-screen synthesizer.
 function synthesizedDetailScreen(key = '') {
   if (!String(key).endsWith('_detail')) return null;
   const baseKey = String(key).slice(0, -'_detail'.length);
-  const base = authStore.screenManifest.find(item => item.screenKey === baseKey);
-  const typeId = base?.typeId;
-  if (!base || !typeId) return null;
-  const sourceId = base.sources?.[0]?.id || typeId;
-  const required = base.required || base.sources?.[0]?.required || null;
-  // The synthesized fallback speaks the compiled UI contract vocabulary
-  // (instanceDetail + typeId) so it renders through the generator like the
-  // compiler-paired detail screens it stands in for.
-  return {
-    ...base,
-    id: `${base.id || baseKey}_detail`,
-    screenKey: key,
-    route: `/screens/${encodeURIComponent(key)}`,
-    template: 'instanceDetail',
-    placement: 'detail',
-    sources: [{
-      id: sourceId,
-      typeId,
-      mode: 'single',
-      required,
-      identifier: '$screen.scope.instanceId'
-    }],
-    regions: [{
-      id: 'main',
-      slot: 'main',
-      sourceId,
-      surface: 'detail',
-      actions: base.actions || []
-    }],
-    actions: base.actions || []
-  };
+  const base = screenByKey(authStore.screenManifest, baseKey);
+  return base ? synthesizeDetailScreen(base) : null;
 }
 
 function scopeFromQuery(query = {}) {

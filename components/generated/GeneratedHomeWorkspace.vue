@@ -148,7 +148,6 @@
               :closeable="paneCount > 1"
               :back="paneHasHistory(pane.id)"
               @back="goBackFromPane(pane.id)"
-              @execute-action="executeWorkspaceAction"
               @open-entity="request => openWorkspaceEntity(request.typeId, { _id: request.instanceId }, { editor: request.editor === true })"
               @open-page="openWorkspacePage"
               @open-call="request => openCallTab(request.room, request)"
@@ -196,7 +195,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Button from 'primevue/button';
-import StandardDialog from '~/components/shared/StandardDialog.vue';
 import Avatar from 'primevue/avatar';
 import PanelMenu from 'primevue/panelmenu';
 import { useI18n } from 'vue-i18n';
@@ -209,13 +207,13 @@ import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/cha
 import { consumePendingWorkspacePage, workspacePageOpenEvent } from '~/utils/workspace-page-open.js';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
-import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
 import { titleFor, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { resolveGeneratedWorkspacePage, generatedWorkspacePages, entityWorkspacePageIdFor } from '~/components/generated/workspace-pages.js';
-import { resolveDetailScreen } from '~/components/generated/detail-screen-actions.js';
+import { resolveDetailScreen, typeListScreenForTypeId } from '~/components/generated/detail-screen-actions.js';
 import { resolveFileSurface } from '~/components/generated/file-surfaces.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
+import { screenByKey } from '~/utils/process-navigation.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useRegistryStore } from '~/stores/registry';
@@ -246,11 +244,10 @@ import {
 
 const props = defineProps({
   screen: { type: Object, required: true },
-  sourceState: { type: Function, required: true },
-  screenActions: { type: Array, default: () => [] }
+  sourceState: { type: Function, required: true }
 });
 
-const emit = defineEmits(['refresh', 'execute-action']);
+const emit = defineEmits(['refresh']);
 
 const authStore = useAuthStore();
 const entityPopup = useEntityPopup();
@@ -647,15 +644,9 @@ function entityPanelItem(node) {
   };
 }
 
-// Communication is ONE panel: Chats and Calls are flat sibling rows
-// inside it — Chats opens the chats workspace page, Calls is always
-// present and toggles the CommunicationMenu flyout listing every
-// ringable conversation — and active call rooms render as further flat
-// rows, only while a room is active. Nothing is nested under anything.
-// PanelMenu, two communication entries: Chats is a plain entry opening
-// the chats workspace page; Calls is always present, toggles the
-// CommunicationMenu flyout listing every ringable conversation, and
-// carries active rooms as its rows — only while rooms exist.
+// Two communication entries in the PanelMenu: Chats opens the chats
+// workspace page; Calls toggles the CommunicationMenu flyout and carries
+// active call rooms as its rows only while rooms exist.
 function communicationPanelModels() {
   const rooms = activeRoomItems();
   const chatsSelected = selectedMenuKeys.value.has('communication:chats');
@@ -775,15 +766,11 @@ function typeLabelOf(typeId = '') {
 
 // The screen a type node opens: its compiled typeList screen.
 function typeScreenFor(typeId = '') {
-  return (authStore.screenManifest || []).find(screen => (
-    screen.typeId === typeId && screen.template === 'typeList'
-  )) || null;
+  return typeListScreenForTypeId({ screens: authStore.screenManifest || [], typeId });
 }
 
 function screenLabelFor(screenKey = '') {
-  const screen = (authStore.screenManifest || []).find(candidate => (
-    candidate.screenKey === screenKey || candidate.id === screenKey
-  ));
+  const screen = screenByKey(authStore.screenManifest || [], screenKey);
   return localizedLabel({ te, t }, screen?.typeId ? typeLabelKey(screen.typeId) : '', screen?.label || screen?.typeId || screenKey);
 }
 
@@ -1068,20 +1055,25 @@ const callPageRefs = ref([]);
 // conversation as its own tab.
 const chatPageRefs = ref([]);
 
-function openChatTab(conversationKey = '', label = '') {
-  if (!activePane.value) return;
-  const key = conversationKey ? `page:chat:${conversationKey}` : 'page:chats';
-  const existing = chatPageRefs.value.find(chat => chat.key === key);
+// Calls and pinned chats are ephemeral tabs (never persisted with the
+// pane layout): find-or-register the ref, refresh its live label, and
+// select it as a new tab.
+function openEphemeralTab(refs, record) {
+  const existing = refs.value.find(item => item.key === record.key);
   if (existing) {
-    if (label && existing.label !== label) existing.label = label;
+    if (record.label && existing.label !== record.label) existing.label = record.label;
   } else {
-    chatPageRefs.value = [...chatPageRefs.value, {
-      key,
-      conversationKey,
-      label
-    }];
+    refs.value = [...refs.value, record];
   }
-  selectPaneTab(activePane.value.id, key, { newTab: true });
+  if (activePane.value) selectPaneTab(activePane.value.id, record.key, { newTab: true });
+}
+
+function openChatTab(conversationKey = '', label = '') {
+  openEphemeralTab(chatPageRefs, {
+    key: conversationKey ? `page:chat:${conversationKey}` : 'page:chats',
+    conversationKey,
+    label
+  });
 }
 
 function openRequestedWorkspaceChat(event) {
@@ -1101,23 +1093,15 @@ function openRequestedWorkspacePage(event) {
 }
 
 function openCallTab(room = '', meta = {}) {
-  if (!room || !activePane.value) return;
-  const label = typeof meta.label === 'string' ? meta.label : '';
-  const existing = callPageRefs.value.find(call => call.key === room);
-  if (existing) {
-    if (label && existing.label !== label) existing.label = label;
-  } else {
-    callPageRefs.value = [...callPageRefs.value, {
-      key: room,
-      room,
-      conversationKey: meta.conversationKey || '',
-      label
-    }];
-  }
-  // Live call stages own their tab: calls always open as a new tab, and
-  // navigating away parks the live room into the shell floating window
-  // (CallPanel park-on-unmount; components/calls README).
-  selectPaneTab(activePane.value.id, room, { newTab: true });
+  if (!room) return;
+  // Live call stages own their tab; navigating away parks the live room
+  // into the shell floating window (components/calls README).
+  openEphemeralTab(callPageRefs, {
+    key: room,
+    room,
+    conversationKey: meta.conversationKey || '',
+    label: typeof meta.label === 'string' ? meta.label : ''
+  });
 }
 
 // The CommunicationMenu's start-call action: ring the chosen
@@ -1244,7 +1228,7 @@ async function loadRelationChildren(parent) {
     try {
       entity = await instances.resolveReadableReference(instances.canonicalTypeKey(parent.type), instanceId(entity), { silent: true }) || entity;
     } catch {
-      entity = entity;
+      // the list DTO stays the source when the full record cannot load
     }
   }
   const refs = relationRefsFor(entity);
@@ -1496,17 +1480,6 @@ function hydrateWorkspaceEntityItem(item) {
   instances.fetchInstance(typeKey, id).then(fetched => {
     if (fetched && instanceId(fetched) === id && fetched.name !== undefined) item.entity = fetched;
   }).catch(() => {});
-}
-
-function executeWorkspaceAction(action, entry = {}) {
-  emit('execute-action', action, entry.entity ?? null, entry.context || contextForItem(entry.item));
-}
-
-function contextForItem(item = null) {
-  return {
-    typeId: item?.type || '',
-    parentTypeId: item?.type || ''
-  };
 }
 
 function itemForPane(pane) {

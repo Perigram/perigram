@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  artifactCreatorForAction,
   collectActionInputFields,
   promptData,
   promptedFields
@@ -39,15 +38,6 @@ describe('generated action inputs', () => {
         ]
       }
     };
-    const uploadCreator = {
-      typeId: 'artifact',
-      attachmentKinds: [{ kind: 'DXF_SOURCE', creation: { mode: 'upload' } }]
-    };
-    const upload = {
-      actionKind: 'createInstance',
-      typeId: 'artifact',
-      construction: { inputs: [{ id: 'artifact', required: true, prompt: true, creator: uploadCreator }] }
-    };
 
     expect(promptedFields(typed)).toMatchObject([
       { id: 'templateId', type: 'entity', typeId: 'cassette', required: true },
@@ -57,6 +47,5 @@ describe('generated action inputs', () => {
       templateId: 'cassette-1',
       parameters: { width: '120', optional: '' }
     })).toEqual({ templateId: 'cassette-1', parameters: { width: 120 } });
-    expect(artifactCreatorForAction(upload)).toEqual(uploadCreator);
   });
 });

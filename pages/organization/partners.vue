@@ -115,6 +115,7 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import { usePageBack } from '~/composables/usePageBack.js';
+import { LAYOUT } from '#shared/ui-mapping/index.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { useAuthStore } from '~/stores/auth';
 
@@ -129,7 +130,7 @@ const route = useRoute();
 const { navigation: back } = usePageBack({ when: () => route.path === '/organization/partners' });
 
 // Shared table row-surface recipe (see organization users page).
-const rowSurfaceClass = () => '[clip-path:inset(0_round_var(--p-border-radius-xl))]';
+const rowSurfaceClass = () => LAYOUT.rowSurface;
 const tablePt = {
   root: { class: 'bg-transparent' },
   headerRow: { class: 'bg-transparent text-muted' },

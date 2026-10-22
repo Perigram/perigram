@@ -30,7 +30,7 @@
     icon="pi pi-clock"
     :message="$t('profile.membershipPending')"
   />
-  <GeneratedScreen v-else-if="organizationScreen" :screen="organizationScreen" :back="back" />
+  <GeneratedOrganizationOverview v-else-if="organizationScreen" :screen="organizationScreen" :back="back" />
   <StandardPage v-else>
     <StateBlock state="error" :message="$t('generatedScreen.notFound')" />
   </StandardPage>
@@ -43,7 +43,7 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
+import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrganizationOverview.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TargetedInvitations from '~/components/shared/TargetedInvitations.vue';

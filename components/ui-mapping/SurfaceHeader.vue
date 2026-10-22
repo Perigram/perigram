@@ -15,17 +15,10 @@
            here, ahead of the identity block. The `navigation` prop is
            the same affordance as data for hosts that mount the screen
            as a component. -->
-      <Button
+      <BackControl
         v-if="navigation"
-        :icon="navigation.icon || 'pi pi-arrow-left'"
-        :aria-label="navigation.label"
-        :title="navigation.label"
-        size="small"
-        severity="secondary"
-        text
-        rounded
-        class="shrink-0 self-start"
-        @click="navigation.command"
+        :back="navigation"
+        class="self-start"
       />
       <slot name="navigation" />
       <div :class="[LAYOUT.row, LAYOUT.headerIdentity]" class="header-identity">
@@ -117,6 +110,7 @@ import {
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import ActionButton from './ActionButton.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
+import BackControl from '../shared/BackControl.vue';
 import StateTag from './StateTag.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
 import InstanceChatEntry from '../shared/InstanceChatEntry.vue';

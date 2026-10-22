@@ -227,6 +227,10 @@ export const LAYOUT = Object.freeze({
   formGrid: 'ck-form-grid',
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
+  // Row-surface recipe (the table row IS the card): a row's own
+  // background is not clipped by its border-radius, so rows round by
+  // clipping. The one constant every table rowClass channel returns.
+  rowSurface: '[clip-path:inset(0_round_var(--p-border-radius-xl))]',
   bounded: 'w-full max-w-[var(--ck-bounded-grid-item-max-width)]',
   sectionTitle: 'text-label text-muted uppercase',
   // The record-header row is container-relative, never viewport-relative —

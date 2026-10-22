@@ -1,20 +1,6 @@
 <template>
   <div v-if="variant === 'full'" :class="LAYOUT.stack">
-    <SurfaceDetailBody
-      :instance="instance"
-      :type="type"
-      variant="full"
-      :actions="actions"
-      :pool="pool"
-      :bundle="bundle"
-      :expanded="expanded"
-      :covered-relations="coveredRelations"
-      :editable="editable"
-      @toggle="toggleRelation"
-      @run="$emit('run', $event)"
-      @inline-change="$emit('inline-change', $event)"
-      @open-instance="target => $emit('open-instance', target)"
-    />
+    <SurfaceDetailBody v-bind="detailBodyProps" variant="full" v-on="detailBodyEvents" />
   </div>
 
   <Card v-else-if="variant === 'detail' && !flattened" class="w-full">
@@ -27,21 +13,7 @@
           </div>
           <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
         </div>
-        <SurfaceDetailBody
-          :instance="instance"
-          :type="type"
-          variant="detail"
-          :actions="actions"
-          :pool="pool"
-          :bundle="bundle"
-          :expanded="expanded"
-          :covered-relations="coveredRelations"
-          :editable="editable"
-          @toggle="toggleRelation"
-          @run="$emit('run', $event)"
-          @inline-change="$emit('inline-change', $event)"
-          @open-instance="target => $emit('open-instance', target)"
-        />
+        <SurfaceDetailBody v-bind="detailBodyProps" variant="detail" v-on="detailBodyEvents" />
       </div>
     </template>
   </Card>
@@ -55,21 +27,7 @@
       </div>
       <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
     </div>
-      <SurfaceDetailBody
-        :instance="instance"
-        :type="type"
-        variant="detail"
-        :actions="actions"
-        :pool="pool"
-        :bundle="bundle"
-        :expanded="expanded"
-        :covered-relations="coveredRelations"
-        :editable="editable"
-        @toggle="toggleRelation"
-        @run="$emit('run', $event)"
-        @inline-change="$emit('inline-change', $event)"
-        @open-instance="target => $emit('open-instance', target)"
-      />
+    <SurfaceDetailBody v-bind="detailBodyProps" variant="detail" v-on="detailBodyEvents" />
   </div>
 
   <div v-else class="flex min-w-0 flex-wrap items-center gap-2">
@@ -134,13 +92,31 @@ const props = defineProps({
   statePolicy: { type: Object, default: null }
 });
 
-defineEmits(['run', 'inline-change', 'open', 'open-instance']);
+const emit = defineEmits(['run', 'inline-change', 'open', 'open-instance']);
 
 const expanded = ref({});
+// One binding set for the detail body across the full, card, and
+// flattened-detail chrome branches.
+const detailBodyProps = computed(() => ({
+  instance: props.instance,
+  type: props.type,
+  actions: props.actions,
+  pool: props.pool,
+  bundle: props.bundle,
+  expanded: expanded.value,
+  coveredRelations: props.coveredRelations,
+  editable: props.editable
+}));
 const flattened = computed(() => (props.chrome ? props.chrome.flattened : props.parentRole === 'card' && props.variant === 'detail'));
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
 const toggleRelation = key => {
   expanded.value[key] = !expanded.value[key];
+};
+const detailBodyEvents = {
+  toggle: toggleRelation,
+  run: event => emit('run', event),
+  'inline-change': event => emit('inline-change', event),
+  'open-instance': target => emit('open-instance', target)
 };
 
 const { t } = useI18n();

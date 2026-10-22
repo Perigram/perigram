@@ -13,18 +13,7 @@
             <ActionToolbar v-if="!$slots.header" :title="title" :subtitle="subtitle" :level="1">
                 <template #title>
                     <div class="flex items-center gap-3">
-                        <Button
-                            v-if="back"
-                            :icon="back.icon || 'pi pi-arrow-left'"
-                            :aria-label="back.label"
-                            :title="back.label"
-                            text
-                            rounded
-                            severity="secondary"
-                            size="small"
-                            class="shrink-0"
-                            @click="back.command"
-                        />
+                        <BackControl v-if="back" :back="back" />
                         <span v-if="title">{{ title }}</span>
                         <slot name="title-append"></slot>
                     </div>
@@ -40,8 +29,8 @@
 </template>
 
 <script setup>
-import Button from 'primevue/button';
 import ActionToolbar from './ActionToolbar.vue';
+import BackControl from './BackControl.vue';
 
 defineProps({
     title: { type: String, default: null },

@@ -1,12 +1,7 @@
-import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
+import { labelKeyForType } from '~/utils/design-system-contract.js';
 import { typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { useRegistryStore } from '~/stores/registry';
 import { isCreateAction, isRelationLinkAction, isUpdateAction } from '~/utils/action-visibility.js';
-
-const ENTITY_CONTRACTS_BY_TYPE = new Map(DESIGN_SYSTEM_ENTITY_CONTRACTS.flatMap(entry => [
-  [entry.typeId, entry],
-  [entry.key, entry]
-]));
 
 // The entity-label fallback chain is `name` → localized unnamed
 // placeholder: the authored type name from the CTS client bundle riding
@@ -29,7 +24,7 @@ function unnamedLabel({ t, te } = {}) {
 }
 
 export function generatedEntityLabel(typeId = '', { t, te } = {}) {
-  const key = ENTITY_CONTRACTS_BY_TYPE.get(typeId)?.labelKey;
+  const key = labelKeyForType(typeId);
   if (key && canTranslate(te, key)) return t(key);
   const mapped = localizedLabel({ t, te }, typeLabelKey(typeId), '');
   if (mapped) return mapped;
@@ -72,7 +67,7 @@ export function generatedActionLabel(action = {}, fallback = '', { t, te } = {})
   return fallback || t('common.confirm');
 }
 
-export function isGenericActionLabel(label = '', action = {}) {
+function isGenericActionLabel(label = '', action = {}) {
   const normalized = label.trim().toLowerCase();
   const statusValues = [action.state?.from, action.state?.to].filter(Boolean).map(value => String(value).toLowerCase());
   const genericWords = [

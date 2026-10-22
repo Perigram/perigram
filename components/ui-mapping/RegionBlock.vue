@@ -124,92 +124,48 @@
         >
           <div class="min-w-0 flex flex-col gap-6">
             <SurfaceBody
-              :instance="node.instances[0]"
-              :type="node.type"
+              v-bind="bodyProps"
               variant="full"
-              :actions="node.actions"
-              :chrome="node.chrome"
-              :covered-relations="coveredRelationKeys"
               :editable="patchable"
-              :pool="pool"
-              :bundle="bundle"
-              :state-policy="node.statePolicy"
-              @run="emitRun"
-              @inline-change="inlineChange"
-              @open-instance="emitOpen"
+              v-on="bodyEvents"
             />
           </div>
           <div class="min-w-0 flex flex-col gap-6">
             <RegionChildren
-              :regions="node.childRegions"
+              v-bind="childrenProps"
+              v-on="childrenEvents"
               :arrangement="{ mode: 'stack' }"
-              :depth="depth"
-              :pool="pool"
-              :bundle="bundle"
-              :openable="openable"
-              :instance-actions="instanceActions"
-              @run="emitRun"
-              @open="emitOpen"
             />
           </div>
         </div>
       </div>
       <template v-else>
         <SurfaceBody
-          :instance="node.instances[0]"
-          :type="node.type"
+          v-bind="bodyProps"
           variant="full"
-          :actions="node.actions"
-          :chrome="node.chrome"
-          :covered-relations="coveredRelationKeys"
           :editable="patchable"
-          :pool="pool"
-          :bundle="bundle"
-          :state-policy="node.statePolicy"
-          @run="emitRun"
-          @inline-change="inlineChange"
-          @open-instance="emitOpen"
+          v-on="bodyEvents"
         />
         <RegionChildren
           v-if="node.childRegions.length"
-          :regions="node.childRegions"
+          v-bind="childrenProps"
+          v-on="childrenEvents"
           :arrangement="node.childArrangement"
-          :depth="depth"
-          :pool="pool"
-          :bundle="bundle"
-          :openable="openable"
-          :instance-actions="instanceActions"
-          @run="emitRun"
-          @open="emitOpen"
         />
       </template>
     </template>
     <template v-else-if="showSurfaces">
       <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
       <SurfaceBody
-        :instance="node.instances[0]"
-        :type="node.type"
+        v-bind="bodyProps"
         :variant="node.variant"
-        :actions="node.actions"
-        :chrome="node.chrome"
-        :covered-relations="coveredRelationKeys"
-        :pool="pool"
-        :bundle="bundle"
-        :state-policy="node.statePolicy"
-        @run="emitRun"
-        @open-instance="emitOpen"
+        v-on="bodyEvents"
       />
       <RegionChildren
         v-if="node.childRegions.length"
-        :regions="node.childRegions"
+        v-bind="childrenProps"
+        v-on="childrenEvents"
         :arrangement="node.childArrangement"
-        :depth="depth"
-        :pool="pool"
-        :bundle="bundle"
-        :openable="openable"
-        :instance-actions="instanceActions"
-        @run="emitRun"
-        @open="emitOpen"
       />
     </template>
   </div>
@@ -271,6 +227,26 @@ const props = defineProps({
 
 const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh']);
 const emitOpen = instance => emit('open', instance);
+// One binding set for the record body and its child regions across the
+// split, stack, and nested branches.
+const bodyProps = computed(() => ({
+  instance: props.node.instances[0],
+  type: props.node.type,
+  actions: props.node.actions,
+  chrome: props.node.chrome,
+  coveredRelations: coveredRelationKeys.value,
+  pool: props.pool,
+  bundle: props.bundle,
+  statePolicy: props.node.statePolicy
+}));
+const childrenProps = computed(() => ({
+  regions: props.node.childRegions,
+  depth: props.depth,
+  pool: props.pool,
+  bundle: props.bundle,
+  openable: props.openable,
+  instanceActions: props.instanceActions
+}));
 // The record page's weight-proportional split: a light child set (at or
 // under SIDE_MAX_WEIGHT rows) rides beside the record body, the side
 // column's grid share earned by the children's weight (REGION_SIDE_SPANS
@@ -348,6 +324,12 @@ const emitPatch = changes => {
 };
 const inlineChange = ({ name, value } = {}) => emitPatch({ [name]: value });
 const emitRun = (action, context) => emit('run', action, context);
+const bodyEvents = {
+  run: emitRun,
+  'inline-change': inlineChange,
+  'open-instance': emitOpen
+};
+const childrenEvents = { run: emitRun, open: emitOpen };
 // A region header already names its class, so a create action for that same
 // type collapses to the bare localized "New" — the caption never repeats the
 // header's class name or the initial state. Creates for other types (and

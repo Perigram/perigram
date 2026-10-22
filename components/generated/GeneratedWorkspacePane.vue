@@ -26,7 +26,6 @@
     :splittable="splittable"
     :back="back"
     @back="$emit('back')"
-    @execute-action="(action, entry) => $emit('execute-action', action, entry)"
     @open-page="page => $emit('open-page', page)"
     @open-call="request => $emit('open-call', request)"
     @refresh="$emit('refresh')"
@@ -81,5 +80,4 @@ defineProps({
   back: { type: Boolean, default: false }
 });
 
-defineEmits(['execute-action', 'open-entity', 'open-page', 'open-call', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'back']);
-</script>
+defineEmits(['open-entity', 'open-page', 'open-call', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'back']);</script>
