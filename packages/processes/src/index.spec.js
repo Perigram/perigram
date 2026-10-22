@@ -1383,6 +1383,59 @@ describe('@perigram/processes compiler', () => {
     });
   });
 
+  it('composes declared many-relations as detail child collections', () => {
+    const relationDomain = {
+      ...domain,
+      relations: [
+        { ownerType: 'queue', key: 'reviewLibraries', targetType: 'library', cardinality: 'many' },
+        { ownerType: 'queue', key: 'homeLibrary', targetType: 'library', cardinality: 'one' }
+      ]
+    };
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: {
+          id: 'role_operator',
+          label: 'Operator',
+          grants: [{ feature: 'queues', level: 'read' }, { feature: 'libraries', level: 'read' }]
+        }
+      },
+      assignments: {
+        user_a: { userId: 'user_a', roleIds: ['role_operator'], bindings: {}, status: 'active' }
+      }
+    }, relationDomain);
+
+    const detail = compiled.screens.auto_role_operator_queue_detail;
+    expect(detail.sources.find(source => source.id === 'library_reviewLibraries_related')).toMatchObject({
+      typeId: 'library',
+      mode: 'list',
+      relation: { sourceId: 'queue', key: 'reviewLibraries' },
+      required: { feature: 'libraries', level: 'read' }
+    });
+    expect(detail.regions.find(region => region.sourceId === 'library_reviewLibraries_related')).toMatchObject({
+      slot: 'children',
+      surface: 'card'
+    });
+    // single-target relations stay chip rows on the record body
+    expect(detail.sources.some(source => source.id === 'library_homeLibrary_related')).toBe(false);
+  });
+
+  it('leaves relation child collections off when the target feature is unread', () => {
+    const relationDomain = {
+      ...domain,
+      relations: [{ ownerType: 'queue', key: 'reviewLibraries', targetType: 'library', cardinality: 'many' }]
+    };
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator', label: 'Operator', grants: [{ feature: 'queues', level: 'read' }] }
+      },
+      assignments: {
+        user_a: { userId: 'user_a', roleIds: ['role_operator'], bindings: {}, status: 'active' }
+      }
+    }, relationDomain);
+
+    expect(compiled.screens.auto_role_operator_queue_detail.sources.some(source => source.relation)).toBe(false);
+  });
+
   it('does not infer operational screens for domain meta entities', () => {
     const metaDomain = {
       ...domain,

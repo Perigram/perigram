@@ -13,7 +13,9 @@
 // - a child collection source whose filters scope one lineage key to the
 //   screen's entity becomes `lineage: { sourceId, key }` against the
 //   detail main source — the same reference `composeScreen` resolves
-//   through the origin instance.
+//   through the origin instance;
+// - a relation child collection carries `relation: { sourceId, key }`
+//   as compiled.
 const TEMPLATE_BY_LEGACY = Object.freeze({
   entityList: 'typeList',
   entityDetail: 'instanceDetail'

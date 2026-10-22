@@ -3297,6 +3297,37 @@ function childRegionsForParentDetail({ role = {}, parentTypeId = '', domain = {}
     });
   }
 
+  // Declared 'many' relations compose as readable child collections: the
+  // record page arranges them with the same weight-driven ladder as
+  // containment children (SPEC §Generative UI), and the detail body's
+  // chip row for the covered key hides (the composer's relationKey
+  // channel). Single-target relations stay chip rows on the body.
+  for (const relation of domain.relations || []) {
+    if (relation.ownerType !== parentTypeId || relation.cardinality !== 'many') continue;
+    if (!relation.key || !relation.targetType) continue;
+    const targetFeature = featureFromTypeId(domain, relation.targetType);
+    if (!targetFeature) continue;
+    const targetGrants = grantsByFeature.get(targetFeature) || [];
+    if (!targetGrants.length) continue;
+    const sourceId = `${relation.targetType}_${relation.key}_related`;
+    if (sourcesByEntity.has(sourceId)) continue;
+    sourcesByEntity.set(sourceId, {
+      id: sourceId,
+      label: relation.targetType,
+      typeId: relation.targetType,
+      mode: 'list',
+      required: aggregateScreenRequirement(targetFeature, targetGrants),
+      relation: { sourceId: parentTypeId, key: relation.key }
+    });
+    regions.push({
+      id: `${sourceId}_region`,
+      slot: 'children',
+      sourceId,
+      surface: 'card',
+      actions: []
+    });
+  }
+
   for (const action of role.actions || []) {
     const actionId = action.actionId || action.id;
     const processAction = actions[actionId] || {};
