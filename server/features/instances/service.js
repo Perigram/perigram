@@ -294,6 +294,8 @@ async function writeGrantTarget(declaration, organizationId) {
   }
 }
 
+export { writeGrantTarget };
+
 function instanceService(typeId) {
   // Static-declaration construct modes (SPEC §4): payload types offer
   // only their creation protocols, payload-less types offer

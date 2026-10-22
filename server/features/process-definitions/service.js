@@ -10,6 +10,7 @@ import * as workflowOverridesService from '../workflow-overrides/service.js';
 import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
 import * as entityEventService from '~/server/features/instance-events/service.js';
 import { exportersForOrganization } from '../plugins/service.js';
+import { declarationForType, writeGrantTarget } from '../instances/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { findTypeDeathCandidates, killTypesWithData, typeDeathManifest } from '../cts-types/lifetime.js';
@@ -221,14 +222,18 @@ export async function executeDerivedExportAction({ typeId, kind, instanceId } = 
     throw createError({ statusCode: 404, message: `No export ${kind} is declared for ${typeId}` });
   }
   const normalizedType = normalizeTypeId(typeId);
+  const declaration = await declarationForType(normalizedType, organizationId);
+  if (!declaration) throw createError({ statusCode: 404, message: `Unknown type ${normalizedType}` });
   const service = getAppRegistry().getInstanceService(normalizedType);
   const loaded = await service?.processGetById?.(instanceId, auth);
   if (!loaded) throw createError({ statusCode: 404, message: `${normalizedType} not found` });
   const source = loaded?.toJSON ? loaded.toJSON() : loaded;
+  const writeGate = await writeGrantTarget(declaration, organizationId);
+  if (!writeGate) throw createError({ statusCode: 403, message: `Write gate for ${normalizedType} is not resolvable` });
   assertEntityAccess({
     entity: source,
-    typeId: normalizedType,
-    feature: resolveInstanceFeature(normalizedType),
+    typeId: writeGate.typeId,
+    feature: writeGate.feature,
     level: 'write',
     action: 'update',
     auth
