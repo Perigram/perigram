@@ -1186,10 +1186,10 @@ rail, column, or tab weight and renders as a compact stub below the
 arranged content. A dominant child keeps the flow while its remainder
 fits the surface budget; a heavier remainder tabs the whole set in
 weight order. The record body itself fills its surface by packing:
-blocks render at content width and wrap — full width is earned by wide
-content (tables, boards, rich structural panels), a dead collection
-renders as a compact content-width stub, and overflow stays inside the
-child surfaces' own bounded scrolls.
+every body block renders at content width (sections capped at
+`fit-content(46rem)`), a dead collection renders as a compact
+content-width stub, wide content (tables, boards) keeps the full row,
+and overflow stays inside the child surfaces' own bounded scrolls.
 
 ### Presentation has one home per concern (owner direction 2026-10-21)
 Action presentation, action applicability, and record/picker labels

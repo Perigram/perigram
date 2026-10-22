@@ -461,9 +461,8 @@ form grid
 above; full-span rows opt in with `.ck-span-full`), and the record
 body's fill grids beside it (`LAYOUT.factsGrid`/`LAYOUT.bodyGrid`:
 blocks render at content width and pack — sections cap at
-`fit-content(46rem)`, wide blocks opt into the full row via
-`.ck-span-full`, and `LAYOUT.packRow` packs content-width stubs side by
-side — the record body fills the surface it renders in).
+`fit-content(46rem)` — and `LAYOUT.packRow` packs content-width stubs
+side by side — the record body fills the surface it renders in).
 
 ## Composition
 
