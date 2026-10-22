@@ -640,6 +640,32 @@ quantities — the finding commit `7e7eb33a2` noted and left), SSR smoke
 13✓, module-imports + localization + design-system ✓, check-arch ✓,
 check-docs ✓, framework:validate ✓. E2E not run (no dev stack).
 
+### Agent Notes (2026-10-22, relation regions)
+
+Owner verified real app screens still showed no columns/tabs. Ground
+truth dump: the facade pack wires no containment edges, and the
+arrangement ladder only ever sees children-slot regions, which the
+compiler minted from lineage children and parent-bound creates alone —
+single-child parents can only take the side rail or the stack, so no
+engagement logic could ever surface columns or tabs. Owner approved the
+reshape: `childRegionsForParentDetail` now also mints relation child
+regions for declared `many` relations (relation-scoped list source
+`<targetType>_<key>_related` against the detail main source, read-gated
+by the target feature; single-target relations stay body chip rows, and
+the child region's relationKey covers that chip row — the composer
+channel that already existed). `normalizeSources` carries the `relation`
+scoping key on the screen contract (it was amputated by the source
+whitelist; the UI projection already passed it through). Relation
+regions give real record pages 2+ arrangeable collections, so the
+weight ladder engages from actual content. Pins: compiler spec (region +
+source shape, cardinality gate, unread target), composition spec
+(relation children share proportional columns at 8-row peers and tab at
+card-scale peers — the end-to-end repeatable artifact). Guards:
+packages/processes + shared/ui-mapping 613✓, SSR smoke 13✓, check-arch
+✓, check-docs ✓, framework:validate ✓. E2E not run (no dev stack);
+owner verification still WAITING above, now with relation collections in
+the picture.
+
 ## Sheet-design editor panels and interactions (owner report 2026-10-19)
 
 Owner report: the sheet-design editor needs the side panels the editor
