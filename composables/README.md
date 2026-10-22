@@ -123,8 +123,8 @@ reconciliation listener) and triggers no reload; a snapshot-less
 invalidation (another session's published event) triggers one debounced
 source reload, and stale list observations refetch through the normal
 read path. The routed generated screen page and the workspace detail pane
-both mount it through `GeneratedScreenHost`; the legacy
-`useGeneratedScreen` keeps its own listener of the same shape.
+both mount it through `GeneratedScreenHost`; the host's overload branch
+(`useGeneratedScreen`) keeps its own listener of the same shape.
 
 ## useStateController
 
@@ -282,12 +282,12 @@ compile-derived keys and lineage bindings stripped, station kind preserved —
 so the duplicate begins projection-equal to inference and the compiler's
 redundancy guard refuses it at Apply until the author deviates.
 
-Loads process-compiled screen manifests for `pages/screens/[screenKey].vue`.
-The composable normalizes the screen contract, checks source-level process
-requirements against the active permission grants before fetching, and then
-loads entity data through `useEntity()`. It supports list and single-entity
-sources, assignment-bound filters/identifiers, and exposes source states to the
-generated renderer.
+Loads process-compiled screen sources for `GeneratedScreenHost`'s overload
+branch (the home workspace). The composable normalizes the screen contract,
+checks source-level process requirements against the active permission
+grants before fetching, and then loads entity data through `useEntity()`. It
+supports list and single-entity sources, assignment-bound
+filters/identifiers, and exposes source states to the overload component.
 Generated screens listen to the shared browser-local entity sync event and
 apply its complete entity snapshot directly to matching source state. A local
 create, update, or delete therefore becomes visible immediately without a
@@ -305,10 +305,7 @@ carrying its parent ref lands in the open parent detail's child region — the
 generated hierarchy accumulates without a reload. Events without a complete
 snapshot are the only case that
 schedules a (debounced) source reload; API routes still enforce whether the
-source may read the changed instance. `GeneratedScreen.applyActionResult` feeds
-the same `applyInstanceSnapshot` path synchronously from the action response, so
-a successful procedural action patches affected sources before any sync event
-arrives.
+source may read the changed instance.
 
 Generated screens are UI composition only. They decide which regions, sources,
 and action buttons are visible, while API routes still enforce real access.
@@ -387,9 +384,17 @@ to the `files` bucket and stores the payload reference the construct path
 submits (`{ fileId, mime, size, name }`). `usePayloadUpload(values,
 { onError })` binds to the caller's prompt-values object and returns the
 uploading flag, the hidden-input element registry, and `uploadPayloadFile`
-— `GeneratedScreen` and `ChatSupport` render the same control through it,
+— `ChatSupport` renders the control through it,
 so every file-instance create flows through one upload implementation and
 no surface mints artifact entities.
+
+---
+
+## useThemeMode
+
+Theme cookie + document class sync shared by the app shells: the cookie
+defaults to the OS preference on first visit and the `dark-mode`/
+`light-mode` document class follows every cookie write.
 
 ---
 

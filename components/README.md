@@ -172,12 +172,12 @@ roles that touch the same entity screen, the process compiler merges those
 role-derived screens into one route with combined source requirements and
 combined runnable actions. Generated components should render the supplied
 screen contract directly and must not reintroduce role-level duplicate routes.
-App default screen/body overloads are registered in
+App default screen overloads are registered in
 `components/generated/overloads.js` and are resolved only after that
-user-specific manifest has been composed and loaded. Do not hardcode new
-entity-specific generated branches in `GeneratedScreen`;
-register the overload there so it receives only the sources, regions, actions,
-and scope available to the current user.
+user-specific manifest has been composed. Do not hardcode new
+entity-specific generated branches in the screen host;
+register the overload there so it receives only the screen and source
+states available to the current user.
 Role-prefixed compiled screens remain process/designer records, not separate
 operational navigation entries for a multi-role user. The auth store exposes
 that same effective screen manifest to frontend consumers, so stale
