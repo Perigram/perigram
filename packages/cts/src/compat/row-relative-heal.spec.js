@@ -44,22 +44,20 @@ describe('normalizeRowRelativeGuard', () => {
 });
 
 describe('normalizeRowRelativeFieldRefs', () => {
-  it('heals transition guards and state field-policy lists', () => {
+  it('heals transition guards and operation-carried field-policy lists', () => {
     const data = {
       processNodes: {
         t1: { id: 't1', kind: 'cts.transition', typeId: 'panel', guard: prefixedGuard },
-        c1: { id: 'c1', kind: 'cts.construct', typeId: 'panel' }
-      },
-      ctsTypes: {
-        s1: { id: 's1', kind: 'state', typeId: 'panel', value: 'qa', fieldPolicy: { visible: ['fields.total', 'width'], editable: ['fields.total'] } },
-        s2: { id: 's2', kind: 'state', typeId: 'panel', value: 'done' }
+        t2: { id: 't2', kind: 'cts.transition', typeId: 'panel', state: { to: 'qa' }, fieldPolicy: { visible: ['fields.total', 'width'], editable: ['fields.total'] } },
+        c1: { id: 'c1', kind: 'cts.construct', typeId: 'panel', inputDefaults: { state: 'qa' }, fieldPolicy: { visible: ['specs.note'] } },
+        plain: { id: 'c2', kind: 'cts.construct', typeId: 'panel' }
       }
     };
     const healed = normalizeRowRelativeFieldRefs(data);
     expect(healed.processNodes.t1.guard).toEqual(healedGuard);
-    expect(healed.processNodes.c1).toBe(data.processNodes.c1);
-    expect(healed.ctsTypes.s1.fieldPolicy).toEqual({ visible: ['total', 'width'], editable: ['total'] });
-    expect(healed.ctsTypes.s2).toBe(data.ctsTypes.s2);
+    expect(healed.processNodes.t2.fieldPolicy).toEqual({ visible: ['total', 'width'], editable: ['total'] });
+    expect(healed.processNodes.c1.fieldPolicy).toEqual({ visible: ['note'] });
+    expect(healed.processNodes.plain).toBe(data.processNodes.plain);
     expect(normalizeRowRelativeFieldRefs(healed)).toEqual(healed);
   });
 
@@ -67,11 +65,12 @@ describe('normalizeRowRelativeFieldRefs', () => {
     const { definition: resolved } = resolveCtsDefinition({
       data: {
         graphProtocol: 5,
-        processNodes: { t1: { id: 't1', kind: 'cts.transition', typeId: 'panel', guard: prefixedGuard } },
-        ctsTypes: { s1: { id: 's1', kind: 'state', typeId: 'panel', value: 'qa', fieldPolicy: { visible: ['fields.total'] } } }
+        processNodes: {
+          t1: { id: 't1', kind: 'cts.transition', typeId: 'panel', state: { to: 'qa' }, guard: prefixedGuard, fieldPolicy: { visible: ['fields.total'] } }
+        }
       }
     }, { entities: [{ type: 'panel' }], fieldSchemas: {} });
     expect(resolved.data.processNodes.t1.guard).toEqual(healedGuard);
-    expect(resolved.data.ctsTypes.s1.fieldPolicy).toEqual({ visible: ['total'] });
+    expect(resolved.data.processNodes.t1.fieldPolicy).toEqual({ visible: ['total'] });
   });
 });

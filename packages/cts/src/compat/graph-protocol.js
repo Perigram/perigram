@@ -219,24 +219,31 @@ export function normalizeRowRelativeGuard(guard) {
 
 export function normalizeRowRelativeFieldRefs(data = {}) {
   if (!data || typeof data !== 'object') return data;
-  const processNodes = mapRecords(data.processNodes || {}, node => (
-    node?.kind === 'cts.transition' && node.guard
-      ? { ...node, guard: normalizeRowRelativeGuard(node.guard) }
-      : node
-  ));
-  const ctsTypes = mapRecords(data.ctsTypes || {}, record => {
-    const facet = record?.kind === 'state' ? record.fieldPolicy : null;
-    if (!facet || typeof facet !== 'object') return record;
-    let changed = false;
+  const facetLists = facet => {
+    if (!facet || typeof facet !== 'object') return facet;
     const adopted = {};
+    let changed = false;
     for (const key of ['visible', 'editable']) {
       if (!Array.isArray(facet[key])) continue;
       adopted[key] = facet[key].map(rowRelativeFieldId);
       if (adopted[key].some((id, index) => id !== facet[key][index])) changed = true;
     }
-    return changed ? { ...record, fieldPolicy: adopted } : record;
+    return changed ? adopted : facet;
+  };
+  const processNodes = mapRecords(data.processNodes || {}, node => {
+    if (node?.kind === 'cts.transition' && node.guard) {
+      const facet = facetLists(node.fieldPolicy);
+      return facet === node.fieldPolicy
+        ? { ...node, guard: normalizeRowRelativeGuard(node.guard) }
+        : { ...node, guard: normalizeRowRelativeGuard(node.guard), fieldPolicy: facet };
+    }
+    if (node && (node.kind === 'cts.transition' || node.kind === 'cts.construct') && node.fieldPolicy) {
+      const facet = facetLists(node.fieldPolicy);
+      if (facet !== node.fieldPolicy) return { ...node, fieldPolicy: facet };
+    }
+    return node;
   });
-  return { ...data, processNodes, ctsTypes };
+  return { ...data, processNodes };
 }
 
 // -- resolution: v5 binding seam (native records stay native) --

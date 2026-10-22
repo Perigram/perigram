@@ -163,20 +163,19 @@ describe('declaration-check phase', () => {
   });
 
 
-  it('checks state field policies: row-checked lists, array shape', () => {
+  it('checks operation field policies: row-checked lists, array shape', () => {
     const registry = registryWithOrgType();
-    const states = {
-      ...draftStateRecords(),
-      good: { id: 'good', kind: 'state', typeId: 'widget', value: 'held', fieldPolicy: { visible: ['name', 'stage'], editable: ['stage'] } },
-      offRow: { id: 'offRow', kind: 'state', typeId: 'widget', value: 'held2', fieldPolicy: { visible: ['ghost'] } },
-      stringy: { id: 'stringy', kind: 'state', typeId: 'widget', value: 'held3', fieldPolicy: { editable: 'name' } },
-      unscoped: { id: 'unscoped', kind: 'state', typeId: null, value: 'held4', fieldPolicy: { visible: ['anything'] } }
+    const nodes = {
+      good: { id: 'good', kind: 'cts.transition', typeId: 'widget', state: { to: 'held' }, fieldPolicy: { visible: ['name', 'stage'], editable: ['stage'] } },
+      offRow: { id: 'offRow', kind: 'cts.transition', typeId: 'widget', state: { to: 'held2' }, fieldPolicy: { visible: ['ghost'] } },
+      stringy: { id: 'stringy', kind: 'cts.construct', typeId: 'widget', inputDefaults: { state: 'held3' }, fieldPolicy: { editable: 'name' } },
+      cross: { id: 'cross', kind: 'cts.transition', typeId: 'widget', state: { to: 'held4' }, fieldPolicy: { visible: ['name'], editable: ['stage'] } }
     };
-    const errors = checkDeclarationsAgainstCts({ data: { ctsTypes: states } }, registry, 'org-1');
+    const errors = checkDeclarationsAgainstCts({ data: { processNodes: nodes } }, registry, 'org-1');
     expect(errors).not.toContainEqual(expect.stringMatching(/^.*good fieldPolicy/));
     expect(errors).toContainEqual(expect.stringMatching(/offRow fieldPolicy visible names field ghost outside the widget row/));
     expect(errors).toContainEqual(expect.stringMatching(/stringy fieldPolicy editable must be a field list/));
-    expect(errors).not.toContainEqual(expect.stringMatching(/unscoped fieldPolicy/));
+    expect(errors).toContainEqual(expect.stringMatching(/cross fieldPolicy editable names stage outside visible/));
   });
 
   it('org overlay is the view: other orgs see system types only', () => {

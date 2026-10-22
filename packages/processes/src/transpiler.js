@@ -1,5 +1,4 @@
 import { normalizeRowRelativeFieldRefs, orientChildrenEdgesChildFirst } from '../../cts/src/index.js';
-import { normalizeStateFieldPolicy } from './designer.js';
 
 const CANVAS_RECORD_KEYS = {
   entity: 'producerOutputs',
@@ -65,15 +64,6 @@ export function definitionToCanvas(definition = {}) {
     .filter(node => !savedSemanticIds.has(semanticNodeId(node)))
     .map(node => withUniqueCanvasNodeId(node, occupiedNodeIds));
   const nodes = [...savedNodes, ...missingProjectedNodes];
-  // Saved state node data overrides the record projection at merge; the
-  // facet heals on the node itself so the inspector reads row-relative
-  // ids on first load (normalizeStateFieldPolicy owns the strip).
-  for (const node of nodes) {
-    if (node.type !== 'ctsState' || !node.data?.fieldPolicy) continue;
-    const healed = normalizeStateFieldPolicy(node.data.fieldPolicy);
-    if (healed) node.data.fieldPolicy = healed;
-    else delete node.data.fieldPolicy;
-  }
   const nodeIds = new Set(nodes.map(node => node.id));
   const edges = (process.graph.edges || [])
     .filter(edge => nodeIds.has(edge.source) && nodeIds.has(edge.target))
@@ -150,8 +140,7 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
         value: data.value || '',
         ...(data.label ? { label: data.label } : {}),
         ...(data.severity ? { severity: data.severity } : {}),
-        ...(data.icon ? { icon: data.icon } : {}),
-        ...(normalizeStateFieldPolicy(data.fieldPolicy) ? { fieldPolicy: normalizeStateFieldPolicy(data.fieldPolicy) } : {})
+        ...(data.icon ? { icon: data.icon } : {})
       } : {})
     };
   }
@@ -284,8 +273,7 @@ function projectDeclarationRecords(records = {}, x) {
           typeId: record.typeId || null,
           value: record.value || '',
           severity: record.severity || null,
-          icon: record.icon || null,
-          ...(normalizeStateFieldPolicy(record.fieldPolicy) ? { fieldPolicy: normalizeStateFieldPolicy(record.fieldPolicy) } : {})
+          icon: record.icon || null
         } : {}),
         ...(record.kind === 'type' ? { typeId: record.typeId || null } : {})
       }

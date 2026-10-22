@@ -1819,14 +1819,37 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     builders.set(output.producerOutputId, builder);
     const region = primaryRegionBuilder(builder);
     for (const record of records) {
-      const fieldPolicy = normalizeStateFieldPolicy(record.fieldPolicy);
       region.states[record.value] ||= {
         canUpdateMeta: true,
         ...(record.label ? { label: record.label } : {}),
         ...((record.severity || record.color) ? { severity: record.severity || record.color } : {}),
-        ...(record.icon ? { icon: record.icon } : {}),
-        ...(fieldPolicy ? { fieldPolicy } : {})
+        ...(record.icon ? { icon: record.icon } : {})
       };
+    }
+  }
+
+  // Per-state field policy authors on the typed operations (SPEC §7): a
+  // transition declares its target state's facet, a construct its initial
+  // state's. First declaration of a state owns the facet (the guard
+  // precedent).
+  const buildersByType = new Map();
+  for (const output of Object.values(process.producerOutputs || {})) {
+    if (!builders.has(output.producerOutputId)) continue;
+    buildersByType.set(output.typeId, [...(buildersByType.get(output.typeId) || []), builders.get(output.producerOutputId)]);
+  }
+  for (const record of Object.values(process.processNodes || {})) {
+    if (record?.kind !== 'cts.transition' && record?.kind !== 'cts.construct') continue;
+    const facet = normalizeStateFieldPolicy(record.fieldPolicy);
+    if (!facet || !record.typeId) continue;
+    const rawTarget = record.kind === 'cts.transition'
+      ? (record.state?.to ?? record.inputDefaults?.state)
+      : record.inputDefaults?.state;
+    const target = isDataTree(rawTarget) ? processDefaultValue(rawTarget) : rawTarget;
+    if (!target || typeof target !== 'string') continue;
+    for (const builder of buildersByType.get(record.typeId) || []) {
+      const region = primaryRegionBuilder(builder);
+      region.states[target] ||= { canUpdateMeta: true };
+      region.states[target].fieldPolicy ||= facet;
     }
   }
 

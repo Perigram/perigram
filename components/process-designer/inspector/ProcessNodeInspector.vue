@@ -72,6 +72,35 @@
         <Button icon="pi pi-plus" :label="$t('processDesigner.addGuardCondition')" size="small" text @click="addGuardCondition" />
       </div>
     </Panel>
+    <Panel
+      v-if="statePolicyTarget && stateFieldPolicyOptions.length"
+      :header="$t('processDesigner.stateFieldPolicy')"
+      class="mt-0"
+    >      <div class="flex flex-col gap-2">
+        <MultiSelect
+          :model-value="record.fieldPolicy?.visible || []"
+          :options="stateFieldPolicyOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          filter
+          class="w-full"
+          :placeholder="$t('processDesigner.stateVisibleFields')"
+          @update:model-value="value => setFieldPolicyList('visible', value)"
+        />
+        <MultiSelect
+          :model-value="record.fieldPolicy?.editable || []"
+          :options="stateFieldPolicyOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          filter
+          class="w-full"
+          :placeholder="$t('processDesigner.stateEditableFields')"
+          @update:model-value="value => setFieldPolicyList('editable', value)"
+        />
+      </div>
+    </Panel>
     <Panel v-if="producerAvailable" :header="$t('processDesigner.createdEntity')" class="mt-0">
       <div class="flex flex-col gap-3">
         <div class="flex min-w-0 items-center justify-between gap-2">
@@ -286,6 +315,12 @@ const props = defineProps({
   // Row-relative field paths of the transition's bound type — guard
   // conditions select among them (SPEC §7 paths are row-relative).
   guardFieldOptions: { type: Array, default: () => [] },
+  // Top-level row ids of the bound type — the target/initial state's
+  // field-policy lists select among them (SPEC §7).
+  stateFieldPolicyOptions: { type: Array, default: () => [] },
+  // The operation's target/initial state value (page-resolved; packet
+  // unwrapping lives there).
+  statePolicyTarget: { type: String, default: '' },
   constructionModes: { type: Array, default: () => [] },
   artifactKinds: { type: Array, default: () => [] },
   artifactKindOptions: { type: Array, default: () => [] },
@@ -450,5 +485,15 @@ function typeIdLabelFor(typeId) {
 }
 function entityIconFor(typeId) {
   return props.typeIdOptions.find(option => option.value === typeId)?.icon || 'pi pi-box';
+}
+
+function setFieldPolicyList(key, value) {
+  const list = Array.isArray(value) ? [...new Set(value.map(String).filter(Boolean))] : [];
+  const facet = { ...(props.record.fieldPolicy || {}) };
+  if (list.length) facet[key] = list;
+  else delete facet[key];
+  if (Object.keys(facet).length) props.record.fieldPolicy = facet;
+  else delete props.record.fieldPolicy;
+  emit('sync');
 }
 </script>

@@ -112,11 +112,10 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
     if (kind === 'cts.transition' && node.guard) {
       errors.push(...checkGuardExpression(node.guard, rowNamesByType.get(typeId), path));
     }
-    // State field policy (SPEC §7 `fieldPolicy`): the visible/editable
-    // lists are arrays of row field ids of the bound type — row-checked
-    // like guard paths. An unscoped value token satisfies any type, so
-    // its lists check against no single row.
-    if (kind === 'state' && node.fieldPolicy) {
+    // Operation-carried field policy (SPEC §7): a transition declares its
+    // target state's facet, a construct its initial state's — lists
+    // row-checked against the bound type, editable within visible.
+    if ((kind === 'cts.transition' || kind === 'cts.construct') && node.fieldPolicy) {
       for (const listKey of ['visible', 'editable']) {
         const list = node.fieldPolicy[listKey];
         if (list === undefined) continue;
@@ -124,11 +123,11 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
           errors.push(`${path} fieldPolicy ${listKey} must be a field list`);
           continue;
         }
-        const rows = rowNamesByType.get(node.typeId);
+        const rows = rowNamesByType.get(typeId);
         if (!rows) continue;
         for (const fieldId of list) {
           if (!rows.has(String(fieldId))) {
-            errors.push(`${path} fieldPolicy ${listKey} names field ${fieldId} outside the ${node.typeId} row`);
+            errors.push(`${path} fieldPolicy ${listKey} names field ${fieldId} outside the ${typeId} row`);
           }
         }
       }

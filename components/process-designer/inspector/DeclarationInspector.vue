@@ -108,36 +108,6 @@
             @update:model-value="value => { node.data.icon = String(value || '').trim() || null; $emit('sync'); }"
           />
         </div>
-        <div v-if="stateFieldOptions.length" class="flex flex-col gap-2">
-          <label class="flex items-center gap-2">
-            <Checkbox :model-value="fieldPolicyAuthored" binary @update:model-value="toggleFieldPolicy" />
-            <span>{{ $t('processDesigner.stateFieldPolicy') }}</span>
-          </label>
-          <template v-if="fieldPolicyAuthored">
-            <MultiSelect
-              :model-value="node.data.fieldPolicy?.visible || []"
-              :options="stateFieldOptions"
-              option-label="label"
-              option-value="value"
-              size="small"
-              filter
-              class="w-full"
-              :placeholder="$t('processDesigner.stateVisibleFields')"
-              @update:model-value="value => setFieldPolicyList('visible', value)"
-            />
-            <MultiSelect
-              :model-value="node.data.fieldPolicy?.editable || []"
-              :options="stateFieldOptions"
-              option-label="label"
-              option-value="value"
-              size="small"
-              filter
-              class="w-full"
-              :placeholder="$t('processDesigner.stateEditableFields')"
-              @update:model-value="value => setFieldPolicyList('editable', value)"
-            />
-          </template>
-        </div>
       </div>
     </template>
 
@@ -164,40 +134,33 @@
 // The declaration inspector: class (name + glyph + class preset + the
 // identifier dropdown over the class's field nodes + declaration
 // diagnostics), field (name + descriptor via the shared type-designer
-// editor), state (name, severity, icon, field policy — a first-class
-// canvas node wired into the class or a type anchor, into a Create node
-// for the entry, or into a status-mutating effect for the transition
-// target), and type reference selection. The identifier dropdown emits
-// `update-identifier-field` (the page's single-holder move across the
-// sibling field nodes). Mutations write the canvas node's declaration
-// data and emit `sync`; the live-graph pass re-derives records, ports,
-// and the tree overlay from it.
+// editor), state (name, severity, icon — a first-class canvas node wired
+// into a Create node for the entry or into a status-mutating effect for
+// the transition target), and type reference selection. The identifier
+// dropdown emits `update-identifier-field` (the page's single-holder
+// move across the sibling field nodes). Mutations write the canvas
+// node's declaration data and emit `sync`; the live-graph pass
+// re-derives records, ports, and the tree overlay from it.
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
-import MultiSelect from 'primevue/multiselect';
 import Select from '~/components/shared/InstanceSelect.vue';
-import Checkbox from 'primevue/checkbox';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
 import { DECLARABLE_CLASSES } from '~/packages/cts/src/index.js';
 import { iconFontGlyphs } from '#shared/icon-fonts.js';
-import { computed } from 'vue';
 
-const props = defineProps({
+defineProps({
   node: { type: Object, required: true },
   typeIdValid: { type: Boolean, default: true },
   diagnostics: { type: Array, default: () => [] },
   typeOptions: { type: Array, default: () => [] },
   typeAnchorOptions: { type: Array, default: () => [] },
-  // Row field ids of the bound type — the state's field-policy lists
-  // select among them.
-  stateFieldOptions: { type: Array, default: () => [] },
   // The class's sibling field nodes as identifier picks; value '' is the
   // registry boundary mint (SPEC §4).
   identifierFieldOptions: { type: Array, default: () => [] },
   identifierFieldValue: { type: String, default: '' }
 });
 
-const emit = defineEmits(['sync', 'update-name', 'update-identifier-field']);
+defineEmits(['sync', 'update-name', 'update-identifier-field']);
 
 const classOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
 
@@ -218,27 +181,4 @@ const glyphOptions = Object.freeze([
   ...GLYPH_CHOICES.map(value => ({ label: value, value })),
   ...iconFontGlyphs.map(value => ({ label: value, value }))
 ]);
-
-// State field policy (SPEC §7): an empty selection removes that axis —
-// the facet exists only while a list is authored.
-const fieldPolicyAuthored = computed(() => props.node.data.fieldPolicy != null);
-
-function toggleFieldPolicy(enabled) {
-  if (enabled && props.node.data.fieldPolicy == null) {
-    props.node.data.fieldPolicy = {};
-  } else if (!enabled) {
-    delete props.node.data.fieldPolicy;
-  }
-  emit('sync');
-}
-
-function setFieldPolicyList(key, value) {
-  const list = Array.isArray(value) ? [...new Set(value.map(String).filter(Boolean))] : [];
-  const facet = { ...(props.node.data.fieldPolicy || {}) };
-  if (list.length) facet[key] = list;
-  else delete facet[key];
-  if (Object.keys(facet).length) props.node.data.fieldPolicy = facet;
-  else delete props.node.data.fieldPolicy;
-  emit('sync');
-}
 </script>

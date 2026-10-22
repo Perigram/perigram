@@ -221,7 +221,6 @@
                   :diagnostics="classDeclarationDiagnostics"
                   :type-options="declarationTypeOptions"
                   :type-anchor-options="typeAnchorOptions"
-                  :state-field-options="declarationStateFieldOptions"
                   :identifier-field-options="classIdentifierField.options"
                   :identifier-field-value="classIdentifierField.value"
                   @sync="syncNodeData"
@@ -243,6 +242,8 @@
                   :command-service="selectedCommandService"
                   :service-principal-options="servicePrincipalOptions"
                   :guard-field-options="transitionGuardFieldOptions"
+                  :state-policy-target="recordStatePolicyTarget"
+                  :state-field-policy-options="recordStateFieldPolicyOptions"
                   :construction-modes="constructionModeOptions(nodeTypeId(selectedProcessNode))"
                   :artifact-kinds="artifactCreationKinds(selectedProcessNode)"
                   :artifact-kind-options="artifactUploadKindOptions"
@@ -707,6 +708,7 @@ import { projectUiAction } from '~/packages/processes/src/ui-contract-projection
 import {
   EFFECT_SPECIES_KINDS,
   applyFieldDisplayRole,
+  authoredSocketDefault,
   canvasToDefinition,
   compileProcessDefinition,
   compileTreeDeclarations,
@@ -1641,10 +1643,24 @@ const transitionGuardFieldOptions = computed(() => {
   if (record?.kind !== 'cts.transition') return [];
   return rowFieldIdOptions(nodeTypeId(record));
 });
-const declarationStateFieldOptions = computed(() => {
-  const node = selectedNode.value;
-  if (node?.type !== 'ctsState' || !node.data?.typeId) return [];
-  return rowFieldIdOptions(node.data.typeId, { topLevelOnly: true });
+// The state-policy facet authors on the typed operation (SPEC §7): the
+// transition's target state, the construct's initial state. The socket
+// default arrives as a data-tree packet in live records; the authored
+// value is the target.
+const recordStatePolicyTarget = computed(() => {
+  const record = selectedProcessNode.value;
+  if (!['cts.transition', 'cts.construct'].includes(record?.kind)) return '';
+  if (!nodeTypeId(record)) return '';
+  const raw = record.kind === 'cts.transition'
+    ? (record.state?.to ?? authoredSocketDefault(record.inputDefaults?.state))
+    : authoredSocketDefault(record.inputDefaults?.state);
+  const value = authoredSocketDefault(raw);
+  return typeof value === 'string' ? value : '';
+});
+const recordStateFieldPolicyOptions = computed(() => {
+  if (!recordStatePolicyTarget.value) return [];
+  const record = selectedProcessNode.value;
+  return rowFieldIdOptions(nodeTypeId(record), { topLevelOnly: true });
 });
 // The class inspector's identifier dropdown (SPEC §4): options are the
 // sibling field nodes of the selected class; '' leaves the flag unowned

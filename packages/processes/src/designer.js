@@ -232,10 +232,6 @@ export const DECLARATION_NODE_TYPES = Object.freeze(['ctsClass', 'ctsType', 'cts
 
 export function declarationWireLegality({ sourceType = '', targetType = '', targetRecord = null, targetRecordKind = '' } = {}) {
   if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
-  // A state also declares on a type-reference node: the wire scopes it to
-  // that registry type (owner direction 2026-10-22) — pack-type lifecycles
-  // scope their state vocabulary through the anchor, one scope per state.
-  if (sourceType === 'ctsState' && targetType === 'ctsType') return 'declares';
   // Children edges land child-first: the source is the child (an in-tree
   // class or a type-reference card naming a registry type — SPEC §6, the
   // child edge's type list is not restricted to in-tree declarations),
@@ -321,7 +317,6 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
   // precondition.
   const unscopedStateValues = new Set();
   const valuesByType = new Map();
-  const rowIdsByType = new Map();
   for (const node of nodes) {
     if (node.type !== 'ctsState' || !node.data?.value) continue;
     if (node.data.typeId == null) {
@@ -331,12 +326,6 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
     const values = valuesByType.get(node.data.typeId) || new Set();
     values.add(String(node.data.value));
     valuesByType.set(node.data.typeId, values);
-  }
-  for (const node of nodes) {
-    if (node.type !== 'ctsField' || !node.data?.typeId || !node.data?.name) continue;
-    const ids = rowIdsByType.get(node.data.typeId) || new Set();
-    ids.add(camelCaseId(node.data.name));
-    rowIdsByType.set(node.data.typeId, ids);
   }
   for (const node of nodes) {
     if (node.type !== 'ctsClass' && node.type !== 'ctsField') continue;
@@ -366,38 +355,8 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
     }
   }
 
-  // Per-state field policy (SPEC §7): shape, declared rows, and the
-  // editable-within-visible invariant, against the draft's own field nodes
-  // (activation row-checks against the registry view beside this).
-  for (const node of nodes) {
-    if (node.type !== 'ctsState' || !node.data?.fieldPolicy) continue;
-    const facet = node.data.fieldPolicy;
-    const value = String(node.data?.value || '(state)');
-    for (const key of ['visible', 'editable']) {
-      if (facet[key] !== undefined && !Array.isArray(facet[key])) {
-        diagnostics.push(`state ${value}: fieldPolicy ${key} must be a field list`);
-      }
-    }
-    if (!node.data.typeId) continue;
-    const rowIds = rowIdsByType.get(node.data.typeId);
-    if (rowIds?.size) {
-      for (const key of ['visible', 'editable']) {
-        for (const fieldId of Array.isArray(facet[key]) ? facet[key] : []) {
-          if (!rowIds.has(String(fieldId))) {
-            diagnostics.push(`state ${value}: fieldPolicy ${key} names undeclared field ${fieldId}`);
-          }
-        }
-      }
-    }
-    if (Array.isArray(facet.visible) && Array.isArray(facet.editable)) {
-      for (const fieldId of facet.editable) {
-        if (!facet.visible.includes(fieldId)) {
-          diagnostics.push(`state ${value}: fieldPolicy editable names ${fieldId} outside visible`);
-        }
-      }
-    }
-  }
-
+  // Per-state field policy authors on the typed operations (SPEC §7);
+  // the declaration-check seam row-checks those lists.
   for (const edge of edges) {
     if (edge.role !== 'type') continue;
     const source = nodeById.get(edge.source);
@@ -639,7 +598,7 @@ export function declarationNodePorts(node = {}, types = []) {
   if (node.type === 'ctsType') {
     const entry = types.find(candidate => candidate.id === node.data?.typeId);
     return {
-      inputSpecs: [{ id: 'declare', label: 'states', role: 'data', type: processType('json'), access: 'item', plane: 'declaration' }],
+      inputSpecs: [],
       outputSpecs: entry
         ? [{ id: 'type', label: entry.id, role: 'data', type: processType('entityRef', { typeId: entry.id }), access: 'item', plane: 'declaration' }]
         : []
@@ -685,8 +644,6 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
       declaredBy.set(source.id, target.id);
       if (source.type === 'ctsField') fieldCounts.set(target.id, (fieldCounts.get(target.id) || 0) + 1);
       else stateCounts.set(target.id, (stateCounts.get(target.id) || 0) + 1);
-    } else if (source.type === 'ctsState' && target.type === 'ctsType') {
-      declaredBy.set(source.id, target.id);
     } else if (source.type === 'ctsClass' || source.type === 'ctsType') {
       if (target.type === 'processNode') {
         bindEdges.push([source, target]);
