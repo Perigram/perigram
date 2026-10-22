@@ -50,7 +50,7 @@ function actionTypeOf(action = {}) {
 
 function relationLinkTarget(action = {}) {
   if (!isRelationLinkAction(action)) return '';
-  return action.relationMutation?.targetType || action.relation?.targetType || '';
+  return [].concat(action.relationMutation?.targetTypes || action.relation?.targetTypes || [])[0] || '';
 }
 
 export function generatedActionLabel(action = {}, fallback = '', { t, te } = {}) {

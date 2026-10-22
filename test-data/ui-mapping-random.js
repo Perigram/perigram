@@ -477,14 +477,16 @@ export function generateUiMappingWorld(seed = 7) {
   populated.forEach(type => {
     const relation = Object.entries(type.edges.relations)[0];
     if (relation) {
+      const targetTypes = relation[1].types;
+      const cardinality = relation[1].cardinality === 'single' ? 'one' : 'many';
       addAction(`a_link_${type.id}`, {
         id: `a_link_${type.id}`, label: 'Link', actionKind: 'link', typeId: type.id,
-        relation: { key: relation[0], targetType: relation[1].types[0], cardinality: relation[1].cardinality || 'array' },
+        relation: { key: relation[0], targetTypes, cardinality },
         trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
       });
       addAction(`a_unlink_${type.id}`, {
         id: `a_unlink_${type.id}`, label: 'Unlink', actionKind: 'unlink', typeId: type.id,
-        relation: { key: relation[0], targetType: relation[1].types[0], cardinality: relation[1].cardinality || 'array' },
+        relation: { key: relation[0], targetTypes, cardinality },
         trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
       });
     }
@@ -552,7 +554,7 @@ export function generateUiMappingWorld(seed = 7) {
       childCount(candidate) > childCount(best) ? candidate : best
     ), instancesByType[type.id][0]);
     const sources = [{ id: 'main', typeId: type.id, mode: 'single', required: null, identifier: '$screen.scope.instanceId' }];
-    const detailActionPool = [`a_create_${type.id}`, `a_stage_${type.id}`, `a_shift_${type.id}`, `a_delete_${type.id}`, `a_run_${type.id}`, `a_link_${type.id}`]
+    const detailActionPool = [`a_create_${type.id}`, `a_stage_${type.id}`, `a_shift_${type.id}`, `a_delete_${type.id}`, `a_run_${type.id}`, `a_link_${type.id}`, `a_unlink_${type.id}`]
       .filter(id => actions[id]);
     const detailActions = rnd.chance(0.5)
       ? detailActionPool
@@ -566,7 +568,7 @@ export function generateUiMappingWorld(seed = 7) {
     const relation = Object.entries(type.edges.relations)[0];
     if (relation && instancesByType[relation[1].types[0]]?.length) {
       sources.push({ id: 'crel', typeId: relation[1].types[0], mode: 'list', required: null, relation: { sourceId: 'main', key: relation[0] } });
-      regions.push({ id: 'crel', slot: 'children', sourceId: 'crel', surface: 'list', actions: [`a_link_${type.id}`, `a_unlink_${type.id}`].filter(id => actions[id]) });
+      regions.push({ id: 'crel', slot: 'children', sourceId: 'crel', surface: 'list', actions: [] });
     }
     screens[key] = {
       id: key, screenKey: key, label: `${type.name} detail`, kind: 'instanceDetail', template: 'instanceDetail',

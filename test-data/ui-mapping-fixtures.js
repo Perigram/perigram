@@ -188,7 +188,7 @@ export function createUiMappingCompiledContract() {
       label: 'Sheet',
       actionKind: 'link',
       typeId: 'document',
-      relation: { key: 'linkedSheets', targetType: 'sheet', cardinality: 'array' },
+      relation: { key: 'linkedSheets', targetTypes: ['sheet'], cardinality: 'many' },
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
     },
@@ -197,7 +197,7 @@ export function createUiMappingCompiledContract() {
       label: 'Unlink sheet',
       actionKind: 'unlink',
       typeId: 'document',
-      relation: { key: 'linkedSheets', targetType: 'sheet', cardinality: 'array' },
+      relation: { key: 'linkedSheets', targetTypes: ['sheet'], cardinality: 'many' },
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
     },
