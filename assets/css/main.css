@@ -399,51 +399,43 @@ body {
         }
     }
 
-    /* Container-relative record-body grids (the ui-mapping LAYOUT tokens
-       factsGrid/bodyGrid): the record body fills the surface it renders
-       in — fact rows flow into columns, content blocks share a two-track
-       grid, rich structural blocks span the full row via .ck-span-full.
-       Same container-query pattern as the form grid: routed record pages
-       fill the width, panes and dialogs collapse to one column. */
+    /* Container-relative record-body grids (the ui-mapping LAYOUT
+       tokens factsGrid/bodyGrid): blocks render at content width and
+       pack — full width is earned by wide content (.ck-span-full),
+       never by default. Sections cap at fit-content(46rem) so long
+       fact lists wrap into columns inside one section. */
     .ck-facts-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
+        display: flex;
+        flex-wrap: wrap;
         column-gap: 1.5rem;
-        container-type: inline-size;
+        row-gap: 0.25rem;
+    }
+
+    .ck-facts-grid > * {
+        flex: 0 1 auto;
+        max-width: 100%;
     }
 
     .ck-facts-grid .ck-span-full {
-        grid-column: 1 / -1;
-    }
-
-    @container (min-width: 40rem) {
-        .ck-facts-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-    }
-
-    @container (min-width: 90rem) {
-        .ck-facts-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
+        flex-basis: 100%;
     }
 
     .ck-body-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
         column-gap: 1.5rem;
         row-gap: 0.75rem;
-        align-items: start;
-        container-type: inline-size;
+    }
+
+    .ck-body-grid > * {
+        flex: 0 1 auto;
+        width: fit-content(46rem);
+        max-width: 100%;
     }
 
     .ck-body-grid .ck-span-full {
-        grid-column: 1 / -1;
-    }
-
-    @container (min-width: 60rem) {
-        .ck-body-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
+        flex-basis: 100%;
+        width: 100%;
     }
 }

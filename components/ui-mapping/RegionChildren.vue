@@ -68,6 +68,21 @@
     </TabPanels>
   </Tabs>
 
+  <div v-if="pack" :class="LAYOUT.packRow">
+    <RegionBlock
+      v-for="child in regions"
+      :key="child.id"
+      :node="child"
+      :pool="pool"
+      :bundle="bundle"
+      :depth="depth + 1"
+      :openable="openable"
+      :instance-actions="instanceActions"
+      @run="(action, context) => emit('run', action, context)"
+      @open="instance => emit('open', instance)"
+    />
+  </div>
+
   <RegionBlock
     v-for="child in regions"
     v-else
@@ -95,13 +110,16 @@ import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
-import { localizedLabel, typeLabelKey, REGION_COLUMN_EARNED_REM } from '#shared/ui-mapping/index.js';
+import { localizedLabel, typeLabelKey, REGION_COLUMN_EARNED_REM, LAYOUT } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
 
 const props = defineProps({
   regions: { type: Array, default: () => [] },
   arrangement: { type: Object, default: () => ({ mode: 'stack' }) },
+  // Stack-mode children render at content width side by side (the
+  // stub strip under a record body).
+  pack: { type: Boolean, default: false },
   depth: { type: Number, default: 0 },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },

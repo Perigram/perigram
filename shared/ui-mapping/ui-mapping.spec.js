@@ -558,7 +558,7 @@ describe('value formatting and layout vocabulary', () => {
   });
 
   it('exposes the layout vocabulary as the single styling home', () => {
-    for (const key of ['stack', 'stackTight', 'row', 'rowBetween', 'formGrid', 'factsGrid', 'bodyGrid', 'scrollX', 'dialog']) {
+    for (const key of ['stack', 'stackTight', 'row', 'rowBetween', 'formGrid', 'factsGrid', 'bodyGrid', 'packRow', 'scrollX', 'dialog']) {
       expect(LAYOUT[key], key).toBeTruthy();
     }
     // Card grids render through ResponsiveGrid.

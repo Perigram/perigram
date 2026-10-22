@@ -1,5 +1,5 @@
 <template>
-  <div v-if="node.surfaceKind === 'list'" :class="[listStack, 'w-full']">
+  <div v-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-wrap items-center gap-2">
         <i v-if="node.type" :class="iconFor(node.type)" />
@@ -174,6 +174,7 @@
       v-on="childrenEvents"
       :regions="node.stubRegions"
       :arrangement="{ mode: 'stack' }"
+      pack
     />
   </div>
 </template>
@@ -268,6 +269,12 @@ const spacing = inject('uiMappingSpacing', null);
 
 // The standalone list region sits on the section rhythm; embedded ones
 // (side columns, tabs) stack tight.
+// A list with nothing to show renders at content width — a dead
+// collection is a compact stub, never a screen-wide banner.
+const listWidth = computed(() => (props.node.surfaceKind === 'list'
+  && !props.node.instances.length
+  && state.value !== 'loading'
+  ? 'w-fit max-w-full' : 'w-full'));
 const listStack = computed(() => (props.embedded
   ? (spacing ? spacing.stackTight : LAYOUT.stackTight)
   : (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack'])));
