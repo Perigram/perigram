@@ -40,7 +40,6 @@
       @save="submitLink"
     >
       <div class="flex min-w-72 flex-col gap-2">
-        <span class="text-label">{{ linkAction?.relation?.key }}</span>
         <InstancePicker
           v-model="linkTarget"
           :accepts="linkAction?.relation?.targetTypes || []"

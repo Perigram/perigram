@@ -3095,17 +3095,18 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
       const id = `auto_${roleId}_${typeId}`;
       const detailId = `${id}_detail`;
       const required = aggregateScreenRequirement(feature, grants);
-      const directActions = inferredScreenActions(role.actions || [], feature, typeId);
-      const detailDirectActions = inferredDetailScreenActions(role.actions || [], feature, typeId);
+      const roleActions = dedupeRoleCreateActions(role.actions || [], actions);
+      const directActions = inferredScreenActions(roleActions, feature, typeId);
+      const detailDirectActions = inferredDetailScreenActions(roleActions, feature, typeId);
       const childRegions = childRegionsForParentDetail({
-        role,
+        role: { ...role, actions: roleActions },
         parentTypeId: typeId,
         domain,
         actions,
         graphContext,
         lineageBindings
       });
-      const contextualActions = contextualParentActions(role.actions || [], typeId, domain, actions, graphContext, mergedHierarchyBindings(lineageBindings, domain));
+      const contextualActions = contextualParentActions(roleActions, typeId, domain, actions, graphContext, mergedHierarchyBindings(lineageBindings, domain));
       if (!listSuppressed) inferred[id] = {
         id,
         label: entityLabelOf(domain, typeId) || typeId,
@@ -3277,6 +3278,23 @@ function inferredDetailScreenActions(roleActions = [], feature, typeId = '') {
     .filter(action => actionTargetsScreenType(action, typeId, feature))
     .filter(action => (action.actionKind || 'createEntity') !== 'createEntity')
     .map(action => action.actionId);
+}
+
+// One create affordance per (type, mode, initial state): the first
+// compiled create owns the surface's button; later same-shape constructs
+// stay executable actions.
+function dedupeRoleCreateActions(roleActions = [], processActions = {}) {
+  const seen = new Set();
+  return roleActions.filter(roleAction => {
+    const actionId = roleAction.actionId || roleAction.id;
+    const action = processActions[actionId] || {};
+    const kind = roleAction.actionKind || action.actionKind || 'createEntity';
+    if (kind !== 'createEntity') return true;
+    const key = `${action.typeId || roleAction.typeId || ''}:${action.construction?.mode || ''}:${action.state?.to || ''}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function contextualParentActions(roleActions = [], parentTypeId = '', domain = {}, processActions = {}, graphContext = buildActionGraphContext({ actions: processActions }), lineageBindings = []) {

@@ -2410,6 +2410,13 @@ describe('@perigram/processes compiler', () => {
       .find(region => region.id === 'main').actions
       .filter(actionId => (actionId || '').includes(':link:'));
     expect(linkActionIds).toEqual(['create:link:libraries']);
+    // One create affordance per (type, mode): the twin construct stays
+    // executable while the surfaces carry the first create alone.
+    const listScreen = compiled.screens.auto_role_admin_project;
+    const createActionIds = listScreen.regions
+      .find(region => region.id === 'main').actions
+      .filter(actionId => (compiled.actions[actionId]?.actionKind || 'createEntity') === 'createEntity');
+    expect(createActionIds).toEqual(['create']);
   });
 
   it('expands the userCreatable attachment-kind selector on declared creator inputs', () => {

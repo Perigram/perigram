@@ -242,9 +242,10 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
       required: true,
       prompt: true
     });
-    // The identifier row (`title`) names the record: upload carries only
-    // the payload, never a second name prompt.
-    expect(occs.modeInputs.upload.map(input => input.id)).toEqual(['payload']);
+    // The identifier row (`title`) names the record: every protocol mode
+    // carries the row beside the protocol input (the naming law — a
+    // create never submits an unnamed record).
+    expect(occs.modeInputs.upload.map(input => input.id)).toEqual(['title', 'payload']);
     // Payload-less types keep genericCreate.
     expect(projected.construction.panel.modes).toEqual(['genericCreate']);
     expect(projected.construction.panel.defaultMode).toBe('genericCreate');
