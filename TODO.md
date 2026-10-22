@@ -673,8 +673,9 @@ arrangement itself.
   renders body + weight-ordered tabs (board behind the first tab)
   instead of one long stacked page; project and cassette-design records
   render the body full-width with their empty child collections as
-  compact stubs below; every filled record page fills the viewport with
-  overflow inside child surfaces.
+  compact stubs below; record bodies fill the width (fact rows flow
+  into columns, blocks share the two-track grid, rich structural panels
+  span the row) with overflow inside child surfaces.
 
 ### Agent Notes (2026-10-22)
 
@@ -692,6 +693,21 @@ side rail); (2) `arrangeChildren` grants the dominant-child flow only
 while the remainder fits `SURFACE_ROW_BUDGET` — a heavier remainder
 tabs the whole set in weight order, ending the mixed cascade. SPEC
 §Generative UI carries the owner direction (fills-the-screen).
+
+Session `agent/body-fill-layout-20261022` (same owner report, the body
+itself): every real record body was a single-column stack — one fact
+row per line full-width, sections and relations stacked below — the
+actual source of the dead right side and the long scroll; all four
+sessions on this report had arranged child collections only, which most
+real records carry none of. The body now fills its surface through the
+form-grid pattern: `LAYOUT.factsGrid`/`LAYOUT.bodyGrid`
+container-query utilities in `assets/css/main.css` — fact rows flow
+1→2→3 columns (40rem/90rem container), field groups and relation rows
+share a two-track grid past 60rem, rich structural groups and quantity
+maps span the full row, and the show-more control spans the facts row.
+Nested card bodies keep the hairline spec list (the grids are the
+`full` variant's). Render pin: the ui-mapping showcase smoke asserts
+both grid classes on detail bodies.
 
 ## Generative arrangement and identifier single-homing (owner report 2026-10-22)
 
