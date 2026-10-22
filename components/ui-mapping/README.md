@@ -51,7 +51,11 @@ runs with no form at all. `link`
 actions prompt for the relation target through `InstancePicker` over the
 pool before dispatch (`onRun` receives `{ relations: { key: ref } }`; the
 picker accepts the relation's declared `targetTypes` and models the
-instance ref `{ type, id }` it submits). Inline relation-chip operations
+instance ref `{ type, id }` it submits). Relation targets live outside the
+opened screen's sources: the dialog lazy-loads each accepted type through
+the host's `onLoadType` seam when it opens, and the declared target domain
+(`where`, SPEC §6) filters the offered candidates through the one shared
+evaluator. Inline relation-chip operations
 (a relation's Unlink) execute through the
 `generatedExecuteAction` provide with the entry's relation payload — the
 same launch pipeline as header actions.

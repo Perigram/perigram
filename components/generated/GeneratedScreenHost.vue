@@ -322,21 +322,23 @@ async function runGeneratedAction(action, data = {}, context = {}) {
   }
 }
 
-// A derived command action runs its command with the opened instance as
-// the bound source — same mutation boundary (outbox, idempotency key) as
-// process actions, and the command runtime enforces its own access law.
+// A derived export action (declaration bindings, SPEC §Exports) runs
+// through the process boundary so its command executes with the
+// action-scoped grants — same mutation boundary (outbox, idempotency key)
+// as process actions.
 async function runDerivedCommand(action = {}, instance = null) {
   if (!instance?._id && !instance?.id) return;
   const outbox = useOutboxStore();
   try {
     await outbox.mutate({
-      url: `/api/admin/commands/${encodeURIComponent(action.commandId)}/run`,
+      url: '/api/process-definitions/active/exports/run',
       method: 'POST',
       body: {
-        entities: { source: { type: instance.type, id: String(instance._id || instance.id) } },
-        parameters: { kind: action.kind }
+        typeId: action.typeId,
+        kind: action.kind,
+        instanceId: String(instance._id || instance.id)
       },
-      meta: { kind: 'action', instanceId: String(instance._id || instance.id), change: 'updated', reason: 'derived-command' }
+      meta: { kind: 'action', instanceId: String(instance._id || instance.id), change: 'updated', reason: 'derived-export' }
     });
     toast.add({ severity: 'success', summary: action.label || action.commandId, detail: t('generatedScreen.actionCompleted'), life: 2000 });
     await reload();

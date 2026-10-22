@@ -396,6 +396,10 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
 
 function deriveRelationMutationActions(actions = {}, domain = {}) {
   const derived = { ...actions };
+  // One pair per entry: the first manual action over the entry owns the
+  // derivation, so two constructs over the same type and relation mint one
+  // Link/Unlink pair.
+  const derivedEntries = new Set();
   for (const [sourceActionId, sourceAction] of Object.entries(actions)) {
     if ((sourceAction.trigger?.mode || 'manual') !== 'manual') continue;
     // Relation mutations are ENTRY-level: one authored relation (one
@@ -428,6 +432,9 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
     for (const entry of contractsByKey.values()) {
       const relationLabel = relationEntryLabel(domain, sourceAction.typeId, entry);
       for (const operation of ['link', 'unlink']) {
+        const entryKey = `${sourceAction.typeId}:${operation}:${entry.key}`;
+        if (derivedEntries.has(entryKey)) continue;
+        derivedEntries.add(entryKey);
         const creatorAction = entry.creator?.actionId ? actions[entry.creator.actionId] : null;
         const creator = creatorAction
           ? (() => {

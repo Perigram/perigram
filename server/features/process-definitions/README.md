@@ -592,6 +592,14 @@ the active process relation joining those parent types. Derived targets are
 then queried by canonical provenance. Submitting `relationCreator` to the Link
 action runs that exact embedded constructor and persists the returned reference
 through the owner's `processUpdate()` boundary.
+Declaration-derived export actions (SPEC §Exports, the hydration payload's
+`exports` bindings) execute through
+`executeDerivedExportAction`: the `(typeId, kind)` binding must be declared by
+an installed plugin, the caller must hold write on the source instance, and
+the command runs with the same action-scoped execution grants a compiled
+run-command action receives — the command's declared gates ride as transient
+grants, so a process role without a standing `artifacts:write` grant still
+exports its own bound types.
 An embedded creator request may also declare `relationReplaces` for one target
 already linked through that same relation. After creation, the relation runtime
 verifies the old reference belongs to the owner and replaces it with the new
