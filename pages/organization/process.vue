@@ -221,7 +221,6 @@
                   :diagnostics="classDeclarationDiagnostics"
                   :type-options="declarationTypeOptions"
                   :type-anchor-options="typeAnchorOptions"
-                  :state-options="declarationStateOptions"
                   :state-field-options="declarationStateFieldOptions"
                   @sync="syncNodeData"
                   @update-name="value => updateClassName(selectedNode, value)"
@@ -247,7 +246,6 @@
                   :artifact-kind-options="artifactUploadKindOptions"
                   :designer="designer"
                   :grants="selectedProcessNodeGrants"
-                  :access-detail="selectedProcessNodeAccessDetail"
                   :effective-access="selectedProcessNodeEffectiveAccess"
                   :inputs="processNodeInputs(selectedProcessNode)"
                   :preview="{
@@ -1629,18 +1627,6 @@ const transitionGuardFieldOptions = computed(() => {
     .map(field => ({ label: field.i18n ? t(field.i18n) : (field.label || field.value), value: String(field.value || '').replace(/^(data|specs)\./, '') }))
     .filter(field => field.value);
 });
-// Deadline targets are declared state values: same-type records plus
-// unscoped tokens, the state node itself excluded (SPEC §7).
-const declarationStateOptions = computed(() => {
-  const node = selectedNode.value;
-  if (node?.type !== 'ctsState') return [];
-  const typeId = node.data?.typeId ?? null;
-  const selfId = String(node.data?.refId || node.id);
-  return Object.values(draft.value?.data?.ctsTypes || {})
-    .filter(record => record?.kind === 'state' && record.value && String(record.id) !== selfId
-      && (typeId == null || record.typeId === typeId || record.typeId == null))
-    .map(record => ({ label: record.label || record.value, value: record.value }));
-});
 // State field-policy lists select row field ids of the bound type (SPEC
 // §7): slot prefixes strip the same way guard paths do.
 const declarationStateFieldOptions = computed(() => {
@@ -1694,21 +1680,6 @@ function removeSelectedSocket() {
   selectedSocketId.value = '';
 }
 const ACCESS_LEVEL_ORDER = { read: 0, write: 1, admin: 2 };
-// The access-detail window reads the same incoming-entity contract the
-// live-graph binding resolves through.
-const selectedProcessNodeAccessDetail = computed(() => {
-  const node = selectedProcessNode.value;
-  if (!node?.kind || !['cts.transition', 'cts.mutate'].includes(opKind(node))) return '';
-  const incoming = node.id ? incomingEntityContract(node.id) : {};
-  const from = incoming.status || '';
-  const to = node.state?.to || '';
-  if (!from && !to) return '';
-  // Target-only transitions resolve the from-state at runtime (SPEC §20:
-  // lossless) — an unknown from renders as a bare arrow, never a '?'
-  // placeholder reading like an error.
-  if (from && to) return `${from} → ${to}`;
-  return to ? `→ ${to}` : from;
-});
 const selectedProcessNodeEffectiveAccess = computed(() => {
   const node = selectedProcessNode.value;
   const typeId = nodeTypeId(node) || node?.targetTypeId || '';
@@ -2881,8 +2852,6 @@ function syncDeclarationRecord(record = {}, node = {}) {
   if (node.type === 'ctsState') {
     record.typeId = node.data.typeId || null;
     record.value = node.data.value || '';
-    record.initial = node.data.initial === true;
-    record.terminal = node.data.terminal === true;
   }
   if (node.type === 'ctsType') record.typeId = node.data?.typeId || '';
 }

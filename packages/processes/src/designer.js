@@ -505,11 +505,9 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
       kind: 'state',
       typeId: data.typeId,
       value: data.value,
-      terminal: data.terminal === true,
       ...(data.label ? { label: data.label } : {}),
       ...(data.severity ? { severity: data.severity } : {}),
-      ...(data.icon ? { icon: data.icon } : {}),
-      ...(data.deadline ? { deadline: data.deadline } : {})
+      ...(data.icon ? { icon: data.icon } : {})
     };
   }
 
@@ -661,40 +659,6 @@ export function declarationNodePorts(node = {}, types = []) {
 // Removing the channel that supplied a binding clears it. Pure over the
 // canvas arrays: returns only the mutations that differ from current
 // state, so an unchanged graph evaluates to no writes.
-// Lifecycle summary of one class's declaration tree: its declared states
-// (value, initial, terminal) and the state-to-state transition wires among
-// them (with intents). Pure over the canvas arrays — the class inspector
-// renders this and edits through the same nodes/edges, so panel authoring
-// and tree authoring are one data model.
-export function classLifecycleOf(nodes = [], edges = [], classNodeId = '', records = {}) {
-  const nodeById = new Map(nodes.map(node => [node.id, node]));
-  const stateNodes = new Map();
-  for (const edge of edges) {
-    if (edge.role !== 'type' || edge.target !== classNodeId) continue;
-    const source = nodeById.get(edge.source);
-    if (source?.type === 'ctsState') stateNodes.set(source.id, source);
-  }
-  const stateIds = new Set(stateNodes.keys());
-  // State-to-state wires declare nesting (SPEC §7): the wire's source is
-  // the parent, the receiving (target) state its child. Structure only, no
-  // initials; terminal is authored on the node.
-  const nesting = edges
-    .filter(edge => edge.role === 'type' && stateIds.has(edge.source) && stateIds.has(edge.target))
-    .map(edge => ({
-      edgeId: edge.id,
-      parent: String(nodeById.get(edge.source)?.data?.value || ''),
-      child: String(nodeById.get(edge.target)?.data?.value || '')
-    }));
-  const states = [...stateNodes.values()].map(node => ({
-    nodeId: node.id,
-    value: String(node.data?.value || ''),
-    severity: node.data?.severity || null,
-    icon: node.data?.icon || null,
-    terminal: node.data?.terminal === true
-  }));
-  return { states, nesting };
-}
-
 export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, previousBindings = {}, resolvers = {}, knownTypeIds = []) {
   const mutations = [];
   const bindings = {};

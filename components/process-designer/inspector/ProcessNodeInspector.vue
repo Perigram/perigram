@@ -19,7 +19,6 @@
           @update:model-value="value => $emit('update-grant-level', { index, level: value })"
         />
       </div>
-      <div v-if="accessDetail" class="text-supporting text-muted">{{ accessDetail }}</div>
       <div v-if="effectiveAccess.length" class="flex flex-wrap gap-1">
         <span
           v-for="item in effectiveAccess"
@@ -292,7 +291,6 @@ const props = defineProps({
   artifactKindOptions: { type: Array, default: () => [] },
   designer: { type: Object, default: () => ({}) },
   grants: { type: Array, default: () => [] },
-  accessDetail: { type: String, default: '' },
   effectiveAccess: { type: Array, default: () => [] },
   inputs: { type: Array, default: () => [] },
   preview: { type: Object, default: () => ({ supported: false, running: false, state: null, outputs: [] }) },

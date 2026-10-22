@@ -24,7 +24,7 @@ function registryWithOrgType() {
 function draftStateRecords() {
   return {
     s1: { id: 's1', kind: 'state', typeId: 'widget', value: 'raw' },
-    s2: { id: 's2', kind: 'state', typeId: 'widget', value: 'done', terminal: true }
+    s2: { id: 's2', kind: 'state', typeId: 'widget', value: 'done' }
   };
 }
 
@@ -162,23 +162,6 @@ describe('declaration-check phase', () => {
     expect(errors).toContainEqual(expect.stringMatching(/comprehension guard: op map is not boolean vocabulary/));
   });
 
-  it('checks state deadlines: parseable duration, declared target, guard contract', () => {
-    const registry = registryWithOrgType();
-    const states = {
-      ...draftStateRecords(),
-      s1: { ...draftStateRecords().s1, deadline: { after: 'PT48H', to: 'done' } },
-      badAfter: { id: 'badAfter', kind: 'state', typeId: 'widget', value: 'new', deadline: { after: '2 days', to: 'done' } },
-      badTo: { id: 'badTo', kind: 'state', typeId: 'widget', value: 'new', deadline: { after: 'PT1H', to: 'FLYING' } },
-      selfTo: { id: 'selfTo', kind: 'state', typeId: 'widget', value: 'new', deadline: { after: 'PT1H', to: 'new' } },
-      badGuard: { id: 'badGuard', kind: 'state', typeId: 'widget', value: 'new', deadline: { after: 'PT1H', to: 'done', guard: { op: 'map', list: { op: 'lit', value: [] }, var: 'x', body: { op: 'var', name: 'x' } } } }
-    };
-    const errors = checkDeclarationsAgainstCts({ data: { ctsTypes: states } }, registry, 'org-1');
-    expect(errors).not.toContainEqual(expect.stringMatching(/^.*s1 deadline/));
-    expect(errors).toContainEqual(expect.stringMatching(/badAfter deadline: after must be an ISO-8601 duration/));
-    expect(errors).toContainEqual(expect.stringMatching(/badTo deadline: to FLYING is not declared for widget/));
-    expect(errors).toContainEqual(expect.stringMatching(/selfTo deadline: to must name another declared state/));
-    expect(errors).toContainEqual(expect.stringMatching(/badGuard deadline guard: op map is not boolean vocabulary/));
-  });
 
   it('checks state field policies: row-checked lists, array shape', () => {
     const registry = registryWithOrgType();
