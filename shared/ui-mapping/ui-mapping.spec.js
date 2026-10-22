@@ -558,12 +558,10 @@ describe('value formatting and layout vocabulary', () => {
   });
 
   it('exposes the layout vocabulary as the single styling home', () => {
-    for (const key of ['stack', 'stackTight', 'row', 'rowBetween', 'formGrid', 'scrollX', 'dialog']) {
+    for (const key of ['stack', 'stackTight', 'row', 'rowBetween', 'formGrid', 'factsGrid', 'bodyGrid', 'scrollX', 'dialog']) {
       expect(LAYOUT[key], key).toBeTruthy();
     }
-    // Retired with the viewport-split layouts: facts grids never
-    // materialized, and card grids render through ResponsiveGrid.
-    expect(LAYOUT.factsGrid).toBeUndefined();
+    // Card grids render through ResponsiveGrid.
     expect(LAYOUT.cardGrid).toBeUndefined();
   });
 

@@ -229,6 +229,11 @@ export const LAYOUT = Object.freeze({
   // the tailwindcss build has no container-queries plugin, so viewport
   // variants cannot express "wide where I am rendered" (dialogs, panes).
   formGrid: 'ck-form-grid',
+  // Container-relative record-body grids (real CSS in main.css beside
+  // the form grid): fact rows flow into columns, body blocks share a
+  // two-track grid, .ck-span-full spans the full row.
+  factsGrid: 'ck-facts-grid',
+  bodyGrid: 'ck-body-grid',
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
   // Row-surface recipe (the table row IS the card): a row's own

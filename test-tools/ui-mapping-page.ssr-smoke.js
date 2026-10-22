@@ -68,6 +68,10 @@ describe('ui-mapping showcase SSR smoke', () => {
     expect(html).toContain('data-testid="gantt-collection"');
     expect(html).toContain('data-testid="calendar-collection"');
     expect(html).toContain('data-testid="board-card"');
+    // The record body fills its surface: detail bodies carry the
+    // container-derived column grids (fact rows and content blocks).
+    expect(html).toContain('ck-body-grid');
+    expect(html).toContain('ck-facts-grid');
     // Instance ids are private display vocabulary (SPEC §UI): no surface
     // renders them as text — record headers subtitle the type label, and
     // ids that ride attributes (the preview seed) are not display.

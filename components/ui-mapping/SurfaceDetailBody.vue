@@ -2,12 +2,61 @@
   <div v-if="d" :class="d.stack">
     <PreviewBox v-if="hasPreview" :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" :seed="instance.id" />
 
-    <section v-for="group in groups" :key="group.id" :class="d.stackTight">
-      <span v-if="group.label" :class="d.sectionTitle">{{ group.label }}</span>
-      <div v-if="shownFacts(group).length" :class="LAYOUT.specList">
-        <div v-for="field in shownFacts(group)" :key="field.name" :class="d.specRow">
-          <span :class="LAYOUT.labelCell">{{ field.label }}</span>
-          <div :class="LAYOUT.factCell">
+    <!-- The record body fills its surface (SPEC §Generative UI,
+         2026-10-22): content blocks — field groups, relation chip rows —
+         share a container-derived column grid; rich structural blocks
+         span the full row. Fact rows flow into their own finer grid
+         inside each group. -->
+    <div :class="LAYOUT.bodyGrid">
+      <section
+        v-for="group in groups"
+        :key="group.id"
+        :class="[d.stackTight, { 'ck-span-full': groupSpansFull(group) }]"
+      >
+        <span v-if="group.label" :class="d.sectionTitle">{{ group.label }}</span>
+        <div v-if="shownFacts(group).length" :class="variant === 'full' ? LAYOUT.factsGrid : LAYOUT.specList">
+          <div v-for="field in shownFacts(group)" :key="field.name" :class="d.specRow">
+            <span :class="LAYOUT.labelCell">{{ field.label }}</span>
+            <div :class="LAYOUT.factCell">
+              <InlineField
+                :field="field"
+                :editable="editable"
+                :pool="pool"
+                :bundle="bundle"
+                @inline-change="change => emit('inline-change', change)"
+              />
+            </div>
+          </div>
+          <div v-if="hiddenFactCount(group) > 0" class="ck-span-full py-1">
+            <Button
+              :label="factGroupExpanded(group)
+                ? $t('uiMapping.showLess')
+                : $t('uiMapping.showMore', { count: hiddenFactCount(group) })"
+              size="small"
+              text
+              @click="toggleFacts(group)"
+            />
+          </div>
+        </div>
+        <!-- Structural fields follow the section grammar of everything else
+             on the record page: a labeled open block per field, rendered in
+             the open. -->
+        <template v-for="field in structuralOf(group)" :key="field.name">
+          <div v-if="isRichStructure(field)" class="flex w-full flex-col gap-1">
+            <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
+            <StructuralFieldPanel
+              :field="field"
+              :editable="editable"
+              :editing="editingField === field.name"
+              :pool="pool"
+              :bundle="bundle"
+              @begin="editingField = field.name"
+              @end="editingField = null"
+              @inline-change="change => emit('inline-change', change)"
+            />
+          </div>
+          <div v-else :class="d.specRow">
+            <span class="text-body text-muted">{{ field.label }}</span>
             <InlineField
               :field="field"
               :editable="editable"
@@ -16,37 +65,13 @@
               @inline-change="change => emit('inline-change', change)"
             />
           </div>
-        </div>
-        <div v-if="hiddenFactCount(group) > 0" class="py-1">
-          <Button
-            :label="factGroupExpanded(group)
-              ? $t('uiMapping.showLess')
-              : $t('uiMapping.showMore', { count: hiddenFactCount(group) })"
-            size="small"
-            text
-            @click="toggleFacts(group)"
-          />
-        </div>
-      </div>
-      <!-- Structural fields follow the section grammar of everything else
-           on the record page: a labeled open block per field, rendered in
-           the open. -->
-      <template v-for="field in structuralOf(group)" :key="field.name">
-        <div v-if="isRichStructure(field)" class="flex w-full flex-col gap-1">
+        </template>
+        <div
+          v-for="field in inlineMapsOf(group)"
+          :key="field.name"
+          class="flex w-full flex-col gap-1"
+        >
           <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
-          <StructuralFieldPanel
-            :field="field"
-            :editable="editable"
-            :editing="editingField === field.name"
-            :pool="pool"
-            :bundle="bundle"
-            @begin="editingField = field.name"
-            @end="editingField = null"
-            @inline-change="change => emit('inline-change', change)"
-          />
-        </div>
-        <div v-else :class="d.specRow">
-          <span class="text-body text-muted">{{ field.label }}</span>
           <InlineField
             :field="field"
             :editable="editable"
@@ -55,44 +80,30 @@
             @inline-change="change => emit('inline-change', change)"
           />
         </div>
-      </template>
-      <div
-        v-for="field in inlineMapsOf(group)"
-        :key="field.name"
-        class="flex w-full flex-col gap-1"
-      >
-        <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
-        <InlineField
-          :field="field"
-          :editable="editable"
-          :pool="pool"
-          :bundle="bundle"
-          @inline-change="change => emit('inline-change', change)"
-        />
-      </div>
-    </section>
+      </section>
 
-    <section v-for="relation in relationViews" :key="relation.key" :class="d.stackTight">
-      <span :class="LAYOUT.sectionTitle">{{ relation.label }}</span>
-      <div :class="LAYOUT.row">
-        <InstanceInlineRef
-          v-for="ref in relation.shown"
-          :key="ref.id"
-          :type="String(ref?.type || '')"
-          :id="ref?.id"
-          :entity="pool?.[ref?.type]?.[ref?.id] || null"
-          :context-action-entries="inlineRefEntries(relation.key, ref)"
-        />
-        <Tag v-if="relation.overflow === 'count' && relation.hidden > 0" :value="`+${relation.hidden}`" severity="contrast" />
-        <Button
-          v-if="(relation.overflow === 'more' && relation.hidden > 0) || relation.expanded"
-          :label="relation.expanded ? $t('uiMapping.showLess') : $t('uiMapping.showMore', { count: relation.hidden })"
-          size="small"
-          text
-          @click="$emit('toggle', relation.key)"
-        />
-      </div>
-    </section>
+      <section v-for="relation in relationViews" :key="relation.key" :class="d.stackTight">
+        <span :class="LAYOUT.sectionTitle">{{ relation.label }}</span>
+        <div :class="LAYOUT.row">
+          <InstanceInlineRef
+            v-for="ref in relation.shown"
+            :key="ref.id"
+            :type="String(ref?.type || '')"
+            :id="ref?.id"
+            :entity="pool?.[ref?.type]?.[ref?.id] || null"
+            :context-action-entries="inlineRefEntries(relation.key, ref)"
+          />
+          <Tag v-if="relation.overflow === 'count' && relation.hidden > 0" :value="`+${relation.hidden}`" severity="contrast" />
+          <Button
+            v-if="(relation.overflow === 'more' && relation.hidden > 0) || relation.expanded"
+            :label="relation.expanded ? $t('uiMapping.showLess') : $t('uiMapping.showMore', { count: relation.hidden })"
+            size="small"
+            text
+            @click="$emit('toggle', relation.key)"
+          />
+        </div>
+      </section>
+    </div>
 
     <HierarchyTree
       v-if="surface.slots.includes('children')"
@@ -164,6 +175,9 @@ const isQuantityMap = field => field.descriptor.base === 'map'
 // nothing (empty panels are junk).
 const editableNow = field => hasValue(field);
 const inlineMapsOf = group => group.fields.filter(field => isQuantityMap(field) && editableNow(field));
+// A group carrying rich structural content or quantity maps spans the
+// full body-grid row: those blocks need the width.
+const groupSpansFull = group => structuralOf(group).some(isRichStructure) || inlineMapsOf(group).length > 0;
 const isRichStructure = field => {
   const value = field.value;
   if (field.descriptor.base === 'blob') return false;
