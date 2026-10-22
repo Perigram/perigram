@@ -789,7 +789,10 @@ buttons): the caption names the relation's authored field label, the prompt
 accepts every declared target type of the entry (an authored ref field may
 wire several targets — the union stays one entry and one storage key), and
 Unlink receives the already-rendered target reference, so it never opens an
-entity selector. The compiled contract carries the relation key, the accepted
+entity selector — its rendering home is that reference (the mapping
+contract's inline placement, see
+[shared/ui-mapping](../../shared/ui-mapping/README.md)). The compiled
+contract carries the relation key, the accepted
 target types, cardinality, the declared target domain (`where`, CTS SPEC §6 —
 pickers offer what writes accept; the write boundary evaluates the same
 expression), and access grants (each accepted type's read).

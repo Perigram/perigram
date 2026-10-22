@@ -9,7 +9,6 @@ import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.v
 import ActionButton from '~/components/ui-mapping/ActionButton.vue';
 import { useInstancesStore } from '~/stores/instances';
 import { normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
-import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
@@ -40,7 +39,6 @@ const props = defineProps({
 });
 
 const loaded = ref(null);
-const authStore = useAuthStore();
 const instances = useInstancesStore();
 const { t, te } = useI18n();
 const entityContext = inject('entityContext', null);
@@ -128,12 +126,14 @@ const refOpenable = computed(() => Boolean(resolved.value)
 // Per-ref contextual operations (a relation's Unlink arrives as a bound
 // contextActionEntries row from the owning surface): the ref's own
 // ellipsis carries them, executed through the surrounding generated
-// screen's action executor.
+// screen's action executor. No executor in scope means no surface can
+// run them, so the ellipsis stays away.
+const contextualExecutor = computed(() => (typeof unref(generatedExecuteAction) === 'function'
+  ? unref(generatedExecuteAction)
+  : null));
 const contextualActions = computed(() => {
-  if (!props.interactive || !Array.isArray(props.contextActionEntries)) return [];
-  return props.contextActionEntries
-    .map(entry => authStore.actionManifest.find(action => action.id === entry.id))
-    .filter(Boolean);
+  if (!props.interactive || !contextualExecutor.value) return [];
+  return props.contextActionEntries.map(entry => entry.action).filter(Boolean);
 });
 
 watch(
@@ -178,9 +178,9 @@ function onRefKeydown(event) {
 }
 
 function executeContextualAction(action) {
-  const executor = unref(generatedExecuteAction);
-  if (typeof executor !== 'function' || !resolved.value) return;
-  const contextual = props.contextActionEntries.find(entry => entry.id === action.id);
+  const executor = contextualExecutor.value;
+  if (!executor || !resolved.value) return;
+  const contextual = props.contextActionEntries.find(entry => entry.action?.id === action.id);
   executor(action, contextual?.entity || resolved.value, contextual?.context || {});
 }
 </script>

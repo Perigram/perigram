@@ -35,15 +35,15 @@
       :cancel-label="$t('uiMapping.dialogCancel')"
       :save-label="$t('uiMapping.dialogSubmit')"
       :loading="submitting"
-      :save-disabled="!linkTargetId"
+      :save-disabled="!linkTarget"
       @cancel="linkDialogVisible = false"
       @save="submitLink"
     >
       <div class="flex min-w-72 flex-col gap-2">
         <span class="text-label">{{ linkAction?.relation?.key }}</span>
         <InstancePicker
-          v-model="linkTargetId"
-          :accepts="[linkAction?.relation?.targetType].filter(Boolean)"
+          v-model="linkTarget"
+          :accepts="linkAction?.relation?.targetTypes || []"
           :pool="pool"
           :bundle="bundle"
         />
@@ -180,6 +180,12 @@ const composed = computed(() => composeScreen(props.screen, props.contract, prop
 const spacing = reactive(spacingClasses(props.spacingScale));
 watch(() => props.spacingScale, scale => Object.assign(spacing, spacingClasses(scale)));
 provide('uiMappingSpacing', spacing);
+// Inline ref operations (a relation chip's Unlink) execute through the
+// same launch pipeline as header actions; the entry carries the relation
+// payload the run dispatches with.
+provide('generatedExecuteAction', (action, entity, context = {}) => {
+  openAction(action, context.data || {}, { instance: entity });
+});
 
 const { te, t } = useI18n();
 const { localizedTypeLabel } = useLocalizedTypeLabel();
@@ -349,14 +355,16 @@ const draftPayload = () => {
 
 const linkDialogVisible = ref(false);
 const linkAction = ref(null);
-const linkTargetId = ref(null);
+// The picker models the instance ref (`{ type, id }`) — the exact shape
+// the relation payload carries.
+const linkTarget = ref(null);
 const submitLink = () => {
   const action = linkAction.value;
-  const targetId = linkTargetId.value;
+  const target = linkTarget.value;
   linkDialogVisible.value = false;
-  if (!action || !targetId) return;
+  if (!action?.relation?.key || !target?.id) return;
   runAction(action, {
-    relations: { [action.relation.key]: { type: action.relation.targetType, id: targetId } }
+    relations: { [action.relation.key]: { type: target.type, id: target.id } }
   });
 };
 
@@ -372,7 +380,7 @@ const openAction = (action, context = {}) => {
   const launch = planActionLaunch(action);
   if (launch === 'link') {
     linkAction.value = action;
-    linkTargetId.value = null;
+    linkTarget.value = null;
     linkDialogVisible.value = true;
     return;
   }

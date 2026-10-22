@@ -127,7 +127,7 @@ function unlinkEntries(relation = {}, item = {}) {
       && [].concat(action.relationMutation?.targetTypes || []).includes(item.typeId)
     ))
     .map(action => ({
-      actionId: action.id,
+      action,
       entity: props.entity,
       context: {
         data: {

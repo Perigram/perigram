@@ -424,7 +424,11 @@ non-expandable for non-interactive rows such as explorer entries and static
 summaries. Contextual relation operations (the owner-bound Unlink a
 relation gallery passes through `contextActionEntries`) render as the ref's
 own ellipsis menu and execute through the surrounding generated screen's
-action executor — process actions never run from shared UI code. Use this
+action executor (`generatedExecuteAction` provide) — process actions never
+run from shared UI code, and with no executor in scope the ellipsis stays
+away. An entry is `{ action, entity, context }`: the manifest action
+record, the owner instance, and the launch context carrying the relation
+payload. Use this
 for entity relation
 context where an always-expanded nested card would overload the surface; do not
 render extra lifecycle badges next to these relation chips because status

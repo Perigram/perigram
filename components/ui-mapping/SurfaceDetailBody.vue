@@ -81,6 +81,7 @@
           :type="String(ref?.type || '')"
           :id="ref?.id"
           :entity="pool?.[ref?.type]?.[ref?.id] || null"
+          :context-action-entries="inlineRefEntries(relation.key, ref)"
         />
         <Tag v-if="relation.overflow === 'count' && relation.hidden > 0" :value="`+${relation.hidden}`" severity="contrast" />
         <Button
@@ -108,7 +109,7 @@ import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups, fieldLabelKey, localizedLabel, startCaseKey } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, resolveActionButton, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups, fieldLabelKey, localizedLabel, startCaseKey } from '#shared/ui-mapping/index.js';
 import InlineField from './InlineField.vue';
 import StructuralFieldPanel from './StructuralFieldPanel.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
@@ -190,6 +191,35 @@ const factGroupExpanded = group => Boolean(expandedFacts.value[group.id]);
 const toggleFacts = group => {
   expandedFacts.value = { ...expandedFacts.value, [group.id]: !expandedFacts.value[group.id] };
 };
+
+// Inline-resolved actions (relation unlink) address the reference the
+// chip renders: entries bind the owner record and the relation payload
+// the run channel expects.
+const inlineActionsByKey = computed(() => {
+  const byKey = new Map();
+  for (const action of props.actions) {
+    if (resolveActionButton(action).inline !== true) continue;
+    const key = action.relation?.key;
+    if (!key) continue;
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key).push(action);
+  }
+  return byKey;
+});
+
+function inlineRefEntries(key, ref = {}) {
+  if (ref?.id === null || ref?.id === undefined) return [];
+  return (inlineActionsByKey.value.get(key) || [])
+    .filter((action) => {
+      const targetTypes = action.relation?.targetTypes || [];
+      return ref.type ? targetTypes.includes(ref.type) : targetTypes.length === 1;
+    })
+    .map(action => ({
+      action,
+      entity: props.instance,
+      context: { data: { relations: { [key]: { type: ref.type, id: ref.id } } } }
+    }));
+}
 
 const relationViews = computed(() => {
   if (!surface.value.slots.includes('relations')) return [];

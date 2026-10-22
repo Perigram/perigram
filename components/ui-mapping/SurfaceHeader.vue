@@ -166,6 +166,9 @@ const transitionActions = computed(() => props.actions
 const manualActions = computed(() => props.actions
   .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime)
   .filter(action => action?.actionKind !== 'updateInstance')
+  // Inline-resolved actions (relation unlink) render on the reference
+  // they address — the mapping contract's placement decision.
+  .filter(action => resolveActionButton(action, { render: props.type?.render }).inline !== true)
   .filter(action => actionAppliesToEntity(action, props.instance, props.type?.id)));
 const inlineActions = computed(() => manualActions.value.slice(0, HEADER_ACTIONS_INLINE));
 const overflowActions = computed(() => manualActions.value
