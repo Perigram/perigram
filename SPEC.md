@@ -341,7 +341,13 @@ vocabulary the contract speaks, a required input gates the submit, and
 the type's identifier field is required above all — records are created
 named, and "Unnamed" stays a degradation for legacy rows, never a create
 outcome. Record headers carry the identifier value as title with the
-type label as subtitle; instance ids are private and never render.
+type label as subtitle; instance ids are private and never render. The
+identifier value renders once per surface (owner direction 2026-10-22):
+the record title, the card title, or the table identity column is its
+one home — fact strips, card facts, and descriptor columns never repeat
+it. Peer-column engagement is derived (owner direction 2026-10-22):
+columns engage when the measured host grants every composed track its
+earned minimum, for any track count.
 
 Mobile devices scale the whole UI through the root font-size (the rem
 basis PrimeVue components and the typography roles share). Mobile record

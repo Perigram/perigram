@@ -569,6 +569,49 @@ localization + v24 + module-imports 10✓, generated + ui-mapping suites
 63✓, SSR smoke 13✓, check-arch ✓, framework:validate ✓, check-docs ✓.
 E2E not run (no dev stack in session).
 
+## Generative arrangement and identifier single-homing (owner report 2026-10-22)
+
+Owner report: peer columns and tabs stopped rendering on real screens
+after the 2026-10-21 arrangement fixes — engagement had to be generative,
+derived from the composed arrangement, and the identifier field was
+duplicating (header title plus fact rows, card facts, table descriptor
+columns).
+
+- [ ] WAITING — owner verification on the live stack: a detail screen
+  with two or three light child collections renders them side by side on
+  a wide routed page (stacking inside panes), heavier peer sets tab, and
+  the identifier value appears once per surface (title/identity only —
+  no "Name" fact row, card fact, or descriptor column repeating it).
+
+### Agent Notes (2026-10-22)
+
+Session `agent/arrangement-deslop-20261022`. Root cause of the
+arrangement regression: commit `33e463394` replaced the 60rem
+any-count columns gate with per-count literals (80rem for two tracks,
+120rem for three) — three-track columns needed a 1920px container and
+never engaged, two-track engagement became marginal, and the literals
+contradicted the SPEC's derived-engagement law. RegionChildren now
+measures its host (ResizeObserver) and engages the composed track list
+when the host grants every track its earned minimum
+(`REGION_COLUMN_EARNED_REM = 30`, beside the arrangement budgets in
+tables.js) — generative for any track count; zero-floored tracks keep
+the overflow fix; the scoped @container block is gone. Identifier
+single-homing: `isIdentifierField` joins `titleFor` in
+shared/ui-mapping; `resolveListControls` drops the identifier from
+`sortKeys` (the table identity column is sortable and keeps name
+ordering), and SurfaceDetailBody facts, CardGrid facts, and SurfaceBody
+row fields exclude it — the title renders once per surface. The
+artificial-field audit found the two remaining syntheses documented and
+deliberate: `dtoToScreenInstance` bridging the wire name onto the
+identifier row, and the filter panel's primary-status axis. Specs:
+sort-keys rows re-pinned (identifier stays the search axis, `size`
+becomes the natural default sort). SPEC §Generative UI carries both
+owner directions. Guards: shared/ui-mapping + test-data 120✓ (one
+pre-existing failure on `local`: random-world seed-1 currency
+quantities — the finding commit `7e7eb33a2` noted and left), SSR smoke
+13✓, module-imports + localization + design-system ✓, check-arch ✓,
+check-docs ✓, framework:validate ✓. E2E not run (no dev stack).
+
 ## Sheet-design editor panels and interactions (owner report 2026-10-19)
 
 Owner report: the sheet-design editor needs the side panels the editor
