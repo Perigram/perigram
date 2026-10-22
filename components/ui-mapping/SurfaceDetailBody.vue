@@ -109,7 +109,7 @@ import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import { LAYOUT, resolveSurface, resolveActionButton, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups, fieldLabelKey, localizedLabel, startCaseKey } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, resolveActionButton, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups, fieldLabelKey, localizedLabel, startCaseKey, isIdentifierField } from '#shared/ui-mapping/index.js';
 import InlineField from './InlineField.vue';
 import StructuralFieldPanel from './StructuralFieldPanel.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
@@ -174,7 +174,9 @@ const isRichStructure = field => {
 const hasValue = field => field.value !== null
   && field.value !== undefined
   && field.value !== '';
-const scalarsOf = group => group.fields.filter(field => isScalarFact(field) && hasValue(field));
+const scalarsOf = group => group.fields.filter(field => isScalarFact(field)
+  && hasValue(field)
+  && !isIdentifierField(props.type, field.name));
 const structuralOf = group => group.fields.filter(field => !isScalarFact(field) && !isQuantityMap(field) && editableNow(field));
 const shownFacts = group => {
   const scalars = scalarsOf(group);

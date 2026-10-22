@@ -70,7 +70,11 @@ the start-case name. Record titles resolve through `titleFor(record,
 typeView, { unnamedLabel })`: the value of the type's `identifier`-flagged
 field when non-empty, else the localized unnamed placeholder (default
 `'Unnamed'`; callers pass `t('common.unnamed')`) — never record ids,
-never slugs, never heuristics. Display glyphs resolve through
+never slugs, never heuristics. The identifier field is the identity
+slot of every surface (record title, card title, table identity
+column); fact strips, card facts, and descriptor columns exclude it
+(`isIdentifierField`) — the title never repeats as a fact. Display
+glyphs resolve through
 `iconFor(typeView, record?)`: `typeView.glyph`, except that a given
 record with a non-empty `depiction.thumb` field value wins (the declared
 thumbnail is per-record data). `formatQuantity` maps storage units to
@@ -188,7 +192,8 @@ compose-time list contract every collection surface consumes:
 `searchKeys` (the `identifier`-flagged field only — the preferred-name
 and first-short-string heuristics are gone; a type without an identifier
 searches by title and id alone), `sortKeys` (filled short scalars
-with labels; the authored default-sort override channel is gone — the
+with labels, the identifier field excepted — it is the identity axis
+and never repeats as a descriptor column; the
 first filled short scalar is the natural default), `facets` (enum
 fields over the values actually present), and `pagination` from the
 shared table budgets. The contract is total and deterministic over the
@@ -439,11 +444,12 @@ overflow menu), the record page's weight-proportional split (scoped CSS in
 `RegionBlock`: past 60rem of container width the record body shares a
 12-track grid with the side column, whose span the children's combined
 weight earns through `REGION_SIDE_SPANS`; narrower hosts stack), peer
-columns (scoped CSS in `RegionChildren`: the children render on their
-weight-derived zero-floored `--region-tracks` list — `minmax(0, Nfr)`,
-so wide content scrolls inside its column — engaging past 80rem of
-container width for two tracks and 120rem for three; narrower hosts
-stack), and the form grid
+columns (`RegionChildren` renders the weight-derived zero-floored track
+list — `minmax(0, Nfr)`, so wide content scrolls inside its column —
+and engages it when the measured host grants every track its earned
+minimum, `trackCount × REGION_COLUMN_EARNED_REM`: generative for any
+track count, stacking inside panes, dialogs, and narrow hosts), and the
+form grid
 (`LAYOUT.formGrid` names the global `.ck-form-grid` utility in
 `assets/css/main.css`: one column under 40rem of container width, two
 above; full-span rows opt in with `.ck-span-full`).

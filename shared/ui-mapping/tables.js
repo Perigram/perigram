@@ -163,6 +163,10 @@ export const SIDE_MAX_WEIGHT = 16;
 export const COLUMN_MAX_WEIGHT = 12;
 export const DOMINANT_CHILD_SHARE = 0.6;
 export const REGION_COLUMNS_MAX = 3;
+// Peer columns engage when the host can grant every track this earned
+// minimum: engagement is `trackCount × REGION_COLUMN_EARNED_REM` of
+// measured host width, generative for any track count.
+export const REGION_COLUMN_EARNED_REM = 30;
 export const REGION_SIDE_SPANS = Object.freeze([
   { at: 10, span: 6 },
   { at: 4, span: 5 },

@@ -182,12 +182,13 @@ surface concerns:
   arrange below through the weight-driven ladder (proportional columns
   for peers up to the column cap, dominant child in the flow with the
   rest after it, weight-ordered tabs for heavier peers). Engagement is
-  container-gated: the split engages past 60rem of container width, peer
-  columns past 80rem for two tracks and 120rem for three (a column earns
-  ~40rem), stacking inside panes and dialogs; column tracks are
-  zero-floored (`minmax(0, Nfr)`), so wide tables scroll inside their
-  column. Nested detail regions keep the Card surface. Empty regions
-  render a Message.
+  measured on the host: the split engages past 60rem of container
+  width, and peer columns engage when the host grants every track its
+  earned minimum (`trackCount × REGION_COLUMN_EARNED_REM`, generative
+  for any track count), stacking inside panes and dialogs; column
+  tracks are zero-floored (`minmax(0, Nfr)`), so wide tables scroll
+  inside their column. Nested detail regions keep the Card surface.
+  Empty regions render a Message.
 - `BoardCollection.vue` — the state board: the projection whose columns
   are the type's served state vocabulary
   (authored order, `StateTag` headers with per-column counts) and whose
@@ -391,7 +392,8 @@ surface concerns:
   fields and relation chips; the row identity is a link button under the
   screen's `onOpen` contract, like every collection identity.
 - `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
-  scalar facts strip (`DETAIL_FACT_BUDGET`, collapsed behind one show-more
+  scalar facts strip (`DETAIL_FACT_BUDGET`, identifier-excluded — the
+  title owns that value; collapsed behind one show-more
   control per group), structural fields as labeled open sections,
   labeled relation sections (the field label override channel over the
   relation key, start-cased fallback) with budgeted chips and show-more
