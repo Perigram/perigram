@@ -25,7 +25,10 @@ renders through the host; for a type without a compiled screen,
 synthesizer) builds the single-source detail screen — the record floor.
 Single sources hydrate through the readable-reference seam
 (`resolveReadableReference`), so a record readable outside its class
-list (chat-materialized files) still opens.
+list (chat-materialized files) still opens. A cold screen writes its
+per-source `loading` states on the server too, so the first server and
+client renders paint the same skeletons; pool fetches are client-owned
+and loaded content swaps in through normal reactivity.
 
 Organization system screens render their fixed components on their own
 routes: the overview at `/organization`

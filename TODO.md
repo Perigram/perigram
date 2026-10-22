@@ -730,6 +730,28 @@ hydration, so first server and client renders are identical.
   arrangement server- and client-side, and the console mismatch is
   gone.
 
+### Agent Notes (2026-10-22, hydration mismatch fix)
+
+Session `agent/arrangement-hydration-fix-20261022`. Root cause of the
+console mismatch: `GeneratedScreenHost.reload()` returned on the server
+before writing `poolStates`, so the server render derived pool states
+(`missing`/`empty` Messages) while the client's immediate watch wrote
+`loading` synchronously during setup — the hydration render painted
+skeletons against the server's Messages, and the composed arrangement
+rode a mismatched subtree. `reload()` now writes the per-source loading
+map on both sides of the server gate; only the fetches are
+client-gated. Probe (scratch vitest config with `import.meta.server`
+pinned true, over the real screens page SFC): server branch rendered
+`uiMapping.missingRegion` with zero skeletons against the client's four
+skeletons; both branches paint the identical four skeletons after the
+fix. Committed guard: the cold-detail case in
+`test-tools/screens-page.ssr-smoke.js` pins skeleton paint with no
+missing/empty message. Cleanup: the leftover `__client-probe.spec.js`
+(reading `/tmp/opencode` dumps) is deleted; `RegionChildren.vue`'s
+stale 60rem engagement claim and the README-duplicated contract prose
+are trimmed to pointers (the arrangement contract lives in
+[components/ui-mapping](./components/ui-mapping/README.md)).
+
 ## Sheet-design editor panels and interactions (owner report 2026-10-19)
 
 Owner report: the sheet-design editor needs the side panels the editor
