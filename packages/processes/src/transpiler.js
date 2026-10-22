@@ -1,4 +1,4 @@
-import { orientChildrenEdgesChildFirst } from '../../cts/src/index.js';
+import { normalizeRowRelativeFieldRefs, orientChildrenEdgesChildFirst } from '../../cts/src/index.js';
 import { normalizeStateFieldPolicy } from './designer.js';
 
 const CANVAS_RECORD_KEYS = {
@@ -65,6 +65,15 @@ export function definitionToCanvas(definition = {}) {
     .filter(node => !savedSemanticIds.has(semanticNodeId(node)))
     .map(node => withUniqueCanvasNodeId(node, occupiedNodeIds));
   const nodes = [...savedNodes, ...missingProjectedNodes];
+  // Saved state node data overrides the record projection at merge; the
+  // facet heals on the node itself so the inspector reads row-relative
+  // ids on first load (normalizeStateFieldPolicy owns the strip).
+  for (const node of nodes) {
+    if (node.type !== 'ctsState' || !node.data?.fieldPolicy) continue;
+    const healed = normalizeStateFieldPolicy(node.data.fieldPolicy);
+    if (healed) node.data.fieldPolicy = healed;
+    else delete node.data.fieldPolicy;
+  }
   const nodeIds = new Set(nodes.map(node => node.id));
   const edges = (process.graph.edges || [])
     .filter(edge => nodeIds.has(edge.source) && nodeIds.has(edge.target))
@@ -211,7 +220,7 @@ function assertEditableSource(process = {}) {
 
 function normalizeProcessLike(definition = {}) {
   const data = definition.data || definition;
-  return {
+  return normalizeRowRelativeFieldRefs({
     schemaVersion: data.schemaVersion || 1,
     dataflowVersion: data.dataflowVersion,
     sourceTemplateId: data.sourceTemplateId || null,
@@ -236,7 +245,7 @@ function normalizeProcessLike(definition = {}) {
     // Graph protocol marker survives the canvas round trip (SPEC §20).
     ...(data.graphProtocol ? { graphProtocol: data.graphProtocol } : {}),
     compiled: data.compiled || null
-  };
+  });
 }
 
 function projectRecordNodes(process) {

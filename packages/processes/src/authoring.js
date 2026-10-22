@@ -5,7 +5,7 @@
 // gate the canvas applies). The designer page is a presentation adapter
 // over this module. A palette item that cannot be dropped, configured,
 // and round-tripped through this seam is a defect (authoring.spec.js).
-import { operationKindOf, typeIdOf, setTypeBinding } from '../../cts/src/index.js';
+import { operationKindOf, typeIdOf, setTypeBinding, normalizeRowRelativeGuard } from '../../cts/src/index.js';
 import { PROCESS_OPERATION_REGISTRY } from './operations.js';
 import {
   camelCaseId,
@@ -169,6 +169,11 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
     }
     node.icon = iconForProcessNode(node.kind);
+    // Guard field paths heal row-relative in place (SPEC §7/§20): a
+    // block-prefixed persisted path is the bare row id.
+    if (node.kind === 'cts.transition' && node.guard) {
+      node.guard = normalizeRowRelativeGuard(node.guard);
+    }
     delete node.retry;
     delete node.status;
   }

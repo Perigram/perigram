@@ -83,31 +83,30 @@
           :type-options="typeOptions"
           @update:model-value="value => { node.data.descriptor = value; $emit('sync'); }"
         />
-        <!-- Display tokens (SPEC §4 naming facet): label defaults to the
-             authored name, display kind derives when absent, and the two
-             closed flags are single-holder toggles the page moves across
-             the sibling fields of the declared type. -->
-        <div class="flex items-center gap-2">
-          <InputText
-            :model-value="node.data.descriptor?.label || ''"
-            size="small"
-            class="min-w-0 flex-1"
-            :placeholder="node.data.name || $t('processDesigner.fieldDisplayLabel')"
-            :aria-label="$t('processDesigner.fieldDisplayLabel')"
-            @update:model-value="value => patchDescriptor({ label: String(value || '').trim() || undefined })"
-          />
-          <Select
-            :model-value="node.data.descriptor?.display || ''"
-            :options="displayKindOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
-            class="min-w-0 flex-1"
-            :aria-label="$t('processDesigner.fieldDisplayKind')"
-            @update:model-value="value => patchDescriptor({ display: value || undefined })"
-          />
-        </div>
-        <div class="flex flex-wrap items-center gap-4">
+        <!-- The SPEC §4 naming facet clusters apart from the row grammar:
+             label defaults to the authored name, display kind derives
+             when absent, depiction marks the thumbnail source. -->
+        <div class="flex flex-col gap-2 rounded-ui bg-subtle p-2">
+          <div class="flex items-center gap-2">
+            <InputText
+              :model-value="node.data.descriptor?.label || ''"
+              size="small"
+              class="min-w-0 flex-1"
+              :placeholder="node.data.name || $t('processDesigner.fieldDisplayLabel')"
+              :aria-label="$t('processDesigner.fieldDisplayLabel')"
+              @update:model-value="value => patchDescriptor({ label: String(value || '').trim() || undefined })"
+            />
+            <Select
+              :model-value="node.data.descriptor?.display || ''"
+              :options="displayKindOptions"
+              option-label="label"
+              option-value="value"
+              size="small"
+              class="min-w-0 flex-1"
+              :aria-label="$t('processDesigner.fieldDisplayKind')"
+              @update:model-value="value => patchDescriptor({ display: value || undefined })"
+            />
+          </div>
           <label class="flex items-center gap-2">
             <Checkbox
               :model-value="node.data.descriptor?.depiction === true"

@@ -4,7 +4,7 @@ import { operationKindOf, describeType, normalizeOperator, normalizeType, typeId
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
 export { operationKindOf };
-import { resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition, classMayDeclareChildren } from '../../cts/src/index.js';
+import { resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition, classMayDeclareChildren, rowRelativeFieldId } from '../../cts/src/index.js';
 import { processType } from './types.js';
 
 // Field-id derivation for authored names: the label is user-plane, the
@@ -26,11 +26,12 @@ export function camelCaseId(value = '') {
 
 // Per-state field policy (SPEC §7 `fieldPolicy`, §10): whitelists over the
 // bound type's row. An absent facet or list leaves that axis unrestricted;
-// an authored empty list allows nothing.
+// an authored empty list allows nothing. List ids adopt the row-relative
+// form — a block-prefixed spelling (`fields.x`) is the bare row id.
 export function normalizeStateFieldPolicy(fieldPolicy = null) {
   if (!fieldPolicy || typeof fieldPolicy !== 'object' || Array.isArray(fieldPolicy)) return null;
   const list = value => Array.isArray(value)
-    ? Object.freeze([...new Set(value.map(item => String(item)).filter(Boolean))])
+    ? Object.freeze([...new Set(value.map(item => rowRelativeFieldId(String(item))).filter(Boolean))])
     : null;
   const visible = list(fieldPolicy.visible);
   const editable = list(fieldPolicy.editable);

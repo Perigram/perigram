@@ -3260,7 +3260,7 @@
         "fieldDisplayLabel": "Label",
         "fieldDisplayKind": "Display",
         "namesRecord": "Names the record",
-        "picture": "Picture",
+        "picture": "Thumbnail",
         "inferredStation": "Inferred",
         "customizeStation": "Customize",
         "noCompiledScreensHint": "Screens are generated from the access granted to roles.",

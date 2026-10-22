@@ -187,6 +187,58 @@ function mapRecords(records = {}, mapper) {
   return Object.fromEntries(Object.entries(records).map(([id, record]) => [id, mapper(record, id)]));
 }
 
+// -- row-relative field references (SPEC §7/§20) --
+
+// Guard field paths and state field-policy ids address the bare row id;
+// a block-prefixed spelling (`fields.x`, legacy `data.x`/`specs.x`)
+// resolves to it — the dual shape `nativeFieldPathDeclared` accepts for
+// read paths.
+const ROW_BLOCK_NAMES = new Set(['fields', 'data', 'specs']);
+
+export function rowRelativeFieldId(id = '') {
+  return String(id).replace(/^(fields|data|specs)\./, '');
+}
+
+export function normalizeRowRelativeGuard(guard) {
+  if (!guard || typeof guard !== 'object') return guard;
+  let changed = false;
+  const rewrite = node => {
+    if (!node || typeof node !== 'object') return node;
+    if (node.op === 'field' && Array.isArray(node.path)
+      && node.path[0] === 'value' && ROW_BLOCK_NAMES.has(node.path[1]) && node.path.length > 2) {
+      changed = true;
+      return { ...node, path: ['value', ...node.path.slice(2)] };
+    }
+    if (Array.isArray(node.args)) return { ...node, args: node.args.map(rewrite) };
+    if (node.arg) return { ...node, arg: rewrite(node.arg) };
+    return node;
+  };
+  const healed = rewrite(guard);
+  return changed ? healed : guard;
+}
+
+export function normalizeRowRelativeFieldRefs(data = {}) {
+  if (!data || typeof data !== 'object') return data;
+  const processNodes = mapRecords(data.processNodes || {}, node => (
+    node?.kind === 'cts.transition' && node.guard
+      ? { ...node, guard: normalizeRowRelativeGuard(node.guard) }
+      : node
+  ));
+  const ctsTypes = mapRecords(data.ctsTypes || {}, record => {
+    const facet = record?.kind === 'state' ? record.fieldPolicy : null;
+    if (!facet || typeof facet !== 'object') return record;
+    let changed = false;
+    const adopted = {};
+    for (const key of ['visible', 'editable']) {
+      if (!Array.isArray(facet[key])) continue;
+      adopted[key] = facet[key].map(rowRelativeFieldId);
+      if (adopted[key].some((id, index) => id !== facet[key][index])) changed = true;
+    }
+    return changed ? { ...record, fieldPolicy: adopted } : record;
+  });
+  return { ...data, processNodes, ctsTypes };
+}
+
 // -- resolution: v5 binding seam (native records stay native) --
 
 // One-way rewrite for the retired wire vocabulary (owner decision
@@ -368,12 +420,12 @@ export function rewriteRetiredWirePaths(data = {}) {
   const producerOutputs = data.producerOutputs && typeof data.producerOutputs === 'object' && !Array.isArray(data.producerOutputs)
     ? Object.fromEntries(Object.entries(data.producerOutputs).map(([id, output]) => [id, adoptProducerOutputPaths(output)]))
     : data.producerOutputs;
-  return {
+  return normalizeRowRelativeFieldRefs({
     ...data,
     processNodes,
     producerOutputs,
     ...(data.graph ? { graph: { ...data.graph, edges } } : {})
-  };
+  });
 }
 
 export function resolveCtsDefinition(definition = {}, domain = {}) {

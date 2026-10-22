@@ -3260,7 +3260,7 @@
         "fieldDisplayLabel": "Подпись",
         "fieldDisplayKind": "Отображение",
         "namesRecord": "Называет запись",
-        "picture": "Изображение",
+        "picture": "Миниатюра",
         "inferredStation": "Автоматический",
         "customizeStation": "Настроить",
         "noCompiledScreensHint": "Экраны создаются автоматически по правам доступа ролей.",

@@ -15,6 +15,11 @@ describe('normalizeStateFieldPolicy', () => {
     expect(normalizeStateFieldPolicy({})).toBeNull();
     expect(normalizeStateFieldPolicy(null)).toBeNull();
   });
+
+  it('adopts row-relative ids (a block-prefixed spelling is the bare row id)', () => {
+    expect(normalizeStateFieldPolicy({ visible: ['fields.total', 'width'], editable: ['fields.total'] }))
+      .toEqual({ visible: ['total', 'width'], editable: ['total'] });
+  });
 });
 
 describe('state field-policy draft diagnostics', () => {
