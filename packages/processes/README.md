@@ -732,7 +732,10 @@ input rather than a cassette parent socket. Stale unrelated parent values are
 stripped during compilation; for example, `cassette -> queue` is not valid when
 the domain declares queues under projects. A create action is always compiled
 onto its target entity screen so users can create the target from that list with
-a parent selector when needed. The parent entity detail screen may also receive
+a parent selector when needed. One create affordance renders per
+(type, construction mode, initial state) on a surface: the first compiled
+create owns the button while same-shape sibling constructs stay executable
+actions. The parent entity detail screen may also receive
 the action as contextual chrome when the parent contract is a valid lineage
 relation. Entity detail screens do not inherit root create actions for their own
 entity type; detail actions are for the opened entity, such as status/update

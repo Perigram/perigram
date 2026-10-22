@@ -121,8 +121,12 @@ module layout and how the code maps to the spec's build-order tiers.
   `construction` (`genericCreate` + declared construct operators as `via`
   modes with signature-derived `modeInputs`; construction inputs are
   `fields.*` rows and addressable edges only — there is no hardcoded Name
-  input; the minted identifier row serves identity rendering only, so a
-  type with no authored name row creates unnamed records), `relations` (declared edges, with
+  input; dialog creation protocols (`upload`/`capture`/`content`) carry
+  the declared identifier row beside the protocol input so every dialog
+  create names its record, while the editor protocol stays blank (its
+  first save names the record); the minted identifier row serves identity
+  rendering only, so a type with no authored name row creates unnamed
+  records), `relations` (declared edges, with
   their target domains), and `attachmentKinds` (payload traits). Party
   types project as readable principals (SPEC §13): `meta` entities flagged
   `party`, read-only field schemas (identity slots + declared rows),
