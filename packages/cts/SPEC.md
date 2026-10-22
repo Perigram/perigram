@@ -356,16 +356,10 @@ state nodes authored in a process definition and wired into that type's
 create and transition operations.
 
 ```
-StateNode ::= { value: string, policy?: { label?, icon?, severity? },
-                fieldPolicy?: { visible?: [field], editable?: [field] } }
+StateNode ::= { value: string, policy?: { label?, icon?, severity? } }
 ```
 
 - A state is a flat string value.
-- A state's scope is its declaring wire: the class wire scopes it to the
-  class's type; a wire into a type-reference node scopes it to that
-  registry type (owner direction 2026-10-22). One scope per state, and a
-  scoped state's field policy names that type's row; an unwired state is
-  an unscoped value token.
 - Nesting is declared by wiring: a state node's `state` input accepts
   another state node; the wire's source is the parent and the receiving
   (target) state is its child. A parent state is itself a leaf — targeting
@@ -404,14 +398,17 @@ StateNode ::= { value: string, policy?: { label?, icon?, severity? },
 - State display policy rides the state node. A missing label derives
   from the value, severity defaults to `info`, and icon defaults to
   none.
-- A state record may declare a field policy:
+- Per-state field policy is authored on the typed operations (owner
+  direction 2026-10-22): a transition may carry the field policy of its
+  target state, a create operation of its initial state —
   `fieldPolicy: { visible?: [field], editable?: [field] }`, each list
   naming declared row fields of the bound type (row-checked like guard
   paths). While an instance sits in the state, `visible` narrows which
   row fields display and `editable` narrows which row fields the
   instance write boundary accepts. An absent list leaves that axis
   unrestricted; an absent facet leaves the type's policy whole. A field
-  outside `visible` is never editable. The lists narrow the type's
+  outside `visible` is never editable. The first declaration of a state
+  owns its facet (the guard-edge precedent). The lists narrow the type's
   policy facet (§10): grants decide who, the state decides which fields.
 - A transition operation may assign lifecycle actors: an optional
   `actors` input (user-typed) carries the assignees from a wire or an

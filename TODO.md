@@ -13,9 +13,10 @@ pick authors row-relative ids.
   inspector dropdown names the record and moves the single hold between
   fields; a guard condition on a row field hides/refuses the transition
   as authored; a draft with a previously authored guard opens with the
-  field picks resolved; a state wired into a type-reference node scopes
-  to that type and offers "Field policy in state" against its row; the
-  field inspector reads name + type + flags only.
+  field picks resolved; a typed Change status node offers "Field policy
+  in state" over its bound type's row (target state), a Create node over
+  its initial state; the field inspector reads name + type + flags only;
+  the state inspector reads name + severity + icon only.
 
 ### Agent Notes (2026-10-22)
 
@@ -85,6 +86,26 @@ row scope from the consuming create/transition wire when the state
 carries no class scope, so wired token states (the pack-type case)
 author Visible/Editable against the consuming type's row.
 
+### Agent Notes (2026-10-22, round 5 — owner verdict: the wire ceremony is slop)
+
+Session `agent/operation-facet-20261022` (worktree
+`.agent-worktrees/operation-facet-20261022`). Owner verdict: nobody wires
+state nodes to class nodes or type-reference nodes — the anchor scoping
+and the class-scope facet gate are gone. Per-state field policy now
+authors beside the Guard on the typed operation (SPEC §7, owner
+direction): a Change status node carries its target state's facet, a
+Create node its initial state's — Visible/Editable over the bound type's
+row, no new wires, nothing to scope. Compile applies operation-carried
+facets onto the workflow states (packet-unwrapped target, first
+declaration of a state wins — the guard-edge precedent); the
+declaration-check seam row-checks the lists on the operation records;
+the heal covers operation-carried facets. The state record's
+`fieldPolicy` grammar key is retired (SPEC §7 StateNode carries display
+policy only; the stored draft set holds zero state facets — no
+migration). State inspector: name, severity, icon. Pinned by the
+rewritten `state-field-policy.spec.js` (operation home, first-wins) and
+`process-grammar.spec.js` (operation facet row-checks).
+
 ### Agent Notes (2026-10-22, round 4 — owner verdict and decisions)
 
 Session `agent/state-anchor-scope-20261022` (worktree
@@ -103,7 +124,8 @@ state's facet authors against that type's row — the pack-type path
 page derivation is reverted (scoped states only); `update-display-role`
 is gone with the depiction checkbox; dead locale keys removed
 (`picture`, `fieldDisplayLabel`, `fieldDisplayKind`); anchor scoping
-pinned in `declaration-wires.spec.js`.
+pinned in `declaration-wires.spec.js`. Round 5 superseded the anchor
+path entirely.
 
 ## State declaration deslop (owner direction 2026-10-22)
 

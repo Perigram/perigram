@@ -189,9 +189,8 @@ The declaration graph uses Class/Field/State/Transition/Operator nodes and
 typed declaration edges. `declarationWireLegality` and `declarationNodePorts`
 are its only connection contracts. A state connected to a class is a root
 state; a state connected to another state declares its single parent. A
-state's scope is its declaring wire — the class wire, or a wire into a
-type-reference node for registry types (SPEC §7, owner direction
-2026-10-22); an unwired state stays an unscoped value token. A state wired into
+state's authored scope survives only its class wire — a state declared
+against a registry type stays an unscoped value token. A state wired into
 a construct or transition state socket (wire role `entry`) authors that
 operation's state: the construct's initial, the transition's target. A
 transition declaration connects explicit `from` and `to` states. The compiler
@@ -442,7 +441,7 @@ list, a projection of the same AST, with field picks derived from the
 bound type's projected rows as row-relative ids (the vocabulary the
 row-check and the runtime guard scope read). Block-prefixed persisted
 spellings heal to row-relative ids at resolution and the canvas round
-trip — guards and state field-policy lists alike
+trip — guards and operation-carried field-policy lists alike
 (`normalizeRowRelativeFieldRefs`).
 
 A transition node carries an actor assignment (SPEC §7): the
@@ -465,12 +464,14 @@ per-state map derived by
 [`shared/ui-mapping`](../../shared/ui-mapping/README.md)
 `stateFieldPolicyByType`. `normalizeStateFieldPolicy` (in
 `designer.js`, re-exported with the authoring seam) is the one
-normalization home; the draft diagnostics and the declaration-check seam
-row-check the list ids and refuse `editable` outside `visible`. The
-state inspector's pick lists author those ids from the scoped type's
-projected rows as top-level row keys — the granularity the write
-boundary and the row-check address; pack-type lifecycles scope their
-states through a type-reference wire and author facets the same way.
+normalization home; the declaration-check seam row-checks the lists
+against the bound type's rows and refuses `editable` outside `visible`.
+The facet authors beside the guard on the typed operation (SPEC §7): a
+transition carries its target state's policy, a construct its initial
+state's — Visible/Editable pick lists over the bound type's rows as
+top-level row keys, the granularity the write boundary and the
+row-check address. The first declaration of a state owns the facet.
+State nodes carry display policy only.
 The same arrival state is projected onto the exposed (manifest) action as
 `state.from`, so generated surfaces scope the button to the states the
 transition actually leaves; the execution channel and the manifest carry
