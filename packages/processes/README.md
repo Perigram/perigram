@@ -467,7 +467,11 @@ normalization home; the draft diagnostics and the declaration-check seam
 row-check the list ids and refuse `editable` outside `visible`. The
 state inspector's pick lists author those ids from the bound type's
 projected rows as top-level row keys — the granularity the write
-boundary and the row-check address.
+boundary and the row-check address. A state wired into a typed create
+or transition operation carries that operation's row for facet
+authoring (the same structural wire that seeds the vocabulary at
+compile), so pack-type lifecycles author facets through their wired
+state tokens.
 The same arrival state is projected onto the exposed (manifest) action as
 `state.from`, so generated surfaces scope the button to the states the
 transition actually leaves; the execution channel and the manifest carry

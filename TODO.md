@@ -13,7 +13,8 @@ pick authors row-relative ids.
   inspector dropdown names the record and moves the single hold between
   fields; a guard condition on a row field hides/refuses the transition
   as authored; a draft with a previously authored guard opens with the
-  field picks resolved.
+  field picks resolved; a state token wired into a typed Change
+  status/Create offers "Field policy in state" against that type's row.
 
 ### Agent Notes (2026-10-22)
 
@@ -61,6 +62,27 @@ dropdown live). Two findings:
   writes/creation — the processes README "fieldSchemas own membership
   plus read/write/construct policy" law); per-role WHO lives in grants
   and per-state narrowing.
+
+### Agent Notes (2026-10-22, round 3 — owner report "nothing changed"; root cause found)
+
+Session `agent/state-wire-scope-20261022` (worktree
+`.agent-worktrees/state-wire-scope-20261022`). Verified the live stack
+end to end before touching anything: a real-browser run against
+localhost:3000 renders the new inspector (field inspector text carries
+"Writable Constructible Thumbnail"; screenshots
+`.playwright/changes-verify-*.png`), and the browser-context fetches of
+the served module/locale return the new code. The owner's draft
+("Organization process", read from Mongo) holds zero guards and zero
+facets, and its sheet-design states (`DRAFT`/`PRODUCTION`) are stored
+unscoped (typeId null): the field-policy section was class-scope-only,
+so on exactly the states the owner uses it never rendered — before and
+after the earlier rounds. Compile already seeds unscoped state tokens
+by their consuming wire (compiler-core: state node → process-node
+record → typeId, facets included); only the inspector's pick list
+missed that derivation. `declarationStateFieldOptions` now derives the
+row scope from the consuming create/transition wire when the state
+carries no class scope, so wired token states (the pack-type case)
+author Visible/Editable against the consuming type's row.
 
 ## State declaration deslop (owner direction 2026-10-22)
 
