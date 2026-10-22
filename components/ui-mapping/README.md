@@ -49,7 +49,12 @@ reference without rendering — the form never re-asks a binding the
 context supplies (SPEC §UI) — and when no visible rows remain the create
 runs with no form at all. `link`
 actions prompt for the relation target through `InstancePicker` over the
-pool before dispatch (`onRun` receives `{ relations: { key: ref } }`).
+pool before dispatch (`onRun` receives `{ relations: { key: ref } }`; the
+picker accepts the relation's declared `targetTypes` and models the
+instance ref `{ type, id }` it submits). Inline relation-chip operations
+(a relation's Unlink) execute through the
+`generatedExecuteAction` provide with the entry's relation payload — the
+same launch pipeline as header actions.
 The screen accepts a `sourceStates` prop (per-source
 loading/ready/empty/denied/error from the data layer) that
 `composeScreen` folds into the region tree.
@@ -335,6 +340,9 @@ surface concerns:
 - `SurfaceHeader.vue` — the record header. It paints nothing: no
   surface, no border — the record page's stack rhythm separates it from
   the body, and pane boxes / route shells own the frames around it.
+  Inline-resolved actions (relation unlink — the mapping contract's
+  `inline` flag) render on the relation reference they address, so the
+  header's action cluster and overflow menu carry only record actions.
   Lineage Breadcrumb (when nested), a contextual `navigation` channel
   (the `#navigation` slot for direct template hosts plus the
   `navigation` prop — `{ icon, label, command }` threaded through
@@ -388,7 +396,9 @@ surface concerns:
   labeled relation sections (the field label override channel over the
   relation key, start-cased fallback) with budgeted chips and show-more
   toggles for relations not already
-  covered by a child region, and the hierarchy tree for groups. Every
+  covered by a child region — each chip carries the relation's
+  inline-resolved operations (unlink) as `contextActionEntries` bound to
+  the opened record, and the hierarchy tree for groups. Every
   scalar and simple structural field renders through `InlineField.vue`,
   the one detail value cell (plain display; the click-to-edit Inplace
   with pencil on patchable surfaces) — hosts own the

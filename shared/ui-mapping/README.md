@@ -312,13 +312,16 @@ bundle only direct fields derive. Pure over the type record and bundle.
 ### Actions
 
 `resolveActionButton(action, { statePolicy })` → `{ component, tone, icon,
-iconOnly, confirm, hidden }` from a fixed table: `createInstance` →
+iconOnly, confirm, hidden, inline }` from a fixed table: `createInstance` →
 primary + icon-only (`+`), `deleteInstance` → danger + confirmation +
 icon-only (trash), plain `updateInstance` → secondary + icon-only
 (pencil), relation link/unlink → text/icon presentations,
 event-triggered actions → hidden. Icon-only is the obvious-action
 channel: the caption stays the tooltip and accessible name, and menus
-keep full labels. Status-transition actions (`state.to`) carry the target
+keep full labels. An entry with `inline: true` declares reference-bound
+placement: the action renders on the rendered relation reference it
+addresses (the unlink chip menu) and record headers exclude it.
+Status-transition actions (`state.to`) carry the target
 state's resolved display as their presentation — severity as tone, plus
 the authored icon and label (the label derives from the target value when
 the policy authors none, so a transition button is never anonymous); a
