@@ -358,7 +358,9 @@ describe('screen composition', () => {
     );
     const controls = composed.regions[0].listControls;
     expect(controls).toBeTruthy();
-    expect(controls.sortKeys.map(key => key.name)).toEqual(['name', 'size']);
+    // The identifier field ('name') stays the identity/search axis; sort
+    // keys exclude it so no descriptor column repeats the title.
+    expect(controls.sortKeys.map(key => key.name)).toEqual(['size']);
     expect(controls.searchKeys).toEqual(['name']);
     expect(controls.pagination.rows).toBe(10);
   });

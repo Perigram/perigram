@@ -783,8 +783,10 @@ describe('instance-aware list controls', () => {
   it('derives search keys, filled sort keys, facets, and budgets', () => {
     const controls = resolveListControls(type, instances);
     expect(controls.searchKeys).toEqual(['name']);
-    expect(controls.sortKeys.map(key => key.name)).toEqual(['name', 'size', 'grade']);
-    expect(controls.defaultSort).toBe('name');
+    // The identifier ('name') is the identity column — excluded from the
+    // descriptor sort keys even though it is filled.
+    expect(controls.sortKeys.map(key => key.name)).toEqual(['size', 'grade']);
+    expect(controls.defaultSort).toBe('size');
     expect(controls.facets).toEqual([{ name: 'grade', label: 'Grade', values: ['a', 'b'] }]);
     expect(controls.pagination).toEqual({ paginateAt: 10, rows: 10, virtualizeAt: 50 });
   });

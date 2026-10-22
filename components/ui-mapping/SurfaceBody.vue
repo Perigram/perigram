@@ -69,7 +69,7 @@ import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
 import { useI18n } from 'vue-i18n';
-import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, titleFor, iconFor, stateDisplayFor, startCaseKey } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, titleFor, iconFor, stateDisplayFor, startCaseKey, isIdentifierField } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import SurfaceDetailBody from './SurfaceDetailBody.vue';
@@ -134,7 +134,11 @@ const statusTag = computed(() => {
   return { label: startCaseKey(statusValue.value), severity: 'secondary' };
 });
 
-const fieldEntries = computed(() => Object.entries(props.type.fields || {}).map(([name, descriptor]) => ({ name, descriptor })));
+// Row fields exclude the identifier — the row's identity link IS the
+// identifier value.
+const fieldEntries = computed(() => Object.entries(props.type.fields || {})
+  .filter(([name]) => !isIdentifierField(props.type, name))
+  .map(([name, descriptor]) => ({ name, descriptor })));
 const fieldBudget = computed(() => surface.value.budgets.fields
   || (props.variant === 'row' || props.variant === 'inline' ? ROW_FIELD_BUDGET : null));
 const fieldOutcome = computed(() => applyBudget(fieldEntries.value, fieldBudget.value));

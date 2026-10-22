@@ -1,9 +1,8 @@
 <template>
-  <div v-if="arrangement.mode === 'columns'" class="region-columns-host">
+  <div v-if="arrangement.mode === 'columns'" ref="columnsHost" class="region-columns-host">
     <div
       class="region-columns grid w-full grid-cols-1 gap-6"
-      :data-tracks="regions.length"
-      :style="{ '--region-tracks': arrangement.tracks }"
+      :style="columnsEngaged ? { gridTemplateColumns: arrangement.tracks } : undefined"
     >
       <RegionBlock
         v-for="child in regions"
@@ -92,7 +91,7 @@
 // rest arranged after it, heavy peers tab in descending weight order,
 // and everything else stacks. One materialization for every nesting
 // host — record pages, nested detail bodies, and list panels.
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -100,7 +99,7 @@ import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
-import { localizedLabel, typeLabelKey } from '#shared/ui-mapping/index.js';
+import { localizedLabel, typeLabelKey, REGION_COLUMN_EARNED_REM } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
 
@@ -125,31 +124,26 @@ const restRegions = computed(() => props.regions.filter((_, index) => index !== 
 const orderedRegions = computed(() => (Array.isArray(props.arrangement.order)
   ? props.arrangement.order.map(id => props.regions.find(region => region.id === id)).filter(Boolean)
   : props.regions));
+
+// Peer columns engage when the measured host can grant every track its
+// earned minimum (track count × REGION_COLUMN_EARNED_REM) — generative
+// for any track count, stacking inside panes, dialogs, and narrow hosts
+// with zero viewport assumptions. Tracks are zero-floored (minmax(0,
+// Nfr)), so wide tables scroll inside their column instead of
+// stretching the grid past the host.
+const columnsHost = ref(null);
+const columnsEngaged = ref(false);
+let columnsObserver = null;
+const remPx = () => parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
+const measureColumns = () => {
+  const tracks = String(props.arrangement.tracks || '').trim().split(/\s+/).filter(Boolean).length;
+  const width = columnsHost.value?.clientWidth || 0;
+  columnsEngaged.value = tracks > 0 && width >= tracks * REGION_COLUMN_EARNED_REM * remPx();
+};
+onMounted(() => {
+  measureColumns();
+  columnsObserver = new ResizeObserver(measureColumns);
+  if (columnsHost.value) columnsObserver.observe(columnsHost.value);
+});
+onBeforeUnmount(() => columnsObserver?.disconnect());
 </script>
-
-<style scoped>
-/* Container-relative peer columns (the SurfaceHeader pattern). The host
-   is the query container; the grid inside responds and stacks inside
-   panes, dialogs, and narrow hosts. Engagement is per track count — a
-   column earns ~40rem of container width (two tracks engage past 80rem,
-   three past 120rem), so a side-by-side collection always fits its
-   share. The track list is the weight-derived custom property set by
-   the template; its tracks are zero-floored (minmax(0, Nfr)), so wide
-   tables scroll inside their column instead of stretching the grid past
-   the host. */
-.region-columns-host {
-  container-type: inline-size;
-}
-
-@container (min-width: 80rem) {
-  .region-columns[data-tracks='2'] {
-    grid-template-columns: var(--region-tracks);
-  }
-}
-
-@container (min-width: 120rem) {
-  .region-columns[data-tracks='3'] {
-    grid-template-columns: var(--region-tracks);
-  }
-}
-</style>

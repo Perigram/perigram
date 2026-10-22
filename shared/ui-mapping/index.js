@@ -15,6 +15,7 @@ import {
   COLUMN_MAX_WEIGHT,
   DOMINANT_CHILD_SHARE,
   REGION_COLUMNS_MAX,
+  REGION_COLUMN_EARNED_REM,
   REGION_SIDE_SPANS,
   SMALL_LIST_AT,
   SPACING_SCALES,
@@ -74,6 +75,7 @@ export {
   COLUMN_MAX_WEIGHT,
   DOMINANT_CHILD_SHARE,
   REGION_COLUMNS_MAX,
+  REGION_COLUMN_EARNED_REM,
   REGION_SIDE_SPANS
 } from './tables.js';
 
@@ -439,6 +441,13 @@ export function formatQuantity(quantity) {
 // non-empty, else the localized unnamed placeholder (default 'Unnamed';
 // callers pass t('common.unnamed')). Never record ids, never slugs,
 // never heuristics: a record without a declared title is unnamed.
+// The identifier field IS the identity slot of every surface (header
+// title, card title, table identity column) — fact strips, card facts,
+// and descriptor columns never repeat it (isIdentifierField).
+export function isIdentifierField(typeView = null, name = '') {
+  return Boolean(typeView?.identifier) && name === typeView.identifier;
+}
+
 export function titleFor(record = null, typeView = null, { unnamedLabel = 'Unnamed' } = {}) {
   const identifier = typeView?.identifier;
   const value = identifier ? record?.fields?.[identifier] : null;
@@ -507,6 +516,9 @@ export function resolveListControls(typeRecord = {}, instances = []) {
       if (!SCALAR_BASES.includes(descriptor.base)) return false;
       return !isLongText(descriptor);
     })
+    // The identifier field is the identity column — a descriptor column
+    // would repeat the title on every row.
+    .filter(name => !isIdentifierField(typeRecord, name))
     .map(name => ({ name, label: fieldLabel(name, descriptors[name]), base: descriptors[name].base }));
   const declaredIdentity = typeRecord.identifier;
   const shortStringNames = Object.entries(descriptors)
