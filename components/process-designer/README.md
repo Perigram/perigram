@@ -127,12 +127,10 @@ record access, roles, screens, and panel state:
 
 Per-kind inspector sections live in [`inspector/`](./inspector/).
 `ProcessNodeInspector.vue` owns effect construction, declared
-edge selection, transition reference, transition guard (a flat
+edge selection, transition guard (a flat
 all-of/any-of condition editor over the bound type's row-relative
 fields — it reads and writes the guard expression AST, never a parallel
-shape), the transition's actor-assignment facet (scope over the bound
-type's declared states plus a capability label; the user-typed `actors`
-socket on the card carries the assignees), pure output inspection, and the
+shape), pure output inspection, and the
 per-grant access LEVELS (role assignment itself is lane placement —
 see "Lanes"). It does not
 expose packet matching or transport transforms. `DeclarationInspector.vue`

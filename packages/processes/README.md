@@ -437,18 +437,14 @@ the transition inspector edits it as a flat all-of/any-of condition
 list, a projection of the same AST.
 
 A transition node carries an actor assignment (SPEC §7): the
-user-typed `actors` input takes assignees from a wire, an authored
-default, or a manual-run prompt — the compiled action exposes the
-prompt input only when nothing supplies the socket. An authored
-`assignment: { scope?, capability? }` facet refines the write
-(`normalizeTransitionAssignment` in `designer.js` is the normalization
-home; scope values are draft-checked and declaration-checked against
-the type's state vocabulary). At execution the effect adapter composes
-the resolved users into the transition context's lifecycle actors; the
-status runtime persists them and the actor guard governs later
-transitions (entry-scoped: an actor scoped to a state is the only
-caller who may move the instance into it, and the assignment write
-replaces the instance's actor set).
+user-typed `actors` input takes assignees from a wire or an authored
+socket default and nothing else prompts. At execution the effect
+adapter writes the resolved users into the transition context's
+lifecycle actors — ownership: the set applies to every state and
+replaces the previous set; the status runtime persists them and the
+actor guard governs later transitions (an assigned actor is the only
+caller who may move the instance; availability hides actor-denied
+edges).
 
 A state record may declare a `deadline` (SPEC §7): `{ after, to,
 guard? }` compiles the deadline onto the machine state and adds (or

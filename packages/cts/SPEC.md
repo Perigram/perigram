@@ -424,15 +424,12 @@ StateNode ::= { value: string, terminal?: true, policy?: { label?, icon?, severi
   outside `visible` is never editable. The lists narrow the type's
   policy facet (§10): grants decide who, the state decides which fields.
 - A transition operation may assign lifecycle actors: an optional
-  `actors` input (user-typed) carries the assignees from a wire, an
-  authored default, or a manual-run prompt, and an authored
-  `assignment: { scope?: '*' | [state], capability?: string }` facet
-  refines the write (`scope` names states of the bound type; the absent
-  scope assigns for every state — ownership). The execution boundary
-  writes the resolved users into the instance's lifecycle actors
-  (replacing the previous set) and the actor guard governs later
-  transitions: an actor scoped to a state is the only caller who may
-  move the instance into it. Availability hides actor-denied edges.
+  `actors` input (user-typed) carries the assignees from a wire or an
+  authored socket default. The execution boundary writes the resolved
+  users into the instance's lifecycle actors — ownership: the set
+  applies to every state and replaces the previous set — and the actor
+  guard governs later transitions. Availability hides actor-denied
+  edges.
 
 ## 8. Operators — six species
 

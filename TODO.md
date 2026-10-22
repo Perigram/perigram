@@ -1,18 +1,35 @@
 # TODO
 
-## Transition actor assignment (owner direction 2026-10-21)
+## Transition actor assignment (owner direction 2026-10-21, reshaped 2026-10-22)
 
 A transition operation assigns lifecycle actors: the user-typed `actors`
-socket (wire, default, or manual-run prompt) writes the instance's actor
-set at execution, an authored `assignment` facet refines scope and
-capability, and the existing actor guard governs later transitions
-([CTS SPEC](./packages/cts/SPEC.md) §7). Schema-less states accept
-actor-only lifecycle payloads; availability hides actor-denied edges.
+socket carries assignees from a wire or an authored socket default —
+ownership, replacing the instance's actor set at execution — and the
+existing actor guard governs later transitions
+([CTS SPEC](./packages/cts/SPEC.md) §7). Sockets author their own
+defaults; inspector panels for transition facts are gone. Schema-less
+states accept actor-only lifecycle payloads; availability hides
+actor-denied edges.
 
-- [ ] IN PROGRESS — author the socket and assignment facet, compile the
-  prompt exposure, forward actors through the effect adapter, persist
-  them through schema-less transitions, and document the as-built
-  availability actor-filter.
+- [ ] IN PROGRESS — keep the socket-and-default model, the ownership
+  write, and the guard; no inspector facet, no action-time prompt.
+
+### Agent Notes (2026-10-22, reshape)
+
+Session `agent/assignment-deslop-20261022` (worktree
+`.agent-worktrees/assignment-deslop-20261022`), owner direction B after
+live inspection. Removed the form authoring grafted beside the sockets:
+the Assignment panel (scope multiselect + capability field, with its
+i18n keys), the `assignment` record facet end to end (normalizer, draft
+diagnostics, declaration checks, compile carry), and the implicit
+actors prompt on compiled actions — every manual transition had started
+demanding a user pick, and the dialog rendered it without an entity
+picker anyway. The transition's "Target state" panel (Axis/To state
+selects) is deleted with the same stroke: the state socket's wire and
+inline fallback author the target, matching the socket-defaults model.
+Assignment is now wire-or-default only, ownership semantics; the
+machines/workflows runtime work (schema-less actor persistence,
+replacement, availability filtering) is unchanged and tested.
 
 ### Agent Notes (2026-10-21)
 
