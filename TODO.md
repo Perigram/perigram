@@ -709,6 +709,27 @@ packages/processes + shared/ui-mapping 613✓, SSR smoke 13✓, check-arch
 owner verification still WAITING above, now with relation collections in
 the picture.
 
+### Agent Notes (2026-10-22, browser probe + named defect)
+
+Round-4 verification against the live dev stack (org org-6a05940e, real
+records): the hydrated manifest carries the relation and containment
+child regions, the real queue record composes to weight-ordered tabs and
+the project record to the side rail, and a real Chromium session
+renders both (screenshots captured under test-results/ during the
+probe; probe spec and minted session removed afterwards). The browser
+console carried exactly one finding: `Hydration completed but contains
+mismatches` — the record page's server render (empty pool, stacked
+children) diverges from the client recomposition. Dev recovers and the
+client layout wins; a production build keeps the server DOM per the
+repo's hydration law, which would present as the arrangement never
+rendering at all. Fix direction: compose the children arrangement from
+data available at SSR or hold the structural branch until after
+hydration, so first server and client renders are identical.
+- [ ] WAITING — owner verification of the hydration-mismatch fix on the
+  live stack and on a production build: record pages paint the same
+  arrangement server- and client-side, and the console mismatch is
+  gone.
+
 ## Sheet-design editor panels and interactions (owner report 2026-10-19)
 
 Owner report: the sheet-design editor needs the side panels the editor
