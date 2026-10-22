@@ -209,6 +209,7 @@ function normalizeSources(sources = [], screen = {}, template = 'typeList') {
       required: source.required || screen.required || null,
       identifier: mode === 'single' ? (source.identifier || defaultSingleIdentifier({ ...screen, typeId })) : null,
       filters: mode === 'list' && source.filters !== undefined && source.filters !== null ? source.filters : {},
+      relation: mode === 'list' && source.relation ? { ...source.relation } : null,
       lineageBindings: mode === 'list' && Array.isArray(source.lineageBindings)
         ? source.lineageBindings.map(binding => ({ ...binding }))
         : []

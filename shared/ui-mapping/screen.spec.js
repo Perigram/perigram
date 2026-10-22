@@ -349,6 +349,74 @@ describe('screen composition', () => {
     expect(staleScope.regions[1].instances).toEqual([]);
   });
 
+  it('arranges relation child collections through the weight ladder', () => {
+    const relatedWidgets = Array.from({ length: 6 }, (_, index) => ({
+      id: `rw${index}`, type: 'widget', fields: { name: `RW${index}` }, relations: {}, lineage: {}, state: 'draft'
+    }));
+    const widgetPool = buildInstancePool({
+      widgets: [
+        { id: 'host', type: 'widget', fields: { name: 'Host' }, relations: {
+          reviews: relatedWidgets.map(instance => ({ type: 'widget', id: instance.id })),
+          audits: relatedWidgets.map(instance => ({ type: 'widget', id: instance.id }))
+        }, lineage: {}, state: 'draft' },
+        ...relatedWidgets
+      ]
+    });
+    const relationScreen = extra => composeScreen(
+      { screenKey: 'rr', template: 'instanceDetail', label: 'RR', typeId: 'widget', scope: { instanceId: 'host' },
+        sources: [
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'widget_reviews_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'reviews' } },
+          { id: 'widget_audits_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'audits' } }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
+          { id: 'reviews', slot: 'children', sourceId: 'widget_reviews_related', surface: 'card' },
+          { id: 'audits', slot: 'children', sourceId: 'widget_audits_related', surface: 'card' }
+        ],
+        ...extra },
+      contract, bundle, widgetPool
+    );
+    // Two light table peers (8 estimated rows each) share proportional
+    // columns; their relation keys cover the record body's chip rows.
+    const light = relationScreen();
+    expect(light.regions[0].childRegions.map(region => region.relationKey)).toEqual(['reviews', 'audits']);
+    expect(light.regions[0].childArrangement.mode).toBe('columns');
+    expect(light.regions[0].childArrangement.tracks).toBe('minmax(0, 8fr) minmax(0, 8fr)');
+
+    // Heavy card-scale peers (3 preview cards = 14 estimated rows each)
+    // tab in weight order.
+    const heavyWidgets = relatedWidgets.slice(0, 3);
+    const heavyPool = buildInstancePool({
+      widgets: [
+        { id: 'host', type: 'widget', fields: { name: 'Host' }, relations: {
+          reviews: heavyWidgets.map(instance => ({ type: 'widget', id: instance.id })),
+          audits: heavyWidgets.map(instance => ({ type: 'widget', id: instance.id }))
+        }, lineage: {}, state: 'draft' },
+        ...relatedWidgets
+      ],
+      sheets: Array.from({ length: 0 })
+    });
+    const cardBundle = { types: bundle.types.map(type => (
+      type.id === 'widget' ? { ...type, class: 'file', payload: { mime: ['image/png'], preview: 'image' } } : type
+    )) };
+    const heavy = composeScreen(
+      { screenKey: 'rr2', template: 'instanceDetail', label: 'RR', typeId: 'widget', scope: { instanceId: 'host' },
+        sources: [
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'widget_reviews_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'reviews' } },
+          { id: 'widget_audits_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'audits' } }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
+          { id: 'reviews', slot: 'children', sourceId: 'widget_reviews_related', surface: 'card' },
+          { id: 'audits', slot: 'children', sourceId: 'widget_audits_related', surface: 'card' }
+        ] },
+      contract, cardBundle, heavyPool
+    );
+    expect(heavy.regions[0].childArrangement.mode).toBe('tabs');
+  });
+
   it('attaches the list-controls contract to list regions only', () => {
     const composed = composeScreen(
       { screenKey: 'lc1', template: 'typeList', label: 'LC',
