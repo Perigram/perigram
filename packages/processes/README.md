@@ -189,8 +189,9 @@ The declaration graph uses Class/Field/State/Transition/Operator nodes and
 typed declaration edges. `declarationWireLegality` and `declarationNodePorts`
 are its only connection contracts. A state connected to a class is a root
 state; a state connected to another state declares its single parent. A
-state's authored scope survives only its class wire — a state declared
-against a registry type stays an unscoped value token. A state wired into
+state's scope is its declaring wire — the class wire, or a wire into a
+type-reference node for registry types (SPEC §7, owner direction
+2026-10-22); an unwired state stays an unscoped value token. A state wired into
 a construct or transition state socket (wire role `entry`) authors that
 operation's state: the construct's initial, the transition's target. A
 transition declaration connects explicit `from` and `to` states. The compiler
@@ -207,7 +208,8 @@ script — a Cyrillic label derives a Cyrillic key). The class inspector
 authors the record-naming field as a dropdown over the class's field
 nodes — the single-holder `identifier` move, with the Auto pick
 returning the choice to the registry boundary mint (SPEC §4); the field
-inspector carries the `depiction` flag. Declaration binding edges are live
+inspector authors the name and the row descriptor, and display tokens
+derive. Declaration binding edges are live
 channels interpreted over the declaration graph, while process species records
 persist the resolved type and retain their executable ports.
 
@@ -465,13 +467,10 @@ per-state map derived by
 `designer.js`, re-exported with the authoring seam) is the one
 normalization home; the draft diagnostics and the declaration-check seam
 row-check the list ids and refuse `editable` outside `visible`. The
-state inspector's pick lists author those ids from the bound type's
+state inspector's pick lists author those ids from the scoped type's
 projected rows as top-level row keys — the granularity the write
-boundary and the row-check address. A state wired into a typed create
-or transition operation carries that operation's row for facet
-authoring (the same structural wire that seeds the vocabulary at
-compile), so pack-type lifecycles author facets through their wired
-state tokens.
+boundary and the row-check address; pack-type lifecycles scope their
+states through a type-reference wire and author facets the same way.
 The same arrival state is projected onto the exposed (manifest) action as
 `state.from`, so generated surfaces scope the button to the states the
 transition actually leaves; the execution channel and the manifest carry

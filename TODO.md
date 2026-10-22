@@ -13,8 +13,9 @@ pick authors row-relative ids.
   inspector dropdown names the record and moves the single hold between
   fields; a guard condition on a row field hides/refuses the transition
   as authored; a draft with a previously authored guard opens with the
-  field picks resolved; a state token wired into a typed Change
-  status/Create offers "Field policy in state" against that type's row.
+  field picks resolved; a state wired into a type-reference node scopes
+  to that type and offers "Field policy in state" against its row; the
+  field inspector reads name + type + flags only.
 
 ### Agent Notes (2026-10-22)
 
@@ -83,6 +84,26 @@ missed that derivation. `declarationStateFieldOptions` now derives the
 row scope from the consuming create/transition wire when the state
 carries no class scope, so wired token states (the pack-type case)
 author Visible/Editable against the consuming type's row.
+
+### Agent Notes (2026-10-22, round 4 — owner verdict and decisions)
+
+Session `agent/state-anchor-scope-20261022` (worktree
+`.agent-worktrees/state-anchor-scope-20261022`). Owner verdict on round
+3: deriving a field-policy pick list from the first operation a state
+token feeds is slop — a shared state declaration must carry no
+type-ambiguous policy. Owner decisions taken verbatim this session:
+revert the round-3 derivation; the field inspector keeps name and
+type+flags only (label-override input, format select, and depiction
+checkbox deleted — display tokens derive, SPEC §4); state scoping gains
+the type-reference wire (SPEC §7): a state wired into a type-anchor
+node scopes to that registry type, one scope per state, and a scoped
+state's facet authors against that type's row — the pack-type path
+(sheet-design etc.). Implementation: `declarationWireLegality` +
+`interpretDeclarationEdges` + the anchor's declare port; the round-3
+page derivation is reverted (scoped states only); `update-display-role`
+is gone with the depiction checkbox; dead locale keys removed
+(`picture`, `fieldDisplayLabel`, `fieldDisplayKind`); anchor scoping
+pinned in `declaration-wires.spec.js`.
 
 ## State declaration deslop (owner direction 2026-10-22)
 

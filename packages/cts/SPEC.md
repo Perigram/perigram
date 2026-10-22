@@ -361,6 +361,11 @@ StateNode ::= { value: string, policy?: { label?, icon?, severity? },
 ```
 
 - A state is a flat string value.
+- A state's scope is its declaring wire: the class wire scopes it to the
+  class's type; a wire into a type-reference node scopes it to that
+  registry type (owner direction 2026-10-22). One scope per state, and a
+  scoped state's field policy names that type's row; an unwired state is
+  an unscoped value token.
 - Nesting is declared by wiring: a state node's `state` input accepts
   another state node; the wire's source is the parent and the receiving
   (target) state is its child. A parent state is itself a leaf — targeting
