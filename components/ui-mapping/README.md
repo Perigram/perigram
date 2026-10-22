@@ -179,13 +179,16 @@ surface concerns:
   the header already names the class, so the caption never repeats it
   (creates for other types and every other action keep the full label).
   Top-level detail regions compose a record page: a full-width
-  `SurfaceHeader`, then the record body with the child regions arranged
-  around it — a stack-mode child set (at or under `SIDE_MAX_WEIGHT`
-  card-scale rows) rides beside the body in a side column whose
-  12-track grid span the children's weight earns, while peer sets
-  arrange below through the weight-driven ladder (proportional columns
-  for peers up to the column cap, dominant child in the flow with the
-  rest after it, weight-ordered tabs for heavier peers). Engagement is
+  `SurfaceHeader`, then the record body with the filled child regions
+  arranged around it — a stack-mode child set (at or under
+  `SIDE_MAX_WEIGHT` card-scale rows) rides beside the body in a side
+  column whose 12-track grid span the children's weight earns, while
+  peer sets arrange below through the weight-driven ladder (proportional
+  columns for peers up to the column cap, dominant child in the flow
+  while its remainder fits the surface budget, weight-ordered tabs for
+  heavier sets). Empty child regions are layout-inert: they render
+  compact, stacked below the arranged content, and claim no side column
+  or arrangement slot. Engagement is
   measured on the host: the split engages past 60rem of container
   width, and peer columns engage when the host grants every track its
   earned minimum (`trackCount × REGION_COLUMN_EARNED_REM`, generative

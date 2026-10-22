@@ -415,8 +415,14 @@ row 1): a stack-mode child set at or under `SIDE_MAX_WEIGHT` rides beside
 the record body, peers up to `COLUMN_MAX_WEIGHT` rows each share
 proportional columns (track fr from each child's estimated rows), a
 sibling holding at least `DOMINANT_CHILD_SHARE` of the total keeps the
-vertical flow with the rest arranged after it, and heavier peers tab in
-descending weight order at the top level (nested heavy content stacks).
+vertical flow while its remainder fits `SURFACE_ROW_BUDGET`, and every
+other over-budget set tabs in descending weight order at the top level
+(nested heavy content stacks). Arrangement is content-aware (SPEC
+§Generative UI, 2026-10-22): a child collection with zero loaded
+instances is layout-inert — it joins the node's `stubRegions`, renders
+compact below the arranged content, and every arrangement decision
+(weights, columns, tabs, the side rail) sees filled children only; its
+relation key still covers the record body's chip row.
 Screen-level sections keep their own budget rule (`childrenModeFor`:
 over-budget top-level sections tab). Never measured from the DOM. One global spacing coefficient (0.5–2, the showcase slider)
 selects the rhythm set (`spacingClasses` over the literal

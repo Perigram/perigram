@@ -662,6 +662,37 @@ localization + v24 + module-imports 10✓, generated + ui-mapping suites
 63✓, SSR smoke 13✓, check-arch ✓, framework:validate ✓, check-docs ✓.
 E2E not run (no dev stack in session).
 
+## Content-aware record-page arrangement (owner report 2026-10-22)
+
+Owner report: columns and tabs must act as procedural, content-aware
+layouts — the record page arranges its content to fill the screen, with
+empty space and long scrolls (down or sideways) designed out by the
+arrangement itself.
+
+- [ ] WAITING — owner verification on the live stack: the queue record
+  renders body + weight-ordered tabs (board behind the first tab)
+  instead of one long stacked page; project and cassette-design records
+  render the body full-width with their empty child collections as
+  compact stubs below; every filled record page fills the viewport with
+  overflow inside child surfaces.
+
+### Agent Notes (2026-10-22)
+
+Session `agent/content-aware-arrangement-20261022`. Live ground truth
+over the owner's org (minted session, real manifest + instances,
+composition probed for every detail screen): the queue record's
+children weigh 6/2/18/54 rows and the dominant-child rule cascaded
+mixed→mixed→stack, so tabs never engaged and the page stacked ~80 rows;
+project and cassette-design records carry only empty child collections
+(x0) yet placed them in the side rail — columns of empty-state
+messages. Two laws landed: (1) empty children are layout-inert
+(`stubRegions` on the composed node, rendered compact below the
+arranged content, excluded from every arrangement decision and the
+side rail); (2) `arrangeChildren` grants the dominant-child flow only
+while the remainder fits `SURFACE_ROW_BUDGET` — a heavier remainder
+tabs the whole set in weight order, ending the mixed cascade. SPEC
+§Generative UI carries the owner direction (fills-the-screen).
+
 ## Generative arrangement and identifier single-homing (owner report 2026-10-22)
 
 Owner report: peer columns and tabs stopped rendering on real screens

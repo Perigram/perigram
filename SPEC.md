@@ -1178,6 +1178,17 @@ composed weights derive, at every level of the generated tree.
 Filled structural content renders open as labeled sections, and a
 collapsed fact group always carries its show-more control.
 
+### Instance page arrangement fills the screen (owner direction
+2026-10-22)
+Arrangement is content-aware and bounds the record page. A child
+collection with no loaded instances is layout-inert: it claims no side
+rail, column, or tab weight and renders as a compact stub below the
+arranged content. A dominant child keeps the flow while its remainder
+fits the surface budget; a heavier remainder tabs the whole set in
+weight order. The composed record page fits the viewport — content
+fills the available width and height, and overflow stays inside the
+child surfaces' own bounded scrolls.
+
 ### Presentation has one home per concern (owner direction 2026-10-21)
 Action presentation, action applicability, and record/picker labels
 resolve through their canonical seams (`shared/ui-mapping` resolver
