@@ -34,7 +34,7 @@
       show-default-footer
       :cancel-label="$t('uiMapping.dialogCancel')"
       :save-label="$t('uiMapping.dialogSubmit')"
-      :loading="submitting"
+      :loading="submitting || linkLoading"
       :save-disabled="!linkTarget"
       @cancel="linkDialogVisible = false"
       @save="submitLink"
@@ -44,7 +44,7 @@
         <InstancePicker
           v-model="linkTarget"
           :accepts="linkAction?.relation?.targetTypes || []"
-          :pool="pool"
+          :pool="linkPool"
           :bundle="bundle"
         />
       </div>
@@ -110,6 +110,7 @@ import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
 import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, typeLabelKey, localizedLabel, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
+import { withinRelationDomain } from '#shared/relation-domain.js';
 import RegionBlock from './RegionBlock.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
 import InstancePicker from './InstancePicker.vue';
@@ -358,6 +359,31 @@ const linkAction = ref(null);
 // The picker models the instance ref (`{ type, id }`) — the exact shape
 // the relation payload carries.
 const linkTarget = ref(null);
+// Relation targets live outside the opened screen's sources: the host's
+// lazy type loader fills the pool when the dialog opens. The declared
+// target domain (SPEC §6) filters what the picker offers — the same
+// expression the write boundary evaluates.
+const linkLoading = ref(false);
+const linkPool = computed(() => {
+  const relation = linkAction.value?.relation;
+  if (!relation?.where) return pool.value;
+  const filtered = {};
+  for (const typeId of relation.targetTypes || []) {
+    filtered[typeId] = Object.fromEntries(Object.entries(pool.value[typeId] || {})
+      .filter(([, instance]) => withinRelationDomain(instance, relation.where)));
+  }
+  return { ...pool.value, ...filtered };
+});
+async function loadLinkTargets(action) {
+  const types = action?.relation?.targetTypes || [];
+  if (typeof props.onLoadType !== 'function' || !types.length) return;
+  linkLoading.value = true;
+  try {
+    await Promise.all(types.map(typeId => Promise.resolve(props.onLoadType(typeId)).catch(() => null)));
+  } finally {
+    linkLoading.value = false;
+  }
+}
 const submitLink = () => {
   const action = linkAction.value;
   const target = linkTarget.value;
@@ -382,6 +408,7 @@ const openAction = (action, context = {}) => {
     linkAction.value = action;
     linkTarget.value = null;
     linkDialogVisible.value = true;
+    loadLinkTargets(action);
     return;
   }
   if (launch === 'dialog') {

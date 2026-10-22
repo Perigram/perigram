@@ -9,6 +9,7 @@ import { stateService } from '~/server/core/machines/service.js';
 import * as workflowOverridesService from '../workflow-overrides/service.js';
 import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
 import * as entityEventService from '~/server/features/instance-events/service.js';
+import { exportersForOrganization } from '../plugins/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { findTypeDeathCandidates, killTypesWithData, typeDeathManifest } from '../cts-types/lifetime.js';
@@ -203,6 +204,47 @@ export async function getActiveRelationOptions({ actionId, instanceId, source = 
 export async function getById(id, auth) {
   const process = await loadAuthorized(id, auth, 'read');
   return process.toJSON();
+}
+
+// Declaration-derived export actions (SPEC §Exports) execute through the
+// same action-scoped grant model as compiled run-command actions: the
+// caller must hold write on the source instance, and the command's own
+// declared gates ride as transient execution grants.
+export async function executeDerivedExportAction({ typeId, kind, instanceId } = {}, auth = {}) {
+  if (!typeId || !kind || !instanceId) {
+    throw createError({ statusCode: 400, message: 'Export type, kind, and instance are required' });
+  }
+  const organizationId = resolveOrganizationId(auth);
+  const binding = (await exportersForOrganization(organizationId))
+    .find(exporter => exporter.typeId === typeId && exporter.kind === kind);
+  if (!binding) {
+    throw createError({ statusCode: 404, message: `No export ${kind} is declared for ${typeId}` });
+  }
+  const normalizedType = normalizeTypeId(typeId);
+  const service = getAppRegistry().getInstanceService(normalizedType);
+  const loaded = await service?.processGetById?.(instanceId, auth);
+  if (!loaded) throw createError({ statusCode: 404, message: `${normalizedType} not found` });
+  const source = loaded?.toJSON ? loaded.toJSON() : loaded;
+  assertEntityAccess({
+    entity: source,
+    typeId: normalizedType,
+    feature: resolveInstanceFeature(normalizedType),
+    level: 'write',
+    action: 'update',
+    auth
+  });
+  const action = {
+    id: `export:${typeId}:${kind}`,
+    actionKind: 'runCommand',
+    commandId: 'generateAttachment',
+    typeId: normalizedType,
+    access: { level: 'write' }
+  };
+  const executionAuth = createActionExecutionAuth(auth, action);
+  return executeCommand(action.commandId, {
+    entities: { source: { type: normalizedType, id: String(instanceId) } },
+    parameters: { kind }
+  }, executionAuth);
 }
 
 // The save floor: a persisted graph is structurally sound — nodes carry a
