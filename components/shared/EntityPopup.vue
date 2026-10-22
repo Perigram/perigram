@@ -52,6 +52,7 @@ import { resolveDetailScreen, recordFloorScreen } from '~/components/generated/d
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { useCallRouting } from '~/composables/useCallRouting.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
+import { screenByKey } from '~/utils/process-navigation.js';
 import { useEntityPopup } from '~/composables/useEntityPopup';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
@@ -97,7 +98,7 @@ const detailScreen = computed(() => {
   const current = request.value;
   if (!current || isDirectoryType.value) return null;
   const base = (current.screenKey
-    && authStore.screenManifest.find(item => item.screenKey === current.screenKey))
+    && screenByKey(authStore.screenManifest || [], current.screenKey))
     || resolveDetailScreen({
       screens: authStore.screenManifest || [],
       typeId: current.typeId
@@ -160,7 +161,7 @@ function openInstance({ screenKey: detailKey, typeId, instanceId } = {}) {
   if (!typeId || !instanceId) return;
   // The popup stays put: an identity open from the generator swaps the
   // popup subject to that instance's detail screen.
-  const base = authStore.screenManifest.find(item => item.screenKey === detailKey);
+  const base = screenByKey(authStore.screenManifest || [], detailKey);
   if (!base) return;
   request.value = { typeId, instanceId: String(instanceId), screenKey: detailKey };
 }

@@ -5,13 +5,15 @@ load arbitrary Vue component names from process data; the manifest selects fixed
 screen templates, sources, regions, surfaces, and action ids, and the app
 renderer maps those contracts to registered Vue surfaces.
 
-`GeneratedScreenHost.vue` is the single home of the compiled-screen wiring
-for the ui-mapping generator: bundle/contract projection, instance-pool
-hydration (`useScreenSourceSync` + source states), process action runs
-(create-open through the workspace-open seam), and runtime state-machine
-transitions. The routed screens page, the workspace panes, and the mobile
-home tabs all render compiled screens through it — the generator surface
-is never wired twice. Its optional `navigation` prop is the host-injected
+`GeneratedScreenHost.vue` is the single home of the compiled-screen
+wiring: bundle/contract projection, instance-pool hydration
+(`useScreenSourceSync` + source states), process action runs (create-open
+through the workspace-open seam), runtime state-machine transitions, and
+screen-template overloads — the `home` template renders its registered
+component fed by the wire-DTO source loader (`useGeneratedScreen`). The
+routed screens page, the workspace panes, and the mobile home tabs all
+render compiled screens through it — the surface is never wired twice.
+Its optional `navigation` prop is the host-injected
 back affordance for the record header (SurfaceHeader's navigation
 channel): the routed screens page feeds it so a detail deep link can
 return to where the user came from. Instance opens emit
@@ -24,6 +26,12 @@ synthesizer) builds the single-source detail screen — the record floor.
 Single sources hydrate through the readable-reference seam
 (`resolveReadableReference`), so a record readable outside its class
 list (chat-materialized files) still opens.
+
+Organization system screens render their fixed components on their own
+routes: the overview at `/organization`
+(`GeneratedOrganizationOverview.vue`), billing at
+`/organization/billing` (`GeneratedOrganizationAccount.vue`). The
+screens route replaces a system-screen key with the screen's own route.
 
 Every organization management surface — team, bots, partners, billing, the
 plugin marketplace, and the process designer canvas — is a registered
@@ -51,14 +59,6 @@ compiler prompt-form contract (`inputPolicy` field descriptors, construction
 input `typeId` constraints, attachment `creator.typeId`) — those
 rename with the compiler-plane cut, not the wire cut.
 
-Relation Link dialogs load their options through the active action contract.
-When the relation is fed by a process Create Entity effect, the dialog offers a
-compact `Create new` path using that embedded constructor and links the returned
-entity in the same submission. Both existing target choices and constructor
-source choices are scoped by the opened owner, compiled process Lineage
-bindings, declared relations, and derivation provenance; the component never
-substitutes a global entity list for that scoped contract.
-
 ## Action Visibility
 
 Generated surfaces resolve action visibility against the instance's primary
@@ -84,108 +84,56 @@ entity's current primary state either (see
 [server/core/machines/README.md](../../server/core/machines/README.md)), so
 both channels agree on a no-op.
 
-## Manual Prompt Forms
-
-`GeneratedScreen.vue` maps each prompted action field to a shared typed
-control keyed purely off the field type: `entity`/`entityList` use the shared
-entity pickers, `enum` uses a Select over the declared options, `boolean`
-uses a ToggleSwitch, `date`/`dateTime` use a DatePicker (time selection only for
-`dateTime`), `number`/text use InputText, `object`/`json` use
-`GeneratedObjectInput.vue`, and `file` renders the payload creator input
-(accept/capture attributes from the field; selection uploads to the
-`files` bucket and submits the payload reference — a submission fired
-mid-upload awaits the upload, so the reference never misses the
-create). Boolean and date
-prompt values are tri-state: an
-untouched field stays `null` and is omitted from the submission payload
-instead of being coerced to `false` or the current time; once touched, the
-control submits a real boolean or an ISO string (`YYYY-MM-DD` for `date`,
-full ISO for `dateTime`).
-
-Prompted lineage/relation inputs whose reference the launch context
-already binds are hidden from the form: `action-context.js` resolves the
-context's entity refs onto the action's `entities` channel, the run binds
-the edge from there, and a child created from inside its parent never
-re-chooses the parent (SPEC §UI). The form prompts only what the context
-cannot supply.
+## Prompted Action Inputs
 
 The pure `action-inputs.js` contract combines compiled `inputPolicy.fields`
 with normalized construction inputs, removes duplicate field ids, selects
-required/prompted controls, and builds the nested submission payload. This is
-the shared executable boundary for generic block-composed Create forms, typed
-entity-reference constructors, cassette parameters, and upload-backed artifact
-creators; focused specs exercise it without mounting the entire screen.
-
-`GeneratedObjectInput.vue` is the generic structured editor for `object`/`json`
-prompt fields. When the field carries a JSON schema with declared
-`properties` that cover every key of the current value, it renders one typed
-row per property (InputText for string/number, yes/no Select for boolean,
-Select for `enum`; nested object/array values edit as single-line JSON text
-and are parsed back on emit). Otherwise it renders add/removable key/value
-rows, coercing each value through `JSON.parse` with a plain-string fallback.
-Empty or missing keys and empty values are omitted from the emitted object.
-The raw JSON textarea remains only as a fallback for values that do not fit
-the structured model (non-object values or unparseable JSON strings). The
-editor derives everything from the field type and schema; domain-specific
-editors (for example cassette parameters or artifact template values) stay in
-`GeneratedScreen.vue` and must not be folded into it.
+required/prompted controls, and builds the nested submission payload. It is
+the shared executable boundary for generic block-composed Create forms and
+typed entity-reference constructors; `ChatSupport` renders its prompted
+fields from it, and focused specs exercise it without mounting a surface.
+Prompt values are tri-state: an untouched field stays `null` and is omitted
+from the submission payload instead of being coerced to `false` or the
+current time; once touched, the control submits a real boolean or an ISO
+string (`YYYY-MM-DD` for `date`, full ISO for `dateTime`).
 
 ## Action Results
 
-After a successful action post, `GeneratedScreen.applyActionResult` patches the
-affected source states synchronously through the source-patch path owned by
-`useGeneratedScreen` (see
-[composables/README.md](../../composables/README.md)): relation mutations apply
-`result.owner` and `result.created` to their respective entity types, other
-results apply `result.entity` (or the bare result), and `runCommand` actions
-apply every `entities` output. A created entity enters a list source only when
-it satisfies that source's resolved filters, so a successful procedural action
-is visible without a page reload; the shared entity sync event remains the
-backstop for changes made outside this screen. Successful `createEntity`
-actions additionally open the created entity
-(resolved through `created-instance-open.js`: while the manifest carries a
-compiled home screen the created entity opens — or reuses — a home-workspace
-tab; an editor-protocol create that ran as a direct construct
-(context-scoped creates) opens the
-type's editor workspace page bound to the created record, while every
-other create opens
-its compiled detail tab, and a type with no detail screen opens its editor
-page instead; orgs without a home
+The pool landing is the store's, not the hosts': `instances.runAction`
+receives the manifest action and lands the created entity itself
+([stores](../../stores/README.md)), so a create host only decides where the
+record opens — no host can forget the landing. Successful creates open the
+created entity through the shared created-open contract
+(`created-instance-open.js`: while the manifest carries a compiled home
+screen the created entity opens — or reuses — a home-workspace tab; an
+editor-protocol create that ran as a direct construct (context-scoped
+creates) opens the type's editor workspace page bound to the created
+record, while every other create opens its compiled detail tab, and a type
+with no detail screen opens its editor page instead; orgs without a home
 workspace keep the compiled detail route; a create is never silent — the
-fallback is a success toast with the created name). The pool landing is
-the store's, not the hosts': `instances.runAction` receives the manifest
-action and lands the created entity itself
-([stores](../../stores/README.md)), so a create host only decides where
-the record opens — no host can forget the landing. Unscoped editor
-creates never reach this path — the create button opens the blank editor
-page and the first save creates the record (`openBlankFileEditor`,
-SPEC §UI). The created entity resolves as the run's created item **of the
-action's own type**: a process chaining further constructs returns their
-entities too, and the last step must never bind a foreign record to the
-action's destination. Mobile keeps the routed
-detail contract: the editor stays reachable through the detail header's
-editor action. A mapped
-mutation response is either a bare shape-preserving data tree (zero failures)
-or a failure-carrying `{ result, failures, completedMutations }` envelope;
-every completed item is applied to matching source state, while failed slots
-hold their MutationFailure record and remain described by the response's
-`failures` list. Navigation occurs only when a mapped create has one completed
-entity, because a collection result has no single detail destination.
+fallback is a success toast with the created name). Unscoped editor creates
+never reach this path — the create button opens the blank editor page and
+the first save creates the record (`openBlankFileEditor`, SPEC §UI). The
+created entity resolves as the run's created item **of the action's own
+type**: a process chaining further constructs returns their entities too,
+and the last step must never bind a foreign record to the action's
+destination. Mobile keeps the routed detail contract: the editor stays
+reachable through the detail header's editor action.
 
 ## Overload Registry
 
-`overloads.js` owns app default overloads for generated surfaces. Overloads are
-selected after `stores/auth.js` composes the current user's effective screen
-manifest and after `useGeneratedScreen()` normalizes and loads only sources the
-user can read. This keeps overload behavior user-scoped: an app overload may
-change how a project or queue screen is presented, but it only receives the
-screen, source states, actions, and child regions already present in that
+`overloads.js` owns app default overloads for generated surfaces. Overloads
+are selected after `stores/auth.js` composes the current user's effective
+screen manifest; the host's overload branch loads only sources the user can
+read (`useGeneratedScreen` gates `source.required`). This keeps overload
+behavior user-scoped: an app overload may change how a screen is presented,
+but it only receives the screen and source states already present in that
 user's compiled manifest. Layout callers may pass `null` while the current
 route has no generated screen; the resolver treats non-object inputs as no
 overload instead of dereferencing a partial screen contract.
 
-Use the registry instead of adding entity checks directly inside
-`GeneratedScreen.vue` or generated collections.
+Use the registry instead of adding entity checks inside the host or
+generated collections.
 The current default overloads are:
 
 - `home` screens render `GeneratedHomeWorkspace.vue`, the Discord-style

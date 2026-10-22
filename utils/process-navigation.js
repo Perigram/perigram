@@ -21,6 +21,16 @@ export function resolveVisibleScreens(screens = [], permissions = {}) {
   });
 }
 
+// Manifest screen resolution by key (screenKey or id) — the one lookup
+// every screen consumer (layout chrome, the screens route, panes,
+// popups) reads.
+export function screenByKey(screens = [], key = '') {
+  if (!key) return null;
+  return (Array.isArray(screens) ? screens : []).find(screen => (
+    screen?.screenKey === key || screen?.id === key
+  )) || null;
+}
+
 // The default home screen: what stands in when the compiled manifest
 // carries no home — no active definition, one that no longer compiles
 // (auth hydration degrades that to "no active process"), or an org without
@@ -204,21 +214,14 @@ function dedupeObjects(items = []) {
 
 export function hasProcessRequirement({ permissions = {}, requirement = {} } = {}) {
   if (!requirement.feature) return true;
-  if (!requirement.scope) {
-    const requiredLevel = requirement.action ? actionToLevel(requirement.action, requirement.level || 'read') : requirement.level || 'read';
-    return normalizePermissionGrants(permissions[requirement.feature]).some(grant => {
-      if (!levelAtLeast(grant.level, requiredLevel)) return false;
-      if (requirement.action && grant.actions && grant.actions[requirement.action] !== true) return false;
-      return transitionRequirementMatchesGrant(requirement, grant);
-    });
-  }
-
-  const requiredLevel = requirement.action ? actionToLevel(requirement.action, requirement.level || 'read') : requirement.level || 'read';
+  const requiredLevel = requirement.action
+    ? actionToLevel(requirement.action, requirement.level || 'read')
+    : requirement.level || 'read';
   return normalizePermissionGrants(permissions[requirement.feature]).some(grant => {
     if (!levelAtLeast(grant.level, requiredLevel)) return false;
     if (requirement.action && grant.actions && grant.actions[requirement.action] !== true) return false;
     if (!transitionRequirementMatchesGrant(requirement, grant)) return false;
-    if (!requirementScopeMatchesGrant(requirement.scope, grant.scope || grant)) return false;
+    if (requirement.scope && !requirementScopeMatchesGrant(requirement.scope, grant.scope || grant)) return false;
     return true;
   });
 }

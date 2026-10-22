@@ -298,6 +298,7 @@ import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import InputText from 'primevue/inputtext';
 import StandardPage from '~/components/shared/StandardPage.vue';
+import { LAYOUT } from '#shared/ui-mapping/index.js';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
@@ -316,7 +317,7 @@ const route = useRoute();
 const { navigation: back } = usePageBack({ when: () => route.path === '/organization/plugins' });
 
 // Shared table row-surface recipe (see organization partners page).
-const rowSurfaceClass = () => '[clip-path:inset(0_round_var(--p-border-radius-xl))]';
+const rowSurfaceClass = () => LAYOUT.rowSurface;
 const tablePt = {
   root: { class: 'bg-transparent' },
   headerRow: { class: 'bg-transparent text-muted' },

@@ -809,6 +809,10 @@ transcription stay in the host composer.
   propagation chain for registered full-screen workspaces. The optional
   `back` prop renders the routed-surface back control beside the title
   (the shared `usePageBack` shape); pane-hosted surfaces never pass it.
+- **`BackControl.vue`**: The routed-surface back control — the one
+  materialization of the `usePageBack` shape
+  (`{ icon, label, command }`), mounted by `StandardPage` beside the
+  title and by the ui-mapping record header ahead of the identity.
 - **`TypedSettingsForm.vue`**: Contract-driven form for simple typed field
   descriptors (`string`, `number`, `boolean`, `enum`, `instanceId`,
   `typeId`, `workflowState`, `array`, `object`). Used by admin operation

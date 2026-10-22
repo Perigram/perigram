@@ -472,6 +472,56 @@ offenders), SSR smoke 13✓, check-arch ✓, framework:validate ✓,
 check-manifest ✓. E2E not run (no dev stack in session); the e2e suite
 targets generated screens already and carries no removed-surface
 references.
+- [ ] WAITING — Phase 6 owner verification on the live stack: `/home`,
+  routed list/detail screens, and pane tabs all render through
+  `GeneratedScreenHost` (home as its overload branch), `/organization`
+  and `/organization/billing` render their fixed components directly, and
+  a `/screens/<system-key>` URL replaces to the screen's own route.
+
+### Agent Notes (2026-10-22, Phase 6)
+
+Session `agent/legacy-renderer-collapse-20261022`. Reachability audit
+first: no leaf component emits `execute-action` — the legacy prompt-form
+engine in `GeneratedScreen.vue` (prompted dialogs, artifact creator,
+relation creator, cassetteParameters/artifactTemplateValues editors) was
+reachable only through that event chain, so it cut as dead code.
+Deleted: `GeneratedScreen.vue`, `GeneratedObjectInput.vue`,
+`GeneratedArtifactCreator.vue`, `action-context.js` (+ its spec);
+`action-inputs.js` drops `artifactCreatorForAction`/`hasUploadCreator`
+(ChatSupport keeps the shared boundary; its spec row follows).
+`GeneratedScreenHost.vue` is the one screen host: a new overload branch
+renders the registered overload component fed by `useGeneratedScreen`
+(idle on generator screens through a null screen ref), generator reload
+and sync stay on the pool path. The screens route renders every compiled
+screen through the host (title strip only on list screens) and replaces
+system-screen keys with their own routes; `GeneratedScreenPane` renders
+the host for every renderable pane screen; the organization pages mount
+`GeneratedOrganizationOverview`/`GeneratedOrganizationAccount` directly.
+The dead `execute-action` relay chain left the pane dispatcher, the page
+host, and the home workspace; the home workspace also drops its unused
+`screenActions` prop, two dead imports, a stale doubled comment, and a
+self-assigning catch.
+Deslop riding the same cut: `screenByKey` in
+`utils/process-navigation.js` replaces six hand-rolled manifest lookups;
+the screens route's detail synthesis rides `synthesizeDetailScreen`;
+shared `BackControl` for the `usePageBack` shape; `LAYOUT.rowSurface`
+single-homes the row clip recipe (five copies); `useThemeMode` composes
+both layouts' theme sync (the app layout also keeps one mount pass and a
+computed main-class chain, and its breadcrumb link is a real `Button`);
+`hasProcessRequirement` folds to one grant pass; `labelKeyForType` in the
+design-system contract feeds both label seams; host queued/failure toasts
+share two helpers; `RegionBlock`/`GeneratedMappingScreen`/`SurfaceBody`
+bind their repeated children through shared prop/event objects; chat and
+call tabs open through one ephemeral-tab helper; the home workspace's
+type screens resolve through `typeListScreenForTypeId`. Docs: generated
+README (host contract, prompted-inputs and action-results sections,
+overload registry), pages README (system-screen routing), composables
+README (`useGeneratedScreen` consumer, `usePayloadUpload` mount,
+`useThemeMode` entry), shared README (`BackControl`), ui-mapping README
+(label seam). Guards: framework-packages + design-system 38✓,
+localization + v24 + module-imports 10✓, generated + ui-mapping suites
+63✓, SSR smoke 13✓, check-arch ✓, framework:validate ✓, check-docs ✓.
+E2E not run (no dev stack in session).
 
 ## Sheet-design editor panels and interactions (owner report 2026-10-19)
 

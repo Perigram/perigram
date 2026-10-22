@@ -196,6 +196,18 @@ export const DESIGN_SYSTEM_ENTITY_CONTRACTS = [
 
 export const DESIGN_SYSTEM_SURFACE_CONTRACTS = createEntitySurfaceContracts(DESIGN_SYSTEM_ENTITY_CONTRACTS);
 
+// The design-system entity contracts keyed by type id and legacy key —
+// the one lookup both label seams (ui-mapping type labels, generated
+// labels) resolve `labelKey` through.
+export const ENTITY_CONTRACT_BY_TYPE = new Map(DESIGN_SYSTEM_ENTITY_CONTRACTS.flatMap(entry => [
+  [entry.typeId, entry],
+  [entry.key, entry]
+]));
+
+export function labelKeyForType(typeIdOrKey = '') {
+  return ENTITY_CONTRACT_BY_TYPE.get(typeIdOrKey)?.labelKey || '';
+}
+
 export const DESIGN_SYSTEM_CONTRACT = {
   variants: DESIGN_SYSTEM_VARIANTS,
   groups: DESIGN_SYSTEM_GROUPS,

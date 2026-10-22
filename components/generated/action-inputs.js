@@ -1,17 +1,5 @@
 import { isCreateAction } from '~/utils/action-visibility.js';
 
-export function hasUploadCreator(field = {}) {
-  return Boolean(field.creator?.typeId)
-    && field.creator.attachmentKinds?.some(item => ['upload', 'capture', 'editor'].includes(item.creation?.mode));
-}
-
-export function artifactCreatorForAction(action = {}) {
-  if (!isCreateAction(action) || !(action.typeId)) return null;
-  const field = [...(action.construction?.inputs || []), ...(action.inputPolicy?.fields || [])]
-    .find(input => input.creator?.typeId);
-  return hasUploadCreator(field) ? field.creator : null;
-}
-
 export function collectActionInputFields(action = {}) {
   if (action.actionKind === 'runCommand') {
     return (action.inputs || [])

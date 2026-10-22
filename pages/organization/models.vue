@@ -206,6 +206,7 @@ import Tag from 'primevue/tag';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import StandardPage from '~/components/shared/StandardPage.vue';
+import { LAYOUT } from '#shared/ui-mapping/index.js';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
@@ -218,7 +219,7 @@ const toast = useToast();
 
 // The row surface is the preset's content background; corners clip at the
 // token radius (the shared table pattern).
-const rowSurfaceClass = () => '[clip-path:inset(0_round_var(--p-border-radius-xl))]';
+const rowSurfaceClass = () => LAYOUT.rowSurface;
 const tablePt = {
   root: { class: 'bg-transparent' },
   headerRow: { class: 'bg-transparent text-muted' },

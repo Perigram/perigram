@@ -1,5 +1,15 @@
 <template>
+  <StateBlock v-if="overload && overloadLoading" state="loading" :message="$t('common.loading')" />
+  <StateBlock v-else-if="overload && overloadError" state="error" :message="overloadErrorMessage" />
+  <component
+    :is="overload.component"
+    v-else-if="overload"
+    :screen="screen"
+    :source-state="overloadSourceState"
+    @refresh="refreshOverload"
+  />
   <GeneratedMappingScreen
+    v-else
     :screen="screen"
     :contract="{ actions: processActions, statePolicy, stateTransitions }"
     :bundle="processBundle"
@@ -20,22 +30,26 @@
 </template>
 
 <script setup>
-// The generator-screen host: the single home of the compiled-screen
-// wiring (bundle/contract projection, pool hydration, action runs,
-// runtime machine transitions) for the ui-mapping generator. The routed
-// screens page, workspace panes, and mobile home tabs all render compiled
-// screens through this component — no duplicated wiring. Instance
-// navigation emits to the host consumer; created instances resolve
-// through the shared created-open contract (utils/created-instance-open).
+// The screen host: the single home of the compiled-screen wiring —
+// bundle/contract projection, pool hydration, action runs, runtime
+// machine transitions, and screen-template overloads (the home
+// workspace). The routed screens page, workspace panes, and mobile home
+// tabs all render compiled screens through this component — no
+// duplicated wiring. Instance navigation emits to the host consumer;
+// created instances resolve through the shared created-open contract
+// (utils/created-instance-open).
 import { computed, ref, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
+import StateBlock from '~/components/shared/StateBlock.vue';
+import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useStateController } from '~/composables/useStateController.js';
 import { applyOptimisticState } from '~/utils/optimistic-state.js';
 import { useScreenSourceSync } from '~/composables/useScreenSourceSync.js';
+import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { resolveSourceIdentifier } from '~/utils/generated-screen-source.js';
 import { isCreateAction } from '~/utils/action-visibility.js';
 import { isEditorProtocolCreate, resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
@@ -64,6 +78,27 @@ const toast = useToast();
 const { te, t } = useI18n();
 const authStore = useAuthStore();
 const instances = useInstancesStore();
+
+// Screen-template overloads (home) render their registered component;
+// every other template renders through the ui-mapping engine below. The
+// overload branch feeds on the wire-DTO source loader — a null screen
+// keeps that loader idle on generator screens.
+const overload = computed(() => resolveGeneratedScreenOverload(props.screen));
+const overloadScreen = computed(() => (overload.value ? props.screen : null));
+const {
+  loading: overloadLoading,
+  error: overloadError,
+  load: overloadLoad,
+  sourceState: overloadSourceState
+} = useGeneratedScreen(overloadScreen);
+const overloadErrorMessage = computed(() => overloadError.value?.data?.message
+  || overloadError.value?.message
+  || t('generatedScreen.loadFailed'));
+
+function refreshOverload() {
+  overloadLoad();
+  emit('refresh');
+}
 
 const processBundle = computed(() => authStore.processPayload?.bundle || { types: [] });
 const processActions = computed(() => authStore.processPayload?.actions || {});
@@ -112,6 +147,10 @@ const poolStates = ref({});
 
 async function reload() {
   if (import.meta.server) return;
+  if (overload.value) {
+    await overloadLoad();
+    return;
+  }
   const screenValue = props.screen;
   if (!screenValue) return;
   const sources = (screenValue.sources || []).filter(source => source.id && source.typeId);
@@ -148,7 +187,7 @@ async function reload() {
 }
 
 watch([() => props.screen, processBundle], () => reload(), { immediate: true });
-useScreenSourceSync(() => props.screen, reload);
+useScreenSourceSync(() => (overload.value ? { sources: [] } : props.screen), reload);
 defineExpose({ reload });
 
 // Runtime state transitions land their updated entity straight into the
@@ -203,6 +242,14 @@ function labelForState(typeId = '', value = '') {
   return display?.label || value;
 }
 
+function notifyQueued() {
+  toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+}
+
+function notifyFailure(error, summary) {
+  toast.add({ severity: 'error', summary, detail: error?.data?.message || error?.message || '', life: 5000 });
+}
+
 async function runRuntimeTransition(payload = {}) {
   const instance = payload.instance || {};
   const typeId = instance.type || props.screen?.typeId;
@@ -221,11 +268,11 @@ async function runRuntimeTransition(payload = {}) {
     await loadRuntimeTransitions({ type: typeId, _id: id });
   } catch (error) {
     if (isOfflineQueuedError(error)) {
-      toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+      notifyQueued();
       return;
     }
     rollback?.();
-    toast.add({ severity: 'error', summary: labelForState(typeId, payload.to), detail: error?.data?.message || error?.message || '', life: 5000 });
+    notifyFailure(error, labelForState(typeId, payload.to));
   }
 }
 
@@ -268,10 +315,10 @@ async function runGeneratedAction(action, data = {}, context = {}) {
     emit('refresh');
   } catch (error) {
     if (isOfflineQueuedError(error)) {
-      toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+      notifyQueued();
       return;
     }
-    toast.add({ severity: 'error', summary: action.label || action.id, detail: error?.data?.message || error?.message || '', life: 5000 });
+    notifyFailure(error, action.label || action.id);
   }
 }
 
@@ -296,10 +343,10 @@ async function runDerivedCommand(action = {}, instance = null) {
     emit('refresh');
   } catch (error) {
     if (isOfflineQueuedError(error)) {
-      toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+      notifyQueued();
       return;
     }
-    toast.add({ severity: 'error', summary: action.label || action.commandId, detail: error?.data?.message || error?.message || '', life: 5000 });
+    notifyFailure(error, action.label || action.commandId);
   }
 }
 

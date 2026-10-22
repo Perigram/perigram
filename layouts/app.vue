@@ -17,8 +17,6 @@
                         <img src="/logo-dark.svg" alt="Perigram" class="hidden h-8 w-auto dark:block" />
                     </NuxtLink>
 
-                    <!-- <Divider layout="vertical" class="mx-1 hidden sm:block shrink-0" /> -->
-                    
                     <div class="flex items-center gap-0 overflow-hidden min-w-0">
                         <div
                             v-for="(crumb, index) in breadcrumbs"
@@ -26,12 +24,15 @@
                             class="flex items-center gap-0 shrink-0"
                         >
                             <span v-if="index > 0" class="mx-0.5 shrink-0 text-[var(--ck-chrome-muted)] opacity-50">/</span>
-                            <NuxtLink
+                            <Button
+                                as="router-link"
                                 :to="crumb.to"
-                                class="p-button p-component p-button-text p-button-secondary !text-[var(--ck-chrome-foreground)] whitespace-nowrap max-w-[80px] sm:max-w-[120px] md:max-w-none truncate px-1 md:px-2"
+                                text
+                                severity="secondary"
+                                class="!text-[var(--ck-chrome-foreground)] whitespace-nowrap max-w-[80px] sm:max-w-[120px] md:max-w-none truncate px-1 md:px-2"
                             >
                                 {{ crumb.name }}
-                            </NuxtLink>
+                            </Button>
                             <Button
                                 v-if="breadcrumbAlternatives(crumb).length"
                                 icon="pi pi-chevron-down"
@@ -56,16 +57,7 @@
             </nav>
         </header>
 
-        <main
-            :class="[
-                'flex min-h-0 w-full flex-1 flex-col mx-auto',
-                isStandaloneDesignerRoute ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'
-                    : isFlushMobileSurface ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:max-w-[var(--ck-page-max-width)] md:overflow-visible md:p-6 lg:p-8'
-                    : isGeneratedWorkspaceRoute ? 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'
-                        : isBoundedWorkspaceRoute ? 'max-w-[var(--ck-page-max-width)] overflow-hidden px-3 pt-3 pb-24 md:p-4'
-                        : 'max-w-[var(--ck-page-max-width)] px-4 pt-4 pb-24 md:p-6 lg:p-8'
-            ]"
-        >
+        <main :class="['flex min-h-0 w-full flex-1 flex-col mx-auto', mainClass]">
             <slot />
         </main>
 
@@ -210,9 +202,10 @@
     import { useNavigationStore } from '~/stores/navigation'
     import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
     import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js'
-    import { resolveDefaultHomeScreen, resolveProcessEntryRoute } from '~/utils/process-navigation.js'
+    import { resolveDefaultHomeScreen, resolveProcessEntryRoute, screenByKey } from '~/utils/process-navigation.js'
     import { HOME_SCREEN_ROUTE } from '~/packages/processes/src/screen-contract.js'
     import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js'
+    import { useThemeMode } from '~/composables/useThemeMode.js'
 
     const router = useRouter()
     const route = useRoute()
@@ -307,9 +300,8 @@
         // Home is the default screen: unresolved keys carry the home
         // fallback so the workspace chrome (hidden desktop header, bounded
         // viewport) matches what the screens route renders.
-        return authStore.screenManifest.find(screen => (
-            screen.screenKey === screenKey || screen.id === screenKey
-        )) || resolveDefaultHomeScreen(authStore.screenManifest)
+        return screenByKey(authStore.screenManifest, screenKey)
+            || resolveDefaultHomeScreen(authStore.screenManifest)
     })
     const isGeneratedWorkspaceRoute = computed(() => Boolean(
         resolveGeneratedScreenOverload(activeGeneratedScreen.value)
@@ -328,6 +320,14 @@
     ))
     const isAccountRoute = computed(() => route.path.startsWith('/organization'))
     const isFlushMobileSurface = computed(() => isAccountRoute.value || isChatsRoute.value)
+    // The main element's route-class chain, one branch per surface kind.
+    const mainClass = computed(() => {
+        if (isStandaloneDesignerRoute.value) return 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'
+        if (isFlushMobileSurface.value) return 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:max-w-[var(--ck-page-max-width)] md:overflow-visible md:p-6 lg:p-8'
+        if (isGeneratedWorkspaceRoute.value) return 'max-w-none overflow-hidden p-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0'
+        if (isBoundedWorkspaceRoute.value) return 'max-w-[var(--ck-page-max-width)] overflow-hidden px-3 pt-3 pb-24 md:p-4'
+        return 'max-w-[var(--ck-page-max-width)] px-4 pt-4 pb-24 md:p-6 lg:p-8'
+    })
     // The home tab follows the entry ladder: compiled home, first hub, or
     // the default home route — never a non-screen destination (the landing
     // redirects authenticated users away).
@@ -368,9 +368,7 @@
         const rawKey = route.params.screenKey
         const key = (Array.isArray(rawKey) ? rawKey.join('/') : rawKey) || ''
         const baseKey = String(key).replace(/_detail$/, '')
-        const manifestScreen = authStore.screenManifest.find(screen => (
-            screen.screenKey === baseKey || screen.id === baseKey
-        ))
+        const manifestScreen = screenByKey(authStore.screenManifest, baseKey)
         const typeId = manifestScreen?.typeId || ''
         if (!typeId) return null
         return mobileHomeTabs.value.find(tab => tab.screen?.typeId === typeId)?.key || null
@@ -396,40 +394,10 @@
         router.push(to)
     }
 
-    onMounted(async () => {
-        if (!authStore.userIsSet) {
-            await authStore.setUser();
-        }
-    });
-
-    // --- Theme Switcher ---
-    const themeCookie = useCookie('theme-mode')
-
-    const updateThemeClass = (theme) => {
-        if (process.client) {
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark-mode')
-                document.documentElement.classList.remove('light-mode')
-            } else {
-                document.documentElement.classList.remove('dark-mode')
-                document.documentElement.classList.add('light-mode')
-            }
-        }
-    }
-
-    watch(themeCookie, (newTheme) => {
-        updateThemeClass(newTheme)
-    })
+    // Theme initialization and auth bootstrap share one mount pass.
+    useThemeMode()
 
     onMounted(async () => {
-        // Theme initialization
-        if (!themeCookie.value) {
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-            themeCookie.value = prefersDark ? 'dark' : 'light'
-        }
-        updateThemeClass(themeCookie.value)
-
-        // Auth and data initialization
         if (!authStore.userIsSet) {
             await authStore.setUser();
         }

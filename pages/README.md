@@ -132,11 +132,12 @@ paired detail screen; when the manifest carries the list screen but not its
 pair, the route synthesizes the detail in the same projected vocabulary so
 it still renders through the generator. Per-card quick actions run through
 the same store
-with the card instance as the target entity. System
-screens (organization overview/account era templates) keep the legacy fixed
-renderer until they migrate, including the compiler-synthesized `home`
-screen's Discord-style workspace overload (see
-[components/generated/README.md](../components/generated/README.md)). Process
+with the card instance as the target entity. Every compiled screen —
+generator templates and the home overload alike — renders through
+`GeneratedScreenHost`; organization system screens render their fixed
+components on their own routes (`/organization`, `/organization/billing`),
+and a system-screen key on the screens route replaces to the screen's route
+(see [components/generated/README.md](../components/generated/README.md)). Process
 navigation points to `/screens/:screenKey`; the route does not load arbitrary
 Vue components from process data. The auth middleware is the sole hydration
 boundary: generated routes must render the hydrated manifest directly and not

@@ -126,7 +126,7 @@ const parented = computed(() => incomingChildrenEdges(props.bundle, props.type?.
 // clipped here — a table row's own background is NOT clipped by its
 // radius (measured: the corner pixels stayed white), while clip-path
 // rounds them at the token radius.
-const rowSurfaceClass = () => '[clip-path:inset(0_round_var(--p-border-radius-xl))]';
+const rowSurfaceClass = () => LAYOUT.rowSurface;
 const tablePt = {
   root: { class: 'bg-transparent' },
   headerRow: { class: 'bg-transparent text-muted' },

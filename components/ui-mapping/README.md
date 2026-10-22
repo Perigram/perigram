@@ -26,10 +26,10 @@ instance surface uses — instead of any embedded comments section; the
 thread opens through the shared chat popup. Region
 actions run through `ActionButton`; actions with construction inputs open
 `type-labels.js` is the single label seam for generator surfaces: the
-design-system entity contracts (`entities.*` locale keys) win for pack
-types — localization parity with the legacy renderer — org-authored types
-fall back to their authored render label, the raw id last. Materializations
-never resolve type names straight from the bundle.
+design-system entity contracts (`entities.*` locale keys, resolved through
+`labelKeyForType` in the design-system contract) win for pack types;
+org-authored types fall back to their authored render label, the raw id
+last. Materializations never resolve type names straight from the bundle.
 the generated create dialog, whose rows are the declared construction
 inputs resolved by `resolveCreateDialogInputs`
 ([shared/ui-mapping](../../shared/ui-mapping/README.md)): declared fields

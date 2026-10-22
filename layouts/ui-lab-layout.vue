@@ -47,40 +47,10 @@
 </template>
 
 <script setup>
-    import { ref, computed, watch, onMounted } from 'vue'
+    import { computed } from 'vue'
     import Button from 'primevue/button'
     import Avatar from 'primevue/avatar'
+    import { useThemeMode } from '~/composables/useThemeMode.js'
 
-    // --- Theme Switcher ---
-    const themeCookie = useCookie('theme-mode')
-    const isDarkMode = computed(() => themeCookie.value === 'dark')
-    const themeIcon = computed(() => (isDarkMode.value ? 'pi pi-sun' : 'pi pi-moon'))
-
-    const toggleTheme = () => {
-        themeCookie.value = isDarkMode.value ? 'light' : 'dark'
-    }
-
-    const updateThemeClass = (theme) => {
-        if (process.client) {
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark-mode')
-                document.documentElement.classList.remove('light-mode')
-            } else {
-                document.documentElement.classList.remove('dark-mode')
-                document.documentElement.classList.add('light-mode')
-            }
-        }
-    }
-
-    watch(themeCookie, (newTheme) => {
-        updateThemeClass(newTheme)
-    })
-
-    onMounted(() => {
-        if (!themeCookie.value) {
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-            themeCookie.value = prefersDark ? 'dark' : 'light'
-        }
-        updateThemeClass(themeCookie.value)
-    })
+    const { themeIcon, toggleTheme } = useThemeMode()
 </script>

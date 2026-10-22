@@ -28,7 +28,6 @@
         :is="definition.component"
         :key="page.key"
         v-bind="pageProps"
-        @execute-action="(action, entry) => $emit('execute-action', action, entry)"
         @open-page="page => $emit('open-page', page)"
         @open-call="request => $emit('open-call', request)"
         @closed="$emit('close-tab', page.key)"
@@ -51,7 +50,7 @@ const props = defineProps({
   back: { type: Boolean, default: false }
 });
 
-defineEmits(['execute-action', 'open-page', 'open-call', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'back']);
+defineEmits(['open-page', 'open-call', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'back']);
 
 const definition = computed(() => resolveGeneratedWorkspacePage(props.page?.pageId));
 const pageProps = computed(() => definition.value?.props?.(props.page) || {});

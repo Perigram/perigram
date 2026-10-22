@@ -17,49 +17,32 @@
     <div class="min-h-0 flex-1 overflow-auto p-4">
       <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
       <StateBlock v-else-if="notFound" state="error" :message="$t('generatedScreen.notFound')" />
-      <!-- Screens render through the ui-mapping engine — the same CTS
-           render contract as the routed surfaces — and emit instance opens
-           to the workspace instead of routing: typeList screens through
-           the shared type host, scoped (instance-bound) screens through
-           the detail host. Screen-template overloads (home) stay on the
-           system-screen renderer, which owns their surfaces, exactly like the
-           routed page. -->
-      <GeneratedScreen
-        v-else-if="screenOverload"
-        :screen="scopedScreen"
-        @refresh="$emit('refresh')"
-      />
+      <!-- Every pane screen — generator templates and the home overload
+           alike — renders through the single generator host and emits
+           instance opens to the workspace instead of routing. -->
       <GeneratedScreenHost
-        v-else-if="!item.instanceId && ['typeList', 'formAction'].includes(resolvedScreen.template)"
-        :screen="resolvedScreen"
-        @open-instance="payload => $emit('open-entity', { typeId: payload.typeId, instanceId: payload.instanceId })"
-        @refresh="$emit('refresh')"
-      />
-      <GeneratedScreenHost
-        v-else-if="item.instanceId && resolvedScreen"
+        v-else
         :screen="scopedScreen"
         @open-instance="payload => $emit('open-entity', { typeId: payload.typeId, instanceId: payload.instanceId })"
         @refresh="$emit('refresh')"
       />
-      <GeneratedScreen v-else :screen="resolvedScreen" @refresh="$emit('refresh')" />
     </div>
   </section>
 </template>
 
 <script setup>
 // The workspace pane adapter for opened screens: compiled typeList screens
-// render inside the active pane tab through the shared type host, and
-// instance-bound screens (compiled instanceDetail or the synthesized
-// fallback) render through the detail host with the instance id in the
-// screen scope. Instance opens emit `{ typeId, instanceId }` to the
+// render inside the active pane tab, and instance-bound screens (compiled
+// instanceDetail or the synthesized fallback) render with the instance id
+// in the screen scope. Instance opens emit `{ typeId, instanceId }` to the
 // workspace — routing stays with the host, never the generator.
 import { computed } from 'vue';
-import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { synthesizeDetailScreen } from '~/components/generated/detail-screen-actions.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
+import { screenByKey } from '~/utils/process-navigation.js';
 import { useAuthStore } from '~/stores/auth';
 
 const props = defineProps({
@@ -74,19 +57,16 @@ defineEmits(['refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 
 
 const authStore = useAuthStore();
 
-const manifestScreen = computed(() => (authStore.screenManifest || []).find(candidate => (
-  candidate.screenKey === props.item.screenKey || candidate.id === props.item.screenKey
-)) || null);
 // Instance-bound tabs carry their scope on the item; the manifest record
 // (or the synthesized detail fallback when the manifest has no record for
 // the key) renders with that scope, exactly like the routed surface.
-const resolvedScreen = computed(() => manifestScreen.value
-  || (props.item.instanceId && props.item.screenKey
-    ? synthesizeDetailScreen((authStore.screenManifest || []).find(candidate => (
-      candidate.screenKey === props.item.screenKey.replace(/_detail$/, '')
-      || candidate.id === props.item.screenKey.replace(/_detail$/, '')
-    )))
-    : null));
+const resolvedScreen = computed(() => {
+  const manifestScreen = screenByKey(authStore.screenManifest || [], props.item.screenKey);
+  if (manifestScreen) return manifestScreen;
+  if (!props.item.instanceId || !props.item.screenKey) return null;
+  const baseKey = String(props.item.screenKey).replace(/_detail$/, '');
+  return synthesizeDetailScreen(screenByKey(authStore.screenManifest || [], baseKey));
+});
 const scopedScreen = computed(() => {
   if (!resolvedScreen.value || !props.item.instanceId) return resolvedScreen.value;
   return {
@@ -101,13 +81,14 @@ const scopedScreen = computed(() => {
 const activeKey = computed(() => (props.item.instanceId
   ? `screen:${props.item.screenKey}:${props.item.instanceId}`
   : (props.item.screenKey ? `screen:${props.item.screenKey}` : props.item.key)));
-// The pane's overload rule: screen-template overloads (home) keep the
-// system-screen renderer that owns their surfaces, exactly like the routed page.
-const screenOverload = computed(() => Boolean(resolvedScreen.value && (
-  resolveGeneratedScreenOverload(resolvedScreen.value)
-)));
 // Screen records resolve after auth hydration; only a hydrated manifest
-// with no matching record is a not-found.
+// with no matching record — or a template no surface renders — is a
+// not-found.
+const renderable = computed(() => {
+  const template = resolvedScreen.value?.template;
+  return ['typeList', 'instanceDetail', 'formAction'].includes(template)
+    || Boolean(resolveGeneratedScreenOverload(resolvedScreen.value));
+});
 const loading = computed(() => !authStore.userIsSet);
-const notFound = computed(() => authStore.userIsSet && !resolvedScreen.value);
+const notFound = computed(() => authStore.userIsSet && (!resolvedScreen.value || !renderable.value));
 </script>
