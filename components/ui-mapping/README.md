@@ -408,12 +408,14 @@ surface concerns:
   covered by a child region — each chip carries the relation's
   inline-resolved operations (unlink) as `contextActionEntries` bound to
   the opened record, and the hierarchy tree for groups. The `full`
-  variant fills its surface (SPEC §Generative UI, 2026-10-22) through
-  the container-derived `LAYOUT.bodyGrid`/`LAYOUT.factsGrid` utilities:
-  fact rows flow into columns, field groups and relation rows share a
-  two-track grid on wide hosts, rich structural groups and quantity
-  maps span the full row; nested card variants keep the hairline spec
-  list. Every
+  variant fills its surface by packing (SPEC §Generative UI,
+  2026-10-22) through the `LAYOUT.bodyGrid`/`LAYOUT.factsGrid`
+  utilities: blocks render at content width (sections capped at
+  `fit-content(46rem)`), rich structural groups and quantity maps span
+  the full row, and fact rows wrap at content width; nested card
+  variants keep the hairline spec list. A list region with nothing to
+  show renders at content width, and a record's empty child regions
+  pack side by side as compact stubs (`RegionChildren pack`). Every
   scalar and simple structural field renders through `InlineField.vue`,
   the one detail value cell (plain display; the click-to-edit Inplace
   with pencil on patchable surfaces) — hosts own the

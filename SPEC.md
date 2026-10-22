@@ -1185,11 +1185,11 @@ collection with no loaded instances is layout-inert: it claims no side
 rail, column, or tab weight and renders as a compact stub below the
 arranged content. A dominant child keeps the flow while its remainder
 fits the surface budget; a heavier remainder tabs the whole set in
-weight order. The record body itself fills its surface: fact rows flow
-into container-derived columns, content blocks (field groups, relation
-rows) share a two-track grid on wide hosts, and rich structural blocks
-span the full row — the body fills the available width and height, and
-overflow stays inside the child surfaces' own bounded scrolls.
+weight order. The record body itself fills its surface by packing:
+blocks render at content width and wrap — full width is earned by wide
+content (tables, boards, rich structural panels), a dead collection
+renders as a compact content-width stub, and overflow stays inside the
+child surfaces' own bounded scrolls.
 
 ### Presentation has one home per concern (owner direction 2026-10-21)
 Action presentation, action applicability, and record/picker labels

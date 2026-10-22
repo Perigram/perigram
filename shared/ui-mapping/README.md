@@ -460,9 +460,10 @@ form grid
 `assets/css/main.css`: one column under 40rem of container width, two
 above; full-span rows opt in with `.ck-span-full`), and the record
 body's fill grids beside it (`LAYOUT.factsGrid`/`LAYOUT.bodyGrid`:
-fact rows 1→2→3 columns at 40/90rem of container width, content blocks
-two tracks past 60rem, `.ck-span-full` spans the row — the record body
-fills the surface it renders in).
+blocks render at content width and pack — sections cap at
+`fit-content(46rem)`, wide blocks opt into the full row via
+`.ck-span-full`, and `LAYOUT.packRow` packs content-width stubs side by
+side — the record body fills the surface it renders in).
 
 ## Composition
 

@@ -709,6 +709,18 @@ Nested card bodies keep the hairline spec list (the grids are the
 `full` variant's). Render pin: the ui-mapping showcase smoke asserts
 both grid classes on detail bodies.
 
+Session `agent/packed-blocks-20261022` (owner report: small content
+stretched screen-wide, empty tables included). Measured on the live
+stack (real Chromium, 1920px, minted session, intrinsic-vs-rendered
+width probe): every "No records" region rendered 1536px against a
+104px intrinsic width, and the cassette-design Geometry section 1536px
+against 107px. Law: blocks render at content width; full width is
+earned by wide content. `ck-body-grid`/`ck-facts-grid` became packing
+flex (sections capped at `fit-content(46rem)`, `.ck-span-full` keeps
+the full row for rich groups), a list region with nothing to show
+renders `w-fit` (`RegionBlock`), and a record's empty child regions
+pack side by side (`RegionChildren pack` + `LAYOUT.packRow`).
+
 ## Generative arrangement and identifier single-homing (owner report 2026-10-22)
 
 Owner report: peer columns and tabs stopped rendering on real screens
