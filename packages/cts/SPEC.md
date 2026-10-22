@@ -929,6 +929,9 @@ error. It is a palette item.
   current species kind, read discriminator, socket ids, and graph edges. The
   canonical records returned by this seam are what validation, compilation,
   orchestration, execution, and persistence all consume.
+- Guard field paths and state field-policy ids resolve row-relative: a
+  block-prefixed persisted spelling (`fields.x`, legacy `data.x`/`specs.x`)
+  heals to the bare row id at resolution and the canvas round trip.
 - `operationKindOf` is presentation/classification only. It may answer
   "construct", "mutate", "transition", "read", or "service" for shared code;
   it never changes a record kind or replaces its authored ports.

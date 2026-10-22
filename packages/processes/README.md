@@ -438,7 +438,10 @@ and hides guard-failing edges from action availability (see
 the transition inspector edits it as a flat all-of/any-of condition
 list, a projection of the same AST, with field picks derived from the
 bound type's projected rows as row-relative ids (the vocabulary the
-row-check and the runtime guard scope read).
+row-check and the runtime guard scope read). Block-prefixed persisted
+spellings heal to row-relative ids at resolution and the canvas round
+trip — guards and state field-policy lists alike
+(`normalizeRowRelativeFieldRefs`).
 
 A transition node carries an actor assignment (SPEC §7): the
 user-typed `actors` input takes assignees from a wire or an authored

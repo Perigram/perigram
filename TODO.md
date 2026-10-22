@@ -12,7 +12,8 @@ pick authors row-relative ids.
 - [ ] IN PROGRESS — owner verification on the live stack: the class
   inspector dropdown names the record and moves the single hold between
   fields; a guard condition on a row field hides/refuses the transition
-  as authored.
+  as authored; a draft with a previously authored guard opens with the
+  field picks resolved.
 
 ### Agent Notes (2026-10-22)
 
@@ -33,6 +34,33 @@ Session `agent/designer-row-vocab-20261022` (worktree
   `null` (every comparison false: the edge hid and execution refused
   with 409). The pick now derives row-relative ids through the shared
   page helper `rowFieldIdOptions`; i18n reuses `namesRecord`/`auto`.
+
+### Agent Notes (2026-10-22, round 2 — owner report: invisible repair; field inspector questions)
+
+Session `agent/designer-heal-20261022` (worktree
+`.agent-worktrees/designer-heal-20261022`; owner verified the class
+dropdown live). Two findings:
+
+- The pick-list fix changed option VALUES only; dropdowns with authored
+  labels render identically, and drafts persisted before the fix carry
+  block-prefixed ids that no longer match any option (the guard select
+  displays the raw stale string). Persisted ids now heal one-way at
+  every seam: `normalizeRowRelativeFieldRefs` (cts, chained into
+  `rewriteRetiredWirePaths` → resolution + save), the canvas round trip
+  (`normalizeProcessLike` + saved state node data at load projection),
+  the facet's own `normalizeStateFieldPolicy`, and the live record sync
+  (`normalizeProcessNodeDefaults`). A stored draft opens with working
+  guards and facets on first load; one save persists the healed form.
+  Pinned by `row-relative-heal.spec.js` + a state-field-policy case.
+- Field inspector (owner questions): the display facet (label override,
+  display kind, depiction) now clusters in one subtle block apart from
+  the row grammar, and the depiction checkbox reads "Thumbnail" — it
+  marks the field whose value renders as the record's thumbnail (SPEC
+  §4, at most one). `writable`/`constructible` stay on the descriptor:
+  they are row-grammar facts (which fields the row ever exposes to
+  writes/creation — the processes README "fieldSchemas own membership
+  plus read/write/construct policy" law); per-role WHO lives in grants
+  and per-state narrowing.
 
 ## State declaration deslop (owner direction 2026-10-22)
 
