@@ -185,4 +185,35 @@ describe('generated screens page with projected vocabulary', () => {
     expect(html).toContain('Ticket one');
     expect(html).not.toContain('t-k3x9fj2mqa');
   });
+
+  it('paints first-load skeletons for a cold detail screen, never a missing/empty message', async () => {
+    // The record page's first render (SSR and hydration alike) must paint
+    // the per-source loading skeletons: a data-state divergence between
+    // the server render and the client's first render hydration-mismatches
+    // the page, and the arrangement (peer columns/tabs) that composes
+    // after the pool loads would never mount.
+    await router.push('/screens/auto_t-k3x9fj2mqa_detail?instanceId=i-404');
+    setActivePinia(createPinia());
+    const authStore = useAuthStore();
+    await authStore.setUser();
+
+    const i18n = createI18n({
+      legacy: false,
+      missingWarn: false,
+      fallbackWarn: false,
+      messages: { en: {} }
+    });
+    const app = createSSRApp({ render: () => h(ScreensPage) });
+    app.use(i18n);
+    app.use(router);
+    app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
+    app.use(ToastService);
+    app.use(ConfirmService);
+    app.directive('tooltip', { getSSRProps: () => ({}) });
+
+    const html = await renderToString(app);
+    expect(html).toContain('p-skeleton');
+    expect(html).not.toContain('uiMapping.missingRegion');
+    expect(html).not.toContain('uiMapping.emptyRegion');
+  });
 });

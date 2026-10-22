@@ -84,13 +84,9 @@
 </template>
 
 <script setup>
-// Nested child regions under one parent surface, materializing the
-// composed arrangement: light peers share weight-proportional columns
-// (track fr from each child's estimated rows, engaging past 60rem of
-// container width), a dominant sibling keeps the vertical flow with the
-// rest arranged after it, heavy peers tab in descending weight order,
-// and everything else stacks. One materialization for every nesting
-// host — record pages, nested detail bodies, and list panels.
+// The one materialization of the composed children arrangement
+// (`arrangeChildren`) for every nesting host: record pages, nested
+// detail bodies, list panels.
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tabs from 'primevue/tabs';
@@ -125,12 +121,8 @@ const orderedRegions = computed(() => (Array.isArray(props.arrangement.order)
   ? props.arrangement.order.map(id => props.regions.find(region => region.id === id)).filter(Boolean)
   : props.regions));
 
-// Peer columns engage when the measured host can grant every track its
-// earned minimum (track count × REGION_COLUMN_EARNED_REM) — generative
-// for any track count, stacking inside panes, dialogs, and narrow hosts
-// with zero viewport assumptions. Tracks are zero-floored (minmax(0,
-// Nfr)), so wide tables scroll inside their column instead of
-// stretching the grid past the host.
+// Column engagement is host-measured per the ui-mapping contract
+// (track count × REGION_COLUMN_EARNED_REM).
 const columnsHost = ref(null);
 const columnsEngaged = ref(false);
 let columnsObserver = null;

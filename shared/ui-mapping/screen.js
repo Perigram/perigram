@@ -127,7 +127,8 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   const instances = surfaceKind === 'detail'
     ? (single ? [single] : [])
     : resolveList(source, screen, pool, sourcesById);
-  const type = typesById[source.typeId] || null;  const variant = surfaceKind === 'detail' ? (depth === 0 ? 'full' : 'detail') : 'row';
+  const type = typesById[source.typeId] || null;
+  const variant = surfaceKind === 'detail' ? (depth === 0 ? 'full' : 'detail') : 'row';
   const containerRole = depth === 0 ? 'section' : 'card';
   const chrome = resolveChrome(containerRole, depth === 0 ? null : 'section');
   const childRegions = region.slot === 'children' ? [] : (screen.regions || [])

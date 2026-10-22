@@ -146,19 +146,20 @@ const instanceGroups = computed(() => Object.fromEntries(
 const poolStates = ref({});
 
 async function reload() {
-  if (import.meta.server) return;
   if (overload.value) {
-    await overloadLoad();
+    if (!import.meta.server) await overloadLoad();
     return;
   }
   const screenValue = props.screen;
   if (!screenValue) return;
   const sources = (screenValue.sources || []).filter(source => source.id && source.typeId);
-  if (!sources.length) {
-    poolStates.value = {};
-    return;
-  }
-  poolStates.value = Object.fromEntries(sources.map(source => [source.id, 'loading']));
+  poolStates.value = sources.length
+    ? Object.fromEntries(sources.map(source => [source.id, 'loading']))
+    : {};
+  // The loading map above is written on both sides of this gate: the
+  // first server and client renders must paint the same skeletons
+  // (hydration law) — only the fetches are client-owned.
+  if (import.meta.server) return;
   await Promise.all(sources.map(async (source) => {
     const typeKey = instances.canonicalTypeKey(source.typeId);
     let state = 'ready';
