@@ -222,9 +222,12 @@
                   :type-options="declarationTypeOptions"
                   :type-anchor-options="typeAnchorOptions"
                   :state-field-options="declarationStateFieldOptions"
+                  :identifier-field-options="classIdentifierField.options"
+                  :identifier-field-value="classIdentifierField.value"
                   @sync="syncNodeData"
                   @update-name="value => updateClassName(selectedNode, value)"
                   @update-display-role="({ flag, value }) => setFieldDisplayRole(selectedNode, flag, value)"
+                  @update-identifier-field="value => setClassIdentifierField(selectedNode, value)"
                 />
 
                 <ProcessNodeInspector
@@ -1618,25 +1621,49 @@ const producerFieldPolicyOptions = computed(() => {
   if (!typeId) return [];
   return designer.fieldsForEntity(typeId).map(field => ({ label: field.i18n ? t(field.i18n) : (field.label || field.value), value: field.value }));
 });
-// Guard paths are row-relative (SPEC §7/§20): strip the block-slot prefix
-// from the designer's field-schema paths; labels stay authored.
+// Row-relative row-field ids (SPEC §7/§20): projected schema paths carry
+// the `fields.`/`data.`/`specs.` block prefix; guard paths, field-policy
+// lists, and the enforcement seams address the bare row id.
+function rowFieldIdOptions(typeId, { topLevelOnly = false } = {}) {
+  const seen = new Set();
+  const options = [];
+  for (const field of designer.fieldsForEntity(typeId)) {
+    if (!['fields', 'data', 'specs'].includes(field.block)) continue;
+    const stripped = String(field.value || '').replace(/^(fields|data|specs)\./, '');
+    const id = topLevelOnly ? stripped.split('.')[0] : stripped;
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    options.push({ label: field.i18n ? t(field.i18n) : (field.label && field.label !== field.value ? field.label : id), value: id });
+  }
+  return options;
+}
 const transitionGuardFieldOptions = computed(() => {
   const record = selectedProcessNode.value;
   if (record?.kind !== 'cts.transition') return [];
-  return designer.fieldsForEntity(nodeTypeId(record))
-    .map(field => ({ label: field.i18n ? t(field.i18n) : (field.label || field.value), value: String(field.value || '').replace(/^(data|specs)\./, '') }))
-    .filter(field => field.value);
+  return rowFieldIdOptions(nodeTypeId(record));
 });
-// State field-policy lists select row field ids of the bound type (SPEC
-// §7): slot prefixes strip the same way guard paths do.
 const declarationStateFieldOptions = computed(() => {
   const node = selectedNode.value;
-  if (node?.type !== 'ctsState') return [];
-  const typeId = node.data?.typeId;
-  if (!typeId) return [];
-  return designer.fieldsForEntity(typeId)
-    .map(field => ({ label: field.i18n ? t(field.i18n) : (field.label || field.value), value: String(field.value || '').replace(/^(data|specs)\./, '') }))
-    .filter(field => field.value);
+  if (node?.type !== 'ctsState' || !node.data?.typeId) return [];
+  return rowFieldIdOptions(node.data.typeId, { topLevelOnly: true });
+});
+// The class inspector's identifier dropdown (SPEC §4): options are the
+// sibling field nodes of the selected class; '' leaves the flag unowned
+// and the registry boundary mint picks the holder.
+const classIdentifierField = computed(() => {
+  const node = selectedNode.value;
+  if (node?.type !== 'ctsClass') return { options: [], value: '' };
+  const siblings = nodes.value.filter(candidate => candidate.type === 'ctsField'
+    && (candidate.data?.typeId ?? null) === (node.data?.typeId ?? null));
+  if (!siblings.length) return { options: [], value: '' };
+  const holder = siblings.find(candidate => candidate.data?.descriptor?.identifier === true);
+  return {
+    options: [
+      { label: t('processDesigner.auto'), value: '' },
+      ...siblings.map(candidate => ({ label: candidate.data?.name || candidate.id, value: candidate.id }))
+    ],
+    value: holder?.id || ''
+  };
 });
 function commandForId(commandId) {
   return servedCommands.value.find(command => command?.id === commandId) || null;
@@ -2291,6 +2318,23 @@ function updateClassName(node, name) {
 function setFieldDisplayRole(node, flag, enabled) {
   if (!node || node.type !== 'ctsField') return;
   applyFieldDisplayRole(nodes.value, node.id, flag, enabled);
+  syncNodeData();
+}
+
+// The class dropdown drives the same single-holder move (SPEC §4): a
+// field pick flags that field and clears its siblings; the empty pick
+// returns the identifier to the registry boundary mint.
+function setClassIdentifierField(classNode, fieldNodeId) {
+  if (!classNode || classNode.type !== 'ctsClass') return;
+  if (fieldNodeId) {
+    applyFieldDisplayRole(nodes.value, fieldNodeId, 'identifier', true);
+  } else {
+    const typeId = classNode.data?.typeId ?? null;
+    const holder = nodes.value.find(candidate => candidate.type === 'ctsField'
+      && (candidate.data?.typeId ?? null) === typeId
+      && candidate.data?.descriptor?.identifier === true);
+    if (holder) applyFieldDisplayRole(nodes.value, holder.id, 'identifier', false);
+  }
   syncNodeData();
 }
 
