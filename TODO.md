@@ -1,5 +1,39 @@
 # TODO
 
+## Class identifier dropdown; guard pick-list repair (owner direction/report 2026-10-22)
+
+The class inspector authors the record-naming field as a dropdown over
+the class's declared fields — the pick list accumulates as fields are
+declared and the class carries exactly one; the Auto pick returns the
+choice to the registry boundary mint
+([CTS SPEC](./packages/cts/SPEC.md) §4). The transition guard's field
+pick authors row-relative ids.
+
+- [ ] IN PROGRESS — owner verification on the live stack: the class
+  inspector dropdown names the record and moves the single hold between
+  fields; a guard condition on a row field hides/refuses the transition
+  as authored.
+
+### Agent Notes (2026-10-22)
+
+Session `agent/designer-row-vocab-20261022` (worktree
+`.agent-worktrees/designer-row-vocab-20261022`).
+
+- Dropdown: the class inspector gains the names-record dropdown over
+  the class's field nodes (`classIdentifierField` in
+  `pages/organization/process.vue`; value `''` = Auto → boundary mint);
+  the pick drives `applyFieldDisplayRole`, the package's single-holder
+  move. The per-field identifier checkbox is deleted — one authoring
+  surface for one flag; `depiction` stays a field checkbox.
+- Guard repair (owner report "guard doesn't work"):
+  `transitionGuardFieldOptions` stripped only the retired `data|specs`
+  slot prefixes, so the pick offered `fields.<id>` while every consumer
+  — the declaration-check row-check, the runtime guard scope
+  `{ value: row }` — reads bare row ids. Authored guards evaluated
+  `null` (every comparison false: the edge hid and execution refused
+  with 409). The pick now derives row-relative ids through the shared
+  page helper `rowFieldIdOptions`; i18n reuses `namesRecord`/`auto`.
+
 ## State declaration deslop (owner direction 2026-10-22)
 
 A state declaration is its name and display policy (severity, icon)
@@ -313,6 +347,18 @@ framework-packages + design-system + instance-field-access + ui-mapping
 `framework:validate` ✓, SSR smoke 13✓. E2E not run — no dev stack in
 session; the repeatable artifact is the package/service suites above.
 Status stays IN PROGRESS until owner verification on the live stack.
+
+### Agent Notes (2026-10-22, designer pick-list vocabulary)
+
+Session `agent/designer-row-vocab-20261022`: the state inspector's
+pick list offered `fields.<id>`-prefixed paths while the facet's
+consumers — the draft row-check, the declaration-check seam, the
+instance write boundary, and the display filter — address bare
+top-level row keys, so an authored facet matched no field (every field
+hidden/locked in the state). The list now authors row-relative ids
+(`rowFieldIdOptions` in `pages/organization/process.vue`, top-level
+granularity); session report under "Class identifier dropdown; guard
+pick-list repair" above.
 ## Generative UI collapse to one engine (owner direction 2026-10-19)
 
 Every compiled screen renders through the ui-mapping generator with one

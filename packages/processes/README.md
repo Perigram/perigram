@@ -203,7 +203,11 @@ and edge semantics cannot differ between preview and APPLY.
 A class node's transient `data.migrate` carries SPEC §11 migration steps
 until the declaration post consumes and clears them. Authored field names are
 labels; `camelCaseId` derives the row key (letters and digits in any
-script — a Cyrillic label derives a Cyrillic key). Declaration binding edges are live
+script — a Cyrillic label derives a Cyrillic key). The class inspector
+authors the record-naming field as a dropdown over the class's field
+nodes — the single-holder `identifier` move, with the Auto pick
+returning the choice to the registry boundary mint (SPEC §4); the field
+inspector carries the `depiction` flag. Declaration binding edges are live
 channels interpreted over the declaration graph, while process species records
 persist the resolved type and retain their executable ports.
 
@@ -432,7 +436,9 @@ boolean expression subset. The status runtime evaluates it at commit
 and hides guard-failing edges from action availability (see
 [server/core/machines/README.md](../../server/core/machines/README.md));
 the transition inspector edits it as a flat all-of/any-of condition
-list, a projection of the same AST.
+list, a projection of the same AST, with field picks derived from the
+bound type's projected rows as row-relative ids (the vocabulary the
+row-check and the runtime guard scope read).
 
 A transition node carries an actor assignment (SPEC §7): the
 user-typed `actors` input takes assignees from a wire or an authored
@@ -455,7 +461,10 @@ per-state map derived by
 `stateFieldPolicyByType`. `normalizeStateFieldPolicy` (in
 `designer.js`, re-exported with the authoring seam) is the one
 normalization home; the draft diagnostics and the declaration-check seam
-row-check the list ids and refuse `editable` outside `visible`.
+row-check the list ids and refuse `editable` outside `visible`. The
+state inspector's pick lists author those ids from the bound type's
+projected rows as top-level row keys — the granularity the write
+boundary and the row-check address.
 The same arrival state is projected onto the exposed (manifest) action as
 `state.from`, so generated surfaces scope the button to the states the
 transition actually leaves; the execution channel and the manifest carry

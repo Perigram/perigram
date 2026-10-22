@@ -195,7 +195,10 @@ creates unnamed records until a field is declared. Unnameable types are
 unrepresentable at every scope: explicit
 flags remain the authored deviation and always win, later field additions
 never shift a mint, and two or more of either flag is a compile error
-naming the fields.
+naming the fields. The designer authors the identifier at the class: a
+dropdown over the class's declared fields accumulates the picks as
+fields are declared, the class holds exactly one, and the Auto pick
+returns the choice to the boundary mint (owner direction 2026-10-22).
 
 There is no `render` facet on types. Identity, grouping, list layout, and
 default sort are not declaration concerns: display grouping derives from
