@@ -1025,7 +1025,13 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
       continue;
     }
     if (id === 'name') {
-      rows.push({ id, label: fieldLabel('name'), descriptor: { base: 'string' }, span: 'half', required: policy?.required === true });
+      rows.push({
+        id,
+        label: fieldLabel('name'),
+        descriptor: { base: 'string' },
+        span: 'half',
+        required: policy?.required === true || id === identifier
+      });
       continue;
     }
     // A string protocol input (the `content` creation protocol's text
@@ -1039,7 +1045,7 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
         label: policy.label || fieldLabel(id),
         descriptor: { base: 'string', ...(policy.control ? { control: policy.control } : {}) },
         span: 'full',
-        required: policy.required === true
+        required: policy.required === true || id === identifier
       });
       continue;
     }
@@ -1056,6 +1062,17 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
         });
       }
     }
+  }
+  // The naming law: the identifier row rides every create dialog — a
+  // construction contract without it still names its record.
+  if (identifier && !rows.some(row => row.id === identifier || row.id === `fields.${identifier}`)) {
+    rows.unshift({
+      id: identifier,
+      label: fieldLabel(identifier, fields[identifier]),
+      descriptor: fields[identifier] || { base: 'string' },
+      span: 'half',
+      required: true
+    });
   }
   return Object.freeze(rows.map(row => Object.freeze(row)));
 }

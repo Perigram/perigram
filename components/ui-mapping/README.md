@@ -479,7 +479,8 @@ surface concerns:
 - Editors: `QuantityInput` (InputGroup + unit addon), `EnumSelect`
   (filtered, via the shared Select wrapper), `InstancePicker` — AutoComplete
   with typeahead over the instance pool, or TreeSelect when the accepted
-  type declares lineage children, `InstanceMultiPicker` (shared MultiSelect
+  type declares lineage children (TreeSelect's checked-keys map selection
+  resolves to the `{ type, id }` instance ref), `InstanceMultiPicker` (shared MultiSelect
   wrapper), `ChipsInput`, `FileUploadControl`, `Slider` for bounded scalars
   (declared min/max), and the recursive `ObjectEditor` / `ListEditor` /
   `VariantEditor` (compact density shrinks editors through PrimeVue

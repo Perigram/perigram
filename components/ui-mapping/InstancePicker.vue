@@ -8,7 +8,7 @@
     selection-mode="single"
     placeholder="—"
     class="w-full"
-    @update:model-value="key => (model = key ? { type: accepts[0], id: key } : null)"
+    @update:model-value="keys => selectTreeKey(keys)"
   />
   <AutoComplete v-else
     :model-value="model"
@@ -67,7 +67,19 @@ const buildNode = (instance, seen = new Set()) => {
 const treeOptions = computed(() => hierarchical.value
   ? Object.values(props.pool[props.accepts[0]] || {}).map(instance => buildNode(instance)).filter(Boolean)
   : []);
-const treeSelection = computed(() => props.model?.id ?? null);
+// PrimeVue 4 TreeSelect models the selection as a checked-keys map
+// (`{ [key]: true }`) in every mode; the model stays the `{ type, id }`
+// instance ref.
+function selectedTreeKey(value) {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return null;
+  return Object.keys(value).find(key => value[key] === true || value[key]?.checked) || null;
+}
+function selectTreeKey(keys) {
+  const id = selectedTreeKey(keys);
+  model.value = id ? { type: props.accepts[0], id } : null;
+}
+const treeSelection = computed(() => (props.model?.id ? { [props.model.id]: true } : null));
 const options = computed(() => props.accepts
   .flatMap(typeId => Object.values(props.pool[typeId] || {}))
   .map(instance => ({

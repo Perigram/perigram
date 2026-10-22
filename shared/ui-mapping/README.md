@@ -98,7 +98,8 @@ an edge matches by its declared `lineageKey`, the entry's map key is
 authoring identity). Rows carry the compiled input's `required` flag, and
 the type's `identifier` row is required unconditionally (the naming law:
 its value is the record's title, so a create never submits an unnamed
-record — the dialog's submit stays disabled while a required row is
+record — the row derives even when the construction contract omits it,
+and the dialog's submit stays disabled while a required row is
 empty). Quantity rows draft the SPEC §2 `{ value, unit }` shape their
 control models (a unit-carrying default prefills in that shape), and the
 dialog's payload scalarizes drafts at the boundary: instance refs by

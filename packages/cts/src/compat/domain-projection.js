@@ -313,6 +313,24 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
 
   function protocolModeInputs(type, protocol) {
     const inputs = [];
+    // A type with an identifier row names its records through the row:
+    // dialog protocols (upload/capture/content) carry the row beside the
+    // protocol input — the naming law. The editor protocol stays blank:
+    // its first save names the record.
+    if (protocol !== 'editor') {
+      for (const [name, descriptor] of Object.entries(type.fields || {})) {
+        if (descriptor?.identifier && descriptor.base === 'string') {
+          inputs.push({
+            id: name,
+            label: descriptor.label || name,
+            path: name,
+            type: 'string',
+            prompt: true
+          });
+          break;
+        }
+      }
+    }
     if (protocol === 'upload' || protocol === 'capture') {
       inputs.push({
         id: 'payload',
