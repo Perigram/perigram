@@ -13,8 +13,7 @@ module layout and how the code maps to the spec's build-order tiers.
 - `units.js` — closed unit set, declared conversions, unification (R3).
 - `values.js` — the value universe V: descriptor normalization, instance
   checking, ref-free detection for services (R5), and `durationMs`, the
-  one ISO-8601 duration parser (deadline facets, duration arithmetic,
-  scans). Owns the authorable
+  one ISO-8601 duration parser (duration arithmetic). Owns the authorable
   field-base list (`FIELD_BASES` — V minus `id`; single home for every
   field editor).
 - `rows.js` — closed field rows; compiles to JSON Schema 2020-12 with
@@ -38,7 +37,7 @@ module layout and how the code maps to the spec's build-order tiers.
   recursive containment and compiles clean (SPEC §6 — instance forests stay
   finite because a parent exists before its children).
 - `states.js` — the state-vocabulary facet of declarations: vocabulary
-  normalization (flat values, terminal flags, per-state display policy)
+  normalization (flat values, per-state display policy)
   and its readers. Machines themselves are graph-derived (SPEC §7):
   `compileTreeDeclarations` in `packages/processes/src/designer.js`
   builds the recursive trees, and transition guards are authored on
@@ -161,7 +160,7 @@ module layout and how the code maps to the spec's build-order tiers.
   authored override channel exists — deviations are not render concerns.
   Per-state display policy resolves onto the state axes
   (`states.<axis>.render[value]`: label default startCase — state values
-  are authored vocabulary — severity terminal→secondary else `info`,
+  are authored vocabulary — severity default `info`,
   icon null). The `render` key exists on neither declarations nor the
   bundle; fact-row surfaces consume the derived sections through
   [utils/instance-display-contract.js](../../utils/README.md), and the
@@ -179,10 +178,7 @@ module layout and how the code maps to the spec's build-order tiers.
   `typeId`, legacy species `type`): process-vocabulary descriptor strings
   and canvas card kinds are never misread as type references. Transition
   guards are checked here (SPEC §7): boolean expression ASTs only, field
-  paths rooted at `value` and row-checked. State deadlines are checked
-  here too: `after` parses as an ISO-8601 duration, `to` names another
-  declared state of the type's vocabulary, and the deadline guard follows
-  the guard contract. State field policies (SPEC §7 `fieldPolicy`) are
+  paths rooted at `value` and row-checked. State field policies (SPEC §7 `fieldPolicy`) are
   checked here as well: `visible`/`editable` are row field ids of the
   bound type, and `editable` stays within `visible`.
 - `compat/graph-protocol.js` — the native species graph protocol (SPEC §20):

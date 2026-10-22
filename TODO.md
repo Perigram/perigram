@@ -1,5 +1,33 @@
 # TODO
 
+## State declaration deslop (owner direction 2026-10-22)
+
+A state declaration is its name and display policy (severity, icon)
+plus the field-policy facet; nesting is wiring; the deadline and
+terminal/initial vocabularies are gone from the declaration plane
+([CTS SPEC](./packages/cts/SPEC.md) §7). Deadline edges remain a
+runtime capability served by custom lifecycle workflows.
+
+- [ ] IN PROGRESS — owner verification on the live stack that the state
+  inspector reads name/severity/icon/field-policy only.
+
+### Agent Notes (2026-10-22)
+
+Session `agent/state-inspector-deslop-20261022` (worktree
+`.agent-worktrees/state-inspector-deslop-20261022`). State inspector
+reduced to name (placeholder), severity, icon, and the field-policy
+section (labels became placeholders); the axis input, Initial and
+Terminal checkboxes, parent hint + heading, node hint, and the deadline
+editor are deleted. The whole declaration plane follows: state records
+drop `terminal`/`deadline` (round-trip, tree compile, machine seeding,
+check seam, SPEC §7, READMEs); the page sync stops persisting
+`initial`/`terminal`; the class lifecycle summary (`classLifecycleOf`)
+was dead and is removed with its spec. The deadline scanner and the
+engine's deadline-edge support stay — custom lifecycle workflows remain
+their live source. The transition inspector's `→ target` summary line
+is deleted beside them. Where deadline authoring should live next is an
+open owner decision; nothing authors it today.
+
 ## Transition actor assignment (owner direction 2026-10-21, reshaped 2026-10-22)
 
 A transition operation assigns lifecycle actors: the user-typed `actors`

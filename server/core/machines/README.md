@@ -37,7 +37,7 @@ graph-derived (SPEC §7) — this module never defines machines itself.
   (`assertIntentAvailable`) does not guard-filter: named-intent callers
   receive the commit-time refusal.
   A compiled transition may instead be a deadline edge (`deadline: true`
-  with system-only access): declared on the state record (SPEC §7),
+  with system-only access): authored by a custom lifecycle workflow,
   executable only by the system actor, and driven by the deadline
   scanner — never a user action. A transition declared by an
   event-wired process action compiles its edge as process-owned
