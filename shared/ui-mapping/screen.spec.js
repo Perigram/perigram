@@ -121,7 +121,7 @@ describe('screen composition', () => {
         ] },
       contract, bundle, { ...pool, widget: { w1: pool.widget.w1, w2: { ...pool.widget.w2, lineage: { madeBy: { type: 'widget', id: 'w1' }, madeById: { id: 'w1' } } } } }
     );
-    expect(other.regions[0].childRegions[0].instances).toEqual([]);
+    expect(other.regions[0].stubRegions[0].instances).toEqual([]);
   });
 
   it('never guesses the scoped instance and yields nothing on an unresolved scope placeholder', () => {
@@ -143,7 +143,7 @@ describe('screen composition', () => {
     expect(missing.regions[0].dataState).toBe('missing');
     // The child filter pins to the unknown scope: no instances, never the
     // whole child collection.
-    expect(missing.regions[0].childRegions[0].instances).toEqual([]);
+    expect(missing.regions[0].stubRegions[0].instances).toEqual([]);
 
     const unscoped = composeScreen(
       { screenKey: 'm2', template: 'instanceDetail', label: 'M2', typeId: 'widget',
@@ -157,7 +157,7 @@ describe('screen composition', () => {
         ] },
       contract, bundle, pool
     );
-    expect(unscoped.regions[0].childRegions[0].instances).toEqual([]);
+    expect(unscoped.regions[0].stubRegions[0].instances).toEqual([]);
   });
 
   it('matches lineage and relation references in both stored shapes', () => {
@@ -415,6 +415,41 @@ describe('screen composition', () => {
       contract, cardBundle, heavyPool
     );
     expect(heavy.regions[0].childArrangement.mode).toBe('tabs');
+  });
+
+  it('keeps empty child collections layout-inert as stubs', () => {
+    const host = { id: 'host', type: 'widget', fields: { name: 'Host' }, relations: {
+      reviews: [{ type: 'widget', id: 'rw0' }],
+      audits: []
+    }, lineage: {}, state: 'draft' };
+    const filled = { id: 'rw0', type: 'widget', fields: { name: 'RW0' }, relations: {}, lineage: {}, state: 'draft' };
+    const relationScreen = pool => composeScreen(
+      { screenKey: 'stub', template: 'instanceDetail', label: 'S', typeId: 'widget', scope: { instanceId: 'host' },
+        sources: [
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'widget_reviews_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'reviews' } },
+          { id: 'widget_audits_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'audits' } }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
+          { id: 'reviews', slot: 'children', sourceId: 'widget_reviews_related', surface: 'card' },
+          { id: 'audits', slot: 'children', sourceId: 'widget_audits_related', surface: 'card' }
+        ] },
+      contract, bundle, pool
+    );
+    // One filled, one empty: the filled child arranges alone (light set
+    // rides beside the body); the empty one is a stub claiming no layout.
+    const mixed = relationScreen(buildInstancePool({ widgets: [host, filled] }));
+    expect(mixed.regions[0].childRegions.map(region => region.relationKey)).toEqual(['reviews']);
+    expect(mixed.regions[0].stubRegions.map(region => region.relationKey)).toEqual(['audits']);
+    expect(mixed.regions[0].besideBody).toBe(true);
+    // An all-empty child set renders the body full-width with the
+    // collections as stubs below.
+    const emptyHost = { ...host, relations: { reviews: [], audits: [] } };
+    const allEmpty = relationScreen(buildInstancePool({ widgets: [emptyHost] }));
+    expect(allEmpty.regions[0].childRegions).toEqual([]);
+    expect(allEmpty.regions[0].stubRegions.map(region => region.relationKey)).toEqual(['reviews', 'audits']);
+    expect(allEmpty.regions[0].besideBody).toBe(false);
   });
 
   it('attaches the list-controls contract to list regions only', () => {

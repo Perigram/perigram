@@ -669,7 +669,8 @@ describe('weight-driven arrangement', () => {
     // (card-scale: an 11-row peer is a 2-card collection).
     expect(arrangeChildren([listNode(4), listNode(4)], 0)).toEqual({ mode: 'columns', tracks: 'minmax(0, 6fr) minmax(0, 6fr)' });
     expect(arrangeChildren([listNode(9), listNode(9)], 0)).toEqual({ mode: 'columns', tracks: 'minmax(0, 11fr) minmax(0, 11fr)' });
-    // A dominant sibling keeps the flow; the light rest stacks after it.
+    // A dominant sibling keeps the flow while its remainder fits the
+    // surface budget; the light rest stacks after it.
     const dominant = arrangeChildren([
       { id: 'big', ...detailNode(14) },
       { id: 'a', ...listNode(2) },
@@ -688,6 +689,28 @@ describe('weight-driven arrangement', () => {
     expect(tabbed.order).toEqual(['heavy', 'light']);
     // Nested heavy content stacks — tabs are a top-level arrangement.
     expect(arrangeChildren([listNode(12), listNode(12)], 1).mode).toBe('stack');
+  });
+
+  it('tabs top-heavy sets whose remainder exceeds the surface budget', () => {
+    // The live queue shape: a dominant board child with a heavy rest —
+    // granting the dominant child the flow would stack a long page, so
+    // the whole set tabs in weight order (SPEC §Generative UI,
+    // 2026-10-22).
+    const arranged = arrangeChildren([
+      { id: 'board', ...listNode(52) },
+      { id: 'cards', ...listNode(16) },
+      { id: 'sheet', ...listNode(4) },
+      { id: 'csv', ...listNode(0) }
+    ], 0);
+    expect(arranged.mode).toBe('tabs');
+    expect(arranged.order).toEqual(['board', 'cards', 'sheet', 'csv']);
+    // Dominance alone is not enough once the rest fits the budget —
+    // the mixed flow stays reachable for a light remainder.
+    const lightRest = arrangeChildren([
+      { id: 'big', ...detailNode(14) },
+      { id: 'a', ...listNode(2) }
+    ], 0);
+    expect(lightRest.mode).toBe('mixed');
   });
 
   it('scales the record side column span with the children weight', () => {

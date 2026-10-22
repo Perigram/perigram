@@ -898,18 +898,20 @@ export function childrenModeFor(childRegions = [], level = 0) {
 // compose time from estimated rendered weight at card scale. Light sets
 // flow in one stack; peers up to COLUMN_MAX_WEIGHT rows each share
 // proportional columns (track fr from each child's weight); a dominant
-// sibling keeps the flow while the rest arrange among themselves;
-// heavier peers tab, ordered by descending weight. Tabs are a top-level
-// arrangement — nested heavy content stacks.
+// sibling keeps the flow while its remainder fits the surface budget,
+// and a heavier remainder tabs the whole set — tabs are the page-height
+// bound, so they must stay reachable for top-heavy sets; heavier peers
+// tab in descending weight order. Tabs are a top-level arrangement —
+// nested heavy content stacks.
 export function arrangeChildren(childRegions = [], level = 0) {
   if (childRegions.length < CHILDREN_TABS_AT) return { mode: 'stack' };
   const weights = childRegions.map(region => estimateRegionWeight(region));
   const total = weights.reduce((sum, weight) => sum + weight, 0);
   if (total <= SURFACE_ROW_BUDGET) return { mode: 'stack' };
   const primaryIndex = weights.indexOf(Math.max(...weights));
-  if (weights[primaryIndex] >= DOMINANT_CHILD_SHARE * total) {
-    const rest = childRegions.filter((_, index) => index !== primaryIndex);
-    return { mode: 'mixed', primary: primaryIndex, rest: arrangeChildren(rest, level + 1) };
+  const restWeight = total - weights[primaryIndex];
+  if (weights[primaryIndex] >= DOMINANT_CHILD_SHARE * total && restWeight <= SURFACE_ROW_BUDGET) {
+    return { mode: 'mixed', primary: primaryIndex, rest: { mode: 'stack' } };
   }
   if (weights.every(weight => weight <= COLUMN_MAX_WEIGHT) && childRegions.length <= REGION_COLUMNS_MAX) {
     return {

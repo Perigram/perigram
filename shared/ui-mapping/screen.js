@@ -131,9 +131,15 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   const variant = surfaceKind === 'detail' ? (depth === 0 ? 'full' : 'detail') : 'row';
   const containerRole = depth === 0 ? 'section' : 'card';
   const chrome = resolveChrome(containerRole, depth === 0 ? null : 'section');
-  const childRegions = region.slot === 'children' ? [] : (screen.regions || [])
+  const composedChildren = region.slot === 'children' ? [] : (screen.regions || [])
     .filter(child => child.slot === 'children' && child.id !== region.id)
     .map(child => composeRegion(child, screen, contract, pool, typesById, depth + 1, providedStates));
+  // Content-aware arrangement (SPEC §Generative UI, 2026-10-22): an
+  // empty child collection is layout-inert — arrangement, the side
+  // rail, and columns see only filled children; empty ones render as
+  // compact stubs below the arranged content (`stubRegions`).
+  const childRegions = composedChildren.filter(child => child.instances.length > 0);
+  const stubRegions = composedChildren.filter(child => child.instances.length === 0);
   // Sibling arrangement is weight-driven (arrangeChildren): light peers
   // column, a dominant sibling keeps the flow, heavy peers tab. A record
   // page additionally carries light children beside the body in a
@@ -176,7 +182,8 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     listControls: surfaceKind === 'list' && type ? resolveListControls(type, instances) : null,
     instances: Object.freeze(instances),
     actions: Object.freeze((region.actions || []).map(actionId => contract.actions?.[actionId]).filter(Boolean)),
-    childRegions: Object.freeze(childRegions)
+    childRegions: Object.freeze(childRegions),
+    stubRegions: Object.freeze(stubRegions)
   });
 }
 

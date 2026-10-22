@@ -168,6 +168,13 @@
         :arrangement="node.childArrangement"
       />
     </template>
+    <RegionChildren
+      v-if="showSurfaces && node.stubRegions?.length"
+      v-bind="childrenProps"
+      v-on="childrenEvents"
+      :regions="node.stubRegions"
+      :arrangement="{ mode: 'stack' }"
+    />
   </div>
 </template>
 
@@ -400,7 +407,10 @@ const listLayout = computed(() => {
   if (projectionPreference.value === 'table' && derivedListLayout.value === 'board') return 'table';
   return derivedListLayout.value;
 });
-const coveredRelationKeys = computed(() => props.node.childRegions
+// Relation keys covered by child regions — filled and stubs alike: a
+// stub still owns its relation's surface (the body renders no duplicate
+// empty section for it).
+const coveredRelationKeys = computed(() => [...props.node.childRegions, ...(props.node.stubRegions || [])]
   .map(child => child.relationKey)
   .filter(Boolean));
 
