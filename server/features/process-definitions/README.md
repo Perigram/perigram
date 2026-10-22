@@ -136,7 +136,7 @@ The deadline scanner (`deadline-scanner.js`, wired by the
 `deadline-scanner` nitro plugin) lives here because its input is the
 activation-written compiled snapshot: on an interval it resolves every
 organization's ACTIVE definitions, walks their compiled machines' states
-for declared deadlines (CTS SPEC §7), and moves overdue instances —
+for declared deadlines (custom lifecycle workflows), and moves overdue instances —
 `stateChangedAt` (or the legacy `status.timestamp`) older than the
 declared duration — through the status engine as SYSTEM. Scan input is
 the stored `data.compiled` snapshot only; auth decisions always

@@ -195,8 +195,8 @@ a construct or transition state socket (wire role `entry`) authors that
 operation's state: the construct's initial, the transition's target. A
 transition declaration connects explicit `from` and `to` states. The compiler
 builds recursive state machines through `compileTreeDeclarations`, including
-one initial state per machine, cycle/duplicate checks, explicit terminal
-flags, and canonical dotted paths. Draft acceptance calls
+one initial state per machine, cycle/duplicate checks, and canonical
+dotted paths. Draft acceptance calls
 `declarationsFromCtsRecords` with the same declaration graph, so nested state
 and edge semantics cannot differ between preview and APPLY.
 
@@ -400,10 +400,8 @@ receives a namespaced canvas id. Both retain the same `data.refId`, so neither
 record shadows or deletes the other during round-trip validation.
 Declaration records (`ctsTypes`) project with their full authoring key set —
 a class/type binding normalizes to a non-empty string or `null` on both the
-projection and the rebuild, and state `initial`/`terminal` booleans project
-explicitly — so an authored record survives the canvas cycle byte-identical
-(an explicit `false` must not become an absent key, and a `null` binding must
-not become `''`). Field-node descriptors carry the SPEC §4 display dictionary
+projection and the rebuild — so an authored record survives the canvas
+cycle byte-identical (a `null` binding must not become `''`). Field-node descriptors carry the SPEC §4 display dictionary
 (`label`/`display`/`control` plus the closed `identifier`/`depiction` flags)
 verbatim through the cycle, and class nodes round-trip their authored `glyph`
 (`null` on both halves when absent).
@@ -446,16 +444,6 @@ actor guard governs later transitions (an assigned actor is the only
 caller who may move the instance; availability hides actor-denied
 edges).
 
-A state record may declare a `deadline` (SPEC §7): `{ after, to,
-guard? }` compiles the deadline onto the machine state and adds (or
-annotates) the `from -> to` escalation edge as `deadline: true` with
-system-only access — availability never offers it, and the deadline
-scanner moves overdue instances through the normal transition boundary
-as SYSTEM. The deadline's `after` is an ISO-8601 duration; the check
-seam refuses unparseable durations, undeclared or self targets, and
-non-boolean guards. The escalation target seeds from its own state
-record when one exists, so its authored facets survive the declaring
-record's position in the list.
 A state record may declare a `fieldPolicy` (SPEC §7/§10): `{ visible?,
 editable? }` row-field whitelists that ride the compiled workflow state
 beside the display policy. The instance write boundary enforces

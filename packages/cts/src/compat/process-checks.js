@@ -15,7 +15,6 @@
 // by teaching the walker new record kinds, never by loosening checks. Type
 // bindings are positional (typeId/typeId/species-kind `type`), so
 // process-vocabulary descriptor strings are never misread as references.
-import { durationMs } from '../values.js';
 import { checkBooleanExpression } from '../expressions.js';
 
 
@@ -112,26 +111,6 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
     // field reference.
     if (kind === 'cts.transition' && node.guard) {
       errors.push(...checkGuardExpression(node.guard, rowNamesByType.get(typeId), path));
-    }
-    // State deadlines (SPEC §7): `after` parses as an ISO-8601 duration,
-    // `to` is a declared state of the same type's vocabulary (never the
-    // state itself), and the deadline guard follows the guard contract.
-    if (kind === 'state' && node.deadline) {
-      const deadline = node.deadline || {};
-      try {
-        durationMs(deadline.after);
-      } catch {
-        errors.push(`${path} deadline: after must be an ISO-8601 duration`);
-      }
-      const vocabulary = statesByType.get(node.typeId) || new Set();
-      if (!deadline.to || deadline.to === node.value) {
-        errors.push(`${path} deadline: to must name another declared state`);
-      } else if (!vocabulary.has(String(deadline.to)) && !unscopedStateValues.has(String(deadline.to))) {
-        errors.push(`${path} deadline: to ${deadline.to} is not declared for ${node.typeId}`);
-      }
-      if (deadline.guard) {
-        errors.push(...checkGuardExpression(deadline.guard, rowNamesByType.get(typeId), `${path} deadline`));
-      }
     }
     // State field policy (SPEC §7 `fieldPolicy`): the visible/editable
     // lists are arrays of row field ids of the bound type — row-checked

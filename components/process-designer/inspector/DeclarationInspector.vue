@@ -119,26 +119,7 @@
 
     <template v-else-if="node.type === 'ctsState'">
       <div class="flex flex-col gap-3">
-        <div class="flex flex-col gap-1">
-          <label>{{ $t('typeCanvas.stateName') }}</label>
-          <InputText v-model="node.data.value" @update:model-value="$emit('sync')" />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label>{{ $t('processDesigner.stateAxis') }}</label>
-          <InputText v-model="node.data.axis" :placeholder="$t('processDesigner.stateAxisPlaceholder')" @update:model-value="$emit('sync')" />
-        </div>
-        <div class="flex flex-wrap items-center gap-4">
-          <label class="flex items-center gap-2">
-            <Checkbox :model-value="node.data.initial === true" binary @update:model-value="value => { node.data.initial = value; $emit('sync'); }" />
-            <span>{{ $t('processDesigner.stateInitial') }}</span>
-          </label>
-          <label class="flex items-center gap-2">
-            <Checkbox :model-value="node.data.terminal === true" binary @update:model-value="value => { node.data.terminal = value; $emit('sync'); }" />
-            <span>{{ $t('processDesigner.stateTerminal') }}</span>
-          </label>
-        </div>
-        <Message severity="secondary" size="small" :closable="false">{{ $t('processDesigner.stateParentHint') }}</Message>
-        <div class="text-supporting text-muted">{{ $t('processDesigner.parentState') }}</div>
+        <InputText v-model="node.data.value" :placeholder="$t('typeCanvas.stateName')" @update:model-value="$emit('sync')" />
         <div class="flex items-center gap-2">
           <Select
             :model-value="node.data.severity || 'info'"
@@ -158,73 +139,36 @@
             @update:model-value="value => { node.data.icon = String(value || '').trim() || null; $emit('sync'); }"
           />
         </div>
-        <div class="flex flex-col gap-1">
-          <label>{{ $t('processDesigner.stateDeadline') }}</label>
-          <div class="flex items-center gap-2">
-            <InputNumber
-              :model-value="deadlineHours"
-              size="small"
-              class="w-24 shrink-0"
-              :min="1"
-              @update:model-value="setDeadlineHours"
-            />
-            <i class="pi pi-arrow-right text-muted shrink-0" />
-            <Select
-              :model-value="node.data.deadline?.to || ''"
-              :options="stateOptions"
-              option-label="label"
-              option-value="value"
-              size="small"
-              filter
-              class="min-w-0 flex-1"
-              @update:model-value="setDeadlineTarget"
-            />
-            <Button
-              v-if="node.data.deadline"
-              icon="pi pi-times"
-              :aria-label="$t('common.delete')"
-              size="small"
-              text
-              severity="danger"
-              @click="clearDeadline"
-            />
-          </div>
-        </div>
         <div v-if="stateFieldOptions.length" class="flex flex-col gap-2">
           <label class="flex items-center gap-2">
             <Checkbox :model-value="fieldPolicyAuthored" binary @update:model-value="toggleFieldPolicy" />
             <span>{{ $t('processDesigner.stateFieldPolicy') }}</span>
           </label>
           <template v-if="fieldPolicyAuthored">
-            <div class="flex flex-col gap-1">
-              <label class="text-supporting text-muted">{{ $t('processDesigner.stateVisibleFields') }}</label>
-              <MultiSelect
-                :model-value="node.data.fieldPolicy?.visible || []"
-                :options="stateFieldOptions"
-                option-label="label"
-                option-value="value"
-                size="small"
-                filter
-                class="w-full"
-                @update:model-value="value => setFieldPolicyList('visible', value)"
-              />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="text-supporting text-muted">{{ $t('processDesigner.stateEditableFields') }}</label>
-              <MultiSelect
-                :model-value="node.data.fieldPolicy?.editable || []"
-                :options="stateFieldOptions"
-                option-label="label"
-                option-value="value"
-                size="small"
-                filter
-                class="w-full"
-                @update:model-value="value => setFieldPolicyList('editable', value)"
-              />
-            </div>
+            <MultiSelect
+              :model-value="node.data.fieldPolicy?.visible || []"
+              :options="stateFieldOptions"
+              option-label="label"
+              option-value="value"
+              size="small"
+              filter
+              class="w-full"
+              :placeholder="$t('processDesigner.stateVisibleFields')"
+              @update:model-value="value => setFieldPolicyList('visible', value)"
+            />
+            <MultiSelect
+              :model-value="node.data.fieldPolicy?.editable || []"
+              :options="stateFieldOptions"
+              option-label="label"
+              option-value="value"
+              size="small"
+              filter
+              class="w-full"
+              :placeholder="$t('processDesigner.stateEditableFields')"
+              @update:model-value="value => setFieldPolicyList('editable', value)"
+            />
           </template>
         </div>
-        <Message severity="info" size="small" :closable="false">{{ $t('processDesigner.stateNodeHint') }}</Message>
       </div>
     </template>
 
@@ -263,8 +207,6 @@
 // identifier, at most one depiction per type) are the tree's to enforce,
 // not this node's.
 import InputText from 'primevue/inputtext';
-import InputNumber from 'primevue/inputnumber';
-import Button from 'primevue/button';
 import Message from 'primevue/message';
 import MultiSelect from 'primevue/multiselect';
 import Select from '~/components/shared/InstanceSelect.vue';
@@ -280,9 +222,6 @@ const props = defineProps({
   diagnostics: { type: Array, default: () => [] },
   typeOptions: { type: Array, default: () => [] },
   typeAnchorOptions: { type: Array, default: () => [] },
-  // Declared state values the deadline target may name: same-type records
-  // plus unscoped tokens, the state node itself excluded (SPEC §7).
-  stateOptions: { type: Array, default: () => [] },
   // Row field ids of the bound type — the state's field-policy lists
   // select among them.
   stateFieldOptions: { type: Array, default: () => [] }
@@ -314,40 +253,6 @@ const displayKindOptions = Object.freeze([
   { label: 'auto', value: '' },
   ...DISPLAY_KINDS.map(value => ({ label: value, value }))
 ]);
-
-// Deadline authoring (SPEC §7): the editor authors whole hours, stored as
-// an ISO-8601 duration on the record (`PT48H`); other durations authored
-// elsewhere round-trip untouched but show no hour value here.
-function deadlineHoursOf(after) {
-  const match = /^PT(\d+(?:\.\d+)?)H$/.exec(String(after || ''));
-  return match ? Number(match[1]) : null;
-}
-
-const deadlineHours = computed(() => deadlineHoursOf(props.node.data.deadline?.after));
-
-function writeDeadline(patch) {
-  props.node.data.deadline = { ...(props.node.data.deadline || {}), ...patch };
-  emit('sync');
-}
-
-function setDeadlineHours(hours) {
-  const value = Number(hours);
-  if (!Number.isFinite(value) || value <= 0) return;
-  writeDeadline({ after: `PT${value}H` });
-}
-
-function setDeadlineTarget(to) {
-  if (!to) {
-    clearDeadline();
-    return;
-  }
-  writeDeadline({ to });
-}
-
-function clearDeadline() {
-  delete props.node.data.deadline;
-  emit('sync');
-}
 
 // State field policy (SPEC §7): an empty selection removes that axis —
 // the facet exists only while a list is authored.

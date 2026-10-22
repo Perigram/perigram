@@ -29,9 +29,7 @@ rendered as a hoop over the card. A ref field declares a
 relation — its `accepts` derive from targets wires onto the field node,
 and its row lives in the relations slot (a row-carried reference pins
 `slot: 'data'` in its descriptor)
-(`cts.transition`) that reference declared states. Initial and terminal
-state facts belong to state
-nodes. Construction has no lifecycle-entry socket, and transition operations
+(`cts.transition`) that reference declared states. Construction has no lifecycle-entry socket, and transition operations
 reference declared transitions rather than inventing target states.
 
 The primary process palette contains CTS semantics only. It does not expose
@@ -134,11 +132,9 @@ shape), pure output inspection, and the
 per-grant access LEVELS (role assignment itself is lane placement —
 see "Lanes"). It does not
 expose packet matching or transport transforms. `DeclarationInspector.vue`
-authors class, field, state (including initial/terminal, the deadline
-facet — hours plus target state, stored as an ISO-8601 duration on the
-record — and the field-policy facet: visible/editable row-field lists
-narrowing instances of that state, SPEC §7), operator,
-and type-reference records. `DeclarationEdgeInspector.vue` authors typed edge
+authors class, field, state (the value, display severity/icon, and the
+field-policy facet: visible/editable row-field lists narrowing instances
+of that state, SPEC §7), operator, and type-reference records. `DeclarationEdgeInspector.vue` authors typed edge
 integrity. They are pure presentation: every mutation is an event back to the
 page's update/sync entry points.
 
@@ -201,14 +197,13 @@ Renaming is always a pure label change; persisted instances, posted org
 types, producer outputs, and relation references keep resolving.
 The class inspector owns no inline lifecycle editor. States are first-class
 declaration nodes. A state connects to its class (root) or to
-one parent state (nested); its inspector owns the name, local initial flag,
-terminal flag, and display policy. Transitions are process nodes
+one parent state (nested); its inspector owns the name and display
+policy. Transitions are process nodes
 (`cts.transition`), never declaration nodes: they author a target state and
 an optional intent against their bound type. The compiler recursively emits
 one state machine per axis and rejects
-cycles, missing nested initials, duplicate sibling names, unknown paths, and
-unreachable terminal states. Process transition operations select one of
-these declarations; they do not add states or terminal facts.
+cycles, missing nested initials, duplicate sibling names, and unknown paths. Process transition operations select one of
+these declarations; they do not add states.
 
 Class card labels derive from the authored name. The declaration inspector
 authors the display tokens (the SPEC §4 naming vocabulary, canonical grammar

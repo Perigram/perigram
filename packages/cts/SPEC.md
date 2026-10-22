@@ -353,8 +353,7 @@ state nodes authored in a process definition and wired into that type's
 create and transition operations.
 
 ```
-StateNode ::= { value: string, terminal?: true, policy?: { label?, icon?, severity? },
-                deadline?: { after, to, guard? },
+StateNode ::= { value: string, policy?: { label?, icon?, severity? },
                 fieldPolicy?: { visible?: [field], editable?: [field] } }
 ```
 
@@ -391,29 +390,12 @@ StateNode ::= { value: string, terminal?: true, policy?: { label?, icon?, severi
   declaration-check seam like every other field reference. Guards are
   boolean only — comparisons, boolean algebra, field paths, literals;
   the comprehension forms of §18 are not guard vocabulary.
-- A state record may declare a deadline: `deadline: { after, to, guard? }`
-  — `after` is an ISO-8601 duration, `to` a declared state of the same
-  type's vocabulary (never the state itself), `guard` a boolean
-  expression AST over `{ value }` under the guard contract above.
-  Compilation marks the machine state with the deadline and adds (or
-  annotates) the edge `from -> to` as `deadline: true` with system-only
-  execution: deadline edges are not user actions — the availability
-  listing never offers them and the transition boundary refuses
-  non-system callers. The deadline scanner (the status runtime's
-  scheduled sweep) periodically resolves every organization's active
-  machines, finds instances whose current state carries a deadline older
-  than `after` — the entered-state clock is the §3 `stateChangedAt` slot
-  (the legacy block's `status.timestamp`) — and moves each through the
-  normal transition boundary as SYSTEM with `source: { kind:
-  'deadline' }`: stamps, guards, lifecycle validation, and hooks are
-  unchanged. This stays reaction, not observation (§8): the scan is a
-  trigger, never a standing query.
 - An instance persists one flat state string under `state`; the v24
   status block mirrors it. There are no regions and no per-axis active
   paths.
 - State display policy rides the state node. A missing label derives
-  from the value, terminal severity defaults to `secondary`, other
-  severity defaults to `info`, and icon defaults to none.
+  from the value, severity defaults to `info`, and icon defaults to
+  none.
 - A state record may declare a field policy:
   `fieldPolicy: { visible?: [field], editable?: [field] }`, each list
   naming declared row fields of the bound type (row-checked like guard

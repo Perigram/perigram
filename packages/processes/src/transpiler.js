@@ -135,18 +135,13 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
         operators: Array.isArray(data.operators) ? data.operators : []
       } : {}),
       ...(kind === 'field' ? { name: data.name || '', descriptor: { ...(data.descriptor || { base: 'string' }) } } : {}),
-      // State authoring keys round-trip symmetrically with the projection
-      // in projectDeclarationRecords: terminal is an explicit boolean on
-      // authored records (a false must not become an absent key, or
-      // compareSemanticRecords rejects activation). A state is a value
-      // token (SPEC §7): no axis, no parent, no initial flag.
+      // A state is a value token (SPEC §7): no axis, no parent, no
+      // initial flag.
       ...(kind === 'state' ? {
         value: data.value || '',
-        terminal: data.terminal === true,
         ...(data.label ? { label: data.label } : {}),
         ...(data.severity ? { severity: data.severity } : {}),
         ...(data.icon ? { icon: data.icon } : {}),
-        ...(data.deadline ? { deadline: data.deadline } : {}),
         ...(normalizeStateFieldPolicy(data.fieldPolicy) ? { fieldPolicy: normalizeStateFieldPolicy(data.fieldPolicy) } : {})
       } : {})
     };
@@ -281,11 +276,7 @@ function projectDeclarationRecords(records = {}, x) {
           value: record.value || '',
           severity: record.severity || null,
           icon: record.icon || null,
-          ...(record.deadline ? { deadline: record.deadline } : {}),
-          ...(normalizeStateFieldPolicy(record.fieldPolicy) ? { fieldPolicy: normalizeStateFieldPolicy(record.fieldPolicy) } : {}),
-          // Authored booleans project so the rebuild (which writes them
-          // explicitly from node data) reproduces the record exactly.
-          terminal: record.terminal === true
+          ...(normalizeStateFieldPolicy(record.fieldPolicy) ? { fieldPolicy: normalizeStateFieldPolicy(record.fieldPolicy) } : {})
         } : {}),
         ...(record.kind === 'type' ? { typeId: record.typeId || null } : {})
       }

@@ -105,32 +105,6 @@ describe('machine vocabulary seeding follows the entry wires', () => {
     expect(vocabularies.join(';')).not.toContain('floating');
   });
 
-  it('compiles a declared deadline onto the machine state and its escalation edge', () => {
-    // SPEC §7: the state record's deadline marks the machine state and
-    // adds a system-executed edge to its target — never a user action.
-    const source = definition();
-    source.ctsTypes.sharedState.deadline = {
-      after: 'PT48H',
-      to: 'floating',
-      guard: { op: 'lt', args: [{ op: 'field', path: ['value', 'count'] }, { op: 'lit', value: 3 }] }
-    };
-    source.ctsTypes.orphanState.typeId = 'folder';
-    const compiled = compileProcessDefinition(source, domain(), { roles: {} });
-    const workflow = compiled.producerOutputs['folderCreate:result'].workflow;
-    const region = workflow.regions[workflow.primaryRegion];
-    expect(region.states.inbox.deadline).toEqual({
-      after: 'PT48H',
-      to: 'floating',
-      guard: { op: 'lt', args: [{ op: 'field', path: ['value', 'count'] }, { op: 'lit', value: 3 }] }
-    });
-    expect(region.transitions).toContainEqual(expect.objectContaining({
-      from: 'inbox',
-      to: 'floating',
-      deadline: true,
-      access: { system: true },
-      guard: { op: 'lt', args: [{ op: 'field', path: ['value', 'count'] }, { op: 'lit', value: 3 }] }
-    }));
-  });
 
   it('marks an event-wired transition edge process-owned; a manual transition stays a user edge', () => {
     const source = definition();

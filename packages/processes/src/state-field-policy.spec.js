@@ -22,7 +22,7 @@ describe('state field-policy draft diagnostics', () => {
   const fieldNode = id => ({ id, type: 'ctsField', position: { x: 0, y: 120 }, data: { refId: id, typeId: 'panel', name: id, descriptor: { base: 'string' } } });
   const stateNode = (id, fieldPolicy) => ({
     id, type: 'ctsState', position: { x: 0, y: 240 },
-    data: { refId: id, typeId: 'panel', value: id, terminal: false, ...(fieldPolicy ? { fieldPolicy } : {}) }
+    data: { refId: id, typeId: 'panel', value: id, ...(fieldPolicy ? { fieldPolicy } : {}) }
   });
   const declareEdge = (source, target = 'cls') => ({
     id: `d:${source}`, source, target, sourceHandle: 'output:state', targetHandle: 'input:declare', role: 'type', label: 'state'
@@ -56,7 +56,7 @@ describe('state field-policy draft diagnostics', () => {
 describe('state field-policy canvas round trip', () => {
   const stateNode = fieldPolicy => ({
     id: 's1', type: 'ctsState', position: { x: 0, y: 0 },
-    data: { refId: 'r1', typeId: 'panel', value: 'available', terminal: false, ...(fieldPolicy ? { fieldPolicy } : {}) }
+    data: { refId: 'r1', typeId: 'panel', value: 'available', ...(fieldPolicy ? { fieldPolicy } : {}) }
   });
 
   it('persists the facet and keeps clearing a clean clear', () => {
@@ -107,16 +107,14 @@ describe('state field-policy compilation onto workflow states', () => {
     }, domain, {});
   }
 
-  it('rides the workflow state and seeds deadline targets from their own records', () => {
+  it('rides the workflow state', () => {
     const compiled = compiledWith({
       s1: { id: 's1', kind: 'state', typeId: 'panel', value: 'available', fieldPolicy: { visible: ['serial', 'width'], editable: ['width'] } },
       s2: { id: 's2', kind: 'state', typeId: 'panel', value: 'escalated', label: 'Escalated', fieldPolicy: { editable: ['serial'] } },
-      s3: { id: 's3', kind: 'state', typeId: 'panel', value: 'quarantined', deadline: { after: 'PT48H', to: 'escalated' } }
+      s3: { id: 's3', kind: 'state', typeId: 'panel', value: 'quarantined' }
     });
     const states = compiled.producerOutputs['create:result'].workflow.states;
     expect(states.available.fieldPolicy).toEqual({ visible: ['serial', 'width'], editable: ['width'] });
-    // The deadline target seeds from its OWN record even though the
-    // escalation edge is declared by an earlier record in the list.
     expect(states.escalated.fieldPolicy).toEqual({ editable: ['serial'] });
     expect(states.escalated.label).toBe('Escalated');
     expect(states.quarantined.fieldPolicy).toBeUndefined();
