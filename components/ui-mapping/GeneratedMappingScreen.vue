@@ -167,6 +167,9 @@ const props = defineProps({
   // header (`{ icon, label, command }` — SurfaceHeader's navigation
   // channel, threaded through RegionBlock to the depth-0 header).
   navigation: { type: Object, default: null },
+  // The host surface names this screen (the workspace pane tab); the
+  // engine suppresses its own title surfaces.
+  paneHosted: { type: Boolean, default: false },
   spacingScale: { type: Number, default: 1 }
 });
 
@@ -251,6 +254,7 @@ const regionBlockProps = computed(() => ({
   resolveTransitions: props.onFetchTransitions,
   loadType: props.onLoadType,
   navigation: props.navigation,
+  paneHosted: props.paneHosted,
   editorActions: props.editorActions
 }));
 const submitPatch = async ({ instance, patch } = {}) => {

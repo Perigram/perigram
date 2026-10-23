@@ -21,7 +21,7 @@
         class="self-start"
       />
       <slot name="navigation" />
-      <div :class="[LAYOUT.row, LAYOUT.headerIdentity]" class="header-identity">
+      <div v-if="!hideTitle" :class="[LAYOUT.row, LAYOUT.headerIdentity]" class="header-identity">
         <Avatar :icon="glyph" shape="circle" size="large" class="shrink-0" />
         <div class="flex min-w-0 flex-1 flex-col gap-0.5">
           <div class="flex min-w-0 items-center gap-2">
@@ -50,6 +50,23 @@
           </div>
           <span v-if="typeLabel" class="text-supporting text-muted truncate">{{ typeLabel }}</span>
         </div>
+      </div>
+      <div v-else :class="[LAYOUT.row, LAYOUT.headerIdentity]">
+        <StateTag v-if="currentState" :value="currentState" :policy="statePolicy" class="shrink-0" />
+        <Button
+          v-if="currentState"
+          icon="pi pi-clock"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          class="shrink-0"
+          :aria-label="$t('uiMapping.stateHistory')"
+          @click="event => historyPopover?.toggle(event)"
+        />
+        <Popover v-if="currentState" ref="historyPopover">
+          <StateHistory :instance="instance" :type-id="type.id" :target-id="instance.id" compact />
+        </Popover>
       </div>
       <div :class="LAYOUT.row" class="header-actions">
         <!-- The composed instance-chat entry, the same route every instance
@@ -134,7 +151,10 @@ const props = defineProps({
   navigation: { type: Object, default: null },
   // Editor action component for this record's type, resolved by the host
   // over the file-surface registry (null when the type has no editor).
-  editorAction: { type: [Object, Function], default: null }
+  editorAction: { type: [Object, Function], default: null },
+  // The host surface names this record (the workspace pane tab); the
+  // identity block drops and the state surface stays.
+  hideTitle: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['run', 'transition', 'refresh', 'open-instance']);

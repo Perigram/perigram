@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-wrap items-center gap-2">
         <i v-if="node.type" :class="iconFor(node.type)" />
-        <span :class="embedded ? 'text-label min-w-0 truncate' : 'text-section-heading'">{{ regionLabel }}</span>
+        <span v-if="!paneHosted" :class="embedded ? 'text-label min-w-0 truncate' : 'text-section-heading'">{{ regionLabel }}</span>
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
       <div v-if="collectionActions.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
@@ -111,6 +111,7 @@
         :bundle="bundle"
         :state-policy="node.statePolicy"
         :navigation="depth === 0 ? navigation : null"
+        :hide-title="paneHosted"
         :editor-action="editorActions?.[node.type?.id] || null"
         @run="emitRun"
         @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
@@ -230,7 +231,10 @@ const props = defineProps({
   navigation: { type: Object, default: null },
   // Editor action components by type (the host resolves them over the
   // file-surface registry; the header renders what it is given).
-  editorActions: { type: Object, default: null }
+  editorActions: { type: Object, default: null },
+  // The host surface names this screen; the region header's label and
+  // the record title stay with the host.
+  paneHosted: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh']);
