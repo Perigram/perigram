@@ -1191,6 +1191,13 @@ every body block renders at content width (sections capped at
 content-width stub, wide content (tables, boards) keeps the full row,
 and overflow stays inside the child surfaces' own bounded scrolls.
 
+### A hosted surface carries its title once (owner direction
+2026-10-23)
+The workspace pane tab names the screen or record it hosts; the hosted
+surface renders its state, actions, and collections, and its own title
+surfaces (list header label, record identity block) stay with the pane
+strip.
+
 ### Presentation has one home per concern (owner direction 2026-10-21)
 Action presentation, action applicability, and record/picker labels
 resolve through their canonical seams (`shared/ui-mapping` resolver

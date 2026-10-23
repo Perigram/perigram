@@ -485,7 +485,10 @@ from the compiled manifest.
   (`GeneratedScreenPane`): type
   screens and instance-bound detail screens both render through
   `GeneratedScreenHost` — the single generator host, with the instance id
-  in the screen scope for detail panes. There is no Explorer header or project
+  in the screen scope for detail panes. The pane tab names the hosted
+  surface (SPEC §Generative UI, 2026-10-23): the host receives
+  `paneHosted` and the engine suppresses its own title surfaces (the
+  list header label, the record identity block). There is no Explorer header or project
   action strip; collection creation belongs to sidebar sections and
   entity operations belong to the detail screens' own action surfaces.
 - Tab creation is explicit: new tabs come only from the tab strip's add

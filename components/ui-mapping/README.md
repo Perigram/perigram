@@ -356,7 +356,9 @@ surface concerns:
   `navigation` prop — `{ icon, label, command }` threaded through
   GeneratedMappingScreen → RegionBlock to the depth-0 header; a host
   that opened the record inside another surface injects its back
-  affordance ahead of the identity block), then one identity line:
+  affordance ahead of the identity block), then one identity line (a
+  pane-hosted record keeps its title in the pane tab: `hideTitle`
+  leaves the state surface and the action cluster):
   Avatar, the title (resolved through the `type-labels.js` seam —
   instance ids are private display vocabulary and never render) with
   the localized type label muted below, and exactly one state surface

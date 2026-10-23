@@ -662,6 +662,25 @@ localization + v24 + module-imports 10✓, generated + ui-mapping suites
 63✓, SSR smoke 13✓, check-arch ✓, framework:validate ✓, check-docs ✓.
 E2E not run (no dev stack in session).
 
+## Hosted surfaces repeat their titles (owner report 2026-10-23)
+
+Owner report: opened screens are duplicated — the pane tab names them
+and the hosted page repeats the same title (list header, record
+header).
+
+- [ ] WAITING — owner verification on the live stack: opening a type
+  list or a record in the workspace names it once (pane tab), with
+  count/state/actions only inside the pane.
+
+### Agent Notes (2026-10-23)
+
+Session `agent/pane-title-20261023`. `GeneratedScreenPane` passes
+`paneHosted` through the host into the engine: RegionBlock's list
+header drops its label (icon + count stay), SurfaceHeader's `hideTitle`
+drops avatar/title/type-label and keeps the state surface and action
+cluster. SPEC §Generative UI carries the law (a hosted surface carries
+its title once).
+
 ## Content-aware record-page arrangement (owner report 2026-10-22)
 
 Owner report: columns and tabs must act as procedural, content-aware
@@ -679,47 +698,15 @@ arrangement itself.
 
 ### Agent Notes (2026-10-22)
 
-Session `agent/content-aware-arrangement-20261022`. Live ground truth
-over the owner's org (minted session, real manifest + instances,
-composition probed for every detail screen): the queue record's
-children weigh 6/2/18/54 rows and the dominant-child rule cascaded
-mixed→mixed→stack, so tabs never engaged and the page stacked ~80 rows;
-project and cassette-design records carry only empty child collections
-(x0) yet placed them in the side rail — columns of empty-state
-messages. Two laws landed: (1) empty children are layout-inert
-(`stubRegions` on the composed node, rendered compact below the
-arranged content, excluded from every arrangement decision and the
-side rail); (2) `arrangeChildren` grants the dominant-child flow only
-while the remainder fits `SURFACE_ROW_BUDGET` — a heavier remainder
-tabs the whole set in weight order, ending the mixed cascade. SPEC
-§Generative UI carries the owner direction (fills-the-screen).
-
-Session `agent/body-fill-layout-20261022` (same owner report, the body
-itself): every real record body was a single-column stack — one fact
-row per line full-width, sections and relations stacked below — the
-actual source of the dead right side and the long scroll; all four
-sessions on this report had arranged child collections only, which most
-real records carry none of. The body now fills its surface through the
-form-grid pattern: `LAYOUT.factsGrid`/`LAYOUT.bodyGrid`
-container-query utilities in `assets/css/main.css` — fact rows flow
-1→2→3 columns (40rem/90rem container), field groups and relation rows
-share a two-track grid past 60rem, rich structural groups and quantity
-maps span the full row, and the show-more control spans the facts row.
-Nested card bodies keep the hairline spec list (the grids are the
-`full` variant's). Render pin: the ui-mapping showcase smoke asserts
-both grid classes on detail bodies.
-
-Session `agent/packed-blocks-20261022` (owner report: small content
-stretched screen-wide, empty tables included). Measured on the live
-stack (real Chromium, 1920px, minted session, intrinsic-vs-rendered
-width probe): every "No records" region rendered 1536px against a
-104px intrinsic width, and the cassette-design Geometry section 1536px
-against 107px. Law: blocks render at content width; full width is
-earned by wide content. `ck-body-grid`/`ck-facts-grid` became packing
-flex (sections capped at `fit-content(46rem)`, `.ck-span-full` keeps
-the full row for rich groups), a list region with nothing to show
-renders `w-fit` (`RegionBlock`), and a record's empty child regions
-pack side by side (`RegionChildren pack` + `LAYOUT.packRow`).
+- Session `agent/content-aware-arrangement-20261022`: empty children are
+  layout-inert (`stubRegions`, compact below the arranged content); a
+  dominant child keeps the flow only while its remainder fits
+  `SURFACE_ROW_BUDGET`, else the set tabs in weight order.
+- Session `agent/body-fill-layout-20261022`: the record body packs —
+  `LAYOUT.factsGrid`/`bodyGrid` utilities in `assets/css/main.css`.
+- Session `agent/packed-blocks-20261022`: blocks render at content
+  width (measured 1536px→~180px on empty regions); dead lists render
+  `w-fit`; empty children pack side by side (`LAYOUT.packRow`).
 
 ## Generative arrangement and identifier single-homing (owner report 2026-10-22)
 
