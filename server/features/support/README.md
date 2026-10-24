@@ -10,6 +10,7 @@ participant `user:` topics, and support-channel changes to the
 `admin-support` topic.
 
 Parent: [server/features](../README.md).
+Target law: [SPEC.md](./SPEC.md).
 
 ## Conversation Contract
 

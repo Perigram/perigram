@@ -18,7 +18,7 @@ SPEC §Process authoring maturity, §Process runtime). Consumers: the
 compiler ([packages/processes](../../../packages/processes/README.md)),
 state and command/task runtimes, generated screens, agent authoring.
 
-Parent SPEC: [features](../SPEC.md) · neighbors: [cts-types](../cts-types/README.md)
+Parents: [features README](../README.md) · [features SPEC](../SPEC.md) · neighbors: [cts-types](../cts-types/README.md)
 (type lifetime), [workflow-overrides](../workflow-overrides/README.md),
 [core machines](../../core/machines/README.md).
 

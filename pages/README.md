@@ -4,6 +4,7 @@ Nuxt route components: the app's complete URL surface. Screen generation
 belongs to the ui-mapping plane; workspace chrome to layouts.
 
 Parent: [README.md](../README.md).
+Target law: [SPEC.md](./SPEC.md).
 
 ## Route inventory
 

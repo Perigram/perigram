@@ -6,6 +6,7 @@ The worker tier is the nesting solver and the plugins' executors
 [task runtime's](../server/core/tasks/README.md) contract.
 
 Parent: [root README](../README.md).
+Target law: [SPEC.md](./SPEC.md).
 
 ## Services
 

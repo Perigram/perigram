@@ -6,6 +6,7 @@ that are not entities may live under `server/features/` for now, but they are
 classified separately and are not forced into fake v24 entity files.
 
 Parent: [server](../README.md).
+Target law: [SPEC.md](./SPEC.md).
 
 ## Required File Structure
 

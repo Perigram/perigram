@@ -18,6 +18,7 @@ canvas. Consumers: the compiler
 state and command/task runtimes, generated screens, and agent authoring.
 
 Parent: [server/features](../README.md).
+Target law: [SPEC.md](./SPEC.md).
 
 ## Lifecycle: author → validate → activate
 

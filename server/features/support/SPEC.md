@@ -15,7 +15,7 @@ instance references, per-user transcripts, and forwarding. Consumers:
 chat UIs ([components/shared](../../../components/shared/README.md)),
 the agent runtime, livekit, transcription.
 
-Parent SPEC: [features](../SPEC.md). Consumed contracts:
+Parents: [features README](../README.md) · [features SPEC](../SPEC.md). Consumed contracts:
 [connections](../connections/README.md) (topics/SSE), the files feature
 (GridFS), [transcription](../transcription/README.md),
 [agent-bots](../agent-bots/README.md), [livekit](../livekit/README.md),
