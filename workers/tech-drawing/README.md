@@ -1,8 +1,7 @@
 # CONTAINER: Tech-Drawing Plugin Executor
 
 The tech-drawing domain as a third-party plugin (SPEC §Plugin
-marketplace, owner decision 2026-10-17 — the pack retired into this
-listing): `listing.json` is the whole declaration surface (pen
+marketplace): `listing.json` is the whole declaration surface (pen
 templates, layer standards, colors, DXF/SVG sources, the sketch type,
 and the sketch editor binding). The plugin is declarations-only — no
 services, no compute: its types ride the generic instance machinery, and
@@ -29,15 +28,13 @@ nothing here imports platform code.
 
 - Deploy + seed: `node server/scripts/seed-plugin-catalog.js` publishes
   the built-in listing; organizations install explicitly from the
-  Plugins section (no default installs, owner direction 2026-10-17) —
-  install this before the facade, whose `requires` names it.
+  Plugins section — install this before the facade, whose `requires`
+  names it.
 - Existing orgs: `server/scripts/migrate-tech-drawing-pack-to-plugin.js`
-  installs the listing per organization (type ids unchanged, so
-  instances, the color system catalogue, and process bindings resolve
-  continuously; the pack's code mount is gone, so no disablement is
-  written).
-- Deploys bump `version` and re-publish — installed organizations then
-  see the available-version tag and upgrade through the Plugins page.
+  (type ids unchanged).
+- Upgrades apply through the
+  [plugins feature](../../server/features/plugins/README.md)
+  (diff preview plus migration steps).
 
 Parent: [workers README](../README.md). Platform consumer:
 [plugins feature](../../server/features/plugins/README.md).

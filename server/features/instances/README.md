@@ -15,11 +15,9 @@ hand-written services.
   `lineage` (pure tree edges), `relations`, the top-level
   `organizationId` tenancy slot, `payload` (iff the type declares payload
   traits), and `provenance` (set by the construct boundary, never
-  patched).
-  **The wire DTO is this document verbatim** (owner decision 2026-10-11:
-  ids JSON-safe) — no `identity` block, no `lineage.organizationId` edge,
-  no `attachments.primary`, no `data`/`specs` slot split, and no assumed
-  field of any kind. `organizationId: null` marks a system instance
+  patched). **The wire DTO is this stored document verbatim** (owner
+  decision 2026-10-11: ids JSON-safe). `organizationId: null` marks a
+  system instance
   (pack-seeded reference catalogs): read-admitted beside org rows in
   every organization's list, written only by seeding/admin paths. Org
   customization of a system instance is an org-authored instance
@@ -31,26 +29,27 @@ hand-written services.
 - Type migration executor (`migrations.js`): runs a covered `migrate` step
   set against the type's persisted instances when
   [cts-types](../cts-types/README.md) lands a breaking redefinition.
-  Contract: total scan (no limit) of the type's per-class collection in
-  the org scope; every behind instance transforms through all steps in
-  one pass — `rename-enum-value` rewrites the exact axis/path and descendant
-  prefixes, `rename-field`,
-  `remove-field`, `add-default-field`, and `retype-field` (CEL expression
-  over `{ value }`, step-budgeted) rewrite flat `fields`, and
-  `remove-edge` deletes the removed entry's stored lineage key from
-  `lineage` (SPEC §11: children of the edge become roots) — then the doc
-  takes the new `typeVersion` stamp, so re-running skips finished
-  documents (idempotent resume) and each rewrite publishes the shared
-  typed invalidation event with reason `type-migration`. The whole
-  `fields`, `lineage`, and `states` axis maps are written back per
-  document; the
-  summary (per-step counts, failures) returns to the caller for the
-  declaration's `migrated` record. `remove-edge` steps whose declared
-  child types are OTHER types detach those children in their own
-  collections through the caller's `collectionForType` resolver — an
-  in-place `$unset`, no version stamp (their type did not change);
-  the declaring type's own documents (self-containment) ride the normal
-  stamped pass.
+  Contract: a total scan of the type's per-class collection in the org
+  scope; every behind instance transforms through all steps in one pass;
+  the whole `fields`, `lineage`, and `states` axis maps are written back
+  per document; the doc then takes the new `typeVersion` stamp, so
+  re-running skips finished documents (idempotent resume); each rewrite
+  publishes the shared typed invalidation event with reason
+  `type-migration`; the summary (per-step counts, failures) returns to
+  the caller for the declaration's `migrated` record.
+
+  | Step | Rewrite |
+  |---|---|
+  | `rename-enum-value` | the exact axis/path and descendant prefixes |
+  | `rename-field` / `remove-field` / `add-default-field` | flat `fields` |
+  | `retype-field` | flat `fields` through a CEL expression over `{ value }`, step-budgeted |
+  | `remove-edge` | the removed entry's stored lineage key out of `lineage` (SPEC §11: children of the edge become roots) |
+
+  `remove-edge` steps whose declared child types are OTHER types detach
+  those children in their own collections through the caller's
+  `collectionForType` resolver — an in-place `$unset` that leaves the
+  child's `typeVersion` untouched; the declaring type's own documents
+  (self-containment) ride the normal stamped pass.
 - Type-lifetime purge (`purge.js`): the confirmed death of an orphaned
   type (cts SPEC §4; candidates and the disclaimer live in
   [cts-types](../cts-types/README.md)) removes every instance of the
@@ -107,7 +106,7 @@ hand-written services.
   cached per organization beside the declaration cache and invalidated
   with it) — then projects the tree onto the stored §3 paths
   (ObjectId-shaped lineage and `_id` values match both stored id forms;
-  undeclared keys are transport noise, never a Mongo path). This is
+  undeclared keys are dropped at normalization). This is
   what scopes an org-authored parent detail's child collection to the
   opened parent.
 - Payload replacement (`replacePayload`, the editor concern SPEC §3
@@ -154,7 +153,7 @@ hand-written services.
   gate to the parent's feature and type id, one hop, no chains; an
   unresolvable parent refuses fail-closed. Types that exist only beside
   a parent (the facade `profile` library beside cassettes) inherit that
-  parent's rights instead of demanding their own grant row.
+  parent's rights.
 - Registration: the core registry's entity-service resolver consults
   `instanceServiceResolver`; explicit feature services always win.
 

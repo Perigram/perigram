@@ -2,530 +2,463 @@
 
 Materialization layer for the design-system mapping contract: real Vue
 components that render the pure resolver outputs and the composed screen
-tree. They own no per-type or per-screen logic — every component decision
-(component choice, span, variant, budget, chrome, action tone) comes from
+tree. Every component decision (component choice, span, variant, budget,
+chrome, action tone) comes from
 [shared/ui-mapping](../../shared/ui-mapping/README.md); the registry of
 component keys to these SFCs is the handwritten design-system surface, and
-it is the only handwritten part.
+the only handwritten part. The display helpers (`titleFor`,
+`formatQuantity`) live in the mapping contract.
 
-## Display helpers live in the mapping contract: `titleFor(instance,
-type)` is the single title resolver (the declared `identifier` field
-value, else the unnamed placeholder) and `formatQuantity`
-renders unit symbols (`25.5°`, `43,200 min`) instead of raw storage units.
+Parent: [components](../README.md); its [SPEC](../SPEC.md).
 
-Composition flow
+## Composition flow
 
 `GeneratedMappingScreen.vue` composes the compiled screen contract
 (`composeScreen` — pure, in `shared/ui-mapping/screen.js`) into a region
-tree and materializes it with
-`RegionBlock` → `SurfaceBody` →
-`FieldControl` / `InstanceInlineRef` / `PreviewBox` / `ActionButton`. A routed
-detail surface's record header (`SurfaceHeader`) carries the composed
-instance-chat entry — the same `utils/instance-chat.js` seam every
-instance surface uses — instead of any embedded comments section; the
-thread opens through the shared chat popup. Region
-actions run through `ActionButton`; actions with construction inputs open
+tree and materializes it with `RegionBlock` → `SurfaceBody` →
+`FieldControl` / `InstanceInlineRef` / `PreviewBox` / `ActionButton`. A
+routed detail surface's record header (`SurfaceHeader`) carries the
+composed instance-chat entry — the same `utils/instance-chat.js` seam
+every instance surface uses — with the thread opening through the shared
+chat popup. The screen accepts a `sourceStates` prop (per-source
+loading/ready/empty/denied/error from the data layer) that `composeScreen`
+folds into the region tree.
+
 `type-labels.js` is the single label seam for generator surfaces: the
 design-system entity contracts (`entities.*` locale keys, resolved through
 `labelKeyForType` in the design-system contract) win for pack types;
-org-authored types fall back to their authored render label, the raw id
-last. Materializations never resolve type names straight from the bundle.
-the generated create dialog, whose rows are the declared construction
-inputs resolved by `resolveCreateDialogInputs`
-([shared/ui-mapping](../../shared/ui-mapping/README.md)): declared fields
-(flat-wire `fields.<name>` path or bare name) render through their
-descriptor, the identity `name` renders as a plain string control, and
-`lineage.<key>` inputs render an `InstancePicker` over the parent types
-whose children edges declare that key (reverse containment over the
-bundle). The draft keys are the compiled input ids, so the payload lands
-exactly on the construction paths; pickers model `{ type, id }` and are
-reduced to the bare instance id at submit. The submit stays disabled
-while a required row (the identifier row above all — the naming law)
-is empty, so a create never lands an unnamed record. When the dialog opens on a
-detail surface whose scope carries the opened instance
-(`screen.scope.instanceId` + `screen.typeId`), every lineage row whose
-accepted parent types include that type submits the opened instance's
-reference without rendering — the form never re-asks a binding the
-context supplies (SPEC §UI) — and when no visible rows remain the create
-runs with no form at all. `link`
-actions prompt for the relation target through `InstancePicker` over the
-pool before dispatch (`onRun` receives `{ relations: { key: ref } }`; the
-picker accepts the relation's declared `targetTypes` and models the
-instance ref `{ type, id }` it submits). Relation targets live outside the
-opened screen's sources: the dialog lazy-loads each accepted type through
-the host's `onLoadType` seam when it opens, and the declared target domain
-(`where`, SPEC §6) filters the offered candidates through the one shared
-evaluator. Inline relation-chip operations
-(a relation's Unlink) execute through the
+org-authored types fall back to their authored render label; the raw id is
+the last resort. Type names resolve only through this seam.
+
+Region actions run through `ActionButton`. Actions with construction
+inputs open the generated create dialog, whose rows come from
+`resolveCreateDialogInputs`
+([shared/ui-mapping](../../shared/ui-mapping/README.md) — the canonical
+row-derivation and naming law). Launch context is the engine's one
+addition: when the dialog opens on a detail surface whose scope carries
+the opened instance (`screen.scope.instanceId` + `screen.typeId`), every
+lineage row whose accepted parent types include that type submits the
+opened instance's reference without rendering, and a dialog whose every
+row the context supplies runs with no form at all
+([SPEC §UI](../../SPEC.md)). `link` actions prompt for the relation
+target through `InstancePicker` over the pool before dispatch (`onRun`
+receives `{ relations: { key: ref } }`; the picker accepts the relation's
+declared `targetTypes` and models the instance ref `{ type, id }` it
+submits). Relation targets live outside the opened screen's sources: the
+dialog lazy-loads each accepted type through the host's `onLoadType` seam
+when it opens, and the declared target domain (`where`, SPEC §6) filters
+the offered candidates through the one shared evaluator. Inline
+relation-chip operations (a relation's Unlink) execute through the
 `generatedExecuteAction` provide with the entry's relation payload — the
 same launch pipeline as header actions.
-The screen accepts a `sourceStates` prop (per-source
-loading/ready/empty/denied/error from the data layer) that
-`composeScreen` folds into the region tree.
 
-Instance navigation and quick actions follow the same
-callback-not-routing rule as `onRun`: an `onOpen(instance)` prop turns
-collection identities (cards, table rows, list rows, tree rows,
-timeline entries, breadcrumb ancestors) into link buttons that emit the
-instance — the app decides where they go — and without it identities
-stay plain text. Inline instance references (relation chips, `ref`
-field values) are the one exception: they render through the shared
-`InstanceInlineRef`, which owns its inspect-and-open behavior itself
-(the app's reference convention, not the generator's).
-`onRun` receives a
-third `context` argument: `{ instance }` when an instance-scoped quick
-action (the per-card ellipsis menu) launched the run, so executors
-target that entity instead of the screen scope.
+Instance navigation and quick actions follow the same callback seam as
+`onRun`: an `onOpen(instance)` prop turns collection identities (cards,
+table rows, list rows, tree rows, timeline entries, breadcrumb ancestors)
+into link buttons that emit the instance — the app decides where they go;
+identities stay plain text without it. Inline instance references
+(relation chips, `ref` field values) are the one exception: they render
+through the shared `InstanceInlineRef`, which owns its inspect-and-open
+behavior itself. `onRun` receives a third `context` argument:
+`{ instance }` when an instance-scoped quick action (the per-card ellipsis
+menu) launched the run, so executors target the launching entity.
 
-Detail editing follows the same rule: an `onPatch({ instance, patch })`
-prop enables the per-field inline pencils — there is no record-level
-edit mode (SPEC UI): scalar facts click-to-edit through `InlineField`
-(confirm patches that one field), structural panels carry their own
-pencil and confirm/discard over a local draft. RegionBlock maps
-changed field names onto the flat §3 wire patch (the identifier `name`
-row writes the wire name slot, everything else `fields.<name>` — the
-same shape `processUpdate` writes) and re-emits every inline change as
-one `patch` event; without `onPatch` no pencil renders. Every applied
-field change lands in the state record: the instance patch transport
-appends an attributed `field_change` event to `status_events`
-(actor, field, from → to — see
+Detail editing follows the record-surface edit law
+([SPEC §UI](../../SPEC.md)): an `onPatch({ instance, patch })` prop
+enables the per-field inline pencils — scalar facts click-to-edit through
+`InlineField` (confirming patches that one field), structural panels carry
+their own pencil and confirm/discard over a local draft. RegionBlock maps
+changed field names onto the flat §3 wire patch (the identifier `name` row
+writes the wire name slot, everything else `fields.<name>` — the same
+shape `processUpdate` writes) and re-emits every inline change as one
+`patch` event. Every applied field change lands in the state record: the
+instance patch transport appends an attributed `field_change` event to
+`status_events` (actor, field, from → to — see
 [server/core/machines](../../server/core/machines/README.md)), rendered
 beside the transition history in `StateHistory`.
 
-Region data states and the region header's in-place controls are shared
-surface concerns:
+## Region data states and header controls
 
 - `RegionDataState.vue` — materializes the composed region `dataState`:
   skeleton lines on first load (system stack rhythm), one shared Message
-  for empty/missing/denied/error, nothing for ready. Reloads with
-  already-loaded instances keep their stale surfaces under one
-  indeterminate progress bar instead — no component invents its own
-  empty or loading state.
-- The region header's in-place controls (the dissolved
-  `CollectionToolbar`): search expands IN PLACE — the icon button becomes
-  an icon field at its position (icon/Esc/empty-blur collapses) — and the
-  shared `FilterBuilder` popover (own funnel trigger, condition-count
-  badge) renders in the header cluster, and `SortControl` (its own
-  popover over the `sortKeys` contract) carries ordering for the
-  card-grid and board projections. Set conditions are the one
-  filtering state — no parallel facet selects speak the same axis. The panel's fields derive through
+  for empty/missing/denied/error, the stale surface under one
+  indeterminate progress bar on reloads with already-loaded instances, and
+  plain content for ready — the only loading/empty states any component
+  renders.
+- The region header's in-place controls: search expands in place — the
+  icon button becomes an icon field at its position (icon/Esc/empty-blur
+  collapses) — and the shared `FilterBuilder` popover (own funnel trigger,
+  condition-count badge) renders in the header cluster. Set conditions are
+  the one filtering state; the panel's fields derive through
   `builderFieldsForType` (see
-  [shared/ui-mapping](../../shared/ui-mapping/README.md)): every scalar
-  field, the primary status over the values actually present, and the
-  relation, parent, and children traversal axes. Search stays a
+  [shared/ui-mapping](../../shared/ui-mapping/README.md)). Search stays a
   region-owned model; the composed tree is persisted view state per type
   (`utils/ui-view-state.js`) and is evaluated with the one matcher
-  (`instanceMatchesFilter`) against the region's pool. Columns keep only
-  their native sorting. The region header stays one line (label, count,
-  controls, actions), wrapping only when the opened controls or the
-  action cluster demand it. The
-  card-grid projection adds an in-place sort control (select + order
-  toggle unfolding beside the sort button; the persisted per-type sort
-  preference survives the move; table projections keep native column
-  sorting, so the control renders only for card grids — the board sorts
-  per column inside BoardCollection, each lane on its own persisted
-  per-type-and-state preference over the same sortKeys contract).
-  The projection switch is the one layout-shaped user view state,
-  persisted per type beside sort and filters
-  (`utils/ui-view-state.js`): a collection whose type serves
-  a state vocabulary and whose derived layout is a structural collection
-  (table) may switch to the board, and a derived board may
-  switch back to the table — one icon toggle in the header cluster, and
-  a stored preference for a non-switchable collection is ignored, so the
-  derivation stays the default and the switch never fights
-  shape-specialized projections (timeline, stats, carousel, the handful
+  (`instanceMatchesFilter`) against the region's pool. The region header
+  stays one line (label, count, controls, actions), wrapping only when
+  opened controls or the action cluster demand it. The projection switch
+  is the one layout-shaped user view state, persisted per type beside sort
+  and filters: a collection whose type serves a state vocabulary and whose
+  derived layout is a structural collection (table) may switch to the
+  board, and a derived board may switch back — one icon toggle in the
+  header cluster; a stored preference for a non-switchable collection is
+  ignored, so the derivation stays the default and the switch stays clear
+  of shape-specialized projections (timeline, stats, carousel, the handful
   list).
-
-- `SortControl.vue` — the collection sort control for the card-grid and
-  board projections (tables sort natively by column): a self-contained popover
-  over the composed `listControls.sortKeys` contract. Keys render inline
-  as buttons and the order toggle flips asc/desc beneath them; the host
-  owns the value, the order, and their persistence
-  (`utils/ui-view-state.js`). The list is inline deliberately — a
-  select overlay would sit outside the popover's DOM subtree, where the
-  popover's outside-click handling closes the control on every pick.
 
 ## Components
 
 - `GeneratedMappingScreen.vue` — engine: composes and renders a compiled
   screen; owns the generated create and link dialogs (`StandardDialog`),
-  ConfirmDialog for destructive actions, and Toast feedback on runs. Launch behavior follows
-  `planActionLaunch` (see the shared README's Actions section): a create
-  with construction inputs always opens the dialog — grant level never
-  replaces the form with a bare confirmation. The screen hosts its own
-  `<Toast />` element — without it in the tree the toast service fires
-  into nothing (the module-imports spec also fails on imported-but-
-  unrendered components). Confirmations use NO group: the app layout owns
-  the single default-group `ConfirmDialog` host, so several concurrently
-  mounted screens can never render one require multiple times.
-- `RegionBlock.vue` — one composed region with data-driven layout: the list
-  layout comes from `resolveListLayout` (`table` |
-  `card-grid` | `timeline` | `stats` | `list` | `board` | `gantt` |
-  `calendar`, matched by
-  class, shape, size, or the state vocabulary — see
-  [shared/ui-mapping](../../shared/ui-mapping/README.md)).
-  The list header is one wrapping line — label, count, in-place expanding
-  search and filter controls, and actions. The search toggle expands into
-  an icon field AT the button's position (the icon or Esc collapses it;
-  an empty blur collapses too). List regions paint no box: the header
-  row and the collection surface (`RegionCollections.vue`, the one
-  materialization of the layout switch embedded and standalone lists
-  share) stack on the section rhythm, and nested child regions arrange
-  through `RegionChildren.vue` (the composed arrangement: stack,
-  weight-proportional columns, dominant-plus-rest, or weight-ordered
-  tabs) — the same component the record page's children use. A create
-  action for the region's own type collapses its caption to the bare
-  localized `uiMapping.new` ("New") through ActionButton's context label:
-  the header already names the class, so the caption never repeats it
-  (creates for other types and every other action keep the full label).
-  Top-level detail regions compose a record page: a full-width
-  `SurfaceHeader`, then the record body with the filled child regions
-  arranged around it — a stack-mode child set (at or under
-  `SIDE_MAX_WEIGHT` card-scale rows) rides beside the body in a side
-  column whose 12-track grid span the children's weight earns, while
-  peer sets arrange below through the weight-driven ladder (proportional
-  columns for peers up to the column cap, dominant child in the flow
-  while its remainder fits the surface budget, weight-ordered tabs for
-  heavier sets). Empty child regions are layout-inert: they render
-  compact, stacked below the arranged content, and claim no side column
-  or arrangement slot. Engagement is
-  measured on the host: the split engages past 60rem of container
-  width, and peer columns engage when the host grants every track its
-  earned minimum (`trackCount × REGION_COLUMN_EARNED_REM`, generative
-  for any track count), stacking inside panes and dialogs; column
-  tracks are zero-floored (`minmax(0, Nfr)`), so wide tables scroll
-  inside their column. Nested detail regions keep the Card surface.
-  Empty regions render a Message.
+  ConfirmDialog for destructive actions, and Toast feedback on runs.
+  Launch behavior follows `planActionLaunch` (see the shared README's
+  Actions section): a create with construction inputs always opens its
+  dialog regardless of grant level. The screen hosts its own `<Toast />`
+  element — the toast service fires into the nearest host in the tree, and
+  the module-imports spec fails on imported-but-unrendered components.
+  Confirmations use the default group: the app layout owns the single
+  default-group `ConfirmDialog` host, so concurrently mounted screens
+  share one host.
+- `RegionBlock.vue` — one composed region with data-driven layout: the
+  list layout comes from `resolveListLayout` (`table` | `card-grid` |
+  `timeline` | `stats` | `list` | `board` | `gantt` | `calendar`; the
+  matcher is [shared/ui-mapping](../../shared/ui-mapping/README.md)'s).
+  The list header is one wrapping line — label, count, in-place controls,
+  actions (see above). List regions stack the header row and the
+  collection surface (`RegionCollections.vue`, the one materialization of
+  the layout switch embedded and standalone lists share) on the section
+  rhythm; nested child regions arrange through `RegionChildren.vue` (the
+  composed arrangement: stack, weight-proportional columns,
+  dominant-plus-rest, or weight-ordered tabs) over the weight-driven
+  ladder and budgets canonical in
+  [shared/ui-mapping](../../shared/ui-mapping/README.md) — empty child
+  regions are layout-inert and render compact below the arranged content.
+  A create action for the region's own type collapses its caption to the
+  bare localized `uiMapping.new` ("New") through ActionButton's context
+  label: the header already names the class (creates for other types and
+  every other action keep the full label). Top-level detail regions
+  compose a record page: a full-width `SurfaceHeader`, then the record
+  body with the filled child regions arranged around it. Nested detail
+  regions keep the Card surface; empty regions render a Message.
+- `SortControl.vue` — the collection sort control for the card-grid and
+  board projections (tables sort natively by column; board lanes carry one
+  per column — see `BoardCollection`): a self-contained popover over the
+  composed `listControls.sortKeys` contract. Keys render inline as buttons
+  and the order toggle flips asc/desc beneath them; the host owns the
+  value, the order, and their persistence (`utils/ui-view-state.js`). The
+  key list renders inline because a select overlay would sit outside the
+  popover's DOM subtree, where the popover's outside-click handling closes
+  the control on every pick.
 - `BoardCollection.vue` — the state board: the projection whose columns
-  are the type's served state vocabulary
-  (authored order, `StateTag` headers with per-column counts) and whose
-  cards are the loaded instances grouped by their flat state — the
-  card-grid anatomy (preview band through `PreviewBox`, identity link,
-  budgeted facts) with two deliberate omissions: no status badge (the
-  lane already is the state) and no type subtitle (a lane is
-  single-type). Facts follow the card-grid budget
+  are the type's served state vocabulary (authored order, `StateTag`
+  headers with per-column counts) and whose cards are the loaded instances
+  grouped by their flat state — the card-grid anatomy (preview band
+  through `PreviewBox`, identity link, budgeted facts) with two deliberate
+  omissions: the status badge (the lane already is the state) and the type
+  subtitle (a lane is single-type). Facts follow the card-grid budget
   (`cardFactCount` over `CARD_FACT_SCALE`); beyond-budget facts collapse
-  behind the shared show-more keys with one expand per card — board
-  lanes are dense, so the budget is the collapse — and the facts rhythm
-  follows the screen's injected spacing coefficient (compact screens
-  shrink board cards with everything else). Per-instance quick
-  actions (deletion, instance-scoped commands) ride the card's ellipsis
-  menu like the card grid; status transitions are the drag itself and
-  the opened record's strip. It renders by derivation for process-class
-  flat
-  collections and through the projection switch for any stateful
-  structural collection (see the header-controls contract above). Columns are `subtle` wells on the surface ladder; cards
-  sit on the content surface. Membership moves only through the
-  machine: legality starts from the contract edges
+  behind the shared show-more keys with one expand per card — board lanes
+  are dense, so the budget is the collapse — and the facts rhythm follows
+  the screen's injected spacing coefficient (compact screens shrink board
+  cards with everything else). Per-instance quick actions (deletion,
+  instance-scoped commands) ride the card's ellipsis menu like the card
+  grid; status transitions are the drag itself and the opened record's
+  strip. It renders by derivation for process-class flat collections and
+  through the projection switch for any stateful structural collection
+  (see the header-controls contract above). Columns are `subtle` wells on
+  the surface ladder; cards sit on the content surface. Membership moves
+  only through the machine: legality starts from the contract edges
   (`stateTransitionsByType`, carried on the region node) and is replaced
   at dragstart by the host's machine-authority resolver
   (`onFetchTransitions` — the state service's per-instance transitions,
   the same source the detail header's transition buttons dispatch
-  through), because the compiled contract copy can lag the served
-  machine (override or default machines serve transitions the producer
-  copy never carried). A machine-legal target lane paints the content
-  surface instead of the subtle well while a drag is live — the target
-  token REPLACES the well token, never a second background utility
-  (an appended `bg-*` pair is unordered in the generated stylesheet and
-  the idle well would win). Without a resolver and without contract
-  edges from a state, its cards are not draggable — a served machine
+  through), because the compiled contract copy can lag the served machine
+  (override or default machines serve transitions the producer copy never
+  carried). A machine-legal target lane paints the content surface instead
+  of the subtle well while a drag is live — the target token REPLACES the
+  well token, since an appended `bg-*` pair is unordered in the generated
+  stylesheet and the idle well would win. A lane with neither a resolver
+  hit nor contract edges admits no drags from that state; a served machine
   with no moves anywhere renders a read-only board. The drop emits the
-  `transition` intent; the host executors apply it optimistically over
-  the shared pool (`utils/optimistic-state.js`) — the card lands in its
-  lane immediately, the server result reconciles, a failure rolls the
-  captured record back, and an offline queueing keeps the flip for the
-  outbox to replay (the app's one optimistic contract). The machine
-  stays the authority: every surface reconciles through the same store
-  write, refused moves restore, and no board-local state is mutated.
-  Ordering belongs to the
-  column: each lane carries its own `SortControl` over the composed
-  `sortKeys` contract with a persisted per-type-and-state preference
-  (`board-column:` scopes through `utils/ui-view-state.js`).
-  Column bodies are bounded (`--ck-board-column-max-height`,
-  viewport-relative) and scroll independently — the board fits its
-  container instead of growing the page, and the same flex contract
-  lets lanes fill bounded hosts (workspace panes). Dragging into the
-  rail's horizontal edge zone auto-scrolls toward hidden columns. Stale
-  states outside the
-  vocabulary degrade to neutral columns that admit no drops. Native
-  HTML5 drag is the desktop affordance; the per-card ellipsis menu and
-  the opened record's transition strip remain the accessible and touch
-  paths.
-- `GanttCollection.vue` — the durational projection: one row per
-  instance over a shared instant scale. Declared instants in declaration
-  order are the interval (`temporalFieldsFor`: first start, second
-  end); the pool's own min/max bounds the scale, bars are data-driven
-  geometry (the inline data-driven exception: `left`/`width` from the
-  instant values) painted by the state severity token classes
-  (`bg-status-*`), a start without an end renders a point — never a
-  fabricated duration — and the axis carries month ticks (dense scales
-  drop labels, not structure) plus the today marker when the scale
-  spans now. Identity links follow the shared `onOpen` contract.
+  `transition` intent; the host executors apply it optimistically over the
+  shared pool (`utils/optimistic-state.js`) — the card lands in its lane
+  immediately, the server result reconciles, a failure rolls the captured
+  record back, and offline queueing keeps the flip for the outbox to
+  replay (the app's one optimistic contract). The machine stays the
+  authority: every surface reconciles through the same store write,
+  refused moves restore, and board-local state stays untouched. Ordering
+  belongs to the column: each lane carries its own `SortControl` with a
+  persisted per-type-and-state preference (`board-column:` scopes through
+  `utils/ui-view-state.js`). Column bodies are bounded
+  (`--ck-board-column-max-height`, viewport-relative) and scroll
+  independently — the board fits its container, and the same flex contract lets lanes fill bounded hosts
+  (workspace panes). Dragging into the rail's horizontal edge zone
+  auto-scrolls toward hidden columns. Stale states outside the vocabulary
+  degrade to neutral columns that admit no drops. Native HTML5 drag is the
+  desktop affordance; the per-card ellipsis menu and the opened record's
+  transition strip remain the accessible and touch paths.
+- `GanttCollection.vue` — the durational projection: one row per instance
+  over a shared instant scale. Declared instants in declaration order are
+  the interval (`temporalFieldsFor`: first start, second end); the pool's
+  own min/max bounds the scale, bars are data-driven geometry (the inline
+  data-driven exception: `left`/`width` from the instant values) painted
+  by the state severity token classes (`bg-status-*`), a start without an
+  end renders a point — a duration is never fabricated — and the axis
+  carries month ticks (dense scales drop labels, keeping structure) plus
+  the today marker when the scale spans now. Identity links follow the
+  shared `onOpen` contract.
 - `CalendarCollection.vue` — the scheduled projection: a month grid over
   the type's lone declared instant. Day cells are subtle wells, today's
   cell steps up to the content surface, instances render as capped
-  identity chips with a plain overflow count (the day cell is a summary,
-  not a list), and month navigation is local view state — the month
-  opens on the first loaded instance's month. Labels and weekday
-  headers format through the active locale.
+  identity chips with a plain overflow count (the day cell is a summary),
+  and month navigation is local view state — the month opens on the first
+  loaded instance's month. Labels and weekday headers format through the
+  active locale.
 - `CarouselGrid.vue` — the large media collection projection: a circular
   PrimeVue Carousel of clipped preview cards.
 - `BreadcrumbTrail.vue` — the lineage trail: a Breadcrumb of ancestor
   identities walked from the instance's lineage through the pool.
   Ancestors are navigation: each crumb opens its instance through the
-  screen's identity-open channel; the opened record is the trailing
-  plain crumb, never a self-link.
+  screen's identity-open channel; the opened record is the trailing plain
+  crumb.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identity (a link button when the screen has an `onOpen` handler),
-  status, budgeted scalar descriptor columns, and the first
-  declared relation as budgeted chips. Rows are Notion-style surface
-  cards — the preset paints every row as the content surface with
-  transparent internal dividers, and the recipe clips the row corners
+  status, budgeted scalar descriptor columns, and the first declared
+  relation as budgeted chips. Rows are Notion-style surface cards — the
+  preset paints every row as the content surface with transparent
+  internal dividers, and the recipe clips the row corners
   (`[clip-path:inset(0_round_var(--p-border-radius-xl))]`, since a row's
   background is not clipped by its radius), adds a hairline
   separated-border gap (the layout-only scoped block) and a muted
   transparent header band — every instance row sits one step above the
-  canvas, with no border and no ring, while the table box stays
-  unpainted. Columns come from the composed
-  `listControls` contract (filled short scalars bounded by the richness
-  budget — a field no loaded instance fills never becomes a column),
-  identity/status/scalar columns are sortable (quantity values sort by
-  their numeric value), the list-controls contract's `defaultSort` (the
-  first filled short scalar) is the default
-  sort, the user's last sort persists per type through
-  `utils/ui-view-state.js`, and the paginate/virtualize thresholds are the shared
-  `TABLE_*` budgets from the mapping contract, never literals. Filtering
-  belongs to the region toolbar above the table, not to a per-column
-  filter row. The region toolbar renders type-level actions only (creates):
-  every other action kind addresses a concrete instance (delete,
-  transitions, instance-scoped commands) and renders on the instance
-  surfaces — row menus, the detail header, and the machine-served
-  transitions. An unscoped list of a type that can be someone's child (a
-  declared children edge names it) composes the containment cross-cut:
-  every instance lists with its parent beside the identity
-  (`ParentRef.vue` — the parent type's icon plus the parent's resolved
-  label, non-interactive; the region host lazily overlays loaded parent
-  types onto the pool through the same `loadType` seam the tree uses).
-  Class surfaces never nest — containment navigation is the workspace
-  explorer's.
+  canvas, with no border and no ring, while the table box stays unpainted.
+  Columns come from the composed `listControls` contract (filled short
+  scalars bounded by the richness budget — a field no loaded instance
+  fills stays out of the columns), identity/status/scalar columns are
+  sortable (quantity values sort by their numeric value), the
+  list-controls contract's `defaultSort` (the first filled short scalar)
+  is the default sort, the user's last sort persists per type through
+  `utils/ui-view-state.js`, and the paginate/virtualize thresholds are the
+  shared `TABLE_*` budgets from the mapping contract. Filtering belongs to
+  the region toolbar above the table. The region toolbar renders
+  type-level actions only (creates): every other action kind addresses a
+  concrete instance (delete, transitions, instance-scoped commands) and
+  renders on the instance surfaces — row menus, the detail header, and
+  the machine-served transitions. An unscoped list of a type that can be
+  someone's child (a declared children edge names it) composes the
+  containment cross-cut: every instance lists with its parent beside the
+  identity (`ParentRef.vue` — the parent type's icon plus the parent's
+  resolved label, non-interactive; the region host lazily overlays loaded
+  parent types onto the pool through the same `loadType` seam the tree
+  uses). Containment navigation belongs to the workspace explorer.
 - `CardGrid.vue` — the media collection projection (DataView, paginated):
   cards lay out in the shared `ResponsiveGrid` primitive with container
-  queries and bounded item tokens (viewport breakpoints lie inside panels),
-  each Card clipped (`overflow-hidden`) on the stock anatomy — preview as
-  `#header`, identity + status in `#title`, type label (with the row's
-  `ParentRef` parent context when the type is someone's child) in
-  `#subtitle`, labeled budgeted facts in `#content`. Card ORDERING lives in the
-  region header's in-place sort control (RegionBlock applies the
+  queries and bounded item tokens (viewport breakpoints lie inside
+  panels), each Card clipped (`overflow-hidden`) on the stock anatomy —
+  preview as `#header`, identity + status in `#title`, type label (with
+  the row's `ParentRef` parent context when the type is someone's child)
+  in `#subtitle`, labeled budgeted facts in `#content`. Card ordering
+  lives in the region header's sort control (RegionBlock applies the
   `sortKeys` contract through the shared comparator before the grid
-  mounts; the DataView itself renders no header). The card identity is a link button
-  when the screen has an `onOpen` handler, and the type's per-instance
-  quick actions (resolveInstanceActions: deletion and instance-scoped
-  commands — status transitions are per-instance machine facts served by
-  the state service, never a type-level action) render as one shared
-  ellipsis menu per card
-  that re-emits through the region run contract with that card as
+  mounts; the DataView itself renders no header). The card identity is a
+  link button when the screen has an `onOpen` handler, and the type's
+  per-instance quick actions (resolveInstanceActions: deletion and
+  instance-scoped commands — status transitions are per-instance machine
+  facts served by the state service) render as one shared ellipsis menu
+  per card that re-emits through the region run contract with that card as
   instance context — confirmation and dispatch stay upstream.
+- `StatGrid.vue` — the stats projection for percent/quantity-dominant
+  types (the shape matcher is
+  [shared/ui-mapping](../../shared/ui-mapping/README.md)'s): a dense
+  `ResponsiveGrid` of cards — identity, state tag, and the type's derived
+  metric field rendered in the `text-metric` face, quantities formatted
+  through `formatQuantity`.
 - `TimelineCollection.vue` — the chronological list projection (Timeline):
   marker-per-entry with identity (link button under the `onOpen`
-  contract, trimmed at the timeline column's edge — the same bounded
+  contract, trimmed at the timeline column's edge — the bounded
   identity-link recipe the tables use: `min-w-0 max-w-full` with a
-  truncating label, never an overflowing row), inline scalar facts, and
-  the type's
-  primary long-text (or first structural) field as the entry body,
-  selected by type matcher (log entries). The timeline is LEFT-ANCHORED:
-  the app renders no `#opposite` column, and the empty one PrimeVue
-  always renders is display:none'd through pt — otherwise it eats half
-  the row and wide unbreakable content pushes the separator, drifting
-  items' left borders out of alignment. Past the shared page budget
-  the entries page through a standalone Paginator over `pageSlice`.
+  truncating label), inline scalar facts, and the type's primary long-text
+  (or first structural) field as the entry body, selected by type matcher
+  (log entries). The timeline is left-anchored: the `#opposite` column
+  PrimeVue always renders is display:none'd through pt, keeping wide
+  unbreakable content from eating half the row, pushing the separator, and
+  drifting items' left borders out of alignment. Past the shared page
+  budget the entries page through a standalone Paginator over `pageSlice`.
 - `HierarchyTree.vue` — the deep-nesting projection: a fully expanded
   PrimeVue Tree built recursively from the type's declared children edges
   and the instance pool's lineage, shown on group surfaces. The tree
   re-derives from the reactive pool, so reconciliation (a new child, a
-  moved parent) re-nests it in place instead of waiting for a remount.
-  Nodes are navigation: selecting one opens its instance through the
-  screen's identity-open channel.
-- `SurfaceHeader.vue` — the record header. It paints nothing: no
-  surface, no border — the record page's stack rhythm separates it from
-  the body, and pane boxes / route shells own the frames around it.
-  Inline-resolved actions (relation unlink — the mapping contract's
-  `inline` flag) render on the relation reference they address, so the
-  header's action cluster and overflow menu carry only record actions.
-  Lineage Breadcrumb (when nested), a contextual `navigation` channel
-  (the `#navigation` slot for direct template hosts plus the
-  `navigation` prop — `{ icon, label, command }` threaded through
-  GeneratedMappingScreen → RegionBlock to the depth-0 header; a host
-  that opened the record inside another surface injects its back
-  affordance ahead of the identity block), then one identity line (a
-  pane-hosted record keeps its title in the pane tab: `hideTitle`
-  leaves the state surface and the action cluster):
-  Avatar, the title (resolved through the `type-labels.js` seam —
-  instance ids are private display vocabulary and never render) with
-  the localized type label muted below, and exactly one state surface
-  riding the title line. A state axis is a tree, never a line, so
-  stateful records carry no lifecycle strip: an instance with a flat
-  `state` renders the segmented current-state tag (`StateTag`,
-  resolved against the region's `statePolicy` — the header shows the
-  data's state even when the served vocabulary has none for it) with a
-  clock affordance opening the shared `StateHistory` popover (the
-  `status_events` audit trail over `/api/state/history`, a vertical
-  stepper); instances without a state render nothing (no state is
-  information — nothing synthesizes one). The action cluster sits
-  right (the identity's flex-1 is the push): the composed instance-chat
-  entry, the host-resolved editor action component (`editorActions`
-  channel: the app host resolves the file-surface registry per type and
-  the engine renders what it receives), at most `HEADER_ACTIONS_INLINE`
-  generated buttons inline — a
-  third and every further action join one popup ellipsis menu (no
-  reserved layout space) with the same localized labels — and every
-  available runtime transition renders as a dedicated transition button
-  after the inline budget, dispatching through the `transition` channel
-  (never the generic run menu) — machine transitions arrive as
-  `{ __runtime, state: { to }, intent, region }` from the page's
-  state-service fetch and their labels/severity/icons resolve from the
-  same policy map. The header is its own layout container: the
-  identity/action row engages from the header container width through
-  the scoped CSS block (never the viewport — headers render inside
-  panels and detail child stacks); long names truncate through the
+  moved parent) re-nests it in place. Nodes are navigation: selecting one
+  opens its instance through the screen's identity-open channel.
+- `SurfaceHeader.vue` — the record header. It paints nothing — the record
+  page's stack rhythm separates it from the body, and pane boxes / route
+  shells own the frames around it. Inline-resolved actions (relation
+  unlink — the mapping contract's `inline` flag) render on the relation
+  reference they address, so the header's action cluster and overflow menu
+  carry only record actions. Lineage Breadcrumb (when nested), a
+  contextual `navigation` channel (the `#navigation` slot for direct
+  template hosts plus the `navigation` prop — `{ icon, label, command }`
+  threaded through GeneratedMappingScreen → RegionBlock to the depth-0
+  header; a host that opened the record inside another surface injects its
+  back affordance ahead of the identity block), then one identity line (a
+  pane-hosted record keeps its title in the pane tab: `hideTitle` leaves
+  the state surface and the action cluster): Avatar, the title (resolved
+  through the `type-labels.js` seam — instance ids are private display
+  vocabulary) with the localized type label muted below, and exactly one
+  state surface riding the title line. A state axis is a tree, so stateful
+  records carry no lifecycle strip: an instance with a flat `state`
+  renders the segmented current-state tag (`StateTag`, resolved against
+  the region's `statePolicy` — the header shows the data's state even when
+  the served vocabulary has none for it) with a clock affordance opening
+  the shared `StateHistory` popover (the `status_events` audit trail over
+  `/api/state/history`, a vertical stepper); instances without a state
+  render nothing (no state is information). The action cluster sits right
+  (the identity's flex-1 is the push): the composed instance-chat entry,
+  the host-resolved editor action component (`editorActions` channel: the
+  app host resolves the file-surface registry per type and the engine
+  renders what it receives), at most `HEADER_ACTIONS_INLINE` generated
+  buttons inline — a third and every further action join one popup
+  ellipsis menu with the same localized labels — and every available
+  runtime transition renders as a dedicated transition button after the
+  inline budget, dispatching through the dedicated `transition` channel —
+  machine transitions arrive as `{ __runtime, state: { to }, intent,
+  region }` from the page's state-service fetch and their
+  labels/severity/icons resolve from the same policy map. The header is
+  its own layout container: the identity/action row engages from the
+  header container width through the scoped CSS block (headers render
+  inside panels and detail child stacks); long names truncate through the
   `min-w-0` chain and wide headers floor the title at 16rem so a large
-  action cluster wraps below the identity instead of crunching it.
+  action cluster wraps below the identity.
 - `StateTag.vue` — the segmented state tag: one materialization of the
-  mapping contract's `stateDisplayFor`. Flat values render as a single
-  Tag styled by the authored severity/icon; dotted values render as a
-  path — muted ancestor Tags with angle separators and the styled leaf —
-  so nested/nested-legacy state values stay readable. The raw value
-  rides in the title attribute as the debugging channel.
+  mapping contract's `stateDisplayFor`. Flat values render as a single Tag
+  styled by the authored severity/icon; dotted values render as a path —
+  muted ancestor Tags with angle separators and the styled leaf — so
+  nested/nested-legacy state values stay readable. The raw value rides in
+  the title attribute as the debugging channel.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
-  bare content column of a record page, `detail` → Card (same-role nesting
-  flattens to a Divider), `row` / `inline` → dense flex row with budgeted
-  fields and relation chips; the row identity is a link button under the
-  screen's `onOpen` contract, like every collection identity.
+  bare content column of a record page, `detail` → Card (same-role
+  nesting flattens to a Divider), `row` / `inline` → dense flex row with
+  budgeted fields and relation chips; the row identity is a link button
+  under the screen's `onOpen` contract, like every collection identity.
 - `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
   scalar facts strip (`DETAIL_FACT_BUDGET`, identifier-excluded — the
-  title owns that value; collapsed behind one show-more
-  control per group), structural fields as labeled open sections,
-  labeled relation sections (the field label override channel over the
-  relation key, start-cased fallback) with budgeted chips and show-more
-  toggles for relations not already
-  covered by a child region — each chip carries the relation's
-  inline-resolved operations (unlink) as `contextActionEntries` bound to
-  the opened record, and the hierarchy tree for groups. The `full`
-  variant fills its surface by packing (SPEC §Generative UI,
-  2026-10-22) through the `LAYOUT.bodyGrid`/`LAYOUT.factsGrid`
-  utilities: body blocks render at content width (sections capped at
-  `fit-content(46rem)`) and fact rows wrap at content width; nested
-  card variants keep the hairline spec list. A list region with nothing
-  to show renders at content width, and a record's empty child regions
-  pack side by side as compact stubs (`RegionChildren pack`). Every
-  scalar and simple structural field renders through `InlineField.vue`,
-  the one detail value cell (plain display; the click-to-edit Inplace
-  with pencil on patchable surfaces) — hosts own the
-  label placement, so facts, simple structural rows, and quantity maps
-  share the same affordance. Rich
-  structural values render open under their section label with their own
-  pencil through `StructuralFieldPanel.vue`: one panel edits at
-  a time over a local draft with confirm/discard. Unfilled fields follow
-  the scalar law
-  everywhere: display renders only fields that carry values (empty
-  panels are junk).
-- `PreviewBox.vue` — preview materialization keyed on the declared payload,
-  in one fixed-height band (`h-28`) for every content kind. An instance
-  payload reference with a renderable declared
-  mode (the pool's `instance.payload`, projected from the wire
-  `attachments.primary`) renders through the shared viewer
-  (via `ArtifactViewer` variant `card` — the non-interactive
-  canvas that fills the card's fixed-height header band with no own
-  border, because the host Card owns the chrome; images and sketch scenes
-  fill the band at uniform scale while vector drawings (dxf/svg/occs)
-  fit inside it, and dimension text renders big — the same contract as
-  generated detail previews, which keep the pane viewer).
-  A type that declares a `previewSource` field (the authored pack
-  vocabulary adopted by the CTS registry, carried on the bundle type
-  record and read off the wire DTO by `dtoToScreenInstance` as
-  `instance.previewSource` — the first non-empty of the declared path
-  and its `fallbackPaths`, so stored-shape variants of one renderable
-  source all preview) renders that value through `DrawingCanvas`
-  in the same band when no payload exists — the declared preview channel
-  (cassette geometry, raw layer/polygon parts, and the OCCS template
-  document, which renders through the canvas's `occs-cassette` source)
-  never depends on an uploaded payload.
+  title owns that value; collapsed behind one show-more control per
+  group), structural fields as labeled open sections, labeled relation
+  sections (the field label override channel over the relation key,
+  start-cased fallback) with budgeted chips and show-more toggles for
+  relations a child region already covers — each chip carries the
+  relation's inline-resolved operations (unlink) as `contextActionEntries`
+  bound to the opened record, and the hierarchy tree for groups. The
+  `full` variant fills its surface by packing (SPEC §Generative UI,
+  2026-10-22) through the `LAYOUT.bodyGrid`/`LAYOUT.factsGrid` utilities:
+  body blocks render at content width (sections capped at
+  `fit-content(46rem)`) and fact rows wrap at content width; nested card
+  variants keep the hairline spec list. A list region with nothing to show
+  renders at content width, and a record's empty child regions pack side
+  by side as compact stubs (`RegionChildren pack`). Every scalar and
+  simple structural field renders through `InlineField.vue`, the one
+  detail value cell (plain display; the click-to-edit Inplace with pencil
+  on patchable surfaces) — hosts own the label placement, so facts,
+  simple structural rows, and quantity maps share the same affordance.
+  Rich structural values render open under their section label with their
+  own pencil through `StructuralFieldPanel.vue`: one panel edits at a
+  time over a local draft with confirm/discard. Display renders only
+  fields that carry values.
+- `PreviewBox.vue` — preview materialization keyed on the declared
+  payload, in one fixed-height band (`h-28`) for every content kind. An
+  instance payload reference with a renderable declared mode (the pool's
+  `instance.payload`, projected from the wire `attachments.primary`)
+  renders through the shared viewer (via `ArtifactViewer` variant `card` —
+  the non-interactive canvas that fills the card's fixed-height header
+  band with no own border, because the host Card owns the chrome; images
+  and sketch scenes fill the band at uniform scale while vector drawings
+  (dxf/svg/occs) fit inside it, and dimension text renders big — the same
+  contract as generated detail previews, which keep the pane viewer). A
+  type that declares a `previewSource` field (the authored pack vocabulary
+  adopted by the CTS registry, carried on the bundle type record and read
+  off the wire DTO by `dtoToScreenInstance` as `instance.previewSource` —
+  the first non-empty of the declared path and its `fallbackPaths`, so
+  stored-shape variants of one renderable source all preview) renders that
+  value through `DrawingCanvas` in the same band when no payload exists —
+  the declared preview channel (cassette geometry, raw layer/polygon
+  parts, and the OCCS template document, which renders through the
+  canvas's `occs-cassette` source) independent of an uploaded payload.
   Payload-less instances without a declared preview keep the
-  deterministic per-instance inline SVG
-  (seeded hue) built
-  entirely from theme tokens — `--ck-subtle-background` bases with
-  translucent hsl accents — so generated art adapts to light/dark and owns
-  no hardcoded colors; `image` renders a seeded gradient sky, `geometry` a
-  star plot. Attachment-class previews carry no invented art: an instance
-  WITH a payload the viewer cannot render states the file's size and
-  MIME, while a payload-less instance renders the quiet type-glyph band
-  (the authored `depiction.glyph`, no MIME strings — blank is the honest
-  surface for a record that never saved a source).
-- `FieldControl.vue` — the field dispatcher: resolves the descriptor in the
-  given variant and renders the display primitive or delegates to an
+  deterministic per-instance inline SVG (seeded hue) built entirely from
+  theme tokens — `--ck-subtle-background` bases with translucent hsl
+  accents — so generated art adapts to light/dark and owns no hardcoded
+  colors; `image` renders a seeded gradient sky, `geometry` a star plot.
+  Attachment-class previews carry honest surfaces: an instance with a
+  payload the viewer cannot render states the file's size and MIME, while
+  a payload-less instance renders the quiet type-glyph band (the authored
+  `depiction.glyph` — blank is the honest surface for a record that never
+  saved a source).
+- `FieldControl.vue` — the field dispatcher: resolves the descriptor in
+  the given variant and renders the display primitive or delegates to an
   editor. Measured values (quantities, instants, numbers) render in the
   mono face with tabular figures; prose and labels stay in the UI face.
-  Structural displays are labeled: records/maps/json render as
-  budgeted description lists, record lists as checklist rows (boolean +
-  string subfields), variants as tag plus payload value. Every component
-  it dispatches to (including MeterGroup, Chart, Rating, Slider,
-  OrderList) is imported explicitly — the module-imports spec fails on
-  any capitalized template tag without a matching import, because
-  unresolved components render as empty nodes outside the Nuxt
-  auto-import runtime. Data-visualization color travels with the data,
-  decided by the medium: meter bars are DOM spans, so segments cycle the
-  PrimeVue palette CSS vars (theme reactive); chart bars paint on a
-  canvas where CSS variables cannot resolve, so datasets take concrete
-  colors from the canonical design-token palette source
-  (`designTokens.palette.primary` — chart.js v4 has no default palette;
-  unclored datasets draw near-invisible bars).
+  Structural displays are labeled: records/maps/json render as budgeted
+  description lists, record lists as checklist rows (boolean + string
+  subfields), variants as tag plus payload value. Every component it
+  dispatches to (including MeterGroup, Chart, Rating, Slider, OrderList)
+  is imported explicitly — the module-imports spec fails on any
+  capitalized template tag without a matching import, because unresolved
+  components render as empty nodes outside the Nuxt auto-import runtime.
+  Data-visualization color travels with the data, decided by the medium:
+  meter bars are DOM spans, so segments cycle the PrimeVue palette CSS
+  vars (theme reactive); chart bars paint on a canvas where CSS variables
+  cannot resolve, so datasets take concrete colors from the canonical
+  design-token palette source (`designTokens.palette.primary` — chart.js
+  v4 has no default palette; uncolored datasets draw near-invisible
+  bars).
 - Editors: `QuantityInput` (InputGroup + unit addon), `EnumSelect`
-  (filtered, via the shared Select wrapper), `InstancePicker` — AutoComplete
-  with typeahead over the instance pool, or TreeSelect when the accepted
-  type declares lineage children (TreeSelect's checked-keys map selection
-  resolves to the `{ type, id }` instance ref), `InstanceMultiPicker` (shared MultiSelect
-  wrapper), `ChipsInput`, `FileUploadControl`, `Slider` for bounded scalars
-  (declared min/max), and the recursive `ObjectEditor` / `ListEditor` /
-  `VariantEditor` (compact density shrinks editors through PrimeVue
-  sizes); maps and json edit through the JsonEditor textarea
-  (pretty-printed, invalid JSON flagged inline). Percent quantities
-  display as Knob dials, percent-valued
-  maps as MeterGroup, non-percent quantity maps as bar Charts, ordinal
-  enums as Rating, enum lists edit through OrderList, and spec-row values
+  (filtered, via the shared Select wrapper), `InstancePicker` —
+  AutoComplete with typeahead over the instance pool, or TreeSelect when
+  the accepted type declares lineage children (TreeSelect's checked-keys
+  map selection resolves to the `{ type, id }` instance ref) —
+  `InstanceMultiPicker` (shared MultiSelect wrapper), `ChipsInput`,
+  `FileUploadControl`, `Slider` for bounded scalars (declared min/max),
+  and the recursive `ObjectEditor` / `ListEditor` / `VariantEditor`
+  (compact density shrinks editors through PrimeVue sizes); maps and json
+  edit through the JsonEditor textarea (pretty-printed, invalid JSON
+  flagged inline). Which presentation an editor family resolves to
+  (Knob, MeterGroup, Chart, Rating, OrderList, Inplace) is the mapping
+  contract's data-shape derivation (see
+  [shared/ui-mapping](../../shared/ui-mapping/README.md)); spec-row values
   are click-to-edit through Inplace with visible affordance — hover
   highlights the value row and reveals a pencil icon.
-- `PreviewBox.vue`, `ActionButton.vue`, `ParentRef.vue` — payload previews
-  keyed on the declared preview mode, action-button
-  presentation from the compiled action record, and the containment
-  cross-cut's parent context token (a muted parent-type icon + the
-  parent's resolved label through `incomingChildrenEdges`/`parentRefOf`;
-  a parent missing from the pool still names its type; non-interactive
-  by contract — context, not navigation). Instance references (relation
-  chips, table relation columns, `ref` field values) render through the
-  shared [InstanceInlineRef](../shared/README.md) — the app's one
-  interactive reference surface, everywhere: the shared record popup on
+- `ActionButton.vue`, `ParentRef.vue` — action-button presentation from
+  the compiled action record, and the containment cross-cut's parent
+  context token (a muted parent-type icon + the parent's resolved label
+  through `incomingChildrenEdges`/`parentRefOf`; a parent missing from
+  the pool still names its type; non-interactive by contract — context).
+  Instance references (relation chips, table relation columns, `ref`
+  field values) render through the shared
+  [InstanceInlineRef](../shared/README.md) — the app's one interactive
+  reference surface, everywhere: the shared record popup on
   click/keyboard activation, exactly like relation refs on every other
-  instance surface. Action and field labels
-  resolve through the stable generated keys first
-  (`actionLabelKey`/`fieldLabelKey`/`typeLabelKey` + `localizedLabel`),
-  falling back to the resolver-derived label, so locale files may
-  override any generated label; ActionButton carries the label as its
-  accessible name. A host surface may pass a context-supplied label prop
-  (still under locale-override precedence) to shorten a caption its own
-  chrome already describes — RegionBlock's "New" beside the region header
-  is the one current use. Obvious actions render icon-only when the
-  resolver says so (create `+`, delete trash): the label stays the
-  tooltip and accessible name, and the context label never widens the
-  button back.
+  instance surface. Action and field labels resolve through the stable
+  generated keys first (`actionLabelKey`/`fieldLabelKey`/`typeLabelKey` +
+  `localizedLabel`), falling back to the resolver-derived label, so
+  locale files may override any generated label; ActionButton carries the
+  label as its accessible name. A host surface may pass a context-supplied
+  label prop (still under locale-override precedence) to shorten a
+  caption its own chrome already describes — RegionBlock's "New" beside
+  the region header is the one current use. Obvious actions render
+  icon-only when the resolver says so (create `+`, delete trash): the
+  label stays the tooltip and accessible name, and the context label never
+  widens the button back.
 
 Select/MultiSelect only ever come through the shared entity wrappers
-(`components/shared/InstanceSelect.vue`, `InstanceMultiSelect.vue`), which own
-the direct PrimeVue imports.
+(`components/shared/InstanceSelect.vue`, `InstanceMultiSelect.vue`), which
+own the direct PrimeVue imports.
 
 ## Related
 
+- Parent: [components](../README.md); its [SPEC](../SPEC.md).
 - [shared/ui-mapping/README.md](../../shared/ui-mapping/README.md) — the
   mapping and composition contract (canonical).
 - [pages/test/ui-mapping.vue](../../pages/test/ui-mapping.vue) — the
   showcase that mounts this engine over fixtures.
-- [test-data/ui-mapping-fixtures.js](../../test-data/README.md) — synthetic
-  compiler output.
+- [test-data/ui-mapping-fixtures.js](../../test-data/README.md) —
+  synthetic compiler output.

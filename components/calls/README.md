@@ -1,10 +1,9 @@
 # COMPONENT: Calls
 
 PrimeVue-native conferencing surfaces over the self-hosted LiveKit service
-and the connections layer. There is no LiveKit default chrome and no React
-component suite — every surface is built from shared primitives, semantic
-tokens, and `livekit-client` (lazily imported, so the WebRTC stack never
-enters the main bundle).
+and the connections layer, built from shared primitives, semantic tokens,
+and `livekit-client` (lazily imported; the WebRTC stack rides its own
+chunk).
 
 - `CallPanel.vue` orchestrates the call: pre-join → connected stages, the
   room event wiring (tracks, mute, speaking levels, connection quality,
@@ -15,8 +14,7 @@ enters the main bundle).
   and the film strip scroll inside their own boxes), and all controls live
   in one docked bar below the stage — a wrapped header can never eat the
   video area. A connection that drops while the panel stays mounted
-  returns to the pre-join stage instead of stranding an empty stage with a
-  disabled dock.
+  returns to the pre-join stage.
 - `CallPrejoin.vue` owns device enumeration (plain PrimeVue `Select`; the
   shared `InstanceSelect` is the entity picker and must not be reused for
   device lists), live camera preview, a bare microphone-activity dot, and
@@ -68,8 +66,7 @@ centers when it fits and scrolls — never wraps — when the pane is narrow.
 Reactions open from a dock button through a PrimeVue `Popover`; floating
 reaction badges ride the `riseAndFade` motion pattern over the stage.
 Status is shown only where it changes behavior: a reconnecting pill while
-the room re-connects, degraded-quality glyphs on tiles. There is no
-participant-count subtitle and no header row.
+the room re-connects, degraded-quality glyphs on tiles.
 
 ## Call line state machine
 
@@ -83,27 +80,23 @@ idle ──invite──▶ ringing ──accept──▶ joining ──CallPanel
 ```
 
 `acceptInvite` is a single global transition — accepting or declining in
-any surface clears the ring for that room everywhere (the old per-surface
-ring banners kept ringing after an accept elsewhere). `CallPanel` reports
+any surface clears the ring for that room everywhere. `CallPanel` reports
 `joinRoom`/`leaveRoom`, and joining also stops any remaining ring for the
 room.
 
-The machine tracks the local user's own participation and tolerates
+The machine tracks the local user's participation and tolerates
 concurrent rooms: `in-call` holds while any joined room is live and falls
-back to ringing/idle only when the last one is left. The room lifecycle —
+back to ringing/idle when the last one is left. The room lifecycle —
 alive while *anyone* is in it — rides the activity snapshot: webhook
-`call.activity` events debounce into an `active-rooms` refetch that the
-server filters to rooms with at least one participant, and that snapshot
-drives the sidebar rows and the chat ongoing-call banner. Ringing is
-room-scoped as well: an invite is dropped only after its room was
-observed running and then disappeared from the snapshot, so a caller
-hanging up before the callee answers stops the ring immediately. A room
-the snapshot never saw running — the caller is still on the pre-join
-screen, since invites are published before the caller joins — never
-dismisses an invite; it lives out its 30s TTL. A failed refetch keeps the
-last known snapshot, and the snapshot is refetched when the connections
-stream re-opens after a drop, so missed webhook events self-heal instead
-of silently staling every surface.
+`call.activity` events debounce into an `active-rooms` refetch
+(server-filtered to rooms with at least one participant) that drives the
+sidebar rows and the chat ongoing-call banner. Ringing is room-scoped too:
+an invite drops only after its room was observed running and then left
+the snapshot (a caller hanging up before the callee answers stops the
+ring immediately), while a room the snapshot never saw running — invites
+publish before the caller joins — lives out its 30s TTL. A failed
+refetch keeps the last snapshot, and a reopened connections stream
+refetches it, so missed webhook events self-heal.
 
 Surface transfers keep the WebRTC connection alive: popping a call out of
 its workspace tab (or docking a floating call back) marks the room as
@@ -154,10 +147,8 @@ the conversation (chat host) or the caller (mobile invites).
   audio is never played back locally.
 - Video attachment is idempotent and stable: `CallTile` emits its video
   element only when the element actually changes, and `CallPanel` skips
-  `srcObject` resets for elements already playing the track — resetting
-  the stream on every re-render is what made tiles flicker. Tiles are
-  patched in place instead of replaced, so audio-level ticks do not
-  re-render every surface.
+  `srcObject` resets for elements already playing the track. Tiles are
+  patched in place, so audio-level ticks leave every surface untouched.
 - The speaker spotlight is sticky: pinning and screen shares take it
   immediately, but a new dominant speaker must hold the top audio level
   for ~1.2s before the spotlight follows, otherwise per-tick level

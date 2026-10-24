@@ -23,14 +23,17 @@ imported through server modules that Nitro externalizes.
   permission grants when a preset is assigned. Runtime checks consume the
   decomposed grants and do not branch on verbal preset labels.
 - `instance-field-access.js`: Field-level display/redaction helpers shared by
-  Nuxt cards and server API serialization. It consumes the facade plugin's listing declarations
-  field policies plus the same grant evaluator used by UI actions and backend
+  Nuxt cards and server API serialization. It consumes the shared
+  field-access policy table
+  ([`field-access-policies.js`](./field-access-policies.js)) plus the same
+  grant evaluator used by UI actions and backend
   access checks. `canDisplayEntityField`/`filterEntityFields` also narrow
   display by the current state's field policy when the auth context carries
   `stateFieldPolicies` (the auth store derives it from the compiled producer
   workflows; CTS SPEC §7 `fieldPolicy`, §10).
-- `ui-permissions.js`: Compatibility UI resolver backed by the same grant
-  evaluator as the server access engine.
+- `ui-permissions.js`: UI resolver backed by the same grant
+  evaluator as the server access engine (`resolveUiPermission`, consumed by
+  the auth store).
 - `role-access-summary.js`: Annotated derived role access summary for process
   role review surfaces (Team page role dialog, process designer role tab). It
   derives the effective profile, screen, action, and workflow-transition access
@@ -87,7 +90,7 @@ default presets. They are read from the public system catalogue marker
 process grants still control mutable inventory/catalogue records and all
 write/admin operations.
 
-Permission values may be legacy strings (`queues: 'write'`) or grant objects /
+Permission values are level strings (`queues: 'write'`) or grant objects /
 arrays:
 
 ```js
@@ -145,21 +148,25 @@ traits, primary status, transition fields, arbitrary entity fields, and
 explicit context facts. Supported comparators are `exists`, `equals`,
 `notEquals`, `in`, `includes`, and `atLeast` for access levels.
 
-Workflow definitions must not duplicate app preset names for access policy; they
-should declare feature permission requirements, lifecycle capabilities, and
-hooks. Preset labels are compatibility labels only. Persisted user records must
-already carry copied permission grants; loading a user does not expand grants
-from the preset label. Workbench `testAccess` grants use the same explicit
-permission shape.
+Workflow definitions declare feature permission requirements, lifecycle
+capabilities, and hooks for access policy; app preset names serve as preset
+labels at assignment time only. Presets expand into copied membership
+permission grants when assigned, and persisted user records carry those
+copied grants — grant checks read the stored grants. Workbench `testAccess`
+grants use the same explicit permission shape.
 
 Entity field display is stricter than entity read access. Entity read access
 decides whether the record may be fetched; `instance-field-access.js` decides
-which DTO paths may be shown. A path must be declared in
-`cncEntityFieldAccess` and the active membership or process grant must satisfy
-the policy level. Active process field policies can narrow the domain policy
+which DTO paths may be shown. A path must be declared in the shared
+field-access policy table
+([`field-access-policies.js`](./field-access-policies.js)) or registered from
+the declaration projection (`registerDeclarationFieldAccess`,
+[stores/README.md](../stores/README.md)), and the active membership or
+process grant must satisfy the policy level. Active process field policies
+can narrow the domain policy
 per organization: `read` fields display with read grants, `write` fields with
-write grants, and `private` fields with admin grants. No field policy means no
-display and no API serialization for auth-bound DTOs.
+write grants, and `private` fields with admin grants. Absent field policy
+means no display and no API serialization for auth-bound DTOs.
 Field policies may target subfields inside arrays, such as
 `data.memberships.organizationId`; redaction preserves only those allowed keys
 on each array item instead of copying the whole object.
@@ -167,4 +174,3 @@ on each array item instead of copying the whole object.
 ## Related
 - [users feature](../server/features/users/README.md) - Stores membership and
   copied permission data on user records.
-  template drafts and UI action visibility drafts.

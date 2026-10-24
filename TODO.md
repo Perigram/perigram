@@ -44,14 +44,14 @@ archived only on the owner's word.
 
 ### Root documentation
 
-- [ ] `README.md` Development section: keep the durable operational
+- [x] `README.md` Development section: keep the durable operational
   contracts — PWA/service-worker laws, dev-stack filesystem runbook,
   WORKER_TOKEN, theme-token restart law, server-side `xlsx` ESM import
   law, `#packages` alias law — and cut the one-off history: the
   CutKit→Perigram rename runbook, the cutkit-network saga, the
   "/_nuxt/ was once excluded" parenthetical, and the agent-worktree
   watcher narration (root audit classification).
-- [ ] `README.md` Documentation Map: register the orphaned top-level
+- [x] `README.md` Documentation Map: register the orphaned top-level
   READMEs (components, composables, stores, shared, utils, layouts,
   middleware, i18n, assets, packages, test-data, test-tools, k8s) — every
   one missing from the map at audit — plus this program.
@@ -78,26 +78,29 @@ archived only on the owner's word.
   (pre-alias URL), `home-and-instance-ui` (entity-era blocks) — listed
   under e2e/README "Known-stale remainder"; `home-calls` is live (its
   selectors were verified at review) and stays.
+- [ ] `home-default-screen` re-verified stale 2026-10-24: the spec asserts
+  `/screens/home` URLs while `/home` is the live route — review-3 checked
+  line 18 only; the rewrite spans the whole spec.
 
 ### Area documentation deltas (folders without their own TODO)
 
-- [ ] `e2e/README.md`: coverage table lists 19 of 23 live specs — add
+- [x] `e2e/README.md`: coverage table lists 19 of 23 live specs — add
   `cassette-profile-editor`, `definitions-pane`, `home-workspace-restore`,
   `process-designer-getfield`; the default-login prose contradicts
   `global-setup.js` (fresh identity per run); trim the walkthrough
   narration; L205 names fixtures vocabulary the file no longer carries.
-- [ ] `test-data/README.md` rewrite: 10 of 12 listed factories do not
+- [x] `test-data/README.md` rewrite: 10 of 12 listed factories do not
   exist, the usage example fails at runtime, `ui-mapping-real.js` and
   `contextToScenario` are deleted — document the real nine factories
   (decision below before the rewrite).
-- [ ] `test-tools/README.md`: document the two fixture surface plugins
+- [x] `test-tools/README.md`: document the two fixture surface plugins
   e2e consumes.
-- [ ] `scripts/README.md`: drop the dead duplicate-key check claim (the
+- [x] `scripts/README.md`: drop the dead duplicate-key check claim (the
   check does not exist), correct the framework-inspect contract line,
   move the four server/scripts file summaries to
   [server/scripts/README.md](./server/scripts/README.md) (their canonical
   home, per the server/core delta).
-- [ ] `deploy/README.md`: document `seed.Dockerfile` (the one live
+- [x] `deploy/README.md`: document `seed.Dockerfile` (the one live
   artifact deploy.yml builds), reconcile `cutkit-` container names with
   the `perigram-autodeploy` naming.
 
@@ -126,3 +129,22 @@ archived only on the owner's word.
 - [ ] Event tier: register `frameworkEventDefinitions` into the framework
   domain or delete the emission and validation tier
   ([server/core/TODO.md](./server/core/TODO.md)).
+
+- [ ] WAITING — owner verification: read root README Development +
+  Documentation Map and the five area READMEs (e2e, test-data, test-tools,
+  scripts, deploy); repository shape, guards, E2E stale specs and the
+  decisions below stay open.
+
+### Agent Notes (2026-10-24)
+
+Session `agent/doc-deslop-exec-20261024` (worktree
+`.agent-worktrees/doc-deslop-exec-20261024`). Root documentation: README
+Development section deslop'd — durable operational contracts kept,
+one-off history cut; Documentation Map completed with the orphaned
+top-level READMEs (landed earlier in the program commit). Area deltas:
+e2e, test-data, test-tools, scripts, deploy READMEs executed; the four
+server/scripts summaries moved to server/scripts/README.md. E2E:
+`home-default-screen` re-verified stale (spec asserts `/screens/home`
+URLs, `/home` is the live route, review-3 checked line 18 only);
+`home-calls` verified live and delisted. OPEN: repository shape cuts,
+guards, E2E rewrites, SPEC numbering, 8 owner decisions.

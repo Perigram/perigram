@@ -1,18 +1,24 @@
 # CODE: Server Middleware
 
-Middleware functions that run before every API request handling.
+Middleware functions that run before every API request handler.
 
 ## Files
-- `auth.js`: Handles authentication and context population.
-- `log-requests.js`: Request logging for debugging.
+
+- `auth.js`: authentication and auth-context population.
+- `idempotency.js`: `Idempotency-Key` pre-check for mutating `/api/**`
+  requests (contract: [core/idempotency](../core/idempotency/README.md)).
+- `log-requests.js`: request logging for debugging.
+- `tracking.ts`: sets the anonymous tracking cookie.
 
 ## Auth Middleware (`auth.js`)
-Parses JWT tokens, bot tokens, or session cookies to authenticate the user.
 
-### Logic
-1. Checks `Authorization: Bearer <token>` header (JWT).
-1b. A JWT verify failure on a `pb_…` token is a bot-token lookup
-   (SHA-256 hash against `data.bot.tokenHash`) instead.
-2. Fallback to `sessionId` cookie.
-3. Fetches fresh user data from DB.
-4. Populates `event.context.auth` with the canonical auth context (userId, memberships, role, restrictedTo) — assembled through `usersService.buildAuthContext` — widened by `resolveProcessAuth`. See [server/utils/README.md](../utils/README.md#auth-context-object) for the exact shape.
+Authenticates the user via JWT bearer token or session cookie.
+
+1. Verifies `Authorization: Bearer <token>` (`verifyAccessToken`) and loads
+   the user by the token's `userId` payload.
+2. Falls back to the `sessionId` cookie (`getUserBySessionId`).
+3. Builds the canonical auth context (`usersService.buildAuthContext`),
+   attaches organization data, and widens the context through
+   `resolveProcessAuth` into `event.context.auth` — see
+   [server/utils/README.md](../utils/README.md#auth-context-object) for the
+   exact shape.

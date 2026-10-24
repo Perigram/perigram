@@ -46,18 +46,15 @@ Shared frontend utility modules used by Vue pages/components.
   inline 1, compact 3). `resolveInstanceDisplayContract` composes on top:
   bundle rows first, app extensions (`app-instance-surfaces.js`) over them,
   per-call `fieldGroups`/`surfaces`/`overrides` last (they always win).
-  The legacy residual domain map is deleted — undeclared types resolve no
+  Undeclared types resolve no
   fact rows. Surface chrome (preview/dataDisplay/relations/actions/status/
   trace) is class-generic policy derived from the type record (payload
   presence, declared state axes); record titles and glyphs come from
-  `titleFor`/`iconFor` in [shared/ui-mapping](../shared/ui-mapping/README.md)
-  (the former identity-chrome helpers `instanceIdentityLabel`/
-  `instanceIdentityMeta` are gone).
+  `titleFor`/`iconFor` in [shared/ui-mapping](../shared/ui-mapping/README.md).
 - `app-instance-surfaces.js`: App-owned display extensions layered on top of
   the bundle-resolved fact rows (`resolveInstanceDisplayContract` composes
   them; per-call overrides still win). The seam is the app's only
-  route-specific patch channel; its former project/warehouse entries died
-  with those entity types, so it currently carries no entries.
+  route-specific patch channel; it currently carries no entries.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`. Declared `unit`s render as value suffixes through the closed unit-symbol table (`mm`, `m`, `m2`→`m²`, `percent`, `min`, `deg`); `display: 'dimensions'` renders the width × length span of a resolved specs object.
 - `chat-file-targets.js`: Pure resolver for the chat composer's instance-chat
   upload window: over the served CTS type view it collects a composer
@@ -74,14 +71,15 @@ Shared frontend utility modules used by Vue pages/components.
   `resolveSourceFilters`/`resolveSourceIdentifier` (`$screen.`-reference
   resolution over a compiled screen's scope), plus the home-tree helpers
   (`filterRootSourceItems`, `typeParentOf`, `shouldRenderHomeSection`)
-  the legacy renderer and the generator host
-  ([components/generated](../components/generated/README.md)) consume.
+  consumed by `useGeneratedScreen`, `useMobileHomeTabs`, and the generator
+  host
+  ([components/generated](../components/generated/README.md)).
 - `action-visibility.js`: The one home for action-kind questions over the
   projected manifest vocabulary (`createInstance`/`updateInstance`/
   `deleteInstance`/`link`/`unlink`/`runCommand`): kind predicates,
   entity-state applicability, and surface-action resolution. Pure (no Vue,
-  no stores) — components, utils, and stores consume it alike, and nothing
-  branches on raw `actionKind` strings itself.
+  no stores) — components, utils, and stores consume it alike, and all
+  action-kind questions route through this module.
 - `instance-run-results.js`: The one extractor for the created entity a
   process-action run carries (chained constructs filtered to the action's
   own target type). Consumed by the instances store — a create run lands

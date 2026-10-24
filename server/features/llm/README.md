@@ -46,8 +46,9 @@ through to the app container, defaulting `NO_PROXY` to loopback plus the
 private ranges — set the proxy vars in `.env` to the address reachable
 FROM the container (the host's loopback proxy is not `127.0.0.1` there).
 
-There is **no default base URL** — no provider ever implies a cloud
-endpoint. `provider: 'none'` (the default) disables the LLM everywhere.
+A base URL is always explicit configuration; a provider resolves only
+from a configured endpoint. `provider: 'none'` (the default) disables
+the LLM everywhere.
 
 ## Configuration Resolution
 
@@ -79,10 +80,9 @@ explicit ids degrade to the route chain). An unrouted org with **exactly
 one** chat profile serves it for every chat capability — a configured
 model is the chat model unless routing says otherwise; two or more
 unrouted profiles stay ambiguous and degrade to the environment.
-Image-kind profiles are declarable today (endpoint, model, key) and
-consumed when an image capability ships; speech-to-text is not part of
-this module ([transcription](../transcription/README.md) owns its own
-providers). The environment is the unnamed default profile:
+Image-kind profiles (endpoint, model, key) are declarable;
+[transcription](../transcription/README.md) owns the speech-to-text
+providers. The environment is the unnamed default profile:
 
 | Variable | Default | Meaning |
 |---|---|---|
@@ -96,12 +96,10 @@ stripped and the prefix re-applied (routers reject the root path with
 `no_route`), and a first-request missing route falls back once to the
 same-dialect root-mounted path, caching the winner per endpoint — never
 a cross-dialect wire guess. A route that cannot produce both `baseUrl`
-and `model` resolves to `{ provider: 'none' }`: consumers treat the
-capability as unavailable rather than failing per request. Consumers today: the agent AI loop and
+and `model` resolves to `{ provider: 'none' }`: consumers gate the
+capability as unavailable at their entry points. Consumers today: the agent AI loop and
 wakes (wake rule → conversation → org `chat` route precedence),
-meetings call summaries (`chat.summaries`, falling back to `chat`). The retired single-provider `data.settings.llm` shape was
-migrated by `server/scripts/migrate-llm-settings-profiles.js` (profile
-`default`, route `chat`).
+meetings call summaries (`chat.summaries`, falling back to `chat`).
 
 ## Administration
 
@@ -115,8 +113,10 @@ kind, provider, base URL, model, optional key) and capability routing
 report `apiKeySet` and a key-free resolved projection; saves keep an
 omitted key and clear on empty string. `POST /api/llm/test` runs one real
 completion round against one saved chat profile (or the resolved default
-route) and reports `{ ok, provider?, model?, reason? }` instead of
-throwing.
+route) and reports `{ ok, provider?, model?, reason? }` on failure.
+`POST /api/llm/models` probes one endpoint's model listing —
+`{ provider, baseUrl, apiKey }` on the body, or a saved `profileId` —
+through `listEndpointModels`.
 
 ## Service Contract
 
@@ -160,9 +160,7 @@ throwing.
   delegated to the chatting user.
 - [Meetings](../meetings/README.md) call summaries: the protocol-markdown
   summarization prompt rides the same provider selection — one LLM
-  provider per organization, no per-feature model configuration (the
-  retired `MEETINGS_LLM_*` env and per-feature baseUrl/model/apiKey
-  settings moved here in the same change).
+  provider per organization, no per-feature model configuration.
 - The organization models screen: provider administration and the
   connection test (see Administration above); the AI's model is the org
   `chat` route, and per-conversation pins live in the chats themselves.

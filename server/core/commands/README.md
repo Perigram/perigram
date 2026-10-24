@@ -50,7 +50,7 @@ Handlers do business work; access decisions stay in `server/core/access`.
 ## Files
 
 - `service.js` - command execution, input normalization, access check, handler dispatch.
-- `../effects/README.md` - centralized effect processor used after handler completion.
+- `definitions.js` - framework command and event definition tables.
 - `repository.js` - Mongo persistence for `command_runs`.
 
 ## Related

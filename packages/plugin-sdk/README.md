@@ -133,7 +133,7 @@ catalog document the publish API stores.
   `/api/tasks/claim` with the connector token, executes one claimed run at
   a time (`taskId` `plugin.<x>.<y>` → `services[y]`), heartbeats while the
   handler runs, then completes or fails the run. An unknown service fails
-  the run loudly instead of dropping it. Poll cadence is kept between
+  the run loudly. Poll cadence is kept between
   every claim — a queue that always has work must not starve timers.
 
 A services module is any ESM file exporting `services` (or a default):

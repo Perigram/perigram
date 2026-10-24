@@ -36,9 +36,9 @@ texts joined with spaces:
 }
 ```
 
-An empty `segments` array is an empty transcript. The service has no model
-parameter; `attachment.transcription.model` stores an empty string for local
-runs. `TRANSCRIPTION_LOCAL_API_KEY` is optional and only sent when set.
+An empty `segments` array is an empty transcript. The service has no
+model parameter: `transcribeAudio` returns `model: ''` for local runs
+(the consuming feature persists it with the per-user transcript). `TRANSCRIPTION_LOCAL_API_KEY` is optional and only sent when set.
 
 ### Cloud protocol
 
@@ -73,7 +73,7 @@ every unset slot:
 A selected provider that cannot work — `local` without any base URL, `cloud`
 without a key — resolves to `none`: `resolveTranscriptionConfig` returns
 `{ provider: 'none' }` and every consumer treats transcription as
-unavailable rather than failing per request.
+unavailable, so requests proceed with transcription off.
 
 ## Service Contract
 
@@ -81,14 +81,14 @@ unavailable rather than failing per request.
 - `isTranscriptionAvailable(organizationId)` → boolean shorthand for consumers deciding whether to surface transcription UI.
 - `transcribeAudio({ buffer, filename, mimeType, organizationId })` → `{ text, provider, model }` — `model` is empty for the local protocol. Throws 503 when unresolved, 502 when the endpoint is unreachable or answers non-2xx, and returns empty `text` when the result carries no speech (empty segments locally, empty cloud text); the caller decides what that means.
 
-Unreachable and failed endpoints never retry here; callers surface the error
-to the user, who can retry manually.
+Retries stay with the user: callers surface the error, and the user can
+retry manually.
 
 ## Consumers
 
 - Support chat voice messages: `POST /api/support/messages/:id/transcribe`
-  stores the transcript per user (never on the shared message document —
-  see [support](../support/README.md#transcription)).
+  stores the transcript per user, leaving the shared message document
+  untouched (see [support](../support/README.md#transcription)).
 - `GET /api/transcription/config` reports `{ available }` for the caller's
   organization so clients render transcription affordances only when a
   provider is actually configured.

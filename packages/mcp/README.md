@@ -1,6 +1,6 @@
 # COMPONENT: @perigram/mcp
 
-Read-only MCP tool handlers for LLM-assisted industrial app planning. This package intentionally has no write or codegen tools in v1.
+Read-only MCP tool handlers for LLM-assisted industrial app planning.
 
 ## Tool Handlers
 
@@ -16,7 +16,6 @@ Read-only MCP tool handlers for LLM-assisted industrial app planning. This packa
 - `list_summaries`
 - `list_commands`
 - `validate_ui_contracts`
-- `query_docs`
 - `simulate_transition`
 - `validate_architecture`
 
@@ -24,5 +23,4 @@ Read-only MCP tool handlers for LLM-assisted industrial app planning. This packa
 injection so this package remains read-only and framework-adapter neutral.
 
 Use `node scripts/framework-inspect.js mcp-smoke` for the current local
-read-only handler smoke test. This is intentionally not a write-capable app
-builder.
+read-only handler smoke test.

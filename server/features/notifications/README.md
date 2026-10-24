@@ -28,13 +28,11 @@ All notifications derive from the canonical
   unconfigured (and `/api/notifications/config` reports `enabled: false`)
   without both keys.
 - Push targets are direct, user-scoped events only (`support.inbox`,
-  `call.invite`). Org-wide entity events never push — every offline member
-  receiving every queue transition is noise, not signal; they stay
-  realtime-only.
+  `call.invite`); org-wide entity events stay realtime-only.
 - `push_subscriptions` persists one document per browser endpoint, keyed by
   endpoint, owned by the subscribing user; 404/410 sends prune dead
-  endpoints, every other send failure logs with its status code (network
-  errors included) instead of disappearing.
+  endpoints, and every other send failure logs with its status code
+  (network errors included).
 
 ## API
 
@@ -47,27 +45,21 @@ All notifications derive from the canonical
 
 ## Client contract
 
-`composables/useBrowserNotifications.js` owns permission state, the persisted
-consent flag, and the push subscribe/unsubscribe flow (subscribing through
-the registered service worker, whose `push`/`notificationclick` handlers show
-and route the notification); on app start it also reconciles an enabled
-consent with granted permission into a server-known subscription, so clients
-that consented while the server ran without VAPID keys converge once push
-becomes available. It also exposes the server's push availability
-(`pushAvailable`, refreshed whenever the settings popup opens) so the toggle
-surfaces in-tab-only delivery when the server runs without VAPID keys
-(runbook: deploy README, Configuration). `plugins/notifications.client.js`
-derives the three notification kinds from the connections stream and plays
-the ring/ping sounds from `utils/notification-sounds.js`. The profile
-preferences tab exposes the enable toggle; permission is only requested from
-that user gesture.
-
-## Files
-
-- `service.js` - VAPID configuration, event-to-notification mapping, push
-  sending with dead-endpoint pruning.
-- `repository.js` - `push_subscriptions` persistence.
-- `../../plugins/notifications.js` - boot wiring into connections publish.
+`composables/useBrowserNotifications.js` owns permission state, the
+persisted consent flag, and the push subscribe/unsubscribe flow
+(subscribing through the registered service worker, whose
+`push`/`notificationclick` handlers show and route the notification).
+On app start it reconciles an enabled consent with granted permission
+into a server-known subscription, so clients that consented while the
+server ran without VAPID keys converge once push becomes available,
+and it exposes the server's push availability (`pushAvailable`,
+refreshed whenever the settings popup opens) so the toggle surfaces
+in-tab-only delivery when the server runs without VAPID keys (runbook:
+deploy README, Configuration). `plugins/notifications.client.js`
+derives the three notification kinds from the connections stream and
+plays the ring/ping sounds from `utils/notification-sounds.js`. The
+profile preferences tab exposes the enable toggle; permission is
+requested only from that user gesture.
 
 ## Related
 

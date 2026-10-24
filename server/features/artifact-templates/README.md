@@ -51,4 +51,4 @@ process definitions remain the authority for custom roles.
 - [Artifacts](../artifacts/README.md)
 - [Entity revisions](../instance-revisions/README.md)
 - [API routes](../../api/README.md)
-- [Artifact template UI](../../../components/entities/ArtifactTemplate/README.md)
+- [Artifact template card](../../../components/entities/README.md)

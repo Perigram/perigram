@@ -2,10 +2,9 @@
 
 Organization-owned prepaid token accounting.
 
-Billing is a capability module, not a v24 persisted entity module. It owns
-organization billing accounts, invoices, payments, and token ledger entries
-behind service/repository boundaries. User records do not own spendable credit
-balances.
+The feature owns organization billing accounts, invoices, payments, and
+token ledger entries behind service/repository boundaries. Spendable
+balances belong to organizations.
 
 ## Runtime Pricing
 
@@ -22,9 +21,8 @@ Purchasable token packages come from runtime configuration:
 NUXT_BILLING_PRICE_CATALOG='[{"id":"starter","labelKey":"billing.packages.starter","tokenAmount":25,"stripePriceId":"price_...","currency":"USD","amount":1000}]'
 ```
 
-The catalog is parsed by `pricing.js`. Invalid entries are ignored. API routes
-must not hardcode package prices or read package definitions from app database
-collections. Package display names should use `labelKey` so the generated
+The catalog is parsed by `pricing.js`. Invalid entries are ignored.
+Package display names should use `labelKey` so the generated
 organization account screen can resolve localized text; `label` is only the
 runtime-config fallback when no translation key is supplied.
 Runtime configuration is an API implementation detail; the UI renders packages

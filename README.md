@@ -55,7 +55,7 @@ flowchart LR
 
 | Term | Definition |
 |---|---|
-| Instance | Persisted object of a declared type, served by the generic per-class instance services; carries a flat wire `state` string when its type's producer workflow declares a vocabulary. The `entity` vocabulary is legacy and lives only in uncleated server contracts. |
+| Instance | Persisted object of a declared type, served by the generic per-class instance services; carries a flat wire `state` string when its type's producer workflow declares a vocabulary. |
 | Command | Synchronous business intent and access boundary, recorded in `command_runs`. |
 | Task | Async execution boundary, queued in `task_runs` and claimed by workers/executors. |
 | Workflow | Entity lifecycle state machine and transition contract. |
@@ -120,21 +120,17 @@ The `vitest.ssr.config.js` run mounts real pages through
 [`test-tools/`](./test-tools/README.md)) — it guards against template
 bindings that script-only checks cannot see.
 
-Do not run `npm run build` or start dev servers from coding-agent tasks unless a
-human explicitly asks. Worker endpoints require matching `WORKER_TOKEN` on app
-and workers; compose files use `perigram-dev-worker` for local development.
-
-The CutKit → Perigram rename changed default Mongo database names
-(`cutkit_dev` → `perigram_dev`): copy or reseed local databases, and run
-`node server/scripts/migrate-cutkit-extensions-to-perigram.js` once to
-rename persisted `extensions.cutkit` authoring keys to `extensions.perigram`.
+Worker endpoints require matching `WORKER_TOKEN` on app and workers;
+compose files use `perigram-dev-worker` for local development. Data
+migrations live in their canonical home,
+[server/scripts/README.md](./server/scripts/README.md).
 Docker dev starts Nuxt with `--host 0.0.0.0` so the app binds to the container
 interface and is reachable through the compose `3000:3000` port mapping.
-When opening the dev app from another device on the LAN, also set
+When opening the dev app from another device on the LAN, set
 `NUXT_DEV_HMR_HOST=<your-laptop-LAN-IP>` so the proxied Vite client advertises
-the same browser-visible host for hot-module websocket traffic instead of an
-internal container-only endpoint. `NUXT_DEV_HMR_CLIENT_PORT` defaults to
-`3000`, and `NUXT_DEV_HMR_PROTOCOL` defaults to `ws`.
+the browser-visible host for hot-module websocket traffic.
+`NUXT_DEV_HMR_CLIENT_PORT` defaults to `3000`, and `NUXT_DEV_HMR_PROTOCOL`
+defaults to `ws`.
 The E2E command assumes the app stack is already running and uses Playwright
 against the configured `E2E_BASE_URL`.
 Dev-stack filesystem runbook (compose mounts the repo at `/src`):
@@ -145,10 +141,9 @@ Dev-stack filesystem runbook (compose mounts the repo at `/src`):
   styles are unaffected.
 
 - `node_modules` is an anonymous container volume (`/src/node_modules`):
-  host-side installs never reach the running container. To refresh
-  dependencies, reinstall inside the container
-  (`docker compose -f docker-compose.dev.yml run --rm app npm install`) or
-  recreate the stack so the volume rebuilds.
+  host-side installs never reach the running container. The dependency
+  refresh runbook lives in [deploy/README](./deploy/README.md)
+  (Development Stack).
 - Both compose files cap mongo's WiredTiger cache at 0.5 GB
   (`--wiredTigerCacheSizeGB`): an unlimited container sizes the cache to
   host RAM (50% of visible − 1 GB ≈ 6.9 GB here) and slowly starves the
@@ -156,30 +151,23 @@ Dev-stack filesystem runbook (compose mounts the repo at `/src`):
 - The container writes `.nuxt` as root. Host-side tooling that needs it
   (the SSR smoke's `.nuxt/tsconfig.json`, `npx nuxi prepare` in agent
   worktrees) fails on root-owned files — fix ownership once with
-  `sudo chown -R "$(id -u):$(id -g)" .nuxt` (fresh worktrees instead run
-  `npx nuxi prepare`, which regenerates their own).
-- The compose stack declares `perigram-network` as an external bridge. Stacks
-  started before the CutKit→Perigram rename still sit on the legacy
-  `cutkit-network`, so any compose-driven change (an env update needs a
-  container recreate) fails with "network declared as external, but could not
-  be found". Create the network once (`docker network create
+  `sudo chown -R "$(id -u):$(id -g)" .nuxt` (a fresh worktree runs
+  `npx nuxi prepare` and regenerates its own).
+- The compose stack declares `perigram-network` as an external bridge; a
+  missing network fails compose with "network declared as external, but
+  could not be found". Create it once (`docker network create
   perigram-network`) and run `docker compose -f docker-compose.dev.yml up -d
-  app` to migrate the services onto it; mongo keeps its named volume across
+  app` to move the services onto it; mongo keeps its named volume across
   the recreate.
-Agent session worktrees are nested under `.agent-worktrees/` and
-`.agent/worktrees/` (plus scratch dirs `.agent-wt*`) in the project root; a
-worktree is removed once its branch merges. Nuxt scanning and the dev
-watchers ignore that tree — plus the equally dev-foreign `.opencode/`
-agent tooling state and the `video/` renderer tree — via a path predicate
-in `nuxt.config.js`: chokidar v4 leaks glob-ignored nested file events,
-and worktree `tsconfig.json` checkouts would otherwise trip Vite's
-tsconfig reload loop and stall the vite-node SSR module bridge past its
-request timeout. The per-environment
-`vite.environments.*` watcher ignores are attached only in development —
-a user-level `environments` object in a production build deroutes the
-vite 7 SSR build output, and nitro fails with `Could not load
-.nuxt/dist/server/server.mjs`. Run a production build when touching this
-config; dev and the guards do not exercise the SSR bundle emit.
+Agent session worktrees sit nested under `.agent-worktrees/`,
+`.agent/worktrees/`, and scratch dirs `.agent-wt*` in the project root; a
+worktree is removed once its branch merges. `nuxt.config.js` ignores those
+trees — plus `.opencode/` and `video/` — for scanning and dev watchers.
+The per-environment `vite.environments.*` watcher ignores are attached
+only in development: a user-level `environments` object in a production
+build deroutes the vite 7 SSR output and nitro fails with `Could not load
+.nuxt/dist/server/server.mjs`, so run a production build when touching
+that config; dev and the guards skip the SSR bundle emit.
 - Theme tokens are startup-evaluated: the PrimeVue preset chain
   (`assets/tokens/index.js` → `assets/presets/re_l.js` → `nuxt.config.js`)
   bakes component tokens into the running theme at boot. Nuxt restarts
@@ -188,16 +176,8 @@ config; dev and the guards do not exercise the SSR bundle emit.
   pt and CSS changes hot-reload, token changes need an app restart
   (`docker compose -f docker-compose.dev.yml restart app`).
 Server-side `xlsx` imports target the package's ESM build
-(`import … from 'xlsx/xlsx.mjs'`): the CJS main carries an
-`export `-leading prose comment that nitro's import-validity check
-misreads as ESM syntax, so nitro refuses to externalize the package and
-rollup bundles it instead — the CJS interop then demands a default
-export from the externalized `node:fs` and every nitro server-bundle
-rebuild fails with `"default" is not exported by "…node:fs?
-commonjs-external"`. A `nitro.alias` rewrite is NOT
-the fix: rollup's alias matches prefixes, so an aliased
-`xlsx → xlsx/xlsx.mjs` re-matches itself and resolves
-`xlsx/xlsx.mjs/xlsx.mjs` (ENOENT).
+(`import … from 'xlsx/xlsx.mjs'`); importing the CJS main breaks every
+nitro server-bundle rebuild.
 - Server-side imports of workspace packages use the `#packages/…` alias:
   chunk-relative `~` externals can hoist into the root dev entry with the
   wrong depth and crash startup
@@ -226,11 +206,7 @@ builds only).
   (authenticated visits to `/` are SSR redirects, and redirect responses
   never enter the cache). The fetch-handler chain is pinned by
   `utils/sw.spec.js`. The `/api/connections`
-  SSE stream is never intercepted or cached. (`/_nuxt/` was once excluded
-  from caching entirely — that concern targets cache-first staleness;
-  network-first serves fresh code whenever the network is reachable, so
-  the hashed chunk names make the offline copy safe. Dev is unaffected:
-  no worker is registered there at all.)
+  SSE stream is never intercepted or cached.
 - Dev loads self-heal the origin: every dev page load unregisters all
   service-worker registrations and deletes their caches, so a worker left
   by an earlier production build cannot keep serving stale code; only
@@ -250,8 +226,8 @@ builds only).
   file uploads remain online-only.
 - `public/icon.svg` stays the favicon/install-icon source of truth; the
   rasterized set in `public/favicon/` is generated from it (Inkscape exports
-  at 16/32/48/180/192/512; `favicon.ico` packs 16/32/48). Regenerate all sizes
-  when the SVG changes instead of editing PNGs by hand.
+  at 16/32/48/180/192/512; `favicon.ico` packs 16/32/48). Regenerate all
+  sizes when the SVG changes — the PNGs are generated artifacts.
 - The production image mirrors `.output/public` into
   `.output/server/chunks/public` (Dockerfile): the Nuxt 3.19.3 nitro runtime
   resolves inline public assets against the server chunk directory, and

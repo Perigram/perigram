@@ -1,9 +1,5 @@
 # COMPONENT: Invitations
 
-## Core Files
-- `repository.js`: Database operations for `invitations` collection.
-- `service.js`: Invitation generation and processing.
-
 ## Workflows
 1. **Generate**: A user who can manage team members in the organization creates
    a unique token and short code for organization joining. The same
@@ -13,9 +9,9 @@
    The team-management UI shows the generated `/invitation/:token` link for
    copying; invitations are not addressed to a specific email.
 2. **Authenticate**: Anonymous invitees use the link to log in or register.
-   Registration from an invitation creates only the user account and preserves
-   the redirect back to the invitation instead of asking for organization
-   details.
+   Registration from an invitation creates only the user account, preserves
+   the redirect back to the invitation, and skips the organization-details
+   step.
    The public token endpoint returns a sanitized invitation presentation with
    the stored organization name and server-resolved role labels. The browser
    never requests the protected organization entity while rendering the form.
@@ -48,18 +44,18 @@ invitation.
   invitations with `inviteeUserId`/`inviteeName` and their state, beside the
   copyable link invitations.
 
-Invitation organization ids use the repository `toFlexibleId()` convention
-covered by the [feature template](../_template/README.md).
+## API
 
-## API / Functions
-- `generateInvitation()`: Creates a new invitation after team-management
-  authorization, validates organization role ids, and stores those ids.
-  With `inviteeUserId` it creates a targeted invitation instead of a link.
-- `listByOrgForUser()`: Lists active organization invitations after
-  team-management authorization.
-- `revokeInvitation()`: Revokes an invitation after team-management
-  authorization.
-- `joinByToken()`: Process join using secret token.
-- `joinByCode()`: Process join using short alphanumeric code.
-- `listMine()` / `respondInvitation()`: The invitee side of targeted
-  invitations.
+Service seam: `generateInvitation`, `listByOrgForUser`, `revokeInvitation`,
+`joinByToken`, `joinByCode`, `listMine`, `respondInvitation`.
+
+| Endpoint | Responsibility |
+|---|---|
+| `POST /api/organizations/:id/invitations` | Generate an invitation (`roleIds`, optional `inviteeUserId` for a targeted one) after team-management authorization. |
+| `GET /api/organizations/:id/invitations` | List active organization invitations (team-management). |
+| `DELETE /api/organizations/:id/invitations/:invId` | Revoke an invitation (team-management). |
+| `GET /api/invitations/:token` | Public sanitized invitation presentation (organization name, resolved role labels). |
+| `POST /api/invitations/:token/join` | Accept by token (authenticated). |
+| `POST /api/auth/join-org` | Accept by short code (`{ code }`, authenticated). |
+| `GET /api/invitations/mine` | The caller's active targeted invitations. |
+| `POST /api/invitations/:id/respond` | Accept/decline a targeted invitation (addressed user only). |

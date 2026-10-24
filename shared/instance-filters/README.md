@@ -21,8 +21,7 @@ The closed operator set is `eq`, `in` (array value), `contains`
 (case-insensitive substring), and the ordering operators `gt`, `gte`,
 `lt`, `lte` (numeric when both sides parse as numbers, else lexicographic —
 ISO instants compare correctly as strings). Operators exist because a
-consumer expresses them; the set grows only when a consumer needs a new
-one — not speculatively.
+consumer expresses them; the set grows when a consumer needs a new one.
 
 ### Field addresses
 
@@ -123,11 +122,6 @@ existed.
   [shared/ui-mapping](../ui-mapping/README.md) composes an `or` of
   `contains` over the search keys plus the id, and `eq` conjunctions over
   facet selections, then evaluates the same matcher.
-- Legacy collection toolbar: `components/generated/GeneratedInstanceCollection.vue`
-  composes the same tree (search `or` of `contains` over name and id, a
-  status `in` value set from its multi-select) and evaluates it over
-  per-entity screen instances built with the shared DTO projection, with
-  legacy status shapes resolved onto the status axis.
 - Filter builder: `components/shared/FilterBuilder.vue` edits the tree
   itself (combinator + negated predicate rows through `builder.js`) and
   hands the composed tree to its host; the builder never evaluates.

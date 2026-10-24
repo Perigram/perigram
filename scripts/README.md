@@ -49,27 +49,10 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   or editing source SVGs — nothing outside the marked CSS blocks is
   hand-editable (hand-written rules parked inside the markers are deleted
   on rebuild).
-- `migrate-llm-settings-profiles.js`: one-way rewrite of the retired
-  single-provider `data.settings.llm` shape into named profiles with
-  capability routing (`{ provider, baseUrl, model, apiKey? }` becomes
-  profile `default` routed to `chat`; orgs already on profiles are
-  skipped). Run once after deploying the profiles contract.
-- `migrate-retire-custom-bots.js`: one-way retirement of the created-bots
-  scheme (owner direction 2026-10-16) — deletes custom bot members and
-  their subscriptions, removes them from role assignments and group
-  participants, strips the retired `tokenHash`/`profile` bot-marker
-  fields from the remaining per-org assistants, and drops subscription
-  rows of group rooms deleted before deletion cleaned up after itself.
-  Run once after deploying the delegation scheme.
-- `retire-process-runs.js`: drops the retired process execution record
-  collections (`execution_runs`, `execution_step_invocations`,
-  `execution_waits`, `execution_outputs`, `execution_steps`,
-  `execution_receipts`). Run once after deploying the in-process action
-  evaluation.
 - `check-arch.js`: Architecture guardrail for v24 backend features, API layer
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
   retired vocabulary, portable-runtime import rules, concrete CNC domain leaks
-  in generic modules, duplicate object keys in domain registries, concrete
+  in generic modules, concrete
   entity-name branches in `@perigram/processes`, runtime legacy-process bridges,
   cross-feature repository imports, and source-assertion test practices. Every
   finding is blocking; there is no non-blocking migration inventory. Entity
@@ -94,20 +77,12 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   by moving the contract into its owning README (leaving the comment as a
   pointer) or consciously keeping it as tracked debt. Run as
   `npm run docs:validate`.
-- `station-documents-types.js`: Operator tool that stations the mounted
-  packs' starter constructs (the documents pack's markdown-first set,
-  `packages/documents/src/index.js`) into existing organizations'
-  processes as an additive ACTIVE definition through the real
-  definition API (validation + compilation + activation exactly as the
-  designer runs them; existing definitions are never mutated —
-  activation is additive). New organizations carry the starters from
-  creation (`createActiveEmptyProcess`); this script repairs orgs
-  created before that. Mints a short-lived session for each org's
-  process owner to post the draft. Usage:
-  `node server/scripts/station-documents-types.js [--dry-run] [--org <id> ...]`
-  (no `--org` = every org holding an ACTIVE definition).
-- `framework-inspect.js`: Framework/package inspection utility used during
-  extraction checks.
+- `framework-inspect.js`: builds `framework.manifest.json` from the live
+  framework declarations. `npm run framework:write-manifest` writes the
+  committed copy, `npm run framework:manifest` checks it, `npm run
+  framework:validate` runs definitions, architecture, and UI-contract
+  validation, and the `framework:list-*` scripts print live inventories
+  (entities, workflows, routes, commands, UI primitives).
 - `ui-visual-inventory.js`: Derives per-file visual findings through its
   `analyzeVueVisuals(file, source)` export. It classifies typography, arbitrary layout,
   chrome, state, important-override, scoped-style, inline-style, and render-style
@@ -154,20 +129,19 @@ irregular, such as `library -> libraries`; do not add script-local exceptions.
 Non-entity capability directories must be added to the explicit capability list
 in `check-arch.js` and documented in `server/features/README.md`.
 
-The checker also blocks live entity UI that passes local `:state-actions`
-instead of relying on server-provided `InstanceState` workflow actions.
+The checker also blocks live entity UI that passes local `:state-actions` —
+workflow actions come from the server-provided `InstanceState`.
 
 The SPEC §8 species purity seam (value services are pure V→V; a `ref`
-input is the projection's job) lives in the plugin SDK's listing contract
-now: `parseListing` rejects `ref` inputs on service signatures, and
-service-resolved projections carry the compute to the executors. The pack
-layer that once hosted these checks retired (owner decision 2026-10-17).
+input is the projection's job) lives in the
+[plugin SDK's listing contract](../packages/plugin-sdk/README.md):
+`parseListing` rejects `ref` inputs on service signatures, and
+service-resolved projections carry the compute to the executors.
 
 `npm run agent:scope-check -- --base origin/local` is the mandatory guard for
 external top-layer agents before they commit or push. It is intentionally
 allowlist-based: new composition surfaces must be added to
-`.agents/app-layer.allowlist` by the repository owner instead of letting the
-agent edit core files ad hoc.
+`.agents/app-layer.allowlist` by the repository owner.
 
 `npm run design:scope-check -- --base origin/local` is the same guard bound
 to `.agents/design-layer.allowlist` — the designer write surface; the
@@ -184,8 +158,8 @@ write access), since every merge is the owner's anyway.
 
 `npm run docs:validate` is the mandatory documentation guardrail. It resolves
 every internal relative link in the README tree against the repository and
-flags verbatim paragraphs that appear in more than one README, so canonical
-contracts stay in one canonical file instead of being restated in several.
+flags verbatim paragraphs that appear in more than one README, so each
+canonical contract stays in exactly one file.
 
 `npx vitest run shared/design-system.spec.js` enforces the PrimeVue-first visual
 boundary. It rejects raw font-size, weight, line-height, tracking, and family

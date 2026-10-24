@@ -10,7 +10,8 @@
   [tokens/README.md](./tokens/README.md)).
 - `css/main.css` provides global app-shell, integration, and layout rules. It
   must not define PrimeVue variables or target PrimeVue component selectors.
-- `css/fonts.css` and SCSS files provide global font and legacy preprocessor support.
+- `css/fonts.css` provides global font imports; `scss/` holds the
+  font-face mixins and font-path variables.
 
 ## Rules
 

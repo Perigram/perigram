@@ -2,25 +2,23 @@
 
 Organization-to-organization partner relations. A partnership is a
 directed request between two tenant roots that becomes a symmetric
-relation on acceptance; it grants no data access by itself — partner
-state is context for future cross-organization collaboration, while
-entity access keeps flowing through the ordinary grant/process
-machinery.
+relation on acceptance; it is bookkeeping only — entity access flows
+through the ordinary grant/process machinery.
 
 ## Capability Module
 
 `partnerships` is a capability module backed by the `partnerships`
 collection: `repository.js` owns raw MongoDB access, `service.js` owns
-authorization and orchestration. Organization names are resolved through
-the organizations feature service, never its repository.
+authorization and orchestration. Organization names resolve through
+the organizations feature service.
 
 ## Data Structure
 
 Collection: `partnerships`
 
 - `organizationIds`: the two sides as canonical string ids, sorted. Stored
-  as plain strings (not flexible ids) so membership queries never depend
-  on the ObjectId/UID duality of organization `_id`s.
+  as plain strings so membership queries stay independent of the
+  ObjectId/UID duality of organization `_id`s.
 - `requesterOrganizationId` / `requesterUserId`: who asked.
 - `status`: `pending` → `active` (accepted) | `declined`; `active` →
   `terminated`. `pending` may also be cancelled by the requester
@@ -46,8 +44,8 @@ Responses carry the partnership document plus resolved display context:
 `partnerOrganization` (directory-level `{ _id, name, type }` from the
 organizations service) and, relative to the caller's active organization,
 `direction: 'incoming' | 'outgoing'` and `canRespond`/`canManage` admin
-flags. Serialization lives here because partnerships are not a declared
-CTS type and have no field-access policy entry.
+flags. Serialization lives here because partnerships sit outside the
+declared-CTS-type field-access policy.
 
 ## Service API
 

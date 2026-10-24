@@ -23,6 +23,13 @@ import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
 - Registry: `createRegistry()` and `createPerigramRegistry()`
 - Definitions: `defineDomain`, `defineEntity`, `defineWorkflow`,
   `defineCommand`, `defineTask`, `defineHook`, `defineAttachmentKind`
+- Validators: `validateDomain` plus the per-kind checks
+  `validateInstanceDefinition`, `validateWorkflowDefinition`,
+  `validateCommandDefinition`, `validateTaskDefinition`,
+  `validateEventDefinition`, `validateHookDefinition`,
+  `validateEffectDefinition`, `validateAttachmentKindDefinition`;
+  `normalizeStatusLifecycle`, `normalizeEntityOutputContracts`, and
+  `validateResultEntityOutputs` for result entity-output contracts
 - Runtime bindings: `registerInstanceService`, `registerCommandHandler`,
   `registerTaskExecutor`, `registerHookHandler`, `registerAdapter`
 - Result refs: `createInstanceRef`, `normalizeInstanceRef`, `createProvenance`,
@@ -68,8 +75,10 @@ composition behavior, not a registry of entity-specific fields; domains supply
 declared lineage slots, entity types, and attachment kinds.
 
 `Status.state` is a v2 structured object with `primary`, `active`, and
-`regions`; compare states through `getPrimaryState()` or `getRegionState()`
-rather than reading `status.state` as a string.
+`regions`; state comparisons go through `getPrimaryState()` or
+`getRegionState()`. This region model serves
+workflows defined through this kernel; types declared through CTS carry
+their state law in [CTS SPEC §7](../cts/SPEC.md).
 
 `BaseEntity.toJSON()` projects the current status block onto the flat wire
 `states` map. Every active workflow axis is emitted as its canonical leaf

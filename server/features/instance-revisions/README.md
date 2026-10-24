@@ -4,15 +4,6 @@ Stores immutable content snapshots for versioned entity scopes such as cassette
 template geometry, manually edited sheet layouts, artifact-template layouts,
 and generated artifact layouts.
 
-## Core Files
-
-| File | Purpose |
-|---|---|
-| `model.js` | Normalizes `entity_revision` DTOs through `BaseEntity`. |
-| `repository.js` | MongoDB access for `entity_revisions`, including hash and latest lookups. |
-| `service.js` | Canonical hash creation, revision dedupe, read access, and list APIs. |
-| `index.js` | Public service namespace export. |
-
 ## Data Contract
 
 Revision records are normal v24 entities with immutable revision metadata under
@@ -35,14 +26,10 @@ data.contentHash)`. Re-saving identical content reuses the existing revision.
 Revision entity identity is also source-scoped:
 `revision:<typeId>:<instanceId>:<scope>:<number>`. Two source entities may
 therefore both own revision 1 of the same scope without colliding on `_id`.
-Runtime index creation drops and recreates the named content/latest indexes
-when an older database still has the same index names on the pre-source-key
-shape, so entity revision creation is idempotent across migrated development
-databases.
-Hash/latest lookups, DTO serialization, and derived provenance also accept
-existing pre-source-key records with `data.typeId` and `data.instanceId`,
-then emit current `EntityRef` provenance. New records are always written with
-`data.source`.
+Hash, latest, and per-source delete lookups, DTO serialization, and derived
+provenance read both `data.source` and the stored `data.typeId`/
+`data.instanceId` shape, emitting current `EntityRef` provenance; new
+records are written with `data.source` only.
 Revision status is resolved through the registered `entity_revision` workflow.
 The domain fallback is the terminal system state `RECORDED`; an organization
 process remains free to register its own active revision workflow.
@@ -56,17 +43,23 @@ process remains free to register its own active revision workflow.
 - `derivedFromRevision()` builds the canonical provenance fact for
   derived entities, such as revision provenance for cassette geometry
   revisions.
-- Sheet designs use the same `geometry` scope. Their snapshot contains the
-  nesting result/preview, cassette placement counts, nesting parameters, and
-  sheet specs needed to reproduce the saved layout.
+- Sheet designs use the same `geometry` scope.
 - Artifact templates use the `layout` scope for page/item placement and typed
   variables. Generated artifacts use their own `layout` scope for placed-item
   edits and values applied to the pinned template revision.
 
-Revisions are read-only provenance records. They are not updated or deleted by
-standard entity APIs.
-Read access checks use the source `data.typeId` permission first, with
-legacy cassette/project fallbacks for existing cassette-derived records.
+Revisions are immutable after creation; per-source deletion
+(`removeForEntity`) rides the owning feature's cascade. Read access checks
+the source type's feature permission first, with a cassette/project
+lineage-read fallback.
+
+## API
+
+| Endpoint | Responsibility |
+|---|---|
+| `GET /api/instance-revisions` | List revisions (filters `typeId`, `instanceId`, `scope`), access-serialized. |
+| `GET /api/instance-revisions/:id` | One revision DTO. |
+| `GET /api/instance-revisions/:id/file` | Streams the revision's primary GridFS attachment (404 when it has none). |
 
 ## Related
 

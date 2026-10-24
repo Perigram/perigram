@@ -1,22 +1,26 @@
 # COMPONENT: Database Layer
 
-This directory manages the connection to MongoDB and handles schema indexing.
+MongoDB connection and collection index management.
 
-## Core Files
-- `mongo.js`: Singleton connection manager using the native MongoDB driver.
-- `indexes.js`: Script for creating and listing collection indexes.
+## Files
 
-## Storage
-- **Collections:** Standard documents (users, projects, etc.).
-- **GridFS:** MongoDB file storage system with buckets:
-  - `avatars`: User profile images.
-  - `cassettes`: DXF files for cassette templates.
-  - `userDxf`: Legacy DXF storage for workers.
-  - `artifacts`: Generated nesting results (SVG, DXF, G-code, PDF).
+- `mongo.js`: singleton connection manager using the native MongoDB driver
+  (`connectDB()`; URI from `NUXT_MONGODB_URI` / `MONGODB_URI`, falling back
+  to Nuxt runtime config) plus GridFS bucket getters for `nestSvg`,
+  `userDxfFilesSvg`, `nestDxf`, `userDxf`, `userSvg`, `validDxf`,
+  `cassettesSvg`, and `artifacts`. General file storage and avatars ride the
+  files feature's `uploads` bucket.
+- `indexes.js`: the collection index manifest and its CLI.
 
 ## Index Management
-Indexes are defined in `indexes.js` and can be managed via CLI:
-- `node server/db/indexes.js create` - Apply all defined indexes.
-- `node server/db/indexes.js list [collection]` - View current indexes.
 
-Key indexes include unique constraints on natural keys (`slug`, `code`), foreign keys (`ownerId`), and compound indexes for common query patterns.
+Indexes are defined per collection in `indexes.js`:
+
+- `node server/db/indexes.js create` — apply all defined indexes.
+- `node server/db/indexes.js drop [collection...]` — drop custom indexes.
+
+Unique indexes: `cassettes.identity.slug`, memberships
+`organizationId+userId`, `users.identity.email`, `idempotency_keys.key`
+(with a 7-day TTL on `createdAt`), and `push_subscriptions.endpoint`. The
+remaining collections (`artifacts`, `status_events`, `workflow_overrides`,
+`organizations`) carry lineage, target, and timestamp lookup indexes.

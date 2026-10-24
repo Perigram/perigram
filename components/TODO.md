@@ -4,14 +4,14 @@
 
 ### README
 
-- [ ] components/README.md REWRITE (1132 → ~150 lines): keep style guide (as
+- [x] components/README.md REWRITE (1132 → ~150 lines): keep style guide (as
   table), UI inventory policy, top-level loose-SFC inventory (AuthProgress,
   ChatSupport, Footer, LanguageSwitcher, PermissionEditor,
   PermissionRuleBuilder, ThemeSwitcher, UserForm — review-2: parent rewrite
   must keep that inventory), localization, sizing, child links. Every
   contract section moves to its owning child; deleted-family sections leave
   outright. Target shape per audit open question confirmed by review-2.
-- [ ] Same rewrite — relocate L156-474 generated-screen contract to
+- [x] Same rewrite — relocate L156-474 generated-screen contract to
   components/generated/README.md (5-line pointer);
   L843-1107 chat prose to components/shared/README.md (surfaces) with a
   semantics link to server/features/support/README.md;
@@ -20,16 +20,16 @@
   assets/tokens/README.md (both describe the same canvas:
   components README `--ck-page-background`, tokens README `--p-surface-100`,
   aliased 1:1 in assets/tokens/index.js:150).
-- [ ] Same rewrite — fix composer contradiction: L1099-1101 claims the
+- [x] Same rewrite — fix composer contradiction: L1099-1101 claims the
   composer input is a PrimeVue `InputGroup`; components/ChatSupport.vue:1091-1092
   renders it as a plain `rounded-ui bg-subtle` div with Textarea + Buttons
   (L1001 passage matches code — keep L1001, delete L1099-1101).
-- [ ] Same rewrite — delete orphaned fragments: L119-122 (section begins
+- [x] Same rewrite — delete orphaned fragments: L119-122 (section begins
   mid-sentence "workbench and organization workflow overrides page. It
   normalizes flat legacy workflows…" — process-designer contract);
   L367 "nesting another entity card inside the queue item panel.";
   L371 "safe visual graph document." (sentence tails from deleted neighbors).
-- [ ] Same rewrite — delete stale L119-155 designer claims, contradicted by
+- [x] Same rewrite — delete stale L119-155 designer claims, contradicted by
   child README + code (review-2 confirmed all three): "node accent colors
   identify those groups" vs child L170-171 "Canvas nodes carry no category
   accent" (ProcessNode.vue carries no accent/signal class);
@@ -37,44 +37,44 @@
   ProcessNode.vue:135-137 wired-or-manual reads wire presence;
   "Role access remains secondary inspector configuration" vs child L459-467
   (lane drop writes grants; inspector keeps LEVELS).
-- [ ] Same rewrite — restate L480-481: `utils/design-system-contract.js` is
+- [x] Same rewrite — restate L480-481: `utils/design-system-contract.js` is
   the primary vocabulary source (field groups, entity contracts, primitives)
   that design-system.js binds, per the source/binding split.
-- [ ] Same rewrite — L95 pattern table credits `dtoToScreenInstance` to
+- [x] Same rewrite — L95 pattern table credits `dtoToScreenInstance` to
   `shared/ui-mapping`; it lives in utils/instance-shape.js:51 (only
   `titleFor` is shared/ui-mapping/index.js:451).
-- [ ] Same rewrite — fold duplicated rows to canonical homes: L5-9 avatar
+- [x] Same rewrite — fold duplicated rows to canonical homes: L5-9 avatar
   `:label` rule → shared/README.md:499-503; L546-560 row-surface recipe →
   components/ui-mapping/README.md:284-288; L608-612 composables rule →
   shared/README.md:7-14; L261-301 mobile home tabs → composables/README.md:401.
-- [ ] Same rewrite — delete history/negspace prose: L4 layer-regime
+- [x] Same rewrite — delete history/negspace prose: L4 layer-regime
   backstory clause, L550 "row stripes are gone, the row IS the card", L394
   "cassettes are file types since the cleanup"; rewrite "must not select
   arbitrary Vue component names", "never merge onto ChatSupport's own
   h-full root" and kin as positive statements; split the ~420-word L4 Style
   Guide paragraph into the table.
-- [ ] Same rewrite — register process-designer and calls in the Related
+- [x] Same rewrite — register process-designer and calls in the Related
   inventory (L1126-1132 currently omit them).
-- [ ] components/shared/README.md REWRITE (936 lines): compress L358-393
+- [x] components/shared/README.md REWRITE (936 lines): compress L358-393
   (DrawingCanvas), L408-481 (InstanceInlineRef), L892 (FilterBuilder ~40-line
   paragraph) to props/contract + invariants; keep the layer-color resolution
   order and the fetch/entityContext rules.
-- [ ] Same rewrite — one canonical InstanceCard section (contract told twice
+- [x] Same rewrite — one canonical InstanceCard section (contract told twice
   in-file L882-884 + L900-923, plus entities/README.md:16-25 and
   components/README.md:463-474 → all link here).
-- [ ] Same rewrite — chat sections (InstanceCard chat entry L584-614,
+- [x] Same rewrite — chat sections (InstanceCard chat entry L584-614,
   SupportMessageContent, MessageAttachments, ChatAttachmentPicker) become
   the single frontend chat-surfaces home; message semantics link
   server/features/support/README.md.
-- [ ] Same rewrite — scope L877-878 "direct PrimeVue imports are owned only
+- [x] Same rewrite — scope L877-878 "direct PrimeVue imports are owned only
   by the wrappers" to entity option lists: three live direct-import sites —
   components/shared/ChatBotPanel.vue:114, components/ChatSupport.vue:1467,
   pages/organization/models.vue:204 (`primevue/select` for scalar selects).
-- [ ] Same rewrite — delete slop: L881 one-line StandardPage.vue stub
+- [x] Same rewrite — delete slop: L881 one-line StandardPage.vue stub
   (duplicates full entry L808-819); "the former SpecsBlock content" L31/L53;
   MotionDock retirement sentence L211-213; L293-294 negspace triple → the
   positive flat-state contract sentence.
-- [ ] components/entities/README.md: fold the seven child READMEs into one
+- [x] components/entities/README.md: fold the seven child READMEs into one
   surface table (surface key → DTO contract → live consumers) keeping each
   card's 3-5 real invariants (verified: ArtifactCard.vue:65
   `:show-status="false" :expandable="false"`; User/Organization popup →
@@ -83,7 +83,7 @@
   shared/README.md; restate L39-41 as the ENTITY_CONTRACT_BY_TYPE dual-key
   lookup (design-system-contract.js:200-204 — wire `typeId` + surface `key`,
   both live vocabularies).
-- [ ] components/entities/ArtifactTemplate/README.md rewrite on fold: L9-13
+- [x] components/entities/ArtifactTemplate/README.md rewrite on fold: L9-13
   names `pages/assets/templates.vue` (pages/assets/ does not exist — pages/
   holds auth, chats.vue, index.vue, invitation, organization, screens,
   terms-and-conditions.vue, test) and `components/ArtifactLayoutEditor.vue`
@@ -91,25 +91,25 @@
   (utils/design-system.js:25, InstanceInlineRef.vue:26,
   design-system-contract.js field groups) — rewrite as inline-ref surface
   with server feature link.
-- [ ] components/generated/README.md TRIM: drop dates from headings L190
+- [x] components/generated/README.md TRIM: drop dates from headings L190
   ("owner decision 2026-10-11") and L489 ("SPEC §Generative UI, 2026-10-23");
   delete L59-63 future-migration narration; dedupe mobile home tab contract
   L329-347 to composables/README.md:401 (one sentence + link); compress
   L348-418 PanelMenu internals to the observable contract (selection follows
   active tab, header/chevron click split, labels crop); trim repetitive
   negspace L452-460, L491-493.
-- [ ] components/directory/README.md TRIM: delete L8-10 global-search clause
+- [x] components/directory/README.md TRIM: delete L8-10 global-search clause
   (zero refs to any global-search component repo-wide); rewrite negspace
   L27-31, L44-46, L57-59 positive ("open through the workspace-open seam",
   "flat hosted column").
-- [ ] components/artifacts/README.md TRIM: delete ArtifactDetail references
+- [x] components/artifacts/README.md TRIM: delete ArtifactDetail references
   L9-13 + L43-44 (zero refs repo-wide; both live mounts —
   components/shared/InstancePreviewMedia.vue:2-5,
   components/ui-mapping/PreviewBox.vue:12-15 — pass explicit `:source=`,
   none passes `:artifact=`); replace with the single CTS payload mount;
   state current kind registry contents, delete retirement tracking L10-13,
   L46-53.
-- [ ] components/ui-mapping/README.md TRIM: fix garbled splice L27-34
+- [x] components/ui-mapping/README.md TRIM: fix garbled splice L27-34
   (create-dialog sentence interleaved with the type-labels seam sentence)
   and L156-160 ("render one require multiple times"); dedupe to
   shared/ui-mapping/README.md — create dialog L33-50 (canonical L87-110,
@@ -123,14 +123,14 @@
   "the dissolved CollectionToolbar" L104; add StatGrid.vue entry (live:
   RegionCollections.vue:75,115; shared/design-system.spec.js:477); add
   parent link.
-- [ ] components/calls/README.md TRIM: delete L87-88 parenthetical ("the old
+- [x] components/calls/README.md TRIM: delete L87-88 parenthetical ("the old
   per-surface ring banners kept ringing after an accept elsewhere"); state
   the idempotent-attach invariant, drop the flicker autopsy L158-159; trim
   L7 negspace opener to the positive half ("built from shared primitives,
   semantic tokens, and lazily-imported livekit-client"); L72 minor; tighten
   L92-106 room-lifecycle snapshot semantics to ~half (verified:
   stores/calls.js debounce L73, keep-last L68, stream-reopen refetch L275).
-- [ ] components/media/README.md: add parent link (registered at
+- [x] components/media/README.md: add parent link (registered at
   components/README.md:1129; Related list omits the parent).
 
 ### Code deslop
@@ -208,3 +208,21 @@
 - type-designer/: own README, or fold its contract into
   components/process-designer/README.md (its consumer)?
 - Type-label seam home: shared/ or utils/?
+
+- [ ] WAITING — owner verification: read components/README.md (1132→137,
+  inventory owner) + entities/README.md; 7 entity READMEs folded (files
+  deleted, links repointed), CassetteDesignerV2 section dead,
+  process-designer/calls/type-designer rows added.
+
+### Agent Notes (2026-10-24)
+
+Session `agent/doc-deslop-exec-20261024` (worktree
+`.agent-worktrees/doc-deslop-exec-20261024`). Parent README rewritten as
+inventory owner (1132→137): style-guide table, loose-SFC inventory, child
+links; CassetteDesignerV2 section dead, 4 deleted families gone, orphan
+fragments repaired, process-designer/calls/type-designer rows added. 7
+entity READMEs folded into entities/README.md (files deleted, links
+repointed); shared/generated/directory/artifacts/ui-mapping/calls/media
+trims landed. OPEN: DESIGN_SYSTEM_STATUS + dual-map + code items,
+ArtifactViewer/artifact_template/type-designer decisions, type-designer
+README creation (row exists, file pending).

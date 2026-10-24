@@ -1,50 +1,81 @@
-# COMPONENT: Entity UI Components
+# COMPONENT: Entity Cards
 
-Manifest-backed Vue cards and detail surfaces for Perigram domain entities.
+Registry-bound Vue cards for the design-system entity surfaces. Every card
+in this family renders through the shared `InstanceCard` primitive —
+[shared/README.md](../shared/README.md) owns the body/variant contract.
+Parent: [components/README.md](../README.md).
 
-## Scope
+## Registry
 
-Each subdirectory owns one entity surface or a closely related display surface.
-Most cards are registered through the design-system manifest in
-the type declarations' render groups and bound to Vue components in
-`utils/design-system.js`.
-`EntityRevision` is a read-only system entity surface used by provenance rows
-such as cassette template geometry versions.
+`utils/design-system-contract.js` is the vocabulary source:
+`DESIGN_SYSTEM_ENTITY_CONTRACTS` (key, wire `typeId`, `labelKey`, field
+groups, surfaces, factory) plus the field-group and surface tables.
+`utils/design-system.js` binds each contract entry to its card component
+and DTO factory (`DESIGN_SYSTEM_ENTITIES`). Cards resolve through this
+registry: `InstanceInlineRef` keeps a local map over five keys
+(`entityRevision`, `user`, `organization`, `artifact`, `artifactTemplate`),
+and `DrawingCanvas` imports the pen/layer master-data cards directly.
+`pages/test/ui-lab.vue` renders demo rows from the manifest;
+`framework.manifest.json` snapshots the same contract for framework
+consumers. `ENTITY_CONTRACT_BY_TYPE` keys entries by both wire `typeId`
+and surface `key` — both are live vocabularies; the label seams resolve
+`labelKey` through it.
 
-## Card Contract
+Adding or renaming a card updates the contract, the binding, and the DTO
+factory; the UI lab and the manifest follow from those. Field groups
+define display semantics; field access stays the security boundary —
+app-layer field groups and surface overrides need their DTO paths declared
+in the field-access policy.
 
-- Every entity card renders a single `InstanceCard :variant="variant"` and leaves
-  identity, trace, status, popover, and footer chrome to the shared primitive.
-  See [components/shared/README.md](../shared/README.md) for the default-slot
-  body contract.
-- Standard facts must resolve from the domain display constructor in
-  the declared types' render groups. Do not add new local `DataBlock` path arrays
-  to entity cards; add or extend a field group and make sure the path is covered
-  by field access policy.
-- The default slot is the canonical operational body and is reused by card
-  variants and inline/compact popovers.
-- Card bodies should represent the entity's contract data, not a generic table:
-  production entities emphasize flow and generated outputs, material entities
-  emphasize physical specs and stock, catalog entities emphasize options and
-  visual samples, and system entities emphasize ownership/contact/file context.
-- Use `DataBlock`, `GeometryPreview`, `InstanceInlineRef`, and
-  PrimeVue `Tag`/`Badge` controls for concise facts. Use `TraceLink` only where
-  direct route navigation is intended, not for entity relation summaries. Do not
-  render raw nested objects or rebuild identity/status rows locally.
-- Entity facts are access-aware. `DataBlock` requires an
-  `type-id` prop and filter paths through `shared/instance-field-access.js`
-  using the field policies of the declared types. If a field is not
-  declared in the policy, cards must not display it.
-- Relation refs should pass design-system UI keys (`cassette`, `sheetDesign`,
-  `entityRevision`) instead of backend snake-case names. The shared domain UI
-  adapter still accepts backend aliases for compatibility, but component code
-  should speak in surface keys.
-- Inline and compact variants may add `compact-content` or `inline-extra` only
-  for short, stable cues; the full body remains the authoritative summary.
-- Subtitle chips are collapsed-context cues only. If an entity card declares a
-  `#subtitle` slot for field values, it must guard it with
-  `v-if="variant !== 'card'"` so full cards do not repeat `DataBlock`,
-  DataBlock, relation, or summary body facts in the header.
+## Card law
+
+- One `InstanceCard :variant="variant"` per card; the body passes once
+  through the default slot and is reused by card variants and
+  inline/compact popovers. Slots: `before-identity`, `subtitle`, body,
+  footer — `#title` belongs to the standard identity/status row. Subtitle
+  slots guard `v-if="variant !== 'card'"`; `compact-content` and
+  `inline-extra` carry short, stable cues only.
+- Facts resolve from the domain display field groups; a card declares no
+  local `DataBlock` path arrays — extend a field group and keep the path
+  inside the field-access policy (`shared/instance-field-access.js`
+  filters every path; undeclared paths stay hidden).
+- Card bodies speak the entity's contract as an operational summary —
+  identity/status in the title, concise facts in the body, actions in the
+  footer: production entities emphasize flow and generated outputs,
+  material entities physical specs and stock, catalog entities options and
+  visual samples, system entities ownership/contact/file context.
+- Relation refs pass design-system surface keys (`cassette`,
+  `sheetDesign`, `entityRevision`); `TraceLink` serves rows whose explicit
+  purpose is route navigation.
+- Geometry-capable cards render the visual source (`GeometryPreview` over
+  the resolved preview source or points) — file-type tags and preview
+  flags stay off the card.
+- Interactive status belongs to entity types with real `cncWorkflows`
+  definitions; cards for DTOs without workflows set `:show-status="false"`
+  (or a read-only badge where the data model requires it) — lifecycle
+  states are a workflow-machine concern.
+- Lifecycle transitions render through `InstanceState` from the canonical
+  workflow/status API; destructive, edit, reset, and feature command
+  buttons stay in card footers or page action slots.
+- Card click handlers ignore nested interactive targets through
+  `utils/interactive-target.js` so embedded statuses, links, artifacts,
+  geometry previews, and nested inline cards stay clickable.
+- Hosts render cards directly with explicit props; the injected
+  `entityContext` relation fallback serves development and workbench
+  surfaces. Interaction a card lacks is implemented in the card or a
+  shared primitive.
+
+## Surfaces
+
+| Key — card | Contract | Consumers |
+|---|---|---|
+| `entityRevision` — `EntityRevisionCard` | Read-only provenance card: revision scope, number, and short hash under `data`; the source entity relation renders through `InstanceInlineRef` (cassette source revisions render as `cassetteTemplate` refs — templates are stored in the `cassettes` collection); status actions hidden, revisions are immutable. | registry; `InstanceInlineRef` |
+| `penTemplate` — `PenTemplateCard` | Master data: stroke settings in `data.stroke` drive a real color/weight/pattern line preview; status and trace hidden. | registry; `DrawingCanvas` (direct import) |
+| `layerStandard` — `LayerStandardCard` | Master data: layer code, purpose, and default pen; status and trace hidden. Drawing surfaces reference layer standards through this card. | registry; `DrawingCanvas` (direct import) |
+| `user` — `UserCard` | Identity/contact and permission-related facts; status and trace hidden — permission changes stay on the admin page endpoints. The inline variant serves status-history actor rows; the avatar stays compact there so audit rows stay dense. Record popup: the directory profile ([DirectoryDetailSurface](../directory/README.md)). | registry; `InstanceInlineRef`; directory popup |
+| `organization` — `OrganizationCard` | Identity and contact/role facts; status and trace hidden. `context`/`actions` slots carry membership state and caller-owned navigation as visible footer actions. Profile renders one action per membership: switch to an inactive organization or open the active organization's generated overview (billing, team, and process screens are children of that overview). Record popup: the directory profile ([DirectoryDetailSurface](../directory/README.md)). | registry; `InstanceInlineRef`; directory popup |
+| `artifact` — `ArtifactCard` | File records (DXF, SVG, PDF, nesting reports): expects `identity`, `lineage`, `attachments`, and `data.type`; status hidden — file lifecycle is a workflow concern. Queue ancestry rides the shared trace chrome through `lineage.queueId`; nesting-run context renders through `InstanceInlineRef`. The card may own a preview click action and disables `InstanceCard` expansion for it. Artifact records carry no detail surface: no pack declares the type, so it stays outside the served type view and record surfaces stay silent — the card preview and the artifact viewer registry cover inspection, file operations ride the artifact API surfaces. | registry; `InstanceInlineRef` |
+| `artifactTemplate` — `ArtifactTemplateCard` | Inline-ref surface: identity/chrome delegated to `InstanceCard`, DTO-backed fields to `InstanceSurfaceContent`; footer actions come from the hosting surface. Revision provenance belongs to the [artifact-templates feature](../../server/features/artifact-templates/README.md). | registry; `InstanceInlineRef` |
 
 ## Validation
 
@@ -57,12 +88,12 @@ npm run framework:write-manifest
 npm run framework:manifest
 ```
 
-Do not run Nuxt dev servers or `npm run build` from agent tasks unless a human
-explicitly asks.
-
 ## Related
 
-- [Shared UI components](../shared/README.md)
+- [Shared UI components](../shared/README.md) — `InstanceCard`, `InstanceInlineRef`, `DrawingCanvas`
+- [Directory surfaces](../directory/README.md) — record popups for user/organization
+- [Artifact viewers](../artifacts/README.md)
 - [Visual tokens](../../assets/tokens/README.md)
 - [DTO factories](../../test-data/README.md)
 - [Facade plugin](../../workers/facade/README.md)
+- Server contracts: [instance revisions](../../server/features/instance-revisions/README.md), [artifacts](../../server/features/artifacts/README.md), [artifact templates](../../server/features/artifact-templates/README.md), [organizations](../../server/features/organizations/README.md), [users](../../server/features/users/README.md), [instances](../../server/features/instances/README.md)

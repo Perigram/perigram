@@ -29,26 +29,21 @@ Support capabilities are documented and classified, but do not need empty
 | Kind | Modules |
 |---|---|
 | Entity modules | `artifact-templates`, `artifacts`, `instance-revisions`, `organizations`, `process-definitions`, `users` |
-| Capability modules | `artifact-conversions`, `billing`, `connections`, `cts-types`, `directory`, `files`, `instance-events`, `instances`, `invitations`, `livekit`, `meetings`, `notifications`, `partnerships`, `plugins`, `sessions`, `states`, `support`, `system-settings`, `transcription`, `web-search`, `workflow-overrides` |
+| Capability modules | `agent-bots`, `artifact-conversions`, `billing`, `connections`, `cts-types`, `directory`, `files`, `instance-events`, `instances`, `invitations`, `livekit`, `llm`, `meetings`, `notifications`, `partnerships`, `plugins`, `sessions`, `states`, `support`, `system-settings`, `transcription`, `web-search`, `workflow-overrides` |
+
+`artifact_template` is undeclared in the CTS registry view; check-arch
+classifies the `artifact-templates` directory explicitly, and the module
+keeps serving the type.
 
 This directory is framework-only: domain implementations (the facade
 fabrication domain — cassettes, nesting, sheet designs) live under their
-installed facade plugin (see [plugins](./plugins/README.md)), so the domain is
-actual deletion unit and no framework feature imports domain code. The
-REST surfaces of pack-owned features keep their stable URLs
-(`/api/cassettes`, `/api/sheet-designs`) as thin route files that import
-the pack implementations; `check-arch` accepts the pack-owned feature
-directories beside the framework ones.
+installed facade plugin (see [plugins](./plugins/README.md)) and reach the
+app only through the plugin install seam.
 
 Types without a feature module — the documents/tech-drawing pack
 types and every org-authored type — are served entirely by the generic
 instance machinery ([instances](./instances/README.md)); check-arch keeps
-their names on the generic list so no feature directory is expected. The
-legacy catalogue features (machines, pen-templates, layer-standards,
-profile-templates, tool-profiles) and the queue-era aggregates (projects,
-queues, nesting-runs, sheets, remnants, requisitions, warehouses,
-catalogs, libraries, cassette-instances, geometry-captures) are deleted;
-their §3 instances and seeds live on the generic path.
+their names on the generic list so no feature directory is expected.
 
 ---
 
@@ -58,11 +53,11 @@ The **only** way to consume a feature from outside its directory is via its `ind
 
 ```js
 // ✅ Correct — goes through service layer
-import * as projectService from '~/server/features/projects/index.js';
+import * as artifactService from '~/server/features/artifacts/index.js';
 
 // ❌ Forbidden — bypasses business logic and permissions
-import * as repository from '~/server/features/projects/repository.js';
-import { Project } from '~/server/features/projects/model.js';
+import * as repository from '~/server/features/artifacts/repository.js';
+import { Artifact } from '~/server/features/artifacts/model.js';
 ```
 
 ### index.js pattern
@@ -98,14 +93,14 @@ services must not self-register through hidden globals.
 
 ## Core Feature Modules
 
-| Module | Entity | Key lineage fields |
-|---|---|---|
-| `artifacts` | Generated files (DXF/SVG/PDF) | mirrors parent lineage |
-| `artifact-templates` | Organization-owned DXF/PDF generation layouts | `organizationId` |
-| `organizations` | Tenant root | — |
-| `users` | User accounts | `organizationId` (via memberships) |
-| `instance-revisions` | Immutable scoped content snapshots | mirrors source lineage plus source entity id |
-| `process-definitions` | Organization process graph and compiled runtime contract | `organizationId` |
+Each module's contract, lineage fields, and route table live in its own README:
+
+- [artifacts](./artifacts/README.md)
+- [artifact-templates](./artifact-templates/README.md)
+- [instance-revisions](./instance-revisions/README.md)
+- [organizations](./organizations/README.md)
+- [process-definitions](./process-definitions/README.md)
+- [users](./users/README.md)
 
 ---
 
@@ -121,10 +116,8 @@ services must not self-register through hidden globals.
   open sessions publish typed invalidation events through
   `server/features/instance-events`; do not create per-feature polling loops when
   the shared event bus can feed the browser-local `instance-events.js` contract.
-- **organization billing**: prepaid service tokens live in
-  `server/features/billing` and are owned by organizations. Command-backed
-  process services may declare prepaid token cost in the compiled service
-  contract; user documents must not be used as spendable balance accounts.
+- **organization billing**: prepaid service tokens are organization-owned;
+  [billing](./billing/README.md) owns the token-cost contract.
 
 ## Related
 
