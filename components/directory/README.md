@@ -1,13 +1,11 @@
 # COMPONENT: Directory Surfaces
 
-In-home presentation of user and organization detail. There are no
-standalone directory routes: the surface renders as an entity-bound
-workspace-page tab inside the generated home workspace (desktop panes) and
-as the bounded dialog the home workspace opens on mobile viewports. Popups
-remain the compact preview surface: inline refs
-(`InstanceInlineRef` → `UserCard`/`OrganizationCard`) and the global-search
-result popup ([shared](../shared/README.md)); their open action routes
-into these panes through the shared workspace-open seam.
+In-home presentation of user and organization detail: the surface renders
+as an entity-bound workspace-page tab inside the generated home workspace
+(desktop panes) and as the bounded dialog the home workspace opens on
+mobile viewports. Popups remain the compact preview surface — inline refs
+(`InstanceInlineRef` → `UserCard`/`OrganizationCard`); their open action
+opens these panes through the shared workspace-open seam.
 
 ## Files
 
@@ -24,8 +22,8 @@ into these panes through the shared workspace-open seam.
   and the grant-redacted DTO from the ordinary feature detail endpoint;
   richer facts render only when the DTO carries them.
 - Membership rows render only organizations the viewer can themselves
-  resolve (cross-tenant org names are not readable) and open them through
-  the workspace-open seam — never a route. Sections are PrimeVue-owned:
+  resolve (cross-tenant org names stay unreadable) and open them through
+  the workspace-open seam. Sections are PrimeVue-owned:
   `Panel` headers carry the section chrome (Details, Organizations,
   Partners) and memberships render as an inline `Menu` (building icon,
   active organization marked by the success check).
@@ -38,25 +36,24 @@ into these panes through the shared workspace-open seam.
   hydrated manifest; the popup (`bounded`) keeps the directory profile —
   a full page inside a popup would stack two surfaces. Non-active
   organizations keep the directory facts — read-level rows (type, email,
-  phone, created) with a directory-card fallback so non-member
-  organizations are not blank; the fact rows are access-filtered per
+  phone, created) with a directory-card fallback for non-member
+  organizations; the fact rows are access-filtered per
   field.
-- The surface is a flat hosted column — identity header, divider-
-  separated sections, action row — never boxed panels: the dialog or
-  pane is the surface (the settings-popup content pattern).
+- The surface is a flat hosted column — identity header,
+  divider-separated sections, action row; the dialog or pane is the
+  surface (the settings-popup content pattern).
 - The surface owns its action row because panes/dialogs have no page-level
   action chrome: user chat (the direct 1:1 thread — open to any non-self
   recipient) / invite (opens team management through the page-open seam
   with the invitee as its one-shot param — a pane tab on desktop, the
   `?invite=` route on mobile) / self profile (opens the shared profile
-  settings popup — there is no profile route); organization context
+  settings popup); organization context
   switching (the pane itself is the organization view — management
-  surfaces are reached through the home shell's organization entries,
-  never route-away buttons) and the partnership lifecycle actions (see
+  surfaces are reached through the home shell's organization entries)
+  and the partnership lifecycle actions (see
   [partnerships](../../server/features/partnerships/README.md)).
-- Entity detail never navigates to a route of its own; the sanctioned
-  management surfaces are workspace pages and the organization overview
-  pane.
+- Entity detail opens through workspace pages and the organization
+  overview pane.
 
 ## Related
 

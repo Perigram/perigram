@@ -41,8 +41,9 @@ plugin marketplace, and the process designer canvas — is a registered
 workspace page in `workspace-pages.js` carrying its `route`; the generated
 overview's system-screen buttons open them as home pane tabs through the
 page-open seam (`utils/workspace-page-open.js` — the page twin of the
-entity workspace-open event, with a mobile route fallback). Nothing routes
-away from home; the routes remain as mobile/deep-link fallbacks. The
+entity workspace-open event, with a mobile route fallback). Every
+organization surface opens as a home pane tab; the routes remain as
+mobile/deep-link fallbacks. The
 workspace-page registry also carries the route→page map
 (`workspacePageIdForRoute`) that chrome resolve through. The seam's
 `params` channel carries one-shot page intent (the directory's invite
@@ -59,8 +60,7 @@ for parent context), templates are `typeList`/`instanceDetail`/`home`, and
 workspace-open events carry `{ typeId, instanceId }`. The remaining
 `typeId` names inside this family are descriptor-level fields of the
 compiler prompt-form contract (`inputPolicy` field descriptors, construction
-input `typeId` constraints, attachment `creator.typeId`) — those
-rename with the compiler-plane cut, not the wire cut.
+input `typeId` constraints, attachment `creator.typeId`).
 
 ## Action Visibility
 
@@ -187,7 +187,7 @@ a payload-bearing file class) is enforced at the pack composition seam
 documented in the
 [cts-types README](../../server/features/cts-types/README.md).
 
-### Plugin-delivered surfaces (owner decision 2026-10-11)
+### Plugin-delivered surfaces
 
 A binding whose surface id is not in the fixed registry resolves against
 the served plugin surface declarations — the installed layer composes them
@@ -206,7 +206,7 @@ component receives `{ record, persistence }`; the factory receives the
 host context `{ vue, components, locale }` (the host's Vue runtime subset,
 the vetted PrimeVue pack, i18n) — the consistency law: a surface composes
 from the host's vocabulary, never bundles its own (`checkSurfaceModule` in
-[@perigram/plugin-sdk](../../../packages/plugin-sdk/README.md) enforces
+[@perigram/plugin-sdk](../../packages/plugin-sdk/README.md) enforces
 the import graph author-side). The persistence callbacks
 (`remote-surface-mount.js`) are the one generic binding over the instance
 transports: blank-create through the type's compiled construct, documents
@@ -328,98 +328,69 @@ type panels and sections simply stay absent because they derive entirely
 from the compiled manifest.
 - Desktop (`md` and up) is a fixed two-column bounded workspace: a sidebar and
   the recursive pane area. Mobile renders the screen selected in the
-  app-shell bottom bar — the shared mobile home tab state
-  (`useMobileHomeTabs`, see
-  [composables/README.md](../../composables/README.md)) over the sidebar
-  tree's root types; the bar replaces the previous in-workspace strip
-  (user-added tabs and a home tab are disabled while the migration
-  settles, chats stays the bar's route tab). A type tab renders through
-  `GeneratedScreenHost` (the
-  same generator host the desktop panes and the routed page use); instance opens on
-  mobile follow the routed surface contract: the compiled detail screen
-  route. Types with no compiled detail screen but a registered
-  entity-bound workspace page (`user`, `organization` — the directory
-  surface, [components/directory](../directory/README.md)) open as the
-  bounded home dialog instead: mobile has no panes, and entity detail
-  still never routes away from home. Type surfaces carry the runtime transition channel the routed
-  page has: board drops and any served machine transition dispatch
-  through the state service, and drag legality resolves through the same
-  per-instance fetch — the contract copy alone never gates moves.
+  app-shell bottom bar — the shared mobile home tab contract
+  (`useMobileHomeTabs`, owned by
+  [composables/README.md](../../composables/README.md)). A type tab renders
+  through `GeneratedScreenHost` (the same generator host the desktop panes
+  and the routed page use); instance opens on mobile follow the routed
+  surface contract: the compiled detail screen route. Types with no
+  compiled detail screen but a registered entity-bound workspace page
+  (`user`, `organization` — the directory surface,
+  [components/directory](../directory/README.md)) open as the bounded home
+  dialog: mobile has no panes. Type surfaces carry the runtime transition
+  channel the routed page has: board drops and any served machine
+  transition dispatch through the state service, and drag legality
+  resolves through the same per-instance fetch.
 - The sidebar owns navigation for the whole shell as a PrimeVue
-  `PanelMenu`, header labels passthrough'd to line-height 1 so panel
-  headers match row heights, and header and row labels passthrough'd to
-  crop with an ellipsis instead of wrapping — the submenu scaffold is a
-  track-less grid whose items size to content width, so the content
-  container passthrough takes a `minmax(0,1fr)` column track
-  (`grid-cols-1`) and labels take `min-w-0` + `truncate` (row links
-  already clip; header labels add `flex-1` to claim the crop width).
-  The brand header is its own panel and
-  carries the wrap control: wrapped, the sidebar becomes an icon rail
-  (brand mark, chats and calls first — the same order the expanded menu
-  leads with — then one icon per top-level panel, avatar) and the
-  wordmark returns on expand. The wrapped state persists with the
-  workspace layout (`sidebarCollapsed` in the home workspace state). The
-  Calls flyout (`CommunicationMenu`) lives outside the wrapped/expanded
-  branches so both the wrapped icon and the expanded row toggle the same
-  popup; the wrapped organizations icon opens the organization overview
-  (context switching stays in the account menu). The Communication
-  is two entries in that PanelMenu: Chats is a plain entry opening the
-  chats pane tab in the active pane (the general inbox), and Calls is always present — it toggles the
-  shared `CommunicationMenu` popup flyout (see
-  [components/shared/README.md](../../components/shared/README.md))
-  that lists every direct/group conversation and rings it, and carries
-  active joinable call rooms as its rows (icon, label, participant
-  count; clicking the row joins), sourced from the shared `calls` store
-  (`stores/calls.js`), which keeps the `/api/livekit/active-rooms`
-  snapshot fresh on `call.activity` events and also drives the global
-  `IncomingCalls` ring cards — only brand-new invites float; ongoing
-  calls stay under Calls and in chats. With no active rooms the Calls
-  entry renders no rows and nothing expands; it expands automatically
-  when the first room appears. Organization switching stays OUT of the
-  sidebar (owner directive): the account menu in the footer owns it, and
-  the footer names the active organization.
-- Entity navigation is a raw default `PanelMenu` — no item slot, default
-  rows, `multiple` panels open — one panel per top-level type from the
-  same TYPE hierarchy the render contracts declare: registry containment
-  (declared children edges) nests types under their parents, but only
-  the active process's stationed types render as panels (procedural
-  labels only — the generated type key with a locale override over the
-  authored render label; class names carry NO icon, so a type panel never
-  reads as one of its own rows — the glyph is the instance signal) — a
-  registry declaration no active definition stations renders nothing
-  (stale types from old applies stay invisible). A
-  type's home-section
-  instances hang beneath it as plain default rows carrying the type’s
-  registry icon and the one title resolver label (`instanceLabelOf`).
-  Menu selection follows the active pane's selected tab: opening an
-  instance selects exactly its row (opening a type screen never selects
-  the list), the chats page selects Chats; a selected entry carries the
-  chrome-subtle surface (`rounded-ui bg-[var(--ck-chrome-subtle)]`).
-  Menu text is uniformly subtle: the label passthrough carries the muted
-  tone (PanelMenu colors its content wrappers, so per-item classes never
-  reach the text), so default rendering stays untouched. Pointer clicks blur
-  whatever PanelMenu focused inside the menu after its handlers run —
-  the list's focus-tracked item styling (mousemove-driven while the
-  list holds focus) otherwise keeps the last hovered row highlighted
-  after the cursor leaves.
-  Header and nested-group clicks are split from collapse toggling by one
-  capture-phase handler: clicking the label opens the content without
-  toggling the panel, the submenu chevron toggles without running the
-  open command (the command guard suppresses exactly that click), and
-  leaf entries keep whole-click-as-command. The handler resolves the
-  clicked entry POSITIONALLY — the panel's index among the root's panels
-  plus each row's li path up the submenu nesting — because PanelMenu
-  renders item ids from index paths, never from model keys. Keyboard
-  activation keeps PrimeVue's default command-plus-toggle behavior.
-  its compiled `typeList` screen as a pane tab (`GeneratedScreenPane`,
-  below) and toggles the panel, never a separate route. The whole type
+  `PanelMenu` whose header and row labels crop with an ellipsis. The
+  brand header is its own panel and carries the wrap control: wrapped,
+  the sidebar becomes an icon rail (brand mark, chats and calls first —
+  the same order the expanded menu leads with — then one icon per
+  top-level panel, avatar) and the wordmark returns on expand; the
+  wrapped state persists with the workspace layout (`sidebarCollapsed`).
+  Communication is two entries in the menu: Chats is a plain entry
+  opening the general chats pane tab in the active pane, and Calls
+  toggles the shared `CommunicationMenu` flyout (see
+  [components/shared/README.md](../../components/shared/README.md)) —
+  it lists every direct/group conversation with a ring action and
+  carries the active joinable call rooms as its rows (icon, label,
+  participant count; clicking the row joins), sourced from the shared
+  `calls` store (`stores/calls.js`), which keeps the
+  `/api/livekit/active-rooms` snapshot fresh on `call.activity` events
+  and also drives the global `IncomingCalls` ring cards — only brand-new
+  invites float; ongoing calls stay under Calls and in chats. The flyout
+  expands automatically when the first room appears; it lives outside
+  the wrapped/expanded branches so the wrapped icon and the expanded row
+  toggle the same popup, and the wrapped organizations icon opens the
+  organization overview. Organization switching stays in the account
+  menu in the footer (owner directive); the footer names the active
+  organization.
+- Entity navigation is a raw default `PanelMenu` — default rows,
+  `multiple` panels open — with one panel per top-level type stationed by
+  the active process; registry containment (declared children edges)
+  nests types beneath their parents, and a declaration the active
+  definition does not station renders nothing (stale types from old
+  applies stay invisible). Class panels carry procedural labels only (the
+  generated type key with a locale override over the authored render
+  label) and no icon — the glyph is the instance signal. A type's
+  home-section instances hang beneath it as plain default rows carrying
+  the type's registry icon and the one title resolver label
+  (`instanceLabelOf`). Opening a type panel opens its compiled
+  `typeList` screen as a pane tab (`GeneratedScreenPane`, below) and
+  toggles the panel. Menu selection follows the active pane's selected
+  tab: opening an instance selects exactly its row, opening a type screen
+  leaves the list unselected, the chats page selects Chats; a selected
+  entry carries the chrome-subtle surface
+  (`rounded-ui bg-[var(--ck-chrome-subtle)]`). Header/label clicks open
+  the content; the submenu chevron toggles without running the open
+  command; leaf entries keep whole-click-as-command; keyboard activation
+  keeps PrimeVue's default command-plus-toggle behavior. The whole type
   hierarchy auto-expands on first sight; explicit collapses persist per
   key. Default rendering ignores custom item ids, so the E2E selectors
-  ride the authored type names on default rows and headers.
-  The sidebar paints no background — panels sit on the zero canvas with
-  their default hairline border as the panel box. Sidebar row actions are
-  gone with the custom rows: mutations belong to the compiled detail
-  screens' own action surfaces.
+  ride the authored type names on default rows and headers. The sidebar
+  paints no background — panels sit on the zero canvas with their default
+  hairline border as the panel box — and carries no row actions:
+  mutations belong to the compiled detail screens' own action surfaces.
 - The explorer shows the full hierarchy like the project page: entities nest
   beneath a loaded ancestor through the effective containment graph and
   canonical `lineage.*Id` references, and declared relation links participate
@@ -455,9 +426,8 @@ from the compiled manifest.
    like the routed surface contract; a create that ran with the editor
    protocol opens the editor page first whatever the type's detail
    surface (SPEC §UI). Rows whose instance is open in the
-   active pane carry the normal text color. The
-   desktop sidebar does not link out to hub entity-list screens; the full
-   hierarchy is navigable in place.
+   active pane carry the normal text color. The full hierarchy stays
+   navigable in place.
 - The sidebar footer is a separate bottom profile panel mounting the shared
   `UserAccountMenu`: a bordered trigger showing the user's actual name and
   the active organization's name beneath it (and the avatar alone in the
@@ -486,11 +456,11 @@ from the compiled manifest.
   screens and instance-bound detail screens both render through
   `GeneratedScreenHost` — the single generator host, with the instance id
   in the screen scope for detail panes. The pane tab names the hosted
-  surface (SPEC §Generative UI, 2026-10-23): the host receives
+  surface (SPEC §Generative UI): the host receives
   `paneHosted` and the engine suppresses its own title surfaces (the
-  list header label, the record identity block). There is no Explorer header or project
-  action strip; collection creation belongs to sidebar sections and
-  entity operations belong to the detail screens' own action surfaces.
+  list header label, the record identity block). Collection creation
+  belongs to sidebar sections and entity operations to the detail
+  screens' own action surfaces.
 - Tab creation is explicit: new tabs come only from the tab strip's add
   control, sidebar type screens, explorer instance rows, and live call stages (calls stay in their own tab so workspace
   navigation never unmounts an active call). Every other navigation —
