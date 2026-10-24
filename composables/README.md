@@ -1,21 +1,16 @@
-# COMPONENT: Composables & Stores — v24 Standardized
+# COMPONENT: Composables
 
 ---
 
 ## Entity data access — the instances store
 
-The `useEntity` composable and the delegated entity store were deleted:
-all entity reads, mutations, and caching live on the instances store
-(`stores/instances.js` — see [stores/README.md](../stores/README.md) for
-the canonical contract). Reads use `fetchInstance`/`listInstances`
-(`resolveReadableReference` for optional refs); direct feature CRUD uses
+All entity reads, mutations, and caching live on the instances store
+(`stores/instances.js` — the canonical contract is
+[stores/README.md](../stores/README.md)). Reads use
+`fetchInstance`/`listInstances` (`resolveReadableReference` for optional
+refs); direct feature CRUD uses
 `createInstance`/`updateInstance`/`removeInstance`, which carry the shared
 entity-event emission contract; process actions run through `runAction`.
-Block-computed conveniences (`name`, `state`, `specs`) became plain
-computeds over the cached wire DTO at their (few) call sites. During
-server-side rendering, `useGeneratedScreen` and page-level loaders forward
-the incoming request cookie to internal `$fetch` calls so authenticated
-sources load without false 401s.
 
 ---
 
@@ -25,22 +20,20 @@ sources load without false 401s.
 import { useLineage } from './useBlocks';
 ```
 
-⚠️ **Restricted use**: Only imported by the shared state/trace primitives
-(`TraceChain.vue`). Instance cards and pages **must not**
-import directly. See [components/shared/README.md](../components/shared/README.md#critical-architectural-rule-blocks-vs-composables).
+⚠️ **Restricted use**: shared state/trace primitives only (`TraceChain.vue`
+imports it); instance cards and pages consume the composables instead. See
+[components/shared/README.md](../components/shared/README.md#critical-architectural-rule-blocks-vs-composables).
 
 ---
 
 ## useStatePolicy — the flat state vocabulary source
 
-The flat state vocabulary's one client-side source (SPEC §7): it derives the
-per-type state policy map from the compiled producer workflows the auth
-hydration payload already carries (`statePolicyByType` over
-`processPayload.producerOutputs`). Every state surface — generated screens
-and the shared instance chrome (`InstanceState`, `StateHistory`,
-`InstanceCard` visibility, `InstanceInlineRef` compact chips) — resolves
-labels, severities, icons, and terminal flags through it; the resolver
-contract itself is canonical in
+Every state surface — generated screens and the shared instance chrome
+(`InstanceState`, `StateHistory`, `InstanceCard` visibility,
+`InstanceInlineRef` compact chips) — resolves labels, severities, icons, and
+terminal flags through `useStatePolicy()`, which derives the per-type state
+policy map from the compiled producer workflows the auth hydration payload
+already carries. The resolver contract is canonical in
 [shared/ui-mapping](../shared/ui-mapping/README.md).
 
 ```js
@@ -56,11 +49,10 @@ const policyByValue = policyFor(() => props.typeId); // reactive per-type map
 import { loadGsap, useEnterExit, enterOnce, riseAndFade, useStateTransition } from './useMotion.js';
 ```
 
-GSAP is the project animation engine, loaded lazily: `loadGsap()` dynamic-imports
-it once per session, and every pattern below only touches the engine from client
-lifecycle hooks, so GSAP never enters the SSR critical path. There is no second
-motion library and no application motion token layer; the preset's
-`--p-transition-duration` still owns generic component states.
+GSAP is the one motion engine, loaded lazily: `loadGsap()` dynamic-imports
+it once per session, and every pattern below only touches the engine from
+client lifecycle hooks, so GSAP stays out of the SSR critical path. The
+preset's `--p-transition-duration` owns generic component states.
 
 | Pattern | Use |
 |---|---|
@@ -69,13 +61,11 @@ motion library and no application motion token layer; the preset's
 | `riseAndFade(el, { y, duration })` | Transient badge motion (floating call reactions): rises and fades once, returns a completion promise for caller cleanup; reduced motion resolves immediately. |
 | `useStateTransition(containerRef, { duration, scale })` | Parameter-to-state animation. Call `capture()` while the previous rendered state is still in the DOM, apply the reactive update, then `play()` — a clone of the real previous state crossfades out over the new one. The animation always starts from the actual previous state, never from defaults. The container owns `position: relative` and clipped overflow; reduced motion skips the overlay. |
 
-Every pattern consumes `useReducedMotion()`. Consumers today: the support
-chat (`useEnterExit` typing indicator, `enterOnce` streamed message rows in
-`ChatSupport`) and floating call reactions (`riseAndFade` in
-`CallPanel`); `useStateTransition` currently has no consumer.
-JavaScript motion that PrimeVue cannot provide stays inside its owning derived
-composition per the components motion policy. The designer dock
-magnification pattern (`useFollowValue`) was retired with `MotionDock`.
+Every pattern consumes `useReducedMotion()`. Consumers: the support chat
+(`useEnterExit` typing indicator, `enterOnce` streamed message rows in
+`ChatSupport`) and floating call reactions (`riseAndFade` in `CallPanel`).
+JavaScript motion beyond PrimeVue's CSS states stays inside its owning
+derived composition per the components motion policy.
 
 ---
 
@@ -91,8 +81,8 @@ One module-scoped `EventSource` per browser tab carries every realtime topic:
 feature topics such as `conversation:<key>`. The server enforces topic
 admission; `subscribe` returns an unsubscribe function and drops the server
 subscription when the last handler goes away. After every (re)connect the
-composable resynchronizes the active topic set, so consumers never handle
-reconnects themselves. `status` is `idle | connecting | open | error`;
+composable resynchronizes the active topic set, so consumers are free of
+reconnect handling. `status` is `idle | connecting | open | error`;
 `onlineUserIds` is a reactive Set of user ids with a live connection in the
 active organization. Contract details live in
 [the connections feature](../server/features/connections/README.md).
@@ -117,14 +107,11 @@ preference implementation.
 ## useScreenSourceSync
 
 `useScreenSourceSync(screenGetter, reload)` reconciles a generated surface
-with the shared instance-event contract. A change carrying a complete
-snapshot reconciles the instances pool reactively (the store's
-reconciliation listener) and triggers no reload; a snapshot-less
-invalidation (another session's published event) triggers one debounced
-source reload, and stale list observations refetch through the normal
-read path. The routed generated screen page and the workspace detail pane
-both mount it through `GeneratedScreenHost`; the host's overload branch
-(`useGeneratedScreen`) keeps its own listener of the same shape.
+with the shared instance-event contract (the reconciliation semantics are
+canonical in [stores/README.md](../stores/README.md)). The routed generated
+screen page and the workspace detail pane both mount it through
+`GeneratedScreenHost`; the host's overload branch (`useGeneratedScreen`)
+keeps its own listener of the same shape.
 
 ## useStateController
 
@@ -136,8 +123,7 @@ After a successful transition, `useStateController` emits the same
 browser-local entity sync event for the changed entity and any related entities
 returned in transition `effects`. Transition responses normalize effects as
 grouped arrays (`effects.entities`, `effects.tasks`, `effects.transitions`, and
-`effects.events`); legacy array-shaped responses remain tolerated by the browser
-event bridge.
+`effects.events`).
 
 ```js
 const { transition, fetchActions, isTransitioning } = useStateController();
@@ -155,29 +141,19 @@ await transition(type, id, newState, { region: 'qa' });
 
 ## Offline Mutations & Outbox
 
-On the client, the instances store's CRUD verbs
+The outbox semantics — the IndexedDB queue, the typed `OfflineQueuedError`,
+sequential replay with `Idempotency-Key` dedup, and the `OfflineOutboxBadge`
+sync surface — are canonical in the root README's PWA section and
+[server/core/idempotency](../server/core/idempotency/README.md). The
+composable-side contract: the instances store's CRUD verbs
 (`createInstance`/`updateInstance`/`removeInstance`),
-`useStateController.transition`, and generated screen actions post
-through the outbox store (`stores/outbox.js`,
-backed by the IndexedDB queue and typed `OfflineQueuedError` in
-`utils/outbox.js`). Online calls pass through unchanged but carry an
-`Idempotency-Key` header (see
-[server/core/idempotency](../server/core/idempotency/README.md)). When the
-browser is offline — or the network fails mid-flight — the operation is
-queued in IndexedDB and the caller receives `OfflineQueuedError`: the
-optimistic preview is rolled back to the server-known state (the
-instances store owns that contract — see
-[stores/README.md](../stores/README.md)), the error surfaces through the
+`useStateController.transition`, and generated screen actions post through
+the outbox store (`stores/outbox.js`). Online calls pass through unchanged;
+when the browser is offline — or the network fails mid-flight — the caller
+receives `OfflineQueuedError`: the instances store rolls the optimistic
+preview back to the server-known state, the error surfaces through the
 caller's `error` ref, and generated action dialogs treat it as accepted
-(info toast, no result application). When connectivity returns, the store replays
-operations sequentially through the same endpoints and emits the shared
-entity-event contract with `source: 'outbox'`, so open screens apply snapshots
-or schedule debounced reloads exactly like local mutations. Replayed 4xx
-responses park the operation as failed in the `OfflineOutboxBadge` panel for
-manual retry/discard; network and 5xx failures stop the flush and retry
-later. Reads need no app code: the service worker serves cached
-`GET /api/**` responses when the network is unavailable (root README, PWA
-section).
+(info toast, no result application).
 
 ---
 
@@ -235,100 +211,115 @@ history.commit(); // at mutation start
 
 ---
 
+## useEntityPopup
+
+The popup-openable law: a type is popup-openable exactly when a surface
+exists to render it — the directory profile for `user`/`organization`, a
+compiled or synthesizable detail screen, or the record floor over the served
+type view. A type absent from the served type view has no record surface
+anywhere (panes stay silent for it too), so callers render a plain label and
+`open()` refuses. Consumed by `InstanceInlineRef`, `InstanceCard`, and
+`UserChip`.
+
+---
+
 ## useGeneratedScreen
-
-Generated home sources retain raw access-filtered list results and derive their
-visible top-level rows after every source has loaded. Runtime filtering reads
-the active process's compiled `lineageBindings` and matches their exact
-ancestor keys against the entities loaded by other Home sources. Process mode
-has no alias, arbitrary-`*Id`, or static-containment fallback; an active
-definition must be reapplied after a Lineage/compiler contract change.
-The derived source state retains `rawItems` so the renderer can distinguish an
-empty top-level source from a child source whose rows were all suppressed. A
-child is hidden when any readable non-organization ancestor identified by a
-compiled binding is present in another home source; with no readable ancestor
-it remains top-level. Non-home sources are never root-filtered.
-
-The organization process page delegates process catalog selection, persistence,
-graph selection/editing, connection inference, palette filtering, inspector
-records, roles, screens, and dock/panel state to focused
-`useProcessDesigner*` composables. Node selection is authoritative at click
-time: `selectNode`/`selectEdge` synchronize the canvas `selected` flags, so
-a stale flag left by a palette drop or a finished rubber-band can never
-redirect deletion onto a node other than the one clicked
-(`useProcessDesignerCanvasModel.spec.js` drives the full lifecycle —
-declaration authoring, wiring, renames, deletions — against this invariant). The page remains the view composition root;
-these composables own mutations for their concern and are behavior-tested
-without reading Vue source text.
-`useProcessDesignerLiveGraph` is the designer's realtime evaluation loop: one
-semantic signature over authoring state (nodes minus presentation, edges,
-draft records) re-runs `interpretDeclarationEdges`
-([`@perigram/processes`](../packages/processes/README.md)) and the page's sync
-pass on every change, so declaration wires re-bind descendants live while
-position drags and selection churn never re-evaluate.
-`useProcessDesignerNodeSync` keeps the record-level access shapes disjoint:
-effect and `cts.*` records always carry the grant object (`{ level,
-roleIds, grants }`) that compiles into action access, while the Item/List/Tree
-socket-access string is written only onto pure value-algebra records
-(`useProcessDesignerNodeSync.spec.js` pins both).
-`useProcessDesignerScreens` mutates complete semantic screen sources, regions,
-lineage rows, and typed binding/filter maps, then normalizes through the
-[`@perigram/processes` screen contract](../packages/processes/README.md). Source
-mode changes discard fields that are invalid for the selected mode rather than
-keeping a page-local shadow shape. `customize(station)` is the composable's
-only creation verb (crystallization Phase 4): it duplicates a compiled
-inferred station into an authored `data.screens` record — fresh id and route,
-compile-derived keys and lineage bindings stripped, station kind preserved —
-so the duplicate begins projection-equal to inference and the compiler's
-redundancy guard refuses it at Apply until the author deviates.
 
 Loads process-compiled screen sources for `GeneratedScreenHost`'s overload
 branch (the home workspace). The composable normalizes the screen contract,
 checks source-level process requirements against the active permission
-grants before fetching, and then loads entity data through `useEntity()`. It
-supports list and single-entity sources, assignment-bound
+grants before fetching, and then loads entity data through the instances
+store. It supports list and single-entity sources, assignment-bound
 filters/identifiers, and exposes source states to the overload component.
-Generated screens listen to the shared browser-local entity sync event and
-apply its complete entity snapshot directly to matching source state. A local
-create, update, or delete therefore becomes visible immediately without a
-polling request or a manual page reload. The patch is semantic, not
-positional: a changed entity replaces the matching item in place and is
-appended to a list source only when it satisfies that source's resolved
-filters; a delete event removes the id from every list source of that entity
-type. Single-mode sources patch only when the changed id matches the source's
-resolved identifier. Filter matching and `$screen.` reference resolution
-(`entityMatchesFilters`, `resolveSourceFilters`, `resolveSourceIdentifier`)
-are pure contracts in
+During server-side rendering, it and page-level loaders forward the incoming
+request cookie to internal `$fetch` calls so authenticated sources load
+without false 401s.
+
+Home sources retain raw access-filtered list results and derive their
+visible top-level rows after every source has loaded. Runtime filtering reads
+the active process's compiled `lineageBindings` and matches their exact
+ancestor keys against the entities loaded by other Home sources; root
+filtering applies to home sources only. The derived source state retains
+`rawItems` so the renderer can distinguish an empty top-level source from a
+child source whose rows were all suppressed. A child is hidden when any
+readable non-organization ancestor identified by a compiled binding is
+present in another home source; with no readable ancestor it remains
+top-level. An active definition must be reapplied after a Lineage/compiler
+contract change.
+
+Generated screens reconcile through the shared instance-event contract
+(canonical semantics in [stores/README.md](../stores/README.md)): a complete
+entity snapshot patches matching sources in place — appended to a list source
+only when it satisfies that source's resolved filters, deleted ids removed
+from every list source of that entity type, single-mode sources patched only
+when the changed id matches the source's resolved identifier — and
+snapshot-less events schedule one debounced source reload. Filter matching
+and `$screen.` reference resolution (`entityMatchesFilters`,
+`resolveSourceFilters`, `resolveSourceIdentifier`) are pure contracts in
 [utils/generated-screen-source.js](../utils/README.md): bare declared
 lineage keys read through the wire DTO's `lineage` block, so a created child
-carrying its parent ref lands in the open parent detail's child region — the
-generated hierarchy accumulates without a reload. Events without a complete
-snapshot are the only case that
-schedules a (debounced) source reload; API routes still enforce whether the
-source may read the changed instance.
+carrying its parent ref lands in the open parent detail's child region.
 
 Generated screens are UI composition only. They decide which regions, sources,
 and action buttons are visible, while API routes still enforce real access.
 `stores/auth.js` exposes generated screen manifests as effective user views:
 auto-generated role/entity screens are merged by entity, template, and scope
-before generated pages, menus, and breadcrumbs consume them. Breadcrumb sibling
-menus use only generated hub/list screens; detail screens stay paired with
-their list screen instead of appearing as duplicate top-level destinations.
-Manual generated-screen actions post to the active process action endpoint,
-which verifies the compiled action manifest before delegating to the relevant
-entity, status, socket, or command runtime.
+before generated pages, menus, and breadcrumbs consume them; breadcrumb
+sibling menus use only generated hub/list screens, and detail screens stay
+paired with their list screen. Manual generated-screen actions post to the
+active process action endpoint, which verifies the compiled action manifest
+before delegating to the relevant entity, status, socket, or command runtime.
 Collection actions also receive the current screen/region context. If an action
 declares a parent entity type, the generated screen sends the active parent id
-from `$screen.scope` in the `entities` map, so child constructors such as queue
-creation inside a project detail page receive their lineage parent.
-Generated action dialogs render entity-list construction fields as multi-select
-controls backed by the domain UI endpoint registry. Submitted values are
-normalized into the action input path before posting to the process runtime.
-When a generated source comes from a role with several status-scoped grants for
-the same entity feature, `useGeneratedScreen` derives a role-local
-`primaryStates` list from the source requirement and passes it to
-`useEntity.list()`. This keeps a multi-role user's role-specific screen from
-showing records that are only visible through another assigned role.
+from `$screen.scope` in the `entities` map, so child constructors inside a
+parent detail page receive their lineage parent. Generated action dialogs
+render entity-list construction fields as multi-select controls backed by the
+domain UI endpoint registry; submitted values are normalized into the action
+input path before posting to the process runtime. When a generated source
+comes from a role with several status-scoped grants for the same entity
+feature, `useGeneratedScreen` derives a role-local `primaryStates` list from
+the source requirement and passes it to `listInstances`, keeping the screen
+to records visible through the source's own role.
+
+---
+
+## Process designer composables
+
+The organization process page
+([pages/organization](../pages/organization/README.md)) delegates process
+catalog selection, persistence, graph selection/editing, connection
+inference, palette filtering, inspector records, roles, screens, and
+dock/panel state to focused `useProcessDesigner*` composables. The page
+remains the view composition root; these composables own mutations for their
+concern and are behavior-tested without reading Vue source text. Node
+selection is authoritative at click time: `selectNode`/`selectEdge`
+synchronize the canvas `selected` flags, so deletion always hits the clicked
+node even through a stale flag left by a palette drop or a finished
+rubber-band (`useProcessDesignerCanvasModel.spec.js` drives the full
+lifecycle — declaration authoring, wiring, renames, deletions — against this
+invariant).
+
+- `useProcessDesignerLiveGraph` is the realtime evaluation loop: one
+  semantic signature over authoring state (nodes minus presentation, edges,
+  draft records) re-runs `interpretDeclarationEdges`
+  ([`@perigram/processes`](../packages/processes/README.md)) and the page's
+  sync pass on every change, so declaration wires re-bind descendants live
+  while position drags and selection churn leave evaluation idle.
+- `useProcessDesignerNodeSync` keeps the record-level access shapes disjoint:
+  effect and `cts.*` records always carry the grant object (`{ level,
+  roleIds, grants }`) that compiles into action access, while the Item/List/Tree
+  socket-access string is written only onto pure value-algebra records
+  (`useProcessDesignerNodeSync.spec.js` pins both).
+- `useProcessDesignerScreens` mutates complete semantic screen sources,
+  regions, lineage rows, and typed binding/filter maps, then normalizes
+  through the [`@perigram/processes` screen
+  contract](../packages/processes/README.md). Source mode changes discard
+  fields that are invalid for the selected mode. `customize(station)` is the
+  composable's only creation verb: it duplicates a compiled inferred station
+  into an authored `data.screens` record — fresh id and route,
+  compile-derived keys and lineage bindings stripped, station kind preserved
+  — so the duplicate begins projection-equal to inference and the compiler's
+  redundancy guard refuses it at Apply until the author deviates.
 
 ---
 
@@ -338,8 +329,8 @@ The chat composer's file transport (the server contract lives in
 [server/api/README.md](../server/api/README.md) → files): files up to 8MB
 POST directly through XHR so upload progress events surface; bigger files
 ride resumable chunk sessions — every acknowledged chunk advances
-progress, and on disconnect the uploader waits for connectivity, reads
-the session's received indexes, and re-sends only the gaps (bounded
+progress, and on disconnect the uploader waits for connectivity, reads the
+session's received indexes, and re-sends only the gaps (bounded
 resyncs, then a surfaced error). `uploadChatFile(file, { onProgress })`
 returns the stored descriptor (`{ id, filename, url }`) every caller
 consumes; the staged `File` handle owns the resume, so dropping the draft
@@ -413,8 +404,8 @@ compiled screen are folders, not tabs). The selection is shared app
 state: the app-shell bottom bar writes it and highlights it, the home
 workspace's mobile branch renders the selected screen, and an unknown
 or unset key resolves to the first tab. Tab labels are procedural only
-(the generated type key with a locale override over the type `name`); no entity contracts participate. Chats is not part of this
-contract — it stays the bar's own route tab navigating `/chats`.
+(the generated type key with a locale override over the type `name`).
+Chats stays the bar's own route tab navigating `/chats`.
 
 ---
 
@@ -431,8 +422,8 @@ vue-router's history state carries an app-internal previous route, and
 falls back to the process entry route (the home ladder) so deep links
 never dead-end. The affordance turns on client-side after mount (it reads
 `window.history`; an SSR/client difference would hydration-mismatch the
-header). `when` gates dual-hosted surfaces (the organization pages):
-the back control belongs to the routed surface, never the pane tab.
+header). `when` gates dual-hosted surfaces (the organization pages): the
+routed surface owns the back control.
 
 Shell modal state lives in `useModalState.js`: the support chat dialog
 and target, and the profile settings popup (`useProfileDialog` — opened

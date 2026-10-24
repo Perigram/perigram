@@ -51,15 +51,13 @@ Three cells; every surface derives from them, nothing else caches:
   routes for types that own them (party administration, framework
   services, editor feature modules — pinned by spec to the mounted
   `server/api` routes), and everything else mutates through the transport.
-  The team surface reads its feature DTO directly (`/api/users`) — it is a
-  feature surface, not a process-plane consumer.
+  The team surface reads its feature DTO directly (`/api/users`).
   Icons and constructibility resolve from the registry bundle (render
   policy, declared construct operators) — the render-policy icon is the
   single icon source for every generated/shared surface (cards, pages,
-  collections, trace links); the legacy `instanceUiFor` icon table remains
-  only inside true legacy surfaces. Event type keys canonicalize to
+  collections, trace links). Event type keys canonicalize to
   cache keys through the registry when the bundle knows them, else through
-  the mechanical case normalization in `utils/generated-screen-source.js`.
+  `canonicalTypeKey` in this store.
 - `registry.js` — the compiled CTS client bundle as first-class state,
   projected from auth hydration (`processPayload.bundle`) with `refresh()`
   re-hydrating through the auth store. Owns `typesById`, `typeRecord`,
@@ -72,7 +70,7 @@ Three cells; every surface derives from them, nothing else caches:
   previews so the resolver behaves exactly like auth hydration. The store
   also registers the declaration-derived field-access policies
   (`registerDeclarationFieldAccess`) into the shared display-access
-  resolver: bundle types with no legacy domain entry get their fact-row
+  resolver: bundle types outside the hardcoded domain table get their fact-row
   access from the projection, re-featured to the class-collection grant
   the server's instance reads check. The
   process designer reads the same bundle from its own overlay; this store
@@ -86,23 +84,7 @@ Direct feature CRUD lives on the instances store too:
 `createInstance`/`updateInstance`/`removeInstance` wrap `mutateDirect`
 with the shared instance-event emission contract (browser-local event plus
 the typed invalidation other sessions poll). `dtoRegistry` is the wire-DTO
-projection for the remaining handwritten card/detail surfaces.
-
-**Legacy seams (load-bearing, removal tied to their features):** the
-delegated `useEntity` composable and entity store are deleted, and the
-hardcoded legacy navigation cluster went with them (the boot-time projects
-fetch, the project-slug route hierarchy watcher against an unmounted
-endpoint, the hardcoded per-entity route tables in breadcrumb/trace
-routing, the queue editor flow and its orphan stores). The remaining
-client imports of facade declarations are owned by legacy server
-contracts, not by declarations —
-`utils/instance-display-contract.js` (the residual legacy card surface
-registry for undeclared types),
-`components/PermissionEditor.vue` (the membership feature-key
-vocabulary that membership grants are written against), and the designer
-inspector's palette-surface metadata. Each dies when membership grants
-move to the
-process vocabulary; none may gain new consumers.
+projection for handwritten card/detail surfaces.
 
 ## Core Stores
 
@@ -172,7 +154,7 @@ process vocabulary; none may gain new consumers.
   instance mutation snapshots publish through the same store. Successful
   mutations publish a complete instance snapshot to the browser-local
   `utils/instance-events.js` contract used by shared stores and generated screens.
-- Generated surfaces resolve entity data through the instances store; per-feature entity stores died with the legacy features.
+- Generated surfaces resolve entity data through the instances store.
 
 ## Conventions
 - Stores use `$fetch` to call Nitro API endpoints.
@@ -190,11 +172,9 @@ process vocabulary; none may gain new consumers.
 - `navigation.js` owns route breadcrumbs. SSR callers must pass request
   headers through `fetchRouteHierarchy(path, query, fetchOptions)` so
   protected lookups use the same session cookie as auth middleware.
-  Detail-screen detection accepts both template vocabularies
-  (`entityDetail` and the projected `instanceDetail`) and reads the screen
-  type from `typeId` or `typeId`, so compiled process manifests keep
-  detail screens out of hub siblings and breadcrumbs after the UI-contract
-  cutover. Breadcrumb sibling options normalize canonical DTO labels before passing
+  Detail-screen detection reads the projected `instanceDetail` template
+  vocabulary and the screen's `typeId`, so compiled process manifests keep
+  detail screens out of hub siblings and breadcrumbs. Breadcrumb sibling options normalize canonical DTO labels before passing
   them to PrimeVue Select.
   When auth includes an active process, hubs and breadcrumbs are built only from
   the compiled process screen manifest plus the active permission evaluator, so
@@ -216,8 +196,7 @@ process vocabulary; none may gain new consumers.
   receive route query so `/admin?section=...` can expose
   Designer/Entities/Context/Commands as navigation siblings.
 - Long-running operations start optimistic UI updates and polling until
-  terminal states. The legacy queue-nesting polling store was deleted with
-  the queue editor flow: nesting solves run as process actions
-  (`solveNesting`), and their async completion reaches open screens through
-  the shared entity-event reconciliation like every other mutation.
+  terminal states. Nesting solves run as process actions (`solveNesting`),
+  and their async completion reaches open screens through the shared
+  entity-event reconciliation like every other mutation.
 - Internal demo pages may pre-seed the instances store with DTO-shaped mock records (`upsertRecord`) so shared trace components render examples without calling authenticated APIs.

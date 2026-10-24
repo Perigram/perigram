@@ -10,7 +10,7 @@ It is the seam between the semantic layers (the CTS client bundle from
 This module is pure data and pure functions: no Vue, no Nuxt, no PrimeVue
 imports, no CNC names. Resolver output names registered component keys
 (`'InputNumber'`, `'InstanceInlineRef'`, …); the app-side fixed registry maps keys to
-components. Persisted/process data never selects a component directly.
+components. Component choice is resolver output only.
 
 Parent: [shared/README.md](../README.md).
 
@@ -63,124 +63,133 @@ in one render tree without any composite registry entries.
 `resolveFieldControl(descriptor, { variant })` → `{ component, span, props }`.
 An authored `control` string on the descriptor pins the editor
 control for edit variants (`full`/`detail`); display variants stay
-shape-derived projections — authored data chooses input affordances, not
-read-only presentations. Field display names come from
-`fieldLabel(name, descriptor)`: the descriptor's `label` override, else
-the start-case name. Record titles resolve through `titleFor(record,
-typeView, { unnamedLabel })`: the value of the type's `identifier`-flagged
-field when non-empty, else the localized unnamed placeholder (default
-`'Unnamed'`; callers pass `t('common.unnamed')`) — never record ids,
-never slugs, never heuristics. The identifier field is the identity
-slot of every surface (record title, card title, table identity
-column); fact strips, card facts, and descriptor columns exclude it
-(`isIdentifierField`) — the title never repeats as a fact. Display
-glyphs resolve through
-`iconFor(typeView, record?)`: `typeView.glyph`, except that a given
-record with a non-empty `depiction.thumb` field value wins (the declared
-thumbnail is per-record data). `formatQuantity` maps storage units to
-display symbols
-(`count`/`currency` render as bare localized numbers). Detail surfaces
-are sectioned by the derived `sections` (`resolveFieldGroups`: base
-assignment in summary/dimensions/media/relations/notes order, fields a
-stale bundle left unassigned trailing in an unlabeled default group),
-so record views carry field-group semantics instead of one
-undifferentiated stream. Generated create dialogs resolve their rows from
+shape-derived projections — authored data chooses input affordances,
+read-only presentations derive from shape.
+
+**Identity and labels:**
+
+- `fieldLabel(name, descriptor)` — the descriptor's `label` override, else
+  the start-case name.
+- `titleFor(record, typeView, { unnamedLabel })` — the value of the type's
+  `identifier`-flagged field when non-empty, else the localized unnamed
+  placeholder (default `'Unnamed'`; callers pass `t('common.unnamed')`).
+  Titles are identifier values.
+- `iconFor(typeView, record?)` — `typeView.glyph`; a given record with a
+  non-empty `depiction.thumb` field value wins (the declared thumbnail is
+  per-record data).
+- `formatQuantity` — maps storage units to display symbols
+  (`count`/`currency` render as bare localized numbers).
+- The identifier field is the identity slot of every surface (record title,
+  card title, table identity column); fact strips, card facts, and
+  descriptor columns exclude it (`isIdentifierField`), so the title renders
+  once per surface.
+
+**Edit variants** resolve editor controls, refined by derived qualifiers:
+
+| Input shape | Control |
+|---|---|
+| authored `control` | the pinned control |
+| `quantity` | QuantityInput (InputGroup: InputNumber plus unit addon) |
+| few-option `enum` | SelectButton |
+| large `enum` | filtered Select |
+| ordinal `enum` (p0..p3, tier0..2 — value shapes matching a rank pattern) | Rating |
+| bounded scalar (declared min/max) | Slider |
+| `ref` | InstancePicker |
+| `list` of strings | InputChips |
+| `list` of refs | InstanceMultiPicker |
+| `list` of enums | OrderList |
+| long string | Textarea |
+| payload blob | FileUpload |
+| `record` / `variant` / heterogeneous `list` | recursive structural editors |
+
+**Display variants** resolve read-only presentations, refined by data shape:
+
+| Data shape | Presentation |
+|---|---|
+| `enum` | Tag |
+| `ref` | InstanceInlineRef (the app's interactive reference surface; the shared layer names the key) |
+| `quantity` | QuantityText |
+| `blob` | FileChip |
+| percent quantity | Knob dial |
+| percent-valued map | MeterGroup |
+| non-percent quantity map | bar Chart |
+| long string | prose |
+| string list | budgeted chips |
+| spec-row value | Inplace (click-to-edit) |
+
+Spans are `'full' | 'half'`; the layout is a dumb responsive grid that
+consumes spans (the container-relative `.ck-form-grid`; see Chrome). Dense
+rows bound their field count through `ROW_FIELD_BUDGET`.
+
+Detail surfaces are sectioned by the derived `sections`
+(`resolveFieldGroups`: base assignment in summary/dimensions/media/
+relations/notes order, fields a stale bundle left unassigned trailing in an
+unlabeled default group), so record views carry field-group semantics.
+
+**Create dialogs.** Generated create dialogs resolve their rows from
 compiled construction inputs through `resolveCreateDialogInputs(action,
 type, bundle)`: declared fields match by flat-wire `fields.<name>` path
 (the §3 stored shape compiled construction inputs speak) or bare name
-(authored compose inputs) and render through their descriptor; the
-identity `name` renders as a plain string control; `lineage.<key>`
-inputs render
+(authored compose inputs) and render through their descriptor; the identity
+`name` renders as a plain string control; `lineage.<key>` inputs render
 instance pickers over the parent types whose children edges declare that
 lineage key for the target type (reverse containment over the bundle —
 parents' edges are the declaration home, the child carries no parent list;
 an edge matches by its declared `lineageKey`, the entry's map key is
 authoring identity). Rows carry the compiled input's `required` flag, and
 the type's `identifier` row is required unconditionally (the naming law:
-its value is the record's title, so a create never submits an unnamed
-record — the row derives even when the construction contract omits it,
-and the dialog's submit stays disabled while a required row is
-empty). Quantity rows draft the SPEC §2 `{ value, unit }` shape their
-control models (a unit-carrying default prefills in that shape), and the
-dialog's payload scalarizes drafts at the boundary: instance refs by
-`id`, quantities by `value`. Inputs
-resolving to nothing stay hidden, so typed constructor inputs keep their
-editor surfaces. Construction-input labels are authored vocabulary
-resolved at the domain projection (parent type name, start-cased row
-name), never raw storage paths.
-Display presentations refine by
-data shape: percent quantities render as Knob dials, percent-valued maps
-as MeterGroup, long strings as prose, string lists as budgeted chips;
-bounded scalars (declared min/max) edit through Slider, ordinal enums
-(p0..p3, tier0..2 — value shapes all matching a rank pattern) render as
-Rating, non-percent quantity maps as bar Charts, enum lists edit through
-OrderList, destructive actions confirm through ConfirmDialog with Toast
-feedback, and large media collections lay out as a carousel. Spec-row
-values are click-to-edit via Inplace.
+its value is the record's title — the row derives even when the
+construction contract omits it, and the dialog's submit stays disabled
+while a required row is empty). Quantity rows draft the SPEC §2
+`{ value, unit }` shape their control models (a unit-carrying default
+prefills in that shape), and the dialog's payload scalarizes drafts at the
+boundary: instance refs by `id`, quantities by `value`. Inputs resolving to
+nothing stay hidden, so typed constructor inputs keep their editor
+surfaces. Construction-input labels are authored vocabulary resolved at the
+domain projection (parent type name, start-cased row name).
 
-`resolveListLayout(type, { size, stateful })` → `'table' |
-'card-grid' | 'timeline' | 'stats' | 'list' | 'board' |
-'gantt' | 'calendar'` from one
-matcher table over `analyzeTypeShape(type)`: prose-dominant types are
-chronological (timeline), percent/quantity-dominant types are
-statlike (StatGrid cards with the `text-metric` role), media types get
-card grids, handful-sized
-sets render as a bare stacked list, and the default is the generated
-columnar table — no hand-picked type ids anywhere and no authored
-override channel (display derivation replaced it). A class's list
-surface is always flat: containment never projects onto the class
-screen — hierarchy is navigation (the workspace explorer owns it). The temporal shapes:
-a type declaring two instants is durational (an interval — the gantt,
-outranking chronology because an interval is the stronger structure)
-and a lone instant with no stronger shape schedules the calendar
-(`temporalFieldsFor` derives the fields in declaration order); temporal
-shape beats size the way chronology already does. The board is the one
-class+vocabulary decision: a process-class type whose served state
+**List layouts.** `resolveListLayout(type, { size, stateful })` → one of
+`table`, `card-grid`, `carousel`, `timeline`, `stats`, `list`, `board`,
+`gantt`, `calendar`, from one matcher table over `analyzeTypeShape(type)` —
+the layout derives from declaration data alone:
+
+| Shape signal | Layout |
+|---|---|
+| prose-dominant | `timeline` (chronological) |
+| percent/quantity-dominant | `stats` (StatGrid cards with the `text-metric` role) |
+| media | `card-grid`; large media collections lay out as a `carousel` |
+| two declared instants | `gantt` (an interval outranks chronology — the stronger structure) |
+| lone instant | `calendar` (`temporalFieldsFor` derives the fields in declaration order) |
+| process class whose state vocabulary spans ≥ `BOARD_MIN_COLUMNS` | `board` |
+| handful-sized set | `list` (bare stacked) |
+| default | `table` (generated columnar) |
+
+Temporal shape beats size the way chronology already does. The board is the
+one class+vocabulary decision: a process-class type whose served state
 vocabulary spans at least `BOARD_MIN_COLUMNS` values (`stateful`, from
 `hasStateVocabulary` over the region's state policy) renders its
-collections as state lanes, because the authored workflow machine is
-that collection's structure; the entry rides a derived `boardable`
-candidate signal at one-key specificity so a narrow type override still
-outranks it through the override splice. The app-side projection switch —
-persisted user view
-state on the sort/filter seam, see
-[components/ui-mapping](../../components/ui-mapping/README.md)) — offers
-the board for any stateful structural collection. Hierarchy
-materialization (InstancePicker's hierarchical mode, the workspace
-explorer) matches children
-through `childrenOfParent(type, pool, parentId)`: every children edge
-contributes the pool instances of its declared child types whose
-`lineage[edge.lineageKey]` points at the parent — the declared storage
-key, never the edge's map key. A lineage reference matches in both
-stored shapes, the `{ id }` ref and the normalized id.
-Presentation budgets
-scale with type richness (`TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE`: wide
-types earn more columns and facts) instead of fixed constants. Collection
-thresholds are budgets too (`TABLE_PAGINATE_AT`, `TABLE_PAGE_ROWS`,
-`TABLE_VIRTUALIZE_AT`, `SEARCH_AT`) so materializations carry no magic
-numbers. The
-shared presentation budgets (`CHIP_BUDGET`, `ROW_RELATION_BUDGET`,
-`CHILDREN_TABS_AT`, `SCALAR_BASES`) live beside the other defaults so
-materializations carry no magic numbers,
-and `LAYOUT` is the only layout-class vocabulary they may use — PrimeVue
-components own their internal layout, and every grid/stack/row/gap the
-generator needs comes from that table. `formatValue(descriptor, value)`
-projects any field to display text (unit symbols, dates, enums, counts),
-which text surfaces (timeline meta) consume; structural displays render
-as labeled description lists and checklists bounded by
-`SUMMARY_BUDGET`.
-Edit variants resolve editor controls, refined by derived qualifiers:
-`quantity` → QuantityInput (InputGroup: InputNumber plus unit addon), few-option
-`enum` → SelectButton, large `enum` → filtered Select, `ref` → InstancePicker,
-`list` of strings → InputChips, `list` of refs → InstanceMultiPicker, long
-strings → Textarea, payload blobs → FileUpload, and `record`/`variant`/
-heterogeneous `list` → recursive structural editors. Display variants resolve
-read-only presentations (`enum` → Tag, `ref` → InstanceInlineRef — the
-app's interactive reference surface; the shared layer names the key,
-`quantity` → QuantityText, `blob` → FileChip). Spans are `'full' | 'half'`; the layout is
-a dumb responsive grid that consumes spans (the container-relative
-`.ck-form-grid`; see Chrome below). Dense rows bound their field
-count through the same budget mechanism (`ROW_FIELD_BUDGET`).
+collections as state lanes, because the authored workflow machine is that
+collection's structure; the entry rides a derived `boardable` candidate
+signal at one-key specificity so a narrow type override still outranks it
+through the override splice. The app-side projection switch — persisted
+user view state on the sort/filter seam, see
+[components/ui-mapping](../../components/ui-mapping/README.md) — offers the
+board for any stateful structural collection. A class's list surface is
+always flat: containment is navigation (the workspace explorer owns
+hierarchy).
+
+**Hierarchy materialization** (InstancePicker's hierarchical mode, the
+workspace explorer) matches children through `childrenOfParent(type, pool,
+parentId)`: every children edge contributes the pool instances of its
+declared child types whose `lineage[edge.lineageKey]` points at the parent —
+the declared storage key (the edge's map key is authoring identity). A
+lineage reference matches in both stored shapes, the `{ id }` ref and the
+normalized id.
+
+`formatValue(descriptor, value)` projects any field to display text (unit
+symbols, dates, enums, counts), which text surfaces (timeline meta) consume;
+structural displays render as labeled description lists and checklists
+bounded by `SUMMARY_BUDGET`.
 
 ### Instance shape and list controls
 
@@ -190,18 +199,17 @@ pure over the loaded pool. It reports which fields actually carry data
 or fact) and the enum values present per field
 (`enumValues`). `resolveListControls(type, instances)` builds the
 compose-time list contract every collection surface consumes:
-`searchKeys` (the `identifier`-flagged field only — the preferred-name
-and first-short-string heuristics are gone; a type without an identifier
+`searchKeys` (the `identifier`-flagged field only; a type without an identifier
 searches by title and id alone), `sortKeys` (filled short scalars
-with labels, the identifier field excepted — it is the identity axis
-and never repeats as a descriptor column; the
+with labels, the identifier field excepted — it is the identity axis;
+the
 first filled short scalar is the natural default), `facets` (enum
 fields over the values actually present), and `pagination` from the
 shared table budgets. The contract is total and deterministic over the
-type record plus instances — never instance-of-the-week heuristics.
+type record plus instances.
 Two pure helpers consume it: `toolbarVisibleFor(node)` decides the bar
-(large lists always, small lists through multi-value facets, never off
-list surfaces) and `instanceMatchesToolbar(type, controls, instance,
+(large lists always, small lists through multi-value facets, list
+surfaces only) and `instanceMatchesToolbar(type, controls, instance,
 query, facetSelections)` applies it — the selection composes into the
 canonical instance-filter tree
 ([shared/instance-filters](../instance-filters/README.md)): an `or` of
@@ -294,9 +302,9 @@ status-forward detail); the class obligations in
 are fillable. Unknown classes fall back to the generic record surface.
 `resolvePreview(typeRecord)` keys on the declared payload `preview` mode
 (`image`, `geometry`, `attachment`, `none`) — preview behavior is declared
-data, never guessed from MIME or extension. `RENDERABLE_PREVIEW_MODES`
+data. `RENDERABLE_PREVIEW_MODES`
 (table export) lists the modes the app's shared viewer modules render
-(`dxf`, `svg`, `sketch`, `occs`, `image`, `pdf`, `docx`, `table`,
+(`dxf`, `svg`, `sketch`, `image`, `pdf`, `docx`, `table`,
 `workbook`, `text`); app-side materializations import it instead of
 restating the list, and every other mode degrades to a payload download.
 
@@ -394,38 +402,59 @@ too: `sortControlRows(rows, key, order)` orders by a `sortKeys` entry
 the input) and `pageSlice(rows, first, rowsPerPage)` cuts one page — the
 shared semantics for surfaces that sort or page without PrimeVue.
 
+Budget constants live in `tables.js` beside the matcher tables, so every
+materialization reads the same numbers:
+
+| Constants | Bound |
+|---|---|
+| `TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE` | columns and facts per type richness |
+| `TABLE_PAGINATE_AT`, `TABLE_PAGE_ROWS`, `TABLE_VIRTUALIZE_AT`, `SEARCH_AT` | collection thresholds: pagination, page size, virtualization, toolbar search |
+| `CHIP_BUDGET`, `ROW_RELATION_BUDGET`, `SUMMARY_BUDGET`, `DETAIL_FACT_BUDGET` | chip, relation-chip, structural-summary, detail-fact counts |
+| `CHILDREN_TABS_AT`, `HEADER_ACTIONS_INLINE` | child regions per tab, inline header actions before the overflow menu |
+| `ROW_FIELD_BUDGET`, `SCALAR_BASES` | dense-row field count, scalar base set |
+| `SMALL_LIST_AT`, `BOARD_MIN_COLUMNS` | bare-list size, board column floor |
+
+`LAYOUT` is the one layout-class vocabulary materializations may use —
+PrimeVue components own their internal layout, and every grid/stack/row/gap
+the generator needs comes from that table.
+
+### Arrangement
+
 Presentation context is tree-owned: every composed region node carries
 `chrome` (`resolveChrome` of its container role by depth — top regions are
 sections, nested regions are cards) plus its `level` — real tree depth:
 every top-level region sits at level 0, and the record-page treatment
-follows surface kind, never array position — so materializations
-style themselves from their position in the hierarchy instead of guessing.
-Sibling arrangement is weight-driven and compose-time: `estimateRegionWeight`
-estimates each region's full rendered height from its own data — facts,
-structural fields, and relation refs for detail regions; per-layout row
-factors (`ROW_WEIGHT_BY_LAYOUT`: a preview card ≈ 4 table rows, a board
-card ≈ 4, a carousel card ≈ 3, a timeline entry ≈ 2) times actual
-instance counts for lists (with the same size classes the materialization
-derives, so the weighted layout is the rendered layout),
-plus the wrapped
-relation-chip rows the first declared relation adds, with no sampling
-cap —
-and `arrangeChildren` decides how sibling regions share the surface from
-the same weights at card scale (a preview/board card is 4 rows, a table
-row 1): a stack-mode child set at or under `SIDE_MAX_WEIGHT` rides beside
-the record body, peers up to `COLUMN_MAX_WEIGHT` rows each share
-proportional columns (track fr from each child's estimated rows), a
-sibling holding at least `DOMINANT_CHILD_SHARE` of the total keeps the
-vertical flow while its remainder fits `SURFACE_ROW_BUDGET`, and every
-other over-budget set tabs in descending weight order at the top level
-(nested heavy content stacks). Arrangement is content-aware (SPEC
-§Generative UI, 2026-10-22): a child collection with zero loaded
-instances is layout-inert — it joins the node's `stubRegions`, renders
-compact below the arranged content, and every arrangement decision
-(weights, columns, tabs, the side rail) sees filled children only; its
-relation key still covers the record body's chip row.
+follows surface kind — so materializations style themselves from their
+position in the hierarchy.
+
+Sibling arrangement is weight-driven and compose-time.
+`estimateRegionWeight` estimates each region's full rendered height from
+its own data — facts, structural fields, and relation refs for detail
+regions; per-layout row factors (`ROW_WEIGHT_BY_LAYOUT`: a preview card ≈ 4
+table rows, a board card ≈ 4, a carousel card ≈ 3, a timeline entry ≈ 2)
+times actual instance counts for lists (with the same size classes the
+materialization derives, so the weighted layout is the rendered layout),
+plus the wrapped relation-chip rows the first declared relation adds.
+`arrangeChildren` decides how sibling regions share the surface from the
+same weights at card scale:
+
+| Rule | Constant | Behavior |
+|---|---|---|
+| Side rail | `SIDE_MAX_WEIGHT` | a stack-mode child set at or under the budget rides beside the record body |
+| Peer columns | `COLUMN_MAX_WEIGHT` | peers up to the budget rows each share proportional columns (track fr from each child's estimated rows) |
+| Dominant child | `DOMINANT_CHILD_SHARE` | a sibling holding at least the share of total weight keeps the vertical flow while its remainder fits `SURFACE_ROW_BUDGET` |
+| Tabs | over-budget sets | tab in descending weight order at the top level (nested heavy content stacks) |
+
+Arrangement is content-aware (SPEC §Generative UI, 2026-10-22): a child
+collection with zero loaded instances is layout-inert — it joins the node's
+`stubRegions`, renders compact below the arranged content, and every
+arrangement decision (weights, columns, tabs, the side rail) sees filled
+children only; its relation key still covers the record body's chip row.
 Screen-level sections keep their own budget rule (`childrenModeFor`:
-over-budget top-level sections tab). Never measured from the DOM. One global spacing coefficient (0.5–2, the showcase slider)
+over-budget top-level sections tab). Every weight is a compose-time value
+over the composed tree.
+
+One global spacing coefficient (0.5–2, the showcase slider)
 selects the rhythm set (`spacingClasses` over the literal
 `SPACING_SCALES` table): stack rhythm, section gaps, fact-row padding,
 chip-row leading, toolbar gaps, control size, and
@@ -438,7 +467,7 @@ regions. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and
 scale are data too. Widths stay in
 the vocabulary (`LAYOUT.clip`, `LAYOUT.bounded` over the bounded-grid-item
 tokens) and card grids run through the shared `ResponsiveGrid` primitive
-(container queries), never viewport breakpoints inside panels.
+(container queries).
 Container-relative layout that Tailwind variants cannot express (the
 build ships no container-queries plugin, so `@container`/`@[w]:` classes
 silently compile to nothing) lives in real CSS through four sanctioned
@@ -456,8 +485,7 @@ list — `minmax(0, Nfr)`, so wide content scrolls inside its column —
 and engages it when the measured host grants every track its earned
 minimum, `trackCount × REGION_COLUMN_EARNED_REM`: generative for any
 track count, stacking inside panes, dialogs, and narrow hosts), and the
-form grid
-(`LAYOUT.formGrid` names the global `.ck-form-grid` utility in
+form grid (`LAYOUT.formGrid` names the global `.ck-form-grid` utility in
 `assets/css/main.css`: one column under 40rem of container width, two
 above; full-span rows opt in with `.ck-span-full`), and the record
 body's fill grids beside it (`LAYOUT.factsGrid`/`LAYOUT.bodyGrid`:

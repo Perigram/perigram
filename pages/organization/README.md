@@ -5,8 +5,8 @@ Organization pages manage the current tenant context.
 `index.vue` is a thin route wrapper around the generated organization overview
 screen from auth hydration. The server stores that screen in the user's screen
 manifest with `template: "organizationOverview"` and a list of accessible
-organization system screens. The page does not decide which organization
-sections exist; it renders the hydrated screen contract. It also owns two
+organization system screens. The server decides which organization sections
+exist; the page renders the hydrated screen contract. It also owns two
 non-member states: the orgless shell (targeted invitations plus the inline
 organization-creation form) and the pending-only state — an account whose
 memberships are all pending has no compiled tenant screens, so the route
@@ -16,14 +16,12 @@ renders the awaiting-approval message rather than the not-found block.
 hydration. Billing packages are loaded from
 `/api/organizations/:id/billing/packages`, account state from
 `/api/organizations/:id/billing/account`, and checkout/payment sync through the
-same organization billing route group. User profile routes do not buy or hold
-credits. Billing checkout is a billing-screen action gated by
-`organizations:admin`; team management and process design are separate route
-screens gated by their own effective permissions.
-The account panel explains token use in compute-intensive services. It never
-exposes runtime-configuration implementation wording, and it shows a current
-tariff tag only when deployment billing mode is `tariff` and a current tariff
-is configured.
+same organization billing route group. Billing checkout is a billing-screen
+action gated by `organizations:admin`; team management and process design are
+separate route screens gated by their own effective permissions.
+The account panel explains token use in compute-intensive services, in
+user-facing wording, and shows a current tariff tag only when deployment
+billing mode is `tariff` and a current tariff is configured.
 
 `partners.vue` is the partner management route for organization-to-organization
 relations (see [partnerships](../../server/features/partnerships/README.md)).
@@ -63,7 +61,7 @@ tab from the generated overview; the route stays as the mobile/deep-link
 fallback. Installing opens
 the consent dialog naming the plugin's types and services before the admin
 confirms; the catalog rows of installed plugins carry
-the installed tag instead of the install action. An available catalog
+the installed tag. An available catalog
 version pins a `from → to` tag and an upgrade action on the installed row;
 its dialog previews additions, removals, and changed types (the §11
 migration plan) and blocks confirmation while live-data blockers exist.
@@ -87,8 +85,8 @@ active process definition, and writes assignments through
 assigning actual users to abstract process roles. Bot members appear in the
 table badged as bots, and single-seat roles are marked in the pickers (see
 [agent bots](../../server/features/agent-bots/README.md) and
-[organizations](../../server/features/organizations/README.md)). It does not expose membership
-role labels as process roles. Invites, user creation, and assignment editing all
+[organizations](../../server/features/organizations/README.md)). Membership
+role labels and process roles stay separate vocabularies. Invites, user creation, and assignment editing all
 preserve multiple selected process role ids. The invite dialog covers both
 invitation kinds: the unaddressed link invitation (roles + generated
 `/invitation/:token` link) and the targeted direct invite — an existing-user
@@ -113,7 +111,7 @@ contract of the active process), and every rendered line names the record that
 contributed it: an authored grant, a screen requirement consuming separate
 capability, a status-window rule, or a level fallback. Missing bindings come
 from the edited candidate assignment. Active owner membership is a separately
-attributed organization/team recovery overlay, never a process-role grant.
+attributed organization/team recovery overlay.
 The route expects `/api/users` to return canonical user DTO blocks with
 `identity.name`, `data.email`, and membership summary fields visible under
 `users:read`; it derives the active organization id from the loaded organization
@@ -133,28 +131,23 @@ removed state to a retained target, and activation re-targets the affected
 instances (the canonical Apply migration contract lives in
 [server/features/process-definitions/README.md](../../server/features/process-definitions/README.md)).
 
-The designer authors the current species process contract (SPEC §20). The
-server does not lower v5 records to an older operation vocabulary for
-compile, validate, preview, or runs: resolution binds CTS ids and declared
-paths while preserving species kinds, read discriminators, socket ids, and
-graph edges. `operationKindOf` is classification only.
+The designer authors the current species process contract (SPEC §20).
+Resolution binds CTS ids and declared paths while preserving species kinds,
+read discriminators, socket ids, and graph edges across compile, validate,
+preview, and runs; `operationKindOf` is classification only.
 
 The declaration view edits class, field, state, transition, and operator
 records plus typed declaration edges. The process view composes native
 `cts.*` species and pure value/list/control records against the projected CTS
-domain. Stored graphs are authored in the current species vocabulary only:
-there is no load-boundary rewrite and no runtime fallback vocabulary.
-Serialization strips only derived node data, never authored declaration
-facts.
+domain. Stored graphs persist in the current species vocabulary;
+serialization strips only derived node data and keeps every authored
+declaration fact.
 
-The process palette has no raw-id lookup, producer-path join, fixed-arity
-list constructor, packet matching control, or transport adapter item. Entity
-sources are current context, typed reference resolution, and `All<T>`;
-declared containment/relation edges remain a declaration/runtime contract,
-not generic instance-operation nodes. Effects are construct, mutate,
-transition, remove, command, and registered service. Flow exposes conditional
-and bounded control operations. `types.vue` remains the read-only registry
-browser.
+Entity sources are current context, typed reference resolution, and `All<T>`;
+declared containment/relation edges remain declaration/runtime contracts.
+Effects are construct, mutate, transition, remove, command, and registered
+service. Flow exposes conditional and bounded control operations. `types.vue`
+remains the read-only registry browser.
 
 The route uses the authenticated app layout with a full canvas workspace and
 the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell.
@@ -165,22 +158,19 @@ sheet-design editors ride the same chrome in `layout="lanes"`. The
 palette and
 inspector render as PrimeVue `Drawer` side panels inside the canvas workspace.
 The graph palette is operation vocabulary followed by
-the operation, value, and list groups: registry types (pack or
-organization-declared) are never palette entries — a process binds a type
+the operation, value, and list groups: a process binds a type
 by dropping the unbound `construct` operation and wiring its Type pin to a
 class or type-reference node. Its framework
 metadata comes from `createProcessDesignerContract(projectDomainFromView(...))`;
 the route supplies the CTS-projected domain as the active domain
 implementation rather than importing separate CNC field/construction
-registries. The palette is deliberately not
-the exhaustive runtime catalog: casts, patches, predicates, ambient current
-entity reads, and trigger-payload plumbing cannot be added as unexplained empty
-nodes. Value input selects its type in one node. Logic/comparison, text, math,
+registries. The palette is deliberately the
+authorable subset: casts, patches, predicates, ambient current
+entity reads, and trigger-payload plumbing belong to the runtime catalog.
+Value input selects its type in one node. Logic/comparison, text, math,
 and date each select their operation in one node. Grasshopper-style list/tree
-operations provide selection and structure work without a second entity-query
-language. The persistent drawer renders those operations as a readable
-two-column grid; the full job description is a tooltip, not permanent panel
-prose.
+operations provide selection and structure work. The persistent drawer renders those operations as a readable
+two-column grid; the full job description is a tooltip.
 The palette and inspector are non-modal, non-dismissable drawers (left and
 right, `closeOnEscape` disabled so canvas Escape keeps clearing graph
 selection); each drawer owns its vertical scrolling so long entity lifecycle
@@ -190,11 +180,11 @@ the process lifecycle: the Folder (open/select, with its click-anchored
 popover), rename, save, apply. Its canvas group carries the direct view
 controls: zoom out, zoom in, frame all, frame selection, reset zoom.
 Process selection and New Draft live in the Folder's click-anchored
-popover. Unsaved work is signaled by the save control's overlay badge dot
-rather than a text badge.
-Saved graphs containing legacy role/user layout nodes have those non-canvas
-nodes filtered out at load, and entity/service/socket nodes are reconstructed
-from the process records so active definitions do not open to a blank canvas.
+popover. Unsaved work is signaled by the save control's overlay badge dot.
+Graph persistence keeps only the canvas-persistent record types
+(`CANVAS_PERSISTENT_NODE_TYPES` in `@perigram/processes`' transpiler);
+entity/service/socket nodes are reconstructed from the process records so
+active definitions open with their canvas.
 Truly empty processes render compact canvas add controls for the same three
 object types.
 Route process round-tripping delegates to `@perigram/processes`: canonical
@@ -202,15 +192,14 @@ semantic records project into Vue Flow nodes through
 `definitionToCanvas()`, and saving writes the visible canvas back through
 `canvasToDefinition()`. Canvas layout is therefore presentation state; roles,
 entity lifecycles, action definitions, services, organization sends, screens,
-and assignments remain the process source of truth. If a stored process contains
-only compiled runtime data and no semantic records, the designer shows a clear
-validation error instead of guessing a canvas.
+and assignments remain the process source of truth. A stored process containing
+only compiled runtime data and no semantic records yields a clear
+validation error.
 Palette captions are presentation-only and are localized when the canvas is
 rendered. Persisted process-node labels keep the canonical operation kind, so
 the locale used while authoring cannot leak into generated action buttons.
 Entity-producing operation sockets create their producer-output contracts from
-the operation node and output socket identity. The designer does not create
-detached entity profiles when a command is selected; command entity outputs are
+the operation node and output socket identity; command entity outputs are
 owned by their emitting process node.
 On load, the route fetches the active process and the current process list,
 selects the active process first, and falls back to the newest usable draft or
@@ -218,27 +207,22 @@ saved definition only when active is unavailable. The served organization
 domain, capabilities, and CTS type view load beside it; each arrival re-seats
 the designer's projected domain and re-runs the canvas node sync, so nodes
 loaded before the installed packs and plugins were projected re-resolve their
-ports. Empty canvases show a passive
-current-process state; they do not propose starter action buttons over the
-workspace.
+ports. Empty canvases show a passive current-process state.
 The screens tab authors the generated UI manifest for operational user screens:
 fixed templates, one or more typed entity sources, one or more display regions,
 entity display surfaces, required access, assignment binding, and process
-action ids. It does not expose raw JSON as the normal authoring surface. When
+action ids. When
 activated, compiled user screens are routed through `/screens/:screenKey`; the
 semantic route entered in the designer is retained as process metadata.
 Screen feature choices, new screen defaults, and new canvas entity/action/socket
-defaults are derived from the domain entity registry. The designer must not
-hardcode app navigation routes or concrete CNC entity names as generic process
-defaults; concrete starter graphs belong in process templates.
+defaults are derived from the domain entity registry; concrete starter graphs
+belong in process templates.
 
 The inspector edits only the selected record's semantic configuration.
 Declaration records own class/field/state/transition/operator data. Process
 records own species, bound type, construction/operator selection, declared
 edge selection, transition reference, field inputs, action roles, and note
-policy. Derived socket contracts remain on the node rails; packet matching,
-transport transforms, producer identity, and runtime output snapshots are not
-author controls.
+policy. Derived socket contracts remain on the node rails.
 
 The roles tab owns process role labels and grants. The service-access tab owns
 service runtime identities. The process inspector owns effect authorization,
@@ -246,13 +230,12 @@ construction mode/inputs, declared transition target, field mutation inputs,
 and pure output preview. The screens tab continues to own the canonical screen
 contract, source/region bindings, required access, and action ids.
 
-Creation derives lifecycle entry from the target CTS declaration; it has no
-parent or initial-state status socket. Mutation writes declared row/relation
+Creation derives lifecycle entry from the target CTS declaration and carries
+only its declared inputs. Mutation writes declared row/relation
 fields only. Transition operations consume the incoming entity and reference
 a declared transition. Removal consumes the entity and delegates to the
 instance capability. The process palette contains conditional/flow controls
-and typed value/list operations, but no raw ids, hidden predicates, fixed-arity
-list sockets, or generic hierarchy traversal nodes.
+and typed value/list operations.
 
 Loading an active process is read-only. Saving changes forks the current graph
 into a draft first, because active process definitions cannot be patched

@@ -1,16 +1,13 @@
 # COMPONENT: Internationalization
 
-Vue I18n locale dictionaries for shared UI, entity labels, workflow/status labels, and page copy.
-
-## Files
-
-- `locales/en.json`: English locale dictionary.
-- `locales/ru.json`: Russian locale dictionary.
+Vue I18n locale dictionaries for shared UI, entity labels, workflow/status labels, and page copy:
+`locales/en.json` and `locales/ru.json`.
 
 ## Status Labels
 
-Status labels under `status.*` are consumed by `utils/state-engine.js` and workflow-derived actions in `utils/state-actions.js`.
-When adding a workflow state to a facade type (workers/facade/listing.json), add the matching status mapping and locale keys in both locale files in the same change.
+Status labels under `status.*` are consumed by the shared state components
+(`InstanceState`, `StateHistory`, `StateTransitionDialog` in
+[components/shared](../components/shared/README.md)).
 
 ## Generated Process UI
 
@@ -29,5 +26,5 @@ all locales, and known dynamic key families such as `roles.*`,
 
 ## Related
 
-- [utils](../utils/README.md) - status mapping and workflow action helpers
+- [utils](../utils/README.md) - generated-label resolution (`generated-labels.js`) and shared frontend utilities
 - [components/shared](../components/shared/README.md) - shared status display components

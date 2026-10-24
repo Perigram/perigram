@@ -25,7 +25,7 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   technical, and prose. The roles select IBM Plex Sans, Mono, or Serif and own
   their full treatment; Tailwind generates one `text-*` alias per role directly
   from this object.
-  Aura, not this module, owns generic control and container typography,
+  Aura owns generic control and container typography,
   spacing, borders, radii, shadows, and interaction states.
 - `index.js` also exports `primeFormFluidPT`, the global passthrough that
   mounts every form-field control (input, textarea, number, select,
@@ -46,22 +46,20 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 - `assets/presets/re_l.js` extends Aura with the neutral (zinc) primary
   palette, the Perigram accent palette, and per-scheme primary colors
   resolved against the surface scale plus the zinc surface scale
-  projection and a minimal component-token set: collection chrome —
-  table/tree-table/view headers, footers, footer cells, and paginators
-  (standalone or embedded) — renders transparent so the hosting surface
-  (page, panel, card) owns the background. Header chrome never paints at
-  all (no hover or sorted-column tint — the sort state is the icon) and
-  carries no bottom border; header slots (the generated search/sort
-  strips) lose the theme side padding so they align inside padded
-  surfaces with a bottom rhythm instead, and embedded paginators
-  (table, tree-table, and view — top and bottom) carry no separator
-  borders. Cards drop their shadow, tab
-  strips stay transparent, and tree rows run at explorer density.
-  Workspace surfaces ride the zero canvas: Panels and PanelMenu panels
-  paint no background and Panels paint no border (PanelMenu panels keep
-  Aura's default hairline panel border, and the workspace node's pane
-  Panels restore the same border locally), and Splitter gutters are
-  invisible — draggable, never drawn.
+  projection and a minimal component-token set:
+
+  | Component | Deviation from Aura |
+  |---|---|
+  | Table / TreeTable / view headers, footers, footer cells, paginators (standalone or embedded) | render transparent — the hosting surface (page, panel, card) owns the background |
+  | Header chrome | free of hover and sorted-column tint (the sort state is the icon) and of the bottom border |
+  | Header slots (the generated search/sort strips) | theme side padding dropped — they align inside padded surfaces with a bottom rhythm |
+  | Embedded paginators (table, tree-table, view — top and bottom) | separator borders dropped |
+  | Cards | shadow dropped |
+  | Tab strips | transparent |
+  | Tree rows | explorer density |
+  | Panels and PanelMenu panels | no background; Panels drop the border too (PanelMenu keeps Aura's hairline; the workspace node's pane Panels restore it locally) |
+  | Splitter gutters | invisible — draggable |
+
   Everything else keeps Aura defaults.
 - Tailwind semantic aliases are consumed by `tailwind.config.js`, whose
   content globs include `shared/ui-mapping/*.js`: the UI mapping contract's
@@ -91,8 +89,8 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 - Use `status-*` aliases for feedback, `entity-*` aliases for shared
   entity-reference families, and `signal-*` aliases for semantic process-canvas
   roles. Use `bg-process-canvas` for graph work rather than borrowing a page or
-  panel surface. Do not introduce page-local hardcoded colors, radii, shadows,
-  or transition durations unless the value is real data, such as a pen color or
+  panel surface. Page-local hardcoded colors, radii, shadows,
+  or transition durations require a real data value, such as a pen color or
   DXF layer color.
 - Shared and domain primitives own semantic structure and behavior, not generic
   visual chrome. Feature components should compose `InstanceCard`,
