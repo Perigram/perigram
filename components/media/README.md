@@ -45,7 +45,8 @@ surface adopts them (see
 
 ## Related
 
+- Parent: [components](../README.md)
 - [stores](../../stores/README.md)
 - [components/calls](../calls/README.md)
 - [layouts](../../layouts/README.md)
-- [Support chat](../../../server/features/support/README.md)
+- [Support chat](../../server/features/support/README.md)
