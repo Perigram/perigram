@@ -10,12 +10,12 @@ palette E2E); resurrect nothing from it.
 
 ### README
 
-- [ ] Fold the Modules section into a module map with SPEC pointers: entries currently restate SPEC contracts at length (registry.js L89-110, diff.js L52-82, domain-projection.js L111-140 are 20-40-line restatements; duplication clusters: identifier mint = SPEC §4 L186-201 over README L103-109; stored-shape slots = §3 L107-124 over L113-119; migration steps = §11 L549-559 over L60-72; base-domain passthrough = §19 L830-834 over L134-139; lineage recursion = §6 L301-307 over L35-38). Collapse each entry to file + one-line role + SPEC § pointer; L8-9 already promises exactly this mapping.
-- [ ] Delete the `compat/domain-cnc.js` module entry (L173-175): the file does not exist (`ls packages/cts/src/compat/` — domain-projection, field-schema-rows, graph-protocol, process-checks, process-grammar only).
-- [ ] Delete the `pages/organization/types.vue` passage (L227-230): root TODO.md L5423-5427 records the page already gone with its references purged; `ls pages/organization/` has no types.vue; the registry browser concern lives in the designer tree.
-- [ ] Document the missing module entries: `compat/process-grammar.js` (CTS ⇄ `PROCESS_BASE_TYPES` seam adapter; consumed by processes/src/designer.js and node-catalog.js) and `pack/framework.js` (`frameworkTypes`, exported from src/index.js).
-- [ ] Strip migration-era residue: L96-101 ("legacy persisted docs and older pack fixtures", "adopts the retired `render` facet"), L196-197 ("the v4 twin table is gone with the retired kinds"), L209-210 ("there is no v4 rewrite at any seam"), L240-241 ("the retired source-flip converter has no runtime path") — the SPEC owns migration semantics.
-- [ ] Fix the L220 citation: "browser-safe by contract (SPEC §13)" — §13 carries no browser-safety clause (grep "browser" in SPEC.md → only §21 L1024, about pack declaration data); cite §21 or drop the section number.
+- [x] Fold the Modules section into a module map with SPEC pointers: entries currently restate SPEC contracts at length (registry.js L89-110, diff.js L52-82, domain-projection.js L111-140 are 20-40-line restatements; duplication clusters: identifier mint = SPEC §4 L186-201 over README L103-109; stored-shape slots = §3 L107-124 over L113-119; migration steps = §11 L549-559 over L60-72; base-domain passthrough = §19 L830-834 over L134-139; lineage recursion = §6 L301-307 over L35-38). Collapse each entry to file + one-line role + SPEC § pointer; L8-9 already promises exactly this mapping.
+- [x] Delete the `compat/domain-cnc.js` module entry (L173-175): the file does not exist (`ls packages/cts/src/compat/` — domain-projection, field-schema-rows, graph-protocol, process-checks, process-grammar only).
+- [x] Delete the `pages/organization/types.vue` passage (L227-230): root TODO.md L5423-5427 records the page already gone with its references purged; `ls pages/organization/` has no types.vue; the registry browser concern lives in the designer tree.
+- [x] Document the missing module entries: `compat/process-grammar.js` (CTS ⇄ `PROCESS_BASE_TYPES` seam adapter; consumed by processes/src/designer.js and node-catalog.js) and `pack/framework.js` (`frameworkTypes`, exported from src/index.js).
+- [x] Strip migration-era residue: L96-101 ("legacy persisted docs and older pack fixtures", "adopts the retired `render` facet"), L196-197 ("the v4 twin table is gone with the retired kinds"), L209-210 ("there is no v4 rewrite at any seam"), L240-241 ("the retired source-flip converter has no runtime path") — the SPEC owns migration semantics.
+- [x] Fix the L220 citation: "browser-safe by contract (SPEC §13)" — §13 carries no browser-safety clause (grep "browser" in SPEC.md → only §21 L1024, about pack declaration data); cite §21 or drop the section number.
 
 ### Code deslop
 
@@ -30,3 +30,17 @@ palette E2E); resurrect nothing from it.
 - [ ] Section numbering: renumbering (audit TOC proposal: 1 Scope · 2 Value universe · 3 Stored shape & wire · 4 Declarations · 5 Classes · 6 Edges · 7 States & typed-operation authoring (guards, fieldPolicy, actors, deadlines) · 8 Operators · 9 Aggregates · 10 Policy · 11 Evolution · 12 Static rules R1-R7 · 13 Storage mapping · 14 Graph protocol · 15 Expressions · 16 Plug-ins · 17 Worked examples) breaks citations: 27 `CTS SPEC §` citations across 15 files (workflows, processes, shared, ui-mapping, composables, utils, stores, server features, root SPEC/TODO) plus in-package `SPEC §N` self-citations — renumber only with a citation sweep.
 - [ ] "audit correction" labels at §2 L89, §8 L464, §18 L782: the content is law, the label is session residue — delete the labels.
 - [ ] Declared-state-deadline law for §7 — decision item lives in [packages/processes/TODO.md](../processes/TODO.md) (workflows/processes citations repoint, or §7 gains the law).
+
+- [ ] WAITING — owner verification: read README.md folded to a module map
+  with SPEC pointers (246→148); domain-cnc + types.vue entries dead,
+  process-grammar + pack/framework documented.
+
+### Agent Notes (2026-10-24)
+
+Session `agent/doc-deslop-exec-20261024` (worktree
+`.agent-worktrees/doc-deslop-exec-20261024`). README.md rewritten as a
+module map (246→148): file + one-line role + SPEC § pointer per entry;
+`compat/domain-cnc.js` and `pages/organization/types.vue` entries dead;
+`compat/process-grammar.js` + `pack/framework.js` documented; migration
+residue stripped; L220 citation fixed. OPEN: code item + 7 owner
+decisions.

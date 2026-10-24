@@ -12,17 +12,38 @@
 
 ### README
 
-- [ ] `packages/README.md`: rewrite to the [packages SPEC](./SPEC.md) shape — L3 extraction-phase narration ("used to extract… without breaking existing app imports") and L26-28 "Extraction Rule" (written around awaiting adoption; masked three dead folders) restate what the SPEC's Package map, Dependency direction law, Extraction rule, and Manifest law now own; keep the manifest sentence and the alias paragraph as law.
-- [ ] `packages/core/README.md`: add the unlisted public exports — the `validate*Definition` family (9 functions), `validateDomain`, `normalizeStatusLifecycle`, `normalizeEntityOutputContracts`, `validateResultEntityOutputs` (packages/core/src/index.js); add one pointer sentence naming the layer boundary between the `Status.state` v2 region story (L70-80) and the CTS flat-state law (cts SPEC §7).
-- [ ] `packages/workflows/README.md`: add the unlisted public exports — `getWorkflowRegions`, `getWorkflowRegion`, `hasLifecyclePayload`, `workflowStateEntries` (described in prose L84 but unlisted), `resolveWorkflowStatePath`, `workflowTransitionsForState` (packages/workflows/src/index.js); dedupe L80-83 (parent-is-leaf) and L126-131 (guard evaluation ownership) to links — cts SPEC §7 owns the declaration law (area-1 clusters 8-9); L133-134 deadline citation ("CTS SPEC §7") awaits the owner decision in [packages/processes/TODO.md](./processes/TODO.md).
-- [ ] `packages/mcp/README.md`: drop the `query_docs` row (deletion item above); state the read-only scope once (L3 and L27-28 both carry it in a 28-line file).
-- [ ] `packages/devtools/README.md`: drop the `queryDocs` API row, the `framework:query-docs` script line, and the docs-corpus paragraph (deletion item above); add `validateWorkflowAccess`, `validateCommands`, `validateTasks`, `validateAttachmentKinds` to the API list (exported, unlisted).
-- [ ] `packages/plugin-sdk/README.md`: keep one hand-maintained copy of the CLI surface — L185-204 mirrors the `cli.js` usage string nearly verbatim; summarize in the README and let `--help` own the full text.
+- [x] `packages/README.md`: rewrite to the [packages SPEC](./SPEC.md) shape — L3 extraction-phase narration ("used to extract… without breaking existing app imports") and L26-28 "Extraction Rule" (written around awaiting adoption; masked three dead folders) restate what the SPEC's Package map, Dependency direction law, Extraction rule, and Manifest law now own; keep the manifest sentence and the alias paragraph as law.
+- [x] `packages/core/README.md`: add the unlisted public exports — the `validate*Definition` family (9 functions), `validateDomain`, `normalizeStatusLifecycle`, `normalizeEntityOutputContracts`, `validateResultEntityOutputs` (packages/core/src/index.js); add one pointer sentence naming the layer boundary between the `Status.state` v2 region story (L70-80) and the CTS flat-state law (cts SPEC §7).
+- [x] `packages/workflows/README.md`: add the unlisted public exports — `getWorkflowRegions`, `getWorkflowRegion`, `hasLifecyclePayload`, `workflowStateEntries` (described in prose L84 but unlisted), `resolveWorkflowStatePath`, `workflowTransitionsForState` (packages/workflows/src/index.js); dedupe L80-83 (parent-is-leaf) and L126-131 (guard evaluation ownership) to links — cts SPEC §7 owns the declaration law (area-1 clusters 8-9); L133-134 deadline citation ("CTS SPEC §7") awaits the owner decision in [packages/processes/TODO.md](./processes/TODO.md).
+- [x] `packages/mcp/README.md`: drop the `query_docs` row (deletion item above); state the read-only scope once (L3 and L27-28 both carry it in a 28-line file).
+- [x] `packages/devtools/README.md`: drop the `queryDocs` API row, the `framework:query-docs` script line, and the docs-corpus paragraph (deletion item above); add `validateWorkflowAccess`, `validateCommands`, `validateTasks`, `validateAttachmentKinds` to the API list (exported, unlisted).
+- [x] `packages/plugin-sdk/README.md`: keep one hand-maintained copy of the CLI surface — L185-204 mirrors the `cli.js` usage string nearly verbatim; summarize in the README and let `--help` own the full text.
 
 ### Code deslop
 
 - [ ] `packages/plugin-sdk/src/cli.js:160-175`: `usage` omits the implemented `vendor` command (cli.js:38) and `--surface-origin` flag (cli.js:134); the README documents both — fix the string.
+- [ ] `packages/plugin-sdk/src/cli.js:160-175` — the hand-maintained
+  `usage` string drifted stale against the implemented command surface
+  (new wave-1 finding); regenerate it from the command definitions.
 
 ### Owner decisions wanted
 
 - None.
+
+- [ ] WAITING — owner verification: read the 8 packages READMEs (root,
+  processes, cts, core, workflows, devtools, mcp, plugin-sdk);
+  queryDocs/query_docs dead at every site, processes migration residue +
+  2 dead script refs dropped, cts folded to a module map, workflows
+  deadline citation repointed to server/core/machines.
+
+### Agent Notes (2026-10-24)
+
+Session `agent/doc-deslop-exec-20261024` (worktree
+`.agent-worktrees/doc-deslop-exec-20261024`). README wave across the 8
+packages READMEs: processes restructured to the SPEC 12-section skeleton
+(1452→1359); cts rewritten as a module map with SPEC pointers (246→148);
+core/workflows/devtools/mcp/plugin-sdk trims — missing exports added,
+`queryDocs`/`query_docs` dead at every site, deadline citation repointed
+to server/core/machines. New code finding below: the cli.js `usage`
+mirror is stale. OPEN: 3-package deletion + reference cleanup, both code
+items; processes/cts deltas live in their own TODOs.
