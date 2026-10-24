@@ -1,8 +1,8 @@
 # COMPONENT: Entity Revisions
 
 Stores immutable content snapshots for versioned entity scopes such as cassette
-template geometry, manually edited sheet layouts, artifact-template layouts,
-and generated artifact layouts.
+template geometry, artifact-template layouts, and generated artifact
+layouts.
 
 ## Data Contract
 
@@ -43,7 +43,9 @@ process remains free to register its own active revision workflow.
 - `derivedFromRevision()` builds the canonical provenance fact for
   derived entities, such as revision provenance for cassette geometry
   revisions.
-- Sheet designs use the same `geometry` scope.
+- Sheet designs declare the same `geometry` scope; the type carries no
+payload, so layout edits persist as field patches and no path writes a
+sheet-design revision.
 - Artifact templates use the `layout` scope for page/item placement and typed
   variables. Generated artifacts use their own `layout` scope for placed-item
   edits and values applied to the pinned template revision.
@@ -63,4 +65,4 @@ lineage-read fallback.
 
 ## Related
 
-- [facade plugin](../../../workers/facade/README.md) - cassette geometry revisions and sheet-design layouts (payload revision chain rides the generic machinery).
+- [facade plugin](../../../workers/facade/README.md) — cassette geometry revisions and the sheet-design editor.

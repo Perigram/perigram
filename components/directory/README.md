@@ -2,10 +2,13 @@
 
 In-home presentation of user and organization detail: the surface renders
 as an entity-bound workspace-page tab inside the generated home workspace
-(desktop panes) and as the bounded dialog the home workspace opens on
-mobile viewports. Popups remain the compact preview surface — inline refs
-(`InstanceInlineRef` → `UserCard`/`OrganizationCard`); their open action
-opens these panes through the shared workspace-open seam.
+(desktop panes — the `directoryUser`/`directoryOrganization` entries of
+the [workspace-page registry](../generated/README.md)) and as the
+bounded dialog the home workspace opens on mobile viewports (the shared
+record popup, [EntityPopup](../shared/README.md), hosting the surface
+`bounded`). Inline refs (`InstanceInlineRef` →
+`UserCard`/`OrganizationCard`) stay the compact preview surface; their
+open action opens these surfaces through the shared workspace-open seam.
 
 ## Files
 

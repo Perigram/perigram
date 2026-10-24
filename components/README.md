@@ -64,7 +64,7 @@ All entity-related components use these patterns:
 | [generated/](./generated/README.md) | Compiled screen surfaces: the `[screenKey]` screens route, the home workspace, `/organization/*` overloads, action visibility, the file-surface/editor registry |
 | [ui-mapping/](./ui-mapping/README.md) | Generator materializations and the type-label seam |
 | [process-designer/](./process-designer/README.md) | The process designer canvas surface |
-| `type-designer/` | Declaration editor nodes (DescriptorEditor, Field/State/TypeNode) for the process designer inspector and `pages/organization/process.vue` |
+| [type-designer/](./type-designer/README.md) | Declaration editor nodes (DescriptorEditor, Field/State/TypeNode) for the process designer inspector and `pages/organization/process.vue` |
 | [calls/](./calls/README.md) | Call surfaces over `stores/calls.js` |
 | [media/](./media/README.md) | The MediaDock now-playing dock over `stores/media.js` |
 | [directory/](./directory/README.md) | `DirectoryDetailSurface` — user/organization detail inside the home workspace |
