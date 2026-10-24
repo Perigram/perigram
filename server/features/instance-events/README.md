@@ -48,7 +48,8 @@ binding contract.
 
 - `POST /api/state/transition` publishes `updated` events for the transitioned
   entity and synchronous transition effect entities.
-- `useEntity()` publishes successful frontend CRUD mutations through
+- The instances store (`stores/instances.js`) publishes successful frontend
+  CRUD mutations through
   `POST /api/instance-events` after the canonical API call succeeds.
 - Active process actions publish events when generated screens create, update,
   or change status on entities through the process runtime.

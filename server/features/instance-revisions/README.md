@@ -30,9 +30,10 @@ Hash, latest, and per-source delete lookups, DTO serialization, and derived
 provenance read both `data.source` and the stored `data.typeId`/
 `data.instanceId` shape, emitting current `EntityRef` provenance; new
 records are written with `data.source` only.
-Revision status is resolved through the registered `entity_revision` workflow.
-The domain fallback is the terminal system state `RECORDED`; an organization
-process remains free to register its own active revision workflow.
+Revision status is resolved through the registered `entity_revision`
+workflow; with no registered workflow a revision carries no status. An
+organization process remains free to register its own active revision
+workflow.
 
 ## Workflows
 

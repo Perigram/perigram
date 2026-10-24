@@ -17,8 +17,8 @@ resolution chain (wake rule → conversation → org `chat` route →
 environment) is canonical in [llm](../llm/README.md). The chat carries a
 per-conversation model select beside the AI (`POST
 /api/agent-bots/subscriptions` accepts `profile` and `model` on the body
-and on `wakeOn` rules, validated against the org model table); stale
-stored ids degrade to the next level.
+and `profile` on `wakeOn` rules, profiles validated against the org's
+chat profiles); stale stored ids degrade to the next level.
 
 Three pieces share one tool catalog:
 
