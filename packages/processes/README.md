@@ -192,7 +192,7 @@ the facade pack's `facade` tab) surface pre-bound in the pack's own
 section.
 
 The value and list/tree groups are exhaustive over the catalog's
-author-facing basics (owner direction 2026-10-10, SPEC §8): every
+author-facing basics (SPEC §8): every
 tree-algebra kind (flatten, graft, simplify, branch, zip, unzip, cross,
 transpose, clean, stats), the list reshapes (reverse, shift, partition,
 reduce), the value utilities (cast, parse, convertUnit, coalesce, format,

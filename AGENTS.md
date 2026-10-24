@@ -6,7 +6,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2025-10-22
-updated: 2026-10-12
+updated: 2026-10-24
 ```
 
 
@@ -49,11 +49,24 @@ levels:
 
 Every README.md must:
 
-- Describe real architecture only: purpose, entry points, contracts (data
-  structures, APIs, state machines, flows), conventions, and non-obvious
-  decisions. No placeholders, no guesses, no trivial file listings, nothing
-  the code already makes obvious. Keep it as brief as possible and clean after 
-  other agents when see slop.
+- Be the component's reference sheet, in present tense: purpose in one or
+  two sentences, the contracts that live here and nowhere else (shapes,
+  seams, route and export inventories, state machines — as tables or
+  fenced examples), conventions, and non-obvious decisions (traps,
+  invariants, ordering).
+- Carry what is necessary and sufficient for a maintainer to understand,
+  maintain, and extend the component without grepping its code. The test
+  for every sentence: deleting it must lose a fact or a link a maintainer
+  uses. Placeholders, guesses, trivial file listings, and restatement of
+  what the code already shows are defects.
+- Be true to the code: every contract-shaped claim (a name, route, count,
+  constant, behavior) is verified against the code it names in the same
+  edit that writes or keeps it.
+- Carry law, and leave provenance to SPEC.md and TODO.md: a README
+  sentence states the rule as it stands — citing no dates, attributing no
+  decisions, narrating no change.
+- Prefer a table row or fenced example over a prose paragraph; one fact
+  per sentence.
 - Link its parent README, and be registered in the parent's component
   inventory or documentation map.
 - Link every related README whose contract it consumes or extends.
@@ -61,6 +74,9 @@ Every README.md must:
   definition, state machine, workflow, API contract) lives in exactly one
   canonical README. Every other README links to it. Verbatim restatement
   across READMEs is a defect.
+- Stay short by construction: when a README keeps growing, the new content
+  belongs in a child README, the parent's inventory, or the SPEC — split
+  or link it. Clean slop left by other agents on sight.
 
 SPEC.md describes desired state of system, container, component or code.
 It's either written by human or from human words, never invented by AI agents.

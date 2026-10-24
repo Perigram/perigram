@@ -69,10 +69,11 @@
 
 ### Owner decisions wanted
 
-- Four inline provenance citations in README prose — L117 "owner decision
+- [x] Four inline provenance citations in README prose — L117 "owner decision
   2026-10-13", L277 "owner direction 2026-10-18", L439 "owner direction
   2026-09-28", L481 "owner direction 2026-09-30": strip to plain law with
   provenance carried in TODO/SPEC, or keep as inline authority pins?
+  resolved 2026-10-24 — AGENTS.md README Contract homes the rule; READMEs carry law only
 - Palette membership: confirm this README carries zero palette-membership
   prose (link packages/processes only) — the child copy drifted stale
   exactly because it was a second home.

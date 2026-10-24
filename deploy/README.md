@@ -29,7 +29,7 @@ Editing the pipeline means editing that branch.
 - Build networking: `registry.npmjs.org` is provider-blocked on runner hosts,
   so the `npm ci` layer pins `HTTP_PROXY/HTTPS_PROXY` to the LAN hiddify relay
   `http://192.168.0.100:12334` with `NO_PROXY` covering localhost, LAN and
-  NetBird ranges (Штаб coordination 2026-09-27). `--dns-result-order=ipv4first`
+  NetBird ranges. `--dns-result-order=ipv4first`
   is kept as a harmless belt-and-suspenders.
 - Image: production `Dockerfile` (multi-stage `npm ci` → `npm run build`).
 - Rollout: the old `perigram-staging` container is removed and recreated with
@@ -55,8 +55,8 @@ Editing the pipeline means editing that branch.
   (hera mongo; `directConnection=true` is required — the single-node
   replica set advertises its own hostname to clients, and from outside the
   mongo network that name does not resolve, the driver topology closes, and
-  every API 500s while pages still render — the 2026-09-30 "broken layouts"
-  staging incident), `BASE_URL=https://perigram.sodalab.pro`, calls on the
+  every API 500s while pages still render),
+  `BASE_URL=https://perigram.sodalab.pro`, calls on the
   zeus LiveKit through the app origin (`wss://perigram.sodalab.pro/livekit`
   → the plane's 7880 with websocket upgrade headers — one hostname for every
   client network the app itself works on; the dedicated
