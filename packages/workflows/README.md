@@ -20,6 +20,12 @@ validation step for workflow definitions from declared types.
 - `validateLifecyclePayload(schema, lifecycle)`
 - `validateActorGuard(context)`
 - `createTransitionEngine(adapters)`
+- `getWorkflowRegions(workflow)`
+- `getWorkflowRegion(workflow, regionId)`
+- `hasLifecyclePayload(lifecycle)`
+- `workflowStateEntries(region)`
+- `resolveWorkflowStatePath(region, state)`
+- `workflowTransitionsForState(region, state)`
 
 ## Workflow Shape
 
@@ -76,11 +82,11 @@ second copy of the declaration as flat dotted enum values.
 ```
 
 Transition lookup walks the active leaf's ancestor paths from most-specific
-to least-specific. The first declared transition wins. A target is entered as
-a leaf: entering a parent state lands on the parent itself — parents are
-leaves, never an implicit initial child — while a nested child is entered by
-targeting it explicitly. Leaving a parent exits the complete descendant
-configuration. Creation enters the region's configured initial leaf.
+to least-specific. The first declared transition wins. A target is entered
+as a leaf under the parent-is-leaf law (CTS SPEC §7): entering a parent
+state lands on the parent, a nested child by targeting it explicitly.
+Leaving a parent exits the complete descendant configuration. Creation
+enters the region's configured initial leaf.
 `resolveWorkflowStatePath` accepts a canonical dotted path or a local state
 name, resolving the latter to the one canonical path that carries it. These
 rules are owned here; the CTS projection supplies the recursive tree and
@@ -123,14 +129,16 @@ Transition objects may also carry UI-only presentation metadata such as
 `display: 'inline' | 'menu' | 'hidden'`. The workflow validator ignores this
 field; frontend adapters use it to place actions in `InstanceState`.
 
-A transition may carry a `guard`: a boolean expression AST (CTS SPEC §7,
-evaluated over `{ value }` — the instance row). `normalizeWorkflow`
-preserves it verbatim; the workflow validator does not evaluate it. The
-status runtime adapter owns evaluation: at commit against the loaded
-instance (refusing on false), and on the action-availability listing
-(hiding guard-failing edges).
+A transition may carry a `guard`: a boolean expression AST authored and
+compiled under CTS SPEC §7. `normalizeWorkflow` preserves it verbatim;
+evaluation belongs to the status runtime, which re-evaluates it at commit
+against the loaded instance and hides guard-failing edges from action
+availability (see
+[server/core/machines](../../server/core/machines/README.md)).
 
 Transitions may also carry `deadline: true` (with `access.system`) — the
-compiled escalation edge of a declared state deadline (CTS SPEC §7).
+compiled escalation edge of a declared state deadline; the deadline-edge
+runtime contract lives in
+[server/core/machines](../../server/core/machines/README.md).
 The marker is provenance for tooling; authorization and execution are
 owned by the access layer and the deadline scanner.
