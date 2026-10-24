@@ -95,7 +95,7 @@ read-only presentations derive from shape.
 | ordinal `enum` (p0..p3, tier0..2 — value shapes matching a rank pattern) | Rating |
 | bounded scalar (declared min/max) | Slider |
 | `ref` | InstancePicker |
-| `list` of strings | InputChips |
+| `list` of strings | ChipsInput |
 | `list` of refs | InstanceMultiPicker |
 | `list` of enums | OrderList |
 | long string | Textarea |
@@ -115,7 +115,7 @@ read-only presentations derive from shape.
 | non-percent quantity map | bar Chart |
 | long string | prose |
 | string list | budgeted chips |
-| spec-row value | Inplace (click-to-edit) |
+| detail spec-row value | Inplace (click-to-edit through `InlineField`) |
 
 Spans are `'full' | 'half'`; the layout is a dumb responsive grid that
 consumes spans (the container-relative `.ck-form-grid`; see Chrome). Dense

@@ -13,15 +13,7 @@ The page demonstrates entity card variants (`card`, `compact`, `inline`),
 every shared primitive declared in `DESIGN_SYSTEM_PRIMITIVES`, and geometry
 and current-location examples (`DrawingCanvas`, `GeometryPreview`,
 `StateLocation`) over DTO factory data; manifest health reports missing
-component/factory/docs/DTO block issues. Two behaviors are non-obvious:
-
-- per-entity and per-primitive feedback controls persist in localStorage under
-  `perigram:ui-lab-feedback:v1`, with markdown export to `ui-lab-feedback.md`
-- each entity row embeds a data-model review loaded from
-  `/api/debug/data-models`, collapsed by default, expanded per entity, and
-  exported together with component feedback; the review table hides
-  `lineage.*` relationship internals so it stays on canonical blocks and
-  feature data fields
+component/factory and DTO block issues.
 
 Demo data comes from `test-data/factories.js` and should match API DTO shape.
 UI Lab seeds the instances store with demo lineage labels before rendering so
@@ -30,14 +22,12 @@ UI Lab seeds the instances store with demo lineage labels before rendering so
 ## UI Mapping Showcase
 
 `ui-mapping.vue` renders screens **generated** from synthetic compiler
-output over a deliberately fictional facilities-grid domain (zones →
-sectors → stations → units); any other hydration with the same structure can
-replace the fixtures, and the generation layer stays fixed. A source toggle switches between the seeded random world and the REAL
-pipeline (`?source=real`: CTS registry bundle, real process compiler
-contract over the persisted acceptance fixture, projected DTO
-instances — test-data/README.md documents the honest gaps). The page
+output — `test-data/ui-mapping-random.js` seeds a random world (generated
+type vocabularies, random field bases and units, a linear containment
+chain per vocabulary) and the `?seed=` reroll rebuilds it; the generation
+layer stays fixed. The page
 mounts `components/ui-mapping/GeneratedMappingScreen` for every screen
-of the active world on one page (no picker — random screen keys cannot
+of the world on one page (no picker — random screen keys cannot
 survive a reroll), with a spacing-coefficient slider beside the seed (0.5–2, `?scale=`)
 that scales the whole rhythm set — gaps, paddings, control and editor
 sizes — through the literal SPACING_SCALES table; the region tree
@@ -57,12 +47,12 @@ demonstrate the surfaces.
 
 The fixture screens demonstrate:
 
-- layouts chosen by data: tabular collections as generated tables,
-  lineage-holding collections as TreeTables, media collections as paginated
-  card grids, log entries as a Timeline, detail screens with three child
-  regions as tabs, group surfaces with fully expanded hierarchy trees
-- deep nesting: constellation → star systems → probes, with files attached
-  by single and array relations carrying 0–10 items
+- layouts chosen by data across the resolver vocabulary: board for
+  state-vocabulary collections, timeline for chronological, card-grid and
+  carousel for file collections, generated tables as the default; detail
+  screens compose child regions as tabs or stack
+- containment chains per vocabulary, with relations attached single or
+  array
 - every field base and display refinement (percent quantities as progress
   bars, string lists as budgeted chips, variants, maps, records, blobs)
 - deterministic per-instance previews for all three payload preview modes

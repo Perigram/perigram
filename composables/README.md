@@ -82,7 +82,8 @@ feature topics such as `conversation:<key>`. The server enforces topic
 admission; `subscribe` returns an unsubscribe function and drops the server
 subscription when the last handler goes away. After every (re)connect the
 composable resynchronizes the active topic set, so consumers are free of
-reconnect handling. `status` is `idle | connecting | open | error`;
+reconnect handling. `status` is `idle | connecting | open | reconnecting |
+error`;
 `onlineUserIds` is a reactive Set of user ids with a live connection in the
 active organization. Contract details live in
 [the connections feature](../server/features/connections/README.md).
@@ -195,8 +196,7 @@ Used by `<StateHistory>` component.
 
 ## useSnapshotHistory
 
-Snapshot undo/redo history shared by every editor that owns one (cassette
-designer, sketch, sheet layout). The caller supplies `snapshot()` (a JSON
+Snapshot undo/redo history for editors that own one. The caller supplies `snapshot()` (a JSON
 string of the edited state) and `apply(entry)` (restore); the composable
 owns the capped past/future stacks and the `canUndo`/`canRedo` gates.
 `commit()` records the pre-mutation baseline (a no-op when nothing
@@ -275,11 +275,7 @@ from `$screen.scope` in the `entities` map, so child constructors inside a
 parent detail page receive their lineage parent. Generated action dialogs
 render entity-list construction fields as multi-select controls backed by the
 domain UI endpoint registry; submitted values are normalized into the action
-input path before posting to the process runtime. When a generated source
-comes from a role with several status-scoped grants for the same entity
-feature, `useGeneratedScreen` derives a role-local `primaryStates` list from
-the source requirement and passes it to `listInstances`, keeping the screen
-to records visible through the source's own role.
+input path before posting to the process runtime.
 
 ---
 

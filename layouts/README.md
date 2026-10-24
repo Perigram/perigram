@@ -7,9 +7,9 @@ Nuxt layout shells for public and authenticated app surfaces.
 - `app.vue`: Authenticated workspace chrome with desktop sticky header, mobile
   bottom navigation, route breadcrumbs, theme toggle, user/profile entry,
   support entry, and bounded workspace sizing for production workspace routes.
-- `ui-lab-layout.vue`: standalone chrome-less shell for the UI lab
-  ([pages/test](../pages/test/README.md)); theme toggle through
-  `useThemeMode`.
+- `ui-lab-layout.vue`: standalone shell with its own header (title,
+  test-mode badge, theme toggle through `useThemeMode`) for the UI lab
+  ([pages/test](../pages/test/README.md)).
 - The layout mounts the shared `OfflineOutboxBadge` for authenticated users:
   a floating indicator that appears when the browser is offline, a mutation is
   queued in the outbox, or a replay failed. It is the single sync-state
@@ -55,26 +55,22 @@ canonical name is the first breadcrumb and billing, team, or process is the
 second. Those sections are siblings beneath the organization; removing the
 organization crumb is not a valid simplification.
 
-Project queue workspaces and generated screens with a registered screen
+Generated screens with a registered screen
 overload use a viewport-bounded main area so scrolling remains inside their
 lanes and panels rather than the page body. Generated overload workspaces are
 flush to the app content boundary and do not inherit ordinary route padding or
 maximum width. The layout resolves this from the current user's screen manifest
 and the generated overload registry.
 
-On mobile, `app.vue` replaces the desktop header with a fixed bottom panel.
-The panel contains home, up to two user-captured generated-screen shortcuts, a
-generated-screen picker, chats, and a profile-menu button. The picker lists the
-current user's generated screens except home/detail screens. The plus action is
-shown only while zero or one shortcut exists. Long-pressing a shortcut opens a
-context menu for that exact slot; the menu can replace the shortcut with another
-generated screen or delete the shortcut.
-Shortcuts are stored per user and organization in FIFO order. Chats render as
-an embedded mobile tab inside the app layout, so the chat close button is
-hidden there.
+On mobile, `app.vue` replaces the desktop header with a fixed bottom panel of
+PrimeVue tabs: one tab per stationed type screen (the home sidebar tree's top
+level through `useMobileHomeTabs`, selection shared with the home workspace's
+mobile branch), a home fallback tab when the process stations no type screens,
+the chats tab (which opens the bounded `/chats` route), and the profile-menu
+button.
 The profile button opens the same account menu used on desktop; theme
 switching lives in that account menu on both desktop and mobile.
-The embedded chats tab, `/chats`, and account routes (`/organization` and
+`/chats` and account routes (`/organization` and
 its children) use
 a flush mobile surface with only bottom safe-area spacing for the fixed nav;
 desktop keeps the normal constrained page padding.

@@ -80,8 +80,9 @@ desktop and navigate the route on mobile).
 
 `users.vue` is the team management route for invitations, membership approval,
 user creation, and process role assignment. The page reads roles from the
-active process definition, and writes assignments through
-`/api/process-definitions/active/assignments`. It is the operational owner for
+active process definition (`/api/process-definitions/active`) and writes
+assignments through `/api/organizations/:id/role-assignments`. It is the
+operational owner for
 assigning actual users to abstract process roles. Bot members appear in the
 table badged as bots, and single-seat roles are marked in the pickers (see
 [agent bots](../../server/features/agent-bots/README.md) and
@@ -146,8 +147,7 @@ declaration fact.
 Entity sources are current context, typed reference resolution, and `All<T>`;
 declared containment/relation edges remain declaration/runtime contracts.
 Effects are construct, mutate, transition, remove, command, and registered
-service. Flow exposes conditional and bounded control operations. `types.vue`
-remains the read-only registry browser.
+service. Flow exposes conditional and bounded control operations.
 
 The route uses the authenticated app layout with a full canvas workspace and
 the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell.

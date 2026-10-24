@@ -61,7 +61,7 @@ Three cells; every surface derives from them, nothing else caches:
 - `registry.js` — the compiled CTS client bundle as first-class state,
   projected from auth hydration (`processPayload.bundle`) with `refresh()`
   re-hydrating through the auth store. Owns `typesById`, `typeRecord`,
-  `statesOf`, `operatorsOf`, `renderOf`, `iconFor`, `constructible`, the
+  `statesOf`, `operatorsOf`, `iconFor`, `constructible`, the
   containment triples derived from declared children edges (keyed by the
   edge's declared `lineageKey` per CTS SPEC §6 — the value instances
   store, never the edge's authoring map key), and
@@ -189,12 +189,6 @@ projection for handwritten card/detail surfaces.
   screens; they use `hasTenantPermission()` so admins can still reach team
   management and process design while ordinary process roles only see their
   compiled screens.
-  Project routes include a store-resolved section breadcrumb for queues, sheet
-  designs, data, artifacts, and details.
-  Admin pages use a store-owned sibling list that includes workbench,
-  workflow overrides, users, and support. Admin workbench breadcrumbs also
-  receive route query so `/admin?section=...` can expose
-  Designer/Entities/Context/Commands as navigation siblings.
 - Long-running operations start optimistic UI updates and polling until
   terminal states. Nesting solves run as process actions (`solveNesting`),
   and their async completion reaches open screens through the shared

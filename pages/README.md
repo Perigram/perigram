@@ -98,15 +98,13 @@ compiled home when one exists, otherwise the default home contract above — so
 a stale bookmark or a recompiled process renders the workspace.
 `pages/screens/index.vue` redirects `/screens` to `/home`.
 
-- The routed surface owns the back affordance (`usePageBack`, one shared
-  `{ icon, label, command }` shape): the page header carries it for list
-  screens, the record header's navigation channel for detail screens,
-  following in-app history with the home entry ladder as the deep-link
-  fallback.
-- List screens render the compiled screen label as their page title; routed
-  detail screens render the record header as the page head (the type label
-  and back affordance render once, through the record header's anatomy and
-  navigation channel).
+- Generator templates render through the host with no route title strip:
+  list screens carry their headings through the engine's region headers,
+  and routed detail screens render the record header as the page head (the
+  type label and back affordance render once, through the record header's
+  anatomy and navigation channel — `usePageBack`, one shared
+  `{ icon, label, command }` shape, following in-app history with the home
+  entry ladder as the deep-link fallback).
 - Process screens arrive in the compiled UI contract vocabulary
   (`typeList`/`instanceDetail`/`home` plus `typeId`) and render through the
   UI generator (`composeScreen` +
@@ -128,9 +126,10 @@ a stale bookmark or a recompiled process renders the workspace.
   the machine's legal edges depend on the current state), render as the
   header's transition buttons, and dispatch through the state transition API
   with the updated entity landing straight in the shared instance cache.
-- The page is the shape boundary between the store's keyed pool
-  (`{ type -> { id -> instance }}`) and the generator's grouped-array
-  instances prop (`buildInstancePool` re-keys it).
+- `GeneratedScreenHost` is the shape boundary between the store's keyed
+  pool (`{ type -> { id -> instance }}`) and the generator's grouped-array
+  instances prop; `buildInstancePool` re-keys that prop back to the keyed
+  pool inside the engine.
 - Collection identities are link buttons: `onOpen` routes to the
   compiler-paired detail screen (`auto_<type>_detail`) with the instance id
   in the route scope, silently staying put when the user manifest carries no
