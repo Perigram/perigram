@@ -22,9 +22,9 @@ Generic asynchronous queue backed by `task_runs`.
   `continueActionFromTask` (correlating the task run to the waiting process
   invocation by its dispatch task-run id), and failure/cancellation call
   `failActionFromTask`. Notification errors are logged and leave the task
-  run terminal; the process reconciliation pass redelivers.
+  run terminal.
 - Dispatches registered app-side task executors from `server/plugins/task-executors.js`.
-  External workers still use the claim protocol; app-side executors claim runs
+  External workers use the claim protocol; app-side executors claim runs
   internally and then call `completeTaskRun()` / `failTaskRun()`.
 - Executes declared task effects after a handler returns and before the run is
   finalized.
@@ -59,7 +59,7 @@ task ids directly.
   per-install plugin connector tokens with queue scoping.
 - `repository.js` - Mongo persistence for `task_runs`.
 - `server/plugins/task-executors.js` - background dispatcher for registered
-  app-side executors such as HTTP solver adapters.
+  app-side executors.
 - `../effects/README.md` - centralized effect processor used for task results.
 
 ## Related

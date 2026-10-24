@@ -20,10 +20,11 @@ import { BaseEntity, Identity, Status, Lineage, Relations, Provenance, Specs,
 ```
 
 The index re-exports a fixed subset of the core package
-(`createRegistry`, `createAttachmentRef`, `createCommandResult`,
-`createTaskResult`, `normalizeEntityOutputContracts`,
-`validateResultEntityOutputs`, `createStatusState`, `getPrimaryState`,
-`getRegionState`, `getStatusRegions`, `normalizeStatusState`).
+(`createRegistry`, `createPerigramRegistry`, `createAttachmentRef`,
+`createCommandResult`, `createTaskResult`,
+`normalizeEntityOutputContracts`, `validateResultEntityOutputs`,
+`createStatusState`, `getPrimaryState`, `getRegionState`,
+`getStatusRegions`, `normalizeStatusState`).
 `normalizeInstanceRef` is exported by the core package itself — import it
 from `#packages/core/src/index.js`.
 
@@ -75,7 +76,7 @@ nothing on module load.
 | `inheritLineage(parentEntity, type)` | `Lineage` | Copies parent.lineage + adds `${type}Id` |
 | `createInstanceRef(type, id, revisionId)` | `object` | Canonical typed reference |
 | `createProvenance(source, facts)` | `object` | Source ref plus immutable derivation facts |
-| `createAttachment(type, fileId, name, metadata)` | `object` | Standard attachment entry for `attachments`; `fileId` coerced to ObjectId |
+| `createAttachment(kind, fileId, name, metadata)` | `object` | Standard attachment entry for `attachments`; `fileId` coerced to ObjectId |
 
 ## Related
 

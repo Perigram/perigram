@@ -32,15 +32,14 @@ All entity-related components use these patterns:
 | Concern | Pattern |
 |---|---|
 | Identity display | `titleFor(dtoToScreenInstance(entity, typeRecord), typeRecord, { unnamedLabel: t('common.unnamed') })` — `dtoToScreenInstance` from `utils/instance-shape.js`, `titleFor` from `shared/ui-mapping`; the one title resolver |
-| Status display + transitions/actions | `<InstanceState :entity="..." type-id="..." :actions="..." />` |
-| Read-only status display | `<StatusBadge :entity="..." />` |
-| Current lifecycle location | `status.lifecycle.data.location` rendered by `<InstanceState>` |
+| Status display + transitions/actions | `<InstanceState :instance="..." type-id="..." :actions="..." />` |
+| Read-only status display | `<StateTag :value="stateValue" :policy="policyByType[typeId]" />` — policy map from `useStatePolicy()` |
 | Drawing and geometry preview | `<DrawingCanvas ... />` for layer-aware DXF/SVG canvas work; `<GeometryPreview :source="..." />` over the resolved previewSource value |
-| Structured key/value data (specs, parameters, tool dims) | `<DataBlock type-id="..." :entity="..." :fields="ENTITY_FIELDS" />` with the field array defined inline in the component's `<script setup>`; the `type-id` must match a declared registry type, otherwise the row is hidden |
+| Structured key/value data (specs, parameters, tool dims) | `<DataBlock type-id="..." :entity="..." :fields="resolveInstanceDisplayFields({ typeId, surface, typeRecord })" />`; field groups come from the design-system contract, and `shared/instance-field-access.js` filters every path — undeclared paths stay hidden |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StateHistory :entity="..." type-id="..." />` |
 | Detail page header | Generated record pages: the ui-mapping record header (`SurfaceHeader`) |
-| CRUD + status operations | `useEntity(type, id)` |
+| CRUD + status operations | instances store (`stores/instances.js`); status transitions through `useStateController` |
 | Entity/container structure | Entity cards: `<InstanceCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout; Aura owns generic chrome |
 | Section/page action rows | `<ActionToolbar>` |
 | Route-level aggregate facts | `<MetricPanel>` |
@@ -61,7 +60,7 @@ All entity-related components use these patterns:
 |---|---|
 | [shared/](./shared/README.md) | Registered primitives: `InstanceCard`, `DrawingCanvas`, `EntityPopup`, chat surfaces, designer frame |
 | [entities/](./entities/README.md) | Registry-bound entity cards — the folded surface table and card invariants |
-| [generated/](./generated/README.md) | Compiled screen surfaces: the `[screenKey]` screens route, the home workspace, `/organization/*` overloads, action visibility, the file-surface/editor registry |
+| [generated/](./generated/README.md) | Compiled screen surfaces: the `[screenKey]` screens route, the home workspace, `/organization/*` system screens, action visibility, the file-surface/editor registry |
 | [ui-mapping/](./ui-mapping/README.md) | Generator materializations and the type-label seam |
 | [process-designer/](./process-designer/README.md) | The process designer canvas surface |
 | [type-designer/](./type-designer/README.md) | Declaration editor nodes (DescriptorEditor, Field/State/TypeNode) for the process designer inspector and `pages/organization/process.vue` |
@@ -82,7 +81,7 @@ Top-level SFCs:
 | `ChatSupport.vue` | The chat surface column, hosted by the popup dialog, the `/chats` route, entity panels, and the home tab; frontend chat contract in [shared/README.md](./shared/README.md), message semantics in [server/features/support](../server/features/support/README.md) |
 | `Footer.vue` | App footer chrome |
 | `LanguageSwitcher.vue` | Locale select |
-| `PermissionEditor.vue` | The typed grant editor for the `shared/access-control.js` grant shape, covering direct permissions and Process Designer access: grants render as accordions in the selected access area, the level edits inline as `Allow <level> when <predicate>`, and predicates are nested boolean filter expressions (rows and nested groups, `all`/`any` gate, per-clause `not` toggle) built from real domain contracts — exact `id`, workflow `status` from `cncWorkflows`, property paths from `cncEntityFieldAccess`. Entity-id clauses use entity pickers (queue pickers project-scoped); free text serves custom paths and transition names; authoring happens in the filter builder, and saved grants serialize only complete predicates. |
+| `PermissionEditor.vue` | The typed grant editor for the `shared/access-control.js` grant shape, covering direct permissions and Process Designer access: grants render as accordions in the selected access area, the level edits inline as `Allow <level> when <predicate>`, and predicates are nested boolean filter expressions (rows and nested groups, `all`/`any` gate, per-clause `not` toggle) built from real domain contracts — exact `id`, workflow `status` from the served type declarations' state trees, property paths from the entity field descriptors. Entity-id clauses use entity pickers; free text serves custom paths and transition names; authoring happens in the filter builder, and saved grants serialize only complete predicates. |
 | `PermissionRuleBuilder.vue` | The nested rule-tree builder used by `PermissionEditor` |
 | `ThemeSwitcher.vue` | Light/dark toggle |
 | `UserForm.vue` | Profile name/email form fields |
@@ -107,8 +106,8 @@ CSS.
 ## Data Access
 
 - Prefer canonical DTO blocks for entity data: `identity.*`, `status.*`, `lineage.*`, `attachments.*`, `data.*`, `summary.*`. Hoisted aliases serve as defensive fallbacks while a current API response still emits them.
-- Mutable current location belongs in `status.lifecycle.data.location`; supported UI location types are `warehouse`, `coordinates`, and `address`; warehouse locations render as entity links.
-- Standard CRUD and status operations go through `useEntity`; `$fetch` is reserved for workflows outside it — declared domain operations, uploads/downloads, invitations, permissions, support chat, organization billing, debug endpoints, and project-scoped subresources.
+- Mutable current location is a typed lifecycle fact (`status.lifecycle.data.location`: `warehouse`, `coordinates`, `address`) — [server/features/states/README.md](../server/features/states/README.md) owns the contract.
+- Standard CRUD and status operations go through the instances store ([stores/README.md](../stores/README.md)); `$fetch` is reserved for workflows outside it — declared domain operations, uploads/downloads, invitations, permissions, support chat, organization billing, debug endpoints, and project-scoped subresources.
 - PrimeVue `<Select>` with `optionLabel="name"` receives option arrays normalized through `utils/selectOptions.js` when the source is a canonical DTO.
 - Check [server/DATA_MODEL.md](../server/DATA_MODEL.md) before assuming a data structure.
 

@@ -20,7 +20,7 @@ Per-feature (areas 3+4):
 - [x] cts-types: service bullet L23-77 split into Write gate / Migration steps / Removal ceremony; L33-37 → "redefinition is free when the stored declaration cannot compile or the type has zero instances"; describeOrganizationTypes L78-101 → record-kind table.
 - [x] directory: Client Surfaces L59-71 → components/directory; L19-21 collapses to the display-name-only clause.
 - [x] instance-events: example event L19-27 uses deleted type `queue` → live type id; consumers L59-77 trimmed to the two-path contract (canonical home stays); L29-42 laws stated affirmatively (events carry identity only; status history is the audit source; handlers register through the declared binding).
-- [x] instance-revisions: add route table (`GET /api/instance-revisions`, `GET .../:id`, `GET .../:id/file`); Core Files L7-14 deleted; sheet-snapshot contents L56-64 → workers/facade/README.md (keep scope names `geometry`, `layout`); pre-source-key paragraph L38-45 dies with the code migration below.
+- [x] instance-revisions: add route table (`GET /api/instance-revisions`, `GET .../:id`, `GET .../:id/file`); Core Files L7-14 deleted; sheet-snapshot contents L56-64 reconciled in place inside instance-revisions/README.md (scope names `geometry`, `layout` kept); pre-source-key paragraph L38-45 dies with the code migration below.
 - [x] instances: L19-22 collapses to the one law ("the wire DTO is this document verbatim"); migration executor L31-53 → step-kind table (step → rewrite).
 - [x] invitations: add the 7-route table (org-side `GET/POST /api/organizations/:id/invitations`, `DELETE .../:invId`, `GET/POST /api/invitations/:token{,/join}`, `POST /api/auth/join-org`); Core Files L3-5 and template-convention note L51-52 deleted.
 - [x] llm: document `POST /api/llm/models` (server/api/llm/models.post.js); delete HISTORY L102-104, L163-165; L49-50 one clause; L83-85 link only; own the model-resolution precedence chain ("wake rule → conversation → org chat route", currently also in agent-bots L17-19) — agent-bots links.
@@ -43,6 +43,12 @@ Per-feature (areas 3+4):
 - [ ] Move server/api/instance-events/index.get.spec.js beside feature spec instance-events.spec.js — the only spec file inside server/api (single-convention rule).
 - [ ] Single-source `CAPABILITY_FEATURES` and the parent README module tables (one derivation) so the sets stop drifting.
 - [ ] instance-revisions: migrate stored `data.typeId`/`data.instanceId` documents to `data.source.*` and drop the three `$or` fallbacks (repository.js:36-37,50-51,64-65); repo law: stored data migrates with the contract.
+
+### Code findings (truth pass 2026-10-24)
+
+- [ ] agent-bots `wakeOn` omitted-preserves contradicts code — omitted rules are cleared; behavior decision (preserve semantics vs code).
+- [ ] instance-revisions `RECORDED` state referenced in prose exists nowhere; unimplemented intent or stale vocabulary — decide.
+- [ ] migration-plan.js:27 stale "Historical 409 shape" contract comment (homing/deletion).
 
 ### Additions
 

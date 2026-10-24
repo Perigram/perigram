@@ -15,9 +15,9 @@ chunk).
   in one docked bar below the stage — a wrapped header can never eat the
   video area. A connection that drops while the panel stays mounted
   returns to the pre-join stage.
-- `CallPrejoin.vue` owns device enumeration (plain PrimeVue `Select`; the
-  shared `InstanceSelect` is the entity picker and must not be reused for
-  device lists), live camera preview, a bare microphone-activity dot, and
+- `CallPrejoin.vue` owns device enumeration (device lists pick through
+  the shared `InstanceSelect` wrapper in its plain, non-entity mode),
+  live camera preview, a bare microphone-activity dot, and
   mic/cam pre-toggles carried into the join. It shows no room ids — the
   caller is identified by the surface that opened the call.
 - `CallTile.vue` renders one participant or screen-share track: video or
@@ -58,7 +58,7 @@ The control dock is one structural bar: a `border-chrome-border` hairline
 on top, no painted background, icon-only PrimeVue buttons (rounded, text,
 secondary; leave is the single danger button). This follows the flat
 surface ladder owned by
-[components/README.md](../README.md#visual-tokens): call surfaces are
+[assets/tokens](../../assets/tokens/README.md): call surfaces are
 structural chrome and paint nothing; `bg-content` stays on chips over
 media (tile identity chips, the reconnecting pill). The dock's inner row
 is `w-max` with auto margins inside an `overflow-x-auto` bar, so it

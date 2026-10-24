@@ -53,15 +53,14 @@ mapping — see [utils](../../utils/README.md)) lives on socket handles
 only: a class card's `type` output, a state card's status sockets, and a
 field card's typed output carry the same tones they carry on operation
 nodes. Hue lives on handles; cargo speaks through wire line style.
-Canvas accents and Vue Flow handles use the global `signal-*` aliases
-(roles: entity, data, structure, decision, projection, effect), so the
-canvas stays legible across application themes.
+Canvas accents and Vue Flow handles use the global `signal-*` aliases,
+so the canvas stays legible across application themes.
 
 **Cards**
 
 | Channel | Encodes | Values |
 |---|---|---|
-| Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation |
+| Card size | species family | `sm` = declaration leaf, `md` = type/class reference, `lg` = operation, `inline` = the one-line literal |
 | Card surface | population primacy | the effect species except remove render the primary-tinted surface (`--ck-surface-primary`) — the primary nodes; every other node keeps the plain content surface. One predicate: `utils/processDesignerPopulation.js` |
 | Card border | chrome + selection | the quiet content border for every card; the selected border is the single card state |
 
@@ -202,7 +201,8 @@ The pass is the pure `utils/processDesignerArrangement.js`:
 - Delete/Backspace removes all selected nodes and edges together while
   preserving definition records still referenced. A selected node uses
   one primary border only. Socket handles render at a compact 12px with
-  an invisible grab pad, and wires draw at 2px. Home frames the graph,
+  an invisible grab pad; wire weight runs 1.5–2.5px with its cargo
+  family. Home frames the graph,
   Numpad Decimal frames the selection; zoom spans 0.1x–4x, and the live
   viewport persists with the graph. While a node selection exists, a
   PrimeVue `SpeedDial` floats beside the last selected node (anchored
@@ -215,9 +215,8 @@ group labels above wraps of small PrimeVue buttons. Each chip's dot
 carries the item's category signal
 (`utils/processDesignerSignals.js` is the single group→signal map; its
 signal classes are literal in the util because Tailwind compiles from
-source text). Search matches localized job names and descriptions as
-well as internal kinds; the persistent palette renders a two-column grid
-with grouped headings and operation descriptions on hover. Palette
+source text). Search matches the localized job names and descriptions;
+chips carry the operation description on hover. Palette
 membership and grouping are the
 [packages/processes](../../packages/processes/README.md) contract.
 
@@ -231,9 +230,10 @@ Inline authoring:
   silently from the generic instance transport for the socket's exact
   type, and the authored reference resolves through the
   readable-reference seam so the value renders as the instance card.
-  Create/Modify/Status effect sockets declare List access for the shared
-  effect mapper and keep the same inline fallback: an authored scalar is
-  stored as one broadcast item, exactly as the mapper consumes it.
+  Create/Modify/Status/Remove effect sockets (the mapped mutation
+  species) declare List access for the shared effect mapper and keep the
+  same inline fallback: an authored scalar is stored as one broadcast
+  item, exactly as the mapper consumes it.
   Literal authoring offers the plain value bases (an EntityRef literal
   pairs its type picker with the same instance picker); statuses are
   type-scoped and enter graphs only through state declaration sockets.
@@ -251,16 +251,14 @@ Inline authoring:
   carries no status input — the type declaration owns initial state.
 - Only configuration that defines the operation or its ports stays on the
   node: value/type, entity, declared edge, field, operator, and socket
-  fallback. Access grants live in the contextual inspector. Entity
-  producer nodes display their stable `nodeId:outputSocketId` reference
-  for provenance/field policy; reads display none. Record-carried
-  semantics (`collection.join` keys, `value.recordField` path,
-  `record.construct` fields — see
-  [packages/processes](../../packages/processes/README.md)) author on
-  the node's inline configuration area. Entity bindings are explicit
-  where no wire supplies them: All<T> chooses its entity type, EntityRef
-  literals keep their type picker, and filtering is All<T> → Get field →
-  Logic → Filter dataflow.
+  fallback. Access grants live in the contextual inspector.
+  Record-carried semantics (`collection.join` keys, `value.recordField`
+  path, `record.construct` fields — see
+  [packages/processes](../../packages/processes/README.md)) author in the
+  inspector's per-kind configuration. Entity bindings are explicit
+  where no wire supplies them: EntityRef literals keep their type picker;
+  All\<T\> binds through its Type pin like the unbound construct, and
+  filtering is All\<T\> → Get field → Logic → Filter dataflow.
 
 Live evaluation (`useProcessDesignerLiveGraph` over
 `interpretDeclarationEdges`): the designer behaves like a node editor.
@@ -346,12 +344,13 @@ classify a record for shared behavior; no path changes a record's kind or
 ports. All consumers use their native `entity` socket through validation
 and execution.
 
-Origin species carry a persistent Type pin; consumer species bind through
-their entity input, and type-changing reads carry the declared target
-type. Species cards have one operation channel: the binding channel owns
-the type, the species owns the operation. A process binds a type by
-dropping the unbound `construct` operation and wiring its Type pin to a
-class or type-reference node.
+Origin species that author a type — the construct and the origin reads
+(`current`/`all`) — carry a persistent Type pin; consumer species bind
+through their entity input, and type-changing reads carry the declared
+target type. Species cards have one operation channel: the binding
+channel owns the type, the species owns the operation. A process binds a
+type by dropping the unbound `construct` operation and wiring its Type
+pin to a class or type-reference node.
 
 Class identity is the authored name — renaming is a pure label change:
 persisted instances, posted org types, producer outputs, and relation
@@ -384,7 +383,7 @@ Apply pauses on three gates, each with its own consent dialog:
 |---|---|---|
 | Breaking type change with live instances and no covering `migrate` steps (CTS SPEC §11) | `pendingTypeMigration` | `TypeMigrationStepsDialog`: one row per breaking change, labeled by the type's authored NAME and the field's authored LABEL; an uncoverable change renders blocked with the reason |
 | Removed workflow states with live instances that the draft's declared migrations (`data.migrations.statuses`) leave uncovered | `pendingMigration` | `ApplyMigrationDialog`: one target state per removed state, pre-filled from the declarations; confirming persists the mappings as a declaration on the draft, saves, then activates. See the Apply migration contract in [server/features/process-definitions](../../server/features/process-definitions/README.md) and the refusal payload contract in [server/features/cts-types](../../server/features/cts-types/README.md) |
-| Apply that orphans types (`pendingTypeDeath`); definition deletion whose types no other stored definition declares (`pendingDefinitionDeath`, page-owned) | pauses Apply | `TypeDeathDialog`: names each dying type by its authored name with its live record count; confirming retries with `confirmTypeDeath` (CTS SPEC §4) |
+| Apply that orphans types (`pendingTypeDeath`); definition deletion or activation-switch flip whose types no other stored definition declares (`pendingDefinitionDeath`, page-owned) | pauses Apply | `TypeDeathDialog`: names each dying type by its authored name with its live record count; confirming retries with `confirmTypeDeath` (CTS SPEC §4) |
 
 `TypeMigrationStepsDialog` offers the declarative steps; confirming writes
 them onto the matching class node's `data.migrate` (found by typeId),
@@ -421,11 +420,12 @@ through activation. History rows render the timestamp only. The
 activation contract lives in
 [server/features/process-definitions](../../server/features/process-definitions/README.md).
 
-### Screens tab
+### Screens (Roles tab)
 
 `useProcessDesignerScreens` owns station customization, source-id
 reference updates, mode normalization, lineage rows, and typed scalar-map
-mutations. The compiled preview IS the station inventory: stations absent
+mutations. Stations render per selected role under the Roles tab. The
+compiled preview IS the station inventory: stations absent
 from `data.screens` are inference-owned, rendered read-only and marked as
 inferred, and their only authoring gesture is **Customize**, which
 duplicates the station into an authored record — fresh id and route,
@@ -440,7 +440,7 @@ non-type screens (home, route) are plain authored records edited in
 place; retargeting a duplicate's template is the standalone authoring
 path. When grants infer zero stations and nothing is authored, the tab
 renders an explanatory empty state (stations derive from role access
-grants) with an action opening the Roles tab.
+grants).
 
 The preview renders every emitted screen through the real generator
 (`composeScreen` + the ui-mapping registry) over the CTS-vocabulary UI
@@ -470,25 +470,25 @@ every mutation is an event back to the page's update/sync entry points.
   list over the bound type's row-relative fields — a projection reading
   and writing the guard expression AST), pure output inspection, and
   per-grant access LEVELS (role assignment itself is lane placement).
-- `DeclarationInspector.vue` — class/field/state/operator/type-reference
-  records. A state authors the value, display severity/icon, and the
-  field-policy facet (visible/editable row-field lists narrowing
-  instances of that state, SPEC §7). Class display tokens follow SPEC §4:
-  beside the name, a glyph row offers a curated PrimeIcon set, the
-  generated icon-font palette (every `ck-*` glyph the fonts carry,
-  `shared/icon-fonts.js`), and a free-text override; an absent glyph
-  derives from the class default table. Per field: a display label (the
-  placeholder is the authored name; empty means derived), a `display`
-  kind select over the closed SPEC §4 vocabulary plus "auto", and two
-  single-holder toggles — names-the-record (`identifier: true` on exactly
-  one field per type; enabling clears the previous holder, and with none
-  authored the registry boundary mints the first string field) and
-  picture (`depiction: true` at most once, same move semantics). Field
-  mutability rides the descriptor (Writable/Constructible: writable
-  governs mutate leaf sockets and update paths, constructible governs
-  construct sockets and creation forms). Per-producer field visibility
-  (read/write/private lists) authors on the producer output panel and
-  compiles into the field policy.
+  The state-policy facet (visible/editable row-field lists narrowing
+  instances of the state, SPEC §7) authors here, on the typed operation
+  (transition target / construct initial state).
+- `DeclarationInspector.vue` — class/field/state/type-reference records.
+  A state authors the value and display severity/icon. Class display
+  tokens follow SPEC §4: beside the name, a glyph row offers a curated
+  PrimeIcon set, the generated icon-font palette (every `ck-*` glyph the
+  fonts carry, `shared/icon-fonts.js`), and a free-text override; an
+  absent glyph derives from the class default table. A field authors its
+  descriptor through the shared `DescriptorEditor`
+  (`components/type-designer/DescriptorEditor.vue`): base kind,
+  qualifiers (unit, ref targets, enum values, variant tags, list/map item
+  types, nested record fields), nullable, and the mutability pair —
+  Writable governs mutate leaf sockets and update paths, Constructible
+  governs construct sockets and creation forms. The class inspector's
+  names-the-record dropdown moves the single `identifier: true` holder
+  across the class's field nodes (enabling clears the previous holder,
+  and with none authored the registry boundary mints the first string
+  field).
 - `DeclarationEdgeInspector.vue` — typed edge integrity.
 
 Pure and read nodes expose the on-demand Output data inspector: it
@@ -508,7 +508,11 @@ palette (`OperationPalette.vue`), lanes (`LaneBands.vue`), the loop edge
 `ApplyMigrationDialog.vue`, `TypeDeathDialog.vue`), and
 `TypedValueControl.vue` — plus `inspector/` (3 SFCs:
 `DeclarationEdgeInspector`, `DeclarationInspector`,
-`ProcessNodeInspector`). Selection, draft persistence, graph sync,
+`ProcessNodeInspector`). The class/field/state declaration cards render
+through the shared `components/type-designer` SFCs (`TypeNode.vue`,
+`FieldNode.vue`, `StateNode.vue`), which compose the same
+`DesignerNodeCard`/`DesignerSocketHandle` primitives. Selection, draft
+persistence, graph sync,
 connection inference, palette queries, roles, screens, and panel state
 live in the focused `useProcessDesigner*` composables; pure projections
 in `utils/processDesigner*.js`:

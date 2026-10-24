@@ -20,6 +20,11 @@
 - [x] pages/test/README.md → L72-74 "the authored render vocabulary overriding shape inference: declared sort keys, authored list layouts (including deliberately contradictory ones)" — both override channels are gone (shared/ui-mapping/index.js:256 authored list-layout override channel removed; :507 authored default-sort override replaced by derivation); delete the bullet.
 - [x] pages/test/README.md → L24 "seeds the entity store" → it seeds the instances store (ui-lab.vue:310 `useInstancesStore`, :381 `upsertRecord`); trim the L15-22 demo bullets to the non-obvious facts (feedback persistence key `perigram:ui-lab-feedback:v1`); the "data-model review" bullet rides the nonexistent `/api/debug/data-models` route (area-2: no route file; no reference in ui-lab.vue) — delete the bullet.
 
+### Code findings (truth pass 2026-10-24)
+
+- [ ] pages/test/ui-mapping.vue:12-18 — dead source-toggle Button (no `source` binding, no click handler).
+- [ ] pages/screens/[screenKey].vue:65 — comment claims titled list screens keep the route title strip while its own `pageTitle` nulls for typeList (since 3e024aaf8): possible unintended loss of the list-screen title/back control — owner decision.
+
 ### Owner decisions wanted
 
 - None.

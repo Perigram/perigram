@@ -61,6 +61,12 @@
   Related inventory L1126-1132 does not register process-designer —
   registration is a parent-rewrite item in components/TODO.md).
 
+### Code findings (truth pass 2026-10-24)
+
+- [ ] ProcessNodeInspector.vue `fieldPolicyOptions` prop bound by the page, never rendered; per-producer read/write/private authoring has no UI — dead prop or lost panel.
+- [ ] pages/organization/process.vue:406 zero-stations "Open roles" action fires inside the Roles tab — dead control.
+- [ ] Producer `nodeId:outputSocketId` display documented in prose exists nowhere in the UI — regression or unrecorded removal (owner decision).
+
 ### Owner decisions wanted
 
 - Four inline provenance citations in README prose — L117 "owner decision

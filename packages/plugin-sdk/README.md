@@ -81,7 +81,7 @@ A listing is `{ pluginId (slug), name, description, version, visibility?,
 organizations?, requires?, declarations }` where `visibility` is `public`
 (the default) or `private` — a private listing is served only to the
 organizations its `organizations` ids name, scoped by the operator at
-publish (the catalog stays platform-published). `requires` lists plugin ids
+publish (the catalog stays platform-published). `requires` lists the pack or plugin ids
 the types resolve against, satisfied by an install (never the plugin
 itself); the platform-side gates enforce it. `declarations` carries `types` (CTS grammar,
 non-empty), `services` (SPEC §8 signatures, `mode` endpoint/claim),
@@ -109,8 +109,9 @@ type), `dependencies` (declared runtime dependencies, owner decision
 bundle per npm name served by the executor at `module`; surface modules
 import the bare `name` and the platform's module proxy resolves it to
 the plugin's own vendor scope; what the mount injects — `vue`,
-`primevue`, `pinia`, and the host markdown pipeline `marked`/`dompurify`
-— refuses as a dependency, never vendorable; `perigram-plugin vendor`
+`primevue`, `pinia`, and the host markdown pipeline
+`marked`/`dompurify`/`pele` — refuses as a dependency;
+`perigram-plugin vendor`
 builds the bundles and writes the manifest), and `exports` (attachment
 exports bound to plugin services). A type's `projections` resolve a
 stored `field` path or a
@@ -144,16 +145,16 @@ A services module is any ESM file exporting `services` (or a default):
 The author-side half of the consistency law: `checkSurfaceModule(path)`
 loads a surface module and proves what the SDK can prove alone and
 zero-dep — the import graph carries no host externals (`vue`, `primevue`,
-`pinia`: the mount injects them; `marked`/`dompurify`: the host markdown
-pipeline is provided, never vendored), the default export is the factory
+`pinia`: the mount injects them; `marked`/`dompurify`/`pele`: the host
+markdown pipeline is provided, never vendored), the default export is the factory
 `createSurface(ctx) -> component`, and the factory returns a component
 against a stub context without logging errors. A bare specifier naming a
 declared dependency is legal (owner decision 2026-10-17 — the platform's
 module proxy resolves it); with `dependencies` and `pluginRoot`, every
 declared vendor module must also exist under the plugin root. The stub
-carries the contract-2 superset (queries, notify, access beside the base
-context), so editor-grade modules smoke against their full mount
-context; the author-facing contract shapes live in §Surface mount
+carries the contract-4 superset (queries, records, notify, access, sync,
+upload, open beside the base context), so modules smoke against their
+full mount context; the author-facing contract shapes live in §Surface mount
 contracts. The real
 host-shell mount (save callbacks over the instance transports) is proven
 by the platform's fixture-plugin e2e. The CLI wraps it:
@@ -169,7 +170,7 @@ the `{ name, version, module, license }` manifest entries — merging them
 into the listing with `--listing`. A dependency tree never crosses the
 platform boundary; the flattened, declared artifact does. Unresolvable
 names surface as leftovers (install them, or vendor their code by
-relative import the pre-2026 way).
+relative import).
 
 ## API client (`createPluginClient`)
 

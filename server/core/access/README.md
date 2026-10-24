@@ -21,12 +21,12 @@ different membership cannot consume the active organization's compiled
 `effectivePermissions`. Collection services use the same active organization
 as their coarse lineage prefilter before applying per-entity grants.
 Legacy grants are simple levels (`queues: 'write'`). Granular grants can scope a
-level to lineage ids, entity ids, UI actions, workflow transitions, or a
-logical rule:
+level to entity type, organization or entity ids, UI actions, workflow
+transitions, or a logical rule:
 
 ```js
 {
-  queues: [{ level: 'write', scope: { projectId: 'project-a' } }],
+  queues: [{ level: 'write', scope: { instanceId: 'queue-42' } }],
   projects: [{
     level: 'write',
     transitions: ['PRODUCED->MILLED'],

@@ -35,9 +35,9 @@ summary aggregation — resolves names and collections through these helpers.
   `cts_types` store, cached and invalidated on type writes). Types with no
   declaration in the registry view fail loudly (`Unknown type`) — that is
   the intended contract: the registry view is the whole catalog. Instance
-  documents are stored in the CTS §3 shape (flat `fields`, `states.main`,
-  `name`); the service boundary owns the §3 ⇄ wire-DTO (block vocabulary)
-  mapping for screens and compiled contracts.
+  documents are stored in the CTS §3 shape (flat `fields`, the flat
+  `state` string, `name`); the service boundary owns the §3 ⇄
+  wire-DTO (block vocabulary) mapping for screens and compiled contracts.
 - Framework command handlers (`generateAttachment`, `convertArtifact`);
   plugin value services execute as `plugin.<pluginId>.<serviceId>` commands
   through the connector path.
