@@ -1,209 +1,32 @@
-# TODO: @perigram/cts
+# TODO
 
-Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
-§19 core tier first; deferred tiers land only on a failing need.
+## packages/cts/ deslop delta (2026-10-24 audit)
 
-## Core tier (SPEC §19) — DONE
+`SPEC.md` here is owner-written law; every SPEC item below is a revision
+proposal awaiting owner action. `TODO.md_archive` is shipped history — its
+2026-09-24 hard-cut items landed (recursive state trees via
+`compileTreeDeclarations`, species-only catalog, optional producer identity,
+palette E2E); resurrect nothing from it.
 
-- [x] Value universe V: atoms, Quantity, Ref, records/lists/maps/variants
-  (`values.js`)
-- [x] Units: closed set, declared conversions, unification (`units.js`, R3)
-- [x] Closed rows + JSON Schema 2020-12 substrate with `x-quantity`/`x-ref`
-  keywords (`rows.js`, R1)
-- [x] Five classes with obligations (`classes.js`, R6)
-- [x] Three edge kinds with `onRemove` + lineage acyclicity (`edges.js`, R2)
-- [x] Single-axis states, guarded transitions, unique intents, reachable
-  terminals (`states.js`, R4)
-- [x] Six operator species, typed signatures, event/schedule triggers,
-  ref-free services/projections (`operators.js`, R5)
-- [x] CEL-semantics expressions: total evaluator, step budget, map/filter,
-  compile-checked match (`expressions.js`, §18)
-- [x] Version stamping + refuse-on-breaking diff (`diff.js`, R7 core)
-- [x] Type registry as data, tenancy resolution, compile() = R1–R6
-  (`registry.js`)
-- [x] CNC starter type pack as collapse-table acceptance fixture
-  (`pack/cnc.js`)
+### README
 
-## Designer rebuild layers
+- [ ] Fold the Modules section into a module map with SPEC pointers: entries currently restate SPEC contracts at length (registry.js L89-110, diff.js L52-82, domain-projection.js L111-140 are 20-40-line restatements; duplication clusters: identifier mint = SPEC §4 L186-201 over README L103-109; stored-shape slots = §3 L107-124 over L113-119; migration steps = §11 L549-559 over L60-72; base-domain passthrough = §19 L830-834 over L134-139; lineage recursion = §6 L301-307 over L35-38). Collapse each entry to file + one-line role + SPEC § pointer; L8-9 already promises exactly this mapping.
+- [ ] Delete the `compat/domain-cnc.js` module entry (L173-175): the file does not exist (`ls packages/cts/src/compat/` — domain-projection, field-schema-rows, graph-protocol, process-checks, process-grammar only).
+- [ ] Delete the `pages/organization/types.vue` passage (L227-230): root TODO.md L5423-5427 records the page already gone with its references purged; `ls pages/organization/` has no types.vue; the registry browser concern lives in the designer tree.
+- [ ] Document the missing module entries: `compat/process-grammar.js` (CTS ⇄ `PROCESS_BASE_TYPES` seam adapter; consumed by processes/src/designer.js and node-catalog.js) and `pack/framework.js` (`frameworkTypes`, exported from src/index.js).
+- [ ] Strip migration-era residue: L96-101 ("legacy persisted docs and older pack fixtures", "adopts the retired `render` facet"), L196-197 ("the v4 twin table is gone with the retired kinds"), L209-210 ("there is no v4 rewrite at any seam"), L240-241 ("the retired source-flip converter has no runtime path") — the SPEC owns migration semantics.
+- [ ] Fix the L220 citation: "browser-safe by contract (SPEC §13)" — §13 carries no browser-safety clause (grep "browser" in SPEC.md → only §21 L1024, about pack declaration data); cite §21 or drop the section number.
 
-### Current accepted hard cut — 2026-09-24
+### Code deslop
 
-- [ ] Replace flat `states.main.values` declarations with recursive state
-  machines: one initial state per machine, single-parent acyclic state paths,
-  explicit terminal flags, and reachable terminal validation.
-- [ ] Separate declaration graph facts from process graph execution. Native
-  `cts.*` records preserve their kinds and ports through migration,
-  resolution, validation, compilation, orchestration, and server execution.
-- [ ] Remove author-facing raw-id lookup, producer-path joins, fixed-arity
-  list construction, persisted packet matching/transforms, and hidden query
-  predicates. Keep only typed context/reference/all instance sources,
-  declared field projection, effect species, and supported control flow.
-- [ ] Make producer identity optional for existing-instance consumers and
-  derive lifecycle/transition authorization from the bound CTS declaration.
-- [ ] Add palette and nested-state E2E acceptance artifacts.
+- [ ] Contract-shaped comments (docs-guard homing backlog, `node scripts/check-docs.js`): `src/compat/graph-protocol.js` (343 chars), `src/registry.js` (563), `src/compat/process-grammar.js:1-4`, `src/compat/field-schema-rows.js:1-4` (grammar/seam contracts), `src/render.js:17` — move the semantics into the owning README section (SPEC § pointers), leave one-line comments.
 
+### Owner decisions wanted
 
-- [x] **L0 — type storage**: `cts_types` collection + org-scoped
-  `server/features/cts-types` (validate/diff-refuse/rollback via the real
-  registry) + `GET|POST /api/admin/cts/types`, `DELETE /api/admin/cts/types/:id`;
-  the merged org view feeds the types pane and language tester.
-- [x] **L1 — types editor**: the authoring surface IS the process designer
-  tree (one tree, SPEC §20/§21): Class/Field/State nodes with the full V
-  row grammar (`DescriptorEditor`, validated through `describeType`),
-  class→class children wires with `onRemove`, state→state transition wires
-  with intents, operator facets (species signatures + triggers), payload
-  traits — compiled by `compileTreeDeclarations`
-  (`packages/processes/src/designer.js`) with R4 enforced at save.
-  `/organization/types` is the read-only registry browser (projection
-  canvas, org-type delete, compile errors).
-- [x] **Designer gap closure (2026-09-18 exploration; phases P0–P5)** —
-  the one-tree declaration nodes are shallower than the type system they
-  represent, while the old entity-based graph nodes carry rich typed
-  sockets. Close it in phases, each independently shippable:
-  - [x] **P0 — seal declaration wires**: `declarationWireLegality`
-    (`packages/processes/src/designer.js`) restricts declaration canvas
-    nodes to declaration partners; declaration wires persist as
-    `role: 'type'` edges and save-compile from exactly those.
-  - [x] **P1 — one declaration vocabulary, full row grammar**:
-    `DescriptorEditor` edits the whole V grammar in the tree inspector;
-    grammar lists (bases/classes/units) are single-homed in `@perigram/cts`
-    exports; `pages/organization/types.vue` is the registry browser, its
-    parallel authoring vocabulary deleted.
-  - [x] **P2 — edges and lifecycle in the tree**: class→class children
-    wires (key + `onRemove`), state→state transition wires (intents);
-    `compileTreeDeclarations` emits `edges`+`transitions` and requires
-    exactly one initial state (R4) — never a `states[0]` default.
-  - [x] **P3 — operators and payload traits**: operator facets on class
-    nodes (six species, V-typed signatures via `normalizeOperator`,
-    event/schedule triggers); payload traits are the canonical registry
-    shape (mime list, accept, maxSize, preview); declared construct
-    operators project as `via` modes with signature-derived `modeInputs`.
-  - [x] **P4 — L2 slice (composer-less construct)**: declared row fields
-    project as generic-construction inputs and surface as typed construct
-    sockets (`effect.createEntity`/`cts.construct` resolve the identical
-    contract) — a compose node is optional. Field pickers keep slot paths;
-    resolution passes them through unchanged (SPEC §20 residue note).
-    Scaffold-from-type designer macro: not built, marked optional.
-  - [x] **P5 — UI contract flip (declaration side)**: declared states
-    carry the type's render policy (label/icon/severity) into projected
-    workflows — the same metadata channel stateDefinitions use; payload
-    preview derives from payload traits. Assembly (screens/navigation/
-    access) stays process-owned and already consumes the projected view.
-- [x] **Server compiles through CTS**: activation, contract diff, draft
-  save, and the active runtime all use `getProjectedDomain` (org type store
-  + strangler system view). Proven by the env-gated live spec
-  `cts-server-equality.spec.js` (run inside the app container against the
-  dev DB): every active definition byte-matches the legacy pipeline,
-  failures included.
-- [ ] **L2 — graph rebase**: palette = operator registry, sockets carry V
-  types, property editors = expression language, R5 dataflow typing.
-  > 2026-09-18: declaration persistence landed first (the tree saves with
-  > the draft via `ctsTypes` records; APPLY compiles declarations into
-  > the registry before validation). L2 landed since: the type catalog leads
-  > the palette (one bound construct per type, one variant per declared
-  > construct operator — typeCatalogPaletteGroups). Remaining L2 slices:
-  > expression property editors on the language tester,
-  > transition guards authored as expressions.
-  > 2026-10-07: transition guards landed (see root TODO "Business process
-  > authoring maturity" — SPEC §7 guard contract, declaration-seam checks,
-  > compile onto machine edges, status-runtime evaluation, inspector
-  > editor). Expression property editors on the language tester remain.
-- [x] **Designer palette derives from the registry**: entity/field/status/
-  relation option lists in the designer contract come from the projected
-  registry view — authored types are immediately composable in the existing
-  graph nodes. (Reference-card experiment removed: cards that only display a
-  type add no composition; types participate through the real nodes.) `RECORD_NODE_TYPES` +
-  `CANVAS_OWNED_RECORD_KEYS` in `packages/processes/src/transpiler.js` —
-  only stateDefinition/processNode canvas nodes survive the round trip
-  today; a `ctsType` reference node needs a `ctsTypes` record home there,
-  then the standard pattern (factories map, `recordKeyForType`,
-  `syncNodeData`, palette group, inline node card) in process.vue. The
-  compiled contract already consumes org types via the projection — the
-  nodes are authoring/referencing surface, not a compilation need.
-- [x] `contract-diff.js` stays (audit correction: it diffs process graph
-  contracts; CTS diffs type versions — no overlap, nothing to collapse)
-- [ ] **L3 — runtime swap**: compiled org app reads the CTS bundle;
-  command runtime binds operator signatures (gated on app-registry
-  signature unification below)
-
-## Strangler integration (app-side)
-
-- [x] **The legacy cut (2026-09-18 session):** the converter
-  (`compat/domain-cnc.js`) and the source-flip/server-equality gates are
-  deleted; `projectDomainFromView` is synthesis-only (no legacy
-  entities/workflows/construction/fieldSchemas/fieldAccess/relations/
-  containment/attachmentKinds passthrough — the base domain contributes
-  operator contracts, block vocabulary, and pack services only);
-  `/api/admin/domain` serves the caller's projected view; the registry
-  contract spec pins the resolver world (legacy types fail `Unknown
-  type`). Legacy collections and definitions authored against legacy
-  types are abandoned data. Remaining legacy surface (machines,
-  workflow-overrides, config-bot, workbench fixtures, legacy UI routes)
-  stays pack-internal until deleted.
-
-- [x] Compiler pass that auto-converts `packages/domain-cnc` declarations
-  (entities, workflows, attachment kinds) into CTS type records —
-  `compat/domain-cnc.js`; live consumption via
-  `server/api/admin/cts/types.get.js` and the read-only designer types pane
-  `pages/organization/types.vue`. Per-type field extraction from `legacy`
-  Json rows remains open per entity.
-- [x] **Domain projection (collapse direction)**:
-  `compat/domain-projection.js` projects a CTS view back onto the
-  compiler-consumable domain (workflows with legacy access/state-flag merge,
-  org entities, field access on the `cts-types` feature, org relations).
-  Proven on live data: the real active process definition compiles
-  byte-identical through `projectDomainFromView` vs the hand-authored
-  `cncDomain`. The designer preview compiles through the projection.
-- [~] Translate org-authored process definitions to the new field paths —
-  **re-scoped, gated**: under the strangler, storage keeps
-  collection-per-type and old field paths; process-definition translation
-  has nothing to target until per-type field extraction and the storage
-  migration land. Blocked-by: field extraction (above), not by compiler
-  machinery. Do not build a dead mapping ahead of that.
-- [x] Split `server/features/nesting/operations.js` into the declared
-  π (`projections.js`, pure) / κ (`operations.js`, command + materializer)
-  operators with `provenance.solve.effective` replacing
-  `machineSnapshot`/`toolSnapshot`/`materialSnapshot` on runs, designs, and
-  sheets; `server/scripts/migrate-nesting-provenance.js` migrates persisted
-  records (run it before deploying); the sheet-design editor (now the
-  facade plugin's surface module) reads
-  provenance. σ stays the external solver behind the typed value request.
-- [ ] Uniform service signatures in `server/runtime/app-registry.js`
-  collapsing the four adapter maps + delete switch — touches ~30 feature
-  services and their callers; needs its own session with e2e coverage
-- [~] Wire Ajv on the generated JSON Schemas — **deferred with reason**:
-  the only available ajv is a transitive 6.x (draft-07; cannot validate the
-  emitted 2020-12 schemas), and the real consumer (server DTO redaction)
-  does not exist yet. Adding `ajv@8` as a dependency is correct the day
-  that consumer is built; the in-package total walker already validates.
-- [ ] Process designer: turn the read-only types pane into the authoring
-  types editor (facet editors, save = compile with inline R1–R7 diagnostics,
-  migration-refusal UX). The in-designer language tester
-  (`LanguageTesterPanel.vue`, dock entry) already evaluates real expression
-  ASTs and instance validation client-side — extend it, do not add parallel
-  surfaces.
-  > Superseded by the one-tree L1 above: authoring IS the designer tree;
-  > the types pane stays the registry browser. Remaining from this item:
-  > surface registry refuse-on-breaking-diff (migration-refusal UX) inline
-  > in the tree save path, and extend the language tester toward expression
-  > property editors (L2).
-- [~] Frontend: derive navigation/hierarchy from containment edges;
-  delete hardcoded type strings (`utils/instance-hierarchy.js`,
-  `stores/navigation.js`, `utils/queue-items.js`)
-  > Correction (2026-09-18): derivation already landed for process-active
-  > organizations — containment comes from compiled `lineageBindings`
-  > (containment edges via the projection), routes from the screen
-  > manifest (`detailRouteForInstance`), hubs from generated screens. The
-  > remaining hardcoded strings are the legacy no-process fallback
-  > (`projectHierarchyRoute` project-shell routes, `utils/queue-items.js`
-  > queue surface), which SPEC §21 holds pack-internal until those flows
-  > are re-authored on the graph — deleting them early would remove the
-  > only fallback path. Re-gated on legacy-layer removal.
-
-## Deferred tiers (SPEC §19 — build only on a failing need)
-
-- [ ] Declarative migration steps beyond refuse-on-diff (§11)
-- [ ] Aggregates and materialized summary caches (§9) — compute on read
-- [ ] Policy beyond closed-row hiding (§10)
-- [ ] State axes beyond `main` (§7)
-- [ ] `match` used in a live predicate (implementation exists, unused)
+- [ ] §21 L1062-1066 states instance documents project a block-vocabulary wire DTO (`identity`/`status`/`data`/`specs`); §3 L129-137 (owner decision 2026-10-11, later) states the wire DTO **is** the stored §3 shape with no `identity` block, and the code follows §3 (server/features/instances/service.js synthesizes no such blocks — grep identity/specs absent) — confirm §3 stands as the wire law and the §21 sentence dies in the next SPEC revision.
+- [ ] Strangler-era history sections: §15 "Existing constructs → CTS" (a migration table whose every row landed or was deleted), §19 "Build order" tier-status narration ("landed, then the cut"), §14 "Process designer in development" (dev-loop narration overlapping §20/§21), §21 "Historically the pack mount provided:" block and "(§8, landed)" status tags — proposal: history content moves to TODO/archives, §14's authoring-loop facts fold into §20, §21 keeps current plugin law (marketplace cross-ref L997-999).
+- [ ] Internal duplication: §7 L366-381 vs §20 L917-922 (state-socket authoring law stated twice); §7 L404-412 vs §10 L533-539 (fieldPolicy narrowing stated twice) — one home each.
+- [ ] §13 code-homes drift: L599 names `packages/core` as grammar+validator home (the grammar lives in `packages/cts`: values/rows/units/expressions; core carries block DTOs); L601 names `packages/processes` as the R1-R7 compiler home (R1-R6 run in cts `registry.compile()`; processes owns graph validation); §19 L852 names `compat/field-schema-rows.js` as the seam translator (the declaration ⇄ process-grammar translator is `compat/process-grammar.js`); §19 L837 references the deleted types.vue.
+- [ ] Section numbering: renumbering (audit TOC proposal: 1 Scope · 2 Value universe · 3 Stored shape & wire · 4 Declarations · 5 Classes · 6 Edges · 7 States & typed-operation authoring (guards, fieldPolicy, actors, deadlines) · 8 Operators · 9 Aggregates · 10 Policy · 11 Evolution · 12 Static rules R1-R7 · 13 Storage mapping · 14 Graph protocol · 15 Expressions · 16 Plug-ins · 17 Worked examples) breaks citations: 27 `CTS SPEC §` citations across 15 files (workflows, processes, shared, ui-mapping, composables, utils, stores, server features, root SPEC/TODO) plus in-package `SPEC §N` self-citations — renumber only with a citation sweep.
+- [ ] "audit correction" labels at §2 L89, §8 L464, §18 L782: the content is law, the label is session residue — delete the labels.
+- [ ] Declared-state-deadline law for §7 — decision item lives in [packages/processes/TODO.md](../processes/TODO.md) (workflows/processes citations repoint, or §7 gains the law).

@@ -1,0 +1,72 @@
+# TODO
+
+## components/process-designer/ deslop delta (2026-10-24 audit)
+
+### README
+
+- [ ] README.md REWRITE (758 → ~300 lines): keep the Node UI contract tables
+  (L362-548) and wire-legality prose (L265-284) as the canonical core;
+  restructure the 361-line prose opening into the owned sections (channels,
+  lanes, interactions, apply, screens, inspector); contracts owned
+  elsewhere collapse to links.
+- [ ] Delete palette-membership prose L147-174 — stale against code and its
+  own opening. packages/processes/src/designer.js L112-117
+  `TYPE_AUTHORING_PALETTE_ITEMS` = class/field/state/typeReference only
+  (group id `types`; i18n "Types") — no transition or operator item exists
+  (README's own L23 says so); L122-131 operations group = exactly
+  construct/mutate/transition/remove; services live in their own
+  `services` tab (`servicesPaletteGroups` L828-841) and pack tabs
+  (`packPaletteGroups` L852+); `paletteItem('command'` → 0 hits; no
+  `value.parse` in packages/processes/src (only value.cast) — L160 stale.
+  Replace with a link to packages/processes/README.md L50-87 (canonical and
+  correct); the child copy drifted stale as a second home (review-2
+  confirmed every claim).
+- [ ] Fix garbled splice L28-33: "…relations slot (a row-carried reference
+  pins `slot: 'data'`…) (`cts.transition`) that reference declared states."
+  — dangling fragment from a bad edit interleaving the ref-field sentence
+  with the transition sentence; rewrite as the two sentences.
+- [ ] Delete duplicated sentence L592-594 ("Resolved input/output contracts
+  are shown by socket rails and hover/focus metadata." appears twice
+  back-to-back); keep the second copy's extra clause ("the inspector does
+  not repeat a socket-specification table") once.
+- [ ] Delete the first `cts.field` statement L628 (repeated within three
+  lines by L630-633, which carries the real content: path choices are the
+  bound type's readable fields, the record's `path` is the single persisted
+  home, an unbound node offers only its entity input).
+- [ ] Delete the packet/raw-id/transport negations stated three times
+  locally (L35-36, L172-174, L645-646): the canonical statement lives in
+  packages/processes/README.md L20-22, and the positive form ("same-type
+  stream combination is ordinary typed collection composition", L305-306)
+  already exists locally.
+- [ ] Delete "Status model at runtime" L615-623: the snapshot +
+  `status_events` contract is owned by server/core/machines/README.md
+  L76-93; replace with a link.
+- [ ] forEach loop pair L610-613 → one line + link to packages/processes
+  README L78-80 (near-verbatim duplicate).
+- [ ] Keep the screens-preview contract L344-360 here (canonical owner: the
+  Screens tab); the duplicate at components/README.md L152-155 is removed
+  by the parent rewrite (consumer item in components/TODO.md).
+- [ ] Delete history prose: L433 "The per-node `?` affordance is gone";
+  L749-750 "instead of pointing out of the bottom of the card"; L339-340
+  "(crystallization Phase 4 — …)". State what IS.
+- [ ] Negspace pass: 103 lines match never/not/no constructions
+  (representative L17-19, L35-36, L172-174, L294, L303-305, L678).
+  Absence of a palette item IS contract — convert to positive form where
+  one exists, delete where it doesn't.
+- [ ] Compress verbose-but-verified sections to tables/contract form:
+  L75-110 `useProcessDesignerApply` bullet incl. the migration-step catalog
+  (step kinds verified against TypeMigrationStepsDialog.vue); L231-255 live
+  evaluation; L444-517 lanes; L550-613 card behavior.
+- [ ] Add parent link to components/README.md (grep 0 hits; parent's
+  Related inventory L1126-1132 does not register process-designer —
+  registration is a parent-rewrite item in components/TODO.md).
+
+### Owner decisions wanted
+
+- Four inline provenance citations in README prose — L117 "owner decision
+  2026-10-13", L277 "owner direction 2026-10-18", L439 "owner direction
+  2026-09-28", L481 "owner direction 2026-09-30": strip to plain law with
+  provenance carried in TODO/SPEC, or keep as inline authority pins?
+- Palette membership: confirm this README carries zero palette-membership
+  prose (link packages/processes only) — the child copy drifted stale
+  exactly because it was a second home.
