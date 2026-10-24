@@ -1,12 +1,13 @@
 # COMPONENT: Nesting Worker
 
-The Nesting Worker is a Python-based HTTP service responsible for executing the 2D bin packing algorithm. It is a "pure algorithm" service that processes geometry and returns transformations, without accessing the database.
-
-## Core Files
-- `worker_service.py`: FastAPI application entry point.
-- `core/nesting_input_builder.py`: Prepares geometry and parameters for the nesting engine.
-- `worker_service.py` is the only runtime entry point. The old polling entry
-  point was removed; task/job orchestration belongs to the app.
+The Nesting Worker is a Python FastAPI service executing the 2D
+bin-packing algorithm over HTTP: geometry in, placements out. The
+runtime entry point is `worker_service.py` (`POST /nest`); the live
+import path touches only `worker_service.py`,
+`core/nesting_input_builder.py`, and `core/geometry_utils.py`. The
+polling-era files (`core/main.py`, `core/svg_generator.py`, `dxf/`,
+`utils/`) remain in the tree pending removal — the Docker image ships
+them today (`COPY workers/nesting/ .`).
 
 ## Nesting Engine
 The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesting library written in Rust.
@@ -21,6 +22,10 @@ The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesti
 3.  **Output**: Returns nesting solution (layouts and transformations) as JSON.
 
 ## API
+Callers reach the solver at `NESTING_WORKER_URL` — the full endpoint
+including `/nest` (the facade executor's default
+`http://nesting-worker:8000/nest`; a base URL 404s).
+
 ### POST /nest
 **Request:**
 ```json
@@ -50,6 +55,12 @@ The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesti
 **Response:**
 Standard `lbf` JSON output containing layouts and placed items with transformations.
 
+When no item passes geometry validation, the service still returns
+HTTP 200 with `{ "status": "error", "message": "No valid items to nest
+(all items failed geometry validation)", "solution": { "layouts": [] } }`;
+the facade executor branches on `status === "error"` and fails its
+service call with the message.
+
 `sheet_polygon` is optional. It may be omitted for rectangular stock, provided
 as a legacy outer ring list, or provided as `{ outer, inner }`. Inner rings are
 passed to jagua-rs as container holes, which are fixed non-placeable zones used
@@ -64,7 +75,7 @@ docker build -t nesting-worker:local -f workers/nesting/Dockerfile .
 # Run container
 docker run --rm -it nesting-worker:local
 
-# With host network (for local MongoDB)
+# With host network (dev shell)
 docker run --network host -it -v "$(pwd):/app" -w /app nesting-worker:local bash
 ```
 
