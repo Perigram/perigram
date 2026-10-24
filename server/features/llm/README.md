@@ -1,9 +1,8 @@
 # COMPONENT: LLM
 
 LLM is a capability module: it turns chat-completion requests into
-assistant messages through a selectable provider table (owner direction
-2026-10-15: local models on self-hosted servers, with options to choose
-from). It owns no collection — agent state and tool execution live with
+assistant messages through a selectable provider table (local models
+on self-hosted servers, with options to choose from). It owns no collection — agent state and tool execution live with
 the consuming feature ([agent bots](../agent-bots/README.md) is the first
 consumer).
 
@@ -54,8 +53,8 @@ the LLM everywhere.
 
 ## Configuration Resolution
 
-Organizations declare **named model profiles** (owner direction
-2026-10-15: models live on different endpoints per purpose) at
+Organizations declare **named model profiles** (models live on
+different endpoints per purpose) at
 `data.settings.llm.profiles` and **route capabilities** to them at
 `data.settings.llm.routes`. A profile is a login — kind, wire provider,
 base URL, key — and nothing else: its `model` field is derived data,

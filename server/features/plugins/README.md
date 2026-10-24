@@ -21,7 +21,7 @@ previews, attachmentKinds, conversions, constructions, exports } }`.
 Publishing is platform-operator-only. A listing may be
 `visibility: 'private'` with owning `organizations` ids — the catalog
 route serves it only to members of those orgs (the operator scopes
-private listings; owner decision 2026-10-17). Built-in listings seed
+private listings). Built-in listings seed
 from the deployment (`server/scripts/seed-plugin-catalog.js`, marked
 `builtin`) and refuse retraction — retiring one means removing it from
 the deployment. A type entry may carry `access: { inherits: <typeId> }`
@@ -90,7 +90,7 @@ types and mint a `connectorToken`; the Connection settings
 (`GET`/`POST .../plugins/:pluginId/settings`) store per-service
 `endpoints`, the executor API key, and — for plugins that declare
 surfaces but no endpoint services — the `surfaceOrigin` the module
-proxy loads modules from (owner decision 2026-10-17).
+proxy loads modules from.
 
 Installed services compose into the projected domain's service list
 (`projectedServicesForOrganization` — the one list the designer,
@@ -152,8 +152,8 @@ Trial composition on the live org view — every plugin type id must be
 free (no system, installed, or org declaration holds it; the
 no-shadowing rule), each type must define cleanly, and the compile must
 introduce no new errors. A refused install writes nothing. Beside it:
-every `requires` entry names an installed plugin (owner decision
-2026-10-17 — requires chains plugin-on-plugin), and an attachment-kind
+every `requires` entry names an installed plugin (requires chains
+plugin-on-plugin), and an attachment-kind
 id must be unclaimed (other installs hold their kinds globally —
 collisions refuse). Editor bindings ride the listing contract (the
 bound type must be the plugin's own `file` type, one editor per type)
@@ -162,7 +162,7 @@ and compose into the served type view beside the packs
 target a mount-contract version the platform supports
 (`shared/plugin-surfaces.js` is the single supported-set home, read by
 this gate and the client loader) — an unsupported contract refuses the
-install and the upgrade at the gate (owner decision 2026-10-11).
+install and the upgrade at the gate.
 Surface declarations snapshot with the install beside the editor
 bindings.
 
@@ -178,7 +178,7 @@ Access mirrors the served type view: any member of an organization
 holding the install. Module responses are `no-store`: they are live
 executor artifacts, and an executor update must reach the next browser
 load ahead of the app-wide stale-while-revalidate rule. A JS module's
-declared dependencies (owner decision 2026-10-17) resolve to the
+declared dependencies resolve to the
 plugin's own vendor scope: bare specifiers naming a declared dependency
 rewrite to same-origin proxied URLs; binary assets stream untouched.
 The served type view composes these same-origin URLs

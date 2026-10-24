@@ -87,7 +87,7 @@ itself); the platform-side gates enforce it. `declarations` carries `types` (CTS
 non-empty), `services` (SPEC §8 signatures, `mode` endpoint/claim),
 `editors` (file-type editor bindings — the bound type must be declared by
 the same plugin with class `file`, one binding per type),
-`surfaces` (plugin-delivered surface modules, owner decision 2026-10-11:
+`surfaces` (plugin-delivered surface modules:
 `[{ id, module, surfaceContract, kind? }]` — a root-relative module path
 the plugin's executor serves, the mount-contract major it targets, and a
 `kind` of `editor` (the default) or `preview` (M7: the read-only
@@ -104,8 +104,8 @@ values and merges the returned fields before creating the record
 generically), `starterConstructs` (`[{ typeId, construction }]` —
 constructs the plugin stations into every installing organization's
 initial process: the plugin's own file type, a declared mode, one per
-type), `dependencies` (declared runtime dependencies, owner decision
-2026-10-17: `[{ name, version, module, license }]` — one flat vendor
+type), `dependencies` (declared runtime dependencies:
+`[{ name, version, module, license }]` — one flat vendor
 bundle per npm name served by the executor at `module`; surface modules
 import the bare `name` and the platform's module proxy resolves it to
 the plugin's own vendor scope; what the mount injects — `vue`,
@@ -149,7 +149,7 @@ zero-dep — the import graph carries no host externals (`vue`, `primevue`,
 markdown pipeline is provided, never vendored), the default export is the factory
 `createSurface(ctx) -> component`, and the factory returns a component
 against a stub context without logging errors. A bare specifier naming a
-declared dependency is legal (owner decision 2026-10-17 — the platform's
+declared dependency is legal (the platform's
 module proxy resolves it); with `dependencies` and `pluginRoot`, every
 declared vendor module must also exist under the plugin root. The stub
 carries the contract-4 superset (queries, records, notify, access, sync,

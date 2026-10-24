@@ -92,7 +92,7 @@ Parent: [server/features](../README.md).
   capture require a payload reference (validated by the construct-time
   trait checks), editor constructs a blank instance whose first editor
   save fills the payload, and content stores the wired or prompted text
-  as the payload blob at construct (SPEC §4, owner decision 2026-10-13).
+  as the payload blob at construct (SPEC §4).
   Wire patches map to §3 writes (tenancy is
   immutable after construct).
 - List filters (the compiled screen-source transport contract, the same

@@ -10,8 +10,8 @@ Parent: [server/features](../README.md).
 
 - `repository.js` persists org-authored declarations in `cts_types`
   (never system types — those compile from the domain packs at runtime).
-- `lifetime.js` owns the type-lifetime law (cts SPEC §4, owner decision
-  2026-10-13): an org type lives while any stored process definition's
+- `lifetime.js` owns the type-lifetime law (cts SPEC §4): an org
+  type lives while any stored process definition's
   current graph declares it (active, draft, or turned off — history
   snapshots retain copies for restore but keep nothing alive).
   `findTypeDeathCandidates` derives the orphans, `typeDeathManifest`
