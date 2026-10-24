@@ -121,7 +121,7 @@ The `vitest.ssr.config.js` run mounts real pages through
 bindings that script-only checks cannot see.
 
 Worker endpoints require matching `WORKER_TOKEN` on app and workers;
-compose files use `perigram-dev-worker` for local development. Data
+the dev compose defaults it to `perigram-dev-worker`. Data
 migrations live in their canonical home,
 [server/scripts/README.md](./server/scripts/README.md).
 Docker dev starts Nuxt with `--host 0.0.0.0` so the app binds to the container
@@ -213,9 +213,10 @@ builds only).
   production builds register `/sw.js`.
 - Offline mutations are queued in a client-side IndexedDB outbox
   (`utils/outbox.js`, `stores/outbox.js`) and replayed through the same API
-  endpoints when connectivity returns. Entity CRUD (`useEntity`), status
-  transitions (`useStateController`), and generated process actions route
-  through the outbox; queued operations raise a typed `OfflineQueuedError`,
+  endpoints when connectivity returns. Entity CRUD (the instances
+  store), status transitions (`useStateController`), and generated
+  process actions route through the outbox; queued operations raise a
+  typed `OfflineQueuedError`,
   and the floating `OfflineOutboxBadge` shows sync state with per-operation
   retry/discard. Successful replays emit the shared entity-event contract, so
   open screens reconcile as if the mutation happened locally.

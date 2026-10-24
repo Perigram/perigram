@@ -20,8 +20,9 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   the spec registry (parametric where the registry names them so: the cut
   layers' `{diameter}`, the fold route's `{angle}`); `occsLayerExportName(code, overrides)`
   resolves it — the sheet-DXF export names every layer through it. Every
-  renderer, editor, and preview bakes these pens through
-  `applyOccsLayerPens`. The spec registry
+  renderer, editor, and preview bakes these pens through the
+  layerStandards entry points (`applyOccsLayerPens` for whole drawings,
+  `penForLayer` for single layers). The spec registry
   ([spec/layers.json](./spec/layers.json)) is the vocabulary of record,
   pinned in sync by `shared/facade-layer-standards.spec.js`.
 - **`dimensions.js`** — canonical `dimension.cassette` annotation
@@ -92,8 +93,8 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   - `evaluateOccsProfileSketch` resolves the whole sketch (parameters
     may reference each other; cycles and unknown identifiers throw). The
     savable gate (`isOccsProfileSketchSavable`) turns those throws into
-    authoring feedback and requires at least one participating shape —
-    a closed participant, or an open chain as a cut path.
+    authoring feedback and requires at least one closed shape carrying
+    a boolean op.
   - Fillets are non-destructive modifiers on their shape (per-corner on
     rects, per-vertex on chains), editable after application. A radius
     larger than the corner's adjacent segments allow resolves as the
@@ -114,8 +115,8 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     four-vertex right-angle chain detects as a `rect` primitive in
     canonical order — counter-clockwise from the leftmost corner, so the
     draw direction leaves the stored settings and corner labels
-    unchanged; rotation normalizes into (−90°, 90°] with width and
-    height swapping past the half-turn; every extracted numeric (rect
+    unchanged; rotation normalizes into [−45°, 45°) with width and
+    height swapping past the quarter-turn; every extracted numeric (rect
     center, width, height, rotation; circle center and diameter) rounds
     to 1e-3 mm; circles land as `subtract` shapes on a draw.
   - `mergeOccsProfileSketchGeometry` merges extraction back under the
@@ -138,12 +139,12 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     authored model whole (the drawing-is-sacred law): canvas geometry
     merges on the next pass once the text resolves, and the editor
     renders from the last good evaluation in between.
-  - The numeric geometry seed that `normalizeOccsProfileSketch` fills a
-    sketch-less read with stays literal. The default hanger template is
-    parametric — a rect (W/H the rectangle, R the four corner fillets)
-    plus a subtract circle (D the hole), L resolving the sweep at
-    evaluation — and is the renderer's fallback for sketch-less
-    workpieces; a cassette's instance parameters drive it on attach.
+  - The default hanger template is parametric — a rect (W/H the
+    rectangle, R the four corner fillets) plus a subtract circle (D the
+    hole), L resolving the sweep at evaluation. `normalizeOccsProfileSketch`
+    fills a sketch-less read with it, and it is the renderer's fallback
+    for sketch-less workpieces; a cassette's instance parameters drive it
+    on attach.
   - Legacy chain sketches (points/edges/holes/closed/anchors) upgrade
     into the shape model at `normalizeOccsProfileSketch`: the chain
     becomes one chain shape, holes become subtract circles, a closed

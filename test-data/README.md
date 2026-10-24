@@ -62,8 +62,9 @@ import { createMockUser } from '~/test-data/factories';
 const admin = createMockUser({ identity: { name: 'Site Admin' } });
 ```
 
-Every factory except `createMockHistory` takes an overrides object
-spread onto the defaults.
+Every factory except `createMockHistory` (a states
+array) and `createMockStatistics` (fixed totals) takes an overrides
+object spread onto the defaults.
 
 ## Design-System Alignment
 

@@ -123,9 +123,10 @@ bundle, which serves 503 on every route). Cross-root portable imports
 should use the package imports declared in `package.json` (`#shared/...`,
 `#packages/...`, `#utils/...`) so direct Node loaders and Nuxt/Nitro SSR builds
 resolve the same graph.
-Entity feature directories are derived from domain entity metadata. Use an
-explicit `feature` field on a domain entity when English pluralization is
-irregular, such as `library -> libraries`; do not add script-local exceptions.
+Entity feature directories are derived from domain entity metadata — the
+feature key is the entity type id plus `s`; the single irregular alias
+(`entity-revisions` → `instance-revisions`) rides
+`FEATURE_DIRECTORY_ALIASES` in `check-arch.js`.
 Non-entity capability directories must be added to the explicit capability list
 in `check-arch.js` and documented in `server/features/README.md`.
 

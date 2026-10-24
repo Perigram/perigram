@@ -16,8 +16,8 @@ engine (`occs/`) is the domain's single copy: the executor's
 construction services and the browser-side surfaces both use it, the
 executor serves it statically, and
 [`occs/layerStandards.js`](./occs/README.md) ships the cassette layer
-standards every renderer, editor, and preview bakes through
-`applyOccsLayerPens` (the layer law lives in the OCCS README).
+standards every renderer, editor, and preview bakes
+(the layer law lives in the OCCS README).
 
 The types' glyphs are the hand-drawn `ck-entity-icons` font classes
 (`ck-entity-icon ck-entity-icon-cassette-template` &c. — consumed like

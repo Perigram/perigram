@@ -2,7 +2,7 @@
 
 The page SSR smoke harness: real page SFCs mounted through
 `vue/server-renderer` outside Nuxt, with the Nuxt auto-import globals
-(`$fetch`, `useAuthStore`, `definePageMeta`, `#app`) stubbed.
+(`$fetch`, `definePageMeta`, `#app`/`#imports`) stubbed.
 
 - `nuxt-app-stubs.mjs` — the `#app`/`#imports` specifier stubs.
 - `*.ssr-smoke.js` — smoke cases (named outside the default
@@ -30,4 +30,4 @@ string catches both before they ship as a runtime 500. The stubs are
 deliberately minimal — the page's real composables, registry projection,
 and component tree all execute; only the Nuxt runtime shell is faked.
 
-Parent: [root README](../../README.md).
+Parent: [root README](../README.md).

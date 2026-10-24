@@ -17,7 +17,9 @@ The worker tier is the nesting solver and the plugins' executors
 ## Docker
 
 The solver image builds from the project root (the Dockerfile needs the
-repo context — [building locally](./nesting/README.md)). Both compose
-files and both stack files run `nesting-worker` beside the app and Mongo.
+repo context — [building locally](./nesting/README.md)). Every compose
+and stack file runs `nesting-worker`: the dev compose and the main stack
+file beside the app and Mongo, the local compose and the external stack
+beside Mongo only, the workers-only stack alone.
 `WORKER_TOKEN` is the task runtime's app/worker shared secret
 ([server/core/tasks](../server/core/tasks/README.md)).
