@@ -38,12 +38,9 @@ through this module when a write should reach connected clients.
   [notifications feature](../notifications/README.md) to deliver Web Push
   when a user-topic event finds the user with zero live tabs. The observer
   runs outside the delivery path and can never break fanout.
-- Entity change events are bridged onto `org:<organizationId>` topics as
-  `entityChanged` payloads by the instance-events feature, so connected tabs
-  reconcile entity changes in realtime (the instance-events store consumes
-  them beside its cursor poll — see
-  [instance-events](../instance-events/README.md)); cursor-based polling
-  remains the authoritative catch-up path.
+- Entity change events ride the `org:<organizationId>` topics as
+  `entityChanged` payloads; the realtime/poll consumption contract is
+  canonical in [instance-events](../instance-events/README.md).
 
 ## Client Contract
 
@@ -69,12 +66,18 @@ Support chat is the first consumer:
   webhook receiver: org rooms publish on `org:<orgId>`, direct and group
   rooms on each participant's `user:<userId>` topic, matching room
   admission so events only ever mention rooms the recipient may join.
-- The support store's badge/inbox refresh subscribes to the user topic
-  instead of polling `/api/support/conversations` on an interval.
+- The support store's badge/inbox refresh rides the user-topic
+  subscription.
 - `GET /api/support/messages`, `GET /api/support/admin/:user_id`, and
-  `GET /api/support/admin/chatlist` are REST snapshots now; initial state
-  loads over REST, changes arrive over the connections stream, and the old
-  per-conversation polled streams are gone. There is no dual transport.
+  `GET /api/support/admin/chatlist` are REST snapshots: initial state
+  loads over REST, changes arrive over the connections stream.
+
+## API
+
+| Endpoint | Responsibility |
+|---|---|
+| `GET /api/connections/events` | Authenticated SSE stream: registers the connection, answers a `ready` event (`connectionId`, `topics`, `presence`), heartbeats every 30 s, unregisters on close. |
+| `POST /api/connections/subscriptions` | `{ connectionId, topics }` → replaces the requested topic set through `syncTopics` (403 when the connection belongs to another user). |
 
 ## Related
 

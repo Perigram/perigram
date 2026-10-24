@@ -20,85 +20,88 @@ strangler layer 0 of the designer rebuild (see
   [instances](../instances/README.md)). The gates that pause on the
   disclaimer live in
   [process-definitions](../process-definitions/README.md).
-- `service.js` builds one registry per organization view: strangler-converted
-  system types first, the org's stored declarations overlaying (shadowing a
-  system id is refused). `defineType` validates the declaration through the
-  real CTS registry, refuses breaking redefinitions (diff per SPEC §11,
-  version bump on compatible change), and compiles the whole org view
-  BEFORE persisting — the write gate refuses exactly the compile errors
-  the candidate introduces (its own obligations, cross-type references it
-  breaks); a failing write never touches the stored declaration. Beside
-  the zero-instance relief, redefinition is also free when the
-  stored declaration could never compile (obligation violations,
-  unresolvable children edges): an invalid stored contract is a repair
-  target, not something the diff protects — no migration is required to
-  move away from it. Pre-existing view errors from a historically stored
-  invalid type block only their own repair: valid writes around it still
-  land, which is what un-wedges an org.
-  A breaking redefinition of a type with persisted instances passes the
-  gate when the declaration carries `migrate` steps covering every
-  breaking change (SPEC §11; the step language and coverage rules are the
-  `@perigram/cts` diff contract — see
-  [packages/cts](../../../packages/cts/README.md)). Covered steps execute
-  at this boundary, right after the new declaration persists: idempotent,
-  org-scoped instance rewrites through the executor owned by
-  [instances](../instances/README.md) (fields and `states.main` per step,
-  then the new `typeVersion` stamp), each migrated instance publishing the
-  shared typed invalidation event. The applied summary persists on the
-  stored declaration as `migrated`; the steps themselves never do — a
-  persisted declaration is always step-free (`migrate` is stripped from
-  every upsert and `$unset` from any earlier document), because steps are
-  one-time by design and a stored step set would rot into the next edit's
-  "declared migration step … matches no breaking change" refusal the
-  moment a client round-trips the stored declaration. An uncovered
-  breaking change (or a declared step matching nothing in the diff) is
-  refused — the gate is a compiler, not a script to remember — and the
-  refusal is authorable: the `400` carries `data.plan` beside
-  `data.boundBy`, the serialization of the computed migration plan
-  (`{ changes: [<breaking change records>], requiredSteps: [<gate error
-  strings>] }` — change records are the diff's `{ severity, kind,
-  field? | state? | edge?, from?, to? }` shapes). The process designer
-  turns that payload into the declarative-step dialog (see
-  [components/process-designer](../../../components/process-designer/README.md));
-  re-posting the declaration with the offered `migrate` steps is the whole
-  ceremony. This boundary serves org-authored
-  declarations; system/pack type changes are deploy-time code edits whose
-  instance migrations remain deploy concerns.
-  `removeType` deletes org declarations only, as a ceremony: the removal
-  diffs against reality first — living instances (the per-class
-  collection probe) and non-archived process definitions that bind the
-  type (`findTypeReferences` in
-  [process-definitions](../process-definitions/README.md) scans nodes,
-  screens, and draft declaration children edges). A non-empty blast
-  radius refuses with `409` carrying `{ instances, boundBy }`; the
-  caller's explicit `abandon: true` (route: `?abandon=true`, actor from
-  the session) proceeds and records the abandonment — instance/binder
-  counts, actor, timestamp — on the org contract-change event and in
-  the response (SPEC §19 abandoned data, promoted to a gate).
-- `describeOrganizationTypes` returns the compiled client bundle (types,
-  states, operators, derived display policy, JSON Schemas) plus attachment-kind
-  payload traits and the installed plugins' editor bindings (`{
-  type, surface, modes }` records from the install snapshots). The editor
-  list is the served half of
-  the type→surface contract; the app maps surface ids to components in
-  [components/generated/file-surfaces](../../../components/generated/README.md).
-  Editor bindings are file-type contracts: the SDK's listing contract
-  refuses a binding whose type the plugin does not declare or whose class
-  is not `file` (payload-bearing) — a party/group/process type can never
-  carry an editor surface. Beside the editors the
-  view serves the installed plugins' surface declarations (owner decision
-  2026-10-11) as `{ id, url, surfaceContract, kind? }` records: each
-  module URL is the app's same-origin plugin-module proxy path
-  (`/api/plugins/:pluginId/module<module>` — the plugins feature streams
-  it from the install's endpoint origin server-side; browsers can never
-  reach the server-network endpoint), connection settings stay
-  server-side, and no configured endpoint serves `url:
-  null` (the client loader renders the connect-the-executor state instead
-  of guessing). Installed preview bindings (M7) compose the same way as
-  `previews: [{ type, surface, url, surfaceContract }]` — one per type,
-  the bound surface must be the install's own preview-kind surface, and
-  the client's preview slots mount them read-only (see
-  [components/generated](../../../components/generated/README.md)).
+
+### Write gate
+
+`service.js` builds one registry per organization view: strangler-converted
+system types first, the org's stored declarations overlaying (shadowing a
+system id is refused). `defineType` validates the declaration through the
+real CTS registry, refuses breaking redefinitions (diff per SPEC §11,
+version bump on compatible change), and compiles the whole org view
+before persisting — the write gate refuses exactly the compile errors
+the candidate introduces (its own obligations, cross-type references it
+breaks); a failing write leaves the stored declaration untouched.
+Beside the zero-instance relief, redefinition is free when the stored
+declaration cannot compile (obligation violations, unresolvable children
+edges): an invalid stored contract is a repair target. View errors from
+an invalid stored type block only that type's repair — valid writes
+around it still land, which is what un-wedges an org.
+
+### Migration steps
+
+A breaking redefinition of a type with persisted instances passes the
+gate when the declaration carries `migrate` steps covering every
+breaking change (SPEC §11; the step language and coverage rules are the
+`@perigram/cts` diff contract — see
+[packages/cts](../../../packages/cts/README.md)). Covered steps execute
+at this boundary, right after the new declaration persists: idempotent,
+org-scoped instance rewrites through the executor owned by
+[instances](../instances/README.md) (fields and `states.main` per step,
+then the new `typeVersion` stamp), each migrated instance publishing the
+shared typed invalidation event. The applied summary persists on the
+stored declaration as `migrated`; the steps themselves are stripped on
+every upsert, so a persisted declaration is always step-free (steps are
+one-time). An uncovered breaking change, or a declared step matching
+nothing in the diff, is refused — and the refusal is authorable: the
+`400` carries `data.plan` beside `data.boundBy`, the serialization of the
+computed migration plan (`{ changes: [<breaking change records>],
+requiredSteps: [<gate error strings>] }` — change records are the diff's
+`{ severity, kind, field? | state? | edge?, from?, to? }` shapes). The
+process designer turns that payload into the declarative-step dialog (see
+[components/process-designer](../../../components/process-designer/README.md));
+re-posting the declaration with the offered `migrate` steps is the whole
+ceremony. This boundary serves org-authored declarations; system/pack
+type changes are deploy-time code edits whose instance migrations remain
+deploy concerns.
+
+### Removal ceremony
+
+`removeType` deletes org declarations only, as a ceremony: the removal
+diffs against reality first — living instances (the per-class collection
+probe) and non-archived process definitions that bind the type
+(`findTypeReferences` in
+[process-definitions](../process-definitions/README.md) scans nodes,
+screens, and draft declaration children edges). A non-empty blast
+radius refuses with `409` carrying `{ instances, boundBy }`; the
+caller's explicit `abandon: true` (route: `?abandon=true`, actor from
+the session) proceeds and records the abandonment — instance/binder
+counts, actor, timestamp — on the org contract-change event and in
+the response (SPEC §19 abandoned data, promoted to a gate).
+
+### Client bundle
+
+`describeOrganizationTypes` returns the compiled client bundle plus the
+installed plugins' records:
+
+| Record kind | Content |
+|---|---|
+| Compiled bundle | types, states, operators, derived display policy, JSON Schemas |
+| Attachment-kind payload traits | per declared kind |
+| Editor bindings | `{ type, surface, modes }` per plugin-declared type — the served half of the type→surface contract ([components/generated](../../../components/generated/README.md) maps surface ids to components) |
+| Surface declarations | `{ id, url, surfaceContract, kind? }` per installed plugin module |
+| Preview bindings | `previews: [{ type, surface, url, surfaceContract }]`, one per type |
+
+Editor bindings are file-type contracts: editor surfaces belong to
+`file`-class (payload-bearing) types declared by the same plugin — the
+SDK's listing contract enforces it. Each surface record's module URL is
+the app's same-origin plugin-module proxy path
+(`/api/plugins/:pluginId/module<module>` — the plugins feature streams
+it from the install's endpoint origin server-side); connection settings
+stay server-side, and an unconfigured endpoint serves `url: null` (the
+client loader renders the connect-the-executor state). The bound preview
+surface must be the install's own preview-kind surface; the client's
+preview slots mount them read-only (see
+[components/generated](../../../components/generated/README.md)).
 
 ## API
 

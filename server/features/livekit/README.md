@@ -29,9 +29,8 @@ caller may enter: the service calls the LiveKit server's
 `RoomService/ListRooms` HTTP API with a signed `roomList` token, keeps only
 `call:` rooms, and filters them through the same `authorizeRoom` admission
 as token minting. When the LiveKit server is unreachable or answers out of
-shape, the endpoint fails 502 instead of returning an empty snapshot, so
-callers keep their last known state rather than reading the failure as
-"no active calls". Rooms with zero connected participants are skipped:
+shape, the endpoint fails 502, so callers keep their last known state;
+an empty snapshot would read as "no active calls". Rooms with zero connected participants are skipped:
 LiveKit keeps emptied rooms alive for the server empty_timeout (default
 300s) after the last participant leaves, and an emptied room must not
 appear as an active call while it waits to be reaped. The home workspace sidebar's Calls entry
@@ -86,11 +85,6 @@ have no conversation thread to record into.
   org-configured [meetings pipeline](../meetings/README.md) may post a
   protocol-driven summary of the recording into the same conversation.
 
-Recordings are not transcribed automatically: the deployed local STT is a
-single-speaker service and call audio is multi-speaker. Transcribing and
-summarizing recordings is the org meeting-protocol concern, to be built on a
-diarization-capable provider.
-
 ## Server Contract
 
 - `service.js` mints LiveKit room tokens (`jsonwebtoken`, HS256, `iss` = API
@@ -134,21 +128,15 @@ plain HTTP from another host.
 
 ## Client Contract
 
-The call surfaces live in `components/calls/` (see their README): a pre-join
-screen with device selection and preview, speaker/grid layouts with pinning
-and screen-share spotlight, speaking levels, connection-quality and
-reconnection states, raise-hand and floating reactions over the data channel,
-mid-call device settings, and mic/camera/share/leave controls — all PrimeVue
-+ shared primitives, `livekit-client` lazily imported. Chat integration lives
-in `ChatSupport.vue`: the call button posts `/api/livekit/invite` which
-publishes a `call` event on the conversation topic; counterparts get an
-incoming-call banner and join the same room. The home workspace sidebar
-lists active calls from `/api/livekit/active-rooms` with join buttons.
-In-call chat is intentionally absent (app chat owns messaging). Recording
-is the call dock's record toggle (see [Recordings](#recordings) and
-[calls](../../../components/calls/README.md)): conversation rooms (direct,
-group) start/stop a room-composite egress, and the finished MP4 imports
-into the conversation as a `video` attachment message.
+The call surfaces — pre-join screen with device selection, stage
+layouts, controls — are
+[components/calls](../../../components/calls/README.md)'s contract; the
+server-side integration facts live above (the invite endpoint in Group
+Calls, the active-rooms snapshot in Active Calls, the recording toggles
+in Recordings). App chat owns messaging. Recording is the call dock's
+record toggle: conversation rooms (direct, group) start/stop a
+room-composite egress, and the finished MP4 imports into the
+conversation as a `video` attachment message.
 
 ## API
 
@@ -162,12 +150,6 @@ into the conversation as a `video` attachment message.
 | `POST /api/livekit/recordings` | `{ room }` → starts a room-composite egress (conversation rooms only). |
 | `POST /api/livekit/recordings/stop` | `{ room }` → stops the room's active egress; the ended file imports into the conversation. |
 | `POST /api/livekit/webhook` | Verified LiveKit webhook receiver → connections layer. |
-
-## Migration
-
-Retired `call_channels` documents move into `chat_groups` with
-`node server/scripts/migrate-call-channels-to-groups.js`
-(`--dry-run` supported); see [scripts](../../scripts/README.md).
 
 ## Related
 

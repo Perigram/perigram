@@ -17,8 +17,7 @@ collection.
 ## Privacy Contract
 
 - User search matches **display name only** (`identity.name`,
-  case-insensitive substring). Email is never matched and never leaves the
-  users feature through directory responses.
+  case-insensitive substring).
 - Directory cards carry only: `_id`, `identity.name`, and for users the
   versioned `data.avatarUrl` (avatars are already shared profile chrome),
   for organizations `data.type`.
@@ -56,24 +55,11 @@ collection.
 | `GET /api/directory/search?q=<query>&types=user,organization` | Grouped directory cards for the contextual search surfaces. |
 | `GET /api/directory/:type/:id` | One directory card (`type` is `user` or `organization`). |
 
-## Client Surfaces
-
-- Directory search lives in its contextual homes, not a shell-level
-  surface: the chats new-chat picker (beside the organization-scoped
-  list — every match is listed and messageable, direct threads are open
-  between any two accounts) and the
-  team-management invite dialog for users; the
-  `/organization/partners` page for organizations.
-- User/organization detail renders as the in-home directory surface
-  ([components/directory](../../../components/directory/README.md)): an
-  entity-bound workspace-page pane tab on desktop, the bounded home dialog
-  on mobile. Inline user/organization ref popovers keep the compact
-  preview and open into those panes through the workspace-open seam.
-
 ## Related
 
 - [users](../users/README.md) — owns the user collection and name matching
 - [organizations](../organizations/README.md) — owns the organization collection and name matching
 - [invitations](../invitations/README.md) — the invite-existing-user flow consumes directory discovery
 - [partnerships](../partnerships/README.md) — the partner-request flow consumes directory discovery
+- [components/directory](../../../components/directory/README.md) — the client surfaces that render directory cards
 - [API routes](../../api/README.md)

@@ -14,32 +14,35 @@ resolution server-side.
 
 ## Contract
 
-Entity events are invalidation signals, not data replication payloads:
+Events carry entity identity only:
 
 ```json
 {
-  "type": "queue",
-  "id": "queue-123",
+  "eventId": 142,
+  "type": "process-definition",
+  "id": "6f1a2b3c4d5e6f7a8b9c0d1e",
   "change": "updated",
   "reason": "status-transition",
-  "source": "server"
+  "source": "server",
+  "actorUserId": "6842f0a1b2c3d4e5f6a7b8c9",
+  "organizationId": "6831e0b1a2c3d4e5f6a7b8c9",
+  "timestamp": "2026-10-24T10:12:01.020Z"
 }
 ```
 
-The bus deliberately does not broadcast full entity DTOs. Clients that receive
-an event refresh through the normal entity APIs, so existing read access,
-generated process scope, and field redaction remain the enforcement boundary.
+Clients that receive an event refresh through the normal entity APIs, so
+existing read access, generated process scope, and field redaction remain
+the enforcement boundary.
 
-Events are process-local and retained in a bounded recent-event buffer. Authenticated
-clients poll that buffer by cursor and receive only events visible to the same
-active organization, to the actor's own sessions, or to admins. This is a runtime
-synchronization channel, not a durable audit log. Status history remains the
-persisted audit source.
+Events are process-local and retained in a bounded recent-event buffer
+(the 500 most recent). Authenticated clients poll that buffer by cursor
+and receive an event when they share its active organization, are its
+actor, or hold the admin role. Status history remains the persisted
+audit source.
 
-The bus also exposes an in-process automatic-handler registration boundary for
-explicit consumers. Process effects are not registered implicitly from node
-configuration; entity-event process entry requires its own declared binding
-contract.
+The bus also exposes an in-process handler registration boundary for
+explicit consumers: process-side entity-event handlers declare their own
+binding contract.
 
 ## Producers
 
@@ -58,20 +61,19 @@ their publications carry different event ids.
 
 ## Consumers
 
-The app shell consumes events over two paths that never double-deliver:
+The app shell consumes events over two paths:
 
 - Realtime: the connections org topic receives every `entityChanged`
   publish as it happens; the client events store
   ([stores/README.md](../../../stores/README.md)) emits it into the
-  browser-local event bus immediately and advances its cursor past it.
-  Hidden tabs hold realtime events for the poll instead of dropping
-  them.
+  browser-local event bus immediately and advances its cursor past it,
+  so realtime and poll deliveries stay disjoint. Hidden tabs hold
+  realtime events for the poll.
 - Catch-up: authenticated clients poll `GET /api/instance-events` by
-  cursor (`after=<cursor>`; short completed requests deliberately, so
-  they behave through dev-worker and production reverse proxies). The
-  initial request establishes the cursor without replaying stale
-  history. The poll remains the authoritative catch-up path for hidden
-  tabs and dropped streams.
+  cursor (`after=<cursor>`); requests complete short, so dev workers and
+  production reverse proxies handle them. The initial request
+  establishes the cursor at the buffer's current end. The poll is the
+  catch-up path for hidden tabs and dropped streams.
 
 Incoming events are re-emitted through `utils/instance-events.js`, which
 is the browser-local contract consumed by shared stores and components.
