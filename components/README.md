@@ -5,6 +5,7 @@ the generative screen engine and its compiled surfaces, the process/type
 designers, calls, media, directory, and artifacts. This README owns the UI
 law and the component inventory; every contract section lives in the child
 README that owns the concern. Parent: [root README](../README.md).
+Target law: [SPEC.md](./SPEC.md).
 
 ## Style Guide
 

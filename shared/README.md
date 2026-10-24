@@ -4,6 +4,7 @@ Cross-runtime JavaScript contracts used by both browser-facing Nuxt code and
 server features.
 
 Parent: [root README](../README.md).
+Target law: [SPEC.md](./SPEC.md).
 
 Modules in this directory are portable runtime contracts. They must not import
 other repo files through Nuxt-only `~/` or `~~/` aliases because server scripts,
