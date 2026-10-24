@@ -2,6 +2,8 @@
 
 Read-only MCP tool handlers for LLM-assisted industrial app planning.
 
+Parent: [packages README](../README.md).
+
 ## Tool Handlers
 
 - `list_entities`

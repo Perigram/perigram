@@ -10,6 +10,8 @@ call rooms derive from the persisted support group chat:
 | `call:org:<orgId>` | Organization members or admins |
 | `call:group:<groupId>` | Participants of the support group chat (or admins) — same contract as direct rooms |
 
+Parent: [server/features](../README.md).
+
 ## Group Calls
 
 Group chats are persisted in the `chat_groups` collection by the

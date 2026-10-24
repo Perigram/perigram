@@ -22,6 +22,8 @@ chat profiles); stale stored ids degrade to the next level.
 
 Three pieces share one tool catalog:
 
+Parent: [server/features](../README.md).
+
 ## Tool catalog (`tools.js`)
 
 | Tool | Seam | Availability |

@@ -6,16 +6,16 @@ Internal npm workspace packages: the domain-agnostic industrial workflow framewo
 
 | Package | Role |
 |---|---|
-| `@perigram/core` | Entity blocks, explicit registries, command/task/hook/attachment contracts |
-| `@perigram/workflows` | Declarative workflow registry and transition validation |
+| [`@perigram/core`](./core/README.md) | Entity blocks, explicit registries, command/task/hook/attachment contracts |
+| [`@perigram/workflows`](./workflows/README.md) | Declarative workflow registry and transition validation |
 | `@perigram/mongo` | Mongo-oriented repository, event-store, and summary adapter helpers |
 | `@perigram/nitro` | Route metadata helpers for app/API adapters |
 | `@perigram/vue` | Frontend route, surface, and attachment metadata helpers |
-| `@perigram/devtools` | Architecture/data-model inspection helpers |
-| `@perigram/mcp` | Read-only MCP tool handlers for schema/workflow/manifest inspection |
-| `@perigram/processes` | Organization process definition normalization, validation, and compilation |
-| `@perigram/cts` | Perigram Type System: value universe, type declarations, classes, edges, states, operators, expressions, diffing, tenancy (see its `SPEC.md`) |
-| `@perigram/plugin-sdk` | Plugin authoring SDK: listing contract (with JSON schema), executor harnesses, API client, and the `perigram-plugin` CLI |
+| [`@perigram/devtools`](./devtools/README.md) | Architecture/data-model inspection helpers |
+| [`@perigram/mcp`](./mcp/README.md) | Read-only MCP tool handlers for schema/workflow/manifest inspection |
+| [`@perigram/processes`](./processes/README.md) | Organization process definition normalization, validation, and compilation |
+| [`@perigram/cts`](./cts/README.md) | Perigram Type System: value universe, type declarations, classes, edges, states, operators, expressions, diffing, tenancy (see its `SPEC.md`) |
+| [`@perigram/plugin-sdk`](./plugin-sdk/README.md) | Plugin authoring SDK: listing contract (with JSON schema), executor harnesses, API client, and the `perigram-plugin` CLI |
 
 Module boundaries, runtime relationships, and per-package contracts are
 documented in each package's own `README.md`; the system-level graph lives in

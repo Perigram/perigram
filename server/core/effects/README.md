@@ -3,6 +3,8 @@
 Central effect processor for declared command, task, and workflow hook
 consequences.
 
+Parent: [server](../../README.md).
+
 ## Responsibilities
 
 - Executes declared `transition`, `enqueueTask`, `createEntity`, `updateEntity`,

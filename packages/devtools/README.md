@@ -2,6 +2,8 @@
 
 Read-only inspection helpers for framework definitions, UI/design-system contracts, and manifest validation.
 
+Parent: [packages README](../README.md).
+
 The app-level CLI entrypoint is `scripts/framework-inspect.js`.
 
 ## Public API

@@ -9,7 +9,7 @@ contract home is this package, mirrored as
 [`src/listing.schema.json`](./src/listing.schema.json) for editors and
 tooling.
 
-Parent: [root README](../../README.md). Consumer contract:
+Parent: [packages README](../README.md). Consumer contract:
 [plugins feature](../../server/features/plugins/README.md); host-side
 surface mount:
 [generated screens](../../components/generated/README.md).

@@ -7,6 +7,8 @@ agent tool catalog's `web_search`
 provider configuration lives in the organization's settings, mirroring
 [transcription](../transcription/README.md).
 
+Parent: [server/features](../README.md).
+
 ## Providers
 
 | Provider | Endpoint | Wire shape |

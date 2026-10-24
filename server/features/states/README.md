@@ -2,6 +2,8 @@
 
 Centralized state management and audit logging system for all system entities.
 
+Parent: [server/features](../README.md).
+
 ## Architecture
 
 ### Data Model: Status Block

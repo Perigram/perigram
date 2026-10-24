@@ -2,6 +2,8 @@
 
 Organization-scoped lifecycle override storage for entity status machines.
 
+Parent: [server/features](../README.md).
+
 ## Responsibility
 
 - Persists active and archived workflow definitions in `workflow_overrides`.

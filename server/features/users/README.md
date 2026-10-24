@@ -2,6 +2,8 @@
 
 User authentication and permission management.
 
+Parent: [server/features](../README.md).
+
 ## Core Files
 - `model.js`: User entity extending `BaseEntity`; exposes stored copied
   grants, presets unexpanded

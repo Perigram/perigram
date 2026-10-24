@@ -4,6 +4,8 @@ Framework-neutral contract kernel. It owns canonical entity block DTOs, isolated
 registries, domain definition helpers, and normalized result helpers. It must not
 import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
 
+Parent: [packages README](../README.md).
+
 ## Public Contract
 
 - DTOs: `BaseEntity`, `Identity`, `Status`, `Lineage`, `Relations`,

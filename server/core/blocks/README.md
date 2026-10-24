@@ -10,6 +10,8 @@ ObjectId attachment creation and flexible-ID lineage inheritance. The block
 DTO contract (strict `toJSON()`, block placement, states round-trip) is
 owned by [packages/core](../../../packages/core/README.md).
 
+Parent: [server](../../README.md).
+
 ## Import path
 
 ```js

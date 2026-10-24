@@ -9,6 +9,8 @@ polling-era files (`core/main.py`, `core/svg_generator.py`, `dxf/`,
 `utils/`) remain in the tree pending removal — the Docker image ships
 them today (`COPY workers/nesting/ .`).
 
+Parent: [workers README](../README.md).
+
 ## Nesting Engine
 The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesting library written in Rust.
 - The `lbf` binary is executed to perform the nesting.

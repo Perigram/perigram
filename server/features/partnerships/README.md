@@ -5,6 +5,8 @@ directed request between two tenant roots that becomes a symmetric
 relation on acceptance; it is bookkeeping only — entity access flows
 through the ordinary grant/process machinery.
 
+Parent: [server/features](../README.md).
+
 ## Capability Module
 
 `partnerships` is a capability module backed by the `partnerships`

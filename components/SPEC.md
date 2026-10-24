@@ -55,12 +55,13 @@ both wire `typeId` and surface `key`: both are live vocabularies.
 
 ### One generative engine
 
-Every compiled screen — lists, details, home, system screens — renders
-through the ui-mapping generator ([ui-mapping/README.md](./ui-mapping/README.md)
+Every compiled screen — generator templates and the home overload —
+renders through the ui-mapping generator ([ui-mapping/README.md](./ui-mapping/README.md)
 for materializations, [shared/ui-mapping/README.md](../shared/ui-mapping/README.md)
 for the mapping contracts). [generated/README.md](./generated/README.md)
 owns the compiled-surface tree: the `[screenKey]` screens route, the home
-workspace, and the `/organization/*` overloads.
+workspace, and the `/organization/*` system screens (fixed components on
+their own routes; the overload registry carries only `home`).
 
 ### Entity surfaces
 
@@ -75,7 +76,7 @@ surfaces; adding an entity type registers a card and a contract entry.
 |---|---|
 | [shared/](./shared/README.md) | registered primitives (InstanceCard, DrawingCanvas, EntityPopup, chat surfaces, designer frame) |
 | [entities/](./entities/README.md) | registry-bound entity cards, one folded README |
-| [generated/](./generated/README.md) | compiled screen surfaces: screens route, home workspace, organization overloads |
+| [generated/](./generated/README.md) | compiled screen surfaces: screens route, home workspace, `/organization/*` system screens |
 | [ui-mapping/](./ui-mapping/README.md) | generator materializations (33 SFCs), type-label seam |
 | [process-designer/](./process-designer/README.md) | designer canvas surface (see its [SPEC](./process-designer/SPEC.md)) |
 | `type-designer/` | declaration editor nodes for the designer |

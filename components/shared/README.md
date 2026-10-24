@@ -2,6 +2,8 @@
 
 This directory contains reusable, standardized UI components and blocks that MUST be used across the application.
 
+Parent: [components](../README.md).
+
 ---
 
 ## Critical Architectural Rule: Blocks vs. Composables

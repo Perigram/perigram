@@ -9,6 +9,8 @@ events publish to `conversation:<key>` topics, inbox pings to
 participant `user:` topics, and support-channel changes to the
 `admin-support` topic.
 
+Parent: [server/features](../README.md).
+
 ## Conversation Contract
 
 Messages have a deterministic `conversationKey`:

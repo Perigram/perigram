@@ -28,7 +28,7 @@ One channel encodes exactly one fact; anything unlisted is chrome.
 | Wire line style | cargo: solid = instances, dashed = values, dotted = events (the one wire family allowed color), demuted structure-dashed = declaration bindings |
 | Handle position | direction: left input, right output |
 | Wire selection | primary color, 3px |
-| Card size | species family: `sm` declaration leaf, `md` type/class reference, `lg` operation |
+| Card size | species family: `sm` declaration leaf, `md` type/class reference, `lg` operation, `inline` one-line literal |
 | Card surface | population primacy via the one predicate `utils/processDesignerPopulation.js`: effect species (except remove) primary-tinted, everything else plain content surface |
 | Card border | quiet content border; selection is the single card state |
 
@@ -92,7 +92,10 @@ failures abort before validation and land in the persistent validation feedback 
 renders. A migration-gate refusal pauses Apply with `pendingTypeMigration` and opens
 `TypeMigrationStepsDialog` — one row per breaking change, labeled by authored NAME/LABEL,
 offering the declarative steps (`rename-field`, `rename-enum-value`, `retype-field`, …).
-Orphaned types (`pendingTypeDeath`) and definition deletion (`pendingDefinitionDeath`) pause on
+Removed workflow states with live instances that the draft's declared migrations leave
+uncovered pause with `pendingMigration` on `ApplyMigrationDialog` (one target state per
+removed state, confirmed as a declaration on the draft). Orphaned types (`pendingTypeDeath`)
+and definition deletion (`pendingDefinitionDeath`) pause on
 `TypeDeathDialog` naming each dying type with its live record count; the
 author confirms each death.
 
@@ -112,7 +115,7 @@ preview-through-real-generator contract.
 Per-kind sections in `inspector/`, pure presentation — every mutation is an event back to the
 page's update/sync entry points. `ProcessNodeInspector` owns effect construction, declared edge
 selection, the transition guard AST editor, output inspection, and grant LEVELS;
-`DeclarationInspector` authors class/field/state/operator/type-reference records;
+`DeclarationInspector` authors class/field/state/type-reference records;
 `DeclarationEdgeInspector` authors typed edge integrity. Pure and read nodes expose the
 on-demand Output data inspector (selected node + upstream dependencies; `missing(<path>)`
 distinguishes present null from absent field; secrets arrive redacted).

@@ -7,6 +7,8 @@ organizations; every user/organization list service stays membership-scoped
 (see [users](../users/README.md) and
 [organizations](../organizations/README.md)).
 
+Parent: [server/features](../README.md).
+
 ## Capability Module
 
 `directory` is a capability module (no model/repository of its own): the

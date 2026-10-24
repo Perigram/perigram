@@ -6,6 +6,8 @@ explicit `source` `{ mode, fileUrl, attachment }` resolved from the type's
 compiled preview policy (the payload preview contract lives in
 [components/generated/README.md](../generated/README.md)).
 
+Parent: [components](../README.md).
+
 Viewer modes follow the preview contract:
 
 - DXF and SVG use `DrawingCanvas`; SVG renders as an image reference.

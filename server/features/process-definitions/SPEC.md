@@ -28,7 +28,7 @@ Parent SPEC: [features](../SPEC.md) · neighbors: [cts-types](../cts-types/READM
 
 | Phase | Law |
 |---|---|
-| Author | Definitions store current semantic records: the graph, its `processNodes`/`producerOutputs`/`screens`/`services`/`sockets`/`stateDefinitions`/`valueInputs` maps, and `roleGrants`. Saves carry a structural floor — unique node ids, designer-renderable canvas type, numeric position, addressed records, edges addressing existing nodes, data edges naming both sockets and socket-valid handles. Identity-only PATCH leaves data untouched. |
+| Author | Definitions store current semantic records: the graph, its `processNodes`/`producerOutputs`/`screens`/`services`/`sockets`/`stateDefinitions`/`valueInputs`/`ctsTypes`/`servicePrincipals` maps, and `roleGrants`. Saves carry a structural floor — unique node ids, designer-renderable canvas type, numeric position, addressed records, edges addressing existing nodes, data edges naming both sockets and socket-valid handles. Identity-only PATCH leaves data untouched. |
 | Validate | Recompiles both sides from canonical records and produces the semantic Apply diff (`diffProcessContracts`): actions, screens, role grants, per-typeId CRUD capabilities, per-producer workflows, field-policy sections, and the entity statuses the next contract removes. Draft validation overlays the draft's own declarations. |
 | Activate | Requires canonical semantic records, validates the draft, verifies transpiler round-trip, compiles the contract, marks the definition `ACTIVE`, writes the activated snapshot to `data.activated` (the runtime compiles `data.activated || data`), records the superseded snapshot in `data.history` (cap 50). |
 | Deactivate | Removes one definition from the active set (state returns to `DRAFT`, editable, re-activatable) and re-derives the runtime contract. |
@@ -99,12 +99,13 @@ SPEC §Process runtime: no durable process runs; `command_runs` and
 
 ### Compiled outputs and gates
 
-Activation validates every effect node's capability binding against the
-registry's per-entity `processCapabilities` record (`createEntity`/
-`runProducer` → `create`, `updateEntity` → `processUpdate`,
-`changeStatus` → a status workflow) as deterministic `validation.errors`
-entries (400), and resolves required entity profiles from command
-metadata. Auth hydration compiles the current semantic graph before
+Activation validates every effect node's service binding against the
+registry's per-type `processCapabilities` record — `cts.construct` requires
+`create` (a registered create mode matching the construction mode),
+`cts.mutate` requires `processUpdate`, `cts.remove` requires `delete`, and
+`cts.transition` requires `archive` for an archive intent, else a status
+workflow — as deterministic `validation.errors` entries (400), and resolves
+required entity profiles from command metadata. Auth hydration compiles the current semantic graph before
 resolving screens, actions, workflows, and grants; the stored compiled
 snapshot serves inspection — runtime boundaries compile fresh.
 

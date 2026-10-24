@@ -2,6 +2,8 @@
 
 Nuxt layout shells for public and authenticated app surfaces.
 
+Parent: [root README](../README.md).
+
 ## Core Files
 
 - `app.vue`: Authenticated workspace chrome with desktop sticky header, mobile

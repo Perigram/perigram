@@ -51,9 +51,10 @@ Parents: [README.md](../README.md) · [SPEC.md](../SPEC.md) ·
   the home screen; `/screens` redirects to `/home`; a stale
   `/screens/home*` URL replaces to `/home`.
 - **Back affordance.** `usePageBack` supplies one `{ icon, label, command }`
-  shape: the page header carries it on list screens, the record header's
-  navigation channel on detail screens; deep links fall back to the home
-  entry ladder.
+  shape, delivered through the record header's navigation channel on
+  detail screens; generator templates render with no route title strip
+  (list headings render through the engine's region headers); deep links
+  fall back to the home entry ladder.
 - **One hydration boundary.** The auth middleware hydrates the manifest;
   generated routes render it directly, and a route-level re-fetch of
   `/api/auth/me` unmounts a live workspace.

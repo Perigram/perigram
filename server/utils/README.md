@@ -2,6 +2,8 @@
 
 Utility functions for authentication and multi-tenant permission enforcement. Used in all API routes and services.
 
+Parent: [server](../README.md).
+
 ---
 
 ## Auth Context Object

@@ -4,6 +4,8 @@ Persisted metadata entity for generated files and uploaded previews. The
 framework contract term for file behavior is `AttachmentKind`; `artifact` is the
 current app entity type that stores file metadata and GridFS references.
 
+Parent: [server/features](../README.md).
+
 ## Responsibilities
 
 - Create generation requests through `generateAttachment`.

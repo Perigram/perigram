@@ -3,6 +3,8 @@
 Playwright tests for user-visible Perigram workflows. These tests exercise the
 Nuxt app and Nitro APIs against a running local/dev stack.
 
+Parent: [root README](../README.md).
+
 ## Run Contract
 
 Agents must not start Nuxt or Docker from the test runner. Start the app stack

@@ -4,6 +4,8 @@ Organization-scoped, revision-backed templates used to generate typed artifact
 files. `artifact_template` is master data; generated files remain `artifact`
 entities. A template never doubles as a generated artifact.
 
+Parent: [server/features](../README.md).
+
 ## Contract
 
 - `attachments.source` owns the uploaded DXF or PDF in the
