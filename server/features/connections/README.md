@@ -7,6 +7,8 @@ like `support` — no Mongo collection, no v24 entity — because nothing here
 persists. Feature services stay the persistence source of truth and publish
 through this module when a write should reach connected clients.
 
+Parent: [server/features](../README.md).
+
 ## Server Contract
 
 - `service.js` owns the in-memory registry: connections keyed by id, each

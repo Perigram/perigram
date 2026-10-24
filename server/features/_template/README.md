@@ -5,6 +5,8 @@ structure below applies to persisted entities with a stable block DTO;
 capability modules follow the relaxed classification in
 [server/features](../README.md) (Entity vs Capability Modules).
 
+Parent: [server/features](../README.md).
+
 ## Directory Structure
 
 | File | Responsibility |

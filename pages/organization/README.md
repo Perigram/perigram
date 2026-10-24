@@ -2,6 +2,8 @@
 
 Organization pages manage the current tenant context.
 
+Parent: [pages](../README.md).
+
 `index.vue` is a thin route wrapper around the generated organization overview
 screen from auth hydration. The server stores that screen in the user's screen
 manifest with `template: "organizationOverview"` and a list of accessible

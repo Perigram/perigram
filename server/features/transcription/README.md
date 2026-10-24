@@ -6,6 +6,8 @@ bytes already live in the [files feature](../files/) (GridFS) and results are
 persisted by the consuming feature (support chat stores the transcript
 per user in its own collection).
 
+Parent: [server/features](../README.md).
+
 ## Providers
 
 Each provider has its own wire protocol:

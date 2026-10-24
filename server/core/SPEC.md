@@ -51,7 +51,7 @@ entities. Task completion enforces the same contract at
 | Claim protocol | Claim token + lease expiry; a worker completes only runs it owns. |
 | Retry | `RETRY_WAIT` backoff while attempts remain; executor 4xx `statusCode` is terminal. |
 | Completion | Output-contract law at completion phase; declared effects run after the handler and before finalization; `createTaskResult()` normalization. |
-| Process notify | Terminal success calls `continueActionFromTask` (the dispatch task-run id correlates the parked invocation); failure and cancellation call `failActionFromTask`. Notification errors leave the run terminal; the process reconciliation pass redelivers. |
+| Process notify | Terminal success calls `continueActionFromTask` (the dispatch task-run id correlates the parked invocation); failure and cancellation call `failActionFromTask`. Notification errors leave the run terminal and drop the parked continuation. |
 | Definitions | Registry task tables, or inline `options.definition` — plugin connector services compose theirs from the install snapshot; completion resolves the contract through the plugins feature. |
 | Worker auth | Deployment-wide `WORKER_TOKEN` (`x-worker-token`, global scope) and per-install connector tokens pinned to `plugin.<pluginId>@<organizationId>` queues; connector scope addresses queue claims, task-id operations require the global token. |
 | Routes | `GET /api/admin/tasks`, `POST /api/tasks/claim`, `POST /api/tasks/:id/{heartbeat,complete,fail,cancel}`. |
@@ -72,7 +72,7 @@ creation (`No state machine defined for entity type`).
 | Guards | Boolean AST over `{ value }` (§3 flat fields); re-evaluated atomically at commit, stale → 409. `GET /api/state/actions` omits guard-failing, actor-denied, and capability-denied edges; an evaluation error hides the action while execution surfaces it; `assertIntentAvailable` defers refusals to commit. |
 | Deadline edges | `deadline: true` with system-only access; the process-definitions scanner drives them through this engine as SYSTEM with `source: { kind: 'deadline' }`. |
 | Process-owned edges | Event-wired process actions compile `processOwned: true`; they stay off every manual surface and execute at the transition boundary. |
-| State writes | Every flat state write stamps `stateChangedAt`. §3 instance documents persist one flat `state` string; legacy block documents keep the block; reads use `getPrimaryState` / `getRegionState`; Mongo filters use `states.main`. |
+| State writes | Every flat state write stamps `stateChangedAt`. §3 instance documents persist one flat `state` string; legacy block documents keep the block; reads use `getPrimaryState` / `getRegionState`. |
 | History | `status_events` carries the full snapshot plus `actor`, `operation` (initialize/transition/intent; `field_change` with per-field from/to and principal), `evidence`; record contract in [states](../features/states/README.md). |
 | Lifecycle | Target-state schemas validate `status.lifecycle`; actors persist as assignment facts; evidence slots require a schema; proof files live on `attachments`, referenced from lifecycle; relation snapshots land in `lifecycle.data.snapshots`. |
 | Transition boundary | `before` hooks → event + snapshot write → `after` hooks (async), `mode: 'sync'` hooks awaited with their declared effects handed to the effect runtime. A status mutation carrying an entity patch runs in one Mongo transaction. |

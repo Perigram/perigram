@@ -5,6 +5,8 @@ edges, states, operators, expressions, versioned diffing, and tenancy that
 the process designer authors and the compiler enforces. Pure declarations
 and checks — no Vue, Nuxt, Mongo, or worker imports.
 
+Parent: [packages README](../README.md).
+
 The normative contract is [SPEC.md](./SPEC.md). This README maps the
 modules onto its sections.
 

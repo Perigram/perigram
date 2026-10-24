@@ -2,6 +2,8 @@
 
 Shared frontend utility modules used by Vue pages/components.
 
+Parent: [root README](../README.md).
+
 ## Design System Contract
 
 - `design-system-contract.js`: Validation for the CNC design-system contract declared by the facade types. It does not import Vue components.

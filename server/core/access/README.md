@@ -2,6 +2,8 @@
 
 Centralized authorization for entity services, workflow transitions, and command handlers.
 
+Parent: [server](../../README.md).
+
 ## Contract
 
 - `assertEntityAccess()`: Checks one entity against a feature permission level.

@@ -2,6 +2,8 @@
 
 Manages user authentication sessions.
 
+Parent: [server/features](../README.md).
+
 ## Core Files
 - `repository.js`: Database operations for `sessions` collection.
 

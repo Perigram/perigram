@@ -16,6 +16,8 @@ summary aggregation — resolves names and collections through these helpers.
 `perigram-registry.js` re-exports the registry under both names:
 `getAppRegistry()` and `getPerigramRegistry()` return the same instance.
 
+Parent: [server](../README.md).
+
 ## Registered Bindings
 
 - Five framework entity services (`organization`, `user`, `artifact`,

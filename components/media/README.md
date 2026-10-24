@@ -9,6 +9,8 @@ size — the same pointer-event pattern); on mobile an integrated full-width
 strip flush at the top of the screen (safe-area aware, hairline-separated
 entries, no floating card chrome), beneath the bottom-nav stacking.
 
+Parent: [components](../README.md).
+
 ## Now-playing channel
 
 `stores/media.js` owns the single-play policy: a media element starting

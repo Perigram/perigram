@@ -2,6 +2,8 @@
 
 Middleware functions that run before every API request handler.
 
+Parent: [server](../README.md).
+
 ## Files
 
 - `auth.js`: authentication and auth-context population.

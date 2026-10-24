@@ -1,5 +1,7 @@
 # COMPONENT: API Endpoints
 
+Parent: [server](../README.md).
+
 ## Structure
 Routes are grouped into sub-directories corresponding to features:
 - `agent-bots/`: The organization AI's conversation membership — AI chat

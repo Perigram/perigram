@@ -4,6 +4,8 @@ Multi-tenant organization management. Organization records are abstract tenant
 roots; runtime behavior comes from the active process definitions
 compiled per organization.
 
+Parent: [server/features](../README.md).
+
 ## Core Files
 - `repository.js`: Database operations on `organizations` collection
 - `service.js`: Business logic, type validation, permissions

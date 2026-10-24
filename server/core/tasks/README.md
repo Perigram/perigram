@@ -2,6 +2,8 @@
 
 Generic asynchronous queue backed by `task_runs`.
 
+Parent: [server](../../README.md).
+
 ## Responsibilities
 
 - Enqueues declared task definitions with normalized `input.entities` and

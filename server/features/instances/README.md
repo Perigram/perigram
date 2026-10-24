@@ -6,6 +6,8 @@ serves every type that has no hand-registered feature service — pack types
 and org-authored types — so the type system is executable without
 hand-written services.
 
+Parent: [server/features](../README.md).
+
 ## Contract
 
 - Storage: per-class collections (`files`, `items`, `groups`, `processes`)

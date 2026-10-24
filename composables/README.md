@@ -1,5 +1,7 @@
 # COMPONENT: Composables
 
+Parent: [root README](../README.md).
+
 ---
 
 ## Entity data access — the instances store

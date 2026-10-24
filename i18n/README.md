@@ -3,6 +3,8 @@
 Vue I18n locale dictionaries for shared UI, entity labels, workflow/status labels, and page copy:
 `locales/en.json` and `locales/ru.json`.
 
+Parent: [root README](../README.md).
+
 ## Status Labels
 
 Status labels under `status.*` are consumed by the shared state components

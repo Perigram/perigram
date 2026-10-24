@@ -2,6 +2,8 @@
 
 MongoDB connection and collection index management.
 
+Parent: [server](../README.md).
+
 ## Files
 
 - `mongo.js`: singleton connection manager using the native MongoDB driver

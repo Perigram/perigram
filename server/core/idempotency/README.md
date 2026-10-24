@@ -3,6 +3,8 @@
 Dedupe registry for replayed offline mutations (the client outbox contract is
 documented in the root README PWA section and `composables/README.md`).
 
+Parent: [server](../../README.md).
+
 ## Contract
 
 - Mutating `/api/**` requests (POST/PUT/PATCH/DELETE) may carry an

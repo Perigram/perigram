@@ -4,6 +4,8 @@ Organization-scoped storage for `@perigram/cts` type declarations —
 strangler layer 0 of the designer rebuild (see
 [packages/cts/SPEC.md](../../../packages/cts/SPEC.md) §4, §11, §13).
 
+Parent: [server/features](../README.md).
+
 ## Responsibility
 
 - `repository.js` persists org-authored declarations in `cts_types`

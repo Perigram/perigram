@@ -5,6 +5,8 @@ and the connections layer, built from shared primitives, semantic tokens,
 and `livekit-client` (lazily imported; the WebRTC stack rides its own
 chunk).
 
+Parent: [components](../README.md).
+
 - `CallPanel.vue` orchestrates the call: pre-join → connected stages, the
   room event wiring (tracks, mute, speaking levels, connection quality,
   reconnection), speaker/grid layouts with pinning and screen-share

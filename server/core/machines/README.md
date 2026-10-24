@@ -3,6 +3,8 @@
 Governs entity lifecycles: transition validation, status snapshots, and
 status-event history.
 
+Parent: [server](../../README.md).
+
 ## Architecture
 
 The engine is `service.js` plus the hook dispatch contract. Machines are

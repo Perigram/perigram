@@ -4,6 +4,8 @@ Browser notifications for user-scoped realtime events, delivered on two
 tracks: in-page Web Notifications while a tab is connected, and Web Push
 (VAPID) when the user has no live SSE connection.
 
+Parent: [server/features](../README.md).
+
 ## Event sources
 
 All notifications derive from the canonical

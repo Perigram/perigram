@@ -1,5 +1,7 @@
 # COMPONENT: Invitations
 
+Parent: [server/features](../README.md).
+
 ## Workflows
 1. **Generate**: A user who can manage team members in the organization creates
    a unique token and short code for organization joining. The same

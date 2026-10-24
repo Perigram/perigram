@@ -2,6 +2,8 @@
 
 Generic runtime for declared domain commands.
 
+Parent: [server](../../README.md).
+
 ## Responsibilities
 
 - Loads command definitions from `server/runtime/app-registry.js`.

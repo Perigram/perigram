@@ -5,6 +5,8 @@ load arbitrary Vue component names from process data; the manifest selects fixed
 screen templates, sources, regions, surfaces, and action ids, and the app
 renderer maps those contracts to registered Vue surfaces.
 
+Parent: [components](../README.md).
+
 `GeneratedScreenHost.vue` is the single home of the compiled-screen
 wiring: bundle/contract projection, instance-pool hydration
 (`useScreenSourceSync` + source states), process action runs (create-open

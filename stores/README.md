@@ -2,6 +2,8 @@
 
 Pinia stores for client state and API orchestration.
 
+Parent: [root README](../README.md).
+
 ## Client state model
 
 Three cells; every surface derives from them, nothing else caches:

@@ -26,6 +26,8 @@ route (editor dialogs that are not process actions). Both return typed
 entity references together with created DTOs so generated screens can
 update any loaded target source immediately.
 
+Parent: [server/features](../README.md).
+
 ## Related
 
 - [Artifacts](../artifacts/README.md)

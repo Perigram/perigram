@@ -2,6 +2,8 @@
 
 This directory is the frontend visual-token source for the current PrimeVue + Tailwind stack.
 
+Parent: [assets](../README.md).
+
 ## Source Files
 
 - `index.js` exports application semantic tokens plus bounded projections for

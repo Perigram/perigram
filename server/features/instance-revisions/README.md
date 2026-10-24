@@ -4,6 +4,8 @@ Stores immutable content snapshots for versioned entity scopes such as cassette
 template geometry, artifact-template layouts, and generated artifact
 layouts.
 
+Parent: [server/features](../README.md).
+
 ## Data Contract
 
 Revision records are normal v24 entities with immutable revision metadata under

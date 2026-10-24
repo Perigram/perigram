@@ -5,6 +5,8 @@ by default and persist only with `--apply` (or `APPLY=1` where noted).
 Scripts run outside Nuxt resolution: import paths are filesystem-relative
 or package aliases.
 
+Parent: [server](../README.md).
+
 ## Seeds
 
 The plugin-catalog seeder is `seed-plugin-catalog.js`: it publishes the

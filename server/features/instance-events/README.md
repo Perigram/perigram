@@ -2,6 +2,8 @@
 
 Authenticated in-memory entity change bus for app-session synchronization.
 
+Parent: [server/features](../README.md).
+
 ## Contract refresh hint
 
 `publishOrgContractChanged(organizationId, kind, detail)` fans a

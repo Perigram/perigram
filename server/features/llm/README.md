@@ -7,6 +7,8 @@ from). It owns no collection — agent state and tool execution live with
 the consuming feature ([agent bots](../agent-bots/README.md) is the first
 consumer).
 
+Parent: [server/features](../README.md).
+
 ## Providers
 
 Each provider speaks its own real wire protocol; the module translates a

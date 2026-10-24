@@ -2,6 +2,8 @@
 
 Nuxt route middleware for browser-facing page access.
 
+Parent: [root README](../README.md).
+
 ## Auth Middleware
 
 `auth.js` protects pages that declare `middleware: 'auth'`.

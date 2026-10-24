@@ -2,6 +2,8 @@
 
 Internal visual verification pages for UI contracts and component variants.
 
+Parent: [pages](../README.md).
+
 ## UI Lab
 
 `ui-lab.vue` is the design-system demo. It renders entity cards and shared

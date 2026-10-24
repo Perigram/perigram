@@ -10,6 +10,8 @@ record popup, [EntityPopup](../shared/README.md), hosting the surface
 `UserCard`/`OrganizationCard`) stay the compact preview surface; their
 open action opens these surfaces through the shared workspace-open seam.
 
+Parent: [components](../README.md).
+
 ## Files
 
 | File | Purpose |

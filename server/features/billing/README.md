@@ -6,6 +6,8 @@ The feature owns organization billing accounts, invoices, payments, and
 token ledger entries behind service/repository boundaries. Spendable
 balances belong to organizations.
 
+Parent: [server/features](../README.md).
+
 ## Runtime Pricing
 
 Billing presentation is deployment-owned. `NUXT_BILLING_MODE` accepts

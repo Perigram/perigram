@@ -1,5 +1,7 @@
 # COMPONENT: Frontend Assets
 
+Parent: [root README](../README.md).
+
 ## Design Tokens And Theme
 
 - `tokens/index.js` is the app-level source for semantic typography, reusable
