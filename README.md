@@ -283,3 +283,17 @@ builds only).
 | Plugin SDK | [packages/plugin-sdk/README.md](./packages/plugin-sdk/README.md) |
 | Animated brand mark (Rive) | [assets/rive/perigram-mark/README.md](./assets/rive/perigram-mark/README.md) |
 | Codex agent assets | [.codex/README.md](./.codex/README.md) |
+| Workspace packages map | [packages/README.md](./packages/README.md) |
+| Component tree | [components/README.md](./components/README.md) |
+| Composables | [composables/README.md](./composables/README.md) |
+| Client stores | [stores/README.md](./stores/README.md) |
+| Shared contracts | [shared/README.md](./shared/README.md) |
+| Client utilities | [utils/README.md](./utils/README.md) |
+| Layouts | [layouts/README.md](./layouts/README.md) |
+| Route middleware | [middleware/README.md](./middleware/README.md) |
+| Localization | [i18n/README.md](./i18n/README.md) |
+| Design assets and tokens | [assets/README.md](./assets/README.md) |
+| Test data factories | [test-data/README.md](./test-data/README.md) |
+| SSR smoke tooling | [test-tools/README.md](./test-tools/README.md) |
+| Production cluster | [k8s/README.md](./k8s/README.md) |
+| Deslopification program | [TODO.md](./TODO.md) (root; folder SPEC.md/TODO.md deltas) |

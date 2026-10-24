@@ -7,7 +7,7 @@ README owns only the authoring UX and projection rules.
 
 Canvas-appearance work (shapes, wires, lanes, arrangement) starts from the
 accepted plan of record,
-[`TODO-process-designer.md` §P5](../../TODO-process-designer.md) — read it
+[`TODO.md_archive` §P5](../../TODO.md_archive) — read it
 before changing the node UI contract.
 
 The designer shell separates declaration authoring from executable process
@@ -347,7 +347,7 @@ Its compiled preview renders every emitted screen through the real
 generator (`composeScreen` + the ui-mapping registry) over the
 CTS-vocabulary UI contract and the client bundle — a structural preview
 with an empty instance pool; the runtime data layer is the screens-route
-renderer's concern (see [`TODO-process-designer.md`](../../TODO-process-designer.md)).
+renderer's concern.
 The preview lowers the authored snapshot through the same graph-protocol
 acceptance seam the server uses (`prepareAuthoredDefinition`) before
 compiling, so `cts.*` species records drive actions, grants, and inferred

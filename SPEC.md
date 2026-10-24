@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-09-26
-updated: 2026-10-01
+updated: 2026-10-24
 ```
 
 This spec is human-write only. 
@@ -1211,3 +1211,73 @@ owns them.
 
 ### Fields display
 Fields should be marked on creation according to CTS (required and identifier)
+
+## Deslopification (owner direction 2026-10-23)
+
+The current architecture carries the whole platform idea and its important
+nuances inside accumulated slop: stale documentation, dead code, duplicated
+contracts, history-laden prose. The repository converges on a clean state
+defined by this section: every remaining folder owns its purpose exactly,
+its contracts live single-homed, its code carries zero dead weight. The
+clean target per folder is stated in that folder's SPEC.md; the measured
+delta between target and reality is the folder's TODO.md. The full-repo
+audit of 2026-10-24 (nine area reports, three independent review passes)
+is the baseline measurement.
+
+### Repository shape
+
+The repository carries exactly this map; additions and removals are owner
+decisions recorded here first.
+
+| Folder | Owns |
+|---|---|
+| `packages/cts` | CTS declaration language, type registry, projections |
+| `packages/processes` | process compiler, designer authoring contract |
+| `packages/core` | shared domain kernel |
+| `packages/workflows` | workflow state-machine runtime |
+| `packages/plugin-sdk` | plugin listing contract, authoring SDK, CLI |
+| `packages/devtools`, `packages/mcp` | framework inspection, MCP tooling |
+| `server/runtime` | pack mounts, instance-service resolver |
+| `server/core/*` | commands, tasks, machines, effects, access, blocks, idempotency |
+| `server/db`, `server/api`, `server/utils`, `server/middleware`, `server/scripts` | storage, routes, helpers, auth, ops scripts |
+| `server/features/*` | framework features, one module per capability |
+| `components/*` | Vue surfaces: shared primitives, entity cards, generated screens, ui-mapping engine, process/type designers, calls, media, directory, artifacts |
+| `pages/`, `layouts/` | routes and shells |
+| `composables/`, `stores/`, `utils/`, `shared/` | client state, shared contracts, helpers |
+| `middleware/`, `i18n/`, `plugins/`, `assets/`, `public/` | route guards, locales, bootstrap, design tokens, static assets |
+| `workers/*` | plugin executors (facade, documents, tech-drawing) and the nesting solver |
+| `e2e/`, `test-data/`, `test-tools/` | end-to-end suite, fixtures, SSR smoke tooling |
+| `scripts/` | guards and maintenance tooling |
+| `deploy/`, `k8s/` | deployment |
+| `.codex/`, `.forgejo/`, `.github/`, `.agents/` | agent assets, CI pipelines, scope allowlists |
+
+Folders measured dead by the audit leave the repository through the root
+TODO program: the dead workspace packages, dead UI clusters, the one-off
+video renderer, and the retired deploy plane.
+
+### Documentation program law
+
+README.md describes reality; SPEC.md states the target; TODO.md carries the
+delta. A contract lives in exactly one canonical home across all three
+kinds. The deslop delta closes folder by folder: a folder is done when its
+README matches its SPEC, its TODO carries nothing actionable, and the
+guards pass.
+
+### Code cleanliness laws
+
+1. Every export has a consumer. Code with zero reachability is deleted with
+   its specs and docs in the same cut.
+2. One implementation per rule. When the same rule lives in several places,
+   the canonical home is named and the copies collapse into it.
+3. The wire carries exactly what the domain stores, as plain fields.
+4. A code comment carries at most one fact the code cannot show: a trap, an
+   invariant, a decision. Authoring and runtime semantics live in the
+   owning README.
+5. An abstraction, flag, or parameter exists when a consumer exists today.
+
+### Deslop done means
+
+Every remaining folder's README matches its SPEC; every folder TODO is
+empty; the documentation and architecture guards pass over the whole tree;
+no audit-flagged dead code remains; the E2E suite is green against the
+generated screens.

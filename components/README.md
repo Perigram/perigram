@@ -152,7 +152,7 @@ remain effect-node responsibilities.
 The designer's screens tab renders the compiled screen manifest through the
 real UI generator (`components/ui-mapping`) over the CTS-vocabulary UI
 contract, without fetching live entity data; the runtime data layer lives in
-the screens route (see [`TODO-process-designer.md`](../TODO-process-designer.md)).
+the screens route.
 Generated operational screens live under `components/generated/`. They render
 compiled process screen manifests through a fixed template registry and shared
 entity primitives (`InstanceCard`, `InstanceSurfaceContent`,
