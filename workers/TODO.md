@@ -27,6 +27,11 @@
 - [ ] workers/facade/services.js:1-6 → endpoint-mode contract comment duplicates facade/README.md L7-11; shrink to a pointer.
 - [ ] workers/nesting/test_lbf.py:18-40 → rebuilds the lbf config JSON inline; import `core.nesting_input_builder.build_config`.
 
+### Code findings (truth pass 2026-10-24)
+
+- [ ] occs/profiles.js:42 `PROFILE_GEOMETRY_SEED` dead (defined, zero references).
+- [ ] occs/profiles.js:552-556 stale stacked comment (retired order-independent CSG prose) above `resolveOccsProfileSectionOperations`.
+
 ### Deletions
 
 - [ ] workers/nesting dead polling cluster → delete `core/main.py`, `utils/mongo.py`, `dxf/dxf_utils.py`, `core/svg_generator.py`, `utils/logger.py`. Reachability (audit + review-3): live entry is Dockerfile `CMD uvicorn worker_service:app`, which touches only `worker_service.py` + `core/nesting_input_builder.py` + `core/geometry_utils.py`; `core/main.py` imports `utils.mongo` GridFS buckets, `dxf.dxf_utils.read_dxf`, `core.svg_generator.create_svg_from_doc`, ezdxf; repo-wide grep for `core.main|read_dxf|create_svg_from_doc|utils.mongo|setup_logger` outside the cluster = 0 hits; `Dockerfile COPY workers/nesting/ .` ships them in the runtime image.

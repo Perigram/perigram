@@ -14,8 +14,8 @@ documented in the root README PWA section and `composables/README.md`).
   `beforeResponse` hook only for 2xx responses, so rejected or failed requests
   can be retried without false-positive dedupe.
 - Keys expire after 7 days (TTL index declared in `server/db/indexes.js`).
-- Replay responses never re-deliver the original response body: the frontend
-  treats `duplicate: true` as success and emits snapshot-less entity events so
+- Replay responses carry only the duplicate marker: the frontend treats
+  `duplicate: true` as success and emits snapshot-less entity events so
   open screens refetch through their normal APIs.
 - Known race: two concurrent requests with the same not-yet-registered key can
   both execute. The outbox flush loop is sequential per browser tab, so this

@@ -652,8 +652,8 @@ ordinary list/tree dataflow ahead of persistence.
 
 Screen records are route-level UI entries attached to roles and the source
 for process-composed app navigation; they compile into generated screen
-manifests. A screen declares a fixed template (`home`, `entityList`,
-`entityDetail`, `table`, `formAction`, or app-owned system templates such
+manifests. A screen declares a fixed template (`typeList`, `instanceDetail`,
+`table`, `formAction`, `home`, or app-owned system templates such
 as `route`, `organizationOverview`, `organizationAccount`), typed entity
 sources, template regions, required access, and manual process action ids.
 Each source has a stable id and label, entity type, list/single loading
@@ -668,7 +668,7 @@ generated/system templates with secondary accounting or history regions.
 
 `screen-contract.js` owns the authored screen contract: normalization, the
 canonical region surface registry (`SCREEN_REGION_SURFACES`: `card`,
-`compact`, `detail`, `table`, `workspace` — the surfaces the generated
+`compact`, `detail`, `table` — the surfaces the generated
 region components render), and pre-activation validation.
 `validateScreenContract` runs inside `validateProcessDefinition`, so
 `compileProcessDefinition` and the activation adapter reject malformed
@@ -1253,24 +1253,20 @@ boundary.
 
 ### Reads
 
-Entity read sources are authoring nodes that resolve through the
+Entity reads are one species, `cts.read`, resolved through the
 registered entity service boundary (`processGetById`/`processList`) with
-the complete run auth context: Current Entity (`read.currentEntity`),
-Entity by ID (`read.entityById`), Entity by Reference
-(`read.resolveEntityRef`), Parent (`read.parent`), Children
-(`read.children`), Related (`read.related`), and Select Entities
-(`read.queryEntities`). Current Entity adopts the entity type when action
-and screen context agree on one type (only ambiguous context leaves the
-type author-selectable). Entity by ID consumes an id socket with an
-explicitly selected entity type; Entity by Reference consumes a typed
-reference directly. Parent and Children derive from the domain
-`containment` (lineage) contract and resolve by the declared lineage key;
-Related derives from the domain `relations` contract and resolves each
-stored reference by its declared target type. A missing or denied entity
-fails clearly; a root entity with no declared parent yields null, and an
-absent relation value yields an empty list. The designer exposes per-entity
-read choices through the capability projection: Select Entities and
-Children require the `list` binding, the remaining read sources `getById`.
+the complete run auth context: `select: current`, `all`, `extract`,
+`parent`, `children`, and `related`. Current Entity adopts the entity
+type when action and screen context agree on one type (only ambiguous
+context leaves the type author-selectable). Parent and Children derive
+from the domain `containment` (lineage) contract and resolve by the
+declared lineage key; Related derives from the domain `relations`
+contract and resolves each stored reference by its declared target type.
+A missing or denied entity fails clearly; a root entity with no declared
+parent yields null, and an absent relation value yields an empty list.
+The designer exposes per-entity read choices through the capability
+projection: the `all`, `children`, and `extract` selects require the
+`list` binding, the remaining selects offer every entity.
 
 ### Missing field vs null
 
@@ -1339,10 +1335,8 @@ activation path; runtime output is never re-inferred into a visual design.
 
 `npx vitest run packages/processes` — the acceptance suites pin the
 authoring seam (`authoring.spec.js` walks every palette item and the
-canvas double round-trip), the Create acceptance matrix (all 14 creatable
-entity contracts, every declared mode), round-trip stability, the
-migration rewrites, and the compiler surfaces (screens, access, contract
-diff, orchestration).
+canvas double round-trip), round-trip stability, the migration rewrites,
+and the compiler surfaces (screens, access, contract diff, orchestration).
 
 ## Related
 

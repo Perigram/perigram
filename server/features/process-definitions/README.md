@@ -23,7 +23,7 @@ Parent: [server/features](../README.md).
 
 | Phase | Contract |
 |---|---|
-| Author | Definitions store current semantic records: the graph, its `processNodes`/`producerOutputs`/`screens`/`services`/`sockets`/`stateDefinitions`/`valueInputs` maps, and `roleGrants`. Saves carry a structural floor — every graph node needs a unique id, a canvas type the designer renders, and a numeric position, and addresses its `processNodes`/`ctsTypes` record; every edge addresses existing nodes; every data edge names both sockets (`sourceHandle`/`targetHandle`) and, past the persisted rewrites, each handle addresses a socket the addressed record carries (`graphIntegrityProblems` and `graphEdgeSocketProblems` from [packages/processes](../../../packages/processes/README.md)). Declaration edges — the tree's `role: 'type'` wires — are node-to-node by design and exempt. An identity-only PATCH leaves data untouched; drafts may fail validation mid-edit and still save, since semantic validity is the validator's job. |
+| Author | Definitions store current semantic records: the graph, its `processNodes`/`producerOutputs`/`screens`/`services`/`sockets`/`stateDefinitions`/`valueInputs`/`ctsTypes`/`servicePrincipals` maps, and `roleGrants`. Saves carry a structural floor — every graph node needs a unique id, a canvas type the designer renders, and a numeric position, and addresses its `processNodes`/`ctsTypes` record; every edge addresses existing nodes; every data edge names both sockets (`sourceHandle`/`targetHandle`) and, past the persisted rewrites, each handle addresses a socket the addressed record carries (`graphIntegrityProblems` and `graphEdgeSocketProblems` from [packages/processes](../../../packages/processes/README.md)). Declaration edges — the tree's `role: 'type'` wires — are node-to-node by design and exempt. An identity-only PATCH leaves data untouched; drafts may fail validation mid-edit and still save, since semantic validity is the validator's job. |
 | Validate | Recompiles both sides from canonical authored records and produces the semantic Apply diff through `diffProcessContracts` (`packages/processes/src/contract-diff.js`): added/removed/changed actions, screens, and role grants; per-typeId CRUD capability changes; per-producer workflow state/transition/entry changes; field-policy section changes; and the statuses the next contract removes, by typeId. Draft validation overlays the draft's declaration graph on the projected CTS domain and validates the same recursive state/edge records that APPLY posts. |
 | Activate | Requires canonical semantic process records, validates the draft, verifies the process transpiler round-trip, compiles the runtime contract, and marks the definition `ACTIVE`. Each activation writes the activated snapshot to `data.activated`; the runtime compiles `data.activated || data` for every active-set member, so live draft edits stay out of the runtime. Re-activation records the superseded snapshot in `data.history` (capped at 50); the Definitions pane restores a history entry as the definition's data, and restoring goes live through activation. |
 | Deactivate | Removes one definition from the active set (state returns to `DRAFT`, editable and re-activatable) and re-derives the runtime contract. |
@@ -388,17 +388,17 @@ one directly from the JSON response.
 ## Compiled outputs and gates
 
 Activation validates every effect node's service binding against the
-registered per-type capability record. `effect.createEntity` and
-`effect.runProducer` require `create`, `effect.updateEntity` requires
-`processUpdate`, and `effect.changeStatus` requires a status workflow:
-the domain machine when one is served, else the draft's own seeded state
-vocabulary (SPEC §7 — machines are graph-derived, so the draft's state
-nodes satisfy the gate exactly like the machine `compileWorkflows`
-builds from them). A node whose selected type lacks the required
-capability is rejected as a deterministic `validation.errors` entry
-(HTTP 400) at activation time. The
-enforcement pass consumes the per-type `processCapabilities` record
-documented in [server/runtime](../../runtime/README.md) and is a no-op
+registered per-type capability record. `cts.construct` requires `create`
+(a registered create mode matching the construction mode), `cts.mutate`
+requires `processUpdate`, `cts.remove` requires `delete`, and
+`cts.transition` requires `archive` for an archive intent, else a status
+workflow: the domain machine when one is served, else the draft's own
+seeded state vocabulary (SPEC §7 — machines are graph-derived, so the
+draft's state nodes satisfy the gate exactly like the machine
+`compileWorkflows` builds from them). A node whose selected type lacks
+the required capability is rejected as a deterministic
+`validation.errors` entry (HTTP 400) at activation time. The enforcement
+pass consumes the per-type `processCapabilities` record documented in [server/runtime](../../runtime/README.md) and is a no-op
 when the registry exposes no capability map; the capability derivation
 itself is the canonical projection in
 [packages/processes](../../../packages/processes/README.md).

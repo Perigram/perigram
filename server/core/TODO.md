@@ -31,6 +31,13 @@
   (new wave-1 finding) — delete the getters or route the files feature
   through them.
 
+### Code findings (truth pass 2026-10-24)
+
+- [ ] `scopeMatches` ignores compiled lineage-key grant scopes — over-broad enforcement (server/core/access, evaluator vs compiled grants).
+- [ ] Lost-notification parked continuations are never redelivered (tasks notify path; the README claim of a reconciliation pass was false and removed).
+- [ ] Dead export `createPerigramRegistry` (server/core/blocks).
+- [ ] server/utils DXF helpers duplicate workers/facade/vendor engines; production rides the vendor engines, utils copies are spec-only.
+
 ### Deletions
 
 - [ ] server/runtime/process-bindings.js:1-53 — zero importers (grep `process-bindings`, `GENERIC_CREATE`, `authFirstList`, `authLastRead`, `authWithoutOrganizationRead`, `createEntityServiceBinder` repo-wide: hits inside the file only; binding logic lives inline in app-registry.js registerServiceSet).

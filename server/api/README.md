@@ -16,7 +16,8 @@ Routes are grouped into sub-directories corresponding to features:
   organization so clients render the AI's chat affordances only when an
   LLM provider is configured (see [llm feature](../features/llm/README.md));
   `GET/PUT /api/llm/settings` administer the org's named model profiles
-  and capability routes (keys never travel), and `POST /api/llm/test`
+  and capability routes (keys never travel), `POST /api/llm/models`
+  lists a provider endpoint's models, and `POST /api/llm/test`
   (`{ profileId? }`) is the one-round connection test.
 - `web-search/`: `GET/PUT /api/web-search/settings` administer the org's
   public-web search provider (SearXNG base URL or Tavily key; keys never
@@ -55,15 +56,13 @@ Routes are grouped into sub-directories corresponding to features:
   one-day TTL, so abandoned uploads reap themselves; the client
   transport lives in `composables/useChatFileUpload.js`.
 - `process-definitions/`: Draft/activation endpoints, effect-free graph
-  preview, plus durable orchestration. `POST /:id/runs` starts a trigger,
-  `POST /runs/:id/resume` advances a running or due-waiting run, and
-  `GET /runs/:id` reads its status. The `active/` subtree serves the
+  preview, and socket projection. The `active/` subtree serves the
   active contract's runtime surface: `POST active/actions/:id/execute`
   runs one compiled manual action, `GET active/actions/:id/options`
   resolves Link-picker candidates, and `POST active/exports/run`
   executes a declaration-derived export action (SPEC §Exports) with
   action-scoped grants. Route handlers delegate authorization,
-  persistence, scheduling, and effects to the process-definitions feature
+  persistence, and effects to the process-definitions feature
   service. `POST /preview` evaluates pure/read nodes from an unsaved
   definition, bounds returned tree samples, and suppresses effects and
   control flow.
@@ -138,8 +137,9 @@ Routes are grouped into sub-directories corresponding to features:
   the caller's organization so clients surface transcription affordances only
   when a provider is configured (see
   [transcription feature](../features/transcription/README.md)).
-- `workflow-overrides/`: Authenticated organization-owned lifecycle override
-  read and replace endpoints for entity status machines.
+- `instance-revisions/`: Authenticated revision listing and detail with
+  the revision's primary attachment streaming (see the
+  [instance-revisions feature](../features/instance-revisions/README.md)).
 - `user/`: Current-user profile routes. Billing is organization-scoped under
   `organizations/:id/billing`.
 - `users/`: Organization user listing, mutation, and single-user detail
@@ -161,7 +161,8 @@ Routes are grouped into sub-directories corresponding to features:
 Most routes require authentication, which is handled by `server/middleware/auth.js`.
 Responsibilities:
 - Runs on ALL requests.
-- Reads `sessionId` from cookies.
+- Reads a Bearer JWT from the `Authorization` header, falling back to the
+  `sessionId` cookie.
 - Fetches user from the database.
 - Attaches the canonical auth context (see [server/utils/README.md](../utils/README.md#auth-context-object) for the shape).
 

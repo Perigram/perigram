@@ -345,8 +345,9 @@ beside the transition history in `StateHistory`.
   title owns that value; collapsed behind one show-more control per
   group), structural fields as labeled open sections, labeled relation
   sections (the field label override channel over the relation key,
-  start-cased fallback) with budgeted chips and show-more toggles for
-  relations a child region already covers — each chip carries the
+  start-cased fallback) with budgeted chips and show-more toggles —
+  relations a child region covers render no duplicate section — and
+  each chip carries the
   relation's inline-resolved operations (unlink) as `contextActionEntries`
   bound to the opened record, and the hierarchy tree for groups. The
   `full` variant fills its surface by packing (SPEC §Generative UI,
@@ -365,7 +366,10 @@ beside the transition history in `StateHistory`.
   time over a local draft with confirm/discard. Display renders only
   fields that carry values.
 - `PreviewBox.vue` — preview materialization keyed on the declared
-  payload, in one fixed-height band (`h-28`) for every content kind. An
+  payload, in one fixed-height band (`h-28`) for every content kind; a
+  registered plugin preview binding
+  (`components/generated/plugin-preview-bindings.js`) takes the band
+  first. An
   instance payload reference with a renderable declared mode (the pool's
   `instance.payload`, projected from the wire `attachments.primary`)
   renders through the shared viewer (via `ArtifactViewer` variant `card` —

@@ -35,6 +35,12 @@
 - [ ] shared/ui-permissions.js → drop the `UI_PERMISSIONS` costume re-export of `PERMISSION_TEMPLATES` (zero production consumers, only its own spec); `resolveUiPermission` stays (stores/auth.js:3,185).
 - [ ] stores/navigation.js:66 → `screen.typeId || screen.typeId` duplicated operand (residue of `entityType || typeId`); collapse to `screen.typeId` (paired with the stores/README sentence item above).
 
+### Code findings (truth pass 2026-10-24)
+
+- [ ] composables/useSnapshotHistory.js — zero consumers (dead code).
+- [ ] layouts/app.vue:319 — dead `/project/:id/queues` bounded-route regex for a deleted route family.
+- [ ] stores/navigation.js:162-186 — dead project/admin breadcrumb branches for deleted route families.
+
 ### Owner decisions wanted
 
 - utils/instance-events legacy array-shaped effects: migrate remaining producers and delete the dual read, or is a stored response shape still unpinned?

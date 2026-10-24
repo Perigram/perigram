@@ -6,15 +6,21 @@ Utility functions for authentication and multi-tenant permission enforcement. Us
 
 ## Auth Context Object
 
-Every API route has `event.context.auth` populated by the auth middleware after JWT verification:
+Every API route has `event.context.auth` populated by the auth middleware
+(JWT bearer or session cookie; see [middleware](../middleware/README.md)):
 
 ```js
 {
   userId: string,         // OAuth user ID (string, NOT ObjectId)
+  name: string,
+  email: string,
+  avatarUrl: string | null,
+  organizationId: string | null,  // active organization
   role: string,           // Optional legacy compatibility label
+  permissions: object,    // user-level grants
   memberships: [          // Array of organization memberships
     {
-      organizationId: ObjectId,
+      organizationId,
       role: string,
       permissions: {      // Per-type-id access levels
         projects: 'read' | 'write' | 'admin' | 'none',
@@ -30,6 +36,11 @@ Every API route has `event.context.auth` populated by the auth middleware after 
   } | null
 }
 ```
+
+When the active organization has an active process definition,
+`resolveProcessAuth` widens the context with `effectivePermissions`,
+`roleAssignments`, `process`, `screens`, and `navigation`
+([process-definitions runtime](../features/process-definitions/README.md)).
 
 ---
 
@@ -69,8 +80,9 @@ Returns a MongoDB filter for multi-tenant scoping. Plug into repository queries.
 const filter = { ...getLineageFilter(user), status: 'OPEN' };
 const results = await repository.findAll(filter);
 ```
-Users without memberships get an empty `$in` filter; users with memberships get
-`{ 'lineage.organizationId': { $in: [...orgIds] } }`.
+The active organization scopes to a direct `lineage.organizationId` equality;
+auth contexts without one fall back to a membership `$in` filter (empty
+`$in` when there are no memberships).
 
 ### `requirePermission(event, entity, level)` → `authContext`
 Uses `hasPermission()` from auth-helpers against explicit `user.permissions`.
@@ -134,7 +146,9 @@ block/`lineage.*`/`data.*` field inventory per collection, with `source` and
 
 ## dxf-extractor.js
 
-Parses uploaded DXF buffers for cassette import. `extractNestingPolygons()`
+Parses uploaded DXF buffers for cassette import; the facade worker serves
+production through its vendored copy
+(`workers/facade/vendor/dxf-extractor.js`). `extractNestingPolygons()`
 uses the DXF-to-OCCS layer mapping to find the source layer mapped to
 `cut.outer` and returns only closed polygon parts for nesting. It rejects
 degenerate two-point/zero-area curves so they remain available as source curves
@@ -152,9 +166,10 @@ Writes simple AC1015 DXF output from the app drawing contract. It accepts:
   geometry.
 - `polygonParts` as a fallback when only nestable outlines exist.
 
-Sheet design exports and cassette template/design exports use this helper so
-semantic layer names such as `cut.outer`, `fold.route`, `dimension.cassette`,
-and `code.cassette_mark` survive into downloaded DXF files.
+DXF exports run through the facade worker's vendored copy
+(`workers/facade/vendor/dxf-writer.js`), so semantic layer names such as
+`cut.outer`, `fold.route`, `dimension.cassette`, and `code.cassette_mark`
+survive into downloaded DXF files.
 
 ## Related
 
