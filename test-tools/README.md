@@ -7,12 +7,19 @@ The page SSR smoke harness: real page SFCs mounted through
 - `nuxt-app-stubs.mjs` — the `#app`/`#imports` specifier stubs.
 - `*.ssr-smoke.js` — smoke cases (named outside the default
   `*.spec.js` glob so the normal suite does not pick them up): whole
-  pages (`chats-page` boots the assembled ChatSupport surface and its
-  dialog services), and `chat-content.ssr-smoke.js` for the chat
-  content components (message body modes, attached refs, the agent
-  chronology, the inline-ref chip branches) — render-time symbols, not
-  just imports, must resolve. Mutation-verified: deleting the
-  markdown import fails the content smoke.
+  pages (`chats-page`, `process-page`, `screens-page`,
+  `ui-mapping-page` — each boots an assembled surface) and
+  `chat-content.ssr-smoke.js` for the chat content components (message
+  body modes, attached refs, the agent chronology, the inline-ref chip
+  branches).
+- `facade-plugin.js` — shapes the facade plugin listing
+  (`workers/facade/listing.json`) for the specs and e2e fixtures that
+  seed registries, projections, and demo processes.
+- `fixture-surface-plugin.js` — the fixture plugin whose editor and
+  preview surfaces exercise the whole plugin-surface mount path
+  (publish, install, endpoint-resolved module URL, loader, host
+  context, persistence callbacks) with zero app-side code for its
+  surfaces.
 - Run with `npx vitest run --config vitest.ssr.config.js` from the repo
   root (see the root README development section).
 

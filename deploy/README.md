@@ -1,8 +1,8 @@
 # COMPONENT: Deploy Tooling
 
 The CI deploy runs as a Forgejo Action on the self-hosted runner (poseidon,
-label `deploy`). Since 2026-09-27 (owner word) the CI deploy **is the public
-app** at `perigram.sodalab.pro`; hera keeps the data plane (MongoDB, LiveKit).
+label `deploy`). The CI deploy **is the public app** at
+`perigram.sodalab.pro`; hera keeps the data plane (MongoDB, LiveKit).
 
 ## Current Pipeline
 
@@ -49,7 +49,8 @@ Editing the pipeline means editing that branch.
   ships at ~100KB. **Rollback to the hera K3s ingress:** point
   the upstream back to `http://192.168.0.248:80` in that block and
   `nginx -s reload`.
-- Data plane (inline in deploy.yml, no credentials — lab LAN/NetBird):
+- Data plane (values inline in `deploy.yml` — LiveKit and garage S3 keys
+  included; lab LAN/NetBird):
   `NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true`
   (hera mongo; `directConnection=true` is required — the single-node
   replica set advertises its own hostname to clients, and from outside the
@@ -106,9 +107,9 @@ Editing the pipeline means editing that branch.
 Auth-only values still come from Forgejo repository secrets
 (**Settings → Actions → Secrets**) and are passed by the workflow:
 
-| Secret | Consumed by | State (2026-09-29) |
+| Secret | Consumed by | State |
 |---|---|---|
-| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Web Push | empty = push disabled, as before |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Web Push | empty = push disabled |
 
 Web Push enablement runbook: generate a key pair once with
 `npx web-push generate-vapid-keys` (`web-push` ships with the app
@@ -119,8 +120,8 @@ secrets exist the server reports push disabled
 (`/api/notifications/config` → `enabled: false`) and the profile
 notifications toggle shows that only in-tab delivery is active.
 
-`NUXT_MONGODB_URI` / `LIVEKIT_*` / `TRANSCRIPTION_*` / `MEETINGS_*` no longer
-come from secrets (see Contract — the service plane is inline). ConfigBot/Ollama
+`NUXT_MONGODB_URI` / `LIVEKIT_*` / `TRANSCRIPTION_*` / `MEETINGS_*` ride
+inline in the workflow (see Contract). ConfigBot/Ollama
 env is intentionally absent on this deploy — it is a prod-only,
 cluster-internal feature.
 
@@ -129,7 +130,8 @@ cluster-internal feature.
 The CI deploys the whole plugin plane beside the app: the nesting
 worker, the three plugin executors (each a `workers/plugin-executor.Dockerfile`
 image — the plugin's own dependency install beside the zero-dep SDK),
-the catalog seed, and the idempotent per-org builtin installs
+the catalog seed (its own image: `perigram-seed`, built from
+`deploy/seed.Dockerfile`), and the idempotent per-org builtin installs
 (facade/tech-drawing/documents) run on every push to `staging`; the
 app carries the executor URLs (`FACADE/DOCUMENTS/TECH_DRAWING_EXECUTOR_URL`
 on 127.0.0.1:879x), and a post-start probe fails the deploy when an
@@ -144,8 +146,8 @@ NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true \
   node server/scripts/seed-plugin-catalog.js
 ```
 
-The dev stack keeps its compose services (`docker-compose.dev.yml`) —
-same executors, repo-mounted instead of imaged.
+The dev stack keeps its compose services (`docker-compose.dev.yml`) — the
+same executors with the repo bind-mounted where the CI deploy runs images.
 
 ## Development Stack
 
@@ -153,24 +155,17 @@ Local development uses `docker-compose.dev.yml` + `Dockerfile.dev`: source is
 bind-mounted at `/src` while `node_modules` comes from an anonymous volume
 backed by the image. After any dependency change, rebuild **and** recreate
 with `docker compose -f docker-compose.dev.yml up -d app --renew-anon-volumes`
-— a plain rebuild keeps the stale module set. LAN dev needs
-`NUXT_DEV_HMR_HOST` (root README, Development).
+— a plain rebuild keeps the stale module set — or reinstall inside the
+container (`docker compose -f docker-compose.dev.yml run --rm app npm install`).
+LAN dev needs `NUXT_DEV_HMR_HOST` (root README, Development).
 
 ## Legacy
 
-Retired paths, kept for archaeology until deleted:
+Dead weight pending removal:
 
 - `webhook-receiver.py`, `deploy-staging.sh`, `install-autodeploy.sh`,
-  `perigram-autodeploy.service` — the old R240 push-webhook pipeline (Swarm
-  service `perigram_app`, port 7100). R240 is no longer part of any deploy.
-- `.github/workflows/publish.yml` — the old GitHub Actions path (ghcr.io
-  images, `docker stack deploy` to the Hetzner host). The GitHub remote is a
-  mirror only.
-- Railway production (`perigram-demo-production.up.railway.app`) is
-  decommissioned.
-- The `staging.perigram.sodalab.pro` public name (2026-09-27 evening) was
-  prepared and then dropped by owner word in favour of the plain
-  `perigram.sodalab.pro`; no DNS record was ever created.
+  `cutkit-autodeploy.service` — the R240 push-webhook pipeline files.
+- `.github/workflows/publish.yml` — the GitHub remote is a mirror only.
 
 ## Related
 

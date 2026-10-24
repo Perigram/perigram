@@ -24,12 +24,13 @@ The suite runs with one worker because every browser context starts from the
 same stored user session and organization selection is server-side session
 state. Tests that enter another organization must restore the original through
 fixture cleanup; parallel workers would otherwise race on that shared context.
-By default setup logs in as `e2e@perigram.local` and registers that user on
-first run, then creates the `E2E Contracting` organization through the
-authenticated organizations API (registration no longer creates
-organizations). Override
-`E2E_USER_EMAIL`, `E2E_USER_PASSWORD`, or `E2E_ORG_ID` when using another
-database. If local Playwright browsers are not installed, the config uses
+Setup logs in as a fresh identity per run (`e2e-<timestamp>@perigram.local`
+while `E2E_USER_EMAIL` is unset), registering that user on a 401 login and
+creating the `E2E Contracting` organization through the authenticated
+organizations API — registration creates the account only. Set
+`E2E_USER_EMAIL`, `E2E_USER_PASSWORD`, or `E2E_ORG_ID` to pin a reused
+identity or target another database. If local Playwright browsers are not
+installed, the config uses
 `/usr/bin/brave-browser` when available or `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`
 when set.
 
@@ -51,158 +52,127 @@ definitions and their types die together.
 ## Coverage
 
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.
-- `md-editor-repair.spec.js`: the markdown editor repair legs live —
-  the blank text-document editor opens pristine (save disabled until
-  edited) and round-trips through typing/save, the format controls
-  toggle blocks with the focused quote showing its `> ` marker, the
-  code block control round-trips fenced CodeMirror blocks, slash
-  commands insert blocks, a `.md` uploads through the protocol create
-  dialog with the type's accept, and csv cell edits commit and
-  serialize on save.
-- `md-fresh-org.spec.js`: visible-by-default probe — a brand-new
-  organization's manifest carries the pack's starter screen and create
-  action, New opens the pack's blank markdown editor, and a typed
-  document saves byte-exact.
+- `md-editor-repair.spec.js`: the markdown editor repair legs — the blank
+  text-document editor opens pristine (save disabled until edited), the
+  format controls and slash commands insert their blocks, a `.md`
+  uploads through the protocol create dialog, and csv cell edits commit
+  and serialize on save.
+- `md-fresh-org.spec.js`: a brand-new organization's manifest carries
+  the pack's starter screen and create action; New opens the blank
+  markdown editor and a typed document saves byte-exact.
 - `plugin-surface.spec.js`: plugin-delivered surfaces end to end — the
-  fixture plugin publishes through the real catalog API, installs through
-  the real gate, its editor surface module URL resolves against the
-  configured endpoint, the workspace mounts the editor over the host
-  context and saves through the generic persistence callbacks onto the
-  payload channel, and its preview surface mounts read-only in the detail
-  preview slot over the host-resolved payload document. The run retracts
-  the fixture's catalog listing, so the marketplace stays clean.
+  fixture plugin publishes through the real catalog API and installs
+  through the real gate, its editor surface mounts over the host
+  context and saves through the generic persistence callbacks, and its
+  preview surface mounts read-only; the run retracts the fixture's
+  catalog listing.
 - `order-process.spec.js`: the composed order process LIVE — the org
-  vocabulary declared in-tree and posted (the Apply sequence), the graph
-  composed over the overlaid domain through the shared seam fixture
+  vocabulary authored over the shared seam fixture
   (`test-data/order-process-authoring.js`), activated, and executed: a
-  PARAMETRIC template saved through the command (OCCS document on the
-  payload), a real xlsx table uploaded through the workbook create
-  action, and the order action run through the active-process endpoint.
-  Asserts the produced container, the baked cassette-design children
-  (template provenance + baked geometry), the two declared materials,
-  and one nesting run per material with real solver summaries; writes
-  the durable artifact `test-results/order-process-live.json`.
-- `chat-file-upload.spec.js`: chat file uploads end to end — a common-chat
-  attachment-only image message with a working download, an instance-chat
-  upload through the composer that materializes as the declared file child
-  (payload + lineage verified through the instance transport, message
-  linked to the thread with the child ref), and the refusal path: a file
-  no declared child accepts never stages and the smuggled API write 400s.
-  Writes the durable artifact `test-results/chat-file-upload.json`.
-- `directory.spec.js`: directory discovery, targeted invitations,
-  partnerships, and direct messaging against a real second account
-  registered through the public signup API with its own request context.
-  Covers name-only user search (cards carry no email), the chats
-  new-chat picker listing the cross-org persona (direct threads are open
-  between any two accounts) whose selection opens the DIRECT thread — the
-  sent message lands in the inbox-listed conversation —, the
-  single-handshake invite (accept creates the active membership directly
-  and the organization-side invitation list reports consumption), and the
-  partnership lifecycle (request → 409 duplicate → partner-side accept →
-  active on `/organization/partners` and the in-home organization
-  surface). Writes the step outcomes to
-  `test-results/directory-acceptance.json` as the durable artifact.
-- `process-generated-screen.spec.js`: verifies the generic instance
-  transport serves generated-screen collections (`/api/instances/cassette`;
-  the removed `/api/queues` route stays dead) and drives the screen matrix
-  over a live-seeded species process (`seedSpeciesProcess`: pack file types
-  cassette/sketch/text-document/csv-table plus org-authored group/item
-  types declared through `declareType`): `typeList` endpoints per seeded
-  type with toolbar create actions and no uncompiled quick actions,
-  `entityDetail` with its `$screen.scope.instanceId` single source and the
-  lineage-scoped child region (only the opened parent's children render;
-  the child region owns its create action), inline detail edits patching
-  through `PATCH /api/instances/:type/:id` in place (no source reload),
-  the home screen's per-source sections, and a live generated create form
-  whose prompt data persists and opens the created entity detail. Pool
-  endpoints are route-mocked so list/detail variants stay hermetic; the
-  create and patch flows run live. Coverage boundary: the `table` and
-  `formAction` templates are not covered because the seeded
-  process authors no screens with them — once such screens exist, extend
-  this spec with their variants.
-- `process-designer-cts.spec.js`: drives the retained palette through the
-  real designer save/reload/preview/run boundaries. It records the exact
-  species kind, ports, and result for every retained static and registry
-  operation, then writes a machine-readable acceptance artifact. Retired
-  raw-id lookup, producer joins, fixed-arity list constructors, packet
-  controls, and generic hierarchy traversal must not be present.
-- `generated-state-surface.spec.js`: authors an org type with
-  process-authored state records (authored display policy + terminal
-  flag), a construct seeding the initial state, and a transition record
-  wiring the machine edge; activates the process and verifies the flat
-  state surface end to end — the detail header's segmented state tag
-  with the authored label, the policy-labeled transition button, the
-  transition round-trip through the state API with the tag re-anchoring
-  on the updated entity, and the vertical-stepper history popover growing
-  the audit step. The attached screenshots and history JSON are the
-  durable acceptance artifact.
-- `home-and-instance-ui.spec.js`: seeds declared types through the species
-  process, verifies the compiled Home and detail-context placement,
-  parent-responsive entity chrome, and organization switching through the
-  account menu.
+  PARAMETRIC template, a real xlsx table upload, and the order action,
+  asserting the produced container, the baked cassette-design children,
+  the declared materials, and one nesting run per material. Writes the
+  durable artifact `test-results/order-process-live.json`.
+- `chat-file-upload.spec.js`: chat file uploads — a common-chat
+  attachment image with a working download, an instance-chat upload
+  that materializes as the declared file child, and the refusal path
+  for a file no declared child accepts. Writes the durable artifact
+  `test-results/chat-file-upload.json`.
+- `directory.spec.js`: directory discovery against a real second
+  account — name-only user search, cross-org direct messaging, the
+  single-handshake invite, and the partnership lifecycle. Writes the
+  durable artifact `test-results/directory-acceptance.json`.
+- `process-generated-screen.spec.js`: the generated-screen matrix over
+  a live-seeded species process — `typeList` endpoints with toolbar
+  create actions, `entityDetail` with its single-source instanceId and
+  the lineage-scoped child region, inline detail patches through
+  `PATCH /api/instances/:type/:id`, the home screen's per-source
+  sections, a live generated create form, and `GET /api/queues`
+  asserted 404 (the instance transport owns collections). Pool
+  endpoints are route-mocked so list/detail variants stay hermetic;
+  the create and patch flows run live. Coverage boundary: the `table`
+  and `formAction` templates stay uncovered until a seeded process
+  authors screens with them.
+- `process-designer-cts.spec.js`: drives the retained palette through
+  the real designer save/reload/preview/run boundaries, recording the
+  species kind, ports, and result of every retained static and registry
+  operation into a machine-readable artifact; raw-id lookup, producer
+  joins, fixed-arity list constructors, packet controls, and generic
+  hierarchy traversal are asserted absent.
+- `process-designer-getfield.spec.js`: the Get Field typing contract —
+  wiring a party source (Current user) types the output socket with the
+  declared field's type, and a machine-written `_id` default heals to
+  the first declared row field.
+- `definitions-pane.spec.js`: the definitions management row — the full
+  control set (activation switch, versions, rename, delete), rename
+  persisting through the identity-only PATCH, and
+  deactivation/re-activation accruing restorable versions. Writes a
+  JSON step report.
+- `generated-state-surface.spec.js`: authors org types with
+  process-authored state records (display policy, terminal flag,
+  transition edge), activates the process, and verifies the flat state
+  surface end to end — the segmented state tag, the policy-labeled
+  transition round-trip, and the history popover growing the audit
+  step. Screenshots and history JSON are the durable artifact.
+- `home-and-instance-ui.spec.js`: seeds declared types through the
+  species process and verifies the compiled Home and detail-context
+  placement, parent-responsive entity chrome, and organization
+  switching through the account menu.
 - `cassette-designer-3d.spec.js`: the cassette designer's folded 3D
-  viewport — after the blank designer opens, the debounced assembly
-  preview must lift the viewport's hidden state and mount a non-zero
-  WebGL canvas (regression for the setup-time `hasContent` freeze that
-  left the 3D view behind the empty-state icon).
-- `cassette-designer-parameters.spec.js`: the cassette designer's profile
-  parameter round-trip — a profile authored through the dialog carries
-  live W/H/R/D chips on its workpiece row, the pane with it selected shows
-  the placed geometry, driving a chip re-evaluates the profile in the
-  drawing, the same value reaches the profile's own table on reopen, the
-  dialog's authoring fields hold partially typed numbers (`1.`, `1.5`)
-  while focused, and the array position settings keep the typed text —
-  focusing the spacing field inserts no phantom token, and a cleared or
-  zero value stays the author's text (regression for the label-forwarded
-  token insert, the falsy-default field rewrite, the blank solo pane for
-  a placed profile, and the row chips that drove nothing).
-- `pane-navigation-history.spec.js`: the home workspace's pane navigation
-  contract — an in-place tab replacement (list → record) surfaces the pane
-  header's Back control and Back restores the replaced content; a new tab
-  opened onto a selected empty placeholder consumes it.
-- `process-designer-boot.spec.js`: boots the process designer against a seeded
-  species process, verifies the canvas renders, and creates plus saves a new
-  draft from the dock (regression for the reported dead designer).
-- `process-designer-placement.spec.js`: pins the lane container placement
-  contract — a palette add lands once inside the visible viewport, joins
-  the lane under the placement point, no deferred pass moves it
-  afterwards, later adds never move seated cards, and the painted lane
-  bands wrap the cards that belong to them (regression for the automatic
-  lane settle that teleported new nodes, and for the pure projection that
-  stopped wrapping).
-- `artifact-and-designer-ui.spec.js`: uploads and replaces a real DXF artifact,
-  verifies viewer dispatch and revision creation, and proves incompatible
-  conversion requests fail at the HTTP boundary.
-- `home-default-screen.spec.js`: pins the default-screen contract — an
-  organization whose active process compiles to no screens (the bootstrap
-  empty process) enters `/screens/home` with the workspace's
-  definition-independent surfaces, unknown screen keys render the home
-  workspace instead of an error surface, and the bare `/screens` route
+  viewport — the debounced assembly preview lifts the viewport's hidden
+  state and mounts a non-zero WebGL canvas.
+- `cassette-designer-parameters.spec.js`: cassette profile parameter
+  round-trip — a profile authored through the dialog carries live
+  W/H/R/D chips on its workpiece row, driving a chip re-evaluates the
+  drawing, the value reaches the profile's table on reopen, and
+  authoring fields hold partially typed numbers and cleared values.
+- `cassette-profile-editor.spec.js`: the profile sketch editor's
+  authored-truth round-trip through the real CAD dialog — draw shapes,
+  bind a dimension to a parameter, save, reopen: the binding survives
+  and authored numerics stay at drawing scale.
+- `pane-navigation-history.spec.js`: the home workspace's pane
+  navigation contract — an in-place tab replacement surfaces the pane
+  header's Back control and Back restores the replaced content; a new
+  tab opened onto a selected empty placeholder consumes it.
+- `home-workspace-restore.spec.js`: the persisted home workspace
+  restores on the home shell after mount; a real page load produces
+  zero hydration warnings.
+- `process-designer-boot.spec.js`: boots the process designer against a
+  seeded species process, verifies the canvas renders, and creates plus
+  saves a new draft from the dock.
+- `process-designer-placement.spec.js`: lane container placement — a
+  palette add lands once inside the visible viewport and joins the lane
+  under the placement point, later adds never move seated cards, and
+  the painted lane bands wrap the cards that belong to them.
+- `artifact-and-designer-ui.spec.js`: uploads and replaces a real DXF
+  artifact, verifies viewer dispatch and revision creation, and proves
+  incompatible conversion requests fail at the HTTP boundary.
+- `home-default-screen.spec.js`: the default-screen contract — an
+  organization whose active process compiles to no screens enters the
+  home workspace with its definition-independent surfaces, unknown
+  screen keys render the home workspace, and the bare `/screens` route
   redirects to the default home route.
-- `home-calls.spec.js`: pins the sidebar communication panel call contract
-  against a mocked `/api/livekit/active-rooms` snapshot — active rooms render
-  as visible flat rows (the panel auto-expands, including rooms that arrive
-  with a late initial snapshot), and with no rooms the panel carries no rows
-  and no expandable affordance.
+- `home-calls.spec.js`: the sidebar communication panel against a
+  mocked `/api/livekit/active-rooms` snapshot — Chats and Calls
+  PanelMenu entries, active rooms rendering as auto-expanded rows
+  (including a late initial snapshot), the Calls flyout listing every
+  ringable conversation, and the empty no-rooms state.
 
 Full nesting tests need explicit fixture cassette geometry and a running
-worker stack; keep those in a separate spec so smoke tests stay cheap. The
-retired queue/project/workspace specs (`queue-workflow.spec.js`,
-`project-workspace.spec.js`, `instance-actions.spec.js`) were deleted with
-the surfaces they exercised; the matrix spec above is the live-registry
-reference. Known-stale remainder: `home-and-instance-ui.spec.js`'s
-organization-switch case registers peers through the pre-split register
-contract (registration no longer creates organizations), its detail cases
-fabricate entity-era wire blocks (`identity:`/`states:`) the §3 flat-wire
-flip no longer reads, and its cassette designer case predates the
-cassette file-type cut; `home-default-screen.spec.js` still expects the
-pre-alias `/screens/home` URL instead of the stable `/home` shell route;
-`home-calls.spec.js` asserts the `[data-active-calls]` selector no component
-renders.
+worker stack; keep those in a separate spec so smoke tests stay cheap.
+
+Known-stale: `home-and-instance-ui.spec.js` registers peers with
+`organizationName` on `/api/auth/register` (the split register contract
+creates accounts only) and fabricates `identity:`/`states:` wire blocks
+the flat-wire contract leaves unread; `home-default-screen.spec.js`
+expects `/screens/home` URLs while the stable home shell route is
+`/home`.
 
 ## Adding Workflows
 
-1. Prefer API setup through `fixtures.js` for projects/queues/material records.
+1. Prefer API setup through `fixtures.js` (`declareType`,
+   `seedSpeciesProcess`, `createInstance`) for type, process, and
+   instance records.
 2. Use UI assertions for the user-visible workflow step being protected.
 3. Add `app.expectCleanRuntime()` after UI navigation to fail on console errors
    and important API errors.
@@ -210,14 +180,14 @@ renders.
    `app.trackCleanup()` when tests create persistent records.
 5. For a regression, assert the exact boundary that failed. Example: if command
    validation rejected `WAREHOUSE`, test for the next expected business error
-   instead of forcing a full nesting solve.
+   and skip the full nesting solve.
 
 ## Environment
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `E2E_BASE_URL` | `http://localhost:3000` | Running app URL. |
-| `E2E_USER_EMAIL` | `e2e@perigram.local` | Login email for the E2E user. |
+| `E2E_USER_EMAIL` | unset → fresh `e2e-<timestamp>@perigram.local` per run | Login email for the E2E user; set to pin a reused identity. |
 | `E2E_USER_PASSWORD` | `e2e-password` | Login password for the E2E user. |
 | `E2E_ORG_ID` | `org-demo-acme` | Organization id used when registering the E2E user. |
 | `E2E_REGISTER_ON_LOGIN_FAILURE` | `true` | Register the E2E user if login returns 401. |
