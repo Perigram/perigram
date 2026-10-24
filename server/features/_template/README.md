@@ -1,7 +1,9 @@
 # COMPONENT: Feature Template (Golden Path)
 
-This directory is the canonical feature template. Every feature in
-`server/features/` must follow this structure strictly.
+This directory is the canonical **entity-module** template. The strict
+structure below applies to persisted entities with a stable block DTO;
+capability modules follow the relaxed classification in
+[server/features](../README.md) (Entity vs Capability Modules).
 
 ## Directory Structure
 
@@ -10,31 +12,38 @@ This directory is the canonical feature template. Every feature in
 | `model.js` | Defines the Entity class (extends `BaseEntity`). Handles data mapping and `toJSON`. |
 | `repository.js` | Pure MongoDB operations. Uses `toFlexibleId`. Returns raw documents. |
 | `service.js` | Business logic and orchestration. Uses the access engine. |
+| `process-update-handler.js` | `createProcessUpdateHandler({ typeId, repository, Model, toDTO })` builds the feature's `processUpdate(id, patch, auth)`: it applies canonical block patches to the writable roots (`identity`, `data`, `specs`, `summary`, `attachments`, `relations`) through the feature's own repository/model boundary. Export it from the service when non-status process `updateEntity` actions target the type. |
 | `index.js` | Exports the service and relevant types. |
 
-## The Golden Rules
+## Rules
 
-Feature contracts shared with the wider backend are documented in [server/features/README.md](../README.md).
-
-1.  **Strict Service-Repository**: Services never touch `db.collection`. Repositories never check permissions.
-2.  **Flexible IDs**: Always use `toFlexibleId()` in Repositories to support both string UIDs and ObjectIds.
-3.  **Standard Blocks**: Every entity must have `identity`, `status`, `origin`, and `lineage` blocks.
-4.  **Serialized Outputs**: Services must return `Model.toJSON()` results, never raw DB documents.
-5.  **Central Registry**: `server/runtime/app-registry.js` explicitly registers every entity service.
-6.  **Explicit Side-Effects**: Use the `hooks` object in the service to define side-effects triggered by the Status Engine.
-7.  **Process Updates Stay Owned**: If a feature can be mutated by non-status process `updateEntity` actions, its service exports a `processUpdate(id, patch, auth)` handler. The handler applies field-policy-approved canonical block paths through that feature's own repository/model boundary; process definitions must not call generic update signatures or write the feature collection directly.
+Feature contracts shared with the wider backend — the
+service-repository split, flexible ids, standard blocks, serialized
+outputs, central registry registration, hooks, and the `processUpdate`
+ownership law — are canonical in
+[server/features/README.md](../README.md) (Required File Structure,
+Service Layer Contract, Design Rules). This template implements them.
 
 ## Boilerplate Snippets
 
 ### Service Registration
 
-Add the feature service to `server/runtime/app-registry.js`:
+Framework feature services register in
+`server/runtime/app-registry.js` through the typed instance-service
+maps — a service keyed by its typeId, with explicit `processList` and
+`processGetById` bindings (`registerServiceSet` throws when either is
+missing):
 
 ```javascript
+// server/runtime/app-registry.js
 import * as featureService from '~/server/features/feature-name/service.js';
 
-const instanceServices = {
-  feature_name: featureService
+const frameworkInstanceServices = { artifact_type: featureService };
+const frameworkProcessLists = {
+  artifact_type: (filters, auth) => featureService.list(filters, auth.userId, auth.organizationId, auth.role, auth)
+};
+const frameworkProcessReads = {
+  artifact_type: (id, auth) => featureService.getById(id, auth.userId, auth.organizationId, auth.role, auth)
 };
 ```
 

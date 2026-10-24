@@ -2,20 +2,19 @@
 
 Builds the explicit application registry used by backend runtimes.
 
-`app-registry.js` creates one `createRegistry()` instance, registers the
-framework entity services, command handlers, and workflow hook handlers.
-Backend runtimes consume this registry instead of importing domain
-packages or feature modules directly. The facade domain is not a pack
-here: it installs per organization as the facade plugin and its compute
-runs in the external executor.
+`app-registry.js` creates one `createRegistry()` instance and registers the
+framework entity services, command handlers, and the workflow hook handler
+seam. Backend runtimes resolve domain services through this registry. The
+facade domain installs per
+organization as the facade plugin; its compute runs in the external
+executor.
 
-`entities.js` resolves entity type aliases and collection names from the active
-registry/domain metadata. Runtime code such as status transitions, hooks, and
-summary aggregation must use these helpers instead of hardcoded pluralization
-rules.
+`entities.js` resolves entity type aliases and collection names from the
+active registry/domain metadata. Runtime code — status transitions, hooks,
+summary aggregation — resolves names and collections through these helpers.
 
-`perigram-registry.js` is a compatibility re-export for older imports; new code
-should call `getAppRegistry()`.
+`perigram-registry.js` re-exports the registry under both names:
+`getAppRegistry()` and `getPerigramRegistry()` return the same instance.
 
 ## Registered Bindings
 
@@ -42,23 +41,23 @@ should call `getAppRegistry()`.
 - Framework command handlers (`generateAttachment`, `convertArtifact`);
   plugin value services execute as `plugin.<pluginId>.<serviceId>` commands
   through the connector path.
-- Workflow transition hook handlers: the framework core handlers plus any
-  `hookHandlers` a pack mounts.
-- Polling workers claim task definitions such
-  as `vision.extractGeometry` through the worker protocol.
+- The framework domain (`defineDomain`) declares the framework command and
+  task tables; the framework task table is empty today
+  (`frameworkTaskDefinitions = {}`), and task contracts arrive at enqueue
+  time as runtime-declared definitions (plugin connector services compose
+  theirs from the install snapshot).
+- Workflow hook handlers register through `registry.registerHookHandler`,
+  with the engine falling back to hooks exported by the owning instance
+  service; zero handlers are registered today.
 - Effect policies and hook-returned effects are executed through the core
   effect runtime after the registry resolves the relevant services.
-- Workflow hook handlers from `server/core/machines/hooks.js` and explicitly
-  registered feature hook handlers.
-- Domain definitions (commands, tasks, hooks, the canonical block
-  vocabulary, UI metadata) are mounted from the packs and the installed
-  plugins' declaration layers (construction contracts, services).
 - Process definition services are registered as persisted entities. Active
-  process compiled workflows are resolved by the workflow runtime before
-  organization workflow overrides and domain defaults.
+  process compiled workflows are resolved by the workflow runtime ahead of
+  organization workflow overrides.
 
 ## Related
 
+- [Server](../README.md)
 - [Core package](../../packages/core/README.md)
 - [Commands](../core/commands/README.md)
 - [Tasks](../core/tasks/README.md)

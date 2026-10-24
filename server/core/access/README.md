@@ -67,17 +67,15 @@ the admin workbench can submit custom permission grants for a single run.
 
 When the active organization has an active process definition, auth middleware
 adds `effectivePermissions` compiled from the user's process role assignments.
-The evaluator consumes those grants before membership permissions. No separate
-process-specific access engine exists; process roles compile into the same
-grant shape documented here.
+The evaluator consumes those grants before membership permissions. Process
+roles compile into the same grant shape documented here.
 Process Designer and Team preview that shape through the shared typed grant
 builder and assignment preview. Decisions use this evaluator with concrete
 entity, status, action, transition, and lineage context; screen layout never
 implies backend authority.
 
-Legacy helpers such as `requirePermission()` and service-level
-`hasLineagePermission()` callers must pass the full auth context, not a reduced
-`{ memberships }` object. The shared evaluator then uses
+Service-level `hasLineagePermission()` callers must pass the full auth
+context — a reduced `{ memberships }` object hides `effectivePermissions`. The shared evaluator then uses
 `auth.effectivePermissions` first and falls back to membership/user permissions
 only when the organization has no active process-derived grants for the user.
 Status transition auth preserves `effectivePermissions` so lifecycle access

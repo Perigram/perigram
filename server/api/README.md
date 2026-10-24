@@ -2,19 +2,10 @@
 
 ## Structure
 Routes are grouped into sub-directories corresponding to features:
-- `agent-bots/`: The organization AI's conversation membership —
-  `POST /api/agent-bots/chats` (a fresh AI chat thread: a subscribed room
-  with the caller and the assistant, titled by its first message),
-  `POST/DELETE /api/agent-bots/subscriptions` (the body carries
-  `conversationKey` with optional `wakeOn` lifecycle wake rules, each
-  authored by the caller, and the per-conversation `profile`/`model`
-  pin), the capability-gated `GET /api/agent-bots/contacts` (the ensured
-  assistant row, the caller's `canChat` flag, conversation subscription
-  state, and the org's chat model tables), `GET
-  /api/agent-bots/wake-options` (the org's active compiled primary
-  states for the wake-rule pickers), and `POST /api/agent-bots/stop`
-  (stop the room's in-flight run). Every route gates on the caller's
-  agent-chat role capability; there is no bot administration. See
+- `agent-bots/`: The organization AI's conversation membership — AI chat
+  thread creation, conversation subscriptions (wake rules, profile/model
+  pins), the capability-gated contacts and wake-options reads, and run
+  stop. Every route gates on the caller's agent-chat role capability. See
   [agent-bots feature](../features/agent-bots/README.md).
 - `mcp/`: `POST /api/mcp` — the MCP streamable-HTTP endpoint over the
   shared agent tool catalog (single JSON-RPC messages, `application/json`
@@ -37,8 +28,7 @@ Routes are grouped into sub-directories corresponding to features:
   artifacts expose `PUT /api/artifacts/:id/layout` for revision-backed edits.
 - `artifact-conversions`: `POST /api/artifact-conversions` — the
   client-reachable conversion surface over the organization's installed
-  plugins' catalogs (the editor dialogs' non-process path; the
-  `convertArtifact` command serves process flows).
+  plugins' catalogs.
 - `commands/`: Authenticated execution route for declared domain commands such
   as `generateAttachment`.
 - `instances/`: The generic per-type instance transport (`/api/instances/:type`
@@ -79,15 +69,13 @@ Routes are grouped into sub-directories corresponding to features:
   control flow.
 - `organizations/:id/billing`: Authenticated organization billing account,
   package catalog, Stripe checkout creation, and payment sync routes. Token
-  packages come from runtime config, not from user records or database price
-  collections.
+  packages come from runtime config.
 - `instance-events/`: Authenticated entity invalidation channel. `GET` returns
   visible recent events after an optional numeric cursor, and `POST` publishes
   successful frontend CRUD mutations after their canonical entity API call
   succeeds.
 - `tasks/`: Worker task queue protocol for claim, heartbeat, complete,
-  fail, and cancel. No task executor is currently registered — the protocol
-  is live for the next executor that ships beside an enqueue site.
+  fail, and cancel (see [core/tasks](../core/tasks/README.md)).
 - `admin/commands/` and `admin/tasks/`: Authenticated command/task definition
   and run listings (`command_runs`, `task_runs`). `admin/cts/` serves the
   org type registry view and declaration authoring API;
@@ -131,33 +119,21 @@ Routes are grouped into sub-directories corresponding to features:
   authenticated `POST/DELETE /notifications/subscriptions` save and remove
   browser subscriptions. See
   [the notifications feature](../features/notifications/README.md).
-- `livekit/`: Authenticated call endpoints — config for the browser,
-  token minting with server-side room admission, conversation call invites,
-  verified LiveKit webhook receiver that fans call activity onto the
-  connections layer, and the active-room snapshot
-  (`GET /livekit/active-rooms`) that backs the home workspace's active-call
-  list. Group call rooms derive from support group chats. Conversation rooms
-  record through the egress lifecycle routes
-  (`GET/POST /livekit/recordings`, `POST /livekit/recordings/stop`); finished
-  recordings import into the room's conversation as `video` attachment
-  messages. See [the livekit feature](../features/livekit/README.md).
-- `support/`: Authenticated support chat endpoints. User routes snapshot the
-  current user's support conversation, a direct user-to-user conversation
-  selected by `recipientUserId`, or a group conversation selected by
-  `conversationKey`; admin routes remain scoped to customer support
-  conversations. Group chats are created and deleted through
-  `POST/DELETE /support/groups`. Conversation-list routes return unread
-  counts from `supportConversationReads`. Messages may include structured
-  inline `entityRefs` picked from the same compiled screen list sources the
-  home sidebar renders; the instance-options route remains the server-side
-  validation and hydration channel for those refs (see
-  [support feature](../features/support/README.md)). Voice messages transcribe
-  through `POST /support/messages/:id/transcribe` into the caller's private
-  transcript; messages forward through `POST /support/messages/:id/forward`.
-  The shared chat message
-  component renders both inline tokens and
-  structured refs. Initial state loads over these REST routes; message, read,
-  and inbox events arrive over the connections stream.
+- `plugins/`: Plugin catalog read/admin routes and the installed-module
+  proxy (`/api/plugins/:pluginId/module/**`) — covered by the
+  [plugins feature](../features/plugins/README.md).
+- `service/`: Deployment diagnostics — `GET /api/service/health` (Mongo
+  ping) and `GET /api/service` (db status, caller, commit SHA).
+- `livekit/`: Authenticated call endpoints — browser config, token minting
+  with server-side room admission, call invites, the verified webhook
+  receiver, the recordings lifecycle, and the active-room snapshot backing
+  the home workspace's active-call list. See
+  [the livekit feature](../features/livekit/README.md).
+- `support/`: Authenticated support chat endpoints — user, direct, and
+  group conversation snapshots, group create/delete, message routes with
+  unread counts, inline `entityRefs`, transcribe, and forward; admin routes
+  stay scoped to customer support conversations. See
+  [support feature](../features/support/README.md).
 - `transcription/`: `GET /transcription/config` reports `{ available }` for
   the caller's organization so clients surface transcription affordances only
   when a provider is configured (see
@@ -175,7 +151,7 @@ Routes are grouped into sub-directories corresponding to features:
 - **Method Suffixes:** Files are named `[action].[method].js` (e.g., `index.get.js`, `create.post.js`).
 - **Multipart Uploads:** Every upload route reads the binary from a form
   part named `file` (`files/`, `artifacts/`, `artifact-templates/`,
-  `cassettes/`, `instances/` payload, and `users/:id/avatar`); clients must
+  `instances/` payload, and `users/:id/avatar`); clients must
   append the blob under that exact field name.
 - **Thin Wrappers:** API handlers should be minimal, delegating all business logic to the corresponding [Server Features](../features/README.md).
 - **Idempotency:** mutating routes honor the `Idempotency-Key` header through
@@ -193,18 +169,8 @@ Responsibilities:
 is secure in production by default, but `SESSION_COOKIE_SECURE=false` can be set
 for plain HTTP LAN deployments so browsers keep the session cookie.
 `auth/register.post.js` is the public signup boundary. It accepts user
-credentials only (name, email, password) and creates the account without any
-organization, membership, or process side effects. New users join an
-organization by invitation or create their own after signing in through the
-authenticated organizations API used by the profile page.
+credentials only (name, email, password) and creates the account with
+credentials alone. New users join an organization by invitation or create
+their own after signing in through the authenticated organizations API used
+by the profile page.
 
-## Example Handler
-```javascript
-export default defineEventHandler(async (event) => {
-  const userId = event.context.auth.userId;
-  if (!userId) throw createError({ statusCode: 401 });
-  
-  const body = await readBody(event);
-  return await service.create(body, userId);
-});
-```

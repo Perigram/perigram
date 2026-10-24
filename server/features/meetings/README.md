@@ -20,10 +20,9 @@ recording imported (livekit) → GridFS mp4 → transcribeAudio (per-org STT)
 ```
 
 The pipeline is best-effort: a disabled config, an unavailable LLM
-provider, or an empty transcript skips the summary silently (the recording
-message itself already landed). Speaker attribution is not available yet —
-the deployed local STT is single-speaker, so multi-party call transcripts
-are flat text; diarization is the upgrade path.
+provider, or an empty transcript skips the summary silently (the
+recording message itself already landed). The deployed local STT is
+single-speaker, so multi-party call transcripts are flat text.
 
 ## Configuration
 
@@ -48,7 +47,7 @@ working provider; no resolvable provider disables summaries everywhere.
 ## Service Contract
 
 - `resolveMeetingsConfig(organizationId)` → `{ enabled, protocol, botUserId }`; `{ enabled: false }` when the provider is unavailable or the org opted out.
-- `summarizeRecording({ record, message })` → posts the summary message or returns `null`; never throws — summary failures log and leave the recording message intact. `record` is the `call_recordings` document, `message` the imported recording message (attachment fileId is the audio source).
+- `summarizeRecording({ record, message })` → posts the summary message or returns `null`; summary failures log and leave the recording message intact. `record` is the `call_recordings` document, `message` the imported recording message (attachment fileId is the audio source).
 
 Organization resolution follows the recording: group conversations use the
 group's organization lineage; direct conversations the recording starter's

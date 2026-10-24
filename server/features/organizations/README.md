@@ -1,29 +1,28 @@
 # COMPONENT: Organizations
 
 Multi-tenant organization management. Organization records are abstract tenant
-roots; runtime behavior comes from the active process definition linked from
-organization data, not from hardcoded organization type branches.
+roots; runtime behavior comes from the active process definitions
+compiled per organization.
 
 ## Core Files
 - `repository.js`: Database operations on `organizations` collection
 - `service.js`: Business logic, type validation, permissions
 - API endpoints in `server/api/organizations/`
 
-The registered organization entity service exposes
-`getProcessConfiguration(id)` and `setActiveProcessDefinition(id,
-processDefinitionId)` for the process-definition feature. Process compilation
-and activation use this boundary instead of importing the organization
-repository across feature boundaries.
+The registered organization instance service exposes
+`getProcessConfiguration(id)` for the process-definition feature (auth
+hydration and activation read organization configuration through it).
+Process features reach organizations through this boundary, keeping the
+organization repository feature-internal.
 
 ## Data Structure
 Collection: `organizations`
 The process plane reads organizations through the registered party
 bindings (`server/runtime/party-wire.js`): the §3 wire shape, readable by
-members only. Organizations are readable principals — never
-process-mutable; the feature routes below own every mutation.
+members only. Organizations are readable principals on the process
+plane; every mutation stays on the feature routes below.
 
 Key fields:
-- `processTemplateId`: Starter process id used at creation time.
 - `roles`: Stable role identity record `{ [roleId]: { id, label, exclusive?, agentChat? } }`.
   A role marked `exclusive` is single-seat: exactly one member holds it
   at a time, and assigning it MOVES the seat — the previous holder keeps
@@ -41,7 +40,7 @@ Activation is additive: the active definition set is queried from the
 process-definitions collection ([process-definitions](../process-definitions/README.md)).
 - `roleAssignments`: Authoritative user mapping
   `{ [userId]: { userId, roleIds, bindings } }`.
-- `settings`: Organization settings that are not role/type branches.
+- `settings`: Organization settings outside the role/type planes.
 
 ## ID Handling
 - Organization `_id` values may be Mongo ObjectIds or string UIDs such as `org-xxxxxxxx`.
@@ -68,7 +67,10 @@ process-definitions collection ([process-definitions](../process-definitions/REA
   `/organization/billing` when the caller has `organizations:read`, a
   partners screen at `/organization/partners` when the caller has
   `organizations:read` (see
-  [partnerships](../partnerships/README.md)), a team
+  [partnerships](../partnerships/README.md)), a plugins route screen at
+  `/organization/plugins` under the same `organizations:read` gate
+  (the installed-plugin management surface — see
+  [plugins](../plugins/README.md)), a team
   route screen at `/organization/users` when the caller has `users:admin`,
   an AI models route screen at `/organization/models` under the same gate
   (provider administration — see
@@ -101,7 +103,7 @@ Apply. `GET/POST /api/organizations/:id/roles` lists and creates identities
 multiple members hold the role); `DELETE /api/organizations/:id/roles/:roleId` deletes them.
 Role ids are immutable and generated server-side. Deletion is rejected while a
 role is referenced by an organization assignment, active invitation, active
-process, or draft process. Archived compiled process history does not block it.
+process, or draft process. Archived compiled process history is exempt.
 `GET /api/organizations/:id/role-assignments` and
 `PATCH /api/organizations/:id/role-assignments/:userId` manage authoritative
 assignments without recompiling a process (single-seat roles move on write,
@@ -109,11 +111,10 @@ see the data structure above).
 
 ## API Behavior
 - `GET /api/organizations/:id` returns the serialized organization when found.
-- Missing organizations return 404 instead of attempting to serialize `null`.
+- A missing organization returns 404.
 - Organization billing is exposed under `/api/organizations/:id/billing/*`.
   The active organization owns its prepaid token account, invoices, payment
-  errors, and ledger entries. User profiles do not contain spendable credit
-  balances.
+  errors, and ledger entries; user profiles carry no spendable balances.
 
 ## Related Components
 - [users](../users/README.md) - Users belong to organizations

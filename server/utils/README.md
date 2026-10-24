@@ -72,6 +72,14 @@ const results = await repository.findAll(filter);
 Users without memberships get an empty `$in` filter; users with memberships get
 `{ 'lineage.organizationId': { $in: [...orgIds] } }`.
 
+### `requirePermission(event, entity, level)` → `authContext`
+Uses `hasPermission()` from auth-helpers against explicit `user.permissions`.
+Use for system-level resources without lineage.
+
+### `checkEntityAccess(user, entity, entityOrgId)` → `boolean`
+Legacy organization-level compatibility helper. New v24 services should use
+`hasLineagePermission()` / `requireLineagePermission()` instead.
+
 ## entity-redaction.js
 
 ### `serializeForAccess(typeId, entity, auth)` / `serializeManyForAccess(...)`
@@ -81,14 +89,6 @@ service calls can omit `auth` to keep full domain objects for workflows, hooks,
 and background tasks. API GET/list routes should pass `event.context.auth` so
 entity cards only receive fields allowed by the current user's membership
 permissions.
-
-### `requirePermission(event, entity, level)` → `authContext`
-Uses `hasPermission()` from auth-helpers against explicit `user.permissions`.
-Use for system-level resources without lineage.
-
-### `checkEntityAccess(user, entity, entityOrgId)` → `boolean`
-Legacy organization-level compatibility helper. New v24 services should use
-`hasLineagePermission()` / `requireLineagePermission()` instead.
 
 ## auth-helpers.js
 
@@ -118,37 +118,19 @@ Checks `user.restrictedTo` whitelist. Returns `true` if no restrictions.
 | Non-entity resource (system settings) | `requirePermission` / `hasPermission` |
 | Password login flow | `hashPassword` / `verifyPassword` |
 
-## Deprecated Bridges
+## blocks.js
 
-`server/utils/blocks.js` re-exports the core block API for legacy tests/callers
-only. Feature code must import from `server/core/blocks/index.js`; the
-architecture checker enforces this for v24 entity modules.
+`server/utils/blocks.js` re-exports the core block API; its sole consumer is
+`shared/v24-compliance.spec.js`. Feature code imports from
+`server/core/blocks/index.js`.
 
 ## extract-data-models.js
 
-Generates the debug data-model inventory consumed by `/api/debug/data-models` and `server/DATA_MODEL.md`.
-
-The extractor is code-aware but not a schema compiler. It reads feature `model.js`, `service.js`, and `repository.js`, then extracts:
-- standard v24 blocks from `BaseEntity`
-- `lineage.*` keys from literal lineage objects
-- `data.*` keys from `data`/`params` object literals and `this.data.*` assignments
-
-Extraction output includes `source` and `issues` fields so `/admin/data-model-review` can flag suspicious generated fields before refactoring. Treat `server/DATA_MODEL.md` as review input, not the final contract, when a field is marked with issues.
-
-The command writes `server/DATA_MODEL.md` only when its generated content has
-changed. This prevents Nuxt development file watching from restarting the app
-for an unchanged generated document.
-
-The admin review page compares extracted collections against the committed framework manifest after excluding support/runtime collections. This keeps audit/auth/template data visible for cleanup without requiring those collections to become public framework entities.
-
-## cassetteGraphBuilder.js
-
-Builds Nodi graph JSON for parametric cassette rendering. Although it lives under
-`server/utils`, `utils/cassetteRenderer.js` imports it into the browser bundle,
-so it must avoid Node-only APIs and browser APIs that require secure contexts.
-Graph ID generation falls back from `crypto.randomUUID` to
-`crypto.getRandomValues`, then to a timestamp/random string for plain HTTP LAN
-usage.
+Exports `extractDataModels()`: the code-aware extractor that reads each
+feature's `model.js`, `service.js`, and `repository.js` and builds a
+block/`lineage.*`/`data.*` field inventory per collection, with `source` and
+`issues` fields flagging suspicious generated fields. Its sole consumer is
+`scripts/framework-inspect.js` (the framework manifest build).
 
 ## dxf-extractor.js
 

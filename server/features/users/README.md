@@ -1,12 +1,13 @@
 # COMPONENT: Users
 
-User authentication and permission management. Built on the v24 BaseEntity architecture.
+User authentication and permission management.
 
 ## Core Files
-- `model.js`: User entity extending `BaseEntity`; exposes stored copied grants without preset expansion
+- `model.js`: User entity extending `BaseEntity`; exposes stored copied
+  grants, presets unexpanded
 - `repository.js`: Database operations on `users` collection
 - `service.js`: Register, login, session management
-- `permission-templates.js`: Re-export of shared access preset templates
+- `organization-owner.js`: The owner-recovery seam — `ORGANIZATION_OWNER_PERMISSIONS`, `ownerMembership`, `isOwnerMembership`, `ensureOwnerMembership`, and `applyOwnerPermissionsToAuth`, the auth merge process auth hydration consumes
 - API endpoints in `server/api/auth/` and `server/api/users/`
 
 ## Data Structure
@@ -17,7 +18,7 @@ The process plane reads users through the registered party bindings
 (`server/runtime/party-wire.js`): the §3 wire shape (identity slots plus
 the declared rows — name, email, and the `roles` derived from the active
 organization's authoritative `roleAssignments`), membership-gated (self
-always readable). Users are readable principals — never process-mutable;
+always readable). Users are readable principals on the process plane;
 user mutation stays on the feature routes below.
 
 **Identity Block:**
@@ -26,7 +27,7 @@ user mutation stays on the feature routes below.
 **Data Block:**
 - `email`: User's email (lowercase)
 - `passwordHash`: Argon2id hash
-- `permissions`: Tenant recovery grants; ordinary process access is not copied here.
+- `permissions`: Tenant recovery grants; ordinary process access resolves from compiled roles.
 - `memberships`: Array of organization memberships `{ organizationId, permissions, status, owner? }`; memberships establish tenant relationship and approval state only
 - `isActive`: Boolean flag
 - `bot`: Marker for the AI's attribution identity, the per-organization
@@ -47,9 +48,8 @@ user mutation stays on the feature routes below.
 
 ## Public Signup
 `POST /api/auth/register` creates a password-backed user from credentials
-only — name, email, and password. It never creates organizations,
-memberships, or processes: orgless accounts are the normal post-signup
-state. Users join an organization by invitation (`/invitation/:token`
+only — name, email, and password. The account starts orgless: orgless
+accounts are the normal post-signup state. Users join an organization by invitation (`/invitation/:token`
 creates the pending membership after login) or create their own
 organization through the authenticated organizations API from the profile
 page, which grants the creator the owner membership with permanent
@@ -57,8 +57,8 @@ tenant-management grants.
 
 ## Persistence Notes
 - `User.toJSON()` strips `data.passwordHash` and is safe for API responses.
-- `repository.create()` restores `data.passwordHash` from the model instance before inserting into MongoDB; persistence must not rely on the public JSON shape for sensitive fields.
-- Existing users without `data.passwordHash` cannot log in until their password is reset or the account is recreated.
+- `repository.create()` restores `data.passwordHash` from the model instance before inserting into MongoDB — the public JSON shape omits sensitive fields.
+- Existing users lacking `data.passwordHash` must have their password reset or the account recreated to log in.
 - `repository.findByIds()` is the batch lookup used by status history actor
   enrichment. It accepts the same flexible string/ObjectId ids as `findById()`.
 - `GET /api/users/:id` returns a redacted user DTO for inline references such
@@ -70,7 +70,7 @@ tenant-management grants.
   forms. Process-auth contexts that omit expanded memberships still return
   same-organization users for pickers and chat lists.
 - `directorySearch(query, limit)` is the one cross-tenant read: it matches
-  active users by display name only (never email) for the
+  active users by display name only for the
   [directory feature](../directory/README.md), which owns the directory
   card projection and privacy contract. Ordinary list queries stay
   membership-scoped.
@@ -87,28 +87,24 @@ tenant-management grants.
 - Organization context via `user.lineage.organizationId`
 - Per-organization permissions in `memberships` are explicit stored grants used
   only by tenant-management recovery paths.
-- Legacy active memberships or active user permission snapshots with both
-  `organizations:admin` and `users:admin` are treated as owner recovery until
-  `server/scripts/migrate-organization-owner-admins.js` writes the explicit
-  `owner` flag. User mutation paths reject removing the last active
-  organization user or the last active owner. Canonical owner recovery grant
-  semantics live in [organizations](../organizations/README.md).
+- An active membership counts as owner recovery when it carries the
+  explicit `owner` flag or both `organizations:admin` and `users:admin`
+  permissions (`isOwnerMembership` reads both shapes). User mutation
+  paths reject removing the last active organization user or the last
+  active owner. Canonical owner recovery grant semantics live in
+  [organizations](../organizations/README.md).
 - When `server/middleware/auth.js` resolves an active process, it combines the
   organization's `data.roleAssignments[userId]` with compiled process roles to
   produce effective permissions, navigation, screens, and actions.
 - User management checks use the compiled `users:admin` grant first, then a
   narrow recovery path for active membership `users:admin` grants. Membership
-  role labels and sole-member status do not imply management access.
+  role labels and sole-member status carry no management access.
 - Default access presets live in [shared permission templates](../../../shared/README.md)
   so browser dev tools and server user creation read the same grant contract.
-- Organization role ids and bindings are never stored on users or memberships.
-  `User` model reads do not expand ordinary permissions from persisted
-  memberships; persisted memberships must carry the explicit recovery grant
-  object used by tenant-management authorization.
-- System materials, layer standards, pens, and tools are not exposed through
-  copied user grants. They carry the public system catalogue marker documented
-  in [server architecture](../../README.md), and read access is evaluated from
-  that marker directly.
+- Organization role ids and bindings live on the organization record,
+  outside users and memberships. Ordinary permissions stay unexpanded on
+  `User` model reads; persisted memberships carry the explicit recovery
+  grant object used by tenant-management authorization.
 
 ## Related Components
 - [organizations](../organizations/README.md) - Users belong to organizations via memberships and current lineage context

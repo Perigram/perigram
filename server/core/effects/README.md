@@ -10,8 +10,11 @@ consequences.
 - Resolves entity services and status transitions through the runtime registry.
 - Keeps cross-entity orchestration out of command, task, and hook handlers.
 - Returns normalized effect summaries for API responses and run history.
-- Publishes each validated domain event through `server/core/events` so
-  matching active-process domain-event triggers can start automatically.
+- Validates each emitted domain event against the registry's declared event
+  definitions (undeclared events, and declared events lacking an effect
+  policy while being non-informational, throw 500) and publishes it through
+  `publishDomainEvent` in `server/core/events/service.js`, a pass-through
+  that returns the normalized event.
 
 ## Related
 

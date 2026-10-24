@@ -25,7 +25,7 @@ Organizations declare the provider at `data.settings.webSearch`
 (writable through the standard organization settings seam):
 `{ provider, baseUrl?, apiKey? }` — `baseUrl` is the SearXNG instance
 address (or a Tavily base override); `apiKey` is the Tavily key. Keys
-never travel: reads report `apiKeySet`, saves keep an omitted key and
+stay server-side: reads report `apiKeySet`, saves keep an omitted key and
 clear on empty string (the llm settings law). The environment is the
 unnamed default:
 
