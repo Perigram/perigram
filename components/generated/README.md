@@ -250,21 +250,14 @@ gate (`resolveTypeFeature`: field-policy feature, else the class
 collection) and checks it through the shared evaluator with the entity
 and type id; the server stays fail-closed behind it.
 
-The `sketch-editor` surface mounts the tech-drawing pack's
-`SketchEditor` and the `text-editor`/`csv-editor` surfaces mount the
-documents pack's `TextDocumentEditor`/`CsvTableEditor` — editor
-components live in the pack that owns the type
-(`packages/<pack>/src/editors/`); this registry is only the app-side
-mount table. Each editor takes an
-instance-backed persistence contract (payload download URL for
-loads, `PUT /api/instances/:type/:id/payload` for saves, which records
-an immutable content revision per save, and `rename(name)` through the
-revisioned instance identity patch; the helper is generic over the
-type id). Both editors take only that
-persistence contract. The text/csv editor pages register as
-`flush` workspace pages: the pane host renders them without its padded
-scroll area because the editor owns its document shell — one scroll,
-inside the editor.
+The `sketch-editor` surface is the tech-drawing pack's surface module
+(`workers/tech-drawing/surfaces/`) and the `text-editor`/`csv-editor`
+surfaces are the documents pack's (`workers/documents/surfaces/`); they
+mount through the plugin-delivered path above. The app side owns
+`instancePayloadPersistence`, generic over the type id: payload download
+URL for loads, `PUT /api/instances/:type/:id/payload` for saves (an
+immutable content revision per save), and `rename(name)` through the
+revisioned instance identity patch.
 
 ### File payload previews
 
@@ -319,7 +312,7 @@ Card chrome stays the platform's `InstanceCard`.
 `GeneratedHomeWorkspace.vue` renders the generated `home` template as a
 Discord-style operational shell. It is also the default screen: when the
 compiled manifest carries no home screen (no active definition, or one that
-no longer compiles), the screens route feeds it the sourceless default home
+fails to compile), the screens route feeds it the sourceless default home
 contract (`defaultHomeScreen` in
 [pages/README.md](../../pages/README.md)) and every
 definition-independent surface keeps working — the communication entries,
@@ -479,8 +472,7 @@ from the compiled manifest.
   replaced content keys (session-only, capped), and the pane header
   renders its Back control — always visible, disabled while the pane has
   no history — so navigation stays discoverable; Back walks the pane's
-  navigation path, skipping entries whose content
-  no longer resolves. Detail tab titles follow
+  navigation path, skipping entries whose content fails to resolve. Detail tab titles follow
   the one title resolver (`titleFor` from the mapping
   contract over the instances pool), so the declared identity field wins
   and raw ids never render; type-screen tabs carry procedural labels
