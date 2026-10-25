@@ -60,8 +60,7 @@ describe('UI Permission Matrix', () => {
             })).toBe(false);
         });
 
-        it('should apply logical rule filters to otherwise valid grants', () => {
-            const permissions = {
+        it('should apply logical rule filters to otherwise valid grants', () => {            const permissions = {
                 projects: {
                     level: 'write',
                     rule: {
@@ -85,6 +84,48 @@ describe('UI Permission Matrix', () => {
                 level: 'write',
                 typeId: 'project',
                 entity: { lineage: { projectId: 'project-b' }, states: { main: 'ACTIVE' } }
+            })).toBe(false);
+        });
+
+        it('enforces compiled lineage-key grant scopes', () => {
+            const permissions = {
+                queues: { level: 'write', scope: { warehouseId: 'warehouse-a' } }
+            };
+            expect(hasPermissionGrant({
+                permissions,
+                feature: 'queues',
+                level: 'write',
+                entity: { lineage: { warehouseId: 'warehouse-a' } }
+            })).toBe(true);
+            expect(hasPermissionGrant({
+                permissions,
+                feature: 'queues',
+                level: 'write',
+                entity: { lineage: { warehouseId: 'warehouse-b' } }
+            })).toBe(false);
+            expect(hasPermissionGrant({
+                permissions,
+                feature: 'queues',
+                level: 'write',
+                entity: null
+            })).toBe(false);
+        });
+
+        it('accepts any listed value for a lineage-key scope', () => {
+            const permissions = {
+                queues: { level: 'write', scope: { warehouseId: ['warehouse-a', 'warehouse-b'] } }
+            };
+            expect(hasPermissionGrant({
+                permissions,
+                feature: 'queues',
+                level: 'write',
+                entity: { lineage: { warehouseId: 'warehouse-b' } }
+            })).toBe(true);
+            expect(hasPermissionGrant({
+                permissions,
+                feature: 'queues',
+                level: 'write',
+                entity: { lineage: { warehouseId: 'warehouse-c' } }
             })).toBe(false);
         });
 

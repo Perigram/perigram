@@ -204,7 +204,7 @@ import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
 import RegionCollections from './RegionCollections.vue';
 import RegionChildren from './RegionChildren.vue';
-import { useLocalizedTypeLabel } from './type-labels.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
 const props = defineProps({
   node: { type: Object, required: true },
   pool: { type: Object, default: () => ({}) },
@@ -382,8 +382,7 @@ const isReloading = computed(() => state.value === 'loading' && hasInstances.val
 const showSurfaces = computed(() => state.value === 'ready' || isReloading.value);
 const showState = computed(() => !showSurfaces.value);
 const embeddedStack = computed(() => (spacing ? spacing.stackTight : LAYOUT.stackTight));
-const { localizedTypeLabel } = useLocalizedTypeLabel();
-const regionLabel = computed(() => localizedLabel({ te, t }, typeLabelKey(props.node.typeId), props.node.type ? localizedTypeLabel(props.node.type) : props.node.id));
+const regionLabel = computed(() => localizedLabel({ te, t }, typeLabelKey(props.node.typeId), props.node.type ? generatedEntityLabel(props.node.type, { t, te }) : props.node.id));
 // The derived list layout — the resolver's contract decision over shape,
 // class, size, and the served state vocabulary. The projection
 // switch below is the user's view-state override inside a bounded pair,

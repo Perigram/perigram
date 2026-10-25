@@ -39,17 +39,6 @@ export const normalizeOccsProfileMaterial = (material) => (
 
 const RECT_TEMPLATE_FILLET_CORNERS = [0, 1, 2, 3];
 
-const PROFILE_GEOMETRY_SEED = Object.freeze({
-  rect: {
-    center: [21, 14],
-    width: 42,
-    height: 28,
-    rotation: 0,
-    fillets: RECT_TEMPLATE_FILLET_CORNERS.map(corner => ({ corner, radius: 3 }))
-  },
-  circle: { center: [21, 14], diameter: 6 }
-});
-
 // Parametric by law: the template's geometry binds to its table (W/H the
 // rectangle, R the corner fillets, D the hole; L resolves the sweep at
 // evaluation), so cassette instance parameters drive it.
@@ -549,16 +538,10 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
   };
 };
 
-// The section's boolean steps on the face: every participating shape,
-// grouped — all adds before all subtracts (owner law: ops apply to the
-// face; the fold is order-independent, so drawing order never changes
-// the result). Construction geometry never joins a step. Polyline
-// sections have no boolean meaning (null).
 // The section's boolean steps as an ordered CSG sequence: each
 // participating shape applies to the face in authored list order — a
-// later add refills an earlier cut (owner direction 2026-10-19,
-// ordered sequence). Construction geometry never joins a step.
-// Polyline sections have no boolean meaning (null).
+// later add refills an earlier cut. Construction geometry never joins
+// a step. Polyline sections have no boolean meaning (null).
 export const resolveOccsProfileSectionOperations = (section = {}) => {
   if (section.type !== 'shapes') return null;
   return section.shapes

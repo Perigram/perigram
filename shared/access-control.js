@@ -89,6 +89,7 @@ function grantAllows({ grant, feature, requiredLevel, action, entity, typeId, tr
   if (!grant || !levelAtLeast(grant.level, requiredLevel)) return false;
   if (action && grant.actions && grant.actions[action] !== true) return false;
   if (!scopeMatches(grant.scope || grant, entity, typeId)) return false;
+  if (grant.scope && !lineageScopeMatches(grant.scope, entity)) return false;
   if (!transitionMatches(grant, transition)) return false;
   if (grant.rule && !evaluateAccessRule({
     rule: grant.rule,
@@ -114,6 +115,21 @@ function scopeMatches(scope = {}, entity = null, typeId = null) {
   const instanceId = entity?._id || entity?.identity?.uid;
   return idScopeMatches(scope, 'organizationId', lineage.organizationId)
     && idScopeMatches(scope, 'instanceId', instanceId);
+}
+
+// Compiled grants scope by lineage keys beyond the reserved vocabulary
+// (an action window or screen binding carries e.g. `warehouseId`): every
+// non-reserved scope key names a lineage field the entity must carry.
+const RESERVED_SCOPE_KEYS = new Set(['typeId', 'typeIds', 'organizationId', 'organizationIds', 'instanceId', 'instanceIds']);
+
+function lineageScopeMatches(scope = {}, entity = null) {
+  const lineage = entity?.lineage || {};
+  for (const [key, constraint] of Object.entries(scope)) {
+    if (RESERVED_SCOPE_KEYS.has(key)) continue;
+    const allowed = Array.isArray(constraint) ? constraint : [constraint];
+    if (!allowed.map(String).includes(String(lineage[key] || ''))) return false;
+  }
+  return true;
 }
 
 function idScopeMatches(scope, key, value) {

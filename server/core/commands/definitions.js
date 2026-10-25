@@ -74,4 +74,29 @@ export const frameworkCommandDefinitions = {
       ]
     }
   },
+  convertArtifact: {
+    id: 'convertArtifact',
+    service: 'artifact-conversions',
+    action: 'convert',
+    label: 'Convert artifact',
+    input: {
+      entities: [
+        { name: 'artifact', label: 'Artifact', type: 'artifact', required: true }
+      ],
+      parameters: [
+        { name: 'conversion', label: 'Conversion', type: 'string', required: true },
+        { name: 'name', label: 'Converted name', type: 'string', required: false },
+        { name: 'layerMapping', label: 'Layer mapping', type: 'object', default: {} },
+        { name: 'parameters', label: 'Conversion parameters', type: 'object', default: {} }
+      ]
+    },
+    output: {
+      events: ['artifact.converted']
+    },
+    access: {
+      permissions: [
+        { feature: 'artifacts', level: 'write' }
+      ]
+    }
+  },
 };

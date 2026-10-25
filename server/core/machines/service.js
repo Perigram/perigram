@@ -15,7 +15,7 @@ import {
   validateTransition
 } from '~/packages/workflows/src/index.js';
 import { assertTransitionAccess, hasInstanceAccess } from '../access/service.js';
-import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { getEntityCollection, getInstanceDefinition, normalizeTypeId } from '~/server/runtime/entities.js';
 import { CLASS_COLLECTIONS, evaluate as evaluateExpression } from '~/packages/cts/src/index.js';
 import { processEffects } from '../effects/service.js';
@@ -39,19 +39,6 @@ export const stateService = {
   async transition(typeId, targetId, targetState, userId, userRole, metadata = {}) {
     const { status } = await performTransition(typeId, targetId, targetState, userId, userRole, metadata);
     return status;
-  },
-
-  initialStatus(typeId, actor = 'SYSTEM', metadata = {}) {
-    const normalizedTypeId = normalizeTypeId(typeId);
-    const machine = workflowOverridesService.resolveDefaultWorkflow(normalizedTypeId);
-    if (!machine) {
-      throw createError({
-        statusCode: 400,
-        message: `No state machine defined for entity type: ${normalizedTypeId}`
-      });
-    }
-    const actorId = typeof actor === 'object' ? actor.userId : actor;
-    return createStatus(createWorkflowState(machine), actorId || 'SYSTEM', metadata);
   },
 
   async initialStatusForOrganization(typeId, organizationId, actor = 'SYSTEM', metadata = {}) {
@@ -177,12 +164,11 @@ export const stateService = {
   async getActions(typeId, targetId, authContext) {
     const normalizedTypeId = normalizeTypeId(typeId);
     const auth = normalizeAuthContext(authContext?.userId, authContext, {});
-    const defaultMachine = workflowOverridesService.resolveDefaultWorkflow(normalizedTypeId);
     let loaded;
     try {
       loaded = await loadEntityForWorkflow(normalizedTypeId, targetId, { requireMachine: false, producerOutputId: authContext?.producerOutputId });
     } catch (error) {
-      if (!defaultMachine && Number(error?.statusCode) === 404) {
+      if (Number(error?.statusCode) === 404) {
         return { typeId: normalizedTypeId, targetId, state: null, actions: [] };
       }
       throw error;
@@ -605,7 +591,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       transition,
       status: statusData,
       event: { source: { type: normalizedTypeId, id: flexId.toString() } },
-      registry: getPerigramRegistry()
+      registry: getAppRegistry()
     });
     return {
       status: newStatus,
@@ -1007,7 +993,7 @@ function mergeLifecycle(current = {}, next = {}) {
 // pack mounting `hookHandlers` declares them beside its domain); the
 // engine owns no handler names.
 function findHookContract(handler) {
-  for (const domain of getPerigramRegistry().listDomains()) {
+  for (const domain of getAppRegistry().listDomains()) {
     const contract = domain?.hooks?.[handler];
     if (contract) return contract;
   }
@@ -1062,7 +1048,7 @@ function isConfigurationError(error) {
 
 async function runTransitionHooks(transition, phase, context, options = {}) {
   const effects = [];
-  const registry = getPerigramRegistry();
+  const registry = getAppRegistry();
   const { collectEffects = true, log = true } = options;
 
   for (const hookConfig of transition?.hooks || []) {

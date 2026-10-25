@@ -24,12 +24,8 @@
       "~~/server/*": ["./server/*"],
       "@perigram/core": ["./packages/core/src/index.js"],
       "@perigram/workflows": ["./packages/workflows/src/index.js"],
-      "@perigram/mongo": ["./packages/mongo/src/index.js"],
-      "@perigram/nitro": ["./packages/nitro/src/index.js"],
-      "@perigram/vue": ["./packages/vue/src/index.js"],
       "@perigram/devtools": ["./packages/devtools/src/index.js"],
-      "@perigram/mcp": ["./packages/mcp/src/index.js"],
-      "@perigram/domain-cnc": ["./packages/domain-cnc/src/index.js"]
+      "@perigram/mcp": ["./packages/mcp/src/index.js"]
     }
   },
   "include": [

@@ -3,7 +3,7 @@ import {
   applyStatusMigrations,
   buildStatusMigrationPlan,
   normalizeStatusMappings,
-  strandedAsAffected,
+  throwMigrationRequired,
   validateStatusMappings
 } from './migration-plan.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -61,11 +61,12 @@ describe('apply migration plan builders', () => {
     expect(plan.statuses.find(row => row.typeId === 'facade').targets).toEqual(['draft']);
   });
 
-  it('projects the historical affected shape', () => {
-    expect(strandedAsAffected(stranded)).toEqual([
-      { typeId: 'project', statuses: ['LEGACY_RETIRED', 'OLD_DRAFT'], count: 3 },
-      { typeId: 'facade', statuses: ['GONE'], count: 3 }
-    ]);
+  it('throws the 409 with the migration plan as the data shape', () => {
+    const plan = buildStatusMigrationPlan(stranded, compiled);
+    expect(() => throwMigrationRequired(stranded, plan)).toThrowError(expect.objectContaining({
+      statusCode: 409,
+      data: { migrationRequired: true, migrationPlan: plan }
+    }));
   });
 
   it('normalizes mappings and drops duplicates or malformed rows', () => {

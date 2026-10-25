@@ -44,9 +44,6 @@ const MANIFEST_PATH = 'framework.manifest.json';
 const PACKAGE_NAMES = [
   '@perigram/core',
   '@perigram/workflows',
-  '@perigram/mongo',
-  '@perigram/nitro',
-  '@perigram/vue',
   '@perigram/devtools',
   '@perigram/mcp'
 ];
@@ -189,17 +186,17 @@ async function main() {
   if (command === 'mcp-smoke') {
     print({
       entities: await handlers.list_entities(),
-      queueWorkflow: await handlers.get_workflow({ type: 'queue' }),
-      queueSchema: await handlers.get_entity_schema({ type: 'queue' }),
+      userWorkflow: await handlers.get_workflow({ type: 'user' }),
+      userSchema: await handlers.get_entity_schema({ type: 'user' }),
       manifest: await handlers.get_framework_manifest(),
       routes: await handlers.list_routes(),
       uiComponents: await handlers.list_ui_components(),
       uiPrimitives: await handlers.list_ui_primitives(),
       relationships: await handlers.list_relationships(),
       transition: await handlers.simulate_transition({
-        type: 'queue',
-        currentState: 'DRAFT',
-        targetState: 'NESTING',
+        type: 'user',
+        currentState: 'ACTIVE',
+        targetState: 'ARCHIVED',
         role: 'ADMIN'
       })
     });

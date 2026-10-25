@@ -10,9 +10,6 @@ const devHmrClientPort = Number(process.env.NUXT_DEV_HMR_CLIENT_PORT || 3000)
 const perigramAliases = {
     '@perigram/core': resolveRoot('./packages/core/src/index.js'),
     '@perigram/workflows': resolveRoot('./packages/workflows/src/index.js'),
-    '@perigram/mongo': resolveRoot('./packages/mongo/src/index.js'),
-    '@perigram/nitro': resolveRoot('./packages/nitro/src/index.js'),
-    '@perigram/vue': resolveRoot('./packages/vue/src/index.js'),
     '@perigram/devtools': resolveRoot('./packages/devtools/src/index.js'),
     '@perigram/mcp': resolveRoot('./packages/mcp/src/index.js'),
     '@perigram/processes': resolveRoot('./packages/processes/src/index.js')
@@ -27,13 +24,13 @@ const cssDeclarations = tokens => Object.entries(tokens).map(([name, value]) => 
 const appTokenStyles = `:root{${cssDeclarations(cssVariableTokens)}}.dark-mode{${cssDeclarations(darkCssVariableTokens)}}`
 
 // Watch-ignore predicate for dev-foreign trees — agent worktrees and
-// scratch, `.opencode` tooling state, the `video` renderer tree: chokidar
+// scratch and `.opencode` tooling state: chokidar
 // v4 leaks glob-ignored nested events, so the ignore must match paths,
 // not globs. Contract: Development notes in the root README.
-const DEV_WATCH_IGNORE = p => /(^|[\\/])(\.agent([-_]w[a-z0-9_-]*)?|\.opencode|video)([\\/]|$)/i.test(String(p));
+const DEV_WATCH_IGNORE = p => /(^|[\\/])(\.agent([-_]w[a-z0-9_-]*)?|\.opencode)([\\/]|$)/i.test(String(p));
 
 export default defineNuxtConfig({
-    ignore: ['**/.agent/**', '**/.agent-worktrees/**', '**/.agent-wt*/**', '**/.opencode/**', '**/video/**'],
+    ignore: ['**/.agent/**', '**/.agent-worktrees/**', '**/.agent-wt*/**', '**/.opencode/**'],
     compatibilityDate: '2025-07-15',
 
     // Home serves at the stable shell route '/home' — the canonical

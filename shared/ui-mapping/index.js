@@ -991,6 +991,21 @@ export function localizedLabel(translator, key, fallback) {
   return translator.te(key) ? translator.t(key) : fallback;
 }
 
+// typeLabelFor(type, { t, te, entitiesLabelKey, unnamedLabel }): the one
+// type-label chain, canonical in this module's README (Identity and
+// labels). Takes a type record or a bare id; the app binding
+// (`utils/generated-labels.js`) feeds the entities key and the
+// registry-resolved record.
+export function typeLabelFor(type, { t, te, entitiesLabelKey = '', unnamedLabel = 'Unnamed' } = {}) {
+  const record = typeof type === 'string' ? { id: type } : (type || {});
+  const translator = { t, te };
+  const entities = localizedLabel(translator, entitiesLabelKey, '');
+  if (entities) return entities;
+  const generated = localizedLabel(translator, typeLabelKey(record.id || ''), '');
+  if (generated) return generated;
+  return record.name || unnamedLabel;
+}
+
 // Create-dialog input resolution — the contract (flat-wire input
 // matching, the identifier-required law, row shapes) is canonical in
 // this module's README; keep this comment a pointer.

@@ -112,37 +112,6 @@ export function getEntitySurfaceContract(surfaceContracts, entityKey) {
 }
 
 
-export const DESIGN_SYSTEM_STATUS = {
-  DRAFT: { label: 'status.draft', severity: 'info', icon: 'pi pi-pencil' },
-  NESTING: { label: 'status.nesting', severity: 'warn', icon: 'pi pi-cog' },
-  READY: { label: 'status.ready', severity: 'success', icon: 'pi pi-check' },
-  CUT: { label: 'status.cut', severity: 'success', icon: 'pi pi-bolt' },
-  CLOSED: { label: 'status.closed', severity: 'secondary', icon: 'pi pi-lock' },
-  ARCHIVED: { label: 'status.archived', severity: 'secondary', icon: 'pi pi-bookmark' },
-  COMPLETE: { label: 'status.complete', severity: 'success', icon: 'pi pi-check-circle' },
-  ERROR: { label: 'status.error', severity: 'danger', icon: 'pi pi-times-circle' },
-  CHOSEN: { label: 'status.chosen', severity: 'success', icon: 'pi pi-star' },
-  ACTIVE: { label: 'status.active', severity: 'success', icon: 'pi pi-check-circle' },
-  RECORDED: { label: 'status.recorded', severity: 'secondary', icon: 'pi pi-history' },
-  AVAILABLE: { label: 'status.available', severity: 'success', icon: 'pi pi-box' },
-  STOCKED: { label: 'status.stocked', severity: 'success', icon: 'pi pi-database' },
-  DEPLETED: { label: 'status.depleted', severity: 'secondary', icon: 'pi pi-inbox' },
-  USED: { label: 'status.used', severity: 'secondary', icon: 'pi pi-check-circle' },
-  'IN-CUTTING': { label: 'status.inCutting', severity: 'warn', icon: 'pi pi-bolt' },
-  MILLED: { label: 'status.milled', severity: 'success', icon: 'pi pi-check-square' },
-  SENT: { label: 'status.sent', severity: 'info', icon: 'pi pi-send' },
-  APPROVED: { label: 'status.approved', severity: 'success', icon: 'pi pi-check-circle' },
-  FULFILLED: { label: 'status.fulfilled', severity: 'success', icon: 'pi pi-box' },
-  REJECTED: { label: 'status.rejected', severity: 'danger', icon: 'pi pi-times-circle' },
-  PRODUCED: { label: 'status.produced', severity: 'info', icon: 'pi pi-box' },
-  INSTALLED: { label: 'status.installed', severity: 'success', icon: 'pi pi-check' },
-  GENERATING: { label: 'status.generating', severity: 'warn', icon: 'pi pi-spin pi-cog' },
-  PROCESSING: { label: 'status.processing', severity: 'warn', icon: 'pi pi-spin pi-cog' },
-  FAILED: { label: 'status.error', severity: 'danger', icon: 'pi pi-times-circle' },
-  PENDING: { label: 'status.pending', severity: 'warn', icon: 'pi pi-clock' },
-  SCRAP: { label: 'status.scrap', severity: 'danger', icon: 'pi pi-trash' }
-};
-
 export const DESIGN_SYSTEM_VARIANTS = ['card', 'compact', 'inline'];
 
 export const DESIGN_SYSTEM_GROUPS = [

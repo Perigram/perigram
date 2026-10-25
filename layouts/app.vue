@@ -316,7 +316,6 @@
         isGeneratedWorkspaceRoute.value
         || isStandaloneDesignerRoute.value
         || isChatsRoute.value
-        || /^\/project\/[^/]+\/queues\/?$/.test(route.path)
     ))
     const isAccountRoute = computed(() => route.path.startsWith('/organization'))
     const isFlushMobileSurface = computed(() => isAccountRoute.value || isChatsRoute.value)

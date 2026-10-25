@@ -4,8 +4,7 @@
 // facet), the CTS client bundle derives the display policy (sections,
 // resolved state display — no render facet anywhere),
 // `utils/instance-display-contract.js` resolves fact rows by surface
-// through `factsFor` (bundle-only; app extensions composing on top,
-// per-call overrides winning), display policies render units/dimensions,
+// through `factsFor` (bundle-only; per-call overrides winning), display policies render units/dimensions,
 // record titles and glyphs resolve through the one resolvers
 // (`titleFor`/`iconFor`), fact rows gate through field access
 // (legacy-first, declaration-derived for org-authored types), and the
@@ -124,18 +123,12 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     expect(factsFor(null, 'card')).toEqual([]);
   });
 
-  it('composes app extensions and per-call overrides over the bundle rows', () => {
+  it('composes per-call groups and surface patches over the bundle rows', () => {
     const widget = typeRecordFor(bundle, 'widget');
-    const extensions = {
-      fieldGroups: { widget: { extra: [{ path: 'fields.extra', label: 'widget.extra', display: 'text', priority: 1 }] } },
-      surfaces: { widget: { surfaces: { card: { fieldGroups: ['extra'] } } } }
-    };
-    const extended = resolveInstanceDisplayContract({ typeId: 'widget', surface: 'card', typeRecord: widget, extensions });
-    expect(extended.fields.map(field => field.path)).toEqual(['fields.extra']);
-    // Per-call overrides win over everything, including extensions.
+    const picked = { picked: [{ path: 'fields.picked', label: 'widget.picked', display: 'text', priority: 1 }] };
     const overridden = resolveInstanceDisplayContract({
-      typeId: 'widget', surface: 'card', typeRecord: widget, extensions,
-      fieldGroups: { picked: [{ path: 'fields.picked', label: 'widget.picked', display: 'text', priority: 1 }] },
+      typeId: 'widget', surface: 'card', typeRecord: widget,
+      fieldGroups: picked,
       surfaces: { card: { fieldGroups: ['picked'] } }
     });
     expect(overridden.fields.map(field => field.path)).toEqual(['fields.picked']);

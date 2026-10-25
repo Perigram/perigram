@@ -17,7 +17,7 @@ vi.mock('h3', () => ({
 
 import { stateService as statusService } from './service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
-import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
 
 // The cassette lifecycle exactly as the facade pack declares it (SPEC §7):
 // declarations are not a machine source, so the spec environment supplies
@@ -69,7 +69,7 @@ describe('status service lifecycle payloads', () => {
     // Registry collection metadata for the cassette class: CTS file-class
     // instances persist in the `files` class collection, and lifecycle
     // snapshot capture resolves target collections through the registry.
-    getPerigramRegistry().defineEntity({ type: 'cassette', collection: 'files', feature: 'cassettes' });
+    getAppRegistry().defineEntity({ type: 'cassette', collection: 'files', feature: 'cassettes' });
   });
 
   afterAll(async () => {
@@ -926,13 +926,13 @@ describe('status service lifecycle payloads', () => {
 
   it('dispatches hooks whose contracts live in any registered domain', async () => {
     const calls = [];
-    getPerigramRegistry().defineDomain({
+    getAppRegistry().defineDomain({
       id: 'hooks-spec-domain',
       hooks: {
         recordArchive: { id: 'recordArchive', parameters: [{ name: 'note', required: true }], mode: 'sync' }
       }
     });
-    getPerigramRegistry().registerHookHandler('recordArchive', (context) => {
+    getAppRegistry().registerHookHandler('recordArchive', (context) => {
       calls.push({ targetId: context.targetId, note: context.dryRun ? 'preflight' : 'commit' });
       return [];
     });

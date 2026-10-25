@@ -235,7 +235,6 @@
                   :producer-available="selectedEntityAvailable"
                   :relation-options-for="relationOptionsForEntity"
                   :projection-options-for="projectionOptionsForEntity"
-                  :field-policy-options="producerFieldPolicyOptions"
                   :type-id-options="typeIdOptions"
                   :role-options="roleOptions"
                   :command-options="commandOptions"
@@ -401,18 +400,7 @@
                     v-if="!screensForSelectedRole.length && !compiledPreviewError"
                     :message="$t('processDesigner.noCompiledScreens')"
                     :description="$t('processDesigner.noCompiledScreensHint')"
-                  >
-                    <template #actions>
-                      <Button
-                        :label="$t('processDesigner.openRolesTab')"
-                        icon="pi pi-users"
-                        size="small"
-                        severity="secondary"
-                        outlined
-                        @click="inspectTab = 'roles'"
-                      />
-                    </template>
-                  </StateBlock>
+                  />
                   <div class="flex flex-wrap gap-2">
                     <Tag
                       v-for="screen in screenList"
@@ -1617,11 +1605,6 @@ const socketList = computed(() => Object.values(draft.value?.data?.sockets || {}
 const selectedSocketId = ref('');
 const selectedSocketRecord = computed(() => draft.value?.data?.sockets?.[selectedSocketId.value] || socketList.value[0] || null);
 const selectedEntityAvailable = computed(() => Boolean(selectedEntity.value?.producerOutputId));
-const producerFieldPolicyOptions = computed(() => {
-  const typeId = nodeTypeId(selectedProcessNode.value) || selectedEntity.value?.typeId || '';
-  if (!typeId) return [];
-  return designer.fieldsForEntity(typeId).map(field => ({ label: field.i18n ? t(field.i18n) : (field.label || field.value), value: field.value }));
-});
 // Row-relative row-field ids (SPEC §7/§20): projected schema paths carry
 // the `fields.`/`data.`/`specs.` block prefix; guard paths, field-policy
 // lists, and the enforcement seams address the bare row id.

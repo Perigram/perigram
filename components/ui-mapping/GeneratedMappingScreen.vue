@@ -111,7 +111,7 @@ import Tag from 'primevue/tag';
 import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, typeLabelKey, localizedLabel, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
 import { withinRelationDomain } from '#shared/relation-domain.js';
 import RegionBlock from './RegionBlock.vue';
-import { useLocalizedTypeLabel } from './type-labels.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import InstancePicker from './InstancePicker.vue';
 import FieldControl from './FieldControl.vue';
 import StandardDialog from '../shared/StandardDialog.vue';
@@ -191,8 +191,7 @@ provide('generatedExecuteAction', (action, entity, context = {}) => {
 });
 
 const { te, t } = useI18n();
-const { localizedTypeLabel } = useLocalizedTypeLabel();
-const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? localizedTypeLabel(region.type) : region.label);
+const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? generatedEntityLabel(region.type, { t, te }) : region.label);
 const openable = computed(() => typeof props.onOpen === 'function');
 // Per-instance quick actions by type (resolveInstanceActions contract):
 // status transitions, deletion, and instance-scoped commands a collection

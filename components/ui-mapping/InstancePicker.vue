@@ -30,7 +30,7 @@ import AutoComplete from 'primevue/autocomplete';
 import TreeSelect from 'primevue/treeselect';
 import { useI18n } from 'vue-i18n';
 import { titleFor, childrenOfParent } from '#shared/ui-mapping/index.js';
-import { useLocalizedTypeLabel } from './type-labels.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
 
 const props = defineProps({
   accepts: { type: Array, default: () => [] },
@@ -40,11 +40,10 @@ const props = defineProps({
 
 const model = defineModel();
 const suggestions = ref([]);
-const { t } = useI18n();
+const { t, te } = useI18n();
 const unnamedLabel = () => t('common.unnamed');
 
-const { localizedTypeLabelById } = useLocalizedTypeLabel();
-const typeLabel = typeId => localizedTypeLabelById(typeId, props.bundle?.types || []);
+const typeLabel = typeId => generatedEntityLabel(typeId, { t, te });
 const typeRecordOf = typeId => (props.bundle?.types || []).find(candidate => candidate.id === typeId) || null;
 
 const acceptedType = computed(() => typeRecordOf(props.accepts[0]));

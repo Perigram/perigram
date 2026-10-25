@@ -24,15 +24,6 @@ export function buildStatusMigrationPlan(stranded = [], nextCompiled = {}) {
   };
 }
 
-// Historical 409 shape kept for callers that render `affected` lines.
-export function strandedAsAffected(stranded = []) {
-  return stranded.map(({ typeId, statuses }) => ({
-    typeId,
-    statuses: statuses.map(({ state }) => state),
-    count: statuses.reduce((total, { count }) => total + count, 0)
-  }));
-}
-
 export function normalizeStatusMappings(mappings = []) {
   if (!Array.isArray(mappings)) return [];
   const seen = new Set();
@@ -153,12 +144,12 @@ export async function applyStatusMigrations({ mappings = [], auth = {}, organiza
 }
 
 export function throwMigrationRequired(stranded, plan) {
-  const detail = strandedAsAffected(stranded)
-    .map(item => `${item.typeId} ${item.statuses.join(', ')} (${item.count})`)
+  const detail = stranded
+    .map(({ typeId, statuses }) => `${typeId} ${statuses.map(({ state }) => state).join(', ')} (${statuses.reduce((total, { count }) => total + count, 0)})`)
     .join('; ');
   throw createError({
     statusCode: 409,
     message: `Removed workflow states still used by active entities require a migration decision: ${detail}`,
-    data: { migrationRequired: true, affected: strandedAsAffected(stranded), migrationPlan: plan }
+    data: { migrationRequired: true, migrationPlan: plan }
   });
 }

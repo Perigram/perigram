@@ -306,10 +306,10 @@ describe('User Management & Auth', () => {
     });
   });
 
-  it('merges legacy creator membership admin grants even without owner flag', () => {
+  it('keeps admin grants unmerged without the owner flag', () => {
     const orgId = new ObjectId();
     const auth = applyOwnerPermissionsToAuth({
-      userId: 'legacy-owner',
+      userId: 'legacy-admin',
       organizationId: orgId,
       effectivePermissions: {},
       memberships: [{
@@ -322,13 +322,10 @@ describe('User Management & Auth', () => {
       }]
     });
 
-    expect(auth.effectivePermissions).toEqual({
-      organizations: { level: 'admin' },
-      users: { level: 'admin' }
-    });
+    expect(auth.effectivePermissions).toEqual({});
   });
 
-  it('merges legacy active user admin grants when memberships have no copied grants', () => {
+  it('keeps top-level admin grants unmerged without an owner membership', () => {
     const orgId = new ObjectId();
     const auth = applyOwnerPermissionsToAuth({
       userId: 'legacy-owner',
@@ -345,10 +342,7 @@ describe('User Management & Auth', () => {
       }]
     });
 
-    expect(auth.effectivePermissions).toEqual({
-      organizations: { level: 'admin' },
-      users: { level: 'admin' }
-    });
+    expect(auth.effectivePermissions).toEqual({});
   });
 
   it('prevents removing the last active organization user', async () => {

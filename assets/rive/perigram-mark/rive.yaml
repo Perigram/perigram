@@ -1,7 +1,0 @@
-name: perigram-mark
-main: Mark
-output:
-  dir: build
-logs:
-  file: build/rive.log
-  problems: build/problems.log

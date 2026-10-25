@@ -3261,7 +3261,6 @@
         "inferredStation": "Inferred",
         "customizeStation": "Customize",
         "noCompiledScreensHint": "Screens are generated from the access granted to roles.",
-        "openRolesTab": "Open roles",
         "typeMigrationTitle": "Apply: type migration",
         "typeMigrationIntro": "Breaking type changes reach live instances. Confirm what happens to the data; apply runs the migration once.",
         "typeDeathTitle": "Delete types with their data",

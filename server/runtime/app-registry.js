@@ -1,7 +1,6 @@
 // The framework runtime registry: party/file/process-definition services,
-// framework commands, and pack mounting. Domain packs that need in-process
-// code mount here; the facade domain is NOT a pack — it installs per
-// organization as the facade plugin (SPEC §Plugin marketplace) and its
+// framework commands, and their declared events. The facade domain installs
+// per organization as the facade plugin (SPEC §Plugin marketplace) and its
 // compute runs in the external facade executor.
 import { createRegistry } from '~/server/core/blocks/index.js';
 
@@ -16,18 +15,10 @@ import { convertArtifact } from '~/server/features/artifact-conversions/operatio
 import { instanceServiceResolver } from '~/server/features/instances/service.js';
 import { partyProcessBindings } from '~/server/runtime/party-wire.js';
 
-import { frameworkCommandDefinitions } from '~/server/core/commands/definitions.js';
+import { frameworkCommandDefinitions, frameworkEventDefinitions } from '~/server/core/commands/definitions.js';
 import { frameworkTaskDefinitions } from '~/server/core/tasks/definitions.js';
 
 let appRegistry = null;
-
-// Framework services (party, file storage, process definitions, revisions)
-// and the packs to mount. A pack provides: domain content, entity services
-// with process bindings, construction handlers, delete adapters, commands,
-// and task executors.
-// No pack mounts anymore (documents and tech-drawing retired into their
-// plugins, owner decision 2026-10-17); the loop stays for the seam's exit.
-const FRAMEWORK_PACKS = [];
 
 export function getAppRegistry() {
   if (appRegistry) {
@@ -96,9 +87,15 @@ function registerAppBindings(registry) {
   // and org-authored types are executable without hand-written services.
   registry.registerInstanceServiceResolver(instanceServiceResolver);
 
-  registry.defineDomain({ id: 'framework', label: 'Framework', commands: frameworkCommandDefinitions, tasks: frameworkTaskDefinitions });
+  registry.defineDomain({
+    id: 'framework',
+    label: 'Framework',
+    commands: frameworkCommandDefinitions,
+    tasks: frameworkTaskDefinitions,
+    events: frameworkEventDefinitions
+  });
   registerServiceSet(registry, {
-    domain: packDomainOf(FRAMEWORK_PACKS),
+    domain: { construction: {} },
     instanceServices: frameworkInstanceServices,
     processLists: frameworkProcessLists,
     processReads: frameworkProcessReads,
@@ -108,43 +105,9 @@ function registerAppBindings(registry) {
     deleteAdapters: frameworkDeleteAdapters
   });
 
-  for (const pack of FRAMEWORK_PACKS) {
-    registry.defineDomain(pack.domain);
-    if (pack.instanceServices) {
-      registerServiceSet(registry, {
-        domain: pack.domain,
-        instanceServices: pack.instanceServices,
-        processLists: pack.processLists,
-        processReads: pack.processReads,
-        processCapabilities: pack.processCapabilities,
-        constructionHandlers: pack.constructionHandlers,
-        modeHandlers: pack.modeHandlers || {},
-        deleteAdapters: pack.deleteAdapters || {}
-      });
-    }
-    for (const [id, handler] of Object.entries(pack.commandHandlers || {})) {
-      registry.registerCommandHandler(id, handler);
-    }
-    for (const [id, executor] of Object.entries(pack.taskExecutors || {})) {
-      registry.registerTaskExecutor(id, executor);
-    }
-    for (const [id, handler] of Object.entries(pack.hookHandlers || {})) {
-      registry.registerHookHandler(id, handler);
-    }
-    for (const [id, handler] of Object.entries(pack.projectionHandlers || {})) {
-      registry.registerProjectionHandler(id, handler);
-    }
-  }
-
   for (const [id, handler] of Object.entries(frameworkCommandHandlers)) {
     registry.registerCommandHandler(id, handler);
   }
-}
-
-function packDomainOf(packs) {
-  // Construction contracts are consulted during capability binding; the
-  // framework's own services have no pack construction.
-  return { construction: {} };
 }
 
 function registerServiceSet(registry, {
@@ -266,10 +229,6 @@ function createProcessDelete(type, service, processGetById, deleteAdapters) {
 // Framework construction modes (beyond genericCreate/uploadArtifact).
 const frameworkModeHandlers = {};
 
-export const getPerigramRegistry = getAppRegistry;
-
 export function resetAppRegistryForTests() {
   appRegistry = null;
 }
-
-export const resetPerigramRegistryForTests = resetAppRegistryForTests;

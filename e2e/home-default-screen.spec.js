@@ -19,7 +19,7 @@ test.describe('default home screen', () => {
 
     await app.page.goto('/');
     await app.page.waitForLoadState('load');
-    await expect(app.page).toHaveURL(/\/screens\/home$/);
+    await expect(app.page).toHaveURL(/\/home$/);
     await expect(app.page.locator('[data-home-workspace]')).toBeVisible();
     // Definition-independent surfaces stay reachable: the communication
     // entries render in the sidebar.
@@ -30,14 +30,28 @@ test.describe('default home screen', () => {
 
   test('unknown screen keys render the home workspace, not an error surface', async ({ app }) => {
     await app.gotoClient('/screens/auto_no_such_type');
+    // The home fallback replaces the stale key onto the stable home route.
+    await expect(app.page).toHaveURL(/\/home$/);
     await expect(app.page.locator('[data-home-workspace]')).toBeVisible();
     await expect(app.page.locator('body')).not.toContainText('Screen is not available');
     await app.expectCleanRuntime();
   });
 
+  test('system-screen keys replace to their own routes', async ({ app }) => {
+    const me = await app.request.get('/api/auth/me');
+    const manifest = await me.json();
+    // System screens own their routes outside /screens; read the route
+    // the manifest carries and assert the replacement lands there.
+    const systemScreen = (manifest.screens || []).find(screen => screen.kind === 'system' && typeof screen.route === 'string');
+    test.skip(!systemScreen, 'no system screen in the manifest');
+    await app.gotoClient(`/screens/${systemScreen.screenKey || systemScreen.id}`);
+    await expect(app.page).toHaveURL(new RegExp(`${systemScreen.route.replace(/\//g, '\\/')}$`));
+    await app.expectCleanRuntime();
+  });
+
   test('the bare /screens route redirects to the default home route', async ({ app }) => {
     await app.gotoClient('/screens');
-    await expect(app.page).toHaveURL(/\/screens\/home$/);
+    await expect(app.page).toHaveURL(/\/home$/);
     await expect(app.page.locator('[data-home-workspace]')).toBeVisible();
     await app.expectCleanRuntime();
   });

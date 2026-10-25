@@ -1,7 +1,6 @@
 import { createError } from 'h3';
 import { randomUUID } from 'node:crypto';
 import { createTaskResult, normalizeEntityOutputContracts, validateResultEntityOutputs } from '../blocks/index.js';
-import { getAppRegistry } from '../../runtime/app-registry.js';
 import * as repository from './repository.js';
 import { processEffects, processEvents } from '../effects/service.js';
 
@@ -43,29 +42,6 @@ export async function claimTask({ taskId = null, workerType = null, workerId = '
 }
 
 export const claimNextTaskRun = (taskId, workerId) => claimTask({ taskId, workerId });
-
-export async function dispatchRegisteredTaskExecutors({ workerId = 'app-task-executor', limit = 5, leaseMs = 3600000 } = {}) {
-  const registry = getAppRegistry();
-  const dispatched = [];
-  for (const task of registry.listTaskDefinitions()) {
-    const executor = registry.getTaskExecutor(task.id);
-    if (!executor) continue;
-
-    let claimed = 0;
-    while (claimed < limit) {
-      const run = await claimTask({
-        taskId: task.id,
-        workerType: task.executor?.workerType || task.executor?.target || null,
-        workerId,
-        leaseMs
-      });
-      if (!run) break;
-      claimed += 1;
-      dispatched.push(await runClaimedTaskRun(run, executor, task));
-    }
-  }
-  return dispatched;
-}
 
 export async function runClaimedTaskRun(run, executor, task = getTaskDefinition(run.taskId)) {
   try {
