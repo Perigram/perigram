@@ -165,7 +165,7 @@ export const test = base.extend({
 
         const authoring = createDefinitionAuthoring(mountedDomain(organizationId, domainTypes));
         types.forEach((typeId, index) => {
-          authoring.drop('construct', { id: `e2e-${index}` });
+          authoring.drop('construct', { id: `e2e-${index}`, typeId });
         });
         // Type lifetime (cts SPEC §4): the seeded definition declares its
         // org types in-tree — the declaration gestures behind the

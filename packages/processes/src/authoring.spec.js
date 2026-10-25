@@ -39,7 +39,7 @@ describe('seeding the authoring seam from a stored document', () => {
   it('applies gestures to the stored graph without disturbing it', () => {
     const first = authoring();
     first.declareClass({ id: 'cls_sheet', typeId: 'sheet', name: 'Sheet' });
-    first.drop('construct', { id: 'node_make' });
+    first.drop('construct', { id: 'node_make', typeId: 'sheet' });
     first.configure('node_make', { typeId: 'sheet' });
     const stored = first.definition();
 
@@ -74,7 +74,7 @@ describe('seeding the authoring seam from a stored document', () => {
     const seam = authoring();
     seam.drop('literal', { id: 'lit1' });
     seam.drop('castValue', { id: 'cast1' });
-    const edge = seam.connect('lit1', 'data:value', 'cast1', 'value');
+    const edge = seam.connect('lit1', 'data:value', 'cast1', 'data:value');
     expect(edge.source).toBe('lit1');
     expect(edge.sourceHandle).toBe('data:value');
     expect(edge.targetHandle.startsWith('data:')).toBe(true);
@@ -105,7 +105,7 @@ describe('headless definition authoring', () => {
     const items = allPaletteItems(context);
     expect(items.length).toBeGreaterThan(20);
     for (const item of items) {
-      context.drop(item.id, { id: `drop-${item.id}` });
+      context.drop(item.id, { id: `drop-${item.id}`, ...(item.kind === 'cts.construct' ? { typeId: 'sheet' } : {}) });
     }
     for (const item of items) {
       const record = context.record(`drop-${item.id}`);
@@ -152,15 +152,15 @@ describe('headless definition authoring', () => {
     context.drop('literal', { id: 'text' });
     context.drop('itemAtPosition', { id: 'first' });
     // string literal into the integer index socket is incompatible
-    expect(() => context.connect('text', 'value', 'first', 'index')).toThrow(/Incompatible/);
+    expect(() => context.connect('text', 'data:value', 'first', 'data:index')).toThrow(/Incompatible/);
     context.configure('text', { type: { base: 'integer', nullable: false }, value: 0 });
-    const edge = context.connect('text', 'value', 'first', 'index');
+    const edge = context.connect('text', 'data:value', 'first', 'data:index');
     expect(edge.sourceHandle).toBe('data:value');
     expect(edge.targetHandle).toBe('data:index');
-    expect(() => context.connect('text', 'value', 'first', 'index')).not.toThrow();
+    expect(() => context.connect('text', 'data:value', 'first', 'data:index')).not.toThrow();
     const other = context.drop('literal', { id: 'other' });
     context.configure('other', { type: { base: 'integer', nullable: false }, value: 1 });
-    expect(() => context.connect('other', 'value', 'first', 'index')).toThrow(/accepts one wire/);
+    expect(() => context.connect('other', 'data:value', 'first', 'data:index')).toThrow(/accepts one wire/);
   });
 
   it('authors the declaration tree in-definition: classes, ref fields, children to type references, wired bindings', () => {    const context = authoring();
@@ -177,7 +177,7 @@ describe('headless definition authoring', () => {
     context.wireDeclaration('csvRef', 'tableField', 'targets');
     context.wireDeclaration('designRef', 'orderClass', 'children', { key: 'contents' });
     context.wireDeclaration('attemptClass', 'orderClass', 'children', { key: 'contents' });
-    context.drop('construct', { id: 'order' });
+    context.drop('construct', { id: 'order', typeId: 'facade-order' });
     context.wireDeclaration('orderClass', 'order', 'binds');
 
     const definition = context.definition();
@@ -205,11 +205,11 @@ describe('headless definition authoring', () => {
     context.declareState({ id: 'stLive', ownerClassId: 'panelClass', value: 'LIVE' });
     context.declareTypeRef({ id: 'sheetRef', typeId: 'sheet' });
     context.declareState({ id: 'stProduction', typeId: 'sheet', value: 'PRODUCTION', terminal: true });
-    context.drop('construct', { id: 'makePanel' });
+    context.drop('construct', { id: 'makePanel', typeId: 'part' });
     context.wireDeclaration('panelClass', 'makePanel', 'binds');
     context.wireDeclaration('stNew', 'makePanel', 'entry');
     context.drop('transition', { id: 'shipPanel' });
-    context.connect('makePanel', 'result', 'shipPanel', 'entity');
+    context.connect('makePanel', 'data:result', 'shipPanel', 'data:entity');
     context.wireDeclaration('stLive', 'shipPanel', 'entry');
 
     const definition = context.definition();
@@ -259,7 +259,7 @@ describe('headless definition authoring', () => {
   it('round-trips every dropped palette record through the canvas twice', () => {
     const context = authoring();
     for (const item of allPaletteItems(context)) {
-      context.drop(item.id, { id: `drop-${item.id}` });
+      context.drop(item.id, { id: `drop-${item.id}`, ...(item.kind === 'cts.construct' ? { typeId: 'sheet' } : {}) });
     }
     const definition = context.definition();
     const { errors, warnings } = validateRoundTrip(definition);
@@ -271,7 +271,7 @@ describe('headless definition authoring', () => {
     const context = authoring();
     context.drop('currentUser', { id: 'who' });
     context.drop('getField', { id: 'email' });
-    context.connect('who', 'value', 'email', 'entity');
+    context.connect('who', 'data:value', 'email', 'data:entity');
     context.configure('email', { path: 'fields.email' });
 
     const definition = context.definition();
@@ -284,8 +284,8 @@ describe('headless definition authoring', () => {
     // stream still refuses one (a party instance is not a string).
     context.drop('text', { id: 'split' });
     context.configure('split', { operation: 'split' });
-    expect(() => context.connect('email', 'value', 'split', 'text')).not.toThrow();
-    expect(() => context.connect('who', 'value', 'split', 'separator'))
+    expect(() => context.connect('email', 'data:value', 'split', 'data:text')).not.toThrow();
+    expect(() => context.connect('who', 'data:value', 'split', 'data:separator'))
       .toThrow(/Expected string, received entityRef<user>/);
   });
 
@@ -293,7 +293,7 @@ describe('headless definition authoring', () => {
     const context = authoring();
     context.drop('currentUser', { id: 'who' });
     context.drop('getField', { id: 'gf' });
-    context.connect('who', 'value', 'gf', 'entity');
+    context.connect('who', 'data:value', 'gf', 'data:entity');
 
     // Every spelling older drafts carried on the `field` socket default —
     // a packet, a plain string, machine junk — unwraps into `path` and
@@ -337,7 +337,7 @@ describe('headless layout and graph integrity', () => {
   it('places every dropped and declared node on a distinct grid slot', () => {
     const seam = createDefinitionAuthoring(projectedDomain());
     seam.declareClass({ id: 'cls', typeId: 't-x', name: 'X' });
-    seam.drop('construct', { id: 'n1' });
+    seam.drop('construct', { id: 'n1', typeId: 'sheet' });
     seam.drop('mutate', { id: 'n2' });
     const positions = seam.definition().graph.nodes.map(node => node.position);
     expect(positions.length).toBeGreaterThan(2);
@@ -394,7 +394,7 @@ describe('headless layout and graph integrity', () => {
 
   it('configures an effect lane as one grant and collapses stored multi-grant records', () => {
     const seam = authoring();
-    seam.drop('construct', { id: 'make' });
+    seam.drop('construct', { id: 'make', typeId: 'sheet' });
     expect(() => seam.configure('make', {
       access: { grants: [
         { roleId: 'role_admin', level: 'admin' },
@@ -424,12 +424,12 @@ describe('headless layout and graph integrity', () => {
     seam.drop('literal', { id: 'lit' });
     seam.drop('logic', { id: 'dec' });
     seam.configure('lit', { type: { base: 'boolean' }, value: true });
-    seam.connect('lit', 'value', 'dec', 'left');
+    seam.connect('lit', 'data:value', 'dec', 'data:left');
 
-    const removed = seam.disconnect('lit', 'value', 'dec', 'left');
+    const removed = seam.disconnect('lit', 'data:value', 'dec', 'data:left');
     expect(removed.source).toBe('lit');
     expect(seam.edges.filter(edge => edge.role !== 'type')).toHaveLength(0);
-    expect(() => seam.disconnect('lit', 'value', 'dec', 'left')).toThrow(/No wire/);
+    expect(() => seam.disconnect('lit', 'data:value', 'dec', 'data:left')).toThrow(/No wire/);
 
     seam.unwireDeclaration('fld', 'cls', 'declares');
     expect(seam.edges.some(edge => edge.id === 'declares:fld-cls')).toBe(false);
@@ -443,5 +443,38 @@ describe('headless layout and graph integrity', () => {
     seam.removeNode('cls');
     expect(seam.definition().ctsTypes.cls).toBeUndefined();
     expect(seam.definition().graph.edges).toHaveLength(0);
+  });
+
+  it('refuses untyped construct drops — a construct exists only bound', () => {
+    const seam = authoring();
+    expect(() => seam.drop('construct', { id: 'make' })).toThrow(/requires its typeId/);
+    expect(seam.definition().processNodes.make).toBeUndefined();
+    expect(seam.definition().graph.nodes.some(node => node.id === 'make')).toBe(false);
+    const record = seam.drop('construct', { id: 'make', typeId: 'sheet' });
+    expect(record.typeId).toBe('sheet');
+  });
+
+  it('refuses wiring that omits or misnames the socket handle', () => {
+    const seam = authoring();
+    seam.drop('literal', { id: 'lit' });
+    seam.drop('castValue', { id: 'cast' });
+    expect(() => seam.connect('lit', 'value', 'cast', 'data:value')).toThrow(/must be a handle/);
+    expect(() => seam.connect('lit', 'data:value', 'cast', 'value')).toThrow(/must be a handle/);
+    expect(() => seam.connect('lit', 'output:value', 'cast', 'data:value')).toThrow(/retired handle spelling/);
+    expect(() => seam.connect('lit', 'control:value', 'cast', 'data:value')).toThrow(/wrong plane/);
+    expect(() => seam.disconnect('lit', 'value', 'cast', 'data:value')).toThrow(/must be a handle/);
+  });
+
+  it('refuses authored record values — value inputs author typed scalars', () => {
+    const seam = authoring();
+    seam.drop('literalList', { id: 'rows' });
+    expect(() => seam.configure('rows', { value: [{ project: 'Demo Facade' }] })).toThrow(/typed scalars/);
+    seam.drop('literal', { id: 'ref' });
+    expect(() => seam.configure('ref', { value: { anything: 'else' } })).toThrow(/typed scalars/);
+    const entityRef = seam.configure('ref', { value: { type: 'sheet', id: 's1' } });
+    expect(entityRef.value).toEqual({ type: 'sheet', id: 's1' });
+    seam.drop('itemAtPosition', { id: 'at' });
+    expect(() => seam.setInputDefault('at', 'index', { nested: true })).toThrow(/typed scalars/);
+    expect(seam.setInputDefault('at', 'index', 0).inputDefaults.index).toEqual({ branches: [{ path: [], items: [0] }] });
   });
 });

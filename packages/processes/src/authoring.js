@@ -759,8 +759,18 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
   // vocabulary, not an independent authoring choice.
   const PAIRED_DROPS = { 'control.forEach': 'control.forEachEnd' };
 
-  function drop(itemId, { id } = {}) {
+  function drop(itemId, { id, typeId } = {}) {
+    // A construct exists only bound: the drop names its target type,
+    // exactly as the palette's type picker does in the designer.
+    const item = paletteItem(itemId);
+    if (item?.kind === 'cts.construct' && !typeId && !item.preset?.typeId) {
+      throw new Error(`Dropping ${itemId} requires its typeId — the ids list_types serves`);
+    }
     const record = createFromItem(itemId, id);
+    if (record.kind === 'cts.construct' && typeId && typeId !== record.typeId) {
+      setTypeBinding(record, typeId);
+      syncProcessNode(record.id);
+    }
     const pairedKind = PAIRED_DROPS[record.kind];
     if (pairedKind) {
       const closerId = `${record.id}End`;
@@ -776,6 +786,11 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
   function configure(recordId, updates = {}) {
     const record = recordOf(recordId);
     if (!record) throw new Error(`No process node ${recordId}`);
+    const literalKind = operationKindOf(record);
+    if (updates.value !== undefined && ['source.literalItem', 'source.literalList'].includes(literalKind)) {
+      const items = literalKind === 'source.literalList' ? (Array.isArray(updates.value) ? updates.value : [updates.value]) : [updates.value];
+      for (const item of items) assertAuthoredValue(record.kind, `${recordId} value`, item);
+    }
     // An effect's lane is its one grant.
     if (updates.access !== undefined && EFFECT_SPECIES_KINDS.has(record.kind)) {
       const grants = normalizeDesignerAccess(updates.access).grants;
@@ -792,11 +807,25 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     return record;
   }
 
+  // The typed-value authoring law: value inputs and literal sources carry
+  // the scalars the typed control authors — the entityRef picker's
+  // {type, id} shape included. Records arrive from reads, services, and
+  // record composition.
+  function assertAuthoredValue(kind, where, value) {
+    if (value == null || typeof value !== 'object') return;
+    const entityRefPickerShape = !Array.isArray(value)
+      && typeof value.type === 'string' && typeof value.id === 'string'
+      && Object.keys(value).length === 2;
+    if (entityRefPickerShape) return;
+    throw new Error(`${where} (${kind}): value inputs author typed scalars (boolean, number, date, status, string, entityRef {type, id}) — records arrive from reads, services, and record composition`);
+  }
+
   // An authored socket fallback: the scalar is stored as one broadcast
   // item, the packet shape every consumer of inputDefaults reads.
   function setInputDefault(recordId, socketId, value) {
     const record = recordOf(recordId);
     if (!record) throw new Error(`No process node ${recordId}`);
+    assertAuthoredValue(record.kind, `${recordId}:${socketId}`, value);
     const inputDefaults = { ...(record.inputDefaults || {}) };
     if (value == null || value === '') delete inputDefaults[socketId];
     else inputDefaults[socketId] = { branches: [{ path: [], items: [value] }] };
@@ -820,10 +849,25 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
       .filter(Boolean);
   }
 
+  // Socket addressing on wire gestures: the handle names the port's
+  // plane — data:<socketId> for data sockets, control:<socketId> for
+  // control. Bare ids and the retired input:/output: spellings refuse.
+  function requireSocketHandle(nodeId, portId) {
+    const value = String(portId || '');
+    if (value.startsWith('input:') || value.startsWith('output:')) {
+      throw new Error(`Socket address ${nodeId}:${value} uses a retired handle spelling — address data:<socketId> (control sockets control:<socketId>)`);
+    }
+    if (!/^(data|control):./.test(value)) {
+      throw new Error(`Socket address ${nodeId}:${value || '(empty)'} must be a handle — data:<socketId> for data sockets, control:<socketId> for control`);
+    }
+  }
+
   // The connect gesture: data ports go through the shared compatibility
   // gate; control ports pair by role. Single-value inputs reject a second
   // wire. Effects derive their trigger mode from the event input's wire.
   function connect(sourceId, sourcePortId, targetId, targetPortId) {
+    requireSocketHandle(sourceId, sourcePortId);
+    requireSocketHandle(targetId, targetPortId);
     const source = recordOf(sourceId);
     const target = recordOf(targetId);
     if (!source || !target) throw new Error(`connect requires composed nodes (${sourceId} → ${targetId})`);
@@ -831,6 +875,12 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     const targetPort = portOf(target, targetPortId, 'input');
     if (!sourcePort || !targetPort) {
       throw new Error(`Unknown port ${!sourcePort ? `${sourceId}:${sourcePortId}` : `${targetId}:${targetPortId}`}`);
+    }
+    for (const [nodeId, portId, port] of [[sourceId, sourcePortId, sourcePort], [targetId, targetPortId, targetPort]]) {
+      const plane = port.role === 'data' ? 'data' : 'control';
+      if (!String(portId).startsWith(`${plane}:`)) {
+        throw new Error(`Socket address ${nodeId}:${portId} names the wrong plane — ${port.id} is a ${plane} socket`);
+      }
     }
     if (sourcePort.role !== 'data') {
       if (targetPort.role === 'data') {
@@ -845,7 +895,7 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     const id = `e-${sourceId}-${sourcePortId}-${targetId}-${targetPortId}`;
     if (data.graph.edges.some(edge => edge.id === id)) return data.graph.edges.find(edge => edge.id === id);
     if (targetPort.multiple !== true) {
-      const occupied = connectedInputHandles(targetId).includes(targetPortId);
+      const occupied = connectedInputHandles(targetId).includes(targetPort.id);
       if (occupied) throw new Error(`Socket ${targetId}:${targetPortId} accepts one wire`);
     }
     propagateConnectionType(target, targetPortId, sourcePort);
@@ -868,6 +918,8 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
   // The disconnect gesture: removes the data wire those addresses name
   // (addressing mirrors connect). Bindings the wire carried re-derive.
   function disconnect(sourceId, sourcePortId, targetId, targetPortId) {
+    requireSocketHandle(sourceId, sourcePortId);
+    requireSocketHandle(targetId, targetPortId);
     const source = recordOf(sourceId);
     const target = recordOf(targetId);
     if (!source || !target) throw new Error(`disconnect requires composed nodes (${sourceId} → ${targetId})`);

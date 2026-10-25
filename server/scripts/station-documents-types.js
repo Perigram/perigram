@@ -45,9 +45,8 @@ function definitionData(organizationId) {
   const authoring = createDefinitionAuthoring(domain);
   TYPES.forEach((construct, index) => {
     const id = `documents-${index}`;
-    authoring.drop('construct', { id });
+    authoring.drop('construct', { id, typeId: construct.typeId });
     authoring.configure(id, {
-      typeId: construct.typeId,
       construction: { mode: construct.construction },
       access: { level: 'admin', grants: [{ roleId: 'role_admin', level: 'admin' }] }
     });

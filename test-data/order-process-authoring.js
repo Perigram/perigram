@@ -39,7 +39,7 @@ export function composeOrderTree(authoring) {
 
 export function composeOrderGraph(authoring, tableType) {
   const adminAccess = { level: 'admin', grants: [{ roleId: 'role_admin', level: 'admin' }] };
-  authoring.drop('construct', { id: 'order' });
+  authoring.drop('construct', { id: 'order', typeId: 'facade-order' });
   authoring.wireDeclaration('orderClass', 'order', 'binds');
   authoring.configure('order', { access: adminAccess });
   authoring.setInputDefault('order', 'fields.name', 'Facade order 42');
@@ -68,7 +68,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('joinByKey', { id: 'pairs' });
   authoring.configure('pairs', { leftKey: 'cassette', rightKey: 'identity.name' });
 
-  authoring.drop('construct', { id: 'bake' });
+  authoring.drop('construct', { id: 'bake', typeId: 'cassette-design' });
   authoring.wireDeclaration('designRef', 'bake', 'binds');
   authoring.configure('bake', { construction: { mode: 'bake' } });
 
@@ -80,7 +80,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('heights', { type: { base: 'number', nullable: false, unit: 'mm' }, value: [2500, 3000] });
   authoring.drop('literalList', { id: 'thicknesses' });
   authoring.configure('thicknesses', { type: { base: 'number', nullable: false, unit: 'mm' }, value: [4, 6] });
-  authoring.drop('construct', { id: 'materials' });
+  authoring.drop('construct', { id: 'materials', typeId: 'sheet-material' });
   authoring.wireDeclaration('materialClass', 'materials', 'binds');
   authoring.configure('materials', { access: adminAccess });
 
@@ -103,52 +103,52 @@ export function composeOrderGraph(authoring, tableType) {
 
   authoring.drop('service:plugin.facade.nesting-solve', { id: 'solve' });
 
-  authoring.drop('construct', { id: 'attempt' });
+  authoring.drop('construct', { id: 'attempt', typeId: 'nesting-attempt' });
   authoring.wireDeclaration('attemptClass', 'attempt', 'binds');
   authoring.configure('attempt', { access: adminAccess });
   authoring.setInputDefault('attempt', 'fields.label', 'Nesting run');
 
-  authoring.connect('order', 'completed', 'bake', 'in');
-  authoring.connect('bake', 'completed', 'materials', 'in');
-  authoring.connect('materials', 'completed', 'loop', 'in');
-  authoring.connect('loop', 'each', 'solve', 'in');
-  authoring.connect('solve', 'completed', 'attempt', 'in');
-  authoring.connect('attempt', 'completed', 'loopEnd', 'in');
+  authoring.connect('order', 'control:completed', 'bake', 'control:in');
+  authoring.connect('bake', 'control:completed', 'materials', 'control:in');
+  authoring.connect('materials', 'control:completed', 'loop', 'control:in');
+  authoring.connect('loop', 'control:each', 'solve', 'control:in');
+  authoring.connect('solve', 'control:completed', 'attempt', 'control:in');
+  authoring.connect('attempt', 'control:completed', 'loopEnd', 'control:in');
 
-  authoring.connect('order', 'result', 'tables', 'entity');
-  authoring.connect('tables', 'result', 'firstTable', 'items');
-  authoring.connect('firstTable', 'item', 'rows', 'entity');
+  authoring.connect('order', 'data:result', 'tables', 'data:entity');
+  authoring.connect('tables', 'data:result', 'firstTable', 'data:items');
+  authoring.connect('firstTable', 'data:item', 'rows', 'data:entity');
 
-  authoring.connect('rows', 'result', 'rowName', 'value');
-  authoring.connect('rows', 'result', 'pairs', 'left');
-  authoring.connect('templates', 'result', 'pairs', 'right');
-  authoring.connect('pairs', 'pairs', 'rowTemplate', 'value');
-  authoring.connect('rows', 'result', 'paramA', 'value');
-  authoring.connect('rows', 'result', 'paramB', 'value');
-  authoring.connect('paramA', 'value', 'params', 'A');
-  authoring.connect('paramB', 'value', 'params', 'B');
+  authoring.connect('rows', 'data:result', 'rowName', 'data:value');
+  authoring.connect('rows', 'data:result', 'pairs', 'data:left');
+  authoring.connect('templates', 'data:result', 'pairs', 'data:right');
+  authoring.connect('pairs', 'data:pairs', 'rowTemplate', 'data:value');
+  authoring.connect('rows', 'data:result', 'paramA', 'data:value');
+  authoring.connect('rows', 'data:result', 'paramB', 'data:value');
+  authoring.connect('paramA', 'data:value', 'params', 'data:A');
+  authoring.connect('paramB', 'data:value', 'params', 'data:B');
 
-  authoring.connect('rowName', 'value', 'bake', 'name');
-  authoring.connect('rowTemplate', 'value', 'bake', 'template');
-  authoring.connect('params', 'record', 'bake', 'parameters');
+  authoring.connect('rowName', 'data:value', 'bake', 'data:name');
+  authoring.connect('rowTemplate', 'data:value', 'bake', 'data:template');
+  authoring.connect('params', 'data:record', 'bake', 'data:parameters');
   authoring.connect('order', 'result', 'bake', `lineage.${ORDER_LINEAGE_KEY}`);
 
-  authoring.connect('codes', 'value', 'materials', 'fields.code');
-  authoring.connect('widths', 'value', 'materials', 'fields.width');
-  authoring.connect('heights', 'value', 'materials', 'fields.height');
-  authoring.connect('thicknesses', 'value', 'materials', 'fields.thickness');
+  authoring.connect('codes', 'data:value', 'materials', 'data:fields.code');
+  authoring.connect('widths', 'data:value', 'materials', 'data:fields.width');
+  authoring.connect('heights', 'data:value', 'materials', 'data:fields.height');
+  authoring.connect('thicknesses', 'data:value', 'materials', 'data:fields.thickness');
   authoring.connect('order', 'result', 'materials', `lineage.${ORDER_LINEAGE_KEY}`);
 
-  authoring.connect('bake', 'result', 'polygons', 'entity');
-  authoring.connect('polygons', 'result', 'jobItems', 'polygonParts');
-  authoring.connect('one', 'value', 'jobItems', 'count');
-  authoring.connect('materials', 'result', 'loop', 'items');
-  authoring.connect('loop', 'item', 'matWidth', 'entity');
-  authoring.connect('loop', 'item', 'matHeight', 'entity');
-  authoring.connect('jobItems', 'record', 'solve', 'items');
-  authoring.connect('matWidth', 'value', 'solve', 'sheetWidth');
-  authoring.connect('matHeight', 'value', 'solve', 'sheetHeight');
-  authoring.connect('solve', 'result', 'attempt', 'fields.result');
+  authoring.connect('bake', 'data:result', 'polygons', 'data:entity');
+  authoring.connect('polygons', 'data:result', 'jobItems', 'data:polygonParts');
+  authoring.connect('one', 'data:value', 'jobItems', 'data:count');
+  authoring.connect('materials', 'data:result', 'loop', 'data:items');
+  authoring.connect('loop', 'data:item', 'matWidth', 'data:entity');
+  authoring.connect('loop', 'data:item', 'matHeight', 'data:entity');
+  authoring.connect('jobItems', 'data:record', 'solve', 'data:items');
+  authoring.connect('matWidth', 'data:value', 'solve', 'data:sheetWidth');
+  authoring.connect('matHeight', 'data:value', 'solve', 'data:sheetHeight');
+  authoring.connect('solve', 'data:result', 'attempt', 'data:fields.result');
   authoring.connect('order', 'result', 'attempt', `lineage.${ORDER_LINEAGE_KEY}`);
 
   return authoring.definition();
