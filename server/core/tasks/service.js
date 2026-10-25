@@ -2,7 +2,8 @@ import { createError } from 'h3';
 import { randomUUID } from 'node:crypto';
 import { createTaskResult, normalizeEntityOutputContracts, validateResultEntityOutputs } from '../blocks/index.js';
 import * as repository from './repository.js';
-import { processEffects, processEvents } from '../effects/service.js';
+import { processEffects, processEvents, mergeProcessedEffects } from '../effects/service.js';
+import { getAppRegistry } from '../../runtime/app-registry.js';
 
 const TERMINAL_STATUSES = ['SUCCEEDED', 'FAILED', 'CANCELLED'];
 
@@ -104,16 +105,6 @@ export async function completeTaskRun(id, result = {}, claimToken = null) {
   });
   await notifyProcessTaskOutcome({ taskRunId: String(id), status: 'SUCCEEDED', output });
   return updated;
-}
-
-function mergeProcessedEffects(left, right) {
-  return {
-    entities: [...(left.entities || []), ...(right.entities || [])],
-    tasks: [...(left.tasks || []), ...(right.tasks || [])],
-    transitions: [...(left.transitions || []), ...(right.transitions || [])],
-    events: [...(left.events || []), ...(right.events || [])],
-    attachments: [...(left.attachments || []), ...(right.attachments || [])]
-  };
 }
 
 export async function failTaskRun(id, error, claimToken = null) {

@@ -7,7 +7,7 @@ import { getPrimaryState } from '~/server/core/blocks/index.js';
 
 export async function processEffects(effects = [], context = {}) {
   const list = Array.isArray(effects) ? effects.filter(Boolean) : [effects].filter(Boolean);
-  const processed = {
+  let processed = {
     entities: [],
     tasks: [],
     transitions: [],
@@ -18,12 +18,12 @@ export async function processEffects(effects = [], context = {}) {
   for (const effect of list) {
     if (Array.isArray(effect)) {
       const nested = await processEffects(effect, context);
-      mergeProcessedEffects(processed, nested);
+      processed = mergeProcessedEffects(processed, nested);
       continue;
     }
 
     const normalized = await processEffect(effect, context);
-    mergeProcessedEffects(processed, normalized);
+    processed = mergeProcessedEffects(processed, normalized);
   }
 
   return processed;
@@ -32,7 +32,7 @@ export async function processEffects(effects = [], context = {}) {
 export async function processEvents(events = [], context = {}) {
   const list = Array.isArray(events) ? events.filter(Boolean) : [events].filter(Boolean);
   const registry = context.registry || getAppRegistry();
-  const processed = {
+  let processed = {
     entities: [],
     tasks: [],
     transitions: [],
@@ -54,7 +54,7 @@ export async function processEvents(events = [], context = {}) {
         event: normalizedEvent,
         registry
       });
-      mergeProcessedEffects(processed, result);
+      processed = mergeProcessedEffects(processed, result);
     }
     await publishDomainEvent(normalizedEvent, context.auth || {});
   }
@@ -286,10 +286,12 @@ function validateDomainEvent(event, registry) {
   }
 }
 
-function mergeProcessedEffects(target, source) {
-  target.entities.push(...(source.entities || []));
-  target.tasks.push(...(source.tasks || []));
-  target.transitions.push(...(source.transitions || []));
-  target.events.push(...(source.events || []));
-  target.attachments.push(...(source.attachments || []));
+export function mergeProcessedEffects(left, right) {
+  return {
+    entities: [...(left.entities || []), ...(right.entities || [])],
+    tasks: [...(left.tasks || []), ...(right.tasks || [])],
+    transitions: [...(left.transitions || []), ...(right.transitions || [])],
+    events: [...(left.events || []), ...(right.events || [])],
+    attachments: [...(left.attachments || []), ...(right.attachments || [])]
+  };
 }

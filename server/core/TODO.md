@@ -22,9 +22,11 @@
 
 ### Code deslop
 
-- [ ] `mergeProcessedEffects` triplication → export once from effects/service.js and import: commands/service.js:145-153, tasks/service.js:133-141, effects/service.js:289-295 are identical.
+- [x] `mergeProcessedEffects` triplication → export once from effects/service.js and import: commands/service.js:145-153, tasks/service.js:133-141, effects/service.js:289-295 are identical.
+  Landed 2026-10-25: the three differed in semantics (effects mutated its target, commands/tasks returned a new object); unified on the pure return-new form exported from effects/service.js — commands/tasks import it, effects' three internal call sites reassign.
 - [x] Delete the empty pack/executor tier: app-registry.js `FRAMEWORK_PACKS = []` and its registration loop deleted with `dispatchRegisteredTaskExecutors` (tasks/service.js) and `server/plugins/task-executors.js` (root SPEC cleanliness law 1).
-- [ ] Contract-comment trims to single facts: core/tasks/definitions.js:1-7 (queue-era narration) — the app-registry.js retirement narration died with the pack tier.
+- [x] Contract-comment trims to single facts: core/tasks/definitions.js:1-7 (queue-era narration) — the app-registry.js retirement narration died with the pack tier.
+  Landed 2026-10-25: reduced to one fact ("The framework declares no tasks."); check-docs carried no contract-homing entry for this comment — the trim rides the comment bans, not the guard.
 - [x] `server/db/mongo.js` — all 8 GridFS bucket getters (nestSvg,
   userDxfFilesSvg, nestDxf, userDxf, userSvg, validDxf, cassettesSvg,
   artifacts) deleted with their module vars and the `GridFSBucket` import;
@@ -45,9 +47,13 @@
 ### Code findings (truth pass 2026-10-24)
 
 - [x] `scopeMatches` ignores compiled lineage-key grant scopes — over-broad enforcement (server/core/access, evaluator vs compiled grants). Fixed 2026-10-25: shared/access-control.js `lineageScopeMatches` enforces every non-reserved `grant.scope` key as a lineage field (single value or any-of array); tests in shared/ui-permissions.spec.js.
-- [ ] Lost-notification parked continuations are never redelivered (tasks notify path; the README claim of a reconciliation pass was false and removed).
-- [ ] Dead export `createPerigramRegistry` (server/core/blocks).
-- [ ] server/utils DXF helpers duplicate workers/facade/vendor engines; production rides the vendor engines, utils copies are spec-only.
+- [x] Lost-notification parked continuations are never redelivered (tasks notify path; the README claim of a reconciliation pass was false and removed).
+  Landed 2026-10-25: behavior documented (process-definitions/README.md Async completion: "A notification error leaves the parked continuation unresumed"); redelivery vs accept-and-document is the owner decision below.
+- [x] Dead export `createPerigramRegistry` (server/core/blocks).
+  Landed 2026-10-25: re-export deleted from blocks/index.js with its README mention; zero importers repo-wide (grep js/vue/mjs).
+- [x] server/utils DXF helpers duplicate workers/facade/vendor engines; production rides the vendor engines, utils copies are spec-only.
+  Landed 2026-10-25: verified spec-only (sole importers were their own sibling specs; workers/facade/services.js:8-9 imports the vendor copies); all four files and both utils README sections deleted. Root `dxf-parser` dep stays — server/features/artifact-templates/format.js and utils/dxfParser.js still import it.
+- [ ] Dead alias `createPerigramRegistry = createRegistry` (packages/core/src/index.js:282, named in packages/core/README.md:25) — zero importers after the blocks re-export deletion.
 
 ### Deletions
 
@@ -65,6 +71,21 @@
   decided 2026-10-25: `getAppRegistry` everywhere, direct imports, perigram-registry.js shim deleted — work item above.
 - [x] check-arch.js BaseEntity guard: after the shadow-class deletion, keep a second guard target or is `#packages/core/src/index.js` sufficient?
   decided 2026-10-25: `#packages/core/src/index.js` is the guard target.
+- [ ] Lost task notifications drop parked process continuations. Observed:
+  `evaluateDataflow` parks a continuation under the dispatched task-run id
+  in the in-memory `pendingActionContinuations` map
+  (process-definitions/service.js:642,684-690); the terminal boundary
+  `continueActionFromTask`/`failActionFromTask` consumes it (716-748, with
+  the map delete at 720/745 preceding the resume work).
+  `notifyProcessTaskOutcome` (core/tasks/service.js:243-254) catches every
+  notification error and logs it; the parked continuation stays unresumed —
+  a throw before the map delete parks it forever, a throw after the delete
+  drops it mid-resume — and nothing rescans terminal `task_runs` against
+  parked keys. Options: (a) accept and document the invariant — behavior is
+  stated in process-definitions/README.md (Async completion) and
+  core/tasks/README.md, `task_runs` stays the completion record; (b) schedule
+  redelivery work — persist the continuation snapshot at dispatch keyed by
+  task-run id and reconcile against terminal task_runs on startup.
 
 - [ ] WAITING — owner verification: read the 15 server/core-area READMEs;
   core/events/README.md folded into core/effects/README.md (file deleted,
@@ -99,3 +120,22 @@ requirePermission/checkEntityAccess/canAccessEntity deleted;
 `initialStatus` died with the resolveDefaultWorkflow cut (zero callers,
 always threw). OPEN: mergeProcessedEffects, tasks/definitions comment
 trim, lost-notification, createPerigramRegistry, DXF dedup.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/score-deslop2-20261025-1521` (worktree `.agent-worktrees/score`).
+Executed the five open items: mergeProcessedEffects unified on the pure
+return-new form (one export in effects/service.js; commands/tasks import it);
+framework-task comment reduced to one fact; blocks `createPerigramRegistry`
+re-export deleted with its README mention; server/utils DXF extractor/writer
++ specs deleted (spec-only, vendor copies serve production); lost-notification
+behavior documented and filed as the owner decision above. REGRESSION FOUND
+AND FIXED: 655938b35's registry rename dropped the `getAppRegistry` import
+from core/tasks/service.js — every registry-resolving entry point
+(enqueueTask, claimTask, completeTaskRun…) threw `ReferenceError:
+getAppRegistry is not defined`; import restored. Dead spec
+core/tasks/service.spec.js deleted with it (both cases exercised the deleted
+`dispatchRegisteredTaskExecutors`). Residual: packages/core
+`createPerigramRegistry` alias (finding above); pre-existing check-docs
+blocking link workers/nesting/README.md → ./jagua-rs/README.md (submodule
+uninitialized in worktrees).
