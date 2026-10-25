@@ -1,12 +1,5 @@
-import EntityRevisionCard from '~/components/entities/EntityRevision/EntityRevisionCard.vue';
-import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
-import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
-import UserCard from '~/components/entities/User/UserCard.vue';
-import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
-import ArtifactCard from '~/components/entities/Artifact/ArtifactCard.vue';
-import ArtifactTemplateCard from '~/components/entities/ArtifactTemplate/ArtifactTemplateCard.vue';
-
 import * as factories from '~/test-data/factories.js';
+import { DESIGN_SYSTEM_CARD_COMPONENTS } from '~/utils/design-system-cards.js';
 import {
   DESIGN_SYSTEM_FIELD_GROUPS,
   DESIGN_SYSTEM_ENTITY_CONTRACTS,
@@ -15,21 +8,11 @@ import {
   validateDesignSystemDisplayContracts
 } from '~/utils/design-system-contract.js';
 
-const components = {
-  entityRevision: EntityRevisionCard,
-  penTemplate: PenTemplateCard,
-  layerStandard: LayerStandardCard,
-  user: UserCard,
-  organization: OrganizationCard,
-  artifact: ArtifactCard,
-  artifactTemplate: ArtifactTemplateCard
-};
-
 export const DESIGN_SYSTEM_ENTITIES = DESIGN_SYSTEM_ENTITY_CONTRACTS.map((entry) => ({
   ...entry,
   fieldGroups: DESIGN_SYSTEM_FIELD_GROUPS[entry.key] || {},
   surfaces: DESIGN_SYSTEM_SURFACES[entry.key]?.surfaces || {},
-  component: components[entry.key],
+  component: DESIGN_SYSTEM_CARD_COMPONENTS[entry.key],
   factory: factories[entry.factoryName]
 }));
 

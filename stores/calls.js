@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { useAuthStore } from './auth';
 import { useConnections } from '~/composables/useConnections.js';
-import { roomForConversationKey } from '~/utils/call-rooms.js';
+import { roomForConversationKey } from '#shared/call-rooms.js';
 
 /**
  * Global call-activity store and the app's call line state machine. The

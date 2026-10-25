@@ -87,11 +87,7 @@
         </div>
       </div>
     </StandardDialog>
-    <!-- The screen hosts its own Toast (without a host in the tree,
-          useToast fires into nothing); confirmations deliberately use NO
-          group — the app layout owns the single default-group
-          ConfirmDialog host, so several concurrently mounted screens
-          never render one require multiple times. -->
+    <!-- Toast host: the toast service fires into the nearest host in the tree. -->
     <Toast />
   </div>
 </template>

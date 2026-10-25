@@ -242,7 +242,7 @@ import CallTile from '~/components/calls/CallTile.vue';
 import { riseAndFade } from '~/composables/useMotion.js';
 import { useCallsStore } from '~/stores/calls';
 import { useCallRouting } from '~/composables/useCallRouting.js';
-import { conversationKeyForRoom } from '~/utils/call-rooms.js';
+import { conversationKeyForRoom } from '#shared/call-rooms.js';
 import { useToast } from 'primevue/usetoast';
 
 const props = defineProps({
@@ -334,8 +334,7 @@ const hideReactionPicker = () => {
 
 const tileKey = (identity, isScreen) => `${identity}:${isScreen ? 'screen' : 'camera'}`;
 
-// Tiles are mutated in place: replacing tile objects on every audio-level
-// tick re-rendered every tile and made the video surfaces flicker.
+// Tiles are mutated in place — object identity stays stable across audio-level ticks.
 const syncTile = (identity, name = '', patch = {}) => {
     const key = tileKey(identity, patch.isScreen);
     const index = tiles.findIndex(entry => tileKey(entry.identity, entry.isScreen) === key);

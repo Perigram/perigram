@@ -92,25 +92,7 @@
 </template>
 
 <script setup>
-// The state board: the projection whose columns are the type's served
-// state vocabulary and whose cards are the loaded instances grouped by
-// their flat state. Column membership moves only through the machine:
-// a card may drop into a column only when the machine leads there from
-// its current state — legality starts from the contract edges
-// (stateTransitionsByType) and is replaced, at dragstart, by the
-// machine-authority resolver the host provides (the state service's
-// per-instance transitions, the same source the detail header's
-// buttons dispatch through), because the compiled contract copy can lag
-// the served machine. Machine-legal target lanes paint the content
-// surface instead of the subtle well (the token replaces the well —
-// never a second background utility) while a drag is live. Ordering
-// belongs to the column: each lane sorts its own cards through the same
-// sortKeys contract and shared comparator, with a per-type-and-state
-// persisted preference. Column bodies are bounded and scroll
-// independently, and dragging into the rail's edge zone auto-scrolls
-// toward hidden columns. Native HTML5 drag is the desktop affordance;
-// the card's ellipsis menu and the opened record's transition strip
-// remain the accessible and touch paths.
+// Column membership moves only through the machine; the served resolver overrides the compiled contract copy.
 import { computed, inject, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Card from 'primevue/card';
@@ -266,20 +248,7 @@ const cardMenuItems = computed(() => props.actions
   };
 }));
 
-// Drag-and-drop: legality comes from the contract edges immediately and
-// from the machine authority (resolveTransitions) the moment its
-// dragstart fetch lands — the served answer wins because it is the same
-// machine the transition buttons dispatch through. A machine-legal
-// target lane paints the content surface instead of the subtle well
-// (the token replaces the well — an appended second background utility
-// would lose stylesheet order and never show); illegal lanes keep the
-// well. A card is draggable when either source offers moves from its
-// state, so a served machine with no contract copy still drags. The
-// drop only emits the intent; the host executors apply it optimistically
-// over the shared pool (utils/optimistic-state.js) — the card lands in
-// its lane immediately, the server result reconciles, a failure rolls
-// the captured record back, and an offline queueing keeps the flip for
-// the outbox to replay. The board itself never mutates the pool.
+// The drop emits the transition intent; pool mutation belongs to the host's optimistic executors.
 const draggedInstance = ref(null);
 const dropValue = ref('');
 const rowEl = ref(null);
