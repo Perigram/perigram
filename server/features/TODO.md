@@ -39,10 +39,14 @@ Per-feature (areas 3+4):
 ### Code deslop
 
 - [x] scripts/check-arch.js: delete phantom `CAPABILITY_FEATURES` names `material-options`, `nesting`, `notification`, `parametric-cassettes` and the empty `PACK_OWNED_FEATURES` map + branch; "Phase 7 cuts or declares them" comment dropped (artifact-templates' undeclared status already surfaced in the parent README entity table); the dead `utils/blocks` guard branches died with the file.
-- [ ] Contract-comment trims (docs-guard homing backlog): instance-events/service.js:21-24 (restates the README's contractChanged refresh-hint semantics) → pointer; cts-types/service.js:330-335 ("Deleting a type is a ceremony (SPEC §19)" duplicates the README removal ceremony) → pointer; support/service.js:36-39 (contract + history in one comment); workflow-overrides/service.js:45-50 (restates the README resolution-order law).
-- [ ] Move server/api/instance-events/index.get.spec.js beside feature spec instance-events.spec.js — the only spec file inside server/api (single-convention rule).
-- [ ] Single-source `CAPABILITY_FEATURES` and the parent README module tables (one derivation) so the sets stop drifting.
-- [ ] instance-revisions: migrate stored `data.typeId`/`data.instanceId` documents to `data.source.*` and drop the three `$or` fallbacks (repository.js:36-37,50-51,64-65); repo law: stored data migrates with the contract (decided 2026-10-25).
+- [x] Contract-comment trims (docs-guard homing backlog): instance-events/service.js:21-24 (restates the README's contractChanged refresh-hint semantics) → pointer; cts-types/service.js:330-335 ("Deleting a type is a ceremony (SPEC §19)" duplicates the README removal ceremony) → pointer; support/service.js:36-39 (contract + history in one comment); workflow-overrides/service.js:45-50 (restates the README resolution-order law).
+  Landed 2026-10-25: one-line README pointers; the stale "SPEC §19" citations (comment + 409 message) corrected to root SPEC §15 (the CTS SPEC has no §19; the abandoned-data law is root SPEC §15).
+- [x] Move server/api/instance-events/index.get.spec.js beside feature spec instance-events.spec.js — the only spec file inside server/api (single-convention rule).
+  Landed 2026-10-25: moved, import fixed, both specs green (4 tests).
+- [x] Single-source `CAPABILITY_FEATURES` and the parent README module tables (one derivation) so the sets stop drifting.
+  Landed 2026-10-25: check-arch derives capability directories from the live listing (entity set = registry view + explicit artifact-templates classification, which now also receives the entity shape checks) and verifies both classification-table rows against the derivation; the README's duplicate "Core Feature Modules" list deleted.
+- [x] instance-revisions: migrate stored `data.typeId`/`data.instanceId` documents to `data.source.*` and drop the three `$or` fallbacks (repository.js:36-37,50-51,64-65); repo law: stored data migrates with the contract (decided 2026-10-25).
+  Landed 2026-10-25: single-shape reads in repository/service/model, specs flipped; `server/scripts/migrate-instance-revisions-source-keys.js` (dry-run, `--apply`) written and registered. DEPLOY NOTE: the script was NOT run against any database — environments holding pre-source-key documents must run it before deploying this change.
 
 ### Code findings (truth pass 2026-10-24)
 
@@ -54,7 +58,8 @@ Per-feature (areas 3+4):
 
 ### Additions
 
-- [ ] server/features/files/README.md — capability module listed in the parent table with no component README (AGENTS.md component contract; review-1 coverage gap): routes + GridFS bucket contract + upload-session seam.
+- [x] server/features/files/README.md — capability module listed in the parent table with no component README (AGENTS.md component contract; review-1 coverage gap): routes + GridFS bucket contract + upload-session seam.
+  Landed 2026-10-25: written true to code (bucket seam, session constants/ownership, route table, contentType resolution); linked from the parent capability row.
 
 ### Owner decisions wanted
 
@@ -92,3 +97,20 @@ died with `strandedAsAffected`. New guards in scripts/check-docs.js
 detection) landed green; out-of-root failure surfaced 3 wrong-depth
 links in components/shared/README.md (fixed to `../../`), DATA_MODEL
 links in components/README.md repointed to framework.manifest.json.
+
+### Agent Notes (2026-10-25, feat-deslop2 wave)
+
+Session `agent/feat-deslop2-20261025-1521` (worktree
+`.agent-worktrees/feat`). Contract-comment trims landed as README
+pointers (instance-events, cts-types, workflow-overrides, support);
+stale "SPEC §19" citations corrected to root SPEC §15. api spec moved
+beside the feature spec. check-arch now derives capability directories
+from the live listing and verifies the README classification table;
+"Core Feature Modules" duplicate deleted. instance-revisions
+single-shape read landed with migrate-instance-revisions-source-keys.js
+(NOT run against any DB — see deploy note above). files/README.md
+written. Pre-existing on this base, untouched: 24 process-definitions
+spec failures (identical with and without this wave's changes),
+docs-guard broken link workers/nesting/README.md → ./jagua-rs/README.md,
+and homing-debt entries in agent-bots/tools.js + llm/service.js (other
+waves).

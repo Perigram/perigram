@@ -56,6 +56,7 @@ persists.
 | `migrate-cutkit-extensions-to-perigram.js` | CutKit → Perigram rename | Renames persisted `extensions.cutkit` authoring keys to `extensions.perigram` at any document depth in every non-system collection, and inside GridFS file contents (JSON documents rewritten under their original id; binary files are skipped). Supports `--dry-run`. |
 | `migrate-support-attachments.js` | Adopting multi-attachment chat messages | Rewrites each `supportMessages` document's singular `attachment` object into the `attachments` array contract, stamping `bucket: 'uploads'` so legacy voice/recording blobs keep resolving after new uploads moved to the `files` bucket. Dry-run; `--apply` persists. |
 | `migrate-support-transcripts.js` | Adopting private per-user transcripts | Rewrites each legacy public transcript (text in the message body plus the descriptor's `transcription` marker) into per-viewer `supportTranscripts` documents for the message's participants, clearing the body and marker. Dry-run; `--apply` persists. |
+| `migrate-instance-revisions-source-keys.js` | Adopting the `data.source` revision keys | Rewrites stored `entity_revisions` documents carrying legacy `data.typeId`/`data.instanceId` onto `data.source.{type,id}` and drops the legacy keys. Idempotent. Dry-run; `--apply` persists. |
 
 ## Related
 

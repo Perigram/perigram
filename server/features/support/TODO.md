@@ -11,7 +11,8 @@
 
 ### Code deslop
 
-- [ ] service.js:41-52 → both concrete loaders synthesize a `name` alias from `identity.name` at the option boundary (`{...dto, name: dto.identity.name}`, twice); options carry the stored shape and consumers read `identity.name` (root SPEC deslop law 3 — the wire carries exactly what the domain stores).
+- [x] service.js:41-52 → both concrete loaders synthesize a `name` alias from `identity.name` at the option boundary (`{...dto, name: dto.identity.name}`, twice); options carry the stored shape and consumers read `identity.name` (root SPEC deslop law 3 — the wire carries exactly what the domain stores).
+  Landed 2026-10-25: alias synthesis deleted; loaders return the feature service promise. Consumers read the stored name slot per wire family (`identity.name` for v24 entity DTOs, root `name` for flat §3 instance DTOs): `instanceName`, `normalizeInstanceOption`, `compactInstanceSnapshot`. Support specs green (47).
 
 ### Owner decisions wanted
 
@@ -30,3 +31,12 @@ Session `agent/doc-deslop-exec-20261024` (worktree
 artifact + user), MessageAttachments masonry narration moved to
 components/shared/README.md, legacy-transcripts paragraph dead, field
 inventory tabulated. OPEN: loader `name`-alias code item.
+
+### Agent Notes (2026-10-25, feat-deslop2 wave)
+
+Session `agent/feat-deslop2-20261025-1521` (worktree
+`.agent-worktrees/feat`). Loader `name`-alias deleted; the seam's
+loader-shape comment died with the mapping. Consumers read the stored
+name slot per wire family (generic §3 instances carry root `name`; v24
+entity DTOs carry `identity.name` — both are the stored shape, no
+synthesis).
