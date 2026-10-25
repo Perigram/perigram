@@ -256,3 +256,33 @@ seams that survive (generateAttachment, attachment kinds) either ride
 the declared vocabulary or carry a filed migration item; guards green
 (framework suites, check-arch, check-docs, SSR smoke) and e2e green
 against a running stack; owner verifies UX parity on the live stack.
+
+## Generative UI arrangement foundations (owner direction 2026-10-25)
+
+Law: [SPEC](./SPEC.md) §22.7–22.11 — instance-page layout consumes two
+derived records (data traits, container traits) and derives everything;
+engine home `shared/ui-mapping`, materialization `components/ui-mapping`.
+
+- [ ] Data-trait record on every composed region node: weight (exists,
+  `estimateRegionWeight`), breadth (chip-scale / content-width /
+  full-row), volume, shape family, filledness (inert empties exist),
+  growth bound — one compose-time pure record.
+- [ ] Container-trait seam: width scale, height boundedness, scroll
+  ownership, density resolved per host (page, pane, dialog, popup,
+  mobile tab); the sanctioned scoped-CSS container homes and the
+  measured track engagement become materializations of the trait
+  vocabulary, with no private per-surface breakpoints.
+- [ ] Arrangement as a total function over data × container traits —
+  the §22.1–22.2 ladder generalized; every trait combination resolves a
+  placement.
+- [ ] Placement-aware composition: nested class refs render as instance
+  chips everywhere (`InstanceInlineRef`); presentation picks by
+  placement (page / rail / row / stub).
+- [ ] Pin audit: layout thresholds named in the one budget/layout
+  table; type-keyed layout branches and component-local layout magic
+  numbers in app code deleted or pinned through the declared seams.
+
+Session reads before any code:
+[shared/ui-mapping](./shared/ui-mapping/README.md),
+[components/ui-mapping](./components/ui-mapping/README.md),
+[assets/tokens](./assets/tokens/README.md), SPEC §22.
