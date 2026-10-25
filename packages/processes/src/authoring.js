@@ -764,18 +764,8 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
   // vocabulary, not an independent authoring choice.
   const PAIRED_DROPS = { 'control.forEach': 'control.forEachEnd' };
 
-  function drop(itemId, { id, typeId } = {}) {
-    // A construct exists only bound: the drop names its target type,
-    // exactly as the palette's type picker does in the designer.
-    const item = paletteItem(itemId);
-    if (item?.kind === 'cts.construct' && !typeId && !item.preset?.typeId) {
-      throw new Error(`Dropping ${itemId} requires its typeId — the ids list_types serves`);
-    }
+  function drop(itemId, { id } = {}) {
     const record = createFromItem(itemId, id);
-    if (record.kind === 'cts.construct' && typeId && typeId !== record.typeId) {
-      setTypeBinding(record, typeId);
-      syncProcessNode(record.id);
-    }
     const pairedKind = PAIRED_DROPS[record.kind];
     if (pairedKind) {
       const closerId = `${record.id}End`;
@@ -791,6 +781,12 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
   function configure(recordId, updates = {}) {
     const record = recordOf(recordId);
     if (!record) throw new Error(`No process node ${recordId}`);
+    // A construct's type arrives by its binds declaration wire — the
+    // designer's only binding flow. The wire's interpretation writes the
+    // derived typeId; authoring it on the record has no gesture.
+    if (updates.typeId !== undefined && record.kind === 'cts.construct') {
+      throw new Error(`Construct ${recordId} binds its type by wire — declare the type (declareClass in-tree, declareTypeRef for registry types) and wireDeclaration role 'binds' onto it`);
+    }
     const literalKind = operationKindOf(record);
     if (updates.value !== undefined && ['source.literalItem', 'source.literalList'].includes(literalKind)) {
       const items = literalKind === 'source.literalList' ? (Array.isArray(updates.value) ? updates.value : [updates.value]) : [updates.value];

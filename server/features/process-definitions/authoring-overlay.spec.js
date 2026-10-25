@@ -42,7 +42,8 @@ const BASE_STEPS = [
     { op: 'declareClass', id: 'clsTask', typeId: 'task', name: 'Task' },
     { op: 'declareField', id: 'fldTitle', ownerClassId: 'clsTask', name: 'title' },
     { op: 'wireDeclaration', from: 'fldTitle', to: 'clsTask', role: 'declares' },
-    { op: 'drop', item: 'construct', id: 'nodeMake', typeId: 'task' },
+    { op: 'drop', item: 'construct', id: 'nodeMake' },
+    { op: 'wireDeclaration', from: 'clsTask', to: 'nodeMake', role: 'binds' },
     { op: 'drop', item: 'literal', id: 'nodeLit' },
     { op: 'connect', id: 'nodeLit', fromPort: 'data:value', to: 'nodeMake', toPort: 'data:fields.title' }
 ];
