@@ -114,3 +114,12 @@ spec failures (identical with and without this wave's changes),
 docs-guard broken link workers/nesting/README.md → ./jagua-rs/README.md,
 and homing-debt entries in agent-bots/tools.js + llm/service.js (other
 waves).
+
+### Agent Notes (2026-10-25, artifact cutover)
+
+Session `agent/artifact-cutover-20261025-1655`. The artifact-cluster
+cutover decided 2026-10-25 landed from the root TODO: the
+`artifacts`/`artifact-templates`/`artifact-conversions` modules deleted
+with routes and specs; `generateAttachment` lives in
+`plugins/operations.js`; this README's classification table now derives
+from the registry view alone.

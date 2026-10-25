@@ -378,12 +378,13 @@ A relation entry fed by a typed Create Entity effect retains that effect as
 its embedded creator: it is authorized and executed through the Link
 action, and its connected entity source and containment path define the
 eligible existing targets and creator sources in the current owner context,
-so generated pickers stay inside that context. Artifact relation entries
-select declared upload-backed `AttachmentKind` values in their creation
-selector (an empty selection uses every upload-backed kind the domain
-declares); the creator contract sits on the Link input with role-scoped
-artifact write through the same action window. Command- and
-workflow-produced kinds are separate process effects.
+so generated pickers stay inside that context. A relation entry on a
+payload-bearing type may select declared upload-backed attachment
+kinds (the payload-trait projection keyed by type id; an empty
+selection uses every upload-backed kind the domain declares); the
+creator contract sits on the Link input with role-scoped write through
+the same action window. Command- and workflow-produced kinds are
+separate process effects.
 
 ### Create and update effects
 
@@ -949,10 +950,9 @@ records through command output windows.
 
 Command action sockets are projected from the current command definition
 during designer synchronization and compilation: `generateAttachment`
-exposes its abstract attachment source, optional `artifact_template`,
-`kind`, and `values` inputs. Generated manual actions prompt for the same
-unconnected inputs; wired process values and manual values reach the same
-command contract.
+exposes its abstract attachment source and `kind` inputs. Generated
+manual actions prompt for the same unconnected inputs; wired process
+values and manual values reach the same command contract.
 
 ### Sockets
 

@@ -24,8 +24,6 @@ non-spec files here.
 | `createMockLayerStandard()` | facade layer standard (code, category, default pen) |
 | `createMockUser()` | user with role, permission-template permissions, and an active membership |
 | `createMockOrganization()` | fabricator organization |
-| `createMockArtifact()` | layout-DXF artifact with its primary attachment |
-| `createMockArtifactTemplate()` | PDF passport template with variables and layout |
 | `createMockHistory(statuses)` | status-event timeline; takes a states array (default `DRAFT → ACTIVE → CLOSED`) |
 | `createMockStatistics()` | dashboard utilization/cost totals |
 

@@ -60,8 +60,8 @@ flowchart LR
 | Task | Async execution boundary, queued in `task_runs` and claimed by workers/executors. |
 | Workflow | Entity lifecycle state machine and transition contract. |
 | Hook | Workflow transition side-effect contract and registered handler. |
-| Attachment | Persisted file/blob metadata linked to an entity. |
-| AttachmentKind | Declared file content/preview/storage contract. |
+| Attachment | File/blob reference: a chat message's file descriptor (`kind`, `fileId`, `mimeType`, `name`, `size`) or a file instance's `payload` slot; blobs live in the `files` GridFS bucket. |
+| AttachmentKind | A declared file type's payload traits, keyed by type id: creation protocols (`upload`/`capture`/`editor`/`content`), accepted MIME, size limit, preview mode. |
 | Adapter | App binding between pure domain definitions and infrastructure. |
 | Process Definition | Organization-owned graph that maps organization roles to entity workflows, field policy, services, sockets, screens, and navigation runtime contracts. Role identity and user assignment remain organization data. |
 

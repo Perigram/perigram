@@ -142,9 +142,8 @@ definitions and their types die together.
   palette add lands once inside the visible viewport and joins the lane
   under the placement point, later adds never move seated cards, and
   the painted lane bands wrap the cards that belong to them.
-- `artifact-and-designer-ui.spec.js`: uploads and replaces a real DXF
-  artifact, verifies viewer dispatch and revision creation, and proves
-  incompatible conversion requests fail at the HTTP boundary.
+- `invitation-page.spec.js`: the invitation page renders its centered
+  form and surfaces the invalid-token message.
 - `home-default-screen.spec.js`: the default-screen contract — an
   organization whose active process compiles to no screens enters the
   home workspace with its definition-independent surfaces, unknown

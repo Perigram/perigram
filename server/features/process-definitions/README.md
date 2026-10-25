@@ -373,11 +373,8 @@ validator derives the list from the domain command contract.
 Declaration-derived export actions (SPEC §21, the hydration
 payload's `exports` bindings) execute through
 `executeDerivedExportAction`: the `(typeId, kind)` binding must be
-declared by an installed plugin, the caller must hold write on the
-source instance, and the command runs with the same action-scoped
-execution grants a compiled run-command action receives — the command's
-declared gates ride as transient grants, so a process role lacking a
-standing `artifacts:write` grant still exports its own bound types.
+declared by an installed plugin, and the `generateAttachment` command
+gates the run on the caller's write grant over the source instance.
 
 ### Serialization
 

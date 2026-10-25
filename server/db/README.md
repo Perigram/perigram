@@ -23,6 +23,6 @@ Unique indexes: `cassettes.identity.slug`, memberships
 `organizationId+userId`, `users.identity.email`, `idempotency_keys.key`
 (with a 7-day TTL on `createdAt`), and `push_subscriptions.endpoint`. The
 remaining manifest collections carry lookup indexes: `cassettes` by lineage,
-`artifacts` by lineage and `data.type`, `status_events` by target and
+`status_events` by target and
 timestamp, `workflow_overrides` by organization/type/status,
 `organizations` by type, `push_subscriptions` by user.

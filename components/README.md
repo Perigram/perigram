@@ -2,7 +2,7 @@
 
 The app's Vue surface tree: shared primitives, registry-bound entity cards,
 the generative screen engine and its compiled surfaces, the process/type
-designers, calls, media, directory, and artifacts. This README owns the UI
+designers, calls, media, directory. This README owns the UI
 law and the component inventory; every contract section lives in the child
 README that owns the concern. Parent: [root README](../README.md).
 Target law: [SPEC.md](./SPEC.md).
@@ -68,7 +68,6 @@ All entity-related components use these patterns:
 | [calls/](./calls/README.md) | Call surfaces over `stores/calls.js` |
 | [media/](./media/README.md) | The MediaDock now-playing dock over `stores/media.js` |
 | [directory/](./directory/README.md) | `DirectoryDetailSurface` — user/organization detail inside the home workspace |
-| [artifacts/](./artifacts/README.md) | `ArtifactViewer` — CTS payload preview mounts |
 
 Plugin-owned editor surfaces — the cassette designer and the sheet-design
 editor — live in [workers/facade](../workers/facade/README.md) and mount
