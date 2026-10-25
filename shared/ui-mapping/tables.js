@@ -434,7 +434,7 @@ export const PREVIEW_ENTRIES = Object.freeze([
 ]);
 
 // Preview modes the app's shared viewer modules render (the
-// ArtifactViewer branches); every other mode degrades to a payload
+// FilePayloadViewer branches); every other mode degrades to a payload
 // download. App-side materializations import this list instead of
 // restating it.
 export const RENDERABLE_PREVIEW_MODES = Object.freeze([

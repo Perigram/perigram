@@ -45,7 +45,7 @@ describe('instances store type keys and endpoints', () => {
     expect(instances.endpointsFor('pen_template').list()).toBe('/api/instances/pen-template');
     expect(instances.endpointsFor('cassette').list()).toBe('/api/instances/cassette');
     expect(instances.endpointsFor('cassette').single('c-1')).toBe('/api/instances/cassette/c-1');
-    expect(instances.endpointsFor('artifact').single('a-1')).toBe('/api/artifacts/a-1');
+    expect(instances.endpointsFor('entity_revision').single('r-1')).toBe('/api/instance-revisions/r-1');
     // Party reads ride the §3 instance transport; their mutations keep the
     // feature routes (party administration is feature-owned).
     expect(instances.endpointsFor('user').list()).toBe('/api/instances/user');
@@ -169,9 +169,9 @@ describe('instances store cache', () => {
     const mutate = vi.spyOn(store, 'mutate').mockResolvedValue({});
     const instances = useInstancesStore();
 
-    await instances.mutateDirect('artifact', 'PATCH', { id: 'a-1', body: { data: { note: 'x' } }, meta: { kind: 'instance' } });
+    await instances.mutateDirect('user', 'PATCH', { id: 'u-1', body: { data: { note: 'x' } }, meta: { kind: 'instance' } });
     expect(mutate).toHaveBeenCalledWith(expect.objectContaining({
-      url: '/api/artifacts/a-1',
+      url: '/api/users/u-1',
       method: 'PATCH',
       body: { data: { note: 'x' } }
     }));

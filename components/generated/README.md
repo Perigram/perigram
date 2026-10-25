@@ -272,7 +272,7 @@ payload blobs live in the `files` GridFS bucket). Modes that the shared
 viewer modules render (`dxf`, `svg`, `sketch`, `image`, `pdf`,
 `docx`, `table`, `workbook`, `text` — single-homed as
 `RENDERABLE_PREVIEW_MODES` in the pure ui-mapping contract) are delegated
-to `ArtifactViewer` through its explicit-source override; `attachment`/
+to `FilePayloadViewer` through its `source` prop; `attachment`/
 `download`/unknown modes degrade to a download action instead of an empty
 preview pane. A pack declares `download` for file types without a
 reasonable bounded preview (the documents pack does this for Word
@@ -286,9 +286,8 @@ through the served render policy: the mapping generator's `PreviewBox`
 renders payload previews on generated details and cards, and
 `InstancePreview` renders the same contract on entity-card surfaces. The
 preview is a bounded
-non-scrolling surface (see
-[components/artifacts/README.md](../artifacts/README.md)); the payload
-download stays the escape hatch. The type records come from
+non-scrolling surface (`components/shared/FilePayloadViewer.vue`); the
+payload download stays the escape hatch. The type records come from
 `useFileTypeView()` ([composables/README.md](../../composables/README.md)),
 the organization-scoped cached read of the served type view. Editor-bound
 types keep this read preview in their details — the editors themselves

@@ -189,16 +189,16 @@ describe('User Management & Auth', () => {
         memberships: [{
           organizationId: orgId,
           role: 'IndividualUser',
-          permissions: { queues: 'admin', artifacts: 'none' }
+          permissions: { queues: 'admin', files: 'none' }
         }]
       }
     });
 
     expect(user.permissions.queues).toBe('admin');
     expect(user.permissions.nesting_runs).toBeUndefined();
-    expect(user.permissions.artifacts).toBeUndefined();
+    expect(user.permissions.files).toBeUndefined();
     expect(user.memberships[0].permissions.nesting_runs).toBeUndefined();
-    expect(user.memberships[0].permissions.artifacts).toBe('none');
+    expect(user.memberships[0].permissions.files).toBe('none');
   });
 
   it('does not treat membership role labels as user-management grants', async () => {

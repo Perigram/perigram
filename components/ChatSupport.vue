@@ -3667,7 +3667,7 @@ const runCreateAction = async (action) => {
     if (!action?.id) return
     // File creators ride the generic prompt dialog: the `file` control
     // uploads to the files bucket and the construct path mints a file
-    // instance — chat never mints artifact instances.
+    // instance.
     if (promptedFields(action).length) {
         await openCreatePromptDialog(action)
         return

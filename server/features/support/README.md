@@ -116,7 +116,7 @@ total across conversations.
 Chat messages can carry structured `instanceRefs`:
 
 ```json
-[{ "type": "artifact", "id": "..." }]
+[{ "type": "cassette", "id": "..." }]
 ```
 
 Instance refs resolve preview media over their snapshot (a served
@@ -160,8 +160,8 @@ rest of the app. Composer UIs localize returned type ids on the client.
 `GET /api/support/instance-options` is the server-side ref resolution
 channel: message-write validation, draft hydration, create-prompt field
 options, and conversation-context resolution all read instance options
-through one per-type loader seam. Concrete loaders are registered for
-`artifact` and `user`; every other type — org-authored CTS types —
+through one per-type loader seam. A concrete loader is registered for
+`user`; every other type — pack, plugin, and org-authored CTS types —
 resolves its scoped list through the registry-resolved per-class
 instance service (`processList`, CTS SPEC §13; see
 [instances](../instances/README.md)), so every type is pickable and
@@ -199,22 +199,17 @@ attach through the same seam: the chat tool `attach_instances`
 validates refs with `normalizeInstanceRefs` against the bot's auth, and
 the reply send re-validates identically to a composer send.
 
-### Artifact Refs
+### Creator-only sources
 
-`artifact` is a registered option-loader type backed by the artifacts
-feature list service, so artifacts validate like any other ref. In an
-active org process, a readable artifact list source whitelists the type
-as usual; when no such source exists, the type is still whitelisted
-when the sender's compiled action manifest contains an artifact
-creation action (`createEntity` with an `upload`/`capture`/`editor`
-attachment-kind creator — the same detection the generated screens
-use). Detection reads the compiler's canonical expanded attachment-kind
-arrays and scores no creator credit for unexpanded shapes, so a
-malformed manifest cannot take down instance-types,
-instance-options, or message sends. This is what lets the chat
-attachment picker offer "create artifact" and reference the freshly
-created artifact, while artifact reads stay inside the process windows:
-option loading still goes through the scoped artifacts list service.
+A type with no readable list source is still attachable when the org
+process exposes a create action for it: a `createInstance` action whose
+inputs carry a `creator` with an `upload`/`capture`/`editor` attachment
+kind (the payload-trait projection keyed by type id) exposes the
+creator's type as a creator-only source. This is what lets the chat
+attachment picker run the type's create flow and reference the freshly
+created instance, while reads stay inside the process windows: option
+loading for the type still goes through the scoped per-class list
+service.
 
 ## Instance-Linked Chats
 

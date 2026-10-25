@@ -13,7 +13,7 @@ vi.mock('h3', () => ({
 const entity = { lineage: { organizationId: 'org-1' } };
 const auth = {
   userId: 'u1',
-  memberships: [{ organizationId: 'org-1', permissions: { queues: 'write', artifacts: 'read' } }]
+  memberships: [{ organizationId: 'org-1', permissions: { queues: 'write', files: 'read' } }]
 };
 
 describe('access engine', () => {
@@ -110,12 +110,12 @@ describe('access engine', () => {
       access: {
         permissions: [
           { feature: 'queues', level: 'write' },
-          { feature: 'artifacts', level: 'write' }
+          { feature: 'files', level: 'write' }
         ]
       }
     };
 
-    expect(() => assertCommandAccess({ command, entities: { queue: entity }, auth })).toThrow(/artifacts:write/);
+    expect(() => assertCommandAccess({ command, entities: { queue: entity }, auth })).toThrow(/files:write/);
   });
 
   it('supports instance-scoped permission grants', () => {

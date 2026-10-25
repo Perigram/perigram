@@ -206,10 +206,9 @@ export async function getById(id, auth) {
   return process.toJSON();
 }
 
-// Declaration-derived export actions (SPEC §Exports) execute through the
-// same action-scoped grant model as compiled run-command actions: the
-// caller must hold write on the source instance, and the command's own
-// declared gates ride as transient execution grants.
+// Declaration-derived export actions (SPEC §Exports) execute through
+// the generateAttachment command, which owns the binding resolution and
+// the source-instance write gate.
 export async function executeDerivedExportAction({ typeId, kind, instanceId } = {}, auth = {}) {
   if (!typeId || !kind || !instanceId) {
     throw createError({ statusCode: 400, message: 'Export type, kind, and instance are required' });
@@ -220,35 +219,10 @@ export async function executeDerivedExportAction({ typeId, kind, instanceId } = 
   if (!binding) {
     throw createError({ statusCode: 404, message: `No export ${kind} is declared for ${typeId}` });
   }
-  const normalizedType = normalizeTypeId(typeId);
-  const declaration = await declarationForType(normalizedType, organizationId);
-  if (!declaration) throw createError({ statusCode: 404, message: `Unknown type ${normalizedType}` });
-  const service = getAppRegistry().getInstanceService(normalizedType);
-  const loaded = await service?.processGetById?.(instanceId, auth);
-  if (!loaded) throw createError({ statusCode: 404, message: `${normalizedType} not found` });
-  const source = loaded?.toJSON ? loaded.toJSON() : loaded;
-  const writeGate = await writeGrantTarget(declaration, organizationId);
-  if (!writeGate) throw createError({ statusCode: 403, message: `Write gate for ${normalizedType} is not resolvable` });
-  assertEntityAccess({
-    entity: source,
-    typeId: writeGate.typeId,
-    feature: writeGate.feature,
-    level: 'write',
-    action: 'update',
-    auth
-  });
-  const action = {
-    id: `export:${typeId}:${kind}`,
-    actionKind: 'runCommand',
-    commandId: 'generateAttachment',
-    typeId: normalizedType,
-    access: { level: 'write' }
-  };
-  const executionAuth = createActionExecutionAuth(auth, action);
-  return executeCommand(action.commandId, {
-    entities: { source: { type: normalizedType, id: String(instanceId) } },
+  return executeCommand('generateAttachment', {
+    entities: { source: { type: normalizeTypeId(typeId), id: String(instanceId) } },
     parameters: { kind }
-  }, executionAuth);
+  }, auth);
 }
 
 // The save floor: a persisted graph is structurally sound — nodes carry a

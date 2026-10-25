@@ -176,7 +176,6 @@ describe('Framework package contracts', () => {
 
   it('exposes the facade plugin listing and read-only MCP handlers', async () => {
     const { facadeFileTypes, facadeServices } = await import('../test-tools/facade-plugin.js');
-    const { frameworkAttachmentKinds } = await import('../shared/attachment-kinds.js');
     const { DESIGN_SYSTEM_CONTRACT } = await import('../utils/design-system-contract.js');
     const { createTypeRegistry, frameworkTypes, projectDomainFromView } = await import('../packages/cts/src/index.js');
     const techDrawingListing = (await import('../workers/tech-drawing/listing.json', { with: { type: 'json' } })).default;
@@ -200,7 +199,7 @@ describe('Framework package contracts', () => {
       workflows,
       commands: facadeServices,
       tasks: [],
-      attachmentKinds: frameworkAttachmentKinds,
+      attachmentKinds: projected.attachmentKinds,
       summaries: [],
       designSystem: {
         contracts: DESIGN_SYSTEM_CONTRACT.contracts,
@@ -232,8 +231,7 @@ describe('Framework package contracts', () => {
     expect(entities.length).toBeGreaterThan(5);
     expect(facadeServices.map(service => service.id)).toEqual(expect.arrayContaining([
       'plugin.facade.nesting-solve',
-      'plugin.facade.bake',
-      'plugin.facade.import-cassette'
+      'plugin.facade.bake'
     ]));
     expect(typeof handlers.get_entity_schema).toBe('function');
   });
@@ -250,7 +248,6 @@ describe('Framework package contracts', () => {
     expect(composition).not.toContain('cncDomain');
     expect(composition).not.toContain('facadePack');
     expect(composition).toContain('generateAttachment');
-    expect(composition).toContain('convertArtifact');
   });
 
   it('keeps the committed framework manifest synchronized with source metadata', () => {

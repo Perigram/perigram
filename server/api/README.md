@@ -25,13 +25,6 @@ Routes are grouped into sub-directories corresponding to features:
   public-web search provider (SearXNG base URL or Tavily key; keys never
   travel), and `POST /api/web-search/test` is the one-round connection
   test (see [web-search feature](../features/web-search/README.md)).
-- `artifacts/`: Metadata, deletion, and streaming for generated files.
-- `artifact-templates/`: Organization-scoped DXF/PDF upload, parsed layout
-  replacement, authorized source streaming, and deletion. Template-generated
-  artifacts expose `PUT /api/artifacts/:id/layout` for revision-backed edits.
-- `artifact-conversions`: `POST /api/artifact-conversions` — the
-  client-reachable conversion surface over the organization's installed
-  plugins' catalogs.
 - `commands/`: Authenticated execution route for declared domain commands such
   as `generateAttachment`.
 - `instances/`: The generic per-type instance transport (`/api/instances/:type`
@@ -152,8 +145,8 @@ Routes are grouped into sub-directories corresponding to features:
 ## Conventions
 - **Method Suffixes:** Files are named `[action].[method].js` (e.g., `index.get.js`, `create.post.js`).
 - **Multipart Uploads:** Every upload route reads the binary from a form
-  part named `file` (`files/`, `artifacts/`, `artifact-templates/`,
-  `instances/` payload, and `users/:id/avatar`); clients must
+  part named `file` (`files/`, `instances/` payload, and
+  `users/:id/avatar`); clients must
   append the blob under that exact field name.
 - **Thin Wrappers:** API handlers should be minimal, delegating all business logic to the corresponding [Server Features](../features/README.md).
 - **Idempotency:** mutating routes honor the `Idempotency-Key` header through

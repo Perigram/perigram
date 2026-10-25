@@ -94,7 +94,7 @@ concerns instead of one flat grid. `DataBlock` renders
 `display: 'swatch'` fields as a color dot beside the value for declared
 hex-color facts. `InstancePreview` resolves the unified payload preview
 first: a file instance with a stored payload renders through the type's
-declared preview policy (`file-preview-contract.js` → `ArtifactViewer`, the same
+declared preview policy (`file-preview-contract.js` → `FilePayloadViewer`, the same
 contract generated detail bodies use); a type with a served plugin preview
 binding mounts the plugin's preview module (read-only, over the record and
 its payload document); a declared `previewSource` value renders through
@@ -367,7 +367,7 @@ designer markers before they reach `DrawingCanvas`. The shared canvas renders
 those layers but does not own hardware family, production-mode, curve-boolean,
 or edge-array placement math.
 
-Layer colors resolve in this order: explicit source layer mapping, caller-provided `standardCode`, standard-code fallback from the layer name, source layer styling, then the default pen. Stroke widths render at 2 px per pen-unit weight, bounded 0.5–4 px, so the layer standards' relative weights survive on screen. Geometry previews that provide `standardCode`, `code`, or a dot-code layer name load layer standards and pen templates before normalization; concurrent canvases share one in-flight load and reuse the completed catalogues within the active user and organization scope. When a standard exists but its configured pen is missing, the source layer `color`/`weight` is preserved. Standard and pen rows are §3 instances — the canvas reads `fields.code`, `fields.defaultPenId`/`fields.orgPenId`, and `fields.stroke`; plugin-delivered drawings arrive with their own standard pens already baked (the facade plugin ships its layer standards beside its renderer), and org-authored standard rows shadow those codes host-side. Card and thumbnail canvases choose a portrait or landscape aspect from the resolved viewBox so sheet-layout previews are not forced into a wide frame, and they own that aspect-ratio height instead of requiring parent cards to provide a fixed height. Canvases embedded in a fixed-height card preview band instead opt into `fill`: they paint no own border, rounding, or background (the host card owns the chrome), fill the band bounds exactly, and scale the SVG to cover (sketch scenes, uniform scale, cropped) or contain (vector drawings). Preview-mode `dimension.*` text is intentionally enlarged so card bands keep dimension labels readable, and geometry-normalized layer-data previews include dimension text points in the viewBox bounds so those labels are not clipped. Generic baked `geometry.type === 'dimension'` entries render as extension lines plus an offset dimension line with the text placed off that line, instead of a raw midpoint label on the measured segment. Use this component for artifact previews, cassette thumbnails, mapping previews, and designer canvases instead of duplicating SVG render logic in feature components.
+Layer colors resolve in this order: explicit source layer mapping, caller-provided `standardCode`, standard-code fallback from the layer name, source layer styling, then the default pen. Stroke widths render at 2 px per pen-unit weight, bounded 0.5–4 px, so the layer standards' relative weights survive on screen. Geometry previews that provide `standardCode`, `code`, or a dot-code layer name load layer standards and pen templates before normalization; concurrent canvases share one in-flight load and reuse the completed catalogues within the active user and organization scope. When a standard exists but its configured pen is missing, the source layer `color`/`weight` is preserved. Standard and pen rows are §3 instances — the canvas reads `fields.code`, `fields.defaultPenId`/`fields.orgPenId`, and `fields.stroke`; plugin-delivered drawings arrive with their own standard pens already baked (the facade plugin ships its layer standards beside its renderer), and org-authored standard rows shadow those codes host-side. Card and thumbnail canvases choose a portrait or landscape aspect from the resolved viewBox so sheet-layout previews are not forced into a wide frame, and they own that aspect-ratio height instead of requiring parent cards to provide a fixed height. Canvases embedded in a fixed-height card preview band instead opt into `fill`: they paint no own border, rounding, or background (the host card owns the chrome), fill the band bounds exactly, and scale the SVG to cover (sketch scenes, uniform scale, cropped) or contain (vector drawings). Preview-mode `dimension.*` text is intentionally enlarged so card bands keep dimension labels readable, and geometry-normalized layer-data previews include dimension text points in the viewBox bounds so those labels are not clipped. Generic baked `geometry.type === 'dimension'` entries render as extension lines plus an offset dimension line with the text placed off that line, instead of a raw midpoint label on the measured segment. Use this component for file payload previews, cassette thumbnails, mapping previews, and designer canvases instead of duplicating SVG render logic in feature components.
 Layer-standard pen references may point to either the pen Mongo `_id` or its
 canonical `identity.uid`; both resolve to the same pen DTO.
 
@@ -388,7 +388,7 @@ Current drawing display owners:
 | Surface | Source type |
 |---|---|
 | `GeometryPreview.vue` | `geometry-preview` |
-| `ArtifactViewer.vue` | `dxf-url`, `svg-url`, `sketch` |
+| `FilePayloadViewer.vue` | `dxf-url`, `svg-url`, `sketch` |
 | `/test/ui-lab` | `geometry-preview` demo |
 
 New drawing previews should add a source normalizer for `DrawingCanvas`, not a feature-local `<svg>`.
@@ -920,7 +920,7 @@ Nested interactive children such as `InstanceState`, `TraceLink`,
 `GeometryPreview`, buttons, and nested inline entity cards
 mark themselves as card-interactive targets. Parent card click handlers must use
 `utils/interactive-target.js` before emitting view/select actions. Cards whose
-primary action is a custom preview, such as `ArtifactCard`, can pass
+primary action is a custom preview can pass
 `expandable="false"` to `InstanceCard` and own the click action themselves.
 
 Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `InstanceCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.

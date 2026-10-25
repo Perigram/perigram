@@ -27,10 +27,6 @@ const fullListing = {
       { id: 'match', signature: { input: { base: 'json' }, output: { base: 'json' } } }
     ],
     editors: [{ type: 'coating-sheet', surface: 'coating-editor', modes: ['edit'] }],
-    attachmentKinds: { COATING_DOC: { kind: 'COATING_DOC' } },
-    conversions: [
-      { id: 'docToCoating', label: 'Import coating', sourceKinds: ['DOC'], target: { kind: 'entity', typeId: 'coating' }, service: 'match' }
-    ],
     surfaces: [{ id: 'coating-editor', module: '/surfaces/coating-editor.mjs', surfaceContract: 1 }]
   }
 };
@@ -42,8 +38,6 @@ describe('parseListing', () => {
     expect(layer.types).toHaveLength(2);
     expect(layer.services).toHaveLength(1);
     expect(layer.editors).toEqual([{ type: 'coating-sheet', surface: 'coating-editor', modes: ['edit'] }]);
-    expect(Object.keys(layer.attachmentKinds)).toEqual(['COATING_DOC']);
-    expect(layer.conversions).toHaveLength(1);
     expect(layer.requires).toEqual(['documents']);
   });
 
@@ -59,16 +53,6 @@ describe('parseListing', () => {
       ...fullListing,
       declarations: { ...fullListing.declarations, editors: [{ type: 'coating', surface: 'text-editor', modes: ['edit'] }] }
     })).toThrow(/requires a file type/);
-  });
-
-  it('refuses a conversion referencing an undeclared service', () => {
-    expect(() => parseListing({
-      ...fullListing,
-      declarations: {
-        ...fullListing.declarations,
-        conversions: [{ id: 'x', sourceKinds: ['DOC'], target: { kind: 'artifact' }, service: 'nope' }]
-      }
-    })).toThrow(/which the plugin does not declare/);
   });
 
   it('refuses bad plugin ids, empty types, and bad service slugs', () => {
@@ -89,14 +73,14 @@ describe('parseListing', () => {
       requires: ['documents']
     });
     expect(Object.keys(normalized.declarations)).toEqual([
-      'types', 'services', 'editors', 'attachmentKinds', 'conversions', 'constructions', 'starterConstructs', 'exports', 'surfaces', 'previews', 'dependencies'
+      'types', 'services', 'editors', 'constructions', 'starterConstructs', 'exports', 'surfaces', 'previews', 'dependencies'
     ]);
   });
 
   it('keeps the JSON schema in lockstep with the validated fields', () => {
     const declarations = schema.properties.declarations.properties;
     expect(Object.keys(declarations)).toEqual([
-      'types', 'services', 'editors', 'surfaces', 'previews', 'attachmentKinds', 'conversions', 'constructions', 'starterConstructs', 'exports', 'dependencies'
+      'types', 'services', 'editors', 'surfaces', 'previews', 'constructions', 'starterConstructs', 'exports', 'dependencies'
     ]);
     expect(schema.properties.requires.items.pattern).toBe('^[a-z0-9-]+$');
     expect(schema.properties.visibility.enum).toEqual(['public', 'private']);

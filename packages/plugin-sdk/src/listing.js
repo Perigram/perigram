@@ -8,9 +8,6 @@
 // - `services` — SPEC §8 V-grammar signatures bound to external executors
 //   (endpoint/claim mode);
 // - `editors` — file-type editor bindings (the same records packs declare);
-// - `attachmentKinds` — payload upload contracts (pack vocabulary);
-// - `conversions` — artifact conversion entries (data only; a `service`
-//   binding names the plugin service that executes the conversion);
 // - `constructions` — construction modes of the plugin's own types bound to
 //   plugin services: `{ '<typeId>': { '<mode>': '<service ref>' } }`;
 // - `exports` — attachment exports bound to plugin services:
@@ -30,7 +27,7 @@
 //   (owner decision 2026-10-17 — plugin-on-plugin requires);
 // - `dependencies` — declared runtime dependencies (owner decision
 //   2026-10-17): a dependency tree never crosses the platform boundary,
-//   a flattened, declared artifact does. `{ name, version, module,
+//   a flattened, declared bundle does. `{ name, version, module,
 //   license }` per entry: the SDK's vendor command builds each
 //   dependency into one flat bundle the executor serves at `module`,
 //   surface modules import the bare `name`, and the module proxy
@@ -64,8 +61,6 @@ export function parseListing(listing = {}) {
   const types = declarations.types || [];
   const services = (declarations.services || []).filter(service => service?.id && service?.signature);
   const editors = declarations.editors || [];
-  const attachmentKinds = declarations.attachmentKinds || {};
-  const conversions = declarations.conversions || [];
   const constructions = declarations.constructions || {};
   const starterConstructs = (declarations.starterConstructs || []).filter(Boolean);
   const exportsList = declarations.exports || [];
@@ -154,38 +149,6 @@ export function parseListing(listing = {}) {
       throw listingError(`duplicate editor binding for type ${editor.type} — exactly one editor per file type`);
     }
     seenEditorTypes.add(editor.type);
-  }
-
-  for (const [kind, contract] of Object.entries(attachmentKinds)) {
-    if (!kind || typeof contract !== 'object' || Array.isArray(contract) || !contract) {
-      throw listingError(`attachment kind ${kind || '(empty id)'} must map to a contract object`);
-    }
-  }
-
-  const seenConversionIds = new Set();
-  for (const conversion of conversions) {
-    if (!conversion?.id || typeof conversion.id !== 'string') {
-      throw listingError(`every conversion needs an id (got ${JSON.stringify(conversion?.id)})`);
-    }
-    if (seenConversionIds.has(conversion.id)) {
-      throw listingError(`duplicate conversion id ${conversion.id}`);
-    }
-    seenConversionIds.add(conversion.id);
-    if (!Array.isArray(conversion.sourceKinds) || !conversion.sourceKinds.length) {
-      throw listingError(`conversion ${conversion.id} needs a non-empty sourceKinds array`);
-    }
-    if (!conversion.target || typeof conversion.target !== 'object') {
-      throw listingError(`conversion ${conversion.id} needs a target`);
-    }
-    if (conversion.service !== undefined) {
-      if (!/^[a-z0-9-]+(\.[a-z0-9-]+)*$/.test(String(conversion.service))) {
-        throw listingError(`conversion ${conversion.id} service must be a plugin service reference (got ${JSON.stringify(conversion.service)})`);
-      }
-      const bare = String(conversion.service).split('.').length === 1;
-      if (bare && !serviceIds.has(conversion.service)) {
-        throw listingError(`conversion ${conversion.id} references service ${conversion.service}, which the plugin does not declare`);
-      }
-    }
   }
 
   for (const [typeId, modes] of Object.entries(constructions)) {
@@ -357,7 +320,7 @@ export function parseListing(listing = {}) {
     }
   }
 
-  return { pluginId, types, services, editors, attachmentKinds, conversions, constructions, starterConstructs, exports: exportsList, surfaces, previews, dependencies, requires, visibility, organizations };
+  return { pluginId, types, services, editors, constructions, starterConstructs, exports: exportsList, surfaces, previews, dependencies, requires, visibility, organizations };
 }
 
 // The normalized catalog document the publish API stores and installs
@@ -378,8 +341,6 @@ export function normalizeListing(listing = {}) {
       types: layer.types,
       services: layer.services,
       editors: layer.editors,
-      attachmentKinds: layer.attachmentKinds,
-      conversions: layer.conversions,
       constructions: layer.constructions,
       starterConstructs: layer.starterConstructs,
       exports: layer.exports,

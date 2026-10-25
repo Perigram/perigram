@@ -31,10 +31,10 @@ vi.mock('~/server/features/instances/repository.js', () => ({
 }));
 import * as instanceRepository from '~/server/features/instances/repository.js';
 
-// Framework machinery types (artifact, entity-revision, process-definition)
-// carry `framework: true` on their declarations: in the view for tenancy
-// and ref targets, never projected as authorable instances. Their explicit
-// services own them (artifact keeps the uploadArtifact constructor).
+// Framework machinery types (entity-revision, process-definition) carry
+// `framework: true` on their declarations: in the view for tenancy and
+// ref targets, never projected as authorable instances. Their explicit
+// services own them.
 import * as entityEventService from '~/server/features/instance-events/service.js';
 
 // The projected view is the single domain source (SPEC §19 after the cut):
@@ -70,7 +70,7 @@ function registryCapabilities(registry, domain) {
   return projectEntityProcessCapabilities(domain, bindings);
 }
 
-const FRAMEWORK_SERVICE_TYPES = ['organization', 'user', 'artifact', 'process_definition', 'entity_revision'];
+const FRAMEWORK_SERVICE_TYPES = ['organization', 'user', 'process_definition', 'entity_revision'];
 // The cnc pack no longer mounts legacy entity services: every pack type
 // rides the generic instance services.
 const PACK_LEGACY_SERVICE_TYPES = [];
@@ -149,7 +149,6 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     const designer = createProcessDesignerContract(domain, projection);
 
     // Machinery types never project: the view is authorable instances only
-    expect(domain.entities.map(entity => entity.type)).not.toContain('artifact');
     expect(domain.entities.map(entity => entity.type)).not.toContain('entity-revision');
     expect(domain.entities.map(entity => entity.type)).not.toContain('process-definition');
 

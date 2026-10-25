@@ -16,20 +16,20 @@ vi.mock('~/server/runtime/app-registry.js', () => ({
           states: { DRAFT: {}, ACTIVE: {} },
           transitions: [{ from: 'DRAFT', to: 'ACTIVE' }]
         },
-        artifact: {
+        drawing: {
           initial: 'PENDING',
           states: { PENDING: {}, AVAILABLE: {} },
           transitions: [{
             from: 'PENDING',
             to: 'AVAILABLE',
-            intent: 'artifactFileStored',
+            intent: 'drawingFileStored',
             display: 'hidden',
             access: { system: true }
           }]
         }
       }
     }),
-    getInstanceDefinition: (type) => (['project', 'artifact'].includes(type) ? { type, collection: `${type}s` } : null)
+    getInstanceDefinition: (type) => (['project', 'drawing'].includes(type) ? { type, collection: `${type}s` } : null)
   })
 }));
 
@@ -144,9 +144,9 @@ describe('workflow overrides service', () => {
     });
     repository.findActiveByEntity.mockResolvedValue(null);
     const workflow = await service.resolveActiveWorkflow({
-      typeId: 'artifact',
+      typeId: 'drawing',
       organizationId: auth.memberships[0].organizationId,
-      producerOutputId: 'generate_artifact:result'
+      producerOutputId: 'generate_drawing:result'
     });
 
     // The compiled process contract is the machine source (SPEC §7): no

@@ -1,15 +1,6 @@
-// Residual fact vocabulary for `artifact_template` only; new types declare their field descriptors.
-export const DESIGN_SYSTEM_FIELD_GROUPS = {
-  artifactTemplate: {
-    summary: [
-      { path: 'data.format', i18n: 'file.type', display: 'text', priority: 10 },
-      { path: 'data.variables.length', i18n: 'artifactTemplates.variables', display: 'count', priority: 20 }
-    ],
-    provenance: [
-      { path: 'data.activeRevisionId', i18n: 'revision.currentGeometry', display: 'entityRef', typeId: 'entityRevision', priority: 30 }
-    ]
-  }
-};
+// Field descriptors are declared on the type; the map stays empty as the
+// consumers' import surface.
+export const DESIGN_SYSTEM_FIELD_GROUPS = {};
 
 export function getEntityFieldGroups(entityKey) {
   return DESIGN_SYSTEM_FIELD_GROUPS[entityKey] || {};
@@ -22,7 +13,7 @@ export const DESIGN_DATA_DISPLAYS = ['inline', 'compact', 'grid', 'sectioned', '
 export const DESIGN_RELATION_DISPLAYS = ['none', 'inlineRefs', 'summary', 'expanded'];
 export const DESIGN_ACTION_DISPLAYS = ['none', 'menu', 'footer', 'toolbar', 'primaryOnly'];
 
-const previewFor = (key) => (key === 'artifact' ? 'attachment' : 'none');
+const previewFor = () => 'none';
 
 export function createEntitySurfaceContracts(entityContracts = []) {
   return Object.fromEntries(entityContracts.map((entry) => {
@@ -98,7 +89,7 @@ export const DESIGN_SYSTEM_PRIMITIVES = [
   { key: 'DataBlock', kind: 'block', componentPath: 'components/shared/blocks/DataBlock.vue', purpose: 'Canonical label/value rows for fact surfaces; descriptors resolve from the compiled type view (render.groups), rendered with the declared display policies.' },
   { key: 'InstanceState', kind: 'status', componentPath: 'components/shared/state/InstanceState.vue', purpose: 'Interactive status display and workflow-derived transition actions.' },
   { key: 'StateHistory', kind: 'status', componentPath: 'components/shared/state/StateHistory.vue', purpose: 'Status audit timeline for entity lifecycle events.' },
-  { key: 'DrawingCanvas', kind: 'block', componentPath: 'components/shared/DrawingCanvas.vue', purpose: 'Shared layer-aware SVG canvas for geometry previews, DXF artifacts, and sketch scenes.' },
+  { key: 'DrawingCanvas', kind: 'block', componentPath: 'components/shared/DrawingCanvas.vue', purpose: 'Shared layer-aware SVG canvas for geometry previews, DXF drawings, and sketch scenes.' },
   { key: 'DesignerSurface', kind: 'layout', componentPath: 'components/shared/DesignerSurface.vue', purpose: 'Shared full-height flex boundary for operational designer route, pane, and dialog hosts.' },
   { key: 'DesignerWorkspace', kind: 'layout', componentPath: 'components/shared/DesignerWorkspace.vue', purpose: 'Shared responsive palette/canvas/inspector workspace for operational designers.' },
   { key: 'DesignerDialog', kind: 'layout', componentPath: 'components/shared/DesignerDialog.vue', purpose: 'Viewport-sized dialog host for standalone designer launches.' },
@@ -119,9 +110,7 @@ export const DESIGN_SYSTEM_ENTITY_CONTRACTS = [
   ['penTemplate', 'pen_template', 'master', 'entities.penTemplate', 'pen', 'createMockPenTemplate', 'hidden', false],
   ['layerStandard', 'layer_standard', 'master', 'entities.layerStandard', 'standard', 'createMockLayerStandard', 'hidden', false],
   ['user', 'user', 'system', 'entities.user', 'user', 'createMockUser', 'hidden', false],
-  ['organization', 'organization', 'system', 'entities.organization', 'organization', 'createMockOrganization', 'hidden', false],
-  ['artifact', 'artifact', 'system', 'entities.artifact', 'artifact', 'createMockArtifact', 'hidden', true],
-  ['artifactTemplate', 'artifact_template', 'master', 'entities.artifactTemplate', 'artifactTemplate', 'createMockArtifactTemplate', 'hidden', false]
+  ['organization', 'organization', 'system', 'entities.organization', 'organization', 'createMockOrganization', 'hidden', false]
 ].map(([key, typeId, group, labelKey, propName, factoryName, status, trace]) => ({
   key,
   typeId,

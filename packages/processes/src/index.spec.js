@@ -435,28 +435,28 @@ describe('@perigram/processes compiler', () => {
     });
   });
 
-  it('reprojects attachment command sockets from the current typed template contract', () => {
+  it('reprojects command sockets from the current typed template contract', () => {
     const attachmentDomain = {
       ...domain,
-      entities: [...domain.entities, { type: 'artifact_template', collection: 'artifact_templates' }],
+      entities: [...domain.entities, { type: 'passbook', collection: 'passbooks' }],
       commands: {
         ...domain.commands,
         generateAttachment: {
           id: 'generateAttachment',
           input: {
             abstractEntities: [{ name: 'source', capability: 'attachments.generate', accepts: ['sheet_design'], required: true }],
-            entities: [{ name: 'sheetDesign', type: 'sheet_design' }, { name: 'template', type: 'artifact_template' }],
+            entities: [{ name: 'sheetDesign', type: 'sheet_design' }, { name: 'template', type: 'passbook' }],
             parameters: [
-              { name: 'kind', type: 'enum', options: ['LAYOUT_DXF', 'PDF_PASSPORT'], required: true },
+              { name: 'kind', type: 'string', required: true },
               { name: 'values', type: 'object', default: {} }
             ]
           },
-          output: { attachments: ['LAYOUT_DXF', 'PDF_PASSPORT'] }
+          output: { events: ['attachment.generationCompleted'] }
         }
       },
       fieldAccess: {
         ...domain.fieldAccess,
-        artifactTemplate: { feature: 'artifact_templates', read: ['name', 'fields.*'], write: ['fields.*'], admin: ['fields.*'] }
+        passbook: { feature: 'passbooks', read: ['name', 'fields.*'], write: ['fields.*'], admin: ['fields.*'] }
       }
     };
     const compiled = compileProcessDefinition({
@@ -474,7 +474,7 @@ describe('@perigram/processes compiler', () => {
 
     expect(compiled.actions.generate.inputs.map(input => input.id)).toEqual(['source', 'template', 'kind', 'values']);
     expect(compiled.actions.generate.inputs.find(input => input.id === 'template')).toMatchObject({
-      typeId: 'artifact_template',
+      typeId: 'passbook',
       path: 'entities.template',
       prompt: true
     });
@@ -2241,10 +2241,10 @@ describe('@perigram/processes compiler', () => {
   it('derives Link and Unlink detail actions from construct relation inputs', () => {
     const relationDomain = {
       ...domain,
-      entities: [...domain.entities, { type: 'artifact', collection: 'artifacts' }],
+      entities: [...domain.entities, { type: 'drawing', collection: 'drawings' }],
       relations: [
         { ownerType: 'project', key: 'libraries', targetType: 'library', cardinality: 'many' },
-        { ownerType: 'project', key: 'artifact', targetType: 'artifact', cardinality: 'one' }
+        { ownerType: 'project', key: 'drawing', targetType: 'drawing', cardinality: 'one' }
       ],
       construction: {
         ...domain.construction,
@@ -2254,7 +2254,7 @@ describe('@perigram/processes compiler', () => {
           inputs: [
             { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
             { id: 'relations.libraries', path: 'relations.libraries', type: 'entity', typeId: 'library', required: false, prompt: true },
-            { id: 'relations.artifact', path: 'relations.artifact', type: 'entity', typeId: 'artifact', required: false, prompt: true }
+            { id: 'relations.drawing', path: 'relations.drawing', type: 'entity', typeId: 'drawing', required: false, prompt: true }
           ]
         }
       },
@@ -2294,7 +2294,7 @@ describe('@perigram/processes compiler', () => {
             mode: 'genericCreate',
             inputs: [
               { id: 'relations.libraries', path: 'relations.libraries', type: 'entity', typeId: 'library', required: false, prompt: true },
-              { id: 'relations.artifact', path: 'relations.artifact', type: 'entity', typeId: 'artifact', required: false, prompt: true }
+              { id: 'relations.drawing', path: 'relations.drawing', type: 'entity', typeId: 'drawing', required: false, prompt: true }
             ]
           },
           state: { to: INITIAL_STATE },
@@ -2327,8 +2327,8 @@ describe('@perigram/processes compiler', () => {
       relationMutation: { key: 'libraries', targetTypes: ['library'], operation: 'unlink' },
       inputPolicy: { prompt: false, fields: [] }
     });
-    expect(compiled.actions['create:link:artifact']).toMatchObject({
-      relationMutation: { key: 'artifact', targetTypes: ['artifact'] }
+    expect(compiled.actions['create:link:drawing']).toMatchObject({
+      relationMutation: { key: 'drawing', targetTypes: ['drawing'] }
     });
     expect(compiled.screens.auto_role_admin_project_detail.actions).toEqual(expect.arrayContaining([
       'create:link:libraries',
@@ -2339,7 +2339,7 @@ describe('@perigram/processes compiler', () => {
   it('derives one Link/Unlink pair per relation entry across sibling constructs', () => {
     const relationDomain = {
       ...domain,
-      entities: [...domain.entities, { type: 'artifact', collection: 'artifacts' }],
+      entities: [...domain.entities, { type: 'drawing', collection: 'drawings' }],
       relations: [
         { ownerType: 'project', key: 'libraries', targetType: 'library', cardinality: 'many' }
       ],
@@ -2420,26 +2420,26 @@ describe('@perigram/processes compiler', () => {
   });
 
   it('expands the userCreatable attachment-kind selector on declared creator inputs', () => {
-    const artifactDomain = {
+    const photoDomain = {
       ...domain,
-      entities: [...domain.entities, { type: 'artifact' }],
+      entities: [...domain.entities, { type: 'site_photo' }],
       attachmentKinds: {
-        DXF_SOURCE: { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
-        CAPTURE_PHOTO: { kind: 'CAPTURE_PHOTO', creation: { mode: 'capture' } },
-        SVG_PREVIEW: { kind: 'SVG_PREVIEW', creation: { mode: 'workflow' } }
+        'site-photo': { kind: 'site-photo', creation: { mode: 'upload' } },
+        'site-video': { kind: 'site-video', creation: { mode: 'capture' } },
+        'render-only': { kind: 'render-only', creation: { mode: 'workflow' } }
       },
       construction: {
         ...domain.construction,
-        artifact: {
-          modes: ['uploadArtifact'],
-          defaultMode: 'uploadArtifact',
+        site_photo: {
+          modes: ['upload'],
+          defaultMode: 'upload',
           modeInputs: {
-            uploadArtifact: [{
-              id: 'artifact',
-              type: 'artifactUpload',
+            upload: [{
+              id: 'photo',
+              type: 'payloadUpload',
               required: true,
               prompt: true,
-              creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' }
+              creator: { typeId: 'site_photo', attachmentKinds: 'userCreatable' }
             }]
           }
         }
@@ -2448,23 +2448,23 @@ describe('@perigram/processes compiler', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
       roles: { role_admin: { id: 'role_admin', label: 'Admin' } },
-      producerOutputs: producerOutputRecords([['upload', 'artifact', {}, 'result']]),
+      producerOutputs: producerOutputRecords([['upload', 'site_photo', {}, 'result']]),
       processNodes: {
         upload: {
           id: 'upload',
           kind: 'cts.construct',
-          typeId: 'artifact',
+          typeId: 'site_photo',
           producerOutputId: 'upload:result',
           construction: {
-            mode: 'uploadArtifact',
+            mode: 'upload',
             // Authored nodes re-carry the domain's selector string verbatim;
             // compiled output must still expose expanded user-creatable kinds.
             inputs: [{
-              id: 'artifact',
-              type: 'artifactUpload',
+              id: 'photo',
+              type: 'payloadUpload',
               required: true,
               prompt: true,
-              creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' }
+              creator: { typeId: 'site_photo', attachmentKinds: 'userCreatable' }
             }]
           },
           state: { to: INITIAL_STATE },
@@ -2476,16 +2476,16 @@ describe('@perigram/processes compiler', () => {
         nodes: [{ id: 'upload', type: 'processNode', data: { refId: 'upload' } }],
         edges: []
       }
-    }, artifactDomain);
+    }, photoDomain);
 
     const expectedKinds = [
-      { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
-      { kind: 'CAPTURE_PHOTO', creation: { mode: 'capture' } }
+      { kind: 'site-photo', creation: { mode: 'upload' } },
+      { kind: 'site-video', creation: { mode: 'capture' } }
     ];
     const action = compiled.actions.upload;
-    expect(action.construction.inputs.find(input => input.id === 'artifact').creator.attachmentKinds)
+    expect(action.construction.inputs.find(input => input.id === 'photo').creator.attachmentKinds)
       .toEqual(expectedKinds);
-    expect(action.inputPolicy.fields.find(field => field.id === 'artifact').creator.attachmentKinds)
+    expect(action.inputPolicy.fields.find(field => field.id === 'photo').creator.attachmentKinds)
       .toEqual(expectedKinds);
   });
 

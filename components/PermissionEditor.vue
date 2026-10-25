@@ -175,7 +175,7 @@ const emit = defineEmits(['save']);
 const { t } = useI18n();
 const authStore = useAuthStore();
 
-const selectedFeatureKey = ref('artifacts');
+const selectedFeatureKey = ref('cassettes');
 // Feature list is a PrimeVue Listbox; layout passthroughs keep the
 // option rows airy and full-width for the tag summary.
 const featureListPt = {
@@ -211,7 +211,6 @@ const PERMISSION_LEVELS = computed(() => [
 ]);
 
 const defaultFeatures = computed(() => [
-    { key: 'artifacts',     label: t('entities.artifact'), actions: ['view', 'create', 'delete'] },
     { key: 'cassettes',     label: t('features.cassettes') },
     { key: 'layer_standards', label: t('features.layerStandards'), actions: ['setPen'] },
     { key: 'users',         label: t('features.users') },
@@ -1057,7 +1056,6 @@ function grantHasFilters(grant) {
 
 function getIcon(key) {
     const iconMap = {
-        artifacts: 'pi pi-file',
         cassettes: 'pi pi-pencil',
         layer_standards: 'pi pi-palette',
         users: 'pi pi-users',

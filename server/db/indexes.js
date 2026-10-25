@@ -17,14 +17,6 @@ const INDEXES = {
     { keys: { 'lineage.libraryId': 1 }, options: { name: 'lineage_library_idx' } }
   ],
 
-  // Artifacts Collection
-  artifacts: [
-    { keys: { 'lineage.projectId': 1 }, options: { name: 'lineage_project_idx' } },
-    { keys: { 'lineage.queueId': 1 }, options: { name: 'lineage_queue_idx' } },
-    { keys: { 'lineage.runId': 1 }, options: { name: 'lineage_run_idx' } },
-    { keys: { 'data.type': 1 }, options: { name: 'data_type_idx' } }
-  ],
-
   // Status Events Collection
   status_events: [
     { keys: { targetId: 1, targetType: 1 }, options: { name: 'target_idx' } },

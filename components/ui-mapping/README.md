@@ -382,7 +382,7 @@ beside the transition history in `StateHistory`.
   first. An
   instance payload reference with a renderable declared mode (the pool's
   `instance.payload`, projected from the wire `attachments.primary`)
-  renders through the shared viewer (via `ArtifactViewer` variant `card` —
+  renders through the shared viewer (via `FilePayloadViewer` variant `card` —
   the non-interactive canvas that fills the card's fixed-height header
   band with no own border, because the host Card owns the chrome; images
   and sketch scenes fill the band at uniform scale while vector drawings

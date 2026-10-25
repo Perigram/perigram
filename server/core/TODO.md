@@ -140,3 +140,14 @@ core/tasks/service.spec.js deleted with it (both cases exercised the deleted
 `createPerigramRegistry` alias (finding above); pre-existing check-docs
 blocking link workers/nesting/README.md → ./jagua-rs/README.md (submodule
 uninitialized in worktrees).
+
+### Agent Notes (2026-10-25, artifact cutover)
+
+Session `agent/artifact-cutover-20261025-1655`. The event-tier item
+above (registered 2026-10-25) was reshaped by the artifact-family
+cutover: the table now declares only
+`attachment.generationCompleted` (emitted by the plugins-owned
+`generateAttachment`); `convertArtifact` and the queued/requested/failed
+events died with the artifact family. The `artifact` effect branch in
+`effects/service.js` keeps zero emitters — filed for the owner in the
+root TODO.

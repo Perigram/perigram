@@ -97,3 +97,14 @@ Validation: ui-permissions + useEntityPopup + design-system specs pass
 workers/nesting/README.md → ./jagua-rs/README.md, absent at base
 6b12a236c (empty jagua-rs dir). OPEN: effects dual-read (owner
 decision).
+
+### Agent Notes (2026-10-25, cutover review)
+
+Session review of `agent/artifact-cutover-20261025-1655`.
+process-designer-localization.spec.js ("keeps the retained palette and
+declared-state controls translated in every locale") failed at base
+713aa2396 because 3c47acd50 removed the `processDesigner.transitionAxis`
+/`transitionPath`/`stateAxis`/`parentState` locale keys while the spec
+kept asserting them; the cutover deleted the four stale assertions (no
+code reads those keys) and tightened the test title — fixed-by-cutover.
+

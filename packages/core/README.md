@@ -51,7 +51,7 @@ Parent: [packages README](../README.md).
 | Task | Async execution boundary for worker/server work. It is queued in `task_runs`, claimed by a worker or executor, and completed with a normalized task result. |
 | Workflow | Entity lifecycle machine: region states, transitions, access requirements, hooks, and lifecycle data policy. |
 | Hook | Transition side-effect contract plus app-registered handler. |
-| AttachmentKind | File/blob content contract: kind, bucket, MIME type, preview mode, and creation/editor capability. |
+| AttachmentKind | A payload-bearing type's upload contract: MIME type, creation protocol, preview mode, size limit (payload traits keyed by type id). |
 | Adapter | Application binding that connects pure domain definitions to infrastructure. |
 
 Commands and tasks are intentionally separate: a command expresses user/system

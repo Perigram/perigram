@@ -1,5 +1,4 @@
 import { createError } from 'h3';
-import * as artifactsService from '~/server/features/artifacts/service.js';
 import * as usersService from '~/server/features/users/service.js';
 import * as filesService from '~/server/features/files/service.js';
 import * as transcriptionService from '~/server/features/transcription/service.js';
@@ -33,9 +32,7 @@ const ATTACHMENT_AUDIO_EXTENSIONS = {
     'audio/webm': 'webm',
     'audio/x-wav': 'wav'
 };
-const scopedList = (service) => (auth, filters) => service.list(auth.userId, auth.organizationId, auth.role, auth, filters);
 const INSTANCE_OPTION_LOADERS = {
-    artifact: (auth, filters) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
     user: (auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
 };
 
@@ -1559,12 +1556,14 @@ function scopedInstanceOptionSources(auth = {}) {
                 });
             }
         }
-        // Artifact creation actions grant their outputs as attachable chat
-        // refs even without a readable artifact list source: the chat
-        // attachment picker offers the org process's artifact creator and
-        // must be able to reference what it just created.
-        if (hasArtifactCreatorAction(auth) && !sources.some(source => source.typeId === 'artifact')) {
-            sources.push({ typeId: 'artifact', label: 'artifact', creatorOnly: true });
+        // Create actions with a file-protocol creator grant their outputs
+        // as attachable chat refs even without a readable list source: the
+        // chat attachment picker offers the creator and must be able to
+        // reference what it just created.
+        for (const source of creatableCreatorSources(auth)) {
+            if (!sources.some(existing => existing.typeId === source.typeId)) {
+                sources.push(source);
+            }
         }
         return sources;
     }
@@ -1575,20 +1574,25 @@ function scopedInstanceOptionSources(auth = {}) {
 }
 
 /**
- * Mirrors the client-side `artifactCreatorForAction` detection: a
- * createInstance action whose inputs carry an upload/capture/editor creator.
- * Compiled manifests carry attachment kinds as the expanded
- * `[{ kind, creation }]` array; unknown shapes score no creator credit
- * instead of throwing (a malformed manifest must not take down messaging).
+ * A createInstance action whose inputs carry an upload/capture/editor
+ * creator exposes the creator's type as a creator-only attachment
+ * source. Compiled manifests carry attachment kinds as the expanded
+ * `[{ kind, creation }]` array (the payload-trait projection keyed by
+ * type id); unknown shapes score no creator credit instead of throwing
+ * (a malformed manifest must not take down messaging).
  */
-function hasArtifactCreatorAction(auth = {}) {
-    return (auth.roleAssignments?.actions || []).some(action => (
-        // The manifest speaks the projected UI-contract kinds beside the
-        // legacy exposure fields; both identify creates.
-        ['createInstance', 'createInstance'].includes(action?.actionKind)
-        && [...(action.inputPolicy?.fields || []), ...(action.construction?.inputs || [])]
-            .some(field => field?.creator?.typeId && userCreatableAttachmentKinds(field.creator.attachmentKinds))
-    ));
+function creatableCreatorSources(auth = {}) {
+    const byType = new Map();
+    for (const action of auth.roleAssignments?.actions || []) {
+        if (action?.actionKind !== 'createInstance') continue;
+        for (const field of [...(action.inputPolicy?.fields || []), ...(action.construction?.inputs || [])]) {
+            const typeId = field?.creator?.typeId;
+            if (typeId && userCreatableAttachmentKinds(field.creator.attachmentKinds)) {
+                byType.set(typeId, typeId);
+            }
+        }
+    }
+    return [...byType.values()].map(typeId => ({ typeId, label: typeId, creatorOnly: true }));
 }
 
 function userCreatableAttachmentKinds(kinds) {
@@ -1778,7 +1782,6 @@ function compactInstanceSnapshot(type, instance, snapshotPaths = null) {
     delete fields.layoutData;
     delete fields.layerData;
     delete fields.polygonParts;
-    delete fields.artifactIds;
     if (fields.geometry) fields.geometry = compactGeometrySnapshot(fields.geometry);
     snapshot.fields = fields;
     return snapshot;

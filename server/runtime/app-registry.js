@@ -1,17 +1,15 @@
-// The framework runtime registry: party/file/process-definition services,
-// framework commands, and their declared events. The facade domain installs
-// per organization as the facade plugin (SPEC §Plugin marketplace) and its
-// compute runs in the external facade executor.
+// The framework runtime registry: party/process-definition services,
+// framework commands, and their declared events. The facade domain
+// installs per organization as the facade plugin (SPEC §Plugin
+// marketplace) and its compute runs in the external facade executor.
 import { createRegistry } from '~/server/core/blocks/index.js';
 
-import * as artifactsService from '~/server/features/artifacts/service.js';
 import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
 import * as organizationsService from '~/server/features/organizations/service.js';
 import * as processDefinitionsService from '~/server/features/process-definitions/service.js';
 import * as usersService from '~/server/features/users/service.js';
 
-import { generateAttachment } from '~/server/features/artifacts/operations.js';
-import { convertArtifact } from '~/server/features/artifact-conversions/operations.js';
+import { generateAttachment } from '~/server/features/plugins/operations.js';
 import { instanceServiceResolver } from '~/server/features/instances/service.js';
 import { partyProcessBindings } from '~/server/runtime/party-wire.js';
 
@@ -35,7 +33,6 @@ export function getAppRegistry() {
 }
 
 const frameworkInstanceServices = {
-  artifact: artifactsService,
   entity_revision: instanceRevisionsService,
   organization: organizationsService,
   process_definition: processDefinitionsService,
@@ -43,7 +40,6 @@ const frameworkInstanceServices = {
 };
 
 const frameworkProcessLists = {
-  artifact: (filters, auth) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
   entity_revision: (filters, auth) => instanceRevisionsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
   // Party reads speak the §3 wire shape with their own read gates
   // (party-wire.js) — the process plane never sees the feature DTO.
@@ -53,7 +49,6 @@ const frameworkProcessLists = {
 };
 
 const frameworkProcessReads = {
-  artifact: (id, auth) => artifactsService.getById(id, auth.userId, auth.organizationId, auth.role, auth),
   entity_revision: (id, auth) => instanceRevisionsService.getById(id, auth.userId, auth.role, auth),
   organization: partyProcessBindings.organization.read,
   process_definition: (id, auth) => processDefinitionsService.getById(id, auth),
@@ -61,15 +56,10 @@ const frameworkProcessReads = {
 };
 
 const frameworkProcessCapabilities = {
-  artifact: { processUpdate: true, delete: true, archive: false },
   entity_revision: { processUpdate: false, delete: false, archive: false },
   organization: { processUpdate: true, delete: true, archive: false },
   process_definition: { processUpdate: false, delete: false, archive: true },
   user: { processUpdate: true, delete: true, archive: false }
-};
-
-const frameworkConstructionHandlers = {
-  artifact: { uploadArtifact: artifactsService.createUploaded }
 };
 
 const frameworkDeleteAdapters = {
@@ -77,8 +67,7 @@ const frameworkDeleteAdapters = {
 };
 
 const frameworkCommandHandlers = {
-  generateAttachment,
-  convertArtifact
+  generateAttachment
 };
 
 function registerAppBindings(registry) {
@@ -100,7 +89,6 @@ function registerAppBindings(registry) {
     processLists: frameworkProcessLists,
     processReads: frameworkProcessReads,
     processCapabilities: frameworkProcessCapabilities,
-    constructionHandlers: frameworkConstructionHandlers,
     modeHandlers: frameworkModeHandlers,
     deleteAdapters: frameworkDeleteAdapters
   });
@@ -116,7 +104,7 @@ function registerServiceSet(registry, {
   processLists,
   processReads,
   processCapabilities,
-  constructionHandlers,
+  constructionHandlers = {},
   modeHandlers,
   deleteAdapters
 }) {
@@ -151,12 +139,6 @@ function bindConstructionHandler(mode, handler, service, modeHandlers) {
         payload.lineage = { ...(payload.lineage || {}), organizationId: context.organizationId };
       }
       return service.create(payload, context.userId, context.organizationId, context.role, context.executionAuth);
-    };
-  }
-  if (mode === 'uploadArtifact') {
-    return (draft, context = {}) => {
-      const file = draft?.artifact && typeof draft.artifact === 'object' ? draft.artifact : {};
-      return artifactsService.createUploaded({ ...(draft || {}), ...file }, context.executionAuth);
     };
   }
   if (typeof handler === 'string' && modeHandlers[handler]) {
@@ -226,7 +208,7 @@ function createProcessDelete(type, service, processGetById, deleteAdapters) {
   return async (id, auth = {}) => service.remove(id, auth.userId, auth.organizationId, auth.role, auth);
 }
 
-// Framework construction modes (beyond genericCreate/uploadArtifact).
+// Framework construction modes beyond genericCreate.
 const frameworkModeHandlers = {};
 
 export function resetAppRegistryForTests() {

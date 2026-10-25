@@ -369,8 +369,7 @@ submits (`{ fileId, mime, size, name }`). `usePayloadUpload(values,
 { onError })` binds to the caller's prompt-values object and returns the
 uploading flag, the hidden-input element registry, and `uploadPayloadFile`
 — `ChatSupport` renders the control through it,
-so every file-instance create flows through one upload implementation and
-no surface mints artifact entities.
+so every file-instance create flows through one upload implementation.
 
 ---
 

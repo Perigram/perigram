@@ -32,12 +32,8 @@ Support capabilities are documented and classified, but do not need empty
 
 | Kind | Modules |
 |---|---|
-| Entity modules | [artifact-templates](./artifact-templates/README.md), [artifacts](./artifacts/README.md), [instance-revisions](./instance-revisions/README.md), [organizations](./organizations/README.md), [process-definitions](./process-definitions/README.md), [users](./users/README.md) |
-| Capability modules | [agent-bots](./agent-bots/README.md), [artifact-conversions](./artifact-conversions/README.md), [billing](./billing/README.md), [connections](./connections/README.md), [cts-types](./cts-types/README.md), [directory](./directory/README.md), [files](./files/README.md), [instance-events](./instance-events/README.md), [instances](./instances/README.md), [invitations](./invitations/README.md), [livekit](./livekit/README.md), [llm](./llm/README.md), [meetings](./meetings/README.md), [notifications](./notifications/README.md), [partnerships](./partnerships/README.md), [plugins](./plugins/README.md), [sessions](./sessions/README.md), [states](./states/README.md), [support](./support/README.md), `system-settings`, [transcription](./transcription/README.md), [web-search](./web-search/README.md), [workflow-overrides](./workflow-overrides/README.md) |
-
-`artifact_template` is undeclared in the CTS registry view; check-arch
-classifies the `artifact-templates` directory explicitly, and the module
-keeps serving the type.
+| Entity modules | [instance-revisions](./instance-revisions/README.md), [organizations](./organizations/README.md), [process-definitions](./process-definitions/README.md), [users](./users/README.md) |
+| Capability modules | [agent-bots](./agent-bots/README.md), [billing](./billing/README.md), [connections](./connections/README.md), [cts-types](./cts-types/README.md), [directory](./directory/README.md), [files](./files/README.md), [instance-events](./instance-events/README.md), [instances](./instances/README.md), [invitations](./invitations/README.md), [livekit](./livekit/README.md), [llm](./llm/README.md), [meetings](./meetings/README.md), [notifications](./notifications/README.md), [partnerships](./partnerships/README.md), [plugins](./plugins/README.md), [sessions](./sessions/README.md), [states](./states/README.md), [support](./support/README.md), `system-settings`, [transcription](./transcription/README.md), [web-search](./web-search/README.md), [workflow-overrides](./workflow-overrides/README.md) |
 
 This directory is framework-only: domain implementations (the facade
 fabrication domain — cassettes, nesting, sheet designs) live under their
@@ -57,11 +53,10 @@ The **only** way to consume a feature from outside its directory is via its `ind
 
 ```js
 // ✅ Correct — goes through service layer
-import * as artifactService from '~/server/features/artifacts/index.js';
+import * as organizationsService from '~/server/features/organizations/index.js';
 
 // ❌ Forbidden — bypasses business logic and permissions
-import * as repository from '~/server/features/artifacts/repository.js';
-import { Artifact } from '~/server/features/artifacts/model.js';
+import * as repository from '~/server/features/organizations/repository.js';
 ```
 
 ### index.js pattern

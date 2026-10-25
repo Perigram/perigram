@@ -118,7 +118,7 @@ the run's own conversation: the run's history marks every attachment as
 `[attachment: name <fileId:id>]`, and the reader (`attachment-read.js`)
 extracts by family — text decodes as UTF-8, spreadsheets (csv/xlsx/xls)
 flatten to per-sheet CSV, PDFs extract page text (the pdfjs seam the
-artifact templates already use), DOCX unwraps its document body (jszip),
+cassette geometry already uses), DOCX unwraps its document body (jszip),
 and audio transcribes through the organization's
 [transcription](../transcription/README.md) seam. Images and video
 answer with the text-only boundary; unrecognized binaries are refused

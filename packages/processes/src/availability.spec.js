@@ -5,7 +5,7 @@ const domain = {
   entities: [
     { type: 'cassette' },
     { type: 'cassette_design' },
-    { type: 'artifact' },
+    { type: 'site_photo' },
     { type: 'project' },
     { type: 'nest' },
     { type: 'plate' }
@@ -48,13 +48,13 @@ const domain = {
         ]
       }
     },
-    artifact: {
-      modes: ['uploadArtifact'],
-      defaultMode: 'uploadArtifact',
+    site_photo: {
+      modes: ['upload'],
+      defaultMode: 'upload',
       derived: true,
       modeInputs: {
-        uploadArtifact: [
-          { id: 'artifact', type: 'artifactUpload', required: true, prompt: true, creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' } }
+        upload: [
+          { id: 'photo', type: 'payloadUpload', required: true, prompt: true, creator: { typeId: 'site_photo', attachmentKinds: 'userCreatable' } }
         ]
       }
     }
@@ -71,7 +71,7 @@ const domain = {
     generate: {
       input: {
         abstractEntities: [{ name: 'source', label: 'Source', capability: 'attachments.generate', accepts: ['sheet_design'], required: true }],
-        parameters: [{ name: 'kind', type: 'enum', options: ['LAYOUT_DXF'], required: true }]
+        parameters: [{ name: 'kind', type: 'enum', options: ['dxf'], required: true }]
       }
     }
   },
@@ -266,17 +266,17 @@ describe('required input availability', () => {
   it('rejects an attachment upload construction input whose fallback is empty or scalar', () => {
     const node = {
       id: 'n',
-      label: 'artifact',
+      label: 'site photo',
       kind: 'cts.construct',
-      typeId: 'artifact',
+      typeId: 'site_photo',
       construction: {
-        mode: 'uploadArtifact',
-        inputs: [{ id: 'artifact', type: 'artifactUpload', required: true, prompt: true, creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' } }]
+        mode: 'upload',
+        inputs: [{ id: 'photo', type: 'payloadUpload', required: true, prompt: true, creator: { typeId: 'site_photo', attachmentKinds: 'userCreatable' } }]
       },
       trigger: { mode: 'event' }
     };
-    expect(check({ ...node, inputDefaults: { artifact: '' } })).toHaveLength(1);
-    expect(check({ ...node, inputDefaults: { artifact: { fileId: 'f1' } } })).toEqual([]);
+    expect(check({ ...node, inputDefaults: { photo: '' } })).toHaveLength(1);
+    expect(check({ ...node, inputDefaults: { photo: { fileId: 'f1' } } })).toEqual([]);
   });
 
   it('resolves required entity and status ports from runtime context on a manual status change', () => {

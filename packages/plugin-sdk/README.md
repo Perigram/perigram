@@ -95,9 +95,6 @@ the plugin's executor serves, the mount-contract major it targets, and a
 contract 1; `checkSurfaceModule` below validates the module
 author-side), `previews` (`[{ type, surface }]` — the plugin's types
 whose preview slots mount the bound preview surface, one per type),
-`attachmentKinds` (payload upload contracts keyed by kind id), and
-`conversions` (artifact conversion entries; an optional `service` names a
-declared plugin service as the executor, bare or plugin-qualified),
 `constructions` (the plugin's types' construction modes bound to plugin
 services — the platform resolves ref inputs and payloads as base64
 values; the executor returns `data` fields and may return `payload:
@@ -169,7 +166,7 @@ once with the plugin repo's esbuild install (`npm i -D esbuild` — the
 SDK stays zero-dependency), writes `assets/vendor/<name>.mjs`, and emits
 the `{ name, version, module, license }` manifest entries — merging them
 into the listing with `--listing`. A dependency tree never crosses the
-platform boundary; the flattened, declared artifact does. Unresolvable
+platform boundary; the flattened, declared bundle does. Unresolvable
 names surface as leftovers (install them, or vendor their code by
 relative import).
 

@@ -8,7 +8,7 @@
 // record titles and glyphs resolve through the one resolvers
 // (`titleFor`/`iconFor`), fact rows gate through field access
 // (legacy-first, declaration-derived for org-authored types), and the
-// legacy residual fact channel is gone (artifact family excepted).
+// legacy residual fact channel is gone.
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, compileClientBundle, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
 import { facadeFileTypes } from '../test-tools/facade-plugin.js';
@@ -167,13 +167,12 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     expect(decorateDataValue(94.2, { display: 'percent', unit: 'percent' })).toBe('94.2%');
   });
 
-  it('keeps only the artifact family in the legacy residual map', () => {
-    // Live-type audit: everything else that once lived in
+  it('keeps the legacy residual map empty', () => {
+    // Live-type audit: everything that once lived in
     // `DESIGN_SYSTEM_FIELD_GROUPS` rendered entity types retired from
     // `cncEntities` (project, queue, sheet, remnant, catalog, …) or
-    // master data whose legacy surfaces are gone. The artifact family
-    // stays until Phase 7's file-paper cut.
-    expect(Object.keys(DESIGN_SYSTEM_FIELD_GROUPS)).toEqual(['artifactTemplate']);
+    // master data whose legacy surfaces are gone.
+    expect(Object.keys(DESIGN_SYSTEM_FIELD_GROUPS)).toEqual([]);
     // An undeclared type resolves no fact rows and no legacy fallback.
     const undeclared = resolveInstanceDisplayContract({ typeId: 'queue', surface: 'card' });
     expect(undeclared.bundleResolved).toBe(false);

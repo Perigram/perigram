@@ -244,8 +244,6 @@
                   :state-policy-target="recordStatePolicyTarget"
                   :state-field-policy-options="recordStateFieldPolicyOptions"
                   :construction-modes="constructionModeOptions(nodeTypeId(selectedProcessNode))"
-                  :artifact-kinds="artifactCreationKinds(selectedProcessNode)"
-                  :artifact-kind-options="artifactUploadKindOptions"
                   :designer="designer"
                   :grants="selectedProcessNodeGrants"
                   :effective-access="selectedProcessNodeEffectiveAccess"
@@ -261,7 +259,6 @@
                   @sync="syncNodeData"
                   @update-grant-level="({ index, level }) => updateSelectedProcessNodeGrantLevel(index, level)"
                   @update-construction-mode="mode => updateProcessNodeConstructionMode(selectedProcessNode, mode)"
-                  @update-artifact-kinds="value => { updateArtifactCreationKinds(selectedProcessNode, value); syncNodeData(); }"
                   @run-preview="previewDataflow"
                   @create-command-service="createCommandServiceForSelectedNode"
                   @remove-command-service="removeSelectedCommandService"
@@ -843,7 +840,6 @@ const nodeRecords = useProcessDesignerNodeRecords({
   syncProcessNode: node => syncProcessNodeImpl(node)
 });
 const {
-  artifactUploadKindOptions,
   isOpKind,
   nodeTypeId,
   setNodeTypeId,
@@ -855,8 +851,6 @@ const {
   relationOptionsForEntity,
   projectionOptionsForEntity,
   constructionModeOptions,
-  artifactCreationKinds,
-  updateArtifactCreationKinds,
   processNodeInputs,
   processNodeOutputs,
   processNodeOperationOptions,

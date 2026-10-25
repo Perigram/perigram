@@ -1,8 +1,8 @@
 # CONTAINER: Facade Plugin Executor
 
 The facade fabrication domain as a third-party plugin (SPEC §20): `listing.json` is the whole declaration surface (types,
-services, editor bindings, preview bindings, attachment kinds,
-conversions, service-backed construction bindings, exports), and this
+services, editor bindings, preview bindings,
+service-backed construction bindings, exports), and this
 process is the executor that owns the domain's compute and its UI. The
 platform carries zero facade code — it reaches this executor per
 configured service endpoint (endpoint mode), sending referenced
@@ -51,14 +51,13 @@ values and files out, free of service imports, persistence, and auth.
 | `bake` | cassette-design `bake` | template ref (payload = OCCS document, base64) + parameters in → evaluated geometry out |
 | `nesting-solve` | the `plugin.facade.nesting-solve` value service | SPEC §8 signature (`sheetWidth`/`sheetHeight` default 1220×2440 mm — the prompted run parameters); calls the nesting worker at `NESTING_WORKER_URL` ([full `/nest` endpoint](../nesting/README.md)); every output layout ships self-contained (`sourceItems` resolve its placements, each carrying its workpiece layers, and `sheetPolygon` carries its bin shape) |
 | `nesting-parts` | the cassette-design `nesting-polygons` projection | the instance's stored geometry in → nesting polygon parts out, each riding its workpiece layers (joined by `workpieceId`) so solved layouts compose sheet layers under the placement transform |
-| `import-cassette` | the `dxfSourceToCassette` conversion | artifact buffer + layer mapping in → cassette payload + extracted fields out |
-| `generate-sheet-dxf` | the sheet-design `LAYOUT_DXF` export binding | stored geometry values in → DXF text out |
+| `generate-sheet-dxf` | the sheet-design `dxf` export binding | the record's stored values (`fields`) in → DXF text out |
 | `construct-sheet` | sheet-design `fromLayout` | one solved layout value in → `{ data: { geometry, parts } }` out (the editor's stored geometry shape; one cassette ref per placement) |
 
 ## Vendored engines
 
 - `vendor/dxf-extractor.js`, `vendor/dxf-writer.js` — the DXF engine
-  behind `extract-geometry`, `import-cassette`, and `generate-sheet-dxf`.
+  behind `extract-geometry` and `generate-sheet-dxf`.
 - `assets/vendor/clipper2/` — the wasm Clipper behind the boolean/fold
   geometry passes (`surfaces/lib/cassetteV2Clipper.js`).
 - `assets/vendor/cad-viewer/` — the profile sketch canvas's CAD engine

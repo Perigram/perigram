@@ -110,7 +110,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
     throw createError({ statusCode: 409, message: 'Plugin already installed' });
   }
   const layer = parseListingOr400(listing);
-  const { types, services, editors, attachmentKinds, conversions, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, requires } = layer;
+  const { types, services, editors, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, requires } = layer;
   assertInstallableDependencies(dependencies);
   // Surface modules target a mount-contract major; an unsupported one
   // refuses at the gate — never a runtime half-mount (SPEC §Plugin
@@ -133,23 +133,6 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
       throw createError({ statusCode: 400, message: `Plugin requires plugin ${requirementId}, which is not installed — install it first` });
     }
   }
-  // Attachment kinds are global upload vocabulary: a kind id another
-  // installed plugin holds is not claimable.
-  const heldKinds = {};
-  for (const install of installedPlugins) {
-    for (const kind of Object.keys(install.declarations?.attachmentKinds || {})) {
-      if (heldKinds[kind]) {
-        throw createError({ statusCode: 400, message: `Attachment kind ${kind} is already claimed — refusing the install` });
-      }
-      heldKinds[kind] = `plugin ${install.pluginId}`;
-    }
-  }
-  for (const kind of Object.keys(attachmentKinds)) {
-    if (heldKinds[kind]) {
-      throw createError({ statusCode: 400, message: `Attachment kind ${kind} is already declared by ${heldKinds[kind]} — plugin attachment kinds must not collide` });
-    }
-  }
-
   // Trial composition on the live org view: every plugin type must define
   // cleanly (no shadowing of system, installed, or org ids) and introduce
   // no compile errors. A refused install touches nothing.
@@ -188,7 +171,7 @@ export async function installFromCatalog({ organizationId, pluginId, endpoints =
     pluginId: String(listing.pluginId),
     name: listing.name || listing.pluginId,
     version: listing.version || '1',
-    declarations: { types, editors, attachmentKinds, conversions, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, previews: layer.previews },
+    declarations: { types, editors, constructions, starterConstructs, dependencies, exports: exportBindings, surfaces, previews: layer.previews },
     services,
     requires,
     endpoints: configuredEndpoints,
@@ -319,9 +302,7 @@ function serializeListing(listing = {}) {
     visibility: listing.visibility === 'private' ? 'private' : 'public',
     types: (listing.declarations?.types || []).map(typeSummary),
     services: (listing.declarations?.services || []).map(serviceSummary),
-    editors: (listing.declarations?.editors || []).map(editor => ({ type: editor.type, surface: editor.surface })),
-    attachmentKinds: Object.keys(listing.declarations?.attachmentKinds || {}),
-    conversions: (listing.declarations?.conversions || []).map(conversion => ({ id: conversion.id, label: conversion.label || conversion.id }))
+    editors: (listing.declarations?.editors || []).map(editor => ({ type: editor.type, surface: editor.surface }))
   };
 }
 
@@ -692,8 +673,8 @@ export async function resolveProjectionValue({ organizationId, commandId, typeId
   });
 }
 
-// Attachment export bindings (installed plugins): the plugin services that
-// generate exportable artifacts for the plugin's own types.
+// Attachment export bindings (installed plugins): the plugin services
+// that generate export files for the plugin's own types.
 export async function exportersForOrganization(organizationId) {
   const installs = organizationId ? await repository.listInstallsByOrganization(organizationId) : [];
   const exporters = [];
@@ -703,30 +684,6 @@ export async function exportersForOrganization(organizationId) {
     }
   }
   return exporters;
-}
-
-// The org's artifact conversion catalog (installed plugins): the listing
-// entries, plugin-owned. The convertArtifact command resolves its catalog
-// through this — no pack code supplies conversions. Bare service refs are
-// qualified to the owning install's command id.
-export async function conversionsForOrganization(organizationId) {
-  const installs = organizationId ? await repository.listInstallsByOrganization(organizationId) : [];
-  const conversions = [];
-  for (const install of installs) {
-    for (const conversion of install.declarations?.conversions || []) {
-      if (conversion?.id && Array.isArray(conversion.sourceKinds) && conversion.target) {
-        conversions.push({
-          ...conversion,
-          ...(conversion.service
-            ? { service: String(conversion.service).includes('.')
-              ? conversion.service
-              : `plugin.${install.pluginId}.${conversion.service}` }
-            : {})
-        });
-      }
-    }
-  }
-  return conversions;
 }
 
 export async function commandDefinitionFor(commandId, auth = {}) {
@@ -890,26 +847,14 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
       });
     }
   }
-  // The upgraded pin's requirements must still hold, and its attachment
-  // kinds must stay claimable — the same laws the install gate enforces,
-  // re-checked against the world as it is now.
+  // The upgraded pin's requirements must still hold — the same law the
+  // install gate enforces, re-checked against the world as it is now.
   const otherInstalls = (await repository.listInstallsByOrganization(organizationId))
     .filter(other => String(other.pluginId) !== String(install.pluginId));
   const installedPluginIds = new Set(otherInstalls.map(other => String(other.pluginId)));
   for (const requirementId of layer.requires) {
     if (!installedPluginIds.has(requirementId)) {
       throw createError({ statusCode: 409, message: `Upgrade requires plugin ${requirementId}, which is not installed` });
-    }
-  }
-  const heldKinds = {};
-  for (const other of otherInstalls) {
-    for (const kind of Object.keys(other.declarations?.attachmentKinds || {})) {
-      heldKinds[kind] = `plugin ${other.pluginId}`;
-    }
-  }
-  for (const kind of Object.keys(layer.attachmentKinds)) {
-    if (heldKinds[kind]) {
-      throw createError({ statusCode: 409, message: `Upgrade declares attachment kind ${kind} already held by ${heldKinds[kind]}` });
     }
   }
   const plan = await buildUpgradePlan(install, listing, organizationId);
@@ -959,8 +904,6 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
     declarations: {
       types: versionedTypes.map(withoutMigrateSteps),
       editors: layer.editors,
-      attachmentKinds: layer.attachmentKinds,
-      conversions: layer.conversions,
       constructions: layer.constructions,
       starterConstructs: layer.starterConstructs,
       dependencies: layer.dependencies,

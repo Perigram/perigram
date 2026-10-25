@@ -1,8 +1,7 @@
 # COMPONENT: Entity Revisions
 
-Stores immutable content snapshots for versioned entity scopes such as cassette
-template geometry, artifact-template layouts, and generated artifact
-layouts.
+Stores immutable content snapshots for versioned entity scopes such as
+cassette geometry and instance payload files.
 
 Parent: [server/features](../README.md).
 
@@ -47,9 +46,6 @@ workflow.
 - Sheet designs declare the same `geometry` scope; the type carries no
 payload, so layout edits persist as field patches and no path writes a
 sheet-design revision.
-- Artifact templates use the `layout` scope for page/item placement and typed
-  variables. Generated artifacts use their own `layout` scope for placed-item
-  edits and values applied to the pinned template revision.
 
 Revisions are immutable after creation; per-source deletion
 (`removeForEntity`) rides the owning feature's cascade. Read access checks

@@ -88,7 +88,7 @@ Import-alias rules are defined in [scripts/README.md](../scripts/README.md).
 
 ## Permission Model
 Access uses feature keys such as `projects`, `queues`, `cassettes`,
-`nesting_runs`, `artifacts`, `warehouses`, `catalogs`, `requisitions`,
+`nesting_runs`, `warehouses`, `catalogs`, `requisitions`,
 `materials`, `layer_standards`, `users`, and `organizations` with levels
 `none`, `read`, `write`, and `admin`.
 

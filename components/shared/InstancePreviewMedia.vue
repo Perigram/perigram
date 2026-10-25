@@ -1,5 +1,5 @@
 <template>
-  <ArtifactViewer
+  <FilePayloadViewer
     v-if="payloadPreview.hasPayload && payloadPreview.renderable"
     :source="{ mode: payloadPreview.mode, fileUrl: payloadPreview.fileUrl, attachment: entity.payload }"
     :variant="'card'"
@@ -14,7 +14,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
+import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import { resolveFilePreview } from '~/components/generated/file-preview-contract.js';
 import { previewSourceValue } from '~/utils/instance-shape.js';

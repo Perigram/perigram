@@ -17,7 +17,7 @@ Parent: [server/features](../README.md).
 `plugin_catalog` holds one listing per `pluginId` —
 `{ pluginId, name, description, version, visibility?, organizations?,
 requires?, declarations: { types, services, editors, surfaces,
-previews, attachmentKinds, conversions, constructions, exports } }`.
+previews, constructions, exports } }`.
 Publishing is platform-operator-only. A listing may be
 `visibility: 'private'` with owning `organizations` ids — the catalog
 route serves it only to members of those orgs (the operator scopes
@@ -50,8 +50,8 @@ core: the route wrapper only adds caller authority, `endpoints`/
 validation, and the deployment's built-in plugins install through the
 seed scripts ([server/scripts/README.md](../../scripts/README.md))
 writing the same record shape directly. The snapshot carries the full
-declaration layer — types, editors, surfaces, previews, attachment
-kinds, conversions, constructions, starter constructs, exports.
+declaration layer — types, editors, surfaces, previews, constructions,
+starter constructs, exports.
 
 Installs and uninstalls invalidate the instance-declaration cache,
 re-derive instance indexes, and publish the org contract-change event
@@ -70,10 +70,13 @@ invalidation. `constructions` binds the plugin's own types'
 construction modes to plugin services (the instance machinery
 dispatches them, see [instances](../instances/README.md)); `exports`
 binds attachment exports — the `(typeId, kind) → service` pairs are
-the whole export truth: `generateAttachment` resolves a binding only by
-exact `(sourceType, kind)` match, and the hydration payload carries the
-bindings (`process.exports`) so the surfaces derive export affordances
-with no authored action nodes (SPEC §21).
+the whole export truth: the `generateAttachment` command
+([operations](./operations.js)) resolves a binding only by exact
+`(sourceType, kind)` match, stores the exported file in the `files`
+GridFS bucket, gates the run on write access to the source instance,
+and returns the stored file reference; the hydration payload carries
+the bindings (`process.exports`) so the surfaces derive export
+affordances with no authored action nodes (SPEC §21).
 Installed construction contracts merge into the projected domain's
 construction table (`projectedDomainsForOrganization`).
 
@@ -176,7 +179,7 @@ the install's endpoint origin server-side (`fetchSurfaceModule` here;
 GET only, paths resolve strictly under the origin, `..` refused).
 Access mirrors the served type view: any member of an organization
 holding the install. Module responses are `no-store`: they are live
-executor artifacts, and an executor update must reach the next browser
+executor assets, and an executor update must reach the next browser
 load ahead of the app-wide stale-while-revalidate rule. A JS module's
 declared dependencies resolve to the
 plugin's own vendor scope: bare specifiers naming a declared dependency

@@ -17,11 +17,10 @@ Parent: [server](../README.md).
 
 ## Registered Bindings
 
-- Five framework entity services (`organization`, `user`, `artifact`,
+- Four framework entity services (`organization`, `user`,
   `process_definition`, `entity_revision`), each with explicit
   `processList`/`processGetById` bindings, `processCapabilities`, and
-  construction handlers (`artifact` keeps the `uploadArtifact` typed
-  constructor). The party services' process bindings speak the §3 wire
+  construction handlers. The party services' process bindings speak the §3 wire
   shape with their own membership read gates and the derived user rows
   (`roles` from the org's assignments, `bot`, `avatarUrl`;
   `party-wire.js` — the single party translation home);
@@ -37,9 +36,10 @@ Parent: [server](../README.md).
   documents are stored in the CTS §3 shape (flat `fields`, the flat
   `state` string, `name`); the service boundary owns the §3 ⇄
   wire-DTO (block vocabulary) mapping for screens and compiled contracts.
-- Framework command handlers (`generateAttachment`, `convertArtifact`);
-  plugin value services execute as `plugin.<pluginId>.<serviceId>` commands
-  through the connector path.
+- The framework export command (`generateAttachment` —
+  [plugins](../features/plugins/README.md) owns the handler and the
+  export-binding contract); plugin value services execute as
+  `plugin.<pluginId>.<serviceId>` commands through the connector path.
 - The framework domain (`defineDomain`) declares the framework command,
   task, and event tables; the framework task table is empty today
   (`frameworkTaskDefinitions = {}`), and task contracts arrive at enqueue

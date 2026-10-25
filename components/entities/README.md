@@ -9,7 +9,7 @@ Parent: [components/README.md](../README.md).
 
 `utils/design-system-contract.js` is the vocabulary source:
 `DESIGN_SYSTEM_ENTITY_CONTRACTS` (key, wire `typeId`, `labelKey`, field
-groups, surfaces, factory) plus the field-group and surface tables.
+groups, surfaces, factory) plus the surface tables.
 `utils/design-system-cards.js` is the one card-component binding
 (`DESIGN_SYSTEM_CARD_COMPONENTS`); `utils/design-system.js` composes it
 with the DTO factories into the registry (`DESIGN_SYSTEM_ENTITIES`).
@@ -21,10 +21,7 @@ by both wire `typeId` and surface `key` — both are live vocabularies; the
 label seams resolve `labelKey` through it.
 
 Adding or renaming a card updates the contract, the binding, and the DTO
-factory; the UI lab and the manifest follow from those. The residual fact
-vocabulary (`DESIGN_SYSTEM_FIELD_GROUPS`) serves `artifact_template`
-only; every other type carries its fact vocabulary as field descriptors
-on its declaration. Field groups define display semantics; field access
+factory; the UI lab and the manifest follow from those. Field groups define display semantics; field access
 stays the security boundary — app-layer field groups and surface
 overrides need their DTO paths declared in the field-access policy.
 
@@ -75,8 +72,6 @@ overrides need their DTO paths declared in the field-access policy.
 | `layerStandard` — `LayerStandardCard` | Master data: layer code, purpose, and default pen; status and trace hidden. Drawing surfaces reference layer standards through this card. | registry; `DrawingCanvas` |
 | `user` — `UserCard` | Identity/contact and permission-related facts; status and trace hidden — permission changes stay on the admin page endpoints. The inline variant serves status-history actor rows; the avatar stays compact there so audit rows stay dense. Record popup: the directory profile ([DirectoryDetailSurface](../directory/README.md)). | registry; `InstanceInlineRef`; directory popup |
 | `organization` — `OrganizationCard` | Identity and contact/role facts; status and trace hidden. `context`/`actions` slots carry membership state and caller-owned navigation as visible footer actions. Profile renders one action per membership opening that organization's pane: the active organization's pane is its generated overview (billing, team, and process screens are children of that overview); an inactive organization's pane is the directory profile carrying the switch action. Record popup: the directory profile ([DirectoryDetailSurface](../directory/README.md)). | registry; `InstanceInlineRef`; directory popup |
-| `artifact` — `ArtifactCard` | File records (DXF, SVG, PDF, nesting reports): expects `identity`, `lineage`, `attachments`, and `data.type`; status hidden — file lifecycle is a workflow concern. Queue ancestry rides the shared trace chrome through `lineage.queueId`; nesting-run context renders through `InstanceInlineRef`. The card may own a preview click action and disables `InstanceCard` expansion for it. Artifact records carry no compiled detail surface: the framework pack declares the type into every served view as machinery, and process authoring grants framework types no stations — the card preview and the artifact viewer registry cover inspection, file operations ride the artifact API surfaces. | registry; `InstanceInlineRef` |
-| `artifactTemplate` — `ArtifactTemplateCard` | Inline-ref surface: identity/chrome delegated to `InstanceCard`, DTO-backed fields to `InstanceSurfaceContent`; footer actions come from the hosting surface. Revision provenance belongs to the [artifact-templates feature](../../server/features/artifact-templates/README.md). | registry; `InstanceInlineRef` |
 
 ## Validation
 
@@ -93,8 +88,7 @@ npm run framework:manifest
 
 - [Shared UI components](../shared/README.md) — `InstanceCard`, `InstanceInlineRef`, `DrawingCanvas`
 - [Directory surfaces](../directory/README.md) — record popups for user/organization
-- [Artifact viewers](../artifacts/README.md)
 - [Visual tokens](../../assets/tokens/README.md)
 - [DTO factories](../../test-data/README.md)
 - [Facade plugin](../../workers/facade/README.md)
-- Server contracts: [instance revisions](../../server/features/instance-revisions/README.md), [artifacts](../../server/features/artifacts/README.md), [artifact templates](../../server/features/artifact-templates/README.md), [organizations](../../server/features/organizations/README.md), [users](../../server/features/users/README.md), [instances](../../server/features/instances/README.md)
+- Server contracts: [instance revisions](../../server/features/instance-revisions/README.md), [organizations](../../server/features/organizations/README.md), [users](../../server/features/users/README.md), [instances](../../server/features/instances/README.md)

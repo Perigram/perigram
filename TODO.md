@@ -235,12 +235,63 @@ status rules per AGENTS.md.
 
 ## Artifact-family cutover to file instances
 
-- [ ] Retire the artifact family: the `artifacts`, `artifact-templates`,
+- [x] Retire the artifact family: the `artifacts`, `artifact-templates`,
   `artifact-conversions` features, the artifact entity UI, and their
   routes/specs. `artifact` is legacy vocabulary and dies. What chat
   operates on after the cutover is the implementing agent's decision;
   CTS types with payload traits and the upload creation protocol are
   the seams. User-plane UX must not degrade.
+  Landed 2026-10-25 (session `agent/artifact-cutover-20261025-1655`,
+  worktree `.agent-worktrees/cutover`): the three features, their API
+  routes, ArtifactCard/ArtifactTemplateCard, the ArtifactViewer
+  artifact-entity branch (the component lives on as
+  `components/shared/FilePayloadViewer.vue`, both mounts pass `source`
+  only), `shared/attachment-kinds.js`, `utils/artifact-ui.js`, and
+  `utils/artifact-viewer.js` deleted with their specs; the `artifact`
+  framework type left `packages/cts/src/pack/framework.js`;
+  `generateAttachment` moved to
+  `server/features/plugins/operations.js` (binding-resolved export into
+  the `files` bucket, write-gated on the source instance, result
+  carries the file reference — the artifact record and template/value
+  inputs died); the `convertArtifact` command, its REST route, and the
+  listing `attachmentKinds`/`conversions` grammar (SDK parser, schema,
+  install/upgrade gates) deleted; facade listing v18 drops the
+  conversion service, renames the export kind `LAYOUT_DXF` → `dxf`,
+  and `generateSheetDxf` reads the §3 values shape (`fields`); chat
+  creator-only sources generalize to any payload-protocol creator type
+  (support/service.js); stored data migrates through
+  `server/scripts/migrate-artifact-family-retirement.js`.
+  Validation: unit suites green (2096 tests; three pre-existing
+  failures at HEAD: ui-mapping-random, agent-tooling-loop activation
+  gate, invitations string-org ids), check-arch green, SSR smoke green,
+  manifest regenerated. check-docs carries three filed links (below).
+
+- [ ] WAITING — owner verification: UX parity on the live stack (chat
+  attachments incl. instance-chat materialization, camera capture,
+  uploads, sheet-design DXF export) and the post-merge e2e run
+  (`e2e/chat-file-upload.spec.js`, `e2e/process-generated-screen.spec.js`,
+  `e2e/order-process.spec.js`, `e2e/cassette-designer-3d.spec.js`,
+  `e2e/definitions-pane.spec.js`, `e2e/invitation-page.spec.js`).
+
+- Owner edits wanted (SPEC law links dead with the family; SPEC files
+  are agent-untouchable):
+  - `components/SPEC.md:86` links the deleted `./artifacts/README.md`
+    (L14 prose names the folder beside it) — drop the row and the word.
+  - `shared/SPEC.md:99` lists the deleted `attachment-kinds.js` as a
+    support contract — drop the line (payload traits own the
+    vocabulary, per CTS SPEC §4).
+  - SPEC §20's delivered-state paragraph (2026-10-10) names listing
+    `attachmentKinds` and `conversions` as delivered grammar; this
+    cutover retired both keys (payload traits are the upload contract,
+    conversions died with the artifact family). Reconcile §20 when
+    convenient.
+  - `server/core/effects/service.js` keeps the `artifact` effect type
+    (named in `server/core/SPEC.md`); post-cutover it has zero
+    emitters — delete the branch with a SPEC touch, or keep.
+  - `server/features/support/SPEC.md:73` still names `artifact` beside
+    `user` as concrete option loaders; the loader set is `user` only.
+  - `workers/nesting/README.md` links a missing `./jagua-rs/README.md`
+    — pre-existing at HEAD, unrelated to this cut.
 
 Session reads before any code: AGENTS.md; [SPEC](./SPEC.md) §4 (Files),
 §13 (Server), §20 (Plugin marketplace — attachments/exports as
@@ -256,6 +307,44 @@ seams that survive (generateAttachment, attachment kinds) either ride
 the declared vocabulary or carry a filed migration item; guards green
 (framework suites, check-arch, check-docs, SSR smoke) and e2e green
 against a running stack; owner verifies UX parity on the live stack.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/artifact-cutover-20261025-1655` (worktree
+`.agent-worktrees/cutover`). Design: chat attachments keep their two
+declared paths (common/party chats store plain GridFS descriptors in
+the `files` bucket; instance chats materialize each file as the
+accepting declared child type through the upload creation protocol —
+both pre-existing and untouched); the chat create-and-attach affordance
+generalized from the artifact special-case to every payload-protocol
+creator type; proof attachments were already plain lifecycle refs and
+needed nothing. Exports: `generateAttachment` survives under its SPEC
+§21 name with plugin-owned internals — no artifact record, file lands
+in the `files` bucket, command result carries
+`{ kind, fileId, name, mimeType }`; the derived export surface's
+duplicate write-gate collapsed into the handler (one gate home).
+Attachment-kind vocabulary: `domain.attachmentKinds` (the payload-trait
+projection keyed by type id) is the surviving table; the framework kind
+list and listing-level kind declarations died. The two components/TODO
+cutover-owned boxes closed (ArtifactViewer branch, artifact_template
+UI). Framework manifest regenerated. Remaining artifact-family strings
+in code: the SPEC files above (filed), `server/core/effects`'s
+`artifact` effect branch (filed), the migration script, and English
+"artifact" in e2e test-output comments.
+
+### Agent Notes (2026-10-25, cutover review)
+
+Review pass on the branch: unit suite base→branch is 4 failed/2131
+passed at 713aa2396 → 3 failed/2096 passed (the fourth,
+shared/process-designer-localization, fixed by the cutover — mechanism
+in shared/TODO.md); no new failures. Baseline finding for this ledger:
+test-data/ui-mapping-random.spec.js "produce instance values that
+conform to their descriptors (CTS checkValue)" fails pre-existing at
+713aa2396. Review fixes on the branch: e2e invitation-page
+`waitForLoadState` typo, `artifact` in the check-arch entity-name
+allowlist, `queue.confirmDeleteRun` artifact copy (en+ru), a `LAYOUT_DXF`
+enum string in the processes availability spec, and the core README
+AttachmentKind row.
 
 ## File-template fill flows (SPEC §24)
 
@@ -294,8 +383,9 @@ against a running stack; owner verifies UX parity on the live stack.
   workbook ref + rows/values in, filled workbook payload out); md fill
   rides the same service shape.
 - [ ] PDF render service (md/xlsx/dxf → PDF) on the same seam; the
-  artifact-templates pdfjs/pdf-lib parse-render engines donate to the
-  owning plugin at the artifact-family cutover.
+  parse-render engines are recoverable from git history
+  (`server/features/artifact-templates/format.js` at 713aa2396,
+  retired by the artifact-family cutover).
 - [ ] DXF spot placement service (template DXF + referenced DXF payloads →
   composed DXF); the facade nesting → construct-sheet → export flow is the
   reference geometry path.

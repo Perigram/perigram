@@ -16,7 +16,9 @@
 
 ### Owner decisions wanted
 
-- [ ] None open for this folder.
+- [ ] SPEC.md L73 still names `artifact` beside `user` as concrete
+  option loaders; the loader set is `user` only since the artifact
+  cutover (root TODO.md, 2026-10-25) — owner edits the SPEC row.
 
 - [ ] WAITING — owner verification: read README.md rewrite (450→428);
   loader paragraph corrected to code, masonry narration moved to

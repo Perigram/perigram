@@ -222,11 +222,17 @@
   CassetteDesignerV2 block, CassetteEditorDialog, and the Remnant/
   GeometryCapture family sections are gone; plugin-owned designer surfaces
   link workers/facade.
-- [ ] components/artifacts/ArtifactViewer.vue:55-91 (`artifact`/`revision`
+- [x] components/artifacts/ArtifactViewer.vue:55-91 (`artifact`/`revision`
   props, artifact-entity branch) + utils/artifact-viewer.js artifact path +
   artifact-viewer.spec.js: sole consumer of the branch is the spec; both
   live mounts pass `:source=` only. Deletion lands with the
   artifact-family cutover (root TODO.md; decided 2026-10-25).
+  Landed 2026-10-25 (artifact-family cutover): the artifact-entity
+  branch, `utils/artifact-viewer.js`, and the spec deleted; the
+  surviving `source`-prop viewer lives on as
+  `components/shared/FilePayloadViewer.vue` (`InstancePreviewMedia` and
+  `PreviewBox` repointed); `components/artifacts/` and its README are
+  gone.
 - [x] Delete entities/{Artifact,ArtifactTemplate,EntityRevision,LayerStandard,Organization,PenTemplate,User}/README.md
   after the fold into entities/README.md.
   Landed 2026-10-25: verified — all seven entity dirs hold only their card
@@ -249,6 +255,9 @@
 - [x] artifact_template UI: with pages/assets deleted the card is inline-ref-only;
   keep as revision-provenance surface or retire the family with Phase 7?
   decided 2026-10-25: retires with the artifact-family cutover (root TODO.md).
+  Landed 2026-10-25: `ArtifactTemplateCard.vue`, the design-system
+  contract row, the residual `DESIGN_SYSTEM_FIELD_GROUPS` map (now
+  empty), and the factories deleted with the cutover.
 - type-designer/: own README, or fold its contract into
   components/process-designer/README.md (its consumer)?
 - [x] Type-label seam home: shared/ or utils/?
@@ -295,3 +304,13 @@ comment trims (GeneratedMappingScreen, BoardCollection, CallPanel).
 Bookkeeping verified: parent-README stale families, entities child READMEs,
 process-designer parent link. OPEN: type-designer README home (owner
 decision), ArtifactViewer/artifact_template (cutover-owned).
+
+### Agent Notes (2026-10-25, artifact cutover)
+
+Session `agent/artifact-cutover-20261025-1655`. Cutover-owned boxes
+closed: ArtifactViewer artifact/revision branch + artifact-viewer.js +
+spec deleted (survivor: `components/shared/FilePayloadViewer.vue`,
+`i18n` key `file.previewUnavailable`); artifact_template family deleted
+(card, contract row, factories, residual field-group map emptied).
+Parent README inventory row for `artifacts/` dropped; `components/SPEC.md`
+still links the folder — filed in the root TODO for the owner.
