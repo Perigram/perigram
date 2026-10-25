@@ -199,7 +199,7 @@ function toDto(doc) {
 // Payload reference (SPEC §3/§4): the wire payload slot, validated
 // against the type's declared payload traits at construct; mime/size
 // checks run on the values the reference carries.
-function payloadFromWire(draft = {}, declaration = {}) {
+export function payloadFromWire(draft = {}, declaration = {}) {
   const reference = draft.payload || null;
   if (!reference) return null;
   const traits = declaration.payload;

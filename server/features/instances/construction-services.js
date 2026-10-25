@@ -43,7 +43,7 @@ export function serviceBackedConstruction(typeId, mode) {
     const merged = await applyConstructionService(typeId, mode, draft, context);
     const { instanceServiceResolver } = await import('./service.js');
     const service = instanceServiceResolver(typeId);
-    if (mode === 'upload' || mode === 'capture') {
+    if (merged.payload || mode === 'upload' || mode === 'capture') {
       return await service.createWithPayloadProtocol(merged, context, mode);
     }
     return await service.create(merged, context.userId, context.organizationId);
@@ -69,9 +69,50 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
     throw createError({ statusCode: 502, message: `Construction service ${serviceRef} returned no object output` });
   }
   const data = output.data && typeof output.data === 'object' && !Array.isArray(output.data) ? output.data : {};
-  // The executor's computed rows land in the draft's FIELDS — the declared
-  // home the projection and the wire read (fields.geometry et al).
-  return { ...draft, fields: { ...(draft.fields || {}), ...data } };
+  const merged = { ...draft, fields: { ...(draft.fields || {}), ...data } };
+  const file = executorPayloadFile(serviceRef, output.payload);
+  if (!file) return merged;
+  return { ...merged, payload: await storeExecutorPayload(typeId, draft, file, context, organizationId) };
+}
+
+// Executor payload contract (SPEC §24): { base64, mime, name? } — the
+// filled file the created instance stores.
+function executorPayloadFile(serviceRef, raw) {
+  if (raw == null) return null;
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    throw createError({ statusCode: 502, message: `Construction service ${serviceRef} returned a malformed payload` });
+  }
+  const { base64, mime, name } = raw;
+  if (typeof base64 !== 'string' || typeof mime !== 'string' || !mime) {
+    throw createError({ statusCode: 502, message: `Construction service ${serviceRef} payload requires base64 and mime` });
+  }
+  const normalized = base64.replace(/\s+/g, '');
+  const buffer = Buffer.from(normalized, 'base64');
+  if (!buffer.length || buffer.toString('base64') !== normalized) {
+    throw createError({ statusCode: 502, message: `Construction service ${serviceRef} payload base64 does not decode` });
+  }
+  return { buffer, mime, name: typeof name === 'string' && name ? name : null };
+}
+
+async function storeExecutorPayload(typeId, draft, file, context, organizationId) {
+  const { declarationForType, payloadFromWire } = await import('./service.js');
+  const declaration = await declarationForType(typeId, organizationId);
+  const extension = [].concat(declaration?.payload?.accept || []).find(entry => String(entry).startsWith('.')) || '';
+  const filename = file.name || `${draft.name || typeId}${extension}`;
+  const stored = await filesService.uploadFile(file.buffer, filename, {
+    userId: context.userId,
+    organizationId,
+    type: typeId
+  }, 'files');
+  try {
+    return payloadFromWire(
+      { payload: { fileId: stored.id, mime: file.mime, size: file.buffer.length, name: filename } },
+      declaration
+    );
+  } catch (error) {
+    await filesService.deleteFile(stored.id, 'files').catch(() => {});
+    throw error;
+  }
 }
 
 function serviceAuth(context = {}) {
