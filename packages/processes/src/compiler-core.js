@@ -16,6 +16,7 @@ import {
 } from './ports.js';
 import { CONSUMER_SPECIES_KINDS, constructionInputsForContract, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { normalizeStateFieldPolicy } from './designer.js';
+import { normalizeDesignerAccess } from './authoring.js';
 import { projectUiAction, projectUiContractChannels } from './ui-contract-projection.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
@@ -952,8 +953,34 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
   }
 
   warnings.push(...unreachableNodeDiagnostics(process));
+  warnings.push(...unlanedManualEffectDiagnostics(process));
 
   return { ok: errors.length === 0, errors, warnings, diagnostics, definition: process };
+}
+
+// A manual effect with no lane grant compiles an action no role can see
+// or run; the event-triggered effects execute through the orchestration
+// and carry no surface to lose. Surfaced as a warning — a draft may hold
+// an effect the org has deliberately offered to no one yet.
+function unlanedManualEffectDiagnostics(process = {}) {
+  const recordsByGraphId = new Map((process.graph?.nodes || [])
+    .filter(node => node.type === 'processNode')
+    .map(node => [String(node.id), process.processNodes?.[String(node.data?.refId || node.id)]]));
+  const eventTriggered = new Set();
+  for (const edge of process.graph?.edges || []) {
+    const handle = String(edge.targetHandle || '');
+    if (handle.endsWith(':in') && recordsByGraphId.has(String(edge.target))) {
+      eventTriggered.add(String(edge.target));
+    }
+  }
+  const warnings = [];
+  for (const [nodeId, record] of recordsByGraphId) {
+    if (getProcessNodeDefinition(String(record?.kind || ''))?.family !== 'effects') continue;
+    if (eventTriggered.has(nodeId)) continue;
+    if ((normalizeDesignerAccess(record.access).grants || []).length) continue;
+    warnings.push(`Process node ${nodeId} (${humanizedKindLabel(record?.kind)}) has no role grant — no role can see or run its action`);
+  }
+  return warnings;
 }
 
 // Pure/read subgraphs stay valid on purpose; this reports the nodes whose

@@ -111,9 +111,20 @@ const AUTHORING_GUIDE = [
     "- {op:'connect', id, fromPort, to, toPort} — id is the FROM node; ports are socket HANDLES: data:<socketId> for data sockets, control:<socketId> for control. Bare socket ids and the retired input:/output: spellings refuse;",
     "- {op:'disconnect', id, fromPort, to, toPort} — removes the data wire those handles name;",
     "- {op:'removeNode', id} — removes a node: its record, its wires, and the producer outputs it anchored;",
+    '## A worked example (every law above, one flow)',
+    "Fill a markdown template into a text-document — steps exactly as composed:",
+    "[{op:'declareTypeRef', id:'tdoc', typeId:'text-document'},",
+    " {op:'drop', item:'literal', id:'project'}, {op:'configure', id:'project', values:{value:'Demo Facade'}},",
+    " {op:'drop', item:'constructRecord', id:'rec'}, {op:'configure', id:'rec', values:{fields:['project']}},",
+    " {op:'drop', item:'formatValue', id:'fmt'}, {op:'configure', id:'fmt', values:{template:'Pass for {project}', outputType:{base:'string', nullable:false}}},",
+    " {op:'drop', item:'construct', id:'fill'}, {op:'wireDeclaration', from:'tdoc', to:'fill', role:'binds'},",
+    " {op:'configure', id:'fill', values:{construction:{mode:'content'}, access:{grants:[{roleId:'<a roles-list id>', level:'write'}]}}},",
+    " {op:'connect', id:'project', fromPort:'data:value', to:'rec', toPort:'data:project'},",
+    " {op:'connect', id:'rec', fromPort:'data:record', to:'fmt', toPort:'data:record'},",
+    " {op:'connect', id:'fmt', fromPort:'data:value', to:'fill', toPort:'data:content'}] — then validate, apply_declarations, activate.",
     '## The loop',
     'The first illegal gesture fails with the gate message — read it, fix, retry. When intent maps to several authoring shapes (which class law, where it parents, which children move), ask_user: shape belongs to the room.',
-    '1. compose_process_definition (or get_process_definition digest + edit_process_definition — same gestures, small payloads, no graph echo-back).',
+    '1. compose_process_definition (or get_process_definition digest + edit_process_definition — same gestures, small payloads, no graph echo-back). Digest rows carry each node\'s socket handles — connect against them.',
     '2. validate_process_definition: its anchored diagnostics name exactly what to fix.',
     '3. In-tree declarations MUST be posted into the registry with apply_declarations before activation — validation overlays the draft, the activation compile resolves the registry.',
     '4. activate_process_definition: activation gates (migration plan, type death) are confirmations to resolve, never bypass — status migration targets are declared with declare_status_mappings (one mapping per plan row), type death with confirmTypeDeath.',
@@ -163,7 +174,15 @@ function definitionDigest(row) {
     const nodes = (data.graph?.nodes || []).map(node => {
         if (node?.type === 'processNode') {
             const record = records[node.data?.refId] || {};
-            return { id: node.id, kind: record.kind ?? null, typeId: record.typeId ?? null };
+            return {
+                id: node.id,
+                kind: record.kind ?? null,
+                typeId: record.typeId ?? null,
+                sockets: [
+                    ...(record.inputs || []).map(port => `${port.role === 'data' ? 'data' : 'control'}:${port.id}`),
+                    ...(record.outputs || []).map(port => `${port.role === 'data' ? 'data' : 'control'}:${port.id}`)
+                ]
+            };
         }
         const declaration = (data.ctsTypes || {})[node?.data?.refId] || {};
         return { id: node.id, declaration: node?.type ?? null, typeId: declaration.typeId ?? null, name: declaration.name ?? null };
@@ -216,7 +235,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'get_process_definition',
-        description: 'Loads one definition as a COMPACT DIGEST by default — node ids/kinds/typeIds, edges with socket ids, value-input keys — the addresses edit gestures and diagnostics use. full: true returns the whole authored document instead (large; only needed for whole-document replaces through update_process_definition).',
+        description: 'Loads one definition as a COMPACT DIGEST by default — node ids/kinds/typeIds with their socket handles, edges with socket ids, value-input keys — the addresses edit gestures and diagnostics use. full: true returns the whole authored document instead (large; only needed for whole-document replaces through update_process_definition).',
         inputSchema: {
             type: 'object',
             properties: { definitionId: { type: 'string' }, full: { type: 'boolean' } },

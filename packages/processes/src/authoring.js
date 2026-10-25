@@ -875,7 +875,10 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     const sourcePort = portOf(source, sourcePortId, 'output');
     const targetPort = portOf(target, targetPortId, 'input');
     if (!sourcePort || !targetPort) {
-      throw new Error(`Unknown port ${!sourcePort ? `${sourceId}:${sourcePortId}` : `${targetId}:${targetPortId}`}`);
+      const socketsOf = (record, direction) => sync.catalogPorts(record)[direction]
+        .map(port => `${port.role === 'data' ? 'data' : 'control'}:${port.id}`)
+        .join(', ') || '(none)';
+      throw new Error(`Unknown port ${!sourcePort ? `${sourceId}:${sourcePortId}` : `${targetId}:${targetPortId}`} — ${sourceId} outputs: ${socketsOf(source, 'outputs')}; ${targetId} inputs: ${socketsOf(target, 'inputs')}`);
     }
     for (const [nodeId, portId, port] of [[sourceId, sourcePortId, sourcePort], [targetId, targetPortId, targetPort]]) {
       const plane = port.role === 'data' ? 'data' : 'control';
