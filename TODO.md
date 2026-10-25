@@ -273,6 +273,69 @@ status rules per AGENTS.md.
   `e2e/order-process.spec.js`, `e2e/cassette-designer-3d.spec.js`,
   `e2e/definitions-pane.spec.js`, `e2e/invitation-page.spec.js`).
 
+#### Agent Notes (2026-10-25, e2e repair session `agent/e2e-repair-20261025-1908`)
+
+Ran the WAITING post-merge e2e list from the `e2efix` worktree against
+the live stack. Findings and repairs:
+
+- `753568f99` (default-plugins mechanism deleted) broke every spec that
+  reads pack/plugin types without installing them — the failures
+  surfaced as 404 `no instance service` / activation `unknown type`,
+  silently, for 8 days. Fixed by porting the `installPlugins` /
+  `connectPlugin` fixture helpers into `e2e/fixtures.js` (idempotent)
+  and installing explicitly per spec: process-generated-screen,
+  cassette-designer-3d, cassette-designer-parameters, home-calls,
+  home-workspace-restore, md-editor-repair, order-process,
+  process-designer-boot/getfield/placement, cassette-profile-editor.
+  The install contract is now stated in `e2e/README.md` (Coverage).
+- `e2e/chat-file-upload.spec.js` root cause: the §3 wire flattening
+  (`51f1504af`, 2026-10-11) missed the support feature's materialization
+  consumer — `materializeInstanceAttachments` still wrote the retired
+  `identity: { name }` draft shape and read `created?.identity?.name`,
+  so every materialized chat file child was created unnamed (verified
+  live: ref snapshot `name: null`). The chip read "Unnamed", the spec's
+  click landed on the inbox preview, and the record popup assertion
+  timed out. Fixed to speak the §3 wire (`name`; support unit spec
+  updated). The spec's retired `attachments.primary` read was updated
+  to `payload` (instances README: the wire DTO is the stored §3
+  document verbatim). The e2e goes green once the fix reaches the
+  served checkout — the dev stack mounts the primary, which this
+  session must not modify.
+- `e2e/order-process.spec.js` was broken at import since the
+  tech-drawing pack retirement (`fd9473d0c`) — it still imported the
+  deleted `packages/tech-drawing`. Also fixed: the pairs join read the
+  retired `identity.name` right key (now the wire `name` slot; the
+  template cassette is named through the rename-channel PATCH —
+  editor-protocol creates prompt no rows), and the designs' assertions
+  moved to row-derived bounds + §3 provenance sources: the graph-wired
+  construct Name input is retired law (`rewriteRetiredWirePaths` drops
+  `data:name` edges into constructs), so baked designs are unnamed by
+  design and carry their template ref in `provenance.sources`.
+- `e2e/md-fresh-org.spec.js` deleted: its premise (a brand-new org's
+  manifest carries the pack's starter screen) is unreachable through
+  the public API since `753568f99` — starter constructs compose only
+  when the initial process is created after the plugin install, and
+  installs no longer happen at org creation. SPEC §Documents' "visible
+  by default" owner direction (2026-10-14) predates that deletion and
+  needs an owner reconciliation; `server/scripts/station-documents-types.js`
+  remains the repair path for existing orgs. The editor round-trip it
+  also covered is duplicated by `md-editor-repair.spec.js`.
+- Spec-drift repairs against current contracts: process-generated-screen's
+  inline edit drives the per-field pencil (record edit mode retired
+  `3d784ce8f`); generated-state-surface seeds positioned canvas nodes
+  (save-time graph integrity floor `c19295055`) and expects the
+  attributed-rename audit step; md-editor-repair's dialogs fill the
+  prompted identifier row and open the csv editor through the `Edit`
+  action; cassette-designer-parameters' fold-edge test dismisses the
+  profile picker and draws a rectangle (the Closed shape tool is gone).
+- LiveKit 502 tolerance in `e2e/fixtures.js`: the dev stack's env points
+  the media plane at the owner's remote deployment whose credentials
+  currently 401 (ListRooms), so `/api/livekit/active-rooms` serves 502
+  by design (livekit README) and every sidebar-loading spec's
+  `expectCleanRuntime` failed suite-wide. The fixture tolerates exactly
+  that route's 502. Fix the stale credentials (or recreate the app
+  container with local dev keys) and the tolerance stays harmless.
+
 - Owner edits wanted (SPEC law links dead with the family; SPEC files
   are agent-untouchable):
   - `components/SPEC.md:86` links the deleted `./artifacts/README.md`
