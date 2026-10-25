@@ -100,8 +100,9 @@ whose preview slots mount the bound preview surface, one per type),
 declared plugin service as the executor, bare or plugin-qualified),
 `constructions` (the plugin's types' construction modes bound to plugin
 services — the platform resolves ref inputs and payloads as base64
-values and merges the returned fields before creating the record
-generically), `starterConstructs` (`[{ typeId, construction }]` —
+values; the executor returns `data` fields and may return `payload:
+{ base64, mime, name? }`, which becomes the created record's
+payload), `starterConstructs` (`[{ typeId, construction }]` —
 constructs the plugin stations into every installing organization's
 initial process: the plugin's own file type, a declared mode, one per
 type), `dependencies` (declared runtime dependencies:
