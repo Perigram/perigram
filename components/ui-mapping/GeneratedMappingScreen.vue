@@ -1,5 +1,5 @@
 <template>
-  <div :class="LAYOUT.stack">
+  <div ref="root" :class="LAYOUT.stack">
     <RegionChildren
       :regions="composed.regions"
       :arrangement="composed.regionsArrangement"
@@ -86,6 +86,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
 import { withinRelationDomain } from '#shared/relation-domain.js';
+import { provideDefaultContainerTraits } from '~/composables/useContainerTraits.js';
 import RegionChildren from './RegionChildren.vue';
 import InstancePicker from './InstancePicker.vue';
 import FieldControl from './FieldControl.vue';
@@ -187,6 +188,11 @@ async function executeTransition(payload = {}) {
   await props.onTransition(payload);
 }
 const emit = defineEmits(['instance-mounted']);
+// The routed host measures itself and declares the page record — the
+// providerless default; a pane or popup host that already declared its
+// record stays authoritative.
+const root = ref(null);
+provideDefaultContainerTraits({ hostKind: 'page', elRef: root });
 // The routed detail instance (org-authored CTS detail routes have no legacy
 // overload): the conversation rail and the transition watcher resolve the
 // same composed non-list region.

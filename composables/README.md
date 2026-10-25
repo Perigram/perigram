@@ -128,10 +128,15 @@ host resize; arrangement fragments (the peer-column engagement in
 they render. `provideContainerTraits({ hostKind, elRef? })` is the host
 side: measuring hosts (the workspace pane) observe their own box,
 fixed-shape hosts (the record popup) provide the profile alone.
-`useHostContainerTraits()` resolves the host record in any surface — the
-page profile is the providerless default — and budgets consume it (compact
-table columns in `narrow`/`medium` hosts, compact card facts in `narrow`
-ones).
+`provideDefaultContainerTraits(...)` is the routed surface's declaration:
+it provides the measured page record only when no host declared its own,
+so a pane or popup host stays authoritative.
+`providePlacementContainer(elRef)` is the placement box (a record side
+column, a peer-column track): its own measured width is the truth while
+height/scroll/density inherit the host record it renders in.
+`useHostContainerTraits()` resolves the nearest record — the page profile
+is the providerless default — and budgets consume it (compact table
+columns in `narrow`/`medium` boxes, compact card facts in `narrow` ones).
 
 ## useStateController
 

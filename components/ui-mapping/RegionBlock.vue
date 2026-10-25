@@ -131,27 +131,21 @@
         @refresh="emit('refresh')"
         @open-instance="emitOpen"
       />
-      <div v-if="splitSide" class="region-split-host">
-        <div
-          class="region-split grid w-full grid-cols-1 gap-6"
-          :style="splitTracks"
-        >
-          <div class="min-w-0 flex flex-col gap-6">
-            <SurfaceBody
-              v-bind="bodyProps"
-              variant="full"
-              :editable="patchable"
-              v-on="bodyEvents"
-            />
-          </div>
-          <div class="min-w-0 flex flex-col gap-6">
-            <RegionChildren
-              v-bind="childrenProps"
-              v-on="childrenEvents"
-              :arrangement="{ mode: 'stack' }"
-            />
-          </div>
+      <div v-if="splitSide" class="region-split grid w-full grid-cols-1 gap-6" :style="splitTracks">
+        <div class="min-w-0 flex flex-col gap-6">
+          <SurfaceBody
+            v-bind="bodyProps"
+            variant="full"
+            :editable="patchable"
+            v-on="bodyEvents"
+          />
         </div>
+        <PlacementBox>
+          <RegionChildren
+            v-bind="childrenProps"
+            v-on="childrenEvents"
+          />
+        </PlacementBox>
       </div>
       <template v-else>
         <SurfaceBody
@@ -217,6 +211,8 @@ import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
 import RegionCollections from './RegionCollections.vue';
 import RegionChildren from './RegionChildren.vue';
+import PlacementBox from './PlacementBox.vue';
+import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 const props = defineProps({
   node: { type: Object, required: true },
@@ -275,14 +271,16 @@ const childrenProps = computed(() => ({
   openable: props.openable,
   instanceActions: props.instanceActions
 }));
-// The record page's weight-proportional split: a light child set (at or
-// under SIDE_MAX_WEIGHT rows) rides beside the record body, the side
-// column's grid share earned by the children's weight (REGION_SIDE_SPANS
-// over the 12-track record grid). Heavier child sets arrange below.
-const splitSide = computed(() => props.depth === 0 && Boolean(props.node.besideBody));
+// The record page's weight-proportional split: the side-rail outcome the
+// host's width step engages (wide hosts only), the side column's grid
+// share earned by the children's weight (REGION_SIDE_SPANS over the
+// 12-track record grid). Narrower hosts take the children's own step
+// outcome below the body.
+const hostContainer = useHostContainerTraits();
+const childOutcome = computed(() => props.node.childArrangement?.[hostContainer.value.width] || { mode: 'stack' });
+const splitSide = computed(() => props.depth === 0 && childOutcome.value.mode === 'side');
 const splitTracks = computed(() => ({
-  '--main-fr': String(12 - (props.node.sideSpan || 5)),
-  '--side-fr': String(props.node.sideSpan || 5)
+  gridTemplateColumns: `minmax(0, ${12 - (childOutcome.value.span || 5)}fr) minmax(0, ${childOutcome.value.span || 5}fr)`
 }));
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
@@ -516,20 +514,3 @@ const filteredInstances = computed(() => {
     && instanceMatchesFilter(instance, builderFilter.value, { pool: props.pool }));
 });
 </script>
-
-
-<style scoped>
-/* The record split engages at the wide step (CONTAINER_WIDTH_STEPS.wideRem)
-   of its query container — real CSS because the tailwind build ships no
-   container-queries plugin. Track shares are weight-derived custom
-   properties set by the template. */
-.region-split-host {
-  container-type: inline-size;
-}
-
-@container (min-width: 60rem) {
-  .region-split {
-    grid-template-columns: minmax(0, calc(var(--main-fr) * 1fr)) minmax(0, calc(var(--side-fr) * 1fr));
-  }
-}
-</style>

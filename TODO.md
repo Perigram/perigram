@@ -528,3 +528,39 @@ in rendered markup); design-system + localization green.
   page on a wide screen — facts spread, sections grow, preview band
   taller; the showcase (`/test/ui-mapping`) — column arrangements render
   between peer collections.
+
+### Agent Notes (2026-10-25, arrangement rework)
+
+Session `agent/genui-arrangement-rework-20261025-2117` (worktree
+`.agent-worktrees/genui-rework`). Owner review found the three earlier
+rounds left §22.7's core unimplemented; this session rebuilt it. The
+composed tree now carries one arrangement outcome per width step
+(`arrangeChildren` → `{ narrow, medium, wide }`); RegionChildren engages
+the step the host record grants. Ladder fixes: light peers share columns
+at medium/wide (the under-budget stack shortcut is gone); the side rail is
+rule 4 at wide over any light non-full child set (it previously required
+the stack outcome — inverted order); the dominant child's remainder
+carries its own stepped arrangement (previously pinned stack);
+`REGION_COLUMNS_MAX` is deleted — any peer count columns, and the measured
+engagement (`trackCount × REGION_COLUMN_EARNED_REM`) sheds tracks the box
+cannot grant (4+ light peers previously fell through to tabs). Placement
+is measured: each column track and the record side column is a
+`PlacementBox` providing its own container record, so tables and card
+grids inside them take the compact budgets for the width they have; the
+routed screen root provides the measured page record when no host
+declared one, so narrow viewports and the designer preview arrange
+narrow. The record split engages through the seam (RegionBlock's
+scoped-CSS home retired; `scripts/ui-visual-inventory.js` exception
+tables follow). Component hygiene: SurfaceBody/StatGrid literal utility
+strings collapsed into LAYOUT tokens; main.css fill-grid thresholds
+(22rem track floor, 46rem content cap) named in their home. Specs:
+129 unit/random green with the new totality pin (every composed node
+resolves an arrangement at every width step, across all seeds) + 14 SSR,
+design-system, check-arch, framework:validate green; check-docs green on
+the integration tree (a fresh worktree lacks the `jagua-rs` submodule, so
+the guard reports its README link broken there only).
+
+- [ ] WAITING — owner verification (rework round): a record page with two
+  or three light child collections on a wide screen (columns below the
+  body, side rail for the lightest set), the same record dragged into a
+  narrow pane (stacks, compact table columns), and the record popup.

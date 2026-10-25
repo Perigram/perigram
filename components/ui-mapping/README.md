@@ -16,7 +16,10 @@ Parent: [components](../README.md); its [SPEC](../SPEC.md).
 `GeneratedMappingScreen.vue` composes the compiled screen contract
 (`composeScreen` — pure, in `shared/ui-mapping/screen.js`) into a region
 tree and materializes it with `RegionBlock` → `SurfaceBody` →
-`FieldControl` / `InstanceInlineRef` / `PreviewBox` / `ActionButton`. A
+`FieldControl` / `InstanceInlineRef` / `PreviewBox` / `ActionButton`. The
+screen root measures itself and provides the page container record when no
+host declared one (panes and popups provide their own), so every surface
+below resolves the real box it renders in. A
 routed detail surface's record header (`SurfaceHeader`) carries the
 composed instance-chat entry — the same `utils/instance-chat.js` seam
 every instance surface uses — with the thread opening through the shared
@@ -113,9 +116,12 @@ beside the transition history in `StateHistory`.
 - `GeneratedMappingScreen.vue` — engine: composes and renders a compiled
   screen; the top-level sections render through `RegionChildren` over the
   composed `regionsArrangement` (screen sections arrange through the same
-  ladder as record children — columns, tabs, full-row claim), with the
-  screen-level RegionBlock props and event channels passed through the
-  `regionProps`/`regionEvents` passthrough. It owns the generated create
+  stepped ladder as record children — columns, tabs, full-row claim), with
+  the screen-level RegionBlock props and event channels passed through the
+  `regionProps`/`regionEvents` passthrough. The root measures itself and
+  provides the page container record when no host declared one, so step
+  engagement and budgets resolve against the real box (a designer preview
+  box or narrow viewport arranges narrow). It owns the generated create
   and link dialogs (`StandardDialog`),
   ConfirmDialog for destructive actions, and Toast feedback on runs.
   Launch behavior follows `planActionLaunch` (see the shared README's
@@ -134,13 +140,9 @@ beside the transition history in `StateHistory`.
   actions (see above). List regions stack the header row and the
   collection surface (`RegionCollections.vue`, the one materialization of
   the layout switch embedded and standalone lists share) on the section
-  rhythm; nested child regions arrange through `RegionChildren.vue` (the
-  composed arrangement: stack, weight-proportional columns with the
-  full-row claim, dominant-plus-rest, or weight-ordered tabs) over the
-  weight-driven ladder and budgets canonical in
-  [shared/ui-mapping](../../shared/ui-mapping/README.md); column
-  engagement measures through the `useContainerTraits` seam (the host
-  grants every track its earned minimum). A region
+  rhythm; nested child regions arrange through `RegionChildren.vue` over
+  the stepped outcomes and budgets canonical in
+  [shared/ui-mapping](../../shared/ui-mapping/README.md). A region
   rendering in the stub slot (`stub` prop, the pack strip under a record
   body) renders one compact line — icon, label, count, its own create
   action — while loading/denied/error states keep the shared
@@ -150,8 +152,21 @@ beside the transition history in `StateHistory`.
   (creates for other types and every other action keep the full label).
   Top-level detail regions compose a record page: a full-width
   `SurfaceHeader`, then the record body with the filled child regions
-  arranged around it. Nested detail regions keep the Card surface; empty
-  regions render the stub line or a Message by placement.
+  arranged around it — the wide step's side outcome lays the body beside
+  the weight-earned side column, narrower hosts take the children's own
+  step outcome below the body. Nested detail regions keep the Card
+  surface; empty regions render the stub line or a Message by placement.
+- `RegionChildren.vue` / `PlacementBox.vue` — the arrangement
+  materialization: the composed tree carries one outcome per width step,
+  and RegionChildren engages the step the host record grants (`stack`,
+  `mixed` with the remainder's own stepped arrangement, `columns` with the
+  full-row claim, weight-ordered `tabs`) without recomposition; the
+  columns outcome engages its tracks only when the measured box grants
+  every track its earned minimum, stacking otherwise. Each column track
+  and the record side column is a PlacementBox — a placement slot that
+  measures its own box and provides the container record everything inside
+  renders against, so a table or card grid inside a rail or track sheds
+  columns and facts for the width it actually has.
 - `SortControl.vue` — the collection sort control for the card-grid and
   board projections (tables sort natively by column; board lanes carry one
   per column — see `BoardCollection`): a self-contained popover over the
@@ -246,9 +261,9 @@ beside the transition history in `StateHistory`.
   transparent header band — every instance row sits one step above the
   canvas, with no border and no ring, while the table box stays unpainted.
   The virtualized body clamps to the shared `TABLE_VIRTUAL_SCROLL_REM`
-  bound, and the host's width step sizes the column budget — a
-  `narrow`/`medium` host (pane, popup) takes the compact column scale
-  through the container seam. Columns come from the composed `listControls` contract (filled
+  bound, and the resolved container record sizes the column budget — a
+  `narrow`/`medium` box (pane, popup, side rail, column track) takes the
+  compact column scale through the container seam. Columns come from the composed `listControls` contract (filled
   short scalars bounded by the richness budget — a field no loaded instance
   fills stays out of the columns), identity/status/scalar columns are
   sortable (quantity values sort by their numeric value), the

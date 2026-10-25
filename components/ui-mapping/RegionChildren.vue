@@ -1,5 +1,5 @@
 <template>
-  <div v-if="arrangement.mode === 'columns'" :class="LAYOUT.stackTight" class="w-full">
+  <div v-if="engaged.mode === 'columns'" :class="LAYOUT.stackTight" class="w-full">
     <RegionBlock
       v-for="child in fullRowRegions"
       :key="child.id"
@@ -11,21 +11,21 @@
     <div ref="columnsHost" class="region-columns-host">
       <div
         class="region-columns grid w-full grid-cols-1 gap-6"
-        :style="columnsEngaged ? { gridTemplateColumns: arrangement.tracks } : undefined"
+        :style="columnsEngaged ? { gridTemplateColumns: engaged.tracks } : undefined"
       >
-        <RegionBlock
-          v-for="child in columnRegions"
-          :key="child.id"
-          v-bind="baseBlockProps"
-          v-on="blockEvents"
-          :node="child"
-          :depth="childDepth"
-        />
+        <PlacementBox v-for="child in columnRegions" :key="child.id">
+          <RegionBlock
+            v-bind="baseBlockProps"
+            v-on="blockEvents"
+            :node="child"
+            :depth="childDepth"
+          />
+        </PlacementBox>
       </div>
     </div>
   </div>
 
-  <template v-else-if="arrangement.mode === 'mixed'">
+  <template v-else-if="engaged.mode === 'mixed'">
     <RegionBlock
       :key="regions[primaryIndex].id"
       v-bind="baseBlockProps"
@@ -35,7 +35,7 @@
     />
     <RegionChildren
       :regions="restRegions"
-      :arrangement="arrangement.rest"
+      :arrangement="engaged.rest"
       :depth="depth"
       :pool="pool"
       :bundle="bundle"
@@ -48,7 +48,7 @@
     />
   </template>
 
-  <Tabs v-else-if="arrangement.mode === 'tabs'" :value="arrangement.order[0]" class="w-full">
+  <Tabs v-else-if="engaged.mode === 'tabs'" :value="engaged.order[0]" class="w-full">
     <TabList>
       <Tab v-for="child in orderedRegions" :key="child.id" :value="child.id">
         {{ labelFor(child) }}
@@ -94,7 +94,10 @@
 <script setup>
 // The one materialization of the composed children arrangement
 // (`arrangeChildren`) for every nesting host: record pages, nested
-// detail bodies, list panels, and screen top-level sections.
+// detail bodies, list panels, and screen top-level sections. The
+// composed tree carries an outcome per width step; the host record the
+// seam resolves picks the engaged one — a host change re-engages without
+// recomposition.
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tabs from 'primevue/tabs';
@@ -104,13 +107,16 @@ import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
 import { localizedLabel, typeLabelKey, REGION_COLUMN_EARNED_REM, LAYOUT } from '#shared/ui-mapping/index.js';
-import { useContainerTraits } from '~/composables/useContainerTraits.js';
+import { useContainerTraits, useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import RegionBlock from './RegionBlock.vue';
+import PlacementBox from './PlacementBox.vue';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 
 const props = defineProps({
   regions: { type: Array, default: () => [] },
-  arrangement: { type: Object, default: () => ({ mode: 'stack' }) },
+  // The composed per-step outcomes (`arrangeChildren`): `{ narrow,
+  // medium, wide }`, each a stack/mixed/columns/tabs/side outcome.
+  arrangement: { type: Object, default: null },
   // Stack-mode children render at content width side by side (the
   // stub strip under a record body).
   pack: { type: Boolean, default: false },
@@ -143,27 +149,30 @@ const blockEvents = computed(() => ({
   open: instance => emit('open', instance),
   ...(props.regionEvents || {})
 }));
-const primaryIndex = computed(() => (Number.isInteger(props.arrangement.primary)
-  ? Math.min(props.arrangement.primary, Math.max(props.regions.length - 1, 0))
+// Engagement: the host record's width step selects the carried outcome.
+const hostContainer = useHostContainerTraits();
+const engaged = computed(() => props.arrangement?.[hostContainer.value.width] || { mode: 'stack' });
+const primaryIndex = computed(() => (Number.isInteger(engaged.value.primary)
+  ? Math.min(engaged.value.primary, Math.max(props.regions.length - 1, 0))
   : 0));
 const restRegions = computed(() => props.regions.filter((_, index) => index !== primaryIndex.value));
-const orderedRegions = computed(() => (Array.isArray(props.arrangement.order)
-  ? props.arrangement.order.map(id => props.regions.find(region => region.id === id)).filter(Boolean)
+const orderedRegions = computed(() => (Array.isArray(engaged.value.order)
+  ? engaged.value.order.map(id => props.regions.find(region => region.id === id)).filter(Boolean)
   : props.regions));
 // Full-row claim (SPEC → Arrangement decision procedure): breadth-full
 // children render whole-row before the columns; the columns carry the
-// columnable peers.
-const fullRowIds = computed(() => new Set(props.arrangement.fullRow || []));
+// columnable peers, each track a placement box measuring its own width.
+const fullRowIds = computed(() => new Set(engaged.value.fullRow || []));
 const fullRowRegions = computed(() => props.regions.filter(region => fullRowIds.value.has(region.id)));
 const columnRegions = computed(() => props.regions.filter(region => !fullRowIds.value.has(region.id)));
 
-// Column engagement resolves through the container-traits seam: the
-// measured host width grants every track its earned minimum
-// (track count × REGION_COLUMN_EARNED_REM).
+// The columns outcome engages when the measured box grants every track
+// its earned minimum (track count × REGION_COLUMN_EARNED_REM); a host
+// that cannot grant it takes the stacked grid.
 const columnsHost = ref(null);
 const container = useContainerTraits(columnsHost);
 const columnsEngaged = computed(() => {
-  const tracks = String(props.arrangement.tracks || '').trim().split(/\s+/).filter(Boolean).length;
+  const tracks = String(engaged.value.tracks || '').trim().split(/\s+/).filter(Boolean).length;
   const widthRem = container.value.widthRem;
   return tracks > 0 && widthRem !== null && widthRem >= tracks * REGION_COLUMN_EARNED_REM;
 });

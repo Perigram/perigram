@@ -654,66 +654,78 @@ describe('weight-driven arrangement', () => {
     expect(SPACING_STEPS).toEqual([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]);
   });
 
-  it('tabs heavy section sets at the top level and stacks light ones', () => {
-    // Screen sections arrange through the same ladder: full-breadth
-    // tables within the column cap stack (the row-cheapest layout);
-    // past the cap the set tabs (the page-height bound).
+  it('carries one arrangement outcome per width step', () => {
+    // The composed tree is host-blind: every step resolves its own
+    // outcome, and the materialization engages the one its host grants.
     const table = weight => ({ id: `t${weight}`, dataTraits: { breadth: 'full', weight } });
-    expect(arrangeChildren([table(10), table(10)], 0)).toEqual({ mode: 'stack' });
-    expect(arrangeChildren([table(16), table(14)], 0).mode).toBe('tabs');
-    expect(arrangeChildren([table(4), table(4)], 0)).toEqual({ mode: 'stack' });
-    expect(arrangeChildren([table(10), table(10)], 1).mode).toBe('stack');
-    expect(arrangeChildren([{ ...detailNode(16), id: 'd' }], 0)).toEqual({ mode: 'stack' });
+    const lightTables = arrangeChildren([table(10), table(10)], 0);
+    // Full-breadth tables within the column cap stack at every step (the
+    // row-cheapest layout); past the cap the set tabs (the page-height
+    // bound) — at every step, whatever host carries it.
+    expect(lightTables.narrow).toEqual({ mode: 'stack' });
+    expect(lightTables.medium).toEqual({ mode: 'stack' });
+    expect(lightTables.wide).toEqual({ mode: 'stack' });
+    const heavyTables = arrangeChildren([table(16), table(14)], 0);
+    expect(heavyTables.narrow.mode).toBe('tabs');
+    expect(heavyTables.wide.mode).toBe('tabs');
+    expect(heavyTables.wide.order).toEqual(['t16', 't14']);
+    expect(arrangeChildren([table(10), table(10)], 1).wide.mode).toBe('stack');
+    expect(arrangeChildren([{ ...detailNode(16), id: 'd' }], 0).wide).toEqual({ mode: 'stack' });
   });
 
   it('arranges siblings by weight: stack, proportional columns, dominant flow, weight-ordered tabs', () => {
     // Content-breadth lists (file-class card collections) with explicit
     // weights; table-breadth lists carry the full-row claim below.
     const card = (weight, id = 'c') => ({ id, dataTraits: { breadth: 'content', weight } });
-    const fullRow = (weight, id = 't') => ({ id, dataTraits: { breadth: 'full', weight } });
-    // Light sets flow in one stack.
-    expect(arrangeChildren([card(4), card(4)], 0)).toEqual({ mode: 'stack' });
-    // Peers over the budget, each within the column cap, share
-    // proportional columns — track fr from each child's estimated rows.
-    expect(arrangeChildren([card(6), card(6)], 0)).toEqual({ mode: 'columns', tracks: 'minmax(0, 6fr) minmax(0, 6fr)' });
-    // A dominant sibling keeps the flow while its remainder fits the
-    // surface budget; the light rest stacks after it.
-    const dominant = arrangeChildren([
-      { id: 'big', surfaceKind: 'detail', type: { fields: Object.fromEntries(Array.from({ length: 14 }, (_, i) => [`f${i}`, { base: 'string' }])) }, instances: [{ relations: {} }] },
-      card(4, 'a'),
-      card(4, 'b')
-    ], 0);
-    expect(dominant.mode).toBe('mixed');
-    expect(dominant.primary).toBe(0);
-    expect(dominant.rest).toEqual({ mode: 'stack' });
+    const detailOf = fields => ({
+      id: 'big', surfaceKind: 'detail',
+      type: { fields: Object.fromEntries(Array.from({ length: fields }, (_, i) => [`f${i}`, { base: 'string' }])) },
+      instances: [{ relations: {} }]
+    });
+    // Light peers stack at narrow and share proportional columns at
+    // medium/wide — track fr from each child's estimated rows, any peer
+    // count (the measured engagement sheds tracks the host cannot grant).
+    const light = arrangeChildren([card(4, 'a'), card(4, 'b')], 0);
+    expect(light.narrow).toEqual({ mode: 'stack' });
+    expect(light.medium).toEqual({ mode: 'columns', tracks: 'minmax(0, 4fr) minmax(0, 4fr)' });
+    expect(light.wide).toEqual(light.medium);
+    const four = arrangeChildren([card(3, 'a'), card(3, 'b'), card(3, 'c'), card(3, 'd')], 0);
+    expect(four.medium.tracks.match(/minmax/g)).toHaveLength(4);
+    expect(four.narrow.mode).toBe('stack');
+    // A dominant sibling keeps the flow at every step; its remainder
+    // carries its own stepped arrangement (light peers column beneath it).
+    const dominant = arrangeChildren([detailOf(14), card(4, 'a'), card(4, 'b')], 0);
+    expect(dominant.wide.mode).toBe('mixed');
+    expect(dominant.wide.primary).toBe(0);
+    expect(dominant.wide.rest.medium.mode).toBe('columns');
+    expect(dominant.wide.rest.narrow).toEqual({ mode: 'stack' });
     // A dominant sibling whose remainder exceeds the surface budget tabs
     // the set — the page-height bound stays reachable for top-heavy sets.
-    expect(arrangeChildren([
-      { id: 'big', surfaceKind: 'detail', type: { fields: Object.fromEntries(Array.from({ length: 24 }, (_, i) => [`f${i}`, { base: 'string' }])) }, instances: [{ relations: {} }] },
-      card(14, 'rest')
-    ], 0).mode).toBe('tabs');
-    // Peers past the column cap tab at the top level, ordered by
-    // descending weight.
+    expect(arrangeChildren([detailOf(24), card(14, 'rest')], 0).wide.mode).toBe('tabs');
+    // A peer past the column cap is unreadable in flow: the set tabs at
+    // the top level, ordered by descending weight.
     const tabbed = arrangeChildren([card(12, 'light'), card(15, 'heavy')], 0);
-    expect(tabbed.mode).toBe('tabs');
-    expect(tabbed.order).toEqual(['heavy', 'light']);
+    expect(tabbed.wide.mode).toBe('tabs');
+    expect(tabbed.wide.order).toEqual(['heavy', 'light']);
     // Nested over-cap content stacks — tabs are a top-level arrangement.
-    expect(arrangeChildren([card(14), card(14)], 1).mode).toBe('stack');
+    expect(arrangeChildren([card(14), card(14)], 1).wide.mode).toBe('stack');
   });
 
   it('grants full-breadth children the whole row beside column peers', () => {
     const card = (weight, id = 'c') => ({ id, dataTraits: { breadth: 'content', weight } });
     const fullRow = (weight, id = 't') => ({ id, dataTraits: { breadth: 'full', weight } });
     // A full-row sibling renders whole-row; the columnable peers share
-    // the columns beneath it.
+    // the columns beneath it — at every step past narrow.
     const arranged = arrangeChildren([fullRow(8, 'table'), card(6, 'stats'), card(6, 'cards')], 0);
-    expect(arranged).toEqual({ mode: 'columns', tracks: 'minmax(0, 6fr) minmax(0, 6fr)', fullRow: ['table'] });
+    expect(arranged.medium).toEqual({ mode: 'columns', tracks: 'minmax(0, 6fr) minmax(0, 6fr)', fullRow: ['table'] });
+    expect(arranged.wide).toEqual(arranged.medium);
+    expect(arranged.narrow).toEqual({ mode: 'stack' });
     // A full-row child with a light columnable remainder keeps the flow —
     // the dominant full rows render whole-row and the remainder stacks
     // after them.
-    expect(arrangeChildren([fullRow(20), card(4)], 0).mode).toBe('mixed');
+    expect(arrangeChildren([fullRow(20), card(4)], 0).wide.mode).toBe('mixed');
     // A heavy columnable remainder still tabs the set.
-    expect(arrangeChildren([fullRow(20), card(14)], 0).mode).toBe('tabs');
+    expect(arrangeChildren([fullRow(20), card(14)], 0).wide.mode).toBe('tabs');
   });
 
   it('derives region data traits over the type record and pool', () => {
@@ -752,6 +764,10 @@ describe('weight-driven arrangement', () => {
     expect(resolveContainerTraits({ widthRem: 45, hostKind: 'popup' }).width).toBe('medium');
     expect(resolveContainerTraits({ widthRem: 45, hostKind: 'unknown-host' }).height).toBe('flow');
     expect(resolveContainerTraits({ widthRem: 45, density: 2 }).density).toBe(2);
+    // A placement box measures its own width and inherits the host's
+    // height/scroll.
+    expect(resolveContainerTraits({ widthRem: 24, height: 'bounded', scroll: 'surface' }))
+      .toEqual({ width: 'narrow', widthRem: 24, height: 'bounded', scroll: 'surface', density: 1 });
   });
 
   it('scales the record side column span with the children weight', () => {

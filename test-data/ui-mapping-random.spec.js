@@ -43,11 +43,12 @@ describe('random worlds', () => {
     }
   });
 
-  it('carry valid data traits and a resolved arrangement on every composed node', () => {
+  it('carry valid data traits and a resolved arrangement at every width step on every composed node', () => {
     const BREADTHS = ['chip', 'content', 'full'];
     const GROWTH = ['flowing', 'bounded'];
     const SHAPES = ['plain', 'media', 'temporal', 'prose', 'measure', 'stateful'];
-    const MODES = ['stack', 'columns', 'mixed', 'tabs'];
+    const MODES = ['stack', 'columns', 'mixed', 'tabs', 'side'];
+    const STEPS = ['narrow', 'medium', 'wide'];
     const walk = (regions, visit) => {
       for (const region of regions) {
         visit(region);
@@ -70,8 +71,18 @@ describe('random worlds', () => {
           expect(traits.volume, `seed ${seed} ${region.id} volume`).toBe(region.instances.length);
           expect(['filled', 'inert'], `seed ${seed} ${region.id} filledness`).toContain(traits.filledness);
           expect(traits.filledness === 'inert').toBe(region.instances.length === 0);
-          expect(MODES, `seed ${seed} ${region.id} arrangement`).toContain(region.childArrangement.mode);
+          for (const step of STEPS) {
+            expect(MODES, `seed ${seed} ${region.id} arrangement@${step}`).toContain(region.childArrangement[step].mode);
+          }
+          expect(region.childArrangement.wide.mode === 'side').toBe(Boolean(region.sideRail));
         });
+      }
+      // The screen's top-level sections resolve at every step too.
+      for (const screen of Object.values(world.contract.screens)) {
+        const composed = composeScreen(screen, world.contract, world.bundle, pool);
+        for (const step of STEPS) {
+          expect(MODES, `seed ${seed} ${screen.screenKey} sections@${step}`).toContain(composed.regionsArrangement[step].mode);
+        }
       }
     }
   });
@@ -144,7 +155,8 @@ describe('showcase-reachable contracts in every world', () => {
       const engaged = Object.values(world.contract.screens)
         .filter(screen => screen.template === 'instanceDetail')
         .some(screen => composeScreen(screen, world.contract, world.bundle, pool).regions
-          .some(region => region.childArrangement.mode === 'columns'));
+          .some(region => region.childArrangement.medium.mode === 'columns'
+            || region.childArrangement.wide.mode === 'columns'));
       expect(engaged, `seed ${seed} column engagement`).toBe(true);
     }
   });
