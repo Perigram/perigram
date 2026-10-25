@@ -23,9 +23,9 @@
 
 ### Code deslop
 
-- [ ] workers/facade/nesting-projections.js:1-6 → history comment ("queue-era projections module trimmed…") plus the V→V purity contract stated only here (check-docs never scans workers — see Additions); move the contract sentence into the facade README services section, delete the history.
-- [ ] workers/facade/services.js:1-6 → endpoint-mode contract comment duplicates facade/README.md L7-11; shrink to a pointer.
-- [ ] workers/nesting/test_lbf.py:18-40 → rebuilds the lbf config JSON inline; import `core.nesting_input_builder.build_config`.
+- [x] workers/facade/nesting-projections.js:1-6 → history comment ("queue-era projections module trimmed…") plus the V→V purity contract stated only here (check-docs never scans workers — see Additions); move the contract sentence into the facade README services section, delete the history. Landed 2026-10-25: purity law verified already homed in facade README Services intro (a1bd0dab6); header folded to a one-line README pointer; the adjacent 3-line variant comment (L9-11) cut with it as banned prose.
+- [x] workers/facade/services.js:1-6 → endpoint-mode contract comment duplicates facade/README.md L7-11; shrink to a pointer. Landed 2026-10-25: one-line pointer to ./README.md (Services).
+- [x] workers/nesting/test_lbf.py:18-40 → rebuilds the lbf config JSON inline; import `core.nesting_input_builder.build_config`. Landed 2026-10-25: config from `build_config()` (asserted equal to the retired inline dict; the builder's first consumer); dead `string`/`sys` imports dropped; this env lacks shapely and the lbf binary — script verified to the handled no-binary branch only.
 
 ### Code findings (truth pass 2026-10-24)
 
@@ -49,6 +49,22 @@
   rewrite (396→271), publish/upgrade folds to the plugins link, services
   table repaired, nesting inventory + NESTING_WORKER_URL /nest + HTTP-200
   error shape, vendored engines inventoried.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/workers-deslop2-20261025-1521` (worktree
+`.agent-worktrees/workers`). Code deslop landed:
+nesting-projections and services headers folded to one-line
+README pointers (the V→V purity law was already homed by the
+2026-10-24 README wave — facade README Services intro);
+test_lbf config now from `build_config()`. Guards: check-arch
+OK; check-docs OK with 26 advisory debt entries, three in
+workers/facade/occs/profiles.js belonging to the open occs
+re-scope decision, zero in the touched files. jagua-rs
+submodule initialized in the worktree so the nesting README
+link resolves for the guard. Python env lacks shapely and the
+lbf binary, so test_lbf was verified to the handled no-binary
+branch only.
 
 ### Agent Notes (2026-10-25)
 
