@@ -454,6 +454,30 @@ describe('headless layout and graph integrity', () => {
     expect(record.typeId).toBe('sheet');
   });
 
+  it('preserves the authored construction mode across a vocabulary gap', () => {
+    // The boot-race shape: a draft whose construct is bound to a type the
+    // current domain does not know keeps its authored construction; the
+    // mode re-resolves only against a contract that declares modes.
+    const gap = createDefinitionAuthoring({ entities: [], workflows: {}, fieldSchemas: {}, relations: [], construction: {}, projectionContracts: {}, serviceContracts: {} });
+    gap.drop('construct', { id: 'make', typeId: 'sheet' });
+    gap.configure('make', { construction: { mode: 'bake' } });
+    const stored = gap.definition();
+    expect(stored.processNodes.make.construction.mode).toBe('bake');
+
+    const reloaded = createDefinitionAuthoring(
+      { entities: [], workflows: {}, fieldSchemas: {}, relations: [], construction: {}, projectionContracts: {}, serviceContracts: {} },
+      null,
+      structuredClone(stored)
+    );
+    reloaded.sync('make');
+    const kept = reloaded.record('make').construction;
+    expect(kept.mode).toBe('bake');
+
+    const seam = createDefinitionAuthoring(projectedDomain(), null, structuredClone(stored));
+    seam.sync('make');
+    expect(seam.record('make').construction.mode).toBe('genericCreate');
+  });
+
   it('refuses wiring that omits or misnames the socket handle', () => {
     const seam = authoring();
     seam.drop('literal', { id: 'lit' });
