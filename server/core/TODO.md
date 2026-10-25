@@ -53,7 +53,8 @@
   Landed 2026-10-25: re-export deleted from blocks/index.js with its README mention; zero importers repo-wide (grep js/vue/mjs).
 - [x] server/utils DXF helpers duplicate workers/facade/vendor engines; production rides the vendor engines, utils copies are spec-only.
   Landed 2026-10-25: verified spec-only (sole importers were their own sibling specs; workers/facade/services.js:8-9 imports the vendor copies); all four files and both utils README sections deleted. Root `dxf-parser` dep stays — server/features/artifact-templates/format.js and utils/dxfParser.js still import it.
-- [ ] Dead alias `createPerigramRegistry = createRegistry` (packages/core/src/index.js:282, named in packages/core/README.md:25) — zero importers after the blocks re-export deletion.
+- [x] Dead alias `createPerigramRegistry = createRegistry` (packages/core/src/index.js:282, named in packages/core/README.md:25) — zero importers after the blocks re-export deletion.
+  Landed 2026-10-25: alias + README row deleted.
 
 ### Deletions
 

@@ -22,7 +22,7 @@ Parent: [packages README](../README.md).
   declare readable, writable, and constructible authoring capabilities.
   `identity.uid` is readable but never writable or constructible: the owning
   entity service creates stable identity.
-- Registry: `createRegistry()` and `createPerigramRegistry()`
+- Registry: `createRegistry()`
 - Definitions: `defineDomain`, `defineEntity`, `defineWorkflow`,
   `defineCommand`, `defineTask`, `defineHook`, `defineAttachmentKind`
 - Validators: `validateDomain` plus the per-kind checks
