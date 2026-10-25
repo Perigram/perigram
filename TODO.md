@@ -564,3 +564,28 @@ the guard reports its README link broken there only).
   or three light child collections on a wide screen (columns below the
   body, side rail for the lightest set), the same record dragged into a
   narrow pane (stacks, compact table columns), and the record popup.
+
+### Agent Notes (2026-10-25, rail budget round)
+
+Owner verdict on the rework: worse in many cases, too little care. Two
+causes found. (1) Real defect, fixed: the side rail was a half-page
+monster — SIDE_MAX_WEIGHT 16 let 11-16-row sets grab the rail and
+REGION_SIDE_SPANS granted 4-6 of 12 tracks (33-50% of the record grid),
+starving the record body. The rail is now a minor column: light sets only
+(≤ 10 rows), span 3-4 of 12 (≤ a third). Heavier columnable sets column
+below the body where peers earn real width. (2) The dev server was
+serving a stale `ui-mapping-random` transform — showcase pages composed a
+world from the pre-everyday-round vocabulary ("Tin Riddles" names removed
+by 2544b7068) 90 minutes after that merge, with the on-disk file
+byte-identical to the host; `docker compose restart app` cleared it. Any
+owner verdict rendered between the everyday-round merge and the restart
+partly judged a frankenbuild. Verification this round is visual, not just
+spec-based: per-section showcase screenshots (side span 3 beside the
+body, columns pairs below, tabs for heavy tables) at
+`.playwright/genui2-*.png`, plus a real org record page; the look probes
+live at `e2e/zz-genui-look-probe*.spec.js`.
+
+- [ ] WAITING — owner verification (rail round): record pages on a wide
+  screen — the rail reads as a minor column (~quarter page), record body
+  keeps its fact columns; if anything still looks wrong, name the record
+  and width.
