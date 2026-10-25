@@ -1,8 +1,5 @@
-// Row <-> field-schema translation (SPEC §15 source flip, §19 seam; wire
-// decision 2026-10-11: the instance wire speaks the stored §3 shape).
-// Synthesis projects row fields onto their one wire home — the flat
-// `fields` object — as `fields.<dotted.name>` paths. There is no slot
-// convention and no reserved generic slot on the wire.
+// Row ⇄ field-schema translation; synthesis mints flat `fields.*` paths
+// (SPEC §13; contract: README Modules entry).
 const LEGACY_UNIT_TO_CTS = Object.freeze({
   mm: 'mm', m: 'm', m2: 'm2', percent: 'percent', minute: 'min', degree: 'deg'
 });

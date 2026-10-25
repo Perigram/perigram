@@ -286,12 +286,8 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
     node.outputs = decorate(node, catalogPorts(node).outputs);
     syncProcessNodeProducerOutputs(draftData, node);
     node.inputDefaults ||= {};
-    // Authored socket defaults survive a vocabulary gap: when the bound
-    // type is not in the current domain (a page session opened before the
-    // org declared it), the derived port list shrinks to the Type pin and
-    // must not take the authored defaults with it — validation owns the
-    // unknown-type report, and the next sync against the full domain
-    // re-derives the ports.
+    // Authored socket defaults survive a vocabulary gap (law: README
+    // Authoring seam).
     if (typeIsKnown(node)) {
       const inputIds = new Set(node.inputs.map(input => input.id));
       for (const inputId of Object.keys(node.inputDefaults)) {

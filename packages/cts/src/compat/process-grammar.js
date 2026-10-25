@@ -1,11 +1,5 @@
-// Grammar adapter (SPEC §2 "Relation to the process type grammar"): maps
-// CTS declaration-layer descriptors onto PROCESS_BASE_TYPES
-// (`packages/processes/src/types.js`) and back, for the declaration subset.
-// The runtime-only bases (entity, revisionRef, block, status, predicate,
-// patch, event, taskRef, error, void, opaque, duration, integer) have no CTS
-// counterpart by design — the adapter reports them as unmappable instead of
-// guessing. Enum values live inline in CTS but behind registry ids in the
-// process grammar; `enumRegistryForType` derives the ids both sides share.
+// CTS ⇄ PROCESS_BASE_TYPES adapter for the declaration subset (SPEC §2;
+// contract: README Modules entry).
 
 const PROCESS_ONLY_BASES = Object.freeze([
   'entity', 'revisionRef', 'block', 'status', 'predicate', 'patch', 'event',
