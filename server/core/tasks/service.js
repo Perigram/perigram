@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { createTaskResult, normalizeEntityOutputContracts, validateResultEntityOutputs } from '../blocks/index.js';
 import * as repository from './repository.js';
 import { processEffects, processEvents } from '../effects/service.js';
+import { getAppRegistry } from '../../runtime/app-registry.js';
 
 const TERMINAL_STATUSES = ['SUCCEEDED', 'FAILED', 'CANCELLED'];
 
