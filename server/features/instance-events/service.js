@@ -18,10 +18,7 @@ export function subscribe(auth = {}, push) {
   };
 }
 
-// Contract refresh hint (registry/process epoch): published on the org
-// topic so open tabs re-hydrate. Complements auth hydration — per-user
-// access resolution stays server-side; the event carries no payload data,
-// only the kind of contract that changed.
+// Refresh-hint contract: README §Contract refresh hint.
 export function publishOrgContractChanged(organizationId, kind = 'registry', detail = {}) {
   if (!organizationId) return null;
   connectionsService.publish(`org:${organizationId}`, {

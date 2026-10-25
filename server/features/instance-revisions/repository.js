@@ -31,12 +31,7 @@ export async function find(filter = {}, options = {}) {
 export async function deleteForSource(typeId, instanceId) {
   const db = await connectDB();
   const id = toFlexibleId(instanceId).toString();
-  const filter = {
-    $or: [
-      { 'data.source.type': typeId, 'data.source.id': id },
-      { 'data.typeId': typeId, 'data.instanceId': id }
-    ]
-  };
+  const filter = { 'data.source.type': typeId, 'data.source.id': id };
   const revisions = await db.collection(COLLECTION).find(filter).toArray();
   await db.collection(COLLECTION).deleteMany(filter);
   return revisions;
@@ -46,10 +41,8 @@ export async function findByHash(typeId, instanceId, scope, contentHash) {
   const db = await connectDB();
   const id = toFlexibleId(instanceId).toString();
   return await db.collection(COLLECTION).findOne({
-    $or: [
-      { 'data.source.type': typeId, 'data.source.id': id },
-      { 'data.typeId': typeId, 'data.instanceId': id }
-    ],
+    'data.source.type': typeId,
+    'data.source.id': id,
     'data.scope': scope,
     'data.contentHash': contentHash
   });
@@ -60,10 +53,8 @@ export async function findLatest(typeId, instanceId, scope) {
   const id = toFlexibleId(instanceId).toString();
   return await db.collection(COLLECTION)
     .find({
-      $or: [
-        { 'data.source.type': typeId, 'data.source.id': id },
-        { 'data.typeId': typeId, 'data.instanceId': id }
-      ],
+      'data.source.type': typeId,
+      'data.source.id': id,
       'data.scope': scope
     })
     .sort({ 'data.number': -1, _id: -1 })

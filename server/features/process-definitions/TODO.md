@@ -16,7 +16,8 @@ README REWRITE (640 lines → ~350, zero contract loss):
 
 ### Code deslop
 
-- [ ] Contract-comment trims (docs-guard homing backlog, 4 entries in service.js): block comments stating authored-data semantics move into the rewritten README sections, one-line pointers stay; migration-plan.js:1-10 restates the README's canonical migration contract → pointer.
+- [x] Contract-comment trims (docs-guard homing backlog, 4 entries in service.js): block comments stating authored-data semantics move into the rewritten README sections, one-line pointers stay; migration-plan.js:1-10 restates the README's canonical migration contract → pointer.
+  Landed 2026-10-25: the 4 flagged comments (apply-diff baseline, migration decision, evaluator domain, construction-inputs derivation) are one-line README pointers; the two facts the README lacked (evaluator resolves the compile path's projected domain; authored extras kept + no-contract fallback in the construction-input derivation) moved into their owning README sections. migration-plan.js header is a pointer.
 - [x] 409 response single-shape preparation: `migration-plan.js` carries `migrationPlan` only — `strandedAsAffected` and the `data.affected` mirror deleted, 409 detail string built from the stranded rows directly; migration-plan.spec gains the throw-shape test; process-definitions.spec 409 assertions updated (decided 2026-10-25: drop `affected`, `migrationPlan` is the shape).
 - [x] Owner-recovery single read: `users/organization-owner.js` `isOwnerMembership` reads the explicit `owner` flag; the auth-level dual-admin fallback is gone (`hasTenantAdminPermissions` deleted); stored rows healed by server/scripts/migrate-legacy-owner-memberships.js (flags active dual-admin memberships, permissions untouched); users.spec legacy-merge tests flipped to flag-only expectations (decided 2026-10-25).
 
@@ -56,3 +57,13 @@ migrate-legacy-owner-memberships.js healing one-shot, welcomemessage /
 attachStatus(es) / getDefaultWorkflow+resolveDefaultWorkflow deleted.
 users/README owner-recovery sentence collapsed to the flag read. OPEN:
 service.js contract-comment trims (4 entries + migration-plan pointer).
+
+### Agent Notes (2026-10-25, feat-deslop2 wave)
+
+Session `agent/feat-deslop2-20261025-1521` (worktree
+`.agent-worktrees/feat`). The 4 homing-backlog comments + the
+migration-plan.js header landed as README pointers; the evaluator-domain
+and construction-input derivation facts the README lacked moved into
+§Socket projection and auth hydration and §Create. Pre-existing on this
+base, untouched: 24 process-definitions spec failures identical with and
+without this wave's changes (comment-only service edits).

@@ -25,40 +25,15 @@ const ENTITY_FEATURES = classifiedDeclarations.map(declaration => (
 const featureToEntityTypeMap = new Map(
   classifiedDeclarations.map(declaration => [entityTypeToFeature(declaration.id), declaration.id])
 );
+// Entity-shaped while its type stays undeclared in the registry view: the
+// directory keeps the entity shape checks.
+featureToEntityTypeMap.set('artifact-templates', 'artifact_template');
 const viewEntityTypes = new Set(classifiedDeclarations
   .filter(declaration => declaration.states && Object.keys(declaration.states).length)
   .map(declaration => declaration.id));
 function featureToEntityType(feature) {
   return featureToEntityTypeMap.get(feature) || null;
 }
-const CAPABILITY_FEATURES = [
-  'instances',
-  'agent-bots',
-  'connections',
-  'cts-types',
-  'directory',
-  'instance-events',
-  'files',
-  'livekit',
-  'billing',
-  'artifact-conversions',
-  'invitations',
-  'llm',
-  'meetings',
-  'notifications',
-  'partnerships',
-  'plugins',
-  'sessions',
-  'states',
-  'support',
-  'system-settings',
-  'transcription',
-  'web-search',
-  'workflow-overrides',
-  // Entity feature without a type declaration: the directory keeps its
-  // shape guarded until the type is declared.
-  'artifact-templates'
-];
 const IGNORE = ['_template', 'index.js'];
 const ENTITY_ROOT_ALIAS_FIELDS = ['id', 'name', 'slug', 'serial', 'reference', 'type', 'geometry', 'parameters'];
 const LEGACY_RAW_FIELD_PATTERN = /\braw\.(name|slug|serial|reference|type|geometry|parameters|metadata|organizationId|currentOrganizationId|warehouseId|params)\b/;
@@ -86,8 +61,7 @@ const walkDir = (dir) => {
 };
 
 const directories = fs.readdirSync(FEATURES_DIR).filter(f => !IGNORE.includes(f) && fs.statSync(path.join(FEATURES_DIR, f)).isDirectory());
-const declared = new Set([...ENTITY_FEATURES, ...CAPABILITY_FEATURES]);
-const features = ENTITY_FEATURES;
+const features = [...ENTITY_FEATURES, 'artifact-templates'];
 const appRegistry = fs.readFileSync('server/runtime/app-registry.js', 'utf8');
 // Mounted packs are boot-time registration sites alongside the framework
 // registry (SPEC §21).
@@ -115,12 +89,33 @@ function collectLineMatches(files, checks) {
   });
 }
 
-directories.forEach(feature => {
-  if (!declared.has(feature)) {
-    console.error(`❌ Feature directory [${feature}] is not classified as an entity or capability`);
-    errors++;
-  }
-});
+// Classification: entity directories derive from the registry view
+// (plus the explicit artifact-templates entry); every other live
+// directory is a capability module, and the parent README's
+// classification table must list exactly those sets.
+{
+  const readme = fs.readFileSync('server/features/README.md', 'utf8');
+  const readTableRow = (label) => {
+    const row = readme.match(new RegExp(`\\| ${label} modules \\|(.+)\\|`))?.[1] || '';
+    return new Set([...row.matchAll(/\[([a-z0-9-]+)\]\([^)]*\)|`([a-z0-9-]+)`/g)].map(m => m[1] || m[2]));
+  };
+  const expectExact = (listed, live, kind) => {
+    for (const name of listed) {
+      if (!live.has(name)) {
+        console.error(`❌ README ${kind} row lists [${name}] with no server/features directory`);
+        errors++;
+      }
+    }
+    for (const name of live) {
+      if (!listed.has(name)) {
+        console.error(`❌ README ${kind} row is missing [${name}]`);
+        errors++;
+      }
+    }
+  };
+  expectExact(readTableRow('Entity'), new Set(features), 'Entity');
+  expectExact(readTableRow('Capability'), new Set(directories.filter(feature => !features.includes(feature))), 'Capability');
+}
 
 features.forEach(feature => {
   const dir = path.join(FEATURES_DIR, feature);

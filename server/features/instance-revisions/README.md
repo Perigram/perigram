@@ -29,9 +29,7 @@ Revision entity identity is also source-scoped:
 `revision:<typeId>:<instanceId>:<scope>:<number>`. Two source entities may
 therefore both own revision 1 of the same scope without colliding on `_id`.
 Hash, latest, and per-source delete lookups, DTO serialization, and derived
-provenance read both `data.source` and the stored `data.typeId`/
-`data.instanceId` shape, emitting current `EntityRef` provenance; new
-records are written with `data.source` only.
+provenance read `data.source` only.
 Revision status is resolved through the registered `entity_revision`
 workflow; with no registered workflow a revision carries no status. An
 organization process remains free to register its own active revision

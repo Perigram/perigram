@@ -11,7 +11,7 @@ vi.mock('~/server/utils/permissions.js', () => ({
 }));
 vi.mock('~/server/features/instance-events/service.js', () => ({ listEntityChanges }));
 
-const handler = (await import('./index.get.js')).default;
+const handler = (await import('../../api/instance-events/index.get.js')).default;
 
 describe('GET /api/instance-events', () => {
   beforeEach(() => vi.clearAllMocks());
