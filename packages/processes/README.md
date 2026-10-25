@@ -280,7 +280,8 @@ values cannot reach a persistence effect (reverse reachability over graph
 edges with the effect species as the operational sinks) is reported as
 inspect-only through the compiled `warnings` channel the designer renders —
 an intentionally inspectable pure-data subgraph stays valid while being
-surfaced as a dead-end diagnostic.
+surfaced as a dead-end diagnostic. A manual effect carrying no lane grant
+warns the same way: its action compiles, and no role can see or run it.
 
 ### Required inputs
 

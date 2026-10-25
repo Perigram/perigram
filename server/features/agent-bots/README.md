@@ -58,8 +58,8 @@ Process-definition tools ride the authoring and lifecycle seam of
 [process-definitions](../process-definitions/README.md):
 
 - `get_process_definition` serves a compact digest by default (node
-  ids/kinds/typeIds, edges with socket ids, value-input keys); the full
-  authored document only on `full: true`. The definition tools move
+  ids/kinds/typeIds with their socket handles, edges with socket ids,
+  value-input keys); the full authored document only on `full: true`. The definition tools move
   authored data only: the activation-written records (`compiled`,
   `history`, `activated`) are stripped on load and preserved on save —
   the stored record runs to megabytes, past what a model can echo back
