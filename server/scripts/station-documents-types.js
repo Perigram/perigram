@@ -22,7 +22,7 @@ import { createDefinitionAuthoring } from '../../packages/processes/src/authorin
  * Without --org, every org holding an ACTIVE definition is processed.
  */
 
-const TYPES = documentsPack.starterConstructs;
+const TYPES = documentsListing.declarations.starterConstructs;
 const STARTER_LABELS = TYPES.map(construct => `${construct.typeId}:${construct.construction}`);
 const dryRun = process.argv.includes('--dry-run');
 const orgArgs = [];
