@@ -377,12 +377,13 @@ describe('screen composition', () => {
         ...extra },
       contract, bundle, widgetPool
     );
-    // Two light table peers (8 estimated rows each) share proportional
-    // columns; their relation keys cover the record body's chip rows.
+    // Two light table peers claim whole rows (full breadth) and stack
+    // below the body; their relation keys cover the record body's chip
+    // rows.
     const light = relationScreen();
     expect(light.regions[0].childRegions.map(region => region.relationKey)).toEqual(['reviews', 'audits']);
-    expect(light.regions[0].childArrangement.mode).toBe('columns');
-    expect(light.regions[0].childArrangement.tracks).toBe('minmax(0, 8fr) minmax(0, 8fr)');
+    expect(light.regions[0].childArrangement.mode).toBe('stack');
+    expect(light.regions[0].besideBody).toBe(false);
 
     // Heavy card-scale peers (3 preview cards = 14 estimated rows each)
     // tab in weight order.

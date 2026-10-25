@@ -130,18 +130,23 @@ beside the transition history in `StateHistory`.
   collection surface (`RegionCollections.vue`, the one materialization of
   the layout switch embedded and standalone lists share) on the section
   rhythm; nested child regions arrange through `RegionChildren.vue` (the
-  composed arrangement: stack, weight-proportional columns,
-  dominant-plus-rest, or weight-ordered tabs) over the weight-driven
-  ladder and budgets canonical in
-  [shared/ui-mapping](../../shared/ui-mapping/README.md) — empty child
-  regions are layout-inert and render compact below the arranged content.
-  A create action for the region's own type collapses its caption to the
-  bare localized `uiMapping.new` ("New") through ActionButton's context
-  label: the header already names the class (creates for other types and
-  every other action keep the full label). Top-level detail regions
-  compose a record page: a full-width `SurfaceHeader`, then the record
-  body with the filled child regions arranged around it. Nested detail
-  regions keep the Card surface; empty regions render a Message.
+  composed arrangement: stack, weight-proportional columns with the
+  full-row claim, dominant-plus-rest, or weight-ordered tabs) over the
+  weight-driven ladder and budgets canonical in
+  [shared/ui-mapping](../../shared/ui-mapping/README.md); column
+  engagement measures through the `useContainerTraits` seam (the host
+  grants every track its earned minimum). A region
+  rendering in the stub slot (`stub` prop, the pack strip under a record
+  body) renders one compact line — icon, label, count, its own create
+  action — while loading/denied/error states keep the shared
+  `RegionDataState` surface. A create action for the region's own type
+  collapses its caption to the bare localized `uiMapping.new` ("New")
+  through ActionButton's context label: the header already names the class
+  (creates for other types and every other action keep the full label).
+  Top-level detail regions compose a record page: a full-width
+  `SurfaceHeader`, then the record body with the filled child regions
+  arranged around it. Nested detail regions keep the Card surface; empty
+  regions render the stub line or a Message by placement.
 - `SortControl.vue` — the collection sort control for the card-grid and
   board projections (tables sort natively by column; board lanes carry one
   per column — see `BoardCollection`): a self-contained popover over the
@@ -234,8 +239,9 @@ beside the transition history in `StateHistory`.
   separated-border gap (the layout-only scoped block) and a muted
   transparent header band — every instance row sits one step above the
   canvas, with no border and no ring, while the table box stays unpainted.
-  Columns come from the composed `listControls` contract (filled short
-  scalars bounded by the richness budget — a field no loaded instance
+  The virtualized body clamps to the shared `TABLE_VIRTUAL_SCROLL_REM`
+  bound. Columns come from the composed `listControls` contract (filled
+  short scalars bounded by the richness budget — a field no loaded instance
   fills stays out of the columns), identity/status/scalar columns are
   sortable (quantity values sort by their numeric value), the
   list-controls contract's `defaultSort` (the first filled short scalar)
@@ -369,7 +375,8 @@ beside the transition history in `StateHistory`.
   time over a local draft with confirm/discard. Display renders only
   fields that carry values.
 - `PreviewBox.vue` — preview materialization keyed on the declared
-  payload, in one fixed-height band (`h-28`) for every content kind; a
+  payload, in one fixed-height band (`LAYOUT.previewBand`) for every
+  content kind; a
   registered plugin preview binding
   (`components/generated/plugin-preview-bindings.js`) takes the band
   first. An
@@ -405,8 +412,9 @@ beside the transition history in `StateHistory`.
   editor. Measured values (quantities, instants, numbers) render in the
   mono face with tabular figures; prose and labels stay in the UI face.
   Structural displays are labeled: records/maps/json render as budgeted
-  description lists, record lists as checklist rows (boolean + string
-  subfields), variants as tag plus payload value. Every component it
+  description lists (instance-ref subfields render as `InstanceInlineRef`
+  chips), record lists as checklist rows (boolean + string subfields),
+  variants as tag plus payload value. Every component it
   dispatches to (including MeterGroup, Chart, Rating, Slider, OrderList)
   is imported explicitly — the module-imports spec fails on any
   capitalized template tag without a matching import, because unresolved

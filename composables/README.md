@@ -115,6 +115,19 @@ screen page and the workspace detail pane both mount it through
 `GeneratedScreenHost`; the host's overload branch (`useGeneratedScreen`)
 keeps its own listener of the same shape.
 
+## useContainerTraits
+
+`useContainerTraits(elRef, { hostKind, density })` is the container-traits
+measurement seam of the generative UI
+([shared/ui-mapping](../shared/ui-mapping/README.md) → Arrangement): it
+observes one host element and resolves the full container-trait record
+(`resolveContainerTraits` — width step from `CONTAINER_WIDTH_STEPS`,
+height/scroll from `HOST_PROFILES`, density passthrough), re-resolving on
+host resize. It is the one layout measurement path in the app; arrangement
+materializations (the peer-column engagement in
+[components/ui-mapping](../components/ui-mapping/README.md)) consume it
+instead of measuring layout themselves.
+
 ## useStateController
 
 Direct bridge to the State Machine Engine. All standard workflow transitions go through `POST /api/state/transition`.

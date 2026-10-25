@@ -291,29 +291,74 @@ records, decision procedure, placement slots — is
 [shared/ui-mapping/SPEC.md](./shared/ui-mapping/SPEC.md). Engine home
 `shared/ui-mapping`, materialization `components/ui-mapping`.
 
-- [ ] Data-trait record on every composed region node (SPEC → Data
+- [x] Data-trait record on every composed region node (SPEC → Data
   traits): `weight` (exists, `estimateRegionWeight`), `breadth`, `volume`,
   `shape`, `filledness` (inert empties exist), `growth` — one compose-time
   pure record in the region tree.
-- [ ] Container-trait seam at the materialization layer (SPEC → Container
+  Landed 2026-10-25: `regionDataTraits`/`shapeFamilyOf` in shared/ui-mapping;
+  `composeScreen` nodes carry `dataTraits` (the top-level `weight` field
+  folded into it); random-world spec pins the domains over every composed
+  node.
+- [x] Container-trait seam at the materialization layer (SPEC → Container
   traits): width steps, height boundedness, scroll ownership, density per
   host (page, pane, dialog, popup, mobile tab), measured box over host
   profile; the sanctioned scoped-CSS container homes, `ResponsiveGrid`
   container queries, and measured track engagement materialize the one
   step vocabulary.
-- [ ] The arrangement decision procedure (SPEC → Arrangement decision
+  Landed 2026-10-25: `CONTAINER_WIDTH_STEPS` (medium 40 / wide 60 — the
+  form grid and record split materialize them) + `HOST_PROFILES` in
+  tables.js, pure `resolveContainerTraits`, app seam
+  `composables/useContainerTraits.js`; the peer-column engagement in
+  RegionChildren measures through it. Height/scroll resolve in the record;
+  their materializations are the existing host structures (pane/dialog
+  scroll columns).
+- [x] The arrangement decision procedure (SPEC → Arrangement decision
   procedure) as ordered total rules over data × container traits, outcomes
   carried per width step so one composed tree serves every host.
-- [ ] Placement-aware composition (SPEC → Placement-aware composition):
+  Landed 2026-10-25: `arrangeChildren` rewritten by ordered rule with the
+  full-row claim (breadth-`full` siblings claim rows, `fullRow` on the
+  columns outcome; full rows stay out of the side rail); the stack
+  fallback beside columns carries per-step engagement (CSS container
+  steps + the seam's measured grant).
+- [x] Placement-aware composition (SPEC → Placement-aware composition):
   slot-picked presentations; nested class refs render as instance chips
   everywhere (`InstanceInlineRef`).
-- [ ] Pin audit (SPEC → Pins): layout thresholds named in the one
+  Landed 2026-10-25: the stub slot renders one compact line (icon, label,
+  count, its own create action — RegionBlock `stub` prop, loading/denied/
+  error keep RegionDataState); ref fields, relation chips, and table
+  relation cells already chip; ObjectSummary instance-ref subfields now
+  chip too (FieldControl).
+- [x] Pin audit (SPEC → Pins): layout thresholds named in the one
   budget/layout table; type-keyed layout branches, component-local magic
   numbers, and private breakpoints in app code deleted or pinned through
   the declared seams.
+  Landed 2026-10-25: `TABLE_VIRTUAL_SCROLL_REM` replaces the table's
+  hardcoded 26rem; `LAYOUT.previewBand` replaces five PreviewBox band
+  literals; the scoped-CSS homes carry the step materializations
+  (60rem = the wide step) with one-fact comments; no type-keyed layout
+  branches found (the create-label collapse is the action contract, not
+  layout).
 
 Session reads before any code:
 [shared/ui-mapping/SPEC.md](./shared/ui-mapping/SPEC.md),
 [shared/ui-mapping](./shared/ui-mapping/README.md),
 [components/ui-mapping](./components/ui-mapping/README.md),
 [assets/tokens](./assets/tokens/README.md), SPEC §22.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/genui-traits-impl-20261025-1752` (worktree
+`.agent-worktrees/genui-traits-impl`). All five program items landed;
+specs: ui-mapping (91), screen (15), test-data (128 total incl. the new
+totality walk), design-system (33), SSR smoke (14) green. Found and fixed
+en route: the random-world generator rolled fractional currency values
+against the CTS minor-unit law (SPEC §18) — currency quantities now roll
+integers; the failure was pre-existing at base on
+`test-data/ui-mapping-random.spec.js`. Behavior notes for owner review:
+two light table children of a record now stack full-width under the body
+(the full-row claim) instead of sharing squeezed columns; inert children
+render the compact stub line instead of an empty-state Message.
+
+- [ ] WAITING — owner verification: the five landed items above; check a
+  generated detail with mixed children (a table child beside light peers)
+  and the stub strip on the live stack.

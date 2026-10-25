@@ -416,11 +416,13 @@ materialization reads the same numbers:
 | Constants | Bound |
 |---|---|
 | `TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE` | columns and facts per type richness |
-| `TABLE_PAGINATE_AT`, `TABLE_PAGE_ROWS`, `TABLE_VIRTUALIZE_AT`, `SEARCH_AT` | collection thresholds: pagination, page size, virtualization, toolbar search |
+| `TABLE_PAGINATE_AT`, `TABLE_PAGE_ROWS`, `TABLE_VIRTUALIZE_AT`, `TABLE_VIRTUAL_SCROLL_REM`, `SEARCH_AT` | collection thresholds: pagination, page size, virtualization, the virtual scroll bound, toolbar search |
 | `CHIP_BUDGET`, `ROW_RELATION_BUDGET`, `SUMMARY_BUDGET`, `DETAIL_FACT_BUDGET` | chip, relation-chip, structural-summary, detail-fact counts |
 | `CHILDREN_TABS_AT`, `HEADER_ACTIONS_INLINE` | child regions per tab, inline header actions before the overflow menu |
 | `ROW_FIELD_BUDGET`, `SCALAR_BASES` | dense-row field count, scalar base set |
 | `SMALL_LIST_AT`, `BOARD_MIN_COLUMNS` | bare-list size, board column floor |
+| `CONTAINER_WIDTH_STEPS`, `HOST_PROFILES` | container width steps (`medium` 40rem, `wide` 60rem — the form grid and record split materialize them), host fallback traits (page, pane, dialog, popup, mobile tab) |
+| `FULL_BREADTH_LAYOUTS`, `BOUNDED_GROWTH_LAYOUTS`, `PAGINATED_GROWTH_LAYOUTS` | data-trait derivations: full-row layouts, scroll-owning layouts, layouts that page past `TABLE_PAGINATE_AT` |
 
 `LAYOUT` is the one layout-class vocabulary materializations may use —
 PrimeVue components own their internal layout, and every grid/stack/row/gap
@@ -435,6 +437,25 @@ every top-level region sits at level 0, and the record-page treatment
 follows surface kind — so materializations style themselves from their
 position in the hierarchy.
 
+Every composed node carries its **data traits** (`regionDataTraits`, pure
+over the type record and pool, frozen at compose): `weight`
+(`estimateRegionWeight`), `breadth` (`chip` bare lists · `content` most
+collections and detail bodies · `full` table/board/gantt/calendar —
+layouts that demand the row), `volume`, `shape` (`shapeFamilyOf`), 
+`filledness` (zero instances is `inert`), and `growth` (`bounded` for
+scroll-owning layouts and collections past the pagination budget,
+`flowing` otherwise). Arrangement decisions consume the record; the
+random-world spec pins its domains over every composed node.
+
+**Container traits** (`resolveContainerTraits({ widthRem, hostKind,
+density })`) resolve the host side: the measured width maps to the
+`CONTAINER_WIDTH_STEPS` steps (narrow / medium 40rem / wide 60rem), and
+`HOST_PROFILES` supply the fallback `height`/`scroll` per host kind — the
+measured box wins over the profile. The app-side measurement seam is
+`useContainerTraits` ([composables](../../composables/README.md)); the
+sanctioned scoped-CSS container homes (the record split's 60rem, the form
+grid's 40rem) materialize the same steps.
+
 Sibling arrangement is weight-driven and compose-time.
 `estimateRegionWeight` estimates each region's full rendered height from
 its own data — facts, structural fields, and relation refs for detail
@@ -444,20 +465,26 @@ times actual instance counts for lists (with the same size classes the
 materialization derives, so the weighted layout is the rendered layout),
 plus the wrapped relation-chip rows the first declared relation adds.
 `arrangeChildren` decides how sibling regions share the surface from the
-same weights at card scale:
+same weights and breadths at card scale, by ordered rule — stack-mode
+under the budget, dominant child, full-row claim, peer columns, tabs,
+terminal stack:
 
 | Rule | Constant | Behavior |
 |---|---|---|
-| Side rail | `SIDE_MAX_WEIGHT` | a stack-mode child set at or under the budget rides beside the record body |
-| Peer columns | `COLUMN_MAX_WEIGHT` | peers up to the budget rows each share proportional columns (track fr from each child's estimated rows) |
+| Side rail | `SIDE_MAX_WEIGHT` | a stack-mode, non-full-breadth child set at or under the budget rides beside the record body |
 | Dominant child | `DOMINANT_CHILD_SHARE` | a sibling holding at least the share of total weight keeps the vertical flow while its remainder fits `SURFACE_ROW_BUDGET` |
+| Full-row claim | `FULL_BREADTH_LAYOUTS` | breadth-`full` siblings claim whole rows (`fullRow` ids on the columns outcome) and stay out of the peer columns and the record side rail |
+| Peer columns | `COLUMN_MAX_WEIGHT` | columnable peers up to the budget rows each share proportional columns (track fr from each child's estimated rows); a full-row child with a light columnable remainder keeps the mixed flow, a heavy one tabs |
 | Tabs | over-budget sets | tab in descending weight order at the top level (nested heavy content stacks) |
 
 Arrangement is content-aware (SPEC §22, 2026-10-22): a child
 collection with zero loaded instances is layout-inert — it joins the node's
-`stubRegions`, renders compact below the arranged content, and every
-arrangement decision (weights, columns, tabs, the side rail) sees filled
-children only; its relation key still covers the record body's chip row.
+`stubRegions`, renders as the compact stub line (label, count, its own
+create action — see RegionBlock in
+[components/ui-mapping](../../components/ui-mapping/README.md)) below the
+arranged content, and every arrangement decision (weights, columns, tabs,
+the side rail) sees filled children only; its relation key still covers the
+record body's chip row.
 Screen-level sections keep their own budget rule (`childrenModeFor`:
 over-budget top-level sections tab). Every weight is a compose-time value
 over the composed tree.
@@ -530,8 +557,9 @@ a bare flat pile — class surfaces never nest at all, and containment
 navigation is the workspace explorer's (the sidebar nests instances
 under their parents through the same `childrenOfParent` matcher); maps
 regions to surface kinds (detail main regions at `full`, nested detail at
-`detail`, list rows at `row`), attaches resolved surface policy, resolved
-action records, the per-region `dataState` (see Data states), the
+`detail`, list rows at `row`), attaches resolved surface policy, the
+region's data traits (see Arrangement), resolved action records, the
+per-region `dataState` (see Data states), the
 `listControls` contract for list regions (see Instance shape and list
 controls), the per-type `statePolicy` map off the contract (see State
 display), and nested child regions. Region nesting is slot-driven and
@@ -554,6 +582,10 @@ handwritten.
   auth hydration carries the client bundle and projected actions, and
   `utils/instance-shape.js` (through the instances store) maps entity collections onto the
   instance pool.
+- Container measurement: `useContainerTraits`
+  ([composables](../../composables/README.md)) is the app-side seam that
+  resolves container traits — materializations consume `resolveContainerTraits`
+  through it and never measure layout themselves.
 - Showcase: [pages/test/ui-mapping.vue](../../pages/test/ui-mapping.vue)
   mounts the generated screen engine over synthetic compiler output; its
   board drops execute through an optimistic state-override executor (the

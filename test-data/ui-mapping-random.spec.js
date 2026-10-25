@@ -43,6 +43,39 @@ describe('random worlds', () => {
     }
   });
 
+  it('carry valid data traits and a resolved arrangement on every composed node', () => {
+    const BREADTHS = ['chip', 'content', 'full'];
+    const GROWTH = ['flowing', 'bounded'];
+    const SHAPES = ['plain', 'media', 'temporal', 'prose', 'measure', 'stateful'];
+    const MODES = ['stack', 'columns', 'mixed', 'tabs'];
+    const walk = (regions, visit) => {
+      for (const region of regions) {
+        visit(region);
+        walk(region.childRegions || [], visit);
+        walk(region.stubRegions || [], visit);
+      }
+    };
+    for (const seed of SEEDS) {
+      const world = generateUiMappingWorld(seed);
+      const pool = buildInstancePool(world.instances);
+      for (const screen of Object.values(world.contract.screens)) {
+        const composed = composeScreen(screen, world.contract, world.bundle, pool);
+        walk(composed.regions, region => {
+          const traits = region.dataTraits;
+          expect(traits, `seed ${seed} ${screen.screenKey} ${region.id} dataTraits`).toBeTruthy();
+          expect(Number.isFinite(traits.weight), `seed ${seed} ${region.id} weight`).toBe(true);
+          expect(BREADTHS, `seed ${seed} ${region.id} breadth`).toContain(traits.breadth);
+          expect(GROWTH, `seed ${seed} ${region.id} growth`).toContain(traits.growth);
+          expect(SHAPES, `seed ${seed} ${region.id} shape`).toContain(traits.shape);
+          expect(traits.volume, `seed ${seed} ${region.id} volume`).toBe(region.instances.length);
+          expect(['filled', 'inert'], `seed ${seed} ${region.id} filledness`).toContain(traits.filledness);
+          expect(traits.filledness === 'inert').toBe(region.instances.length === 0);
+          expect(MODES, `seed ${seed} ${region.id} arrangement`).toContain(region.childArrangement.mode);
+        });
+      }
+    }
+  });
+
   it('resolve every generated field descriptor in every variant', () => {
     for (const seed of SEEDS.slice(0, 4)) {
       const world = generateUiMappingWorld(seed);

@@ -1,5 +1,18 @@
 <template>
-  <div v-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
+  <div v-if="stubLine" :class="[LAYOUT.row, 'w-fit']">
+    <i v-if="node.type" :class="iconFor(node.type)" />
+    <span class="text-label text-muted">{{ regionLabel }}</span>
+    <Tag :value="String(node.instances.length)" severity="secondary" />
+    <ActionButton
+      v-for="action in collectionActions"
+      :key="action.id"
+      :action="action"
+      :state-policy="node.statePolicy"
+      :label="headerActionLabel(action)"
+      @run="emitRun"
+    />
+  </div>
+  <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-wrap items-center gap-2">
         <i v-if="node.type" :class="iconFor(node.type)" />
@@ -234,7 +247,10 @@ const props = defineProps({
   editorActions: { type: Object, default: null },
   // The host surface names this screen; the region header's label and
   // the record title stay with the host.
-  paneHosted: { type: Boolean, default: false }
+  paneHosted: { type: Boolean, default: false },
+  // The stub slot (SPEC → Placement-aware composition): an inert child
+  // renders one compact line — label, count, its own create action.
+  stub: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh']);
@@ -381,6 +397,8 @@ const hasInstances = computed(() => props.node.instances.length > 0);
 const isReloading = computed(() => state.value === 'loading' && hasInstances.value);
 const showSurfaces = computed(() => state.value === 'ready' || isReloading.value);
 const showState = computed(() => !showSurfaces.value);
+const stubLine = computed(() => props.stub && props.node.surfaceKind === 'list'
+  && (state.value === 'empty' || state.value === 'missing'));
 const embeddedStack = computed(() => (spacing ? spacing.stackTight : LAYOUT.stackTight));
 const regionLabel = computed(() => localizedLabel({ te, t }, typeLabelKey(props.node.typeId), props.node.type ? generatedEntityLabel(props.node.type, { t, te }) : props.node.id));
 // The derived list layout — the resolver's contract decision over shape,
@@ -501,12 +519,10 @@ const filteredInstances = computed(() => {
 
 
 <style scoped>
-/* Container-relative record split (the SurfaceHeader pattern — the
-   tailwindcss build has no container-queries plugin, so this lives in
-   real CSS). The host is the query container; the grid inside responds:
-   the split engages past 60rem of container width and stacks inside
-   panes, dialogs, and narrow columns. The track shares are weight-derived
-   custom properties set by the template. */
+/* The record split engages at the wide step (CONTAINER_WIDTH_STEPS.wideRem)
+   of its query container — real CSS because the tailwind build ships no
+   container-queries plugin. Track shares are weight-derived custom
+   properties set by the template. */
 .region-split-host {
   container-type: inline-size;
 }
