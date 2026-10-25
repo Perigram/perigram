@@ -165,7 +165,7 @@ export const test = base.extend({
 
         const authoring = createDefinitionAuthoring(mountedDomain(organizationId, domainTypes));
         types.forEach((typeId, index) => {
-          authoring.drop('construct', { id: `e2e-${index}`, typeId });
+          authoring.drop('construct', { id: `e2e-${index}` });
         });
         // Type lifetime (cts SPEC §4): the seeded definition declares its
         // org types in-tree — the declaration gestures behind the
@@ -207,9 +207,11 @@ export const test = base.extend({
           const mode = via[typeId] || DEFAULT_VIA[typeId] || 'genericCreate';
           if (declaredById.get(typeId)?.scope === 'org') {
             authoring.wireDeclaration(`e2e-class-${declaredIds.indexOf(typeId)}`, id, 'binds');
+          } else {
+            authoring.declareTypeRef({ id: `e2e-ref-${index}`, typeId });
+            authoring.wireDeclaration(`e2e-ref-${index}`, id, 'binds');
           }
           authoring.configure(id, {
-            typeId,
             construction: { mode },
             access: { level: 'admin', grants: [{ roleId: role.id, level: 'admin' }] }
           });

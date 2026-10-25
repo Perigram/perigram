@@ -39,7 +39,7 @@ export function composeOrderTree(authoring) {
 
 export function composeOrderGraph(authoring, tableType) {
   const adminAccess = { level: 'admin', grants: [{ roleId: 'role_admin', level: 'admin' }] };
-  authoring.drop('construct', { id: 'order', typeId: 'facade-order' });
+  authoring.drop('construct', { id: 'order' });
   authoring.wireDeclaration('orderClass', 'order', 'binds');
   authoring.configure('order', { access: adminAccess });
   authoring.setInputDefault('order', 'fields.name', 'Facade order 42');
@@ -68,7 +68,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('joinByKey', { id: 'pairs' });
   authoring.configure('pairs', { leftKey: 'cassette', rightKey: 'identity.name' });
 
-  authoring.drop('construct', { id: 'bake', typeId: 'cassette-design' });
+  authoring.drop('construct', { id: 'bake' });
   authoring.wireDeclaration('designRef', 'bake', 'binds');
   authoring.configure('bake', { construction: { mode: 'bake' } });
 
@@ -80,7 +80,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('heights', { type: { base: 'number', nullable: false, unit: 'mm' }, value: [2500, 3000] });
   authoring.drop('literalList', { id: 'thicknesses' });
   authoring.configure('thicknesses', { type: { base: 'number', nullable: false, unit: 'mm' }, value: [4, 6] });
-  authoring.drop('construct', { id: 'materials', typeId: 'sheet-material' });
+  authoring.drop('construct', { id: 'materials' });
   authoring.wireDeclaration('materialClass', 'materials', 'binds');
   authoring.configure('materials', { access: adminAccess });
 
@@ -103,7 +103,7 @@ export function composeOrderGraph(authoring, tableType) {
 
   authoring.drop('service:plugin.facade.nesting-solve', { id: 'solve' });
 
-  authoring.drop('construct', { id: 'attempt', typeId: 'nesting-attempt' });
+  authoring.drop('construct', { id: 'attempt' });
   authoring.wireDeclaration('attemptClass', 'attempt', 'binds');
   authoring.configure('attempt', { access: adminAccess });
   authoring.setInputDefault('attempt', 'fields.label', 'Nesting run');

@@ -40,7 +40,7 @@ Each gesture has its removal twin:
 | Gesture | Authoring | Removal |
 |---|---|---|
 | Declaration tree | `declareClass`/`declareField`/`declareTypeRef`/`declareState` plus `wireDeclaration` (declares/targets/children/binds/entry wires), gated by `declarationWireLegality`, interpreted by `interpretDeclarationEdges` | `unwireDeclaration` |
-| Palette drop | record factory + preset; a construct drop names its `typeId` | `removeNode` — removes the node with its record, its wires, and the producer outputs it anchored (join selections pointing at removed outputs reset) |
+| Palette drop | record factory + preset; a construct's type binding is its `binds` declaration wire (class or type reference wired onto the construct) — `configure` refuses `typeId` on a construct and validation reports an unbound one | `removeNode` — removes the node with its record, its wires, and the producer outputs it anchored (join selections pointing at removed outputs reset) |
 | Record configuration | the same writes the inspector performs, including socket input defaults (typed scalars; the entityRef picker writes `{type, id}`) | — |
 | Connection | `processSocketsCompatible` (the canvas gate); wire gestures address socket handles — `data:<id>` for data sockets, `control:<id>` for control; bare ids and the retired `input:`/`output:` spellings refuse; `ports.js` mints them on the stored edge | `disconnect` |
 

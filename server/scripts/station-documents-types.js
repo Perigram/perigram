@@ -45,7 +45,10 @@ function definitionData(organizationId) {
   const authoring = createDefinitionAuthoring(domain);
   TYPES.forEach((construct, index) => {
     const id = `documents-${index}`;
-    authoring.drop('construct', { id, typeId: construct.typeId });
+    const refId = `documents-ref-${index}`;
+    authoring.drop('construct', { id });
+    authoring.declareTypeRef({ id: refId, typeId: construct.typeId });
+    authoring.wireDeclaration(refId, id, 'binds');
     authoring.configure(id, {
       construction: { mode: construct.construction },
       access: { level: 'admin', grants: [{ roleId: 'role_admin', level: 'admin' }] }

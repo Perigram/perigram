@@ -11,6 +11,7 @@ import {
   graphEdgeSocketProblems,
   graphIntegrityProblems
 } from './authoring.js';
+import { validateProcessDefinition } from './compiler-core.js';
 import { validateRoundTrip } from './transpiler.js';
 import { camelCaseId, compileTreeDeclarations } from './designer.js';
 import { createTypeRegistry, projectDomainFromView, frameworkTypes, resolveCtsDefinition, checkCtsGraphBindings } from '../../cts/src/index.js';
@@ -39,8 +40,9 @@ describe('seeding the authoring seam from a stored document', () => {
   it('applies gestures to the stored graph without disturbing it', () => {
     const first = authoring();
     first.declareClass({ id: 'cls_sheet', typeId: 'sheet', name: 'Sheet' });
-    first.drop('construct', { id: 'node_make', typeId: 'sheet' });
-    first.configure('node_make', { typeId: 'sheet' });
+    first.declareTypeRef({ id: 'ref_sheet', typeId: 'sheet' });
+    first.drop('construct', { id: 'node_make' });
+    first.wireDeclaration('ref_sheet', 'node_make', 'binds');
     const stored = first.definition();
 
     const seam = createDefinitionAuthoring(projectedDomain(), null, stored);
@@ -104,8 +106,10 @@ describe('headless definition authoring', () => {
     const context = authoring();
     const items = allPaletteItems(context);
     expect(items.length).toBeGreaterThan(20);
+    context.declareTypeRef({ id: 'walker_ref', typeId: 'sheet' });
     for (const item of items) {
-      context.drop(item.id, { id: `drop-${item.id}`, ...(item.kind === 'cts.construct' ? { typeId: 'sheet' } : {}) });
+      context.drop(item.id, { id: `drop-${item.id}` });
+      if (item.kind === 'cts.construct') context.wireDeclaration('walker_ref', `drop-${item.id}`, 'binds');
     }
     for (const item of items) {
       const record = context.record(`drop-${item.id}`);
@@ -177,7 +181,7 @@ describe('headless definition authoring', () => {
     context.wireDeclaration('csvRef', 'tableField', 'targets');
     context.wireDeclaration('designRef', 'orderClass', 'children', { key: 'contents' });
     context.wireDeclaration('attemptClass', 'orderClass', 'children', { key: 'contents' });
-    context.drop('construct', { id: 'order', typeId: 'facade-order' });
+    context.drop('construct', { id: 'order' });
     context.wireDeclaration('orderClass', 'order', 'binds');
 
     const definition = context.definition();
@@ -205,7 +209,9 @@ describe('headless definition authoring', () => {
     context.declareState({ id: 'stLive', ownerClassId: 'panelClass', value: 'LIVE' });
     context.declareTypeRef({ id: 'sheetRef', typeId: 'sheet' });
     context.declareState({ id: 'stProduction', typeId: 'sheet', value: 'PRODUCTION', terminal: true });
-    context.drop('construct', { id: 'makePanel', typeId: 'part' });
+    context.declareTypeRef({ id: 'ref_part', typeId: 'part' });
+    context.drop('construct', { id: 'makePanel' });
+    context.wireDeclaration('ref_part', 'makePanel', 'binds');
     context.wireDeclaration('panelClass', 'makePanel', 'binds');
     context.wireDeclaration('stNew', 'makePanel', 'entry');
     context.drop('transition', { id: 'shipPanel' });
@@ -258,8 +264,10 @@ describe('headless definition authoring', () => {
 
   it('round-trips every dropped palette record through the canvas twice', () => {
     const context = authoring();
+    context.declareTypeRef({ id: 'walker_ref', typeId: 'sheet' });
     for (const item of allPaletteItems(context)) {
-      context.drop(item.id, { id: `drop-${item.id}`, ...(item.kind === 'cts.construct' ? { typeId: 'sheet' } : {}) });
+      context.drop(item.id, { id: `drop-${item.id}` });
+      if (item.kind === 'cts.construct') context.wireDeclaration('walker_ref', `drop-${item.id}`, 'binds');
     }
     const definition = context.definition();
     const { errors, warnings } = validateRoundTrip(definition);
@@ -337,7 +345,9 @@ describe('headless layout and graph integrity', () => {
   it('places every dropped and declared node on a distinct grid slot', () => {
     const seam = createDefinitionAuthoring(projectedDomain());
     seam.declareClass({ id: 'cls', typeId: 't-x', name: 'X' });
-    seam.drop('construct', { id: 'n1', typeId: 'sheet' });
+    seam.drop('construct', { id: 'n1' });
+    seam.declareTypeRef({ id: 'ref_n1', typeId: 'sheet' });
+    seam.wireDeclaration('ref_n1', 'n1', 'binds');
     seam.drop('mutate', { id: 'n2' });
     const positions = seam.definition().graph.nodes.map(node => node.position);
     expect(positions.length).toBeGreaterThan(2);
@@ -394,7 +404,9 @@ describe('headless layout and graph integrity', () => {
 
   it('configures an effect lane as one grant and collapses stored multi-grant records', () => {
     const seam = authoring();
-    seam.drop('construct', { id: 'make', typeId: 'sheet' });
+    seam.drop('construct', { id: 'make' });
+    seam.declareTypeRef({ id: 'ref_make', typeId: 'sheet' });
+    seam.wireDeclaration('ref_make', 'make', 'binds');
     expect(() => seam.configure('make', {
       access: { grants: [
         { roleId: 'role_admin', level: 'admin' },
@@ -445,13 +457,20 @@ describe('headless layout and graph integrity', () => {
     expect(seam.definition().graph.edges).toHaveLength(0);
   });
 
-  it('refuses untyped construct drops — a construct exists only bound', () => {
+  it('binds a construct through its binds declaration wire — configure typeId refuses', () => {
     const seam = authoring();
-    expect(() => seam.drop('construct', { id: 'make' })).toThrow(/requires its typeId/);
-    expect(seam.definition().processNodes.make).toBeUndefined();
-    expect(seam.definition().graph.nodes.some(node => node.id === 'make')).toBe(false);
-    const record = seam.drop('construct', { id: 'make', typeId: 'sheet' });
-    expect(record.typeId).toBe('sheet');
+    seam.declareTypeRef({ id: 'ref_make', typeId: 'sheet' });
+    seam.drop('construct', { id: 'make' });
+    expect(() => seam.configure('make', { typeId: 'sheet' })).toThrow(/binds its type by wire/);
+    seam.wireDeclaration('ref_make', 'make', 'binds');
+    expect(seam.record('make').typeId).toBe('sheet');
+  });
+
+  it('reports an unbound construct at validation — the binding is the wire', () => {
+    const seam = authoring();
+    seam.drop('construct', { id: 'orphan' });
+    const errors = validateProcessDefinition(seam.definition(), projectedDomain()).errors;
+    expect(errors.some(message => message.includes('orphan') && message.includes('no type binding'))).toBe(true);
   });
 
   it('preserves the authored construction mode across a vocabulary gap', () => {
@@ -459,10 +478,12 @@ describe('headless layout and graph integrity', () => {
     // current domain does not know keeps its authored construction; the
     // mode re-resolves only against a contract that declares modes.
     const gap = createDefinitionAuthoring({ entities: [], workflows: {}, fieldSchemas: {}, relations: [], construction: {}, projectionContracts: {}, serviceContracts: {} });
-    gap.drop('construct', { id: 'make', typeId: 'sheet' });
-    gap.configure('make', { construction: { mode: 'bake' } });
+    gap.declareTypeRef({ id: 'ref_material', typeId: 'material' });
+    gap.drop('construct', { id: 'make' });
+    gap.wireDeclaration('ref_material', 'make', 'binds');
+    gap.configure('make', { construction: { mode: 'bogus' } });
     const stored = gap.definition();
-    expect(stored.processNodes.make.construction.mode).toBe('bake');
+    expect(stored.processNodes.make.construction.mode).toBe('bogus');
 
     const reloaded = createDefinitionAuthoring(
       { entities: [], workflows: {}, fieldSchemas: {}, relations: [], construction: {}, projectionContracts: {}, serviceContracts: {} },
@@ -471,11 +492,12 @@ describe('headless layout and graph integrity', () => {
     );
     reloaded.sync('make');
     const kept = reloaded.record('make').construction;
-    expect(kept.mode).toBe('bake');
+    expect(kept.mode).toBe('bogus');
 
     const seam = createDefinitionAuthoring(projectedDomain(), null, structuredClone(stored));
     seam.sync('make');
-    expect(seam.record('make').construction.mode).toBe('genericCreate');
+    const resolved = seam.record('make').construction.mode;
+    expect(resolved).toBe('genericCreate');
   });
 
   it('refuses wiring that omits or misnames the socket handle', () => {

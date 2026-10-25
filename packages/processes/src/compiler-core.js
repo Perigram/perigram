@@ -801,7 +801,16 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     if (node.type === 'socket' && !process.sockets[refId]) errors.push(`Socket node ${node.id} references missing socket ${refId}`);
     if (node.type === 'stateDefinition' && !process.stateDefinitions[refId]) errors.push(`Status node ${node.id} references missing status definition ${refId}`);
     if (node.type === 'valueInput' && !process.valueInputs[refId]) errors.push(`Value node ${node.id} references missing value input ${refId}`);
-    if (node.type === 'processNode' && !process.processNodes[refId]) errors.push(`Process node ${node.id} references missing process node ${refId}`);
+    if (node.type === 'processNode' && !process.processNodes[refId]) errors.push(`Process node ${node.id} references missing process node record ${refId}`);
+  }
+
+  for (const [id, record] of Object.entries(process.processNodes)) {
+    // A construct's type binding is its binds declaration wire: the
+    // record's typeId derives from the wire, so an unbound construct is
+    // an unfinished node, reported where the author meets it.
+    if (record.kind === 'cts.construct' && !record.typeId) {
+      errors.push(`Process node ${id} (Create) has no type binding — wire a class or type reference onto it (binds)`);
+    }
   }
 
   for (const [producerOutputId, output] of Object.entries(process.producerOutputs)) {
