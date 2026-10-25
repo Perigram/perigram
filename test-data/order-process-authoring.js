@@ -127,13 +127,13 @@ export function composeOrderGraph(authoring, tableType) {
 
   authoring.connect('rowTemplate', 'data:value', 'bake', 'data:template');
   authoring.connect('params', 'data:record', 'bake', 'data:parameters');
-  authoring.connect('order', 'data:result', 'bake', `lineage.${ORDER_LINEAGE_KEY}`);
+  authoring.connect('order', 'data:result', 'bake', `data:lineage.${ORDER_LINEAGE_KEY}`);
 
   authoring.connect('codes', 'data:value', 'materials', 'data:fields.code');
   authoring.connect('widths', 'data:value', 'materials', 'data:fields.width');
   authoring.connect('heights', 'data:value', 'materials', 'data:fields.height');
   authoring.connect('thicknesses', 'data:value', 'materials', 'data:fields.thickness');
-  authoring.connect('order', 'data:result', 'materials', `lineage.${ORDER_LINEAGE_KEY}`);
+  authoring.connect('order', 'data:result', 'materials', `data:lineage.${ORDER_LINEAGE_KEY}`);
 
   authoring.connect('bake', 'data:result', 'polygons', 'data:entity');
   authoring.connect('polygons', 'data:result', 'jobItems', 'data:polygonParts');
@@ -145,7 +145,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('matWidth', 'data:value', 'solve', 'data:sheetWidth');
   authoring.connect('matHeight', 'data:value', 'solve', 'data:sheetHeight');
   authoring.connect('solve', 'data:result', 'attempt', 'data:fields.result');
-  authoring.connect('order', 'data:result', 'attempt', `lineage.${ORDER_LINEAGE_KEY}`);
+  authoring.connect('order', 'data:result', 'attempt', `data:lineage.${ORDER_LINEAGE_KEY}`);
 
   return authoring.definition();
 }
