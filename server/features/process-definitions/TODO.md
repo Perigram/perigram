@@ -21,6 +21,15 @@ README REWRITE (640 lines → ~350, zero contract loss):
 - [x] 409 response single-shape preparation: `migration-plan.js` carries `migrationPlan` only — `strandedAsAffected` and the `data.affected` mirror deleted, 409 detail string built from the stranded rows directly; migration-plan.spec gains the throw-shape test; process-definitions.spec 409 assertions updated (decided 2026-10-25: drop `affected`, `migrationPlan` is the shape).
 - [x] Owner-recovery single read: `users/organization-owner.js` `isOwnerMembership` reads the explicit `owner` flag; the auth-level dual-admin fallback is gone (`hasTenantAdminPermissions` deleted); stored rows healed by server/scripts/migrate-legacy-owner-memberships.js (flags active dual-admin memberships, permissions untouched); users.spec legacy-merge tests flipped to flag-only expectations (decided 2026-10-25).
 
+### Code findings
+
+- [ ] 24 failures in process-definitions.spec.js at base 6b12a236c (identical
+  before/after the 2026-10-25 wave-2 comment-only edits): failing names span
+  the core service contract — draft save + binding diagnostics, entity-node
+  migration before activation, semantic apply diff + 409, declared-migration
+  activation, history supersede, processUpdate chains. Spec/service drift;
+  needs its own session.
+
 ### Deletions
 
 - [x] server/features/support/welcomemessage.js — deleted (`sendWelcomeMessage` zero call sites); `MESSAGE_SENDER.WELCOME` survives via const.js.
