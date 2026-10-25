@@ -3,7 +3,7 @@ import { createCommandResult, normalizeEntityOutputContracts, validateResultEnti
 import { assertCommandAccess } from '../access/service.js';
 import { getAppRegistry } from '../../runtime/app-registry.js';
 import * as commandRunsRepository from './repository.js';
-import { processEffects, processEvents } from '../effects/service.js';
+import { processEffects, processEvents, mergeProcessedEffects } from '../effects/service.js';
 import { resolveProcessCommandService } from '../../features/process-definitions/runtime.js';
 import * as billingService from '../../features/billing/service.js';
 
@@ -140,16 +140,6 @@ async function assertProcessServiceAvailable(commandId, auth = {}) {
 
 function resolveOrganizationId(auth = {}) {
   return auth.organizationId || auth.memberships?.[0]?.organizationId || null;
-}
-
-function mergeProcessedEffects(left, right) {
-  return {
-    entities: [...(left.entities || []), ...(right.entities || [])],
-    tasks: [...(left.tasks || []), ...(right.tasks || [])],
-    transitions: [...(left.transitions || []), ...(right.transitions || [])],
-    events: [...(left.events || []), ...(right.events || [])],
-    attachments: [...(left.attachments || []), ...(right.attachments || [])]
-  };
 }
 
 export function listCommands() {
