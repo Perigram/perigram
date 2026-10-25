@@ -54,6 +54,12 @@ definitions and their types die together.
 ## Coverage
 
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.
+- `agent-mcp-template-fill.mjs`: API-only MCP probe, run directly with
+  `node e2e/agent-mcp-template-fill.mjs` against the same stack —
+  registers a scratch org, installs the documents plugin, authors a
+  template-fill definition through the agent tool catalog (compose →
+  validate → activate), runs the compiled fill action, and reads the
+  created markdown payload back through `read_instance_file`.
 - `md-editor-repair.spec.js`: the markdown editor repair legs — the blank
   text-document editor opens pristine (save disabled until edited), the
   format controls and slash commands insert their blocks, a `.md`
