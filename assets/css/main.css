@@ -402,8 +402,8 @@ body {
     /* Container-relative record-body grids (the ui-mapping LAYOUT
        tokens factsGrid/bodyGrid): content width is the floor and the
        host grants growth — fact groups fill in columns that track the
-       body width, and body blocks grow into spare row width past their
-       content floor. */
+       body width (track floor 22rem), and body blocks grow into spare
+       row width past their content floor (content cap 46rem). */
     .ck-facts-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));

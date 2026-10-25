@@ -7,7 +7,7 @@ const CONTAINER_KEY = 'uiMappingContainer';
 // one layout measurement path. Width is measured from the host element
 // (the truth), height and scroll resolve from the host profile, density
 // rides the screen's spacing coefficient.
-export function useContainerTraits(elRef, { hostKind = 'page', density = 1 } = {}) {
+function useMeasuredWidthRem(elRef) {
   const widthRem = ref(null);
   let observer = null;
   const remPx = () => parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
@@ -22,16 +22,42 @@ export function useContainerTraits(elRef, { hostKind = 'page', density = 1 } = {
     if (el) observer.observe(el);
   });
   onBeforeUnmount(() => observer?.disconnect());
+  return widthRem;
+}
+
+export function useContainerTraits(elRef, { hostKind = 'page', density = 1 } = {}) {
+  const widthRem = useMeasuredWidthRem(elRef);
   return computed(() => resolveContainerTraits({ widthRem: widthRem.value, hostKind, density }));
 }
 
-// A host declares its profile: measuring hosts (the pane) observe their
-// own box; fixed-shape hosts (the popup) provide the profile alone.
+// A host declares its profile: measuring hosts (the pane, the page) observe
+// their own box; fixed-shape hosts (the popup) provide the profile alone.
 export function provideContainerTraits({ hostKind, elRef = null, density = 1 } = {}) {
   const measured = elRef ? useContainerTraits(elRef, { hostKind, density }) : null;
   const traits = measured || computed(() => resolveContainerTraits({ hostKind, density }));
   provide(CONTAINER_KEY, traits);
   return traits;
+}
+
+// A placement box (a record side column, a peer-column track) measures
+// where it renders: its own width is the truth, height/scroll/density
+// inherit the host record it renders in.
+export function providePlacementContainer(elRef) {
+  const host = useHostContainerTraits();
+  const widthRem = useMeasuredWidthRem(elRef);
+  provide(CONTAINER_KEY, computed(() => resolveContainerTraits({
+    widthRem: widthRem.value,
+    height: host.value.height,
+    scroll: host.value.scroll,
+    density: host.value.density
+  })));
+}
+
+// The routed surface's page profile is the providerless default: it
+// provides only when no host (pane, dialog, popup) declared its record.
+export function provideDefaultContainerTraits(options = {}) {
+  if (inject(CONTAINER_KEY, null)) return;
+  provideContainerTraits(options);
 }
 
 // Surfaces resolve the host record; the page profile is the providerless

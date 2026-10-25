@@ -14,7 +14,6 @@ import {
   SIDE_MAX_WEIGHT,
   COLUMN_MAX_WEIGHT,
   DOMINANT_CHILD_SHARE,
-  REGION_COLUMNS_MAX,
   REGION_COLUMN_EARNED_REM,
   REGION_SIDE_SPANS,
   SMALL_LIST_AT,
@@ -80,7 +79,6 @@ export {
   SIDE_MAX_WEIGHT,
   COLUMN_MAX_WEIGHT,
   DOMINANT_CHILD_SHARE,
-  REGION_COLUMNS_MAX,
   REGION_COLUMN_EARNED_REM,
   REGION_SIDE_SPANS,
   CONTAINER_WIDTH_STEPS,
@@ -951,8 +949,12 @@ export function regionDataTraits(node = {}) {
 
 // Container traits (SPEC → Container traits): the measured host width is
 // the truth, the host profile the fallback; the record is plain data the
-// pure arrangement consumes.
-export function resolveContainerTraits({ widthRem = null, hostKind = 'page', density = 1 } = {}) {
+// pure arrangement consumes. A placement box (a side column, a column
+// track) overrides `height`/`scroll` with the host record's values while
+// measuring its own width.
+export function resolveContainerTraits({
+  widthRem = null, hostKind = 'page', density = 1, height = null, scroll = null
+} = {}) {
   const profile = HOST_PROFILES[hostKind] || HOST_PROFILES.page;
   const width = Number.isFinite(widthRem)
     ? (widthRem >= CONTAINER_WIDTH_STEPS.wideRem ? 'wide'
@@ -961,34 +963,47 @@ export function resolveContainerTraits({ widthRem = null, hostKind = 'page', den
   return Object.freeze({
     width,
     widthRem: Number.isFinite(widthRem) ? widthRem : null,
-    height: profile.height,
-    scroll: profile.scroll,
+    height: height || profile.height,
+    scroll: scroll || profile.scroll,
     density
   });
 }
 
-// Region arrangement (SPEC → Arrangement decision procedure): ordered
-// rules over the children's data traits — light sets stack; full-breadth
-// children claim the whole row and never join columns; a dominant sibling
-// keeps the flow while its remainder fits the surface budget; columnable
-// peers up to COLUMN_MAX_WEIGHT rows each share proportional columns
-// (track fr from each child's weight); heavier sets tab in descending
-// weight order — tabs are the page-height bound. Tabs are a top-level
-// arrangement; nested heavy content stacks.
-export function arrangeChildren(childRegions = [], level = 0) {
-  const traitsOf = region => region.dataTraits || regionDataTraits(region);
+function tabsOutcome(childRegions, weights) {
+  return {
+    mode: 'tabs',
+    order: childRegions
+      .map((region, index) => ({ id: region.id, weight: weights[index] }))
+      .sort((a, b) => b.weight - a.weight)
+      .map(entry => entry.id)
+  };
+}
+
+// One step of the arrangement ladder (SPEC → Arrangement decision
+// procedure): ordered rules over the children's data traits, earlier
+// decisions binding later ones, the last rule terminal. Full-breadth
+// children claim whole rows; a dominant sibling keeps the flow while its
+// remainder arranges, else the set tabs; light peers share proportional
+// columns at every step past narrow; a set past the budgets with a child
+// too heavy to share tabs — tabs are the page-height bound, top level
+// only; everything else stacks.
+function arrangeForStep(childRegions, step, level) {
   if (childRegions.length < CHILDREN_TABS_AT) return { mode: 'stack' };
+  const traitsOf = region => region.dataTraits || regionDataTraits(region);
   const weights = childRegions.map(region => estimateRegionWeight(region));
   const total = weights.reduce((sum, weight) => sum + weight, 0);
-  if (total <= SURFACE_ROW_BUDGET) return { mode: 'stack' };
   const primaryIndex = weights.indexOf(Math.max(...weights));
+  const restRegions = childRegions.filter((_, index) => index !== primaryIndex);
   const restWeight = total - weights[primaryIndex];
-  if (weights[primaryIndex] >= DOMINANT_CHILD_SHARE * total && restWeight <= SURFACE_ROW_BUDGET) {
-    return { mode: 'mixed', primary: primaryIndex, rest: { mode: 'stack' } };
+  if (weights[primaryIndex] >= DOMINANT_CHILD_SHARE * total) {
+    if (restWeight <= SURFACE_ROW_BUDGET) {
+      return { mode: 'mixed', primary: primaryIndex, rest: arrangeChildren(restRegions, level) };
+    }
+    return level === 0 ? tabsOutcome(childRegions, weights) : { mode: 'stack' };
   }
   const columnable = childRegions.filter(region => traitsOf(region).breadth !== 'full');
   const columnableWeights = columnable.map(region => estimateRegionWeight(region));
-  if (columnable.length >= CHILDREN_TABS_AT && columnable.length <= REGION_COLUMNS_MAX
+  if (step !== 'narrow' && columnable.length >= CHILDREN_TABS_AT
     && columnableWeights.every(weight => weight <= COLUMN_MAX_WEIGHT)) {
     const fullRow = childRegions
       .filter(region => traitsOf(region).breadth === 'full')
@@ -999,20 +1014,24 @@ export function arrangeChildren(childRegions = [], level = 0) {
       ...(fullRow.length ? { fullRow } : {})
     };
   }
-  if (level > 0) return { mode: 'stack' };
-  // Full-row children within the column cap claim their rows and stack
-  // (the table is the row-cheapest layout); past the cap the set tabs —
-  // the page-height bound.
-  if (columnable.length < childRegions.length && weights.every(weight => weight <= COLUMN_MAX_WEIGHT)) {
-    return { mode: 'stack' };
+  // Full-row children within the column cap stack (the table is the
+  // row-cheapest layout); a sibling past the cap is unreadable in flow.
+  if (level === 0 && total > SURFACE_ROW_BUDGET
+    && weights.some(weight => weight > COLUMN_MAX_WEIGHT)) {
+    return tabsOutcome(childRegions, weights);
   }
-  return {
-    mode: 'tabs',
-    order: childRegions
-      .map((region, index) => ({ id: region.id, weight: weights[index] }))
-      .sort((a, b) => b.weight - a.weight)
-      .map(entry => entry.id)
-  };
+  return { mode: 'stack' };
+}
+
+// Arrangement outcomes carried for every width step (SPEC → What it is):
+// the composed tree is host-blind, the materialization engages the step
+// its host grants, and a host change re-engages without recomposition.
+export function arrangeChildren(childRegions = [], level = 0) {
+  return Object.freeze({
+    narrow: arrangeForStep(childRegions, 'narrow', level),
+    medium: arrangeForStep(childRegions, 'medium', level),
+    wide: arrangeForStep(childRegions, 'wide', level)
+  });
 }
 
 // The record side column earns width with the weight of the children it

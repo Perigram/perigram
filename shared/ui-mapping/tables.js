@@ -155,17 +155,15 @@ export const HEADER_ACTIONS_INLINE = 2;
 export const SURFACE_ROW_BUDGET = 10;
 
 // Arrangement budgets, all in estimated rendered rows at card scale (a
-// preview card or board card is 4 rows, a table row 1): a stack-mode
-// child set at or under SIDE_MAX_WEIGHT rides beside the record body;
-// each column child stays at or under COLUMN_MAX_WEIGHT; a sibling
-// holding at least DOMINANT_CHILD_SHARE of the total weight is the
-// dominant child; columns cap at REGION_COLUMNS_MAX tracks. The record
-// side column earns width with weight through REGION_SIDE_SPANS
+// preview card or board card is 4 rows, a table row 1): a child set at
+// or under SIDE_MAX_WEIGHT rides beside the record body; each column
+// child stays at or under COLUMN_MAX_WEIGHT; a sibling holding at least
+// DOMINANT_CHILD_SHARE of the total weight is the dominant child. The
+// record side column earns width with weight through REGION_SIDE_SPANS
 // (12-track grid spans).
 export const SIDE_MAX_WEIGHT = 16;
 export const COLUMN_MAX_WEIGHT = 12;
 export const DOMINANT_CHILD_SHARE = 0.6;
-export const REGION_COLUMNS_MAX = 3;
 // Peer columns engage when the host can grant every track this earned
 // minimum: engagement is `trackCount × REGION_COLUMN_EARNED_REM` of
 // measured host width, generative for any track count.

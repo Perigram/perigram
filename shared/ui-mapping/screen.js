@@ -140,18 +140,21 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   // compact stubs below the arranged content (`stubRegions`).
   const childRegions = composedChildren.filter(child => child.instances.length > 0);
   const stubRegions = composedChildren.filter(child => child.instances.length === 0);
-  // Sibling arrangement is weight-driven (arrangeChildren): light peers
-  // column, a dominant sibling keeps the flow, heavy peers tab. A record
-  // page additionally carries light children beside the body in a
-  // weight-proportional side column; heavier child sets arrange below.
-  // Full-breadth children claim whole rows — they stay out of the side
-  // column whatever their weight.
+  // Arrangement outcomes carry for every width step. The record page's
+  // side rail is the wide outcome (SPEC rule 4): a light child set —
+  // no full-breadth child, combined weight at or under SIDE_MAX_WEIGHT —
+  // rides beside the record body, the side column's span earned by
+  // weight. Narrower hosts take the step's own outcome below the body.
   const childWeight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
-  const childArrangement = arrangeChildren(childRegions, depth);
-  const besideBody = surfaceKind === 'detail' && depth === 0 && childRegions.length > 0
-    && childArrangement.mode === 'stack' && childWeight <= SIDE_MAX_WEIGHT
-    && childRegions.every(child => child.dataTraits.breadth !== 'full');
-  const sideSpan = besideBody ? regionSideSpanFor(childWeight) : 0;
+  const steppedArrangement = arrangeChildren(childRegions, depth);
+  const sideRail = surfaceKind === 'detail' && depth === 0 && childRegions.length > 0
+    && childWeight <= SIDE_MAX_WEIGHT
+    && childRegions.every(child => child.dataTraits.breadth !== 'full')
+    ? Object.freeze({ mode: 'side', span: regionSideSpanFor(childWeight) })
+    : null;
+  const childArrangement = sideRail
+    ? Object.freeze({ ...steppedArrangement, wide: sideRail })
+    : steppedArrangement;
   // Data traits (SPEC → Data traits): the compose-time record arrangement
   // consumes, derived pure over the type record and the loaded pool.
   const dataTraits = regionDataTraits({
@@ -169,8 +172,7 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     level: depth,
     dataTraits,
     childArrangement,
-    besideBody,
-    sideSpan,
+    sideRail,
     relationKey: source.relation?.key || null,
     lineageKey: source.lineage?.key || null,
     typeId: source.typeId || null,
