@@ -6,8 +6,9 @@ Parent: [root README](../README.md).
 
 ## Design System Contract
 
-- `design-system-contract.js`: Validation for the CNC design-system contract declared by the facade types. It does not import Vue components.
-- `design-system.js`: Runtime binding that attaches Vue card components and DTO factories to the contract. Used by `/test/ui-lab`.
+- `design-system-contract.js`: The design-system vocabulary source — entity contracts, field-group and surface-chrome tables; binding to Vue components happens in `design-system-cards.js`.
+- `design-system-cards.js`: The one card-component binding (`DESIGN_SYSTEM_CARD_COMPONENTS`, keyed by contract key) that `InstanceInlineRef`, `DrawingCanvas`, and the registry resolve cards through.
+- `design-system.js`: The registry binding (`DESIGN_SYSTEM_ENTITIES`) composing the card binding with the DTO factories. Used by `/test/ui-lab`.
 - `processDesignerSocketTone.js`: Pure process-port resolver used by every
   designer node form and source edge. It maps structured port type/role data to a
   semantic signal token so a socket and the wire it produces cannot drift
@@ -69,6 +70,10 @@ Parent: [root README](../README.md).
   server re-validates every send — this is only the early check the
   [support feature](../server/features/support/README.md) contract
   describes.
+- `call-rooms.js`: Display helpers for active call rooms — the label
+  resolved against the loaded conversation summaries and the room-kind
+  icon; the room-name grammar and room↔conversation mapping live in
+  [shared/call-rooms.js](../shared/README.md).
 - `generated-screen-source.js`: The pure generated-screen source
   contracts: `entityMatchesFilters` (wire-DTO filter matching; bare
   lineage keys read the `lineage` block, status windows read `state`),

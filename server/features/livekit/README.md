@@ -1,28 +1,29 @@
 # COMPONENT: LiveKit Calls
 
 LiveKit calls are a capability module over the self-hosted `livekit` docker
-service. Direct and organization rooms are derived, never free-form; group
-call rooms derive from the persisted support group chat:
+service. Room names derive from the one grammar home,
+[`shared/call-rooms.js`](../../../shared/README.md) (direct, group, org);
+admission follows the room kind:
 
-| Room | Who may join |
+| Kind | Who may join |
 |---|---|
-| `call:direct:<sorted-user-id-a>:<sorted-user-id-b>` | Conversation participants (mirrors the support conversation keys) or admins |
-| `call:org:<orgId>` | Organization members or admins |
-| `call:group:<groupId>` | Participants of the support group chat (or admins) — same contract as direct rooms |
+| Direct | Conversation participants (mirrors the support conversation keys) or admins |
+| Org | Organization members or admins |
+| Group | Participants of the support group chat (or admins) — same contract as direct rooms |
 
 Parent: [server/features](../README.md).
 
 ## Group Calls
 
 Group chats are persisted in the `chat_groups` collection by the
-[support feature](../support/README.md); each group's call room is
-`call:group:<groupId>`. Admission follows the direct-room participant
-contract (group participants or admins) and deliberately does not require
-the process `livekit` grant, so every invited member can always join their
-group's call. Call buttons in `ChatSupport.vue` post
-`POST /api/livekit/invite` with the conversation key; direct conversations
-ring `call:direct:*`, group conversations ring `call:group:*`, and support
-conversations ring the organization room.
+[support feature](../support/README.md); each group's call room is its
+group room from the shared grammar. Admission follows the direct-room
+participant contract (group participants or admins) and deliberately does
+not require the process `livekit` grant, so every invited member can
+always join their group's call. Call buttons in `ChatSupport.vue` post
+`POST /api/livekit/invite` with the conversation key; direct and group
+conversations ring their conversation's room, and support conversations
+ring the organization room.
 
 ## Active Calls
 

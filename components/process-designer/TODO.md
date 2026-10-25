@@ -57,9 +57,12 @@
   L75-110 `useProcessDesignerApply` bullet incl. the migration-step catalog
   (step kinds verified against TypeMigrationStepsDialog.vue); L231-255 live
   evaluation; L444-517 lanes; L550-613 card behavior.
-- [ ] Add parent link to components/README.md (grep 0 hits; parent's
+- [x] Add parent link to components/README.md (grep 0 hits; parent's
   Related inventory L1126-1132 does not register process-designer —
   registration is a parent-rewrite item in components/TODO.md).
+  Landed 2026-10-25: README.md line 13 carries
+  "Parent: [components](../README.md)"; the rewritten parent inventory
+  registers process-designer.
 
 ### Code findings (truth pass 2026-10-24)
 
@@ -95,3 +98,10 @@ packages/processes/README.md; garbled splice + duplicated sentences
 fixed; negations folded to the canonical statements; runtime status model
 linked to server/core/machines/README.md; parent link added. OPEN:
 provenance-citations + palette-home decisions.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/comp-deslop2-20261025-1521` (worktree
+`.agent-worktrees/comp`). Bookkeeping only: "Add parent link" verified
+landed (README.md line 13; the parent inventory registers
+process-designer). No code or README changes in this tree.

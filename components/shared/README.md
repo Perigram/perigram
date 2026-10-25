@@ -931,7 +931,7 @@ Shared wrappers own semantic structure and reusable layout constraints, while Pr
 
 The design-system demo is contract-driven:
 - entity UI policy and expected card prop names live in the declared types (render groups); `utils/design-system-contract.js` validates them.
-- `utils/design-system.js` binds the contract to actual Vue components and DTO factories.
+- `utils/design-system-cards.js` binds contract keys to the card components; `utils/design-system.js` composes that binding with the DTO factories into the registry (`DESIGN_SYSTEM_ENTITIES`).
 - `test-data/factories.js` provides DTO-shaped examples with v24 blocks preserved.
 
 Shared primitives should be demoed through this manifest so component coverage and contract drift are visible in `/test/ui-lab`.

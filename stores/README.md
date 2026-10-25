@@ -129,8 +129,9 @@ projection for handwritten card/detail surfaces.
   `in-call` holds until the last joined room is left); the room lifecycle
   ("anyone still in it") is carried by the snapshot and drives the sidebar
   rows and chat ongoing-call banner through `activeRoomForConversation`,
-  which mirrors the server's derived room-name contract via
-  `utils/call-rooms.js`. The machine's canonical contract lives in
+  which resolves through the shared room grammar
+  ([`shared/call-rooms.js`](../shared/README.md)). The machine's canonical
+  contract lives in
   [components/calls](../components/calls/README.md#call-line-state-machine).
 - `media.js`: The app's now-playing channel (see
   [components/media](../components/media/README.md)): exactly one media

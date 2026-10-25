@@ -135,30 +135,50 @@
 
 ### Code deslop
 
-- [ ] Collapse the dual entity-card maps: components/shared/InstanceInlineRef.vue:21-27
+- [x] Collapse the dual entity-card maps: components/shared/InstanceInlineRef.vue:21-27
   `CARD_COMPONENTS` (5 keys; penTemplate/layerStandard absent — DrawingCanvas
   imports those cards directly at DrawingCanvas.vue:19-20) into the
   design-system registry (utils/design-system.js:16-26 binds `component`);
   InstanceInlineRef resolves through the registry. Fold confirmed by
   review-2 (registry-proof reachability: design-system.js L1-7 imports,
   L16-24 map).
+  Landed 2026-10-25: card binding extracted to `utils/design-system-cards.js`
+  (`DESIGN_SYSTEM_CARD_COMPONENTS`, the one key→card map); design-system.js
+  composes it into `DESIGN_SYSTEM_ENTITIES`; InstanceInlineRef's
+  `CARD_COMPONENTS` deleted (binding lookup inside the `cardComponent`
+  computed); DrawingCanvas's two direct card imports repointed through the
+  binding. Lean binding module chosen over importing design-system.js
+  directly: that pulls `test-data/factories.js` (and its undeclared `bson`
+  import) into the app-wide shared chunk.
 - [x] Delete `DESIGN_SYSTEM_STATUS` (utils/design-system-contract.js:115-151,
   33 hardcoded legacy status labels): `grep -rn DESIGN_SYSTEM_STATUS` over
   repo returns only the definition; framework.manifest.json carries no
   status vocabulary (0 hits). Review-2 confirmed 0 refs incl. workers/.
-- [ ] utils/design-system-contract.js:1-22, 42-47: replace the dated
+- [x] utils/design-system-contract.js:1-22, 42-47: replace the dated
   audit-narration comments ("Live-type audit (2026-09)", "misabeled 'cnc'
   inside the deleted legacy domain package", "Phase 7 cuts it later", "those
   rows died with the legacy fact channel") with one line (residual fact
   vocabulary for `artifact_template` only; declare new types instead); home
   the rule in components/entities/README.md.
-- [ ] Room-name grammar single home: utils/call-rooms.js:9-36 re-derives
+  Landed 2026-10-25: header and audit-narration comments deleted;
+  `DESIGN_SYSTEM_FIELD_GROUPS` carries one line (artifact_template residual
+  only, new types declare field descriptors), the surface tables carry one
+  pointer line to `utils/instance-display-contract.js`; the rule is homed
+  in entities/README.md (Registry section).
+- [x] Room-name grammar single home: utils/call-rooms.js:9-36 re-derives
   (`call:direct:<sorted ids>`, `call:group:`, `call:org:`) by prefix surgery
   while server/features/livekit/service.js:42-46 builds the same grammar
   via `directCallRoom`/`orgCallRoom`/`groupCallRoom`; both files' comments
   admit the mirror. Canonical: `shared/call-rooms.js` (pattern:
   shared/ui-mapping crosses the boundary); client and server import it.
   Server-side consumer change belongs to the livekit feature's delta.
+  Landed 2026-10-25: `shared/call-rooms.js` created (builders +
+  room↔conversation mapping, pure, no imports); utils/call-rooms.js keeps
+  the display helpers and imports the grammar; server service.js and spec
+  and the client consumers (stores/calls, ChatSupport, CallPanel,
+  GeneratedHomeWorkspace, utils spec) repointed via `#shared/`; livekit,
+  calls, and stores READMEs name the single home; shared/README.md carries
+  the grammar row.
 - [x] Type-label chain single seam: components/ui-mapping/type-labels.js:11-20
   and utils/generated-labels.js:11-29 both resolve `labelKeyForType` locale
   key → authored-name fallback from different data sources (prop type vs
@@ -170,7 +190,7 @@
   deleted, engine components and pickers repointed (InstanceMultiPicker's
   use of the seam was an unresolved reference — Nuxt never auto-imported
   it — fixed by the repoint).
-- [ ] Comment trims: components/ui-mapping/type-labels.js:5-10 header homes
+- [x] Comment trims: components/ui-mapping/type-labels.js:5-10 header homes
   the label-precedence contract (and says "legacy renderer") → one pointer
   line; GeneratedMappingScreen.vue:90-95 (Toast host) and
   BoardCollection.vue:95-100,278-284 (board machine authority) → one-fact
@@ -179,10 +199,18 @@
   components/shared/InstanceCard.vue:187-188 keeps "Render-policy icons
   are the single icon source", drops the legacy-`instanceUiFor` death
   notice.
+  Landed 2026-10-25: GeneratedMappingScreen Toast-host comment → one line
+  (ui-mapping/README.md already owns the Toast/ConfirmDialog prose);
+  BoardCollection script header → machine-authority one-liner, drag block
+  → drop-intent one-liner (README entry owns the full board contract);
+  CallPanel → tiles-in-place invariant (calls README owns the prose). The
+  type-labels.js sub-item is void — the file was deleted by the
+  type-label seam task; the InstanceCard line landed 2026-10-25 (prior
+  session).
 
 ### Deletions
 
-- [ ] Parent README stale-family sections, reachability verbatim: CassetteDesignerV2
+- [x] Parent README stale-family sections, reachability verbatim: CassetteDesignerV2
   block L692-835 — grep `CassetteDesignerV2`: only
   workers/facade/surfaces/cassette-designer.mjs + the README; `CassetteDesigner.vue`:
   zero refs repo-wide; designer contract already lives in
@@ -190,13 +218,19 @@
   CassetteEditorDialog L836-841 — zero refs repo-wide. RemnantCard/RemnantDetail +
   GeometryCaptureCard/GeometryCaptureDetail L667-674 — all four zero refs
   repo-wide (review-2: README-only mentions).
+  Landed 2026-10-25: verified in the rewritten components/README.md — the
+  CassetteDesignerV2 block, CassetteEditorDialog, and the Remnant/
+  GeometryCapture family sections are gone; plugin-owned designer surfaces
+  link workers/facade.
 - [ ] components/artifacts/ArtifactViewer.vue:55-91 (`artifact`/`revision`
   props, artifact-entity branch) + utils/artifact-viewer.js artifact path +
   artifact-viewer.spec.js: sole consumer of the branch is the spec; both
   live mounts pass `:source=` only. Deletion lands with the
   artifact-family cutover (root TODO.md; decided 2026-10-25).
-- [ ] Delete entities/{Artifact,ArtifactTemplate,EntityRevision,LayerStandard,Organization,PenTemplate,User}/README.md
+- [x] Delete entities/{Artifact,ArtifactTemplate,EntityRevision,LayerStandard,Organization,PenTemplate,User}/README.md
   after the fold into entities/README.md.
+  Landed 2026-10-25: verified — all seven entity dirs hold only their card
+  .vue files; the folded surface table lives in entities/README.md.
 
 ### Additions
 
@@ -246,3 +280,18 @@ shared/ui-mapping, InstanceCard legacy-death comment cut, DataBlock
 contract comment reduced to a README pointer). OPEN: dual entity-card map,
 room-name grammar, remaining comment trims, ArtifactViewer/type-designer
 README (cutover-owned items untouched).
+
+### Agent Notes (2026-10-25, comp-deslop wave 2)
+
+Session `agent/comp-deslop2-20261025-1521` (worktree `.agent-worktrees/comp`).
+Landed: dual entity-card map collapsed into `utils/design-system-cards.js`
+(one binding composed by the registry; InstanceInlineRef and DrawingCanvas
+repointed — the lean module keeps test-data/bson out of the shared client
+chunk); design-system-contract audit comments replaced with one-liners and
+the residual-vocabulary rule homed in entities/README.md; room-name grammar
+single-homed in `shared/call-rooms.js` (server livekit service + spec and
+client consumers import it; display helpers stay in utils/call-rooms.js);
+comment trims (GeneratedMappingScreen, BoardCollection, CallPanel).
+Bookkeeping verified: parent-README stale families, entities child READMEs,
+process-designer parent link. OPEN: type-designer README home (owner
+decision), ArtifactViewer/artifact_template (cutover-owned).
