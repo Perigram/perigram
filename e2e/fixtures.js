@@ -58,14 +58,23 @@ export const test = base.extend({
     page.on('pageerror', error => {
       errors.push(`pageerror: ${error.message}${error.stack ? `\n${error.stack.split('\n').slice(1, 5).join('\n')}` : ''}`);
     });
+    // The LiveKit plane is environment: active-rooms serves 502 while its
+    // configured server is unavailable (livekit README — callers keep
+    // their last known state), and the dev stack may point at a remote
+    // plane, so the suite tolerates exactly that route's 502.
+    const toleratedActiveRooms502 = { seen: false };
     page.on('console', message => {
-      if (message.type() === 'error' && !isIgnoredConsoleError(message.text())) {
+      if (message.type() === 'error' && !isIgnoredConsoleError(message.text(), toleratedActiveRooms502)) {
         errors.push(`console.error: ${message.text()}`);
       }
     });
     page.on('response', response => {
       const status = response.status();
       const url = response.url();
+      if (status === 502 && url.includes('/api/livekit/active-rooms')) {
+        toleratedActiveRooms502.seen = true;
+        return;
+      }
       if (status >= 500 || shouldFailOnClientError(url, status, response.request().method())) {
         errors.push(`HTTP ${status}: ${url}`);
       }
@@ -123,6 +132,45 @@ export const test = base.extend({
           });
         });
         return assigned;
+      },
+      // Installs catalog plugins for the current org in dependency order
+      // (documents; tech-drawing; facade requires tech-drawing). Orgs get
+      // no plugins at creation: every spec that reads a pack/plugin type
+      // installs it explicitly. Idempotent — 409 means already installed.
+      async installPlugins(pluginIds = []) {
+        const me = await (await request.get('/api/auth/me')).json();
+        for (const pluginId of pluginIds) {
+          const response = await request.post(`/api/organizations/${me.organizationId}/plugins`, {
+            data: { pluginId },
+            failOnStatusCode: false
+          });
+          expect(
+            response.ok() || response.status() === 409,
+            `${pluginId}: ${await response.text()}`
+          ).toBeTruthy();
+        }
+      },
+      // Wires the plugin's endpoint-mode service URLs (the module proxy
+      // derives the surface origin from the first endpoint) — specs that
+      // drive plugin surfaces or executor services need this beside the
+      // install.
+      async connectPlugin(pluginId, baseUrl) {
+        const me = await (await request.get('/api/auth/me')).json();
+        const catalog = await (await request.get('/api/plugins/catalog')).json();
+        const listing = (catalog || []).find(item => item.pluginId === pluginId);
+        const services = (listing && (listing.services || listing.declarations?.services)) || [];
+        const endpoints = {};
+        for (const service of services) {
+          if (service.id && (service.mode || 'claim') === 'endpoint') {
+            endpoints[service.id] = `${String(baseUrl).replace(/\/+$/, '')}/${service.id}`;
+          }
+        }
+        expect(Object.keys(endpoints).length, `no endpoint services found for ${pluginId}`).toBeGreaterThan(0);
+        const response = await request.post(`/api/organizations/${me.organizationId}/plugins/${pluginId}/settings`, {
+          data: { endpoints },
+          failOnStatusCode: false
+        });
+        expect(response.ok(), await response.text()).toBeTruthy();
       },
       // Authors an organization type declaration (validated + versioned
       // by the CTS registry). Child types must be declared before the
@@ -316,7 +364,8 @@ function shouldFailOnClientError(url, status, method = 'GET') {
   return false;
 }
 
-function isIgnoredConsoleError(text) {
+function isIgnoredConsoleError(text, tolerated502 = { seen: false }) {
   return text === 'Hydration completed but contains mismatches.'
-    || /^Failed to load resource: the server responded with a status of 4\d\d \(/.test(text);
+    || /^Failed to load resource: the server responded with a status of 4\d\d \(/.test(text)
+    || (tolerated502.seen && /^Failed to load resource: the server responded with a status of 502 \(/.test(text));
 }

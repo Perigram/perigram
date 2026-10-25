@@ -134,10 +134,12 @@ test.describe('chat file uploads', () => {
       contentType: 'image/png'
     });
 
-    // Pressing the materialized instance card opens the shared record
+    // Pressing the materialized instance chip opens the shared record
     // popup — the record floor detail screen (the photo type has no
-    // compiled screen of its own).
-    const refChip = app.page.getByText('facade-evidence.png').first();
+    // compiled screen of its own). The chip carries the file name: the
+    // materialized child is named after its file, and the inbox preview
+    // shows the same text, so the locator is scoped to the thread.
+    const refChip = app.page.locator('[data-testid="chat-attachments"]').getByText('facade-evidence.png').first();
     await refChip.click({ timeout: 10000 });
     const recordPopup = app.page.locator('.p-dialog:visible', { hasText: 'facade-evidence.png' }).first();
     await expect(recordPopup).toBeVisible({ timeout: 15000 });
@@ -156,8 +158,8 @@ test.describe('chat file uploads', () => {
       .find(item => String(item?.lineage?.e2eChatBoxId || '') === String(box._id));
     expect(createdPhoto, 'Expected the uploaded file to materialize as a child instance').toBeTruthy();
     outcomes.instance.childId = createdPhoto._id;
-    expect(createdPhoto.attachments?.primary).toMatchObject({ mime: 'image/png' });
-    outcomes.instance.childPayload = createdPhoto.attachments?.primary || null;
+    expect(createdPhoto.payload).toMatchObject({ mime: 'image/png' });
+    outcomes.instance.childPayload = createdPhoto.payload || null;
 
     // The message stays linked to the box thread and refs the child.
     const thread = await request.get(`http://localhost:3000/api/support/messages?instance=${BOX_TYPE}:${box._id}&includeChildren=0`);

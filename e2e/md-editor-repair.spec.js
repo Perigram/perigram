@@ -22,7 +22,7 @@ async function payloadText(app, typeId) {
   expect(items.length).toBeGreaterThan(0);
   // The suite shares its org: the newest instance is this test's save.
   const latest = items.reduce((a, b) => (String(a.createdAt || '') > String(b.createdAt || '') ? a : b));
-  const fileId = latest?.payload?.fileId || latest?.attachments?.primary?.fileId;
+  const fileId = latest?.payload?.fileId;
   expect(fileId, 'saved instance carries a payload file').toBeTruthy();
   const file = await app.request.get(`/api/files/download/${encodeURIComponent(String(fileId))}?bucket=files`);
   expect(file.ok(), await file.text()).toBeTruthy();
@@ -32,6 +32,8 @@ async function payloadText(app, typeId) {
 test.describe('markdown editor repair', () => {
   test('blank markdown editor opens pristine and round-trips source', async ({ app }) => {
     test.setTimeout(180_000);
+    await app.installPlugins(['documents']);
+    await app.connectPlugin('documents', 'http://documents-executor:8791');
     await app.seedSpeciesProcess({ types: ['text-document'] });
 
     await app.gotoClient('/screens/auto_text-document');
@@ -70,6 +72,8 @@ test.describe('markdown editor repair', () => {
 
   test('format controls toggle blocks and the focused block shows its markdown source', async ({ app }) => {
     test.setTimeout(180_000);
+    await app.installPlugins(['documents']);
+    await app.connectPlugin('documents', 'http://documents-executor:8791');
     await app.seedSpeciesProcess({ types: ['text-document'] });
 
     await app.gotoClient('/screens/auto_text-document');
@@ -158,6 +162,8 @@ test.describe('markdown editor repair', () => {
 
   test('uploaded .md opens in the editor with its content', async ({ app }) => {
     test.setTimeout(180_000);
+    await app.installPlugins(['documents']);
+    await app.connectPlugin('documents', 'http://documents-executor:8791');
     await app.seedSpeciesProcess({ types: ['text-document'], via: { 'text-document': 'upload' } });
 
     await app.gotoClient('/screens/auto_text-document');
@@ -188,6 +194,12 @@ test.describe('markdown editor repair', () => {
       buffer: Buffer.from(MD_SOURCE, 'utf8')
     });
     await expect(dialog.getByText('probe-notes.md').first()).toBeVisible({ timeout: 20000 });
+    // The dialog prompts the identifier row beside the payload: fill it
+    // (the required-input gate keeps Create disabled until every
+    // required row carries a value).
+    for (const input of await dialog.locator('input:visible:not([type="file"])').all()) {
+      await input.fill('probe notes');
+    }
     await dialog.getByRole('button', { name: 'Create', exact: true }).click();
     // The create posts after its payload upload settles; the dialog
     // closing is the completion signal — only then does the newest
@@ -200,6 +212,8 @@ test.describe('markdown editor repair', () => {
 
   test('csv edits serialize rows on save', async ({ app }) => {
     test.setTimeout(180_000);
+    await app.installPlugins(['documents']);
+    await app.connectPlugin('documents', 'http://documents-executor:8791');
     await app.seedSpeciesProcess({ types: ['csv-table'], via: { 'csv-table': 'content' } });
 
     await app.gotoClient('/screens/auto_csv-table');
@@ -214,7 +228,11 @@ test.describe('markdown editor repair', () => {
       await expect(dialog).toBeVisible({ timeout: 5000 }).catch(() => {});
     }
     await expect(dialog).toBeVisible({ timeout: 10000 });
-    // The content protocol prompts only its text body (no row fields).
+    // The content protocol prompts its text body beside the identifier
+    // row; both must carry values for Create.
+    for (const input of await dialog.locator('input:visible').all()) {
+      await input.fill('field notes');
+    }
     await dialog.locator('textarea').first().fill(CSV_SOURCE);
     await dialog.getByRole('button', { name: 'Create', exact: true }).click();
 
@@ -231,7 +249,7 @@ test.describe('markdown editor repair', () => {
     expect(id, 'content construct created the csv instance').toBeTruthy();
     await app.gotoClient(`/screens/auto_csv-table_detail?instanceId=${id}`);
     await expect(app.page.locator('main').getByRole('columnheader', { name: 'a' })).toBeVisible({ timeout: 20000 });
-    await app.page.locator('main').getByRole('button', { name: 'CSV Editor' }).click();
+    await app.page.locator('main').getByRole('button', { name: 'Edit', exact: true }).click();
     const grid = app.page.getByRole('table').first();
     await expect(grid).toBeVisible({ timeout: 20000 });
 

@@ -10,7 +10,7 @@ import { writeFileSync } from 'node:fs';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '#packages/cts/src/index.js';
 import { facadeDomain, facadePackContent } from '../test-tools/facade-plugin.js';
 import documentsListing from '../workers/documents/listing.json' with { type: 'json' };
-import { techDrawingPack } from '#packages/tech-drawing/src/index.js';
+import techDrawingListing from '../workers/tech-drawing/listing.json' with { type: 'json' };
 import { composeOrderTree, composeOrderGraph, ORDER_LINEAGE_KEY, emptyAuthoringDomain } from '#test-data/order-process-authoring.js';
 import { compileTreeDeclarations } from '#packages/processes/src/designer.js';
 import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js';
@@ -21,6 +21,9 @@ const ART = 'test-results/order-process-live.json';
 
 test('the order process runs live: table rows become baked designs, materials, and nesting runs', async ({ app }) => {
   test.setTimeout(240_000);
+  await app.installPlugins(['documents', 'tech-drawing', 'facade']);
+  await app.connectPlugin('documents', 'http://documents-executor:8791');
+  await app.connectPlugin('facade', 'http://facade-executor:8790');
 
   const me = await (await app.request.get('/api/auth/me')).json();
   const organizationId = me.lineage?.organizationId || me.organizationId;
@@ -55,7 +58,7 @@ test('the order process runs live: table rows become baked designs, materials, a
   for (const declaration of [
     ...frameworkTypes,
     ...documentsListing.declarations.types,
-    ...techDrawingPack.types,
+    ...techDrawingListing.declarations.types,
     ...facadePackContent.types,
     ...declarations
   ]) {
@@ -63,7 +66,7 @@ test('the order process runs live: table rows become baked designs, materials, a
   }
   const packServices = [
     ...(documentsListing.declarations.services || []),
-    ...(techDrawingPack.services || []),
+    ...(techDrawingListing.declarations.services || []),
     ...(facadePackContent.services || [])
   ];
   const domain = projectDomainFromView(registry, organizationId, facadeDomain, { packServices });
@@ -104,6 +107,13 @@ test('the order process runs live: table rows become baked designs, materials, a
   const createdTemplateRecord = createAction?.created ?? createAction?.entity ?? createAction;
   const templateId = createdTemplateRecord?._id || createdTemplateRecord?.id;
   expect(templateId, 'the create action produced a cassette template').toBeTruthy();
+  // Editor-protocol creates prompt no rows: the template's name rides the
+  // identity rename channel, the slot the pairs join keys templates by.
+  const templateRename = await app.request.patch(`/api/instances/cassette/${templateId}`, {
+    data: { name: templateName },
+    failOnStatusCode: false
+  });
+  expect(templateRename.ok(), await templateRename.text()).toBeTruthy();
   const payloadUpload = await app.request.put(`/api/instances/cassette/${templateId}/payload`, {
     multipart: {
       file: {
@@ -174,16 +184,27 @@ test('the order process runs live: table rows become baked designs, materials, a
   };
   const orderIdOf = instance => instance?.lineage?.[ORDER_LINEAGE_KEY]?.toString?.() ?? String(instance?.lineage?.[ORDER_LINEAGE_KEY] ?? '');
   const orders = (await instancesOf('facade-order'))
-    .filter(order => (order.name) === 'Facade order 42')
+    .filter(order => (order.fields?.name || order.name) === 'Facade order 42')
     .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')));
   expect(orders.length).toBeGreaterThanOrEqual(1);
   const orderId = String(orders[0]._id);
 
   const designs = (await instancesOf('cassette-design')).filter(design => orderIdOf(design) === orderId);
-  expect(designs.map(design => design.name).sort()).toEqual(['Tray A left', 'Tray B small']);
+  // Construct names ride the manual prompt channel (the graph-wired Name
+  // input retired with the §3 wire adoption); each row's design is
+  // identified by its baked bounds — the row's A/B parameters.
+  const boundsOf = design => {
+    const ring = design.fields?.geometry?.polygons?.[0]?.coordinates || [];
+    const xs = ring.map(point => Number(point[0]) || 0);
+    const ys = ring.map(point => Number(point[1]) || 0);
+    return `${Math.max(...xs)}x${Math.max(...ys)}`;
+  };
+  expect(designs.map(boundsOf).sort()).toEqual(['300x300', '600x450']);
+  // The template ref rides the §3 provenance (the effect boundary's
+  // causal record: sources collect the construct's typed entity inputs).
   for (const design of designs) {
-    expect(design.fields?.template?.toString?.() || design.fields?.template).toBe(String(templateId));
-    expect((design.data?.geometry?.nestingPolygons || []).length).toBeGreaterThan(0);
+    expect(design.provenance?.sources).toContainEqual({ type: 'cassette', id: templateId });
+    expect((design.data?.geometry?.nestingPolygons || design.fields?.geometry?.nestingPolygons || []).length).toBeGreaterThan(0);
   }
 
   const materials = (await instancesOf('sheet-material')).filter(material => orderIdOf(material) === orderId);
@@ -203,7 +224,7 @@ test('the order process runs live: table rows become baked designs, materials, a
     templateId: String(templateId),
     liveRun: {
       orderName: 'Facade order 42',
-      cassetteDesigns: designs.map(design => ({ name: design.name, template: String(design.fields?.template ?? '') })),
+      cassetteDesigns: designs.map(design => ({ bounds: boundsOf(design), template: String(design.fields?.template ?? '') })),
       materials: materials.map(material => material.data?.code ?? material.fields?.code),
       nestingAttempts: attempts.map(attempt => ({ summary: (attempt.data?.result ?? attempt.fields?.result)?.summary }))
     },

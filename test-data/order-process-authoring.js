@@ -52,8 +52,6 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('extractProjection', { id: 'rows' });
   authoring.configure('rows', { typeId: tableType, projection: 'rows' });
 
-  authoring.drop('recordField', { id: 'rowName' });
-  authoring.configure('rowName', { path: 'name', type: { base: 'string', nullable: true } });
   authoring.drop('recordField', { id: 'rowTemplate' });
   authoring.configure('rowTemplate', { path: 'right', type: { base: 'entityRef', typeId: 'cassette', nullable: true } });
   authoring.drop('recordField', { id: 'paramA' });
@@ -66,7 +64,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('allEntities', { id: 'templates' });
   authoring.wireDeclaration('cassetteRef', 'templates', 'binds');
   authoring.drop('joinByKey', { id: 'pairs' });
-  authoring.configure('pairs', { leftKey: 'cassette', rightKey: 'identity.name' });
+  authoring.configure('pairs', { leftKey: 'cassette', rightKey: 'name' });
 
   authoring.drop('construct', { id: 'bake' });
   authoring.wireDeclaration('designRef', 'bake', 'binds');
@@ -119,7 +117,6 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('tables', 'result', 'firstTable', 'items');
   authoring.connect('firstTable', 'item', 'rows', 'entity');
 
-  authoring.connect('rows', 'result', 'rowName', 'value');
   authoring.connect('rows', 'result', 'pairs', 'left');
   authoring.connect('templates', 'result', 'pairs', 'right');
   authoring.connect('pairs', 'pairs', 'rowTemplate', 'value');
@@ -128,7 +125,6 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('paramA', 'value', 'params', 'A');
   authoring.connect('paramB', 'value', 'params', 'B');
 
-  authoring.connect('rowName', 'value', 'bake', 'name');
   authoring.connect('rowTemplate', 'value', 'bake', 'template');
   authoring.connect('params', 'record', 'bake', 'parameters');
   authoring.connect('order', 'result', 'bake', `lineage.${ORDER_LINEAGE_KEY}`);

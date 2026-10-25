@@ -9,6 +9,7 @@ import { expect } from '@playwright/test';
 test('process designer boots, creates, and saves', async ({ app }) => {
   test.setTimeout(120_000);
   const { page } = app;
+  await app.installPlugins(['tech-drawing', 'facade']);
   await app.seedSpeciesProcess({ types: ['cassette'] });
 
   const errors = [];

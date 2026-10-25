@@ -9,6 +9,8 @@ import { test, expect } from './fixtures.js';
 
 test('the cassette designer folded 3D viewport becomes visible once the preview renders', async ({ app }) => {
   test.setTimeout(180_000);
+  await app.installPlugins(['tech-drawing', 'facade']);
+  await app.connectPlugin('facade', 'http://facade-executor:8790');
   const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'], via: { cassette: 'editor' } });
   const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette');
   expect(list?.route, 'Expected a compiled cassette list screen').toBeTruthy();

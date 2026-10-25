@@ -53,6 +53,11 @@ definitions and their types die together.
 
 ## Coverage
 
+Specs that read pack/plugin types install them explicitly through
+`app.installPlugins` (organizations get no plugins at creation); specs
+that drive executor-backed surfaces or services wire them through
+`app.connectPlugin`.
+
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.
 - `agent-mcp-template-fill.mjs`: API-only MCP probe, run directly with
   `node e2e/agent-mcp-template-fill.mjs` against the same stack —
@@ -63,11 +68,8 @@ definitions and their types die together.
 - `md-editor-repair.spec.js`: the markdown editor repair legs — the blank
   text-document editor opens pristine (save disabled until edited), the
   format controls and slash commands insert their blocks, a `.md`
-  uploads through the protocol create dialog, and csv cell edits commit
-  and serialize on save.
-- `md-fresh-org.spec.js`: a brand-new organization's manifest carries
-  the pack's starter screen and create action; New opens the blank
-  markdown editor and a typed document saves byte-exact.
+  uploads through the protocol create dialog (identifier row and payload
+  both prompted), and csv cell edits commit and serialize on save.
 - `plugin-surface.spec.js`: plugin-delivered surfaces end to end — the
   fixture plugin publishes through the real catalog API and installs
   through the real gate, its editor surface mounts over the host

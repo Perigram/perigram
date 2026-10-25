@@ -5,6 +5,7 @@ import { test, expect } from './fixtures.js';
 // so the persisted state must apply after mount, never during render.
 test('persisted home workspace restores without hydration mismatches', async ({ app }) => {
   test.setTimeout(120_000);
+  await app.installPlugins(['tech-drawing', 'facade']);
   const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'], via: { cassette: 'editor' } });
   const screen = (manifest.screens || []).find(item => item.typeId) || { screenKey: 'organization_partners', typeId: 'organization' };
   expect(screen.screenKey, 'expected a screen in the seeded manifest').toBeTruthy();
