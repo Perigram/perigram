@@ -85,7 +85,7 @@ CTS declaration records and designer authoring in; runtime contracts out. The se
 
 | Aspect | Law |
 |---|---|
-| Modes | Effects execute as `manual` (authorized UI) or `event` (incoming control socket). A process definition is a contract generator: manual actions evaluate the authored dataflow in-process; async command effects park on the task boundary; `command_runs`/`task_runs` are the audit trail ([root SPEC](../../SPEC.md) §Process runtime). |
+| Modes | Effects execute as `manual` (authorized UI) or `event` (incoming control socket). A process definition is a contract generator: manual actions evaluate the authored dataflow in-process; async command effects park on the task boundary; `command_runs`/`task_runs` are the audit trail ([root SPEC](../../SPEC.md) §19). |
 | Control plane | `orchestration.js` carries control tokens, foreach scopes, join arrivals, attempts, and step outputs; data subgraphs evaluate lazily for the operational node consuming them; data/control cycles reject at activation; declaration wires (`role: 'type'`) stay outside dataflow. |
 | Manual inputs | An explicit run input is authoritative over the connected edge; a context entity may bind an upstream entity socket as the current entity window; prompts exist on manual actions only. |
 | Mutations | The mapped species (`cts.construct`/`mutate`/`transition`/`remove`) share one type-agnostic mapper: preflight alignment before the first write; one authorized call per aligned tuple in branch/item order; bare shape-preserving output on full success; `{ result, failures, completedMutations }` continue-and-collect envelope on any failure (manual runs invert it into a 400). A construct publishes one typed `created` invalidation after construct, block application, and initial state all succeed. |
@@ -135,10 +135,10 @@ CTS declaration records and designer authoring in; runtime contracts out. The se
 
 | Consumed contract | Home |
 |---|---|
-| Declaration language and registry view projection (states, guards, field policy, graph protocol, `projectDomainFromView`) | [CTS SPEC](../cts/SPEC.md) §4 §6 §7 §19 §20 |
+| Declaration language and registry view projection (states, guards, field policy, graph protocol, `projectDomainFromView`) | [CTS SPEC](../cts/SPEC.md) §4 §6 §7 §13 §14 |
 | Readable principals, party wire | [CTS SPEC](../cts/SPEC.md) §13; [server/runtime](../../server/runtime/README.md) |
 | Workflow transition validation at runtime | [server/core/machines](../../server/core/machines/README.md) |
 | Per-state field-policy display map | [shared/ui-mapping](../../shared/ui-mapping/README.md) |
 | Designer surface and connection gate | [components/process-designer](../../components/process-designer/README.md) |
-| Process runtime law (contract generator, audit trail) | [root SPEC](../../SPEC.md) §Process runtime |
+| Process runtime law (contract generator, audit trail) | [root SPEC](../../SPEC.md) §19 |
 | Workspace package map | [packages SPEC](../SPEC.md); [packages README](../README.md) |

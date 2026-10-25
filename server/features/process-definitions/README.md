@@ -46,12 +46,12 @@ collection (`findActiveSetByOrganization`); `/active` returns the most
 recently activated definition for boot convenience.
 
 Activation with live instances holding a removed workflow state fails
-with HTTP 409 and `migrationRequired` data naming each typeId, its
-removed states, and the affected count, checked through the registered
-instance services with the activating actor's auth context. A typeId
-whose status check cannot run is skipped, and a drifted previous
-contract (one that fails to compile) leaves the diff unavailable
-while activation proceeds.
+with HTTP 409 and `migrationRequired` data carrying the migration plan
+(one row per typeId, its removed states, and live counts), checked
+through the registered instance services with the activating actor's
+auth context. A typeId whose status check cannot run is skipped, and a
+drifted previous contract (one that fails to compile) leaves the diff
+unavailable while activation proceeds.
 
 The compiled runtime contract is derived from fresh semantic records for
 every validate/apply/evaluation. Stored definitions containing only
@@ -367,7 +367,7 @@ validator derives the list from the domain command contract.
 
 ### Derived exports
 
-Declaration-derived export actions (SPEC §Exports, the hydration
+Declaration-derived export actions (SPEC §21, the hydration
 payload's `exports` bindings) execute through
 `executeDerivedExportAction`: the `(typeId, kind)` binding must be
 declared by an installed plugin, the caller must hold write on the
@@ -539,7 +539,7 @@ empty, stationing the organization's starter constructs (the mounted
 packs' plus the installed plugins' via
 `starterConstructsForOrganization` in [plugins](../plugins/README.md);
 the documents pack's markdown-first set carries the visible-by-default
-law, SPEC §UI), each as a manual construct granted to `role_admin` —
+law, SPEC §4), each as a manual construct granted to `role_admin` —
 then compiles and activates it. The signup flow that calls it is owned
 by [organizations](../organizations/README.md) (`createInitialForUser`).
 Organizations created before the starter set existed are repaired by

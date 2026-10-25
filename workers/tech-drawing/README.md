@@ -1,7 +1,6 @@
 # CONTAINER: Tech-Drawing Plugin Executor
 
-The tech-drawing domain as a third-party plugin (SPEC §Plugin
-marketplace): `listing.json` is the whole declaration surface (pen
+The tech-drawing domain as a third-party plugin (SPEC §20): `listing.json` is the whole declaration surface (pen
 templates, layer standards, colors, DXF/SVG sources, the sketch type,
 and the sketch editor binding). The plugin is declarations-only — no
 services, no compute: its types ride the generic instance machinery, and

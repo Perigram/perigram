@@ -38,7 +38,7 @@ modules onto its sections.
 - `operators.js` — the six species with typed signatures and
   event/schedule triggers (SPEC §8); services and projections are
   ref-free.
-- `expressions.js` — CEL-semantics expression ASTs (SPEC §18): total
+- `expressions.js` — CEL-semantics expression ASTs (SPEC §15): total
   evaluation with a step budget, `map`/`filter` comprehensions,
   membership `in`, compile-checked exhaustive `match`, and
   `checkBooleanExpression` — the boolean-subset checker transition
@@ -73,7 +73,7 @@ modules onto its sections.
   mapping resolvers consume the same record
   ([shared/ui-mapping](../../shared/ui-mapping/README.md)).
 - `compat/domain-projection.js` — the CTS → compiler-domain translator
-  (SPEC §19), synthesis-only: every authorable type in the view
+  (SPEC §13), synthesis-only: every authorable type in the view
   synthesizes its entities entry (per-class collection, §13),
   `fieldSchemas` (the §3 stored shape plus row fields as flat
   `fields.*` paths), `fieldAccess`, `containment`, `construction`
@@ -82,7 +82,7 @@ modules onto its sections.
   `attachmentKinds`. Party types project as readable principals
   (SPEC §13). The base domain contributes operator contracts, the
   framework block vocabulary, and pack service registrations only
-  (SPEC §19). Owns the per-class collection map (`CLASS_COLLECTIONS`)
+  (SPEC §13). Owns the per-class collection map (`CLASS_COLLECTIONS`)
   shared with the instance repository.
 - `compat/field-schema-rows.js` — the row ⇄ field-schema translation
   the domain projection synthesizes through: block-slot conventions,
@@ -98,7 +98,7 @@ modules onto its sections.
   guards and state `fieldPolicy` lists row-checked against the bound
   type (SPEC §7), with type bindings read positionally so vocabulary
   strings and canvas card kinds are never misread as type references.
-- `compat/graph-protocol.js` — the species graph protocol (SPEC §20):
+- `compat/graph-protocol.js` — the species graph protocol (SPEC §14):
   `resolveCtsDefinition` resolves declaration ids and row paths while
   preserving species kinds, discriminators, socket ids, and graph
   edges; `checkCtsGraphBindings` validates type, field, state,
@@ -109,7 +109,7 @@ modules onto its sections.
   acceptance match what APPLY posts (children wires land child-first);
   `operationKindOf` answers the record's own kind;
   `rewriteRetiredWirePaths` and `orientChildrenEdgesChildFirst` are
-  the one-way seam rewrites for persisted drafts (SPEC §20 resolution
+  the one-way seam rewrites for persisted drafts (SPEC §14 resolution
   and migration); `renameLegacyTypeKeys` is the pure key rewriter for
   the one-shot persisted-data migration script.
 - `pack/cnc.js` — the CNC starter type pack: the collapse-table

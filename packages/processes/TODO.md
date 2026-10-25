@@ -14,12 +14,17 @@
 ### Code deslop
 
 - [ ] Contract-shaped comments (docs-guard homing backlog, `node scripts/check-docs.js`): `src/authoring.js` (352 chars), `src/compiler-core.js` (3 entries), `src/node-catalog.js` (252), `src/transpiler.js` (521), `src/ui-contract-projection.js` (289), `src/missing-field.js:6-14` (restates README L1109-1125) — move the semantics into the owning README section the rewrite creates, leave one-line pointers.
+- [x] Protocol naming pass: the persisted integer `PROCESS_PROTOCOL_VERSION` (src/types.js:1) is the version of record; resolve the v4/v5 collision (cts SPEC §20's "(v5)" title, the pre-species "retired v4 kinds" vocabulary) (decided 2026-10-25).
+  Done 2026-10-25 in the cts SPEC revision: the Graph protocol section (§14 after renumbering) carries a bare title, names `PROCESS_PROTOCOL_VERSION` the persisted version of record, and speaks the retired vocabulary as the retired executable kinds.
 
 ### Owner decisions wanted
 
-- [ ] Declared-state-deadline law home: `packages/workflows/README.md` L133-134 cites "CTS SPEC §7" for state deadlines; §7 states no deadline contract (only §3 L121 calls `stateChangedAt` "the deadline clock (§7)"); the runtime contract lives in [server/core/machines/README.md](../../server/core/machines/README.md) L39-54. Add the declaration law to cts SPEC §7, or repoint the citations to the runtime home.
-- [ ] Protocol version naming: cts SPEC §20 is titled "(v5)" while `PROCESS_PROTOCOL_VERSION = 4` (src/types.js:1) is the persisted `dataflowVersion`, and "retired v4 kinds" names the pre-species vocabulary — the triple use of v4/v5 collides; one naming pass.
-- [ ] Missing-field marker canonical home (audit duplication cluster 10): cts SPEC §18.2 or this package's README — pick one; the other links.
+- [x] Declared-state-deadline law home: `packages/workflows/README.md` L133-134 cites "CTS SPEC §7" for state deadlines; §7 states no deadline contract (only §3 L121 calls `stateChangedAt` "the deadline clock (§7)"); the runtime contract lives in [server/core/machines/README.md](../../server/core/machines/README.md) L39-54. Add the declaration law to cts SPEC §7, or repoint the citations to the runtime home.
+  decided 2026-10-25: cts SPEC §7 gains the declaration law; workflows/processes citations point there (SPEC revision task in packages/cts/TODO.md).
+- [x] Protocol version naming: cts SPEC §20 is titled "(v5)" while `PROCESS_PROTOCOL_VERSION = 4` (src/types.js:1) is the persisted `dataflowVersion`, and "retired v4 kinds" names the pre-species vocabulary — the triple use of v4/v5 collides; one naming pass.
+  decided 2026-10-25: one naming pass; the persisted integer is the version of record — work item above.
+- [x] Missing-field marker canonical home (audit duplication cluster 10): cts SPEC §18.2 or this package's README — pick one; the other links.
+  decided 2026-10-25: cts SPEC §18.2 is the home; this README links.
 
 - [ ] WAITING — owner verification: read README.md restructured to the
   SPEC 12-section skeleton (1452→1359); migration residue + both dead

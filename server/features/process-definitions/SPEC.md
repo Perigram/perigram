@@ -14,7 +14,7 @@ as semantic process graphs, validated, and activated into the compiled
 runtime contract (actions, screens, workflows, grants, navigation,
 services) the organization backend serves continuously; a definition is
 turned on or off in organization settings — the whole lifecycle (root
-SPEC §Process authoring maturity, §Process runtime). Consumers: the
+SPEC §18, §19). Consumers: the
 compiler ([packages/processes](../../../packages/processes/README.md)),
 state and command/task runtimes, generated screens, agent authoring.
 
@@ -65,7 +65,7 @@ summary; every re-target publishes the typed invalidation event.
 ### Action execution seam
 
 Activation compiles the contract; execution serves it continuously (root
-SPEC §Process runtime: no durable process runs; `command_runs` and
+SPEC §19: no durable process runs; `command_runs` and
 `task_runs` are the audit trail).
 
 - **Manual actions** evaluate the authored dataflow in-process over the lowered
@@ -134,7 +134,7 @@ then compiles and activates.
 
 ## Laws
 
-- `typeId`/`id` wire vocabulary end to end (root SPEC §Vocabulary).
+- `typeId`/`id` wire vocabulary end to end (root SPEC §14).
 - Business-entity reads and writes go through registered service adapters
   (`processList`/`processGetById`/`processUpdate`/`processDelete`); generic
   Mongo writes for business entities: zero.

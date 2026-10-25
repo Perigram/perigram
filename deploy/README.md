@@ -49,8 +49,8 @@ Editing the pipeline means editing that branch.
   ships at ~100KB. **Rollback to the hera K3s ingress:** point
   the upstream back to `http://192.168.0.248:80` in that block and
   `nginx -s reload`.
-- Data plane (values inline in `deploy.yml` — LiveKit and garage S3 keys
-  included; lab LAN/NetBird):
+- Data plane (values inline in `deploy.yml` — lab LAN/NetBird — with the
+  LiveKit and garage S3 credentials from Forgejo secrets):
   `NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true`
   (hera mongo; `directConnection=true` is required — the single-node
   replica set advertises its own hostname to clients, and from outside the
@@ -60,8 +60,7 @@ Editing the pipeline means editing that branch.
   zeus LiveKit through the app origin (`wss://perigram.sodalab.pro/livekit`
   → the plane's 7880 with websocket upgrade headers — one hostname for every
   client network the app itself works on; the dedicated
-  `livekit.sodalab.pro` server block stays as an alias, keys
-  inline; RoomService
+  `livekit.sodalab.pro` server block stays as an alias; RoomService
   traffic from the runner rides the LAN address `ws://192.168.0.15:7880`,
   since poseidon is not a NetBird peer), local STT + qwen on the
   data-worker peer (`10.77.167.148:31135/:31136`) — reached through
@@ -70,8 +69,8 @@ Editing the pipeline means editing that branch.
   runner has no NetBird route — and recordings in the
   `livekit-egress` garage bucket — read through the app edge
   (`https://perigram.sodalab.pro/recordings/...` → garage web `:3902`),
-  uploaded with the inline garage key through the plane-local S3 API
-  (`http://127.0.0.1:8333`, see
+  uploaded with the garage keys (Forgejo secrets) through the plane-local
+  S3 API (`http://127.0.0.1:8333`, see
   [the livekit feature](../server/features/livekit/README.md#recordings)).
 - Call recordings need an external egress plane beside the LiveKit server
   the app targets: Redis, a `livekit/egress` container (SYS_ADMIN for
@@ -104,12 +103,14 @@ Editing the pipeline means editing that branch.
 
 ## Configuration
 
-Auth-only values still come from Forgejo repository secrets
+Credential values come from Forgejo repository secrets
 (**Settings → Actions → Secrets**) and are passed by the workflow:
 
 | Secret | Consumed by | State |
 |---|---|---|
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Web Push | empty = push disabled |
+| `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | LiveKit RoomService (calls on the zeus plane) | required |
+| `GARAGE_ACCESS_KEY` / `GARAGE_SECRET_KEY` | `LIVEKIT_RECORDINGS_S3_*` (egress bucket upload) | required |
 
 Web Push enablement runbook: generate a key pair once with
 `npx web-push generate-vapid-keys` (`web-push` ships with the app
@@ -120,8 +121,8 @@ secrets exist the server reports push disabled
 (`/api/notifications/config` → `enabled: false`) and the profile
 notifications toggle shows that only in-tab delivery is active.
 
-`NUXT_MONGODB_URI` / `LIVEKIT_*` / `TRANSCRIPTION_*` / `MEETINGS_*` ride
-inline in the workflow (see Contract). ConfigBot/Ollama
+`NUXT_MONGODB_URI` / `TRANSCRIPTION_*` / `MEETINGS_*` ride inline in the
+workflow (see Contract). ConfigBot/Ollama
 env is intentionally absent on this deploy — it is a prod-only,
 cluster-internal feature.
 
@@ -159,13 +160,12 @@ with `docker compose -f docker-compose.dev.yml up -d app --renew-anon-volumes`
 container (`docker compose -f docker-compose.dev.yml run --rm app npm install`).
 LAN dev needs `NUXT_DEV_HMR_HOST` (root README, Development).
 
-## Legacy
+## Contents
 
-Dead weight pending removal:
-
-- `webhook-receiver.py`, `deploy-staging.sh`, `install-autodeploy.sh`,
-  `cutkit-autodeploy.service` — the R240 push-webhook pipeline files.
-- `.github/workflows/publish.yml` — the GitHub remote is a mirror only.
+`deploy/` owns deployables: `seed.Dockerfile` (the catalog-seed image
+`deploy.yml` builds) and this README (the Forgejo autodeploy contract).
+Cluster state — the hera production environment and its env — is
+[k8s/README.md](../k8s/README.md).
 
 ## Related
 

@@ -29,13 +29,13 @@
 
 ### Code findings (truth pass 2026-10-24)
 
-- [ ] occs/profiles.js:42 `PROFILE_GEOMETRY_SEED` dead (defined, zero references).
-- [ ] occs/profiles.js:552-556 stale stacked comment (retired order-independent CSG prose) above `resolveOccsProfileSectionOperations`.
+- [x] occs/profiles.js:42 `PROFILE_GEOMETRY_SEED` dead (defined, zero references).
+- [x] occs/profiles.js:552-556 stale stacked comment (retired order-independent CSG prose) above `resolveOccsProfileSectionOperations`.
 
 ### Deletions
 
-- [ ] workers/nesting dead polling cluster → delete `core/main.py`, `utils/mongo.py`, `dxf/dxf_utils.py`, `core/svg_generator.py`, `utils/logger.py`. Reachability (audit + review-3): live entry is Dockerfile `CMD uvicorn worker_service:app`, which touches only `worker_service.py` + `core/nesting_input_builder.py` + `core/geometry_utils.py`; `core/main.py` imports `utils.mongo` GridFS buckets, `dxf.dxf_utils.read_dxf`, `core.svg_generator.create_svg_from_doc`, ezdxf; repo-wide grep for `core.main|read_dxf|create_svg_from_doc|utils.mongo|setup_logger` outside the cluster = 0 hits; `Dockerfile COPY workers/nesting/ .` ships them in the runtime image.
-- [ ] workers/nesting/requirements.txt → prune to fastapi, uvicorn, shapely; ezdxf, pymongo, python-dotenv, Pillow, matplotlib serve only the dead cluster (import grep over live files: fastapi/pydantic/shapely/stdlib only).
+- [x] workers/nesting dead polling cluster → delete `core/main.py`, `utils/mongo.py`, `dxf/dxf_utils.py`, `core/svg_generator.py`, `utils/logger.py`. Reachability (audit + review-3): live entry is Dockerfile `CMD uvicorn worker_service:app`, which touches only `worker_service.py` + `core/nesting_input_builder.py` + `core/geometry_utils.py`; `core/main.py` imports `utils.mongo` GridFS buckets, `dxf.dxf_utils.read_dxf`, `core.svg_generator.create_svg_from_doc`, ezdxf; repo-wide grep for `core.main|read_dxf|create_svg_from_doc|utils.mongo|setup_logger` outside the cluster = 0 hits; `Dockerfile COPY workers/nesting/ .` ships them in the runtime image.
+- [x] workers/nesting/requirements.txt → prune to fastapi, uvicorn, shapely; ezdxf, pymongo, python-dotenv, Pillow, matplotlib serve only the dead cluster (import grep over live files: fastapi/pydantic/shapely/stdlib only).
 
 ### Additions
 
@@ -49,6 +49,15 @@
   rewrite (396→271), publish/upgrade folds to the plugins link, services
   table repaired, nesting inventory + NESTING_WORKER_URL /nest + HTTP-200
   error shape, vendored engines inventoried.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/deslop-execute-20261025`. Dead polling cluster deleted
+(core/main.py, svg_generator, dxf/, utils/), requirements pruned to
+shapely+numpy+fastapi+uvicorn (numpy stays — shapely's own dependency),
+nesting README opening states the live import path; occs PROFILE_GEOMETRY_SEED
+and the stale order-independent comment cut. OPEN: nesting-projections/
+services.js comment folds, test_lbf config import, occs re-scope decision.
 
 ### Agent Notes (2026-10-24)
 

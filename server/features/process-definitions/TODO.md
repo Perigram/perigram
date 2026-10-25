@@ -17,18 +17,21 @@ README REWRITE (640 lines → ~350, zero contract loss):
 ### Code deslop
 
 - [ ] Contract-comment trims (docs-guard homing backlog, 4 entries in service.js): block comments stating authored-data semantics move into the rewritten README sections, one-line pointers stay; migration-plan.js:1-10 restates the README's canonical migration contract → pointer.
-- [ ] 409 response single-shape preparation: `migration-plan.js` carries `migrationPlan` plus the legacy `affected` mirror (L28-35, L160-163, comment "Historical 409 shape kept") — collapse to the plan together with the renderer migration (owner decision below).
+- [x] 409 response single-shape preparation: `migration-plan.js` carries `migrationPlan` only — `strandedAsAffected` and the `data.affected` mirror deleted, 409 detail string built from the stranded rows directly; migration-plan.spec gains the throw-shape test; process-definitions.spec 409 assertions updated (decided 2026-10-25: drop `affected`, `migrationPlan` is the shape).
+- [x] Owner-recovery single read: `users/organization-owner.js` `isOwnerMembership` reads the explicit `owner` flag; the auth-level dual-admin fallback is gone (`hasTenantAdminPermissions` deleted); stored rows healed by server/scripts/migrate-legacy-owner-memberships.js (flags active dual-admin memberships, permissions untouched); users.spec legacy-merge tests flipped to flag-only expectations (decided 2026-10-25).
 
 ### Deletions
 
-- [ ] server/features/support/welcomemessage.js — `sendWelcomeMessage` has zero call sites (grep server/, pages/, components/, composables/: definition only); `MESSAGE_SENDER.WELCOME` survives via const.js.
-- [ ] server/features/states/service.js:114-115 — `attachStatus`/`attachStatuses` identity stubs, zero callers (grep server/, workers/).
-- [ ] server/features/workflow-overrides/service.js:70-80 — `getDefaultWorkflow()` always returns null; the public `resolveDefaultWorkflow` wrapper is consumed at core/machines/service.js:46,180 with null-handling at every site; inline null and delete both.
+- [x] server/features/support/welcomemessage.js — deleted (`sendWelcomeMessage` zero call sites); `MESSAGE_SENDER.WELCOME` survives via const.js.
+- [x] server/features/states/service.js — `attachStatus`/`attachStatuses` identity stubs deleted (zero callers).
+- [x] server/features/workflow-overrides/service.js — `getDefaultWorkflow()`/`resolveDefaultWorkflow` deleted; `resolveActiveWorkflow` returns null at both fallback sites; machines `initialStatus` (the no-organization variant, zero callers since the wrapper always returned null) deleted with the cut.
 
 ### Owner decisions wanted
 
-- [ ] 409 dual shape: keep `migrationPlan` and drop the legacy `affected` key (repo compat law says yes) — confirm every shipped client renders `migrationPlan` before the cut.
-- [ ] Owner-recovery dual-read: users/organization-owner.js:15-18 accepts the explicit `owner` flag OR the legacy dual-admin permission shape (users/README.md L91-93 documents it as live) — order the stored-membership migration so the permission-shape read dies in the same cut.
+- [x] 409 dual shape: keep `migrationPlan` and drop the legacy `affected` key (repo compat law says yes) — confirm every shipped client renders `migrationPlan` before the cut.
+  decided 2026-10-25: drop `affected`; `migrationPlan` is the shape.
+- [x] Owner-recovery dual-read: users/organization-owner.js:15-18 accepts the explicit `owner` flag OR the legacy dual-admin permission shape (users/README.md L91-93 documents it as live) — order the stored-membership migration so the permission-shape read dies in the same cut.
+  decided 2026-10-25: order the migration; single read after — work item above.
 
 - [ ] WAITING — owner verification: read README.md rewrite (640→600);
   queue-era narration dead, `rewriteRetiredWirePaths` citation corrected,
@@ -43,3 +46,13 @@ name corrected, dead migration-script citation dropped, typeId vocabulary
 pass, Manual-action wall split per effect kind, predecessor-story prose
 restated as current behavior, route inventory added. OPEN: code items, 3
 deletions, 409 + owner-recovery decisions.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/deslop-execute-20261025`. Code wave executed: 409
+single-shape (`affected` + `strandedAsAffected` deleted, specs updated),
+owner-recovery flag-only read with the
+migrate-legacy-owner-memberships.js healing one-shot, welcomemessage /
+attachStatus(es) / getDefaultWorkflow+resolveDefaultWorkflow deleted.
+users/README owner-recovery sentence collapsed to the flag read. OPEN:
+service.js contract-comment trims (4 entries + migration-plan pointer).

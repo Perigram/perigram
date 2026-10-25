@@ -116,10 +116,6 @@ definitions and their types die together.
   surface end to end — the segmented state tag, the policy-labeled
   transition round-trip, and the history popover growing the audit
   step. Screenshots and history JSON are the durable artifact.
-- `home-and-instance-ui.spec.js`: seeds declared types through the
-  species process and verifies the compiled Home and detail-context
-  placement, parent-responsive entity chrome, and organization
-  switching through the account menu.
 - `cassette-designer-3d.spec.js`: the cassette designer's folded 3D
   viewport — the debounced assembly preview lifts the viewport's hidden
   state and mounts a non-zero WebGL canvas.
@@ -152,8 +148,9 @@ definitions and their types die together.
 - `home-default-screen.spec.js`: the default-screen contract — an
   organization whose active process compiles to no screens enters the
   home workspace with its definition-independent surfaces, unknown
-  screen keys render the home workspace, and the bare `/screens` route
-  redirects to the default home route.
+  screen keys replace onto the home workspace, system-screen keys
+  replace to their own manifest routes, and the bare `/screens` route
+  redirects to the stable home route.
 - `home-calls.spec.js`: the sidebar communication panel against a
   mocked `/api/livekit/active-rooms` snapshot — Chats and Calls
   PanelMenu entries, active rooms rendering as auto-expanded rows
@@ -162,13 +159,6 @@ definitions and their types die together.
 
 Full nesting tests need explicit fixture cassette geometry and a running
 worker stack; keep those in a separate spec so smoke tests stay cheap.
-
-Known-stale: `home-and-instance-ui.spec.js` registers peers with
-`organizationName` on `/api/auth/register` (the split register contract
-creates accounts only) and fabricates `identity:`/`states:` wire blocks
-the flat-wire contract leaves unread; `home-default-screen.spec.js`
-expects `/screens/home` URLs while the stable home shell route is
-`/home`.
 
 ## Adding Workflows
 

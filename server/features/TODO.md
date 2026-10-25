@@ -38,17 +38,19 @@ Per-feature (areas 3+4):
 
 ### Code deslop
 
-- [ ] scripts/check-arch.js: delete phantom `CAPABILITY_FEATURES` names `material-options`, `nesting`, `notification`, `parametric-cassettes` (L52-57; directories absent — `notifications` exists, `notification` does not) and the empty `PACK_OWNED_FEATURES` map + branch (L20-27, L138-149); drop the "Phase 7 cuts or declares them" comment at L58-68 and surface artifact-templates' undeclared status in the parent README entity table instead.
+- [x] scripts/check-arch.js: delete phantom `CAPABILITY_FEATURES` names `material-options`, `nesting`, `notification`, `parametric-cassettes` and the empty `PACK_OWNED_FEATURES` map + branch; "Phase 7 cuts or declares them" comment dropped (artifact-templates' undeclared status already surfaced in the parent README entity table); the dead `utils/blocks` guard branches died with the file.
 - [ ] Contract-comment trims (docs-guard homing backlog): instance-events/service.js:21-24 (restates the README's contractChanged refresh-hint semantics) → pointer; cts-types/service.js:330-335 ("Deleting a type is a ceremony (SPEC §19)" duplicates the README removal ceremony) → pointer; support/service.js:36-39 (contract + history in one comment); workflow-overrides/service.js:45-50 (restates the README resolution-order law).
 - [ ] Move server/api/instance-events/index.get.spec.js beside feature spec instance-events.spec.js — the only spec file inside server/api (single-convention rule).
 - [ ] Single-source `CAPABILITY_FEATURES` and the parent README module tables (one derivation) so the sets stop drifting.
-- [ ] instance-revisions: migrate stored `data.typeId`/`data.instanceId` documents to `data.source.*` and drop the three `$or` fallbacks (repository.js:36-37,50-51,64-65); repo law: stored data migrates with the contract.
+- [ ] instance-revisions: migrate stored `data.typeId`/`data.instanceId` documents to `data.source.*` and drop the three `$or` fallbacks (repository.js:36-37,50-51,64-65); repo law: stored data migrates with the contract (decided 2026-10-25).
 
 ### Code findings (truth pass 2026-10-24)
 
-- [ ] agent-bots `wakeOn` omitted-preserves contradicts code — omitted rules are cleared; behavior decision (preserve semantics vs code).
-- [ ] instance-revisions `RECORDED` state referenced in prose exists nowhere; unimplemented intent or stale vocabulary — decide.
-- [ ] migration-plan.js:27 stale "Historical 409 shape" contract comment (homing/deletion).
+- [x] agent-bots `wakeOn` omitted-preserves contradicts code — omitted rules are cleared; behavior decision (preserve semantics vs code).
+  decided 2026-10-25: code behavior stands (omitted rules clear); closes as documented code behavior.
+- [x] instance-revisions `RECORDED` state referenced in prose exists nowhere; unimplemented intent or stale vocabulary — decide.
+  decided 2026-10-25: vocabulary dies; no implementation.
+- [x] migration-plan.js:27 stale "Historical 409 shape" contract comment — deleted with `strandedAsAffected` (409 single-shape cut, process-definitions/TODO.md).
 
 ### Additions
 
@@ -56,8 +58,10 @@ Per-feature (areas 3+4):
 
 ### Owner decisions wanted
 
-- [ ] Artifact-cluster cutover: root SPEC.md:368 retires `artifact` when chat/proof/capture/upload flows move to file instances; support chat attachments still ride artifacts (support/service.js:2,40) and the registry carries artifact construction/mode handlers (app-registry.js:47,55,65,81,195) — schedule the cutover as TODO or confirm the family stays the live file path (decides README investment vs retirement plan).
-- [ ] instance-revisions migration timing: confirm every stored doc is migratable now (any dev DB still pre-source-key?) so the `$or` dual-read dies in the same cut.
+- [x] Artifact-cluster cutover: root SPEC.md:368 retires `artifact` when chat/proof/capture/upload flows move to file instances; support chat attachments still ride artifacts (support/service.js:2,40) and the registry carries artifact construction/mode handlers (app-registry.js:47,55,65,81,195) — schedule the cutover as TODO or confirm the family stays the live file path (decides README investment vs retirement plan).
+  decided 2026-10-25: schedule — root TODO.md task "Artifact-family cutover to file instances" owns the work.
+- [x] instance-revisions migration timing: confirm every stored doc is migratable now (any dev DB still pre-source-key?) so the `$or` dual-read dies in the same cut.
+  decided 2026-10-25: migrate stored docs, delete the `$or` fallbacks.
 
 - [ ] WAITING — owner verification: read server/features/README.md + the
   per-feature READMEs; pack-owned stable-URLs paragraph dead, capability
@@ -77,3 +81,14 @@ instance-revisions); organizations/users/plugins stale claims fixed;
 _template folded to a parent pointer. OPEN: files/ README (Additions),
 check-arch phantom names + code items, artifact-cluster +
 instance-revisions-migration decisions.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/deslop-execute-20261025`. check-arch phantom names +
+PACK_OWNED_FEATURES + Phase 7 comment executed (parent README already
+carries the artifact-templates note); migration-plan stale 409 comment
+died with `strandedAsAffected`. New guards in scripts/check-docs.js
+(workers in SOURCE_ROOTS, out-of-root link failure, orphaned-README
+detection) landed green; out-of-root failure surfaced 3 wrong-depth
+links in components/shared/README.md (fixed to `../../`), DATA_MODEL
+links in components/README.md repointed to framework.manifest.json.

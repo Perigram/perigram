@@ -78,7 +78,7 @@ radius refuses with `409` carrying `{ instances, boundBy }`; the
 caller's explicit `abandon: true` (route: `?abandon=true`, actor from
 the session) proceeds and records the abandonment — instance/binder
 counts, actor, timestamp — on the org contract-change event and in
-the response (SPEC §19 abandoned data, promoted to a gate).
+the response (root SPEC §15 abandoned data, promoted to a gate).
 
 ### Client bundle
 

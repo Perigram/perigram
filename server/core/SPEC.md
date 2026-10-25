@@ -141,9 +141,9 @@ canonical in [packages/core](../../packages/core/README.md).
 
 - The app registry is the sole definition and service source:
   [runtime](../runtime/README.md).
-- Wire vocabulary is `typeId`/`id` end to end (root SPEC §Vocabulary).
+- Wire vocabulary is `typeId`/`id` end to end (root SPEC §14).
 - `command_runs` and `task_runs` are the whole process audit trail (root
-  SPEC §Process runtime); evaluation state lives in documents. Deadline
+  SPEC §19); evaluation state lives in documents. Deadline
   scheduling belongs to
   [process-definitions](../features/process-definitions/README.md); this
   engine executes the edges.

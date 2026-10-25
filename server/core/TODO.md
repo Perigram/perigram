@@ -23,34 +23,48 @@
 ### Code deslop
 
 - [ ] `mergeProcessedEffects` triplication → export once from effects/service.js and import: commands/service.js:145-153, tasks/service.js:133-141, effects/service.js:289-295 are identical.
-- [ ] Delete the empty pack/executor tier: app-registry.js:28-30 `FRAMEWORK_PACKS = []` drives the L111-137 registration loop that can never mount, leaving `registerTaskExecutor` (sole caller app-registry.js:129), `registerHookHandler`, `registerProjectionHandler` unreachable; server/plugins/task-executors.js:1-20 polls every 3s dispatching zero executors; delete the loop and the poll plugin (root SPEC cleanliness law 1) or land one real pack/executor.
-- [ ] Contract-comment trims to single facts: core/tasks/definitions.js:1-7 (queue-era narration), app-registry.js:1-5,28-29 (retirement narration), leaving the invariant only.
-- [ ] `server/db/mongo.js:20-140` — all 8 GridFS bucket getters (nestSvg,
+- [x] Delete the empty pack/executor tier: app-registry.js `FRAMEWORK_PACKS = []` and its registration loop deleted with `dispatchRegisteredTaskExecutors` (tasks/service.js) and `server/plugins/task-executors.js` (root SPEC cleanliness law 1).
+- [ ] Contract-comment trims to single facts: core/tasks/definitions.js:1-7 (queue-era narration) — the app-registry.js retirement narration died with the pack tier.
+- [x] `server/db/mongo.js` — all 8 GridFS bucket getters (nestSvg,
   userDxfFilesSvg, nestDxf, userDxf, userSvg, validDxf, cassettesSvg,
-  artifacts) have zero importers; the files feature builds its own bucket
-  (new wave-1 finding) — delete the getters or route the files feature
-  through them.
+  artifacts) deleted with their module vars and the `GridFSBucket` import;
+  `connectDB` + `db` stay; db/README now credits the files feature's own
+  bucket.
+- [x] Event tier: register `frameworkEventDefinitions`
+  (core/commands/definitions.js) into `defineDomain`
+  (app-registry.js passes commands/tasks/events) and define the
+  `convertArtifact` command; the REST route (api/artifact-conversions.post.js)
+  stays the live path, the command definition makes the registered name
+  real (decided 2026-10-25).
+- [x] Registry naming: the 10 `getPerigramRegistry` importers
+  (incl. core/machines and 4 spec mocks) renamed to `getAppRegistry`
+  importing app-registry.js directly; perigram-registry.js shim and the
+  `getPerigramRegistry`/`resetPerigramRegistryForTests` alias exports
+  deleted (decided 2026-10-25).
 
 ### Code findings (truth pass 2026-10-24)
 
-- [ ] `scopeMatches` ignores compiled lineage-key grant scopes — over-broad enforcement (server/core/access, evaluator vs compiled grants).
+- [x] `scopeMatches` ignores compiled lineage-key grant scopes — over-broad enforcement (server/core/access, evaluator vs compiled grants). Fixed 2026-10-25: shared/access-control.js `lineageScopeMatches` enforces every non-reserved `grant.scope` key as a lineage field (single value or any-of array); tests in shared/ui-permissions.spec.js.
 - [ ] Lost-notification parked continuations are never redelivered (tasks notify path; the README claim of a reconciliation pass was false and removed).
 - [ ] Dead export `createPerigramRegistry` (server/core/blocks).
 - [ ] server/utils DXF helpers duplicate workers/facade/vendor engines; production rides the vendor engines, utils copies are spec-only.
 
 ### Deletions
 
-- [ ] server/runtime/process-bindings.js:1-53 — zero importers (grep `process-bindings`, `GENERIC_CREATE`, `authFirstList`, `authLastRead`, `authWithoutOrganizationRead`, `createEntityServiceBinder` repo-wide: hits inside the file only; binding logic lives inline in app-registry.js registerServiceSet).
-- [ ] server/core/blocks/{BaseEntity,Identity,Status,Lineage,Specs}.js (186 lines) — index.js imports every class from `#packages/core/src/index.js`; sole external reference is check-arch.js:269 reading BaseEntity.js as text; delete the files and retarget the guard entry.
-- [ ] server/utils/blocks.js:1-44 — deprecated bridge whose sole consumer is shared/v24-compliance.spec.js:9; inline the import in that spec and delete (also fixes the dead link target in features/states/README.md:179).
-- [ ] server/DATA_MODEL.md — generated artifact with zero writers and zero readers (grep `DATA_MODEL` in js: no hits); also the last doc site of the deleted `processTemplateId` field (DATA_MODEL.md:107).
-- [ ] server/utils/permissions.js:34-58 `requirePermission` / `checkEntityAccess` and server/utils/auth-helpers.js `canAccessEntity` — production callers: none beyond their own specs (billing/organizations/plugins call `hasPermission`); delete the exports and their README rows (server/utils/README.md:85-91 documents them under the entity-redaction.js heading; core/access/README.md:78-82 documents `requirePermission` as live).
+- [x] server/runtime/process-bindings.js — deleted; zero importers verified repo-wide.
+- [x] server/core/blocks/{BaseEntity,Identity,Status,Lineage,Specs}.js — deleted (each verified as a shadow of the `#packages/core/src/index.js` re-export); check-arch guard target is `#packages/core/src/index.js` (decided 2026-10-25).
+- [x] server/utils/blocks.js — deleted; shared/v24-compliance.spec.js now imports `inheritLineage` from server/core/blocks/index.js.
+- [x] server/DATA_MODEL.md — deleted; the two components/README.md links repointed to framework.manifest.json (the live entity/field catalog).
+- [x] server/utils/permissions.js `requirePermission` / `checkEntityAccess` and server/utils/auth-helpers.js `canAccessEntity` — deleted with their spec cases and README rows (utils README decision guide routes admin checks to feature-level access checks).
 
 ### Owner decisions wanted
 
-- [ ] Event tier: register `frameworkEventDefinitions` (core/commands/definitions.js:10-32) into `defineDomain` — today app-registry.js:99 passes commands/tasks only, zero `defineEvent` callers, so the runtime `eventDefinitions` map is empty while check-arch.js:384-393 statically validates the same table (guard green, runtime empty). Live failure path: `generateAttachment` (definition definitions.js:41-77, handler app-registry.js:88-91) returns `attachment.generationQueued/Completed` (artifacts/operations.js:128-147) → processEvents (commands/service.js:72) → validateDomainEvent (effects/service.js:278-287) → 500 "Domain event is not declared". Option B deletes the event table, the validation tier, and the handler emissions as one cut. Separate decision: `convertArtifact` is a registered handler with no command definition — `executeCommand('convertArtifact')` throws 400 "Unknown command" (commands/service.js:12-17; plugins/service.js:732 rejects non-`plugin.<id>.<svc>` ids); its live `artifact.converted` emission runs on the REST route api/artifact-conversions.post.js:20 calling operations directly, bypassing processEvents — define the command or delete the dead command node path.
-- [ ] Registry naming: `getAppRegistry` (32 files) vs `getPerigramRegistry` (10 files, incl. core/machines) plus the perigram-registry.js re-export shim — pick one name, import app-registry.js directly, delete the shim.
-- [ ] check-arch.js BaseEntity guard: after the shadow-class deletion, keep a second guard target or is `#packages/core/src/index.js` sufficient?
+- [x] Event tier: register `frameworkEventDefinitions` (core/commands/definitions.js:10-32) into `defineDomain` — today app-registry.js:99 passes commands/tasks only, zero `defineEvent` callers, so the runtime `eventDefinitions` map is empty while check-arch.js:384-393 statically validates the same table (guard green, runtime empty). Live failure path: `generateAttachment` (definition definitions.js:41-77, handler app-registry.js:88-91) returns `attachment.generationQueued/Completed` (artifacts/operations.js:128-147) → processEvents (commands/service.js:72) → validateDomainEvent (effects/service.js:278-287) → 500 "Domain event is not declared". Option B deletes the event table, the validation tier, and the handler emissions as one cut. Separate decision: `convertArtifact` is a registered handler with no command definition — `executeCommand('convertArtifact')` throws 400 "Unknown command" (commands/service.js:12-17; plugins/service.js:732 rejects non-`plugin.<id>.<svc>` ids); its live `artifact.converted` emission runs on the REST route api/artifact-conversions.post.js:20 calling operations directly, bypassing processEvents — define the command or delete the dead command node path.
+  decided 2026-10-25: register `frameworkEventDefinitions` into `defineDomain` and define the `convertArtifact` command; the REST route stays the live path, the command definition makes the registered name real — work item above.
+- [x] Registry naming: `getAppRegistry` (32 files) vs `getPerigramRegistry` (10 files, incl. core/machines) plus the perigram-registry.js re-export shim — pick one name, import app-registry.js directly, delete the shim.
+  decided 2026-10-25: `getAppRegistry` everywhere, direct imports, perigram-registry.js shim deleted — work item above.
+- [x] check-arch.js BaseEntity guard: after the shadow-class deletion, keep a second guard target or is `#packages/core/src/index.js` sufficient?
+  decided 2026-10-25: `#packages/core/src/index.js` is the guard target.
 
 - [ ] WAITING — owner verification: read the 15 server/core-area READMEs;
   core/events/README.md folded into core/effects/README.md (file deleted,
@@ -70,3 +84,18 @@ repointed); commands Files list fixed; tasks notify names →
 `continueActionFromTask`/`failActionFromTask`. New code finding below:
 8 GridFS bucket getters in db/mongo.js with zero importers. OPEN: code
 deletions + event-tier/registry-naming/BaseEntity-guard decisions.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/deslop-execute-20261025`. Code wave executed: pack/executor
+tier + task-executors poll + dispatchRegisteredTaskExecutors deleted;
+perigram-registry shim deleted, 10 importers → `getAppRegistry` direct;
+frameworkEventDefinitions registered into `defineDomain`, `convertArtifact`
+command defined (REST route stays live); 8 GridFS getters, process-bindings,
+5 shadow block classes (check-arch target → packages/core), utils/blocks
+bridge, DATA_MODEL.md, welcomemessage.js (server/features plane),
+requirePermission/checkEntityAccess/canAccessEntity deleted;
+`scopeMatches` lineage-key gap fixed with tests. machines
+`initialStatus` died with the resolveDefaultWorkflow cut (zero callers,
+always threw). OPEN: mergeProcessedEffects, tasks/definitions comment
+trim, lost-notification, createPerigramRegistry, DXF dedup.

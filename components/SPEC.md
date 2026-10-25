@@ -38,7 +38,7 @@ feature surface.
 
 - Top-level loose SFCs (`AuthProgress`, `ChatSupport`, `Footer`,
   `LanguageSwitcher`, `PermissionEditor`, `PermissionRuleBuilder`,
-  `ThemeSwitcher`, `UserForm`) are inventoried in the parent README.
+  `ThemeSwitcher`) are inventoried in the parent README.
 - Every child folder is registered in the parent's map with a one-line
   owns-statement linking its README.
 
@@ -87,7 +87,7 @@ surfaces; adding an entity type registers a card and a contract entry.
 
 ## Laws
 
-- Root [SPEC.md](../SPEC.md) §UI and §Generative UI own the UI and
+- Root [SPEC.md](../SPEC.md) §4 and §22 own the UI and
   generative-engine law this tree implements.
 - Message semantics are owned by
   [server/features/support/README.md](../server/features/support/README.md);

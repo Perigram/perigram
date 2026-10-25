@@ -1,7 +1,6 @@
 # CONTAINER: Facade Plugin Executor
 
-The facade fabrication domain as a third-party plugin (SPEC §Plugin
-marketplace): `listing.json` is the whole declaration surface (types,
+The facade fabrication domain as a third-party plugin (SPEC §20): `listing.json` is the whole declaration surface (types,
 services, editor bindings, preview bindings, attachment kinds,
 conversions, service-backed construction bindings, exports), and this
 process is the executor that owns the domain's compute and its UI. The

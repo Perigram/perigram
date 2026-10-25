@@ -85,7 +85,6 @@ Top-level SFCs:
 | `PermissionEditor.vue` | The typed grant editor for the `shared/access-control.js` grant shape, covering direct permissions and Process Designer access: grants render as accordions in the selected access area, the level edits inline as `Allow <level> when <predicate>`, and predicates are nested boolean filter expressions (rows and nested groups, `all`/`any` gate, per-clause `not` toggle) built from real domain contracts — exact `id`, workflow `status` from the served type declarations' state trees, property paths from the entity field descriptors. Entity-id clauses use entity pickers; free text serves custom paths and transition names; authoring happens in the filter builder, and saved grants serialize only complete predicates. |
 | `PermissionRuleBuilder.vue` | The nested rule-tree builder used by `PermissionEditor` |
 | `ThemeSwitcher.vue` | Light/dark toggle |
-| `UserForm.vue` | Profile name/email form fields |
 
 ## UI Inventory Policy
 
@@ -110,7 +109,7 @@ CSS.
 - Mutable current location is a typed lifecycle fact (`status.lifecycle.data.location`: `warehouse`, `coordinates`, `address`) — [server/features/states/README.md](../server/features/states/README.md) owns the contract.
 - Standard CRUD and status operations go through the instances store ([stores/README.md](../stores/README.md)); `$fetch` is reserved for workflows outside it — declared domain operations, uploads/downloads, invitations, permissions, support chat, organization billing, debug endpoints, and project-scoped subresources.
 - PrimeVue `<Select>` with `optionLabel="name"` receives option arrays normalized through `utils/selectOptions.js` when the source is a canonical DTO.
-- Check [server/DATA_MODEL.md](../server/DATA_MODEL.md) before assuming a data structure.
+- Check [framework.manifest.json](../framework.manifest.json) (entity definitions and data-model fields) before assuming a data structure.
 
 ## Localization
 
@@ -134,4 +133,4 @@ PrimeVue Button, Tag, and Badge keep their own font-size: add `size="small"` to 
 - Chat message semantics: [server/features/support/README.md](../server/features/support/README.md)
 - Designer authoring contract (palette membership, node/edge grammar): [packages/processes/README.md](../packages/processes/README.md)
 - Runtime status model: [server/core/machines/README.md](../server/core/machines/README.md)
-- Entity data shapes: [server/DATA_MODEL.md](../server/DATA_MODEL.md)
+- Entity data shapes: [framework.manifest.json](../framework.manifest.json)

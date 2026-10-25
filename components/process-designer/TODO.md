@@ -63,9 +63,12 @@
 
 ### Code findings (truth pass 2026-10-24)
 
-- [ ] ProcessNodeInspector.vue `fieldPolicyOptions` prop bound by the page, never rendered; per-producer read/write/private authoring has no UI — dead prop or lost panel.
-- [ ] pages/organization/process.vue:406 zero-stations "Open roles" action fires inside the Roles tab — dead control.
-- [ ] Producer `nodeId:outputSocketId` display documented in prose exists nowhere in the UI — regression or unrecorded removal (owner decision).
+- [x] ProcessNodeInspector.vue `fieldPolicyOptions` prop bound by the page, never rendered; per-producer read/write/private authoring has no UI — dead prop or lost panel.
+  decided 2026-10-25: dead prop — prop, page binding, and feeding computed deleted.
+- [x] pages/organization/process.vue:406 zero-stations "Open roles" action fires inside the Roles tab — dead control.
+  decided 2026-10-25: dead control deleted with its `openRolesTab` locale keys.
+- [x] Producer `nodeId:outputSocketId` display documented in prose exists nowhere in the UI — regression or unrecorded removal (owner decision).
+  decided 2026-10-25: recorded removal; item closes.
 
 ### Owner decisions wanted
 

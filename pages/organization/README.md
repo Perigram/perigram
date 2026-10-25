@@ -134,7 +134,7 @@ removed state to a retained target, and activation re-targets the affected
 instances (the canonical Apply migration contract lives in
 [server/features/process-definitions/README.md](../../server/features/process-definitions/README.md)).
 
-The designer authors the current species process contract (SPEC §20).
+The designer authors the current species process contract (SPEC §14).
 Resolution binds CTS ids and declared paths while preserving species kinds,
 read discriminators, socket ids, and graph edges across compile, validate,
 preview, and runs; `operationKindOf` is classification only.

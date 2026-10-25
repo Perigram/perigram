@@ -4,10 +4,8 @@ The Nesting Worker is a Python FastAPI service executing the 2D
 bin-packing algorithm over HTTP: geometry in, placements out. The
 runtime entry point is `worker_service.py` (`POST /nest`); the live
 import path touches only `worker_service.py`,
-`core/nesting_input_builder.py`, and `core/geometry_utils.py`. The
-polling-era files (`core/main.py`, `core/svg_generator.py`, `dxf/`,
-`utils/`) remain in the tree pending removal — the Docker image ships
-them today (`COPY workers/nesting/ .`).
+`core/nesting_input_builder.py`, and `core/geometry_utils.py` (pure
+algorithm, no DB access).
 
 Parent: [workers README](../README.md).
 

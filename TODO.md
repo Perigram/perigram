@@ -4,22 +4,22 @@
 
 Baseline: full-repo audit of 2026-10-24 (nine area reports, three
 independent review passes; evidence is inlined below — the reports were
-ephemeral). System law: [SPEC §Deslopification](./SPEC.md). Per-folder
+ephemeral). System law: [SPEC §23](./SPEC.md). Per-folder
 deltas live in the folders' own TODO.md; this file carries the
 repository-level cuts, the root documentation, and the guards.
 
 Status legend per AGENTS.md: tasks move to WAITING for owner verification,
 archived only on the owner's word.
 
-### Repository shape (SPEC §Deslopification → Repository shape)
+### Repository shape (SPEC §23.1)
 
 - [ ] Remove `video/` (19 tracked files) — the explainer-video renderer:
   `video/groundtruth.mjs` imports deleted `utils/` files
   (ERR_MODULE_NOT_FOUND reproduced at audit), all 5 relative links in
   `video/README.md` resolve above the repo root and are broken, and
   `nuxt.config.js` special-cases ignoring the tree. Drop its
-  Documentation Map row in the same cut. Preserve the rendered
-  artifact out-of-repo first if wanted (decision below).
+  Documentation Map row in the same cut. The renderer moves to its own
+  repository first (~/Projects/perigram-video; owner pushes to a remote).
 - [ ] Remove `packages/mongo`, `packages/nitro`, `packages/vue` — zero
   consumers repo-wide (reference search over all js/vue/mjs excluding the
   packages themselves); `packages/vue/README.md` documents exports that do
@@ -27,14 +27,14 @@ archived only on the owner's word.
   regenerates `framework.manifest.json` (`npm run framework:write-manifest`),
   drops `tsconfig.json` path rows, and updates the `.codex` skill reference.
   Tracked in [packages/TODO.md](./packages/TODO.md).
-- [ ] Remove `constants/` + `components/UserForm.vue` — the only import of
+- [x] Remove `constants/` + `components/UserForm.vue` — the only import of
   `constants/` is `UserForm.vue:36` (`USER_ROLES`, a hardcoded legacy role
   set); `<UserForm` template usage: 0 matches repo-wide.
-- [ ] Remove `assets/rive/perigram-mark/` + `public/rive/` — `rive`,
+- [x] Remove `assets/rive/perigram-mark/` + `public/rive/` — `rive`,
   `perigram-mark`, `\.riv` search over all app code: 0 references;
   package.json carries no rive dependency. Drop the Documentation Map row
   in the same cut.
-- [ ] Remove the retired Swarm/Hetzner deploy plane:
+- [x] Remove the retired Swarm/Hetzner deploy plane:
   `.github/workflows/publish.yml` (builds absent `workers/fileprocessing`),
   `docker-stack.yml`, `docker-stack-external.yml`,
   `docker-stack-workers-only.yml`, `build-images.sh` (referenced only by
@@ -55,8 +55,15 @@ archived only on the owner's word.
   READMEs (components, composables, stores, shared, utils, layouts,
   middleware, i18n, assets, packages, test-data, test-tools, k8s) — every
   one missing from the map at audit — plus this program.
-- [ ] `SPEC.md`: number the section headings (decision below) so the 36
-  "SPEC §N" citations across READMEs resolve.
+- [x] `SPEC.md`: number the section headings; sweep the 36
+  "SPEC §N" citations across READMEs to the new numbers (decided
+  2026-10-25).
+  Landed 2026-10-25: 23 `##` + 10 `###` headings numbered (§4 UI holds
+  the §Files artifact-death sentence; Deslopification last as §23);
+  citation map — §UI→§4, §Now playing→§11, §Server→§13, §Vocabulary→§14,
+  §Process runtime→§19, §Plugin marketplace→§20, §Exports→§21,
+  §Generative UI→§22, §Deslopification→§23(.1), §Agent access→§3,
+  §Files→§4.
 
 ### Guards
 
@@ -74,11 +81,10 @@ archived only on the owner's word.
 
 ### E2E
 
-- [ ] Fix or delete the known-stale specs: `home-default-screen`
-  (pre-alias URL), `home-and-instance-ui` (entity-era blocks) — listed
-  under e2e/README "Known-stale remainder"; `home-calls` is live (its
-  selectors were verified at review) and stays.
-- [ ] `home-default-screen` re-verified stale 2026-10-24: the spec asserts
+- [x] Fix `home-default-screen`, delete `home-and-instance-ui` (decided
+  2026-10-25) — both listed under e2e/README "Known-stale remainder";
+  `home-calls` is live (its selectors were verified at review) and stays.
+- [x] `home-default-screen` re-verified stale 2026-10-24: the spec asserts
   `/screens/home` URLs while `/home` is the live route — review-3 checked
   line 18 only; the rewrite spans the whole spec.
 
@@ -103,37 +109,74 @@ archived only on the owner's word.
 - [x] `deploy/README.md`: document `seed.Dockerfile` (the one live
   artifact deploy.yml builds), reconcile `cutkit-` container names with
   the `perigram-autodeploy` naming.
+- [x] `deploy/deploy.yml`: move the inline LIVEKIT and garage S3 keys to
+  Forgejo secrets; `deploy/README.md` states the sourcing (decided
+  2026-10-25).
+  Owner action: set `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
+  `GARAGE_ACCESS_KEY`, `GARAGE_SECRET_KEY` as Forgejo repository secrets
+  before the next staging deploy (the values left the workflow file).
+- [x] `k8s/README.md`: rewrite in English; `deploy/` owns deployables,
+  `k8s/` owns cluster state (decided 2026-10-25).
 
 ### Owner decisions wanted
 
-- [ ] `video/`: remove with git history as the archive, or move the
+- [x] `video/`: remove with git history as the archive, or move the
   renderer to its own repository first?
-- [ ] `deploy/README` says "no credentials" while `deploy/deploy.yml`
+  decided 2026-10-25: move to its own repository — local repo created at
+  ~/Projects/perigram-video; owner pushes to a remote.
+- [x] `deploy/README` says "no credentials" while `deploy/deploy.yml`
   carries inline LIVEKIT and garage S3 keys — move to Forgejo secrets, or
   bless the inline lab keys and fix the sentence?
-- [ ] Root SPEC numbering: number sections (36 "SPEC §N" citations start
+  decided 2026-10-25: move to Forgejo secrets; README states it.
+- [x] Root SPEC numbering: number sections (36 "SPEC §N" citations start
   resolving) or rewrite the citations to section names?
-- [ ] Artifact-family cutover: SPEC §Files retires `artifact` when
+  decided 2026-10-25: number sections; sweep the 36 citations.
+- [x] Artifact-family cutover: SPEC §4 retires `artifact` when
   chat/proof/capture/upload move to file instances; support chat still
   rides artifacts (`support/service.js:2,40`). Schedule the cutover or
   record the cluster as the live file path
   ([server/features/TODO.md](./server/features/TODO.md)).
-- [ ] `k8s/README` is Russian and overlaps `deploy/` on the hera
+  decided 2026-10-25: schedule — the task section below owns the cutover.
+- [x] `k8s/README` is Russian and overlaps `deploy/` on the hera
   production environment: which folder owns that contract canonically?
+  decided 2026-10-25: English rewrite; deploy owns deployables, k8s owns
+  cluster state.
 - [ ] `test-data/factories.js` has 3 live consumers (ui-lab,
   design-system spec + util); confirm nothing expects the deleted CNC
   factory set before its README rewrite names the real nine factories.
-- [ ] Registry naming: `getAppRegistry` vs `getPerigramRegistry` — ten
+- [x] Registry naming: `getAppRegistry` vs `getPerigramRegistry` — ten
   core files import the legacy name
   ([server/core/TODO.md](./server/core/TODO.md)).
-- [ ] Event tier: register `frameworkEventDefinitions` into the framework
+  decided 2026-10-25: `getAppRegistry` everywhere, direct imports,
+  perigram-registry.js shim deleted — work item in server/core/TODO.md.
+- [x] Event tier: register `frameworkEventDefinitions` into the framework
   domain or delete the emission and validation tier
   ([server/core/TODO.md](./server/core/TODO.md)).
+  decided 2026-10-25: register into `defineDomain` + define the
+  `convertArtifact` command — work item in server/core/TODO.md.
 
 - [ ] WAITING — owner verification: read root README Development +
   Documentation Map and the five area READMEs (e2e, test-data, test-tools,
-  scripts, deploy); repository shape, guards, E2E stale specs and the
-  decisions below stay open.
+  scripts, deploy); repository shape cuts (video remains open), guards,
+  the artifact-family cutover and the test-data decision
+  stay open; k8s/README rewritten (deploy owns deployables, k8s owns
+  cluster state); root SPEC sections numbered §1–§23 with the citation
+  sweep landed.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/deslop-execute-20261025` (worktree
+`.agent-worktrees/deslop-execute-20261025`). Executed: `constants/` +
+`components/UserForm.vue` deleted; rive assets deleted (doc-map row
+dropped); the Swarm/Hetzner deploy plane deleted (publish.yml, three
+stack files, build-images.sh, start-dev.sh, four deploy/ legacy files —
+deploy/README now states the surviving set); `.forgejo/workflows/deploy.yml`
+LIVEKIT + garage keys moved to Forgejo secrets (README documents the four
+required secrets — owner must set them on the Forgejo repo before the next
+staging push); k8s/README rewritten in English with the deploy/k8s scope;
+`home-default-screen` rewritten to `/home` + system-screen route
+replacement, `home-and-instance-ui.spec.js` deleted with its coverage row
+and the Known-stale paragraph.
 
 ### Agent Notes (2026-10-24)
 
@@ -148,3 +191,12 @@ server/scripts summaries moved to server/scripts/README.md. E2E:
 URLs, `/home` is the live route, review-3 checked line 18 only);
 `home-calls` verified live and delisted. OPEN: repository shape cuts,
 guards, E2E rewrites, SPEC numbering, 8 owner decisions.
+
+## Artifact-family cutover to file instances
+
+- [ ] Retire the artifact family: the `artifacts`, `artifact-templates`,
+  `artifact-conversions` features, the artifact entity UI, and their
+  routes/specs. `artifact` is legacy vocabulary and dies. What chat
+  operates on after the cutover is the implementing agent's decision;
+  CTS types with payload traits and the upload creation protocol are
+  the seams. User-plane UX must not degrade.

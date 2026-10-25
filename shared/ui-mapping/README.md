@@ -70,6 +70,13 @@ read-only presentations derive from shape.
 
 - `fieldLabel(name, descriptor)` — the descriptor's `label` override, else
   the start-case name.
+- `typeLabelFor(type, { t, te, entitiesLabelKey, unnamedLabel })` — the
+  one type-label chain every surface reads: the design-system
+  `entities.*` key (pack types) → the generated `uiMapping.types.<id>`
+  override → the authored bundle `name` → the unnamed placeholder.
+  Takes a type record or a bare id; `utils/generated-labels.js`
+  (`generatedEntityLabel`) is the app binding that feeds the entities
+  key table and the registry-resolved record. Raw ids never render.
 - `titleFor(record, typeView, { unnamedLabel })` — the value of the type's
   `identifier`-flagged field when non-empty, else the localized unnamed
   placeholder (default `'Unnamed'`; callers pass `t('common.unnamed')`).
@@ -445,7 +452,7 @@ same weights at card scale:
 | Dominant child | `DOMINANT_CHILD_SHARE` | a sibling holding at least the share of total weight keeps the vertical flow while its remainder fits `SURFACE_ROW_BUDGET` |
 | Tabs | over-budget sets | tab in descending weight order at the top level (nested heavy content stacks) |
 
-Arrangement is content-aware (SPEC §Generative UI, 2026-10-22): a child
+Arrangement is content-aware (SPEC §22, 2026-10-22): a child
 collection with zero loaded instances is layout-inert — it joins the node's
 `stubRegions`, renders compact below the arranged content, and every
 arrangement decision (weights, columns, tabs, the side rail) sees filled

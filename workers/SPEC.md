@@ -47,7 +47,7 @@ refused — the module URL is the only credential the browser holds.
 `http://<origin>/surfaces/<module>.mjs` beside the services. Each module
 targets a [plugin-surfaces](../shared/plugin-surfaces.js) contract
 version; the mount contract (data-only surface, host-owned chrome) lives
-in the root [SPEC.md](../SPEC.md) §Plugin marketplace.
+in the root [SPEC.md](../SPEC.md) §20.
 
 ### Nesting solver — [nesting](./nesting/README.md)
 

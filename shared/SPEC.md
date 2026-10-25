@@ -28,7 +28,7 @@ sibling relatives, so every runtime resolves them; alias rules live in
 ### Generative UI — [ui-mapping](./ui-mapping/README.md)
 
 The canonical home of presentation-resolution law (root
-[SPEC.md](../SPEC.md) §Generative UI states the system-level arrangement
+[SPEC.md](../SPEC.md) §22 states the system-level arrangement
 law; this module is its engine):
 
 | Contract | Law |
@@ -113,7 +113,7 @@ SVG, window-guarded rendering), [icon-fonts.js](./icon-fonts.js)
 - Contract modules are pure; the component registry stays app-side
   ([components/ui-mapping](../components/ui-mapping/README.md)).
 - Component choice is resolver output; persisted and process data reach
-  components through resolver tables (root [SPEC.md](../SPEC.md) §UI).
+  components through resolver tables (root [SPEC.md](../SPEC.md) §4).
 - Field descriptors and class obligations come from
   [packages/cts/SPEC.md](../packages/cts/SPEC.md); compiled screen/action
   placement from [packages/processes](../packages/processes/README.md);

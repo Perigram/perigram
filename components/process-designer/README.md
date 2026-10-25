@@ -8,7 +8,7 @@ legality — is authored through the designer contract owned by
 [packages/processes](../../packages/processes/README.md); this README
 owns the surface: channels, arrangement, gestures. Normative state and
 species contracts live in
-[CTS SPEC §7 and §20](../../packages/cts/SPEC.md).
+[CTS SPEC §7 and §14](../../packages/cts/SPEC.md).
 
 Parent: [components](../README.md); its [SPEC](../SPEC.md).
 
