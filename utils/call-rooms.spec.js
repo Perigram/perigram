@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { callRoomLabel } from './call-rooms.js';
 import {
-    callRoomLabel,
     conversationKeyForRoom,
     otherDirectParticipantId,
     roomForConversationKey
-} from './call-rooms.js';
+} from '#shared/call-rooms.js';
 
 describe('call room mapping', () => {
     it('maps rooms to conversation keys', () => {

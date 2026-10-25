@@ -16,8 +16,10 @@ import { normalizeSketchDrawing, parseScene } from '~/utils/sketch.js';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
-import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
-import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
+import { DESIGN_SYSTEM_CARD_COMPONENTS } from '~/utils/design-system-cards.js';
+
+const LayerStandardCard = DESIGN_SYSTEM_CARD_COMPONENTS.layerStandard;
+const PenTemplateCard = DESIGN_SYSTEM_CARD_COMPONENTS.penTemplate;
 
 const props = defineProps({
   source: { type: [Object, String], default: null },

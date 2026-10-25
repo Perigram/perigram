@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, inject, unref, watch, ref } from 'vue';
+import { computed, inject, unref, watch, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Chip from 'primevue/chip';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
@@ -11,20 +11,13 @@ import { useInstancesStore } from '~/stores/instances';
 import { normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
+import { DESIGN_SYSTEM_CARD_COMPONENTS } from '~/utils/design-system-cards.js';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
 import { instanceRecordTitle } from '~/utils/instance-shape.js';
 import { generatedEntityLabel, generatedActionLabel } from '~/utils/generated-labels.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useStatePolicy } from '~/composables/useStatePolicy';
 import { useEntityPopup } from '~/composables/useEntityPopup';
-
-const CARD_COMPONENTS = {
-  entityRevision: defineAsyncComponent(() => import('~/components/entities/EntityRevision/EntityRevisionCard.vue')),
-  user: defineAsyncComponent(() => import('~/components/entities/User/UserCard.vue')),
-  organization: defineAsyncComponent(() => import('~/components/entities/Organization/OrganizationCard.vue')),
-  artifact: defineAsyncComponent(() => import('~/components/entities/Artifact/ArtifactCard.vue')),
-  artifactTemplate: defineAsyncComponent(() => import('~/components/entities/ArtifactTemplate/ArtifactTemplateCard.vue'))
-};
 
 const props = defineProps({
   type: { type: String, required: true },
@@ -72,7 +65,7 @@ const resolvedId = computed(() => normalizedId.value
   || ''
 );
 const icon = computed(() => instances.iconFor(props.type));
-const cardComponent = computed(() => CARD_COMPONENTS[contract.value?.key] || null);
+const cardComponent = computed(() => DESIGN_SYSTEM_CARD_COMPONENTS[contract.value?.key] || null);
 const cardProps = computed(() => ({
   [contract.value?.propName || 'entity']: resolved.value,
   variant: 'inline',

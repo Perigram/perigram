@@ -18,14 +18,12 @@ vi.mock('../support/service.js', () => ({
 
 import { createHash } from 'crypto';
 import jwt from 'jsonwebtoken';
+import { directCallRoom, groupCallRoom, orgCallRoom } from '#shared/call-rooms.js';
 import {
     authorizeRoom,
-    directCallRoom,
-    groupCallRoom,
     inviteToCall,
     listActiveRooms,
     mintRoomToken,
-    orgCallRoom,
     publishWebhookEvent,
     verifyWebhookAuthorization
 } from './service.js';

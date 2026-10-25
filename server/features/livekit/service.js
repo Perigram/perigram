@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import jwt from 'jsonwebtoken';
 import { createError } from 'h3';
 import { hasPermissionGrant } from '#shared/access-control.js';
+import { directCallRoom, groupCallRoom, orgCallRoom } from '#shared/call-rooms.js';
 import * as connectionsService from '../connections/service.js';
 import * as filesService from '../files/service.js';
 import * as meetingsService from '../meetings/service.js';
@@ -9,20 +10,14 @@ import { getConversationContextByKey, findChatGroup, insertRecordingMessage } fr
 import * as repository from './repository.js';
 
 /**
- * LiveKit calls capability module. Direct and organization rooms are derived,
- * never free-form:
- *
- * - `call:direct:<sorted-user-id-a>:<sorted-user-id-b>` — mirrors the support
- *   conversation keys; only participants (or admins) may mint tokens.
- * - `call:org:<orgId>` — organization rooms; any member may join.
- * - `call:group:<groupId>` — the call room of a persisted support group chat;
- *   only group participants (or admins) may join, mirroring the direct-room
- *   participant contract.
- *
- * Room access today derives from org membership and conversation/group
- * participation; under an active compiled process, org rooms additionally
- * ride the process access rights (livekit feature grant). Group rooms follow
- * their participants like direct rooms and stay grant-free.
+ * LiveKit calls capability module. Room names derive from the one grammar
+ * home (`#shared/call-rooms.js`): direct rooms mirror the support
+ * conversation keys, group rooms belong to the persisted support group
+ * chat, org rooms to the organization. Direct and group rooms admit only
+ * their participants (or admins); org rooms admit any member. Under an
+ * active compiled process, org rooms additionally ride the process access
+ * rights (livekit feature grant); group rooms follow their participants
+ * like direct rooms and stay grant-free.
  */
 
 const config = () => ({
@@ -36,14 +31,6 @@ const config = () => ({
 });
 
 export const publicConfig = () => ({ url: config().publicUrl });
-
-const sortedIds = (left, right) => [String(left), String(right)].sort();
-
-export const directCallRoom = (left, right) => `call:direct:${sortedIds(left, right).join(':')}`;
-
-export const orgCallRoom = (orgId) => `call:org:${orgId}`;
-
-export const groupCallRoom = (groupId) => `call:group:${groupId}`;
 
 function requireLiveKitGrant(auth, level = 'read') {
     if (!auth.process?.active || !auth.effectivePermissions) return;

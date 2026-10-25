@@ -1449,7 +1449,7 @@
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 import { assistantMentioned } from '~/shared/assistant-mention.js'
-import { conversationKeyForRoom } from '~/utils/call-rooms.js'
+import { conversationKeyForRoom } from '#shared/call-rooms.js'
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue'
 import UserChip from '~/components/shared/UserChip.vue'
 import AiAvatar from '~/components/shared/AiAvatar.vue'

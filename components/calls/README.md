@@ -198,9 +198,9 @@ user topic and `call.activity` on the user/org topics, keeps the
 - `ChatSupport` shows an ongoing-call banner with a Join button for the
   open conversation, before joining and after leaving the call.
 
-Room↔conversation mapping helpers (`utils/call-rooms.js`) mirror the
-server's derived room-name contract so every surface agrees which
-conversation a room belongs to.
+Room names and room↔conversation mapping come from the one grammar home,
+[`shared/call-rooms.js`](../../shared/README.md), so every surface
+agrees which conversation a room belongs to.
 
 Room access, tokens, invites, and webhooks are owned by the
 [livekit feature](../../server/features/livekit/README.md).

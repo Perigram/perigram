@@ -1,28 +1,4 @@
-// The design-system vocabulary: status chrome, UI
-// lab variants/groups/primitives, the per-entity demo contracts, the
-// residual fact vocabulary for undeclared master data, and the surface
-// chrome contracts. One home, app-level — this is presentation vocabulary,
-// not pack declaration data. It was mislabeled "cnc" inside the deleted
-// legacy domain package; the names here are its real ones.
-
-// Residual fact vocabulary for types that are NOT declared in the type
-// system (one fact vocabulary). Live-type audit (2026-09): every declared
-// type carries its fact vocabulary as field descriptors on its
-// declaration, compiled into the served CTS client bundle and resolved by
-// `utils/instance-display-contract.js` (`factsFor`) as the only fact
-// source. This map survives ONLY for the artifact family —
-// `artifact_template`, undeclared master data that Phase 7 cuts later
-// (`artifact` itself is framework-declared and resolves from the bundle).
-//
-// Everything else that once lived here rendered entity types retired from
-// `cncEntities` (project, queue, nestingRun, sheet, remnant, catalog,
-// geometryCapture, warehouse, library, material piles, requisition,
-// cassetteTemplate/cassetteInstance) or master data whose legacy surfaces
-// are gone (toolProfile, machine, profileTemplate); those rows died with
-// the legacy fact channel.
-//
-// Nothing new may be added here: declare the type and author its field
-// descriptors instead.
+// Residual fact vocabulary for `artifact_template` only; new types declare their field descriptors.
 export const DESIGN_SYSTEM_FIELD_GROUPS = {
   artifactTemplate: {
     summary: [
@@ -39,13 +15,7 @@ export function getEntityFieldGroups(entityKey) {
   return DESIGN_SYSTEM_FIELD_GROUPS[entityKey] || {};
 }
 
-// Design-system surface chrome vocabulary and the per-entry chrome
-// contracts the UI lab manifest validates. Live-type audit (2026-09):
-// this module consults no field-group table and pins no per-key
-// synthesized group lists — which groups a surface shows is class-level
-// generic policy at resolve time in `utils/instance-display-contract.js`.
-// Preview chrome survives only for the artifact family (Phase 7 cuts it
-// later); everything else previewed through here rendered retired types.
+// Surface chrome vocabulary; which groups a surface shows resolves at runtime in `utils/instance-display-contract.js`.
 export const DESIGN_SURFACES = ['inline', 'compact', 'card', 'detail', 'table', 'picker', 'workspace'];
 export const DESIGN_PREVIEW_MODES = ['none', 'icon', 'thumbnail', 'hero', 'canvas', 'attachment'];
 export const DESIGN_DATA_DISPLAYS = ['inline', 'compact', 'grid', 'sectioned', 'table', 'custom'];

@@ -1,32 +1,9 @@
 /**
- * Shared call-room mapping helpers. Room names are derived on the server
- * (`server/features/livekit/service.js`); these helpers mirror that contract
- * for the frontend so the sidebar, chat, and notification surfaces agree on
- * which conversation a room belongs to.
+ * Display helpers for active call rooms: the label resolved against the
+ * loaded conversation summaries and the room-kind icon. The room-name
+ * grammar and room↔conversation mapping live in `#shared/call-rooms.js`.
  */
-
-export function conversationKeyForRoom(room = '') {
-    if (room.startsWith('call:group:')) return `group:${room.slice('call:group:'.length)}`;
-    if (room.startsWith('call:direct:')) return room.slice('call:'.length);
-    return '';
-}
-
-export function roomForConversationKey(conversationKey = '', userId = '') {
-    if (conversationKey.startsWith('group:')) {
-        return `call:group:${conversationKey.slice('group:'.length)}`;
-    }
-    if (conversationKey.startsWith('direct:')) {
-        const ids = conversationKey.split(':').slice(1).map(String);
-        if (!ids.includes(String(userId))) return '';
-        return `call:direct:${[...ids].sort().join(':')}`;
-    }
-    return '';
-}
-
-export function otherDirectParticipantId(room = '', userId = '') {
-    if (!room.startsWith('call:direct:')) return '';
-    return room.split(':').slice(2).find(id => id !== String(userId)) || '';
-}
+import { conversationKeyForRoom, otherDirectParticipantId } from '#shared/call-rooms.js';
 
 /**
  * Display label for an active call room, resolved against the loaded
@@ -35,8 +12,7 @@ export function otherDirectParticipantId(room = '', userId = '') {
  */
 export function callRoomLabel(room = '', conversations = [], { userId = '', orgName = '', fallback = '' } = {}) {
     if (room.startsWith('call:group:')) {
-        const key = `group:${room.slice('call:group:'.length)}`;
-        const conversation = conversations.find(item => item.conversationKey === key);
+        const conversation = conversations.find(item => item.conversationKey === conversationKeyForRoom(room));
         return conversation?.groupName || fallback;
     }
     if (room.startsWith('call:direct:')) {
