@@ -1212,6 +1212,83 @@ owns them.
 ### 22.6 Fields display
 Fields should be marked on creation according to CTS (required and identifier)
 
+### 22.7 Arrangement is founded on traits (owner direction 2026-10-25)
+
+Layout decisions in the generative UI consume two derived records.
+
+**Data traits** are compose-time facts about content, pure over the type
+record and the loaded pool, carried on every composed region node: weight
+(estimated rendered height), breadth (intrinsic width demand — chip-scale,
+content-width, full-row), volume (instance count), shape family (media,
+temporal, stateful, prose, measure), filledness (a field no instance fills
+and a collection with no loaded instances are layout-inert), and growth
+bound (content the host bounds versus content that scrolls in its own box).
+The analysis passes of the mapping contract (type shape, instance shape,
+weight estimation) are their seed; every further arrangement rule builds on
+the trait record. Data traits live in the pure mapping contract
+(`shared/ui-mapping`).
+
+**Container traits** are runtime facts about the host box a surface renders
+in: width scale, height boundedness (a bounded host owns the scroll, a
+page-flow host grows), scroll ownership, and density (the spacing
+coefficient). The hosts are the routed page, the workspace pane, the
+dialog, the popup, and the mobile tab; each resolves its traits through the
+one container seam at the materialization layer, and container-relative
+layout in any surface materializes the trait vocabulary — a surface with a
+private breakpoint set is a defect.
+
+Arrangement rules are pure functions over data traits × container traits,
+and total: every combination resolves a placement.
+
+### 22.8 Top-level layout is container-aware (owner direction 2026-10-25)
+
+The record page and every screen top-level arrange against the host they
+render in. Wide hosts engage the side rail, the peer columns, and the
+record split; narrow hosts stack the same composed tree; bounded hosts
+grant full-row content (tables, boards, canvases) the full row with its own
+bounded scroll while content-width blocks take the flow at content width.
+One composed tree serves every host: panes, pages, dialogs, popups, and
+mobile tabs render the same composition, with container traits selecting
+which arrangement engages. A layout keyed to a host kind in code is a
+defect.
+
+### 22.9 Content takes the place it needs (owner direction 2026-10-25)
+
+Placement and size follow content. Width follows breadth: chip-scale
+content packs in rows, content-width blocks render at content width under
+declared caps, full-row content keeps the row. Height follows weight: the
+§22.1–§22.2 ladder places siblings by weight. Nothing stretches to fill
+space its content does not need, and nothing is squeezed below its
+content's minimum. Vertical growth belongs to the owning scroll: a bounded
+surface scrolls inside its bounds, and page flow grows the page.
+
+### 22.10 Composition is placement-aware; nested class refs are instance
+chips (owner direction 2026-10-25)
+
+Components compose procedurally from data traits and placement. The
+container picks the child's variant, and placement picks the presentation:
+one collection is a table at page width, a bounded list in the side rail, a
+chip row inside a row, a compact stub when empty. Composition recursion
+terminates at the reference: a class reference inside another component's
+surface renders as an instance chip (the shared inline ref with its
+inspect-and-open behavior), and a record surface renders only at its own
+page, pane, dialog, or popup level. Opening a chip is navigation to the
+record's own surface; a full record composes inside another record's
+surface never.
+
+### 22.11 Layout derives; a pin is declared data (owner direction
+2026-10-25)
+
+Every layout threshold is a named constant in the one budget and layout
+table; every placement rule lives in the arrangement contract over traits.
+App code carries no type-keyed layout branches, no component-local layout
+magic numbers, and no per-surface breakpoint copies. A presentation the
+trait vocabulary cannot express is pinned through the declared seams —
+authored declarations (`control`, render policy, preview modes) or
+`createUiMapping` overrides — as data; a pin living in app code as a branch
+on a type id is a defect. Hardcoding is admissible only when a concrete
+need defeats the vocabulary, and this spec records the justification.
+
 ## 23. Deslopification (owner direction 2026-10-23)
 
 The current architecture carries the whole platform idea and its important
