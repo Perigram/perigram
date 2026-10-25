@@ -87,8 +87,8 @@ function fieldReadDefinition() {
     screens: {},
     processNodes: {
       sheet: { id: 'sheet', kind: 'cts.read', select: 'current', typeId: 'sheet' },
-      present: { id: 'present', kind: 'cts.field', typeId: 'sheet', inputDefaults: { field: 'fields.serial' } },
-      absent: { id: 'absent', kind: 'cts.field', typeId: 'sheet', inputDefaults: { field: 'fields.material' } }
+      present: { id: 'present', kind: 'cts.field', typeId: 'sheet', path: 'fields.serial' },
+      absent: { id: 'absent', kind: 'cts.field', typeId: 'sheet', path: 'fields.material' }
     }
   };
 }

@@ -79,13 +79,13 @@ function orgHierarchyProcess() {
       outputSocketId: 'result',
       typeId,
       lifecycle: { mode: 'domainDefault' },
-      fields: { read: ['identity.*'], write: [], private: [] },
+      fields: { read: ['name'], write: [], private: [] },
       allowedRoles: { read: [ROLE_ID], write: [ROLE_ID], admin: [] }
     }
   });
   const createNode = (nodeId, typeId) => ({
     id: nodeId,
-    kind: 'effect.createEntity',
+    kind: 'cts.construct',
     typeId,
     producerOutputId: `${nodeId}:result`,
     label: `Create ${typeId}`,

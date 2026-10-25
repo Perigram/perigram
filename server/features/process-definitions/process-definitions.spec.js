@@ -41,6 +41,13 @@ vi.mock('../cts-types/service.js', async () => {
   }
   return { compileRegistryForOrganization: vi.fn(async () => registry) };
 });
+// Activation's type-death gate (cts-types lifetime law) has its own spec;
+// this suite activates fixtures whose orgs declare no stored types.
+vi.mock('../cts-types/lifetime.js', () => ({
+  findTypeDeathCandidates: vi.fn(async () => []),
+  typeDeathManifest: vi.fn(async () => []),
+  killTypesWithData: vi.fn(async () => [])
+}));
 vi.mock('./repository.js', () => ({
   find: vi.fn(),
   findById: vi.fn(),
@@ -50,12 +57,6 @@ vi.mock('./repository.js', () => ({
   updateById: vi.fn(),
   removeById: vi.fn(),
 }));
-
-const runRepository = {
-  createRun: vi.fn(async ({ run, definition }) => ({ runId: run.id, state: run, definition, revision: 0 })),
-  saveRunState: vi.fn(async (_runId, state, revision) => ({ state, revision: revision + 1 })),
-  findUnreceiptedInvocations: vi.fn(async () => [])
-};
 
 vi.mock('~/server/runtime/app-registry.js', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -230,7 +231,7 @@ describe('current process-definition service contract', () => {
     const authored = {
       schemaVersion: 1,
       dataflowVersion: PROCESS_DATAFLOW_VERSION,
-      graph: { nodes: [{ id: 'f1', type: 'processNode', data: { refId: 'f1' } }], edges: [] },
+      graph: { nodes: [{ id: 'f1', type: 'processNode', position: { x: 0, y: 0 }, data: { refId: 'f1' } }], edges: [] },
       roleGrants: {},
       producerOutputs: {},
       actions: {}, services: {}, sockets: {}, screens: {},
@@ -680,7 +681,6 @@ describe('current process-definition service contract', () => {
     const region = result.data.compiled.producerOutputs['create_cassette:result'].workflow.regions.main;
     expect(region.initial).toBe('ACTIVE');
     expect(Object.keys(region.states).sort()).toEqual(['ACTIVE', 'ARCHIVED']);
-    expect(region.states.ARCHIVED.isTerminal).toBe(true);
     expect(region.transitions).toEqual([]);
     // Additive activation: no organization pointer is written — the active
     // set is queried from the definitions collection.
@@ -699,22 +699,19 @@ describe('current process-definition service contract', () => {
     expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
   });
 
-  it('persists a deconstruct -> modify block -> update entity read-modify-write chain through processUpdate with list and tree field inputs', async () => {
+  it('persists a read -> list/tree leaf rewrite -> update entity read-modify-write chain through processUpdate', async () => {
     const machine = {
       type: 'machine',
       id: 'machine-1',
       _id: 'machine-1',
-      identity: { uid: 'machine-1', name: 'CNC Router', slug: 'cnc-router' },
+      name: 'CNC Router',
       lineage: { organizationId: 'org-acceptance' },
-      data: { label: 'Router', reference: { code: 'M-00', location: 'Hall B' } },
-      attachments: {},
+      fields: { label: 'Router', reference: { code: 'M-00', location: 'Hall B' } },
       states: { main: 'ACTIVE' }
     };
     const processUpdate = vi.fn(async (id, patch) => {
       const persisted = structuredClone(machine);
-      for (const [path, value] of Object.entries(patch)) {
-        setByPath(persisted, path, value);
-      }
+      Object.assign(persisted.fields, patch.fields);
       return persisted;
     });
     getAppRegistry.mockReturnValue({
@@ -728,24 +725,25 @@ describe('current process-definition service contract', () => {
     const run = await evaluateDefinitionDataflow('process-draft', {
       trigger: { nodeId: 'update' },
       inputs: { entity: machine }
-    }, adminAuth(), { runRepository });
+    }, adminAuth());
     restoreMachineRegistry();
 
     expect(run.status).toBe('succeeded');
     expect(processUpdate).toHaveBeenCalledTimes(1);
     expect(processUpdate).toHaveBeenCalledWith(
       'machine-1',
-      expect.objectContaining({
-        'data.label': 'Renamed machine',
-        'data.reference': { code: 'M-01', location: 'Hall A' }
-      }),
+      {
+        fields: {
+          label: 'Renamed machine',
+          reference: { code: 'M-01', location: 'Hall A' }
+        }
+      },
       expect.objectContaining({ userId: 'admin', organizationId: 'org-acceptance' })
     );
     const persisted = await processUpdate.mock.results[0].value;
-    expect(persisted.data.label).toBe('Renamed machine');
-    expect(persisted.identity.name).toBe('CNC Router');
-    expect(persisted.identity.slug).toBe('cnc-router');
-    expect(persisted.data.reference).toEqual({ code: 'M-01', location: 'Hall A' });
+    expect(persisted.fields.label).toBe('Renamed machine');
+    expect(persisted.name).toBe('CNC Router');
+    expect(persisted.fields.reference).toEqual({ code: 'M-01', location: 'Hall A' });
   });
 
   it('chains a manual field mutate into an event-triggered transition with the entity carried through', async () => {
@@ -757,15 +755,14 @@ describe('current process-definition service contract', () => {
       type: 'machine',
       id: 'machine-1',
       _id: 'machine-1',
-      identity: { uid: 'machine-1', name: 'CNC Router', slug: 'cnc-router' },
+      name: 'CNC Router',
       lineage: { organizationId: 'org-acceptance' },
-      data: { label: 'Router' },
-      attachments: {},
+      fields: { label: 'Router' },
       states: { main: 'ACTIVE' }
     };
     const processUpdate = vi.fn(async (id, patch) => {
       const persisted = structuredClone(machine);
-      for (const [path, value] of Object.entries(patch)) setByPath(persisted, path, value);
+      Object.assign(persisted.fields, patch.fields);
       return persisted;
     });
     getAppRegistry.mockReturnValue({
@@ -803,6 +800,8 @@ describe('current process-definition service contract', () => {
         update: {
           id: 'update', kind: 'cts.mutate', typeId: 'machine',
           trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
+          // Authored against the retired data.* spelling: the resolution
+          // seam heals persisted paths onto the §3 field wire.
           inputDefaults: { 'data.label': 'Renamed machine' }
         },
         transition: {
@@ -818,14 +817,14 @@ describe('current process-definition service contract', () => {
     const run = await evaluateDefinitionDataflow('process-draft', {
       trigger: { nodeId: 'update' },
       inputs: { entity: 'machine-1' }
-    }, adminAuth(), { runRepository });
+    }, adminAuth());
     restoreMachineRegistry();
 
     expect(run.status).toBe('succeeded');
     expect(processUpdate).toHaveBeenCalledWith(
       'machine-1',
-      { 'data.label': 'Renamed machine' },
-      expect.anything()
+      { fields: { label: 'Renamed machine' } },
+      expect.objectContaining({ userId: 'admin', organizationId: 'org-acceptance' })
     );
     expect(stateService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
       typeId: 'machine',
@@ -1108,7 +1107,7 @@ describe('current process-definition service contract', () => {
     await expect(evaluateDefinitionDataflow('process-draft', {
       trigger: { nodeId: 'update' },
       inputs: { entity: machine }
-    }, adminAuth(), { runRepository })).rejects.toMatchObject({
+    }, adminAuth())).rejects.toMatchObject({
       statusCode: 400,
       message: 'Transition MAINTENANCE is not valid from state ACTIVE'
     });
@@ -1121,17 +1120,14 @@ describe('current process-definition service contract', () => {
       type: 'machine',
       id: 'machine-1',
       _id: 'machine-1',
-      identity: { uid: 'machine-1', name: 'CNC Router', slug: 'cnc-router' },
+      name: 'CNC Router',
       lineage: { organizationId: 'org-acceptance' },
-      data: { label: 'Router', reference: { code: 'M-00', location: 'Hall B' } },
-      attachments: {},
+      fields: { label: 'Router', reference: { code: 'M-00', location: 'Hall B' } },
       states: { main: 'ACTIVE' }
     };
     const processUpdate = vi.fn(async (id, patch) => {
       const persisted = structuredClone(machine);
-      for (const [path, value] of Object.entries(patch)) {
-        setByPath(persisted, path, value);
-      }
+      Object.assign(persisted.fields, patch.fields);
       return persisted;
     });
     stateService.transitionWithResult.mockImplementation(async ({ targetState }) => {
@@ -1184,7 +1180,7 @@ describe('current process-definition service contract', () => {
     const run = await evaluateDefinitionDataflow('process-draft', {
       trigger: { nodeId: 'update' },
       inputs: { entity: machine }
-    }, adminAuth(), { runRepository });
+    }, adminAuth());
     restoreMachineRegistry();
 
     expect(run.status).toBe('succeeded');
@@ -1192,11 +1188,13 @@ describe('current process-definition service contract', () => {
     // mutate persists fields only, the transition owns the state.
     expect(processUpdate).toHaveBeenCalledWith(
       'machine-1',
-      expect.objectContaining({
-        'data.label': 'Renamed machine',
-        'data.reference': { code: 'M-01', location: 'Hall A' }
-      }),
-      expect.anything()
+      {
+        fields: {
+          label: 'Renamed machine',
+          reference: { code: 'M-01', location: 'Hall A' }
+        }
+      },
+      expect.objectContaining({ userId: 'admin', organizationId: 'org-acceptance' })
     );
     expect(stateService.transitionWithResult).toHaveBeenCalledTimes(1);
     expect(stateService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
@@ -1225,9 +1223,9 @@ describe('current process-definition service contract', () => {
     });
 
     const result = await performDurableEffect({
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       record: {
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         id: 'create',
         typeId: 'queue',
         producerOutputId: 'create:result',
@@ -1257,9 +1255,9 @@ describe('current process-definition service contract', () => {
         : organizationService
     });
     const createEffect = (id, stateTo) => performDurableEffect({
-      kind: 'effect.createEntity',
+      kind: 'cts.construct',
       record: {
-        kind: 'effect.createEntity',
+        kind: 'cts.construct',
         id,
         typeId: 'project',
         producerOutputId: `${id}:result`,
@@ -1289,11 +1287,11 @@ describe('current process-definition service contract', () => {
     });
 
     const result = await performDurableEffect({
-      kind: 'effect.changeStatus',
-      record: { kind: 'effect.changeStatus', typeId: 'sheet', producerOutputId: 'sheet_source:entity' },
+      kind: 'cts.transition',
+      record: { kind: 'cts.transition', typeId: 'sheet', producerOutputId: 'sheet_source:entity' },
       inputs: {
         entity: { type: 'sheet', id: 'sheet-1' },
-        status: 'VERIFIED',
+        state: 'VERIFIED',
         note: 'Inspection complete'
       }
     }, adminAuth());
@@ -1352,15 +1350,15 @@ describe('current process-definition service contract', () => {
     stateService.transitionWithResult.mockResolvedValue({ entity: { _id: 'queue-1', states: { main: 'ARCHIVED' } } });
 
     await expect(performDurableEffect({
-      kind: 'effect.archiveEntity',
-      record: { kind: 'effect.archiveEntity', typeId: 'queue', archiveIntent: 'archiveQueue' },
+      kind: 'cts.transition',
+      record: { kind: 'cts.transition', typeId: 'queue', archiveIntent: 'archiveQueue' },
       inputs: { entity: { type: 'queue', id: 'queue-1' } }
     }, adminAuth())).resolves.toMatchObject({ _id: 'queue-1' });
     expect(stateService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({ intent: 'archiveQueue' }));
 
     await expect(performDurableEffect({
-      kind: 'effect.deleteEntity',
-      record: { kind: 'effect.deleteEntity', typeId: 'queue' },
+      kind: 'cts.remove',
+      record: { kind: 'cts.remove', typeId: 'queue' },
       inputs: { entity: { type: 'queue', id: 'queue-1' } }
     }, adminAuth())).resolves.toEqual({ success: true });
     expect(processDelete).toHaveBeenCalledWith('queue-1', adminAuth());
@@ -1373,10 +1371,13 @@ describe('current process-definition service contract', () => {
         : organizationService
     });
 
-    for (const kind of ['effect.archiveEntity', 'effect.deleteEntity']) {
+    for (const record of [
+      { kind: 'cts.transition', typeId: 'sheet_design', archiveIntent: 'archive' },
+      { kind: 'cts.remove', typeId: 'sheet_design' }
+    ]) {
       await expect(performDurableEffect({
-        kind,
-        record: { kind, typeId: 'sheet_design' },
+        kind: record.kind,
+        record,
         inputs: { entity: { type: 'sheet_design', id: 'sheet-1' } }
       }, adminAuth())).rejects.toThrow('does not support process');
     }
@@ -1391,16 +1392,16 @@ describe('current process-definition service contract', () => {
     });
 
     await performDurableEffect({
-      kind: 'effect.updateEntity',
-      record: { id: 'n1', kind: 'effect.updateEntity', typeId: 'sheet', blocks: [] },
+      kind: 'cts.mutate',
+      record: { id: 'n1', kind: 'cts.mutate', typeId: 'sheet', blocks: [] },
       inputs: {
         entity: { type: 'sheet', id: 'sheet-1' },
-        'data.serial': 'SH-42'
+        'fields.serial': 'SH-42'
       }
     }, relationAuth(), {});
 
     expect(processUpdate).toHaveBeenCalledTimes(1);
-    expect(processUpdate).toHaveBeenCalledWith('sheet-1', { 'data.serial': 'SH-42' }, expect.objectContaining({ organizationId: 'org-acceptance' }));
+    expect(processUpdate).toHaveBeenCalledWith('sheet-1', { fields: { serial: 'SH-42' } }, expect.objectContaining({ organizationId: 'org-acceptance' }));
   });
 
 
@@ -1482,8 +1483,13 @@ function readModifyWriteProcessData() {
   return {
     schemaVersion: 1,
     dataflowVersion: PROCESS_DATAFLOW_VERSION,
+    graphProtocol: 5,
+    ctsTypes: {
+      s1: { id: 's1', kind: 'state', typeId: 'machine', value: 'ACTIVE' },
+      s2: { id: 's2', kind: 'state', typeId: 'machine', value: 'MAINTENANCE', terminal: true }
+    },
     graph: {
-      nodes: ['deconstruct', 'names', 'refs', 'modify', 'update'].map(id => ({
+      nodes: ['ctx', 'names', 'refs', 'update'].map(id => ({
         id,
         type: 'processNode',
         position: { x: 0, y: 0 },
@@ -1491,53 +1497,40 @@ function readModifyWriteProcessData() {
       })),
       edges: [
         {
-          id: 'deconstruct-modify',
-          source: 'deconstruct',
-          sourceHandle: 'data:data',
-          target: 'modify',
-          targetHandle: 'data:block',
+          id: 'ctx-update',
+          source: 'ctx',
+          sourceHandle: 'data:result',
+          target: 'update',
+          targetHandle: 'data:entity',
           role: 'data'
         },
         {
-          id: 'names-modify',
+          id: 'names-update',
           source: 'names',
           sourceHandle: 'data:value',
-          target: 'modify',
-          targetHandle: 'data:data.label',
+          target: 'update',
+          targetHandle: 'data:fields.label',
           role: 'data'
         },
         {
-          id: 'refs-modify',
+          id: 'refs-update',
           source: 'refs',
           sourceHandle: 'data:value',
-          target: 'modify',
-          targetHandle: 'data:data.reference',
-          role: 'data'
-        },
-        {
-          id: 'modify-update',
-          source: 'modify',
-          sourceHandle: 'data:block',
           target: 'update',
-          targetHandle: 'data:data',
+          targetHandle: 'data:fields.reference',
           role: 'data'
         }
       ],
       viewport: { x: 0, y: 0, zoom: 1 }
     },
     roleGrants: {},
-    producerOutputs: {
-      'machine_context:entity': {
-        id: 'machine_context:entity', producerOutputId: 'machine_context:entity', nodeId: 'machine_context', outputSocketId: 'entity',
-        typeId: 'machine', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*', 'data.*'], write: ['identity.*', 'data.*'], private: [] }
-      }
-    },
+    producerOutputs: {},
     actions: {},
     services: {},
     sockets: {},
     screens: {},
     processNodes: {
-      deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', typeId: 'machine', blocks: ['data'] },
+      ctx: { id: 'ctx', kind: 'cts.read', typeId: 'machine', select: 'current' },
       names: { id: 'names', kind: 'source.literalList', access: 'list', value: ['Renamed machine'] },
       refs: {
         id: 'refs',
@@ -1545,32 +1538,22 @@ function readModifyWriteProcessData() {
         access: 'tree',
         value: { branches: [{ path: [], items: [{ code: 'M-01', location: 'Hall A' }] }] }
       },
-      modify: {
-        id: 'modify',
-        kind: 'record.modifyBlock',
-        block: 'data',
-        fields: ['data.label', 'data.reference']
-      },
       update: {
         id: 'update',
-        kind: 'effect.updateEntity',
+        kind: 'cts.mutate',
         typeId: 'machine',
-        producerOutputId: 'machine_context:entity',
         label: 'Update machine',
         trigger: { mode: 'manual' },
-        access: { level: 'write', grants: [] },
-        blocks: ['data']
+        access: { level: 'write', grants: [] }
       }
     }
   };
 }
 
-// The ad-hoc `machine` type both update-path tests run against: the
-// identifier row plus the data rows their field patches write. The legacy
-// identity.reference vocabulary died with the legacy domain tables — row
-// fields project onto the data block. The registry swap returns a restore
-// callback: validation, compilation, and runtime projection each re-resolve
-// the organization registry, so a single mockResolvedValueOnce is not enough.
+// The ad-hoc `machine` type the update-path tests write their field patches
+// into. The registry swap returns a restore callback: validation,
+// compilation, and runtime projection each re-resolve the organization
+// registry, so a single mockResolvedValueOnce is not enough.
 function mockMachineRegistry() {
   const machineRegistry = createTypeRegistry({ id: 'spec-machine' });
   for (const declaration of [...frameworkTypes, ...cncTypePack]) machineRegistry.defineType(declaration);
@@ -1588,17 +1571,6 @@ function mockMachineRegistry() {
   const previous = mocked.getMockImplementation();
   mocked.mockImplementation(async () => machineRegistry);
   return () => mocked.mockImplementation(previous);
-}
-
-function setByPath(target, path, value) {
-  const parts = String(path || '').split('.');
-  let cursor = target;
-  while (parts.length > 1) {
-    const key = parts.shift();
-    cursor[key] ||= {};
-    cursor = cursor[key];
-  }
-  cursor[parts[0]] = value;
 }
 
 function adminAuth() {

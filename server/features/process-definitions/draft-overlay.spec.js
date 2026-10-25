@@ -41,7 +41,7 @@ function draftWithTypeClass() {
       },
       actions: {}, services: {}, sockets: {}, screens: {}, stateDefinitions: {}, valueInputs: {},
       processNodes: {
-        c1: { id: 'c1', kind: 'cts.construct', typeId, via: 'genericCreate', label: '', producerOutputId: 'c1:result', construction: { mode: 'genericCreate', inputs: [] }, status: null, matching: 'item', fields: [], inputs: [], outputs: [] }
+        c1: { id: 'c1', kind: 'cts.construct', typeId, via: 'genericCreate', label: '', producerOutputId: 'c1:result', construction: { mode: 'genericCreate', inputs: [] }, trigger: { mode: 'manual' }, status: null, matching: 'item', fields: [], inputs: [], outputs: [] }
       },
       ctsTypes: {
         cls: { id: 'cls', kind: 'class', typeId, class: 'item', name: 'Widget' },
