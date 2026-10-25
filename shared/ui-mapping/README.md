@@ -530,11 +530,15 @@ minimum, `trackCount × REGION_COLUMN_EARNED_REM`: generative for any
 track count, stacking inside panes, dialogs, and narrow hosts), and the
 form grid (`LAYOUT.formGrid` names the global `.ck-form-grid` utility in
 `assets/css/main.css`: one column under 40rem of container width, two
-above; full-span rows opt in with `.ck-span-full`), and the record
+above; full-span rows opt in with `.ck-span-full`), the record
 body's fill grids beside it (`LAYOUT.factsGrid`/`LAYOUT.bodyGrid`:
-blocks render at content width and pack — sections cap at
-`fit-content(46rem)` — and `LAYOUT.packRow` packs content-width stubs
-side by side — the record body fills the surface it renders in).
+content width is the floor and the host grants growth — fact groups fill
+in tracking columns, body blocks grow into spare row width, and
+`LAYOUT.packRow` packs content-width stubs side by side), and the record
+preview hero (`LAYOUT.previewHero`/`LAYOUT.previewHeroBand`: the detail
+body's band steps up with its container — 7rem base, 11rem past the
+medium step, 14rem past the wide step — while the card slot keeps the
+fixed `LAYOUT.previewBand` stamp).
 
 ## Composition
 

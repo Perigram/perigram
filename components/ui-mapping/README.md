@@ -367,11 +367,14 @@ beside the transition history in `StateHistory`.
   each chip carries the
   relation's inline-resolved operations (unlink) as `contextActionEntries`
   bound to the opened record, and the hierarchy tree for groups. The
-  `full` variant fills its surface by packing (SPEC §22,
-  2026-10-22) through the `LAYOUT.bodyGrid`/`LAYOUT.factsGrid` utilities:
-  body blocks render at content width (sections capped at
-  `fit-content(46rem)`) and fact rows wrap at content width; nested card
-  variants keep the hairline spec list. A list region with nothing to show
+  `full` variant fills its surface through the
+  `LAYOUT.bodyGrid`/`LAYOUT.factsGrid` utilities: content width is the
+  floor and the host grants growth — fact groups fill in tracking
+  columns, body blocks grow into spare row width; nested card
+  variants keep the hairline spec list. The preview renders in the
+  stepped hero band (`LAYOUT.previewHero`: 7rem base, taller past the
+  container width steps) with `PreviewBox fill`. A list region with
+  nothing to show
   renders at content width, and a record's empty child regions pack side
   by side as compact stubs (`RegionChildren pack`). Every scalar and
   simple structural field renders through `InlineField.vue`, the one
@@ -383,8 +386,9 @@ beside the transition history in `StateHistory`.
   time over a local draft with confirm/discard. Display renders only
   fields that carry values.
 - `PreviewBox.vue` — preview materialization keyed on the declared
-  payload, in one fixed-height band (`LAYOUT.previewBand`) for every
-  content kind; a
+  payload; the card slot renders one fixed-height band
+  (`LAYOUT.previewBand`), while the record body's hero band sizes the
+  slot and PreviewBox fills it (`fill` prop). A
   registered plugin preview binding
   (`components/generated/plugin-preview-bindings.js`) takes the band
   first. An

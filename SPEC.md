@@ -1179,17 +1179,18 @@ Filled structural content renders open as labeled sections, and a
 collapsed fact group always carries its show-more control.
 
 ### 22.2 Instance page arrangement fills the screen (owner direction
-2026-10-22)
+2026-10-22; fill amendment 2026-10-25)
 Arrangement is content-aware and bounds the record page. A child
 collection with no loaded instances is layout-inert: it claims no side
 rail, column, or tab weight and renders as a compact stub below the
 arranged content. A dominant child keeps the flow while its remainder
 fits the surface budget; a heavier remainder tabs the whole set in
-weight order. The record body itself fills its surface by packing:
-every body block renders at content width (sections capped at
-`fit-content(46rem)`), a dead collection renders as a compact
-content-width stub, wide content (tables, boards) keeps the full row,
-and overflow stays inside the child surfaces' own bounded scrolls.
+weight order. The record body fills its surface: every body block
+renders at content width and grows into the width its host grants —
+fact groups fill in columns, sections share spare width, and the record
+preview scales with its container; wide content (tables, boards) keeps
+the full row, and overflow stays inside the child surfaces' own bounded
+scrolls.
 
 ### 22.3 A hosted surface carries its title once (owner direction
 2026-10-23)

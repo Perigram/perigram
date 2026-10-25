@@ -503,3 +503,28 @@ guard green.
   several sections in a wide pane vs a narrow one (columns engage/shed);
   a table inside a pane or the record popup (compact columns); the record
   popup's card facts.
+
+### Agent Notes (2026-10-25, everyday-page round)
+
+Session `agent/genui-look-20261025-1945` (worktree `.agent-worktrees/genui-look`).
+The everyday record page finally moves: SPEC §22.2 fill amendment (content
+width is the floor, the host grants growth); `ck-facts-grid` fills in
+tracking columns; `ck-body-grid` blocks grow into spare row width; the
+record preview renders in the stepped hero band (7/11/14rem by container
+step, `LAYOUT.previewHero` + `PreviewBox fill`) instead of the fixed
+stamp. The ladder provably engages: the random world's guarantees are
+structural now — projection floors (gantt/calendar/board types), two peer
+hosts with claimed columnable and heavy peers, the empty type reserved
+before claiming and spared by the state matrix; the column-engagement pin
+holds across all seeds (previously zero engagements anywhere — the
+moderate host's guaranteed table peers were full-breadth by law, so
+columns were dead code). En route: several order-dependent generator bugs
+fixed (host discovery order, empty-type fallback claiming a peer,
+lineage stamps landing under the wrong host). Specs: 129 unit/random +
+14 SSR green (board/gantt/calendar/columns/facts-grid/body-grid asserted
+in rendered markup); design-system + localization green.
+
+- [ ] WAITING — owner verification (everyday round): any generated record
+  page on a wide screen — facts spread, sections grow, preview band
+  taller; the showcase (`/test/ui-mapping`) — column arrangements render
+  between peer collections.
