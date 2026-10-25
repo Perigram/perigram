@@ -10,12 +10,6 @@
       <InputText :model-value="String(seed)" class="w-24" readonly />
       <Button :label="$t('uiMapping.randomize')" icon="pi pi-refresh" size="small" @click="reroll" />
       <Button
-        :label="source === 'real' ? 'Real data' : 'Random'"
-        :icon="source === 'real' ? 'pi pi-database' : 'pi pi-sparkles'"
-        size="small"
-        :severity="source === 'real' ? undefined : 'secondary'"
-      />
-      <Button
         :label="$t('uiMapping.stateMatrix')"
         icon="pi pi-eye"
         size="small"

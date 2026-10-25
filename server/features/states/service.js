@@ -109,7 +109,3 @@ function resolveActor(userId, user, stampLabel = null) {
     name: stampLabel || user?.identity?.name || userId
   };
 }
-
-// Deprecated V23 helpers below - avoided in V24 refactors
-export async function attachStatus(entity, collection) { return entity; }
-export async function attachStatuses(entities, collection) { return entities; }

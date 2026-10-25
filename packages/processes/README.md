@@ -9,7 +9,7 @@ contracts. The process graph composes those declarations through native
 species records: a process node references a declaration, and lifecycle
 structure and type identity come from the declaration graph. The normative
 state and species contracts live in
-[CTS SPEC §7 and §20](../cts/SPEC.md).
+[CTS SPEC §7 and §14](../cts/SPEC.md).
 
 Executable records remain species records from authored graph through
 resolution, validation, compilation, orchestration, server execution, and
@@ -176,7 +176,7 @@ The grouped authoring palette arrives through
 `createProcessDesignerContract(domain)`, the framework-owned projection for
 visual process designers: a designer supplies one `defineDomain`-shaped
 implementation — the shipped source is the CTS registry view projected
-through `@perigram/cts` `projectDomainFromView` (CTS SPEC §19) — and
+through `@perigram/cts` `projectDomainFromView` (CTS SPEC §13) — and
 receives normalized entity, workflow, command, task, event, hook, effect,
 attachment-kind, construction, field-policy, field-group, canonical-block,
 and grouped-palette contracts. The generic designer package imports no
@@ -252,7 +252,7 @@ workflow overlays, field policy, actions, services, and sockets.
 
 `prepareAuthoredDefinition` resolves CTS ids and declared row paths through
 `@perigram/cts` `resolveCtsDefinition` (canonical contract:
-[cts README](../cts/README.md), SPEC §20) and runs the declaration binding
+[cts README](../cts/README.md), SPEC §14) and runs the declaration binding
 checks beside it; authored definitions speak the current species
 vocabulary.
 
@@ -1060,7 +1060,7 @@ record lives under `processNodes` with a namespaced kind from the catalog:
 `control.*`, and the CTS species (`cts.*`). The catalog and evaluator throw
 on retired kinds; persisted v4 drafts rewrite through
 [`server/scripts/migrate-v4-drafts-native.js`](../../server/scripts/README.md)
-(the SPEC §20 kind table; unmigratable shapes are reported, and send-to-
+(the SPEC §14 kind table; unmigratable shapes are reported, and send-to-
 organization effects, patch algebra, and producer-path joins among them).
 Roles, entity profiles, screens, assignments, and status definitions are
 definition-plane records; status definitions alone project a typed status
@@ -1225,7 +1225,7 @@ Lineage entity references to the declared stored id key, and Get Field
 restores that id as the declared typed reference. Get Field on other open
 blocks authors the local key and output type explicitly.
 
-`cts.decompose` is the instance elimination form (SPEC §20): every facet
+`cts.decompose` is the instance elimination form (SPEC §14): every facet
 the bound type's projected field schemas declare — identity, row fields,
 `lineage.<key>` per declared edge, `relations.<key>`, the state axis,
 provenance, `_id` — is its own typed output socket, derived from the
@@ -1270,7 +1270,7 @@ projection: the `all`, `children`, and `extract` selects require the
 
 ### Missing field vs null
 
-The missing-field discipline is owned by CTS SPEC §18.2; the runtime
+The missing-field discipline is owned by CTS SPEC §15.2; the runtime
 mechanics live here (`missing-field.js`): path reads produce a frozen
 marker object carrying the reserved `$missingField` key and the read path
 whenever a segment is absent — including below a present `null` — so the
@@ -1342,10 +1342,10 @@ and the compiler surfaces (screens, access, contract diff, orchestration).
 
 - [SPEC.md](./SPEC.md) — this package's target-state contract list.
 - [CTS SPEC](../cts/SPEC.md) — declaration language: §7 states, §8
-  operators and palette law, §18 expressions, §20 graph protocol;
+  operators and palette law, §15 expressions, §14 graph protocol;
   [cts README](../cts/README.md) — module map.
 - [server/core/machines](../../server/core/machines/README.md) — status
-  runtime: guards, actors, process-owned and deadline edges.
+  runtime: guards, actors, process-owned and deadline edges (CTS SPEC §7).
 - [components/process-designer](../../components/process-designer/README.md) —
   designer surface and connection gate.
 - [shared/ui-mapping](../../shared/ui-mapping/README.md) — per-state

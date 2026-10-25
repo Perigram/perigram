@@ -18,7 +18,7 @@ imported through server modules that Nitro externalizes.
   UI actions, entity lineage scopes, workflow-transition scopes, and optional
   logical grant rules.
 - `plugin-surfaces.js`: The plugin-delivered editor surface contract versions
-  the platform can mount (SPEC §Plugin marketplace). The server
+  the platform can mount (SPEC §20). The server
   install/upgrade gates and the client loader read
   the same supported set — an unsupported surface contract refuses at the
   gate, never as a runtime half-mount.

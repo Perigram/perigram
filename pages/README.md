@@ -99,13 +99,13 @@ compiled home when one exists, otherwise the default home contract above — so
 a stale bookmark or a recompiled process renders the workspace.
 `pages/screens/index.vue` redirects `/screens` to `/home`.
 
-- Generator templates render through the host with no route title strip:
-  list screens carry their headings through the engine's region headers,
-  and routed detail screens render the record header as the page head (the
-  type label and back affordance render once, through the record header's
-  anatomy and navigation channel — `usePageBack`, one shared
-  `{ icon, label, command }` shape, following in-app history with the home
-  entry ladder as the deep-link fallback).
+- Routed list screens keep the route title strip: `StandardPage` titles
+  the page and carries the routed-surface back control (`usePageBack`,
+  one shared `{ icon, label, command }` shape, following in-app history
+  with the home entry ladder as the deep-link fallback). Detail and form
+  surfaces own their headers: the record header renders the type label
+  and back affordance once, through its own anatomy and navigation
+  channel.
 - Process screens arrive in the compiled UI contract vocabulary
   (`typeList`/`instanceDetail`/`home` plus `typeId`) and render through the
   UI generator (`composeScreen` +

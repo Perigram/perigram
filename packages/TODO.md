@@ -4,11 +4,11 @@
 
 ### Deletions
 
-- [ ] Delete `packages/mongo` + its README row. Evidence: `createMongoRepository`/`createStatusEventStore`/`createSummarySync` have zero call sites (repo-wide grep js/vue/mjs excluding node_modules and the package itself; only config aliases reference the package). Removal ordered by [root SPEC](../SPEC.md) §Deslopification.
-- [ ] Delete `packages/nitro` + its README row. Evidence: `createEntityRouteMap`/`resolveEntityRoute` — same search, zero call sites.
-- [ ] Delete `packages/vue` + its README row. Evidence: `createDomainUiAdapter`/`createEndpointMap` imported only by `shared/framework-packages.spec.js:184`; claimed consumer `composables/useEntity.js` deleted; README documents 3 exports the package does not have (`collectionToEntityType`, `camelToSnake`/`snakeToCamel`; live list is 7 names).
-- [ ] With those three deletions, clean every reference: `scripts/framework-inspect.js:44-51` `PACKAGE_NAMES` (mongo L47, nitro L48, vue L49); regenerate `framework.manifest.json` via `npm run framework:write-manifest` (committed file lists all three at L741-747); `tsconfig.json:27-29` aliases (plus `@perigram/domain-cnc` alias in the same block — `packages/domain-cnc` does not exist); `nuxt.config.js:13-15` and the vitest alias maps; `.codex/skills/perigram-vue-design-system/SKILL.md:3` (documents `@perigram/vue` and the deleted `composables/useEntity.js`). Without PACKAGE_NAMES + manifest regen, `framework:manifest` output changes silently (review-1 correction).
-- [ ] Retire the `queryDocs`/`query_docs` ghost: `packages/devtools/README.md` L24 (API row; devtools exports 20 functions, `queryDocs` absent — verified by live `node -e import(...)`), L35 (`npm run framework:query-docs -- workflow`; no such script in package.json L24-31, no command in scripts/framework-inspect.js), L44 (docs-corpus paragraph); `packages/mcp/README.md` L19 (`query_docs` tool; `createReadOnlyToolHandlers` registers 14 handlers, none query docs); `shared/framework-packages.spec.js:186,230` (destructures `queryDocs` — undefined, silently dropped). Delete rows and tokens.
+- [x] Delete `packages/mongo` + its README row. Evidence: `createMongoRepository`/`createStatusEventStore`/`createSummarySync` have zero call sites (repo-wide grep js/vue/mjs excluding node_modules and the package itself; only config aliases reference the package). Removal ordered by [root SPEC](../SPEC.md) §Deslopification.
+- [x] Delete `packages/nitro` + its README row. Evidence: `createEntityRouteMap`/`resolveEntityRoute` — same search, zero call sites.
+- [x] Delete `packages/vue` + its README row. Evidence: `createDomainUiAdapter`/`createEndpointMap` imported only by `shared/framework-packages.spec.js:184`; claimed consumer `composables/useEntity.js` deleted; README documents 3 exports the package does not have (`collectionToEntityType`, `camelToSnake`/`snakeToCamel`; live list is 7 names).
+- [x] With those three deletions, clean every reference: `scripts/framework-inspect.js:44-51` `PACKAGE_NAMES` (mongo L47, nitro L48, vue L49); regenerate `framework.manifest.json` via `npm run framework:write-manifest` (committed file lists all three at L741-747); `tsconfig.json:27-29` aliases (plus `@perigram/domain-cnc` alias in the same block — `packages/domain-cnc` does not exist); `nuxt.config.js:13-15` and the vitest alias maps; `.codex/skills/perigram-vue-design-system/SKILL.md:3` (documents `@perigram/vue` and the deleted `composables/useEntity.js`). Without PACKAGE_NAMES + manifest regen, `framework:manifest` output changes silently (review-1 correction).
+- [x] Retire the `queryDocs`/`query_docs` ghost: `packages/devtools/README.md` L24 (API row; devtools exports 20 functions, `queryDocs` absent — verified by live `node -e import(...)`), L35 (`npm run framework:query-docs -- workflow`; no such script in package.json L24-31, no command in scripts/framework-inspect.js), L44 (docs-corpus paragraph); `packages/mcp/README.md` L19 (`query_docs` tool; `createReadOnlyToolHandlers` registers 14 handlers, none query docs); `shared/framework-packages.spec.js:186,230` (destructures `queryDocs` — undefined, silently dropped). Delete rows and tokens.
 
 ### README
 
@@ -47,3 +47,14 @@ core/workflows/devtools/mcp/plugin-sdk trims — missing exports added,
 to server/core/machines. New code finding below: the cli.js `usage`
 mirror is stale. OPEN: 3-package deletion + reference cleanup, both code
 items; processes/cts deltas live in their own TODOs.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/deslop-execute-20261025`. Deletions executed: packages
+mongo/nitro/vue removed with every reference cleaned — framework-inspect
+PACKAGE_NAMES, tsconfig + nuxt + both vitest alias maps (incl. the
+phantom `@perigram/domain-cnc` alias), package-lock workspace entries,
+`.codex` skill (`@perigram/vue` + deleted-`useEntity` guidance rewritten
+to the stores/`$fetch` law), framework-packages.spec vue import +
+`queryDocs` destructure/handler key; manifest regenerated via
+`framework:write-manifest`. cli.js usage-string items stay open.

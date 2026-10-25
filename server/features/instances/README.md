@@ -1,7 +1,7 @@
 # COMPONENT: Instances
 
 Generic per-class instance services ([packages/cts/SPEC.md](../../../packages/cts/SPEC.md)
-§13, §21). One service
+§13, §16). One service
 serves every type that has no hand-registered feature service — pack types
 and org-authored types — so the type system is executable without
 hand-written services.

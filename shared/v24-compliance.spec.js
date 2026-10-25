@@ -1,12 +1,11 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { ObjectId } from 'mongodb';
 
-// Mocking some of the context if needed, but here we test the actual logic integration
-// We'll focus on verifying that the blocks are correctly applied in services
-
+// The blocks contract is tested through the server import surface
+// (server/core/blocks/index.js).
 describe('V24 Compliance Integration Check', () => {
   it('should verify blocks.js inheritLineage robustness', async () => {
-    const { inheritLineage } = await import('../server/utils/blocks.js');
+    const { inheritLineage } = await import('../server/core/blocks/index.js');
     
     // Test with string ID
     const parentStr = { _id: '6795f7c3562473335500808b', lineage: { orgId: new ObjectId('6795f7c3562473335500808a') } };

@@ -25,9 +25,6 @@ Parent: [server](../../README.md).
   invocation by its dispatch task-run id), and failure/cancellation call
   `failActionFromTask`. Notification errors are logged and leave the task
   run terminal.
-- Dispatches registered app-side task executors from `server/plugins/task-executors.js`.
-  External workers use the claim protocol; app-side executors claim runs
-  internally and then call `completeTaskRun()` / `failTaskRun()`.
 - Executes declared task effects after a handler returns and before the run is
   finalized.
 
@@ -60,8 +57,6 @@ task ids directly.
 - `worker-auth.js` - dual worker credentials: global `WORKER_TOKEN` and
   per-install plugin connector tokens with queue scoping.
 - `repository.js` - Mongo persistence for `task_runs`.
-- `server/plugins/task-executors.js` - background dispatcher for registered
-  app-side executors.
 - `../effects/README.md` - centralized effect processor used for task results.
 
 ## Related

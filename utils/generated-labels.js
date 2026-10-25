@@ -1,20 +1,18 @@
 import { labelKeyForType } from '~/utils/design-system-contract.js';
-import { typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
+import { typeLabelFor } from '#shared/ui-mapping/index.js';
 import { useRegistryStore } from '~/stores/registry';
 import { isCreateAction, isRelationLinkAction, isUpdateAction } from '~/utils/action-visibility.js';
 
-// The entity-label fallback chain is `name` → localized unnamed
-// placeholder: the authored type name from the CTS client bundle riding
-// auth hydration (the registry store is the runtime consumption
-// contract) is the only non-i18n source — humanized raw ids never
-// render. Guarded: contexts without an active Pinia (specs, pure utils)
-// keep the placeholder fallback.
-function authoredTypeLabel(typeId = '', { t } = {}) {
-  if (!typeId) return '';
+// The app binding of the one type-label chain (`typeLabelFor`,
+// shared/ui-mapping; canonical contract in its README). The registry
+// lookup is guarded: contexts without an active Pinia (specs, pure
+// utils) keep the placeholder fallback.
+function registryTypeRecord(typeId = '') {
+  if (!typeId) return null;
   try {
-    return useRegistryStore().typeRecord(typeId)?.name || '';
+    return useRegistryStore().typeRecord(typeId) || null;
   } catch {
-    return '';
+    return null;
   }
 }
 
@@ -23,12 +21,15 @@ function unnamedLabel({ t, te } = {}) {
   return 'Unnamed';
 }
 
-export function generatedEntityLabel(typeId = '', { t, te } = {}) {
-  const key = labelKeyForType(typeId);
-  if (key && canTranslate(te, key)) return t(key);
-  const mapped = localizedLabel({ t, te }, typeLabelKey(typeId), '');
-  if (mapped) return mapped;
-  return authoredTypeLabel(typeId, { t }) || unnamedLabel({ t, te });
+export function generatedEntityLabel(type = '', { t, te } = {}) {
+  const id = typeof type === 'string' ? type : type?.id || '';
+  const record = (typeof type === 'string' ? null : type) || registryTypeRecord(id);
+  return typeLabelFor(record || id, {
+    t,
+    te,
+    entitiesLabelKey: labelKeyForType(id),
+    unnamedLabel: unnamedLabel({ t, te })
+  });
 }
 
 export function generatedScreenLabel(screen = {}, { t, te } = {}) {

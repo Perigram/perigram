@@ -81,7 +81,7 @@ skeleton and pointers to this plane's structure rules.
 layouts), and `artifact-conversions` (conversion operations) form one
 family: the live file path behind chat attachments
 ([support](./support/SPEC.md)), the `generateAttachment` command, and
-conversion runs. Root SPEC §UI fixes the retirement condition: the
+conversion runs. Root SPEC §4 fixes the retirement condition: the
 `artifact` entity dies when chat/proof/capture/upload flows move to file
 instances; the family retires together in that single cut, module + routes
 + specs.
@@ -111,7 +111,7 @@ execution — are a feature of this plane with their own SPEC:
   [core/access](../core/access/README.md).
 - The block DTO and vocabulary are canonical in
   [packages/core](../../packages/core/README.md).
-- Wire vocabulary is `typeId`/`id` end to end (root SPEC §Vocabulary).
+- Wire vocabulary is `typeId`/`id` end to end (root SPEC §14).
 - `typeId`/`id` also names route params and repository ids
   (`toFlexibleId()` percent-decoding at the route boundary).
 

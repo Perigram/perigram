@@ -162,7 +162,7 @@ Dev-stack filesystem runbook (compose mounts the repo at `/src`):
 Agent session worktrees sit nested under `.agent-worktrees/`,
 `.agent/worktrees/`, and scratch dirs `.agent-wt*` in the project root; a
 worktree is removed once its branch merges. `nuxt.config.js` ignores those
-trees — plus `.opencode/` and `video/` — for scanning and dev watchers.
+trees and `.opencode/` for scanning and dev watchers.
 The per-environment `vite.environments.*` watcher ignores are attached
 only in development: a user-level `environments` object in a production
 build deroutes the vite 7 SSR output and nitro fails with `Could not load
@@ -256,9 +256,7 @@ builds only).
 | E2E workflow tests | [e2e/README.md](./e2e/README.md) |
 | Scripts and guardrails | [scripts/README.md](./scripts/README.md) |
 | Deploy tooling (Forgejo autodeploy) | [deploy/README.md](./deploy/README.md) |
-| Facade explainer video | [video/README.md](./video/README.md) |
 | Plugin SDK | [packages/plugin-sdk/README.md](./packages/plugin-sdk/README.md) |
-| Animated brand mark (Rive) | [assets/rive/perigram-mark/README.md](./assets/rive/perigram-mark/README.md) |
 | Codex agent assets | [.codex/README.md](./.codex/README.md) |
 | Workspace packages map | [packages/README.md](./packages/README.md) |
 | Component tree | [components/README.md](./components/README.md) |

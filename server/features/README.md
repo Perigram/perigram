@@ -111,7 +111,7 @@ Each module's contract, lineage fields, and route table live in its own README:
 
 - **No cross-module DB access**: Services call other services through the explicit app registry or local imports approved by the feature boundary, never foreign repositories.
 - **Access boundary**: Entity services, workflow transitions, and command handlers use `server/core/access/` for permission decisions.
-- **Blocks import path**: `~/server/core/blocks/index.js` — never `~/server/utils/blocks.js` (deprecated)
+- **Blocks import path**: `~/server/core/blocks/index.js`
 - **toJSON() rules**: spread `super.toJSON()`; do not re-emit `name`, `slug`, `serial`, `reference`
 - **data vs identity**: `serial` and `reference` live in `identity` only; feature-specific state goes in `data`
 - **summary**: computed aggregates (counts, totals) — always a separate field, never mixed into `data`

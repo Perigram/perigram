@@ -181,9 +181,8 @@ describe('Framework package contracts', () => {
     const { createTypeRegistry, frameworkTypes, projectDomainFromView } = await import('../packages/cts/src/index.js');
     const techDrawingListing = (await import('../workers/tech-drawing/listing.json', { with: { type: 'json' } })).default;
     const techDrawingTypes = techDrawingListing.declarations.types;
-    const { createDomainUiAdapter, createEndpointMap, getSingleEndpoint, getListEndpoint } = await import('../packages/vue/src/index.js');
     const { createReadOnlyToolHandlers } = await import('../packages/mcp/src/index.js');
-    const { createFrameworkManifest, queryDocs, summarizeRoutes, summarizeSummaries, validateUiPrimitives } = await import('../packages/devtools/src/index.js');
+    const { createFrameworkManifest, summarizeRoutes, summarizeSummaries, validateUiPrimitives } = await import('../packages/devtools/src/index.js');
 
     // The registry view is the domain catalog (one source): entities and
     // workflows project from the mounted declarations.
@@ -226,8 +225,7 @@ describe('Framework package contracts', () => {
       listUiPrimitives: () => manifest.designSystem.primitives,
       listDesignTokens: () => manifest.designSystem.tokens,
       listRelationships: () => manifest.relationships,
-      validateUiContracts: () => manifest.validations,
-      queryDocs
+      validateUiContracts: () => manifest.validations
     });
 
     expect(typeof handlers.list_entities).toBe('function');

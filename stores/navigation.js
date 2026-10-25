@@ -30,7 +30,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         return registry.containment;
     }
 
-    // Store-managed state for project context
+    // Route hierarchy state (the containment breadcrumb walk).
     const currentHierarchy = ref([]);
     const currentHierarchyPath = ref('');
     const currentHierarchySiblings = ref([]);
@@ -174,16 +174,9 @@ export const useNavigationStore = defineStore('navigation', () => {
         }
 
         // --- Level 1: Hub Logic ---
-        let currentSectionId = parts[0];
-        if (currentSectionId === 'project') currentSectionId = 'projects';
-        
         const currentHub = parts[0] === 'screens'
             ? hubs.value.find((s) => s.to === `/${parts[0]}/${baseScreenKey(parts[1])}` || s.id === baseScreenKey(parts[1]))
-            : hubs.value.find((s) =>
-                s.id === currentSectionId ||
-                path.startsWith(s.to) ||
-                (currentSectionId === 'admin' && s.id === 'admin')
-            );
+            : hubs.value.find((s) => s.id === parts[0] || path.startsWith(s.to));
 
         if (currentHub) {
             nav.push({

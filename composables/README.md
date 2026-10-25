@@ -48,7 +48,7 @@ const policyByValue = policyFor(() => props.typeId); // reactive per-type map
 ## useMotion — GSAP motion patterns
 
 ```js
-import { loadGsap, useEnterExit, enterOnce, riseAndFade, useStateTransition } from './useMotion.js';
+import { loadGsap, useEnterExit, enterOnce, riseAndFade } from './useMotion.js';
 ```
 
 GSAP is the one motion engine, loaded lazily: `loadGsap()` dynamic-imports
@@ -61,7 +61,6 @@ preset's `--p-transition-duration` owns generic component states.
 | `useEnterExit(elRef, active, { y, duration })` | Single-element presence (tooltips, drawers, message rows). The element stays mounted; visibility animates opacity plus a vertical offset; reduced motion resolves to immediate show/hide with no spatial movement. |
 | `enterOnce(el, { y, duration })` | One-shot enter for freshly appended rows (streamed chat messages, live list items). Fire-and-forget from the live-update path; reduced motion is a no-op. |
 | `riseAndFade(el, { y, duration })` | Transient badge motion (floating call reactions): rises and fades once, returns a completion promise for caller cleanup; reduced motion resolves immediately. |
-| `useStateTransition(containerRef, { duration, scale })` | Parameter-to-state animation. Call `capture()` while the previous rendered state is still in the DOM, apply the reactive update, then `play()` — a clone of the real previous state crossfades out over the new one. The animation always starts from the actual previous state, never from defaults. The container owns `position: relative` and clipped overflow; reduced motion skips the overlay. |
 
 Every pattern consumes `useReducedMotion()`. Consumers: the support chat
 (`useEnterExit` typing indicator, `enterOnce` streamed message rows in
@@ -193,23 +192,6 @@ const { events, fetch } = useStateHistory(type, id);
 ```
 
 Used by `<StateHistory>` component.
-
----
-
-## useSnapshotHistory
-
-Snapshot undo/redo history for editors that own one. The caller supplies `snapshot()` (a JSON
-string of the edited state) and `apply(entry)` (restore); the composable
-owns the capped past/future stacks and the `canUndo`/`canRedo` gates.
-`commit()` records the pre-mutation baseline (a no-op when nothing
-changed), `sync()` re-baselines without a stack push (draft recovery,
-document switches use `reset()`), and the first post-mount change only
-syncs the baseline so async payload hydration never creates an undo step.
-
-```js
-const history = useSnapshotHistory({ snapshot, apply });
-history.commit(); // at mutation start
-```
 
 ---
 

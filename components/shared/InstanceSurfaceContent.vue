@@ -62,7 +62,6 @@ const props = defineProps({
   accessEntity: { type: Object, default: null },
   suppressChildSummaries: { type: Boolean, default: false },
   relationVariant: { type: String, default: 'inline' },
-  displayExtensions: { type: Object, default: null },
   displayOverrides: { type: Object, default: null }
 });
 
@@ -78,7 +77,6 @@ const display = computed(() => resolveInstanceDisplayContract({
   typeId: props.typeId,
   surface: props.surface,
   typeRecord: typeById(props.typeId),
-  extensions: props.displayExtensions,
   overrides: props.displayOverrides
 }));
 

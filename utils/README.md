@@ -46,17 +46,19 @@ Parent: [root README](../README.md).
   derived `sections` plus the field descriptors into ordered slot-qualified
   fact rows for a surface (class-generic group policy, shared field limits:
   inline 1, compact 3). `resolveInstanceDisplayContract` composes on top:
-  bundle rows first, app extensions (`app-instance-surfaces.js`) over them,
-  per-call `fieldGroups`/`surfaces`/`overrides` last (they always win).
-  Undeclared types resolve no
+  bundle rows first, per-call `fieldGroups`/`surfaces`/`overrides` last
+  (they always win). Undeclared types resolve no
   fact rows. Surface chrome (preview/dataDisplay/relations/actions/status/
   trace) is class-generic policy derived from the type record (payload
   presence, declared state axes); record titles and glyphs come from
   `titleFor`/`iconFor` in [shared/ui-mapping](../shared/ui-mapping/README.md).
-- `app-instance-surfaces.js`: App-owned display extensions layered on top of
-  the bundle-resolved fact rows (`resolveInstanceDisplayContract` composes
-  them; per-call overrides still win). The seam is the app's only
-  route-specific patch channel; it currently carries no entries.
+- `generated-labels.js`: The app binding of the one type-label chain
+  (`typeLabelFor`, [shared/ui-mapping](../shared/ui-mapping/README.md)):
+  `generatedEntityLabel` feeds it the design-system `entities.*` key
+  table and the registry-resolved type record (guarded for contexts
+  without an active Pinia), and the generated screen/region/action
+  label resolvers on top translate compiled manifest labels through the
+  same chain.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`. Declared `unit`s render as value suffixes through the closed unit-symbol table (`mm`, `m`, `m2`→`m²`, `percent`, `min`, `deg`); `display: 'dimensions'` renders the width × length span of a resolved specs object.
 - `chat-file-targets.js`: Pure resolver for the chat composer's instance-chat
   upload window: over the served CTS type view it collects a composer

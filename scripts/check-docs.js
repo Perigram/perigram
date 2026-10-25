@@ -4,7 +4,8 @@
  *
  * Blocking findings:
  *  1. Broken internal markdown links (relative targets that do not resolve to
- *     an existing file under the repository).
+ *     an existing file under the repository), including links that resolve
+ *     outside the repository root.
  *  2. Duplicated canonical-contract passages: verbatim paragraphs of
  *     meaningful length repeated across more than one README. Canonical
  *     contracts (entity registries, DTO blocks, machines, lineage, auth
@@ -13,9 +14,11 @@
  *  3. Duplicated fenced code blocks: canonical examples (workflow shapes,
  *     DTO snapshots, socket contracts) must also live in one canonical README
  *     and be linked, not re-pasted.
+ *  4. Orphaned READMEs: a README.md no other markdown file links (the root
+ *     README is the tree entry).
  *
  * Advisory findings (reported, non-blocking):
- *  4. Contract-shaped code comments without a README home: block comments
+ *  5. Contract-shaped code comments without a README home: block comments
  *     (or // runs) long enough and normative enough to be authoring or
  *     compilation semantics. Contracts live in READMEs; a comment that
  *     states one is a misplaced contract and should either become a README
@@ -102,9 +105,7 @@ function resolveTarget(link) {
   const targetNoAnchor = decodeURIComponent(link.raw.split('#')[0]);
   if (targetNoAnchor === '') return null;
   const resolved = path.resolve(fileDir, targetNoAnchor);
-  const rel = path.relative(REPO_ROOT, resolved);
-  if (rel.startsWith('..')) return null;
-  return resolved;
+  return path.relative(REPO_ROOT, resolved);
 }
 
 function main() {
@@ -120,9 +121,15 @@ function main() {
         if (link.raw.startsWith('#') || link.raw.startsWith('http://') || link.raw.startsWith('https://') || link.raw.startsWith('mailto:')) {
           continue;
         }
-        const target = resolveTarget(link);
-        if (target === null) continue;
-        if (!existsSync(target)) {
+        const rel = resolveTarget(link);
+        if (rel === null) continue;
+        if (rel.startsWith('..')) {
+          failures.push(
+            `Out-of-root link in ${path.relative(REPO_ROOT, file)}: "${link.raw}"`
+          );
+          continue;
+        }
+        if (!existsSync(path.join(REPO_ROOT, rel))) {
           failures.push(
             `Broken link in ${path.relative(REPO_ROOT, file)}: "${link.raw}"`
           );
@@ -131,6 +138,7 @@ function main() {
     }
   }
 
+  failures.push(...findOrphanedReadmes(files));
   failures.push(...findDuplicateParagraphs(files));
   failures.push(...findDuplicateCodeBlocks(files));
 
@@ -149,8 +157,34 @@ function main() {
   console.log('check-docs: OK — no broken links or duplicated canonical-contract passages.');
 }
 
-function findDuplicateParagraphs(files) {
-  const seen = new Map();
+// A README is registered when a different markdown file links it; the root
+// README is the tree entry.
+function findOrphanedReadmes(files) {
+  const linked = new Set();
+  for (const file of files) {
+    const content = readFileSync(file, 'utf8');
+    for (const { text } of splitOutsideFences(content)) {
+      for (const link of collectLinks(text, file)) {
+        const rel = resolveTarget(link);
+        if (rel === null || rel.startsWith('..')) continue;
+        const resolved = path.join(REPO_ROOT, rel);
+        if (resolved === file) continue;
+        linked.add(resolved);
+      }
+    }
+  }
+  const orphans = [];
+  for (const file of files) {
+    if (path.basename(file) !== 'README.md') continue;
+    if (file === path.join(REPO_ROOT, 'README.md')) continue;
+    if (!linked.has(file)) {
+      orphans.push(`Orphaned README (no inbound markdown link): ${path.relative(REPO_ROOT, file)}`);
+    }
+  }
+  return orphans;
+}
+
+function findDuplicateParagraphs(files) {  const seen = new Map();
   const duplicates = [];
 
   for (const file of files) {
@@ -206,7 +240,7 @@ const CONTRACT_COMMENT_MARKERS = [
   'invariant', 'canonical', 'SPEC §', 'authored', 'authoring'
 ];
 const CONTRACT_COMMENT_MIN_MARKERS = 3;
-const SOURCE_ROOTS = ['server/features', 'server/core', 'server/runtime', 'packages', 'shared', 'utils', 'composables'];
+const SOURCE_ROOTS = ['server/features', 'server/core', 'server/runtime', 'packages', 'shared', 'utils', 'composables', 'workers'];
 
 function walkSource(dir, out = []) {
   let entries;

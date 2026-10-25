@@ -1,5 +1,5 @@
 import { createError } from 'h3';
-import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { normalizeWorkflow } from '#packages/workflows/src/index.js';
@@ -39,7 +39,7 @@ export async function activate(typeId, payload = {}, auth) {
 export async function resolveActiveWorkflow({ typeId, organizationId, producerOutputId }) {
   const normalizedTypeId = normalizeTypeId(typeId);
   if (!organizationId) {
-    return getDefaultWorkflow(normalizedTypeId);
+    return null;
   }
 
   const processWorkflow = producerOutputId ? await resolveProcessWorkflow({
@@ -64,18 +64,6 @@ export async function resolveActiveWorkflow({ typeId, organizationId, producerOu
 
   const override = await repository.findActiveByEntity({ organizationId, typeId: normalizedTypeId });
   if (override?.workflow) return normalizeWorkflowPayload(override.workflow);
-  return getDefaultWorkflow(normalizedTypeId) || null;
-}
-
-export function resolveDefaultWorkflow(typeId) {
-  const normalizedTypeId = normalizeTypeId(typeId);
-  return getDefaultWorkflow(normalizedTypeId);
-}
-
-// Machines are graph-derived (SPEC §7): state vocabularies live in process
-// definitions and the compiled contract owns machines wherever one is needed.
-// There is no domain workflow table behind the process/override chain.
-function getDefaultWorkflow() {
   return null;
 }
 
@@ -89,7 +77,7 @@ function normalizeWorkflowPayload(workflow) {
 
 function assertKnownTypeId(typeId) {
   const normalized = normalizeTypeId(typeId);
-  if (!getPerigramRegistry().getInstanceDefinition(normalized)) {
+  if (!getAppRegistry().getInstanceDefinition(normalized)) {
     throw createError({ statusCode: 400, message: `Unknown entity type: ${typeId}` });
   }
   return normalized;

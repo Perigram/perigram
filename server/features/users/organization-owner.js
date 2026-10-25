@@ -13,8 +13,7 @@ export function ownerMembership({ organizationId, status = 'active' } = {}) {
 }
 
 export function isOwnerMembership(membership = {}) {
-  return isActiveMembership(membership)
-    && (membership.owner === true || hasTenantAdminPermissions(membership.permissions || {}));
+  return isActiveMembership(membership) && membership.owner === true;
 }
 
 export function ensureOwnerMembership(membership = {}) {
@@ -40,7 +39,7 @@ export function applyOwnerPermissionsToAuth(auth = {}) {
     isOwnerMembership(membership)
     && membership.organizationId?.toString?.() === activeOrgId.toString()
   );
-  if (!ownerMembership && !hasTenantAdminPermissions(auth.permissions || {})) return auth;
+  if (!ownerMembership) return auth;
   return {
     ...auth,
     permissions: mergeOwnerPermissions(auth.permissions || {}),
@@ -50,14 +49,4 @@ export function applyOwnerPermissionsToAuth(auth = {}) {
 
 function isActiveMembership(membership = {}) {
   return !['pending', 'rejected'].includes(membership.status);
-}
-
-function hasTenantAdminPermissions(permissions = {}) {
-  return accessLevel(permissions.organizations) === 'admin'
-    && accessLevel(permissions.users) === 'admin';
-}
-
-function accessLevel(grant) {
-  if (typeof grant === 'string') return grant;
-  return grant?.level || '';
 }

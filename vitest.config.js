@@ -5,9 +5,6 @@ import vue from '@vitejs/plugin-vue';
 const perigramAliases = {
   '@perigram/core': path.resolve(__dirname, './packages/core/src/index.js'),
   '@perigram/workflows': path.resolve(__dirname, './packages/workflows/src/index.js'),
-  '@perigram/mongo': path.resolve(__dirname, './packages/mongo/src/index.js'),
-  '@perigram/nitro': path.resolve(__dirname, './packages/nitro/src/index.js'),
-  '@perigram/vue': path.resolve(__dirname, './packages/vue/src/index.js'),
   '@perigram/devtools': path.resolve(__dirname, './packages/devtools/src/index.js'),
   '@perigram/mcp': path.resolve(__dirname, './packages/mcp/src/index.js'),
 };

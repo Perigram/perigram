@@ -1,6 +1,6 @@
 # CONTAINER: Documents Plugin Executor
 
-The documents domain as a third-party plugin (SPEC §Plugin marketplace):
+The documents domain as a third-party plugin (SPEC §20):
 the generic media/office file types (image, PDF, markdown, CSV, XLSX,
 DOCX), their editor surfaces, the table projections, and the CSV
 composition. The platform carries zero documents code: projections

@@ -53,11 +53,11 @@ function bundleFieldGroups(typeView) {
 }
 
 // Surface group synthesis — class-level generic policy over whatever
-// groups resolved (bundle sections, app extensions, per-call groups).
-// Compact/inline/picker surfaces carry the leading summary facts, cards
+// groups resolved (bundle sections, per-call groups). Compact/inline/
+// picker surfaces carry the leading summary facts, cards
 // are recognition surfaces (summary, dimensions, media, relation chips),
 // detail carries every group in section order. Authored surface patches
-// (app extensions, per-call overrides) name their groups explicitly and
+// (per-call overrides) name their groups explicitly and
 // always win over synthesis.
 function synthesizedGroups({ surface, fieldGroups }) {
   const known = Object.keys(fieldGroups);
@@ -79,7 +79,7 @@ function synthesizedGroups({ surface, fieldGroups }) {
 // follows payload presence (files preview as attachments, detail surfaces
 // hero) with the declared previewSource row as the payload-less channel,
 // status follows the declared state axes, trace follows declared
-// containment. App extensions and per-call patches compose on top.
+// containment. Per-call patches compose on top.
 function genericSurfaceFor(typeView, surface) {
   const hasPayload = Boolean(typeView?.payload);
   const hasDeclaredPreview = Boolean(typeView?.previewSource);
@@ -104,8 +104,7 @@ function genericSurfaceFor(typeView, surface) {
 }
 
 // The composing entry: bundle rows first (`factsFor` over the passed type
-// record), app extensions (`extensions`, see `utils/app-instance-surfaces.js`)
-// over them, per-call `fieldGroups`/`surfaces`/`overrides` last — they
+// record), per-call `fieldGroups`/`surfaces`/`overrides` last — they
 // always win. There is no legacy residual map: an undeclared type resolves
 // no fact rows and generic chrome.
 export function resolveInstanceDisplayContract({
@@ -115,28 +114,24 @@ export function resolveInstanceDisplayContract({
   typeRecord = null,
   fieldGroups = null,
   surfaces = null,
-  extensions = null,
   overrides = null
 } = {}) {
   const requestedSurface = normalizeInstanceSurface(surface || variant);
-  const extensionContract = extensions?.surfaces?.[typeId] || extensions?.[typeId] || {};
   const surfacePatch = surfaces?.[requestedSurface] || {};
 
   const bundleGroups = bundleFieldGroups(typeRecord);
   const mergedGroups = {
     ...bundleGroups,
-    ...(extensions?.fieldGroups?.[typeId] || extensions?.fields?.[typeId] || {}),
     ...(fieldGroups || {})
   };
 
   const resolvedSurface = mergeSurface(
     genericSurfaceFor(typeRecord, requestedSurface),
-    extensionContract.surfaces?.[requestedSurface],
     surfacePatch,
     overrides
   );
 
-  // Authored group lists (extension contracts, per-call patches) win —
+  // Authored group lists (per-call patches) win —
   // an explicitly named list, that is; everything else synthesizes over
   // the resolved groups.
   const authoredGroups = resolvedSurface.fieldGroups;

@@ -8,10 +8,8 @@ Parent: [server](../README.md).
 
 - `mongo.js`: singleton connection manager using the native MongoDB driver
   (`connectDB()`; URI from `NUXT_MONGODB_URI` / `MONGODB_URI`, falling back
-  to Nuxt runtime config) plus GridFS bucket getters for `nestSvg`,
-  `userDxfFilesSvg`, `nestDxf`, `userDxf`, `userSvg`, `validDxf`,
-  `cassettesSvg`, and `artifacts`. General file storage and avatars ride the
-  files feature's `uploads` bucket.
+  to Nuxt runtime config). File storage rides the files feature's own
+  GridFS bucket.
 - `indexes.js`: the collection index manifest and its CLI.
 
 ## Index Management

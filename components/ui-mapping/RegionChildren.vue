@@ -112,7 +112,7 @@ import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
 import { localizedLabel, typeLabelKey, REGION_COLUMN_EARNED_REM, LAYOUT } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
-import { useLocalizedTypeLabel } from './type-labels.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
 
 const props = defineProps({
   regions: { type: Array, default: () => [] },
@@ -129,8 +129,7 @@ const props = defineProps({
 
 const emit = defineEmits(['run', 'open']);
 const { te, t } = useI18n();
-const { localizedTypeLabel } = useLocalizedTypeLabel();
-const labelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? localizedTypeLabel(region.type) : region.id);
+const labelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? generatedEntityLabel(region.type, { t, te }) : region.id);
 const primaryIndex = computed(() => (Number.isInteger(props.arrangement.primary)
   ? Math.min(props.arrangement.primary, Math.max(props.regions.length - 1, 0))
   : 0));

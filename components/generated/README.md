@@ -118,7 +118,7 @@ with no detail screen opens its editor page instead; orgs without a home
 workspace keep the compiled detail route; a create is never silent — the
 fallback is a success toast with the created name). Unscoped editor creates
 never reach this path — the create button opens the blank editor page and
-the first save creates the record (`openBlankFileEditor`, SPEC §UI). The
+the first save creates the record (`openBlankFileEditor`, SPEC §4). The
 created entity resolves as the run's created item **of the action's own
 type**: a process chaining further constructs returns their entities too,
 and the last step must never bind a foreign record to the action's
@@ -172,7 +172,7 @@ contract. It combines two halves:
   editor-protocol type), the blank tab is a singleton entity-less page
   keyed `page:<surfaceId>`, and the editor's first save creates the
   record through the compiled construct and fills its payload in one act
-  (SPEC §UI). Process data never selects components; the surface id does.
+  (SPEC §4). Process data never selects components; the surface id does.
   Plugin-delivered editor modules resolve beside the registry through the
   served surface declarations (`RemoteEditorSurface`, see
   [remote-surface contract](../../packages/plugin-sdk/README.md)) — the
@@ -232,7 +232,7 @@ freeze the pre-auth fallback and never see the plugin's bindings).
 Rows
 key by the CTS type id — the projected entity key — so legacy
 pre-projection keys (`sheet_design`, `facade`, `facade_pattern`) no
-longer resolve an editor surface (abandoned data, SPEC §19). The
+longer resolve an editor surface (abandoned data, root SPEC §15). The
 sheet-design editor resolves its own write grant internally and degrades
 to view-only without it; the generated action surface of editor-bound
 types renders normally on their read details. Detail headers and pane
@@ -420,7 +420,7 @@ from the compiled manifest.
    editor page instead, and a type with neither stays silent, exactly
    like the routed surface contract; a create that ran with the editor
    protocol opens the editor page first whatever the type's detail
-   surface (SPEC §UI). Rows whose instance is open in the
+   surface (SPEC §4). Rows whose instance is open in the
    active pane carry the normal text color. The full hierarchy stays
    navigable in place.
 - The sidebar footer is a separate bottom profile panel mounting the shared
@@ -451,7 +451,7 @@ from the compiled manifest.
   screens and instance-bound detail screens both render through
   `GeneratedScreenHost` — the single generator host, with the instance id
   in the screen scope for detail panes. The pane tab names the hosted
-  surface (SPEC §Generative UI): the host receives
+  surface (SPEC §22): the host receives
   `paneHosted` and the engine suppresses its own title surfaces (the
   list header label, the record identity block). Collection creation
   belongs to sidebar sections and entity operations to the detail

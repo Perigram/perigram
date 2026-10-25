@@ -1,7 +1,7 @@
 # COMPONENT: Media
 
 Persistent playback surfaces for media and calls that outlive their source
-surface (SPEC §Now playing). One dock host, mounted by the app layout, with
+surface (SPEC §11). One dock host, mounted by the app layout, with
 two placements from one component: on desktop a floating media card
 top-right whose identity row drags it anywhere in the viewport
 (viewport-clamped, position persisted per browser like the call window's

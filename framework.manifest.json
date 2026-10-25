@@ -83,6 +83,28 @@
           "event": "attachment.generationRequested"
         }
       ]
+    },
+    {
+      "action": "convert",
+      "attachments": [],
+      "events": [
+        "artifact.converted"
+      ],
+      "id": "convertArtifact",
+      "inputs": [
+        "artifact"
+      ],
+      "label": "Convert artifact",
+      "outputs": [],
+      "permissions": [
+        {
+          "feature": "artifacts",
+          "level": "write"
+        }
+      ],
+      "service": "artifact-conversions",
+      "tasks": [],
+      "triggers": []
     }
   ],
   "designSystem": {
@@ -736,15 +758,6 @@
     },
     {
       "name": "@perigram/workflows"
-    },
-    {
-      "name": "@perigram/mongo"
-    },
-    {
-      "name": "@perigram/nitro"
-    },
-    {
-      "name": "@perigram/vue"
     },
     {
       "name": "@perigram/devtools"

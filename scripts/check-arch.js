@@ -15,16 +15,10 @@ const API_DIR = './server/api';
 // The registry view is the entity catalog (one source): feature keys derive
 // from projected view entities' collections, and lifecycle ownership comes
 // from declared state trees (SPEC §7) — machines are graph-compiled.
-// Documents-pack types ride the generic instance machinery and declare no
-// feature directories of their own.
 const classifiedDeclarations = [...frameworkTypes];
 const FEATURE_DIRECTORY_ALIASES = new Map([
   ['entity-revisions', 'instance-revisions']
 ]);
-// The facade domain is not a mounted pack: it installs per organization as
-// the facade plugin (workers/facade + the listing) and its types ride the
-// generic instance machinery through the installed-plugin layer.
-const PACK_OWNED_FEATURES = new Map();
 const ENTITY_FEATURES = classifiedDeclarations.map(declaration => (
   FEATURE_DIRECTORY_ALIASES.get(entityTypeToFeature(declaration.id)) || entityTypeToFeature(declaration.id)
 ));
@@ -50,12 +44,8 @@ const CAPABILITY_FEATURES = [
   'artifact-conversions',
   'invitations',
   'llm',
-  'material-options',
   'meetings',
-  'nesting',
-  'notification',
   'notifications',
-  'parametric-cassettes',
   'partnerships',
   'plugins',
   'sessions',
@@ -65,10 +55,8 @@ const CAPABILITY_FEATURES = [
   'transcription',
   'web-search',
   'workflow-overrides',
-  // Undeclared entity features: master/derived types still served by
-  // feature services but absent from the type declarations (Phase 7
-  // cuts or declares them). Classified explicitly so the directory
-  // check keeps guarding shape.
+  // Entity feature without a type declaration: the directory keeps its
+  // shape guarded until the type is declared.
   'artifact-templates'
 ];
 const IGNORE = ['_template', 'index.js'];
@@ -135,16 +123,6 @@ directories.forEach(feature => {
 });
 
 features.forEach(feature => {
-  const packOwned = PACK_OWNED_FEATURES.get(feature);
-  if (packOwned) {
-    // Pack-owned paths are repo-root-relative (facade lives inside its
-    // package: packages/facade/server/...).
-    if (!fs.existsSync(path.join('.', packOwned))) {
-      console.error(`❌ Declared pack-owned feature is missing: ${feature} (expected ${packOwned})`);
-      errors++;
-    }
-    return;
-  }
   const dir = path.join(FEATURES_DIR, feature);
   if (!fs.existsSync(dir)) {
     console.error(`❌ Declared entity feature is missing: ${feature}`);
@@ -193,11 +171,6 @@ features.forEach(feature => {
       console.error(`❌ Model does not extend BaseEntity`);
       errors++;
     }
-    // 5. Model must import BaseEntity from core/blocks, not utils/blocks
-    if (content.includes('utils/blocks')) {
-      console.error(`❌ Model imports from deprecated utils/blocks — use server/core/blocks/index.js`);
-      errors++;
-    }
     if (ROOT_TO_JSON_ALIAS_PATTERN.test(content)) {
       console.error(`❌ Model serializes root DTO aliases — keep fields inside canonical blocks`);
       errors++;
@@ -208,16 +181,7 @@ features.forEach(feature => {
     }
   }
 
-  // 6. Service must import from core/blocks, not utils/blocks
-  if (files.includes('service.js')) {
-    const content = fs.readFileSync(path.join(dir, 'service.js'), 'utf8');
-    if (content.includes('utils/blocks')) {
-      console.error(`❌ Service imports from deprecated utils/blocks — use server/core/blocks/index.js`);
-      errors++;
-    }
-  }
-
-  // 7. index.js must not export repository or model
+  // index.js must not export repository or model
   if (files.includes('index.js')) {
     const content = fs.readFileSync(path.join(dir, 'index.js'), 'utf8');
     if (/export.*repository/i.test(content) || /from.*repository/i.test(content)) {
@@ -266,7 +230,6 @@ apiFiles.forEach(file => {
 
 console.log('\nChecking canonical block DTO contract...');
 [
-  'server/core/blocks/BaseEntity.js',
   'packages/core/src/index.js'
 ].forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
@@ -331,7 +294,7 @@ jsFiles.forEach(file => {
   const relFile = path.relative('.', file);
 
   if (relFile.startsWith('server/core/') && /(@perigram\/domain-cnc|packages\/domain-cnc)/.test(content)) {
-    console.error(`❌ ${relFile} imports CNC domain directly — use server/runtime/perigram-registry.js`);
+    console.error(`❌ ${relFile} imports CNC domain directly — use server/runtime/app-registry.js`);
     errors++;
   }
 
@@ -346,7 +309,7 @@ jsFiles.forEach(file => {
   }
 
   if (
-    (relFile.startsWith('components/shared/') || relFile === 'composables/useEntity.js' || relFile === 'components/ArtifactsTable.vue') &&
+    (relFile.startsWith('components/shared/') || relFile === 'components/ArtifactsTable.vue') &&
     /(@perigram\/domain-cnc|packages\/domain-cnc)/.test(content)
   ) {
     console.error(`❌ ${relFile} imports CNC domain directly — consume the injected domain UI adapter`);
@@ -638,24 +601,6 @@ for (const file of [...walkDir('server'), ...walkDir('shared')]) {
     errors++;
   }
 }
-
-// SPEC §8 species purity at the pack layer: a service's input signature
-// carries no `ref` fields (dereferencing is the projection's job), and a
-// value-service handler module imports no entity/file features (pure V→V).
-// Both violations are how ref-swallowing services get built — the guards
-// make them fail the architecture check instead of a review.
-function descriptorRefFields(descriptor, path = 'input') {
-  if (!descriptor || typeof descriptor !== 'object') return [];
-  if (descriptor.base === 'ref') return [path];
-  if (descriptor.base === 'record') {
-    return Object.entries(descriptor.fields || {}).flatMap(([key, field]) => descriptorRefFields(field, `${path}.${key}`));
-  }
-  if (descriptor.base === 'list' && descriptor.itemType) {
-    return descriptorRefFields(descriptor.itemType, `${path}[]`);
-  }
-  return [];
-}
-
 
 console.log('\n--- Verification Summary ---');
 if (errors === 0) {

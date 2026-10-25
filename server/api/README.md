@@ -62,7 +62,7 @@ Routes are grouped into sub-directories corresponding to features:
   active contract's runtime surface: `POST active/actions/:id/execute`
   runs one compiled manual action, `GET active/actions/:id/options`
   resolves Link-picker candidates, and `POST active/exports/run`
-  executes a declaration-derived export action (SPEC §Exports) with
+  executes a declaration-derived export action (SPEC §21) with
   action-scoped grants. Route handlers delegate authorization,
   persistence, and effects to the process-definitions feature
   service. `POST /preview` evaluates pure/read nodes from an unsaved

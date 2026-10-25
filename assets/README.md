@@ -37,4 +37,3 @@ Parent: [root README](../README.md).
 
 - [Visual tokens](./tokens/README.md)
 - [Components guide](../components/README.md)
-- [Animated brand mark](./rive/perigram-mark/README.md)

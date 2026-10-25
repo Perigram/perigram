@@ -22,8 +22,9 @@
 
 ### Code findings (truth pass 2026-10-24)
 
-- [ ] pages/test/ui-mapping.vue:12-18 — dead source-toggle Button (no `source` binding, no click handler).
-- [ ] pages/screens/[screenKey].vue:65 — comment claims titled list screens keep the route title strip while its own `pageTitle` nulls for typeList (since 3e024aaf8): possible unintended loss of the list-screen title/back control — owner decision.
+- [x] pages/test/ui-mapping.vue:12-18 — dead source-toggle Button (no `source` binding, no click handler).
+- [x] pages/screens/[screenKey].vue — restore the routed (non-pane) list title strip: `pageTitle` nulls only when the surface is pane-hosted (decided 2026-10-25; at :65 `pageTitle` nulls for typeList, losing the list-screen title/back control).
+  Landed: `pageTitle` nulls for instanceDetail/formAction/home (own headers); typeList keeps the StandardPage title strip with the back control; pages/README states the contract.
 
 ### Owner decisions wanted
 
@@ -32,6 +33,12 @@
 - [ ] WAITING — owner verification: read pages/README.md route-map
   rewrite (6 dead route families gone; /profile vs /organization resolved
   to SPEC) + the organization/test README trims.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/deslop-execute-20261025`. ui-mapping.vue source-toggle
+button deleted; [screenKey].vue title strip restored for routed list
+screens (back control returns on deep links).
 
 ### Agent Notes (2026-10-24)
 

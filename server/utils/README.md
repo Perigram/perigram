@@ -86,14 +86,6 @@ The active organization scopes to a direct `lineage.organizationId` equality;
 auth contexts without one fall back to a membership `$in` filter (empty
 `$in` when there are no memberships).
 
-### `requirePermission(event, entity, level)` → `authContext`
-Uses `hasPermission()` from auth-helpers against explicit `user.permissions`.
-Use for system-level resources without lineage.
-
-### `checkEntityAccess(user, entity, entityOrgId)` → `boolean`
-Legacy organization-level compatibility helper. New v24 services should use
-`hasLineagePermission()` / `requireLineagePermission()` instead.
-
 ## entity-redaction.js
 
 ### `serializeForAccess(typeId, entity, auth)` / `serializeManyForAccess(...)`
@@ -116,9 +108,6 @@ JWT signing/verification (15min expiry). Tokens carry only `userId` — permissi
 Checks explicit `user.permissions[entity]`. Different from lineage-based — use
 for non-entity system resources.
 
-### `canAccessEntity(user, typeId, instanceId)` → `boolean`
-Checks `user.restrictedTo` whitelist. Returns `true` if no restrictions.
-
 ---
 
 ## Decision Guide
@@ -127,16 +116,10 @@ Checks `user.restrictedTo` whitelist. Returns `true` if no restrictions.
 |---|---|
 | Any entity with a lineage block | `requireLineagePermission` |
 | List query — scope to user's orgs | `getLineageFilter` |
-| Admin capability route | `requirePermission` or a feature-level access check |
+| Admin capability route | A feature-level access check |
 | Auth check only, permission later | `requireAuth` |
-| Non-entity resource (system settings) | `requirePermission` / `hasPermission` |
+| Non-entity resource (system settings) | `hasPermission` |
 | Password login flow | `hashPassword` / `verifyPassword` |
-
-## blocks.js
-
-`server/utils/blocks.js` re-exports the core block API; its sole consumer is
-`shared/v24-compliance.spec.js`. Feature code imports from
-`server/core/blocks/index.js`.
 
 ## extract-data-models.js
 

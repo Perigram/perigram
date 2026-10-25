@@ -1,6 +1,6 @@
 ---
 name: perigram-vue-design-system
-description: Apply the Perigram Vue v24 design system when creating, reviewing, or changing Perigram/Nuxt Vue components, especially entity cards, detail pages, shared UI primitives, PrimeVue/Tailwind styling, design tokens, UI lab/demo contracts, frontend documentation, components, composables/useEntity.js, utils/design-system files, assets/tokens, assets/css, pages that render entity UI, or the @perigram/vue frontend adapter.
+description: Apply the Perigram Vue v24 design system when creating, reviewing, or changing Perigram/Nuxt Vue components, especially entity cards, detail pages, shared UI primitives, PrimeVue/Tailwind styling, design tokens, UI lab/demo contracts, frontend documentation, components, composables, utils/design-system files, assets/tokens, assets/css, or pages that render entity UI.
 ---
 
 # Perigram Vue Design System
@@ -118,9 +118,8 @@ Build entity detail components with `InstancePage`.
 
 ## Data And Actions
 
-- Use `useEntity(type, id)` for standard entity fetching, CRUD, updates, and
-  status transitions.
-- Use direct `$fetch` only for workflows not represented by `useEntity`:
+- Entity fetching rides the served type view and the shared instance stores
+  (`stores/instances`); use direct `$fetch` for workflows outside them:
   uploads/downloads, invitations, permissions, support chat, payments, debug
   endpoints, and project-scoped subresources.
 - Entity cards and pages must not import `useBlocks.js`; only shared

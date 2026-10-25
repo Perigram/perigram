@@ -24,11 +24,13 @@ chat popup. The screen accepts a `sourceStates` prop (per-source
 loading/ready/empty/denied/error from the data layer) that `composeScreen`
 folds into the region tree.
 
-`type-labels.js` is the single label seam for generator surfaces: the
-design-system entity contracts (`entities.*` locale keys, resolved through
-`labelKeyForType` in the design-system contract) win for pack types;
-org-authored types fall back to their authored render label; the raw id is
-the last resort. Type names resolve only through this seam.
+Type names resolve only through the one type-label chain
+(`typeLabelFor` in [shared/ui-mapping](../../shared/ui-mapping/README.md),
+bound app-side by `utils/generated-labels.js`): the design-system
+`entities.*` keys win for pack types, generated
+`uiMapping.types.<id>` overrides come next, org-authored types fall back
+to their authored bundle name, and the unnamed placeholder is the last
+resort.
 
 Region actions run through `ActionButton`. Actions with construction
 inputs open the generated create dialog, whose rows come from
@@ -40,7 +42,7 @@ the opened instance (`screen.scope.instanceId` + `screen.typeId`), every
 lineage row whose accepted parent types include that type submits the
 opened instance's reference without rendering, and a dialog whose every
 row the context supplies runs with no form at all
-([SPEC §UI](../../SPEC.md)). `link` actions prompt for the relation
+([SPEC §4](../../SPEC.md)). `link` actions prompt for the relation
 target through `InstancePicker` over the pool before dispatch (`onRun`
 receives `{ relations: { key: ref } }`; the picker accepts the relation's
 declared `targetTypes` and models the instance ref `{ type, id }` it
@@ -64,7 +66,7 @@ behavior itself. `onRun` receives a third `context` argument:
 menu) launched the run, so executors target the launching entity.
 
 Detail editing follows the record-surface edit law
-([SPEC §UI](../../SPEC.md)): an `onPatch({ instance, patch })` prop
+([SPEC §4](../../SPEC.md)): an `onPatch({ instance, patch })` prop
 enables the per-field inline pencils — scalar facts click-to-edit through
 `InlineField` (confirming patches that one field), structural panels carry
 their own pencil and confirm/discard over a local draft. RegionBlock maps
@@ -302,9 +304,10 @@ beside the transition history in `StateHistory`.
   header; a host that opened the record inside another surface injects its
   back affordance ahead of the identity block), then one identity line (a
   pane-hosted record keeps its title in the pane tab: `hideTitle` leaves
-  the state surface and the action cluster): Avatar, the title (resolved
-  through the `type-labels.js` seam — instance ids are private display
-  vocabulary) with the localized type label muted below, and exactly one
+  the state surface and the action cluster): Avatar, the title with the
+  localized type label muted below — both resolved through the one
+  type-label chain ([shared/ui-mapping](../../shared/ui-mapping/README.md);
+  instance ids are private display vocabulary) — and exactly one
   state surface riding the title line. A state axis is a tree, so stateful
   records carry no lifecycle strip: an instance with a flat `state`
   renders the segmented current-state tag (`StateTag`, resolved against
@@ -350,7 +353,7 @@ beside the transition history in `StateHistory`.
   each chip carries the
   relation's inline-resolved operations (unlink) as `contextActionEntries`
   bound to the opened record, and the hierarchy tree for groups. The
-  `full` variant fills its surface by packing (SPEC §Generative UI,
+  `full` variant fills its surface by packing (SPEC §22,
   2026-10-22) through the `LAYOUT.bodyGrid`/`LAYOUT.factsGrid` utilities:
   body blocks render at content width (sections capped at
   `fit-content(46rem)`) and fact rows wrap at content width; nested card

@@ -27,25 +27,29 @@
 
 ### Code deslop
 
-- [ ] Delete dead composables: `useNavigationState.js` (module-scoped tabs state, zero references — grep own file only); `useMotion.js` `useStateTransition` (zero non-spec consumers; composables/README L75 documents the dead export instead of deleting it — delete or consume).
+- [x] Delete dead composables: `useNavigationState.js` (module-scoped tabs state, zero references — grep own file only); `useMotion.js` `useStateTransition` (zero non-spec consumers; composables/README L75 documents the dead export instead of deleting it — delete or consume).
+  Landed with `useSnapshotHistory.js` (zero consumers) — no specs existed for any of the three.
 - [ ] plugins/global-styles.js:1-7 → comment restates the root README global-stylesheet contract plus history ("Order matches the old css array") → one-line pointer to the root README.
 - [ ] utils/instance-events.js:47-53 → `normalizedEffectEntities` dual-reads legacy array-shaped `effects`; migrate remaining producers to the object shape and delete the array branch (composables/README.md L139-141 documents the tolerance today).
-- [ ] utils/app-instance-surfaces.js → exports `{ fieldGroups: {}, surfaces: {} }` (zero entries) wired into `resolveInstanceDisplayContract`; utils/README.md calls it "the app's only route-specific patch channel" and pages/README.md L165-167 claims production uses; delete the seam or keep the sanctioned channel with a one-line comment.
+- [x] Delete utils/app-instance-surfaces.js — exports `{ fieldGroups: {}, surfaces: {} }` (zero entries) wired into `resolveInstanceDisplayContract`; utils/README.md's "the app's only route-specific patch channel" sentence and pages/README.md L165-167's production-uses claim die with it (decided 2026-10-25).
+  Landed: the whole `extensions` channel died with the file — the `displayExtensions` props on InstanceCard/InstanceSurfaceContent had zero parent callers, so `resolveInstanceDisplayContract` composes bundle rows + per-call patches only; spec updated.
 - [ ] composables/useEntityPopup.js:8-13 → the popup-openable law (directory types, compiled/synthesizable detail screen, or served type view) lives in a block comment; give it a composables/README.md paragraph, leave a pointer.
 - [ ] shared/ui-permissions.js → drop the `UI_PERMISSIONS` costume re-export of `PERMISSION_TEMPLATES` (zero production consumers, only its own spec); `resolveUiPermission` stays (stores/auth.js:3,185).
 - [ ] stores/navigation.js:66 → `screen.typeId || screen.typeId` duplicated operand (residue of `entityType || typeId`); collapse to `screen.typeId` (paired with the stores/README sentence item above).
 
 ### Code findings (truth pass 2026-10-24)
 
-- [ ] composables/useSnapshotHistory.js — zero consumers (dead code).
-- [ ] layouts/app.vue:319 — dead `/project/:id/queues` bounded-route regex for a deleted route family.
-- [ ] stores/navigation.js:162-186 — dead project/admin breadcrumb branches for deleted route families.
+- [x] composables/useSnapshotHistory.js — zero consumers (dead code).
+- [x] layouts/app.vue:319 — dead `/project/:id/queues` bounded-route regex for a deleted route family.
+- [x] stores/navigation.js:162-186 — dead project/admin breadcrumb branches for deleted route families.
 
 ### Owner decisions wanted
 
 - utils/instance-events legacy array-shaped effects: migrate remaining producers and delete the dual read, or is a stored response shape still unpinned?
-- utils/app-instance-surfaces.js: delete the empty extension seam, or keep it as the sanctioned route-patch channel?
-- shared/field-access-policies.js hardcoded framework-type table: schedule migration onto declared field policies, or accept as framework-plane policy for framework types?
+- [x] utils/app-instance-surfaces.js: delete the empty extension seam, or keep it as the sanctioned route-patch channel?
+  decided 2026-10-25: delete the seam — work item above.
+- [x] shared/field-access-policies.js hardcoded framework-type table: schedule migration onto declared field policies, or accept as framework-plane policy for framework types?
+  decided 2026-10-25: accept as framework-plane policy, documented.
 
 - [ ] WAITING — owner verification: read the shared tree READMEs —
   ui-mapping restructured to tables (carousel in, occs out);
@@ -64,3 +68,14 @@ snapshot reconciliation to stores/README (links left at each fold);
 stores/composables/i18n/layouts/utils/assets/tokens trims landed. OPEN:
 dead composables, effects dual-read, app-instance-surfaces seam,
 navigation.js operand + 3 decisions.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/deslop-execute-20261025`. Deleted useNavigationState.js,
+useStateTransition (useMotion keeps loadGsap/useEnterExit/enterOnce/
+riseAndFade), useSnapshotHistory.js; app-instance-surfaces seam deleted
+with the whole `extensions` channel (displayExtensions props were
+parentless); navigation.js project/admin branches and the app.vue queues
+regex cut. OPEN: global-styles comment, effects dual-read (decision),
+useEntityPopup law, ui-permissions costume export, navigation.js:66
+operand.

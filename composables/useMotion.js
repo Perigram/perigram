@@ -1,4 +1,4 @@
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, watch } from 'vue'
 import { useReducedMotion } from './useReducedMotion.js'
 
 let gsapLoader = null
@@ -83,65 +83,4 @@ export function riseAndFade(element, { y = -120, duration = 1.6 } = {}) {
         const tween = engine.to(element, { y, opacity: 0, duration, ease: 'power1.out' })
         return tween.then ? tween.then(() => {}) : Promise.resolve()
     })
-}
-
-/**
- * Parameter-to-state transition. When an input parameter drives a re-render
- * (cassette dimensions, geometry parameters), call `capture()` while the
- * previous rendered state is still in the DOM, then let the reactive update
- * replace it and call `play()`: the cloned previous state crossfades out over
- * the new one. The animation always starts from the real previous state, never
- * from defaults. Reduced motion skips the overlay entirely. The container must
- * own `position: relative` and clip overflow.
- */
-export function useStateTransition(containerRef, { duration = 0.4, scale = 0.985 } = {}) {
-    const reducedMotion = useReducedMotion()
-    let overlay = null
-    let engine = null
-
-    onMounted(async () => { engine = await loadGsap() })
-
-    const capture = () => {
-        const container = containerRef.value
-        if (!container || reducedMotion.value) return
-        const live = container.firstElementChild
-        if (!live || container.contains(overlay)) return
-        overlay = live.cloneNode(true)
-        overlay.setAttribute('aria-hidden', 'true')
-        Object.assign(overlay.style, {
-            position: 'absolute',
-            inset: '0',
-            pointerEvents: 'none',
-            transformOrigin: 'center'
-        })
-        container.appendChild(overlay)
-    }
-
-    const play = async () => {
-        const node = overlay
-        overlay = null
-        if (!node) return
-        await nextTick()
-        await new Promise(resolve => requestAnimationFrame(resolve))
-        if (!engine) {
-            node.remove()
-            return
-        }
-        engine.to(node, {
-            opacity: 0,
-            scale,
-            duration,
-            ease: 'power2.out',
-            onComplete: () => node.remove()
-        })
-    }
-
-    const cancel = () => {
-        overlay?.remove()
-        overlay = null
-    }
-
-    onUnmounted(cancel)
-
-    return { capture, play, cancel }
 }

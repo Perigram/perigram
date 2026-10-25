@@ -11,7 +11,6 @@ import * as instanceRevisionsService from '~/server/features/instance-revisions/
 import * as entityEventService from '~/server/features/instance-events/service.js';
 import { exportersForOrganization } from '../plugins/service.js';
 import { declarationForType, writeGrantTarget } from '../instances/service.js';
-import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { findTypeDeathCandidates, killTypesWithData, typeDeathManifest } from '../cts-types/lifetime.js';
 import {
@@ -38,7 +37,7 @@ import {
   getEntityFieldSchemas
 } from './system-view.js';
 import { getEntityFieldAccessPolicy } from '~/shared/field-access-policies.js';
-import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 import { hasPermissionGrant, normalizePermissionGrants } from '#shared/access-control.js';
 import { ProcessDefinition } from './model.js';
@@ -919,7 +918,7 @@ export async function projectEntityThroughSocket({ socketId, instanceId, targetO
     throw createError({ statusCode: 400, message: 'Inbound sockets receive projected entities and cannot project source entities' });
   }
 
-  const registry = getPerigramRegistry();
+  const registry = getAppRegistry();
   const service = registry.getInstanceService(socket.typeId);
   if (!service?.processGetById) throw createError({ statusCode: 500, message: `Entity service cannot read ${socket.typeId} from a process` });
   const entity = await service.processGetById(instanceId, auth);

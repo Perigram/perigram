@@ -191,7 +191,7 @@ user topic and `call.activity` on the user/org topics, keeps the
 - the app shell mounts `IncomingCalls` for ring notifications;
 - the app shell mounts the now-playing dock (`components/media`), whose
   mobile lane carries the parked-call entry for calls that lost their
-  surface (SPEC §Now playing);
+  surface (SPEC §11);
 - the generated home sidebar lists ongoing rooms as persistent flat rows
   under the Calls entry (label, participant count, row click joins),
   whose popup flyout lists ringable conversations;

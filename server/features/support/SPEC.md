@@ -118,7 +118,7 @@ path, tracked promises); the agent runtime registers its chat trigger
 this way. The organization assistant user (`data.bot` marker) is the AI
 attribution identity, admitted like any member; replies re-enter
 `sendUserMessage` with the assistant's auth executing under the
-triggering user's access (delegation, root SPEC §Agent access).
+triggering user's access (delegation, root SPEC §3).
 
 ## API
 

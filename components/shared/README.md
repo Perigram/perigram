@@ -188,8 +188,7 @@ and utility items); the **end group** carries canvas and content commands
 (`canvas-items` prop). Every canvas-capable designer exposes the same
 first-level zoom cluster in the canvas group (zoom out, zoom in, reset/fit —
 plus frame selection on graph canvases), undo/redo where the editor owns a
-history (editors share `composables/useSnapshotHistory.js` instead of
-per-component stack code), and content operations with the destructive
+history, and content operations with the destructive
 item last in its group; DrawingCanvas hides its internal zoom cluster in
 designer mode and exposes the commands for the toolbar instead. The
 toolbar floats inside a full-width positioned wrapper on the exact top
@@ -287,7 +286,7 @@ for renders no state surface at all.
 `state` string; the vocabulary and display policy derive client-side from the
 compiled producer workflows the hydration payload carries, through
 `statePolicyByType` / `stateDisplayFor`
-([shared/ui-mapping](../../../shared/ui-mapping/README.md) — the canonical
+([shared/ui-mapping](../../shared/ui-mapping/README.md) — the canonical
 contract; generated screens resolve through the same functions, so there is
 one resolution chain, not two). Dotted values render as segmented paths
 (ancestor segments muted, leaf styled) exactly like the generated
@@ -579,7 +578,7 @@ open resets the tree (sections re-expand and their lists reload) so the
 tree reflects the current workspace pool. Recipient chat-only visibility
 is NOT computed here: the support service derives it on send and on draft
 hydration through the instance-options endpoint (see
-[support feature](../../../server/features/support/README.md)). The host
+[support feature](../../server/features/support/README.md)). The host
 owns the draft `entityRefs`, the create-action flows, and file staging;
 the picker only emits `select`/`create-action`/`files`.
 
@@ -685,7 +684,7 @@ stays text.
 Renders everything attached to a support message — `attachments[]` and
 `instanceRefs[]` — as one stacked family under the message body (the
 contract lives in the
-[support feature](../../../server/features/support/README.md) — Message
+[support feature](../../server/features/support/README.md) — Message
 Attachments). Media flows as one masonry in send order; instance refs
 with media render `InstanceInlineRef`'s stacked compact card, preview-less
 refs render chips; every ref opens the shared record popup on click. One

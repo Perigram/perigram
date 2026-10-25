@@ -55,7 +55,7 @@ describe('generated labels', () => {
       typeId: 'queue',
       relation: {
         key: 'cassettes',
-        targetType: 'sheet_design'
+        targetTypes: ['sheet_design']
       }
     }, '', i18n)).toBe('Sheet design');
   });
@@ -70,7 +70,7 @@ describe('generated labels', () => {
     expect(generatedActionLabel({
       actionKind: 'link',
       typeId: 'queue',
-      relation: { key: 'cassettes', targetType: 'cassette', cardinality: 'many' }
+      relation: { key: 'cassettes', targetTypes: ['cassette'], cardinality: 'many' }
     }, '', i18n)).toBe('Cassette');
 
     expect(generatedScreenLabel({ template: 'typeList', typeId: 'cassette' }, i18n)).toBe('Cassette');
@@ -90,6 +90,8 @@ describe('generated labels', () => {
     };
 
     expect(generatedEntityLabel('t-k3x9fj2mqa', i18n)).toBe('Job Ticket');
+    // The seam takes a type record or a bare id.
+    expect(generatedEntityLabel({ id: 't-k3x9fj2mqa', name: 'Job Ticket' }, i18n)).toBe('Job Ticket');
     expect(generatedActionLabel({
       actionKind: 'createInstance',
       typeId: 't-k3x9fj2mqa',

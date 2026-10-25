@@ -2,8 +2,8 @@
 
 ## packages/cts/ deslop delta (2026-10-24 audit)
 
-`SPEC.md` here is owner-written law; every SPEC item below is a revision
-proposal awaiting owner action. `TODO.md_archive` is shipped history — its
+`SPEC.md` here is owner-written law; the SPEC revision is decided
+(2026-10-25; task below). `TODO.md_archive` is shipped history — its
 2026-09-24 hard-cut items landed (recursive state trees via
 `compileTreeDeclarations`, species-only catalog, optional producer identity,
 palette E2E); resurrect nothing from it.
@@ -21,19 +21,73 @@ palette E2E); resurrect nothing from it.
 
 - [ ] Contract-shaped comments (docs-guard homing backlog, `node scripts/check-docs.js`): `src/compat/graph-protocol.js` (343 chars), `src/registry.js` (563), `src/compat/process-grammar.js:1-4`, `src/compat/field-schema-rows.js:1-4` (grammar/seam contracts), `src/render.js:17` — move the semantics into the owning README section (SPEC § pointers), leave one-line comments.
 
+### SPEC revision (decided 2026-10-25)
+
+- [x] Revise `SPEC.md`: §3 stands as the wire law (the §21 L1062-1066
+  block-vocabulary sentence dies); history sections out (§15 migration
+  table, §19 tier-status narration, §14 dev-loop narration with its
+  authoring-loop facts folded into §20, §21 "Historically the pack mount
+  provided:" block and "(§8, landed)" tags); §7↔§20 state-socket law and
+  §7↔§10 fieldPolicy narrowing dedup to one home each; §13 code-homes
+  corrected (grammar+validator home is packages/cts, R1-R6 run in cts
+  `registry.compile()`, the declaration ⇄ process-grammar translator is
+  `compat/process-grammar.js`, the types.vue reference dies); "audit
+  correction" labels deleted (§2 L89, §8 L464, §18 L782); §7 gains the
+  declared-state-deadline law; renumber per the audit TOC (decided item
+  below) with the citation sweep.
+  Landed 2026-10-25 (old→new): 1-13 keep their numbers (retitled per the
+  TOC); 14 dev-loop and 15 migration table die; 16+17 worked examples →
+  17; 18 expressions → 15; 19 build order dies (its synthesis-only
+  projection law folds into §13); 20 graph protocol → 14 (authoring-loop
+  fold lands there as a subsection; `PROCESS_PROTOCOL_VERSION` is the
+  version of record); 21 plug-ins → 16 (historical pack block, landed
+  tags, and the instance-wire sentence cut). §7 homes the state-socket
+  law, fieldPolicy, and the deadline law; §10 and the §14 references
+  bullet link to it. The §19 seam-translator fact homes in §13's table.
+  Citation sweep: 27 `CTS SPEC §` + in-package self-citations renumbered
+  across processes/workflows/core/plugin-sdk/shared/ui-mapping/
+  composables/utils/stores/pages/server features+api+core+scripts/specs;
+  dead-section citations repointed (CTS §19 projection → §13; abandoned
+  data → root SPEC §Legacy policy §15). Code comments citing old §N
+  stay with the open contract-comment homing task.
+
 ### Owner decisions wanted
 
-- [ ] §21 L1062-1066 states instance documents project a block-vocabulary wire DTO (`identity`/`status`/`data`/`specs`); §3 L129-137 (owner decision 2026-10-11, later) states the wire DTO **is** the stored §3 shape with no `identity` block, and the code follows §3 (server/features/instances/service.js synthesizes no such blocks — grep identity/specs absent) — confirm §3 stands as the wire law and the §21 sentence dies in the next SPEC revision.
-- [ ] Strangler-era history sections: §15 "Existing constructs → CTS" (a migration table whose every row landed or was deleted), §19 "Build order" tier-status narration ("landed, then the cut"), §14 "Process designer in development" (dev-loop narration overlapping §20/§21), §21 "Historically the pack mount provided:" block and "(§8, landed)" status tags — proposal: history content moves to TODO/archives, §14's authoring-loop facts fold into §20, §21 keeps current plugin law (marketplace cross-ref L997-999).
-- [ ] Internal duplication: §7 L366-381 vs §20 L917-922 (state-socket authoring law stated twice); §7 L404-412 vs §10 L533-539 (fieldPolicy narrowing stated twice) — one home each.
-- [ ] §13 code-homes drift: L599 names `packages/core` as grammar+validator home (the grammar lives in `packages/cts`: values/rows/units/expressions; core carries block DTOs); L601 names `packages/processes` as the R1-R7 compiler home (R1-R6 run in cts `registry.compile()`; processes owns graph validation); §19 L852 names `compat/field-schema-rows.js` as the seam translator (the declaration ⇄ process-grammar translator is `compat/process-grammar.js`); §19 L837 references the deleted types.vue.
-- [ ] Section numbering: renumbering (audit TOC proposal: 1 Scope · 2 Value universe · 3 Stored shape & wire · 4 Declarations · 5 Classes · 6 Edges · 7 States & typed-operation authoring (guards, fieldPolicy, actors, deadlines) · 8 Operators · 9 Aggregates · 10 Policy · 11 Evolution · 12 Static rules R1-R7 · 13 Storage mapping · 14 Graph protocol · 15 Expressions · 16 Plug-ins · 17 Worked examples) breaks citations: 27 `CTS SPEC §` citations across 15 files (workflows, processes, shared, ui-mapping, composables, utils, stores, server features, root SPEC/TODO) plus in-package `SPEC §N` self-citations — renumber only with a citation sweep.
-- [ ] "audit correction" labels at §2 L89, §8 L464, §18 L782: the content is law, the label is session residue — delete the labels.
-- [ ] Declared-state-deadline law for §7 — decision item lives in [packages/processes/TODO.md](../processes/TODO.md) (workflows/processes citations repoint, or §7 gains the law).
+- [x] §21 L1062-1066 states instance documents project a block-vocabulary wire DTO (`identity`/`status`/`data`/`specs`); §3 L129-137 (owner decision 2026-10-11, later) states the wire DTO **is** the stored §3 shape with no `identity` block, and the code follows §3 (server/features/instances/service.js synthesizes no such blocks — grep identity/specs absent) — confirm §3 stands as the wire law and the §21 sentence dies in the next SPEC revision.
+  decided 2026-10-25: §3 stands; the §21 sentence dies in the SPEC revision task.
+- [x] Strangler-era history sections: §15 "Existing constructs → CTS" (a migration table whose every row landed or was deleted), §19 "Build order" tier-status narration ("landed, then the cut"), §14 "Process designer in development" (dev-loop narration overlapping §20/§21), §21 "Historically the pack mount provided:" block and "(§8, landed)" status tags — proposal: history content moves to TODO/archives, §14's authoring-loop facts fold into §20, §21 keeps current plugin law (marketplace cross-ref L997-999).
+  decided 2026-10-25: history sections out — SPEC revision task.
+- [x] Internal duplication: §7 L366-381 vs §20 L917-922 (state-socket authoring law stated twice); §7 L404-412 vs §10 L533-539 (fieldPolicy narrowing stated twice) — one home each.
+  decided 2026-10-25: one home each — SPEC revision task.
+- [x] §13 code-homes drift: L599 names `packages/core` as grammar+validator home (the grammar lives in `packages/cts`: values/rows/units/expressions; core carries block DTOs); L601 names `packages/processes` as the R1-R7 compiler home (R1-R6 run in cts `registry.compile()`; processes owns graph validation); §19 L852 names `compat/field-schema-rows.js` as the seam translator (the declaration ⇄ process-grammar translator is `compat/process-grammar.js`); §19 L837 references the deleted types.vue.
+  decided 2026-10-25: code-homes fixed — SPEC revision task.
+- [x] Section numbering: renumbering (audit TOC proposal: 1 Scope · 2 Value universe · 3 Stored shape & wire · 4 Declarations · 5 Classes · 6 Edges · 7 States & typed-operation authoring (guards, fieldPolicy, actors, deadlines) · 8 Operators · 9 Aggregates · 10 Policy · 11 Evolution · 12 Static rules R1-R7 · 13 Storage mapping · 14 Graph protocol · 15 Expressions · 16 Plug-ins · 17 Worked examples) breaks citations: 27 `CTS SPEC §` citations across 15 files (workflows, processes, shared, ui-mapping, composables, utils, stores, server features, root SPEC/TODO) plus in-package `SPEC §N` self-citations — renumber only with a citation sweep.
+  decided 2026-10-25: renumber per the audit TOC with the citation sweep — SPEC revision task.
+- [x] "audit correction" labels at §2 L89, §8 L464, §18 L782: the content is law, the label is session residue — delete the labels.
+  decided 2026-10-25: labels deleted — SPEC revision task.
+- [x] Declared-state-deadline law for §7 — decision item lives in [packages/processes/TODO.md](../processes/TODO.md) (workflows/processes citations repoint, or §7 gains the law).
+  decided 2026-10-25: §7 gains the declaration law; workflows/processes citations point there (SPEC revision task).
 
 - [ ] WAITING — owner verification: read README.md folded to a module map
   with SPEC pointers (246→148); domain-cnc + types.vue entries dead,
-  process-grammar + pack/framework documented.
+  process-grammar + pack/framework documented; SPEC.md renumbered §1–§17
+  per the audit TOC with the decided revision package landed (wire law,
+  history out, dedups, code homes, deadline law, protocol naming).
+
+### Agent Notes (2026-10-25)
+
+Session `agent/deslop-execute-20261025` executed the decided SPEC
+revision: sections renumbered to the audit TOC and physically reordered
+(Graph protocol §14 before Expressions §15, Plug-ins §16, Worked
+examples §17); strangler-era sections deleted with the surviving law
+re-homed (§19's synthesis-only projection paragraph and seam row → §13;
+§14's authoring loop → §14 Graph protocol); §7 gained the
+declared-state-deadline law and homes state-socket + fieldPolicy
+authoring; §20's "(v5)" title and v4 collision prose resolved on
+`PROCESS_PROTOCOL_VERSION` as the version of record; the §21 instance
+wire sentence, historical pack block, landed tags, and audit-correction
+labels cut; citation sweep landed across the tree. OPEN: code item
+(contract-shaped comments).
 
 ### Agent Notes (2026-10-24)
 

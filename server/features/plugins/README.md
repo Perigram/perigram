@@ -1,6 +1,6 @@
 # COMPONENT: Plugins (marketplace consumer side)
 
-Plugin marketplace consumer contracts (SPEC §Plugin marketplace): a
+Plugin marketplace consumer contracts (SPEC §20): a
 platform-published central catalog, per-organization installs pinning a
 declaration snapshot, and the install/uninstall gates. A third-party
 plugin is **declarations plus connectors**: the plugin's types compose
@@ -73,7 +73,7 @@ binds attachment exports — the `(typeId, kind) → service` pairs are
 the whole export truth: `generateAttachment` resolves a binding only by
 exact `(sourceType, kind)` match, and the hydration payload carries the
 bindings (`process.exports`) so the surfaces derive export affordances
-with no authored action nodes (SPEC §Exports are declarations).
+with no authored action nodes (SPEC §21).
 Installed construction contracts merge into the projected domain's
 construction table (`projectedDomainsForOrganization`).
 
@@ -104,7 +104,7 @@ dialog prompts, prefilled by an authored field `default`, and the
 required-input availability check counts as promptable — while
 structured fields (`list`/`record`) stay graph data sockets.
 
-Palette law (SPEC §20 — the palette serves operations): only wireable
+Palette law (SPEC §14 — the palette serves operations): only wireable
 services compose — a signature input of `record` projects data sockets
 (the s-species port projection maps record fields only); a bare-value
 input (`json`, `list`, …) names an implementation executor the graph

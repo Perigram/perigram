@@ -168,7 +168,6 @@ const props = defineProps({
     expandable: { type: Boolean, default: true },
     density: { type: String, default: 'default' },
     stateActions: { type: Array, default: () => [] },
-    displayExtensions: { type: Object, default: null },
     displayOverrides: { type: Object, default: null },
     contextInstance: { type: Object, default: null },
     contextTypeId: { type: String, default: '' },
@@ -184,14 +183,12 @@ const cardInstanceId = computed(() => {
 
 const { t } = useI18n();
 const registry = useRegistryStore();
-// Render-policy icons are the single icon source:
-// the legacy instanceUiFor table died with the per-surface icon drift.
+// Render-policy icons are the single icon source.
 const instanceConfig = computed(() => ({ icon: registry.iconFor(props.typeId) }));
 const displayPlan = computed(() => resolveInstanceDisplayContract({
     typeId: props.typeId,
     surface: props.surface || props.variant,
     variant: props.variant,
-    extensions: props.displayExtensions,
     overrides: props.displayOverrides
 }));
 const { policyFor } = useStatePolicy();

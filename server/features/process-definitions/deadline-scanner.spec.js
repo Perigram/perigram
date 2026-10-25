@@ -17,7 +17,7 @@ vi.mock('h3', () => ({
 
 import { scanDueDeadlines } from './deadline-scanner.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
-import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
 
 // The compiled machine exactly as activation would emit it (SPEC §7): a
 // deadline-marked state and its system-executed escalation edge.
@@ -80,7 +80,7 @@ describe('deadline scanner', () => {
     con = await MongoClient.connect(mongoServer.getUri());
     db = con.db();
     mockedConnectDB.mockReturnValue(db);
-    getPerigramRegistry().defineEntity({ type: 'cassette', collection: 'files', feature: 'cassettes' });
+    getAppRegistry().defineEntity({ type: 'cassette', collection: 'files', feature: 'cassettes' });
   });
 
   afterAll(async () => {

@@ -13,9 +13,6 @@ const stubs = repo('./test-tools/nuxt-app-stubs.mjs');
 const perigramAliases = {
   '@perigram/core': repo('./packages/core/src/index.js'),
   '@perigram/workflows': repo('./packages/workflows/src/index.js'),
-  '@perigram/mongo': repo('./packages/mongo/src/index.js'),
-  '@perigram/nitro': repo('./packages/nitro/src/index.js'),
-  '@perigram/vue': repo('./packages/vue/src/index.js'),
   '@perigram/devtools': repo('./packages/devtools/src/index.js'),
   '@perigram/mcp': repo('./packages/mcp/src/index.js'),
   '#shared': repo('./shared'),

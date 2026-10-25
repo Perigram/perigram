@@ -90,8 +90,7 @@ tenant-management grants.
 - Per-organization permissions in `memberships` are explicit stored grants used
   only by tenant-management recovery paths.
 - An active membership counts as owner recovery when it carries the
-  explicit `owner` flag or both `organizations:admin` and `users:admin`
-  permissions (`isOwnerMembership` reads both shapes). User mutation
+  explicit `owner` flag (`isOwnerMembership`). User mutation
   paths reject removing the last active organization user or the last
   active owner. Canonical owner recovery grant semantics live in
   [organizations](../organizations/README.md).

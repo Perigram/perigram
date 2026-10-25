@@ -1,6 +1,6 @@
 # COMPONENT: @perigram/plugin-sdk
 
-The plugin authoring toolkit (SPEC §Plugin marketplace): the listing
+The plugin authoring toolkit (SPEC §20): the listing
 contract, both executor harnesses, the platform API client, and the
 `perigram-plugin` CLI. Zero dependencies — Node's globals only. The
 platform's install gate and publish API import the same `parseListing`, so

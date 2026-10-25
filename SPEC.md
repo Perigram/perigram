@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-09-26
-updated: 2026-10-24
+updated: 2026-10-25
 ```
 
 This spec is human-write only. 
@@ -15,7 +15,7 @@ This project gets migrated from cnc-domain to process programming with "cts" typ
 "entities" and "services") should be replaced.
 
 
-## CTS and Process Designer node interface
+## 1. CTS and Process Designer node interface
 
 Designer should operate CTS, it's syntax should be represented fully in nodes. Since it's
 programming environment, it should be the cleanest and most elegant thing ever seen. Types,
@@ -28,7 +28,7 @@ own — concepts that stay node-composable (like sheets) keep their
 glyphs without appearing as pack types.
 
 
-## Parties in processes (owner direction 2026-10-13)
+## 2. Parties in processes (owner direction 2026-10-13)
 
 Users and organizations are readable process data, never process-mutable
 auth principals. In the designer they bind as instance sources (All, context)
@@ -36,7 +36,7 @@ and as declared relation targets (owner/assignee refs), their declared rows
 (name, email, and the roles derived from the organization's authoritative
 assignments) decompose like any entity, and two run-context sources resolve
 the acting user and the active organization. Reads ride the framework party
-services on the §3 wire DTO with their own scoping and redaction; creating,
+services on the CTS SPEC §3 wire DTO with their own scoping and redaction; creating,
 mutating, or deleting parties through a process graph is refused, parties are
 never lineage children, and role identity / user assignment stay organization
 data.
@@ -52,7 +52,7 @@ and a write accepts, only instances inside the declared domain. One
 declaration, one evaluator, every surface: pickers project it, the write
 boundary enforces it.
 
-## Agent access and the organization AI (owner direction 2026-10-16)
+## 3. Agent access and the organization AI (owner direction 2026-10-16)
 
 Agents operate the platform programmatically through the same boundaries as
 every other client: one curated tool catalog over the existing service seams
@@ -190,7 +190,7 @@ the deployment's proxy environment; LAN endpoints stay direct. The MCP
 endpoint serves authenticated user
 principals only.
 
-## UI
+## 4. UI
 
 All UI is written in raw, unmodified PrimeVue plus the repo's registered
 shared primitives. No hand-rolled div/button chrome, no custom controls.
@@ -363,11 +363,11 @@ generated in same manner in UI. Important to find proper PrimeVue components for
 layout. More important to get aligned with architecture, so it's only assumptions.
 No per-entity hardcoded components. Editors/previews bind through pack editor bindings and the
 surface registry — adding a type never touches app UI code, and plugin-delivered editor
-surfaces (owner decision 2026-10-11, §Plugin marketplace) extend the same law to adding an
+surfaces (owner decision 2026-10-11, §20) extend the same law to adding an
 editor surface. Files are CTS types with payload traits;
 the `artifact` entity and its overload die when chat/proof/capture/upload flows move to file instances.
 
-## Chat files
+## 5. Chat files
 
 Any file may be attached to chat messages. Images and videos preview inline
 (single items and their sets as galleries); media galleries fill from the
@@ -414,7 +414,7 @@ organization chat) keep files as plain unlinked attachments. Images paste
 straight from the clipboard into the composer and ride the same attachment
 flow as picked files.
 
-## Chat composer
+## 6. Chat composer
 
 The composer is one clean rounded surface, never an input group: attach
 action, a growing borderless text field, and one trailing action that swaps
@@ -428,7 +428,7 @@ sender. Voice transcripts are private: the transcript is stored per user and
 rendered only to those who pressed transcribe — the message body, reply
 quotes, and inbox previews never carry it.
 
-## Chat thread
+## 7. Chat thread
 
 Messages from one sender sent in a row read as one run: the sender label
 leads the run and the timestamp trails it under the last message only;
@@ -463,14 +463,14 @@ send-message action instead. Instance chat headers, chips, and lists never
 expose inner ids as names: unnamed instances fall back to their localized
 type label.
 
-## Chat groups
+## 8. Chat groups
 
 Group chats are user-scope: any existing account can be a member, not only
 organization-reachable users. The group record stays homed in the creator's
 organization lineage, but membership, inbox visibility, and conversation
 access are never filtered by organization.
 
-## Meetings
+## 9. Meetings
 
 Call recordings are sent to the transcription service automatically and
 return to the conversation as a summary. For calls in an organization, the
@@ -478,7 +478,7 @@ summary connects to org data: it detects the org's classes, instances, and
 users mentioned in the call, and can create and manage org data as a rich
 summary (outcomes land as typed org data, not loose text).
 
-## Calls
+## 10. Calls
 
 Org calls behave like the org chat: members join by membership. Restricting
 them is a role-settings concern — a declared livekit grant in the process
@@ -486,7 +486,7 @@ access rights withholds admission — and that grant must be authorable from
 the role/permissions UI like every other feature toggle, never by
 hand-editing process data.
 
-## Now playing
+## 11. Now playing
 
 Whatever media is playing persists across navigation: chat audio and video
 continue in a draggable floating dock on desktop and a strip integrated at
@@ -495,7 +495,7 @@ only one media item plays at a time. An ongoing call persists the same way — t
 floating window it already has, and a top-lane entry on mobile that reopens
 the call without reconnecting, keeping remote audio audible while parked.
 
-## PWA
+## 12. PWA
 
 Offline is a first-class state, not an error page: without a connection the
 app loads its last known shell and data (HTML navigations, app chunks,
@@ -506,7 +506,7 @@ which requires the deployed server to run with VAPID keys configured, and
 the settings toggle must tell the user when closed-tab delivery is
 unavailable instead of failing silently.
 
-## Server
+## 13. Server
 
 A type is executable from its declaration alone: generic instance services serve everything,
 storage is per-class collections. CNC (and every domain) is a removable pack — unmounting it
@@ -514,28 +514,28 @@ removes the domain, nothing framework-shaped imports it. Commands/tasks remain d
 contracts; legacy feature modules and their API routes are deleted together with their UI flows,
 not kept as fallbacks.
 
-## Vocabulary
+## 14. Vocabulary
 
 One vocabulary end to end: `typeId`/`id` on the wire, in stores, in components — including shared
 component props. `entityType` names disappear with the compiler-plane cut.
 
-## Legacy policy
+## 15. Legacy policy
 
 No fallbacks, no dual paths, no resurrection of deleted domain types. Old persisted data authored
 against deleted types is abandoned; orgs re-author on declarations. Deleting a legacy surface is
 complete when its feature module, API routes, and specs go in the same cut.
 
-## Done means
+## 16. Done means
 
 Golden checks green on the integration branch (framework suites, design system, manifest
 regenerated), e2e rewritten against generated screens, no known-failure carryover between sessions,
 and READMEs (including SYSTEM_ARCHITECTURE) describe the CTS reality.
 
-## IN/OUT org data 
+## 17. IN/OUT org data 
 
 Org process sets type OUT (special node that "published") (for friends or public), recipient gets it's structure and acts as it's allowed by type (resond, etc); reply to OUT dictates next IN stucture. So basically external interaction in process definition is OUT-GAP-IN.    
 
-## Process authoring maturity
+## 18. Process authoring maturity
 
 Business processes are the product; three declaration-language
 capabilities in priority order:
@@ -552,7 +552,7 @@ The organization runtime uses process definitions as business logic; a
 definition is turned on or off in organization settings — that is the
 whole lifecycle.
 
-## Process runtime (owner direction 2026-10-17)
+## 19. Process runtime (owner direction 2026-10-17)
 
 There are no durable process runs. A process definition is a state
 machine / contract generator: activation compiles it into actions,
@@ -563,7 +563,7 @@ park on the task boundary and continue in-process when the task lands.
 `command_runs` and `task_runs` are the audit trail. No execution
 records are stored for process evaluation.
 
-## Plugin marketplace
+## 20. Plugin marketplace
 
 Organization settings has a Plugins section: the organization sees the central
 catalog and its installed plugins, and installs or removes them at runtime.
@@ -572,10 +572,10 @@ The catalog is platform-published; orgs are consumers only.
 The driving goal of the plugin work: **the facade domain itself is separated
 into a plugin** — its code leaves the platform, the platform mounts it as an
 independently versioned unit, and organizations manage it from the Plugins
-section. Every framework→facade import is a defect against this (SPEC §Server
+section. Every framework→facade import is a defect against this (SPEC §13
 already forbids them); the remaining path is dependency-ordered — the legacy
 sheet-designs entity service migrates to the generic instance machinery
-(SPEC §21 transitional), the mount's framework imports become an injected SDK
+(CTS SPEC §16), the mount's framework imports become an injected SDK
 context, then the pack's server side moves into the package as one deletable
 unit and the geometry handlers externalize behind endpoints like the already
 external nesting worker; editor surfaces ride the surface registry until
@@ -1065,7 +1065,7 @@ everything that operates over cassettes belongs to the plugin. There is no
 PARAMETRIC/STANDARD distinction and no `templateType` field; parameters are
 set in the editor and live inside the document, never on the record; the
 create form never prompts document internals (file creates follow the
-creation-protocol law in §UI). The read-side preview channel
+creation-protocol law in §4). The read-side preview channel
 (thumbnail, card preview, geometry preview) is a plugin-delivered module
 under the surface contract: the platform mounts it in its preview slots
 over a read-only data-only mount (`{ record, payload }`), and the card
@@ -1151,7 +1151,7 @@ calls, never direct API access. They land as the next surface-contract
 major; a listing may still target the earlier majors and mounts without
 them degrade honestly (save/reload, embedded assets).
 
-## Exports are declarations (owner direction 2026-10-14)
+## 21. Exports are declarations (owner direction 2026-10-14)
 
 An installed plugin's export bindings (`declarations.exports`: type, kind,
 service) are the whole truth about what a type can export. The framework
@@ -1163,9 +1163,9 @@ code or the artifacts seam are defects. Export affordances derive from the
 same composed view editors and previews derive from — a bound type's surfaces
 offer the export action without per-process action authoring.
 
-## Generative UI
+## 22. Generative UI
 
-### Instance page arrangement is procedural and content-aware (owner
+### 22.1 Instance page arrangement is procedural and content-aware (owner
 direction 2026-10-21)
 The generative UI generates instance pages top to bottom (or bottom to
 top): the record header spans the page, the record body follows, and
@@ -1178,7 +1178,7 @@ composed weights derive, at every level of the generated tree.
 Filled structural content renders open as labeled sections, and a
 collapsed fact group always carries its show-more control.
 
-### Instance page arrangement fills the screen (owner direction
+### 22.2 Instance page arrangement fills the screen (owner direction
 2026-10-22)
 Arrangement is content-aware and bounds the record page. A child
 collection with no loaded instances is layout-inert: it claims no side
@@ -1191,28 +1191,28 @@ every body block renders at content width (sections capped at
 content-width stub, wide content (tables, boards) keeps the full row,
 and overflow stays inside the child surfaces' own bounded scrolls.
 
-### A hosted surface carries its title once (owner direction
+### 22.3 A hosted surface carries its title once (owner direction
 2026-10-23)
 The workspace pane tab names the screen or record it hosts; the hosted
 surface renders its state, actions, and collections, and its own title
 surfaces (list header label, record identity block) stay with the pane
 strip.
 
-### Presentation has one home per concern (owner direction 2026-10-21)
+### 22.4 Presentation has one home per concern (owner direction 2026-10-21)
 Action presentation, action applicability, and record/picker labels
 resolve through their canonical seams (`shared/ui-mapping` resolver
 tables, `utils/action-visibility.js`, `titleFor`). Typography rides the
 system-level role tokens; a missing size becomes a new token.
 
-### Documentation tree (owner direction 2026-10-21)
+### 22.5 Documentation tree (owner direction 2026-10-21)
 Documentation is the README.md / SPEC.md / TODO.md tree only; the docs/
 folder does not exist. Schema and spec data live beside the code that
 owns them.
 
-### Fields display
+### 22.6 Fields display
 Fields should be marked on creation according to CTS (required and identifier)
 
-## Deslopification (owner direction 2026-10-23)
+## 23. Deslopification (owner direction 2026-10-23)
 
 The current architecture carries the whole platform idea and its important
 nuances inside accumulated slop: stale documentation, dead code, duplicated
@@ -1224,7 +1224,7 @@ delta between target and reality is the folder's TODO.md. The full-repo
 audit of 2026-10-24 (nine area reports, three independent review passes)
 is the baseline measurement.
 
-### Repository shape
+### 23.1 Repository shape
 
 The repository carries exactly this map; additions and removals are owner
 decisions recorded here first.
@@ -1255,7 +1255,7 @@ Folders measured dead by the audit leave the repository through the root
 TODO program: the dead workspace packages, dead UI clusters, the one-off
 video renderer, and the retired deploy plane.
 
-### Documentation program law
+### 23.2 Documentation program law
 
 README.md describes reality; SPEC.md states the target; TODO.md carries the
 delta. A contract lives in exactly one canonical home across all three
@@ -1263,7 +1263,7 @@ kinds. The deslop delta closes folder by folder: a folder is done when its
 README matches its SPEC, its TODO carries nothing actionable, and the
 guards pass.
 
-### Code cleanliness laws
+### 23.3 Code cleanliness laws
 
 1. Every export has a consumer. Code with zero reachability is deleted with
    its specs and docs in the same cut.
@@ -1275,7 +1275,7 @@ guards pass.
    owning README.
 5. An abstraction, flag, or parameter exists when a consumer exists today.
 
-### Deslop done means
+### 23.4 Deslop done means
 
 Every remaining folder's README matches its SPEC; every folder TODO is
 empty; the documentation and architecture guards pass over the whole tree;

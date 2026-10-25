@@ -142,7 +142,7 @@
   InstanceInlineRef resolves through the registry. Fold confirmed by
   review-2 (registry-proof reachability: design-system.js L1-7 imports,
   L16-24 map).
-- [ ] Delete `DESIGN_SYSTEM_STATUS` (utils/design-system-contract.js:115-151,
+- [x] Delete `DESIGN_SYSTEM_STATUS` (utils/design-system-contract.js:115-151,
   33 hardcoded legacy status labels): `grep -rn DESIGN_SYSTEM_STATUS` over
   repo returns only the definition; framework.manifest.json carries no
   status vocabulary (0 hits). Review-2 confirmed 0 refs incl. workers/.
@@ -159,10 +159,17 @@
   admit the mirror. Canonical: `shared/call-rooms.js` (pattern:
   shared/ui-mapping crosses the boundary); client and server import it.
   Server-side consumer change belongs to the livekit feature's delta.
-- [ ] Type-label chain single seam: components/ui-mapping/type-labels.js:11-20
+- [x] Type-label chain single seam: components/ui-mapping/type-labels.js:11-20
   and utils/generated-labels.js:11-29 both resolve `labelKeyForType` locale
   key → authored-name fallback from different data sources (prop type vs
-  registry store). One seam taking a type-record-or-id, in shared/ or utils.
+  registry store). One seam taking a type-record-or-id, in
+  shared/ui-mapping (decided 2026-10-25).
+  Landed: `typeLabelFor` in shared/ui-mapping/index.js (pure chain),
+  `generatedEntityLabel` in utils/generated-labels.js as the app binding
+  (entities-key table + registry record, Pinia-guarded), type-labels.js
+  deleted, engine components and pickers repointed (InstanceMultiPicker's
+  use of the seam was an unresolved reference — Nuxt never auto-imported
+  it — fixed by the repoint).
 - [ ] Comment trims: components/ui-mapping/type-labels.js:5-10 header homes
   the label-precedence contract (and says "legacy renderer") → one pointer
   line; GeneratedMappingScreen.vue:90-95 (Toast host) and
@@ -186,7 +193,8 @@
 - [ ] components/artifacts/ArtifactViewer.vue:55-91 (`artifact`/`revision`
   props, artifact-entity branch) + utils/artifact-viewer.js artifact path +
   artifact-viewer.spec.js: sole consumer of the branch is the spec; both
-  live mounts pass `:source=` only. Deletion pending owner decision below.
+  live mounts pass `:source=` only. Deletion lands with the
+  artifact-family cutover (root TODO.md; decided 2026-10-25).
 - [ ] Delete entities/{Artifact,ArtifactTemplate,EntityRevision,LayerStandard,Organization,PenTemplate,User}/README.md
   after the fold into entities/README.md.
 
@@ -201,13 +209,16 @@
 
 ### Owner decisions wanted
 
-- ArtifactViewer artifact/revision branch: delete now, or hold until the
+- [x] ArtifactViewer artifact/revision branch: delete now, or hold until the
   TODO-tracked artifact-family retirement ("payload-trait flip") lands?
-- artifact_template UI: with pages/assets deleted the card is inline-ref-only;
+  decided 2026-10-25: with the artifact-family cutover (root TODO.md), not before.
+- [x] artifact_template UI: with pages/assets deleted the card is inline-ref-only;
   keep as revision-provenance surface or retire the family with Phase 7?
+  decided 2026-10-25: retires with the artifact-family cutover (root TODO.md).
 - type-designer/: own README, or fold its contract into
   components/process-designer/README.md (its consumer)?
-- Type-label seam home: shared/ or utils/?
+- [x] Type-label seam home: shared/ or utils/?
+  decided 2026-10-25: shared/ui-mapping.
 
 - [ ] WAITING — owner verification: read components/README.md (1132→137,
   inventory owner) + entities/README.md; 7 entity READMEs folded (files
@@ -226,3 +237,12 @@ repointed); shared/generated/directory/artifacts/ui-mapping/calls/media
 trims landed. OPEN: DESIGN_SYSTEM_STATUS + dual-map + code items,
 ArtifactViewer/artifact_template/type-designer decisions, type-designer
 README creation (row exists, file pending).
+
+### Agent Notes (2026-10-25)
+
+Session `agent/deslop-execute-20261025`. DESIGN_SYSTEM_STATUS deleted;
+type-label seam unified (see code item — type-labels.js gone, one chain in
+shared/ui-mapping, InstanceCard legacy-death comment cut, DataBlock
+contract comment reduced to a README pointer). OPEN: dual entity-card map,
+room-name grammar, remaining comment trims, ArtifactViewer/type-designer
+README (cutover-owned items untouched).

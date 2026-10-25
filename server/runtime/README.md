@@ -13,9 +13,6 @@ executor.
 active registry/domain metadata. Runtime code — status transitions, hooks,
 summary aggregation — resolves names and collections through these helpers.
 
-`perigram-registry.js` re-exports the registry under both names:
-`getAppRegistry()` and `getPerigramRegistry()` return the same instance.
-
 Parent: [server](../README.md).
 
 ## Registered Bindings
@@ -43,8 +40,8 @@ Parent: [server](../README.md).
 - Framework command handlers (`generateAttachment`, `convertArtifact`);
   plugin value services execute as `plugin.<pluginId>.<serviceId>` commands
   through the connector path.
-- The framework domain (`defineDomain`) declares the framework command and
-  task tables; the framework task table is empty today
+- The framework domain (`defineDomain`) declares the framework command,
+  task, and event tables; the framework task table is empty today
   (`frameworkTaskDefinitions = {}`), and task contracts arrive at enqueue
   time as runtime-declared definitions (plugin connector services compose
   theirs from the install snapshot).

@@ -8,9 +8,6 @@ Internal npm workspace packages: the domain-agnostic industrial workflow framewo
 |---|---|
 | [`@perigram/core`](./core/README.md) | Entity blocks, explicit registries, command/task/hook/attachment contracts |
 | [`@perigram/workflows`](./workflows/README.md) | Declarative workflow registry and transition validation |
-| `@perigram/mongo` | Mongo-oriented repository, event-store, and summary adapter helpers |
-| `@perigram/nitro` | Route metadata helpers for app/API adapters |
-| `@perigram/vue` | Frontend route, surface, and attachment metadata helpers |
 | [`@perigram/devtools`](./devtools/README.md) | Architecture/data-model inspection helpers |
 | [`@perigram/mcp`](./mcp/README.md) | Read-only MCP tool handlers for schema/workflow/manifest inspection |
 | [`@perigram/processes`](./processes/README.md) | Organization process definition normalization, validation, and compilation |

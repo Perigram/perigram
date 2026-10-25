@@ -14,7 +14,7 @@ language, the process compiler, the domain kernel, the workflow runtime,
 plugin authoring, and inspection tooling as internal npm workspace packages.
 The application — Nuxt/Nitro server, designer, scripts — consumes packages;
 packages carry zero application knowledge. The repository shape is owned by
-the [root SPEC](../SPEC.md) §Deslopification; this SPEC owns the package
+the [root SPEC](../SPEC.md) §23; this SPEC owns the package
 layer beneath it.
 
 ## Contracts owned here
@@ -48,9 +48,9 @@ layer beneath it.
 ### Extraction rule
 
 New shared framework code enters the application first; a module extracts
-into `packages/` when a second consumer exists (root SPEC §Deslopification,
+into `packages/` when a second consumer exists (root SPEC §23,
 code cleanliness law 5). Packages stay domain-agnostic: domain content
-arrives as plugin declarations (root SPEC §Plugin marketplace); the facade
+arrives as plugin declarations (root SPEC §20); the facade
 domain is the installable plugin under `workers/facade`.
 
 ### Manifest law
@@ -74,8 +74,8 @@ tooling packages are documented by README alone.
 
 | Consumed contract | Home |
 |---|---|
-| Repository shape, deslop done-means | [root SPEC](../SPEC.md) §Deslopification |
-| Plugin listing and marketplace contract | [plugin-sdk README](./plugin-sdk/README.md); [root SPEC](../SPEC.md) §Plugin marketplace |
+| Repository shape, deslop done-means | [root SPEC](../SPEC.md) §23 |
+| Plugin listing and marketplace contract | [plugin-sdk README](./plugin-sdk/README.md); [root SPEC](../SPEC.md) §20 |
 | System-level graph | [root README](../README.md) |
 
 ## End state

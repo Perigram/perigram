@@ -139,7 +139,7 @@ availability (see
 [server/core/machines](../../server/core/machines/README.md)).
 
 Transitions may also carry `deadline: true` (with `access.system`) — the
-compiled escalation edge of a declared state deadline; the deadline-edge
+compiled escalation edge of a declared state deadline (CTS SPEC §7); the deadline-edge
 runtime contract lives in
 [server/core/machines](../../server/core/machines/README.md).
 The marker is provenance for tooling; authorization and execution are

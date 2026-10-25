@@ -336,7 +336,12 @@ describe('current process-definition service contract', () => {
 
     await expect(activate('process-draft', adminAuth())).rejects.toMatchObject({
       statusCode: 409,
-      data: { migrationRequired: true, affected: [{ typeId, statuses: ['LEGACY_RETIRED'], count: 1 }] }
+      data: {
+        migrationRequired: true,
+        migrationPlan: {
+          statuses: [expect.objectContaining({ typeId, removed: [{ state: 'LEGACY_RETIRED', count: 1 }] })]
+        }
+      }
     });
     expect(processList).toHaveBeenCalledWith({}, expect.objectContaining({ organizationId: 'org-acceptance' }));
     expect(processRepository.updateById).not.toHaveBeenCalledWith('process-active', expect.anything());
@@ -508,7 +513,6 @@ describe('current process-definition service contract', () => {
       statusCode: 409,
       data: {
         migrationRequired: true,
-        affected: [{ typeId, statuses: ['LEGACY_RETIRED'], count: 2 }],
         migrationPlan: { statuses: [expect.any(Object)] }
       }
     });

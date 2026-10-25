@@ -62,9 +62,9 @@ vi.mock('../cts-types/lifetime.js', async (importOriginal) => {
 });
 vi.mock('~/server/runtime/app-registry.js', () => ({
     getAppRegistry: vi.fn(),
-    getPerigramRegistry: vi.fn(),
+    getAppRegistry: vi.fn(),
     resetAppRegistryForTests: vi.fn(),
-    resetPerigramRegistryForTests: vi.fn()
+    resetAppRegistryForTests: vi.fn()
 }));
 vi.mock('~/server/core/machines/service.js', async (importOriginal) => {
     const actual = await importOriginal();

@@ -27,18 +27,8 @@
 </template>
 
 <script setup>
-/**
- * DataBlock - Standardized key/value data display.
- *
- * Usage:
- *   import { PEN_TEMPLATE_FIELDS } from '~/constants/entityFields'
- *   <DataBlock type-id="penTemplate" :entity="pen" :fields="PEN_TEMPLATE_FIELDS" />
- *
- * Fields schema: Array of { path, i18n, suffix?, prefix? }
- * - path: dot-notation path into entity (e.g. 'stroke.color')
- * - i18n: translation key for label
- * - suffix/prefix: optional value decoration (e.g. suffix=' mm')
- */
+// Fact-row contract (props, field schema, access filtering):
+// components/shared/README.md → DataBlock.
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
