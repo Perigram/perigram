@@ -508,9 +508,8 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
   const authoring = createDefinitionAuthoring(domain);
   for (const [index, construct] of (await starterConstructsForOrganization(organizationIdValue)).entries()) {
     const id = `starter-${index}`;
-    authoring.drop('construct', { id });
+    authoring.drop('construct', { id, typeId: construct.typeId });
     authoring.configure(id, {
-      typeId: construct.typeId,
       construction: { mode: construct.construction },
       access: { level: 'admin', grants: [{ roleId: 'role_admin', level: 'admin' }] }
     });
@@ -2308,7 +2307,7 @@ export function applyAuthoringSteps(authoring, steps = [], domain = null) {
       } else if (op === 'unwireDeclaration') {
         authoring.unwireDeclaration(String(step.from || ''), String(step.to || ''), String(step.role || ''));
       } else if (op === 'drop') {
-        authoring.drop(String(step.item || ''), { id });
+        authoring.drop(String(step.item || ''), { id, ...(step.typeId ? { typeId: String(step.typeId) } : {}) });
       } else if (op === 'configure') {
         authoring.configure(id, step.values && typeof step.values === 'object' ? step.values : {});
       } else if (op === 'setInputDefault') {

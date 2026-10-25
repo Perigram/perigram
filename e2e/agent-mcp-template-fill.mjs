@@ -61,15 +61,21 @@ assert(roleId, 'no organization role to grant the construct lane');
 const composed = await call('compose_process_definition', {
   name: 'Passport fill',
   steps: [
-    { op: 'drop', item: 'literalList', id: 'src' },
-    { op: 'configure', id: 'src', values: { type: { base: 'record', nullable: false }, value: [{ project: 'Demo Facade', code: 'E-219' }] } },
+    { op: 'drop', item: 'literal', id: 'project' },
+    { op: 'configure', id: 'project', values: { value: 'Demo Facade' } },
+    { op: 'drop', item: 'literal', id: 'code' },
+    { op: 'configure', id: 'code', values: { value: 'E-219' } },
+    { op: 'drop', item: 'constructRecord', id: 'rec' },
+    { op: 'configure', id: 'rec', values: { fields: ['project', 'code'] } },
     { op: 'drop', item: 'formatValue', id: 'fmt' },
     { op: 'configure', id: 'fmt', values: { template: '# Cutting pass — {project}\n\nOrder code: {code}\n', outputType: { base: 'string', nullable: false } } },
-    { op: 'drop', item: 'construct', id: 'fill' },
-    { op: 'configure', id: 'fill', values: { typeId: 'text-document', construction: { mode: 'content' } } },
+    { op: 'drop', item: 'construct', id: 'fill', typeId: 'text-document' },
+    { op: 'configure', id: 'fill', values: { construction: { mode: 'content' } } },
     { op: 'configure', id: 'fill', values: { access: { grants: [{ roleId, level: 'write' }] } } },
-    { op: 'connect', id: 'src', fromPort: 'value', to: 'fmt', toPort: 'record' },
-    { op: 'connect', id: 'fmt', fromPort: 'value', to: 'fill', toPort: 'content' }
+    { op: 'connect', id: 'project', fromPort: 'data:value', to: 'rec', toPort: 'data:project' },
+    { op: 'connect', id: 'code', fromPort: 'data:value', to: 'rec', toPort: 'data:code' },
+    { op: 'connect', id: 'rec', fromPort: 'data:record', to: 'fmt', toPort: 'data:record' },
+    { op: 'connect', id: 'fmt', fromPort: 'data:value', to: 'fill', toPort: 'data:content' }
   ]
 });
 const definitionId = composed.id || composed._id;

@@ -42,13 +42,12 @@ const BASE_STEPS = [
     { op: 'declareClass', id: 'clsTask', typeId: 'task', name: 'Task' },
     { op: 'declareField', id: 'fldTitle', ownerClassId: 'clsTask', name: 'title' },
     { op: 'wireDeclaration', from: 'fldTitle', to: 'clsTask', role: 'declares' },
-    { op: 'drop', item: 'construct', id: 'nodeMake' },
-    { op: 'configure', id: 'nodeMake', values: { typeId: 'task' } },
+    { op: 'drop', item: 'construct', id: 'nodeMake', typeId: 'task' },
     { op: 'drop', item: 'literal', id: 'nodeLit' },
-    { op: 'connect', id: 'nodeLit', fromPort: 'value', to: 'nodeMake', toPort: 'fields.title' }
+    { op: 'connect', id: 'nodeLit', fromPort: 'data:value', to: 'nodeMake', toPort: 'data:fields.title' }
 ];
 
-const CONNECT_ORG_FIELD = { op: 'connect', id: 'nodeLit', fromPort: 'value', to: 'nodeMake', toPort: 'fields.organization' };
+const CONNECT_ORG_FIELD = { op: 'connect', id: 'nodeLit', fromPort: 'data:value', to: 'nodeMake', toPort: 'data:fields.organization' };
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -75,7 +74,7 @@ describe('headless authoring draft overlay', () => {
         applyAuthoringSteps(authoring, BASE_STEPS, RAW_DOMAIN);
         const seeded = createDefinitionAuthoring(RAW_DOMAIN, null, authoring.definition());
         expect(() => applyAuthoringSteps(seeded, [CONNECT_ORG_FIELD], null))
-            .toThrow(/Unknown port nodeMake:fields\.organization/);
+            .toThrow(/Unknown port nodeMake:data:fields\.organization/);
     });
 
     it('a stored draft with unapplied declarations resolves them from the first step (the edit path)', () => {
@@ -100,7 +99,7 @@ describe('headless authoring draft overlay', () => {
 });
 
 describe('the overlay names its skips (no silent Unknown port)', () => {
-    const CONNECT = { op: 'connect', id: 'nodeLit', fromPort: 'value', to: 'nodeMake', toPort: 'fields.category' };
+    const CONNECT = { op: 'connect', id: 'nodeLit', fromPort: 'data:value', to: 'nodeMake', toPort: 'data:fields.category' };
 
     it('reports a declaration the registry refuses, with the reason', async () => {
         const authoring = createDefinitionAuthoring(RAW_DOMAIN);
@@ -132,7 +131,7 @@ describe('the overlay names its skips (no silent Unknown port)', () => {
         seeded.withDomain(declarationOverlayDomain(data, RAW_DOMAIN));
         let failure = null;
         try {
-            applyAuthoringSteps(seeded, [{ ...CONNECT, toPort: 'fields.title' }], RAW_DOMAIN);
+            applyAuthoringSteps(seeded, [{ ...CONNECT, toPort: 'data:fields.title' }], RAW_DOMAIN);
         } catch (error) {
             failure = error;
         }
