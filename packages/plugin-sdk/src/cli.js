@@ -167,11 +167,17 @@ const usage = `perigram-plugin — author Perigram plugins (SDK: @perigram/plugi
   publish <listing.json>              publish to the catalog (PERIGRAM_OPERATOR_TOKEN)
   install <pluginId>                  install into PERIGRAM_ORG_ID
   connector <pluginId>                connector panel: token, queue, endpoints
-  connect <pluginId> [--set svc=URL ...] [--key K]   read/save connection settings
+  connect <pluginId> [--set svc=URL ...] [--key K] [--surface-origin URL]
+                                      read/save connection settings (the
+                                      surface origin serves plugins with
+                                      surfaces but no endpoint services)
   test <pluginId> <serviceId> [--input file.json]   invoke an installed service
-  surfaces <module.mjs>               check a surface module: clean import
-                                      graph (host externals are injected),
-                                      factory shape, stub-context smoke
+  surfaces <module.mjs> [--listing L]  check a surface module (import graph,
+                                      factory shape, stub-context smoke);
+                                      --listing admits declared dependencies
+  vendor [--listing L] [--entry DIR]   build flat vendor bundles for the
+                                      graph's bare imports, merge the
+                                      dependency manifest into the listing
 
 env: PERIGRAM_APP, PERIGRAM_OPERATOR_TOKEN, PERIGRAM_TOKEN, PERIGRAM_ORG_ID`;
 
