@@ -75,15 +75,18 @@ describe('livekit call rooms', () => {
         expect(authorizeRoom(auth('user-a'), 'freeform-room')).rejects.toMatchObject({ statusCode: 400 });
     });
 
-    it('gates org rooms through the active process livekit grant when a process is active', async () => {
+    it('gates org rooms through the livekit grant only when the process declares the feature', async () => {
         const processAuth = (grants) => ({
             ...auth('user-a', 'org-1'),
             process: { active: true },
             effectivePermissions: grants
         });
         await expect(authorizeRoom(processAuth({ livekit: [{ level: 'read' }] }), 'call:org:org-1')).resolves.toMatchObject({ kind: 'org' });
-        await expect(authorizeRoom(processAuth({ other: [{ level: 'read' }] }), 'call:org:org-1')).rejects.toMatchObject({ statusCode: 403 });
-        await expect(authorizeRoom(processAuth({}), 'call:org:org-1')).rejects.toMatchObject({ statusCode: 403 });
+        // Declared but withheld for this member: deliberate restriction.
+        await expect(authorizeRoom(processAuth({ livekit: null }), 'call:org:org-1')).rejects.toMatchObject({ statusCode: 403 });
+        // Undeclared feature: org rooms stay membership-based, like the org chat.
+        await expect(authorizeRoom(processAuth({ other: [{ level: 'read' }] }), 'call:org:org-1')).resolves.toMatchObject({ kind: 'org' });
+        await expect(authorizeRoom(processAuth({}), 'call:org:org-1')).resolves.toMatchObject({ kind: 'org' });
         // without an active process, plain membership still admits
         await expect(authorizeRoom(auth('user-a', 'org-1'), 'call:org:org-1')).resolves.toMatchObject({ kind: 'org' });
     });
@@ -147,9 +150,9 @@ describe('livekit call rooms', () => {
         expect(request.headers.Authorization).toEqual(expect.stringMatching(/^Bearer /));
     });
 
-    it('returns an empty active-room list when the LiveKit server is unreachable', async () => {
+    it('fails 502 when the LiveKit server is unreachable so callers keep their last known state', async () => {
         mocks.fetch.mockRejectedValue(new Error('network down'));
-        await expect(listActiveRooms(auth('user-a', 'org-1'))).resolves.toEqual([]);
+        await expect(listActiveRooms(auth('user-a', 'org-1'))).rejects.toMatchObject({ statusCode: 502 });
     });
 
     it('mints LiveKit-shaped room tokens for authorized callers', async () => {

@@ -1760,8 +1760,7 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
   ]));
 
   // Graph-derived vocabulary (SPEC §7): the draft's state records seed the
-  // machine for every producer of their type — terminal flags ride the
-  // records; nothing else supplies states.
+  // machine for every producer of their type; nothing else supplies states.
   const stateRecordsByType = new Map();
   for (const record of Object.values(process.ctsTypes || {})) {
     if (record?.kind !== 'state' || !record.value) continue;

@@ -23,12 +23,26 @@ README REWRITE (640 lines → ~350, zero contract loss):
 
 ### Code findings
 
-- [ ] 24 failures in process-definitions.spec.js at base 6b12a236c (identical
+- [x] 24 failures in process-definitions.spec.js at base 6b12a236c (identical
   before/after the 2026-10-25 wave-2 comment-only edits): failing names span
   the core service contract — draft save + binding diagnostics, entity-node
   migration before activation, semantic apply diff + 409, declared-migration
   activation, history supersede, processUpdate chains. Spec/service drift;
   needs its own session.
+  Landed 2026-10-25: specs stale against the species-rekey/§3-wire/terminal-drop
+  owner waves plus two service regressions (activation's unmocked type-death
+  gate in the spec; archive-intent branch unreachable behind the target-less
+  transition guard) — see Agent Notes.
+- [ ] `_template/process-update-handler.js` (and its four consumers:
+  artifacts, artifact-templates, users, organizations) still persists the
+  retired block vocabulary (`identity`/`data`/`specs`/`summary`/
+  `attachments`/`relations` dotted paths), while the process seam's mutate
+  patch (`wirePatchFromChanges`) now speaks the nested §3 wire (`fields.*`,
+  `name`, `relations.*` per cts SPEC §3): a cts.mutate field write on a
+  framework feature type fails at the handler ("Process updates cannot
+  persist fields"). Generic §13 instance services accept the §3 patch
+  natively. Needs an owner decision on migrating the template-handler
+  family to the §3 wire (services + repositories + models in one cut).
 
 ### Deletions
 
@@ -76,3 +90,31 @@ and construction-input derivation facts the README lacked moved into
 §Socket projection and auth hydration and §Create. Pre-existing on this
 base, untouched: 24 process-definitions spec failures identical with and
 without this wave's changes (comment-only service edits).
+
+### Agent Notes (2026-10-25, spec-repair session)
+
+Session `agent/pdspec2-20261025-1614` (worktree `.agent-worktrees/pdspec2`).
+All 24 filed failures (18 in process-definitions.spec.js + 6 in the
+sibling cts-graph-protocol / draft-overlay / entity-sources /
+hierarchy-hydration / query-planning specs) plus the 2 livekit
+service.spec failures land green. Root causes per cluster: (a) spec never
+mocked the activation type-death gate (d73679c15) — lifetime mock added,
+the gate itself is covered by cts-types/lifetime.spec.js; (b) archive-intent
+transition branch unreachable behind the target-less guard (d080f639c) —
+service fixed, branch moved ahead of the guard; (c) specs authored in
+retired vocabulary: `effect.*` kinds (species rekey waves — now `cts.*`),
+`data.*`/`identity.*` wire paths and flattened processUpdate patches
+(51f1504af §3 wire — now nested `fields.*`), `isTerminal` on compiled
+states (6dc50c8f2 dropped terminal), `inputDefaults.field` vs the authored
+`path` home, `effect.createEntity` fixtures in hierarchy-hydration,
+pre-§3 `projectId` filter spelling in entity-sources, and query-planning
+testing the deleted planning layer (03a118fa5 + 27b4179a3 passthrough);
+(d) livekit service.spec encoded pre-9be48cc52 gating and pre-8dc8c134a
+lenient listing — README documents both current contracts, specs updated.
+README §Update and §Feature access boundaries reconciled to the §3 patch
+and the verbatim-filter + algebra law; a cts.field `path` note and the
+save-floor `position` fixture landed in the specs. New code finding filed:
+template processUpdate family vs the §3 patch. Validation: both feature
+directories 123/123, packages/processes 512/512, check-arch green;
+check-docs has one pre-existing blocking broken link
+(workers/nesting/README.md → ./jagua-rs/README.md, present at base).

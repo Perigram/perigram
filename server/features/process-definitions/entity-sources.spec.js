@@ -51,8 +51,8 @@ describe('process entity sources', () => {
     const children = await processChildEntities(containment, queryEntities, { _id: 'project-1' }, 'project');
 
     expect(children).toEqual([{ _id: 'facade-1' }, { _id: 'queue-1' }, { _id: 'queue-2' }]);
-    expect(queryEntities).toHaveBeenNthCalledWith(1, 'facade', { projectId: 'project-1' });
-    expect(queryEntities).toHaveBeenNthCalledWith(2, 'queue', { projectId: 'project-1' });
+    expect(queryEntities).toHaveBeenNthCalledWith(1, 'facade', { 'lineage.projectId': 'project-1' });
+    expect(queryEntities).toHaveBeenNthCalledWith(2, 'queue', { 'lineage.projectId': 'project-1' });
   });
 
   it('returns an empty list for an entity type with no declared children', async () => {

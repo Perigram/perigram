@@ -247,12 +247,11 @@ action, and a command action grant exposes no mutation controls.
 
 ### Update
 
-Generic Update receives replacement blocks through the same typed
-process dataflow; relation collection changes are composed with
-ordinary list/tree operations before Modify Block receives the
-replacement value, then persisted through the target feature's
-`processUpdate()` contract. Manual Update effects compile into the
-normal generated action manifest; Relations data connections without an
+Generic Update receives field values through the same typed process
+dataflow; relation collection changes are composed with ordinary list/tree
+operations before the leaf write, then persisted through the target
+feature's `processUpdate()` contract. Manual Update effects compile into
+the normal generated action manifest; Relations data connections without an
 effect remain non-executable dataflow.
 
 Status-mutating `updateEntity` actions go through the status runtime
@@ -264,10 +263,11 @@ status-plus-patch boundary, so downstream nodes and generated screens
 always receive a current typed entity. Non-status `updateEntity` actions
 delegate to the feature's explicit `processUpdate()` handler: after
 loading the target through its owning feature service and checking
-write access, the runtime hands the flattened canonical block patch to
-the handler, which persists the allowed `identity`, `data`, `specs`,
-`summary`, `attachments`, and `relations` paths through the owning
-feature repository/model boundary.
+write access, the runtime hands the handler the nested §3 wire patch —
+leaf writes at their §3 slots (`fields.*`, `name`, `relations.*`), built
+by the one patch conversion home in this service
+(`wirePatchFromChanges`) — which the handler persists through the owning
+feature boundary; lifecycle writes stay status-runtime-owned.
 
 Immediately before a compiled Create constructor or Modify persistence
 call, the effect adapter normalizes each connected Relations replacement
@@ -449,22 +449,21 @@ these adapters for current/exact entity reads, parent resolution,
 relation-target validation, update-target loading, and socket
 projection.
 
-The process-definition service owns source-query planning. It pushes
-only a source equality predicate with a normal persisted-field path into
-the concrete `processList` filter and still evaluates the predicate in
-memory; sort, slice, compound predicates, and unsafe paths remain
-residual — the runtime adapter's filter capability covers only the
-pushed source-equality shape. Parent, Children, and Related reads resolve from the domain
+`executeProcessQuery` forwards the concrete filter object to the
+adapter's `processList` verbatim with the full auth context — the
+children read's `lineage.<key>` filter is the shipped shape. Filtering is
+process algebra: predicate conditions and gates stay algebra values,
+evaluated in memory by `entityFilter` over the serialized models
+([packages/processes](../../../packages/processes/README.md)). Parent,
+Children, and Related reads resolve from the domain
 `containment` and `relations` contracts via the pure helpers in
 `entity-sources.js`: Parent loads the declared lineage parent through
 `processGetById`, Children query declared children through `processList`
-with the lineage-key filter, and Related resolves each stored relation
+with the `lineage.<key>` filter, and Related resolves each stored relation
 reference through `processGetById` by its declared target type. They
 receive the full auth context; a missing or denied parent/relation
 target fails clearly, and root entities and empty relation values return
-null or an empty list. Returned models are serialized before field
-predicates are evaluated in memory; predicate conditions and gates
-remain process algebra values.
+null or an empty list.
 
 Process create, update, status-mutating update, and command-output
 status mutations publish typed invalidation events through

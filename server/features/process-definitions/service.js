@@ -1901,6 +1901,16 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     if (!service.processUpdate) throw new Error(`Entity service cannot update ${typeId}`);
     return await service.processUpdate(target.id, normalizedPatch, auth);
   }
+  if (operation === 'cts.transition' && record.archiveIntent) {
+    const result = await stateService.transitionWithResult({
+      typeId,
+      targetId: target.id,
+      intent: record.archiveIntent,
+      auth,
+      context: effectTransitionContext(record, inputs)
+    });
+    return result.entity;
+  }
   if (operation === 'cts.transition') {
     // The declared target rides the state socket (the wire is the value) or
     // the record's authored state reference; an authored socket default is
@@ -1923,16 +1933,6 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       typeId,
       targetId: target.id,
       targetState,
-      auth,
-      context: effectTransitionContext(record, inputs)
-    });
-    return result.entity;
-  }
-  if (operation === 'cts.transition' && record.archiveIntent) {
-    const result = await stateService.transitionWithResult({
-      typeId,
-      targetId: target.id,
-      ...(record.archiveIntent ? { intent: record.archiveIntent } : { targetState: 'ARCHIVED' }),
       auth,
       context: effectTransitionContext(record, inputs)
     });
