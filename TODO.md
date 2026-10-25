@@ -379,6 +379,16 @@ AttachmentKind row.
   payload read on both surfaces, payload-less/blob-gone refusals,
   contract projection and single-action read).
 
+  ### Agent Notes (2026-10-25, probe session)
+
+  E2E probe `e2e/agent-mcp-template-fill.mjs` (API-only, node against
+  E2E_BASE_URL): composes a fill definition through the MCP tools,
+  activates, runs the compiled `content` action, reads the filled
+  markdown back through `read_instance_file`. Bare
+  `create_process_definition` (name only) now seeds the empty v4 draft;
+  the seed's home is `emptyAuthoredDocument` in
+  `packages/processes/src/authoring.js`.
+
 - [ ] Documents plugin: xlsx fill service on the new seam (template
   workbook ref + rows/values in, filled workbook payload out); md fill
   rides the same service shape.
