@@ -452,7 +452,13 @@ density })`) resolve the host side: the measured width maps to the
 `CONTAINER_WIDTH_STEPS` steps (narrow / medium 40rem / wide 60rem), and
 `HOST_PROFILES` supply the fallback `height`/`scroll` per host kind — the
 measured box wins over the profile. The app-side measurement seam is
-`useContainerTraits` ([composables](../../composables/README.md)); the
+`useContainerTraits` ([composables](../../composables/README.md)): hosts
+declare their profile through `provideContainerTraits` (the pane measures
+itself, fixed-shape hosts provide the profile), surfaces resolve the host
+record through `useHostContainerTraits` (the page profile is the
+providerless default), and fragments measure where they render. Budgets
+consume the host record — a `narrow`/`medium` host sheds table columns
+(compact column scale) and a `narrow` host sheds card facts. The
 sanctioned scoped-CSS container homes (the record split's 60rem, the form
 grid's 40rem) materialize the same steps.
 
@@ -485,8 +491,11 @@ create action — see RegionBlock in
 arranged content, and every arrangement decision (weights, columns, tabs,
 the side rail) sees filled children only; its relation key still covers the
 record body's chip row.
-Screen-level sections keep their own budget rule (`childrenModeFor`:
-over-budget top-level sections tab). Every weight is a compose-time value
+Screen-level sections arrange through the same ordered rules
+(`regionsArrangement` on the composed screen, materialized by
+RegionChildren): multi-section screens share proportional columns when the
+weights grant them and tab past the budget — one ladder for screens and
+record children. Every weight is a compose-time value
 over the composed tree.
 
 One global spacing coefficient (0.5–2, the showcase slider)
@@ -494,10 +503,9 @@ selects the rhythm set (`spacingClasses` over the literal
 `SPACING_SCALES` table): stack rhythm, section gaps, fact-row padding,
 chip-row leading, toolbar gaps, control size, and
 editor size
-move together — real coefficients, Tailwind-scannable by construction. The rule binds everywhere siblings exist: composed screens carry
-`regionsMode` for their top-level regions (a heavy home tabs its
-sections), and detail nodes carry `childrenMode` for their child
-regions. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and
+move together — real coefficients, Tailwind-scannable by construction. The rule binds everywhere siblings exist: detail nodes carry
+`childArrangement` for their child regions, and the composed screen carries
+`regionsArrangement` for its top-level sections. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and
 `TYPE_BY_LEVEL` (heading typography role per level), so spacing and text
 scale are data too. Widths stay in
 the vocabulary (`LAYOUT.clip`, `LAYOUT.bounded` over the bounded-grid-item

@@ -622,7 +622,9 @@ scroll body) hosting the entity's real detail surface — the directory
 profile for `user`/`organization`
 ([components/directory](../directory/README.md)), and the compiled detail
 screen through the generator host
-([components/generated](../generated/README.md)) for instance types.
+([components/generated](../generated/README.md)) for instance types. It
+provides the `popup` container profile, so hosted surfaces take the
+narrow-host budgets.
 Inline refs, compact micro cards, and inline entity-card chips open it
 (see [`InstanceInlineRef.vue`](#instanceinlinerefvue)); its expand action
 steps the record up to its page, so a ref discovered inside a workspace

@@ -1,7 +1,7 @@
 // Screen composition: projects a compiled screen contract
 // plus a CTS client bundle and an instance pool into a pure render tree.
 // No Vue here — the components/ui-mapping layer materializes this tree.
-import { resolveSurface, resolveChrome, arrangeChildren, regionSideSpanFor, regionDataTraits, estimateRegionWeight, resolveListControls, childrenModeFor, SIDE_MAX_WEIGHT } from './index.js';
+import { resolveSurface, resolveChrome, arrangeChildren, regionSideSpanFor, regionDataTraits, estimateRegionWeight, resolveListControls, SIDE_MAX_WEIGHT } from './index.js';
 import { filterFromFlatFilters, instanceMatchesFilter } from '#shared/instance-filters/index.js';
 
 // Region data state: the data layer may report per-source states
@@ -204,7 +204,8 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
   const typesById = Object.fromEntries((bundle.types || []).map(type => [type.id, type]));
   const providedStates = options.sourceStates || null;
   // Every top-level region sits at depth 0 — the tree position decides
-  // chrome and variant, never the region's index in the contract.
+  // chrome and variant, never the region's index in the contract. Screen
+  // sections arrange through the same ordered rules record children do.
   const regions = (screen.regions || [])
     .filter(region => region.slot !== 'children')
     .map(region => composeRegion(region, screen, contract, pool, typesById, 0, providedStates));
@@ -215,6 +216,6 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
     typeId: screen.typeId || null,
     type: typesById[screen.typeId] || null,
     regions: Object.freeze(regions),
-    regionsMode: childrenModeFor(regions, 0)
+    regionsArrangement: arrangeChildren(regions, 0)
   });
 }

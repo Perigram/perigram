@@ -468,3 +468,28 @@ render the compact stub line instead of an empty-state Message.
 - [ ] WAITING — owner verification: the five landed items above; check a
   generated detail with mixed children (a table child beside light peers)
   and the stub strip on the live stack.
+
+### Agent Notes (2026-10-25, visible round)
+
+Session `agent/genui-visible-20261025-1812` (worktree
+`.agent-worktrees/genui-visible`). The consumer round the foundations
+unlock: hosts declare container profiles through the seam
+(`provideContainerTraits` — the pane measures its scroll column, EntityPopup
+provides the popup profile; `useHostContainerTraits` resolves the host
+record, page profile as the providerless default); budgets consume the
+width step (compact table columns in narrow/medium hosts —
+CollectionTable; compact card facts in narrow hosts — CardGrid,
+BoardCollection); screen top-level sections arrange through the one ladder
+(`regionsArrangement` = `arrangeChildren`, materialized by RegionChildren
+with a `regionProps`/`regionEvents` passthrough; `regionsMode`/
+`childrenModeFor` retired with their consumers migrated in the same cut).
+Full-row refinement: full-breadth children within the column cap stack,
+past it the set tabs (the page-height bound). SPEC addendum in
+shared/ui-mapping/SPEC.md (host declaration law, budget law, screen-level
+ladder rule). Specs: 160 unit/fixture/random + 14 SSR green; design-system
+guard green.
+
+- [ ] WAITING — owner verification (visible round): a typeList screen with
+  several sections in a wide pane vs a narrow one (columns engage/shed);
+  a table inside a pane or the record popup (compact columns); the record
+  popup's card facts.
