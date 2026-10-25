@@ -216,5 +216,5 @@ import SupportMessageContent from '~/components/shared/SupportMessageContent.vue
 import UserChip from '~/components/shared/UserChip.vue'
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 const props = defineProps({ thread: Object, messageItem: Object })
-const { bubbleContentMessage, currentUserId, docksRight, formatTime, goToMessage, highlightKey, instanceLinkLabel, instanceRefs, instances, isAudioOnlyMessage, isOwnMessage, lowerInstanceChip, message, messageBubbleText, messageSenderKey, messages, openLowerInstanceChat, parentAttachmentIcon, showSenderAvatar, showSenderLabel, swipeDrag, swipeStyle, transcribingMessageIds, messageSeen } = props.thread
+const { bubbleContentMessage, currentUserId, docksRight, formatTime, goToMessage, highlightKey, instanceLinkLabel, instanceRefs, instances, isAudioOnlyMessage, isOwnMessage, lowerInstanceChip, message, messageBubbleText, messageSeen, messageSenderKey, messages, openLowerInstanceChat, parentAttachmentIcon, showSenderAvatar, showSenderLabel, swipeDrag, swipeStyle, transcribingMessageIds } = props.thread
 </script>
