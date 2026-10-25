@@ -447,8 +447,8 @@ describe('screen composition', () => {
     expect(mixed.regions[0].childRegions.map(region => region.relationKey)).toEqual(['reviews']);
     expect(mixed.regions[0].stubRegions.map(region => region.relationKey)).toEqual(['audits']);
     expect(mixed.regions[0].childArrangement.narrow).toEqual({ mode: 'stack' });
-    expect(mixed.regions[0].childArrangement.wide).toEqual({ mode: 'side', span: 4 });
-    expect(mixed.regions[0].sideRail).toEqual({ mode: 'side', span: 4 });
+    expect(mixed.regions[0].childArrangement.wide).toEqual({ mode: 'side', span: 3 });
+    expect(mixed.regions[0].sideRail).toEqual({ mode: 'side', span: 3 });
     // An all-empty child set renders the body full-width with the
     // collections as stubs below.
     const emptyHost = { ...host, relations: { reviews: [], audits: [] } };
