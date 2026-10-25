@@ -29,9 +29,11 @@ export default defineEventHandler(async (event) => {
         limit,
         before: query.before || null
     }, auth.userId)
-    await supportService.markConversationRead(auth, { conversationKey: context.conversationKey })
+    const readCursors = await supportService.listReadCursors(context)
+await supportService.markConversationRead(auth, { conversationKey: context.conversationKey })
 
     return {
+    readCursors,
         data: messages,
         hasMore: messages.length >= limit,
         currentUserId: auth.userId,

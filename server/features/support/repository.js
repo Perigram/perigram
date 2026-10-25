@@ -90,6 +90,14 @@ export async function markRead(conversationKey, userId, readAt = new Date()) {
     return await db.collection(READS_COLLECTION).findOne({ conversationKey, userId });
 }
 
+export async function findConversationReads(conversationKey) {
+    const db = await connectDB();
+    return await db
+        .collection(READS_COLLECTION)
+        .find({ conversationKey })
+        .toArray();
+}
+
 // Per-user conversation preferences (pin/archive). One document per user and
 // conversation; timestamps double as existence flags.
 export async function findConversationPrefs(userId, conversationKeys = []) {

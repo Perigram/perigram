@@ -221,7 +221,21 @@
             "attach_instances": "Экземпляры прикреплены",
             "list_actions": "Действия получены",
             "run_action": "Действие выполнено"
-        }
+        },
+        "searchMessages": "Поиск по сообщениям",
+        "searchSender": "Отправитель",
+        "searchAnySender": "Все отправители",
+        "searchAttachmentType": "Вложение",
+        "searchAnyKind": "Любой тип",
+        "searchKindImage": "Изображения",
+        "searchKindVideo": "Видео",
+        "searchKindAudio": "Аудио",
+        "searchKindFile": "Файлы",
+        "searchNoResults": "Сообщений не найдено",
+        "searchThread": "Поиск",
+        "seenBy": "Просмотрено",
+        "newMessages": "Новые сообщения",
+        "scrollToEnd": "К последним сообщениям"
     },
     "footer": {
         "termsAndConditions": "Условия и положения",
