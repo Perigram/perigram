@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
     findConversationMessages: vi.fn(),
     findReadStates: vi.fn(),
     markRead: vi.fn(),
+    findConversationReads: vi.fn(async () => []),
     findConversationPrefs: vi.fn(async () => []),
     upsertConversationPref: vi.fn(),
     findOthersReadStates: vi.fn(async () => []),
@@ -1397,4 +1398,41 @@ describe('support communication service', () => {
       expect(options.find(option => option.value === 'wo-1')?.recipientHasAccess).toBe(true);
     });
   });
+});
+
+describe('support search and read cursors', () => {
+    it('searches a conversation with escaped text, sender, and attachment filters, newest first', async () => {
+        mocks.usersService.getById.mockImplementation(async (id) => ({
+            toJSON: () => ({ _id: id, identity: { name: id }, memberships: [{ organizationId: 'org-1' }] })
+        }));
+        mocks.repository.find.mockResolvedValue([
+            { _id: 'm1', message: 'older nest', timestamp: '2026-01-01T00:00:00Z' },
+            { _id: 'm2', message: 'newer nest', timestamp: '2026-01-02T00:00:00Z' }
+        ]);
+        const data = await supportService.searchConversationMessages(auth, {
+            conversationKey: 'direct:user-a:user-b',
+            q: 'nest(.*)',
+            sender: 'user-a',
+            attachmentKind: 'image'
+        });
+        expect(data.map(row => row._id)).toEqual(['m2', 'm1']);
+        const [match, , options] = mocks.repository.find.mock.calls[0];
+        expect(match.senderUserId).toBe('user-a');
+        expect(match['attachments.kind']).toBe('image');
+        expect(match.message.$options).toBe('i');
+        expect(match.message.$regex).toBe('nest\\(\\.\\*\\)');
+        expect(options.limit).toBe(50);
+    });
+
+    it('maps conversation read rows to ISO cursors', async () => {
+        mocks.usersService.getById.mockImplementation(async (id) => ({
+            toJSON: () => ({ _id: id, identity: { name: id }, memberships: [{ organizationId: 'org-1' }] })
+        }));
+        mocks.repository.findConversationReads.mockResolvedValue([
+            { conversationKey: 'direct:user-a:user-b', userId: 'user-b', lastReadAt: new Date('2026-01-02T03:04:05Z') }
+        ]);
+        const context = await supportService.getUserConversationContext(auth, 'user-b');
+        const cursors = await supportService.listReadCursors(context);
+        expect(cursors).toEqual([{ userId: 'user-b', lastReadAt: '2026-01-02T03:04:05.000Z' }]);
+    });
 });

@@ -60,6 +60,7 @@ All entity-related components use these patterns:
 | Folder | Owns |
 |---|---|
 | [shared/](./shared/README.md) | Registered primitives: `InstanceCard`, `DrawingCanvas`, `EntityPopup`, chat surfaces, designer frame |
+| [chat/](./chat/README.md) | The chat column family: inbox rail, thread header, message list and bubble, composer, search panel, the thread state core |
 | [entities/](./entities/README.md) | Registry-bound entity cards — the folded surface table and card invariants |
 | [generated/](./generated/README.md) | Compiled screen surfaces: the `[screenKey]` screens route, the home workspace, `/organization/*` system screens, action visibility, the file-surface/editor registry |
 | [ui-mapping/](./ui-mapping/README.md) | Generator materializations and the type-label seam |
@@ -78,7 +79,7 @@ Top-level SFCs:
 | File | Purpose |
 |---|---|
 | `AuthProgress.vue` | Full-screen authenticating state (heading + spinner) |
-| `ChatSupport.vue` | The chat surface column, hosted by the popup dialog, the `/chats` route, entity panels, and the home tab; frontend chat contract in [shared/README.md](./shared/README.md), message semantics in [server/features/support](../server/features/support/README.md) |
+| `ChatSupport.vue` | The chat column host shell: composes [components/chat](./chat/README.md) for every host — the popup dialog, the `/chats` route, entity panels, and the home tab |
 | `Footer.vue` | App footer chrome |
 | `LanguageSwitcher.vue` | Locale select |
 | `PermissionEditor.vue` | The typed grant editor for the `shared/access-control.js` grant shape, covering direct permissions and Process Designer access: grants render as accordions in the selected access area, the level edits inline as `Allow <level> when <predicate>`, and predicates are nested boolean filter expressions (rows and nested groups, `all`/`any` gate, per-clause `not` toggle) built from real domain contracts — exact `id`, workflow `status` from the served type declarations' state trees, property paths from the entity field descriptors. Entity-id clauses use entity pickers; free text serves custom paths and transition names; authoring happens in the filter builder, and saved grants serialize only complete predicates. |

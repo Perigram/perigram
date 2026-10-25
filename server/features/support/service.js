@@ -664,6 +664,28 @@ export async function markConversationRead(auth, body = {}) {
     return read;
 }
 
+export async function listReadCursors(context) {
+    const rows = await repository.findConversationReads(context.conversationKey);
+    return rows.map(row => ({
+        userId: row.userId,
+        lastReadAt: row.lastReadAt instanceof Date ? row.lastReadAt.toISOString() : row.lastReadAt
+    }));
+}
+
+const SEARCH_LIMIT_CAP = 50;
+const escapeRegExpText = value => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+export async function searchConversationMessages(auth, query = {}) {
+    const context = await getConversationContextByKey(auth, query.conversationKey || null);
+    const match = { ...context.match };
+    if (query.sender) match.senderUserId = String(query.sender);
+    if (query.attachmentKind) match['attachments.kind'] = String(query.attachmentKind);
+    if (query.q) match.message = { $regex: escapeRegExpText(query.q), $options: 'i' };
+    const limit = Math.min(Math.max(Number.parseInt(query.limit, 10) || SEARCH_LIMIT_CAP, 1), SEARCH_LIMIT_CAP);
+    const page = await repository.find(match, messageProjection(), { limit });
+    return page.slice().reverse();
+}
+
 /**
  * Ephemeral typing signal: authorized like a read, published to the
  * conversation topic, never persisted.

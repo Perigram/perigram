@@ -75,6 +75,7 @@ surfaces; adding an entity type registers a card and a contract entry.
 | Folder | Owns |
 |---|---|
 | [shared/](./shared/README.md) | registered primitives (InstanceCard, DrawingCanvas, EntityPopup, chat surfaces, designer frame) |
+| [chat/](./chat/README.md) | the chat column family: rail, thread, list, bubble, composer, search, thread state core |
 | [entities/](./entities/README.md) | registry-bound entity cards, one folded README |
 | [generated/](./generated/README.md) | compiled screen surfaces: screens route, home workspace, `/organization/*` system screens |
 | [ui-mapping/](./ui-mapping/README.md) | generator materializations (33 SFCs), type-label seam |

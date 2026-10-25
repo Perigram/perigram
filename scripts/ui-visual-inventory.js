@@ -59,11 +59,9 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   'components/ui-mapping/RegionChildren.vue': ['layout', [':style="columnsEngaged ? { gridTemplateColumns: engaged.tracks } : undefined"']],
   'components/calls/CallPanel.vue': ['data-driven', [':style="{ left: `${reaction.left}%` }"']],
   'components/calls/CallTile.vue': ['data-driven', [':style="hugAspect ? { aspectRatio: String(tile.aspect) } : null"']],
-  'components/ChatSupport.vue': ['data-driven', [
-    ':style="rowContentStyle(option)"',
-    ':style="{ opacity: swipeIconOpacity(messageItem) }"',
-    ':style="swipeStyle(messageItem)"'
-  ]],
+  'components/chat/ChatInboxRail.vue': ['data-driven', [':style="rowContentStyle(option)"']],
+'components/chat/ChatMessageBubble.vue': ['data-driven', [':style="swipeStyle(messageItem)"']],
+'components/chat/ChatMessageList.vue': ['data-driven', [':style="{ opacity: swipeIconOpacity(messageItem) }"']],
   'components/shared/blocks/DataBlock.vue': ['data-driven', [':style="{ backgroundColor: row.swatch }"']],
   'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', [':style="lineStyle"']],
   'components/shared/DesignerSocketHandle.vue': ['data-driven', [':style="processSocketHandleStyle(socket)"']],

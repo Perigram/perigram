@@ -549,6 +549,10 @@ lifecycle wake rules (type + state with an optional profile) — backed
 by [stores/agentBots.js](../../stores/README.md). The trigger lives on
 group and instance thread headers.
 
+The chat column family (inbox rail, thread, message list, composer,
+search) lives in [components/chat](../chat/README.md); the atoms below
+stay shared primitives.
+
 ### `ChatAttachmentPicker.vue`
 The chat composer's attachment surface: a Popover hosting PrimeVue
 `Tree`, both unmodified Aura. No `pt`, padding, border, or background

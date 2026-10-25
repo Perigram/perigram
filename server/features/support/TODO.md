@@ -42,3 +42,16 @@ loader-shape comment died with the mapping. Consumers read the stored
 name slot per wire family (generic §3 instances carry root `name`; v24
 entity DTOs carry `identity.name` — both are the stored shape, no
 synthesis).
+
+## Message search + thread read cursors (owner direction, 2026-10-25)
+- [x] `GET /api/support/search` (conversation-scoped; q/sender/
+  attachmentKind; newest-first, cap 50).
+- [x] `GET /api/support/messages` responses carry `readCursors`.
+- [x] Repository/service seams and spec coverage for both.
+### Agent Notes
+Session `agent/chat-qol-20261025-2035`: `repository.findConversationReads`,
+`service.listReadCursors` + `service.searchConversationMessages`,
+`server/api/support/search.get.js`, messages GET `readCursors` (captured
+before markRead), two spec cases (46 green in support.spec.js). README
+rows added (Lazy History cursor note, Message Search section).
+- WAITING — owner verification.

@@ -49,6 +49,15 @@ threads are the platform's contact channel; matching is display-name-only.
   50, cap 100), `before` (ISO cursor) pages older ascending, `hasMore:
   data.length >= limit`.
 
+- History responses carry `readCursors: [{ userId, lastReadAt }]` for
+  the conversation's participants; the `read` event
+  `{conversationKey, userId, at}` keeps cursors live in open threads.
+### Search
+`GET /api/support/search` scans one conversation the caller can read:
+`q` (case-insensitive substring on the message body), `sender`
+(participant user id), `attachmentKind` (`image`|`video`|`audio`|`file`),
+newest first, capped at 50 rows of the message projection; absent
+filters match the whole conversation.
 ### Groups
 
 A `chat_groups` document (canonical blocks + `participants` user ids)

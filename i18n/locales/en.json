@@ -221,7 +221,21 @@
             "attach_instances": "Instances attached",
             "list_actions": "Actions listed",
             "run_action": "Action executed"
-        }
+        },
+        "searchMessages": "Search messages",
+        "searchSender": "Sender",
+        "searchAnySender": "All senders",
+        "searchAttachmentType": "Attachment",
+        "searchAnyKind": "Any type",
+        "searchKindImage": "Images",
+        "searchKindVideo": "Videos",
+        "searchKindAudio": "Audio",
+        "searchKindFile": "Files",
+        "searchNoResults": "No messages found",
+        "searchThread": "Search",
+        "seenBy": "Seen by",
+        "newMessages": "New messages",
+        "scrollToEnd": "Scroll to latest"
     },
     "footer": {
         "termsAndConditions": "Terms and Conditions",
