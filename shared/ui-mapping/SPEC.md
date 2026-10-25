@@ -119,15 +119,16 @@ screen's sections, a tab panel's content):
 3. **Dominant child.** A sibling holding at least `DOMINANT_CHILD_SHARE` of
    total weight keeps the vertical flow; the remainder arranges after it
    within `SURFACE_ROW_BUDGET`, else tabs in descending weight order.
-4. **Side rail.** At `wide`, a stack-mode child set of combined weight at
+4. **Side rail.** At `wide`, a light child set of combined weight at
    or under `SIDE_MAX_WEIGHT` rides beside the record body; the side column
    earns its span by weight (`REGION_SIDE_SPANS`).
 5. **Peer columns.** Siblings each at or under `COLUMN_MAX_WEIGHT` share
    proportional columns (track fr from each child's weight); the columns
    engage when the measured host grants every track its earned minimum
    (`trackCount × REGION_COLUMN_EARNED_REM`), else stack.
-6. **Tabs.** A set over the arrangement budgets tabs in descending weight
-   order (`CHILDREN_TABS_AT` at screen level, `childrenModeFor`).
+6. **Tabs.** A set over the arrangement budgets with a sibling past the
+   column cap tabs in descending weight order; tabs are a top-level
+   arrangement, and nested heavy content stacks.
 7. **Stack.** The terminal arrangement: content-height blocks in flow
    order.
 

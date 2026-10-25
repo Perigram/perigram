@@ -448,21 +448,22 @@ scroll-owning layouts and collections past the pagination budget,
 random-world spec pins its domains over every composed node.
 
 **Container traits** (`resolveContainerTraits({ widthRem, hostKind,
-density })`) resolve the host side: the measured width maps to the
-`CONTAINER_WIDTH_STEPS` steps (narrow / medium 40rem / wide 60rem), and
-`HOST_PROFILES` supply the fallback `height`/`scroll` per host kind — the
-measured box wins over the profile. The app-side measurement seam is
-`useContainerTraits` ([composables](../../composables/README.md)): hosts
-declare their profile through `provideContainerTraits` (the pane measures
-itself, fixed-shape hosts provide the profile), surfaces resolve the host
-record through `useHostContainerTraits` (the page profile is the
-providerless default), and fragments measure where they render. Budgets
-consume the host record — a `narrow`/`medium` host sheds table columns
-(compact column scale) and a `narrow` host sheds card facts. The
-sanctioned scoped-CSS container homes (the record split's 60rem, the form
-grid's 40rem) materialize the same steps.
+density, height?, scroll? })`) resolve the host side: the measured width
+maps to the `CONTAINER_WIDTH_STEPS` steps (narrow / medium 40rem / wide
+60rem), and `HOST_PROFILES` supply the fallback `height`/`scroll` per host
+kind — the measured box wins over the profile, and a placement box
+overrides height/scroll with the host record's values while measuring its
+own width. The app-side measurement seam is `useContainerTraits`
+([composables](../../composables/README.md)): hosts declare their profile
+through `provideContainerTraits` (the pane measures itself, fixed-shape
+hosts provide the profile, the routed screen provides the measured page
+record when no host declared one), placement boxes measure where they
+render, and surfaces resolve the nearest record through
+`useHostContainerTraits` (the page profile is the providerless default).
+Budgets consume the resolved record — a `narrow`/`medium` box sheds table
+columns (compact column scale) and a `narrow` box sheds card facts.
 
-Sibling arrangement is weight-driven and compose-time.
+Sibling arrangement is weight-driven, compose-time, and step-carried.
 `estimateRegionWeight` estimates each region's full rendered height from
 its own data — facts, structural fields, and relation refs for detail
 regions; per-layout row factors (`ROW_WEIGHT_BY_LAYOUT`: a preview card ≈ 4
@@ -470,18 +471,25 @@ table rows, a board card ≈ 4, a carousel card ≈ 3, a timeline entry ≈ 2)
 times actual instance counts for lists (with the same size classes the
 materialization derives, so the weighted layout is the rendered layout),
 plus the wrapped relation-chip rows the first declared relation adds.
-`arrangeChildren` decides how sibling regions share the surface from the
-same weights and breadths at card scale, by ordered rule — stack-mode
-under the budget, dominant child, full-row claim, peer columns, tabs,
-terminal stack:
+`arrangeChildren` resolves the sibling set by ordered rule at every width
+step — the node's `childArrangement` and the screen's `regionsArrangement`
+carry `{ narrow, medium, wide }`, and the materialization engages the step
+its host record grants, so one composed tree serves every host and a host
+change re-engages without recomposition:
 
 | Rule | Constant | Behavior |
 |---|---|---|
-| Side rail | `SIDE_MAX_WEIGHT` | a stack-mode, non-full-breadth child set at or under the budget rides beside the record body |
-| Dominant child | `DOMINANT_CHILD_SHARE` | a sibling holding at least the share of total weight keeps the vertical flow while its remainder fits `SURFACE_ROW_BUDGET` |
-| Full-row claim | `FULL_BREADTH_LAYOUTS` | breadth-`full` siblings claim whole rows (`fullRow` ids on the columns outcome) and stay out of the peer columns and the record side rail |
-| Peer columns | `COLUMN_MAX_WEIGHT` | columnable peers up to the budget rows each share proportional columns (track fr from each child's estimated rows); a full-row child with a light columnable remainder keeps the mixed flow, a heavy one tabs |
-| Tabs | over-budget sets | tab in descending weight order at the top level (nested heavy content stacks) |
+| Full-row claim | `FULL_BREADTH_LAYOUTS` | breadth-`full` siblings claim whole rows in flow order (`fullRow` ids on the columns outcome) and stay out of the peer columns and the record side rail |
+| Dominant child | `DOMINANT_CHILD_SHARE` | a sibling holding at least the share of total weight keeps the vertical flow; its remainder carries its own stepped arrangement within `SURFACE_ROW_BUDGET`, and a heavier remainder tabs the set |
+| Side rail | `SIDE_MAX_WEIGHT` | the record page's wide-step outcome: a light child set (combined weight at or under the budget, no full-breadth child) rides beside the record body, the side column's span earned by weight (`REGION_SIDE_SPANS`) |
+| Peer columns | `COLUMN_MAX_WEIGHT` | columnable peers each at or under the cap share proportional columns (track fr from each child's estimated rows) at every step past narrow, any peer count |
+| Tabs | `SURFACE_ROW_BUDGET` | a set over the budget with a sibling past the column cap tabs in descending weight order at the top level; nested heavy content stacks |
+| Stack | — | the terminal arrangement: content-height blocks in flow order |
+
+The record side rail engages only at the wide step (narrower hosts take
+the step's own outcome below the body), and peer columns engage when the
+measured box grants every track its earned minimum (`trackCount ×
+REGION_COLUMN_EARNED_REM`), shedding to the stack when it cannot.
 
 Arrangement is content-aware (SPEC §22, 2026-10-22): a child
 collection with zero loaded instances is layout-inert — it joins the node's
@@ -491,7 +499,7 @@ create action — see RegionBlock in
 arranged content, and every arrangement decision (weights, columns, tabs,
 the side rail) sees filled children only; its relation key still covers the
 record body's chip row.
-Screen-level sections arrange through the same ordered rules
+Screen-level sections arrange through the same stepped rules
 (`regionsArrangement` on the composed screen, materialized by
 RegionChildren): multi-section screens share proportional columns when the
 weights grant them and tab past the budget — one ladder for screens and
@@ -513,32 +521,32 @@ tokens) and card grids run through the shared `ResponsiveGrid` primitive
 (container queries).
 Container-relative layout that Tailwind variants cannot express (the
 build ships no container-queries plugin, so `@container`/`@[w]:` classes
-silently compile to nothing) lives in real CSS through four sanctioned
+silently compile to nothing) lives in real CSS through two sanctioned
 homes: record headers (scoped CSS in `SurfaceHeader`, which declares its
 own `container-type`; wide headers lay identity and actions on one
 wrapping row with a 16rem title floor — long names still truncate
 through the `min-w-0` chain — narrow headers stack, with at most
 `HEADER_ACTIONS_INLINE` generated buttons inline before the ellipsis
-overflow menu), the record page's weight-proportional split (scoped CSS in
-`RegionBlock`: past 60rem of container width the record body shares a
-12-track grid with the side column, whose span the children's combined
-weight earns through `REGION_SIDE_SPANS`; narrower hosts stack), peer
-columns (`RegionChildren` renders the weight-derived zero-floored track
-list — `minmax(0, Nfr)`, so wide content scrolls inside its column —
-and engages it when the measured host grants every track its earned
-minimum, `trackCount × REGION_COLUMN_EARNED_REM`: generative for any
-track count, stacking inside panes, dialogs, and narrow hosts), and the
-form grid (`LAYOUT.formGrid` names the global `.ck-form-grid` utility in
-`assets/css/main.css`: one column under 40rem of container width, two
-above; full-span rows opt in with `.ck-span-full`), the record
-body's fill grids beside it (`LAYOUT.factsGrid`/`LAYOUT.bodyGrid`:
-content width is the floor and the host grants growth — fact groups fill
-in tracking columns, body blocks grow into spare row width, and
+overflow menu) and the global stylesheet utilities in
+`assets/css/main.css`: the form grid (`LAYOUT.formGrid` names
+`.ck-form-grid`: one column under 40rem of container width, two above;
+full-span rows opt in with `.ck-span-full`), the record body's fill grids
+(`LAYOUT.factsGrid`/`LAYOUT.bodyGrid`: content width is the floor and the
+host grants growth — fact groups fill in 22rem-floor tracking columns,
+body blocks grow into spare row width under a 46rem content cap, and
 `LAYOUT.packRow` packs content-width stubs side by side), and the record
 preview hero (`LAYOUT.previewHero`/`LAYOUT.previewHeroBand`: the detail
 body's band steps up with its container — 7rem base, 11rem past the
 medium step, 14rem past the wide step — while the card slot keeps the
-fixed `LAYOUT.previewBand` stamp).
+fixed `LAYOUT.previewBand` stamp). Every other container-relative
+mechanism — the record split and the peer columns — engages through the
+container seam alone: `RegionChildren` renders the weight-derived
+zero-floored track list (`minmax(0, Nfr)`, so wide content scrolls inside
+its column) and engages it when the measured box grants every track its
+earned minimum (`trackCount × REGION_COLUMN_EARNED_REM`, generative for
+any track count), and `RegionBlock` lays the record body beside the side
+column on the 12-track grid the children's weight earns
+(`REGION_SIDE_SPANS`) when the wide step's side outcome engages.
 
 ## Composition
 
