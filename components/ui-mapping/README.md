@@ -111,7 +111,12 @@ beside the transition history in `StateHistory`.
 ## Components
 
 - `GeneratedMappingScreen.vue` — engine: composes and renders a compiled
-  screen; owns the generated create and link dialogs (`StandardDialog`),
+  screen; the top-level sections render through `RegionChildren` over the
+  composed `regionsArrangement` (screen sections arrange through the same
+  ladder as record children — columns, tabs, full-row claim), with the
+  screen-level RegionBlock props and event channels passed through the
+  `regionProps`/`regionEvents` passthrough. It owns the generated create
+  and link dialogs (`StandardDialog`),
   ConfirmDialog for destructive actions, and Toast feedback on runs.
   Launch behavior follows `planActionLaunch` (see the shared README's
   Actions section): a create with construction inputs always opens its
@@ -163,7 +168,8 @@ beside the transition history in `StateHistory`.
   through `PreviewBox`, identity link, budgeted facts) with two deliberate
   omissions: the status badge (the lane already is the state) and the type
   subtitle (a lane is single-type). Facts follow the card-grid budget
-  (`cardFactCount` over `CARD_FACT_SCALE`); beyond-budget facts collapse
+  (`cardFactCount` over `CARD_FACT_SCALE`, compact in a `narrow` host
+  through the container seam); beyond-budget facts collapse
   behind the shared show-more keys with one expand per card — board lanes
   are dense, so the budget is the collapse — and the facts rhythm follows
   the screen's injected spacing coefficient (compact screens shrink board
@@ -240,7 +246,9 @@ beside the transition history in `StateHistory`.
   transparent header band — every instance row sits one step above the
   canvas, with no border and no ring, while the table box stays unpainted.
   The virtualized body clamps to the shared `TABLE_VIRTUAL_SCROLL_REM`
-  bound. Columns come from the composed `listControls` contract (filled
+  bound, and the host's width step sizes the column budget — a
+  `narrow`/`medium` host (pane, popup) takes the compact column scale
+  through the container seam. Columns come from the composed `listControls` contract (filled
   short scalars bounded by the richness budget — a field no loaded instance
   fills stays out of the columns), identity/status/scalar columns are
   sortable (quantity values sort by their numeric value), the

@@ -11,7 +11,7 @@ updated: 2026-10-24
 
 The Vue surface tree of the app: shared primitives, registry-bound entity
 cards, the generative screen engine and its compiled surfaces, the
-process/type designers, calls, media, directory, and artifacts. The parent
+process/type designers, calls, media, and directory. The parent
 `components/README.md` is the inventory owner: it carries the UI law and
 the component map (~150 lines); every contract section lives in the child
 README that owns the concern. Consumers: `pages/`, `layouts/`, and every
@@ -83,7 +83,6 @@ surfaces; adding an entity type registers a card and a contract entry.
 | [calls/](./calls/README.md) | call surfaces over `stores/calls.js` |
 | [media/](./media/README.md) | MediaDock over `stores/media.js` |
 | [directory/](./directory/README.md) | DirectoryDetailSurface |
-| [artifacts/](./artifacts/README.md) | ArtifactViewer (CTS payload mounts) |
 
 ## Laws
 
