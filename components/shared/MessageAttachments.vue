@@ -30,12 +30,6 @@
             >
               <InstanceInlineRef v-bind="previewRefProps(item.ref)" />
             </span>
-            <span
-              v-else-if="item.kind === 'instance'"
-              class="block w-full overflow-hidden rounded-ui border border-content-border"
-            >
-              <InstanceInlineRef v-bind="previewRefProps(item.ref)" />
-            </span>
             <span v-else class="block w-full overflow-hidden rounded-ui">
               <button
                 type="button"
@@ -48,12 +42,6 @@
             </span>
           </template>
         </span>
-      </span>
-      <span
-        v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'instance'"
-        class="block w-full max-w-80 overflow-hidden rounded-ui border border-content-border"
-      >
-        <InstanceInlineRef v-bind="previewRefProps(mediaItems[0].ref)" />
       </span>
       <span
         v-else-if="mediaItems.length === 1 && mediaItems[0].kind === 'instance'"

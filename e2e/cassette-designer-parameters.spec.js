@@ -49,6 +49,8 @@ const chipText = (locator) => locator.evaluate(el => (el.textContent || '').trim
 
 test('profile parameter chips re-evaluate the placed profile; array position fields hold drafts', async ({ app }) => {
   test.setTimeout(240_000);
+  await app.installPlugins(['tech-drawing', 'facade']);
+  await app.connectPlugin('facade', 'http://facade-executor:8790');
   const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'], via: { cassette: 'editor' } });
   const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette');
   expect(list?.route, 'Expected a compiled cassette list screen').toBeTruthy();
@@ -194,6 +196,8 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
 
 test('a fillet bound on a drawn corner drives the placed profile', async ({ app }) => {
   test.setTimeout(240_000);
+  await app.installPlugins(['tech-drawing', 'facade']);
+  await app.connectPlugin('facade', 'http://facade-executor:8790');
   const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'], via: { cassette: 'editor' } });
   const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette');
   const page = app.page;
@@ -278,6 +282,8 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
 
 test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   test.setTimeout(240_000);
+  await app.installPlugins(['tech-drawing', 'facade']);
+  await app.connectPlugin('facade', 'http://facade-executor:8790');
   const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'], via: { cassette: 'editor' } });
   const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette');
   const page = app.page;
@@ -295,16 +301,35 @@ test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   await canvas.locator('g.cursor-pointer', { hasText: '+' }).first().click();
   await page.waitForTimeout(1200);
 
-  // Place the default hanger and open its attachment popup.
+  // Place the default hanger and open its attachment popup. Profiles
+  // from this file's earlier tests make the picker appear first — its
+  // New profile entry opens the sketch editor.
   await page.getByRole('button', { name: 'Add profile' }).click();
+  const pickerEntry = page.getByRole('button', { name: /Create new|New profile/ }).first();
+  if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
-  await dialog.getByRole('button', { name: 'Closed shape', exact: true }).first().click();
+
+  // Author one shape with an operation (the save gate): a rectangle
+  // through the CAD engine's command lifecycle.
+  const drawButton = dialog.locator('button[aria-label="Rectangle"]').first();
+  await drawButton.click();
+  await expect(drawButton, 'Rectangle command started').toHaveClass(/p-button-primary/, { timeout: 15_000 });
+  await page.waitForTimeout(150);
+  const sketchBox = await dialog.locator('[role="application"]').first().boundingBox();
+  await page.mouse.click(sketchBox.x + sketchBox.width * 0.3, sketchBox.y + sketchBox.height * 0.3);
+  await page.waitForTimeout(250);
+  await page.mouse.click(sketchBox.x + sketchBox.width * 0.6, sketchBox.y + sketchBox.height * 0.6);
+  await expect(drawButton, 'Rectangle command ended').not.toHaveClass(/p-button-primary/, { timeout: 15_000 });
+  await page.waitForTimeout(600);
+
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await page.waitForTimeout(1200);
 
-  await page.locator('aside button').filter({ hasText: /→|<-/ }).first().click();
+  // The refused default (face_1 › E0 is the fold) leaves the row's
+  // Positioning control as the entry to the placement popup.
+  await page.locator('aside').getByRole('button', { name: 'Positioning' }).first().click();
   const popup = page.locator('div.z-\\[120\\]').first();
   await expect(popup).toBeVisible({ timeout: 15_000 });
   await popup.locator('[aria-label="Placement"]').click();

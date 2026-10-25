@@ -711,7 +711,7 @@ describe('support communication service', () => {
       const upload = vi.fn(async (draft) => ({
         _id: 'file-instance-1',
         type: 'site-photo',
-        identity: { name: draft.payload.name },
+        name: draft.name,
         lineage: { siteOrderId: 'order-1' }
       }));
       registryWithParent(upload);
@@ -750,7 +750,7 @@ describe('support communication service', () => {
       expect(upload).toHaveBeenCalledWith({
         payload: { fileId: 'gridfs-photo', mime: 'image/png', size: 1024, name: 'facade.png' },
         lineage: { siteOrderId: 'order-1' },
-        identity: { name: 'facade.png' }
+        name: 'facade.png'
       }, { userId: 'user-a', organizationId: 'org-1' });
       expect(message.instanceRefs).toEqual([expect.objectContaining({
         type: 'site-photo',
@@ -773,7 +773,7 @@ describe('support communication service', () => {
     });
 
     it('rejects an ambiguous file without a chosen target type', async () => {
-      const upload = vi.fn(async (draft) => ({ _id: 'file-any', identity: { name: draft.payload.name } }));
+      const upload = vi.fn(async (draft) => ({ _id: 'file-any', name: draft.name }));
       registryWithParent(upload);
       mocks.instancesService.declarationForType.mockImplementation(async (typeId) => {
         if (typeId === 'site-order') {

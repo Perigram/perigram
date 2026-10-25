@@ -1203,14 +1203,14 @@ async function materializeInstanceAttachments(auth, context, attachments = []) {
                 name: attachment.name
             },
             lineage: { [candidate.lineageKey]: context.instanceId },
-            ...(attachment.name ? { identity: { name: attachment.name } } : {})
+            ...(attachment.name ? { name: attachment.name } : {})
         }, { userId: scopedAuth.userId, organizationId: context.organizationId });
         const id = created?._id?.toString?.() || created?._id || created?.id || '';
         if (id) {
             refs.push({
                 type: candidate.typeId,
                 id: String(id),
-                label: created?.identity?.name || attachment.name || '',
+                label: created?.name || attachment.name || '',
                 instance: compactInstanceSnapshot(candidate.typeId, created, await snapshotPathsFor(candidate.typeId))
             });
         }

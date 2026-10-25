@@ -42,11 +42,12 @@ test.describe('generated state surface', () => {
     await expect(advance).toBeVisible({ timeout: 20000 });
 
     // The history popover opens the vertical stepper with the initialize
-    // event; the newest step's evidence panel is open by default.
+    // event and the attributed name edit (the rename channel patches the
+    // identifier row); the newest step's evidence panel is open by default.
     await header.getByRole('button', { name: 'State history' }).click();
     const stepper = app.page.locator('.p-stepper');
     await expect(stepper).toBeVisible({ timeout: 10000 });
-    await expect(stepper.locator('.p-step')).toHaveCount(1);
+    await expect(stepper.locator('.p-step')).toHaveCount(2);
     await testInfo.attach('state-history-initial', {
       body: await stepper.screenshot(),
       contentType: 'image/png'
@@ -60,18 +61,22 @@ test.describe('generated state surface', () => {
     await expect(header.locator('.p-tag').filter({ hasText: 'Done' })).toBeVisible({ timeout: 20000 });
     await expect(header.locator('.p-tag').filter({ hasText: 'Draft' })).toHaveCount(0);
 
-    // The audit trail grows the transition event: two stepper steps, the
-    // newest open. Consecutive steps by one principal carry the actor
-    // once — steps are not copies of each other.
+    // The audit trail grows the transition event: three stepper steps,
+    // the newest open. Consecutive steps by one principal carry the actor
+    // once — steps are not copies of each other. The header re-anchored
+    // on the updated entity; let it settle before reopening the popover.
+    await app.page.waitForTimeout(600);
     await header.getByRole('button', { name: 'State history' }).click();
     await expect(stepper).toBeVisible({ timeout: 10000 });
-    await expect(stepper.locator('.p-step')).toHaveCount(2);
-    await expect(stepper.getByText('Perigram E2E User')).toHaveCount(1);
+    await expect(stepper.locator('.p-step')).toHaveCount(3);
+    // The acting principal renders once — the open panel's actor block;
+    // consecutive steps by one principal carry the actor once.
+    await expect(stepper.getByRole('button', { name: 'Open chats' })).toHaveCount(1);
     // No number markers: the state tags are the trail's markers.
     await expect(stepper.locator('.p-step-number:not(.hidden)')).toHaveCount(0);
     // The open panel walks the trail through its own navigation.
-    await stepper.locator('[data-history-nav="older"]:not([disabled])').click();
-    await expect(stepper.locator('.p-stepitem').first()).toHaveClass(/p-stepitem-active/);
+    await stepper.locator('.p-stepitem-active [data-history-nav="older"]:not([disabled])').click();
+    await expect(stepper.locator('.p-stepitem').nth(1)).toHaveClass(/p-stepitem-active/);
     await testInfo.attach('state-history-after-transition', {
       body: await stepper.screenshot(),
       contentType: 'image/png'
@@ -167,12 +172,12 @@ async function seedStatefulProcess(app) {
     }
   };
   const canvas = [
-    { id: 'cls_widget', type: 'ctsClass', data: { refId: 'cls_widget', typeId: TYPE, name: 'E2E State Widget', class: 'item' } },
-    { id: 'fld_widget_name', type: 'ctsField', data: { refId: 'fld_widget_name', typeId: TYPE, name: 'name', descriptor: { base: 'string' } } },
-    { id: 'st_draft', type: 'ctsState', data: { refId: 'st_draft', typeId: TYPE, value: 'draft', terminal: false } },
-    { id: 'st_done', type: 'ctsState', data: { refId: 'st_done', typeId: TYPE, value: 'done', terminal: true } },
-    { id: 'create', type: 'processNode', data: { refId: 'create' } },
-    { id: 'advance', type: 'processNode', data: { refId: 'advance' } }
+    { id: 'cls_widget', type: 'ctsClass', position: { x: 80, y: 80 }, data: { refId: 'cls_widget', typeId: TYPE, name: 'E2E State Widget', class: 'item' } },
+    { id: 'fld_widget_name', type: 'ctsField', position: { x: 80, y: 220 }, data: { refId: 'fld_widget_name', typeId: TYPE, name: 'name', descriptor: { base: 'string' } } },
+    { id: 'st_draft', type: 'ctsState', position: { x: 80, y: 360 }, data: { refId: 'st_draft', typeId: TYPE, value: 'draft', terminal: false } },
+    { id: 'st_done', type: 'ctsState', position: { x: 80, y: 500 }, data: { refId: 'st_done', typeId: TYPE, value: 'done', terminal: true } },
+    { id: 'create', type: 'processNode', position: { x: 420, y: 120 }, data: { refId: 'create' } },
+    { id: 'advance', type: 'processNode', position: { x: 420, y: 320 }, data: { refId: 'advance' } }
   ];
   const draftResponse = await app.request.post('/api/process-definitions', {
     data: {

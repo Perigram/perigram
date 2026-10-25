@@ -23,6 +23,7 @@ const TYPE_NAMES = {
 
 test.describe('process generated screens', () => {
   test('instance transport serves the generated-screen collection endpoint', async ({ app }) => {
+    await app.installPlugins(['tech-drawing', 'facade']);
     const list = await app.request.get('/api/instances/cassette', { failOnStatusCode: false });
     expect(list.ok(), await list.text()).toBeTruthy();
 
@@ -33,6 +34,7 @@ test.describe('process generated screens', () => {
   for (const typeId of [...PACK_LIST_TYPES, PARENT_TYPE]) {
     test(`list screen auto_${typeId} resolves its contracted source endpoint`, async ({ app }) => {
       test.setTimeout(120_000);
+      await app.installPlugins(['documents', 'tech-drawing', 'facade']);
       await seedMatrixTypes(app);
       const { manifest } = await app.seedSpeciesProcess({
         types: [...PACK_LIST_TYPES, PARENT_TYPE, CHILD_TYPE],
@@ -73,6 +75,7 @@ test.describe('process generated screens', () => {
 
   test('detail screen resolves the single source and the lineage-scoped child region', async ({ app }) => {
     test.setTimeout(120_000);
+    await app.installPlugins(['documents', 'tech-drawing', 'facade']);
     await seedMatrixTypes(app);
     const { manifest } = await app.seedSpeciesProcess({
       types: [...PACK_LIST_TYPES, PARENT_TYPE, CHILD_TYPE],
@@ -147,7 +150,7 @@ test.describe('process generated screens', () => {
       types: [PARENT_TYPE, CHILD_TYPE],
       via: { [PARENT_TYPE]: 'genericCreate', [CHILD_TYPE]: 'genericCreate' }
     });
-    const created = await app.createInstance(PARENT_TYPE, { name: 'Patch Folder One' });
+    const created = await app.createInstance(PARENT_TYPE, { name: 'Patch Folder One', 'fields.note': 'first note' });
     const id = String(created._id || created.id);
     expect(id, 'Expected the created folder id').toBeTruthy();
 
@@ -166,27 +169,31 @@ test.describe('process generated screens', () => {
     await expect(app.page.getByText('Patch Folder One').first()).toBeVisible({ timeout: 20000 });
     const listRequestsAfterLoad = listRequests;
 
-    await app.page.getByRole('button', { name: 'Edit', exact: true }).click();
-    const editor = app.page.locator('main input:visible').first();
-    await editor.fill('Patch Folder Renamed');
-    await app.page.getByRole('button', { name: 'Done' }).click();
+    // Inline edits ride the per-field pencil (no record edit mode): the
+    // note fact opens its Inplace editor in place, and confirm patches
+    // the instance through the update transport. The surface reconciles
+    // in place (no remount): the store's SSE invalidation may refresh
+    // the type bucket once in the background, but the surface never
+    // reloads through the host.
+    const noteFact = app.page.locator('.p-inplace').first();
+    await noteFact.click();
+    const editor = app.page.locator('.p-inplace input:visible').first();
+    await editor.fill('note edited inline');
+    await app.page.getByRole('button', { name: 'Done', exact: true }).click();
 
-    // The patch persists through the instance update transport and the
-    // surface reconciles in place (no remount): the store's SSE
-    // invalidation may refresh the type bucket once in the background,
-    // but the surface never reloads through the host.
-    await expect(app.page.getByText('Patch Folder Renamed').first()).toBeVisible({ timeout: 20000 });
+    await expect(app.page.getByText('note edited inline').first()).toBeVisible({ timeout: 20000 });
     await app.page.waitForTimeout(600);
     expect(listRequests).toBeLessThanOrEqual(listRequestsAfterLoad + 1);
     const reloaded = await app.request.get(`/api/instances/${PARENT_TYPE}/${id}`);
     expect(reloaded.ok()).toBeTruthy();
-    expect((await reloaded.json()).name).toBe('Patch Folder Renamed');
+    expect((await reloaded.json()).fields?.note).toBe('note edited inline');
 
     await app.expectCleanRuntime();
   });
 
   test('home screen renders every contracted source section from its own endpoint', async ({ app }) => {
     test.setTimeout(120_000);
+    await app.installPlugins(['documents', 'tech-drawing', 'facade']);
     await seedMatrixTypes(app);
     const { manifest } = await app.seedSpeciesProcess({
       types: [...PACK_LIST_TYPES, PARENT_TYPE, CHILD_TYPE],
@@ -253,7 +260,9 @@ test.describe('process generated screens', () => {
     }
     await expect(dialog).toBeVisible({ timeout: 10000 });
     const name = app.uniqueName('Created Browser Folder');
-    await dialog.locator('input:visible').first().fill(name);
+    for (const input of await dialog.locator('input:visible').all()) {
+      await input.fill(name);
+    }
     await dialog.getByRole('button', { name: 'Create', exact: true }).click();
 
     // Same-tab creation (SPEC §UI): the created record opens as a home
@@ -288,7 +297,7 @@ async function seedMatrixTypes(app) {
     id: PARENT_TYPE,
     name: TYPE_NAMES[PARENT_TYPE],
     class: 'group',
-    fields: { name: { base: 'string' } },
+    fields: { name: { base: 'string' }, note: { base: 'string' } },
     edges: { children: { notes: { types: [CHILD_TYPE], onRemove: 'restrict' } } }
   });
 }

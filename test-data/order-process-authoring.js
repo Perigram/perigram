@@ -52,8 +52,6 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('extractProjection', { id: 'rows' });
   authoring.configure('rows', { typeId: tableType, projection: 'rows' });
 
-  authoring.drop('recordField', { id: 'rowName' });
-  authoring.configure('rowName', { path: 'name', type: { base: 'string', nullable: true } });
   authoring.drop('recordField', { id: 'rowTemplate' });
   authoring.configure('rowTemplate', { path: 'right', type: { base: 'entityRef', typeId: 'cassette', nullable: true } });
   authoring.drop('recordField', { id: 'paramA' });
@@ -66,7 +64,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('allEntities', { id: 'templates' });
   authoring.wireDeclaration('cassetteRef', 'templates', 'binds');
   authoring.drop('joinByKey', { id: 'pairs' });
-  authoring.configure('pairs', { leftKey: 'cassette', rightKey: 'identity.name' });
+  authoring.configure('pairs', { leftKey: 'cassette', rightKey: 'name' });
 
   authoring.drop('construct', { id: 'bake' });
   authoring.wireDeclaration('designRef', 'bake', 'binds');
@@ -119,7 +117,6 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('tables', 'data:result', 'firstTable', 'data:items');
   authoring.connect('firstTable', 'data:item', 'rows', 'data:entity');
 
-  authoring.connect('rows', 'data:result', 'rowName', 'data:value');
   authoring.connect('rows', 'data:result', 'pairs', 'data:left');
   authoring.connect('templates', 'data:result', 'pairs', 'data:right');
   authoring.connect('pairs', 'data:pairs', 'rowTemplate', 'data:value');
@@ -128,7 +125,6 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('paramA', 'data:value', 'params', 'data:A');
   authoring.connect('paramB', 'data:value', 'params', 'data:B');
 
-  authoring.connect('rowName', 'data:value', 'bake', 'data:name');
   authoring.connect('rowTemplate', 'data:value', 'bake', 'data:template');
   authoring.connect('params', 'data:record', 'bake', 'data:parameters');
   authoring.connect('order', 'result', 'bake', `lineage.${ORDER_LINEAGE_KEY}`);

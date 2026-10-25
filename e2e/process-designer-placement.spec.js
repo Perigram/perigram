@@ -28,6 +28,7 @@ async function bandSeparatorTops(page) {
 
 test('palette add places at the viewport center and lanes wrap their cards', async ({ app }, testInfo) => {
   test.setTimeout(120_000);
+  await app.installPlugins(['tech-drawing', 'facade']);
   await app.seedSpeciesProcess({ types: ['cassette'] });
   await app.gotoClient('/organization/process');
   await expect(app.page).toHaveURL(/organization\/process/);

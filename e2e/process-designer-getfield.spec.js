@@ -30,6 +30,7 @@ async function fieldValueHandleAria(page) {
 test('wiring Current user into Get field types the output as the row field', async ({ app }) => {
   test.setTimeout(180_000);
   const { page } = app;
+  await app.installPlugins(['tech-drawing', 'facade']);
   await app.seedSpeciesProcess({ types: ['cassette'] });
   await bootDesigner(app);
 
@@ -73,6 +74,7 @@ test('wiring Current user into Get field types the output as the row field', asy
 test('a persisted draft with the machine `_id` default heals to the row field', async ({ app }) => {
   test.setTimeout(180_000);
   const { page, request } = app;
+  await app.installPlugins(['tech-drawing', 'facade']);
   await app.seedSpeciesProcess({ types: ['cassette'] });
 
   const name = app.uniqueName('Get field poisoned');
@@ -94,13 +96,11 @@ test('a persisted draft with the machine `_id` default heals to the row field', 
         ctsTypes: {},
         graph: {
           nodes: [
-            { id: 'who', type: 'processNode', data: { refId: 'who' } },
-            { id: 'email', type: 'processNode', data: { refId: 'email' } }
+            { id: 'who', type: 'processNode', position: { x: 100, y: 100 }, data: { refId: 'who' } },
+            { id: 'email', type: 'processNode', position: { x: 400, y: 100 }, data: { refId: 'email' } },
+            { id: 'staleId', type: 'processNode', position: { x: 400, y: 300 }, data: { refId: 'staleId' } }
           ],
-          edges: [
-            { id: 'e1', source: 'who', sourceHandle: 'data:value', target: 'email', targetHandle: 'data:entity', role: 'data' },
-            { id: 'e2', source: 'who', sourceHandle: 'data:value', target: 'staleId', targetHandle: 'data:entity', role: 'data' }
-          ]
+          edges: []
         },
         processNodes: {
           who: { id: 'who', kind: 'source.currentUser' },
