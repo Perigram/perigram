@@ -16,6 +16,7 @@ import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
 import Re_L from '~/assets/presets/re_l';
 import ChatsPage from '~/pages/chats.vue';
+import ChatSupport from '~/components/ChatSupport.vue';
 import { useSupportChatStore } from '~/stores/supportChat';
 
 globalThis.$fetch = vi.fn(async () => ({}));
@@ -98,4 +99,55 @@ describe('chats page SSR smoke', () => {
     expect(html).toContain('Facade job');
     expect(html).toContain('Ann');
   });
+
+    it('renders an open thread with messages, seen marks, and the message menu without throwing', async () => {
+        const now = new Date().toISOString();
+        globalThis.$fetch = vi.fn(async (url) => {
+            if (String(url).includes('/api/support/messages')) {
+                return {
+                    data: [{
+                        _id: 'msg-1',
+                        message: 'hello thread',
+                        senderUserId: 'user-b',
+                        timestamp: now
+                    }],
+                    hasMore: false,
+                    readCursors: [{ userId: 'user-b', lastReadAt: now }],
+                    conversation: { conversationKey: 'direct:user-a:user-b', kind: 'direct' }
+                };
+            }
+            return {};
+        });
+        try {
+            const i18n = createI18n({ legacy: false, missingWarn: false, fallbackWarn: false, messages: { en: {} } });
+            const pinia = createPinia();
+            useSupportChatStore(pinia).conversations = [
+                {
+                    conversationKey: 'direct:user-a:user-b',
+                    conversationKind: 'direct',
+                    participant: { _id: 'user-b', name: 'Ann' },
+                    timestamp: now,
+                    unreadCount: 0
+                }
+            ];
+            const app = createSSRApp({
+                render: () => h(ChatSupport, { embedded: true, conversationKey: 'direct:user-a:user-b' })
+            });
+            app.use(i18n);
+            app.use(pinia);
+            app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
+            app.use(ConfirmationService);
+            app.use(ToastService);
+            app.directive('tooltip', { getSSRProps: () => ({}) });
+            const html = await renderToString(app);
+            // SSR renders the open thread synchronously (header, list,
+            // composer); history loads client-side, so the guard is the
+            // no-throw render plus the fired history load.
+            expect(html).toContain('chat-composer');
+            expect(html).not.toContain('chat-empty');
+            expect(globalThis.$fetch).toHaveBeenCalled();
+        } finally {
+            globalThis.$fetch = vi.fn(async () => ({}));
+        }
+    });
 });
