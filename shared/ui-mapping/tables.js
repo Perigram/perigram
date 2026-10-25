@@ -116,6 +116,9 @@ export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'card-grid', 'carousel
 export const TABLE_PAGINATE_AT = 10;
 export const TABLE_PAGE_ROWS = 10;
 export const TABLE_VIRTUALIZE_AT = 50;
+// The virtual table's own scroll bound (a bounded-growth surface —
+// SPEC → Data traits): the height the scrollable body clamps to.
+export const TABLE_VIRTUAL_SCROLL_REM = 26;
 export const SEARCH_AT = 8;
 
 // Fact budgets scale with the type's richness instead of fixed constants:
@@ -172,6 +175,32 @@ export const REGION_SIDE_SPANS = Object.freeze([
   { at: 4, span: 5 },
   { at: 0, span: 4 }
 ]);
+
+// Container width steps (SPEC → Container traits): the one rem ladder the
+// container seam resolves and every container-relative mechanism
+// materializes — the form grid's two-column engagement is the medium step,
+// the record split's engagement the wide step.
+export const CONTAINER_WIDTH_STEPS = Object.freeze({
+  mediumRem: 40,
+  wideRem: 60
+});
+
+// Host profiles: the fallback container traits per host kind; the measured
+// box overrides the width (SPEC → Container traits).
+export const HOST_PROFILES = Object.freeze({
+  page: { height: 'flow', scroll: 'page', width: 'wide' },
+  pane: { height: 'bounded', scroll: 'surface', width: 'medium' },
+  dialog: { height: 'bounded', scroll: 'surface', width: 'medium' },
+  popup: { height: 'bounded', scroll: 'surface', width: 'narrow' },
+  'mobile-tab': { height: 'flow', scroll: 'page', width: 'narrow' }
+});
+
+// Data-trait derivations (SPEC → Data traits): layouts whose surfaces
+// demand the full row to stay readable; layouts whose surfaces own a
+// scroll or page bound past a budget; the bare stacked list is chip-scale.
+export const FULL_BREADTH_LAYOUTS = Object.freeze(['table', 'board', 'gantt', 'calendar']);
+export const BOUNDED_GROWTH_LAYOUTS = Object.freeze(['table', 'board', 'gantt', 'calendar', 'carousel']);
+export const PAGINATED_GROWTH_LAYOUTS = Object.freeze(['card-grid', 'timeline']);
 
 // Full-height weight: every element counts, scaled by how tall its
 // presentation renders (a preview card is ~4 table rows, a timeline entry
@@ -255,6 +284,7 @@ export const LAYOUT = Object.freeze({
   cellText: 'line-clamp-2 max-w-96 break-words text-left',
   chipRow: 'flex flex-wrap items-center gap-2 pt-2',
   panelBody: 'py-2',
+  previewBand: 'h-28 w-full',
   // Board projection: the horizontal column rail (columns are in-surface
   // wells one step above the canvas — the surface ladder's `subtle` inset
   // level — while the cards inside sit on the content surface) and the

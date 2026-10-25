@@ -127,7 +127,9 @@ function randomValue(rnd, descriptor, refTargets) {
       // show meaningful distributions instead of clamped saturation.
       return descriptor.unit === 'percent'
         ? { value: rnd.rand(0, 99) + rnd.rand(0, 99) / 100, unit: descriptor.unit }
-        : { value: rnd.rand(0, 4000) + rnd.rand(0, 99) / 100, unit: descriptor.unit };
+        : descriptor.unit === 'currency'
+          ? { value: rnd.rand(0, 400000), unit: descriptor.unit }
+          : { value: rnd.rand(0, 4000) + rnd.rand(0, 99) / 100, unit: descriptor.unit };
     case 'enum':
       return rnd.pick(descriptor.values);
     case 'ref': {

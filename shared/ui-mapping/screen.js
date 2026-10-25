@@ -1,7 +1,7 @@
 // Screen composition: projects a compiled screen contract
 // plus a CTS client bundle and an instance pool into a pure render tree.
 // No Vue here — the components/ui-mapping layer materializes this tree.
-import { resolveSurface, resolveChrome, arrangeChildren, regionSideSpanFor, estimateRegionWeight, resolveListControls, childrenModeFor, SIDE_MAX_WEIGHT } from './index.js';
+import { resolveSurface, resolveChrome, arrangeChildren, regionSideSpanFor, regionDataTraits, estimateRegionWeight, resolveListControls, childrenModeFor, SIDE_MAX_WEIGHT } from './index.js';
 import { filterFromFlatFilters, instanceMatchesFilter } from '#shared/instance-filters/index.js';
 
 // Region data state: the data layer may report per-source states
@@ -144,11 +144,22 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   // column, a dominant sibling keeps the flow, heavy peers tab. A record
   // page additionally carries light children beside the body in a
   // weight-proportional side column; heavier child sets arrange below.
+  // Full-breadth children claim whole rows — they stay out of the side
+  // column whatever their weight.
   const childWeight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
   const childArrangement = arrangeChildren(childRegions, depth);
   const besideBody = surfaceKind === 'detail' && depth === 0 && childRegions.length > 0
-    && childArrangement.mode === 'stack' && childWeight <= SIDE_MAX_WEIGHT;
+    && childArrangement.mode === 'stack' && childWeight <= SIDE_MAX_WEIGHT
+    && childRegions.every(child => child.dataTraits.breadth !== 'full');
   const sideSpan = besideBody ? regionSideSpanFor(childWeight) : 0;
+  // Data traits (SPEC → Data traits): the compose-time record arrangement
+  // consumes, derived pure over the type record and the loaded pool.
+  const dataTraits = regionDataTraits({
+    surfaceKind,
+    type,
+    instances,
+    statePolicy: contract.statePolicy?.[source.typeId] || null
+  });
   return Object.freeze({
     id: region.id,
     slot: region.slot,
@@ -156,15 +167,10 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     dataState: dataStateFor(source, surfaceKind, instances, providedStates),
     chrome,
     level: depth,
+    dataTraits,
     childArrangement,
     besideBody,
     sideSpan,
-    weight: estimateRegionWeight({
-      surfaceKind,
-      type,
-      instances,
-      statePolicy: contract.statePolicy?.[source.typeId] || null
-    }),
     relationKey: source.relation?.key || null,
     lineageKey: source.lineage?.key || null,
     typeId: source.typeId || null,

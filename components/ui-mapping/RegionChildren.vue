@@ -1,21 +1,35 @@
 <template>
-  <div v-if="arrangement.mode === 'columns'" ref="columnsHost" class="region-columns-host">
-    <div
-      class="region-columns grid w-full grid-cols-1 gap-6"
-      :style="columnsEngaged ? { gridTemplateColumns: arrangement.tracks } : undefined"
-    >
-      <RegionBlock
-        v-for="child in regions"
-        :key="child.id"
-        :node="child"
-        :pool="pool"
-        :bundle="bundle"
-        :depth="depth + 1"
-        :openable="openable"
-        :instance-actions="instanceActions"
-        @run="(action, context) => emit('run', action, context)"
-        @open="instance => emit('open', instance)"
-      />
+  <div v-if="arrangement.mode === 'columns'" :class="LAYOUT.stackTight" class="w-full">
+    <RegionBlock
+      v-for="child in fullRowRegions"
+      :key="child.id"
+      :node="child"
+      :pool="pool"
+      :bundle="bundle"
+      :depth="depth + 1"
+      :openable="openable"
+      :instance-actions="instanceActions"
+      @run="(action, context) => emit('run', action, context)"
+      @open="instance => emit('open', instance)"
+    />
+    <div ref="columnsHost" class="region-columns-host">
+      <div
+        class="region-columns grid w-full grid-cols-1 gap-6"
+        :style="columnsEngaged ? { gridTemplateColumns: arrangement.tracks } : undefined"
+      >
+        <RegionBlock
+          v-for="child in columnRegions"
+          :key="child.id"
+          :node="child"
+          :pool="pool"
+          :bundle="bundle"
+          :depth="depth + 1"
+          :openable="openable"
+          :instance-actions="instanceActions"
+          @run="(action, context) => emit('run', action, context)"
+          @open="instance => emit('open', instance)"
+        />
+      </div>
     </div>
   </div>
 
@@ -78,6 +92,7 @@
       :depth="depth + 1"
       :openable="openable"
       :instance-actions="instanceActions"
+      stub
       @run="(action, context) => emit('run', action, context)"
       @open="instance => emit('open', instance)"
     />
@@ -102,7 +117,7 @@
 // The one materialization of the composed children arrangement
 // (`arrangeChildren`) for every nesting host: record pages, nested
 // detail bodies, list panels.
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -111,6 +126,7 @@ import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
 import { localizedLabel, typeLabelKey, REGION_COLUMN_EARNED_REM, LAYOUT } from '#shared/ui-mapping/index.js';
+import { useContainerTraits } from '~/composables/useContainerTraits.js';
 import RegionBlock from './RegionBlock.vue';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 
@@ -137,22 +153,21 @@ const restRegions = computed(() => props.regions.filter((_, index) => index !== 
 const orderedRegions = computed(() => (Array.isArray(props.arrangement.order)
   ? props.arrangement.order.map(id => props.regions.find(region => region.id === id)).filter(Boolean)
   : props.regions));
+// Full-row claim (SPEC → Arrangement decision procedure): breadth-full
+// children render whole-row before the columns; the columns carry the
+// columnable peers.
+const fullRowIds = computed(() => new Set(props.arrangement.fullRow || []));
+const fullRowRegions = computed(() => props.regions.filter(region => fullRowIds.value.has(region.id)));
+const columnRegions = computed(() => props.regions.filter(region => !fullRowIds.value.has(region.id)));
 
-// Column engagement is host-measured per the ui-mapping contract
+// Column engagement resolves through the container-traits seam: the
+// measured host width grants every track its earned minimum
 // (track count × REGION_COLUMN_EARNED_REM).
 const columnsHost = ref(null);
-const columnsEngaged = ref(false);
-let columnsObserver = null;
-const remPx = () => parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
-const measureColumns = () => {
+const container = useContainerTraits(columnsHost);
+const columnsEngaged = computed(() => {
   const tracks = String(props.arrangement.tracks || '').trim().split(/\s+/).filter(Boolean).length;
-  const width = columnsHost.value?.clientWidth || 0;
-  columnsEngaged.value = tracks > 0 && width >= tracks * REGION_COLUMN_EARNED_REM * remPx();
-};
-onMounted(() => {
-  measureColumns();
-  columnsObserver = new ResizeObserver(measureColumns);
-  if (columnsHost.value) columnsObserver.observe(columnsHost.value);
+  const widthRem = container.value.widthRem;
+  return tracks > 0 && widthRem !== null && widthRem >= tracks * REGION_COLUMN_EARNED_REM;
 });
-onBeforeUnmount(() => columnsObserver?.disconnect());
 </script>
