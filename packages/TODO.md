@@ -21,10 +21,16 @@
 
 ### Code deslop
 
-- [ ] `packages/plugin-sdk/src/cli.js:160-175`: `usage` omits the implemented `vendor` command (cli.js:38) and `--surface-origin` flag (cli.js:134); the README documents both — fix the string.
-- [ ] `packages/plugin-sdk/src/cli.js:160-175` — the hand-maintained
+- [x] `packages/plugin-sdk/src/cli.js:160-175`: `usage` omits the implemented `vendor` command (cli.js:38) and `--surface-origin` flag (cli.js:134); the README documents both — fix the string.
+  Landed 2026-10-25: usage matches the implemented surface — `vendor`,
+  `connect --surface-origin`, and `surfaces --listing` added; every
+  `commands` key renders in `--help`.
+- [x] `packages/plugin-sdk/src/cli.js:160-175` — the hand-maintained
   `usage` string drifted stale against the implemented command surface
   (new wave-1 finding); regenerate it from the command definitions.
+  Landed 2026-10-25: same fix — `commands` holds imperative closures with
+  no flag metadata, so the string stays the hand-maintained mirror of the
+  definitions, agreeing with README §CLI.
 
 ### Owner decisions wanted
 
@@ -58,3 +64,13 @@ phantom `@perigram/domain-cnc` alias), package-lock workspace entries,
 to the stores/`$fetch` law), framework-packages.spec vue import +
 `queryDocs` destructure/handler key; manifest regenerated via
 `framework:write-manifest`. cli.js usage-string items stay open.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/pkg-deslop2-20261025` (worktree `.agent-worktrees/pkg`).
+Both cli.js usage items landed: `--help` now renders the full implemented
+surface (`vendor`, `connect --surface-origin`, `surfaces --listing`).
+cts/processes contract-comment homing landed in their own TODOs. Guards:
+check-arch OK; check-docs homing debt 26→17 with a pre-existing blocking
+broken link in `workers/nesting/README.md` → `./jagua-rs/README.md`
+(committed 0a715d34d, outside this wave).

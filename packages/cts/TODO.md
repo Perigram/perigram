@@ -19,7 +19,13 @@ palette E2E); resurrect nothing from it.
 
 ### Code deslop
 
-- [ ] Contract-shaped comments (docs-guard homing backlog, `node scripts/check-docs.js`): `src/compat/graph-protocol.js` (343 chars), `src/registry.js` (563), `src/compat/process-grammar.js:1-4`, `src/compat/field-schema-rows.js:1-4` (grammar/seam contracts), `src/render.js:17` — move the semantics into the owning README section (SPEC § pointers), leave one-line comments.
+- [x] Contract-shaped comments (docs-guard homing backlog, `node scripts/check-docs.js`): `src/compat/graph-protocol.js` (343 chars), `src/registry.js` (563), `src/compat/process-grammar.js:1-4`, `src/compat/field-schema-rows.js:1-4` (grammar/seam contracts), `src/render.js:17` — move the semantics into the owning README section (SPEC § pointers), leave one-line comments.
+  Landed 2026-10-25: all five homed — registry.js entry gains the SPEC §11
+  free-redefinition law (zero live instances, repair of a broken stored
+  declaration); field-schema-rows entry states the flat `fields.*`
+  minting law (SPEC §13); process-grammar/render/graph-protocol
+  semantics already lived in their entries, code now carries one-line
+  SPEC §/README pointers; the package's check-docs homing entries clear.
 
 ### SPEC revision (decided 2026-10-25)
 
@@ -98,3 +104,14 @@ module map (246→148): file + one-line role + SPEC § pointer per entry;
 `compat/process-grammar.js` + `pack/framework.js` documented; migration
 residue stripped; L220 citation fixed. OPEN: code item + 7 owner
 decisions.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/pkg-deslop2-20261025` (worktree `.agent-worktrees/pkg`).
+Code deslop item landed: the five contract-comment sites homed to the
+README Modules entries with one-line SPEC §/README pointers left in
+code; the field-schema-rows header's stale §15/§19 citations and
+provenance line went with it. check-docs: the package's homing entries
+clear (repo debt 26→17); the remaining blocking broken link
+(`workers/nesting/README.md` → `./jagua-rs/README.md`) is pre-existing
+and outside this wave. `npx vitest run packages/cts` green.

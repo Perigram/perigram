@@ -61,7 +61,10 @@ modules onto its sections.
   `typeVersion` ill-typing, payload normalization to the canonical
   trait shape, and the SPEC §4 display-flag laws (identifier mint
   total by the boundary, at most one `depiction`, a name on every
-  type).
+  type). `defineType` gates redefinition per SPEC §11; the free paths
+  are zero live instances (synchronous `hasInstances` probe) and repair
+  of a stored declaration that violates class obligations or declares
+  unresolvable children.
 - `render.js` — display-policy derivation and `compileClientBundle()`,
   the single frontend/designer consumption contract. Naming is authored
   vocabulary (SPEC §4); everything else derives — `glyph`, `depiction`,
@@ -85,8 +88,9 @@ modules onto its sections.
   (SPEC §13). Owns the per-class collection map (`CLASS_COLLECTIONS`)
   shared with the instance repository.
 - `compat/field-schema-rows.js` — the row ⇄ field-schema translation
-  the domain projection synthesizes through: block-slot conventions,
-  descriptor typing, nested-path grouping.
+  the domain projection synthesizes through: row fields mint flat
+  `fields.*` paths (SPEC §13), descriptor typing, nested-path
+  grouping.
 - `compat/process-grammar.js` — CTS ⇄ `PROCESS_BASE_TYPES` adapter for
   the declaration subset (SPEC §2 grammar relation): maps declaration
   descriptors onto the process type grammar and back, reports
