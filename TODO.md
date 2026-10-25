@@ -332,6 +332,20 @@ in code: the SPEC files above (filed), `server/core/effects`'s
 `artifact` effect branch (filed), the migration script, and English
 "artifact" in e2e test-output comments.
 
+### Agent Notes (2026-10-25, cutover review)
+
+Review pass on the branch: unit suite base→branch is 4 failed/2131
+passed at 713aa2396 → 3 failed/2096 passed (the fourth,
+shared/process-designer-localization, fixed by the cutover — mechanism
+in shared/TODO.md); no new failures. Baseline finding for this ledger:
+test-data/ui-mapping-random.spec.js "produce instance values that
+conform to their descriptors (CTS checkValue)" fails pre-existing at
+713aa2396. Review fixes on the branch: e2e invitation-page
+`waitForLoadState` typo, `artifact` in the check-arch entity-name
+allowlist, `queue.confirmDeleteRun` artifact copy (en+ru), a `LAYOUT_DXF`
+enum string in the processes availability spec, and the core README
+AttachmentKind row.
+
 ## Generative UI arrangement foundations (owner direction 2026-10-25)
 
 Law: [SPEC](./SPEC.md) §22.7–22.11 — instance-page layout consumes two

@@ -115,6 +115,14 @@ docs-guard broken link workers/nesting/README.md → ./jagua-rs/README.md,
 and homing-debt entries in agent-bots/tools.js + llm/service.js (other
 waves).
 
+### Agent Notes (2026-10-25, cutover review)
+
+Session review of `agent/artifact-cutover-20261025-1655`: two spec
+failures pre-exist at base 713aa2396 (cutover-caused deltas none) —
+agent-bots/agent-tooling-loop.spec.js "activation-migration-gate
+structured result"; invitations/invitations.spec.js "string organization
+ids through team-management recovery access".
+
 ### Agent Notes (2026-10-25, artifact cutover)
 
 Session `agent/artifact-cutover-20261025-1655`. The artifact-cluster
