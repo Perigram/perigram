@@ -63,7 +63,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         if (parts[0] === 'screens' && parts[1]) {
             const screen = visibleProcessScreens.value.find(item => (item.screenKey || item.id) === parts[1]);
             if (!isDetailScreenTemplate(screen?.template)) return null;
-            const typeId = screen.typeId || screen.typeId || '';
+            const typeId = screen.typeId || '';
             return { typeId, id: query.instanceId || query[`${typeId}Id`] };
         }
         return null;
