@@ -129,33 +129,6 @@ block/`lineage.*`/`data.*` field inventory per collection, with `source` and
 `issues` fields flagging suspicious generated fields. Its sole consumer is
 `scripts/framework-inspect.js` (the framework manifest build).
 
-## dxf-extractor.js
-
-Parses uploaded DXF buffers for cassette import; the facade worker serves
-production through its vendored copy
-(`workers/facade/vendor/dxf-extractor.js`). `extractNestingPolygons()`
-uses the DXF-to-OCCS layer mapping to find the source layer mapped to
-`cut.outer` and returns only closed polygon parts for nesting. It rejects
-degenerate two-point/zero-area curves so they remain available as source curves
-only when mapped through `extractCurvesFromDXFLayer()`, not as nestable parts.
-`extractCurvesFromDXFLayer()` preserves open and closed curves from mapped
-layers for `layerData`, so folds, marks, dimensions, and other source drawing
-layers can be projected into sheet-design previews after nesting.
-
-## dxf-writer.js
-
-Writes simple AC1015 DXF output from the app drawing contract. It accepts:
-- DrawingCanvas-style preview layers with SVG-like `M/L/H/V/Z` paths and text
-  path objects.
-- OCCS `layerData` records with coordinates, text geometry, or dimension
-  geometry.
-- `polygonParts` as a fallback when only nestable outlines exist.
-
-DXF exports run through the facade worker's vendored copy
-(`workers/facade/vendor/dxf-writer.js`), so semantic layer names such as
-`cut.outer`, `fold.route`, `dimension.cassette`, and `code.cassette_mark`
-survive into downloaded DXF files.
-
 ## Related
 
 - [server/features/README.md](../features/README.md) — Service layer patterns

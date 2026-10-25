@@ -22,7 +22,7 @@ import { BaseEntity, Identity, Status, Lineage, Relations, Provenance, Specs,
 ```
 
 The index re-exports a fixed subset of the core package
-(`createRegistry`, `createPerigramRegistry`, `createAttachmentRef`,
+(`createRegistry`, `createAttachmentRef`,
 `createCommandResult`, `createTaskResult`,
 `normalizeEntityOutputContracts`, `validateResultEntityOutputs`,
 `createStatusState`, `getPrimaryState`, `getRegionState`,

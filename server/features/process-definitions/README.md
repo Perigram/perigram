@@ -164,7 +164,8 @@ evaluation with the task's projected completion output — terminal
 drives it to settled with the originating actor context. A task outcome
 with an unknown task-run id is an uncorrelated no-op. A server restart
 between dispatch and completion drops the continuation; the task's
-terminal handler still applies its domain effects.
+terminal handler still applies its domain effects. A notification error
+leaves the parked continuation unresumed.
 
 ### Create
 
