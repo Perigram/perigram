@@ -159,9 +159,10 @@ export const SURFACE_ROW_BUDGET = 10;
 // or under SIDE_MAX_WEIGHT rides beside the record body; each column
 // child stays at or under COLUMN_MAX_WEIGHT; a sibling holding at least
 // DOMINANT_CHILD_SHARE of the total weight is the dominant child. The
-// record side column earns width with weight through REGION_SIDE_SPANS
-// (12-track grid spans).
-export const SIDE_MAX_WEIGHT = 16;
+// side rail is a minor column — at most a third of the record grid
+// (REGION_SIDE_SPANS over 12 tracks); heavier sets arrange below the
+// body, where proportional columns grant each peer real width.
+export const SIDE_MAX_WEIGHT = 10;
 export const COLUMN_MAX_WEIGHT = 12;
 export const DOMINANT_CHILD_SHARE = 0.6;
 // Peer columns engage when the host can grant every track this earned
@@ -169,9 +170,8 @@ export const DOMINANT_CHILD_SHARE = 0.6;
 // measured host width, generative for any track count.
 export const REGION_COLUMN_EARNED_REM = 30;
 export const REGION_SIDE_SPANS = Object.freeze([
-  { at: 10, span: 6 },
-  { at: 4, span: 5 },
-  { at: 0, span: 4 }
+  { at: 8, span: 4 },
+  { at: 0, span: 3 }
 ]);
 
 // Container width steps (SPEC → Container traits): the one rem ladder the
