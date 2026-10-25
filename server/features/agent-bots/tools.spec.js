@@ -48,7 +48,10 @@ const STORED = {
     status: { state: { primary: 'DRAFT' } },
     data: {
         dataflowVersion: 4,
-        graph: { nodes: [{ id: 'n1' }], edges: [] },
+        graph: { nodes: [{ id: 'n1', type: 'processNode', data: { refId: 'n1' } }], edges: [] },
+        processNodes: {
+            n1: { id: 'n1', kind: 'source.literalItem', typeId: '', inputs: [], outputs: [{ id: 'value', role: 'data' }] }
+        },
         valueInputs: { a: 1 },
         compiled: { bundle: 'server-derived' },
         history: [{ superseded: true }],
@@ -89,6 +92,8 @@ describe('definition tool authoring surface', () => {
         expect(digest.name).toBe('Organization process');
         expect(digest.status).toBe('DRAFT');
         expect(digest.valueInputs).toEqual(['a']);
+        expect(digest.nodes[0]).toMatchObject({ id: 'n1', kind: 'source.literalItem' });
+        expect(digest.nodes[0].sockets).toEqual(['data:value']);
         expect(digest.data).toBeUndefined();
         expect(JSON.stringify(digest).length).toBeLessThan(2048);
 

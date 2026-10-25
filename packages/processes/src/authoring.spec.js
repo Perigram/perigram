@@ -511,6 +511,27 @@ describe('headless layout and graph integrity', () => {
     expect(() => seam.disconnect('lit', 'value', 'cast', 'data:value')).toThrow(/must be a handle/);
   });
 
+  it('names the available sockets when a connect address is unknown', () => {
+    const seam = authoring();
+    seam.drop('literal', { id: 'lit' });
+    seam.drop('castValue', { id: 'cast' });
+    expect(() => seam.connect('lit', 'data:value', 'cast', 'data:nowhere'))
+      .toThrow(/Unknown port cast:data:nowhere — lit outputs: data:value; cast inputs: .*data:value/);
+  });
+
+  it('warns when a manual effect has no lane grant — its action is invisible', () => {
+    const seam = authoring();
+    seam.declareTypeRef({ id: 'ref_sheet', typeId: 'sheet' });
+    seam.drop('construct', { id: 'lone' });
+    seam.wireDeclaration('ref_sheet', 'lone', 'binds');
+    const ungated = validateProcessDefinition(seam.definition(), projectedDomain());
+    expect(ungated.warnings.some(message => message.includes('lone') && message.includes('no role grant'))).toBe(true);
+
+    seam.configure('lone', { access: { grants: [{ roleId: 'role_admin', level: 'write' }] } });
+    const gated = validateProcessDefinition(seam.definition(), projectedDomain());
+    expect(gated.warnings.some(message => message.includes('lone') && message.includes('no role grant'))).toBe(false);
+  });
+
   it('refuses authored record values — value inputs author typed scalars', () => {
     const seam = authoring();
     seam.drop('literalList', { id: 'rows' });
