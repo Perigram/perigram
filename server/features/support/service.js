@@ -35,22 +35,8 @@ const ATTACHMENT_AUDIO_EXTENSIONS = {
 };
 const scopedList = (service) => (auth, filters) => service.list(auth.userId, auth.organizationId, auth.role, auth, filters);
 const INSTANCE_OPTION_LOADERS = {
-    // The artifact feature still speaks its legacy wire (slice D); its
-    // loader maps that contract into this seam's §3 option shape.
-    artifact: (auth, filters) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth)
-        .then(rows => rows.map(row => {
-            const dto = row?.toJSON ? row.toJSON() : row;
-            return dto?.name === undefined && dto?.identity?.name != null
-                ? { ...dto, name: dto.identity.name }
-                : dto;
-        })),
+    artifact: (auth, filters) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
     user: (auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
-        .then(rows => rows.map(row => {
-            const dto = row?.toJSON ? row.toJSON() : row;
-            return dto?.name === undefined && dto?.identity?.name != null
-                ? { ...dto, name: dto.identity.name }
-                : dto;
-        }))
 };
 
 /**
@@ -341,7 +327,7 @@ function instanceName(dto = null) {
     // surfaces fall back to the localized type label client-side when
     // this is empty (the no-technical-ids rule). The declared identifier
     // row's value resolves client-side through the display contract.
-    return dto?.name || '';
+    return dto?.identity?.name || dto?.name || '';
 }
 
 function organizationIdOf(dto = null, scopedAuth = {}) {
@@ -1526,7 +1512,7 @@ function normalizeInstanceOption(type, instance) {
     const dto = instance?.toJSON ? instance.toJSON() : instance;
     const value = dto?._id?.toString?.() || dto?._id || dto?.id || '';
     // Naming law lives in the support README: labels carry names only.
-    const label = dto?.name || '';
+    const label = dto?.identity?.name || dto?.name || '';
     return {
         type,
         value,
@@ -1763,7 +1749,7 @@ function compactInstanceSnapshot(type, instance, snapshotPaths = null) {
 
     const snapshot = {
         _id: dto._id,
-        name: dto.name ?? null,
+        name: dto.identity?.name ?? dto.name ?? null,
         state: dto.state ?? null,
         organizationId: dto.organizationId ?? null,
         lineage: dto.lineage || {},

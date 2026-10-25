@@ -54,39 +54,37 @@ describe('entity revision helpers', () => {
     });
   });
 
-  it('builds derivedFrom provenance from legacy revision source fields', () => {
+  it('builds derivedFrom provenance from the revision source ref', () => {
     const revision = {
-      _id: 'rev-legacy',
+      _id: 'rev-2',
       data: {
-        typeId: 'cassette',
-        instanceId: 'cassette-legacy',
+        source: { type: 'cassette', id: 'cassette-2' },
         scope: 'geometry',
         number: 2,
-        contentHash: 'sha256:legacy'
+        contentHash: 'sha256:def'
       }
     };
 
     expect(derivedFromRevision(revision)).toMatchObject({
-      source: { type: 'cassette', id: 'cassette-legacy', revisionId: 'rev-legacy' },
+      source: { type: 'cassette', id: 'cassette-2', revisionId: 'rev-2' },
       scope: 'geometry',
       revisionNumber: 2,
-      contentHash: 'sha256:legacy'
+      contentHash: 'sha256:def'
     });
   });
 
-  it('normalizes legacy revision source fields in DTOs', () => {
+  it('serializes the stored source ref in DTOs', () => {
     const revision = new EntityRevision({
-      _id: 'rev-legacy',
+      _id: 'rev-2',
       data: {
-        typeId: 'cassette',
-        instanceId: 'cassette-legacy',
+        source: { type: 'cassette', id: 'cassette-2' },
         scope: 'geometry'
       }
     }).toJSON();
 
     expect(revision.data.source).toMatchObject({
       type: 'cassette',
-      id: 'cassette-legacy'
+      id: 'cassette-2'
     });
   });
 });

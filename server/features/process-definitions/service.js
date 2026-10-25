@@ -319,10 +319,7 @@ export async function update(id, payload = {}, auth) {
   return new ProcessDefinition(updated).toJSON();
 }
 
-// The semantic Apply diff recomputes both sides from the canonical authored
-// definitions (the stored `compiled` snapshot is inspection-only). The
-// baseline is the MERGED contract of the OTHER active definitions; null
-// when none exist or the previous contract fails to compile.
+// Apply-diff baseline law: README §Migration gate and plan.
 async function activeContractBaseline(process, auth) {
   const actives = (await repository.findActiveSetByOrganization(process.lineage.organizationId))
     .filter(active => String(active._id) !== String(process._id));
@@ -468,10 +465,7 @@ export async function activate(id, auth, { confirmTypeDeath = false } = {}) {
     }];
     process.data.history = history.slice(-50);
   }
-  // The migration decision is a declaration on the definition
-  // (data.migrations.statuses), not an activate-time payload: activation
-  // reads what the organization authored. Stale declared rows are no-ops
-  // (migration-plan contract); every plan row must be covered.
+  // Migration-decision law: README §Migration gate and plan (Decision).
   const mappings = normalizeStatusMappings(process.data?.migrations?.statuses);
   if (stranded.length) {
     if (!mappings.length) throwMigrationRequired(stranded, plan);
@@ -627,10 +621,7 @@ function manualRunEnvironment(definition, auth = {}, domain = null) {
     executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data, domain),
     isAsyncBoundary: (request, result) => request.kind === 'cts.command' && hasAsyncOutputBoundary(result),
     catalogContext: catalogContextFromDefinition(definition.data, domain),
-    // The evaluator must see the same projected domain the compile path
-    // used: block records bound to org-authored types pass compilation
-    // against the projected entity contract, so the runtime block check
-    // reading the static base domain would reject them as undeclared.
+    // Evaluator-domain law: README §Socket projection and auth hydration.
     domain: domain || getDomain(),
     data: run => processDataEnvironment(auth, run, domain)
   };
@@ -2118,15 +2109,7 @@ export function processConstructionInputRecord(record = {}, inputs = {}, domain 
   return result;
 }
 
-// The effect's construction inputs follow the catalog's single derivation:
-// the contract inputs for the record's resolved mode (authored entries
-// merging over their contract twins, authored extras kept), the record's
-// own list only where the domain declares no contract for the type. The
-// persisted record's `construction.inputs` is an authoring-time copy that
-// can go stale (authored against a domain that lacked the declared
-// types), and the ports plus the compiled prompt contract already speak
-// the live domain — the draft mapping must read the same list or a
-// prompted value that arrived through a port is dropped.
+// Construction-inputs law: README §Action execution seam (Create).
 function effectConstructionInputs(record = {}, domain = {}) {
   const authored = Array.isArray(record.construction?.inputs) ? record.construction.inputs : [];
   const contract = domain.construction?.[normalizeTypeId(record.typeId || '')] || null;

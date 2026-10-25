@@ -77,16 +77,14 @@ describe('entity revisions repository indexes', () => {
     expect(collection.dropIndex).not.toHaveBeenCalled();
   });
 
-  it('looks up revisions by current or legacy source keys', async () => {
+  it('looks up revisions by the stored source keys', async () => {
     collection.findOne.mockResolvedValueOnce({ _id: 'rev-1' });
 
     await findByHash('cassette', 'cassette-1', 'geometry', 'sha256:abc');
 
     expect(collection.findOne).toHaveBeenCalledWith({
-      $or: [
-        { 'data.source.type': 'cassette', 'data.source.id': 'cassette-1' },
-        { 'data.typeId': 'cassette', 'data.instanceId': 'cassette-1' }
-      ],
+      'data.source.type': 'cassette',
+      'data.source.id': 'cassette-1',
       'data.scope': 'geometry',
       'data.contentHash': 'sha256:abc'
     });

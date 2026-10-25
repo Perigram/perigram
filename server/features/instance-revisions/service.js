@@ -63,11 +63,8 @@ function canReadRevision(userPermissions, revision) {
 }
 
 export function derivedFromRevision(revision, parameters = {}) {
-  const data = revision?.data || revision || {};
-  const source = data.source || {
-    type: data.typeId,
-    id: data.instanceId
-  };
+  const data = revision?.data || {};
+  const { source = {} } = data;
   return createProvenance(
     createInstanceRef(source.type, source.id, revision?._id || data.revisionId || data.id),
     {

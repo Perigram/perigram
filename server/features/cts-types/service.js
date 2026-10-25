@@ -327,11 +327,7 @@ export async function removeType(typeId, { organizationId, actor = null, abandon
   if (type.scope === 'system') {
     throw createError({ statusCode: 403, message: 'System types are compiled from domain packs and cannot be deleted' });
   }
-  // Deleting a type is a ceremony (SPEC §19 abandoned data): the removal
-  // diff runs against reality first — living instances and non-archived
-  // processes that bind the type. Both refuse the delete until the caller
-  // explicitly abandons; the abandonment (counts + actor) rides the org
-  // contract-change event and the response as the record.
+  // Removal ceremony: README §Removal ceremony (root SPEC §15).
   const [instances, boundBy] = await Promise.all([
     countInstancesOfType(String(typeId), organizationId),
     findTypeReferences(organizationId, String(typeId))
@@ -343,7 +339,7 @@ export async function removeType(typeId, { organizationId, actor = null, abandon
     if (boundBy.length > 0) parts.push(`bound by ${boundBy.length} process definition(s): ${boundBy.map(b => b.name || b.id).join(', ')}`);
     throw createError({
       statusCode: 409,
-      message: `Type ${typeId} still has ${parts.join(' and ')} — pass abandon: true to abandon (SPEC §19)`,
+      message: `Type ${typeId} still has ${parts.join(' and ')} — pass abandon: true to abandon (root SPEC §15)`,
       data: { instances, boundBy }
     });
   }

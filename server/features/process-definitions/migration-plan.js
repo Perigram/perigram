@@ -1,10 +1,4 @@
-// Apply migration plan (canonical contract in this feature's README):
-// the database impact statement generated from the Apply diff, plus the
-// confirmed-migration executor. Pure builders take compiled-contract data
-// only; the executor stays inside feature access boundaries (entity service
-// `processList` reads, the status runtime's initial-state write, the shared
-// typed invalidation events) and never issues generic Mongo writes for
-// business entities.
+// Canonical contract: README §Migration gate and plan.
 import { createError } from 'h3';
 import { primaryStates } from '~/packages/processes/src/index.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';

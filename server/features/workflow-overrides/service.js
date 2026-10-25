@@ -50,13 +50,7 @@ export async function resolveActiveWorkflow({ typeId, organizationId, producerOu
   }) : null;
   if (processWorkflow) return normalizeWorkflowPayload(processWorkflow);
 
-  // Machines are graph-derived (SPEC §7): the active compiled process is
-  // the lifecycle source. A specific producer output wins when the caller
-  // names one; otherwise the first producer emitting the type serves its
-  // machine — the plain transition channel carries no producer context,
-  // and without this lookup org-authored stateful types would resolve no
-  // machine at all. The explicit org override stays the escape hatch for
-  // types the active process does not govern.
+  // Resolution-order law: README §Responsibility.
   const compiled = await getActiveCompiledProcess(organizationId);
   const byType = Object.values(compiled?.producerOutputs || {})
     .find(output => output?.typeId === normalizedTypeId && output?.workflow);
