@@ -40,7 +40,7 @@ async function migrateDeclarations(db, apply) {
 
 async function dropBucket(db, bucketName) {
   let files = 0;
-  const cursor = db.collection(`${bucketName}.files').find({});
+  const cursor = db.collection(`${bucketName}.files`).find({});
   for await (const file of cursor) {
     try {
       await db.collection(`${bucketName}.chunks`).deleteMany({ files_id: file._id });
