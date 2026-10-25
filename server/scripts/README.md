@@ -21,6 +21,14 @@ tech-drawing `color` type's system catalogue as SPEC §3 documents
 `code`, never touching org shadow rows. Dry-run by default; `--apply`
 persists.
 
+`seed-template-fill-example.js` stations the SPEC §24 markdown
+template-fill example into org processes (`value.format` record template
+→ `text-document` content construct, granted to the role the org's
+earliest assigned member holds) and creates one filled instance, so the
+example is visible on the org's screens. `--org <id> ...` limits scope;
+orgs holding an ACTIVE definition with the documents plugin install are
+the default set. Idempotent by definition name.
+
 ## Migrations
 
 | Script | When to run | What it does |
