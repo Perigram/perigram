@@ -257,6 +257,33 @@ the declared vocabulary or carry a filed migration item; guards green
 (framework suites, check-arch, check-docs, SSR smoke) and e2e green
 against a running stack; owner verifies UX parity on the live stack.
 
+## File-template fill flows (SPEC §24)
+
+- [ ] WAITING — owner verification: platform seam — a service-backed
+  construction executor may return `payload: { base64, mime, name? }`
+  beside its `data` fields; the platform stores the bytes in the `files`
+  bucket and the created instance carries them as its payload
+  (trait-validated; a refusal deletes the blob; an executor payload
+  overrides the draft's uploaded one).
+
+  ### Agent Notes (2026-10-25)
+
+  Seam implemented in `server/features/instances/construction-services.js`
+  (`payloadFromWire` reused as the single trait validator, exported from
+  `service.js`); focused spec `construction-services.spec.js`. Contract
+  homes updated: instances README §Service-backed construction, plugin-sdk
+  README listing contract (`constructions`).
+
+- [ ] Documents plugin: xlsx fill service on the new seam (template
+  workbook ref + rows/values in, filled workbook payload out); md fill
+  rides the same service shape.
+- [ ] PDF render service (md/xlsx/dxf → PDF) on the same seam; the
+  artifact-templates pdfjs/pdf-lib parse-render engines donate to the
+  owning plugin at the artifact-family cutover.
+- [ ] DXF spot placement service (template DXF + referenced DXF payloads →
+  composed DXF); the facade nesting → construct-sheet → export flow is the
+  reference geometry path.
+
 ## Generative UI arrangement foundations (owner direction 2026-10-25)
 
 Law: [SPEC](./SPEC.md) §22.7 records the direction; the design — trait

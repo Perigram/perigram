@@ -1297,3 +1297,13 @@ Every remaining folder's README matches its SPEC; every folder TODO is
 empty; the documentation and architecture guards pass over the whole tree;
 no audit-flagged dead code remains; the E2E suite is green against the
 generated screens.
+
+## 24. File templates fill through construction services (owner direction 2026-10-25)
+
+Templates are files. A fill is a construction mode of the target file type:
+the executor receives the template file (a ref input resolved with its
+payload) and the wired values, and returns the filled file as the created
+instance's payload beside its computed fields. Markdown, XLSX (repeated
+regions included), DXF (placed DXF references, generative geometry), and
+PDF (including PDFs rendered from other file types) ride this one seam as
+plugin compute. DWG arrives through DXF conversion in the executor.

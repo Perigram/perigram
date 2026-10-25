@@ -193,7 +193,14 @@ travels to the executor with ref inputs resolved to values (`{ id, name,
 fields, payloadBase64 }`, cross-org references refuse) and the draft's
 uploaded payload as base64; the executor returns computed field values
 the platform merges before creating the record through the generic
-machinery. `constructionHandlers` reports every mode as served (the
+machinery. The executor may also return `payload: { base64, mime,
+name? }`: the bytes are stored in the `files` bucket and become the
+created instance's payload — validated through the same construct-time
+trait check every wire payload reference takes (`payloadFromWire`), the
+stored blob deleted on refusal; an executor payload overrides the
+draft's uploaded one. Template fills ride this shape (SPEC §24): a
+`template` ref input plus wired values in, the filled file out.
+`constructionHandlers` reports every mode as served (the
 capability projections filter on it); genuinely unbound modes fail
 loudly at dispatch. Types that declare construction modes never offer a
 bare `genericCreate` — the per-call declaration check refuses it.
