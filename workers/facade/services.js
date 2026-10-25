@@ -1,10 +1,4 @@
-// The facade plugin's executor services: pure compute over values (the
-// plugin contract — the platform sends referenced instances and payloads
-// as base64 values, the executor returns computed fields and files; it
-// never calls back into the platform). Geometry extraction, OCCS bake
-// evaluation, the nesting solve (delegated to the nesting solver worker
-// over HTTP), the STANDARD cassette import, the sheet-design DXF export,
-// and the sheet-design layout construction live here.
+// The facade plugin's executor services — contract in ./README.md (Services).
 import { extractNestingPolygons, extractCurvesFromDXFLayer } from './vendor/dxf-extractor.js';
 import { generateLayeredDxf } from './vendor/dxf-writer.js';
 import { OCCS_LAYER_CUT_OUTER } from './occs/layers.js';

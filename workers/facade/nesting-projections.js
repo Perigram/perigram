@@ -1,14 +1,6 @@
-// Nesting projections (π): pure value→value functions for the registered
-// V -> V service boundary (packages/cts SPEC §8: services consume values,
-// never entity graphs). No service imports, no persistence, no auth. This
-// is the queue-era projections module trimmed to exactly what the value
-// boundary needs — the request builder, the response enrichment, and the
-// summary math.
+// The nesting services' value→value helpers — contract in ./README.md (Services).
 import { createError } from 'h3';
 
-// Value-shaped variant for the V -> V service boundary (SPEC §8): the sheet
-// parameters arrive as values (the declared signature), not resolved from
-// machine/tool/material snapshots.
 export function buildValueWorkerRequest(jobFiles, params = {}) {
   const items = buildNestingItems(jobFiles);
   if (!items.length) throw createError({ statusCode: 400, message: 'No nestable cassette geometry found' });
