@@ -1306,4 +1306,6 @@ payload) and the wired values, and returns the filled file as the created
 instance's payload beside its computed fields. Markdown, XLSX (repeated
 regions included), DXF (placed DXF references, generative geometry), and
 PDF (including PDFs rendered from other file types) ride this one seam as
-plugin compute. DWG arrives through DXF conversion in the executor.
+plugin compute. DWG arrives through DXF conversion in the executor. Chat
+and MCP agents see fill actions with their input contracts and read
+file-instance payloads through the shared tool catalog.

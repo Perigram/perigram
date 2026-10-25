@@ -274,6 +274,22 @@ against a running stack; owner verifies UX parity on the live stack.
   homes updated: instances README §Service-backed construction, plugin-sdk
   README listing contract (`constructions`).
 
+- [ ] WAITING — owner verification: agent tooling for fill flows —
+  `list_actions` rows carry their input contracts (construction mode and
+  inputs, inputPolicy fields, run inputs; one row via `actionId`),
+  `get_instance` rows carry the file payload reference, and
+  `read_instance_file {type, id}` reads any readable file instance's
+  payload through the attachment extraction families on both surfaces
+  (chat and MCP).
+
+  ### Agent Notes (2026-10-25)
+
+  Implemented in `server/features/agent-bots/tools.js` (tool table row,
+  manifest paragraph, read_instance_file paragraph in the agent-bots
+  README); focused cases in `tools.spec.js` (payload-ref row, instance
+  payload read on both surfaces, payload-less/blob-gone refusals,
+  contract projection and single-action read).
+
 - [ ] Documents plugin: xlsx fill service on the new seam (template
   workbook ref + rows/values in, filled workbook payload out); md fill
   rides the same service shape.

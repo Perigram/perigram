@@ -48,6 +48,7 @@ Parent: [server/features](../README.md).
 | `web_search` | [web-search](../web-search/README.md) | org-gated (below) |
 | `ask_user` | pending-question registry | chat runs only |
 | `read_attachment` | support conversation attachments | chat runs only |
+| `read_instance_file` | registry instance services + attachment-read extraction | every surface |
 
 The catalog is a curated vocabulary over existing service seams; tools
 run with the principal's auth they are given and the catalog owns no
@@ -98,7 +99,10 @@ node, and a filter naming no entry fails with the valid families.
 The action manifest is live per call: the manifest tools re-resolve the
 delegated principal's current assignments, so process vocabulary
 activated mid-run is runnable in the same run, exactly as a human's next
-request would see it.
+request would see it. Manifest rows carry their input contracts —
+`construction` mode and inputs, `inputPolicy` fields, run `inputs` —
+the vocabulary `run_action` data composes from; `list_actions` with
+`actionId` serves one row.
 
 Every tool result above 16 KB returns truncated with a notice pointing
 at the narrower reads — the loop's context is a shared resource.
@@ -121,6 +125,12 @@ answer with the text-only boundary; unrecognized binaries are refused
 outright. The reader is bounded to the run's own conversation
 attachments: room scoping rides the support seam's
 conversation-attachment lookup.
+
+`read_instance_file` serves the same extraction families over any
+readable file instance's payload, on every surface (MCP included): the
+blob streams from the `files` bucket under the principal's access, and
+`get_instance` rows carry the payload reference (`fileId`, `mime`,
+`size`, `name`) beside the fields.
 
 `web_search` rides the web-search capability seam and is org-gated:
 organizations without a configured search provider offer it nowhere —
