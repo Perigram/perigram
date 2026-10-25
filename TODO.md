@@ -13,13 +13,20 @@ archived only on the owner's word.
 
 ### Repository shape (SPEC §23.1)
 
-- [ ] Remove `video/` (19 tracked files) — the explainer-video renderer:
+- [x] Remove `video/` (19 tracked files) — the explainer-video renderer:
   `video/groundtruth.mjs` imports deleted `utils/` files
   (ERR_MODULE_NOT_FOUND reproduced at audit), all 5 relative links in
   `video/README.md` resolve above the repo root and are broken, and
   `nuxt.config.js` special-cases ignoring the tree. Drop its
   Documentation Map row in the same cut. The renderer moves to its own
   repository first (~/Projects/perigram-video; owner pushes to a remote).
+  Landed 2026-10-25 (655938b35): video/ moved to its own repository —
+  0 tracked files under video/, `nuxt.config.js` video special-case
+  gone, Documentation Map row dropped, renderer at ~/Projects/perigram-video.
+  Untracked build-artifact residue remains in the primary working
+  directory (video/frames, video/out.mp4, video/target,
+  assets/rive/perigram-mark) — owner-local cleanup, deliberately
+  untouched by agents.
 - [ ] Remove `packages/mongo`, `packages/nitro`, `packages/vue` — zero
   consumers repo-wide (reference search over all js/vue/mjs excluding the
   packages themselves); `packages/vue/README.md` documents exports that do
@@ -67,17 +74,23 @@ archived only on the owner's word.
 
 ### Guards
 
-- [ ] `scripts/check-docs.js`: add `workers` to SOURCE_ROOTS
+- [x] `scripts/check-docs.js`: add `workers` to SOURCE_ROOTS
   (contract-shaped comments there are unscannable); make `resolveTarget`
   fail links resolving above the repository root (`video/README.md` passed
   the guard with 5 such broken links); add orphaned-README detection (a
   README no parent map registers).
-- [ ] `scripts/check-arch.js`: delete the dead `descriptorRefFields`
+  Landed 2026-10-25 (655938b35): `workers` in SOURCE_ROOTS; the link
+  pass fails `..` resolutions; `findOrphanedReadmes` flags unlinked
+  READMEs.
+- [x] `scripts/check-arch.js`: delete the dead `descriptorRefFields`
   function (never called; its comment claims enforcement), the empty
   `PACK_OWNED_FEATURES` map with its dead branch, and the four phantom
   capability names (server/features audit).
-- [ ] `scripts/framework-inspect.js`: `mcp-smoke` probes the deleted
+  Landed 2026-10-25 (655938b35): `descriptorRefFields`,
+  `PACK_OWNED_FEATURES`, and the four phantom names deleted.
+- [x] `scripts/framework-inspect.js`: `mcp-smoke` probes the deleted
   `queue` type — repoint to a live declared type.
+  Landed 2026-10-25 (655938b35): `mcp-smoke` probes `user`.
 
 ### E2E
 
@@ -157,9 +170,11 @@ archived only on the owner's word.
 
 - [ ] WAITING — owner verification: read root README Development +
   Documentation Map and the five area READMEs (e2e, test-data, test-tools,
-  scripts, deploy); repository shape cuts (video remains open), guards,
-  the artifact-family cutover and the test-data decision
-  stay open; k8s/README rewritten (deploy owns deployables, k8s owns
+  scripts, deploy); guards and the video/ removal landed (655938b35);
+  the repository-shape remainder (packages cut,
+  [packages/TODO.md](./packages/TODO.md)), the test-data decision, the
+  artifact-family cutover, and the exhaustive code audit stay open;
+  k8s/README rewritten (deploy owns deployables, k8s owns
   cluster state); root SPEC sections numbered §1–§23 with the citation
   sweep landed.
 
