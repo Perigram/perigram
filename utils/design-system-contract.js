@@ -1,6 +1,5 @@
-// Residual legacy fact vocabulary: empty — field descriptors are
-// declared on the type. `DESIGN_SYSTEM_FIELD_GROUPS` stays as the empty
-// map so design-system consumers keep one import surface.
+// Field descriptors are declared on the type; the map stays empty as the
+// consumers' import surface.
 export const DESIGN_SYSTEM_FIELD_GROUPS = {};
 
 export function getEntityFieldGroups(entityKey) {

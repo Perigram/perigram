@@ -463,7 +463,7 @@ processesFiles.forEach(file => {
     if (entityMatch) {
       for (const match of entityMatch) {
         const name = match.match(/['"]([a-z_]+)['"]/)[1];
-        if (name !== 'artifact' && name !== 'project' && name !== 'queue' && name !== 'cassette' && name !== 'cassette_design' && name !== 'library' && name !== 'nesting_run' && name !== 'sheet_design' && name !== 'sheet' && name !== 'cassette_instance' && name !== 'facade' && name !== 'facade_pattern' && name !== 'geometry_capture' && name !== 'catalog' && name !== 'color' && name !== 'warehouse' && name !== 'material_pile' && name !== 'batch_pile' && name !== 'organization' && name !== 'remnant') continue;
+        if (name !== 'project' && name !== 'queue' && name !== 'cassette' && name !== 'cassette_design' && name !== 'library' && name !== 'nesting_run' && name !== 'sheet_design' && name !== 'sheet' && name !== 'cassette_instance' && name !== 'facade' && name !== 'facade_pattern' && name !== 'geometry_capture' && name !== 'catalog' && name !== 'color' && name !== 'warehouse' && name !== 'material_pile' && name !== 'batch_pile' && name !== 'organization' && name !== 'remnant') continue;
         console.error(`❌ ${relFile}:${index + 1} hardcoded CNC entity name [${name}] in generic process module`);
         errors++;
       }

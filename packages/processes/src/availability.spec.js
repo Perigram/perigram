@@ -71,7 +71,7 @@ const domain = {
     generate: {
       input: {
         abstractEntities: [{ name: 'source', label: 'Source', capability: 'attachments.generate', accepts: ['sheet_design'], required: true }],
-        parameters: [{ name: 'kind', type: 'enum', options: ['LAYOUT_DXF'], required: true }]
+        parameters: [{ name: 'kind', type: 'enum', options: ['dxf'], required: true }]
       }
     }
   },

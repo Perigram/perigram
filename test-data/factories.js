@@ -196,8 +196,6 @@ export function createMockOrganization(overrides = {}) {
   };
 }
 
-
-
 export function createMockHistory(statuses = ['DRAFT', 'ACTIVE', 'CLOSED']) {
   return statuses.map((state, index) => ({
     _id: `status-event-${index}`,
