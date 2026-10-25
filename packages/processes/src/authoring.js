@@ -496,6 +496,25 @@ function syncDeclarationRecordFromNode(record, nodeType, data) {
 // of loop semantics), configure writes record semantics (the inspector's
 // writes), connect is the port-gated wire gesture, and definition()
 // returns the authored data ready for validation/activation.
+
+// The empty current-protocol document every fresh draft starts from.
+export function emptyAuthoredDocument() {
+  return {
+    schemaVersion: 1,
+    dataflowVersion: PROCESS_DATAFLOW_VERSION,
+    graphProtocol: 5,
+    graph: { nodes: [], edges: [] },
+    roleGrants: {},
+    producerOutputs: {},
+    actions: {},
+    services: {},
+    sockets: {},
+    screens: {},
+    ctsTypes: {},
+    processNodes: {}
+  };
+}
+
 export function createDefinitionAuthoring(domain, capabilities = null, seedData = null) {
   let contract = createProcessDesignerContract(domain, capabilities);
   const defaultEntityTypeId = () => contract.entityOptions[0]?.value || '';
@@ -518,20 +537,7 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     for (const recordId of Object.keys(data.processNodes)) syncProcessNode(recordId);
   }
 
-  const data = {
-    schemaVersion: 1,
-    dataflowVersion: PROCESS_DATAFLOW_VERSION,
-    graphProtocol: 5,
-    graph: { nodes: [], edges: [] },
-    roleGrants: {},
-    producerOutputs: {},
-    actions: {},
-    services: {},
-    sockets: {},
-    screens: {},
-    ctsTypes: {},
-    processNodes: {}
-  };
+  const data = emptyAuthoredDocument();
   const declarationNodes = new Map();
 
   // Seeding (the edit path): gestures apply to the stored document;

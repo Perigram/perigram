@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   activate,
+  create,
   effectTransitionContext,
   executeActiveProcessAction,
   executeProcessQuery,
@@ -262,6 +263,17 @@ describe('current process-definition service contract', () => {
 
     expect(processRepository.updateById.mock.calls[0][1].data).toEqual({ ...authored, compiled: null });
     expect(result.data.graph).toEqual(authored.graph);
+  });
+
+  it('creates a draft from a bare name (the empty current-protocol document seeds)', async () => {
+    processRepository.create.mockImplementation(async process => ({ ...process.toJSON() }));
+
+    const created = await create({ name: 'Bare draft' }, adminAuth());
+
+    expect(created.data.dataflowVersion).toBe(PROCESS_DATAFLOW_VERSION);
+    expect(created.data.graph).toEqual({ nodes: [], edges: [] });
+    expect(created.data.processNodes).toEqual({});
+    expect(created.states?.main ?? created.status?.state?.primary ?? created.identity).toBeTruthy();
   });
 
   it('migrates a persisted entity-producing node before save and activation', async () => {

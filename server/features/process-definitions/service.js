@@ -29,7 +29,7 @@ import {
   isDataTree,
   packetValue
 } from '~/packages/processes/src/index.js';
-import { createDefinitionAuthoring, collapseEffectAccessGrants, graphEdgeSocketProblems, graphIntegrityProblems } from '~/packages/processes/src/authoring.js';
+import { createDefinitionAuthoring, collapseEffectAccessGrants, emptyAuthoredDocument, graphEdgeSocketProblems, graphIntegrityProblems } from '~/packages/processes/src/authoring.js';
 import {
   getBlockFieldSchema,
   getBlockFieldSchemas,
@@ -255,8 +255,11 @@ export async function create(payload = {}, auth) {
   // v5): the persisted producer-identity rewrite runs on it, and protocol
   // acceptance (v5 lowering + binding checks) validates a copy.
   const domain = await getProjectedDomain(organizationId);
-  assertGraphIntegrity(payload.data || payload);
-  const authored = persistedRewrites(structuredClone(payload.data || payload), domain);
+  // A create with no document (a bare name) starts from the empty
+  // current-protocol draft; a raw document payload keeps its own shape.
+  const seed = payload.data || (payload.dataflowVersion ? payload : emptyAuthoredDocument());
+  assertGraphIntegrity(seed);
+  const authored = persistedRewrites(structuredClone(seed), domain);
   assertEdgeSocketIntegrity(authored);
   const process = new ProcessDefinition({
     identity: {
