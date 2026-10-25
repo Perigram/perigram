@@ -194,7 +194,12 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
 
   function syncProcessNodeConstruction(node = {}) {
     const contractForType = contract.construction(typeIdOf(node)) || {};
-    const modes = contractForType.modes?.length ? contractForType.modes : ['genericCreate'];
+    // A vocabulary gap (the domain carries no construction contract for
+    // the bound type — a fetch-ordering race, a retired type) preserves
+    // the authored construction verbatim; validation owns the
+    // unknown-type report.
+    if (!contractForType.modes?.length) return;
+    const modes = contractForType.modes;
     node.construction ||= {};
     if (!node.construction.mode && node.via && modes.includes(node.via)) {
       node.construction.mode = node.via;
