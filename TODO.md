@@ -192,6 +192,31 @@ URLs, `/home` is the live route, review-3 checked line 18 only);
 `home-calls` verified live and delisted. OPEN: repository shape cuts,
 guards, E2E rewrites, SPEC numbering, 8 owner decisions.
 
+## Exhaustive first-party code audit (owner direction 2026-10-25)
+
+Scope: every first-party line read once — one deep pass per component
+folder (~30 folders, ~177k lines; vendored bundles excluded). The
+measured floor: 1.3–2.3% token duplication on the core planes, ~3k
+proven cuts already executed. Findings must beat the tool floor.
+
+- [ ] Per folder, read every module end to end and file findings in that
+  folder's TODO with file:line evidence and the search that proves them.
+  Categories: dead exports and unreachable branches (reachability
+  search), duplication (token, near-miss, Vue-template),
+  speculative abstraction, over-engineering, contract-shaped comments,
+  synthesized wire fields.
+- [ ] Items with conclusive reachability evidence and zero decision
+  hooks execute in the same session (specs and docs die with code);
+  everything else lands unchecked.
+- [ ] Validation: guards and the touched areas' suites green on the
+  session branch.
+- [ ] Report: per-folder conformance table, findings by category, lines
+  cut vs filed.
+
+Session mechanics: parallel area waves with review agents re-verifying
+every DEAD/DUPLICATE claim (the 2026-10-24 pattern); escalation and
+status rules per AGENTS.md.
+
 ## Artifact-family cutover to file instances
 
 - [ ] Retire the artifact family: the `artifacts`, `artifact-templates`,
@@ -200,3 +225,18 @@ guards, E2E rewrites, SPEC numbering, 8 owner decisions.
   operates on after the cutover is the implementing agent's decision;
   CTS types with payload traits and the upload creation protocol are
   the seams. User-plane UX must not degrade.
+
+Session reads before any code: AGENTS.md; [SPEC](./SPEC.md) §4 (Files),
+§13 (Server), §20 (Plugin marketplace — attachments/exports as
+declarations); [CTS SPEC](./packages/cts/SPEC.md) §4–§5 (declarations,
+payload traits); [instances](./server/features/instances/README.md),
+[support](./server/features/support/README.md) (today's attachment
+flows), [entities](./components/entities/README.md).
+
+Acceptance: support chat attachments, proof, capture, and upload flows
+operate on declared file types end to end; the retiring set above
+deletes in the same cut with its specs and docs; the plugins/artifacts
+seams that survive (generateAttachment, attachment kinds) either ride
+the declared vocabulary or carry a filed migration item; guards green
+(framework suites, check-arch, check-docs, SSR smoke) and e2e green
+against a running stack; owner verifies UX parity on the live stack.
