@@ -2537,6 +2537,9 @@ watch([() => props.conversationKey, () => supportChatStore.conversations], ([key
 // Function declaration: the immediate watcher below runs during setup and
 // must be able to call this before its textual position.
 function openConversationByKey(key) {
+    // The inbox Listbox toggles: re-clicking the open row deselects and
+    // emits null — the open thread stays.
+    if (!key) return
     const summary = supportChatStore.conversations.find(item => item.conversationKey === key)
     if (summary) {
         activeConversation.value = { ...summary, resolved: true }
