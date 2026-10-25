@@ -109,6 +109,7 @@ import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import StateTag from './StateTag.vue';
 import SortControl from './SortControl.vue';
+import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
@@ -149,13 +150,14 @@ const { te, t } = useI18n();
 // screens and the showcase slider shrink board cards with everything
 // else.
 const spacing = inject('uiMappingSpacing', null);
+const hostContainer = useHostContainerTraits();
 
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 // Facts follow the card-grid budget (cardFactCount over CARD_FACT_SCALE:
 // wide types earn more facts); beyond-budget facts collapse behind the
 // shared show-more keys — board lanes are dense, so the budget is the
 // collapse, and one expand per card lifts it.
-const factBudget = computed(() => cardFactCount(props.type));
+const factBudget = computed(() => cardFactCount(props.type, { compact: hostContainer.value.width === 'narrow' }));
 const expandedCards = ref(new Set());
 const visibleFieldsFor = instance => (expandedCards.value.has(instance.id)
   ? scalarFields.value

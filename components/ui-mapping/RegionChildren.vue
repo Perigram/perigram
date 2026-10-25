@@ -3,14 +3,10 @@
     <RegionBlock
       v-for="child in fullRowRegions"
       :key="child.id"
+      v-bind="baseBlockProps"
+      v-on="blockEvents"
       :node="child"
-      :pool="pool"
-      :bundle="bundle"
-      :depth="depth + 1"
-      :openable="openable"
-      :instance-actions="instanceActions"
-      @run="(action, context) => emit('run', action, context)"
-      @open="instance => emit('open', instance)"
+      :depth="childDepth"
     />
     <div ref="columnsHost" class="region-columns-host">
       <div
@@ -20,14 +16,10 @@
         <RegionBlock
           v-for="child in columnRegions"
           :key="child.id"
+          v-bind="baseBlockProps"
+          v-on="blockEvents"
           :node="child"
-          :pool="pool"
-          :bundle="bundle"
-          :depth="depth + 1"
-          :openable="openable"
-          :instance-actions="instanceActions"
-          @run="(action, context) => emit('run', action, context)"
-          @open="instance => emit('open', instance)"
+          :depth="childDepth"
         />
       </div>
     </div>
@@ -36,14 +28,10 @@
   <template v-else-if="arrangement.mode === 'mixed'">
     <RegionBlock
       :key="regions[primaryIndex].id"
+      v-bind="baseBlockProps"
+      v-on="blockEvents"
       :node="regions[primaryIndex]"
-      :pool="pool"
-      :bundle="bundle"
-      :depth="depth + 1"
-      :openable="openable"
-      :instance-actions="instanceActions"
-      @run="(action, context) => emit('run', action, context)"
-      @open="instance => emit('open', instance)"
+      :depth="childDepth"
     />
     <RegionChildren
       :regions="restRegions"
@@ -53,6 +41,8 @@
       :bundle="bundle"
       :openable="openable"
       :instance-actions="instanceActions"
+      :region-props="regionProps"
+      :region-events="regionEvents"
       @run="(action, context) => emit('run', action, context)"
       @open="instance => emit('open', instance)"
     />
@@ -68,15 +58,11 @@
     <TabPanels>
       <TabPanel v-for="child in orderedRegions" :key="child.id" :value="child.id">
         <RegionBlock
+          v-bind="baseBlockProps"
+          v-on="blockEvents"
           :node="child"
-          :pool="pool"
-          :bundle="bundle"
-          :depth="depth + 1"
-          :openable="openable"
-          :instance-actions="instanceActions"
+          :depth="childDepth"
           embedded
-          @run="(action, context) => emit('run', action, context)"
-          @open="instance => emit('open', instance)"
         />
       </TabPanel>
     </TabPanels>
@@ -86,15 +72,11 @@
     <RegionBlock
       v-for="child in regions"
       :key="child.id"
+      v-bind="baseBlockProps"
+      v-on="blockEvents"
       :node="child"
-      :pool="pool"
-      :bundle="bundle"
-      :depth="depth + 1"
-      :openable="openable"
-      :instance-actions="instanceActions"
+      :depth="childDepth"
       stub
-      @run="(action, context) => emit('run', action, context)"
-      @open="instance => emit('open', instance)"
     />
   </div>
 
@@ -102,21 +84,17 @@
     v-for="child in regions"
     v-else
     :key="child.id"
+    v-bind="baseBlockProps"
+    v-on="blockEvents"
     :node="child"
-    :pool="pool"
-    :bundle="bundle"
-    :depth="depth + 1"
-    :openable="openable"
-    :instance-actions="instanceActions"
-    @run="(action, context) => emit('run', action, context)"
-    @open="instance => emit('open', instance)"
+    :depth="childDepth"
   />
 </template>
 
 <script setup>
 // The one materialization of the composed children arrangement
 // (`arrangeChildren`) for every nesting host: record pages, nested
-// detail bodies, list panels.
+// detail bodies, list panels, and screen top-level sections.
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tabs from 'primevue/tabs';
@@ -136,16 +114,35 @@ const props = defineProps({
   // Stack-mode children render at content width side by side (the
   // stub strip under a record body).
   pack: { type: Boolean, default: false },
+  // Depth -1 hosts top-level screen sections: their children render at
+  // depth 0 like routed regions.
   depth: { type: Number, default: 0 },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   openable: { type: Boolean, default: false },
-  instanceActions: { type: Object, default: null }
+  instanceActions: { type: Object, default: null },
+  // Screen-level passthrough: extra RegionBlock props/events the host
+  // surface owns (navigation, editor actions, patch/transition channels).
+  regionProps: { type: Object, default: null },
+  regionEvents: { type: Object, default: null }
 });
 
 const emit = defineEmits(['run', 'open']);
 const { te, t } = useI18n();
 const labelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? generatedEntityLabel(region.type, { t, te }) : region.id);
+const childDepth = computed(() => (props.depth < 0 ? 0 : props.depth + 1));
+const baseBlockProps = computed(() => ({
+  pool: props.pool,
+  bundle: props.bundle,
+  openable: props.openable,
+  instanceActions: props.instanceActions,
+  ...(props.regionProps || {})
+}));
+const blockEvents = computed(() => ({
+  run: (action, context) => emit('run', action, context),
+  open: instance => emit('open', instance),
+  ...(props.regionEvents || {})
+}));
 const primaryIndex = computed(() => (Number.isInteger(props.arrangement.primary)
   ? Math.min(props.arrangement.primary, Math.max(props.regions.length - 1, 0))
   : 0));

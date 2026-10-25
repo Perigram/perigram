@@ -313,9 +313,9 @@ export function createUiMapping(overrides = {}) {
     return scaledBudget(TABLE_COLUMN_SCALE, shape.scalarCount, compact);
   }
 
-  function cardFactCount(typeRecord = {}) {
+  function cardFactCount(typeRecord = {}, { compact = false } = {}) {
     const shape = analyzeTypeShape(typeRecord);
-    return scaledBudget(CARD_FACT_SCALE, shape.scalarCount);
+    return scaledBudget(CARD_FACT_SCALE, shape.scalarCount, compact);
   }
 
   return {
@@ -896,16 +896,6 @@ export function estimateRegionWeight(node = {}) {
   return 2 + count * perRow + Math.ceil(relationRefs / 4);
 }
 
-// Screen-level section arrangement (the home template's top regions):
-// sections over the surface budget tab. Record-child arrangement uses
-// the richer ladder below.
-export function childrenModeFor(childRegions = [], level = 0) {
-  if (childRegions.length < CHILDREN_TABS_AT) return 'stack';
-  const weight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
-  if (weight > SURFACE_ROW_BUDGET && level === 0) return 'tabs';
-  return 'stack';
-}
-
 // Data traits (SPEC → Data traits): the compose-time record every
 // arrangement decision consumes, one derivation frozen on the region
 // node. Weight is `estimateRegionWeight`; the rest derive from the type
@@ -1010,10 +1000,10 @@ export function arrangeChildren(childRegions = [], level = 0) {
     };
   }
   if (level > 0) return { mode: 'stack' };
-  // Full-row children claim their rows; a light columnable remainder
-  // stacks after them, a heavy one tabs the set.
-  const hasFullRow = columnable.length < childRegions.length;
-  if (hasFullRow && columnableWeights.reduce((sum, weight) => sum + weight, 0) <= SURFACE_ROW_BUDGET) {
+  // Full-row children within the column cap claim their rows and stack
+  // (the table is the row-cheapest layout); past the cap the set tabs —
+  // the page-height bound.
+  if (columnable.length < childRegions.length && weights.every(weight => weight <= COLUMN_MAX_WEIGHT)) {
     return { mode: 'stack' };
   }
   return {

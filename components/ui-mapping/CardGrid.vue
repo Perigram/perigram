@@ -89,6 +89,7 @@ import Button from 'primevue/button';
 import Message from 'primevue/message';
 import Menu from 'primevue/menu';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
+import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import {
   LAYOUT, SCALAR_BASES, cardFactCount, titleFor, iconFor, isIdentifierField,
   fieldLabel, fieldLabelKey, localizedLabel, resolveListControls,
@@ -139,12 +140,14 @@ const statusOf = instance => {
   return display ? { label: display.label, severity: display.severity } : null;
 };
 // Card facts exclude the identifier field — the card title IS the
-// identifier value (titleFor); a fact row would repeat it.
+// identifier value (titleFor); a fact row would repeat it. A narrow
+// host takes the compact fact budget (the container seam).
+const hostContainer = useHostContainerTraits();
 const scalarFields = computed(() => Object.entries(props.type?.fields || {})
   .filter(([name, descriptor]) => SCALAR_BASES.includes(descriptor.base)
     && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120)))
   .filter(([name]) => !isIdentifierField(props.type, name))
-  .slice(0, cardFactCount(props.type))
+  .slice(0, cardFactCount(props.type, { compact: hostContainer.value.width === 'narrow' }))
   .map(([name, descriptor]) => ({
     name,
     descriptor,
