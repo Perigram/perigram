@@ -5,12 +5,7 @@ import { resolveDetailScreen } from '~/components/generated/detail-screen-action
 const KEY = 'entityPopup';
 const DIRECTORY_TYPES = ['user', 'organization'];
 
-// A type is popup-openable exactly when a surface exists to render: the
-// directory profile for user/organization, a compiled/synthesizable
-// detail screen, or the record floor over the served type view. A type
-// absent from the served view has no record surface anywhere (panes stay
-// silent for it too) — callers render no interactive link and open()
-// refuses.
+// Popup-openable law: composables/README.md → useEntityPopup.
 export function useEntityPopup() {
     const request = useState(KEY, () => null);
     const authStore = useAuthStore();

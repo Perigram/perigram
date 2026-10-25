@@ -29,13 +29,17 @@
 
 - [x] Delete dead composables: `useNavigationState.js` (module-scoped tabs state, zero references — grep own file only); `useMotion.js` `useStateTransition` (zero non-spec consumers; composables/README L75 documents the dead export instead of deleting it — delete or consume).
   Landed with `useSnapshotHistory.js` (zero consumers) — no specs existed for any of the three.
-- [ ] plugins/global-styles.js:1-7 → comment restates the root README global-stylesheet contract plus history ("Order matches the old css array") → one-line pointer to the root README.
+- [x] plugins/global-styles.js:1-7 → comment restates the root README global-stylesheet contract plus history ("Order matches the old css array") → one-line pointer to the root README.
+  Landed 2026-10-25: comment is a one-line pointer to the root README Development section.
 - [ ] utils/instance-events.js:47-53 → `normalizedEffectEntities` dual-reads legacy array-shaped `effects`; migrate remaining producers to the object shape and delete the array branch (composables/README.md L139-141 documents the tolerance today).
 - [x] Delete utils/app-instance-surfaces.js — exports `{ fieldGroups: {}, surfaces: {} }` (zero entries) wired into `resolveInstanceDisplayContract`; utils/README.md's "the app's only route-specific patch channel" sentence and pages/README.md L165-167's production-uses claim die with it (decided 2026-10-25).
   Landed: the whole `extensions` channel died with the file — the `displayExtensions` props on InstanceCard/InstanceSurfaceContent had zero parent callers, so `resolveInstanceDisplayContract` composes bundle rows + per-call patches only; spec updated.
-- [ ] composables/useEntityPopup.js:8-13 → the popup-openable law (directory types, compiled/synthesizable detail screen, or served type view) lives in a block comment; give it a composables/README.md paragraph, leave a pointer.
-- [ ] shared/ui-permissions.js → drop the `UI_PERMISSIONS` costume re-export of `PERMISSION_TEMPLATES` (zero production consumers, only its own spec); `resolveUiPermission` stays (stores/auth.js:3,185).
-- [ ] stores/navigation.js:66 → `screen.typeId || screen.typeId` duplicated operand (residue of `entityType || typeId`); collapse to `screen.typeId` (paired with the stores/README sentence item above).
+- [x] composables/useEntityPopup.js:8-13 → the popup-openable law (directory types, compiled/synthesizable detail screen, or served type view) lives in a block comment; give it a composables/README.md paragraph, leave a pointer.
+  Landed 2026-10-25: law homed in composables/README.md → useEntityPopup; the code comment is a one-line pointer.
+- [x] shared/ui-permissions.js → drop the `UI_PERMISSIONS` costume re-export of `PERMISSION_TEMPLATES` (zero production consumers, only its own spec); `resolveUiPermission` stays (stores/auth.js:3,185).
+  Landed 2026-10-25: export and its `PERMISSION_TEMPLATES` import deleted; the spec imports `PERMISSION_TEMPLATES` directly from permission-templates.js and passes unchanged.
+- [x] stores/navigation.js:66 → `screen.typeId || screen.typeId` duplicated operand (residue of `entityType || typeId`); collapse to `screen.typeId` (paired with the stores/README sentence item above).
+  Landed 2026-10-25: operand collapsed to `screen.typeId || ''`; stores/README.md states the single-`typeId` read.
 
 ### Code findings (truth pass 2026-10-24)
 
@@ -79,3 +83,17 @@ parentless); navigation.js project/admin branches and the app.vue queues
 regex cut. OPEN: global-styles comment, effects dual-read (decision),
 useEntityPopup law, ui-permissions costume export, navigation.js:66
 operand.
+
+### Agent Notes (2026-10-25, shared deslop wave 2)
+
+Session `agent/shared-deslop2-20261025-1521` (worktree
+`.agent-worktrees/shared`). global-styles comment and the useEntityPopup
+law collapsed to README pointers (laws homed: root README Development,
+composables/README.md → useEntityPopup); UI_PERMISSIONS export deleted
+with its import (zero consumers; the spec imports PERMISSION_TEMPLATES
+directly and passes); navigation.js:66 duplicate operand collapsed.
+Validation: ui-permissions + useEntityPopup + design-system specs pass
+(52 tests); check-arch/check-docs fail on a broken link,
+workers/nesting/README.md → ./jagua-rs/README.md, absent at base
+6b12a236c (empty jagua-rs dir). OPEN: effects dual-read (owner
+decision).
