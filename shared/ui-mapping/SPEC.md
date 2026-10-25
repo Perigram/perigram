@@ -142,16 +142,20 @@ for screens and record children alike.
 
 ## Intrinsic sizing
 
-- Width follows breadth. `chip` packs in wrap rows; `content` renders at
-  content width under the declared cap (sections cap at
-  `fit-content(46rem)`); `full` keeps the row. Nothing stretches to fill
-  width its content does not need.
+- Width follows breadth, and content width is the floor while the host
+  grants growth: `chip` packs in wrap rows; `content` renders at content
+  width and grows into spare host width (fact groups fill in columns,
+  sections share the row); `full` keeps the row. Nothing stretches past
+  what its content fills in a column narrower than the host.
 - Height follows weight. Vertical placement derives from weights, and
   budgets cap exposed cardinality (show-more, pagination, bounded scroll),
   so no surface grows without bound.
 - Minima hold readable content: tracks zero-floor (`minmax(0, Nfr)`) so
   wide content scrolls inside its column; label chains truncate through
   the `min-w-0` chain. Nothing is squeezed below its content's minimum.
+- The record preview scales with its container: the fixed-height band is
+  the card slot's anatomy; the record body's band steps up with the host
+  width through the sanctioned container home.
 - Scroll ownership: `bounded`-growth content scrolls in its own box
   wherever it renders; `flowing` content in a `flow` host grows the page;
   `flowing` content in a `bounded` host rides the host's scroll column.

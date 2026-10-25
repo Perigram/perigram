@@ -259,10 +259,15 @@ export const LAYOUT = Object.freeze({
   // variants cannot express "wide where I am rendered" (dialogs, panes).
   formGrid: 'ck-form-grid',
   // Container-relative record-body grids (real CSS in main.css beside
-  // the form grid): blocks render at content width and pack; full width
-  // is earned by wide content (.ck-span-full).
+  // the form grid): content width is the floor and the host grants
+  // growth — fact groups fill in tracking columns, body blocks grow into
+  // spare row width (.ck-span-full still earns the full row).
   factsGrid: 'ck-facts-grid',
   bodyGrid: 'ck-body-grid',
+  // The record body's preview band steps up with its container (real
+  // CSS in main.css); the card slot keeps the fixed previewBand stamp.
+  previewHero: 'ck-preview-hero',
+  previewHeroBand: 'ck-preview-hero-band',
   packRow: 'flex flex-wrap items-start gap-6',
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',

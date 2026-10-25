@@ -137,6 +137,18 @@ describe('showcase-reachable contracts in every world', () => {
     }
   });
 
+  it('guarantees a column arrangement engages over the moderate peers', () => {
+    for (const seed of SEEDS) {
+      const world = generateUiMappingWorld(seed);
+      const pool = buildInstancePool(world.instances);
+      const engaged = Object.values(world.contract.screens)
+        .filter(screen => screen.template === 'instanceDetail')
+        .some(screen => composeScreen(screen, world.contract, world.bundle, pool).regions
+          .some(region => region.childArrangement.mode === 'columns'));
+      expect(engaged, `seed ${seed} column engagement`).toBe(true);
+    }
+  });
+
   it('guarantees the budget thresholds and data-state surfaces', () => {
     for (const seed of SEEDS) {
       const world = generateUiMappingWorld(seed);
