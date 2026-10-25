@@ -39,7 +39,8 @@
 
 ### Additions
 
-- [ ] Guard coverage: scripts/check-docs.js:209 `SOURCE_ROOTS` excludes `workers/`, so contract-shaped comments there are never scanned; fix owned by the root TODO ([TODO.md](../TODO.md), scripts/ item) — this folder's folds above remove the known instances.
+- [x] Guard coverage: scripts/check-docs.js:209 `SOURCE_ROOTS` excludes `workers/`, so contract-shaped comments there are never scanned; fix owned by the root TODO ([TODO.md](../TODO.md), scripts/ item) — this folder's folds above remove the known instances.
+  Landed 2026-10-25 (655938b35): `workers` is in `SOURCE_ROOTS` (check-docs.js:243).
 
 ### Owner decisions wanted
 

@@ -27,13 +27,15 @@ archived only on the owner's word.
   directory (video/frames, video/out.mp4, video/target,
   assets/rive/perigram-mark) — owner-local cleanup, deliberately
   untouched by agents.
-- [ ] Remove `packages/mongo`, `packages/nitro`, `packages/vue` — zero
+- [x] Remove `packages/mongo`, `packages/nitro`, `packages/vue` — zero
   consumers repo-wide (reference search over all js/vue/mjs excluding the
   packages themselves); `packages/vue/README.md` documents exports that do
   not exist. Same cut cleans `scripts/framework-inspect.js` PACKAGE_NAMES,
   regenerates `framework.manifest.json` (`npm run framework:write-manifest`),
   drops `tsconfig.json` path rows, and updates the `.codex` skill reference.
   Tracked in [packages/TODO.md](./packages/TODO.md).
+  Landed 2026-10-25 (655938b35): folders gone, every reference cleaned,
+  manifest regenerated.
 - [x] Remove `constants/` + `components/UserForm.vue` — the only import of
   `constants/` is `UserForm.vue:36` (`USER_ROLES`, a hardcoded legacy role
   set); `<UserForm` template usage: 0 matches repo-wide.
@@ -170,9 +172,8 @@ archived only on the owner's word.
 
 - [ ] WAITING — owner verification: read root README Development +
   Documentation Map and the five area READMEs (e2e, test-data, test-tools,
-  scripts, deploy); guards and the video/ removal landed (655938b35);
-  the repository-shape remainder (packages cut,
-  [packages/TODO.md](./packages/TODO.md)), the test-data decision, the
+  scripts, deploy); guards, the video/ removal, and the repository-shape
+  cuts landed (655938b35); the test-data decision, the
   artifact-family cutover, and the exhaustive code audit stay open;
   k8s/README rewritten (deploy owns deployables, k8s owns
   cluster state); root SPEC sections numbered §1–§23 with the citation
