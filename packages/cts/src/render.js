@@ -14,8 +14,7 @@ function startCase(value = '') {
   return String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 }
 
-// Derived sections (SPEC §4): total field assignment by base. There is no
-// authored override channel — deviations are not render concerns.
+// Derived sections: total field assignment by base (SPEC §4).
 const SECTION_ORDER = Object.freeze(['summary', 'dimensions', 'media', 'relations', 'notes']);
 const LONG_STRING_AT = 120;
 

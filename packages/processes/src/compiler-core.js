@@ -1032,13 +1032,8 @@ function isDataEdge(edge = {}) {
     && !String(edge.targetHandle || '').startsWith('control:');
 }
 
-// One emptiness rule shared by authored fallbacks and domain defaults: an
-// explicit null/undefined is absence and never satisfies; entity/block values
-// must be non-null references; entity-list/array/attachment values must be
-// non-empty; enum/status values must be a declared member; unconstrained
-// primitives accept any type-valid value including ''/0/false. A scalar on a
-// List/Tree-declared socket is one broadcast item and satisfies by the scalar
-// rules; only actual arrays/trees use the collection non-empty rule.
+// One emptiness rule for authored fallbacks and domain defaults (law:
+// README Required inputs).
 function inputValueSatisfies(value, port, declared = {}) {
   const scalar = isDataTree(value) ? value.branches?.[0]?.items?.[0] : value;
   if (scalar === null || scalar === undefined) return false;
@@ -1130,12 +1125,8 @@ function declaredInputMetadata(record = {}, domain = {}, portId = '') {
   return commandInputs.find(input => (input.name || input.type || input.capability) === portId) || {};
 }
 
-// Exactly one activation-time availability contract for required inputs. A
-// required input is satisfied by a connected upstream value, an authored
-// fallback, a domain-owned default, a generated manual prompt (manual actions
-// only), or the run context (manual actions only). A prompt or run context
-// never satisfies an automatically evaluated path, so an event-triggered effect
-// must be complete without a UI prompt.
+// The one activation-time availability contract for required inputs (law:
+// README Required inputs).
 export function validateRequiredInputAvailability(process = {}, domain = {}) {
   const errors = [];
   const nodes = process.graph?.nodes || [];
@@ -4019,10 +4010,8 @@ function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
   return {
     mode,
     ...(source.blockComposed ? { blockComposed: true } : {}),
-    // Declared inputs may re-carry the authored 'userCreatable' selector
-    // over the contract's expanded kinds; one final idempotent pass keeps
-    // every emitted creator on the canonical expanded [{ kind, creation }]
-    // shape whatever the action node declared.
+    // Emitted creators stay on the canonical expanded [{ kind, creation }]
+    // shape (law: README Create and update effects).
     inputs: [...inputsById.values()].map(input => normalizeConstructionInput(input, domain))
   };
 }

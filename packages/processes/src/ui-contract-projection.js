@@ -48,11 +48,8 @@ function typeIdOfRecord(record = {}) {
 export function projectUiScreen(screen = {}) {
   const typeId = typeIdOfRecord(screen);
   const mainSourceId = screen.sources?.find(source => source.mode === 'single')?.id || typeId || screen.id;
-  // Spread-based: the projection overrides the vocabulary keys and leaves
-  // every authored/app key (labelKey, icon, systemScreens, systemActions,
-  // scope contracts…) intact. A whitelist rebuild silently dropped the
-  // system surfaces' button contracts once — this seam translates, it
-  // never amputates.
+  // Spread and override vocabulary keys only; every authored/app key rides
+  // intact (law: README Effective manifests).
   return {
     ...screen,
     id: screen.id,

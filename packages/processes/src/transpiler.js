@@ -171,14 +171,7 @@ export function validateRoundTrip(definition = {}) {
     assertEditableSource(process);
     canvas = definitionToCanvas(process);
     roundTripped = canvasToDefinition(canvas, process);
-    // The compare is SECOND-GENERATION stability: `roundTripped` compared
-    // against its own round trip. Comparing the authored input directly
-    // demanded byte-stability of records persisted by older app versions,
-    // whose canvas nodes legitimately carry data (defaulted glyphs,
-    // authored severities) the paired records never materialized — a
-    // one-time normalization that wrongly refused every re-activation of
-    // a legacy process. Idempotence still catches real projection loss:
-    // a pipeline that drops or rewrites semantics never stabilizes.
+    // Second-generation stability compare (law: README Designer round trip).
     const canvasTwo = definitionToCanvas(roundTripped);
     const roundTrippedTwo = canvasToDefinition(canvasTwo, roundTripped);
     const mismatches = compareSemanticRecords(roundTripped, roundTrippedTwo);

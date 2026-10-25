@@ -59,6 +59,11 @@ same gestures edit a stored draft as compose a fresh one (the agent-bots
 tool catalog's `edit_process_definition` rides this path through the
 definition service's `editDefinition`).
 
+Authored socket defaults and relation selections survive a vocabulary
+gap: a node whose bound type the current domain lacks keeps its authored
+selections until a full-domain sync re-derives the ports; validation owns
+the unknown-type report.
+
 Save floors — the save seam rejects what they flag and persists the
 collapse; semantic validity stays with the validator:
 
@@ -161,9 +166,10 @@ authored `glyph`.
 normalized definition is cycled definition → canvas → definition twice, and
 the first-generation result must equal the second (canvas nodes legitimately
 carry defaulted presentation data — glyphs, severities — the paired records
-never materialize, so the comparison targets the generations). Vue Flow
-node positions are presentation data; runtime behavior comes from the
-semantic records.
+never materialize, so the comparison targets the generations). Idempotence
+still catches real projection loss: a pipeline that drops or rewrites
+semantics never stabilizes. Vue Flow node positions are presentation data;
+runtime behavior comes from the semantic records.
 
 The designer removes incoming data edges whenever a node contract change
 removes their target socket, deriving a filtered edge list off the reactive
@@ -292,7 +298,9 @@ event-triggered effect must be complete on its own. The emptiness rule is
 shared by authored fallbacks and domain defaults: `null`/`undefined`
 satisfy nothing; an empty collection or attachment fails a required
 entity-list/attachment input; an empty string or zero satisfies a required
-primitive where the domain type permits. On a List/Tree-declared socket
+primitive where the domain type permits; entity and block values must be
+non-null references, and enum/status values must be declared members. On a
+List/Tree-declared socket
 only an actual array or data tree uses the collection rule; a scalar
 fallback is one broadcast item and satisfies by the scalar rules. When the
 construction contract declares the `name` row, that row is the identity
@@ -309,8 +317,12 @@ contracts own structural input metadata during compilation — field id,
 label, path, type, and accepted entity types come from the current domain
 registry; process projections preserve the domain-declared `required` flag,
 and an input whose domain contract declares a `default` projects as
-non-required. A stored construction mode outside the selected entity type's
-current modes normalizes to the domain default before compiling.
+non-required. `resolveConstructionMode` (`node-catalog.js`) resolves the
+executed mode everywhere — the authored mode when the contract declares
+it, else the contract default, else the first declared mode — shared by
+the catalog port projection and the server's effect boundary, so ports,
+drafts, and effect execution speak one mode; a stored mode outside the
+type's current modes normalizes before compiling.
 Compilation discards construction inputs and prompt fields the current
 domain contract has retired, drops a canonical block whose fields the
 current schema has all marked non-constructible (blocks the schema disowns
@@ -819,8 +831,11 @@ every screen and action record (`projectUiScreen`/`projectManifestAction`
 in `ui-contract-projection.js`) — `id`, `actionKind`, `typeId`,
 `parentTypeId`, projected templates (`typeList`/`instanceDetail`), and the
 rich execution fields (`inputPolicy`, `relationMutation`, status window,
-`contracts`, exposure `inputs`) under their own names. Compiled execution
-channel field names stay server-side; the lineage-binding payload hydrates
+`contracts`, exposure `inputs`) under their own names. Both projections
+spread the source record and override only the vocabulary keys; every
+other authored or app key (labelKey, icon, systemScreens, systemActions,
+scope contracts) rides intact. Compiled execution channel field names
+stay server-side; the lineage-binding payload hydrates
 with `childTypeId`/`parentTypeId`.
 
 Manual screen actions execute through the active process action runtime,

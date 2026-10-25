@@ -229,11 +229,9 @@ function normalizeProjections(projections = [], typeId = '') {
   }));
 }
 
-// A stored declaration is broken when it could never have compiled as a
-// contract on its own: it violates its class obligations (SPEC §5) or
-// declares lineage children the view cannot resolve. Only the historical
-// persist-before-compile write order could store such declarations; they
-// are repair targets, not contracts to diff-protect.
+// A stored declaration that violates its class obligations (SPEC §5) or
+// declares children the view cannot resolve is a repair target: free
+// redefinition (SPEC §11).
 function storedDeclarationIsBroken(existing = {}, view = new Map()) {
   if (checkClassObligations(existing).length) return true;
   for (const declaration of Object.values(existing.edges?.children || {})) {
@@ -255,16 +253,9 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
     const type = normalizeType(declaration);
     const existing = types.get(keyOf(type));
     if (existing) {
-      // Breaking diffs are refused only for types with live data: an
-      // empty type has nothing to migrate, so the redefinition lands
-      // with a plain version bump. The probe returns a synchronous
-      // instance count; registries without one refuse as before.
-      // Repair is the other free path: a stored declaration that itself
-      // violates class obligations or declares unresolvable children
-      // never compiled as a contract (only the historical
-      // persist-before-compile write order could store one), so moving
-      // away from it has nothing to migrate — the diff must not protect
-      // an invalid declaration.
+      // Free redefinition outside the SPEC §11 gate: zero live instances
+      // (synchronous `hasInstances` probe) or a broken stored declaration —
+      // law: README registry entry.
       const repair = storedDeclarationIsBroken(existing, resolveView(type.organizationId));
       const diff = repair || (hasInstances && hasInstances(existing) === 0)
         ? { changes: [{ severity: 'minor', kind: repair ? 'repair-redefinition' : 'empty-redefinition' }], breaking: false }

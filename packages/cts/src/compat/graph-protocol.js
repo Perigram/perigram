@@ -718,12 +718,8 @@ export function checkCtsGraphBindings(definition = {}, domain = {}) {
         && ['data:status', 'data:states.main', 'data:state'].includes(String(edge.targetHandle || ''))
       ));
       if (!target && !hasStatusWire) {
-        // An executable transition without any authored target is a
-        // runtime bomb ("invalid transition to undefined"), not unfinished
-        // declaration authoring: activation must refuse it. The target
-        // comes from the inspector's state reference, an authored default,
-        // or a wire into the status socket (a state-definition node or
-        // literal supplies it at run time).
+        // An executable transition must carry an authored target (SPEC §14,
+        // README graph-protocol entry).
         errors.push(`processNodes.${id}: transition declares no target state`);
       }
       if (target) {

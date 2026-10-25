@@ -13,7 +13,14 @@
 
 ### Code deslop
 
-- [ ] Contract-shaped comments (docs-guard homing backlog, `node scripts/check-docs.js`): `src/authoring.js` (352 chars), `src/compiler-core.js` (3 entries), `src/node-catalog.js` (252), `src/transpiler.js` (521), `src/ui-contract-projection.js` (289), `src/missing-field.js:6-14` (restates README L1109-1125) — move the semantics into the owning README section the rewrite creates, leave one-line pointers.
+- [x] Contract-shaped comments (docs-guard homing backlog, `node scripts/check-docs.js`): `src/authoring.js` (352 chars), `src/compiler-core.js` (3 entries), `src/node-catalog.js` (252), `src/transpiler.js` (521), `src/ui-contract-projection.js` (289), `src/missing-field.js:6-14` (restates README L1109-1125) — move the semantics into the owning README section the rewrite creates, leave one-line pointers.
+  Landed 2026-10-25: all seven homed — vocabulary-gap survival
+  (Authoring seam), emptiness-rule extension for entity/block and
+  enum/status values (Required inputs), `resolveConstructionMode`
+  precedence law (Construction contracts), idempotence clause (Designer
+  round trip), spread-projection law (Effective manifests),
+  missing-field header → pointer; one-line README pointers left in code;
+  the package's check-docs homing entries clear.
 - [x] Protocol naming pass: the persisted integer `PROCESS_PROTOCOL_VERSION` (src/types.js:1) is the version of record; resolve the v4/v5 collision (cts SPEC §20's "(v5)" title, the pre-species "retired v4 kinds" vocabulary) (decided 2026-10-25).
   Done 2026-10-25 in the cts SPEC revision: the Graph protocol section (§14 after renumbering) carries a bare title, names `PROCESS_PROTOCOL_VERSION` the persisted version of record, and speaks the retired vocabulary as the retired executable kinds.
 
@@ -39,3 +46,13 @@ SPEC TOC (1452→1359): migration-era residue + the two dead script refs
 dropped; palette/principals/guard/parent-is-leaf/missing-field law folded
 to cts SPEC links; one worked example kept per rule. OPEN: contract-comment
 homing (code) + the 3 decisions below.
+
+### Agent Notes (2026-10-25)
+
+Session `agent/pkg-deslop2-20261025` (worktree `.agent-worktrees/pkg`).
+Code deslop item landed: the seven contract-comment sites homed to the
+owning README sections named in the landing note, one-line pointers left
+in code. check-docs: the package's homing entries clear (repo debt
+26→17); pre-existing blocking broken link
+`workers/nesting/README.md` → `./jagua-rs/README.md` stays outside this
+wave. `npx vitest run packages/processes` green.
