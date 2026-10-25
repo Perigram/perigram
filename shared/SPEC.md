@@ -28,8 +28,10 @@ sibling relatives, so every runtime resolves them; alias rules live in
 ### Generative UI — [ui-mapping](./ui-mapping/README.md)
 
 The canonical home of presentation-resolution law (root
-[SPEC.md](../SPEC.md) §22 states the system-level arrangement
-law; this module is its engine):
+[SPEC.md](../SPEC.md) §22 states the system-level arrangement law; the
+arrangement foundations — trait records, decision procedure, placement
+slots — are specified in [ui-mapping/SPEC.md](./ui-mapping/SPEC.md); this
+module is the engine):
 
 | Contract | Law |
 |---|---|
@@ -40,7 +42,7 @@ law; this module is its engine):
 | List layouts | `table`, `card-grid`, `carousel`, `timeline`, `stats`, `list`, `board`, `gantt`, `calendar`, derived from `analyzeTypeShape`: two instants are durational (gantt), a lone instant schedules (calendar), a stateful vocabulary spanning `BOARD_MIN_COLUMNS` values earns the board (boardable signal at one-key specificity). A class's list surface is flat; containment is navigation. |
 | Budgets | Every materialization limit is a named constant: `TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE`, `TABLE_PAGINATE_AT`, `TABLE_PAGE_ROWS`, `TABLE_VIRTUALIZE_AT`, `SEARCH_AT`, `CHIP_BUDGET`, `ROW_RELATION_BUDGET`, `ROW_FIELD_BUDGET`, `CHILDREN_TABS_AT`, `SUMMARY_BUDGET`, `SCALAR_BASES`. `LAYOUT` is the only layout-class vocabulary. |
 | Arrangement | Siblings share the surface by estimated rendered weight (`estimateRegionWeight` over data, DOM-free): stack-mode children at or under `SIDE_MAX_WEIGHT` ride the side rail, peers up to `COLUMN_MAX_WEIGHT` share proportional columns, a sibling holding `DOMINANT_CHILD_SHARE` keeps the flow, heavier sets tab in descending weight order. A child collection with zero loaded instances is layout-inert (`stubRegions`). |
-| Traits | Data traits (weight, breadth, volume, shape family, filledness, growth bound) derive compose-time on every composed node; container traits (width scale, height boundedness, scroll ownership, density) resolve at the materialization seam. Arrangement is a total function over data × container traits (root [SPEC.md](../SPEC.md) §22.7–§22.9). |
+| Traits | Data traits (weight, breadth, volume, shape family, filledness, growth) derive compose-time on every composed node; container traits (width step, height boundedness, scroll ownership, density) resolve at the materialization seam. Arrangement is a total function over data × container traits (root [SPEC.md](../SPEC.md) §22.7; design in [ui-mapping/SPEC.md](./ui-mapping/SPEC.md)). |
 | State vocabulary | `statePolicyByType`, `stateFieldPolicyByType`, `stateTransitionsByType` derive from the hydration payload's compiled producer workflows — the one client-side derivation; first authored entry wins. `stateDisplayFor`: exact value → leaf segment → neutral raw chip outside the served vocabulary; a type without vocabulary resolves `null`. |
 | List controls | `resolveListControls(type, instances)`: `searchKeys` is the identifier field alone, `sortKeys` the filled short scalars (identifier excepted), `facets` the enum values present, `pagination` from the table budgets. `instanceMatchesToolbar` composes search and facet selection into the [instance-filters](./instance-filters/README.md) tree and evaluates the one matcher. |
 | Data states | Region `dataState` is the source-reported `loading`/`ready`/`empty`/`denied`/`error`, else pool-derived (`empty` list, `missing` single, `ready`); a reported `ready` leaves a pool-derived `missing` in place. |
@@ -104,7 +106,7 @@ SVG, window-guarded rendering), [icon-fonts.js](./icon-fonts.js)
 
 | Path | Homes |
 |---|---|
-| `ui-mapping/` | resolver tables, budgets, arrangement, screen composition, state derivation |
+| `ui-mapping/` | resolver tables, budgets, arrangement, screen composition, state derivation (target: [ui-mapping/SPEC.md](./ui-mapping/SPEC.md)) |
 | `instance-filters/` | filter tree, flat projection, builder |
 | root `*.js` | one contract per file, spec beside it |
 | `types/` | cross-runtime type definitions |
