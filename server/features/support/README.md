@@ -50,7 +50,10 @@ events and clients patch their local rows from the response.
 `GET /api/support/messages` is paginated: `limit` (default 50, capped
 at 100) selects the newest page and `before` (an ISO timestamp cursor)
 selects the page older than that cursor, both still returned in
-ascending order with `hasMore: data.length >= limit`. The composer
+ascending order with `hasMore: data.length >= limit`. History responses also carry
+`readCursors: [{ userId, lastReadAt }]` for the conversation
+participants, captured before the endpoint marks the viewer read — the
+thread-side seen marks and the unread divider derive from them. The composer
 loads the newest page on open and prepends older pages keyed on the
 oldest loaded timestamp while preserving the reader's scroll position;
 realtime message events keep appending to the live end.
@@ -62,6 +65,14 @@ support routes stay scoped to support conversations and skip direct
 user threads. An explicit recipient equal to the authenticated user
 creates the deterministic `direct:<userId>:<userId>` self-conversation;
 only a missing recipient selects the customer-support channel.
+
+### Message Search
+`GET /api/support/search` scans one conversation the caller can read:
+`q` (case-insensitive substring on the message body), `sender`
+(participant user id), `attachmentKind` (`image`|`video`|`audio`|`file`),
+newest first, capped at 50 rows of the message projection. Results drive
+the in-thread jump: a hit older than the loaded page loads its
+surrounding history through one timestamp-anchored request.
 
 ## Group Chats
 
