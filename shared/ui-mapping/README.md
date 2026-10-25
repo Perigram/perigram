@@ -13,6 +13,7 @@ imports, no CNC names. Resolver output names registered component keys
 components. Component choice is resolver output only.
 
 Parent: [shared/README.md](../README.md).
+Target law: [SPEC.md](./SPEC.md).
 
 ## Inputs
 

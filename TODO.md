@@ -259,30 +259,34 @@ against a running stack; owner verifies UX parity on the live stack.
 
 ## Generative UI arrangement foundations (owner direction 2026-10-25)
 
-Law: [SPEC](./SPEC.md) §22.7–22.11 — instance-page layout consumes two
-derived records (data traits, container traits) and derives everything;
-engine home `shared/ui-mapping`, materialization `components/ui-mapping`.
+Law: [SPEC](./SPEC.md) §22.7 records the direction; the design — trait
+records, decision procedure, placement slots — is
+[shared/ui-mapping/SPEC.md](./shared/ui-mapping/SPEC.md). Engine home
+`shared/ui-mapping`, materialization `components/ui-mapping`.
 
-- [ ] Data-trait record on every composed region node: weight (exists,
-  `estimateRegionWeight`), breadth (chip-scale / content-width /
-  full-row), volume, shape family, filledness (inert empties exist),
-  growth bound — one compose-time pure record.
-- [ ] Container-trait seam: width scale, height boundedness, scroll
-  ownership, density resolved per host (page, pane, dialog, popup,
-  mobile tab); the sanctioned scoped-CSS container homes and the
-  measured track engagement become materializations of the trait
-  vocabulary, with no private per-surface breakpoints.
-- [ ] Arrangement as a total function over data × container traits —
-  the §22.1–22.2 ladder generalized; every trait combination resolves a
-  placement.
-- [ ] Placement-aware composition: nested class refs render as instance
-  chips everywhere (`InstanceInlineRef`); presentation picks by
-  placement (page / rail / row / stub).
-- [ ] Pin audit: layout thresholds named in the one budget/layout
-  table; type-keyed layout branches and component-local layout magic
-  numbers in app code deleted or pinned through the declared seams.
+- [ ] Data-trait record on every composed region node (SPEC → Data
+  traits): `weight` (exists, `estimateRegionWeight`), `breadth`, `volume`,
+  `shape`, `filledness` (inert empties exist), `growth` — one compose-time
+  pure record in the region tree.
+- [ ] Container-trait seam at the materialization layer (SPEC → Container
+  traits): width steps, height boundedness, scroll ownership, density per
+  host (page, pane, dialog, popup, mobile tab), measured box over host
+  profile; the sanctioned scoped-CSS container homes, `ResponsiveGrid`
+  container queries, and measured track engagement materialize the one
+  step vocabulary.
+- [ ] The arrangement decision procedure (SPEC → Arrangement decision
+  procedure) as ordered total rules over data × container traits, outcomes
+  carried per width step so one composed tree serves every host.
+- [ ] Placement-aware composition (SPEC → Placement-aware composition):
+  slot-picked presentations; nested class refs render as instance chips
+  everywhere (`InstanceInlineRef`).
+- [ ] Pin audit (SPEC → Pins): layout thresholds named in the one
+  budget/layout table; type-keyed layout branches, component-local magic
+  numbers, and private breakpoints in app code deleted or pinned through
+  the declared seams.
 
 Session reads before any code:
+[shared/ui-mapping/SPEC.md](./shared/ui-mapping/SPEC.md),
 [shared/ui-mapping](./shared/ui-mapping/README.md),
 [components/ui-mapping](./components/ui-mapping/README.md),
 [assets/tokens](./assets/tokens/README.md), SPEC §22.
