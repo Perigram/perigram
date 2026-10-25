@@ -366,7 +366,6 @@
         "nesting": "Раскрой",
         "statistics": "Статистика",
         "metadata": "Метаданные",
-        "artifacts": "Артефакты",
         "settings": "Настройки",
         "addFiles": "Добавить файлы",
         "uploadDxf": "Загрузите ваши .DXF файлы",
@@ -375,7 +374,6 @@
         "quickActions": "Быстрые действия",
         "createQueue": "Создать очередь",
         "uploadFiles": "Загрузить файлы",
-        "viewArtifacts": "Просмотр артефактов",
         "completedQueues": "Завершённые очереди",
         "totalCassettes": "Всего кассет",
         "totalArea": "Общая площадь",
@@ -410,7 +408,8 @@
         "dropFilesHere": "или перетащите файлы сюда",
         "uploadLimits": "До 20 файлов, максимум 5 МБ каждый",
         "selected": "Выбран",
-        "reportProblem": "Сообщить о проблеме"
+        "reportProblem": "Сообщить о проблеме",
+        "previewUnavailable": "Предпросмотр недоступен"
     },
     "table": {
         "create": "Создать таблицу",
@@ -696,7 +695,6 @@
         "selectTable": "Выбрать таблицу",
         "useTable": "Использовать данные таблицы",
         "useFiles": "Использовать счётчики файлов",
-        "artifactsToGenerate": "Артефакты для генерации",
         "pdfTemplate": "Шаблон PDF",
         "errors": {
             "plateTooSmall": "Размер листа должен быть не менее {width} x {height} мм. Текущий размер листа {currentWidth} x {currentHeight} мм, что слишком мало",
@@ -771,8 +769,7 @@
         "materialAlreadyInProject": "Материал уже добавлен в проект",
         "materialAddedToProject": "Материал добавлен в проект",
         "sheetsAdded": "Листы добавлены",
-        "confirmRemoveMaterial": "Удалить материал из проекта?",
-        "wasteExtractionFromArtifacts": "Извлечение отходов из артефактов"
+        "confirmRemoveMaterial": "Удалить материал из проекта?"
     },
     "results": {
         "title": "Результаты",
@@ -1116,7 +1113,6 @@
             "options": "Опции",
             "output": "Выход",
             "entities": "Сущности",
-            "artifacts": "Артефакты",
             "feature": "Feature",
             "jobs": "Задачи",
             "transitions": "Переходы",
@@ -1891,8 +1887,7 @@
             "xlsx-workbook": "Книга XLSX"
         },
         "exportKinds": {
-            "LAYOUT_DXF": "DXF-чертёж",
-            "PDF_PASSPORT": "PDF-паспорт"
+            "dxf": "DXF-чертёж"
         }
     },
     "uiConstructor": {
@@ -1980,33 +1975,11 @@
         "layerStandard": "Стандарт слоя",
         "user": "Профиль пользователя",
         "organization": "Организация",
-        "artifact": "Артефакт",
-        "artifactTemplate": "Шаблон артефакта",
         "facade": "Фасад",
         "facadePattern": "Шаблон фасада"
     },
     "facade": {},
     "facadePattern": {},
-    "artifactTemplates": {
-        "selectFile": "Выбрать DXF или PDF",
-        "empty": "Нет шаблонов артефактов",
-        "uploaded": "Шаблон загружен",
-        "saved": "Ревизия макета сохранена",
-        "layout": "Макет шаблона",
-        "editLayout": "Изменить макет",
-        "variables": "Переменные",
-        "page": "Страница {number}",
-        "moveX": "Смещение X",
-        "moveY": "Смещение Y",
-        "deleted": "Удалить элемент",
-        "parameterized": "Использовать как переменную",
-        "variableName": "Имя переменной",
-        "variableType": "Тип переменной",
-        "defaultValue": "Значение по умолчанию",
-        "string": "Текст",
-        "number": "Число",
-        "boolean": "Логическое"
-    },
     "queue": {
         "title": "Очереди",
         "create": "Создать очередь",
@@ -2077,7 +2050,6 @@
         "uploadNewCassette": "Загрузить новую кассету",
         "runNesting": "Запустить раскрой",
         "markComplete": "Отметить как завершённую",
-        "artifacts": "Артефакты",
         "cassettes": "Кассеты",
         "cassette": "Кассета",
         "quantity": "Количество",
@@ -2087,7 +2059,6 @@
         "jobItems": "Позиции раскроя",
         "nestingRuns": "Запуски раскроя",
         "confirmDeleteEntry": "Вы уверены, что хотите удалить эту запись?",
-        "confirmDeleteArtifact": "Вы уверены, что хотите удалить этот артефакт?",
         "nestingStarted": "Раскрой запущен",
         "nestingInitiated": "Процесс раскроя запущен в фоновом режиме",
         "confirmResetMessage": "Вы уверены, что хотите сбросить эту очередь в ЧЕРНОВИК? Это позволит вам редактировать записи и запустить раскрой снова.",
@@ -2222,31 +2193,6 @@
         "originId": "ID исходной сущности",
         "setOrigin": "Связать источник",
         "clearOrigin": "Убрать источник"
-    },
-    "artifacts": {
-        "noQueues": "В этом проекте пока нет очередей.",
-        "createQueueFirst": "Создайте очередь, чтобы создать артефакты.",
-        "loading": "Загрузка артефактов...",
-        "noArtifacts": "В этой очереди нет артефактов.",
-        "name": "Имя",
-        "type": "Тип",
-        "status": "Статус",
-        "createdAt": "Дата создания",
-        "deleteConfirm": "Вы уверены, что хотите удалить этот артефакт?",
-        "deleteTitle": "Подтверждение удаления",
-        "deleted": "Артефакт удален",
-        "deleteFailed": "Не удалось удалить артефакт",
-        "downloadFailed": "Не удалось скачать артефакт",
-        "generatingPreview": "Генерация предпросмотра...",
-        "previewFailed": "Не удалось сгенерировать предпросмотр",
-        "previewTitle": "Предпросмотр артефакта",
-        "previewUnavailable": "Предпросмотр недоступен",
-        "restoreRevision": "Восстановить ревизию",
-        "loadingPreview": "Загрузка предпросмотра...",
-        "pdfPreviewUnavailable": "Предпросмотр PDF недоступен",
-        "downloadFilePrompt": "Пожалуйста, скачайте файл.",
-        "fetchContentFailed": "Не удалось получить содержимое артефакта",
-        "loadDxfPreviewFailed": "Не удалось загрузить предпросмотр DXF: {message}"
     },
     "assets": {
         "cassettes": "Кассеты",
@@ -3149,8 +3095,6 @@
         "attachments": "Вложения",
         "addAttachment": "Добавить вложение",
         "attachmentKind": "Тип вложения",
-        "allowedArtifactCreation": "Разрешённое создание артефактов",
-        "allUploadArtifactKinds": "Все загружаемые типы",
         "required": "Обязательно",
         "snapshots": "Снимки",
         "addSnapshot": "Добавить снимок",
@@ -3317,13 +3261,8 @@
         "actionCompleted": "Действие выполнено",
         "actionFailed": "Не удалось выполнить действие",
         "exactEntityId": "Точный ID сущности",
-        "createArtifact": "Загрузить артефакт",
         "createRelatedEntity": "Создать",
         "selectExisting": "Выбрать существующую",
-        "selectArtifactFile": "Выбрать файл",
-        "replaceArtifactFile": "Заменить файл",
-        "artifactFileRequired": "Выберите файл для загрузки.",
-        "artifactUploadFailed": "Не удалось загрузить артефакт.",
         "noOptions": "Нет доступных вариантов для {field}",
         "objectKey": "Ключ",
         "objectValue": "Значение"

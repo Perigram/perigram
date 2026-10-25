@@ -4,7 +4,6 @@ import { spawnSync } from 'node:child_process';
 import { designTokens, cssVariableTokens, tailwindThemeExtension } from '../assets/tokens/index.js';
 import { frameworkCommandDefinitions } from '../server/core/commands/definitions.js';
 import { frameworkTaskDefinitions } from '../server/core/tasks/definitions.js';
-import { frameworkAttachmentKinds } from '../shared/attachment-kinds.js';
 import {
   DESIGN_SYSTEM_ENTITY_CONTRACTS,
   DESIGN_SYSTEM_FIELD_GROUPS,
@@ -51,8 +50,7 @@ const UI_COMPONENT_PATHS = {
   penTemplate: 'components/entities/PenTemplate/PenTemplateCard.vue',
   layerStandard: 'components/entities/LayerStandard/LayerStandardCard.vue',
   user: 'components/entities/User/UserCard.vue',
-  organization: 'components/entities/Organization/OrganizationCard.vue',
-  artifact: 'components/entities/Artifact/ArtifactCard.vue'
+  organization: 'components/entities/Organization/OrganizationCard.vue'
 };
 
 const workflows = Object.entries(cncWorkflows).map(([type, workflow]) => ({ type, workflow }));
@@ -232,7 +230,7 @@ function createManifest() {
     summaries: cncSummaries,
     commands: cncCommands,
     tasks: cncTasks,
-    attachmentKinds: frameworkAttachmentKinds,
+    attachmentKinds: projected.attachmentKinds || {},
     designSystem: {
       variants: DESIGN_SYSTEM_VARIANTS,
       groups: DESIGN_SYSTEM_GROUPS,

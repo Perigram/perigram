@@ -2,7 +2,6 @@ import { computed } from 'vue';
 import { operationKindOf, typeIdOf, setTypeBinding } from '~/packages/cts/src/index.js';
 import {
   EFFECT_SPECIES_KINDS,
-  constructionInputsForContract,
   createProcessRecordSync,
   formatProcessType,
   getProcessNodeDefinition,
@@ -34,9 +33,6 @@ export function useProcessDesignerNodeSync({
     processNodeOperationLabels,
     defaultTypeId
   } = nodeRecords;
-
-  const artifactUploadKindOptions = computed(() => designer.attachmentKindOptions
-    .filter(option => ['upload', 'capture', 'editor'].includes(option.creation?.mode)));
 
   const opKind = node => operationKindOf(node || {});
   function isOpKind(node, kindOrPrefix) {
@@ -109,10 +105,6 @@ export function useProcessDesignerNodeSync({
 
   function constructionContractForEntity(typeId) {
     return designer.construction(typeId) || {};
-  }
-
-  function constructionInputsForMode(contract = {}, mode = '') {
-    return constructionInputsForContract(contract, mode);
   }
 
   function constructionModeOptions(typeId = '') {
@@ -198,31 +190,6 @@ export function useProcessDesignerNodeSync({
     return item ? paletteDescription(item) : '';
   }
 
-  function artifactCreationKinds(record = {}) {
-    const creator = (record.construction?.inputs || []).find(input => input.creator?.typeId === 'artifact')?.creator;
-    if (creator?.attachmentKinds === 'userCreatable' || !Array.isArray(creator?.attachmentKinds)) {
-      return artifactUploadKindOptions.value.map(option => option.value);
-    }
-    return creator.attachmentKinds.map(kind => typeof kind === 'string' ? kind : kind.kind).filter(Boolean);
-  }
-
-  function updateArtifactCreationKinds(record = {}, kinds = []) {
-    record.construction ||= {};
-    const contractInput = constructionInputsForMode(constructionContractForEntity(nodeTypeId(record)), record.construction.mode)
-      .find(input => input.creator?.typeId === 'artifact');
-    if (!contractInput) return;
-    const index = (record.construction.inputs || []).findIndex(input => input.id === contractInput.id);
-    const attachmentKinds = (kinds || []).map(kind => {
-      const definition = designer.attachmentKindOptions.find(option => option.value === kind);
-      return { kind, creation: definition?.creation || { mode: 'workflow' } };
-    });
-    const input = {
-      ...(index >= 0 ? record.construction.inputs[index] : contractInput),
-      creator: { ...contractInput.creator, attachmentKinds }
-    };
-    if (index >= 0) record.construction.inputs[index] = input;
-    else record.construction.inputs = [...(record.construction.inputs || []), input];
-  }
 
   // The one sync entry point for a process-node record: the package
   // pipeline over the draft data (defaults, envelopes, bindings, ports,
@@ -266,7 +233,6 @@ export function useProcessDesignerNodeSync({
   }
 
   return {
-    artifactUploadKindOptions,
     opKind,
     isOpKind,
     nodeTypeId,
@@ -278,8 +244,6 @@ export function useProcessDesignerNodeSync({
     relationOptionsForEntity,
     projectionOptionsForEntity,
     constructionModeOptions,
-    artifactCreationKinds,
-    updateArtifactCreationKinds,
     processNodeInputs,
     processNodeOutputs,
     processNodeOperationOptions,

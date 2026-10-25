@@ -16,10 +16,6 @@ describe('process designer hard-cut localization', () => {
       expect(copy.paletteItems.joinAnyPaths).toBeTruthy();
       expect(copy.paletteItems.finish).toBeTruthy();
       expect(copy.paletteItems.fail).toBeTruthy();
-      expect(copy.transitionAxis).toBeTruthy();
-      expect(copy.transitionPath).toBeTruthy();
-      expect(copy.stateAxis).toBeTruthy();
-      expect(copy.parentState).toBeTruthy();
     }
   });
 });

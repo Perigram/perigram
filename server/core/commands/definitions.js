@@ -1,47 +1,25 @@
 // Framework command definitions: the executable intents owned by the
-// framework's own features (attachments, artifact conversions). Handlers
-// are registered by the app registry beside this table. Plugin commands
-// derive from installed-plugin services (plugin.<pluginId>.<serviceId>).
-import { commandCreatedKinds } from '#shared/attachment-kinds.js';
+// framework's own features. Handlers are registered by the app registry
+// beside this table. Plugin commands derive from installed-plugin
+// services (plugin.<pluginId>.<serviceId>).
 
-// The framework's event declarations: the events its own commands emit or
-// consume. Plugin commands emit none (value services carry no event
-// contracts).
+// The framework's event declarations: the events its own commands emit.
+// Plugin commands emit none (value services carry no event contracts).
 export const frameworkEventDefinitions = {
-  attachmentGenerationRequested: {
-    id: 'attachment.generationRequested',
-    label: 'Attachment generation requested'
-  },
-  attachmentGenerationQueued: {
-    id: 'attachment.generationQueued',
-    label: 'Attachment generation queued',
-    informational: true
-  },
   attachmentGenerationCompleted: {
     id: 'attachment.generationCompleted',
     label: 'Attachment generation completed',
     informational: true
-  },
-  attachmentGenerationFailed: {
-    id: 'attachment.generationFailed',
-    label: 'Attachment generation failed',
-    informational: true
-  },
-  artifactConverted: {
-    id: 'artifact.converted',
-    label: 'Artifact converted',
-    informational: true
   }
 };
 
-// The kind options derive from the attachment-kind vocabulary (the kinds
-// declaring command creation) — never a frozen list. The source socket
-// carries no accepts: exportable source types are the org's export
-// bindings, resolved at run time against the actual source instance.
+// The export command (SPEC §21): kind options and accepted source types
+// are the organization's export bindings, resolved at run time against
+// the actual source instance — the definition carries no vocabulary.
 export const frameworkCommandDefinitions = {
   generateAttachment: {
     id: 'generateAttachment',
-    service: 'artifacts',
+    service: 'plugins',
     action: 'generate',
     label: 'Generate attachment',
     input: {
@@ -53,50 +31,13 @@ export const frameworkCommandDefinitions = {
           required: true
         }
       ],
-      entities: [
-        { name: 'template', label: 'Artifact template', type: 'artifact_template', required: false }
-      ],
       parameters: [
-        { name: 'kind', label: 'Attachment kind', type: 'enum', options: commandCreatedKinds('generateAttachment'), required: true },
-        { name: 'values', label: 'Template values', type: 'object', default: {}, editor: 'artifactTemplateValues', templateFieldId: 'template' }
-      ]
-    },
-    triggers: [{ event: 'attachment.generationRequested' }],
-    output: {
-      events: ['attachment.generationQueued', 'attachment.generationCompleted', 'attachment.generationFailed']
-    },
-    access: {
-      permissions: [
-        { feature: 'artifacts', level: 'write' }
-      ],
-      executionGrants: [
-        { feature: 'artifact_templates', level: 'read', actions: { view: true } }
-      ]
-    }
-  },
-  convertArtifact: {
-    id: 'convertArtifact',
-    service: 'artifact-conversions',
-    action: 'convert',
-    label: 'Convert artifact',
-    input: {
-      entities: [
-        { name: 'artifact', label: 'Artifact', type: 'artifact', required: true }
-      ],
-      parameters: [
-        { name: 'conversion', label: 'Conversion', type: 'string', required: true },
-        { name: 'name', label: 'Converted name', type: 'string', required: false },
-        { name: 'layerMapping', label: 'Layer mapping', type: 'object', default: {} },
-        { name: 'parameters', label: 'Conversion parameters', type: 'object', default: {} }
+        { name: 'kind', label: 'Attachment kind', type: 'string', required: true }
       ]
     },
     output: {
-      events: ['artifact.converted']
+      events: ['attachment.generationCompleted']
     },
-    access: {
-      permissions: [
-        { feature: 'artifacts', level: 'write' }
-      ]
-    }
-  },
+    access: { permissions: [] }
+  }
 };

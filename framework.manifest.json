@@ -1,68 +1,11 @@
 {
-  "attachmentKinds": [
-    {
-      "bucket": "artifactTemplates",
-      "key": "ARTIFACT_TEMPLATE_SOURCE",
-      "kind": "ARTIFACT_TEMPLATE_SOURCE",
-      "mimeType": "application/octet-stream",
-      "preview": {
-        "mode": "attachment"
-      }
-    },
-    {
-      "bucket": "userDxf",
-      "key": "DXF_SOURCE",
-      "kind": "DXF_SOURCE",
-      "mimeType": "application/dxf",
-      "preview": {
-        "mode": "dxf"
-      }
-    },
-    {
-      "bucket": "capturePhotos",
-      "key": "CAPTURE_PHOTO",
-      "kind": "CAPTURE_PHOTO",
-      "mimeType": "image/*",
-      "preview": {
-        "mode": "image"
-      }
-    },
-    {
-      "bucket": "nestDxf",
-      "key": "LAYOUT_DXF",
-      "kind": "LAYOUT_DXF",
-      "mimeType": "application/dxf",
-      "preview": {
-        "mode": "dxf"
-      }
-    },
-    {
-      "bucket": "nestSvg",
-      "key": "LAYOUT_SVG",
-      "kind": "LAYOUT_SVG",
-      "mimeType": "image/svg+xml",
-      "preview": {
-        "mode": "svg"
-      }
-    },
-    {
-      "bucket": "artifacts",
-      "key": "PDF_PASSPORT",
-      "kind": "PDF_PASSPORT",
-      "mimeType": "application/pdf",
-      "preview": {
-        "mode": "pdf"
-      }
-    }
-  ],
+  "attachmentKinds": [],
   "commands": [
     {
       "action": "generate",
       "attachments": [],
       "events": [
-        "attachment.generationQueued",
-        "attachment.generationCompleted",
-        "attachment.generationFailed"
+        "attachment.generationCompleted"
       ],
       "id": "generateAttachment",
       "inputs": [
@@ -70,39 +13,8 @@
       ],
       "label": "Generate attachment",
       "outputs": [],
-      "permissions": [
-        {
-          "feature": "artifacts",
-          "level": "write"
-        }
-      ],
-      "service": "artifacts",
-      "tasks": [],
-      "triggers": [
-        {
-          "event": "attachment.generationRequested"
-        }
-      ]
-    },
-    {
-      "action": "convert",
-      "attachments": [],
-      "events": [
-        "artifact.converted"
-      ],
-      "id": "convertArtifact",
-      "inputs": [
-        "artifact"
-      ],
-      "label": "Convert artifact",
-      "outputs": [],
-      "permissions": [
-        {
-          "feature": "artifacts",
-          "level": "write"
-        }
-      ],
-      "service": "artifact-conversions",
+      "permissions": [],
+      "service": "plugins",
       "tasks": [],
       "triggers": []
     }
@@ -163,28 +75,6 @@
         "status": "hidden",
         "trace": false,
         "typeId": "organization"
-      },
-      {
-        "componentPath": "components/entities/Artifact/ArtifactCard.vue",
-        "fieldPaths": [],
-        "group": "system",
-        "key": "artifact",
-        "labelKey": "entities.artifact",
-        "propName": "artifact",
-        "status": "hidden",
-        "trace": true,
-        "typeId": "artifact"
-      },
-      {
-        "componentPath": null,
-        "fieldPaths": [],
-        "group": "master",
-        "key": "artifactTemplate",
-        "labelKey": "entities.artifactTemplate",
-        "propName": "artifactTemplate",
-        "status": "hidden",
-        "trace": false,
-        "typeId": "artifact_template"
       }
     ],
     "groups": [
@@ -246,7 +136,7 @@
         "componentPath": "components/shared/DrawingCanvas.vue",
         "key": "DrawingCanvas",
         "kind": "block",
-        "purpose": "Shared layer-aware SVG canvas for geometry previews, DXF artifacts, and sketch scenes."
+        "purpose": "Shared layer-aware SVG canvas for geometry previews, DXF drawings, and sketch scenes."
       },
       {
         "componentPath": "components/shared/DesignerSurface.vue",
@@ -767,12 +657,6 @@
     }
   ],
   "relationships": [
-    {
-      "kind": "lineage",
-      "source": "organization",
-      "target": "artifact",
-      "via": "lineage.organizationId"
-    },
     {
       "kind": "lineage",
       "source": "organization",

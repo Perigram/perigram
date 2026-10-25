@@ -17,7 +17,6 @@ const mocks = vi.hoisted(() => ({
     getById: vi.fn(),
     list: vi.fn()
   },
-  artifactsService: { list: vi.fn() },
   catalogsService: { list: vi.fn() },
   librariesService: { list: vi.fn() },
   projectsService: { list: vi.fn() },
@@ -36,7 +35,6 @@ vi.mock('./repository.js', () => mocks.repository);
 vi.mock('~/server/runtime/app-registry.js', () => ({
   getAppRegistry: () => mocks.appRegistry
 }));
-vi.mock('~/server/features/artifacts/service.js', () => mocks.artifactsService);
 vi.mock('~/server/features/catalogs/service.js', () => mocks.catalogsService);
 vi.mock('~/server/features/libraries/service.js', () => mocks.librariesService);
 vi.mock('~/server/features/users/service.js', () => mocks.usersService);

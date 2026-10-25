@@ -6,12 +6,12 @@ describe('process v4 migration', () => {
     const result = migrateProcessDefinitionV4({
       dataflowVersion: 3,
       processNodes: {
-        query: { id: 'query', kind: 'read.queryEntities', type: { base: 'entity', shape: 'list', typeId: 'artifact' } },
-        compose: { id: 'compose', kind: 'record.composeBlock', block: 'relations', compositionMode: 'relations', entries: [{ id: 'artifacts', key: 'artifacts', typeId: 'artifact', cardinality: 'many', operation: 'replace' }] }
+        query: { id: 'query', kind: 'read.queryEntities', type: { base: 'entity', shape: 'list', typeId: 'drawing' } },
+        compose: { id: 'compose', kind: 'record.composeBlock', block: 'relations', compositionMode: 'relations', entries: [{ id: 'drawings', key: 'drawings', typeId: 'drawing', cardinality: 'many', operation: 'replace' }] }
       },
       graph: {
         nodes: [{ id: 'query', type: 'processNode', position: { x: 0, y: 0 } }, { id: 'compose', type: 'processNode', position: { x: 200, y: 0 } }],
-        edges: [{ id: 'link', source: 'query', sourceHandle: 'output:entities', target: 'compose', targetHandle: 'input:entry:artifacts' }]
+        edges: [{ id: 'link', source: 'query', sourceHandle: 'output:entities', target: 'compose', targetHandle: 'input:entry:drawings' }]
       }
     });
     expect(result.errors).toEqual([]);

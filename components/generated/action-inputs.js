@@ -35,7 +35,6 @@ export function promptData(fields = [], values = {}) {
 export function initialPromptValue(field = {}) {
   if (field.type === 'typeList') return Array.isArray(field.default) ? field.default : [];
   if (field.type === 'cassetteParameters') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
-  if (field.editor === 'artifactTemplateValues') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
   if (field.type === 'enum') return field.default ?? field.options?.[0] ?? '';
   if (field.type === 'boolean') return field.default ?? null;
   if (['date', 'dateTime'].includes(field.type)) {

@@ -202,19 +202,6 @@
         @update:model-value="mode => $emit('update-construction-mode', mode)"
       />
     </div>
-    <div v-if="record.kind === 'cts.construct' && typeId === 'artifact'" class="flex flex-col gap-1">
-      <label>{{ $t('processDesigner.allowedArtifactCreation') }}</label>
-      <MultiSelect
-        :model-value="artifactKinds"
-        :options="artifactKindOptions"
-        option-label="label"
-        option-value="value"
-        display="chip"
-        filter
-        :placeholder="$t('processDesigner.allUploadArtifactKinds')"
-        @update:model-value="value => $emit('update-artifact-kinds', value)"
-      />
-    </div>
     <div v-if="record.kind === 'control.domainEventTrigger'" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.event') }}</label>
       <Select v-model="record.eventId" :options="designer.eventOptions" option-label="label" option-value="value" filter @change="$emit('sync')" />
@@ -281,7 +268,7 @@
 // The processNode inspector: effect authorization rows (grants plus the
 // inherited entity-access window), the transition reference, the
 // producer-output panel, output preview, the command-service panel, and
-// the per-kind configuration selects (construction mode, artifact kinds,
+// the per-kind configuration selects (construction mode,
 // events, relations). Pure presentation over the selected record — every
 // mutation is an event back to the page's single update/sync entry point.
 import { computed } from 'vue';
@@ -319,8 +306,6 @@ const props = defineProps({
   // unwrapping lives there).
   statePolicyTarget: { type: String, default: '' },
   constructionModes: { type: Array, default: () => [] },
-  artifactKinds: { type: Array, default: () => [] },
-  artifactKindOptions: { type: Array, default: () => [] },
   designer: { type: Object, default: () => ({}) },
   grants: { type: Array, default: () => [] },
   effectiveAccess: { type: Array, default: () => [] },
@@ -334,7 +319,6 @@ const emit = defineEmits([
   'sync',
   'update-grant-level',
   'update-construction-mode',
-  'update-artifact-kinds',
   'run-preview',
   'create-command-service',
   'remove-command-service'

@@ -75,8 +75,6 @@ const commands = {
       `${layer.types.length} type(s)`,
       `${layer.services.length} service(s)`,
       `${layer.editors.length} editor binding(s)`,
-      `${Object.keys(layer.attachmentKinds).length} attachment kind(s)`,
-      `${layer.conversions.length} conversion(s)`,
       layer.requires.length ? `requires: ${layer.requires.join(', ')}` : null
     ].filter(Boolean);
     process.stdout.write(`OK ${layer.pluginId} v${String(listing.version || '1')} — ${counts.join(', ')}\n`);

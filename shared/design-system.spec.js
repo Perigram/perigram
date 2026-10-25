@@ -139,14 +139,6 @@ describe('Design system manifest', () => {
     expect(source).not.toMatch(/export\s*\{[^}]*DESIGN_SYSTEM_(GROUPS|PRIMITIVES|VARIANTS)/);
   });
 
-  it('uses canonical artifact attachment and data type shape', () => {
-    const artifact = factories.createMockArtifact();
-
-    expect(artifact.data.type).toBe('LAYOUT_DXF');
-    expect(artifact.attachments.primary.fileId).toBeTruthy();
-    expect(artifact.fileId).toBeUndefined();
-  });
-
   it('formats concrete cassette parameter maps as exact named values', () => {
     const parameters = { A: 1200, B: 400, C: 35 };
 
@@ -367,7 +359,7 @@ describe('Design system manifest', () => {
     const fontsCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/fonts.css'), 'utf8');
     const dataBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/DataBlock.vue'), 'utf8');
     const actionToolbar = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/ActionToolbar.vue'), 'utf8');
-    const artifactViewer = fs.readFileSync(path.join(REPO_ROOT, 'components/artifacts/ArtifactViewer.vue'), 'utf8');
+    const filePayloadViewer = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/FilePayloadViewer.vue'), 'utf8');
     const textDocumentEditor = fs.readFileSync(path.join(REPO_ROOT, 'workers/documents/surfaces/text-editor.mjs'), 'utf8');
     const supportMessageContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/SupportMessageContent.vue'), 'utf8');
 
@@ -377,13 +369,13 @@ describe('Design system manifest', () => {
     expect(dataBlock).toContain('text-technical');
     expect(actionToolbar).toContain("props.level <= 1 ? 'text-page-title' : 'text-section-heading'");
     // Document surfaces read in the app's prose voice (serif), not the
-    // technical mono role: artifact previews, the single-surface live
+    // technical mono role: file payload previews, the single-surface live
     // markdown editor, and agent chat answers — an agent answer is a
     // markdown room document (human chat text stays in the UI voice; the
     // technical mono role stays with data surfaces like the csv table
     // and DataBlock).
-    expect(artifactViewer).toContain('text-prose');
-    expect(artifactViewer).not.toContain('text-technical');
+    expect(filePayloadViewer).toContain('text-prose');
+    expect(filePayloadViewer).not.toContain('text-technical');
     expect(textDocumentEditor).toContain('text-prose');
     expect(supportMessageContent).toContain('text-prose');
   });
@@ -514,7 +506,7 @@ describe('Design system manifest', () => {
     // field-group keys remain only for undeclared types.
     const bundleDeclared = new Set([
       'penTemplate', 'layerStandard',
-      'user', 'organization', 'artifact', 'entityRevision'
+      'user', 'organization', 'entityRevision'
     ]);
     for (const key of bundleDeclared) {
       const entry = DESIGN_SYSTEM_ENTITY_CONTRACTS.find(contract => contract.key === key);
@@ -542,10 +534,7 @@ describe('Design system manifest', () => {
       }));
     }
 
-    // Live-type audit: the residual legacy map carries only the artifact
-    // family (undeclared master data Phase 7 cuts later). Every other key
-    // that once lived there rendered retired types and was deleted.
-    expect(Object.keys(DESIGN_SYSTEM_FIELD_GROUPS)).toEqual(['artifactTemplate']);
+    expect(Object.keys(DESIGN_SYSTEM_FIELD_GROUPS)).toEqual([]);
   });
 
   it('keeps standard entity DataBlock fields out of component-local arrays', () => {

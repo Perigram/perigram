@@ -25,9 +25,6 @@ const ENTITY_FEATURES = classifiedDeclarations.map(declaration => (
 const featureToEntityTypeMap = new Map(
   classifiedDeclarations.map(declaration => [entityTypeToFeature(declaration.id), declaration.id])
 );
-// Entity-shaped while its type stays undeclared in the registry view: the
-// directory keeps the entity shape checks.
-featureToEntityTypeMap.set('artifact-templates', 'artifact_template');
 const viewEntityTypes = new Set(classifiedDeclarations
   .filter(declaration => declaration.states && Object.keys(declaration.states).length)
   .map(declaration => declaration.id));
@@ -61,7 +58,7 @@ const walkDir = (dir) => {
 };
 
 const directories = fs.readdirSync(FEATURES_DIR).filter(f => !IGNORE.includes(f) && fs.statSync(path.join(FEATURES_DIR, f)).isDirectory());
-const features = [...ENTITY_FEATURES, 'artifact-templates'];
+const features = [...ENTITY_FEATURES];
 const appRegistry = fs.readFileSync('server/runtime/app-registry.js', 'utf8');
 // Mounted packs are boot-time registration sites alongside the framework
 // registry (SPEC §21).
@@ -89,10 +86,9 @@ function collectLineMatches(files, checks) {
   });
 }
 
-// Classification: entity directories derive from the registry view
-// (plus the explicit artifact-templates entry); every other live
-// directory is a capability module, and the parent README's
-// classification table must list exactly those sets.
+// Classification: entity directories derive from the registry view;
+// every other live directory is a capability module, and the parent
+// README's classification table must list exactly those sets.
 {
   const readme = fs.readFileSync('server/features/README.md', 'utf8');
   const readTableRow = (label) => {
@@ -192,9 +188,9 @@ features.forEach(feature => {
 
 // Entity serving (SPEC §13): framework services register explicitly; every
 // other type resolves through the generic instance services. The guard
-// verifies the resolver is registered and the framework five are explicit.
+// verifies the resolver is registered and the framework four are explicit.
 {
-  const FRAMEWORK_SERVICE_TYPES = ['organization', 'user', 'artifact', 'process_definition', 'entity_revision'];
+  const FRAMEWORK_SERVICE_TYPES = ['organization', 'user', 'process_definition', 'entity_revision'];
   for (const type of FRAMEWORK_SERVICE_TYPES) {
     if (!new RegExp(`\\b${type}\\s*:`).test(appRegistry)) {
       console.error(`❌ Framework entity [${type}] is not registered in server/runtime/app-registry.js`);
@@ -304,7 +300,7 @@ jsFiles.forEach(file => {
   }
 
   if (
-    (relFile.startsWith('components/shared/') || relFile === 'components/ArtifactsTable.vue') &&
+    relFile.startsWith('components/shared/') &&
     /(@perigram\/domain-cnc|packages\/domain-cnc)/.test(content)
   ) {
     console.error(`❌ ${relFile} imports CNC domain directly — consume the injected domain UI adapter`);
@@ -445,7 +441,7 @@ genericUiFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   const relFile = path.relative('.', file);
   if (/from\s+['"]@perigram\/domain-cnc['"]/.test(content)) {
-    console.error(`❌ ${relFile} imports @perigram/domain-cnc directly — consume the client state stores (stores/instances, stores/registry) or the scoped artifact-ui seam`);
+    console.error(`❌ ${relFile} imports @perigram/domain-cnc directly — consume the client state stores (stores/instances, stores/registry)`);
     errors++;
   }
 });
@@ -528,8 +524,6 @@ const staticBoundarySpecs = new Set([
   'components/ui-rework-review.spec.js',
   'components/generated/project-workspace.spec.js',
   'components/generated/project-file-operations.spec.js',
-  'components/entities/Artifact/artifact-detail.spec.js',
-  'components/artifacts/artifact-viewer.spec.js'
 ]);
 const specFiles = walkDir('.').filter(file => file.endsWith('.spec.js') && !file.includes('node_modules'));
 specFiles.forEach(file => {

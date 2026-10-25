@@ -9,14 +9,14 @@ import {
 // The policy-bearing guinea pig: a framework-served type with a legacy
 // field-access policy (sheet-design and cassette are §13-served — their
 // access derives from the class collection and never exercises this map).
-const artifact = {
-  _id: 'art-1',
-  identity: { uid: 'a-1', name: 'Sheet DXF' },
-  lineage: { organizationId: 'org-1' },
+const organization = {
+  _id: 'org-1',
+  identity: { uid: 'o-1', name: 'Facade Works' },
+  lineage: {},
   attachments: { primary: { fileId: 'f-1' } },
   data: {
-    filename: 'sheet.dxf',
-    layout: { grid: true },
+    email: 'ops@facade.example',
+    phone: '+1 555 0100',
     internalNotes: 'secret'
   }
 };
@@ -34,7 +34,7 @@ const user = {
       role: 'role_viewer',
       roleIds: ['role_viewer'],
       status: 'active',
-      permissions: { artifacts: 'read' }
+      permissions: { organizations: 'read' }
     }]
   }
 };
@@ -55,7 +55,7 @@ const assistant = {
 describe('entity field access', () => {
   it('denies fields without a registered entity policy', () => {
     expect(canDisplayEntityField({
-      permissions: { artifacts: 'admin' },
+      permissions: { organizations: 'admin' },
       entity: { _id: 'x-1' },
       typeId: 'not-a-type',
       path: 'data.internalNotes'
@@ -64,32 +64,29 @@ describe('entity field access', () => {
 
   it('filters card field descriptors by policy and active permissions', () => {
     const fields = [
-      { path: 'data.filename' },
-      { path: 'data.layout.grid' },
-      { path: 'attachments.primary.fileId' },
+      { path: 'data.email' },
+      { path: 'data.phone' },
       { path: 'data.internalNotes' }
     ];
 
     expect(filterEntityFields({
       fields,
-      permissions: { artifacts: 'read' },
-      entity: artifact,
-      typeId: 'artifact'
+      permissions: { organizations: 'read' },
+      entity: organization,
+      typeId: 'organization'
     }).map(field => field.path)).toEqual([
-      'data.filename',
-      'data.layout.grid',
-      'attachments.primary.fileId'
+      'data.email',
+      'data.phone'
     ]);
 
     expect(filterEntityFields({
       fields,
-      permissions: { artifacts: 'write' },
-      entity: artifact,
-      typeId: 'artifact'
+      permissions: { organizations: 'admin' },
+      entity: organization,
+      typeId: 'organization'
     }).map(field => field.path)).toEqual([
-      'data.filename',
-      'data.layout.grid',
-      'attachments.primary.fileId',
+      'data.email',
+      'data.phone',
       'data.internalNotes'
     ]);
   });
@@ -111,21 +108,21 @@ describe('entity field access', () => {
 
   it('honors scoped permission grants', () => {
     const permissions = {
-      artifacts: { level: 'read', scope: { instanceId: 'art-1' } }
+      organizations: { level: 'read', scope: { instanceId: 'org-1' } }
     };
 
     expect(canDisplayEntityField({
       permissions,
-      entity: artifact,
-      typeId: 'artifact',
-      path: 'data.filename'
+      entity: organization,
+      typeId: 'organization',
+      path: 'data.email'
     })).toBe(true);
 
     expect(canDisplayEntityField({
       permissions,
-      entity: { ...artifact, _id: 'art-2' },
-      typeId: 'artifact',
-      path: 'data.filename'
+      entity: { ...organization, _id: 'org-2' },
+      typeId: 'organization',
+      path: 'data.email'
     })).toBe(false);
   });
 
@@ -159,28 +156,27 @@ describe('entity field access', () => {
   });
 
   it('redacts DTOs to allowed paths for the active membership', () => {
-    const redacted = redactEntityForAccess(artifact, 'artifact', {
+    const redacted = redactEntityForAccess(organization, 'organization', {
       organizationId: 'org-1',
       memberships: [{
         organizationId: 'org-1',
-        permissions: { artifacts: 'read' }
+        permissions: { organizations: 'read' }
       }]
     });
 
-    expect(redacted.identity.name).toBe('Sheet DXF');
-    expect(redacted.data.filename).toBe('sheet.dxf');
-    expect(redacted.data.layout.grid).toBe(true);
-    expect(redacted.attachments.primary.fileId).toBe('f-1');
+    expect(redacted.identity.name).toBe('Facade Works');
+    expect(redacted.data.email).toBe('ops@facade.example');
+    expect(redacted.data.phone).toBe('+1 555 0100');
     expect(redacted.data.internalNotes).toBeUndefined();
   });
 
   it('uses active process permissions and field policies for redaction', () => {
-    const redacted = redactEntityForAccess(artifact, 'artifact', {
+    const redacted = redactEntityForAccess(organization, 'organization', {
       organizationId: 'org-1',
-      effectivePermissions: { artifacts: 'read' },
-      permissions: { artifacts: 'admin' },
+      effectivePermissions: { organizations: 'read' },
+      permissions: { organizations: 'admin' },
       fieldPolicies: {
-        artifact: {
+        organization: {
           read: ['identity.name'],
           write: [],
           private: ['data.internalNotes']
@@ -188,7 +184,7 @@ describe('entity field access', () => {
       }
     });
 
-    expect(redacted.identity.name).toBe('Sheet DXF');
+    expect(redacted.identity.name).toBe('Facade Works');
     expect(redacted.data).toBeUndefined();
     expect(redacted.attachments).toBeUndefined();
   });

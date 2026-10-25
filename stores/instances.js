@@ -24,19 +24,15 @@ import { useOutboxStore } from './outbox';
 const MUTATION_ROUTES = {
   organization: '/api/organizations',
   user: '/api/users',
-  artifact: '/api/artifacts',
   process_definition: '/api/process-definitions',
-  entity_revision: '/api/instance-revisions',
-  artifact_template: '/api/artifact-templates'
+  entity_revision: '/api/instance-revisions'
 };
 
 // Reads that keep a feature route (their process bindings do not speak
 // the §3 wire shape); everything else reads through the transport.
 const READ_ROUTES = {
-  artifact: '/api/artifacts',
   process_definition: '/api/process-definitions',
-  entity_revision: '/api/instance-revisions',
-  artifact_template: '/api/artifact-templates'
+  entity_revision: '/api/instance-revisions'
 };
 
 function endpointsFor(typeKey = '') {

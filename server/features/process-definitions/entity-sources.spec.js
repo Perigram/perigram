@@ -12,7 +12,7 @@ const containment = [
 ];
 
 const relations = [
-  { ownerType: 'facade', key: 'sourceModel', targetType: 'artifact', cardinality: 'one' },
+  { ownerType: 'facade', key: 'sourceModel', targetType: 'drawing', cardinality: 'one' },
   { ownerType: 'facade', key: 'patterns', targetType: 'facade_pattern', cardinality: 'many' }
 ];
 
@@ -99,21 +99,21 @@ describe('process entity sources', () => {
   });
 
   it('propagates a missing-reference failure from the read boundary', async () => {
-    const resolveEntity = vi.fn().mockRejectedValue(new Error('artifact p-404 was not found'));
+    const resolveEntity = vi.fn().mockRejectedValue(new Error('drawing p-404 was not found'));
 
     await expect(processRelatedEntities(relations, resolveEntity, {
       _id: 'facade-1',
-      relations: { sourceModel: { type: 'artifact', id: 'p-404' } }
+      relations: { sourceModel: { type: 'drawing', id: 'p-404' } }
     }, 'sourceModel', 'facade')).rejects.toThrow('p-404 was not found');
   });
 
   it('propagates a cross-organization read denial from the read boundary', async () => {
-    const resolveEntity = vi.fn().mockRejectedValue(new Error('access denied for artifact p-other'));
+    const resolveEntity = vi.fn().mockRejectedValue(new Error('access denied for drawing p-other'));
 
     await expect(processParentEntity(containment, resolveEntity, {
       _id: 'facade-1',
       lineage: { projectId: 'project-other' }
-    }, 'facade')).rejects.toThrow('access denied for artifact p-other');
+    }, 'facade')).rejects.toThrow('access denied for drawing p-other');
   });
 
   it('propagates a per-entity read denial when resolving a relation target', async () => {
@@ -121,7 +121,7 @@ describe('process entity sources', () => {
 
     await expect(processRelatedEntities(relations, resolveEntity, {
       _id: 'facade-1',
-      relations: { sourceModel: { type: 'artifact', id: 'a-1' } }
+      relations: { sourceModel: { type: 'drawing', id: 'a-1' } }
     }, 'sourceModel', 'facade')).rejects.toThrow('forbidden');
   });
 
@@ -131,7 +131,7 @@ describe('process entity sources', () => {
 
     await processRelatedEntities(relations, resolveEntity, {
       _id: 'facade-1',
-      relations: { sourceModel: { type: 'artifact', id: 'a-1' } }
+      relations: { sourceModel: { type: 'drawing', id: 'a-1' } }
     }, 'sourceModel', 'facade');
     await processChildEntities(containment, queryEntities, { _id: 'project-1' }, 'project');
 

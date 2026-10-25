@@ -12,7 +12,7 @@ const domain = {
     project: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [] },
     material: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [] },
     cassette_design: {
-      modes: ['bakeCassetteDesignFromTemplate', 'importCassetteDesignFromArtifact'],
+      modes: ['bakeCassetteDesignFromTemplate', 'importCassetteDesign'],
       defaultMode: 'bakeCassetteDesignFromTemplate',
       inputs: []
     }
@@ -42,7 +42,7 @@ const bindings = {
     processUpdate: true,
     delete: true,
     archive: true,
-    constructionHandlers: { bakeCassetteDesignFromTemplate: () => {}, importCassetteDesignFromArtifact: () => {} }
+    constructionHandlers: { bakeCassetteDesignFromTemplate: () => {}, importCassetteDesign: () => {} }
   }
 };
 
@@ -73,7 +73,7 @@ describe('process entity capability projection', () => {
     expect(capabilities.cassette_design.create).toBe(true);
     expect(capabilities.cassette_design.createModes).toEqual([
       'bakeCassetteDesignFromTemplate',
-      'importCassetteDesignFromArtifact'
+      'importCassetteDesign'
     ]);
   });
 

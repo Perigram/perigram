@@ -41,23 +41,10 @@ export const frameworkTypes = [
       avatarUrl: { base: 'string' }
     }
   },
-  // Framework machinery types: file storage, revisions, process definitions.
-  // They keep explicit feature services; the declarations put them in every
+  // Framework machinery types: revisions and process definitions. They
+  // keep explicit feature services; the declarations put them in every
   // registry view (tenancy, ref targets) but they are flagged `framework`
   // and never project as authorable instances — their services own them.
-  {
-    id: 'artifact',
-    framework: true,
-    class: 'file',
-    scope: 'system',
-    version: 1,
-    name: 'File',
-    glyph: 'pi pi-file',
-    payload: { mime: ['application/octet-stream', 'audio/*'] },
-    fields: {
-      filename: { base: 'string', identifier: true, label: 'file.name', display: 'text' }
-    }
-  },
   {
     id: 'entity-revision',
     framework: true,

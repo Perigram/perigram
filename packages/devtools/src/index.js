@@ -81,7 +81,6 @@ export function summarizeAttachmentKinds(attachmentKinds = {}) {
   return Object.entries(attachmentKinds).map(([key, attachment]) => ({
     key,
     kind: attachment.kind || key,
-    bucket: attachment.bucket || null,
     mimeType: attachment.mimeType || null,
     preview: attachment.preview || { mode: 'download' }
   }));
@@ -297,12 +296,11 @@ export function validateTasks(tasks = {}) {
 }
 
 export function validateAttachmentKinds(attachmentKinds = {}) {
-  return Object.entries(attachmentKinds).flatMap(([key, artifact]) => {
+  return Object.entries(attachmentKinds).flatMap(([key, kind]) => {
     const issues = [];
-    if (!artifact.kind) issues.push({ key, issue: 'missing attachment kind' });
-    if (!artifact.bucket) issues.push({ key, issue: 'missing bucket' });
-    if (!artifact.mimeType) issues.push({ key, issue: 'missing mime type' });
-    if (!artifact.preview?.mode) issues.push({ key, issue: 'missing preview kind' });
+    if (!kind.kind) issues.push({ key, issue: 'missing attachment kind' });
+    if (!kind.mimeType) issues.push({ key, issue: 'missing mime type' });
+    if (!kind.preview?.mode) issues.push({ key, issue: 'missing preview kind' });
     return issues;
   });
 }

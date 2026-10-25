@@ -9,7 +9,7 @@
       <i :class="typeGlyph" />
     </div>
   </RemoteInstancePreview>
-  <ArtifactViewer
+  <FilePayloadViewer
     v-else-if="hasRenderablePayload"
     :source="{ mode: preview.mode, fileUrl, attachment: payload }"
     :variant="'card'"
@@ -60,7 +60,7 @@
 <script setup>
 import { computed } from 'vue';
 import { LAYOUT, RENDERABLE_PREVIEW_MODES, resolvePreview } from '#shared/ui-mapping/index.js';
-import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
+import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import RemoteInstancePreview from '~/components/generated/RemoteInstancePreview.vue';
 import { resolvePluginPreview } from '~/components/generated/plugin-preview-bindings.js';

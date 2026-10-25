@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassettes, cassette designs, sheet designs, and the nesting solver as an installable plugin with an external executor",
-  "version": "17",
+  "version": "18",
   "requires": [
     "tech-drawing"
   ],
@@ -519,19 +519,6 @@
         }
       },
       {
-        "id": "import-cassette",
-        "label": "Import cassette from DXF",
-        "mode": "endpoint",
-        "signature": {
-          "input": {
-            "base": "json"
-          },
-          "output": {
-            "base": "json"
-          }
-        }
-      },
-      {
         "id": "generate-sheet-dxf",
         "label": "Generate sheet-design DXF",
         "mode": "endpoint",
@@ -612,57 +599,6 @@
         "kind": "preview"
       }
     ],
-    "attachmentKinds": {
-      "OCCS_SOURCE": {
-        "kind": "OCCS_SOURCE",
-        "bucket": "cassettes",
-        "mimeType": "application/perigram+occs",
-        "preview": {
-          "mode": "download"
-        },
-        "creation": {
-          "mode": "upload",
-          "accept": ".occs,application/perigram+occs"
-        },
-        "editor": {
-          "mode": "cassette-designer"
-        },
-        "file": {
-          "extensions": [
-            ".occs"
-          ],
-          "mimeTypes": [
-            "application/perigram+occs"
-          ],
-          "maxBytes": 10485760
-        }
-      }
-    },
-    "conversions": [
-      {
-        "id": "layoutDxfToDxfSource",
-        "label": "Create DXF source",
-        "sourceKinds": [
-          "LAYOUT_DXF"
-        ],
-        "target": {
-          "kind": "artifact",
-          "artifactKind": "DXF_SOURCE"
-        }
-      },
-      {
-        "id": "dxfSourceToCassette",
-        "label": "Import cassette",
-        "sourceKinds": [
-          "DXF_SOURCE"
-        ],
-        "target": {
-          "kind": "entity",
-          "typeId": "cassette"
-        },
-        "service": "plugin.facade.import-cassette"
-      }
-    ],
     "constructions": {
       "cassette-design": {
         "upload": "plugin.facade.extract-geometry",
@@ -676,7 +612,7 @@
     "exports": [
       {
         "typeId": "sheet-design",
-        "kind": "LAYOUT_DXF",
+        "kind": "dxf",
         "service": "plugin.facade.generate-sheet-dxf"
       }
     ],

@@ -5,9 +5,9 @@ import { loadProjectWorkspaceState, saveProjectWorkspaceState } from '~/utils/pr
 describe('generated project workspace behavior', () => {
   it('starts empty and creates recursively splittable panes only through explicit selection', () => {
     const first = createWorkspaceLeaf('pane-1');
-    const tree = splitWorkspaceLeaf(first, 'pane-1', 'horizontal', createWorkspaceLeaf('pane-2', 'artifact:a1'));
+    const tree = splitWorkspaceLeaf(first, 'pane-1', 'horizontal', createWorkspaceLeaf('pane-2', 'record:a1'));
     expect(first.selectionKey).toBe('');
-    expect(workspaceLeaves(tree).map(pane => pane.selectionKey)).toEqual(['', 'artifact:a1']);
+    expect(workspaceLeaves(tree).map(pane => pane.selectionKey)).toEqual(['', 'record:a1']);
   });
 
   it('round-trips versioned per-project pane state', () => {

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-0 min-w-0 flex-1 overflow-hidden" data-artifact-viewer :data-viewer-mode="mode">
+  <div class="min-h-0 min-w-0 flex-1 overflow-hidden" data-file-payload-viewer :data-viewer-mode="mode">
     <DrawingCanvas
       v-if="hasFile && ['dxf', 'svg'].includes(mode)"
       :source="fileUrl"
@@ -15,8 +15,8 @@
       :mode="variant === 'card' ? 'card' : 'viewer'"
       :fill="variant === 'card'"
     />
-    <img v-else-if="hasFile && mode === 'image'" :src="blobUrl || fileUrl" :class="variant === 'card' ? 'block h-full w-full object-cover' : 'mx-auto block max-h-full max-w-full object-contain'" :alt="artifactName">
-    <iframe v-else-if="hasFile && mode === 'pdf'" :src="blobUrl || fileUrl" class="h-full w-full border-0" :title="artifactName || 'PDF'" />
+    <img v-else-if="hasFile && mode === 'image'" :src="blobUrl || fileUrl" :class="variant === 'card' ? 'block h-full w-full object-cover' : 'mx-auto block max-h-full max-w-full object-contain'" :alt="fileName">
+    <iframe v-else-if="hasFile && mode === 'pdf'" :src="blobUrl || fileUrl" class="h-full w-full border-0" :title="fileName || 'PDF'" />
     <!-- The Word document keeps its own document-native scrolling surface
          (like the PDF iframe); every other mode fits its bounds without a
          scroll container. -->
@@ -33,9 +33,9 @@
       <div v-if="renderedText" class="line-clamp-[12] break-words" v-html="renderedText" />
       <p v-else class="line-clamp-[12] m-0 whitespace-pre-wrap break-words">{{ text }}</p>
     </div>
-    <StateBlock v-else-if="!hasFile" state="empty" :message="$t('artifacts.previewUnavailable')" />
+    <StateBlock v-else-if="!hasFile" state="empty" :message="$t('file.previewUnavailable')" />
     <StateBlock v-else-if="error" state="error" :message="error" />
-    <StateBlock v-else state="empty" :message="$t('artifacts.previewUnavailable')" />
+    <StateBlock v-else state="empty" :message="$t('file.previewUnavailable')" />
   </div>
 </template>
 
@@ -50,21 +50,17 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import { TABLE_PAGE_ROWS } from '#shared/ui-mapping/index.js';
 import { isMarkdownDocument, renderMarkdown } from '#shared/markdown.js';
 
-import { resolveArtifactViewer } from '~/utils/artifact-viewer.js';
-
-// `artifact`/`revision` drive the artifact-entity path. Callers without an
-// artifact record (CTS file instances) pass an explicit `source`
-// `{ mode, fileUrl, attachment }` resolved from the type's preview policy.
-// `variant` names the presentation surface in the canvas-mode vocabulary:
-// `pane` (default) keeps the pan/zoom viewer canvas and its layer panel;
-// `card` renders the non-interactive canvas that fills its caller's
-// fixed-height band with no own border (the host card owns the chrome):
-// images and sketch scenes fill it at uniform scale (cropped), vector
-// drawings (dxf/svg/occs) fit inside it, and dimension text renders big.
+// The file-instance payload viewer: `source` is `{ mode, fileUrl,
+// attachment }` resolved from the type's payload preview policy
+// (file-preview-contract). `variant` names the presentation surface in
+// the canvas-mode vocabulary: `pane` (default) keeps the pan/zoom viewer
+// canvas and its layer panel; `card` renders the non-interactive canvas
+// that fills its caller's fixed-height band with no own border (the
+// host card owns the chrome): images and sketch scenes fill it at
+// uniform scale (cropped), vector drawings (dxf/svg) fit inside it, and
+// dimension text renders big.
 const props = defineProps({
-  artifact: { type: Object, default: null },
-  revision: { type: Object, default: null },
-  source: { type: Object, default: null },
+  source: { type: Object, required: true },
   variant: { type: String, default: 'pane' }
 });
 const docxHost = ref(null);
@@ -73,24 +69,12 @@ const rows = ref([]);
 const columns = ref([]);
 const error = ref('');
 const blobUrl = ref('');
-const viewer = computed(() => {
-  if (props.source) {
-    const fileUrl = props.source.fileUrl || '';
-    return { attachment: props.source.attachment || null, fileUrl, hasFile: Boolean(fileUrl), mode: props.source.mode || 'download' };
-  }
-  return resolveArtifactViewer({ artifact: props.artifact, revision: props.revision });
-});
-const mode = computed(() => viewer.value.mode);
-const hasFile = computed(() => viewer.value.hasFile);
-const fileUrl = computed(() => viewer.value.fileUrl);
-const artifactName = computed(() => props.artifact?.identity?.name
-  || props.source?.attachment?.name
-  || '');
-const mimeType = computed(() => props.source?.attachment?.mime
-  || props.revision?.attachments?.primary?.metadata?.mimeType
-  || props.artifact?.attachments?.primary?.metadata?.mimeType
-  || 'application/octet-stream');
-const isMarkdown = computed(() => isMarkdownDocument({ mimeType: mimeType.value, name: artifactName.value }));
+const mode = computed(() => props.source.mode || 'download');
+const hasFile = computed(() => Boolean(props.source.fileUrl));
+const fileUrl = computed(() => props.source.fileUrl || '');
+const fileName = computed(() => props.source?.attachment?.name || '');
+const mimeType = computed(() => props.source?.attachment?.mime || 'application/octet-stream');
+const isMarkdown = computed(() => isMarkdownDocument({ mimeType: mimeType.value, name: fileName.value }));
 const renderedText = computed(() => renderMarkdown(text.value));
 
 function releaseBlob() {

@@ -30,18 +30,6 @@ export const fieldAccessPolicies = {
     write: ['data.*'],
     admin: ['data.*', 'attachments.*']
   },
-  artifact: {
-    feature: 'artifacts',
-    read: [...COMMON_READ_FIELDS, 'data.type', 'data.mimeType', 'data.size', 'data.filename', 'data.layout.*', 'data.values.*', 'data.activeRevisionId', 'data.revisions.*', 'attachments.primary.*'],
-    write: ['data.*', 'attachments.*'],
-    admin: ['data.*', 'attachments.*']
-  },
-  artifactTemplate: {
-    feature: 'artifact_templates',
-    read: [...COMMON_READ_FIELDS, 'data.format', 'data.layout.*', 'data.variables.*', 'data.activeRevisionId', 'data.revisions.*', 'attachments.source.*'],
-    write: ['identity.name', 'data.layout.*', 'data.variables.*', 'data.activeRevisionId', 'data.revisions.*'],
-    admin: ['identity.*', 'data.*', 'attachments.*']
-  },
   user: {
     feature: 'users',
     read: [
@@ -94,7 +82,6 @@ export const fieldAccessPolicies = {
 };
 
 const ENTITY_ALIASES = {
-  artifact_template: 'artifactTemplate',
   entity_revision: 'entityRevision',
   process_definition: 'processDefinition',
   pen_template: 'penTemplate',

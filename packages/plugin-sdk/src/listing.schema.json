@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://perigram.dev/schemas/plugin-listing.schema.json",
   "title": "Perigram plugin listing",
-  "description": "A platform-published plugin catalog listing: declarations (types, services, editors, attachment kinds, conversions) plus pack requirements. The authoritative validator is parseListing in @perigram/plugin-sdk; this schema mirrors it for editors, agents, and tooling.",
+  "description": "A platform-published plugin catalog listing: declarations (types, services, editors) plus pack requirements. The authoritative validator is parseListing in @perigram/plugin-sdk; this schema mirrors it for editors, agents, and tooling.",
   "type": "object",
   "required": ["pluginId", "name", "declarations"],
   "additionalProperties": true,
@@ -113,30 +113,6 @@
             "properties": {
               "type": { "type": "string", "minLength": 1 },
               "surface": { "type": "string", "pattern": "^[a-z0-9-]+$" }
-            }
-          }
-        },
-        "attachmentKinds": {
-          "type": "object",
-          "description": "Payload upload contracts keyed by kind id (the pack vocabulary)",
-          "additionalProperties": { "type": "object" }
-        },
-        "conversions": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["id", "sourceKinds", "target"],
-            "additionalProperties": true,
-            "properties": {
-              "id": { "type": "string", "minLength": 1 },
-              "label": { "type": "string" },
-              "sourceKinds": { "type": "array", "minItems": 1, "items": { "type": "string" } },
-              "target": { "type": "object" },
-              "service": {
-                "type": "string",
-                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
-                "description": "The plugin service that executes the conversion: a bare service id of this plugin, or a plugin-qualified id"
-              }
             }
           }
         },

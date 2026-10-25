@@ -196,45 +196,6 @@ export function createMockOrganization(overrides = {}) {
   };
 }
 
-export function createMockArtifact(overrides = {}) {
-  const attachment = createAttachmentEntry('LAYOUT_DXF', 'file-demo-layout-dxf', 'layout.dxf', {
-    bucket: 'nestDxf'
-  });
-  return {
-    ...createEntity({
-      uid: 'artifact-demo-layout-dxf',
-      name: 'Queue Q-001 - Layout DXF',
-      state: 'AVAILABLE',
-      lineage: { queueId: MOCK_IDS.queueId, runId: MOCK_IDS.runId },
-      attachments: { primary: attachment },
-      data: { type: 'LAYOUT_DXF', metadata: { requestedBy: 'ui-lab' } }
-    }),
-    ...overrides
-  };
-}
-
-export function createMockArtifactTemplate(overrides = {}) {
-  return {
-    ...createEntity({
-      uid: 'artifact-template-demo',
-      name: 'Production passport',
-      state: 'ACTIVE',
-      lineage: { organizationId: MOCK_IDS.organizationId },
-      attachments: {
-        source: createAttachmentEntry('ARTIFACT_TEMPLATE_SOURCE', 'file-artifact-template', 'passport.pdf', {
-          bucket: 'artifactTemplates'
-        })
-      },
-      data: {
-        format: 'PDF',
-        variables: [{ name: 'projectName', type: 'string', default: 'Project' }],
-        activeRevisionId: 'artifact-template-revision-1',
-        layout: { format: 'PDF', unit: 'pt', pages: [] }
-      }
-    }),
-    ...overrides
-  };
-}
 
 
 export function createMockHistory(statuses = ['DRAFT', 'ACTIVE', 'CLOSED']) {

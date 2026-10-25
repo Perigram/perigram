@@ -5,7 +5,7 @@ import { fetchSurfaceModule } from '~/server/features/plugins/service.js';
 // The plugin-module proxy route (the plugins feature README's surface
 // module proxy contract): plugin editor/preview modules load same-origin —
 // the browser can never reach the server-network executor endpoint the
-// install configures. Modules are live executor artifacts, so they are
+// install configures. Modules are live executor assets, so they are
 // never served from a cache (the app-wide stale-while-revalidate rule
 // must not apply — an executor update must reach the next browser load).
 export default defineEventHandler(async (event) => {

@@ -366,7 +366,6 @@
         "nesting": "Nesting",
         "statistics": "Statistics",
         "metadata": "Metadata",
-        "artifacts": "Artifacts",
         "settings": "Settings",
         "addFiles": "Add Files",
         "uploadDxf": "Upload your .DXF files",
@@ -375,7 +374,6 @@
         "quickActions": "Quick Actions",
         "createQueue": "Create Queue",
         "uploadFiles": "Upload Files",
-        "viewArtifacts": "View Artifacts",
         "completedQueues": "Completed Queues",
         "totalCassettes": "Total Cassettes",
         "totalArea": "Total Area",
@@ -410,7 +408,8 @@
         "dropFilesHere": "or drop your files here",
         "uploadLimits": "Up to 20 files, max 5 MB each",
         "selected": "Selected",
-        "reportProblem": "Report a problem"
+        "reportProblem": "Report a problem",
+        "previewUnavailable": "Preview unavailable"
     },
     "table": {
         "create": "Create Table",
@@ -696,7 +695,6 @@
         "selectTable": "Select Table",
         "useTable": "Use Table Data",
         "useFiles": "Use File Counts",
-        "artifactsToGenerate": "Artifacts to Generate",
         "pdfTemplate": "PDF Template",
         "errors": {
             "plateTooSmall": "The plate size needs to be at least {width} x {height} mm. The current plate size is {currentWidth} x {currentHeight} mm, which is too small",
@@ -771,8 +769,7 @@
         "materialAlreadyInProject": "Material already in project",
         "materialAddedToProject": "Material added to project",
         "sheetsAdded": "Sheets added",
-        "confirmRemoveMaterial": "Remove material from project?",
-        "wasteExtractionFromArtifacts": "Waste extraction from artifacts"
+        "confirmRemoveMaterial": "Remove material from project?"
     },
     "results": {
         "title": "Results",
@@ -1116,7 +1113,6 @@
             "options": "Options",
             "output": "Output",
             "entities": "Entities",
-            "artifacts": "Artifacts",
             "feature": "Feature",
             "jobs": "Jobs",
             "transitions": "Transitions",
@@ -1891,8 +1887,7 @@
             "xlsx-workbook": "XLSX workbook"
         },
         "exportKinds": {
-            "LAYOUT_DXF": "DXF layout",
-            "PDF_PASSPORT": "PDF passport"
+            "dxf": "DXF drawing"
         }
     },
     "uiConstructor": {
@@ -1980,33 +1975,11 @@
         "layerStandard": "Layer Standard",
         "user": "User Profile",
         "organization": "Organization",
-        "artifact": "Artifact",
-        "artifactTemplate": "Artifact Template",
         "facade": "Facade",
         "facadePattern": "Facade Pattern"
     },
     "facade": {},
     "facadePattern": {},
-    "artifactTemplates": {
-        "selectFile": "Choose DXF or PDF",
-        "empty": "No artifact templates",
-        "uploaded": "Template uploaded",
-        "saved": "Layout revision saved",
-        "layout": "Template layout",
-        "editLayout": "Edit layout",
-        "variables": "Variables",
-        "page": "Page {number}",
-        "moveX": "Move X",
-        "moveY": "Move Y",
-        "deleted": "Delete item",
-        "parameterized": "Use as variable",
-        "variableName": "Variable name",
-        "variableType": "Variable type",
-        "defaultValue": "Default value",
-        "string": "Text",
-        "number": "Number",
-        "boolean": "Boolean"
-    },
     "queue": {
         "title": "Queues",
         "create": "Create Queue",
@@ -2077,7 +2050,6 @@
         "uploadNewCassette": "Upload New Cassette",
         "runNesting": "Run Nesting",
         "markComplete": "Mark as Complete",
-        "artifacts": "Artifacts",
         "cassettes": "Cassettes",
         "cassette": "Cassette",
         "quantity": "Quantity",
@@ -2087,7 +2059,6 @@
         "jobItems": "Items to Nest",
         "nestingRuns": "Nesting Runs",
         "confirmDeleteEntry": "Are you sure you want to delete this entry?",
-        "confirmDeleteArtifact": "Are you sure you want to delete this artifact?",
         "nestingStarted": "Nesting Started",
         "nestingInitiated": "Nesting process initiated in background",
         "confirmResetMessage": "Are you sure you want to reset this queue to DRAFT? This will allow you to edit entries and run nesting again.",
@@ -2222,31 +2193,6 @@
         "originId": "Origin entity id",
         "setOrigin": "Link origin",
         "clearOrigin": "Clear origin"
-    },
-    "artifacts": {
-        "noQueues": "This project has no queues yet.",
-        "createQueueFirst": "Create a queue to generate artifacts.",
-        "loading": "Loading artifacts...",
-        "noArtifacts": "This queue has no artifacts.",
-        "name": "Name",
-        "type": "Type",
-        "status": "Status",
-        "createdAt": "Created At",
-        "deleteConfirm": "Are you sure you want to delete this artifact?",
-        "deleteTitle": "Delete Confirmation",
-        "deleted": "Artifact deleted",
-        "deleteFailed": "Failed to delete artifact",
-        "downloadFailed": "Failed to download artifact",
-        "generatingPreview": "Generating preview...",
-        "previewFailed": "Failed to generate preview",
-        "previewTitle": "Artifact Preview",
-        "previewUnavailable": "Preview unavailable",
-        "restoreRevision": "Restore revision",
-        "loadingPreview": "Loading preview...",
-        "pdfPreviewUnavailable": "PDF Preview not available",
-        "downloadFilePrompt": "Please download the file.",
-        "fetchContentFailed": "Failed to fetch artifact content",
-        "loadDxfPreviewFailed": "Failed to load DXF preview: {message}"
     },
     "assets": {
         "cassettes": "Cassettes",
@@ -3149,8 +3095,6 @@
         "attachments": "Attachments",
         "addAttachment": "Add attachment",
         "attachmentKind": "Attachment kind",
-        "allowedArtifactCreation": "Allowed artifact creation",
-        "allUploadArtifactKinds": "All upload-backed kinds",
         "required": "Required",
         "snapshots": "Snapshots",
         "addSnapshot": "Add snapshot",
@@ -3317,13 +3261,8 @@
         "actionCompleted": "Action completed",
         "actionFailed": "Action failed",
         "exactEntityId": "Exact entity ID",
-        "createArtifact": "Upload artifact",
         "createRelatedEntity": "Create new",
         "selectExisting": "Select existing",
-        "selectArtifactFile": "Select file",
-        "replaceArtifactFile": "Replace file",
-        "artifactFileRequired": "Select a file to upload.",
-        "artifactUploadFailed": "Artifact upload failed.",
         "noOptions": "No available options for {field}",
         "objectKey": "Key",
         "objectValue": "Value"

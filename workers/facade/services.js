@@ -119,56 +119,19 @@ export async function nestingParts({ fields = {} } = {}) {
   return nestingPartsProjection(geometry);
 }
 
-// The cassette import (the dxfSourceToCassette conversion): the
-// artifact's DXF extracted once — the cut contour and mapped semantic
-// layers become the template's stored geometry fields; the same DXF rides
-// back as the created cassette's payload. Input: { artifact: {
-// bufferBase64, name }, name, layerMapping }. Output:
-// { payloadBase64, payloadMime, filename, fields }.
-export async function importCassette({ artifact = {}, name, layerMapping = {} } = {}) {
-  const buffer = bufferOf(artifact.bufferBase64, 'Cassette import');
-  const layerMap = layerMapping || {};
-  const polygonParts = extractNestingPolygons(buffer, layerMap, OCCS_LAYER_CUT_OUTER);
-  if (!polygonParts.length) {
-    badRequest(`DXF upload requires at least one closed polygon mapped to ${OCCS_LAYER_CUT_OUTER}`);
-  }
-  const layerData = Object.entries(layerMap).flatMap(([sourceLayer, layer]) => {
-    if (!layer) return [];
-    return extractCurvesFromDXFLayer(buffer, sourceLayer).map((part, index) => ({
-      layer,
-      sourceLayer,
-      coordinates: part.coordinates,
-      handles: part.handles || [],
-      typeId: part.typeId,
-      sourceId: `${sourceLayer}:${part.handles?.[0] || index}`
-    }));
-  });
-  const filename = artifact.name || `${name || 'cassette'}.dxf`;
-  return {
-    payloadBase64: buffer.toString('base64'),
-    payloadMime: 'application/dxf',
-    filename,
-    fields: {
-      mapping: layerMap,
-      polygonParts,
-      layerData
-    }
-  };
-}
-
 // The sheet-design DXF export: the stored geometry preview and layer data
 // as a layered DXF — layers carry their production names from the layer
-// standards (never bare codes). Input: { data: { geometry }, specs? }.
-// Output: { dxf }.
-export async function generateSheetDxf({ data = {} } = {}) {
+// standards (never bare codes). Input: the record's values ({ fields:
+// { geometry } }). Output: { dxf }.
+export async function generateSheetDxf({ fields = {} } = {}) {
   const toExportLayer = (layer) => (layer && occsLayerStandard(layer) ? occsLayerExportName(layer) : layer);
   const dxf = generateLayeredDxf({
-    layers: data.geometry?.preview?.layers || [],
-    layerData: (data.geometry?.data?.layerData || []).map(item => ({
+    layers: fields.geometry?.preview?.layers || [],
+    layerData: (fields.geometry?.data?.layerData || []).map(item => ({
       ...item,
       layer: toExportLayer(item.layer || item.standardCode || item.name)
     })),
-    polygonParts: data.geometry?.data?.polygonParts || []
+    polygonParts: fields.geometry?.data?.polygonParts || []
   });
   if (!dxf) {
     const error = new Error('Sheet design has no exportable geometry');
@@ -244,7 +207,6 @@ export const services = {
   'nesting-parts': nestingParts,
   'extract-geometry': extractGeometry,
   bake,
-  'import-cassette': importCassette,
   'generate-sheet-dxf': generateSheetDxf,
   'construct-sheet': constructSheet
 };

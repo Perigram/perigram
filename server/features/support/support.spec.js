@@ -29,7 +29,6 @@ const mocks = vi.hoisted(() => ({
     getById: vi.fn(),
     list: vi.fn()
   },
-  artifactsService: { list: vi.fn() },
   catalogsService: { list: vi.fn() },
   librariesService: { list: vi.fn() },
   projectsService: { list: vi.fn() },
@@ -55,7 +54,6 @@ vi.mock('~/server/features/connections/service.js', () => ({
   publish: mocks.connectionsPublish,
   registerTopicAuthorizer: vi.fn()
 }));
-vi.mock('~/server/features/artifacts/service.js', () => mocks.artifactsService);
 vi.mock('~/server/features/catalogs/service.js', () => mocks.catalogsService);
 vi.mock('~/server/features/libraries/service.js', () => mocks.librariesService);
 vi.mock('~/server/features/users/service.js', () => mocks.usersService);
@@ -812,12 +810,15 @@ describe('support communication service', () => {
     });
   });
 
-  it('allows artifact refs when the process exposes an artifact creation action', async () => {
+  it('allows refs of a creator-only file type when the process exposes its create action', async () => {
     mocks.repository.insert.mockImplementation(async (record) => record);
-    const artifact = {
-      toJSON: () => ({ _id: 'artifact-1', identity: { name: 'Scan' }, lineage: { organizationId: 'org-1' }, data: {} })
+    const photo = {
+      toJSON: () => ({ _id: 'photo-1', name: 'Scan', organizationId: 'org-1', fields: {} })
     };
-    mocks.artifactsService.list.mockResolvedValue([artifact]);
+    mocks.appRegistry.getInstanceService.mockImplementation(() => ({
+      processGetById: vi.fn(async () => null),
+      processList: vi.fn(async () => [photo])
+    }));
     mocks.processRuntime.resolveProcessAuth.mockImplementation(async (input) => ({
       ...input,
       process: { active: true },
@@ -829,8 +830,8 @@ describe('support communication service', () => {
           construction: {
             inputs: [{
               creator: {
-                typeId: 'artifact',
-                attachmentKinds: [{ kind: 'CAPTURE_PHOTO', creation: { mode: 'capture' } }]
+                typeId: 'site-photo',
+                attachmentKinds: [{ kind: 'site-photo', creation: { mode: 'capture' } }]
               }
             }]
           }
@@ -844,19 +845,19 @@ describe('support communication service', () => {
 
     const message = await supportService.sendUserMessage(auth, {
       recipientUserId: 'user-b',
-      instanceRefs: [{ type: 'artifact', id: 'artifact-1' }]
+      instanceRefs: [{ type: 'site-photo', id: 'photo-1' }]
     });
 
     expect(message.instanceRefs).toEqual([
       expect.objectContaining({
-        type: 'artifact',
-        id: 'artifact-1',
+        type: 'site-photo',
+        id: 'photo-1',
         label: 'Scan'
       })
     ]);
   });
 
-  it('keeps artifacts unattachable in a process without an artifact creation action', async () => {
+  it('keeps creator-only types unattachable in a process without their create action', async () => {
     mocks.processRuntime.resolveProcessAuth.mockImplementation(async (input) => ({
       ...input,
       process: { active: true },
@@ -871,8 +872,8 @@ describe('support communication service', () => {
 
     const message = await supportService.sendUserMessage(auth, {
       recipientUserId: 'user-b',
-      message: 'no artifacts here',
-      instanceRefs: [{ type: 'artifact', id: 'artifact-1' }]
+      message: 'no file types here',
+      instanceRefs: [{ type: 'site-photo', id: 'photo-1' }]
     });
 
     expect(message.instanceRefs).toEqual([]);
@@ -887,9 +888,9 @@ describe('support communication service', () => {
       roleAssignments: {
         actions: [{
           actionKind: 'createInstance',
-          typeId: 'artifact',
+          typeId: 'site-photo',
           construction: {
-            inputs: [{ id: 'artifact', creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' } }]
+            inputs: [{ id: 'photo', creator: { typeId: 'site-photo', attachmentKinds: 'userCreatable' } }]
           }
         }]
       }
