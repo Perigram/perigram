@@ -34,3 +34,11 @@ support specs 46+3, `check-arch`, `framework:validate` — all green;
 which resolves only where the submodule is initialized. Playwright e2e
 not run: no live stack (dev servers are owner-run).
 - WAITING — owner verification: refactor + QOL on a live stack.
+- [ ] e2e/chat-file-upload stalls after opening an instance thread on
+  the live stack (reproduced 2026-10-25 ~23:40, post-5a838f7ac, post
+  app restart): the inbox row clicks, the composer block never mounts,
+  `[data-testid="chat-attach-trigger"]` (ChatComposer.vue:337, mounted
+  at ChatSupport.vue:70) never renders; zero console errors, all APIs
+  200. The common-chat dialog assertions ride behind this step and stay
+  unverified. Refactor shipped without playwright; this is the
+  live-stack gap.
