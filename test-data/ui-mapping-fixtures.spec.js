@@ -73,7 +73,7 @@ describe('hydration four breaks the previous skeleton', () => {
     expect(home.regions.map(region => `${region.typeId}:${region.instances.length}`)).toEqual([
       'watch_job:14', 'document:11'
     ]);
-    expect(home.regionsMode).toBe('tabs');
+    expect(home.regionsArrangement.mode).toBe('tabs');
   });
 
   it('composes the deep folder detail with recursive subfolders and documents', () => {

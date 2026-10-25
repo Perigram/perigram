@@ -96,6 +96,14 @@ homes, the `ResponsiveGrid` container queries, the measured track
 engagement — materializes the same step vocabulary the seam resolves. A
 surface declaring its own breakpoint set is a defect.
 
+Hosts declare their profile through the seam: the pane host measures
+itself and provides the resolved record, fixed-shape hosts (the popup)
+provide their profile, and the page profile is the default a surface
+resolves with no provider. Fragments measure where they render (the
+peer-column engagement). Budgets consume the provided record: a `narrow`
+or `medium` host sheds table columns and card facts through the compact
+budgets — a surface sized for its host, every host.
+
 ## Arrangement decision procedure
 
 `arrange(siblings, container)` — one ordered rule list; rules apply in
@@ -126,6 +134,11 @@ screen's sections, a tab panel's content):
 The `width` step gates rules 4–5: `narrow` hosts skip them and stack. The
 composed tree carries the outcomes of all engaged steps, so engagement is
 a selection among carried arrangements, never a recomposition.
+
+A screen's top-level sections arrange through the same ordered rules:
+multi-section screens share proportional columns when the sections'
+weights grant them and tab when the set exceeds the budget — one ladder
+for screens and record children alike.
 
 ## Intrinsic sizing
 

@@ -1,25 +1,11 @@
 <template>
   <div :class="LAYOUT.stack">
-    <Tabs v-if="composed.regionsMode === 'tabs'" :value="composed.regions[0].id">
-      <TabList>
-        <Tab v-for="region in composed.regions" :key="region.id" :value="region.id">
-          {{ regionLabelFor(region) }}
-          <Tag v-if="region.instances.length" :value="String(region.instances.length)" severity="secondary" />
-        </Tab>
-      </TabList>
-      <TabPanels>
-        <TabPanel v-for="region in composed.regions" :key="region.id" :value="region.id">
-          <RegionBlock v-bind="regionBlockProps" v-on="regionBlockEvents" :node="region" embedded />
-        </TabPanel>
-      </TabPanels>
-    </Tabs>
-    <RegionBlock
-      v-for="region in composed.regions"
-      v-else
-      :key="region.id"
-      v-bind="regionBlockProps"
-      v-on="regionBlockEvents"
-      :node="region"
+    <RegionChildren
+      :regions="composed.regions"
+      :arrangement="composed.regionsArrangement"
+      :depth="-1"
+      :region-props="regionBlockProps"
+      :region-events="regionBlockEvents"
     />
 
     <!-- The routed detail surface keeps the same conversation contract as
@@ -98,16 +84,9 @@ import { useI18n } from 'vue-i18n';
 import Toast from 'primevue/toast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
-import Tabs from 'primevue/tabs';
-import TabList from 'primevue/tablist';
-import Tab from 'primevue/tab';
-import TabPanels from 'primevue/tabpanels';
-import TabPanel from 'primevue/tabpanel';
-import Tag from 'primevue/tag';
-import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, typeLabelKey, localizedLabel, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
+import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
 import { withinRelationDomain } from '#shared/relation-domain.js';
-import RegionBlock from './RegionBlock.vue';
-import { generatedEntityLabel } from '~/utils/generated-labels.js';
+import RegionChildren from './RegionChildren.vue';
 import InstancePicker from './InstancePicker.vue';
 import FieldControl from './FieldControl.vue';
 import StandardDialog from '../shared/StandardDialog.vue';
@@ -186,8 +165,7 @@ provide('generatedExecuteAction', (action, entity, context = {}) => {
   openAction(action, context.data || {}, { instance: entity });
 });
 
-const { te, t } = useI18n();
-const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? generatedEntityLabel(region.type, { t, te }) : region.label);
+const { t } = useI18n();
 const openable = computed(() => typeof props.onOpen === 'function');
 // Per-instance quick actions by type (resolveInstanceActions contract):
 // status transitions, deletion, and instance-scoped commands a collection

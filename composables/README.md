@@ -117,16 +117,21 @@ keeps its own listener of the same shape.
 
 ## useContainerTraits
 
-`useContainerTraits(elRef, { hostKind, density })` is the container-traits
-measurement seam of the generative UI
-([shared/ui-mapping](../shared/ui-mapping/README.md) → Arrangement): it
-observes one host element and resolves the full container-trait record
+The container-traits measurement seam of the generative UI
+([shared/ui-mapping](../shared/ui-mapping/README.md) → Arrangement).
+`useContainerTraits(elRef, { hostKind, density })` observes one host
+element and resolves the full container-trait record
 (`resolveContainerTraits` — width step from `CONTAINER_WIDTH_STEPS`,
 height/scroll from `HOST_PROFILES`, density passthrough), re-resolving on
-host resize. It is the one layout measurement path in the app; arrangement
-materializations (the peer-column engagement in
-[components/ui-mapping](../components/ui-mapping/README.md)) consume it
-instead of measuring layout themselves.
+host resize; arrangement fragments (the peer-column engagement in
+[components/ui-mapping](../components/ui-mapping/README.md)) measure where
+they render. `provideContainerTraits({ hostKind, elRef? })` is the host
+side: measuring hosts (the workspace pane) observe their own box,
+fixed-shape hosts (the record popup) provide the profile alone.
+`useHostContainerTraits()` resolves the host record in any surface — the
+page profile is the providerless default — and budgets consume it (compact
+table columns in `narrow`/`medium` hosts, compact card facts in `narrow`
+ones).
 
 ## useStateController
 

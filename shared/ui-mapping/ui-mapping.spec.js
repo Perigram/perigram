@@ -8,7 +8,6 @@ import {
   iconFor,
   resolveFieldGroups,
   estimateRegionWeight,
-  childrenModeFor,
   arrangeChildren,
   regionDataTraits,
   shapeFamilyOf,
@@ -655,11 +654,16 @@ describe('weight-driven arrangement', () => {
     expect(SPACING_STEPS).toEqual([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]);
   });
 
-  it('tabs only when siblings are many and heavy at the top level', () => {
-    expect(childrenModeFor([listNode(8), listNode(8)], 0)).toBe('tabs');
-    expect(childrenModeFor([listNode(2), listNode(3)], 0)).toBe('stack');
-    expect(childrenModeFor([detailNode(16)], 0)).toBe('stack');
-    expect(childrenModeFor([listNode(8), listNode(8)], 1)).toBe('stack');
+  it('tabs heavy section sets at the top level and stacks light ones', () => {
+    // Screen sections arrange through the same ladder: full-breadth
+    // tables within the column cap stack (the row-cheapest layout);
+    // past the cap the set tabs (the page-height bound).
+    const table = weight => ({ id: `t${weight}`, dataTraits: { breadth: 'full', weight } });
+    expect(arrangeChildren([table(10), table(10)], 0)).toEqual({ mode: 'stack' });
+    expect(arrangeChildren([table(16), table(14)], 0).mode).toBe('tabs');
+    expect(arrangeChildren([table(4), table(4)], 0)).toEqual({ mode: 'stack' });
+    expect(arrangeChildren([table(10), table(10)], 1).mode).toBe('stack');
+    expect(arrangeChildren([{ ...detailNode(16), id: 'd' }], 0)).toEqual({ mode: 'stack' });
   });
 
   it('arranges siblings by weight: stack, proportional columns, dominant flow, weight-ordered tabs', () => {

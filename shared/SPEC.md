@@ -98,7 +98,6 @@ SVG, window-guarded rendering), [icon-fonts.js](./icon-fonts.js)
 [assignment-access-preview.js](./assignment-access-preview.js),
 [public-entities.js](./public-entities.js),
 [relation-domain.js](./relation-domain.js),
-[attachment-kinds.js](./attachment-kinds.js),
 [instance-tokens.js](./instance-tokens.js), `assistant-mention.js`,
 `types/`.
 
