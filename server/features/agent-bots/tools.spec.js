@@ -418,3 +418,71 @@ describe('read_attachment typed content extraction', () => {
         await expect(executeTool('read_attachment', { fileId: 'f2' }, AUTH, RUN)).rejects.toMatchObject({ statusCode: 400 });
     });
 });
+
+describe('instance file reads and action input contracts', () => {
+    const fileInstanceService = { processList: vi.fn(), processGetById: vi.fn() };
+
+    beforeEach(() => {
+        mockedRegistry.getAppRegistry.mockReturnValue({ getInstanceService: () => fileInstanceService });
+    });
+
+    it('get_instance carries the payload reference of file-type instances', async () => {
+        fileInstanceService.processGetById.mockResolvedValue({
+            _id: 'r1', type: 'report', name: 'Passport', state: 'ACTIVE',
+            fields: { pages: 2 },
+            payload: { fileId: 'f1', mime: 'application/pdf', size: 15, name: 'passport.pdf' }
+        });
+        const row = await executeTool('get_instance', { type: 'report', id: 'r1' }, AUTH);
+        expect(row.payload).toEqual({ fileId: 'f1', mime: 'application/pdf', size: 15, name: 'passport.pdf' });
+    });
+
+    it('read_instance_file extracts the instance payload on both surfaces', async () => {
+        fileInstanceService.processGetById.mockResolvedValue({
+            _id: 'r1', type: 'text-document', name: 'Notes',
+            payload: { fileId: 'f1', mime: 'text/markdown', size: 4, name: 'notes.md' }
+        });
+        mockedFiles.getFileBuffer.mockResolvedValue(Buffer.from('# hi'));
+        const result = await executeTool('read_instance_file', { type: 'text-document', id: 'r1' }, AUTH);
+        expect(mockedFiles.getFileBuffer).toHaveBeenCalledWith('f1', 'files');
+        expect(result).toMatchObject({ name: 'notes.md', mimeType: 'text/markdown', readAs: 'text', text: '# hi' });
+
+        const chat = await chatToolDescriptors('org-1');
+        const mcp = await mcpToolDescriptors('org-1');
+        expect(chat.some(tool => tool.name === 'read_instance_file')).toBe(true);
+        expect(mcp.some(tool => tool.name === 'read_instance_file')).toBe(true);
+    });
+
+    it('read_instance_file refuses payload-less instances and missing blobs', async () => {
+        fileInstanceService.processGetById.mockResolvedValue({ _id: 'r2', type: 'report', name: 'X', fields: {} });
+        await expect(executeTool('read_instance_file', { type: 'report', id: 'r2' }, AUTH))
+            .rejects.toMatchObject({ statusCode: 400, message: /carries no file payload/ });
+
+        fileInstanceService.processGetById.mockResolvedValue({ _id: 'r3', type: 'report', payload: { fileId: 'gone' } });
+        mockedFiles.getFileBuffer.mockResolvedValue(null);
+        await expect(executeTool('read_instance_file', { type: 'report', id: 'r3' }, AUTH))
+            .rejects.toMatchObject({ statusCode: 404 });
+    });
+
+    it('serves action input contracts and one action by id', async () => {
+        mockedAgentService.buildPrincipalAuth.mockResolvedValue({
+            userId: AUTH.userId,
+            organizationId: AUTH.organizationId,
+            roleAssignments: { actions: [
+                { id: 'fillReport', actionKind: 'createInstance', typeId: 'report', label: 'Fill report',
+                  construction: { mode: 'fromTemplate', inputs: ['name', 'template', 'values'] },
+                  inputPolicy: { fields: [{ id: 'name', type: 'string', required: true }] },
+                  inputs: [{ id: 'values', type: 'object' }] },
+                { id: 'bare', actionKind: 'updateInstance', typeId: 'report', label: 'Update' }
+            ] }
+        });
+        const actions = await executeTool('list_actions', {}, AUTH);
+        expect(actions[0].construction).toEqual({ mode: 'fromTemplate', inputs: ['name', 'template', 'values'] });
+        expect(actions[0].inputPolicy.fields).toEqual([{ id: 'name', type: 'string', required: true }]);
+        expect(actions[0].inputs).toEqual([{ id: 'values', type: 'object' }]);
+        expect(actions[1].construction).toBeUndefined();
+
+        const one = await executeTool('list_actions', { actionId: 'fillReport' }, AUTH);
+        expect(one.id).toBe('fillReport');
+        await expect(executeTool('list_actions', { actionId: 'missing' }, AUTH)).rejects.toMatchObject({ statusCode: 404 });
+    });
+});

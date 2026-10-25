@@ -44,14 +44,30 @@ function instanceServiceFor(type) {
     return service;
 }
 
-function instanceRow(dto) {
+function instanceRow(dto, { payload = false } = {}) {
     if (!dto) return null;
     return {
         id: dto._id ?? dto.id ?? null,
         type: dto.type ?? null,
         name: dto.name ?? dto.identity?.name ?? null,
         state: dto.states?.main ?? dto.state ?? null,
-        fields: dto.fields ?? null
+        fields: dto.fields ?? null,
+        ...(payload && dto.payload ? { payload: dto.payload } : {})
+    };
+}
+
+// The manifest row: identity plus the input contract run_action's data
+// composes from — the projected channels, nothing derived.
+function actionRow(action = {}) {
+    return {
+        id: action.id,
+        label: action.label || action.caption || action.id,
+        actionKind: action.actionKind || null,
+        typeId: action.typeId || null,
+        parentTypeId: action.parentTypeId || null,
+        ...(action.construction ? { construction: action.construction } : {}),
+        ...(Array.isArray(action.inputs) ? { inputs: action.inputs } : {}),
+        ...(action.inputPolicy ? { inputPolicy: action.inputPolicy } : {})
     };
 }
 
@@ -605,7 +621,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'get_instance',
-        description: 'Loads one instance of a type through the registry-resolved instance service.',
+        description: 'Loads one instance of a type through the registry-resolved instance service. File-type rows carry their payload reference (fileId, mime, size, name).',
         inputSchema: {
             type: 'object',
             properties: {
@@ -617,7 +633,7 @@ export const TOOL_SPECS = [
         },
         execute: async (args, auth) => {
             return instanceRow(await instanceServiceFor(args.type)
-                .processGetById(requireString(args.id, 'id'), auth));
+                .processGetById(requireString(args.id, 'id'), auth), { payload: true });
         }
     },
     {
@@ -655,17 +671,21 @@ export const TOOL_SPECS = [
     },
     {
         name: 'list_actions',
-        description: 'Lists the compiled process actions available to the calling principal (the action manifest): create, update, delete, link, unlink, and command actions with their target types. Live per call — actions activated mid-run are visible immediately.',
-        inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+        description: 'Lists the compiled process actions available to the calling principal (the action manifest): create, update, delete, link, unlink, and command actions with their target types and input contracts — construction mode and inputs, prompt fields (inputPolicy), run parameters — the vocabulary run_action\'s data composes from. Pass actionId for one action\'s full row. Live per call — actions activated mid-run are visible immediately.',
+        inputSchema: {
+            type: 'object',
+            properties: { actionId: { type: 'string' } },
+            additionalProperties: false
+        },
         execute: async (args, auth) => {
             const live = await livePrincipalAuth(auth);
-            return (live.roleAssignments?.actions || []).map(action => ({
-                id: action.id,
-                label: action.label || action.caption || action.id,
-                actionKind: action.actionKind || null,
-                typeId: action.typeId || null,
-                parentTypeId: action.parentTypeId || null
-            }));
+            const actions = live.roleAssignments?.actions || [];
+            if (args.actionId) {
+                const action = actions.find(entry => entry.id === String(args.actionId));
+                if (!action) throw createError({ statusCode: 404, message: `Action ${args.actionId} is not in your action manifest` });
+                return actionRow(action);
+            }
+            return actions.map(actionRow);
         }
     },
     {
@@ -762,6 +782,37 @@ export const TOOL_SPECS = [
                 name: descriptor.name || '',
                 mimeType: descriptor.mimeType || '',
                 size: descriptor.size || buffer.length,
+                ...content
+            };
+        }
+    },
+    {
+        name: 'read_instance_file',
+        description: 'Reads the file payload of one file-type instance (a stored template or document) through the same extraction families as read_attachment: text files (markdown, DXF), spreadsheets (as CSV), PDFs (page text), DOCX (document body), audio (as a transcript). Instance ids come from list_instances / get_instance. Large content is truncated.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                type: { type: 'string', description: 'The instance type id.' },
+                id: { type: 'string', description: 'The instance id from list_instances / get_instance.' }
+            },
+            required: ['type', 'id'],
+            additionalProperties: false
+        },
+        execute: async (args, auth) => {
+            const type = requireString(args.type, 'type');
+            const instance = await instanceServiceFor(type).processGetById(requireString(args.id, 'id'), auth);
+            if (!instance) throw createError({ statusCode: 404, message: `No ${type} instance ${args.id}` });
+            const payload = instance.payload || null;
+            const fileId = payload?.fileId || payload?.id || null;
+            if (!fileId) throw createError({ statusCode: 400, message: `${type} instance carries no file payload` });
+            const buffer = await filesService.getFileBuffer(fileId, 'files').catch(() => null);
+            if (!buffer) throw createError({ statusCode: 404, message: 'File content is no longer stored' });
+            const name = payload.name || instance.name || instance.identity?.name || type;
+            const content = await readAttachmentContent({ name, mimeType: payload.mime || '' }, buffer, auth);
+            return {
+                name,
+                mimeType: payload.mime || '',
+                size: payload.size ?? buffer.length,
                 ...content
             };
         }
