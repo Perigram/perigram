@@ -46,6 +46,7 @@
 v-if="searchVisible"
 :conversation-key="activeConversationKey"
 :participants="searchParticipants"
+:type-options="searchTypeOptions"
 :viewer-id="currentUserId"
 @close="closeSearch"
 @jump="row => goToMessage(row._id, row.timestamp)"
@@ -374,7 +375,7 @@ const props = defineProps({
 
 const emit = defineEmits(['open-call'])
 const thread = useChatThread(props, emit)
-const { activeConversation, activeConversationKey, atBottom, attachmentPicker, botPanelConversationKey, botPanelVisible, callDialog, callHeaderLabel, callRoom, chatFileAcceptAttr, chatUploadEnabled, closeSearch, conversationAvatar, conversationLabel, createGroup, createPromptFields, createPromptOptions, createPromptValues, createPromptVisible, currentUserId, executingCreate, filesDragging, forwardDialog, forwardOptions, forwardToConversation, forwarding, goToMessage, groupDialog, groupMemberIds, groupMemberOptions, groupMemberSearch, groupMemberSearching, groupName, groupSaving, instanceConversationIcon, isAiChatRow, isBotDirectRow, message, newChatDialog, newChatOptions, newChatSearch, newChatSearching, newChatUsersLoading, onFilesDragEnter, onFilesDragLeave, onFilesDragOver, onFilesDrop, openNewChatUser, payloadInputEl, pendingCreateAction, pendingCreateActionLabel, runCreateAction, scrollToBottomFromControl, searchParticipants, searchVisible, selectAttachment, setPayloadInputEl, stageChatFiles, submitCreatePrompt, supportDialog, uploadPayloadFile, uploadingPayloadField, waitingMessages } = thread
+const { activeConversation, activeConversationKey, atBottom, attachmentPicker, botPanelConversationKey, botPanelVisible, callDialog, callHeaderLabel, callRoom, chatFileAcceptAttr, chatUploadEnabled, closeSearch, conversationAvatar, conversationLabel, createGroup, createPromptFields, createPromptOptions, createPromptValues, createPromptVisible, currentUserId, executingCreate, filesDragging, forwardDialog, forwardOptions, forwardToConversation, forwarding, goToMessage, groupDialog, groupMemberIds, groupMemberOptions, groupMemberSearch, groupMemberSearching, groupName, groupSaving, instanceConversationIcon, isAiChatRow, isBotDirectRow, message, newChatDialog, newChatOptions, newChatSearch, newChatSearching, newChatUsersLoading, onFilesDragEnter, onFilesDragLeave, onFilesDragOver, onFilesDrop, openNewChatUser, payloadInputEl, pendingCreateAction, pendingCreateActionLabel, runCreateAction, scrollToBottomFromControl, searchParticipants, searchVisible, selectAttachment, setPayloadInputEl, stageChatFiles, submitCreatePrompt, supportDialog, uploadPayloadFile, uploadingPayloadField, waitingMessages, searchTypeOptions } = thread
 </script>
 
 <style scoped>

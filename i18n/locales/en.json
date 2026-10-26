@@ -236,7 +236,9 @@
         "seenBy": "Seen by",
         "newMessages": "New messages",
         "scrollToEnd": "Scroll to latest",
-        "resizeRail": "Resize chats pane"
+        "resizeRail": "Resize chats pane",
+        "searchType": "Type",
+        "searchAnyType": "Any type"
     },
     "footer": {
         "termsAndConditions": "Terms and Conditions",

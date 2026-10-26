@@ -236,7 +236,9 @@
         "seenBy": "Просмотрено",
         "newMessages": "Новые сообщения",
         "scrollToEnd": "К последним сообщениям",
-        "resizeRail": null
+        "resizeRail": null,
+        "searchType": "Тип",
+        "searchAnyType": "Любой тип"
     },
     "footer": {
         "termsAndConditions": "Условия и положения",

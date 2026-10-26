@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
         q: query.q,
         sender: query.sender,
         attachmentKind: query.attachmentKind,
+        instanceType: query.instanceType,
         limit: query.limit
     })
     return { data }

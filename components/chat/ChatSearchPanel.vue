@@ -44,6 +44,17 @@
                 :aria-label="$t('support.searchAttachmentType')"
                 data-testid="chat-search-kind"
             />
+            <Select
+                v-if="typeSelectOptions.length > 1"
+                v-model="instanceType"
+                :options="typeSelectOptions"
+                option-label="label"
+                option-value="value"
+                size="small"
+                class="min-w-0 flex-1"
+                :aria-label="$t('support.searchType')"
+                data-testid="chat-search-type"
+            />
         </div>
         <div v-if="searching" class="flex items-center justify-center gap-2 py-2 text-muted text-supporting">
             <ProgressSpinner class="h-4 w-4 shrink-0" />
@@ -52,8 +63,8 @@
             v-else-if="results.length"
             :options="results"
             :scroll-height="'14rem'"
+            :auto-focus-on-hover="false"
             data-testid="chat-search-results"
-            :focus-on-hover="false"
             @update:model-value="pick"
         >
             <template #option="{ option }">
@@ -91,6 +102,7 @@ import { stripInstanceTokens } from '#shared/instance-tokens.js'
 const props = defineProps({
     conversationKey: { type: String, default: '' },
     participants: { type: Array, default: () => [] },
+    typeOptions: { type: Array, default: () => [] },
     viewerId: { type: String, default: '' }
 })
 const emit = defineEmits(['close', 'jump'])
@@ -99,13 +111,14 @@ const { t } = useI18n()
 const query = ref('')
 const sender = ref('all')
 const attachmentKind = ref('all')
+const instanceType = ref('all')
 const results = ref([])
 const searching = ref(false)
 let searchToken = 0
 let debounceTimer = null
 
 const active = computed(() => Boolean(
-    query.value.trim() || sender.value !== 'all' || attachmentKind.value !== 'all'
+    query.value.trim() || sender.value !== 'all' || attachmentKind.value !== 'all' || instanceType.value !== 'all'
 ))
 
 const senderOptions = computed(() => [
@@ -123,6 +136,11 @@ const kindOptions = computed(() => [
     }))
 ])
 
+const typeSelectOptions = computed(() => [
+    { value: 'all', label: t('support.searchAnyType') },
+    ...props.typeOptions.map(row => ({ value: row.type, label: row.label }))
+])
+
 const participantName = (id) => {
     const participant = props.participants.find(row => String(row.id) === String(id))
     return participant?.label || t('common.user')
@@ -132,7 +150,9 @@ const snippetOf = (row) => {
     const text = stripInstanceTokens(String(row.message || '')).trim()
     if (text) return text
     const attachment = (row.attachments || [])[0]
-    return attachment?.name || attachment?.kind || ''
+    if (attachment) return attachment.name || attachment.kind || ''
+    const ref = (row.instanceRefs || [])[0]
+    return ref ? (props.typeOptions.find(option => option.type === ref.type)?.label || '') : ''
 }
 
 const runSearch = async () => {
@@ -148,7 +168,8 @@ const runSearch = async () => {
                 conversationKey: props.conversationKey,
                 q: query.value.trim() || undefined,
                 sender: sender.value !== 'all' ? sender.value : undefined,
-                attachmentKind: attachmentKind.value !== 'all' ? attachmentKind.value : undefined
+                attachmentKind: attachmentKind.value !== 'all' ? attachmentKind.value : undefined,
+                instanceType: instanceType.value !== 'all' ? instanceType.value : undefined
             }
         })
         if (token !== searchToken) return
@@ -166,7 +187,7 @@ const runSearch = async () => {
     }
 }
 
-watch([query, sender, attachmentKind, () => props.conversationKey], () => {
+watch([query, sender, attachmentKind, instanceType, () => props.conversationKey], () => {
     if (debounceTimer) clearTimeout(debounceTimer)
     debounceTimer = setTimeout(runSearch, 300)
 }, { immediate: true })
@@ -175,5 +196,4 @@ const pick = (option) => {
     if (!option) return
     emit('jump', option)
 }
-
 </script>

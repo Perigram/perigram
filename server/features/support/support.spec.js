@@ -1413,12 +1413,14 @@ describe('support search and read cursors', () => {
             conversationKey: 'direct:user-a:user-b',
             q: 'nest(.*)',
             sender: 'user-a',
-            attachmentKind: 'image'
+            attachmentKind: 'image',
+            instanceType: 'e2e-probe-photo'
         });
         expect(data.map(row => row._id)).toEqual(['m2', 'm1']);
         const [match, , options] = mocks.repository.find.mock.calls[0];
         expect(match.senderUserId).toBe('user-a');
         expect(match['attachments.kind']).toBe('image');
+        expect(match['instanceRefs.type']).toBe('e2e-probe-photo');
         expect(match.message.$options).toBe('i');
         expect(match.message.$regex).toBe('nest\\(\\.\\*\\)');
         expect(options.limit).toBe(50);
