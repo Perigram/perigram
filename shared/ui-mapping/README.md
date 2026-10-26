@@ -501,7 +501,7 @@ at that step (root SPEC §22.1):
 |---|---|---|
 | Full-row claim | `FULL_BREADTH_LAYOUTS` | breadth-`full` siblings claim whole rows in flow order (`fullRow` ids on the columns outcome) and stay out of the peer columns and the record side rail |
 | Dominant child | `DOMINANT_CHILD_SHARE` | a sibling holding at least the share of total weight keeps the vertical flow; its remainder carries its own stepped arrangement within `SURFACE_ROW_BUDGET`, and a heavier remainder tabs the set |
-| Side rail | `SIDE_MAX_WEIGHT` | the record page's wide-step outcome: a light child set (combined weight at or under the budget, no full-breadth child) rides beside the record body, the side column's span earned by weight (`REGION_SIDE_SPANS`) |
+| Side rail | `SIDE_MAX_WEIGHT` | the record page's wide-step outcome: a light child set (combined weight at or under the budget, no full-breadth child) rides beside the record body while the body carries at least the rail's weight — a lighter body keeps the children below at full width; the side column's span earned by weight (`REGION_SIDE_SPANS`) |
 | Peer columns | `COLUMN_MAX_WEIGHT` | columnable peers each at or under the cap share proportional columns (track fr from each child's estimated rows) at every step past narrow, any peer count |
 | Tabs | `SURFACE_ROW_BUDGET` | a set over the budget with a sibling past the column cap tabs in descending weight order at any tree level; a sibling set inside a tab arrangement stacks (root SPEC §22.1) |
 | Stack | — | the terminal arrangement: content-height blocks in flow order |
@@ -523,7 +523,10 @@ Screen-level sections arrange through the same stepped rules
 (`regionsArrangement` on the composed screen, materialized by
 RegionChildren): multi-section screens share proportional columns when the
 weights grant them and tab past the budget — one ladder for screens and
-record children. Every weight is a compose-time value
+record children. A screen section that resolved empty leaves the ladder as
+a compact stub strip below the arranged content (`stubRegions` on the
+composed screen; loading/denied/error sections keep their state surfaces
+in the arrangement). Every weight is a compose-time value
 over the composed tree.
 
 One global spacing coefficient (0.5–2, the showcase slider)

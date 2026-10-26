@@ -164,7 +164,10 @@ resolution is total. For a sibling set (a record page's children, a
 screen's sections, a tab panel's content):
 
 1. **Inert partition.** `filledness: inert` siblings leave the arrangement
-   and render as compact stubs after the arranged content.
+   and render as compact stubs after the arranged content — at every
+   level: record children and screen sections alike. A section whose
+   resolved state is `loading`, `denied`, or `error` keeps its state
+   surface inside the arrangement.
 2. **Full-row claim.** `breadth: full` siblings claim the whole row in flow
    order at every width step; in `bounded` hosts they carry their own
    scroll.
@@ -172,8 +175,10 @@ screen's sections, a tab panel's content):
    total weight keeps the vertical flow; the remainder arranges after it
    within `SURFACE_ROW_BUDGET`, else tabs in descending weight order.
 4. **Side rail.** At `wide`, a light child set of combined weight at
-   or under `SIDE_MAX_WEIGHT` rides beside the record body; the side column
-   earns its span by weight (`REGION_SIDE_SPANS`).
+   or under `SIDE_MAX_WEIGHT` rides beside the record body while the body
+   carries at least the rail's weight — a body lighter than its rail
+   keeps the children below at full width. The side column earns its
+   span by weight (`REGION_SIDE_SPANS`).
 5. **Peer columns.** Siblings each at or under `COLUMN_MAX_WEIGHT` share
    proportional columns (track fr from each child's weight); the columns
    engage when the measured host grants every track its earned minimum
