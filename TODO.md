@@ -813,3 +813,16 @@ selection followed by the selected mode's inputs.
 - Specs 122 green (rail gate pins incl. thin-body negative, screen
   stub partition, random-world totality over the new shape); guards:
   arch, docs, SSR smoke, design-system pass.
+
+### Agent Notes (2026-10-26, agent/create-inputgroup-20261026-1655)
+
+Owner rework of the UI half: the mode selection lives in the toolbar
+control, as the direction named it — `CreateControl.vue` renders one
+PrimeVue `InputGroup` (creation-mode `Select` + create `ActionButton`)
+for a same-type create group; the button dispatches the selected action
+through the ordinary launch contract (params dialog, or direct run for a
+mode without prompted inputs). The dialog's mode row and the engine's
+group branch from the first session are removed; `createActionControls`,
+the caption law, and the i18n key stand. The PrimeVue MCP was consulted
+for the InputGroup composition this round (buttons as direct group
+children; Select `size`/`ariaLabel`).

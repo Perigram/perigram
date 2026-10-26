@@ -123,14 +123,10 @@ beside the transition history in `StateHistory`.
   engagement and budgets resolve against the real box (a designer preview
   box or narrow viewport arranges narrow). It owns the generated create
   and link dialogs (`StandardDialog`),
-  ConfirmDialog for destructive actions, and Toast feedback on runs. The
-  create dialog opens over a sibling group with a leading creation-mode
-  row (options labeled by `creationModeLabel`; switching modes reseeds
-  the draft) and its header carries the selected action's caption.
+  ConfirmDialog for destructive actions, and Toast feedback on runs.
   Launch behavior follows `planActionLaunch` (see the shared README's
   Actions section): a create with construction inputs always opens its
-  dialog regardless of grant level, and a same-type create group of two
-  or more opens it whatever the lead action's launch. The screen hosts its own `<Toast />`
+  dialog regardless of grant level. The screen hosts its own `<Toast />`
   element — the toast service fires into the nearest host in the tree, and
   the module-imports spec fails on imported-but-unrendered components.
   Confirmations use the default group: the app layout owns the single
@@ -155,9 +151,8 @@ beside the transition history in `StateHistory`.
   through ActionButton's context label: the header already names the class
   (creates for other types and every other action keep the full label).
   The toolbar and stub line render their create set through
-  `createActionControls`: same-type creates collapse to one control whose
-  sibling group rides the run context into the mode-selecting create
-  dialog (see the shared README's Actions section).
+  `createActionControls`: same-type creates collapse to one
+  `CreateControl` (see below) whose mode selection names the siblings.
   Top-level detail regions compose a record page: a full-width
   `SurfaceHeader`, then the record body with the filled child regions
   arranged around it — the wide step's side outcome lays the body beside
@@ -498,6 +493,12 @@ beside the transition history in `StateHistory`.
   icon-only when the resolver says so (create `+`, delete trash): the
   label stays the tooltip and accessible name, and the context label never
   widens the button back.
+- `CreateControl.vue` — one `createActionControls` entry: a sole create
+  renders its ActionButton; a sibling group (several creation modes, one
+  type) renders one PrimeVue `InputGroup` composing the creation-mode
+  `Select` (options from `creationModeLabel`, lead action selected) with
+  the create ActionButton, which dispatches the selected action through
+  the ordinary run channel.
 
 Entity Select/MultiSelect come through the shared wrappers
 (`components/shared/InstanceSelect.vue`, `InstanceMultiSelect.vue`), which

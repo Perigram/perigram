@@ -71,13 +71,14 @@ describe('entity Select wrappers', () => {
     // Entity dropdowns render through the shared wrappers. The allowance
     // lists the non-entity pickers (LLM profiles and routes, providers,
     // wake-rule types/states, chat recipient and search filters, the
-    // generated creation-mode row) that take plain enum options.
+    // grouped create control's creation-mode select) that take plain enum
+    // options.
     const enumSelectAllowance = new Set([
       'components/ChatSupport.vue',
       'components/chat/ChatComposer.vue',
       'components/chat/ChatSearchPanel.vue',
       'components/shared/ChatBotPanel.vue',
-      'components/ui-mapping/GeneratedMappingScreen.vue',
+      'components/ui-mapping/CreateControl.vue',
       'pages/organization/models.vue'
     ]);
     const violations = vueFiles(['components', 'pages', 'layouts'])

@@ -3,13 +3,14 @@
     <i v-if="node.type" :class="iconFor(node.type)" />
     <span class="text-label text-muted">{{ regionLabel }}</span>
     <Tag :value="String(node.instances.length)" severity="secondary" />
-    <ActionButton
+    <CreateControl
       v-for="control in createControls"
       :key="control.action.id"
       :action="control.action"
+      :group="control.group"
       :state-policy="node.statePolicy"
       :label="headerActionLabel(control.action)"
-      @run="action => emitRun(action, { createGroup: control.group })"
+      @run="emitRun"
     />
   </div>
   <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
@@ -69,13 +70,14 @@
           @update:model-value="value => (sortName = value)"
           @update:order="value => (sortOrder = value)"
         />
-        <ActionButton
+        <CreateControl
           v-for="control in createControls"
           :key="control.action.id"
           :action="control.action"
+          :group="control.group"
           :state-policy="node.statePolicy"
           :label="headerActionLabel(control.action)"
-          @run="action => emitRun(action, { createGroup: control.group })"
+          @run="emitRun"
         />
       </div>
     </div>
@@ -206,7 +208,7 @@ import { builderFieldsForType } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference, loadProjectionPreference, storeProjectionPreference, loadFilterViewState, storeFilterViewState } from '~/utils/ui-view-state.js';
 import SurfaceBody from './SurfaceBody.vue';
 import SortControl from './SortControl.vue';
-import ActionButton from './ActionButton.vue';
+import CreateControl from './CreateControl.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
 import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
@@ -378,8 +380,8 @@ const instanceActionsForType = computed(() => props.instanceActions?.[props.node
 // instance-scoped commands) and renders on the instance surfaces — the
 // row menus, the detail header, and the machine-served transitions —
 // never beside the create button. Same-type creates collapse to one
-// control whose sibling group rides the run context (the mode-selecting
-// create dialog); creates for other types keep their own buttons.
+// CreateControl whose mode selection names the siblings; creates for
+// other types keep their own buttons.
 const createControls = computed(() => createActionControls(props.node.actions || []));
 // The detail header's action set: the composed node's manifest actions
 // PLUS the per-instance quick actions (runtime state transitions ride
