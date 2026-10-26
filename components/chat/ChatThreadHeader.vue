@@ -256,5 +256,5 @@ import TraceChain from '~/components/shared/links/TraceChain.vue'
 import UserChip from '~/components/shared/UserChip.vue'
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 const props = defineProps({ thread: Object, embedded: Boolean, fullPage: Boolean, threadOnly: Boolean })
-const { activeConversation, activeRecipientUserId, botPanelVisible, callsStore, canDeleteActiveGroup, chatInstanceRecord, closeChat, conversationAvatar, conversationInvite, conversationLabel, conversationSubtitle, groupParticipantIds, groupParticipants, includeChildren, instanceConversationIcon, isAiOnlyRoom, joinConversationCall, joinOngoingCall, membersList, ongoingCallRoom, openChatsPage, requestDeleteGroup, showInbox, startCall, toggleMembersList, toggleSearch } = props.thread
+const { activeConversation, activeRecipientUserId, botPanelVisible, callsStore, canDeleteActiveGroup, chatInstanceRecord, closeChat, conversationAvatar, conversationInvite, conversationLabel, conversationSubtitle, entityPopupOpenable, groupParticipantIds, groupParticipants, includeChildren, instanceConversationIcon, isAiOnlyRoom, joinConversationCall, joinOngoingCall, membersList, ongoingCallRoom, openChatsPage, openEntityPopup, requestDeleteGroup, showInbox, startCall, toggleMembersList, toggleSearch } = props.thread
 </script>

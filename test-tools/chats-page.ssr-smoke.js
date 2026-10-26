@@ -150,4 +150,48 @@ describe('chats page SSR smoke', () => {
             globalThis.$fetch = vi.fn(async () => ({}));
         }
     });
+
+    it('renders an open instance thread (entity header branch) without throwing', async () => {
+        const now = new Date().toISOString();
+        globalThis.$fetch = vi.fn(async (url) => {
+            if (String(url).includes('/api/support/messages')) {
+                return {
+                    data: [],
+                    hasMore: false,
+                    readCursors: [],
+                    conversation: { conversationKey: 'instance:type-a:inst-1', kind: 'instance' }
+                };
+            }
+            return {};
+        });
+        try {
+            const i18n = createI18n({ legacy: false, missingWarn: false, fallbackWarn: false, messages: { en: {} } });
+            const pinia = createPinia();
+            useSupportChatStore(pinia).conversations = [
+                {
+                    conversationKey: 'instance:type-a:inst-1',
+                    conversationKind: 'instance',
+                    typeId: 'type-a',
+                    instanceId: 'inst-1',
+                    instanceName: 'Widget job',
+                    timestamp: now,
+                    unreadCount: 0
+                }
+            ];
+            const app = createSSRApp({
+                render: () => h(ChatSupport, { embedded: true, conversationKey: 'instance:type-a:inst-1' })
+            });
+            app.use(i18n);
+            app.use(pinia);
+            app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
+            app.use(ConfirmationService);
+            app.use(ToastService);
+            app.directive('tooltip', { getSSRProps: () => ({}) });
+            const html = await renderToString(app);
+            expect(html).toContain('Widget job');
+            expect(html).toContain('chat-composer');
+        } finally {
+            globalThis.$fetch = vi.fn(async () => ({}));
+        }
+    });
 });
