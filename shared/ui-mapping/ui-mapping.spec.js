@@ -34,6 +34,7 @@ import {
   analyzeInstanceShape,
   resolveListControls,
   resolveInstanceActions,
+  createActionControls,
   sortControlRows,
   pageSlice,
   toolbarVisibleFor,
@@ -504,6 +505,34 @@ describe('action launch plan', () => {
       { id: 'sheetHeight', label: 'sheetHeight', descriptor: { base: 'quantity', unit: 'mm' }, span: 'half', required: false, default: { value: 2440, unit: 'mm' } }
     ]);
     expect(planActionLaunch({ actionKind: 'runCommand', inputs: [{ id: 'items', prompt: false }] })).toBe('run');
+  });
+});
+
+describe('create action controls', () => {
+  const bake = { id: 'create_bake', actionKind: 'createInstance', typeId: 'cassette-design', construction: { mode: 'bake' } };
+  const upload = { id: 'create_upload', actionKind: 'createInstance', typeId: 'cassette-design', construction: { mode: 'upload' } };
+  const child = { id: 'create_child', actionKind: 'createInstance', typeId: 'panel' };
+  const remove = { id: 'remove', actionKind: 'deleteInstance', typeId: 'cassette-design' };
+
+  it('collapses same-type creates to one control carrying the sibling group', () => {
+    const [control] = createActionControls([bake, upload, remove]);
+    expect(control.action).toBe(bake);
+    expect(control.group).toEqual([bake, upload]);
+  });
+
+  it('keeps one control per type in contract order', () => {
+    const controls = createActionControls([child, bake, upload]);
+    expect(controls.map(control => control.action.typeId)).toEqual(['panel', 'cassette-design']);
+    expect(controls[0].group).toEqual([child]);
+  });
+
+  it('keeps a sole create as its own single-entry group', () => {
+    const [control] = createActionControls([bake]);
+    expect(control.group).toEqual([bake]);
+  });
+
+  it('drops actions that are not creates', () => {
+    expect(createActionControls([remove])).toEqual([]);
   });
 });
 

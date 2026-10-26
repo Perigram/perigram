@@ -17,7 +17,7 @@ import {
 import { CONSUMER_SPECIES_KINDS, constructionInputsForContract, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { normalizeStateFieldPolicy } from './designer.js';
 import { normalizeDesignerAccess } from './authoring.js';
-import { projectUiAction, projectUiContractChannels } from './ui-contract-projection.js';
+import { projectUiAction, projectUiContractChannels, creationModeLabel } from './ui-contract-projection.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForTypeId, lineageRelationsForParent, mergedHierarchyBindings } from './hierarchy-utils.js';
@@ -4159,9 +4159,12 @@ function displayActionLabel(action = {}, id = '', process = {}, domain = {}) {
     || action.outputs?.find(output => output.typeId)?.typeId
     || '';
   if ((action.actionKind || 'createEntity') === 'createEntity') {
-    // The create caption names the target class only: the initial state is
-    // process machinery the surface reveals after creation, never button copy.
-    return ['Create', typeIdLabel(domain, typeId)].filter(Boolean).join(' ');
+    // The create caption names the target class plus a distinguishing
+    // construction mode; the initial state is process machinery the surface
+    // reveals after creation, never button copy.
+    const modeLabel = creationModeLabel(action.construction?.mode);
+    return ['Create', typeIdLabel(domain, typeId), modeLabel && `from ${modeLabel}`]
+      .filter(Boolean).join(' ');
   }
   if (action.actionKind === 'updateEntity') {
     if (actionTargetState(action, process)) return stateTargetLabel(action, process) || ['Move', typeIdLabel(domain, typeId), action.state?.to].filter(Boolean).join(' ');

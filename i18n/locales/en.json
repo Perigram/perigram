@@ -1866,6 +1866,7 @@
         "projectionBoard": "Show as board",
         "projectionTable": "Show as table",
         "new": "New",
+        "creationMode": "Creation mode",
         "stateHistory": "State history",
         "filters": "Filters",
         "matchAll": "Match all",

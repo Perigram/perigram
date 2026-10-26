@@ -8,7 +8,7 @@
 // `test-data/ui-mapping-fixtures.js` stay examples, not the contract.
 import { describe, expect, it } from 'vitest';
 import { compileProcessDefinition } from './index.js';
-import { projectUiContractChannels, UI_CONTRACT_ACTION_KINDS, UI_CONTRACT_TEMPLATES } from './ui-contract-projection.js';
+import { projectUiContractChannels, projectUiAction, creationModeLabel, UI_CONTRACT_ACTION_KINDS, UI_CONTRACT_TEMPLATES } from './ui-contract-projection.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView, compileClientBundle } from '../../cts/src/index.js';
 import { cncTypePack } from '../../cts/src/pack/cnc.js';
 import { facadeDomain, facadePackContent } from '../../../test-tools/facade-plugin.js';
@@ -32,6 +32,55 @@ function compileFixture() {
   const compiled = compileProcessDefinition(fixture.processDefinition.data, domain, { roles: fixture.roles });
   return { compiled, registry, domain };
 }
+
+describe('create action captions', () => {
+  const typeLabels = new Map([['cassette-design', 'Cassette Design']]);
+
+  it('derives display names for construction modes', () => {
+    expect(creationModeLabel('')).toBe('');
+    expect(creationModeLabel('genericCreate')).toBe('');
+    expect(creationModeLabel('upload')).toBe('Upload');
+    expect(creationModeLabel('convertDxf')).toBe('Convert Dxf');
+    expect(creationModeLabel('from_layout')).toBe('From Layout');
+  });
+
+  it('folds a distinguishing construction mode into derived captions', () => {
+    const projected = projectUiAction(
+      { id: 'create', actionKind: 'createEntity', typeId: 'cassette-design', label: 'cts.construct', construction: { mode: 'bake' } },
+      { typeLabels }
+    );
+    expect(projected.label).toBe('New Cassette Design from Bake');
+  });
+
+  it('keeps the plain caption for modeless and generic creates', () => {
+    const modeless = projectUiAction(
+      { id: 'create', actionKind: 'createEntity', typeId: 'cassette-design', label: 'Create' },
+      { typeLabels }
+    );
+    const generic = projectUiAction(
+      { id: 'create', actionKind: 'createEntity', typeId: 'cassette-design', label: 'Create', construction: { mode: 'genericCreate' } },
+      { typeLabels }
+    );
+    expect(modeless.label).toBe('New Cassette Design');
+    expect(generic.label).toBe('New Cassette Design');
+  });
+
+  it('translates the compiler-derived caption family', () => {
+    const projected = projectUiAction(
+      { id: 'create', actionKind: 'createEntity', typeId: 'cassette-design', label: 'Create Cassette Design from Bake', construction: { mode: 'bake' } },
+      { typeLabels }
+    );
+    expect(projected.label).toBe('New Cassette Design from Bake');
+  });
+
+  it('keeps an authored label verbatim over the derivation', () => {
+    const projected = projectUiAction(
+      { id: 'create', actionKind: 'createEntity', typeId: 'cassette-design', label: 'Bake design', construction: { mode: 'bake' } },
+      { typeLabels }
+    );
+    expect(projected.label).toBe('Bake design');
+  });
+});
 
 describe('ui-contract projection', () => {
   it('maps legacy action kinds onto the UI contract vocabulary', () => {

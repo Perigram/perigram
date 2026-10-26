@@ -97,6 +97,29 @@ function lineageRefOfSource(source = {}, mainSourceId) {
 // Node labels default to the record's kind string; a button caption that is
 // just the kind leaks machinery vocabulary instead of the target entity.
 const DEFAULT_ACTION_LABELS = new Set(['cts.construct', 'Action', 'action', 'Create', 'create']);
+const PLAIN_CREATE_MODES = new Set(['', 'genericCreate']);
+
+// The display name of a construction mode — the start-cased mode id
+// (`convertDxf` → `Convert Dxf`); plain creates carry no mode name.
+export function creationModeLabel(mode) {
+  const normalized = String(mode || '').trim();
+  if (!normalized || PLAIN_CREATE_MODES.has(normalized)) return '';
+  return normalized
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function derivedCreateCaption(typeLabel, mode) {
+  const modeLabel = creationModeLabel(mode);
+  return modeLabel ? `New ${typeLabel} from ${modeLabel}` : `New ${typeLabel}`;
+}
+
+// The compiler's caption for the same create (displayActionLabel): the
+// projection translates that family to the UI vocabulary.
+function compiledCreateCaption(typeLabel, mode) {
+  return derivedCreateCaption(typeLabel, mode).replace(/^New /, 'Create ');
+}
 
 export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
   const legacyKind = action.actionKind || 'createEntity';
@@ -109,8 +132,12 @@ export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
   const typeId = typeIdOfRecord(action);
   const typeLabel = typeLabels.get(typeId) || null;
   const rawLabel = action.label || action.id || action.actionId;
-  const label = typeLabel && DEFAULT_ACTION_LABELS.has(String(rawLabel))
-    ? (actionKind === 'createInstance' || actionKind === 'link' ? `New ${typeLabel}` : typeLabel)
+  const genericLabel = DEFAULT_ACTION_LABELS.has(String(rawLabel))
+    || (actionKind === 'createInstance' && typeLabel && rawLabel === compiledCreateCaption(typeLabel, action.construction?.mode));
+  const label = typeLabel && genericLabel
+    ? (actionKind === 'createInstance'
+        ? derivedCreateCaption(typeLabel, action.construction?.mode)
+        : actionKind === 'link' ? `New ${typeLabel}` : typeLabel)
     : rawLabel;
   const projected = {
     id: action.id || action.actionId,

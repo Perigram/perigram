@@ -4,12 +4,12 @@
     <span class="text-label text-muted">{{ regionLabel }}</span>
     <Tag :value="String(node.instances.length)" severity="secondary" />
     <ActionButton
-      v-for="action in collectionActions"
-      :key="action.id"
-      :action="action"
+      v-for="control in createControls"
+      :key="control.action.id"
+      :action="control.action"
       :state-policy="node.statePolicy"
-      :label="headerActionLabel(action)"
-      @run="emitRun"
+      :label="headerActionLabel(control.action)"
+      @run="action => emitRun(action, { createGroup: control.group })"
     />
   </div>
   <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
@@ -19,7 +19,7 @@
         <span v-if="!paneHosted" :class="embedded ? 'text-label min-w-0 truncate' : 'text-section-heading'">{{ regionLabel }}</span>
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
-      <div v-if="collectionActions.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
+      <div v-if="createControls.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
         <!-- Search expands IN PLACE: the icon button becomes an icon field
              at the same position; the icon or Esc collapses it back (an
              empty blur collapses too). -->
@@ -70,12 +70,12 @@
           @update:order="value => (sortOrder = value)"
         />
         <ActionButton
-          v-for="action in collectionActions"
-          :key="action.id"
-          :action="action"
+          v-for="control in createControls"
+          :key="control.action.id"
+          :action="control.action"
           :state-policy="node.statePolicy"
-          :label="headerActionLabel(action)"
-          @run="emitRun"
+          :label="headerActionLabel(control.action)"
+          @run="action => emitRun(action, { createGroup: control.group })"
         />
       </div>
     </div>
@@ -198,7 +198,8 @@ import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
 import {
   LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout, toolbarVisibleFor, sortControlRows,
-  hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar, incomingChildrenEdges, iconFor
+  hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar, incomingChildrenEdges, iconFor,
+  createActionControls
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
@@ -376,9 +377,10 @@ const instanceActionsForType = computed(() => props.instanceActions?.[props.node
 // other action kind addresses a concrete instance (delete, transitions,
 // instance-scoped commands) and renders on the instance surfaces — the
 // row menus, the detail header, and the machine-served transitions —
-// never beside the create button.
-const collectionActions = computed(() => (props.node.actions || [])
-  .filter(action => action?.actionKind === 'createInstance'));
+// never beside the create button. Same-type creates collapse to one
+// control whose sibling group rides the run context (the mode-selecting
+// create dialog); creates for other types keep their own buttons.
+const createControls = computed(() => createActionControls(props.node.actions || []));
 // The detail header's action set: the composed node's manifest actions
 // PLUS the per-instance quick actions (runtime state transitions ride
 // here) — the strip's steps draw from this combined list.

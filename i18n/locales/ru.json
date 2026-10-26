@@ -1866,6 +1866,7 @@
         "projectionBoard": "Показать как доску",
         "projectionTable": "Показать как таблицу",
         "new": "Создать",
+        "creationMode": "Способ создания",
         "stateHistory": "История состояний",
         "filters": "Фильтры",
         "matchAll": "Все условия",
