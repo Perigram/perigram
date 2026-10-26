@@ -360,18 +360,19 @@ from the compiled manifest.
   menu in the footer (owner directive); the footer names the active
   organization.
 - Entity navigation is a raw default `PanelMenu` — default rows,
-  `multiple` panels open — with one panel per top-level type stationed by
-  the active process; registry containment (declared children edges)
-  nests types beneath their parents, and a declaration the active
+  `multiple` panels open — with one panel per stationed type that no
+  other stationed type contains through the containment graph (a
+  contained type's instances reach the sidebar beneath their parent
+  instances), and a declaration the active
   definition does not station renders nothing (stale types from old
   applies stay invisible). Class panels carry procedural labels only (the
   generated type key with a locale override over the authored render
-  label) and no icon — the glyph is the instance signal. A ROOT type
-  panel's home-section instances hang beneath it as plain default rows
-  carrying the type's registry icon and the one title resolver label
-  (`instanceLabelOf`); a nested child-type row opens its compiled
-  `typeList` screen and carries no instance rows — the type list and
-  the instance tree never blend. Opening a type panel opens its compiled
+  label) and no icon — the glyph is the instance signal. Panel rows are
+  the type's home-section instances as plain default rows carrying
+  the type's registry icon and the one title resolver label
+  (`instanceLabelOf`); type rows never render inside a panel — the type
+  list and the instance tree never blend. Opening a type panel opens its
+  compiled
   `typeList` screen as a pane tab (`GeneratedScreenPane`, below) and
   toggles the panel. Menu selection follows the active pane's selected
   tab: opening an instance selects exactly its row, opening a type screen

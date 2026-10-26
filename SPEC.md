@@ -369,9 +369,9 @@ correct data bindings, and everything speaks contracts. Current Home workspace i
 preserved (panes and sidebar w/ chats and calls). "Screens" should go to panes/tabs, top-level menu still
 in sidebar listbox (but everything rewritten to contracts). 
 The sidebar explorer carries one hierarchy (owner direction 2026-10-26):
-instance rows live beneath root type panels and beneath their parent
-instances — nested child-type rows are type-screen navigation with no
-instance rows — and relation-linked children nest beneath their row with
+a type contained by another stationed type never panels on its own — its
+instances live beneath their parent instances beneath the containing
+type's panel — and relation-linked children nest beneath their row with
 the link glyph.
 What currently is "entity chat" should be renamed to "comments" and get it's place in generated UI.
 I'm not currently sure how exactly, probably contract should pass "comments" toggle and it gets
