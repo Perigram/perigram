@@ -56,7 +56,8 @@ test.describe('directory, invitations, partnerships', () => {
     // messaging the stranger lands in the inbox-listed conversation (the
     // reported regression: cross-org results used to be hidden).
     await app.gotoClient('/chats');
-    await app.page.locator('button:has(.pi-user-plus)').first().click();
+    await app.page.locator('[data-testid="chats-new-menu"]').click();
+    await app.page.getByRole('menuitem', { name: 'New chat' }).click();
     await app.page.locator('[data-testid="new-chat-search"]').fill(credentials.name);
     const personaOption = app.page.locator(`[data-testid="new-chat-picker"] li:has-text("${credentials.name}")`);
     await personaOption.first().waitFor({ timeout: 10000 });
