@@ -726,3 +726,27 @@ that step (`arrangeChildren` carries a per-step `insideTabs` context;
   stand.
 - Specs: 118 green across `shared/ui-mapping/` and the random-world
   totality spec; guards in the session handoff report.
+
+## Arrangement engaged on real screens (verification 2026-10-26)
+
+The restored program verified against live surfaces, structure-dumped
+per width step (browser probes; the model-side artifact is JSON, the
+screenshots ride beside):
+
+- Showcase (`/test/ui-mapping`): at 1680px a record page carries the
+  weight-proportional `9fr/3fr` body + side-rail split, weight-ordered
+  tabs, the facts/body fill grids, and a packed inert stub; at 480px the
+  split and peer columns disengage — one composed tree, re-engaged by
+  host width.
+- Real workspace (seeded org process: a group type with two child
+  collections): the heavy record (12+12 children) tabs its collections
+  in weight order with resolved type labels and tables inside the
+  panels; the light record (1+1) rides the `9fr/3fr` side rail. Live
+  pane host, live instances, live compiled screen.
+- Probes: `e2e/zz-genui-structure-probe.spec.js` (width steps) and
+  `e2e/zz-genui-real-arrangement.spec.js` (seeded real path); artifacts
+  `.playwright/genui-structure.json`, `.playwright/genui-real-structure.json`.
+- Probe pitfall recorded: `executeAction` silently drops unknown payload
+  keys — a child create binds its parent only through the declared
+  edge's `lineageKey` (`lineage.<lineageKey>`), discovered by reading the
+  stored children edges, not the action's graph input list.
