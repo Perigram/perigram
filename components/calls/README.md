@@ -50,6 +50,9 @@ Parent: [components](../README.md).
   host it; hosts that keep the call alive on close pass `park-on-unmount`.
 - `IncomingCalls.vue` is the global ring surface: floating invite cards
   (Join/Decline) mounted by the app shell for every authenticated user.
+  A card carries the caller's avatar and name plus, for group and
+  instance rooms, the conversation's label as context — resolved through
+  the shared room-label resolver; a direct ring is the caller alone.
   Only *new* calls float; ongoing rooms are listed in the home sidebar and
   in chats. Joining opens the call as a home workspace tab (mobile keeps
   the full-screen dialog).

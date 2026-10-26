@@ -503,7 +503,10 @@ letter label renders only while no image resolves — PrimeVue `Avatar`
 renders label over image, so a constant label hides every avatar; see the
 style guide in [components/README.md](../README.md)). A resolved user
 carrying the bot marker renders the shared AI face
-([`AiAvatar.vue`](#aiavatarvue)) instead of image or letter. A click
+([`AiAvatar.vue`](#aiavatarvue)) instead of image or letter. The `online`
+prop overlays the presence dot (the connections layer's
+active-organization scope) — the caller owns the id set; the member list
+popover is the consumer. A click
 opens the shared entity popup (`useEntityPopup` → the user's directory
 profile).
 Keep person identity displays on this chip; keep entity refs on
@@ -546,8 +549,11 @@ The chat bot panel (`StandardDialog`): the organization AI's contact row
 tag, the per-conversation join switch (group/instance threads only —
 direct chats need no membership), the room's model pin, and its
 lifecycle wake rules (type + state with an optional profile) — backed
-by [stores/agentBots.js](../../stores/README.md). The trigger lives on
-group and instance thread headers.
+by [stores/agentBots.js](../../stores/README.md). Wake rules speak
+display labels everywhere — type names through `generatedEntityLabel`,
+states through the flat state policy (`stateDisplayFor`), profiles
+through the model-pin labels — raw type/state ids never render. The
+trigger lives on group and instance thread headers.
 
 The chat column family (inbox rail, thread, message list, composer,
 search) lives in [components/chat](../chat/README.md); the atoms below

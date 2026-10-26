@@ -30,4 +30,5 @@ refs bind through the bag in whichever SFC hosts the element.
 | Live state | every `conversation:<key>` event reconciles — message, read cursor, typing, bot activity; cursors arrive on history load (`readCursors`) and stay live |
 | Rhythm | day dividers split day boundaries; the unread divider marks the first unread after the viewer's pre-open cursor; sender runs group within three minutes |
 | Avatars | others' sender runs anchor an avatar in the left gutter at every pane width; the narrow sender-badge row is retired. |
+| Members | the group members popover sorts online members first and marks them through the `UserChip` presence dot (the connections layer's org-scoped id set) |
 | Rail resize | in the two-pane layout the rail's right edge drags between 16 and 34 rem; the width persists per browser and feeds `--chat-rail-width` |

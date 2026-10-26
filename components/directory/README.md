@@ -26,6 +26,9 @@ Parent: [components](../README.md).
   contract in [the directory feature](../../server/features/directory/README.md))
   and the grant-redacted DTO from the ordinary feature detail endpoint;
   richer facts render only when the DTO carries them.
+- The directory detail surface renders the user's presence on the
+  identity header (the org-scoped online set) beside the avatar for
+  org-mates.
 - Membership rows render only organizations the viewer can themselves
   resolve (cross-tenant org names stay unreadable) and open them through
   the workspace-open seam. Sections are PrimeVue-owned:
