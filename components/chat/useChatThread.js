@@ -487,6 +487,9 @@ watch(groupParticipantIds, async (ids) => {
     groupParticipants.value = await Promise.all(ids.map(async (id) => {
         const record = await instances.resolveReadableReference('user', String(id), { silent: true })
         return {
+        railWidth,
+        onRailResizeStart,
+        railWidthStyle,
         scrollToBottomFromControl,
         waitingMessages,
         atBottom,
@@ -1743,6 +1746,36 @@ const readCursors = ref([])
 const ownCursorAtOpen = ref(null)
 const userNames = ref({})
 const searchVisible = ref(false)
+// Two-pane rail width: dragged between clamps, persisted per browser.
+const RAIL_WIDTH_MIN = 16
+const RAIL_WIDTH_MAX = 34
+const RAIL_WIDTH_KEY = 'chat-rail-width'
+const loadRailWidth = () => {
+    const stored = Number.parseFloat(process.client ? window.localStorage.getItem(RAIL_WIDTH_KEY) || '' : '')
+    return Number.isFinite(stored)
+        ? Math.min(RAIL_WIDTH_MAX, Math.max(RAIL_WIDTH_MIN, stored))
+        : 20
+}
+const railWidth = ref(loadRailWidth())
+const railWidthStyle = computed(() => ({ '--chat-rail-width': `${railWidth.value}rem` }))
+let railResizeCleanup = null
+const onRailResizeStart = (event) => {
+    const host = event.currentTarget?.closest?.('.chat-host')
+    if (!host || typeof window === 'undefined') return
+    event.preventDefault()
+    const onMove = (moveEvent) => {
+        const width = (moveEvent.clientX - host.getBoundingClientRect().left) / 16
+        railWidth.value = Math.min(RAIL_WIDTH_MAX, Math.max(RAIL_WIDTH_MIN, width))
+    }
+    const onUp = () => {
+        try {
+            window.localStorage.setItem(RAIL_WIDTH_KEY, String(railWidth.value))
+        } catch {}
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp, { once: true })
+    railResizeCleanup = () => window.removeEventListener('pointermove', onMove)
+}
 const resolveUserName = async (id) => {
     const key = String(id)
     if (!key || userNames.value[key]) return
@@ -1940,6 +1973,10 @@ onMounted(() => {
     else if (chatTarget.value?.conversationKey) openConversationByKey(chatTarget.value.conversationKey)
 })
 onBeforeUnmount(() => {
+    if (railResizeCleanup) {
+        railResizeCleanup()
+        railResizeCleanup = null
+    }
     threadWidthObserver?.disconnect()
     threadWidthObserver = null
     if (unsubscribeConversation) {

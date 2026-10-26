@@ -1,7 +1,8 @@
 <template>
             <aside
                 class="chat-inbox flex min-h-0 flex-1 flex-col overflow-hidden"
-                :class="fullPage ? 'chat-inbox--rail border-r border-chrome-border' : ''"
+                :class="[fullPage ? 'chat-inbox--rail border-r border-chrome-border' : '', fullPage ? 'relative' : '']"
+        :style="fullPage ? railWidthStyle : undefined"
             >
                 <div class="mb-2 flex shrink-0 items-center gap-1 px-2 pt-2">
                     <!-- The rail header is exactly three controls in one
@@ -55,7 +56,14 @@
                         @click="closeChat"
                     />
                 </div>
-                <!-- Folder chips scope the list (SPEC: Chat thread). -->
+                <div
+    v-if="fullPage"
+    class="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize touch-none hover:bg-primary/30"
+    :aria-label="$t('support.resizeRail')"
+    data-testid="chats-rail-resize"
+    @pointerdown="onRailResizeStart"
+/>
+<!-- Folder chips scope the list (SPEC: Chat thread). -->
                 <div
                     v-if="inboxFolders.length > 1"
                     class="mb-2 flex shrink-0 items-center gap-1 overflow-x-auto px-2"
@@ -91,6 +99,7 @@
                     option-value="conversationKey"
                     data-key="conversationKey"
                     :auto-option-focus="false"
+:focus-on-hover="false"
                     class="min-h-0 flex-1 border-0"
                     :aria-label="$t('support.chatTitle')"
                     scroll-height="100%"
@@ -264,5 +273,5 @@ import StateBlock from '~/components/shared/StateBlock.vue'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 const props = defineProps({ thread: Object, fullPage: Boolean, threadOnly: Boolean, embedded: Boolean })
-const { activeConversation, closeChat, conversationAvatar, conversationLabel, conversationMenu, conversationMenuItems, conversationPreviewMessage, conversationSections, displayConversations, headerGroupButtonPt, inboxFolders, inboxSearch, inboxTimestamp, instanceConversationIcon, instanceRefs, isAiChatRow, isBotDirectRow, isOwnInboxRow, markRowRead, message, newChatMenuItems, newChatMenuRef, onRowContentClick, onRowTouchEnd, onRowTouchMove, onRowTouchStart, openConversationByKey, openConversationMenu, participantOnline, rowContentStyle, rowDrag, rowRailVisible, selectedFolder, showArchived, toggleNewChatMenu, toggleRowArchived, toggleRowPinned } = props.thread
+const { activeConversation, closeChat, conversationAvatar, conversationLabel, conversationMenu, conversationMenuItems, conversationPreviewMessage, conversationSections, displayConversations, headerGroupButtonPt, inboxFolders, inboxSearch, inboxTimestamp, instanceConversationIcon, instanceRefs, isAiChatRow, isBotDirectRow, isOwnInboxRow, markRowRead, message, newChatMenuItems, newChatMenuRef, onRowContentClick, onRowTouchEnd, onRowTouchMove, onRowTouchStart, openConversationByKey, openConversationMenu, participantOnline, rowContentStyle, rowDrag, rowRailVisible, selectedFolder, showArchived, toggleNewChatMenu, toggleRowArchived, toggleRowPinned, railWidthStyle, onRailResizeStart } = props.thread
 </script>

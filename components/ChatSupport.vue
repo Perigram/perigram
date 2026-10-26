@@ -406,7 +406,7 @@ const { activeConversation, activeConversationKey, atBottom, attachmentPicker, b
 
   .chat-inbox--rail {
     flex: none;
-    width: 20rem;
+    width: var(--chat-rail-width, 20rem);
   }
 
   .chat-page--thread .chat-inbox--rail {

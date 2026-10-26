@@ -235,7 +235,8 @@
         "searchThread": "Search",
         "seenBy": "Seen by",
         "newMessages": "New messages",
-        "scrollToEnd": "Scroll to latest"
+        "scrollToEnd": "Scroll to latest",
+        "resizeRail": "Resize chats pane"
     },
     "footer": {
         "termsAndConditions": "Terms and Conditions",
