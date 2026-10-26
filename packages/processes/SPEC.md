@@ -71,7 +71,7 @@ CTS declaration records and designer authoring in; runtime contracts out. The se
 | Screen record | Fixed template; typed sources (stable id, entity type, list/single mode, own required access, scalar filters or identifier); regions (slot `main`/`children`/`supporting`, surface within `SCREEN_REGION_SURFACES`); scalar or `$assignment.<key>` bindings. `validateScreenContract` runs inside `validateProcessDefinition`. |
 | Inference | Grants infer paired list/detail screens per role and entity (child regions from lineage children, parent-bound creates, declared many-relations) plus the per-user `home` screen at `HOME_SCREEN_ROUTE` (`/home`). |
 | Delta authoring | Authored screens customize exactly the station they equal in kind; a projection-equal screen is refused (`redundantAuthoredScreens`); zero inferred stations compile zero screens; multi-role users receive merged effective screens. |
-| Manifest | The per-user manifest speaks one vocabulary (`projectUiScreen`/`projectManifestAction`); compiled channel field names stay server-side. |
+| Manifest | The per-user manifest speaks one vocabulary (`projectUiScreen`/`projectManifestAction`); compiled channel field names stay server-side. Create captions are procedural: an authored label wins, a generic one derives the target class and folds a distinguishing construction mode (`Create <Type> from <Mode>` compiled, `New <Type> from <Mode>` projected). |
 
 ### Access and roles
 

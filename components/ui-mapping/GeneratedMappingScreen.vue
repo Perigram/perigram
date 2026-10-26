@@ -43,10 +43,21 @@
       :save-label="$t('uiMapping.dialogSubmit')"
       :loading="submitting"
       :save-disabled="dialogIncomplete"
-      @cancel="dialogVisible = false"
+      @cancel="closeDialog"
       @save="submitDialog"
     >
       <div :class="LAYOUT.formGrid">
+        <div v-if="dialogGroup?.length > 1" class="flex min-w-0 flex-col gap-1 ck-span-full">
+          <span class="text-label">{{ $t('uiMapping.creationMode') }}</span>
+          <Select
+            :model-value="dialogActionId"
+            :options="modeOptions"
+            option-label="label"
+            option-value="value"
+            :aria-label="$t('uiMapping.creationMode')"
+            @update:model-value="selectDialogMode"
+          />
+        </div>
         <div
           v-for="row in visibleDialogRows"
           :key="row.id"
@@ -82,9 +93,11 @@
 import { computed, provide, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Toast from 'primevue/toast';
+import Select from 'primevue/select';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
+import { creationModeLabel } from '~/packages/processes/src/ui-contract-projection.js';
 import { withinRelationDomain } from '#shared/relation-domain.js';
 import { provideDefaultContainerTraits } from '~/composables/useContainerTraits.js';
 import RegionChildren from './RegionChildren.vue';
@@ -252,8 +265,22 @@ const submitPatch = async ({ instance, patch } = {}) => {
 const confirm = useConfirm();
 const toast = useToast();
 const dialogVisible = ref(false);
-const dialogAction = ref(null);
+// A create over a sibling group (several creation modes, one type)
+// selects its mode through `dialogActionId`; a single-action dialog
+// carries the action directly.
+const dialogSingleAction = ref(null);
+const dialogGroup = ref(null);
+const dialogActionId = ref(null);
 const dialogDraft = reactive({});
+const dialogAction = computed(() => (
+  dialogGroup.value
+    ? dialogGroup.value.find(action => action.id === dialogActionId.value) || null
+    : dialogSingleAction.value
+));
+const modeOptions = computed(() => (dialogGroup.value || []).map(action => ({
+  label: creationModeLabel(action.construction?.mode) || action.label || action.id,
+  value: action.id
+})));
 const dialogType = computed(() => (props.bundle.types || []).find(type => type.id === dialogAction.value?.typeId) || null);
 // Dialog rows come from the shared resolver: authored fields (matched by
 // bare name or slot-qualified path), the identity name, and lineage parent
@@ -313,7 +340,7 @@ const runAction = async (action, draft = {}, context = {}) => {
 const submitDialog = () => {
   const action = dialogAction.value;
   const payload = draftPayload();
-  dialogVisible.value = false;
+  closeDialog();
   if (action) runAction(action, payload);
 };
 
@@ -377,13 +404,17 @@ const submitLink = () => {
 };
 
 // `context` carries the instance an instance-scoped quick action was
-// launched from (cards, rows); it travels beside the action through
-// confirmation and dialogs so the executor receives it either way.
+// launched from (cards, rows) and the sibling create group a collapsed
+// same-type control rides (createActionControls); both travel beside the
+// action through confirmation and dialogs so the executor receives them
+// either way.
 // Launch behavior follows planActionLaunch (the shared launch contract):
 // relation link opens its picker, a create with construction inputs opens
 // the form — grant level never replaces the form with a bare confirm —
 // and confirmation comes from the resolved action button (destructive
-// kinds), never from the grant level.
+// kinds), never from the grant level. A sibling group of two or more
+// creates always opens the dialog: the creation-mode row is itself a
+// prompted choice, whatever the lead action's launch.
 const openAction = (action, context = {}) => {
   const launch = planActionLaunch(action);
   if (launch === 'link') {
@@ -393,31 +424,11 @@ const openAction = (action, context = {}) => {
     loadLinkTargets(action);
     return;
   }
-  if (launch === 'dialog') {
-    dialogAction.value = action;
-    for (const key of Object.keys(dialogDraft)) delete dialogDraft[key];
-    for (const row of dialogRows.value) {
-      if (row.default !== undefined && row.default !== null) dialogDraft[row.id] = row.default;
-    }
-    // Parent-scoped creates (SPEC §UI): on a detail surface whose scope
-    // carries the opened instance, lineage rows accepting that type
-    // submit the context's reference — never re-asked. When every row is
-    // context-bound the create runs with no form at all.
-    const scoped = scopedInstance.value;
-    if (scoped) {
-      for (const row of dialogRows.value) {
-        if (row.lineage?.accepts?.includes(scoped.type)) {
-          dialogDraft[row.id] = { type: scoped.type, id: scoped.id };
-        }
-      }
-    }
-    if (!visibleDialogRows.value.length) {
-      const payload = draftPayload();
-      dialogAction.value = null;
-      runAction(action, payload, context);
-      return;
-    }
-    dialogVisible.value = true;
+  const group = Array.isArray(context.createGroup) && context.createGroup.length > 1
+    ? context.createGroup
+    : null;
+  if (launch === 'dialog' || group) {
+    openCreateDialog(action, group, context);
     return;
   }
   if (launch === 'confirm') {
@@ -431,6 +442,49 @@ const openAction = (action, context = {}) => {
   }
   runAction(action, {}, context);
 };
+
+function openCreateDialog(action, group = null, context = {}) {
+  dialogGroup.value = group;
+  dialogActionId.value = group ? action.id : null;
+  dialogSingleAction.value = group ? null : action;
+  seedDialogDraft();
+  if (!group && !visibleDialogRows.value.length) {
+    const payload = draftPayload();
+    closeDialog();
+    runAction(action, payload, context);
+    return;
+  }
+  dialogVisible.value = true;
+}
+
+function selectDialogMode(actionId) {
+  dialogActionId.value = actionId;
+  seedDialogDraft();
+}
+
+function closeDialog() {
+  dialogVisible.value = false;
+  dialogGroup.value = null;
+  dialogActionId.value = null;
+  dialogSingleAction.value = null;
+}
+
+// Prefill for the selected mode: authored defaults, then the scoped
+// detail instance's reference on lineage rows accepting its type.
+function seedDialogDraft() {
+  for (const key of Object.keys(dialogDraft)) delete dialogDraft[key];
+  for (const row of dialogRows.value) {
+    if (row.default !== undefined && row.default !== null) dialogDraft[row.id] = row.default;
+  }
+  const scoped = scopedInstance.value;
+  if (scoped) {
+    for (const row of dialogRows.value) {
+      if (row.lineage?.accepts?.includes(scoped.type)) {
+        dialogDraft[row.id] = { type: scoped.type, id: scoped.id };
+      }
+    }
+  }
+}
 
 const regionBlockEvents = {
   run: openAction,

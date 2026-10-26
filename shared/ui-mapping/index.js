@@ -791,6 +791,29 @@ export function resolveInstanceActions(actions = {}, typeId = null) {
     && action?.trigger?.mode === 'manual');
 }
 
+// Create controls for a collection surface: creates targeting one type
+// collapse to a single control whose `group` carries every sibling, so a
+// type with several creation modes renders one affordance that opens the
+// mode-selecting create dialog. Creates for other types stay one control
+// each; contract order is kept (each group leads with its first action).
+export function createActionControls(actions = []) {
+  const creates = (actions || []).filter(action => action?.actionKind === 'createInstance');
+  const groupsByType = new Map();
+  for (const action of creates) {
+    const list = groupsByType.get(action.typeId) || [];
+    list.push(action);
+    groupsByType.set(action.typeId, list);
+  }
+  const seen = new Set();
+  const controls = [];
+  for (const action of creates) {
+    if (seen.has(action.typeId)) continue;
+    seen.add(action.typeId);
+    controls.push({ action, group: groupsByType.get(action.typeId) });
+  }
+  return controls;
+}
+
 // planActionLaunch(action): how a screen launches one manual action —
 // 'link' (the relation picker dialog), 'dialog' (the generated create
 // dialog for any action carrying construction inputs, the run dialog for

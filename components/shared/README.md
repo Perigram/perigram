@@ -889,7 +889,9 @@ transcription stay in the host composer.
   visible without embedding cards or empty value slots inside an input surface.
   Multi-select values render as a compact-card list rather than chips.
   App components import these wrappers under their local `Select` /
-  `MultiSelect` names; direct PrimeVue imports are owned only by the wrappers.
+  `MultiSelect` names for entity pickers; plain enum selects are the
+  allowance `instance-select.spec.js` pins, and direct PrimeVue imports
+  are owned by the wrappers and that allowance.
   Entity type comes from the picker prop or option record and is never inferred
   from `data.type` or lifecycle state.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.

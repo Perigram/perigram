@@ -70,10 +70,14 @@ describe('entity Select wrappers', () => {
   it('owns every direct PrimeVue Select and MultiSelect import in app UI', () => {
     // Entity dropdowns render through the shared wrappers. The allowance
     // lists the non-entity pickers (LLM profiles and routes, providers,
-    // wake-rule types/states) that take plain enum options.
+    // wake-rule types/states, chat recipient and search filters, the
+    // generated creation-mode row) that take plain enum options.
     const enumSelectAllowance = new Set([
       'components/ChatSupport.vue',
+      'components/chat/ChatComposer.vue',
+      'components/chat/ChatSearchPanel.vue',
       'components/shared/ChatBotPanel.vue',
+      'components/ui-mapping/GeneratedMappingScreen.vue',
       'pages/organization/models.vue'
     ]);
     const violations = vueFiles(['components', 'pages', 'layouts'])

@@ -750,3 +750,46 @@ screenshots ride beside):
   keys — a child create binds its parent only through the declared
   edge's `lineageKey` (`lineage.<lineageKey>`), discovered by reading the
   stored children edges, not the action's graph input list.
+
+## Procedural create-action names (owner direction 2026-10-26)
+
+Generated create actions render as icon buttons and carry procedural
+names (root SPEC §4): an authored label wins; a generic one derives
+`New <Type>` and folds a distinguishing construction mode —
+`New <Type> from <Mode>`. A collection offering several creates for one
+type renders one create control; its form opens with the creation-mode
+selection followed by the selected mode's inputs.
+
+- [ ] WAITING — owner verification: multi-mode create captions on every
+  action surface and the mode-selecting create dialog.
+
+### Agent Notes (2026-10-26, agent/create-action-names-20261026-1430)
+
+- Caption law single-homed in the processes package: `creationModeLabel`
+  derives the mode display name (`convertDxf` → `Convert Dxf`); the
+  compiler's `displayActionLabel` folds a distinguishing construction
+  mode into generic create captions (`Create <Type> from <Mode>`), and
+  `projectUiAction` translates that family to the manifest vocabulary
+  (`New <Type> from <Mode>`); authored labels keep winning verbatim.
+- `createActionControls` (shared/ui-mapping) collapses same-type creates
+  to one control; RegionBlock's toolbar and stub line render it, the
+  sibling group rides the run context, and the engine's create dialog
+  opens over the group with a leading creation-mode row (`Select`,
+  options from `creationModeLabel`; switching reseeds the draft; the
+  dialog header carries the selected action's caption). A grouped create
+  opens its dialog whatever the lead action's launch.
+- Drive-by: `instance-select.spec.js`'s enum-select allowance was already
+  red at base (ChatComposer, ChatSearchPanel import `primevue/select`);
+  both added beside the new creation-mode row entry, and the Select-law
+  sentences in components/ui-mapping + components/shared READMEs now
+  state the allowance.
+- Specs: ui-contract (captions), ui-mapping (controls), 917 tests across
+  shared/components/processes/composables green except the pre-existing
+  `useProcessDesignerNodeSync` legacy-draft failure (reproduced at base);
+  SSR smoke 16 green; check-arch, framework:validate green; docs guard
+  reports only the pre-existing `workers/nesting/jagua-rs` submodule
+  link (submodule uninitialized in worktrees).
+- Visual verification of the mode-selecting dialog needs an authored
+  definition with two same-type create actions (cassette-design carries
+  upload/bake/convertDxf modes) — left to the owner against the running
+  dev stack after merge.

@@ -272,6 +272,14 @@ inside its parent) never prompts that binding: the context's reference is
 submitted with the create, and the form prompts only what the context
 cannot supply. `upload`/`capture` creates prompt only the file.
 
+Generated create actions carry procedural names (owner direction
+2026-10-26): an authored label wins; a generic one derives `New <Type>`
+and folds the creation mode — `New <Type> from <Mode>` — so same-type
+creates over different modes stay distinguishable on every surface that
+names actions. A collection offering several creates for one type renders
+one create control; its form opens with the creation-mode selection
+followed by the selected mode's inputs.
+
 Documents carry their content both ways (owner direction 2026-10-13): text
 documents and CSV tables are creatable from procedural content — a `content`
 creation protocol beside upload/editor whose wired or prompted text becomes
