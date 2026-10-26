@@ -652,3 +652,39 @@ live at `e2e/zz-genui-look-probe*.spec.js`.
   screen — the rail reads as a minor column (~quarter page), record body
   keeps its fact columns; if anything still looks wrong, name the record
   and width.
+
+## Generated UI language (owner direction 2026-10-26)
+
+Law: the generative UI task is to define the generated UI language —
+foundations, atomic elements, and the procedural rules that compose
+layouts. The canonical definition is
+[shared/ui-mapping/SPEC.md](./shared/ui-mapping/SPEC.md) → Layout
+language; root SPEC §22.7 delegates to it. The ui-mapping subsystem is
+the instrument: edit it to fix bugs or to match the defined contracts.
+
+- [x] The language defined: two trait records as the only decision inputs;
+  a nine-atom closed vocabulary (`stack`, `row`, `grid` with
+  earned/floor/steps track derivations, `band`, `well`, `tabs`,
+  `placement`, `stub`, `pack`) plus the ambient sets atoms compose under
+  (cells, clamps, chrome, data-driven geometry); nine composition rules
+  (value cells, fact grammar, open sections, chip rows, the body floor
+  grid, the record ladder, the screen ladder, scroll ownership, placement
+  sizing).
+  Landed 2026-10-26: SPEC → Layout language; `LAYOUT_ATOMS`/`LAYOUT_AMBIENT`
+  registries in tables.js assign every LAYOUT recipe to its atom or set;
+  the engine spec pins the partition and the nine-atom set — the
+  vocabulary is closed by guard.
+- [ ] WAITING — owner verification: the atom set and the composition
+  rules in shared/ui-mapping/SPEC.md → Layout language; a recipe the
+  vocabulary cannot express is a pin to record there.
+
+### Agent Notes (2026-10-26, language round)
+
+Session `agent/ui-language-20261026-0005` (worktree
+`.agent-worktrees/ui-language`). The language is now named and guarded
+where the mechanics lived scattered: the LAYOUT recipes were already
+atom instances in practice — the registries make the assignment explicit
+and the spec pins that nothing enters LAYOUT outside the vocabulary. No
+component behavior changed; the definition, the registries, and the
+partition pin are the whole delta. Specs: 92 engine green; design-system
+guard green.
