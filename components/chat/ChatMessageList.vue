@@ -79,7 +79,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+
 
         <ContextMenu ref="messageMenu" :model="messageMenuItems">
             <template #itemicon="{ item, class: itemIconClass }">
@@ -87,6 +87,7 @@
                 <i v-else-if="item.icon" :class="[itemIconClass, item.icon]" />
             </template>
         </ContextMenu>
+                </div>
 </template>
 
 <script setup>
