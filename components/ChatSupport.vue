@@ -108,6 +108,11 @@ class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rou
                     />
                 </IconField>
                 <div v-if="newChatSearching" class="text-muted text-body">{{ $t('directory.searching') }}</div>
+                <StateBlock
+                    v-else-if="!newChatOptions.length"
+                    :message="$t('common.noResults')"
+                    icon="pi pi-users"
+                />
                 <Listbox
                     v-else
                     :model-value="null"

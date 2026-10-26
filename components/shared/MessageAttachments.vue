@@ -115,6 +115,9 @@
     @update:visible="value => { if (!value) previewAttachment = null }"
   >
     <template #header-actions>
+      <span v-if="previewQueue.length > 1" class="text-muted text-supporting" data-testid="chat-attachment-position">
+        {{ previewIndex + 1 }} / {{ previewQueue.length }}
+      </span>
       <Button
         icon="pi pi-download"
         severity="secondary"
@@ -127,7 +130,7 @@
         @click="download(previewAttachment)"
       />
     </template>
-    <div v-if="previewAttachment" class="flex min-h-0 w-full flex-1 flex-col">
+    <div v-if="previewAttachment" class="relative flex min-h-0 w-full flex-1 flex-col">
       <div v-if="previewKind === 'image'" class="flex min-h-0 flex-1 items-center justify-center">
         <img
           class="max-h-full max-w-full object-contain"
@@ -150,6 +153,28 @@
         />
         <pre v-else class="m-3 whitespace-pre-wrap break-words rounded-ui bg-subtle p-3 text-technical [overflow-wrap:anywhere]">{{ previewText }}</pre>
       </div>
+      <template v-if="previewQueue.length > 1">
+        <Button
+          icon="pi pi-chevron-left"
+          severity="secondary"
+          text
+          rounded
+          class="absolute left-2 top-1/2 z-10 -translate-y-1/2 bg-content shadow-overlay"
+          :aria-label="$t('common.previous')"
+          data-testid="chat-attachment-prev"
+          @click="goPreview(-1)"
+        />
+        <Button
+          icon="pi pi-chevron-right"
+          severity="secondary"
+          text
+          rounded
+          class="absolute right-2 top-1/2 z-10 -translate-y-1/2 bg-content shadow-overlay"
+          :aria-label="$t('common.next')"
+          data-testid="chat-attachment-next"
+          @click="goPreview(1)"
+        />
+      </template>
     </div>
   </StandardDialog>
 </template>
@@ -292,6 +317,26 @@ const previewMeta = computed(() => {
     const attachment = previewAttachment.value || {};
     return [attachment.mimeType, formatBytes(attachment.size)].filter(Boolean).join(' · ');
 });
+// The dialog previews the whole message's openable set in send order:
+// gallery navigation (arrows, keyboard) walks it with wrap-around.
+const previewQueue = computed(() => (props.attachments || [])
+    .filter(attachment => attachment?.kind === 'image' || isPdf(attachment) || isText(attachment)));
+const previewIndex = computed(() => previewQueue.value.indexOf(previewAttachment.value));
+const goPreview = (step) => {
+    const queue = previewQueue.value;
+    if (queue.length < 2) return;
+    const next = (previewIndex.value + step + queue.length) % queue.length;
+    previewAttachment.value = queue[next];
+};
+const onPreviewKeydown = (event) => {
+    if (event.key === 'ArrowLeft') goPreview(-1);
+    else if (event.key === 'ArrowRight') goPreview(1);
+};
+watch(previewAttachment, (attachment) => {
+    if (attachment) window.addEventListener('keydown', onPreviewKeydown);
+    else window.removeEventListener('keydown', onPreviewKeydown);
+});
+onBeforeUnmount(() => window.removeEventListener('keydown', onPreviewKeydown));
 
 // Office mimes embed "xml" (openxmlformats): only mime-exact text kinds
 // preview; extensions sniff solely octet-stream uploads.
