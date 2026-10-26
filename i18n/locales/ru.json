@@ -235,7 +235,8 @@
         "searchThread": "Поиск",
         "seenBy": "Просмотрено",
         "newMessages": "Новые сообщения",
-        "scrollToEnd": "К последним сообщениям"
+        "scrollToEnd": "К последним сообщениям",
+        "resizeRail": null
     },
     "footer": {
         "termsAndConditions": "Условия и положения",

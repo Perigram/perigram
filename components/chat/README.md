@@ -10,7 +10,7 @@ Parent: [components README](../README.md). Target law: [SPEC](./SPEC.md).
 ## Structure
 | File | Owns |
 |---|---|
-| `ChatInboxRail.vue` | archive toggle, conversation filter field, folder chips, new-chat menu, conversation rows with swipe actions and the row menu |
+| `ChatInboxRail.vue` | archive toggle, conversation filter field, folder chips, new-chat menu, conversation rows with swipe actions and the row menu, the drag handle resizing the two-pane rail (16–34 rem, persisted per browser) |
 | `ChatThreadHeader.vue` | title, presence, participants popover, call banners and actions, model pin trigger, bot panel trigger, search toggle |
 | `ChatMessageList.vue` | the scroll container: lazy paging, anchor scroll, day dividers, unread divider, message rows with swipe-to-reply, the live agent run block, the message context menu |
 | `ChatMessageBubble.vue` | one message's content: sender chips, reply quote, forwarded provenance, body, attachments, instance refs, caption row with the run's seen marks |
@@ -29,3 +29,4 @@ refs bind through the bag in whichever SFC hosts the element.
 | Scroll to end | the floating control shows while scrolled away from the live end and counts messages waiting below; new messages scroll only when the reader is at the end |
 | Live state | every `conversation:<key>` event reconciles — message, read cursor, typing, bot activity; cursors arrive on history load (`readCursors`) and stay live |
 | Rhythm | day dividers split day boundaries; the unread divider marks the first unread after the viewer's pre-open cursor; sender runs group within three minutes |
+| Rail resize | in the two-pane layout the rail's right edge drags between 16 and 34 rem; the width persists per browser and feeds `--chat-rail-width` |

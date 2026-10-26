@@ -53,6 +53,7 @@
             :options="results"
             :scroll-height="'14rem'"
             data-testid="chat-search-results"
+            :focus-on-hover="false"
             @update:model-value="pick"
         >
             <template #option="{ option }">
@@ -96,26 +97,26 @@ const emit = defineEmits(['close', 'jump'])
 const { t } = useI18n()
 
 const query = ref('')
-const sender = ref(null)
-const attachmentKind = ref(null)
+const sender = ref('all')
+const attachmentKind = ref('all')
 const results = ref([])
 const searching = ref(false)
 let searchToken = 0
 let debounceTimer = null
 
 const active = computed(() => Boolean(
-    query.value.trim() || sender.value || attachmentKind.value
+    query.value.trim() || sender.value !== 'all' || attachmentKind.value !== 'all'
 ))
 
 const senderOptions = computed(() => [
-    { value: null, label: props.participants.length ? t('support.searchAnySender') : '' },
+    { value: 'all', label: t('support.searchAnySender') },
     ...props.participants
         .filter(participant => String(participant.id) !== String(props.viewerId))
         .map(participant => ({ value: String(participant.id), label: participant.label }))
-].filter(option => option.label || option.value === null))
+])
 
 const kindOptions = computed(() => [
-    { value: null, label: t('support.searchAnyKind') },
+    { value: 'all', label: t('support.searchAnyKind') },
     ...['image', 'video', 'audio', 'file'].map(kind => ({
         value: kind,
         label: t(`support.searchKind${kind.charAt(0).toUpperCase()}${kind.slice(1)}`)
@@ -146,8 +147,8 @@ const runSearch = async () => {
             query: {
                 conversationKey: props.conversationKey,
                 q: query.value.trim() || undefined,
-                sender: sender.value || undefined,
-                attachmentKind: attachmentKind.value || undefined
+                sender: sender.value !== 'all' ? sender.value : undefined,
+                attachmentKind: attachmentKind.value !== 'all' ? attachmentKind.value : undefined
             }
         })
         if (token !== searchToken) return
