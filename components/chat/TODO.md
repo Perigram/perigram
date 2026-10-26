@@ -42,3 +42,11 @@ not run: no live stack (dev servers are owner-run).
   200. The common-chat dialog assertions ride behind this step and stay
   unverified. Refactor shipped without playwright; this is the
   live-stack gap.
+
+## Rail resize + search indications (owner direction, 2026-10-26)
+- [x] Drag-resizable two-pane rail (16–34 rem, persisted), width via `--chat-rail-width`.
+- [x] Search dropdowns carry explicit "All senders" / "Any type" selections.
+- [x] Chat listboxes drop PrimeVue `focusOnHover` (sticky row highlight after cursor leaves).
+### Agent Notes (2026-10-26)
+Session `agent/chat-rail-resize-*` (worktree `.agent-worktrees/chat-rail`). Inline-style exception row extended for the rail width binding.
+- WAITING — owner verification.

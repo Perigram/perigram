@@ -36,3 +36,4 @@ the owning file and its README row.
 | Scroll to end | The list shows a floating scroll-to-end control while scrolled away from the live end; the control carries the count of messages waiting below. |
 | Live state | An open thread reconciles every `conversation:<key>` event — message, read, typing, bot activity — and a reconnect refetches the page; inbox counters ride the store's inbox pings. |
 | Thread rhythm | Day dividers split day boundaries; the unread divider marks the first unread message after a visit; sender runs group within the three-minute window; rows and bubbles keep their swipe actions. |
+| Rail resize | The two-pane inbox rail drags at its right edge between 16 and 34 rem; the width persists per browser. |
