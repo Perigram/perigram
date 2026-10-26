@@ -116,6 +116,17 @@ jobs:
           GARAGE_SECRET_KEY: ${{ secrets.GARAGE_SECRET_KEY }}
         run: |
           docker rm -f perigram-staging || true
+          # Port pre-flight: after removing perigram-staging nothing may
+          # answer on :3001 — a listener here is a squatter (an orphan
+          # container or host process) that would crash-loop the
+          # replacement and keep serving its own build. The job container
+          # sits on the runner bridge; probe through a host-networked
+          # container (the app image ships curl).
+          if docker run --rm --network host perigram:staging \
+              sh -c 'curl -s -m 2 -o /dev/null http://127.0.0.1:3001/'; then
+            echo "port 3001 still answers after removing perigram-staging — another process holds it (docker ps -a | grep -i peri; ss -ltnp | grep 3001)" >&2
+            exit 1
+          fi
           docker run -d --name perigram-staging --restart unless-stopped \
             --network=host \
             -e NUXT_MONGODB_URI=mongodb://192.168.0.248:27017/cutkit?directConnection=true \
@@ -151,7 +162,8 @@ jobs:
             -c "ls /src/.output/public/_nuxt/ | grep -m1 '^entry.*\.js\$'")
           echo "image entry chunk: $ENTRY"
           n=0
-          until curl -s http://127.0.0.1:3001/ | grep -q "$ENTRY"; do
+          until docker run --rm --network host perigram:staging \
+              sh -c "curl -s -m 5 http://127.0.0.1:3001/" | grep -q "$ENTRY"; do
             n=$((n+1))
             if [ $n -ge 15 ]; then
               echo "served HTML never referenced $ENTRY — :3001 serves a different build; an orphan process may hold the port" >&2
