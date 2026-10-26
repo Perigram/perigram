@@ -46,7 +46,9 @@ Parent: [root README](../README.md).
   `factsFor(typeView, surface)` projects the served CTS client bundle's
   derived `sections` plus the field descriptors into ordered slot-qualified
   fact rows for a surface (class-generic group policy, shared field limits:
-  inline 1, compact 3). `resolveInstanceDisplayContract` composes on top:
+  inline 1, compact 3); the identifier field drops at the projection —
+  the title owns that value, a fact row would repeat it.
+  `resolveInstanceDisplayContract` composes on top:
   bundle rows first, per-call `fieldGroups`/`surfaces`/`overrides` last
   (they always win). Undeclared types resolve no
   fact rows. Surface chrome (preview/dataDisplay/relations/actions/status/

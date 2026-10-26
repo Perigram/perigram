@@ -25,14 +25,16 @@ function useMeasuredWidthRem(elRef) {
   return widthRem;
 }
 
-export function useContainerTraits(elRef, { hostKind = 'page', density = 1 } = {}) {
+export function useContainerTraits(elRef, { hostKind = 'page', density = null } = {}) {
   const widthRem = useMeasuredWidthRem(elRef);
   return computed(() => resolveContainerTraits({ widthRem: widthRem.value, hostKind, density }));
 }
 
 // A host declares its profile: measuring hosts (the pane, the page) observe
 // their own box; fixed-shape hosts (the popup) provide the profile alone.
-export function provideContainerTraits({ hostKind, elRef = null, density = 1 } = {}) {
+// Density stays unset so the profile's tier derives; a placement box
+// passes its host's resolved density through.
+export function provideContainerTraits({ hostKind, elRef = null, density = null } = {}) {
   const measured = elRef ? useContainerTraits(elRef, { hostKind, density }) : null;
   const traits = measured || computed(() => resolveContainerTraits({ hostKind, density }));
   provide(CONTAINER_KEY, traits);

@@ -20,6 +20,8 @@ import {
   SPACING_SCALES,
   SPACING_STEPS,
   spacingClasses,
+  spacingCoefficientFor,
+  SPACING_WEIGHT_AT,
   TABLE_COLUMN_SCALE,
   TABLE_PAGE_ROWS,
   TABLE_PAGINATE_AT,
@@ -30,6 +32,7 @@ import {
   SURFACE_ENTRIES,
   PREVIEW_ENTRIES,
   RENDERABLE_PREVIEW_MODES,
+  VISUAL_PREVIEW_MODES,
   ACTION_ENTRIES,
   LIST_LAYOUT_ENTRIES,
   SEVERITY_MAP,
@@ -51,6 +54,7 @@ export {
   SEVERITY_MAP,
   ROW_FIELD_BUDGET,
   RENDERABLE_PREVIEW_MODES,
+  VISUAL_PREVIEW_MODES,
   LAYOUT,
   LAYOUT_ATOMS,
   LAYOUT_AMBIENT,
@@ -62,6 +66,8 @@ export {
   SPACING_SCALES,
   SPACING_STEPS,
   spacingClasses,
+  spacingCoefficientFor,
+  SPACING_WEIGHT_AT,
   TABLE_COLUMN_SCALE,
   TABLE_PAGE_ROWS,
   TABLE_PAGINATE_AT,
@@ -248,6 +254,11 @@ export function createUiMapping(overrides = {}) {
       scalarCount: scalars.length,
       instantCount: instants.length,
       hasMedia: Boolean(typeRecord.payload),
+      // Preview dominance (the gallery projection's signal): a payload
+      // type whose declared preview renders visually. Attachment-style
+      // payloads (documents, tables) preview through icons and text.
+      gallery: Boolean(typeRecord.payload
+        && VISUAL_PREVIEW_MODES.includes(typeRecord.payload.preview)),
       // Temporal structure: two instants declare an interval (durational
       // — the gantt), one declares a schedule (the calendar). Durational
       // outranks chronological in the matcher — an interval is the
@@ -283,6 +294,7 @@ export function createUiMapping(overrides = {}) {
           : shape.statlike ? 'statlike'
             : shape.scheduled ? 'scheduled'
               : null,
+      gallery: shape.gallery ? true : null,
       stateful: stateful ? true : null,
       boardable: typeRecord.class === 'process' && stateful ? true : null,
       size: options.size === 'small' ? 'small' : options.size === 'large' ? 'large' : null
@@ -976,21 +988,25 @@ export function regionDataTraits(node = {}) {
 // the truth, the host profile the fallback; the record is plain data the
 // pure arrangement consumes. A placement box (a side column, a column
 // track) overrides `height`/`scroll` with the host record's values while
-// measuring its own width.
+// measuring its own width. Density derives from the host profile (bounded
+// hosts compact, pages neutral) with narrow boxes capped at the compact
+// tier; an explicit value (a placement box inheriting its host's density)
+// wins over the derivation.
 export function resolveContainerTraits({
-  widthRem = null, hostKind = 'page', density = 1, height = null, scroll = null
+  widthRem = null, hostKind = 'page', density = null, height = null, scroll = null
 } = {}) {
   const profile = HOST_PROFILES[hostKind] || HOST_PROFILES.page;
   const width = Number.isFinite(widthRem)
     ? (widthRem >= CONTAINER_WIDTH_STEPS.wideRem ? 'wide'
       : widthRem >= CONTAINER_WIDTH_STEPS.mediumRem ? 'medium' : 'narrow')
     : profile.width;
+  const profileDensity = Number.isFinite(density) ? density : (profile.density ?? 1);
   return Object.freeze({
     width,
     widthRem: Number.isFinite(widthRem) ? widthRem : null,
     height: height || profile.height,
     scroll: scroll || profile.scroll,
-    density
+    density: width === 'narrow' ? Math.min(profileDensity, 0.75) : profileDensity
   });
 }
 
@@ -1331,4 +1347,4 @@ export const analyzeTypeShape = defaultMapping.analyzeTypeShape;
 export const cardVariantFor = defaultMapping.cardVariantFor;
 export const tableColumnCount = defaultMapping.tableColumnCount;
 export const cardFactCount = defaultMapping.cardFactCount;
-export { composeScreen, buildInstancePool } from './screen.js';
+export { composeScreen, buildInstancePool, screenWeight } from './screen.js';

@@ -875,3 +875,45 @@ and relation-linked children nest with the link glyph.
   The reproduction spec pins the law (root panel rows, child row without
   rows); the cross-type root cut stays (it is what lets section-loaded
   children re-enter beneath parent rows).
+
+### Agent Notes (2026-10-26, agent/genui-owner-review-20261026)
+
+- The pane record page's missing header was SPEC §22.3's own wording
+  ("title surfaces stay with the pane strip") — the owner review
+  amends it: the record identity block renders in every host;
+  `hideTitle` and the state-only header branch are gone. The routed
+  typeList now passes `pane-hosted` (its StandardPage titles it), so a
+  list screen's label renders exactly once through its host; the list
+  header's count became a quiet muted figure.
+- The tabs/columns/mixed duplication was a broken v-if/v-else chain in
+  RegionChildren: the `pack` branch started a second chain, so every
+  arranged outcome rendered beside the stacked fallback. Live evidence
+  before the fix: a record with two 12-row child collections rendered
+  four tables (`.playwright/genui-real-structure.json`).
+- The cross-cut flag composes at compose-time (`crossCut` on the node);
+  CardGrid/CollectionTable consume it as a `parented` prop, and scoped
+  lists skip the lazy parent-type overlay load entirely.
+- The identifier exclusion moved to the group projection in
+  SurfaceDetailBody (the structural-section leak for long-string
+  identifiers) and to `factsFor` in the design-system fact contract
+  (compact/entity cards).
+- GalleryCollection: raw PrimeVue Galleria (item band + caption link +
+  thumbnail strip); thumbnail count derives from the container record;
+  the item band steps with its container (`.ck-gallery-item` in
+  main.css). The matcher takes `gallery: true` (visual payload preview)
+  at large size; `VISUAL_PREVIEW_MODES` is the signal home. The
+  random-world volume file type deterministically carries a visual
+  preview — a late `rnd.pick` shifted the seeded world and tripped the
+  SSR id-leak smoke.
+- Spacing: density tiers on HOST_PROFILES, narrow-box cap at 0.75,
+  `spacingCoefficientFor(container, screenWeight)` tightens past
+  `SPACING_WEIGHT_AT`; GeneratedMappingScreen derives the coefficient
+  (explicit `spacingScale` overrides); `GAP_BY_LEVEL` covers depth 2.
+- InstanceInlineRef chips and compact micro cards carry
+  `hover:bg-subtle` beside the pointer cursor.
+- Specs: ui-mapping 131, random world 10, fixtures/module-imports,
+  design-system + framework-packages 37, SSR smoke 16, localization 4,
+  check-arch, framework:validate, docs:validate (the worktree-only
+  jagua-rs link aside) — all green. Live re-verification probe:
+  `e2e/zz-genui-owner-review-probe.spec.js` (untracked, per the
+  zz-probe convention).

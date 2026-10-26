@@ -102,7 +102,9 @@ a stale bookmark or a recompiled process renders the workspace.
 - Routed list screens keep the route title strip: `StandardPage` titles
   the page and carries the routed-surface back control (`usePageBack`,
   one shared `{ icon, label, command }` shape, following in-app history
-  with the home entry ladder as the deep-link fallback). Detail and form
+  with the home entry ladder as the deep-link fallback) — the page passes
+  `pane-hosted`, so the list header keeps its label with the host and
+  renders count and controls alone. Detail and form
   surfaces own their headers: the record header renders the type label
   and back affordance once, through its own anatomy and navigation
   channel.

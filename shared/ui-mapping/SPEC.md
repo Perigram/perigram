@@ -104,6 +104,13 @@ peer-column engagement). Budgets consume the provided record: a `narrow`
 or `medium` host sheds table columns and card facts through the compact
 budgets — a surface sized for its host, every host.
 
+Density derives from the host record: bounded hosts (pane, dialog,
+popup) and narrow boxes ride the compact rhythm, page hosts the neutral
+one. A screen whose composed weight passes the density budget tightens
+one step, floored at the tightest — the rhythm is data-aware. An
+explicit host coefficient (the design-lab slider) overrides the
+derivation.
+
 ## Layout language
 
 Every generated surface composes from one closed vocabulary of layout
@@ -242,6 +249,19 @@ relation references, and table relation cells alike. A record surface
 renders only at its own page, pane, dialog, or popup level; opening a chip
 is navigation to that surface, and a full record composes inside another
 record's surface at no placement.
+
+## Surface context laws (owner direction 2026-10-26)
+
+- The containment cross-cut composes on unscoped class lists only. A
+  collection scoped inside its parent — relation, lineage, or
+  screen-pinned filters — renders its rows bare: the surrounding surface
+  already states the parent.
+- The identifier field is the identity slot: it renders once per surface
+  as the title (header, card, row identity), and fact rows never repeat
+  it — generated surfaces and the design-system fact contract alike.
+- The gallery projection serves preview-dominated collections: a payload
+  type whose declared preview renders visually, at large size. Every
+  other collection resolves its shape-derived layout.
 
 ## Pins
 

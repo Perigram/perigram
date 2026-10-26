@@ -1,5 +1,17 @@
 <template>
-  <div v-if="engaged.mode === 'columns'" :class="LAYOUT.stackTight" class="w-full">
+  <div v-if="pack" :class="LAYOUT.packRow">
+    <RegionBlock
+      v-for="child in regions"
+      :key="child.id"
+      v-bind="baseBlockProps"
+      v-on="blockEvents"
+      :node="child"
+      :depth="childDepth"
+      stub
+    />
+  </div>
+
+  <div v-else-if="engaged.mode === 'columns'" :class="LAYOUT.stackTight" class="w-full">
     <RegionBlock
       v-for="child in fullRowRegions"
       :key="child.id"
@@ -67,18 +79,6 @@
       </TabPanel>
     </TabPanels>
   </Tabs>
-
-  <div v-if="pack" :class="LAYOUT.packRow">
-    <RegionBlock
-      v-for="child in regions"
-      :key="child.id"
-      v-bind="baseBlockProps"
-      v-on="blockEvents"
-      :node="child"
-      :depth="childDepth"
-      stub
-    />
-  </div>
 
   <RegionBlock
     v-for="child in regions"

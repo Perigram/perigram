@@ -6,6 +6,7 @@
     :type="node.type"
     :controls="node.listControls"
     :openable="openable"
+    :parented="parented"
     :pool="effectivePool"
     :bundle="bundle"
     :state-policy="node.statePolicy"
@@ -18,6 +19,7 @@
     :controls="node.listControls"
     :actions="instanceActions"
     :openable="openable"
+    :parented="parented"
     :pool="effectivePool"
     :bundle="bundle"
     :state-policy="node.statePolicy"
@@ -40,12 +42,14 @@
     @run="(action, context) => emit('run', action, context)"
     @transition="payload => emit('transition', payload)"
   />
-  <CarouselGrid
-    v-else-if="listLayout === 'carousel'"
+  <GalleryCollection
+    v-else-if="listLayout === 'gallery'"
     :instances="filteredInstances"
     :type="node.type"
+    :openable="openable"
     :pool="effectivePool"
     :bundle="bundle"
+    @open="instance => emit('open', instance)"
   />
   <TimelineCollection
     v-else-if="listLayout === 'timeline'"
@@ -110,7 +114,7 @@ import CardGrid from './CardGrid.vue';
 import BoardCollection from './BoardCollection.vue';
 import GanttCollection from './GanttCollection.vue';
 import CalendarCollection from './CalendarCollection.vue';
-import CarouselGrid from './CarouselGrid.vue';
+import GalleryCollection from './GalleryCollection.vue';
 import TimelineCollection from './TimelineCollection.vue';
 import StatGrid from './StatGrid.vue';
 
@@ -122,6 +126,9 @@ defineProps({
   effectivePool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   openable: { type: Boolean, default: false },
+  // The containment cross-cut composes on this collection (unscoped class
+  // list): rows carry their parent context token.
+  parented: { type: Boolean, default: false },
   instanceActions: { type: Array, default: () => [] },
   resolveTransitions: { type: Function, default: null },
   isReloading: { type: Boolean, default: false }

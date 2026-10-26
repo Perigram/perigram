@@ -2,7 +2,7 @@
   <div v-if="stubLine" :class="[LAYOUT.row, 'w-fit']">
     <i v-if="node.type" :class="iconFor(node.type)" />
     <span class="text-label text-muted">{{ regionLabel }}</span>
-    <Tag :value="String(node.instances.length)" severity="secondary" />
+    <span class="text-supporting text-muted">{{ node.instances.length }}</span>
     <CreateControl
       v-for="control in createControls"
       :key="control.action.id"
@@ -18,7 +18,7 @@
       <div class="flex min-w-0 flex-wrap items-center gap-2">
         <i v-if="node.type" :class="iconFor(node.type)" />
         <span v-if="!paneHosted" :class="embedded ? 'text-label min-w-0 truncate' : 'text-section-heading'">{{ regionLabel }}</span>
-        <Tag :value="String(node.instances.length)" severity="secondary" />
+        <span class="text-supporting text-muted">{{ node.instances.length }}</span>
       </div>
       <div v-if="createControls.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
         <!-- Search expands IN PLACE: the icon button becomes an icon field
@@ -91,6 +91,7 @@
         :effective-pool="effectivePool"
         :bundle="bundle"
         :openable="openable"
+        :parented="parented"
         :instance-actions="instanceActionsForType"
         :resolve-transitions="resolveTransitions"
         :is-reloading="isReloading"
@@ -126,7 +127,6 @@
         :bundle="bundle"
         :state-policy="node.statePolicy"
         :navigation="depth === 0 ? navigation : null"
-        :hide-title="paneHosted"
         :editor-action="editorActions?.[node.type?.id] || null"
         @run="emitRun"
         @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
@@ -192,7 +192,6 @@
 <script setup>
 import { computed, inject, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Tag from 'primevue/tag';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import IconField from 'primevue/iconfield';
@@ -244,8 +243,8 @@ const props = defineProps({
   // Editor action components by type (the host resolves them over the
   // file-surface registry; the header renders what it is given).
   editorActions: { type: Object, default: null },
-  // The host surface names this screen; the region header's label and
-  // the record title stay with the host.
+  // The host surface names this screen (the pane tab, the routed page's
+  // title bar); the list header's label stays with the host.
   paneHosted: { type: Boolean, default: false },
   // The stub slot (SPEC → Placement-aware composition): an inert child
   // renders one compact line — label, count, its own create action.
@@ -298,19 +297,21 @@ const listWidth = computed(() => (props.node.surfaceKind === 'list'
   ? 'w-fit max-w-full' : 'w-full'));
 const listStack = computed(() => (props.embedded
   ? (spacing ? spacing.stackTight : LAYOUT.stackTight)
-  : (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack'])));
-const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack']));
+  : (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[Math.min(props.node.level, 2)] || 'stack'])));
+const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[Math.min(props.node.level, 2)] || 'stack']));
 
-// The containment cross-cut's data: a region whose type someone's children
-// edge names renders every row WITH its parent — and the parent records
-// are not in this surface's pool (it loads the child type). Parent types
-// load lazily through the same `loadType` seam the tree projection uses
-// and overlay the pool every collection below reads; an unloaded parent
-// still names its type (ParentRef degrades), so correctness never depends
-// on the load landing.
-const parentTypeIds = computed(() => [...new Set(
+// The containment cross-cut's data (SPEC → Surface context laws): an
+// unscoped list of a type someone's children edge names renders every
+// row WITH its parent — and the parent records are not in this surface's
+// pool (it loads the child type). Parent types load lazily through the
+// same `loadType` seam the tree projection uses and overlay the pool
+// every collection below reads; an unloaded parent still names its type
+// (ParentRef degrades), so correctness never depends on the load
+// landing. A scoped list skips the cross-cut and the overlay load.
+const parented = computed(() => props.node.crossCut === true);
+const parentTypeIds = computed(() => (parented.value ? [...new Set(
   incomingChildrenEdges(props.bundle, props.node.typeId).map(edge => edge.parentTypeId)
-)]);
+)] : []));
 const loadedParents = ref({});
 const effectivePool = computed(() => {
   if (!Object.keys(loadedParents.value).length) return props.pool;
@@ -417,7 +418,7 @@ const derivedListLayout = computed(() => resolveListLayout(props.node.type, {
 // and filters: a stateful collection (a served vocabulary spanning at
 // least BOARD_MIN_COLUMNS values) whose derived layout is a structural
 // collection (table) may board, and a derived board may
-// table back. Shape-specialized projections (timeline, stats, carousel,
+// table back. Shape-specialized projections (timeline, stats, gallery,
 // the handful list) never switch — the board would fight their shape.
 // A stored preference for a non-switchable collection is ignored.
 const projectionSwitchable = computed(() => hasStateVocabulary(props.node.statePolicy)

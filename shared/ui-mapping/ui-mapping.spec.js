@@ -16,7 +16,9 @@ import {
   resolveContainerTraits,
   regionSideSpanFor,
   spacingClasses,
+  spacingCoefficientFor,
   SPACING_STEPS,
+  SPACING_WEIGHT_AT,
   resolveFieldControl,
   resolveSurface,
   resolvePreview,
@@ -247,7 +249,7 @@ describe('field control resolution', () => {
     expect(stateTransitionsByType({})).toEqual({});
   });
 
-  it('resolves prose, meters, sliders, and carousels from shape', () => {
+  it('resolves prose, meters, sliders, and galleries from shape', () => {
     expect(resolveFieldControl({ base: 'string', max: 400 }, { variant: 'row' })).toMatchObject({
       component: 'ProseText', span: 'full'
     });
@@ -260,9 +262,14 @@ describe('field control resolution', () => {
     expect(resolveFieldControl({ base: 'quantity', unit: 'mm', min: 0, max: 1000 }, { variant: 'detail' })).toMatchObject({
       component: 'Slider'
     });
-    const media = { class: 'file', payload: { preview: 'image' }, fields: { title: { base: 'string' } } };
-    expect(resolveListLayout(media, { size: 'large' })).toBe('carousel');
-    expect(resolveListLayout(media, {})).toBe('card-grid');
+    // The gallery serves preview-dominated collections only: a visual
+    // payload preview earns it at large size; an attachment payload
+    // stays a grid whatever its size.
+    const gallery = { class: 'file', payload: { preview: 'image' }, fields: { title: { base: 'string' } } };
+    expect(resolveListLayout(gallery, { size: 'large' })).toBe('gallery');
+    expect(resolveListLayout(gallery, {})).toBe('card-grid');
+    const attachments = { class: 'file', payload: { preview: 'attachment' }, fields: { title: { base: 'string' } } };
+    expect(resolveListLayout(attachments, { size: 'large' })).toBe('card-grid');
   });
 
   it('edits maps and json as text, records as structured editors', () => {
@@ -799,10 +806,29 @@ describe('weight-driven arrangement', () => {
     expect(resolveContainerTraits({ widthRem: 45, hostKind: 'popup' }).width).toBe('medium');
     expect(resolveContainerTraits({ widthRem: 45, hostKind: 'unknown-host' }).height).toBe('flow');
     expect(resolveContainerTraits({ widthRem: 45, density: 2 }).density).toBe(2);
+    // Density derives from the host profile: bounded hosts ride the
+    // compact tier, and a narrow box caps at it.
+    expect(resolveContainerTraits({ hostKind: 'popup' }).density).toBe(0.75);
+    expect(resolveContainerTraits({ hostKind: 'pane' }).density).toBe(0.75);
+    expect(resolveContainerTraits({ widthRem: 24, hostKind: 'page' }).density).toBe(0.75);
+    expect(resolveContainerTraits({ widthRem: 70, hostKind: 'page' }).density).toBe(1);
     // A placement box measures its own width and inherits the host's
-    // height/scroll.
-    expect(resolveContainerTraits({ widthRem: 24, height: 'bounded', scroll: 'surface' }))
-      .toEqual({ width: 'narrow', widthRem: 24, height: 'bounded', scroll: 'surface', density: 1 });
+    // height/scroll; a narrow box caps at the compact rhythm whatever
+    // density it inherits.
+    expect(resolveContainerTraits({ widthRem: 24, height: 'bounded', scroll: 'surface', density: 1 }))
+      .toEqual({ width: 'narrow', widthRem: 24, height: 'bounded', scroll: 'surface', density: 0.75 });
+    expect(resolveContainerTraits({ widthRem: 45, height: 'bounded', scroll: 'surface', density: 1 }).density).toBe(1);
+  });
+
+  it('derives the rhythm coefficient from host context and screen weight', () => {
+    const page = { density: 1 };
+    const pane = { density: 0.75 };
+    expect(spacingCoefficientFor(page, 4)).toBe(1);
+    expect(spacingCoefficientFor(pane, 4)).toBe(0.75);
+    // Heavy screens tighten one step, floored at the tightest.
+    expect(spacingCoefficientFor(page, SPACING_WEIGHT_AT + 1)).toBe(0.75);
+    expect(spacingCoefficientFor(pane, SPACING_WEIGHT_AT + 1)).toBe(0.5);
+    expect(spacingCoefficientFor({}, 0)).toBe(1);
   });
 
   it('scales the record side column span with the children weight', () => {

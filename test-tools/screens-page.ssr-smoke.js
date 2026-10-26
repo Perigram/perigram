@@ -174,12 +174,13 @@ describe('generated screens page with projected vocabulary', () => {
     const html = await renderToString(app);
     // The generator owns the route (the ui-mapping engine's region header
     // and collection projection, not the legacy GeneratedScreen shell);
-    // the region header names the class and the class-level create
+    // the routed page's title bar names the class (the region header
+    // renders count and controls alone), and the class-level create
     // collapses its caption to the bare localized new (identity under the
     // smoke's empty-locale i18n), never repeating the class name or the
     // initial state.
     expect(html).toContain('Job Ticket');
-    expect(html).toContain('text-section-heading');
+    expect(html).toContain('text-page-title');
     expect(html).toContain('uiMapping.new');
     expect(html).not.toContain('Create Job Ticket');
     expect(html).toContain('Ticket one');

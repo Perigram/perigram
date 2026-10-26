@@ -87,7 +87,9 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
   { match: { shape: 'durational' }, layout: 'gantt' },
   { match: { shape: 'chronological' }, layout: 'timeline' },
   { match: { shape: 'statlike' }, layout: 'stats' },
-  { match: { class: 'file', size: 'large' }, layout: 'carousel' },
+  // The gallery serves preview-dominated collections: a payload type
+  // whose declared preview renders visually (image, geometry), large.
+  { match: { gallery: true, size: 'large' }, layout: 'gallery' },
   { match: { class: 'file' }, layout: 'card-grid' },
   // Scheduled (exactly one instant, no stronger shape): appointment-like
   // collections lay out as the month grid; temporal shape beats size the
@@ -106,7 +108,7 @@ export const BOARD_MIN_COLUMNS = 2;
 
 // Known list-layout values: validates authored `render.listLayout` and
 // bounds the resolver vocabulary.
-export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'card-grid', 'carousel', 'timeline', 'stats', 'list', 'board', 'gantt', 'calendar']);
+export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'card-grid', 'gallery', 'timeline', 'stats', 'list', 'board', 'gantt', 'calendar']);
 
 // Collection thresholds live with the other design-system budgets so
 // materializations carry no magic numbers: tables paginate past
@@ -184,20 +186,21 @@ export const CONTAINER_WIDTH_STEPS = Object.freeze({
 });
 
 // Host profiles: the fallback container traits per host kind; the measured
-// box overrides the width (SPEC → Container traits).
+// box overrides the width (SPEC → Container traits). Density is the
+// rhythm tier the host rides: bounded hosts compact, pages neutral.
 export const HOST_PROFILES = Object.freeze({
-  page: { height: 'flow', scroll: 'page', width: 'wide' },
-  pane: { height: 'bounded', scroll: 'surface', width: 'medium' },
-  dialog: { height: 'bounded', scroll: 'surface', width: 'medium' },
-  popup: { height: 'bounded', scroll: 'surface', width: 'narrow' },
-  'mobile-tab': { height: 'flow', scroll: 'page', width: 'narrow' }
+  page: { height: 'flow', scroll: 'page', width: 'wide', density: 1 },
+  pane: { height: 'bounded', scroll: 'surface', width: 'medium', density: 0.75 },
+  dialog: { height: 'bounded', scroll: 'surface', width: 'medium', density: 0.75 },
+  popup: { height: 'bounded', scroll: 'surface', width: 'narrow', density: 0.75 },
+  'mobile-tab': { height: 'flow', scroll: 'page', width: 'narrow', density: 0.75 }
 });
 
 // Data-trait derivations (SPEC → Data traits): layouts whose surfaces
 // demand the full row to stay readable; layouts whose surfaces own a
 // scroll or page bound past a budget; the bare stacked list is chip-scale.
 export const FULL_BREADTH_LAYOUTS = Object.freeze(['table', 'board', 'gantt', 'calendar']);
-export const BOUNDED_GROWTH_LAYOUTS = Object.freeze(['table', 'board', 'gantt', 'calendar', 'carousel']);
+export const BOUNDED_GROWTH_LAYOUTS = Object.freeze(['table', 'board', 'gantt', 'calendar', 'gallery']);
 export const PAGINATED_GROWTH_LAYOUTS = Object.freeze(['card-grid', 'timeline']);
 
 // Full-height weight: every element counts, scaled by how tall its
@@ -207,7 +210,7 @@ export const ROW_WEIGHT_BY_LAYOUT = Object.freeze({
   table: 1,
   timeline: 2,
   'card-grid': 4,
-  carousel: 3,
+  gallery: 3,
   board: 4,
   gantt: 2,
   calendar: 3
@@ -225,10 +228,12 @@ export const CARD_VARIANT_RULES = Object.freeze({
 // the stack gap and the heading typography role, so spacing and type scale
 // follow the tree position. The level-0 record header is the generated
 // instance page's own title — it carries the page-title role; nested
-// surfaces step down through the section-heading and label roles.
+// surfaces step down through the section-heading and label roles, and
+// depth from two rides the tight rhythm.
 export const GAP_BY_LEVEL = Object.freeze({
   0: 'stack',
-  1: 'stackTight'
+  1: 'stackTight',
+  2: 'stackTight'
 });
 
 export const TYPE_BY_LEVEL = Object.freeze({
@@ -333,6 +338,11 @@ export const LAYOUT = Object.freeze({
   ganttAxisSpacer: 'w-44 shrink-0',
   ganttTrack: 'relative h-5 min-w-0 flex-1 rounded-panel bg-subtle',
   ganttBar: 'absolute inset-y-1 rounded-ui',
+  // The gallery projection's bands: the item band steps with its
+  // container (real CSS in main.css — the ResponsiveGrid pattern); the
+  // thumbnail cell keeps a fixed stamp.
+  galleryItem: 'ck-gallery-item',
+  galleryThumb: 'h-12 w-16',
   calendarStack: 'flex w-full min-w-0 flex-col gap-2',
   calendarHead: 'flex min-w-0 items-center justify-between gap-2',
   calendarGrid: 'grid w-full min-w-0 grid-cols-7 gap-1',
@@ -359,7 +369,7 @@ export const LAYOUT_ATOMS = Object.freeze({
   stack: Object.freeze(['stack', 'stackTight', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
-  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewBand']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewBand', 'galleryItem']),
   well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack']),
   tabs: Object.freeze([]),
   placement: Object.freeze([]),
@@ -368,7 +378,7 @@ export const LAYOUT_ATOMS = Object.freeze({
 });
 
 export const LAYOUT_AMBIENT = Object.freeze({
-  cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText']),
+  cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText', 'galleryThumb']),
   clamps: Object.freeze(['nameClamp', 'chipClamp', 'linkClamp']),
   chrome: Object.freeze(['clip', 'rowSurface', 'bounded', 'scrollX', 'dialog', 'headerRow', 'headerIdentity', 'ganttIdentity']),
   geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
@@ -471,6 +481,11 @@ export const PREVIEW_ENTRIES = Object.freeze([
 export const RENDERABLE_PREVIEW_MODES = Object.freeze([
   'dxf', 'svg', 'sketch', 'image', 'pdf', 'docx', 'table', 'workbook', 'text'
 ]);
+
+// Preview modes that render as visual media (the gallery projection's
+// dominance signal): imagery and geometry, the payloads a gallery band
+// exists for.
+export const VISUAL_PREVIEW_MODES = Object.freeze(['image', 'geometry']);
 
 // --- Actions ----------------------------------------------------------------
 
@@ -606,4 +621,22 @@ export const SPACING_STEPS = Object.freeze([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]);
 
 export function spacingClasses(scale = 1) {
   return SPACING_SCALES[scale] || SPACING_SCALES[1];
+}
+
+// Data-aware rhythm (SPEC → Container traits, density): a screen whose
+// composed weight passes this budget tightens one step, floored at the
+// tightest.
+export const SPACING_WEIGHT_AT = SURFACE_ROW_BUDGET * 2;
+
+// spacingCoefficientFor(container, totalWeight): the one derivation a
+// screen's rhythm resolves through — the host record's density tier,
+// tightened for heavy screens, clamped onto the literal steps. An
+// explicit coefficient (the design-lab slider) bypasses this entirely.
+export function spacingCoefficientFor(container = {}, totalWeight = 0) {
+  const base = Number.isFinite(container.density) ? container.density : 1;
+  const wanted = (Number.isFinite(totalWeight) && totalWeight > SPACING_WEIGHT_AT)
+    ? base - 0.25
+    : base;
+  const clamped = Math.min(2, Math.max(0.5, wanted));
+  return SPACING_STEPS.find(step => step >= clamped) || SPACING_STEPS[SPACING_STEPS.length - 1];
 }

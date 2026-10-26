@@ -92,9 +92,9 @@ import { useI18n } from 'vue-i18n';
 import Toast from 'primevue/toast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
-import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
+import { LAYOUT, spacingClasses, spacingCoefficientFor, screenWeight, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
 import { withinRelationDomain } from '#shared/relation-domain.js';
-import { provideDefaultContainerTraits } from '~/composables/useContainerTraits.js';
+import { provideDefaultContainerTraits, useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import RegionChildren from './RegionChildren.vue';
 import InstancePicker from './InstancePicker.vue';
 import FieldControl from './FieldControl.vue';
@@ -151,21 +151,30 @@ const props = defineProps({
   // header (`{ icon, label, command }` — SurfaceHeader's navigation
   // channel, threaded through RegionBlock to the depth-0 header).
   navigation: { type: Object, default: null },
-  // The host surface names this screen (the workspace pane tab); the
-  // engine suppresses its own title surfaces.
+  // The host surface names this screen (the pane tab, the routed page's
+  // title bar); the list header label stays with the host.
   paneHosted: { type: Boolean, default: false },
-  spacingScale: { type: Number, default: 1 }
+  // Explicit rhythm coefficient (the design-lab slider); null rides the
+  // derived system.
+  spacingScale: { type: Number, default: null }
 });
 
 const pool = computed(() => buildInstancePool(props.instances));
 const composed = computed(() => composeScreen(props.screen, props.contract, props.bundle, pool.value, {
   sourceStates: props.sourceStates || null
 }));
-// Reactive spacing injection: consumers read the object's keys, so the
-// showcase's coefficient slider re-rhythms every mounted surface without
-// a remount.
-const spacing = reactive(spacingClasses(props.spacingScale));
-watch(() => props.spacingScale, scale => Object.assign(spacing, spacingClasses(scale)));
+// Context- and data-aware rhythm (SPEC → Container traits, density): the
+// host record's density tier tightened for heavy screens; an explicit
+// coefficient overrides the derivation. Consumers read the object's keys,
+// so a step change re-rhythms every mounted surface without a remount.
+const root = ref(null);
+provideDefaultContainerTraits({ hostKind: 'page', elRef: root });
+const hostContainer = useHostContainerTraits();
+const coefficient = computed(() => (props.spacingScale == null
+  ? spacingCoefficientFor(hostContainer.value, screenWeight(composed.value))
+  : props.spacingScale));
+const spacing = reactive(spacingClasses(coefficient.value));
+watch(coefficient, value => Object.assign(spacing, spacingClasses(value)));
 provide('uiMappingSpacing', spacing);
 // Inline ref operations (a relation chip's Unlink) execute through the
 // same launch pipeline as header actions; the entry carries the relation
@@ -196,11 +205,6 @@ async function executeTransition(payload = {}) {
   await props.onTransition(payload);
 }
 const emit = defineEmits(['instance-mounted']);
-// The routed host measures itself and declares the page record — the
-// providerless default; a pane or popup host that already declared its
-// record stays authoritative.
-const root = ref(null);
-provideDefaultContainerTraits({ hostKind: 'page', elRef: root });
 // The routed detail instance (org-authored CTS detail routes have no legacy
 // overload): the conversation rail and the transition watcher resolve the
 // same composed non-list region.
