@@ -1,5 +1,6 @@
 <template>
             <aside
+        ref="railRoot"
                 class="chat-inbox flex min-h-0 flex-1 flex-col overflow-hidden"
                 :class="[fullPage ? 'chat-inbox--rail border-r border-chrome-border' : '', fullPage ? 'relative' : '']"
         :style="fullPage ? railWidthStyle : undefined"
@@ -61,7 +62,6 @@
     class="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize touch-none hover:bg-primary/30"
     :aria-label="$t('support.resizeRail')"
     data-testid="chats-rail-resize"
-    @pointerdown="onRailResizeStart"
 />
 <!-- Folder chips scope the list (SPEC: Chat thread). -->
                 <div
@@ -284,10 +284,14 @@ const readStoredRailWidth = () => {
 }
 const railWidth = ref(readStoredRailWidth())
 const railWidthStyle = computed(() => ({ '--chat-rail-width': `${railWidth.value}rem` }))
+const railRoot = ref(null)
 let railMove = null
-const onRailResizeStart = (event) => {
+const RAIL_GRAB_PX = 10
+const onRailPointerDown = (event) => {
     const host = event.currentTarget?.closest?.('.chat-host')
     if (!host || typeof window === 'undefined') return
+    const rect = event.currentTarget.getBoundingClientRect()
+    if (event.clientX < rect.right - RAIL_GRAB_PX) return
     event.preventDefault()
     railMove = (moveEvent) => {
         const width = (moveEvent.clientX - host.getBoundingClientRect().left) / 16
@@ -302,7 +306,11 @@ const onRailResizeStart = (event) => {
         } catch {}
     }, { once: true })
 }
+onMounted(() => {
+    if (railRoot.value) railRoot.value.addEventListener('pointerdown', onRailPointerDown)
+})
 onBeforeUnmount(() => {
+    if (railRoot.value) railRoot.value.removeEventListener('pointerdown', onRailPointerDown)
     if (railMove && typeof window !== 'undefined') window.removeEventListener('pointermove', railMove)
 })
 
