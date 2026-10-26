@@ -59,8 +59,15 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   registry entries marked `instanceService: true` resolve through the generic
   instance feature (`server/features/instances`) and declare no feature
   directory of their own; the guard skips their feature-directory checks.
-- `check-agent-scope.js`: Diff guard comparing committed, staged, unstaged,
-  and untracked files against a glob allowlist file. Two allowlists exist:
+- `check-plugin-deps.js`: Plugin executor dependency guard (`npm run
+  plugin-deps:check`). A plugin's executor image installs from the plugin's
+  own `workers/<plugin>/package.json` (`workers/plugin-executor.Dockerfile`),
+  so every bare import the plugin's code carries must be declared there —
+  undeclared imports run on dev boxes (the root `node_modules` bleeds through
+  the bind mount) and die on a hosted executor. The guard scans each
+  `workers/<plugin>` (spec files excluded, `assets`/`surfaces` skipped) and
+  fails naming the plugin and the missing specifier.
+- `check-agent-scope.js`: Diff guard comparing committed, staged, unstaged, and untracked files against a glob allowlist file. Two allowlists exist:
   `.agents/app-layer.allowlist` for top-layer composition agents
   (default-deny — surfaces are added by the repository owner), and
   `.agents/design-layer.allowlist` for design-scoped contributors
