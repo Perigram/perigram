@@ -90,8 +90,10 @@ grant vocabulary the designer's
 [lanes](../../../components/process-designer/README.md) author through
 effect `access.grants`, one grant per effect); node families; and the
 palette's droppable item ids — COMPACT by default. The per-kind socket
-inventory, the node catalog, and typed value-operation sockets arrive on
-request through `detail` filters, each carrying the guide and roles
+inventory, the node catalog, typed value-operation sockets, and per-type
+construction modes (the [process-definitions](../process-definitions/README.md)
+projection's mode list, with each type's default) arrive on request
+through `detail` filters, each carrying the guide and roles
 beside its detail; the palette list rides the default view only.
 Record-bound kinds resolve live sockets off the digest of the dropped
 node, and a filter naming no entry fails with the valid families.
