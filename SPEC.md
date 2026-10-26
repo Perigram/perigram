@@ -1226,7 +1226,8 @@ weight, growth belongs to the owning scroll. Composition is placement-aware:
 the container picks the child's variant, placement picks the presentation,
 and a class reference inside another component renders as an instance chip.
 Layout derives; a pin is declared data through the declared seams. The
-trait definitions, the arrangement decision procedure, and the placement
+trait definitions, the layout language (atoms and composition rules), the
+arrangement decision procedure, and the placement
 slots are specified in shared/ui-mapping/SPEC.md.
 
 ## 23. Deslopification (owner direction 2026-10-23)

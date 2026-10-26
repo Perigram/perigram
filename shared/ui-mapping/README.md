@@ -426,7 +426,14 @@ materialization reads the same numbers:
 
 `LAYOUT` is the one layout-class vocabulary materializations may use —
 PrimeVue components own their internal layout, and every grid/stack/row/gap
-the generator needs comes from that table.
+the generator needs comes from that table. The layout language
+([SPEC](./SPEC.md) → Layout language) owns the vocabulary: nine atoms
+(`stack`, `row`, `grid` with earned/floor/steps track derivations, `band`,
+`well`, `tabs`, `placement`, `stub`, `pack`) plus the ambient sets they
+compose under (cells, clamps, chrome, data-driven geometry). The
+`LAYOUT_ATOMS`/`LAYOUT_AMBIENT` registries in `tables.js` assign every
+recipe to its atom or set, and the engine spec pins the partition — a
+recipe outside the registries is a vocabulary defect.
 
 ### Arrangement
 

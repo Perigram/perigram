@@ -104,6 +104,58 @@ peer-column engagement). Budgets consume the provided record: a `narrow`
 or `medium` host sheds table columns and card facts through the compact
 budgets — a surface sized for its host, every host.
 
+## Layout language
+
+Every generated surface composes from one closed vocabulary of layout
+atoms. Traits select atoms and derive their parameters; an atom owns one
+rendering concern; every layout mechanism in the app is an atom instance.
+A layout mechanism the vocabulary covers at no atom is a defect; one the
+vocabulary cannot express is a pin (see Pins) recorded here when admitted.
+
+### Atoms
+
+| Atom | Carries | Parameter derivation | Materialization home |
+|---|---|---|---|
+| `stack` | vertical flow on the rhythm scale | gap from the density coefficient; tight rhythm for embedded surfaces | `LAYOUT.stack`/`stackTight` over the spacing scales |
+| `row` | horizontal wrap at content width | items pack and wrap freely | `LAYOUT.row`/`rowBetween`/`chipRow` |
+| `grid` | track-derived columns | `earned`: track fr from sibling weights, zero-floored, engaging when the measured box grants every track its earned minimum · `floor`: auto-fill at a content floor while the host grants growth · `steps`: fixed columns per width step | `RegionChildren` tracks and the record split (earned); `.ck-facts-grid`/`.ck-body-grid` (floor); `.ck-form-grid` (steps) |
+| `band` | a full-width strip whose height steps with its container | steps from `CONTAINER_WIDTH_STEPS` | `.ck-preview-hero` |
+| `well` | an inset cell one step above the canvas | a bounded well owns its scroll | `LAYOUT.boardColumn*`, `calendarCell`, `ganttTrack` |
+| `tabs` | the page-height bound arrangement | descending weight order | PrimeVue Tabs in `RegionChildren` |
+| `placement` | a slot that measures its own box | width is the placement box; height/scroll/density inherit the host record | `PlacementBox` |
+| `stub` | the inert one-line claim | type glyph, label, count, own create action | `RegionBlock` stub slot |
+| `pack` | content-width side-by-side | inert stubs pack in a wrap row | `RegionChildren` `pack` |
+
+The atom registry in `tables.js` (`LAYOUT_ATOMS`) assigns every
+`LAYOUT` recipe to its atom; the engine specs pin the partition, so the
+vocabulary stays closed by guard. Chrome rides the role ladder
+(`resolveChrome`), typography rides the role tokens, and the spacing
+coefficient scales every rhythm; these are ambient, and atoms compose
+under them.
+
+### Composition rules
+
+1. A value renders as a cell (`InlineField`); measured values carry the
+   mono face with tabular figures.
+2. A fact row pairs a label cell and a value cell; a fact group fills in
+   floor-grid tracking columns; a collapsed group carries its show-more
+   control.
+3. A rich structural value renders as an open labeled section; simple
+   structural rows share the fact grammar.
+4. Relation references render as budgeted chip rows; a child region
+   covering the relation owns that surface.
+5. The record body is a floor grid: blocks render at content width and
+   grow into the width the host grants; the preview renders in a band.
+6. Record children arrange through the ordered ladder (Arrangement
+   decision procedure); the record page's `wide` step may claim a side
+   rail — a two-track earned grid of body and weight-spanned rail.
+7. Screen sections arrange through the same ladder.
+8. A bounded-growth surface owns its scroll inside whatever atom renders
+   it; flowing content rides the host's scroll column.
+9. A surface inside a placement sizes to the placement box: step
+   engagement, compact budgets, and column scales resolve against the
+   nearest container record.
+
 ## Arrangement decision procedure
 
 `arrange(siblings, container)` — one ordered rule list; rules apply in

@@ -4,6 +4,8 @@ import {
   createUiMapping,
   formatValue,
   LAYOUT,
+  LAYOUT_ATOMS,
+  LAYOUT_AMBIENT,
   titleFor,
   iconFor,
   resolveFieldGroups,
@@ -775,6 +777,17 @@ describe('weight-driven arrangement', () => {
     expect(regionSideSpanFor(8)).toBe(3);
     expect(regionSideSpanFor(9)).toBe(4);
     expect(regionSideSpanFor(10)).toBe(4);
+  });
+
+  it('pins the layout-language vocabulary closed over LAYOUT', () => {
+    // SPEC → Layout language: every LAYOUT recipe registers under
+    // exactly one atom or ambient set, and the atom set is the
+    // nine-atom vocabulary.
+    const registered = [...Object.values(LAYOUT_ATOMS), ...Object.values(LAYOUT_AMBIENT)].flat();
+    expect(new Set(registered).size).toBe(registered.length);
+    expect(Object.keys(LAYOUT).sort()).toEqual([...new Set(registered)].sort());
+    expect(Object.keys(LAYOUT_ATOMS).sort())
+      .toEqual(['band', 'grid', 'pack', 'placement', 'row', 'stack', 'stub', 'tabs', 'well']);
   });
 });
 
