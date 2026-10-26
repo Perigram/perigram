@@ -40,8 +40,10 @@ nodes and edges concatenated with id dedupe, the record maps
 key-unioned, per-role `roleGrants` unioned — in activation order, later
 activations winning key conflicts, and the merged data compiles through
 the one compiler seam. The migration gate and the semantic Apply diff
-compare the activating draft against the merged contract of the other
-active definitions. The active set is queried from the definitions
+resolve both sides additively: the previous contract is the merged
+compile of the other active definitions, the next contract is that merge
+plus the activating draft — states another active definition owns never
+read as removals. The active set is queried from the definitions
 collection (`findActiveSetByOrganization`); `/active` returns the most
 recently activated definition for boot convenience.
 
