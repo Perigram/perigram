@@ -521,3 +521,27 @@ cutover's SPEC link repairs.
 - [ ] WAITING — owner verification: the showcase (`/test/ui-mapping`)
   and generated surfaces read as they did before the program; SPEC §22
   carries no 22.7+ text.
+
+## Tabs sit at any tree level, excluded under a tab ancestor (owner
+direction 2026-10-26)
+
+SPEC §22.1 amendments from the owner's words: arrangement derives from
+both ends (top-down container context, bottom-up data awareness); tabs
+and columns are layout tools at every tree level, and tabs can't be
+nested, even over one ancestor — nothing inside a tab or a tab's child
+generates tabs. §22.3 states the hosted surface keeps its header
+(lifecycle state, actions) with the title in the pane tab; §22.6 states
+field use (`identifier` → instance title, `required` → create gate).
+
+- [ ] WAITING — owner verification: the arrangement ladder tabs at any
+  level, a tab arrangement excludes tabs in its descendants (a tabbed
+  screen's record children stack), and SPEC §22.1/22.3/22.6 carry the
+  amended wording.
+
+### Agent Notes (2026-10-26, agent/genui-tabs-20261026-1152)
+- `arrangeChildren(children, insideTabs)` replaces the `level` gate;
+  `childrenModeFor(children)` drops it. `composeScreen` applies
+  arrangement in a top-down pass (`withArrangement`) so a tabbed
+  `regionsMode` suppresses tabs in the top-level regions' own children.
+- Focused specs: `shared/ui-mapping/ui-mapping.spec.js` (89) and
+  `screen.spec.js` (16) green; guards in the session handoff report.

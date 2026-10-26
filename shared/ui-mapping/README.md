@@ -450,7 +450,7 @@ same weights at card scale:
 | Side rail | `SIDE_MAX_WEIGHT` | a stack-mode child set at or under the budget rides beside the record body |
 | Peer columns | `COLUMN_MAX_WEIGHT` | peers up to the budget rows each share proportional columns (track fr from each child's estimated rows) |
 | Dominant child | `DOMINANT_CHILD_SHARE` | a sibling holding at least the share of total weight keeps the vertical flow while its remainder fits `SURFACE_ROW_BUDGET` |
-| Tabs | over-budget sets | tab in descending weight order at the top level (nested heavy content stacks) |
+| Tabs | over-budget sets | tab in descending weight order at any tree level; a sibling set inside a tab arrangement stacks (SPEC §22.1) |
 
 Arrangement is content-aware (SPEC §22, 2026-10-22): a child
 collection with zero loaded instances is layout-inert — it joins the node's
@@ -458,7 +458,11 @@ collection with zero loaded instances is layout-inert — it joins the node's
 arrangement decision (weights, columns, tabs, the side rail) sees filled
 children only; its relation key still covers the record body's chip row.
 Screen-level sections keep their own budget rule (`childrenModeFor`:
-over-budget top-level sections tab). Every weight is a compose-time value
+over-budget top-level sections tab). Arrangement applies top down after
+composition (`withArrangement` in `screen.js`): a tabbed sections
+arrangement places every top-level region inside a tab, and a tab
+arrangement excludes tabs in its descendants (SPEC §22.1). Every weight
+is a compose-time value
 over the composed tree.
 
 One global spacing coefficient (0.5–2, the showcase slider)
@@ -468,7 +472,7 @@ chip-row leading, toolbar gaps, control size, and
 editor size
 move together — real coefficients, Tailwind-scannable by construction. The rule binds everywhere siblings exist: composed screens carry
 `regionsMode` for their top-level regions (a heavy home tabs its
-sections), and detail nodes carry `childrenMode` for their child
+sections), and nodes carry `childArrangement` for their child
 regions. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and
 `TYPE_BY_LEVEL` (heading typography role per level), so spacing and text
 scale are data too. Widths stay in
