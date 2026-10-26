@@ -116,6 +116,9 @@ export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'card-grid', 'carousel
 export const TABLE_PAGINATE_AT = 10;
 export const TABLE_PAGE_ROWS = 10;
 export const TABLE_VIRTUALIZE_AT = 50;
+// The virtual table's own scroll bound (a bounded-growth surface —
+// SPEC → Data traits): the height the scrollable body clamps to.
+export const TABLE_VIRTUAL_SCROLL_REM = 26;
 export const SEARCH_AT = 8;
 
 // Fact budgets scale with the type's richness instead of fixed constants:
@@ -152,26 +155,50 @@ export const HEADER_ACTIONS_INLINE = 2;
 export const SURFACE_ROW_BUDGET = 10;
 
 // Arrangement budgets, all in estimated rendered rows at card scale (a
-// preview card or board card is 4 rows, a table row 1): a stack-mode
-// child set at or under SIDE_MAX_WEIGHT rides beside the record body;
-// each column child stays at or under COLUMN_MAX_WEIGHT; a sibling
-// holding at least DOMINANT_CHILD_SHARE of the total weight is the
-// dominant child; columns cap at REGION_COLUMNS_MAX tracks. The record
-// side column earns width with weight through REGION_SIDE_SPANS
-// (12-track grid spans).
-export const SIDE_MAX_WEIGHT = 16;
+// preview card or board card is 4 rows, a table row 1): a child set at
+// or under SIDE_MAX_WEIGHT rides beside the record body; each column
+// child stays at or under COLUMN_MAX_WEIGHT; a sibling holding at least
+// DOMINANT_CHILD_SHARE of the total weight is the dominant child. The
+// side rail is a minor column — at most a third of the record grid
+// (REGION_SIDE_SPANS over 12 tracks); heavier sets arrange below the
+// body, where proportional columns grant each peer real width.
+export const SIDE_MAX_WEIGHT = 10;
 export const COLUMN_MAX_WEIGHT = 12;
 export const DOMINANT_CHILD_SHARE = 0.6;
-export const REGION_COLUMNS_MAX = 3;
 // Peer columns engage when the host can grant every track this earned
 // minimum: engagement is `trackCount × REGION_COLUMN_EARNED_REM` of
 // measured host width, generative for any track count.
 export const REGION_COLUMN_EARNED_REM = 30;
 export const REGION_SIDE_SPANS = Object.freeze([
-  { at: 10, span: 6 },
-  { at: 4, span: 5 },
-  { at: 0, span: 4 }
+  { at: 8, span: 4 },
+  { at: 0, span: 3 }
 ]);
+
+// Container width steps (SPEC → Container traits): the one rem ladder the
+// container seam resolves and every container-relative mechanism
+// materializes — the form grid's two-column engagement is the medium step,
+// the record split's engagement the wide step.
+export const CONTAINER_WIDTH_STEPS = Object.freeze({
+  mediumRem: 40,
+  wideRem: 60
+});
+
+// Host profiles: the fallback container traits per host kind; the measured
+// box overrides the width (SPEC → Container traits).
+export const HOST_PROFILES = Object.freeze({
+  page: { height: 'flow', scroll: 'page', width: 'wide' },
+  pane: { height: 'bounded', scroll: 'surface', width: 'medium' },
+  dialog: { height: 'bounded', scroll: 'surface', width: 'medium' },
+  popup: { height: 'bounded', scroll: 'surface', width: 'narrow' },
+  'mobile-tab': { height: 'flow', scroll: 'page', width: 'narrow' }
+});
+
+// Data-trait derivations (SPEC → Data traits): layouts whose surfaces
+// demand the full row to stay readable; layouts whose surfaces own a
+// scroll or page bound past a budget; the bare stacked list is chip-scale.
+export const FULL_BREADTH_LAYOUTS = Object.freeze(['table', 'board', 'gantt', 'calendar']);
+export const BOUNDED_GROWTH_LAYOUTS = Object.freeze(['table', 'board', 'gantt', 'calendar', 'carousel']);
+export const PAGINATED_GROWTH_LAYOUTS = Object.freeze(['card-grid', 'timeline']);
 
 // Full-height weight: every element counts, scaled by how tall its
 // presentation renders (a preview card is ~4 table rows, a timeline entry
@@ -216,7 +243,10 @@ export const SCALAR_BASES = Object.freeze(['string', 'number', 'quantity', 'inst
 // Layout vocabulary: the only layout classes the materializations may use.
 // Components never declare gaps, grids, or stacks of their own — PrimeVue
 // components own their internal layout, and everything else comes from
-// this table so the design system stays procedural and overridable.
+// this table so the design system stays procedural and overridable. The
+// layout language (SPEC → Layout language) owns this table: every recipe
+// registers under an atom or an ambient set (LAYOUT_ATOMS/LAYOUT_AMBIENT
+// below), and the engine spec pins that partition.
 export const LAYOUT = Object.freeze({
   stack: 'flex flex-col gap-6',
   stackTight: 'flex flex-col gap-3',
@@ -230,10 +260,15 @@ export const LAYOUT = Object.freeze({
   // variants cannot express "wide where I am rendered" (dialogs, panes).
   formGrid: 'ck-form-grid',
   // Container-relative record-body grids (real CSS in main.css beside
-  // the form grid): blocks render at content width and pack; full width
-  // is earned by wide content (.ck-span-full).
+  // the form grid): content width is the floor and the host grants
+  // growth — fact groups fill in tracking columns, body blocks grow into
+  // spare row width (.ck-span-full still earns the full row).
   factsGrid: 'ck-facts-grid',
   bodyGrid: 'ck-body-grid',
+  // The record body's preview band steps up with its container (real
+  // CSS in main.css); the card slot keeps the fixed previewBand stamp.
+  previewHero: 'ck-preview-hero',
+  previewHeroBand: 'ck-preview-hero-band',
   packRow: 'flex flex-wrap items-start gap-6',
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
@@ -255,6 +290,7 @@ export const LAYOUT = Object.freeze({
   cellText: 'line-clamp-2 max-w-96 break-words text-left',
   chipRow: 'flex flex-wrap items-center gap-2 pt-2',
   panelBody: 'py-2',
+  previewBand: 'h-28 w-full',
   // Board projection: the horizontal column rail (columns are in-surface
   // wells one step above the canvas — the surface ladder's `subtle` inset
   // level — while the cards inside sit on the content surface) and the
@@ -311,6 +347,31 @@ export const LAYOUT = Object.freeze({
   specList: 'flex flex-col divide-y divide-content-border',
   specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
   dialog: 'w-full max-w-full sm:w-[36rem]'
+});
+
+// The layout-language registries (SPEC → Layout language): the closed
+// atom vocabulary and the ambient recipe sets atoms compose under. The
+// engine spec pins the partition over LAYOUT — a recipe outside the
+// registries is a vocabulary defect. The `tabs`, `placement`, and `stub`
+// atoms materialize as components (Tabs in RegionChildren, PlacementBox,
+// the RegionBlock stub slot), so their recipe lists are empty.
+export const LAYOUT_ATOMS = Object.freeze({
+  stack: Object.freeze(['stack', 'stackTight', 'panelBody', 'ganttStack', 'calendarStack']),
+  row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
+  grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewBand']),
+  well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack']),
+  tabs: Object.freeze([]),
+  placement: Object.freeze([]),
+  stub: Object.freeze([]),
+  pack: Object.freeze(['packRow'])
+});
+
+export const LAYOUT_AMBIENT = Object.freeze({
+  cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText']),
+  clamps: Object.freeze(['nameClamp', 'chipClamp', 'linkClamp']),
+  chrome: Object.freeze(['clip', 'rowSurface', 'bounded', 'scrollX', 'dialog', 'headerRow', 'headerIdentity', 'ganttIdentity']),
+  geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
 });
 
 // Row-variant field budgets: dense rows show a bounded number of fields and

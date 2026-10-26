@@ -1,5 +1,18 @@
 <template>
-  <div v-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
+  <div v-if="stubLine" :class="[LAYOUT.row, 'w-fit']">
+    <i v-if="node.type" :class="iconFor(node.type)" />
+    <span class="text-label text-muted">{{ regionLabel }}</span>
+    <Tag :value="String(node.instances.length)" severity="secondary" />
+    <ActionButton
+      v-for="action in collectionActions"
+      :key="action.id"
+      :action="action"
+      :state-policy="node.statePolicy"
+      :label="headerActionLabel(action)"
+      @run="emitRun"
+    />
+  </div>
+  <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-wrap items-center gap-2">
         <i v-if="node.type" :class="iconFor(node.type)" />
@@ -118,27 +131,21 @@
         @refresh="emit('refresh')"
         @open-instance="emitOpen"
       />
-      <div v-if="splitSide" class="region-split-host">
-        <div
-          class="region-split grid w-full grid-cols-1 gap-6"
-          :style="splitTracks"
-        >
-          <div class="min-w-0 flex flex-col gap-6">
-            <SurfaceBody
-              v-bind="bodyProps"
-              variant="full"
-              :editable="patchable"
-              v-on="bodyEvents"
-            />
-          </div>
-          <div class="min-w-0 flex flex-col gap-6">
-            <RegionChildren
-              v-bind="childrenProps"
-              v-on="childrenEvents"
-              :arrangement="{ mode: 'stack' }"
-            />
-          </div>
+      <div v-if="splitSide" class="region-split grid w-full grid-cols-1 gap-6" :style="splitTracks">
+        <div class="min-w-0 flex flex-col gap-6">
+          <SurfaceBody
+            v-bind="bodyProps"
+            variant="full"
+            :editable="patchable"
+            v-on="bodyEvents"
+          />
         </div>
+        <PlacementBox>
+          <RegionChildren
+            v-bind="childrenProps"
+            v-on="childrenEvents"
+          />
+        </PlacementBox>
       </div>
       <template v-else>
         <SurfaceBody
@@ -204,6 +211,8 @@ import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
 import RegionCollections from './RegionCollections.vue';
 import RegionChildren from './RegionChildren.vue';
+import PlacementBox from './PlacementBox.vue';
+import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 const props = defineProps({
   node: { type: Object, required: true },
@@ -234,7 +243,10 @@ const props = defineProps({
   editorActions: { type: Object, default: null },
   // The host surface names this screen; the region header's label and
   // the record title stay with the host.
-  paneHosted: { type: Boolean, default: false }
+  paneHosted: { type: Boolean, default: false },
+  // The stub slot (SPEC → Placement-aware composition): an inert child
+  // renders one compact line — label, count, its own create action.
+  stub: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh']);
@@ -259,14 +271,16 @@ const childrenProps = computed(() => ({
   openable: props.openable,
   instanceActions: props.instanceActions
 }));
-// The record page's weight-proportional split: a light child set (at or
-// under SIDE_MAX_WEIGHT rows) rides beside the record body, the side
-// column's grid share earned by the children's weight (REGION_SIDE_SPANS
-// over the 12-track record grid). Heavier child sets arrange below.
-const splitSide = computed(() => props.depth === 0 && Boolean(props.node.besideBody));
+// The record page's weight-proportional split: the side-rail outcome the
+// host's width step engages (wide hosts only), the side column's grid
+// share earned by the children's weight (REGION_SIDE_SPANS over the
+// 12-track record grid). Narrower hosts take the children's own step
+// outcome below the body.
+const hostContainer = useHostContainerTraits();
+const childOutcome = computed(() => props.node.childArrangement?.[hostContainer.value.width] || { mode: 'stack' });
+const splitSide = computed(() => props.depth === 0 && childOutcome.value.mode === 'side');
 const splitTracks = computed(() => ({
-  '--main-fr': String(12 - (props.node.sideSpan || 5)),
-  '--side-fr': String(props.node.sideSpan || 5)
+  gridTemplateColumns: `minmax(0, ${12 - (childOutcome.value.span || 5)}fr) minmax(0, ${childOutcome.value.span || 5}fr)`
 }));
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
@@ -381,6 +395,8 @@ const hasInstances = computed(() => props.node.instances.length > 0);
 const isReloading = computed(() => state.value === 'loading' && hasInstances.value);
 const showSurfaces = computed(() => state.value === 'ready' || isReloading.value);
 const showState = computed(() => !showSurfaces.value);
+const stubLine = computed(() => props.stub && props.node.surfaceKind === 'list'
+  && (state.value === 'empty' || state.value === 'missing'));
 const embeddedStack = computed(() => (spacing ? spacing.stackTight : LAYOUT.stackTight));
 const regionLabel = computed(() => localizedLabel({ te, t }, typeLabelKey(props.node.typeId), props.node.type ? generatedEntityLabel(props.node.type, { t, te }) : props.node.id));
 // The derived list layout — the resolver's contract decision over shape,
@@ -498,22 +514,3 @@ const filteredInstances = computed(() => {
     && instanceMatchesFilter(instance, builderFilter.value, { pool: props.pool }));
 });
 </script>
-
-
-<style scoped>
-/* Container-relative record split (the SurfaceHeader pattern — the
-   tailwindcss build has no container-queries plugin, so this lives in
-   real CSS). The host is the query container; the grid inside responds:
-   the split engages past 60rem of container width and stacks inside
-   panes, dialogs, and narrow columns. The track shares are weight-derived
-   custom properties set by the template. */
-.region-split-host {
-  container-type: inline-size;
-}
-
-@container (min-width: 60rem) {
-  .region-split {
-    grid-template-columns: minmax(0, calc(var(--main-fr) * 1fr)) minmax(0, calc(var(--side-fr) * 1fr));
-  }
-}
-</style>

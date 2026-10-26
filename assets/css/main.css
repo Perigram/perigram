@@ -400,18 +400,19 @@ body {
     }
 
     /* Container-relative record-body grids (the ui-mapping LAYOUT
-       tokens factsGrid/bodyGrid): blocks render at content width and
-       pack; sections cap at fit-content(46rem) so long fact lists wrap
-       inside one section. */
+       tokens factsGrid/bodyGrid): content width is the floor and the
+       host grants growth — fact groups fill in columns that track the
+       body width (track floor 22rem), and body blocks grow into spare
+       row width past their content floor (content cap 46rem). */
     .ck-facts-grid {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
         column-gap: 1.5rem;
-        row-gap: 0.25rem;
+        align-items: baseline;
     }
 
     .ck-facts-grid > * {
-        flex: 0 1 auto;
+        min-width: 0;
         max-width: 100%;
     }
 
@@ -424,8 +425,32 @@ body {
     }
 
     .ck-body-grid > * {
-        flex: 0 1 auto;
+        flex: 1 1 auto;
         width: fit-content(46rem);
+        min-width: 0;
         max-width: 100%;
+    }
+
+    /* The record body's preview band scales with its container: the
+       fixed-height stamp is the card slot's anatomy; here the band steps
+       up as the host grants width. */
+    .ck-preview-hero {
+        container-type: inline-size;
+    }
+
+    .ck-preview-hero-band {
+        height: 7rem;
+    }
+
+    @container (min-width: 40rem) {
+        .ck-preview-hero-band {
+            height: 11rem;
+        }
+    }
+
+    @container (min-width: 60rem) {
+        .ck-preview-hero-band {
+            height: 14rem;
+        }
     }
 }
