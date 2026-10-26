@@ -826,3 +826,37 @@ group branch from the first session are removed; `createActionControls`,
 the caption law, and the i18n key stand. The PrimeVue MCP was consulted
 for the InputGroup composition this round (buttons as direct group
 children; Select `size`/`ariaLabel`).
+
+## Sidebar explorer carries one hierarchy (owner direction 2026-10-26)
+
+Root SPEC §4: an instance lists beside its type node only while no loaded
+instance parents it — parented children nest beneath their parent rows,
+and relation-linked children nest with the link glyph.
+
+- [ ] WAITING — owner verification: the seeded org's sidebar (queue with
+  its four child types) — child instances nest beneath their parent
+  instances, the child type nodes keep unparented rows only, and
+  relation-nested rows wear the link glyph.
+
+### Agent Notes (2026-10-26, agent/sidebar-hierarchy-20261026-1735)
+
+- The malformed panel was the README's own law violated in code: "a child
+  never appears both beneath its parent and beside it" was cut only for
+  self-containment (`selfContainmentKeys`); a child type's home section
+  listed every instance under its abstract type node. The cut is now
+  `parentContainmentEdges` over the merged containment (self pairs and
+  cross-type children edges alike) against a loaded pool of every
+  section's raw items plus the lazy pool — cut children re-enter beneath
+  their parent row through the existing lazy child load, the same
+  mechanics the self-recursive case always used.
+- Relation-nested rows: `entityNode` marks its relation children
+  (`data.linked`) and `entityPanelItem` renders `pi pi-link` in place of
+  the type glyph.
+- The source-level root cuts stand: `filterRootSourceItems`
+  (composables README) and `shouldRenderHomeSection` — both key off
+  compiled `lineageBindings`, which the seeded child-type sections carry
+  none of; the component-level cut closes that gap.
+- Specs: components/generated 45 green; SSR smoke 16; arch guard green;
+  docs guard reports only the pre-existing jagua-rs submodule link; the
+  one failing test repo-wide is the pre-existing
+  `useProcessDesignerNodeSync` legacy-draft spec.
