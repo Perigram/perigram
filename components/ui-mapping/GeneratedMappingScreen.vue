@@ -173,7 +173,9 @@ const hostContainer = useHostContainerTraits();
 const coefficient = computed(() => (props.spacingScale == null
   ? spacingCoefficientFor(hostContainer.value, screenWeight(composed.value))
   : props.spacingScale));
-const spacing = reactive(spacingClasses(coefficient.value));
+// The scale tables are frozen; the provided set is a mutable copy so a
+// coefficient change can re-rhythm every mounted surface in place.
+const spacing = reactive({ ...spacingClasses(coefficient.value) });
 watch(coefficient, value => Object.assign(spacing, spacingClasses(value)));
 provide('uiMappingSpacing', spacing);
 // Inline ref operations (a relation chip's Unlink) execute through the
