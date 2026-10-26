@@ -698,6 +698,10 @@ export async function commandDefinitionFor(commandId, auth = {}) {
   };
 }
 
+// The executor file-output contract (SPEC §24) lives in
+// ./executor-payload.js; re-exported for the service-module surface.
+export { executorPayload } from './executor-payload.js';
+
 export async function executeConnectorService(command, { parameters, auth = {} } = {}) {
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
   const install = await installForCommand(command.id, organizationId);

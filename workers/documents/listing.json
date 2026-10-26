@@ -1,9 +1,11 @@
 {
   "pluginId": "documents",
   "name": "Documents",
-  "description": "The generic media/office file types (images, PDF, markdown, CSV, XLSX, DOCX) with their editor surfaces, table projections, and CSV composition as an installable plugin",
-  "version": "1",
-  "requires": [],
+  "description": "The generic media/office file types (images, PDF, markdown, CSV, XLSX, DOCX) with their editor surfaces, table projections, template fills, and CSV composition as an installable plugin",
+  "version": "2",
+  "requires": [
+    "tech-drawing"
+  ],
   "declarations": {
     "types": [
       {
@@ -60,6 +62,54 @@
             "base": "string",
             "identifier": true
           }
+        },
+        "operators": {
+          "fill": {
+            "id": "fill",
+            "species": "construct",
+            "input": {
+              "base": "record",
+              "fields": {
+                "name": {
+                  "base": "string",
+                  "nullable": true
+                },
+                "template": {
+                  "base": "ref",
+                  "accepts": [
+                    "pdf-document"
+                  ]
+                },
+                "values": {
+                  "base": "json",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "render": {
+            "id": "render",
+            "species": "construct",
+            "input": {
+              "base": "record",
+              "fields": {
+                "name": {
+                  "base": "string",
+                  "nullable": true
+                },
+                "source": {
+                  "base": "ref",
+                  "accepts": [
+                    "text-document",
+                    "csv-table",
+                    "xlsx-workbook",
+                    "image",
+                    "dxf-source"
+                  ]
+                }
+              }
+            }
+          }
         }
       },
       {
@@ -102,6 +152,31 @@
           "name": {
             "base": "string",
             "identifier": true
+          }
+        },
+        "operators": {
+          "fill": {
+            "id": "fill",
+            "species": "construct",
+            "input": {
+              "base": "record",
+              "fields": {
+                "name": {
+                  "base": "string",
+                  "nullable": true
+                },
+                "template": {
+                  "base": "ref",
+                  "accepts": [
+                    "text-document"
+                  ]
+                },
+                "values": {
+                  "base": "json",
+                  "nullable": true
+                }
+              }
+            }
           }
         }
       },
@@ -219,6 +294,31 @@
             "base": "string",
             "identifier": true
           }
+        },
+        "operators": {
+          "fill": {
+            "id": "fill",
+            "species": "construct",
+            "input": {
+              "base": "record",
+              "fields": {
+                "name": {
+                  "base": "string",
+                  "nullable": true
+                },
+                "template": {
+                  "base": "ref",
+                  "accepts": [
+                    "xlsx-workbook"
+                  ]
+                },
+                "values": {
+                  "base": "json",
+                  "nullable": true
+                }
+              }
+            }
+          }
         }
       },
       {
@@ -311,6 +411,32 @@
             "base": "string"
           }
         }
+      },
+      {
+        "id": "fill",
+        "label": "Fill template",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "render-pdf",
+        "label": "Render PDF",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": {
+            "base": "json"
+          }
+        }
       }
     ],
     "editors": [
@@ -347,6 +473,18 @@
         "construction": "editor"
       }
     ],
+    "constructions": {
+      "text-document": {
+        "fill": "plugin.documents.fill"
+      },
+      "xlsx-workbook": {
+        "fill": "plugin.documents.fill"
+      },
+      "pdf-document": {
+        "fill": "plugin.documents.fill",
+        "render": "plugin.documents.render-pdf"
+      }
+    },
     "dependencies": [
       {
         "name": "xlsx",

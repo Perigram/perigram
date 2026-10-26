@@ -1,7 +1,8 @@
 // The export executor (SPEC §21): an installed plugin's export binding
 // is the whole truth — the source instance's actual type must match a
 // (typeId, kind) binding exactly, and the bound service returns the
-// file. Exports land in the `files` GridFS bucket (the SPEC §3 Blob
+// exported file through the executor payload contract (see the plugins
+// README). Exports land in the `files` GridFS bucket (the SPEC §3 Blob
 // home) and the command result carries the stored file reference. The
 // caller must hold write on the source instance (the same grant model
 // as compiled run-command actions).
@@ -10,6 +11,7 @@ import { assertEntityAccess } from '../../core/access/service.js';
 import * as filesService from '../files/service.js';
 import { declarationForType, instanceServiceResolver, writeGrantTarget } from '../instances/service.js';
 import { executeConnectorService, exportersForOrganization } from './service.js';
+import { executorPayload } from './executor-payload.js';
 
 export async function generateAttachment({ entities, parameters = {}, auth }) {
   const source = entities.source;
@@ -51,14 +53,15 @@ export async function generateAttachment({ entities, parameters = {}, auth }) {
     { id: binding.service },
     { parameters: await exportServiceInput(instance), auth }
   );
-  const dxf = output && typeof output.dxf === 'string' ? output.dxf : null;
-  if (!dxf) {
-    throw createError({ statusCode: 502, message: `Export service ${binding.service} returned no dxf` });
+  const file = executorPayload(binding.service, output && output.payload);
+  if (!file) {
+    throw createError({ statusCode: 502, message: `Export service ${binding.service} returned no payload` });
   }
 
-  const name = `${instance.name || instance.identity?.name || sourceId}.dxf`;
+  const instanceName = instance.name || instance.identity?.name || sourceId;
+  const name = file.name || `${instanceName}.${binding.kind}`;
   const uploaded = await filesService.uploadFile(
-    Buffer.from(dxf, 'utf8'),
+    file.buffer,
     name,
     {
       userId: auth.userId,
@@ -67,23 +70,23 @@ export async function generateAttachment({ entities, parameters = {}, auth }) {
       kind: binding.kind
     },
     'files',
-    'application/dxf'
+    file.mime
   );
 
-  const file = {
+  const attachment = {
     kind: binding.kind,
     fileId: uploaded.id,
     name,
-    mimeType: 'application/dxf'
+    mimeType: file.mime
   };
   return {
-    attachments: [file],
+    attachments: [attachment],
     events: [{
       type: 'attachment.generationCompleted',
       source: { type: binding.typeId, id: sourceId },
       data: { kind: binding.kind, fileId: uploaded.id }
     }],
-    data: file
+    data: attachment
   };
 }
 

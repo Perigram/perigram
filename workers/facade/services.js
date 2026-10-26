@@ -122,7 +122,8 @@ export async function nestingParts({ fields = {} } = {}) {
 // The sheet-design DXF export: the stored geometry preview and layer data
 // as a layered DXF — layers carry their production names from the layer
 // standards (never bare codes). Input: the record's values ({ fields:
-// { geometry } }). Output: { dxf }.
+// { geometry } }) in → the DXF file through the executor payload
+// contract (SPEC §24) out.
 export async function generateSheetDxf({ fields = {} } = {}) {
   const toExportLayer = (layer) => (layer && occsLayerStandard(layer) ? occsLayerExportName(layer) : layer);
   const dxf = generateLayeredDxf({
@@ -138,7 +139,12 @@ export async function generateSheetDxf({ fields = {} } = {}) {
     error.status = 404;
     throw error;
   }
-  return { dxf };
+  return {
+    payload: {
+      base64: Buffer.from(dxf, 'utf8').toString('base64'),
+      mime: 'application/dxf'
+    }
+  };
 }
 
 // The sheet-design fromLayout construction: a solved layout value in →
