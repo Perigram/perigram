@@ -122,7 +122,8 @@ export async function inviteToCall(auth, conversationKey = null) {
         conversationKey: context.conversationKey,
         room,
         from: auth.userId,
-        fromName: auth.name || ''
+        fromName: auth.name || '',
+        fromAvatarUrl: auth.avatarUrl || ''
     });
     for (const participant of context.participants || []) {
         if (String(participant) === String(auth.userId)) continue;
@@ -131,7 +132,8 @@ export async function inviteToCall(auth, conversationKey = null) {
             conversationKey: context.conversationKey,
             room,
             from: auth.userId,
-            fromName: auth.name || ''
+            fromName: auth.name || '',
+            fromAvatarUrl: auth.avatarUrl || ''
         });
     }
     return { room, conversationKey: context.conversationKey };
