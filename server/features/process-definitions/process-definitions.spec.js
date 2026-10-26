@@ -480,6 +480,41 @@ describe('current process-definition service contract', () => {
     expect(processRepository.updateById).not.toHaveBeenCalledWith('process-active', expect.anything());
   });
 
+  it('demands no migration when removed states belong to another active definition', async () => {
+    // Additive activation law: a draft that never touches another
+    // active's producer removes nothing — its validate diff resolves
+    // against the merged next contract, not the draft alone.
+    const fixture = createPersistedAcceptanceFixture();
+    const typeId = fixture.processDefinition.data.producerOutputs['create_cassette:result'].typeId;
+    const activeData = structuredClone(fixture.processDefinition.data);
+    activeData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({
+      draft: { canUpdateMeta: true }, LEGACY_RETIRED: {}
+    });
+    const draftData = structuredClone(fixture.processDefinition.data);
+    delete draftData.producerOutputs['create_cassette:result'];
+    processRepository.findActiveByOrganization.mockResolvedValue({
+      ...fixture.processDefinition,
+      _id: 'process-active',
+      data: activeData
+    });
+    processRepository.findActiveSetByOrganization.mockResolvedValue([{
+      ...fixture.processDefinition,
+      _id: 'process-active',
+      data: activeData
+    }]);
+    processRepository.findById.mockResolvedValue(draftRecord(draftData));
+    getAppRegistry.mockReturnValue({
+      getInstanceService: type => type === typeId
+        ? { processList: vi.fn().mockResolvedValue([{ _id: 'p-1', states: { main: 'LEGACY_RETIRED' } }]) }
+        : organizationService
+    });
+
+    const validation = await validate('process-draft', adminAuth());
+    expect(validation.ok).toBe(true);
+    expect(validation.migrationPlan).toBeUndefined();
+    expect(validation.diff?.removedInstanceStatees).toEqual([]);
+  });
+
   it('returns the migration plan on validate and keeps the 409 without mappings', async () => {
     const fixture = createPersistedAcceptanceFixture();
     const typeId = fixture.processDefinition.data.producerOutputs['create_cassette:result'].typeId;

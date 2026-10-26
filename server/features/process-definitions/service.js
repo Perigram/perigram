@@ -314,12 +314,27 @@ async function activeContractBaseline(process, auth) {
   }
 }
 
+// Activation is additive: the apply diff, the migration gate, and the
+// migration itself resolve against the NEXT merged contract — this
+// definition atop the other actives — so states owned by other active
+// definitions stay valid targets and never read as removals.
+async function mergedNextContract(process, roles) {
+  const others = (await repository.findActiveSetByOrganization(process.lineage.organizationId))
+    .filter(active => String(active._id) !== String(process._id))
+    .map(active => active.data.activated || active.data);
+  return await compileActiveProcessRuntime(
+    mergeActiveDefinitions([...others, process.data]),
+    roles,
+    process.lineage.organizationId
+  );
+}
+
 async function contractDiffFor(process, auth) {
   const baseline = await activeContractBaseline(process, auth);
   if (!baseline) return null;
   const roles = await loadOrganizationRoles(process.lineage.organizationId);
   try {
-    return diffProcessContracts(baseline, await compileOrganizationProcess(process.data, process.lineage.organizationId, roles));
+    return diffProcessContracts(baseline, await mergedNextContract(process, roles));
   } catch {
     return null;
   }
@@ -371,7 +386,7 @@ export async function validate(id, auth) {
   let migrationPlan = null;
   if (diff?.removedInstanceStatees?.length) {
     try {
-      const nextCompiled = await compileOrganizationProcess(process.data, process.lineage.organizationId, await loadOrganizationRoles(process.lineage.organizationId));
+      const nextCompiled = await mergedNextContract(process, await loadOrganizationRoles(process.lineage.organizationId));
       const stranded = await collectStrandedInstanceStatees(process, auth, nextCompiled);
       if (stranded.length) migrationPlan = buildStatusMigrationPlan(stranded, nextCompiled);
     } catch {
@@ -416,19 +431,7 @@ export async function activate(id, auth, { confirmTypeDeath = false } = {}) {
     ...process.data,
     compiled: await compileOrganizationProcess(process.data, process.lineage.organizationId, roles)
   };
-  // The gate and the migration both resolve against the NEXT merged
-  // contract — this definition atop the other actives — so states owned
-  // by other active definitions stay valid targets.
-  const mergedNext = await compileActiveProcessRuntime(
-    mergeActiveDefinitions([
-      ...(await repository.findActiveSetByOrganization(process.lineage.organizationId))
-        .filter(active => String(active._id) !== String(process._id))
-        .map(active => active.data.activated || active.data),
-      process.data
-    ]),
-    roles,
-    process.lineage.organizationId
-  );
+  const mergedNext = await mergedNextContract(process, roles);
   const stranded = mergedNext ? await collectStrandedInstanceStatees(process, auth, mergedNext) : [];
   const plan = stranded.length ? buildStatusMigrationPlan(stranded, mergedNext) : null;
   // Version record (feature README): re-activating an already-active
