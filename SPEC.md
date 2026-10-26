@@ -58,7 +58,10 @@ Agents operate the platform programmatically through the same boundaries as
 every other client: one curated tool catalog over the existing service seams
 (process definition lifecycle, registry instance reads, compiled action
 execution) exposed through an MCP endpoint and consumed by the
-organization's single AI. The catalog also reaches outward and downward:
+organization's single AI. The catalog teaches its own vocabulary: socket
+handles, roles, and each constructible type's construction modes with
+its default arrive on the tool surface (`detail` views), so a composing
+agent works from the tools alone. The catalog also reaches outward and downward:
 `web_search` queries the public web through the organization's configured
 search provider (self-hosted SearXNG or keyed Tavily — an org without one
 offers the tool nowhere), and `read_attachment` reads files attached to the

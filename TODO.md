@@ -652,3 +652,15 @@ live at `e2e/zz-genui-look-probe*.spec.js`.
   screen — the rail reads as a minor column (~quarter page), record body
   keeps its fact columns; if anything still looks wrong, name the record
   and width.
+
+## Agent vocabulary construction modes (SPEC §3)
+- [ ] WAITING — owner verification: the authoring vocabulary serves
+  per-type construction modes with defaults (`detail: 'construction'`)
+  off the process-definitions projection; the guide's configure law
+  points at it.
+
+### Agent Notes (2026-10-26, agent/construction-detail-20261026-0833)
+- Served `domain.construction` rows `{modes, defaultMode}` through
+  `listConstructionModes`; dialog-shaped `inputs`/`modeInputs` stay
+  designer-side (construction.inputs derives from declared fields).
+- Validation results in the session handoff report.

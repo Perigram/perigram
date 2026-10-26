@@ -502,7 +502,11 @@ Agent authoring rides the same headless seam the designer uses
 server-owned activation records preserved, the same step grammar and
 legality gates; the tool catalog in
 [agent-bots](../agent-bots/README.md) serves them as
-`compose_process_definition` / `edit_process_definition`). The seam
+`compose_process_definition` / `edit_process_definition`).
+`listConstructionModes(organizationId)` serves the projected domain's
+per-type construction modes with each type's default to the
+[agent-bots](../agent-bots/README.md) vocabulary's `detail:
+'construction'` view. The seam
 resolves ports against the **draft-overlay domain**: every declaration
 step (`declareClass`/`declareTypeRef`/`declareField`/`wireDeclaration`)
 re-seats the session onto `declarationOverlayDomain` over the projected
