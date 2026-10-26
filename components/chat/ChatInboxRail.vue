@@ -306,11 +306,16 @@ const onRailPointerDown = (event) => {
         } catch {}
     }, { once: true })
 }
+// The component root is the drag surface; $el is immune to ref-binding
+// races during hydration.
+const rootEl = () => getCurrentInstance()?.proxy?.$el || railRoot.value
 onMounted(() => {
-    if (railRoot.value) railRoot.value.addEventListener('pointerdown', onRailPointerDown)
+    const el = rootEl()
+    if (el) el.addEventListener('pointerdown', onRailPointerDown)
 })
 onBeforeUnmount(() => {
-    if (railRoot.value) railRoot.value.removeEventListener('pointerdown', onRailPointerDown)
+    const el = rootEl()
+    if (el) el.removeEventListener('pointerdown', onRailPointerDown)
     if (railMove && typeof window !== 'undefined') window.removeEventListener('pointermove', railMove)
 })
 
