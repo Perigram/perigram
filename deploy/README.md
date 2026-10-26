@@ -35,10 +35,13 @@ Editing the pipeline means editing that branch.
 - Rollout: the old `perigram-staging` container is removed and recreated with
   `--restart unless-stopped --network=host` on port `3001`. The build happens
   before the removal, so failed builds leave the previous container serving.
-  After rollout the pipeline verifies the served app is this build: the
-  rendered document must reference the entry chunk of the image the pipeline
-  built (a port squatter or a crash-looped container serving an earlier
-  build fails the deploy instead of going green).
+  After rollout the pipeline verifies the served app is this build: every
+  `/_nuxt` chunk the served document references must exist in the image the
+  pipeline built (chunk names are content-hashed; a port squatter or a
+  crash-looped container serving an earlier build fails the deploy instead
+  of going green). The rendered document itself ships `max-age=0` — only
+  hashed assets and icons/fonts are cacheable — so a deploy is visible the
+  moment it lands, never a shared-cache day behind.
 - Public edge: nginx on zeus — the `tls-front-443` / `tls-front` /
   `tls-portprobe` containers share `/home/storage/nginx-mixed.conf`; the
   `perigram.sodalab.pro` server block proxies to `http://192.168.0.230:3001`
