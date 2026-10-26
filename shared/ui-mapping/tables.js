@@ -243,7 +243,10 @@ export const SCALAR_BASES = Object.freeze(['string', 'number', 'quantity', 'inst
 // Layout vocabulary: the only layout classes the materializations may use.
 // Components never declare gaps, grids, or stacks of their own — PrimeVue
 // components own their internal layout, and everything else comes from
-// this table so the design system stays procedural and overridable.
+// this table so the design system stays procedural and overridable. The
+// layout language (SPEC → Layout language) owns this table: every recipe
+// registers under an atom or an ambient set (LAYOUT_ATOMS/LAYOUT_AMBIENT
+// below), and the engine spec pins that partition.
 export const LAYOUT = Object.freeze({
   stack: 'flex flex-col gap-6',
   stackTight: 'flex flex-col gap-3',
@@ -344,6 +347,31 @@ export const LAYOUT = Object.freeze({
   specList: 'flex flex-col divide-y divide-content-border',
   specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
   dialog: 'w-full max-w-full sm:w-[36rem]'
+});
+
+// The layout-language registries (SPEC → Layout language): the closed
+// atom vocabulary and the ambient recipe sets atoms compose under. The
+// engine spec pins the partition over LAYOUT — a recipe outside the
+// registries is a vocabulary defect. The `tabs`, `placement`, and `stub`
+// atoms materialize as components (Tabs in RegionChildren, PlacementBox,
+// the RegionBlock stub slot), so their recipe lists are empty.
+export const LAYOUT_ATOMS = Object.freeze({
+  stack: Object.freeze(['stack', 'stackTight', 'panelBody', 'ganttStack', 'calendarStack']),
+  row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
+  grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewBand']),
+  well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack']),
+  tabs: Object.freeze([]),
+  placement: Object.freeze([]),
+  stub: Object.freeze([]),
+  pack: Object.freeze(['packRow'])
+});
+
+export const LAYOUT_AMBIENT = Object.freeze({
+  cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText']),
+  clamps: Object.freeze(['nameClamp', 'chipClamp', 'linkClamp']),
+  chrome: Object.freeze(['clip', 'rowSurface', 'bounded', 'scrollX', 'dialog', 'headerRow', 'headerIdentity', 'ganttIdentity']),
+  geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
 });
 
 // Row-variant field budgets: dense rows show a bounded number of fields and
