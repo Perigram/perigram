@@ -1751,7 +1751,8 @@ const RAIL_WIDTH_MIN = 16
 const RAIL_WIDTH_MAX = 34
 const RAIL_WIDTH_KEY = 'chat-rail-width'
 const loadRailWidth = () => {
-    const stored = Number.parseFloat(process.client ? window.localStorage.getItem(RAIL_WIDTH_KEY) || '' : '')
+    if (typeof window === 'undefined') return 20
+    const stored = Number.parseFloat(window.localStorage.getItem(RAIL_WIDTH_KEY) || '')
     return Number.isFinite(stored)
         ? Math.min(RAIL_WIDTH_MAX, Math.max(RAIL_WIDTH_MIN, stored))
         : 20
@@ -1828,9 +1829,9 @@ const searchParticipants = computed(() => {
     const rows = []
     if (activeConversation.value?.conversationKind === 'group') {
         for (const member of groupParticipants.value) {
-            rows.push({ id: String(member.id), label: member.name || String(member.id) })
+            rows.push({ id: String(member.id), label: member.name || userNames.value[String(member.id)] || '' })
         }
-        return rows
+        return rows.filter(row => row.label)
     }
     const participant = activeConversation.value?.participant
     if (participant) {
