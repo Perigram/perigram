@@ -153,22 +153,34 @@ jobs:
             perigram:staging
       - name: verify the served app is this build
         # A squatted :3001 or a crash-looped container serves an earlier
-        # build while every other check stays green: the served document
-        # must reference the entry chunk of the image this pipeline built.
+        # build while every other check stays green: every chunk the
+        # served document references must exist in the image this
+        # pipeline built (chunk names are content-hashed per build). The
+        # job container sits on the runner bridge — probes ride a
+        # host-networked container (the app image ships curl).
         run: |
           [ -n "$(docker ps --filter name=perigram-staging --filter status=running -q)" ] \
             || { echo "perigram-staging is not running" >&2; exit 1; }
-          ENTRY=$(docker run --rm --entrypoint sh perigram:staging \
-            -c "ls /src/.output/public/_nuxt/ | grep -m1 '^entry.*\.js\$'")
-          echo "image entry chunk: $ENTRY"
           n=0
-          until docker run --rm --network host perigram:staging \
-              sh -c "curl -s -m 5 http://127.0.0.1:3001/" | grep -q "$ENTRY"; do
+          until REF=$(docker run --rm --network host perigram:staging \
+              sh -c "curl -s -m 5 http://127.0.0.1:3001/" \
+              | grep -oE '/_nuxt/[A-Za-z0-9._-]+\.js' | sort -u | head -3) && [ -n "$REF" ]; do
             n=$((n+1))
             if [ $n -ge 15 ]; then
-              echo "served HTML never referenced $ENTRY — :3001 serves a different build; an orphan process may hold the port" >&2
+              echo "app never served _nuxt chunks" >&2
               exit 1
             fi
             sleep 2
           done
-          echo "served app matches the built image"
+          IMG=$(docker run --rm --entrypoint sh perigram:staging \
+            -c "ls /src/.output/public/_nuxt/")
+          miss=0
+          while read -r f; do
+            echo "$IMG" | grep -qx "${f#/_nuxt/}" \
+              || { echo "served $f not in built image — :3001 serves a different build" >&2; miss=1; }
+          done <<< "$REF"
+          if [ "$miss" -eq 0 ]; then
+            echo "served app matches the built image"
+          else
+            exit 1
+          fi
