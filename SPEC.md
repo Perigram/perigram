@@ -1214,11 +1214,11 @@ the full row, and overflow stays inside the child surfaces' own bounded
 scrolls.
 
 ### 22.3 A hosted surface carries its title once (owner direction
-2026-10-23)
-The workspace pane tab names the screen or record it hosts. The hosted
-surface keeps its header — lifecycle state and actions — beside its
-collections; its title surfaces (list header label, record identity
-block) stay with the pane strip.
+2026-10-23; record header amendment 2026-10-26)
+The host that names a screen owns that name: the pane strip's tab, the
+routed page's title bar. A hosted list surface renders its label through
+its host alone. A record page keeps its full header in every host —
+identity block, state surface, actions — beside its collections.
 
 ### 22.4 Presentation has one home per concern (owner direction 2026-10-21)
 Action presentation, action applicability, and record/picker labels

@@ -108,7 +108,7 @@ beside the transition history in `StateHistory`.
   board, and a derived board may switch back — one icon toggle in the
   header cluster; a stored preference for a non-switchable collection is
   ignored, so the derivation stays the default and the switch stays clear
-  of shape-specialized projections (timeline, stats, carousel, the handful
+  of shape-specialized projections (timeline, stats, gallery, the handful
   list).
 
 ## Components
@@ -121,7 +121,11 @@ beside the transition history in `StateHistory`.
   `regionProps`/`regionEvents` passthrough. The root measures itself and
   provides the page container record when no host declared one, so step
   engagement and budgets resolve against the real box (a designer preview
-  box or narrow viewport arranges narrow). It owns the generated create
+  box or narrow viewport arranges narrow). The root also provides the
+  rhythm set: the spacing coefficient derives from the host record's
+  density tier and the screen's composed weight
+  (`spacingCoefficientFor`/`screenWeight`), and an explicit
+  `spacingScale` prop (the showcase slider) overrides the derivation. It owns the generated create
   and link dialogs (`StandardDialog`),
   ConfirmDialog for destructive actions, and Toast feedback on runs.
   Launch behavior follows `planActionLaunch` (see the shared README's
@@ -245,8 +249,11 @@ beside the transition history in `StateHistory`.
   and month navigation is local view state — the month opens on the first
   loaded instance's month. Labels and weekday headers format through the
   active locale.
-- `CarouselGrid.vue` — the large media collection projection: a circular
-  PrimeVue Carousel of clipped preview cards.
+- `GalleryCollection.vue` — the preview-dominated collection projection:
+  a raw PrimeVue Galleria — a large preview band (container-stepped
+  `LAYOUT.galleryItem`) with the identity as the caption link under the
+  `onOpen` contract, and a thumbnail strip whose per-row count derives
+  from the container record.
 - `BreadcrumbTrail.vue` — the lineage trail: a Breadcrumb of ancestor
   identities walked from the instance's lineage through the pool.
   Ancestors are navigation: each crumb opens its instance through the
@@ -280,7 +287,9 @@ beside the transition history in `StateHistory`.
   renders on the instance surfaces — row menus, the detail header, and
   the machine-served transitions. An unscoped list of a type that can be
   someone's child (a declared children edge names it) composes the
-  containment cross-cut: every instance lists with its parent beside the
+  containment cross-cut (`crossCut` on the composed node — scoped sources
+  render inside the surface that already states their parent): every
+  instance lists with its parent beside the
   identity (`ParentRef.vue` — the parent type's icon plus the parent's
   resolved label, non-interactive; the region host lazily overlays loaded
   parent types onto the pool through the same `loadType` seam the tree
@@ -290,7 +299,8 @@ beside the transition history in `StateHistory`.
   queries and bounded item tokens (viewport breakpoints lie inside
   panels), each Card clipped (`overflow-hidden`) on the stock anatomy —
   preview as `#header`, identity + status in `#title`, type label (with
-  the row's `ParentRef` parent context when the type is someone's child)
+  the row's `ParentRef` parent context when the collection composes the
+  cross-cut)
   in `#subtitle`, labeled budgeted facts in `#content`. Card ordering
   lives in the region header's sort control (RegionBlock applies the
   `sortKeys` contract through the shared comparator before the grid
@@ -334,9 +344,9 @@ beside the transition history in `StateHistory`.
   template hosts plus the `navigation` prop — `{ icon, label, command }`
   threaded through GeneratedMappingScreen → RegionBlock to the depth-0
   header; a host that opened the record inside another surface injects its
-  back affordance ahead of the identity block), then one identity line (a
-  pane-hosted record keeps its title in the pane tab: `hideTitle` leaves
-  the state surface and the action cluster): Avatar, the title with the
+  back affordance ahead of the identity block), then one identity line,
+  rendered in every host (the pane tab names the record beside it, and
+  the header stays the record page's own title surface): Avatar, the title with the
   localized type label muted below — both resolved through the one
   type-label chain ([shared/ui-mapping](../../shared/ui-mapping/README.md);
   instance ids are private display vocabulary) — and exactly one

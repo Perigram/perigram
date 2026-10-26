@@ -122,7 +122,8 @@ The container-traits measurement seam of the generative UI
 `useContainerTraits(elRef, { hostKind, density })` observes one host
 element and resolves the full container-trait record
 (`resolveContainerTraits` — width step from `CONTAINER_WIDTH_STEPS`,
-height/scroll from `HOST_PROFILES`, density passthrough), re-resolving on
+height/scroll/density from `HOST_PROFILES`; an explicit density is the
+placement-box inheritance channel), re-resolving on
 host resize; arrangement fragments (the peer-column engagement in
 [components/ui-mapping](../components/ui-mapping/README.md)) measure where
 they render. `provideContainerTraits({ hostKind, elRef? })` is the host
@@ -136,7 +137,9 @@ column, a peer-column track): its own measured width is the truth while
 height/scroll/density inherit the host record it renders in.
 `useHostContainerTraits()` resolves the nearest record — the page profile
 is the providerless default — and budgets consume it (compact table
-columns in `narrow`/`medium` boxes, compact card facts in `narrow` ones).
+columns in `narrow`/`medium` boxes, compact card facts in `narrow` ones);
+the screen's spacing coefficient resolves from the record's density tier
+and the screen's composed weight.
 
 ## useStateController
 

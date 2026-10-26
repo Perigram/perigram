@@ -157,7 +157,7 @@ surfaces. Construction-input labels are authored vocabulary resolved at the
 domain projection (parent type name, start-cased row name).
 
 **List layouts.** `resolveListLayout(type, { size, stateful })` → one of
-`table`, `card-grid`, `carousel`, `timeline`, `stats`, `list`, `board`,
+`table`, `card-grid`, `gallery`, `timeline`, `stats`, `list`, `board`,
 `gantt`, `calendar`, from one matcher table over `analyzeTypeShape(type)` —
 the layout derives from declaration data alone:
 
@@ -165,7 +165,8 @@ the layout derives from declaration data alone:
 |---|---|
 | prose-dominant | `timeline` (chronological) |
 | percent/quantity-dominant | `stats` (StatGrid cards with the `text-metric` role) |
-| media | `card-grid`; large media collections lay out as a `carousel` |
+| visual payload preview + large | `gallery` (the preview-dominated projection) |
+| media | `card-grid` |
 | two declared instants | `gantt` (an interval outranks chronology — the stronger structure) |
 | lone instant | `calendar` (`temporalFieldsFor` derives the fields in declaration order) |
 | process class whose state vocabulary spans ≥ `BOARD_MIN_COLUMNS` | `board` |
@@ -315,6 +316,8 @@ data. `RENDERABLE_PREVIEW_MODES`
 (`dxf`, `svg`, `sketch`, `image`, `pdf`, `docx`, `table`,
 `workbook`, `text`); app-side materializations import it instead of
 restating the list, and every other mode degrades to a payload download.
+`VISUAL_PREVIEW_MODES` (`image`, `geometry`) lists the modes that render
+as visual media — the gallery projection's preview-dominance signal.
 
 ### Filterable fields
 
@@ -431,7 +434,8 @@ materialization reads the same numbers:
 | `CHILDREN_TABS_AT`, `HEADER_ACTIONS_INLINE` | child regions per tab, inline header actions before the overflow menu |
 | `ROW_FIELD_BUDGET`, `SCALAR_BASES` | dense-row field count, scalar base set |
 | `SMALL_LIST_AT`, `BOARD_MIN_COLUMNS` | bare-list size, board column floor |
-| `CONTAINER_WIDTH_STEPS`, `HOST_PROFILES` | container width steps (`medium` 40rem, `wide` 60rem — the form grid and record split materialize them), host fallback traits (page, pane, dialog, popup, mobile tab) |
+| `CONTAINER_WIDTH_STEPS`, `HOST_PROFILES` | container width steps (`medium` 40rem, `wide` 60rem — the form grid and record split materialize them), host fallback traits (page, pane, dialog, popup, mobile tab) incl. the density tier per host |
+| `SPACING_WEIGHT_AT` | composed screen weight that tightens the rhythm one step |
 | `FULL_BREADTH_LAYOUTS`, `BOUNDED_GROWTH_LAYOUTS`, `PAGINATED_GROWTH_LAYOUTS` | data-trait derivations: full-row layouts, scroll-owning layouts, layouts that page past `TABLE_PAGINATE_AT` |
 
 `LAYOUT` is the one layout-class vocabulary materializations may use —
@@ -467,10 +471,14 @@ random-world spec pins its domains over every composed node.
 **Container traits** (`resolveContainerTraits({ widthRem, hostKind,
 density, height?, scroll? })`) resolve the host side: the measured width
 maps to the `CONTAINER_WIDTH_STEPS` steps (narrow / medium 40rem / wide
-60rem), and `HOST_PROFILES` supply the fallback `height`/`scroll` per host
+60rem), and `HOST_PROFILES` supply the fallback `height`/`scroll`/`density`
+per host
 kind — the measured box wins over the profile, and a placement box
 overrides height/scroll with the host record's values while measuring its
-own width. The app-side measurement seam is `useContainerTraits`
+own width. Density derives from the host profile (bounded hosts compact,
+pages neutral) and caps at the compact tier for narrow boxes; an explicit
+value (a placement box inheriting its host's density) wins over the
+profile. The app-side measurement seam is `useContainerTraits`
 ([composables](../../composables/README.md)): hosts declare their profile
 through `provideContainerTraits` (the pane measures itself, fixed-shape
 hosts provide the profile, the routed screen provides the measured page
@@ -478,13 +486,15 @@ record when no host declared one), placement boxes measure where they
 render, and surfaces resolve the nearest record through
 `useHostContainerTraits` (the page profile is the providerless default).
 Budgets consume the resolved record — a `narrow`/`medium` box sheds table
-columns (compact column scale) and a `narrow` box sheds card facts.
+columns (compact column scale) and a `narrow` box sheds card facts; the
+screen's spacing coefficient resolves from the record's density and the
+screen's composed weight (`spacingCoefficientFor` + `screenWeight`).
 
 Sibling arrangement is weight-driven, compose-time, and step-carried.
 `estimateRegionWeight` estimates each region's full rendered height from
 its own data — facts, structural fields, and relation refs for detail
 regions; per-layout row factors (`ROW_WEIGHT_BY_LAYOUT`: a preview card ≈ 4
-table rows, a board card ≈ 4, a carousel card ≈ 3, a timeline entry ≈ 2)
+table rows, a board card ≈ 4, a gallery item ≈ 3, a timeline entry ≈ 2)
 times actual instance counts for lists (with the same size classes the
 materialization derives, so the weighted layout is the rendered layout),
 plus the wrapped relation-chip rows the first declared relation adds.
@@ -529,14 +539,19 @@ composed screen; loading/denied/error sections keep their state surfaces
 in the arrangement). Every weight is a compose-time value
 over the composed tree.
 
-One global spacing coefficient (0.5–2, the showcase slider)
-selects the rhythm set (`spacingClasses` over the literal
-`SPACING_SCALES` table): stack rhythm, section gaps, fact-row padding,
-chip-row leading, toolbar gaps, control size, and
-editor size
-move together — real coefficients, Tailwind-scannable by construction. The rule binds everywhere siblings exist: detail nodes carry
+The spacing coefficient (0.5–2) selects the rhythm set
+(`spacingClasses` over the literal `SPACING_SCALES` table): stack rhythm,
+section gaps, fact-row padding, chip-row leading, toolbar gaps, control
+size, and editor size move together — real coefficients,
+Tailwind-scannable by construction. The coefficient derives from context
+and data (`spacingCoefficientFor`, the one derivation): the host
+record's density tier (bounded hosts and narrow boxes ride the compact
+rhythm) tightened one step when the screen's composed weight passes
+`SPACING_WEIGHT_AT`, floored at the tightest; an explicit coefficient
+(the showcase slider) overrides the derivation. The rule binds everywhere siblings exist: detail nodes carry
 `childArrangement` for their child regions, and the composed screen carries
-`regionsArrangement` for its top-level sections. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and
+`regionsArrangement` for its top-level sections. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` (depth from
+two rides the tight rhythm) and
 `TYPE_BY_LEVEL` (heading typography role per level), so spacing and text
 scale are data too. Widths stay in
 the vocabulary (`LAYOUT.clip`, `LAYOUT.bounded` over the bounded-grid-item

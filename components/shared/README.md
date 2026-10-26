@@ -420,7 +420,9 @@ dialog); the chip, the
 compact micro card, and the referenced entity card all open it through
 `useEntityPopup`'s `open`/`openable` seam, so a type absent from the
 served type view renders an inert
-chip — no dead link. `interactive: false` renders the inline card
+chip — no dead link. An openable chip or micro card states its
+interactivity on hover: one step up the surface ladder
+(`hover:bg-subtle`) beside the pointer cursor. `interactive: false` renders the inline card
 non-expandable for non-interactive rows such as explorer entries and static
 summaries. Contextual relation operations (the owner-bound Unlink a
 relation gallery passes through `contextActionEntries`) render as the ref's
