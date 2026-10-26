@@ -2355,7 +2355,7 @@ const loadNewChatUsers = async () => {
 const directoryUserOption = (entry) => ({
     type: 'user',
     value: entry._id,
-    label: entry.name || entry._id,
+    label: entry.identity?.name || entry._id,
     instance: entry
 })
 const { query: newChatSearch, results: newChatDirectoryOptions, searching: newChatSearching } = useDirectoryUserSearch()
