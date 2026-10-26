@@ -125,7 +125,7 @@ const kindOptions = computed(() => [
 
 const participantName = (id) => {
     const participant = props.participants.find(row => String(row.id) === String(id))
-    return participant?.label || id
+    return participant?.label || t('common.user')
 }
 
 const snippetOf = (row) => {
