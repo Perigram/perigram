@@ -497,8 +497,12 @@ beside the transition history in `StateHistory`.
   renders its ActionButton; a sibling group (several creation modes, one
   type) renders one PrimeVue `InputGroup` composing the creation-mode
   `Select` (options from `creationModeLabel`, lead action selected) with
-  the create ActionButton, which dispatches the selected action through
-  the ordinary run channel.
+  an attached create `Button` — icon/severity from `resolveActionButton`,
+  accessible name from the caption chain (`actionLabelKey`/`localizedLabel`
+  under the context label) — that dispatches the selected action through
+  the ordinary run channel. A grouped button renders attached: the
+  standalone icon-button look (ActionButton's icon-only channel) floats
+  inside a group.
 
 Entity Select/MultiSelect come through the shared wrappers
 (`components/shared/InstanceSelect.vue`, `InstanceMultiSelect.vue`), which
