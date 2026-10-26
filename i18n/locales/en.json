@@ -44,6 +44,7 @@
         "pending": "Pending",
         "back": "Back",
         "next": "Next",
+        "previous": "Previous",
         "search": "Search",
         "filter": "Filter",
         "sort": "Sort",

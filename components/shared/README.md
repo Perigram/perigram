@@ -697,7 +697,9 @@ refs render chips; every ref opens the shared record popup on click. One
 image renders at natural
 aspect inside fixed bounds (`max-h`); clicking any image opens it centered
 in a full-size `StandardDialog` (the standard modal surface; no component
--local lightbox chrome). Videos render native `<video controls>` players
+-local lightbox chrome). The dialog previews the message's whole openable
+set in send order — side arrows, arrow keys, and a position counter walk
+it with wrap-around. Videos render native `<video controls>` players
 (bounded width and height); audio keeps the native audio player. Audio and
 video players claim the app's now-playing channel on `play` (one media
 element plays at a time across surfaces); a source surface unmounting
