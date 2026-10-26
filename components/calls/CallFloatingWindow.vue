@@ -4,6 +4,7 @@
          header; dock returns the call to a home workspace tab. -->
     <div
         v-if="callsStore.floatingRoom"
+        ref="windowEl"
         class="fixed bottom-6 right-6 z-40 hidden w-call-window h-call-window max-h-dvh max-w-full flex-col overflow-hidden rounded-ui bg-content shadow-overlay md:flex"
         :style="windowStyle"
         data-floating-call
@@ -11,7 +12,7 @@
         <header
             class="flex h-9 shrink-0 cursor-grab items-center gap-1 px-2 select-none"
             :class="{ 'cursor-grabbing': dragging }"
-            @pointerdown="startDrag"
+            @pointerdown="event => startDrag(event, windowEl)"
         >
             <i class="pi pi-phone shrink-0 text-primary" aria-hidden="true" />
             <span class="min-w-0 flex-1 truncate text-label">{{ roomLabel }}</span>
@@ -48,33 +49,28 @@
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent, onBeforeUnmount, ref } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue';
 import Button from 'primevue/button';
 // The panel chunk loads only when a floating room actually exists.
 const CallPanel = defineAsyncComponent(() => import('~/components/calls/CallPanel.vue'));
 import { useI18n } from 'vue-i18n';
 import { useCallsStore } from '~/stores/calls';
-import { useAuthStore } from '~/stores/auth';
-import { useSupportChatStore } from '~/stores/supportChat';
 import { useCallRouting } from '~/composables/useCallRouting.js';
-import { callRoomLabel } from '~/utils/call-rooms.js';
+import { useCallRoomLabel } from '~/composables/useCallRoomLabel.js';
+import { useFloatingDrag } from '~/composables/useFloatingDrag.js';
 
 const callsStore = useCallsStore();
-const authStore = useAuthStore();
-const supportChatStore = useSupportChatStore();
 const { t } = useI18n();
 const { openCallInWorkspaceTab } = useCallRouting();
 
 // The header names the call (conversation or caller), not the generic
 // word — same resolver the home sidebar rows use.
-const roomLabel = computed(() => callRoomLabel(callsStore.floatingRoom, supportChatStore.conversations, {
-    userId: authStore.userData?.userId,
-    orgName: authStore.organizationData?.identity?.name || undefined,
-    fallback: t('call.title')
-}));
+const callRoomLabel = useCallRoomLabel();
+const roomLabel = computed(() => callRoomLabel(callsStore.floatingRoom, t('call.title')));
 
-const dragging = ref(false);
-let dragState = null;
+const windowEl = ref(null);
+const { startDrag, applyPersisted, dragging } = useFloatingDrag({ storageKey: 'perigram:call-window-position' });
+watch(windowEl, el => applyPersisted(el));
 
 // Window size: token defaults, user-resizable, persisted per browser.
 const SIZE_KEY = 'perigram:call-window-size';
@@ -110,7 +106,7 @@ const cssPixels = (name, fallback) => {
 let resizeState = null;
 const startResize = (event) => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
-    const target = event.currentTarget?.closest('[data-floating-call]');
+    const target = windowEl.value;
     if (!target) return;
     const rect = target.getBoundingClientRect();
     const { minW, minH, maxW, maxH } = limits();
@@ -166,46 +162,7 @@ const dock = () => {
     openCallInWorkspaceTab(room);
 };
 
-const startDrag = (event) => {
-    if (event.button !== 0 && event.pointerType === 'mouse') return;
-    const target = event.currentTarget?.closest('[data-floating-call]');
-    if (!target) return;
-    const rect = target.getBoundingClientRect();
-    dragState = {
-        target,
-        startX: event.clientX,
-        startY: event.clientY,
-        left: rect.left,
-        top: rect.top
-    };
-    dragging.value = true;
-    target.style.right = 'auto';
-    target.style.bottom = 'auto';
-    target.style.left = `${rect.left}px`;
-    target.style.top = `${rect.top}px`;
-    window.addEventListener('pointermove', moveDrag);
-    window.addEventListener('pointerup', endDrag);
-    event.preventDefault();
-};
-
-const moveDrag = (event) => {
-    if (!dragState) return;
-    const nextLeft = dragState.left + event.clientX - dragState.startX;
-    const nextTop = dragState.top + event.clientY - dragState.startY;
-    dragState.target.style.left = `${Math.max(0, Math.min(nextLeft, window.innerWidth - 80))}px`;
-    dragState.target.style.top = `${Math.max(0, Math.min(nextTop, window.innerHeight - 48))}px`;
-};
-
-const endDrag = () => {
-    dragState = null;
-    dragging.value = false;
-    window.removeEventListener('pointermove', moveDrag);
-    window.removeEventListener('pointerup', endDrag);
-};
-
 onBeforeUnmount(() => {
-    window.removeEventListener('pointermove', moveDrag);
-    window.removeEventListener('pointerup', endDrag);
     window.removeEventListener('pointermove', moveResize);
     window.removeEventListener('pointerup', endResize);
 });

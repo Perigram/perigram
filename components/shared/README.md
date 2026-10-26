@@ -709,7 +709,8 @@ size in the title); a click opens the in-app viewer when one exists —
 PDF through the browser's engine, markdown through the shared formatted
 pipeline, other text kinds preformatted; matching is mime-exact, so
 office containers download — with the download action beside the
-preview's title. The message menu offers one download entry per
+preview's title, which carries the file's mime type and size as
+supporting meta. The message menu offers one download entry per
 attachment (labels cropped).
 The root hugs its content so sender-side message columns can right-align
 the block, and every name crops through the `min-w-0`/`truncate` chain.
@@ -806,6 +807,12 @@ transcription stay in the host composer.
   from `md` up; the `fill` prop bounds the dialog root to the viewport and
   turns the content area into a non-scrolling flex column (media viewers,
   call surfaces — content owns the layout instead of the dialog scrolling).
+  The `title`/`subtitle` props with the `#header-actions` slot render the
+  popup header row for dynamic titles: a truncating title, an optional
+  muted subtitle (file mime/size, record meta), and trailing icon actions
+  before the dialog's close button (EntityPopup's expand, the attachment
+  preview's download). Static-label dialogs keep PrimeVue's own `header`
+  attr; hand-rolled `#header` rows are defects.
 - **Default confirmation host**: the app layout (`layouts/app.vue`) mounts the
   single default-group PrimeVue `ConfirmDialog`; feature surfaces call
   `useConfirm()` without a group and never mount their own host — a second

@@ -43,13 +43,23 @@ Parent: [components](../README.md).
   height, internally scrollable so the stage keeps the remaining share. Direct and group calls show
   their persistent app chat; org-room calls render stage-only. The
   floating drawer/mobile surfaces keep the full-screen call dialog.
+- `CallDialog.vue` is the one full-screen call dialog: the bounded `fill`
+  `StandardDialog` (viewport-capped root, non-scrolling content column)
+  hosting one `CallPanel`, titled by the conversation or caller name.
+  Mobile invites, chat-hosted calls, and the parked-call expansion all
+  host it; hosts that keep the call alive on close pass `park-on-unmount`.
 - `IncomingCalls.vue` is the global ring surface: floating invite cards
   (Join/Decline) mounted by the app shell for every authenticated user.
   Only *new* calls float; ongoing rooms are listed in the home sidebar and
   in chats. Joining opens the call as a home workspace tab (mobile keeps
   the full-screen dialog).
 - `CallFloatingWindow.vue` is the absolute floating call window: a draggable
-  fixed panel above the app that hosts a popped-out `CallPanel`. Docking
+  fixed panel above the app that hosts a popped-out `CallPanel`. Dragging
+  rides the shared floating-panel drag kernel
+  ([`useFloatingDrag`](../../composables/README.md)): pointer-following
+  move clamped to the viewport with the resting position persisted per
+  browser; the window's size is resizable and persisted the same way.
+  Docking
   returns the call to a home workspace tab. The mobile counterpart — the
   parked-call entry in the top lane with its reopen dialog — lives beside
   the now-playing dock in [components/media](../media/README.md).
@@ -133,11 +143,15 @@ another route); organizations without a generated home workspace fall back
 to the floating window, and mobile keeps the full-screen dialog. Accepted
 invites and docked calls are parked as `pendingTabRoom` and consumed by
 the home workspace's watcher. The mobile and chat-hosted full-screen call
-dialogs are `fill` `StandardDialog`s: the dialog root is capped to the
+dialogs are the one `CallDialog` host: the dialog root is capped to the
 viewport (full-bleed on mobile, viewport-minus-margins on desktop) and
 the content area is a non-scrolling flex column, so the call stage owns
 every pixel and the control dock stays in view; the dialog header names
-the conversation (chat host) or the caller (mobile invites).
+the conversation (chat host) or the caller (mobile invites). Room labels
+resolve through `composables/useCallRoomLabel.js` — the one resolver over
+the loaded conversation summaries and the auth store — so the floating
+window, the media dock's parked-call pill, and the sidebar's active-room
+rows agree on the name.
 
 ## Media plumbing
 
