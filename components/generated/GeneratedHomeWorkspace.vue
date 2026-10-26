@@ -482,13 +482,10 @@ const childrenByKey = computed(() => {
 });
 const sectionRootKeys = computed(() => new Set(sectionItems.value.map(item => item.key)));
 
-// The explorer tree is the TYPE hierarchy from the render contracts: the
-// registry bundle's declared containment (children edges) nests types under
-// their parents, and manifest-backed types render as nodes. A ROOT type's
-// home-section instances hang beneath its panel; a nested child-type row
-// opens its compiled typeList screen — instance rows live under root
-// panels and beneath parent instances, so the type list and the instance
-// tree never blend.
+// The explorer panels: one per stationed type that no other stationed
+// type contains — a contained type's instances reach the sidebar beneath
+// their parent instances. Panel rows are the type's home-section
+// instances alone; the type list and the instance tree never blend.
 
 const screenfulTypes = computed(() => new Set((authStore.screenManifest || [])
   .filter(screen => screen.typeId && screen.template === 'typeList')
@@ -626,9 +623,7 @@ function typePanelItem(node) {
     // type panel never reads as one of its own rows.
     typeId: node.data.typeId,
     command: menuCommand(node.key, () => openTypeScreen(node.data.screen)),
-    items: (node.children || []).map(child => (
-      child.data?.typeId ? typePanelItem(child) : entityPanelItem(child)
-    ))
+    items: (node.children || []).map(child => entityPanelItem(child))
   };
 }
 
@@ -705,31 +700,25 @@ const activeOrganizationLabel = computed(() => {
 });
 
 const explorerNodes = computed(() => {
-  const childTypes = new Map();
+  // A type nested under another stationed type through the containment
+  // graph never panels on its own: its instances live beneath their
+  // parent instances, so a root panel beside the parent's would duplicate
+  // the whole subtree. The menu renders type panels for un-nested
+  // stationed types alone — instance rows only, no type rows.
+  const nestedTypes = new Set();
   for (const triple of effectiveContainment()) {
-    // Self-containment is instance-level nesting (entityNode children),
-    // never a type node under itself — otherwise the recursive type roots
-    // itself out of the explorer.
     if (triple.childType === triple.parentType) continue;
     if (!visibleTypes.value.has(triple.childType) || !visibleTypes.value.has(triple.parentType)) continue;
-    const list = childTypes.get(triple.parentType) || [];
-    if (!list.includes(triple.childType)) list.push(triple.childType);
-    childTypes.set(triple.parentType, list);
+    nestedTypes.add(triple.childType);
   }
-  const rooted = new Set(childTypes.values().flatMap(list => list));
-  const roots = [...visibleTypes.value].filter(typeId => !rooted.has(typeId));
-  return roots
-    .map(typeId => typeNode(typeId, childTypes, { root: true }))
+  return [...visibleTypes.value]
+    .filter(typeId => !nestedTypes.has(typeId))
+    .map(typeId => typeNode(typeId))
     .sort((a, b) => a.label.localeCompare(b.label));
 });
 
-function typeNode(typeId, childTypes, { root = false } = {}) {
-  const children = (childTypes.get(typeId) || [])
-    .map(child => typeNode(child, childTypes))
-    .sort((a, b) => a.label.localeCompare(b.label));
-  // Instance rows live on root panels alone; a nested child-type row is
-  // type-screen navigation.
-  const section = root ? sections.value.find(candidate => candidate.source.typeId === typeId) : null;
+function typeNode(typeId) {
+  const section = sections.value.find(candidate => candidate.source.typeId === typeId);
   const sectionInstances = section ? sectionItemsFor(section.region.id) : [];
   const screen = typeScreenFor(typeId);
   return {
@@ -738,8 +727,8 @@ function typeNode(typeId, childTypes, { root = false } = {}) {
     icon: instances.iconFor(typeId),
     selectable: true,
     data: { typeId, screen, section },
-    leaf: !children.length && !sectionInstances.length,
-    children: [...children, ...sectionInstances.map(item => entityNode(item))]
+    leaf: !sectionInstances.length,
+    children: sectionInstances.map(item => entityNode(item))
   };
 }
 

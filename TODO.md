@@ -936,3 +936,17 @@ and relation-linked children nest with the link glyph.
   same single-outcome tabs.
 - Probes: `e2e/zz-genui-owner-review-probe.spec.js` (untracked,
   zz-convention), artifacts `.playwright/genui-review-after*`.
+
+### Agent Notes (2026-10-26, agent/sidebar-types-gone-20261026-1850)
+
+- Second owner follow-up: the live probe (`e2e/zz-sidebar-hierarchy-probe.spec.js`,
+  artifact `.playwright/sidebar-probe.json`) rendered the real seeded
+  sidebar — the children edge arrives in the served bundle (scope org,
+  lineageKey stamped) and the child type rendered as a bare nested row
+  after the previous cut. The owner's law reads stricter: type rows never
+  render inside a panel at all.
+- `explorerNodes` now panels one per stationed type that no other
+  stationed type contains; contained types never panel on their own and
+  carry no type row — their instances reach the sidebar beneath their
+  parent instances. `typePanelItem` maps entity rows only. The pinned
+  mounting spec asserts the panel rows exactly.
