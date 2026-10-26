@@ -5,14 +5,21 @@
         :aria-label="displayName"
         @click.stop="open"
     >
-        <AiAvatar v-if="isBot" :class="avatarClass" />
-        <Avatar
-            v-else
-            :image="avatarUrl"
-            :label="avatarUrl ? null : displayName.charAt(0).toUpperCase()"
-            shape="circle"
-            :class="avatarClass"
-        />
+        <span class="relative shrink-0">
+            <AiAvatar v-if="isBot" :class="avatarClass" />
+            <Avatar
+                v-else
+                :image="avatarUrl"
+                :label="avatarUrl ? null : displayName.charAt(0).toUpperCase()"
+                shape="circle"
+                :class="avatarClass"
+            />
+            <span
+                v-if="online && !isBot"
+                class="absolute right-0 bottom-0 h-2 w-2 rounded-ui bg-status-success"
+                :aria-label="t('support.online')"
+            />
+        </span>
         <span v-if="!avatarOnly" class="min-w-0 truncate text-supporting">{{ displayName }}</span>
     </button>
 </template>
@@ -35,7 +42,10 @@ const props = defineProps({
     // Optional display-name hint while (or instead of) the record resolves.
     name: { type: String, default: '' },
     // The avatar-gutter variant: avatar at message scale, no name text.
-    avatarOnly: { type: Boolean, default: false }
+    avatarOnly: { type: Boolean, default: false },
+    // Presence overlay: the caller owns the online-id set (the
+    // connections layer's active-organization scope).
+    online: { type: Boolean, default: false }
 });
 
 const { t } = useI18n();

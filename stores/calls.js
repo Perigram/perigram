@@ -123,6 +123,7 @@ export const useCallsStore = defineStore('calls', () => {
             conversationKey: payload.conversationKey || '',
             from: payload.from || '',
             fromName: payload.fromName || '',
+            fromAvatarUrl: payload.fromAvatarUrl || '',
             // Set by reconcileInvitesWithSnapshot once a snapshot lists the
             // room; only then can a later absence dismiss the invite.
             wasRunning: false

@@ -48,7 +48,7 @@
                     data-testid="chat-bot-wake-rule"
                 >
                     <span class="min-w-0 flex-1 truncate text-label">
-                        {{ rule.type }} → {{ rule.state }}{{ rule.profile ? ` · ${rule.profile}` : '' }}
+                        {{ typeLabel(rule.type) }} → {{ stateLabel(rule.type, rule.state) }}<template v-if="rule.profile"> · {{ profileLabel(rule.profile) }}</template>
                     </span>
                     <Button
                         icon="pi pi-times"
@@ -63,9 +63,9 @@
                 <div class="flex items-center gap-2">
                     <Select
                         v-model="ruleType"
-                        :options="wakeOptions"
-                        option-label="typeId"
-                        option-value="typeId"
+                        :options="typeOptions"
+                        option-label="label"
+                        option-value="value"
                         :placeholder="$t('support.bots.typePlaceholder')"
                         class="min-w-0 flex-1"
                         :aria-label="$t('support.bots.typePlaceholder')"
@@ -73,7 +73,9 @@
                     />
                     <Select
                         v-model="ruleState"
-                        :options="ruleStateOptions"
+                        :options="stateOptions"
+                        option-label="label"
+                        option-value="value"
                         :placeholder="$t('support.bots.statePlaceholder')"
                         class="min-w-0 flex-1"
                         :aria-label="$t('support.bots.statePlaceholder')"
@@ -115,6 +117,9 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import AiAvatar from '~/components/shared/AiAvatar.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import { useStatePolicy } from '~/composables/useStatePolicy.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
+import { stateDisplayFor } from '#shared/ui-mapping/index.js';
 import { useAgentBotsStore } from '~/stores/agentBots';
 
 const props = defineProps({
@@ -124,9 +129,10 @@ const props = defineProps({
 
 const visible = defineModel('visible', { type: Boolean, default: false });
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const toast = useToast();
 const agentBots = useAgentBotsStore();
+const { policyFor } = useStatePolicy();
 
 const loading = ref(false);
 const wakeOptions = ref([]);
@@ -134,11 +140,25 @@ const ruleType = ref(null);
 const ruleState = ref(null);
 const ruleProfile = ref('');
 
+// Wake rules speak display labels: type names through the entity-label
+// resolver, states through the flat state policy of the compiled
+// workflows — raw ids stay internal.
+const typeLabel = (typeId = '') => generatedEntityLabel(typeId, { t, te });
+const stateLabel = (typeId = '', value = '') => stateDisplayFor(policyFor(typeId).value, value)?.label || value;
+const profileLabel = (profileId = '') => conversationProfileOptions.value
+    .find(option => option.value === profileId)?.label || profileId;
+
 const aiRow = computed(() => agentBots.ai);
 const canToggle = computed(() => props.subscribable && Boolean(props.conversationKey));
 const inRoom = computed(() => !props.subscribable || Boolean(aiRow.value?.subscribed));
-const ruleStateOptions = computed(() => (
-    wakeOptions.value.find(option => option.typeId === ruleType.value)?.states || []
+const typeOptions = computed(() => wakeOptions.value.map(option => ({
+    label: typeLabel(option.typeId),
+    value: option.typeId,
+    states: option.states
+})));
+const stateOptions = computed(() => (
+    (typeOptions.value.find(option => option.value === ruleType.value)?.states || [])
+        .map(value => ({ label: stateLabel(ruleType.value, value), value }))
 ));
 const wakeRules = computed(() => aiRow.value?.wakeOn || []);
 const conversationProfileOptions = computed(() => agentBots.chatProfileOptions(t('llm.auto')));

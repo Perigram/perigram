@@ -9,13 +9,21 @@
     <template v-else>
       <!-- Identity header (the generated overview carries its own) -->
       <div v-if="!overviewScreen" class="flex items-center gap-4">
-        <Avatar
-          :image="avatarUrl"
-          :label="!avatarUrl ? (entry.identity?.name || '?').charAt(0).toUpperCase() : null"
-          size="xlarge"
-          shape="circle"
-          class="shrink-0 [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
-        />
+        <span class="relative shrink-0">
+          <Avatar
+            :image="avatarUrl"
+            :label="!avatarUrl ? (entry.identity?.name || '?').charAt(0).toUpperCase() : null"
+            size="xlarge"
+            shape="circle"
+            class="[&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+          />
+          <!-- Presence is the active-organization scope: org-mates only. -->
+          <span
+            v-if="entry.type === 'user' && userOnline"
+            class="absolute right-0 bottom-0 h-3.5 w-3.5 rounded-ui bg-status-success"
+            :aria-label="$t('support.online')"
+          />
+        </span>
         <div class="flex min-w-0 flex-1 flex-col gap-1">
           <span class="truncate text-section-heading">{{ entry.identity?.name }}</span>
           <small v-if="entry.type === 'user' && entry.directory?.sharesOrganization" class="text-muted text-supporting">
@@ -185,6 +193,7 @@ import { openInstanceChat } from '~/utils/instance-chat.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
 import { useProfileDialog } from '~/composables/useModalState';
+import { useConnections } from '~/composables/useConnections.js';
 import { useAuthStore } from '~/stores/auth';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -204,6 +213,7 @@ const authStore = useAuthStore();
 const toast = useToast();
 const confirm = useConfirm();
 const { t } = useI18n();
+const { onlineUserIds } = useConnections();
 
 // Menu rows sit inside a Panel body — the Panel owns the padding.
 const flatMenu = { root: { style: 'padding: 0' } };
@@ -222,6 +232,9 @@ const detailedFields = computed(() => (detailed.value?._id
       .filter(field => !(props.typeId === 'user' && field.path.endsWith('.email')))
   : []));
 const avatarUrl = computed(() => (props.typeId === 'user' ? entry.value?.data?.avatarUrl || null : null));
+const userOnline = computed(() => props.typeId === 'user'
+  && Boolean(entry.value?.directory?.sharesOrganization)
+  && onlineUserIds.value.has(String(entry.value?._id || '')));
 const activeOrganizationId = computed(() =>
   authStore.organizationData?._id
   || authStore.userData?.organizationId

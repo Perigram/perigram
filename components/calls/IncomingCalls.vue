@@ -9,13 +9,24 @@
             role="alert"
         >
             <Avatar
-                :label="invite.fromName?.charAt(0)?.toUpperCase() || '?'"
+                :image="invite.fromAvatarUrl || null"
+                :label="invite.fromAvatarUrl ? null : (invite.fromName?.charAt(0)?.toUpperCase() || '?')"
                 shape="circle"
-                class="shrink-0 bg-primary text-primary-contrast"
+                class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
             />
-            <span class="min-w-0 flex-1 truncate text-body">
-                {{ $t('call.incoming', { name: invite.fromName || '' }) }}
-            </span>
+            <div class="min-w-0 flex-1">
+                <div class="truncate text-body">
+                    {{ $t('call.incoming', { name: invite.fromName || '' }) }}
+                </div>
+                <!-- Group/instance rings name the conversation; a direct
+                     ring is the caller alone, so no context line. -->
+                <small
+                    v-if="inviteContext(invite)"
+                    class="block truncate text-muted text-supporting"
+                >
+                    {{ inviteContext(invite) }}
+                </small>
+            </div>
             <Button
                 icon="pi pi-phone"
                 severity="danger"
@@ -52,9 +63,19 @@ import Button from 'primevue/button';
 import CallDialog from '~/components/calls/CallDialog.vue';
 import { useCallsStore } from '~/stores/calls';
 import { useCallRouting } from '~/composables/useCallRouting.js';
+import { useCallRoomLabel } from '~/composables/useCallRoomLabel.js';
 
 const callsStore = useCallsStore();
 const { isMobileViewport, openCallInWorkspaceTab } = useCallRouting();
+
+const callRoomLabel = useCallRoomLabel();
+// The ringing conversation's label when it differs from the caller: the
+// shared room-label resolver over the loaded conversations.
+const inviteContext = (invite = {}) => {
+    const label = callRoomLabel(invite.room, '').trim();
+    if (!label || !invite.fromName) return '';
+    return label.toLowerCase() === String(invite.fromName).toLowerCase() ? '' : label;
+};
 
 const callDialog = ref(false);
 const callRoom = ref('');

@@ -126,12 +126,13 @@
                         <small v-else-if="conversationSubtitle" class="block truncate text-muted text-supporting">
                             {{ conversationSubtitle }}
                         </small>
-                        <Popover ref="membersList" append-to="body">
+                        <Popover ref="membersList" appendTo="body">
                             <div class="flex max-h-72 w-64 flex-col items-start gap-2 overflow-y-auto p-3">
                                 <UserChip
-                                    v-for="participantId in groupParticipantIds"
+                                    v-for="participantId in sortedParticipantIds"
                                     :key="participantId"
                                     :user-id="participantId"
+                                    :online="onlineUserIds.has(participantId)"
                                     class="max-w-full"
                                 />
                             </div>
@@ -256,5 +257,9 @@ import TraceChain from '~/components/shared/links/TraceChain.vue'
 import UserChip from '~/components/shared/UserChip.vue'
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 const props = defineProps({ thread: Object, embedded: Boolean, fullPage: Boolean, threadOnly: Boolean })
-const { activeConversation, activeRecipientUserId, botPanelVisible, callsStore, canDeleteActiveGroup, chatInstanceRecord, closeChat, conversationAvatar, conversationInvite, conversationLabel, conversationSubtitle, entityPopupOpenable, groupParticipantIds, groupParticipants, includeChildren, instanceConversationIcon, isAiOnlyRoom, joinConversationCall, joinOngoingCall, membersList, ongoingCallRoom, openChatsPage, openEntityPopup, requestDeleteGroup, showInbox, startCall, toggleMembersList, toggleSearch } = props.thread
+const { activeConversation, activeRecipientUserId, botPanelVisible, callsStore, canDeleteActiveGroup, chatInstanceRecord, closeChat, conversationAvatar, conversationInvite, conversationLabel, conversationSubtitle, entityPopupOpenable, groupParticipantIds, groupParticipants, includeChildren, instanceConversationIcon, isAiOnlyRoom, joinConversationCall, joinOngoingCall, membersList, ongoingCallRoom, openChatsPage, openEntityPopup, onlineUserIds, requestDeleteGroup, showInbox, startCall, toggleMembersList, toggleSearch } = props.thread
+// Online members lead the popover; the rest keep participant order.
+const sortedParticipantIds = computed(() => [...groupParticipantIds.value].sort(
+    (left, right) => Number(onlineUserIds.value.has(right)) - Number(onlineUserIds.value.has(left))
+))
 </script>

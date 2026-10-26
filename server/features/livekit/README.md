@@ -93,7 +93,10 @@ have no conversation thread to record into.
 - `service.js` mints LiveKit room tokens (`jsonwebtoken`, HS256, `iss` = API
   key, `video.roomJoin` grants) after `authorizeRoom` passes, resolves call
   invites on the support conversation contract, snapshots active rooms, and
-  verifies + fans webhook events onto the connections layer.
+  verifies + fans webhook events onto the connections layer. Invite
+  payloads carry the caller's id, display name, and avatar URL
+  (`from`/`fromName`/`fromAvatarUrl`) so ring surfaces render the real
+  caller face.
 - Access derives from org membership and conversation/group participation.
   Org rooms are membership-based like the org chat; a `livekit` feature
   grant (read level) in the process access rights — evaluated with the
