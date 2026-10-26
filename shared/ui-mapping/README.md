@@ -372,6 +372,16 @@ order. Plain `updateInstance` edits, creates, relation link/unlink
 (owner-scoped), and event-triggered actions never qualify — they belong
 to their own surfaces.
 
+`createActionControls(actions)` collapses the collection toolbar's create
+set: creates targeting one type become a single control
+`{ action, group }` whose `group` carries every same-type sibling in
+contract order (a sole create is its own single-entry group), so a type
+with several creation modes renders one affordance. The control's run
+event carries the group as its `createGroup` context; the screen engine
+opens the create dialog with a leading creation-mode row for a group of
+two or more — the mode row is a prompted choice, so a grouped create
+opens its dialog whatever the lead action's launch.
+
 ## Chrome
 
 Components declare a role; `resolveChrome(role, parentRole)` →

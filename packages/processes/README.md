@@ -840,6 +840,15 @@ scope contracts) rides intact. Compiled execution channel field names
 stay server-side; the lineage-binding payload hydrates
 with `childTypeId`/`parentTypeId`.
 
+Create captions are procedural in both channels (`displayActionLabel`
+compiled, `projectUiAction` projected): an authored label wins; a generic
+one names the target class and folds a distinguishing construction mode —
+`Create <Type> from <Mode>` on the compiled contract, `New <Type> from
+<Mode>` in the manifest (`genericCreate` and modeless creates stay the
+plain `<verb> <Type>` form). `creationModeLabel(mode)` derives the mode's
+display name (`convertDxf` → `Convert Dxf`) and is the one home both
+templates and the generated creation-mode row read.
+
 Manual screen actions execute through the active process action runtime,
 which verifies the user's compiled action manifest before delegating to
 entity, status, socket, or command services.
