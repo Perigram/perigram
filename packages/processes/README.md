@@ -1167,6 +1167,25 @@ per-branch item-count mismatch.
 
 ## Dataflow semantics
 
+### Composition algebra
+
+The definition graph is the extension mechanism: a per-task need composes
+from these runtime laws before it is treated as a capability gap.
+
+1. A wired data socket takes its producer's packet at run time; an
+   unwired prompted input is asked of the runner at run time.
+2. A construct bound to an authored type carries the type's declared
+   fields as inputs (`fields.*`): unwired, each declared field is a
+   creation prompt; wired, each reads its producer.
+3. `cts.field` reads one field off an instance packet; value operations
+   (`value.string`, `value.math`, `value.compare`, …) transform packets;
+   `record.construct` composes wired values into one record.
+4. A control wire (`control:completed` → `control:in`) orders effects
+   within one action run; the first construct's `result` socket feeds the
+   chained effect as a packet.
+5. Ref inputs resolve with their payloads: a file-instance ref carries
+   its bytes to the consuming service.
+
 `data-tree.js` owns the universal tree solver; `evaluator.js` executes
 pure data nodes and authorized reads through it. Runtime values are
 ordered `{ branches: [{ path, items }] }` trees. Per-input Simplify,
