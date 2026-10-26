@@ -452,46 +452,242 @@ AttachmentKind row.
   the seed's home is `emptyAuthoredDocument` in
   `packages/processes/src/authoring.js`.
 
-- [ ] WAITING — owner verification: documents fills — `plugin.documents.fill`
-  (markdown `{key}` substitution; xlsx `{key}` cells plus `{#key}`/`{/key}`
-  repeated row sections; PDF template token masking/redraw) and
-  `plugin.documents.render-pdf` (markdown/xlsx/csv/image/dxf → PDF) bound
-  as `fill` constructions on `text-document`/`xlsx-workbook`/`pdf-document`
-  and a `render` construction on `pdf-document`; documents requires
-  tech-drawing for the `dxf-source` render source.
+- [ ] Documents plugin: xlsx fill service on the new seam (template
+  workbook ref + rows/values in, filled workbook payload out); md fill
+  rides the same service shape.
+- [ ] PDF render service (md/xlsx/dxf → PDF) on the same seam; the
+  parse-render engines are recoverable from git history
+  (`server/features/artifact-templates/format.js` at 713aa2396,
+  retired by the artifact-family cutover).
+- [ ] DXF spot placement service (template DXF + referenced DXF payloads →
+  composed DXF); the facade nesting → construct-sheet → export flow is the
+  reference geometry path.
 
-  ### Agent Notes (2026-10-26)
+## Generative UI arrangement foundations (owner direction 2026-10-25)
 
-  `workers/documents/fill.js` (engines, PT Sans OFL fonts embedded via
-  `@pdf-lib/fontkit`), service dispatch in `workers/documents/services.js`,
-  listing v2 (services, constructions, requires). Token law and traps in
-  the plugin README `## Template fills`. Focused spec
-  `workers/documents/fill.spec.js` (19 cases).
+Law: [SPEC](./SPEC.md) §22.7 records the direction; the design — trait
+records, decision procedure, placement slots — is
+[shared/ui-mapping/SPEC.md](./shared/ui-mapping/SPEC.md). Engine home
+`shared/ui-mapping`, materialization `components/ui-mapping`.
 
-- [ ] WAITING — owner verification: DXF spot placement — `place-dxf` on
-  `dxf-source` (listing v2): template DXF markers `{spot:name}` matched to
-  `dxf-source` part refs by instance name, parts translated to the marker
-  anchors and spliced into the template's ENTITIES. `buildServiceInput`
-  resolves `list` inputs whose `itemType` is a `ref` item by item.
+- [x] Data-trait record on every composed region node (SPEC → Data
+  traits): `weight` (exists, `estimateRegionWeight`), `breadth`, `volume`,
+  `shape`, `filledness` (inert empties exist), `growth` — one compose-time
+  pure record in the region tree.
+  Landed 2026-10-25: `regionDataTraits`/`shapeFamilyOf` in shared/ui-mapping;
+  `composeScreen` nodes carry `dataTraits` (the top-level `weight` field
+  folded into it); random-world spec pins the domains over every composed
+  node.
+- [x] Container-trait seam at the materialization layer (SPEC → Container
+  traits): width steps, height boundedness, scroll ownership, density per
+  host (page, pane, dialog, popup, mobile tab), measured box over host
+  profile; the sanctioned scoped-CSS container homes, `ResponsiveGrid`
+  container queries, and measured track engagement materialize the one
+  step vocabulary.
+  Landed 2026-10-25: `CONTAINER_WIDTH_STEPS` (medium 40 / wide 60 — the
+  form grid and record split materialize them) + `HOST_PROFILES` in
+  tables.js, pure `resolveContainerTraits`, app seam
+  `composables/useContainerTraits.js`; the peer-column engagement in
+  RegionChildren measures through it. Height/scroll resolve in the record;
+  their materializations are the existing host structures (pane/dialog
+  scroll columns).
+- [x] The arrangement decision procedure (SPEC → Arrangement decision
+  procedure) as ordered total rules over data × container traits, outcomes
+  carried per width step so one composed tree serves every host.
+  Landed 2026-10-25: `arrangeChildren` rewritten by ordered rule with the
+  full-row claim (breadth-`full` siblings claim rows, `fullRow` on the
+  columns outcome; full rows stay out of the side rail); the stack
+  fallback beside columns carries per-step engagement (CSS container
+  steps + the seam's measured grant).
+- [x] Placement-aware composition (SPEC → Placement-aware composition):
+  slot-picked presentations; nested class refs render as instance chips
+  everywhere (`InstanceInlineRef`).
+  Landed 2026-10-25: the stub slot renders one compact line (icon, label,
+  count, its own create action — RegionBlock `stub` prop, loading/denied/
+  error keep RegionDataState); ref fields, relation chips, and table
+  relation cells already chip; ObjectSummary instance-ref subfields now
+  chip too (FieldControl).
+- [x] Pin audit (SPEC → Pins): layout thresholds named in the one
+  budget/layout table; type-keyed layout branches, component-local magic
+  numbers, and private breakpoints in app code deleted or pinned through
+  the declared seams.
+  Landed 2026-10-25: `TABLE_VIRTUAL_SCROLL_REM` replaces the table's
+  hardcoded 26rem; `LAYOUT.previewBand` replaces five PreviewBox band
+  literals; the scoped-CSS homes carry the step materializations
+  (60rem = the wide step) with one-fact comments; no type-keyed layout
+  branches found (the create-label collapse is the action contract, not
+  layout).
 
-  ### Agent Notes (2026-10-26)
+Session reads before any code:
+[shared/ui-mapping/SPEC.md](./shared/ui-mapping/SPEC.md),
+[shared/ui-mapping](./shared/ui-mapping/README.md),
+[components/ui-mapping](./components/ui-mapping/README.md),
+[assets/tokens](./assets/tokens/README.md), SPEC §22.
 
-  `workers/tech-drawing/placement.js` (dependency-free pair engine),
-  `services.js` + executor wiring, listing v2. Placement law in the plugin
-  README `## DXF placement law`. Focused spec
-  `workers/tech-drawing/placement.spec.js`; list-of-ref cases in
-  `server/features/instances/construction-services.spec.js`.
+### Agent Notes (2026-10-25)
 
-- [ ] WAITING — owner verification: export executor payload contract —
-  `generateAttachment` consumes `payload: { base64, mime, name? }` through
-  the shared parser `server/features/plugins/executor-payload.js`; the
-  stored name is the payload's own or `<instance name>.<kind>`; facade's
-  `generate-sheet-dxf` returns the payload shape (listing v19).
+Session `agent/genui-traits-impl-20261025-1752` (worktree
+`.agent-worktrees/genui-traits-impl`). All five program items landed;
+specs: ui-mapping (91), screen (15), test-data (128 total incl. the new
+totality walk), design-system (33), SSR smoke (14) green. Found and fixed
+en route: the random-world generator rolled fractional currency values
+against the CTS minor-unit law (SPEC §18) — currency quantities now roll
+integers; the failure was pre-existing at base on
+`test-data/ui-mapping-random.spec.js`. Behavior notes for owner review:
+two light table children of a record now stack full-width under the body
+(the full-row claim) instead of sharing squeezed columns; inert children
+render the compact stub line instead of an empty-state Message.
 
-  ### Agent Notes (2026-10-26)
+- [ ] WAITING — owner verification: the five landed items above; check a
+  generated detail with mixed children (a table child beside light peers)
+  and the stub strip on the live stack.
 
-  Focused spec `server/features/plugins/exports.spec.js`; README homes
-  updated (plugins §Composition, facade service table).
+### Agent Notes (2026-10-25, visible round)
+
+Session `agent/genui-visible-20261025-1812` (worktree
+`.agent-worktrees/genui-visible`). The consumer round the foundations
+unlock: hosts declare container profiles through the seam
+(`provideContainerTraits` — the pane measures its scroll column, EntityPopup
+provides the popup profile; `useHostContainerTraits` resolves the host
+record, page profile as the providerless default); budgets consume the
+width step (compact table columns in narrow/medium hosts —
+CollectionTable; compact card facts in narrow hosts — CardGrid,
+BoardCollection); screen top-level sections arrange through the one ladder
+(`regionsArrangement` = `arrangeChildren`, materialized by RegionChildren
+with a `regionProps`/`regionEvents` passthrough; `regionsMode`/
+`childrenModeFor` retired with their consumers migrated in the same cut).
+Full-row refinement: full-breadth children within the column cap stack,
+past it the set tabs (the page-height bound). SPEC addendum in
+shared/ui-mapping/SPEC.md (host declaration law, budget law, screen-level
+ladder rule). Specs: 160 unit/fixture/random + 14 SSR green; design-system
+guard green.
+
+- [ ] WAITING — owner verification (visible round): a typeList screen with
+  several sections in a wide pane vs a narrow one (columns engage/shed);
+  a table inside a pane or the record popup (compact columns); the record
+  popup's card facts.
+
+### Agent Notes (2026-10-25, everyday-page round)
+
+Session `agent/genui-look-20261025-1945` (worktree `.agent-worktrees/genui-look`).
+The everyday record page finally moves: SPEC §22.2 fill amendment (content
+width is the floor, the host grants growth); `ck-facts-grid` fills in
+tracking columns; `ck-body-grid` blocks grow into spare row width; the
+record preview renders in the stepped hero band (7/11/14rem by container
+step, `LAYOUT.previewHero` + `PreviewBox fill`) instead of the fixed
+stamp. The ladder provably engages: the random world's guarantees are
+structural now — projection floors (gantt/calendar/board types), two peer
+hosts with claimed columnable and heavy peers, the empty type reserved
+before claiming and spared by the state matrix; the column-engagement pin
+holds across all seeds (previously zero engagements anywhere — the
+moderate host's guaranteed table peers were full-breadth by law, so
+columns were dead code). En route: several order-dependent generator bugs
+fixed (host discovery order, empty-type fallback claiming a peer,
+lineage stamps landing under the wrong host). Specs: 129 unit/random +
+14 SSR green (board/gantt/calendar/columns/facts-grid/body-grid asserted
+in rendered markup); design-system + localization green.
+
+- [ ] WAITING — owner verification (everyday round): any generated record
+  page on a wide screen — facts spread, sections grow, preview band
+  taller; the showcase (`/test/ui-mapping`) — column arrangements render
+  between peer collections.
+
+### Agent Notes (2026-10-25, arrangement rework)
+
+Session `agent/genui-arrangement-rework-20261025-2117` (worktree
+`.agent-worktrees/genui-rework`). Owner review found the three earlier
+rounds left §22.7's core unimplemented; this session rebuilt it. The
+composed tree now carries one arrangement outcome per width step
+(`arrangeChildren` → `{ narrow, medium, wide }`); RegionChildren engages
+the step the host record grants. Ladder fixes: light peers share columns
+at medium/wide (the under-budget stack shortcut is gone); the side rail is
+rule 4 at wide over any light non-full child set (it previously required
+the stack outcome — inverted order); the dominant child's remainder
+carries its own stepped arrangement (previously pinned stack);
+`REGION_COLUMNS_MAX` is deleted — any peer count columns, and the measured
+engagement (`trackCount × REGION_COLUMN_EARNED_REM`) sheds tracks the box
+cannot grant (4+ light peers previously fell through to tabs). Placement
+is measured: each column track and the record side column is a
+`PlacementBox` providing its own container record, so tables and card
+grids inside them take the compact budgets for the width they have; the
+routed screen root provides the measured page record when no host
+declared one, so narrow viewports and the designer preview arrange
+narrow. The record split engages through the seam (RegionBlock's
+scoped-CSS home retired; `scripts/ui-visual-inventory.js` exception
+tables follow). Component hygiene: SurfaceBody/StatGrid literal utility
+strings collapsed into LAYOUT tokens; main.css fill-grid thresholds
+(22rem track floor, 46rem content cap) named in their home. Specs:
+129 unit/random green with the new totality pin (every composed node
+resolves an arrangement at every width step, across all seeds) + 14 SSR,
+design-system, check-arch, framework:validate green; check-docs green on
+the integration tree (a fresh worktree lacks the `jagua-rs` submodule, so
+the guard reports its README link broken there only).
+
+- [ ] WAITING — owner verification (rework round): a record page with two
+  or three light child collections on a wide screen (columns below the
+  body, side rail for the lightest set), the same record dragged into a
+  narrow pane (stacks, compact table columns), and the record popup.
+
+### Agent Notes (2026-10-25, rail budget round)
+
+Owner verdict on the rework: worse in many cases, too little care. Two
+causes found. (1) Real defect, fixed: the side rail was a half-page
+monster — SIDE_MAX_WEIGHT 16 let 11-16-row sets grab the rail and
+REGION_SIDE_SPANS granted 4-6 of 12 tracks (33-50% of the record grid),
+starving the record body. The rail is now a minor column: light sets only
+(≤ 10 rows), span 3-4 of 12 (≤ a third). Heavier columnable sets column
+below the body where peers earn real width. (2) The dev server was
+serving a stale `ui-mapping-random` transform — showcase pages composed a
+world from the pre-everyday-round vocabulary ("Tin Riddles" names removed
+by 2544b7068) 90 minutes after that merge, with the on-disk file
+byte-identical to the host; `docker compose restart app` cleared it. Any
+owner verdict rendered between the everyday-round merge and the restart
+partly judged a frankenbuild. Verification this round is visual, not just
+spec-based: per-section showcase screenshots (side span 3 beside the
+body, columns pairs below, tabs for heavy tables) at
+`.playwright/genui2-*.png`, plus a real org record page; the look probes
+live at `e2e/zz-genui-look-probe*.spec.js`.
+
+- [ ] WAITING — owner verification (rail round): record pages on a wide
+  screen — the rail reads as a minor column (~quarter page), record body
+  keeps its fact columns; if anything still looks wrong, name the record
+  and width.
+
+## Generated UI language (owner direction 2026-10-26)
+
+Law: the generative UI task is to define the generated UI language —
+foundations, atomic elements, and the procedural rules that compose
+layouts. The canonical definition is
+[shared/ui-mapping/SPEC.md](./shared/ui-mapping/SPEC.md) → Layout
+language; root SPEC §22.7 delegates to it. The ui-mapping subsystem is
+the instrument: edit it to fix bugs or to match the defined contracts.
+
+- [x] The language defined: two trait records as the only decision inputs;
+  a nine-atom closed vocabulary (`stack`, `row`, `grid` with
+  earned/floor/steps track derivations, `band`, `well`, `tabs`,
+  `placement`, `stub`, `pack`) plus the ambient sets atoms compose under
+  (cells, clamps, chrome, data-driven geometry); nine composition rules
+  (value cells, fact grammar, open sections, chip rows, the body floor
+  grid, the record ladder, the screen ladder, scroll ownership, placement
+  sizing).
+  Landed 2026-10-26: SPEC → Layout language; `LAYOUT_ATOMS`/`LAYOUT_AMBIENT`
+  registries in tables.js assign every LAYOUT recipe to its atom or set;
+  the engine spec pins the partition and the nine-atom set — the
+  vocabulary is closed by guard.
+- [ ] WAITING — owner verification: the atom set and the composition
+  rules in shared/ui-mapping/SPEC.md → Layout language; a recipe the
+  vocabulary cannot express is a pin to record there.
+
+### Agent Notes (2026-10-26, language round)
+
+Session `agent/ui-language-20261026-0005` (worktree
+`.agent-worktrees/ui-language`). The language is now named and guarded
+where the mechanics lived scattered: the LAYOUT recipes were already
+atom instances in practice — the registries make the assignment explicit
+and the spec pins that nothing enters LAYOUT outside the vocabulary. No
+component behavior changed; the definition, the registries, and the
+partition pin are the whole delta. Specs: 92 engine green; design-system
+guard green.
 
 ## Agent vocabulary construction modes (SPEC §3)
 - [ ] WAITING — owner verification: the authoring vocabulary serves
@@ -504,44 +700,29 @@ AttachmentKind row.
   `listConstructionModes`; dialog-shaped `inputs`/`modeInputs` stay
   designer-side (construction.inputs derives from declared fields).
 - Validation results in the session handoff report.
-=======
 
-## Generative UI program rolled back (owner direction 2026-10-26)
+## Arrangement foundations restored (owner direction 2026-10-26)
 
-The arrangement program of 2026-10-23..26 is reverted on `local`
-(one `revert:` commit): the traits/visible/everyday rounds, the
-arrangement rework, the rail budget round, and the layout-language
-round, with their SPEC §22.7–22.11 law and the engine SPEC file. The
-engine and materialization stand at their 2026-10-25 16:28 state
-(pre-`agent/genui-traits-spec`); root SPEC §22 carries the 22.1–22.6
-directions only. Kept: the random-world currency integer roll (a
-pre-existing generator bug, fixed independently) and the artifact
-cutover's SPEC link repairs.
+The rollback of 10:08 is itself reverted on the owner's direction: the
+SPEC §22.7 law, `shared/ui-mapping/SPEC.md`, the traits/atoms engine,
+the container-trait seam (`useContainerTraits`), `PlacementBox`, and the
+random-world totality specs stand again. The owner's 2026-10-26 tabs
+direction is integrated into the restored ladder: tabs sit at any tree
+level; a tab arrangement at a step excludes tabs in its descendants at
+that step (`arrangeChildren` carries a per-step `insideTabs` context;
+`withArrangement` threads it top down).
 
-- [ ] WAITING — owner verification: the showcase (`/test/ui-mapping`)
-  and generated surfaces read as they did before the program; SPEC §22
-  carries no 22.7+ text.
+- [ ] WAITING — owner verification: record pages and section screens on
+  a wide host — the side rail, peer columns, and weight-ordered tabs
+  compose from content; nothing under a tab tabs again; the showcase at
+  `/test/ui-mapping` reads per the restored SPEC.
 
-## Tabs sit at any tree level, excluded under a tab ancestor (owner
-direction 2026-10-26)
-
-SPEC §22.1 amendments from the owner's words: arrangement derives from
-both ends (top-down container context, bottom-up data awareness); tabs
-and columns are layout tools at every tree level, and tabs can't be
-nested, even over one ancestor — nothing inside a tab or a tab's child
-generates tabs. §22.3 states the hosted surface keeps its header
-(lifecycle state, actions) with the title in the pane tab; §22.6 states
-field use (`identifier` → instance title, `required` → create gate).
-
-- [ ] WAITING — owner verification: the arrangement ladder tabs at any
-  level, a tab arrangement excludes tabs in its descendants (a tabbed
-  screen's record children stack), and SPEC §22.1/22.3/22.6 carry the
-  amended wording.
-
-### Agent Notes (2026-10-26, agent/genui-tabs-20261026-1152)
-- `arrangeChildren(children, insideTabs)` replaces the `level` gate;
-  `childrenModeFor(children)` drops it. `composeScreen` applies
-  arrangement in a top-down pass (`withArrangement`) so a tabbed
-  `regionsMode` suppresses tabs in the top-level regions' own children.
-- Focused specs: `shared/ui-mapping/ui-mapping.spec.js` (89) and
-  `screen.spec.js` (16) green; guards in the session handoff report.
+### Agent Notes (2026-10-26, agent/genui-restore-20261026-1219)
+- `git revert` of the rollback commit `5d96bcc88`, conflicts resolved
+  toward the program with the tabs law re-applied on top
+  (`arrangeForStep(childRegions, step, insideTabs)`, `TAB_ANCESTOR_NONE`).
+- The 11:52 tabs session's flat-ladder engine is superseded by the
+  restored stepped engine; its SPEC 22.1/22.3/22.6 wording amendments
+  stand.
+- Specs: 118 green across `shared/ui-mapping/` and the random-world
+  totality spec; guards in the session handoff report.
