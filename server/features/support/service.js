@@ -680,6 +680,7 @@ export async function searchConversationMessages(auth, query = {}) {
     const match = { ...context.match };
     if (query.sender) match.senderUserId = String(query.sender);
     if (query.attachmentKind) match['attachments.kind'] = String(query.attachmentKind);
+    if (query.instanceType) match['instanceRefs.type'] = String(query.instanceType);
     if (query.q) match.message = { $regex: escapeRegExpText(query.q), $options: 'i' };
     const limit = Math.min(Math.max(Number.parseInt(query.limit, 10) || SEARCH_LIMIT_CAP, 1), SEARCH_LIMIT_CAP);
     const page = await repository.find(match, messageProjection(), { limit });
