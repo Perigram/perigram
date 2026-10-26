@@ -2464,6 +2464,14 @@ export async function applyTreeDeclarations(id, auth) {
   return { applied, failures };
 }
 
+// The mode list compile accepts (compiler-adapter contractModes); the
+// agent vocabulary serves it.
+export async function listConstructionModes(organizationId = null) {
+  const domain = await getProjectedDomain(organizationId);
+  return Object.fromEntries(Object.entries(domain.construction || {})
+    .map(([typeId, row]) => [typeId, { modes: row.modes, defaultMode: row.defaultMode }]));
+}
+
 // The compiler consumes the CTS-projected domain: strangler-converted system
 // declarations plus the organization's authored types (cts_types). A broken
 // stored type fails loudly here.

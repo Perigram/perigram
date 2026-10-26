@@ -105,7 +105,7 @@ const AUTHORING_GUIDE = [
     "- {op:'unwireDeclaration', from, to, role} — removes that declaration wire;",
     "- {op:'drop', item, id} — drop a palette item as a process node;",
     "- A construct binds its type by wire: declare the type ({op:'declareTypeRef', id, typeId} for registry types, declareClass in-tree), then {op:'wireDeclaration', from: typeNodeId, to: constructId, role:'binds'} — the derived typeId lands on the record; configure typeId on a construct refuses;",
-    "- {op:'configure', id, values} — inspector writes (typeId, construction, access...); lanes are role grants: an effect's lane IS its access — exactly ONE grant per effect; configure {access:{grants:[{roleId,level}]}}, levels read/write/admin, roleIds from the roles list in this payload; grants: [] lands the effect in the grantless implicit lane;",
+    "- {op:'configure', id, values} — inspector writes (typeId, construction, access...); lanes are role grants: an effect's lane IS its access — exactly ONE grant per effect; configure {access:{grants:[{roleId,level}]}}, levels read/write/admin, roleIds from the roles list in this payload; grants: [] lands the effect in the grantless implicit lane; construction.mode: the bound type's modes ({detail:'construction'});",
     "- {op:'setInputDefault', id, input, value} — typed scalar on an input socket (input = bare socket id; entityRef as {type, id}); records arrive from reads, services, and record composition, never as authored values;",
     '- a declared field\'s port exists in the SAME session once wireDeclaration lands (fields.* on construct/mutate nodes) — never hand-edit construction.inputs, it derives from the class\'s declared fields;',
     "- {op:'connect', id, fromPort, to, toPort} — id is the FROM node; ports are socket HANDLES: data:<socketId> for data sockets, control:<socketId> for control. Bare socket ids and the retired input:/output: spellings refuse;",
@@ -315,11 +315,11 @@ export const TOOL_SPECS = [
     },
     {
         name: 'get_authoring_vocabulary',
-        description: 'The process authoring vocabulary, COMPACT by default: the authoring skill (guide: what a process definition is — the declaration tree\'s class/field/state laws and containment, the operation graph\'s effects and lanes — the gesture grammar, and the compose→validate→apply→activate loop), the organization\'s roles (grant vocabulary for effect access — the designer\'s lanes, one grant per effect), node families, declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners), and the palette\'s droppable items (id + kind per group). Deep details on request via detail: \'sockets\' (the catalog-static kinds\' socket ids and base types — record-bound kinds resolve live sockets off the digest of the dropped node), detail: \'nodeCatalog\' (every valid node kind with family and level), or detail: \'valueOperations\' (typed input sockets and output per operation), narrowed by family/kind. A processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + edit_process_definition; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
+        description: 'The process authoring vocabulary, COMPACT by default: the authoring skill (guide: what a process definition is — the declaration tree\'s class/field/state laws and containment, the operation graph\'s effects and lanes — the gesture grammar, and the compose→validate→apply→activate loop), the organization\'s roles (grant vocabulary for effect access — the designer\'s lanes, one grant per effect), node families, declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners), and the palette\'s droppable items (id + kind per group). Deep details on request via detail: \'sockets\' (the catalog-static kinds\' socket ids and base types — record-bound kinds resolve live sockets off the digest of the dropped node), detail: \'nodeCatalog\' (every valid node kind with family and level), detail: \'valueOperations\' (typed input sockets and output per operation), narrowed by family/kind, or detail: \'construction\' (per-type construction modes with each type\'s default — the list the compiler enforces). A processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + edit_process_definition; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
         inputSchema: {
             type: 'object',
             properties: {
-                detail: { type: 'string', enum: ['nodeCatalog', 'valueOperations', 'sockets'] },
+                detail: { type: 'string', enum: ['nodeCatalog', 'valueOperations', 'sockets', 'construction'] },
                 family: { type: 'string' },
                 kind: { type: 'string' }
             },
@@ -406,6 +406,12 @@ export const TOOL_SPECS = [
                 }
                 return { ...(await base()), roles: await roles(), valueOperations };
             }
+            if (args.detail === 'construction') {
+              // The mode list compile accepts; construction.mode picks its value from these rows.
+              const construction = await processDefinitionsService.listConstructionModes(auth.organizationId);
+              return { ...(await base()), roles: await roles(), construction };
+            }
+
             return { ...(await compact()), roles: await roles() };
         }
     },

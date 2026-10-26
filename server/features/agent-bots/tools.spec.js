@@ -17,7 +17,8 @@ const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mo
         executeActiveProcessAction: vi.fn(),
         composeDefinition: vi.fn(),
         editDefinition: vi.fn(),
-        declareStatusMappings: vi.fn()
+        declareStatusMappings: vi.fn(),
+      listConstructionModes: vi.fn()
     },
     mockedSupport: { normalizeInstanceRefs: vi.fn(), findConversationAttachment: vi.fn() },
     mockedTypes: { describeOrganizationTypes: vi.fn() },
@@ -161,6 +162,7 @@ describe('definition tool authoring surface', () => {
         // evict the tools from a small context window.
         expect(vocabulary.nodeCatalog).toBeUndefined();
         expect(vocabulary.valueOperations).toBeUndefined();
+        expect(vocabulary.construction).toBeUndefined();
         expect(vocabulary.palette.some(group => group.items.some(item => item.kind))).toBe(true);
         expect(vocabulary.palette.every(group => group.items.every(item => Object.keys(item).length <= 2))).toBe(true);
         expect(vocabulary.declarationNodeTypes).toEqual(['ctsClass', 'ctsType', 'ctsField', 'ctsState']);
@@ -193,6 +195,14 @@ describe('definition tool authoring surface', () => {
         // The payload is data only: no runtime (function) members of the
         // operation registry may cross the wire.
         expect(JSON.stringify(sockets)).not.toContain('"run"');
+        mockedProcessDefinitions.listConstructionModes.mockResolvedValueOnce({
+          'text-document': { modes: ['content'], defaultMode: 'content' },
+          'project.facade': { modes: ['genericCreate'], defaultMode: 'genericCreate' }
+        });
+        const construction = await executeTool('get_authoring_vocabulary', { detail: 'construction' }, AUTH);
+        expect(mockedProcessDefinitions.listConstructionModes).toHaveBeenCalledWith(AUTH.organizationId);
+        expect(construction.construction['text-document']).toEqual({ modes: ['content'], defaultMode: 'content' });
+        expect(construction.guide).toContain("detail:'construction'");
     });
 
     it('composes definitions through the headless seam with the caller\'s auth', async () => {
