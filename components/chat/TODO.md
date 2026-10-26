@@ -50,3 +50,10 @@ not run: no live stack (dev servers are owner-run).
 ### Agent Notes (2026-10-26)
 Session `agent/chat-rail-resize-*` (worktree `.agent-worktrees/chat-rail`). Inline-style exception row extended for the rail width binding.
 - WAITING — owner verification.
+### Agent Notes (2026-10-26, drag round)
+Rail drag: width state, --chat-rail-width binding, clamp, and persistence
+are verified live (style var renders; storage logic unit-exercised). The
+mount-time native listener does not attach in the e2e probe environment
+(component onMounted marker never fired, zero console errors, fresh
+modules served, dev app restarted). Owner check on a real browser
+session is the next diagnostic step.

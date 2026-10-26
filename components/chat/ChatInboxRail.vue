@@ -291,10 +291,6 @@ const onRailPointerDown = (event) => {
     const host = event.currentTarget?.closest?.('.chat-host')
     if (!host || typeof window === 'undefined') return
     const rect = event.currentTarget.getBoundingClientRect()
-    if (typeof window !== 'undefined' && window.__railDrag) {
-        window.__railDrag.down += 1
-        window.__railDrag.guarded = { x: event.clientX, right: rect.right }
-    }
     if (event.clientX < rect.right - RAIL_GRAB_PX) return
     event.preventDefault()
     railMove = (moveEvent) => {
@@ -314,9 +310,7 @@ const onRailPointerDown = (event) => {
 // races during hydration.
 const rootEl = () => getCurrentInstance()?.proxy?.$el || railRoot.value
 onMounted(() => {
-    if (typeof window !== 'undefined') window.__railDrag = { mounted: true, el: null, down: 0, guarded: null }
     const el = rootEl()
-    if (typeof window !== 'undefined' && window.__railDrag) window.__railDrag.el = String(el && el.className)
     if (el) el.addEventListener('pointerdown', onRailPointerDown)
 })
 onBeforeUnmount(() => {
