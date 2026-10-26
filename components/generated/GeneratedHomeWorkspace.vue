@@ -484,10 +484,11 @@ const sectionRootKeys = computed(() => new Set(sectionItems.value.map(item => it
 
 // The explorer tree is the TYPE hierarchy from the render contracts: the
 // registry bundle's declared containment (children edges) nests types under
-// their parents, manifest-backed types (their ancestors included for
-// structure) render as nodes, and type instances hang beneath them from
-// the home sections. Root types — authored classes and groups — are
-// selectable: their compiled typeList screen opens in the active pane.
+// their parents, and manifest-backed types render as nodes. A ROOT type's
+// home-section instances hang beneath its panel; a nested child-type row
+// opens its compiled typeList screen — instance rows live under root
+// panels and beneath parent instances, so the type list and the instance
+// tree never blend.
 
 const screenfulTypes = computed(() => new Set((authStore.screenManifest || [])
   .filter(screen => screen.typeId && screen.template === 'typeList')
@@ -500,14 +501,9 @@ const screenfulTypes = computed(() => new Set((authStore.screenManifest || [])
 // nesting renders only between stationed types (both endpoints visible).
 const visibleTypes = computed(() => new Set(screenfulTypes.value));
 
-// The PanelMenu model is the explorer tree plus the communication
-// panel: type nodes become panels (their registry icon is PanelMenu's
-// item icon), entity nodes become rows carrying the workspace item for
-// the #item slot.
-// The explorer model is the two communication entries plus the pure
-// type hierarchy: type nodes become panels (their registry icon is
-// PanelMenu's item icon), entity nodes become rows carrying the
-// workspace item for the #item slot.
+// The PanelMenu model: type nodes become panels (their registry icon is
+// PanelMenu's item icon), entity nodes become rows carrying the workspace
+// item for the #item slot, and the two communication entries lead.
 const sidebarMenuModel = computed(() => [
   ...communicationPanelModels(),
   ...explorerNodes.value.map(node => typePanelItem(node))
@@ -723,15 +719,17 @@ const explorerNodes = computed(() => {
   const rooted = new Set(childTypes.values().flatMap(list => list));
   const roots = [...visibleTypes.value].filter(typeId => !rooted.has(typeId));
   return roots
-    .map(typeId => typeNode(typeId, childTypes))
+    .map(typeId => typeNode(typeId, childTypes, { root: true }))
     .sort((a, b) => a.label.localeCompare(b.label));
 });
 
-function typeNode(typeId, childTypes) {
+function typeNode(typeId, childTypes, { root = false } = {}) {
   const children = (childTypes.get(typeId) || [])
     .map(child => typeNode(child, childTypes))
     .sort((a, b) => a.label.localeCompare(b.label));
-  const section = sections.value.find(candidate => candidate.source.typeId === typeId);
+  // Instance rows live on root panels alone; a nested child-type row is
+  // type-screen navigation.
+  const section = root ? sections.value.find(candidate => candidate.source.typeId === typeId) : null;
   const sectionInstances = section ? sectionItemsFor(section.region.id) : [];
   const screen = typeScreenFor(typeId);
   return {
