@@ -55,8 +55,7 @@ imported through server modules that Nitro externalizes.
   field descriptors, class presets, preview modes, and compiled actions to
   component keys, spans, variants, chrome tokens, budgets, and button
   presentations. Pure data and functions; the canonical contract lives in
-  [ui-mapping/README.md](./ui-mapping/README.md), the arrangement target
-  state in [ui-mapping/SPEC.md](./ui-mapping/SPEC.md).
+  [ui-mapping/README.md](./ui-mapping/README.md).
 - `instance-filters/`: Canonical instance-filter tree — the one filter
   vocabulary the generic list transport, the generated-screen composition,
   and the collection toolbar speak; the flat transport map compiled screen

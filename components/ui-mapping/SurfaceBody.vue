@@ -7,7 +7,7 @@
     <template #content>
       <div :class="LAYOUT.stackTight">
         <div :class="LAYOUT.rowBetween">
-          <div :class="LAYOUT.row">
+          <div class="flex flex-wrap items-center gap-2">
             <i :class="glyph" />
             <span class="text-section-heading">{{ instanceLabel }}</span>
           </div>
@@ -20,7 +20,7 @@
 
   <div v-else-if="variant === 'detail' && flattened" :class="LAYOUT.stackTight">
     <Divider class="my-0" />
-    <div :class="LAYOUT.rowBetween">
+    <div class="flex flex-wrap items-center justify-between gap-2">
       <div :class="LAYOUT.row">
         <i :class="glyph" />
         <span class="text-section-heading">{{ instanceLabel }}</span>
@@ -30,7 +30,7 @@
     <SurfaceDetailBody v-bind="detailBodyProps" variant="detail" v-on="detailBodyEvents" />
   </div>
 
-  <div v-else :class="['min-w-0', LAYOUT.row]">
+  <div v-else class="flex min-w-0 flex-wrap items-center gap-2">
     <i :class="glyph" />
     <Button
       v-if="openable"

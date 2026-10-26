@@ -449,9 +449,7 @@ from the compiled manifest.
   (`GeneratedScreenPane`): type
   screens and instance-bound detail screens both render through
   `GeneratedScreenHost` — the single generator host, with the instance id
-  in the screen scope for detail panes. The pane is a container-traits
-  host: it measures its scroll column and provides the resolved record,
-  so hosted surfaces size budgets to the pane the user shaped. The pane tab names the hosted
+  in the screen scope for detail panes. The pane tab names the hosted
   surface (SPEC §22): the host receives
   `paneHosted` and the engine suppresses its own title surfaces (the
   list header label, the record identity block). Collection creation

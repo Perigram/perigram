@@ -1,10 +1,6 @@
 <template>
   <div v-if="d" :class="d.stack">
-    <div v-if="hasPreview" :class="LAYOUT.previewHero">
-      <div :class="LAYOUT.previewHeroBand">
-        <PreviewBox fill :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" :seed="instance.id" />
-      </div>
-    </div>
+    <PreviewBox v-if="hasPreview" :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" :seed="instance.id" />
 
     <!-- The record body fills its surface (SPEC §Generative UI,
          2026-10-22): content blocks — field groups, relation chip rows —

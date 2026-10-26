@@ -12,7 +12,7 @@
       </template>
       <template #subtitle>{{ type?.name }}</template>
       <template #content>
-        <div :class="LAYOUT.factCell">
+        <div class="flex flex-col gap-1">
           <span class="text-metric">{{ metricOf(instance) }}</span>
           <span v-if="metricLabel" class="text-supporting text-muted">{{ metricLabel }}</span>
         </div>

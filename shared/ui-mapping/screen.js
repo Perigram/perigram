@@ -1,7 +1,7 @@
 // Screen composition: projects a compiled screen contract
 // plus a CTS client bundle and an instance pool into a pure render tree.
 // No Vue here — the components/ui-mapping layer materializes this tree.
-import { resolveSurface, resolveChrome, arrangeChildren, regionSideSpanFor, regionDataTraits, estimateRegionWeight, resolveListControls, SIDE_MAX_WEIGHT } from './index.js';
+import { resolveSurface, resolveChrome, arrangeChildren, regionSideSpanFor, estimateRegionWeight, resolveListControls, childrenModeFor, SIDE_MAX_WEIGHT } from './index.js';
 import { filterFromFlatFilters, instanceMatchesFilter } from '#shared/instance-filters/index.js';
 
 // Region data state: the data layer may report per-source states
@@ -140,29 +140,15 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   // compact stubs below the arranged content (`stubRegions`).
   const childRegions = composedChildren.filter(child => child.instances.length > 0);
   const stubRegions = composedChildren.filter(child => child.instances.length === 0);
-  // Arrangement outcomes carry for every width step. The record page's
-  // side rail is the wide outcome (SPEC rule 4): a light child set —
-  // no full-breadth child, combined weight at or under SIDE_MAX_WEIGHT —
-  // rides beside the record body, the side column's span earned by
-  // weight. Narrower hosts take the step's own outcome below the body.
+  // Sibling arrangement is weight-driven (arrangeChildren): light peers
+  // column, a dominant sibling keeps the flow, heavy peers tab. A record
+  // page additionally carries light children beside the body in a
+  // weight-proportional side column; heavier child sets arrange below.
   const childWeight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
-  const steppedArrangement = arrangeChildren(childRegions, depth);
-  const sideRail = surfaceKind === 'detail' && depth === 0 && childRegions.length > 0
-    && childWeight <= SIDE_MAX_WEIGHT
-    && childRegions.every(child => child.dataTraits.breadth !== 'full')
-    ? Object.freeze({ mode: 'side', span: regionSideSpanFor(childWeight) })
-    : null;
-  const childArrangement = sideRail
-    ? Object.freeze({ ...steppedArrangement, wide: sideRail })
-    : steppedArrangement;
-  // Data traits (SPEC → Data traits): the compose-time record arrangement
-  // consumes, derived pure over the type record and the loaded pool.
-  const dataTraits = regionDataTraits({
-    surfaceKind,
-    type,
-    instances,
-    statePolicy: contract.statePolicy?.[source.typeId] || null
-  });
+  const childArrangement = arrangeChildren(childRegions, depth);
+  const besideBody = surfaceKind === 'detail' && depth === 0 && childRegions.length > 0
+    && childArrangement.mode === 'stack' && childWeight <= SIDE_MAX_WEIGHT;
+  const sideSpan = besideBody ? regionSideSpanFor(childWeight) : 0;
   return Object.freeze({
     id: region.id,
     slot: region.slot,
@@ -170,9 +156,15 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     dataState: dataStateFor(source, surfaceKind, instances, providedStates),
     chrome,
     level: depth,
-    dataTraits,
     childArrangement,
-    sideRail,
+    besideBody,
+    sideSpan,
+    weight: estimateRegionWeight({
+      surfaceKind,
+      type,
+      instances,
+      statePolicy: contract.statePolicy?.[source.typeId] || null
+    }),
     relationKey: source.relation?.key || null,
     lineageKey: source.lineage?.key || null,
     typeId: source.typeId || null,
@@ -206,8 +198,7 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
   const typesById = Object.fromEntries((bundle.types || []).map(type => [type.id, type]));
   const providedStates = options.sourceStates || null;
   // Every top-level region sits at depth 0 — the tree position decides
-  // chrome and variant, never the region's index in the contract. Screen
-  // sections arrange through the same ordered rules record children do.
+  // chrome and variant, never the region's index in the contract.
   const regions = (screen.regions || [])
     .filter(region => region.slot !== 'children')
     .map(region => composeRegion(region, screen, contract, pool, typesById, 0, providedStates));
@@ -218,6 +209,6 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
     typeId: screen.typeId || null,
     type: typesById[screen.typeId] || null,
     regions: Object.freeze(regions),
-    regionsArrangement: arrangeChildren(regions, 0)
+    regionsMode: childrenModeFor(regions, 0)
   });
 }

@@ -51,13 +51,7 @@
   <div v-else-if="outcome.component === 'ObjectSummary'" :class="LAYOUT.stackTight">
     <div v-for="entry in summaryEntries" :key="entry.key" :class="LAYOUT.rowBetween">
       <span class="text-supporting text-muted">{{ entry.key }}</span>
-      <InstanceInlineRef
-        v-if="entry.ref"
-        :type="entry.ref.type"
-        :id="entry.ref.id"
-        :entity="pool?.[entry.ref.type]?.[entry.ref.id] || null"
-      />
-      <span v-else class="text-body">{{ entry.value }}</span>
+      <span class="text-body">{{ entry.value }}</span>
     </div>
   </div>
   <div v-else-if="outcome.component === 'ListSummary'" :class="LAYOUT.stackTight">
@@ -235,21 +229,13 @@ const firstMeaningful = value => {
   if (first === undefined) return fallback;
   return compactValue(first);
 };
-const isInstanceRef = value => Boolean(value)
-  && typeof value === 'object' && !Array.isArray(value)
-  && typeof value.type === 'string'
-  && (typeof value.id === 'string' || typeof value.id === 'number');
 const summaryEntries = computed(() => {
   const value = props.modelValue;
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
   return applyBudget(
     Object.entries(value).filter(([, entry]) => entry !== null && entry !== undefined),
     SUMMARY_BUDGET
-  ).visible.map(([key, entry]) => ({
-    key: startCase(key),
-    value: compactValue(entry),
-    ref: isInstanceRef(entry) ? entry : null
-  }));
+  ).visible.map(([key, entry]) => ({ key: startCase(key), value: compactValue(entry) }));
 });
 const listEntries = computed(() => {
   const items = Array.isArray(props.modelValue) ? props.modelValue : [];
