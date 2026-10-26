@@ -273,5 +273,38 @@ import StateBlock from '~/components/shared/StateBlock.vue'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 const props = defineProps({ thread: Object, fullPage: Boolean, threadOnly: Boolean, embedded: Boolean })
-const { activeConversation, closeChat, conversationAvatar, conversationLabel, conversationMenu, conversationMenuItems, conversationPreviewMessage, conversationSections, displayConversations, headerGroupButtonPt, inboxFolders, inboxSearch, inboxTimestamp, instanceConversationIcon, instanceRefs, isAiChatRow, isBotDirectRow, isOwnInboxRow, markRowRead, message, newChatMenuItems, newChatMenuRef, onRowContentClick, onRowTouchEnd, onRowTouchMove, onRowTouchStart, openConversationByKey, openConversationMenu, participantOnline, rowContentStyle, rowDrag, rowRailVisible, selectedFolder, showArchived, toggleNewChatMenu, toggleRowArchived, toggleRowPinned, railWidthStyle, onRailResizeStart } = props.thread
+// Two-pane rail width: local drag state, clamped and persisted.
+const RAIL_WIDTH_MIN = 16
+const RAIL_WIDTH_MAX = 34
+const RAIL_WIDTH_KEY = 'chat-rail-width'
+const readStoredRailWidth = () => {
+    if (typeof window === 'undefined') return 20
+    const stored = Number.parseFloat(window.localStorage.getItem(RAIL_WIDTH_KEY) || '')
+    return Number.isFinite(stored) ? Math.min(RAIL_WIDTH_MAX, Math.max(RAIL_WIDTH_MIN, stored)) : 20
+}
+const railWidth = ref(readStoredRailWidth())
+const railWidthStyle = computed(() => ({ '--chat-rail-width': `${railWidth.value}rem` }))
+let railMove = null
+const onRailResizeStart = (event) => {
+    const host = event.currentTarget?.closest?.('.chat-host')
+    if (!host || typeof window === 'undefined') return
+    event.preventDefault()
+    railMove = (moveEvent) => {
+        const width = (moveEvent.clientX - host.getBoundingClientRect().left) / 16
+        railWidth.value = Math.min(RAIL_WIDTH_MAX, Math.max(RAIL_WIDTH_MIN, width))
+    }
+    window.addEventListener('pointermove', railMove)
+    window.addEventListener('pointerup', () => {
+        if (railMove) window.removeEventListener('pointermove', railMove)
+        railMove = null
+        try {
+            window.localStorage.setItem(RAIL_WIDTH_KEY, String(railWidth.value))
+        } catch {}
+    }, { once: true })
+}
+onBeforeUnmount(() => {
+    if (railMove && typeof window !== 'undefined') window.removeEventListener('pointermove', railMove)
+})
+
+const { activeConversation, closeChat, conversationAvatar, conversationLabel, conversationMenu, conversationMenuItems, conversationPreviewMessage, conversationSections, displayConversations, headerGroupButtonPt, inboxFolders, inboxSearch, inboxTimestamp, instanceConversationIcon, instanceRefs, isAiChatRow, isBotDirectRow, isOwnInboxRow, markRowRead, message, newChatMenuItems, newChatMenuRef, onRowContentClick, onRowTouchEnd, onRowTouchMove, onRowTouchStart, openConversationByKey, openConversationMenu, participantOnline, rowContentStyle, rowDrag, rowRailVisible, selectedFolder, showArchived, toggleNewChatMenu, toggleRowArchived, toggleRowPinned } = props.thread
 </script>

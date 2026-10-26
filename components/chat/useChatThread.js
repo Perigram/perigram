@@ -487,9 +487,7 @@ watch(groupParticipantIds, async (ids) => {
     groupParticipants.value = await Promise.all(ids.map(async (id) => {
         const record = await instances.resolveReadableReference('user', String(id), { silent: true })
         return {
-        railWidth,
-        onRailResizeStart,
-        railWidthStyle,
+        searchTypeOptions,
         scrollToBottomFromControl,
         waitingMessages,
         atBottom,
@@ -1746,37 +1744,6 @@ const readCursors = ref([])
 const ownCursorAtOpen = ref(null)
 const userNames = ref({})
 const searchVisible = ref(false)
-// Two-pane rail width: dragged between clamps, persisted per browser.
-const RAIL_WIDTH_MIN = 16
-const RAIL_WIDTH_MAX = 34
-const RAIL_WIDTH_KEY = 'chat-rail-width'
-const loadRailWidth = () => {
-    if (typeof window === 'undefined') return 20
-    const stored = Number.parseFloat(window.localStorage.getItem(RAIL_WIDTH_KEY) || '')
-    return Number.isFinite(stored)
-        ? Math.min(RAIL_WIDTH_MAX, Math.max(RAIL_WIDTH_MIN, stored))
-        : 20
-}
-const railWidth = ref(loadRailWidth())
-const railWidthStyle = computed(() => ({ '--chat-rail-width': `${railWidth.value}rem` }))
-let railResizeCleanup = null
-const onRailResizeStart = (event) => {
-    const host = event.currentTarget?.closest?.('.chat-host')
-    if (!host || typeof window === 'undefined') return
-    event.preventDefault()
-    const onMove = (moveEvent) => {
-        const width = (moveEvent.clientX - host.getBoundingClientRect().left) / 16
-        railWidth.value = Math.min(RAIL_WIDTH_MAX, Math.max(RAIL_WIDTH_MIN, width))
-    }
-    const onUp = () => {
-        try {
-            window.localStorage.setItem(RAIL_WIDTH_KEY, String(railWidth.value))
-        } catch {}
-    }
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp, { once: true })
-    railResizeCleanup = () => window.removeEventListener('pointermove', onMove)
-}
 const resolveUserName = async (id) => {
     const key = String(id)
     if (!key || userNames.value[key]) return
@@ -1848,6 +1815,16 @@ const searchParticipants = computed(() => {
     for (const row of rows) resolveUserName(row.id)
     return rows.filter(row => row.label)
 })
+const searchTypeOptions = computed(() => {
+    const types = new Map()
+    for (const messageItem of messages.value) {
+        for (const ref of messageItem.instanceRefs || []) {
+            if (ref?.type && !types.has(ref.type)) types.set(ref.type, localizedTypeIdLabel(ref.type))
+        }
+    }
+    return [...types.entries()].map(([type, label]) => ({ type, label }))
+})
+
 const toggleSearch = () => {
     searchVisible.value = !searchVisible.value
 }
