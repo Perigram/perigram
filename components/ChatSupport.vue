@@ -413,7 +413,7 @@ const { activeConversation, activeConversationKey, atBottom, attachmentPicker, b
     display: flex;
   }
 
-  .chat-page--thread .chat-back {
+  .chat-page--thread :deep(.chat-back) {
     display: none;
   }
 

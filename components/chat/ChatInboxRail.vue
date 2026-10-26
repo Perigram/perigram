@@ -254,9 +254,9 @@
                         </div>
                     </template>
                 </Listbox>
+            <Menu ref="conversationMenu" :model="conversationMenuItems" :popup="true" />
             </aside>
 
-        <Menu ref="conversationMenu" :model="conversationMenuItems" :popup="true" />
 </template>
 
 <script setup>
