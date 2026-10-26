@@ -377,14 +377,12 @@ describe('screen composition', () => {
         ...extra },
       contract, bundle, widgetPool
     );
-    // Two light table peers claim whole rows (full breadth) and stack
-    // below the body at every step; their relation keys cover the record
-    // body's chip rows. Full-breadth children never ride the side rail.
+    // Two light table peers (8 estimated rows each) share proportional
+    // columns; their relation keys cover the record body's chip rows.
     const light = relationScreen();
     expect(light.regions[0].childRegions.map(region => region.relationKey)).toEqual(['reviews', 'audits']);
-    expect(light.regions[0].childArrangement.narrow).toEqual({ mode: 'stack' });
-    expect(light.regions[0].childArrangement.wide).toEqual({ mode: 'stack' });
-    expect(light.regions[0].sideRail).toBe(null);
+    expect(light.regions[0].childArrangement.mode).toBe('columns');
+    expect(light.regions[0].childArrangement.tracks).toBe('minmax(0, 8fr) minmax(0, 8fr)');
 
     // Heavy card-scale peers (3 preview cards = 14 estimated rows each)
     // tab in weight order.
@@ -416,8 +414,7 @@ describe('screen composition', () => {
         ] },
       contract, cardBundle, heavyPool
     );
-    expect(heavy.regions[0].childArrangement.wide.mode).toBe('tabs');
-    expect(heavy.regions[0].childArrangement.narrow.mode).toBe('tabs');
+    expect(heavy.regions[0].childArrangement.mode).toBe('tabs');
   });
 
   it('keeps empty child collections layout-inert as stubs', () => {
@@ -440,22 +437,19 @@ describe('screen composition', () => {
         ] },
       contract, bundle, pool
     );
-    // One filled, one empty: the light filled set rides beside the body
-    // at wide (the side outcome, span earned by weight); the empty one is
-    // a stub claiming no layout.
+    // One filled, one empty: the filled child arranges alone (light set
+    // rides beside the body); the empty one is a stub claiming no layout.
     const mixed = relationScreen(buildInstancePool({ widgets: [host, filled] }));
     expect(mixed.regions[0].childRegions.map(region => region.relationKey)).toEqual(['reviews']);
     expect(mixed.regions[0].stubRegions.map(region => region.relationKey)).toEqual(['audits']);
-    expect(mixed.regions[0].childArrangement.narrow).toEqual({ mode: 'stack' });
-    expect(mixed.regions[0].childArrangement.wide).toEqual({ mode: 'side', span: 3 });
-    expect(mixed.regions[0].sideRail).toEqual({ mode: 'side', span: 3 });
+    expect(mixed.regions[0].besideBody).toBe(true);
     // An all-empty child set renders the body full-width with the
     // collections as stubs below.
     const emptyHost = { ...host, relations: { reviews: [], audits: [] } };
     const allEmpty = relationScreen(buildInstancePool({ widgets: [emptyHost] }));
     expect(allEmpty.regions[0].childRegions).toEqual([]);
     expect(allEmpty.regions[0].stubRegions.map(region => region.relationKey)).toEqual(['reviews', 'audits']);
-    expect(allEmpty.regions[0].sideRail).toBe(null);
+    expect(allEmpty.regions[0].besideBody).toBe(false);
   });
 
   it('attaches the list-controls contract to list regions only', () => {

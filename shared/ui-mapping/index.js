@@ -14,6 +14,7 @@ import {
   SIDE_MAX_WEIGHT,
   COLUMN_MAX_WEIGHT,
   DOMINANT_CHILD_SHARE,
+  REGION_COLUMNS_MAX,
   REGION_COLUMN_EARNED_REM,
   REGION_SIDE_SPANS,
   SMALL_LIST_AT,
@@ -37,12 +38,7 @@ import {
   CHROME_TABLE,
   DEGRADE,
   EDIT_VARIANTS,
-  VARIANTS,
-  CONTAINER_WIDTH_STEPS,
-  HOST_PROFILES,
-  FULL_BREADTH_LAYOUTS,
-  BOUNDED_GROWTH_LAYOUTS,
-  PAGINATED_GROWTH_LAYOUTS
+  VARIANTS
 } from './tables.js';
 
 export {
@@ -52,8 +48,6 @@ export {
   ROW_FIELD_BUDGET,
   RENDERABLE_PREVIEW_MODES,
   LAYOUT,
-  LAYOUT_ATOMS,
-  LAYOUT_AMBIENT,
   LIST_LAYOUT_VALUES,
   BOARD_MIN_COLUMNS,
   SEARCH_AT,
@@ -66,7 +60,6 @@ export {
   TABLE_PAGE_ROWS,
   TABLE_PAGINATE_AT,
   TABLE_VIRTUALIZE_AT,
-  TABLE_VIRTUAL_SCROLL_REM,
   CARD_FACT_SCALE,
   ROW_WEIGHT_BY_LAYOUT,
   GAP_BY_LEVEL,
@@ -81,13 +74,9 @@ export {
   SIDE_MAX_WEIGHT,
   COLUMN_MAX_WEIGHT,
   DOMINANT_CHILD_SHARE,
+  REGION_COLUMNS_MAX,
   REGION_COLUMN_EARNED_REM,
-  REGION_SIDE_SPANS,
-  CONTAINER_WIDTH_STEPS,
-  HOST_PROFILES,
-  FULL_BREADTH_LAYOUTS,
-  BOUNDED_GROWTH_LAYOUTS,
-  PAGINATED_GROWTH_LAYOUTS
+  REGION_SIDE_SPANS
 } from './tables.js';
 
 function pickEntry(entries, candidate) {
@@ -313,9 +302,9 @@ export function createUiMapping(overrides = {}) {
     return scaledBudget(TABLE_COLUMN_SCALE, shape.scalarCount, compact);
   }
 
-  function cardFactCount(typeRecord = {}, { compact = false } = {}) {
+  function cardFactCount(typeRecord = {}) {
     const shape = analyzeTypeShape(typeRecord);
-    return scaledBudget(CARD_FACT_SCALE, shape.scalarCount, compact);
+    return scaledBudget(CARD_FACT_SCALE, shape.scalarCount);
   }
 
   return {
@@ -866,7 +855,6 @@ export function formatValue(descriptor = {}, value) {
 }
 
 export function estimateRegionWeight(node = {}) {
-  if (node.dataTraits) return node.dataTraits.weight;
   if (node.surfaceKind !== 'list') {
     const groups = node.groups || resolveFieldGroups(node.type || {});
     const facts = groups.reduce((sum, group) => sum + group.fields.length, 0);
@@ -896,82 +884,42 @@ export function estimateRegionWeight(node = {}) {
   return 2 + count * perRow + Math.ceil(relationRefs / 4);
 }
 
-// Data traits (SPEC → Data traits): the compose-time record every
-// arrangement decision consumes, one derivation frozen on the region
-// node. Weight is `estimateRegionWeight`; the rest derive from the type
-// record, the resolved layout, and the loaded pool.
-export function shapeFamilyOf(typeRecord = {}, { stateful = false } = {}) {
-  const shape = analyzeTypeShape(typeRecord);
-  if (stateful) return 'stateful';
-  if (shape.durational || shape.scheduled) return 'temporal';
-  if (shape.chronological) return 'prose';
-  if (shape.statlike) return 'measure';
-  if (shape.hasMedia) return 'media';
-  return 'plain';
+// Screen-level section arrangement (the home template's top regions):
+// sections over the surface budget tab. Record-child arrangement uses
+// the richer ladder below.
+export function childrenModeFor(childRegions = [], level = 0) {
+  if (childRegions.length < CHILDREN_TABS_AT) return 'stack';
+  const weight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
+  if (weight > SURFACE_ROW_BUDGET && level === 0) return 'tabs';
+  return 'stack';
 }
 
-function listLayoutOf(node) {
-  const count = node.instances?.length || 0;
-  return resolveListLayout(node.type || {}, {
-    stateful: hasStateVocabulary(node.statePolicy),
-    size: count <= SMALL_LIST_AT ? 'small' : count > 12 ? 'large' : null
-  });
-}
-
-export function regionDataTraits(node = {}) {
-  const instances = node.instances || [];
-  const volume = instances.length;
-  const stateful = hasStateVocabulary(node.statePolicy);
-  if (node.surfaceKind !== 'list') {
-    return Object.freeze({
-      weight: estimateRegionWeight(node),
-      breadth: 'content',
-      volume,
-      shape: shapeFamilyOf(node.type || {}, { stateful }),
-      filledness: volume ? 'filled' : 'inert',
-      growth: 'flowing'
-    });
+// Region arrangement: how sibling regions share a surface, decided at
+// compose time from estimated rendered weight at card scale. Light sets
+// flow in one stack; peers up to COLUMN_MAX_WEIGHT rows each share
+// proportional columns (track fr from each child's weight); a dominant
+// sibling keeps the flow while its remainder fits the surface budget,
+// and a heavier remainder tabs the whole set — tabs are the page-height
+// bound, so they must stay reachable for top-heavy sets; heavier peers
+// tab in descending weight order. Tabs are a top-level arrangement —
+// nested heavy content stacks.
+export function arrangeChildren(childRegions = [], level = 0) {
+  if (childRegions.length < CHILDREN_TABS_AT) return { mode: 'stack' };
+  const weights = childRegions.map(region => estimateRegionWeight(region));
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  if (total <= SURFACE_ROW_BUDGET) return { mode: 'stack' };
+  const primaryIndex = weights.indexOf(Math.max(...weights));
+  const restWeight = total - weights[primaryIndex];
+  if (weights[primaryIndex] >= DOMINANT_CHILD_SHARE * total && restWeight <= SURFACE_ROW_BUDGET) {
+    return { mode: 'mixed', primary: primaryIndex, rest: { mode: 'stack' } };
   }
-  const layout = listLayoutOf(node);
-  const breadth = FULL_BREADTH_LAYOUTS.includes(layout) ? 'full'
-    : layout === 'list' ? 'chip' : 'content';
-  const growth = BOUNDED_GROWTH_LAYOUTS.includes(layout)
-    || (PAGINATED_GROWTH_LAYOUTS.includes(layout) && volume > TABLE_PAGINATE_AT)
-    ? 'bounded'
-    : 'flowing';
-  return Object.freeze({
-    weight: estimateRegionWeight(node),
-    breadth,
-    volume,
-    shape: shapeFamilyOf(node.type || {}, { stateful }),
-    filledness: volume ? 'filled' : 'inert',
-    growth
-  });
-}
-
-// Container traits (SPEC → Container traits): the measured host width is
-// the truth, the host profile the fallback; the record is plain data the
-// pure arrangement consumes. A placement box (a side column, a column
-// track) overrides `height`/`scroll` with the host record's values while
-// measuring its own width.
-export function resolveContainerTraits({
-  widthRem = null, hostKind = 'page', density = 1, height = null, scroll = null
-} = {}) {
-  const profile = HOST_PROFILES[hostKind] || HOST_PROFILES.page;
-  const width = Number.isFinite(widthRem)
-    ? (widthRem >= CONTAINER_WIDTH_STEPS.wideRem ? 'wide'
-      : widthRem >= CONTAINER_WIDTH_STEPS.mediumRem ? 'medium' : 'narrow')
-    : profile.width;
-  return Object.freeze({
-    width,
-    widthRem: Number.isFinite(widthRem) ? widthRem : null,
-    height: height || profile.height,
-    scroll: scroll || profile.scroll,
-    density
-  });
-}
-
-function tabsOutcome(childRegions, weights) {
+  if (weights.every(weight => weight <= COLUMN_MAX_WEIGHT) && childRegions.length <= REGION_COLUMNS_MAX) {
+    return {
+      mode: 'columns',
+      tracks: weights.map(weight => `minmax(0, ${Math.max(1, Math.round(weight))}fr)`).join(' ')
+    };
+  }
+  if (level > 0) return { mode: 'stack' };
   return {
     mode: 'tabs',
     order: childRegions
@@ -979,61 +927,6 @@ function tabsOutcome(childRegions, weights) {
       .sort((a, b) => b.weight - a.weight)
       .map(entry => entry.id)
   };
-}
-
-// One step of the arrangement ladder (SPEC → Arrangement decision
-// procedure): ordered rules over the children's data traits, earlier
-// decisions binding later ones, the last rule terminal. Full-breadth
-// children claim whole rows; a dominant sibling keeps the flow while its
-// remainder arranges, else the set tabs; light peers share proportional
-// columns at every step past narrow; a set past the budgets with a child
-// too heavy to share tabs — tabs are the page-height bound, top level
-// only; everything else stacks.
-function arrangeForStep(childRegions, step, level) {
-  if (childRegions.length < CHILDREN_TABS_AT) return { mode: 'stack' };
-  const traitsOf = region => region.dataTraits || regionDataTraits(region);
-  const weights = childRegions.map(region => estimateRegionWeight(region));
-  const total = weights.reduce((sum, weight) => sum + weight, 0);
-  const primaryIndex = weights.indexOf(Math.max(...weights));
-  const restRegions = childRegions.filter((_, index) => index !== primaryIndex);
-  const restWeight = total - weights[primaryIndex];
-  if (weights[primaryIndex] >= DOMINANT_CHILD_SHARE * total) {
-    if (restWeight <= SURFACE_ROW_BUDGET) {
-      return { mode: 'mixed', primary: primaryIndex, rest: arrangeChildren(restRegions, level) };
-    }
-    return level === 0 ? tabsOutcome(childRegions, weights) : { mode: 'stack' };
-  }
-  const columnable = childRegions.filter(region => traitsOf(region).breadth !== 'full');
-  const columnableWeights = columnable.map(region => estimateRegionWeight(region));
-  if (step !== 'narrow' && columnable.length >= CHILDREN_TABS_AT
-    && columnableWeights.every(weight => weight <= COLUMN_MAX_WEIGHT)) {
-    const fullRow = childRegions
-      .filter(region => traitsOf(region).breadth === 'full')
-      .map(region => region.id);
-    return {
-      mode: 'columns',
-      tracks: columnableWeights.map(weight => `minmax(0, ${Math.max(1, Math.round(weight))}fr)`).join(' '),
-      ...(fullRow.length ? { fullRow } : {})
-    };
-  }
-  // Full-row children within the column cap stack (the table is the
-  // row-cheapest layout); a sibling past the cap is unreadable in flow.
-  if (level === 0 && total > SURFACE_ROW_BUDGET
-    && weights.some(weight => weight > COLUMN_MAX_WEIGHT)) {
-    return tabsOutcome(childRegions, weights);
-  }
-  return { mode: 'stack' };
-}
-
-// Arrangement outcomes carried for every width step (SPEC → What it is):
-// the composed tree is host-blind, the materialization engages the step
-// its host grants, and a host change re-engages without recomposition.
-export function arrangeChildren(childRegions = [], level = 0) {
-  return Object.freeze({
-    narrow: arrangeForStep(childRegions, 'narrow', level),
-    medium: arrangeForStep(childRegions, 'medium', level),
-    wide: arrangeForStep(childRegions, 'wide', level)
-  });
 }
 
 // The record side column earns width with the weight of the children it

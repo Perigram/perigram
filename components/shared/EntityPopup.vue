@@ -59,7 +59,6 @@ import { useAuthStore } from '~/stores/auth';
 import { titleFor, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
-import { provideContainerTraits } from '~/composables/useContainerTraits.js';
 import { useI18n } from 'vue-i18n';
 
 const { request, close } = useEntityPopup();
@@ -68,10 +67,6 @@ const instances = useInstancesStore();
 const authStore = useAuthStore();
 const { typeById } = useFileTypeView();
 const { t, te } = useI18n();
-
-// The record popup is a fixed-shape container host: hosted surfaces
-// resolve the narrow profile for their budgets.
-provideContainerTraits({ hostKind: 'popup' });
 
 const visible = computed({
   // The composable's open() already refuses unopenable types; the guard

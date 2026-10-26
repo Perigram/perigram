@@ -14,7 +14,7 @@
       @close="$emit('close')"
     />
 
-    <div ref="scrollHost" class="min-h-0 flex-1 overflow-auto p-4">
+    <div class="min-h-0 flex-1 overflow-auto p-4">
       <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
       <StateBlock v-else-if="notFound" state="error" :message="$t('generatedScreen.notFound')" />
       <!-- Every pane screen — generator templates and the home overload
@@ -37,7 +37,7 @@
 // instanceDetail or the synthesized fallback) render with the instance id
 // in the screen scope. Instance opens emit `{ typeId, instanceId }` to the
 // workspace — routing stays with the host, never the generator.
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import GeneratedPaneHeader from '~/components/generated/GeneratedPaneHeader.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -45,7 +45,6 @@ import { synthesizeDetailScreen } from '~/components/generated/detail-screen-act
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
 import { screenByKey } from '~/utils/process-navigation.js';
 import { useAuthStore } from '~/stores/auth';
-import { provideContainerTraits } from '~/composables/useContainerTraits.js';
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -56,12 +55,6 @@ const props = defineProps({
 });
 
 defineEmits(['refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'open-entity', 'back']);
-
-// The pane is a container-traits host: it measures its own scroll column
-// and provides the resolved record, so hosted surfaces size budgets to
-// the pane the user shaped (the container seam contract).
-const scrollHost = ref(null);
-provideContainerTraits({ hostKind: 'pane', elRef: scrollHost });
 
 const authStore = useAuthStore();
 

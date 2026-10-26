@@ -5,7 +5,7 @@
     :type-id="typeId"
     :preview="pluginPreview"
   >
-    <div :class="[bandClass, LAYOUT.row, 'text-supporting text-muted']">
+    <div class="h-28 w-full" :class="[LAYOUT.row, 'text-supporting text-muted']">
       <i :class="typeGlyph" />
     </div>
   </RemoteInstancePreview>
@@ -13,17 +13,17 @@
     v-else-if="hasRenderablePayload"
     :source="{ mode: preview.mode, fileUrl, attachment: payload }"
     :variant="'card'"
-    :class="bandClass"
+    class="h-28 w-full"
   />
   <DrawingCanvas
     v-else-if="hasDeclaredPreviewSource"
     :source="{ data: { geometry: previewSource } }"
     source-type="geometry-preview"
     mode="card"
-    :class="bandClass"
+    class="h-28 w-full"
   />
   <div v-else-if="preview.component === 'ImagePreview'" class="w-full">
-    <svg viewBox="0 0 240 96" width="100%" :class="bandClass" preserveAspectRatio="xMidYMid slice" role="img">
+    <svg viewBox="0 0 240 96" width="100%" class="h-28 w-full" preserveAspectRatio="xMidYMid slice" role="img">
       <defs>
         <linearGradient :id="gradientId" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" :stop-color="accent" stop-opacity="0.5" />
@@ -37,14 +37,14 @@
     </svg>
   </div>
   <div v-else-if="preview.component === 'GeometryPreview'" class="w-full">
-    <svg viewBox="0 0 240 96" width="100%" :class="bandClass" role="img">
+    <svg viewBox="0 0 240 96" width="100%" class="h-28 w-full" role="img">
       <rect width="240" height="96" fill="var(--ck-subtle-background)" />
       <circle cx="120" cy="48" r="38" :stroke="accent" stroke-dasharray="3 4" stroke-width="1.5" fill="none" opacity="0.7" />
       <polygon :points="starPoints" :stroke="accent" stroke-width="1.5" fill="none" opacity="0.9" />
       <circle v-for="node in starNodes" :key="node.key" :cx="node.x" :cy="node.y" r="2" :fill="accent" />
     </svg>
   </div>
-  <div v-else-if="preview.component && payload" :class="[LAYOUT.row, bandClass, 'rounded-ui bg-subtle text-supporting text-muted']">
+  <div v-else-if="preview.component && payload" :class="[LAYOUT.row, 'h-28 w-full rounded-ui bg-subtle text-supporting text-muted']">
     <i class="pi pi-file" />
     <span>{{ sizeLabel }}</span>
   </div>
@@ -52,7 +52,7 @@
        quiet with the type's own glyph — no MIME strings, no invented
        content (blank is the honest surface for a record that never
        saved a source). -->
-  <div v-else-if="preview.component" :class="[LAYOUT.row, bandClass, 'text-supporting text-muted']" :aria-hidden="true">
+  <div v-else-if="preview.component" :class="[LAYOUT.row, 'h-28 w-full text-supporting text-muted']" :aria-hidden="true">
     <i :class="typeGlyph" />
   </div>
 </template>
@@ -78,13 +78,8 @@ const props = defineProps({
   // accepts the stored shapes (layer/polygon part lists, pre-built
   // drawings).
   previewSource: { type: null, default: null },
-  seed: { type: String, default: '' },
-  // Fill the host band instead of the fixed-height stamp: the record
-  // body's stepped hero band (LAYOUT.previewHeroBand) sizes the slot.
-  fill: { type: Boolean, default: false }
+  seed: { type: String, default: '' }
 });
-
-const bandClass = computed(() => (props.fill ? 'h-full w-full' : LAYOUT.previewBand));
 
 const preview = computed(() => resolvePreview(props.type || {}));
 const typeId = computed(() => String(props.type?.id || ''));
