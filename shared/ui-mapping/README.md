@@ -376,11 +376,11 @@ to their own surfaces.
 set: creates targeting one type become a single control
 `{ action, group }` whose `group` carries every same-type sibling in
 contract order (a sole create is its own single-entry group), so a type
-with several creation modes renders one affordance. The control's run
-event carries the group as its `createGroup` context; the screen engine
-opens the create dialog with a leading creation-mode row for a group of
-two or more — the mode row is a prompted choice, so a grouped create
-opens its dialog whatever the lead action's launch.
+with several creation modes renders one affordance. The control's own
+materialization (`CreateControl`) groups the creation-mode selection with
+the create button in one PrimeVue `InputGroup`; the button dispatches
+the selected action, which follows the ordinary launch contract (its
+params dialog, or a direct run for a mode without prompted inputs).
 
 ## Chrome
 

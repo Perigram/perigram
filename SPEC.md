@@ -277,8 +277,8 @@ Generated create actions carry procedural names (owner direction
 and folds the creation mode — `New <Type> from <Mode>` — so same-type
 creates over different modes stay distinguishable on every surface that
 names actions. A collection offering several creates for one type renders
-one create control; its form opens with the creation-mode selection
-followed by the selected mode's inputs.
+one grouped control — the creation-mode selection beside the create
+button; the create button opens the selected mode's form.
 
 Documents carry their content both ways (owner direction 2026-10-13): text
 documents and CSV tables are creatable from procedural content — a `content`
