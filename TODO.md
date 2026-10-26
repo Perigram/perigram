@@ -452,16 +452,46 @@ AttachmentKind row.
   the seed's home is `emptyAuthoredDocument` in
   `packages/processes/src/authoring.js`.
 
-- [ ] Documents plugin: xlsx fill service on the new seam (template
-  workbook ref + rows/values in, filled workbook payload out); md fill
-  rides the same service shape.
-- [ ] PDF render service (md/xlsx/dxf → PDF) on the same seam; the
-  parse-render engines are recoverable from git history
-  (`server/features/artifact-templates/format.js` at 713aa2396,
-  retired by the artifact-family cutover).
-- [ ] DXF spot placement service (template DXF + referenced DXF payloads →
-  composed DXF); the facade nesting → construct-sheet → export flow is the
-  reference geometry path.
+- [ ] WAITING — owner verification: documents fills — `plugin.documents.fill`
+  (markdown `{key}` substitution; xlsx `{key}` cells plus `{#key}`/`{/key}`
+  repeated row sections; PDF template token masking/redraw) and
+  `plugin.documents.render-pdf` (markdown/xlsx/csv/image/dxf → PDF) bound
+  as `fill` constructions on `text-document`/`xlsx-workbook`/`pdf-document`
+  and a `render` construction on `pdf-document`; documents requires
+  tech-drawing for the `dxf-source` render source.
+
+  ### Agent Notes (2026-10-26)
+
+  `workers/documents/fill.js` (engines, PT Sans OFL fonts embedded via
+  `@pdf-lib/fontkit`), service dispatch in `workers/documents/services.js`,
+  listing v2 (services, constructions, requires). Token law and traps in
+  the plugin README `## Template fills`. Focused spec
+  `workers/documents/fill.spec.js` (19 cases).
+
+- [ ] WAITING — owner verification: DXF spot placement — `place-dxf` on
+  `dxf-source` (listing v2): template DXF markers `{spot:name}` matched to
+  `dxf-source` part refs by instance name, parts translated to the marker
+  anchors and spliced into the template's ENTITIES. `buildServiceInput`
+  resolves `list` inputs whose `itemType` is a `ref` item by item.
+
+  ### Agent Notes (2026-10-26)
+
+  `workers/tech-drawing/placement.js` (dependency-free pair engine),
+  `services.js` + executor wiring, listing v2. Placement law in the plugin
+  README `## DXF placement law`. Focused spec
+  `workers/tech-drawing/placement.spec.js`; list-of-ref cases in
+  `server/features/instances/construction-services.spec.js`.
+
+- [ ] WAITING — owner verification: export executor payload contract —
+  `generateAttachment` consumes `payload: { base64, mime, name? }` through
+  the shared parser `server/features/plugins/executor-payload.js`; the
+  stored name is the payload's own or `<instance name>.<kind>`; facade's
+  `generate-sheet-dxf` returns the payload shape (listing v19).
+
+  ### Agent Notes (2026-10-26)
+
+  Focused spec `server/features/plugins/exports.spec.js`; README homes
+  updated (plugins §Composition, facade service table).
 
 ## Generative UI arrangement foundations (owner direction 2026-10-25)
 

@@ -70,7 +70,10 @@ invalidation. `constructions` binds the plugin's own types'
 construction modes to plugin services (the instance machinery
 dispatches them, see [instances](../instances/README.md)); `exports`
 binds attachment exports — the `(typeId, kind) → service` pairs are
-the whole export truth: the `generateAttachment` command
+the whole export truth: the bound service returns the exported file
+through the executor payload contract (`payload: { base64, mime, name? }`,
+[plugin-sdk](../../../packages/plugin-sdk/README.md)); the stored name is
+the payload's own or `<instance name>.<kind>`. The `generateAttachment` command
 ([operations](./operations.js)) resolves a binding only by exact
 `(sourceType, kind)` match, stores the exported file in the `files`
 GridFS bucket, gates the run on write access to the source instance,

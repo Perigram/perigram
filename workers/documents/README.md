@@ -1,22 +1,27 @@
 # CONTAINER: Documents Plugin Executor
 
-The documents domain as a third-party plugin (SPEC §20):
-the generic media/office file types (image, PDF, markdown, CSV, XLSX,
-DOCX), their editor surfaces, the table projections, and the CSV
-composition. The platform carries zero documents code: projections
-compute here as pure payload decompositions, editors ship as the
-plugin's surface modules, and the types ride the generic instance
-machinery from the install snapshot.
+The documents domain as a third-party plugin (SPEC §20): the generic
+media/office file types (image, PDF, markdown, CSV, XLSX, DOCX), their
+editor surfaces, the table projections, the CSV composition, and the
+template fills (SPEC §24). The platform carries zero documents code:
+projections and fills compute here as pure payload decompositions and
+compositions, editors ship as the plugin's surface modules, and the
+types ride the generic instance machinery from the install snapshot.
 
 - Listing: `workers/documents/listing.json` — types with
   service-resolved projections (`resolve: { service:
-  'plugin.documents.<svc>' }` — endpoint mode), the four services,
-  editor bindings, and the text-document starter construct (markdown
-  stays visible-by-default through the default installs).
+  'plugin.documents.<svc>' }` — endpoint mode), the six services,
+  editor bindings, the fill construction bindings, and the
+  text-document starter construct (markdown stays visible-by-default
+  through the default installs). `requires` names tech-drawing: the
+  PDF render construction accepts `dxf-source` sources.
 - Services (`services.js`, endpoint mode): `table-rows`/`table-cells`
   (payload → first sheet as header-keyed / positional row records),
   `text` (payload → string), `csv-text` (rows → CSV text, the wireable
-  composition twin the process palette serves).
+  composition twin the process palette serves), `fill` (template ref
+  payload + values → filled file payload, dispatched on the template
+  kind), and `render-pdf` (source ref payload → rendered PDF payload,
+  dispatched on the source kind).
 - Editor surfaces (contract 3 — the capability mount): the markdown
   editor (`surfaces/text-editor.mjs`, milkdown/crepe with every engine
   chrome disabled — remote saves reconcile through the host's
@@ -45,6 +50,41 @@ machinery from the install snapshot.
 
 Runs from the repo mount (compose `documents-executor`, port 8791) —
 nothing here imports platform code.
+
+## Template fills (SPEC §24)
+
+The `fill` and `render-pdf` services are bound by the listing's
+`constructions`: `text-document`/`xlsx-workbook`/`pdf-document` gain a
+`fill` mode, `pdf-document` gains a `render` mode. The construction
+dispatch sends `{ refs, draft: { data: { values } } }`; the service
+returns `payload: { base64, mime, name }` (the executor payload
+contract, [plugin-sdk](../../packages/plugin-sdk/README.md)) and the
+platform stores it as the created instance's payload.
+
+Token law:
+
+| Token | Where | Substitution |
+|---|---|---|
+| `{key}` | markdown cells and text, xlsx cells, PDF text runs, renderable markdown | `values[key]`; a missing key keeps the placeholder |
+| `{#key}` / `{/key}` | xlsx, one cell each, on their own rows | the rows between repeat once per element of `values[key]`; element fields shadow outer values; a scalar element binds to `{item}`; one nesting level |
+| `{spot:name}` | DXF templates | the [tech-drawing](../tech-drawing/README.md) placement contract |
+
+Behavior and traps:
+
+- xlsx fills rewrite values in place and rebuild rows for repeated
+  sections; formulas (`f`) are left untouched. SheetJS community
+  round-trips values, number formats, and column/row sizes — theme
+  fills, charts, and images may drop.
+- PDF template fill masks each token's text run with a white rectangle
+  and redraws the substituted text in PT Sans at the same baseline; the
+  masked original stays in the content stream (extractable text, hidden
+  visually).
+- `render-pdf` lays out markdown (headings, paragraphs, lists, pipe
+  tables, code fences), workbook/CSV sheets as gridded tables (first
+  sheet, 2000-row cap), DXF drawings (LINE/LWPOLYLINE/POLYLINE/CIRCLE/
+  ARC/TEXT/MTEXT fit onto landscape A4), and images (centered A4).
+- All PDF text embeds PT Sans Regular/Bold (`assets/fonts/`, SIL OFL 1.1)
+  through fontkit — StandardFonts cannot encode Cyrillic.
 
 ## Publish, install, migrate
 
