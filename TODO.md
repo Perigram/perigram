@@ -793,3 +793,23 @@ selection followed by the selected mode's inputs.
   definition with two same-type create actions (cassette-design carries
   upload/bake/convertDxf modes) — left to the owner against the running
   dev stack after merge.
+
+### Agent Notes (2026-10-26, agent/genui-rail-20261026-1617 + close)
+
+- Owner defect "items hang in right column when nothing else exists":
+  fixed and geometry-verified. The side rail now engages only when the
+  record body carries at least the rail's weight (SPEC rule 4); a thin
+  body keeps its children below at full width. Live pane measurement
+  after the fix: the thin record renders one full-width block
+  (x279 w1378 h170) — no split, no hanging column; the heavy record
+  (12+12 children) keeps weight-ordered tabs.
+- Screen-level inert partition implemented (SPEC rule 1): a section
+  resolved empty leaves the ladder as a compact stub strip below the
+  arranged sections; loading/denied/error sections keep their state
+  surfaces. Empty home sections no longer claim column/tab tracks.
+- Probe false alarm recorded: icon-only tabs with empty textContent in
+  desktop dumps are the hidden mobile bottom bar (labels live on
+  aria-label/title) — a layout law, not a defect.
+- Specs 122 green (rail gate pins incl. thin-body negative, screen
+  stub partition, random-world totality over the new shape); guards:
+  arch, docs, SSR smoke, design-system pass.
