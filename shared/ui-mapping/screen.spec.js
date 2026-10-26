@@ -417,6 +417,56 @@ describe('screen composition', () => {
     expect(heavy.regions[0].childArrangement.mode).toBe('tabs');
   });
 
+  it('excludes tabs inside a tabbed sections arrangement', () => {
+    // A tabbed screen places every top-level region inside a tab, so the
+    // record's heavy child set stacks there — tabs never nest, even over
+    // one ancestor (SPEC §22.1).
+    const cardBundle = { types: bundle.types.map(type => (
+      type.id === 'widget' ? { ...type, class: 'file', payload: { mime: ['image/png'], preview: 'image' } } : type
+    )) };
+    const related = Array.from({ length: 3 }, (_, index) => (
+      { id: `rw${index}`, type: 'widget', fields: { name: `RW${index}` }, relations: {}, lineage: {}, state: 'draft' }
+    ));
+    const poolFor = feedRefs => buildInstancePool({
+      widgets: [
+        { id: 'host', type: 'widget', fields: { name: 'Host' }, relations: {
+          reviews: related.map(instance => ({ type: 'widget', id: instance.id })),
+          audits: related.map(instance => ({ type: 'widget', id: instance.id })),
+          feed: feedRefs
+        }, lineage: {}, state: 'draft' },
+        ...related
+      ]
+    });
+    const screen = pool => composeScreen(
+      { screenKey: 'nt', template: 'home', label: 'NT', typeId: 'widget', scope: { instanceId: 'host' },
+        sources: [
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'widget_reviews_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'reviews' } },
+          { id: 'widget_audits_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'audits' } },
+          { id: 'widget_feed_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'feed' } }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
+          { id: 'feed', slot: 'main', sourceId: 'widget_feed_related', surface: 'list' },
+          { id: 'reviews', slot: 'children', sourceId: 'widget_reviews_related', surface: 'card' },
+          { id: 'audits', slot: 'children', sourceId: 'widget_audits_related', surface: 'card' }
+        ] },
+      contract, cardBundle, pool
+    );
+    // The heavy feed section (3 preview cards = 14 rows) tabs the screen:
+    // both top-level regions sit inside tabs, so their heavy children
+    // stack.
+    const heavy = screen(poolFor(related.map(instance => ({ type: 'widget', id: instance.id }))));
+    expect(heavy.regionsMode).toBe('tabs');
+    expect(heavy.regions[0].childArrangement.mode).toBe('stack');
+    expect(heavy.regions[1].childArrangement.mode).toBe('stack');
+    // The same record with a light feed keeps stacking its sections, and
+    // its heavy child set tabs.
+    const light = screen(poolFor([]));
+    expect(light.regionsMode).toBe('stack');
+    expect(light.regions[0].childArrangement.mode).toBe('tabs');
+  });
+
   it('keeps empty child collections layout-inert as stubs', () => {
     const host = { id: 'host', type: 'widget', fields: { name: 'Host' }, relations: {
       reviews: [{ type: 'widget', id: 'rw0' }],

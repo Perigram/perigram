@@ -887,10 +887,10 @@ export function estimateRegionWeight(node = {}) {
 // Screen-level section arrangement (the home template's top regions):
 // sections over the surface budget tab. Record-child arrangement uses
 // the richer ladder below.
-export function childrenModeFor(childRegions = [], level = 0) {
+export function childrenModeFor(childRegions = []) {
   if (childRegions.length < CHILDREN_TABS_AT) return 'stack';
   const weight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
-  if (weight > SURFACE_ROW_BUDGET && level === 0) return 'tabs';
+  if (weight > SURFACE_ROW_BUDGET) return 'tabs';
   return 'stack';
 }
 
@@ -901,9 +901,9 @@ export function childrenModeFor(childRegions = [], level = 0) {
 // sibling keeps the flow while its remainder fits the surface budget,
 // and a heavier remainder tabs the whole set — tabs are the page-height
 // bound, so they must stay reachable for top-heavy sets; heavier peers
-// tab in descending weight order. Tabs are a top-level arrangement —
-// nested heavy content stacks.
-export function arrangeChildren(childRegions = [], level = 0) {
+// tab in descending weight order. Tabs sit at any tree level; a sibling
+// set inside a tab arrangement stacks (SPEC §22.1).
+export function arrangeChildren(childRegions = [], insideTabs = false) {
   if (childRegions.length < CHILDREN_TABS_AT) return { mode: 'stack' };
   const weights = childRegions.map(region => estimateRegionWeight(region));
   const total = weights.reduce((sum, weight) => sum + weight, 0);
@@ -919,7 +919,7 @@ export function arrangeChildren(childRegions = [], level = 0) {
       tracks: weights.map(weight => `minmax(0, ${Math.max(1, Math.round(weight))}fr)`).join(' ')
     };
   }
-  if (level > 0) return { mode: 'stack' };
+  if (insideTabs) return { mode: 'stack' };
   return {
     mode: 'tabs',
     order: childRegions

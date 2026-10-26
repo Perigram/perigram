@@ -652,41 +652,42 @@ describe('weight-driven arrangement', () => {
     expect(SPACING_STEPS).toEqual([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]);
   });
 
-  it('tabs only when siblings are many and heavy at the top level', () => {
-    expect(childrenModeFor([listNode(8), listNode(8)], 0)).toBe('tabs');
-    expect(childrenModeFor([listNode(2), listNode(3)], 0)).toBe('stack');
-    expect(childrenModeFor([detailNode(16)], 0)).toBe('stack');
-    expect(childrenModeFor([listNode(8), listNode(8)], 1)).toBe('stack');
+  it('tabs screen sections when their combined weight exceeds the surface budget', () => {
+    expect(childrenModeFor([listNode(8), listNode(8)])).toBe('tabs');
+    expect(childrenModeFor([listNode(2), listNode(3)])).toBe('stack');
+    expect(childrenModeFor([detailNode(16)])).toBe('stack');
   });
 
   it('arranges siblings by weight: stack, proportional columns, dominant flow, weight-ordered tabs', () => {
     // Light sets flow in one stack.
-    expect(arrangeChildren([listNode(2), listNode(3)], 0)).toEqual({ mode: 'stack' });
+    expect(arrangeChildren([listNode(2), listNode(3)])).toEqual({ mode: 'stack' });
     // Peers over the budget, each within the column cap, share
     // proportional columns — track fr from each child's estimated rows
     // (card-scale: an 11-row peer is a 2-card collection).
-    expect(arrangeChildren([listNode(4), listNode(4)], 0)).toEqual({ mode: 'columns', tracks: 'minmax(0, 6fr) minmax(0, 6fr)' });
-    expect(arrangeChildren([listNode(9), listNode(9)], 0)).toEqual({ mode: 'columns', tracks: 'minmax(0, 11fr) minmax(0, 11fr)' });
+    expect(arrangeChildren([listNode(4), listNode(4)])).toEqual({ mode: 'columns', tracks: 'minmax(0, 6fr) minmax(0, 6fr)' });
+    expect(arrangeChildren([listNode(9), listNode(9)])).toEqual({ mode: 'columns', tracks: 'minmax(0, 11fr) minmax(0, 11fr)' });
     // A dominant sibling keeps the flow while its remainder fits the
     // surface budget; the light rest stacks after it.
     const dominant = arrangeChildren([
       { id: 'big', ...detailNode(14) },
       { id: 'a', ...listNode(2) },
       { id: 'b', ...listNode(2) }
-    ], 0);
+    ]);
     expect(dominant.mode).toBe('mixed');
     expect(dominant.primary).toBe(0);
     expect(dominant.rest).toEqual({ mode: 'stack' });
-    // Peers past the column cap tab at the top level, ordered by
-    // descending weight.
+    // Peers past the column cap tab, ordered by descending weight — at
+    // any tree level (SPEC §22.1).
     const tabbed = arrangeChildren([
       { id: 'light', ...listNode(12) },
       { id: 'heavy', ...listNode(15) }
-    ], 0);
+    ]);
     expect(tabbed.mode).toBe('tabs');
     expect(tabbed.order).toEqual(['heavy', 'light']);
-    // Nested heavy content stacks — tabs are a top-level arrangement.
-    expect(arrangeChildren([listNode(12), listNode(12)], 1).mode).toBe('stack');
+    expect(arrangeChildren([listNode(12), listNode(12)]).mode).toBe('tabs');
+    // A sibling set inside a tab arrangement stacks — tabs never nest,
+    // even over one ancestor.
+    expect(arrangeChildren([listNode(12), listNode(12)], true).mode).toBe('stack');
   });
 
   it('tabs top-heavy sets whose remainder exceeds the surface budget', () => {
@@ -699,7 +700,7 @@ describe('weight-driven arrangement', () => {
       { id: 'cards', ...listNode(16) },
       { id: 'sheet', ...listNode(4) },
       { id: 'csv', ...listNode(0) }
-    ], 0);
+    ]);
     expect(arranged.mode).toBe('tabs');
     expect(arranged.order).toEqual(['board', 'cards', 'sheet', 'csv']);
     // Dominance alone is not enough once the rest fits the budget —
@@ -707,7 +708,7 @@ describe('weight-driven arrangement', () => {
     const lightRest = arrangeChildren([
       { id: 'big', ...detailNode(14) },
       { id: 'a', ...listNode(2) }
-    ], 0);
+    ]);
     expect(lightRest.mode).toBe('mixed');
   });
 

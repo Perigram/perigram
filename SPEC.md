@@ -1170,14 +1170,20 @@ offer the export action without per-process action authoring.
 
 ### 22.1 Instance page arrangement is procedural and content-aware (owner
 direction 2026-10-21)
-The generative UI generates instance pages top to bottom (or bottom to
-top): the record header spans the page, the record body follows, and
+Instance page layout derives from both ends: the container context
+comes top down — host size and proportions, passed props, total child
+counts and their size estimates — and the content comes bottom up —
+instance data and type shapes, with low-level components created aware
+of their data and mid-level components consuming it. The record header
+spans the page, the record body follows, and
 child collections arrange around the body by content weight — a light
 child set rides beside the body in a weight-proportional side column;
 below it, light peers share proportional columns, a dominant child
 keeps the flow with the rest arranged after it, and heavy peers tab in
 descending weight order. Column splits and tabs are layout tools the
-composed weights derive, at every level of the generated tree.
+composed weights derive, at every level of the generated tree. Tabs
+can't be nested, even over one ancestor: nothing inside a tab or a tab's
+child generates tabs.
 Filled structural content renders open as labeled sections, and a
 collapsed fact group always carries its show-more control.
 
@@ -1196,10 +1202,10 @@ and overflow stays inside the child surfaces' own bounded scrolls.
 
 ### 22.3 A hosted surface carries its title once (owner direction
 2026-10-23)
-The workspace pane tab names the screen or record it hosts; the hosted
-surface renders its state, actions, and collections, and its own title
-surfaces (list header label, record identity block) stay with the pane
-strip.
+The workspace pane tab names the screen or record it hosts. The hosted
+surface keeps its header — lifecycle state and actions — beside its
+collections; its title surfaces (list header label, record identity
+block) stay with the pane strip.
 
 ### 22.4 Presentation has one home per concern (owner direction 2026-10-21)
 Action presentation, action applicability, and record/picker labels
@@ -1212,8 +1218,10 @@ Documentation is the README.md / SPEC.md / TODO.md tree only; the docs/
 folder does not exist. Schema and spec data live beside the code that
 owns them.
 
-### 22.6 Fields display
-Fields should be marked on creation according to CTS (required and identifier)
+### 22.6 Field use at creation
+The CTS `required` and `identifier` flags say how a field is used: the
+identifier field's value is the instance's title; a required field gates
+creation — the record is created only once the field is filled.
 
 ## 23. Deslopification (owner direction 2026-10-23)
 

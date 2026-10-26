@@ -140,15 +140,6 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   // compact stubs below the arranged content (`stubRegions`).
   const childRegions = composedChildren.filter(child => child.instances.length > 0);
   const stubRegions = composedChildren.filter(child => child.instances.length === 0);
-  // Sibling arrangement is weight-driven (arrangeChildren): light peers
-  // column, a dominant sibling keeps the flow, heavy peers tab. A record
-  // page additionally carries light children beside the body in a
-  // weight-proportional side column; heavier child sets arrange below.
-  const childWeight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
-  const childArrangement = arrangeChildren(childRegions, depth);
-  const besideBody = surfaceKind === 'detail' && depth === 0 && childRegions.length > 0
-    && childArrangement.mode === 'stack' && childWeight <= SIDE_MAX_WEIGHT;
-  const sideSpan = besideBody ? regionSideSpanFor(childWeight) : 0;
   return Object.freeze({
     id: region.id,
     slot: region.slot,
@@ -156,9 +147,6 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     dataState: dataStateFor(source, surfaceKind, instances, providedStates),
     chrome,
     level: depth,
-    childArrangement,
-    besideBody,
-    sideSpan,
     weight: estimateRegionWeight({
       surfaceKind,
       type,
@@ -187,6 +175,29 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   });
 }
 
+// Arrangement applies top down (SPEC §22.1): tabs sit at any level, and
+// a sibling set inside a tab arrangement stacks. Sibling arrangement is
+// weight-driven (arrangeChildren); a depth-0 record body carries a
+// light stack-mode child set beside it in a weight-proportional side
+// column.
+function withArrangement(node, insideTabs) {
+  const childRegions = node.childRegions.map(child => withArrangement(child, insideTabs));
+  const childWeight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
+  const childArrangement = arrangeChildren(childRegions, insideTabs);
+  const besideBody = node.surfaceKind === 'detail' && node.level === 0 && childRegions.length > 0
+    && childArrangement.mode === 'stack' && childWeight <= SIDE_MAX_WEIGHT;
+  const sideSpan = besideBody ? regionSideSpanFor(childWeight) : 0;
+  const tabbed = insideTabs || childArrangement.mode === 'tabs';
+  return Object.freeze({
+    ...node,
+    childRegions: Object.freeze(childRegions),
+    stubRegions: Object.freeze(node.stubRegions.map(child => withArrangement(child, tabbed))),
+    childArrangement,
+    besideBody,
+    sideSpan
+  });
+}
+
 // composeScreen(screen, contract, bundle, pool, options) -> pure region
 // tree. The bundle supplies surface/preview policy per entity type; the
 // pool is the data layer stand-in ({ type -> { id -> instance } }). List
@@ -199,9 +210,13 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
   const providedStates = options.sourceStates || null;
   // Every top-level region sits at depth 0 — the tree position decides
   // chrome and variant, never the region's index in the contract.
-  const regions = (screen.regions || [])
+  const composed = (screen.regions || [])
     .filter(region => region.slot !== 'children')
     .map(region => composeRegion(region, screen, contract, pool, typesById, 0, providedStates));
+  // A tabbed sections arrangement places every top-level region inside a
+  // tab, so their own children arrange with tabs excluded.
+  const regionsMode = childrenModeFor(composed);
+  const regions = composed.map(region => withArrangement(region, regionsMode === 'tabs'));
   return Object.freeze({
     key: screen.screenKey || screen.id,
     template: screen.template,
@@ -209,6 +224,6 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
     typeId: screen.typeId || null,
     type: typesById[screen.typeId] || null,
     regions: Object.freeze(regions),
-    regionsMode: childrenModeFor(regions, 0)
+    regionsMode
   });
 }
