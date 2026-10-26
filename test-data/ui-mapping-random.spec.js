@@ -31,7 +31,7 @@ describe('random worlds', () => {
       const pool = buildInstancePool(world.instances);
       for (const screen of Object.values(world.contract.screens)) {
         const composed = composeScreen(screen, world.contract, world.bundle, pool);
-        expect(composed.regions.length, `seed ${seed} ${screen.screenKey}`).toBeGreaterThan(0);
+        expect(composed.regions.length + composed.stubRegions.length, `seed ${seed} ${screen.screenKey}`).toBeGreaterThan(0);
         // The deliberate dangling-scope screen is the one instanceDetail
         // whose main region resolves no instance (the missing state).
         if (screen.template === 'instanceDetail' && !screen.screenKey.startsWith('detail_missing_')) {
@@ -167,10 +167,12 @@ describe('showcase-reachable contracts in every world', () => {
       const pool = buildInstancePool(world.instances);
       // One large collection: virtualization (>50), pagination, toolbar search.
       expect(world.bundle.types.some(type => world.instances[type.id].length > 50), `seed ${seed} volume type`).toBe(true);
-      // The guaranteed-empty type has a screen whose main region composes empty.
+      // The guaranteed-empty type has a screen whose main region composes
+      // empty — an inert section that left the arrangement as a stub.
       const emptyScreen = Object.values(world.contract.screens).find(screen => screen.label?.endsWith('— empty state'));
       expect(emptyScreen, `seed ${seed} empty screen`).toBeTruthy();
-      expect(composeScreen(emptyScreen, world.contract, world.bundle, pool).regions[0].dataState).toBe('empty');
+      const emptyComposed = composeScreen(emptyScreen, world.contract, world.bundle, pool);
+      expect(emptyComposed.stubRegions[0].dataState).toBe('empty');
       // The dangling-scope detail composes missing.
       const missingScreen = Object.values(world.contract.screens).find(screen => screen.screenKey.startsWith('detail_missing_'));
       expect(missingScreen, `seed ${seed} missing screen`).toBeTruthy();
