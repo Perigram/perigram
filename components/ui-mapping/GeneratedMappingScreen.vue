@@ -7,6 +7,14 @@
       :region-props="regionBlockProps"
       :region-events="regionBlockEvents"
     />
+    <RegionChildren
+      v-if="composed.stubRegions.length"
+      :regions="composed.stubRegions"
+      :depth="-1"
+      pack
+      :region-props="regionBlockProps"
+      :region-events="regionBlockEvents"
+    />
 
     <!-- The routed detail surface keeps the same conversation contract as
          every other instance surface: the record header (SurfaceHeader)

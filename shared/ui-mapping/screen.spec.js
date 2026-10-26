@@ -331,8 +331,8 @@ describe('screen composition', () => {
     expect(ready.regions[1].dataState).toBe('ready');
 
     const emptyPool = composeScreen(screen, contract, bundle, {});
-    expect(emptyPool.regions[0].dataState).toBe('empty');
-    expect(emptyPool.regions[1].dataState).toBe('missing');
+    expect(emptyPool.stubRegions[0].dataState).toBe('empty');
+    expect(emptyPool.regions[0].dataState).toBe('missing');
 
     const loading = composeScreen(screen, contract, bundle, {}, { sourceStates: { widget: 'loading', detail: 'denied' } });
     expect(loading.regions[0].dataState).toBe('loading');
@@ -473,10 +473,12 @@ describe('screen composition', () => {
     expect(heavy.regions[0].childArrangement.wide.mode).toBe('stack');
     expect(heavy.regions[0].childArrangement.narrow.mode).toBe('stack');
     expect(heavy.regions[2].childArrangement.wide.mode).toBe('stack');
-    // The same record with an empty feedB columns its sections, and its
-    // heavy child set tabs at every step.
+    // The same record with an empty feedB stubs that section (inert
+    // partition) and arranges the rest; its heavy child set tabs at every
+    // step.
     const light = screen(poolFor([]));
-    expect(light.regionsArrangement.wide.mode).toBe('columns');
+    expect(light.stubRegions.map(region => region.id)).toEqual(['feedB']);
+    expect(light.regionsArrangement.wide.mode).toBe('mixed');
     expect(light.regions[0].childArrangement.wide.mode).toBe('tabs');
     expect(light.regions[0].childArrangement.narrow.mode).toBe('tabs');
   });
@@ -502,14 +504,26 @@ describe('screen composition', () => {
       contract, bundle, pool
     );
     // One filled, one empty: the light filled set rides beside the body
-    // at wide (the side outcome, span earned by weight); the empty one is
-    // a stub claiming no layout.
+    // at wide (the side outcome, span earned by weight) when the body
+    // carries at least the rail's weight; the empty one is a stub
+    // claiming no layout.
     const mixed = relationScreen(buildInstancePool({ widgets: [host, filled] }));
     expect(mixed.regions[0].childRegions.map(region => region.relationKey)).toEqual(['reviews']);
     expect(mixed.regions[0].stubRegions.map(region => region.relationKey)).toEqual(['audits']);
     expect(mixed.regions[0].childArrangement.narrow).toEqual({ mode: 'stack' });
     expect(mixed.regions[0].childArrangement.wide).toEqual({ mode: 'side', span: 3 });
     expect(mixed.regions[0].sideRail).toEqual({ mode: 'side', span: 3 });
+    // A thin body never hosts a hanging side column: the children flow
+    // below at full width (the rail engages only when the body outweighs
+    // the rail content).
+    const thinHost = { ...host, relations: { reviews: ['rw0', 'rw1', 'rw2'].map(id => ({ type: 'widget', id })), audits: [] } };
+    const thinPool = buildInstancePool({
+      widgets: [thinHost,
+        ...['rw0', 'rw1', 'rw2'].map(id => ({ id, type: 'widget', fields: { name: id.toUpperCase() }, relations: {}, lineage: {}, state: 'draft' }))]
+    });
+    const thin = relationScreen(thinPool);
+    expect(thin.regions[0].sideRail).toBe(null);
+    expect(thin.regions[0].childArrangement.wide).toEqual({ mode: 'stack' });
     // An all-empty child set renders the body full-width with the
     // collections as stubs below.
     const emptyHost = { ...host, relations: { reviews: [], audits: [] } };

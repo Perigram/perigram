@@ -199,8 +199,12 @@ function withArrangement(node, insideTabs) {
   const childRegions = node.childRegions;
   const childWeight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
   const stepped = arrangeChildren(childRegions, insideTabs);
+  // The rail rides BESIDE the body: the body must carry at least the
+  // rail's weight, else the children flow below and the record keeps its
+  // page (a thin record never hosts a hanging side column).
   const sideRail = node.surfaceKind === 'detail' && node.level === 0 && childRegions.length > 0
     && childWeight <= SIDE_MAX_WEIGHT
+    && node.dataTraits.weight >= childWeight
     && childRegions.every(child => (child.dataTraits || regionDataTraits(child)).breadth !== 'full')
     ? Object.freeze({ mode: 'side', span: regionSideSpanFor(childWeight) })
     : null;
@@ -233,10 +237,19 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
   const composed = (screen.regions || [])
     .filter(region => region.slot !== 'children')
     .map(region => composeRegion(region, screen, contract, pool, typesById, 0, providedStates));
+  // Inert partition (SPEC rule 1): a list section that resolved empty
+  // leaves the arrangement and renders as a compact stub below it;
+  // loading, denied, and error sections keep their state surfaces in the
+  // ladder.
+  const inertSection = region => region.surfaceKind === 'list' && region.instances.length === 0
+    && region.dataState === 'empty';
+  const activeRegions = composed.filter(region => !inertSection(region));
+  const stubRegions = composed.filter(inertSection);
   // A tabbed sections step places every top-level region inside a tab at
   // that step, so their own child sets exclude tabs there.
-  const regionsArrangement = arrangeChildren(composed, TAB_ANCESTOR_NONE);
-  const regions = composed.map(region => withArrangement(region, tabAncestorOf(TAB_ANCESTOR_NONE, regionsArrangement)));
+  const regionsArrangement = arrangeChildren(activeRegions, TAB_ANCESTOR_NONE);
+  const insideTabs = tabAncestorOf(TAB_ANCESTOR_NONE, regionsArrangement);
+  const regions = activeRegions.map(region => withArrangement(region, insideTabs));
   return Object.freeze({
     key: screen.screenKey || screen.id,
     template: screen.template,
@@ -244,6 +257,7 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
     typeId: screen.typeId || null,
     type: typesById[screen.typeId] || null,
     regions: Object.freeze(regions),
+    stubRegions: Object.freeze(stubRegions.map(region => withArrangement(region, insideTabs))),
     regionsArrangement
   });
 }
