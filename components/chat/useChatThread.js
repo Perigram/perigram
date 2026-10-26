@@ -1951,10 +1951,6 @@ onMounted(() => {
     else if (chatTarget.value?.conversationKey) openConversationByKey(chatTarget.value.conversationKey)
 })
 onBeforeUnmount(() => {
-    if (railResizeCleanup) {
-        railResizeCleanup()
-        railResizeCleanup = null
-    }
     threadWidthObserver?.disconnect()
     threadWidthObserver = null
     if (unsubscribeConversation) {
