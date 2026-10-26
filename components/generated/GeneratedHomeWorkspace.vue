@@ -304,6 +304,25 @@ const menuPt = {
   contentContainer: { class: 'grid-cols-1' }
 };
 
+// Loaded instances by type across every section source plus the lazy
+// pool — the parent lookup the section root cut reads.
+const loadedSectionPoolByType = computed(() => {
+  const byType = new Map();
+  const add = (typeId, entity) => {
+    const key = normalizeHierarchyType(typeId || '');
+    const id = instanceId(entity);
+    if (!key || !id) return;
+    if (!byType.has(key)) byType.set(key, new Set());
+    byType.get(key).add(id);
+  };
+  for (const region of props.screen.regions) {
+    const state = props.sourceState(region.sourceId);
+    for (const entity of (state?.rawItems || state?.items || [])) add(state?.source?.typeId, entity);
+  }
+  for (const item of openedEntityItems.value) add(item.type, item.entity);
+  return byType;
+});
+
 const sections = computed(() => props.screen.regions
   .map(region => {
     const state = props.sourceState(region.sourceId);
@@ -315,14 +334,10 @@ const sections = computed(() => props.screen.regions
     };
   })
   .filter(section => section.source.typeId && shouldRenderHomeSection(section))
-  // A sectioned type that contains ITSELF keeps only root rows: children
-  // of loaded instances nest under their parents (entityNode), never
-  // beside them. The compiled-binding walk above already roots such
-  // children out when the graph wired the recursion; declared
-  // self-containment (org children edges) contributes no compiled
-  // binding, so the same cut runs here over the merged containment the
-  // nesting itself reads.
-  .map(section => (selfContainmentKeys(section.source.typeId).length
+  // A sectioned type with a containment parent edge keeps root rows only:
+  // a child of a loaded instance nests under its parent (entityNode), so
+  // no instance lists beside its type node once its parent renders.
+  .map(section => (parentContainmentEdges(section.source.typeId).length
     ? { ...section, items: rootSectionItems(section) }
     : section)));
 
@@ -330,26 +345,25 @@ const sectionItems = computed(() => sections.value.flatMap(section => section.it
   .filter(entity => instanceId(entity))
   .map(entity => workspaceEntityItem(section.source.typeId, entity))));
 
-// Self-containment edges of one type (the merged view the nesting reads).
-function selfContainmentKeys(typeId = '') {
+// Parent edges of a type through the merged containment — self-pairs and
+// cross-type children edges alike.
+function parentContainmentEdges(typeId = '') {
   const normalized = normalizeHierarchyType(typeId);
-  return [...new Set(effectiveContainment()
-    .filter(relation => relation.parentType === relation.childType
-      && normalizeHierarchyType(relation.childType) === normalized
-      && relation.lineageKey)
-    .map(relation => relation.lineageKey))];
+  return effectiveContainment()
+    .filter(relation => normalizeHierarchyType(relation.childType) === normalized && relation.lineageKey)
+    .map(relation => ({ parentType: relation.parentType, lineageKey: relation.lineageKey }));
 }
 
-// Root rows of a self-recursive section: an item whose parent ref (through
-// the self edges, both stored ref shapes) points at another loaded item of
-// the same section is a child — it nests under its parent, never lists
-// beside it.
+// Root rows of a parented section: an item whose parent ref (both stored
+// ref shapes) resolves to a loaded instance is a child of that instance.
 function rootSectionItems(section) {
-  const keys = selfContainmentKeys(section.source.typeId);
-  const loadedIds = new Set((section.rawItems || section.items || [])
-    .map(entity => instanceId(entity)).filter(Boolean));
-  return (section.items || []).filter(entity => !keys
-    .some(key => loadedIds.has(String(entity?.lineage?.[key]?.id ?? entity?.lineage?.[key] ?? ''))));
+  const edges = parentContainmentEdges(section.source.typeId);
+  const pool = loadedSectionPoolByType.value;
+  return (section.items || []).filter(entity => !edges.some(edge => {
+    const ref = entity?.lineage?.[edge.lineageKey];
+    const parentId = ref?.id ?? ref;
+    return Boolean(parentId) && pool.get(normalizeHierarchyType(edge.parentType))?.has(String(parentId));
+  }));
 }
 const workspaceEntityItems = computed(() => [...sectionItems.value, ...openedEntityItems.value]
   .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
@@ -635,7 +649,9 @@ function entityPanelItem(node) {
   const selected = selectedMenuKeys.value.has(`${node.data.item.type}:${instanceIdValue}`);
   return {
     key: node.key,
-    icon: instances.iconFor(node.data.item.type),
+    // A relation-nested row wears the link glyph — the mark that separates
+    // a link from a containment child.
+    icon: node.data.linked ? 'pi pi-link' : instances.iconFor(node.data.item.type),
     label: instanceLabelOf(node.data.item.type, instanceIdValue),
     class: selected ? 'rounded-ui bg-[var(--ck-chrome-subtle)]' : undefined,
     workspaceItem: node.data.item,
@@ -1140,7 +1156,7 @@ function sectionItemsFor(regionId) {
   )) : [];
 }
 
-function entityNode(item) {
+function entityNode(item, { linked = false } = {}) {
   const declaredChildren = effectiveContainment().some(relation => (
     relation.parentType === item.type
   ));
@@ -1148,19 +1164,23 @@ function entityNode(item) {
     childrenByKey.value.get(candidate.key) === item.key
   ));
   const containedKeys = new Set(contained.map(child => child.key));
-  const linked = (linkedChildrenByKey.value.get(item.key) || [])
+  const linkedChildren = (linkedChildrenByKey.value.get(item.key) || [])
     .map(key => workspaceEntityItems.value.find(candidate => candidate.key === key))
     .filter(Boolean)
     .filter(candidate => !containedKeys.has(candidate.key));
-  const children = [...contained, ...linked];
-  const expandable = declaredChildren || hasRelationRefs(item.entity) || children.length > 0;
+  const expandable = declaredChildren || hasRelationRefs(item.entity) || contained.length + linkedChildren.length > 0;
   return {
     key: item.key,
     // The inline entity chip owns the entity icon; a tree-level icon would
     // duplicate it.
-    data: { item },
+    data: { item, linked },
     leaf: !expandable,
-    children: children.length ? children.map(entityNode) : undefined
+    children: contained.length + linkedChildren.length
+      ? [
+          ...contained.map(child => entityNode(child)),
+          ...linkedChildren.map(child => entityNode(child, { linked: true }))
+        ]
+      : undefined
   };
 }
 
