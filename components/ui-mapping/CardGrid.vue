@@ -98,9 +98,7 @@ import {
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import ParentRef from './ParentRef.vue';
-import { incomingChildrenEdges } from '#shared/ui-mapping/index.js';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
-
 const spacing = inject('uiMappingSpacing', null);
 
 const props = defineProps({
@@ -115,6 +113,9 @@ const props = defineProps({
   actions: { type: Array, default: () => [] },
   // Collection identities render as links when an open handler exists.
   openable: { type: Boolean, default: false },
+  // The containment cross-cut composes on this collection (unscoped class
+  // list): cards carry the parent context token beside the type label.
+  parented: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   // Per-type state policy map from the compiled process contract: the
@@ -128,11 +129,6 @@ const { te, t } = useI18n();
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
 const pagination = computed(() => resolvedControls.value.pagination);
-
-// The containment cross-cut: cards of a child-capable type carry their
-// parent beside the type name (see ParentRef) — containment stays visible
-// wherever the row surfaces, nesting included elsewhere.
-const parented = computed(() => incomingChildrenEdges(props.bundle, props.type?.id).length > 0);
 
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const statusOf = instance => {

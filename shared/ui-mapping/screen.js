@@ -131,6 +131,12 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   const variant = surfaceKind === 'detail' ? (depth === 0 ? 'full' : 'detail') : 'row';
   const containerRole = depth === 0 ? 'section' : 'card';
   const chrome = resolveChrome(containerRole, depth === 0 ? null : 'section');
+  // Surface context law: the containment cross-cut composes on unscoped
+  // class lists only — a source scoped by relation, lineage, or pinned
+  // filters renders inside the surface that already states its parent.
+  const scoped = Boolean(source.relation || source.lineage
+    || (source.filters && Object.keys(source.filters).length));
+  const crossCut = surfaceKind === 'list' && !scoped;
   const composedChildren = region.slot === 'children' ? [] : (screen.regions || [])
     .filter(child => child.slot === 'children' && child.id !== region.id)
     .map(child => composeRegion(child, screen, contract, pool, typesById, depth + 1, providedStates));
@@ -158,6 +164,7 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     dataTraits,
     relationKey: source.relation?.key || null,
     lineageKey: source.lineage?.key || null,
+    crossCut,
     typeId: source.typeId || null,
     type,
     variant,
@@ -219,6 +226,17 @@ function withArrangement(node, insideTabs) {
     childArrangement,
     sideRail
   });
+}
+
+// screenWeight(composed): the total estimated rendered rows of a composed
+// screen over its whole region tree — the data term the spacing
+// coefficient's density budget consumes.
+export function screenWeight(screen = {}) {
+  const walk = regions => (regions || []).reduce((sum, region) => sum
+    + estimateRegionWeight(region)
+    + walk(region.childRegions)
+    + walk(region.stubRegions), 0);
+  return walk(screen.regions);
 }
 
 // composeScreen(screen, contract, bundle, pool, options) -> pure region

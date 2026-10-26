@@ -39,10 +39,14 @@ function bundleFieldGroups(typeView) {
   const sections = Array.isArray(typeView?.sections) ? typeView.sections : [];
   if (!sections.length) return {};
   const descriptors = typeView?.fields || {};
+  // The identifier field is the identity slot (the title every surface
+  // renders); a fact row would repeat it — the identifier renders once
+  // per surface.
+  const identifier = typeView?.identifier || null;
   const fieldGroups = {};
   for (const section of sections) {
     fieldGroups[section.id] = (section.fields || [])
-      .filter(fieldId => descriptors[fieldId])
+      .filter(fieldId => descriptors[fieldId] && fieldId !== identifier)
       .map(fieldId => ({
         path: `fields.${fieldId}`,
         label: descriptors[fieldId].label || fieldId,

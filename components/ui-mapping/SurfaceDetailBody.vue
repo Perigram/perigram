@@ -167,11 +167,13 @@ const fieldLabelKeyOf = name => fieldLabelKey(props.type?.id, name);
 const groups = computed(() => resolveFieldGroups(props.type)
   .map(group => ({
     ...group,
-    fields: group.fields.map(field => ({
-      ...field,
-      value: props.instance.fields?.[field.name],
-      label: localizedLabel({ te, t }, fieldLabelKeyOf(field.name), field.label)
-    }))
+    fields: group.fields
+      .filter(field => !isIdentifierField(props.type, field.name))
+      .map(field => ({
+        ...field,
+        value: props.instance.fields?.[field.name],
+        label: localizedLabel({ te, t }, fieldLabelKeyOf(field.name), field.label)
+      }))
   })));
 const isQuantityMap = field => field.descriptor.base === 'map'
   && field.descriptor.itemType?.base === 'quantity';
@@ -189,9 +191,9 @@ const isRichStructure = field => {
 const hasValue = field => field.value !== null
   && field.value !== undefined
   && field.value !== '';
-const scalarsOf = group => group.fields.filter(field => isScalarFact(field)
-  && hasValue(field)
-  && !isIdentifierField(props.type, field.name));
+// The identifier field drops at the group projection (the title owns
+// that value); every body grammar below inherits the cut.
+const scalarsOf = group => group.fields.filter(field => isScalarFact(field) && hasValue(field));
 const structuralOf = group => group.fields.filter(field => !isScalarFact(field) && !isQuantityMap(field) && editableNow(field));
 const shownFacts = group => {
   const scalars = scalarsOf(group);

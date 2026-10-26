@@ -86,7 +86,7 @@ import Button from 'primevue/button';
 import {
   LAYOUT, fieldLabel, tableColumnCount, ROW_RELATION_BUDGET, applyBudget,
   titleFor, resolveListControls, stateDisplayFor,
-  localizedLabel, fieldLabelKey, incomingChildrenEdges, TABLE_VIRTUAL_SCROLL_REM
+  localizedLabel, fieldLabelKey, TABLE_VIRTUAL_SCROLL_REM
 } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
@@ -102,6 +102,9 @@ const props = defineProps({
   controls: { type: Object, default: null },
   // Identity cells render as links when an open handler exists upstream.
   openable: { type: Boolean, default: false },
+  // The containment cross-cut composes on this collection (unscoped class
+  // list): identity cells carry the parent context token.
+  parented: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   // Per-type state policy map: the status column exists exactly when the
@@ -112,11 +115,6 @@ const props = defineProps({
 defineEmits(['open']);
 
 const { te, t } = useI18n();
-
-// The containment cross-cut: identity cells of a child-capable type carry
-// their parent beside the label (see ParentRef) — the same declaration
-// the tree projection nests through, stated where nesting cannot happen.
-const parented = computed(() => incomingChildrenEdges(props.bundle, props.type?.id).length > 0);
 
 // Notion-style row surfaces: every body row is a content-surface card
 // (rounded, one step above the canvas) with a hairline gap between rows —

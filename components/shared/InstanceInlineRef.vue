@@ -72,6 +72,10 @@ const cardProps = computed(() => ({
   expandable: props.interactive
 }));
 const chipPt = { label: { class: 'truncate' } };
+// The open reference's hover affordance: one step up the surface ladder.
+const hoverSurface = 'transition-colors hover:bg-subtle';
+const chipInteractiveClass = `${hoverSurface} rounded-ui`;
+const compactInteractiveClass = `${hoverSurface} rounded-panel p-1 -m-1`;
 const { typeById } = useFileTypeView();
 const compactDisplay = computed(() => resolveInstanceDisplayContract({
   typeId: generatedTypeId.value,
@@ -191,6 +195,7 @@ function executeContextualAction(action) {
       class="instance-inline-compact min-w-0 max-w-full flex-1"
       :class="[
         { 'cursor-pointer': refOpenable },
+        refOpenable ? compactInteractiveClass : null,
         compactLayout === 'stacked' ? 'instance-inline-compact--stacked' : null
       ]"
       :role="refOpenable ? 'button' : undefined"
@@ -275,7 +280,7 @@ function executeContextualAction(action) {
         :icon="icon || undefined"
         :pt="chipPt"
         class="min-w-0 max-w-full"
-        :class="[chipClass, { 'cursor-pointer': refOpenable }]"
+        :class="[chipClass, { 'cursor-pointer': refOpenable }, refOpenable ? chipInteractiveClass : null]"
         :role="refOpenable ? 'button' : undefined"
         :tabindex="refOpenable ? 0 : undefined"
         :title="identityLabel"

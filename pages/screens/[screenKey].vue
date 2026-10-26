@@ -9,6 +9,7 @@
       :screen="screen"
       :screen-key="screenKey"
       :navigation="detailNavigation"
+      pane-hosted
       @open-instance="openInstance"
     />
   </StandardPage>
