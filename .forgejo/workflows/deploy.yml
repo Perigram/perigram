@@ -35,7 +35,7 @@ jobs:
       - name: build image
         run: |
           retry() { i=0; while [ $i -lt 5 ]; do "$@" && return 0; i=$((i+1)); echo "attempt $i failed" >&2; sleep $((i*10)); done; "$@"; }
-          retry docker build --network=host -t perigram:staging --build-arg PORT=3001 .
+          retry docker build --network=host --build-arg PORT=3001 --build-arg GIT_COMMIT_SHA="$GITHUB_SHA" -t perigram:staging .
       - name: build nesting worker image
         run: |
           retry() { i=0; while [ $i -lt 5 ]; do "$@" && return 0; i=$((i+1)); echo "attempt $i failed" >&2; sleep $((i*10)); done; "$@"; }
@@ -140,3 +140,23 @@ jobs:
             -e NUXT_VAPID_PUBLIC_KEY \
             -e NUXT_VAPID_PRIVATE_KEY \
             perigram:staging
+      - name: verify the served app is this build
+        # A squatted :3001 or a crash-looped container serves an earlier
+        # build while every other check stays green: the served document
+        # must reference the entry chunk of the image this pipeline built.
+        run: |
+          [ -n "$(docker ps --filter name=perigram-staging --filter status=running -q)" ] \
+            || { echo "perigram-staging is not running" >&2; exit 1; }
+          ENTRY=$(docker run --rm --entrypoint sh perigram:staging \
+            -c "ls /src/.output/public/_nuxt/ | grep -m1 '^entry.*\.js\$'")
+          echo "image entry chunk: $ENTRY"
+          n=0
+          until curl -s http://127.0.0.1:3001/ | grep -q "$ENTRY"; do
+            n=$((n+1))
+            if [ $n -ge 15 ]; then
+              echo "served HTML never referenced $ENTRY — :3001 serves a different build; an orphan process may hold the port" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "served app matches the built image"
