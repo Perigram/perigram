@@ -902,3 +902,22 @@ and relation-linked children nest with the link glyph.
   jagua-rs link aside) — all green. Live re-verification probe:
   `e2e/zz-genui-owner-review-probe.spec.js` (untracked, per the
   zz-probe convention).
+
+### Agent Notes (2026-10-26, owner-review closeout)
+
+- Follow-up fix `2f864c7d0`: the derived coefficient exposed a latent
+  trap — the provided rhythm set was a reactive proxy over the FROZEN
+  scale table, so the first coefficient change (pool load crossing the
+  weight budget) threw "Cannot assign to read only property 'stack'"
+  and 500ed the routed detail. The provided set is a mutable copy now;
+  the showcase slider path shared the same landmine.
+- Live verification on the dev stack
+  (`.playwright/genui-review-after.json`, screenshots beside):
+  routed heavy record — header title present, 2 child collections
+  render 2 tables inside weight-ordered tabs (was 4 pre-fix), zero
+  parent tokens inside the parent detail; unscoped child-type list —
+  9/10 rows carry the parent token (the tenth is the other project's
+  child); workspace pane detail — full header with the record title,
+  same single-outcome tabs.
+- Probes: `e2e/zz-genui-owner-review-probe.spec.js` (untracked,
+  zz-convention), artifacts `.playwright/genui-review-after*`.
