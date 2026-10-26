@@ -38,27 +38,18 @@
 
     <!-- Mobile fallback: no workspace tabs on mobile, so the accepted call
          opens the full-screen dialog. -->
-    <StandardDialog
+    <CallDialog
         v-model:visible="callDialog"
-        size="full"
-        fill
-        :show-default-footer="false"
-    >
-        <template #header>
-            <span class="min-w-0 truncate text-label">{{ callHeaderLabel || $t('call.title') }}</span>
-        </template>
-        <div class="flex min-h-0 flex-1 flex-col">
-            <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" @closed="callDialog = false" />
-        </div>
-    </StandardDialog>
+        :room="callRoom"
+        :label="callHeaderLabel || $t('call.title')"
+    />
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
-import StandardDialog from '~/components/shared/StandardDialog.vue';
-import CallPanel from '~/components/calls/CallPanel.vue';
+import CallDialog from '~/components/calls/CallDialog.vue';
 import { useCallsStore } from '~/stores/calls';
 import { useCallRouting } from '~/composables/useCallRouting.js';
 

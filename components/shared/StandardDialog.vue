@@ -1,16 +1,26 @@
 <template>
-    <Dialog 
-        v-bind="$attrs" 
-        :modal="true" 
+    <Dialog
+        v-bind="$attrs"
+        :modal="true"
         :class="['w-full flex flex-col', sizeClass, fill ? 'max-h-dvh md:max-h-[calc(100dvh-2rem)]' : '']"
         :pt="fill ? { content: { class: 'flex min-h-0 flex-1 flex-col overflow-hidden' } } : undefined"
     >
-        <template #header v-if="$slots.header">
-            <slot name="header"></slot>
+        <template #header v-if="$slots.header || hasHeader">
+            <slot name="header">
+                <div class="flex min-w-0 flex-1 items-center gap-2">
+                    <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span class="min-w-0 truncate text-label">{{ title }}</span>
+                        <small v-if="subtitle" class="min-w-0 truncate text-muted text-supporting">{{ subtitle }}</small>
+                    </div>
+                    <div v-if="$slots['header-actions']" class="flex shrink-0 items-center gap-1">
+                        <slot name="header-actions" />
+                    </div>
+                </div>
+            </slot>
         </template>
-        
+
         <slot></slot>
-        
+
         <template #footer v-if="$slots.footer || showDefaultFooter">
             <slot name="footer">
                 <Button :label="cancelLabel" text severity="secondary" @click="$emit('cancel')" />
@@ -21,7 +31,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, useSlots } from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 
@@ -31,6 +41,12 @@ const props = defineProps({
     // scrolling): the root is capped to the viewport and the content area
     // becomes a flex column. Used by media viewers and call surfaces.
     fill: { type: Boolean, default: false },
+    // The popup header row for dynamic titles: a truncating title, an
+    // optional muted subtitle, and trailing #header-actions before the
+    // dialog's close button. Static-label dialogs keep PrimeVue's own
+    // `header` attr.
+    title: { type: String, default: '' },
+    subtitle: { type: String, default: '' },
     showDefaultFooter: { type: Boolean, default: false },
     cancelLabel: { type: String, default: 'Cancel' },
     saveLabel: { type: String, default: 'Save' },
@@ -40,6 +56,8 @@ const props = defineProps({
 
 defineEmits(['cancel', 'save']);
 
+const slots = useSlots();
+const hasHeader = computed(() => Boolean(props.title || props.subtitle || slots['header-actions']));
 const sizeClass = computed(() => {
     switch (props.size) {
         case 'sm': return 'max-w-dialog-sm';

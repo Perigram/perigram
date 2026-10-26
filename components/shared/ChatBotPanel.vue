@@ -3,11 +3,9 @@
         v-model:visible="visible"
         size="sm"
         :show-default-footer="false"
+        :title="$t('support.bots.title')"
         data-testid="chat-bot-panel"
     >
-        <template #header>
-            <span>{{ $t('support.bots.title') }}</span>
-        </template>
         <div class="flex min-w-0 flex-col gap-3">
             <div v-if="loading" class="flex items-center justify-center p-3">
                 <ProgressSpinner class="h-5 w-5 text-muted" />

@@ -44,9 +44,8 @@
         <!-- Docked media: the dock's own element resumes the handed-over
              playback at the handed-over position; native controls stay the
              interface, the chrome adds identity and dismissal. The identity
-             row is the desktop drag handle (the call-window drag pattern:
-             viewport-clamped left/top, persisted like the call window's
-             size). -->
+             row is the desktop drag handle (the floating-window drag
+             pattern). -->
         <div
             v-if="media.docked"
             ref="mediaCard"
@@ -55,7 +54,7 @@
         >
             <div
                 class="flex min-w-0 cursor-grab items-center gap-2 max-md:cursor-default"
-                @pointerdown="startDrag"
+                @pointerdown="onCardDragStart"
             >
                 <i
                     :class="media.docked.kind === 'video' ? 'pi pi-video' : 'pi pi-volume-up'"
@@ -99,44 +98,27 @@
             />
         </div>
     </div>
-    <StandardDialog
+    <CallDialog
         v-model:visible="callDialog"
-        size="full"
-        fill
-        :show-default-footer="false"
-    >
-        <template #header>
-            <span class="min-w-0 truncate text-label">{{ parkedCallLabel }}</span>
-        </template>
-        <div class="flex min-h-0 flex-1 flex-col">
-            <CallPanel
-                v-if="callDialog && parkedCallRoom"
-                :key="parkedCallRoom"
-                :room="parkedCallRoom"
-                park-on-unmount
-                @closed="callDialog = false"
-            />
-        </div>
-    </StandardDialog>
+        :room="parkedCallRoom"
+        :label="parkedCallLabel"
+        park-on-unmount
+    />
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
-import StandardDialog from '~/components/shared/StandardDialog.vue';
-import CallPanel from '~/components/calls/CallPanel.vue';
+import CallDialog from '~/components/calls/CallDialog.vue';
 import { useMediaStore } from '~/stores/media';
 import { useCallsStore } from '~/stores/calls';
-import { useAuthStore } from '~/stores/auth';
-import { useSupportChatStore } from '~/stores/supportChat';
-import { callRoomLabel } from '~/utils/call-rooms.js';
+import { useCallRoomLabel } from '~/composables/useCallRoomLabel.js';
+import { useFloatingDrag } from '~/composables/useFloatingDrag.js';
 
 const { t } = useI18n();
 const media = useMediaStore();
 const callsStore = useCallsStore();
-const authStore = useAuthStore();
-const supportChatStore = useSupportChatStore();
 
 // A parked room with no adopting surface is the mobile strip call: the
 // desktop floating window clears its own room on adoption paths, so this
@@ -145,11 +127,8 @@ const parkedCallRoom = computed(() => (
     callsStore.parkedRoom && !callsStore.floatingRoom ? callsStore.parkedRoom : ''
 ));
 
-const parkedCallLabel = computed(() => callRoomLabel(parkedCallRoom.value, supportChatStore.conversations, {
-    userId: authStore.userData?.userId,
-    orgName: authStore.organizationData?.name || undefined,
-    fallback: t('call.title')
-}));
+const callRoomLabel = useCallRoomLabel();
+const parkedCallLabel = computed(() => callRoomLabel(parkedCallRoom.value, t('call.title')));
 
 const callDialog = ref(false);
 
@@ -167,80 +146,27 @@ const leaveParkedCall = () => {
 };
 
 // Desktop drag: the media card follows the pointer, clamped to the
-// viewport, and the position persists per browser like the call window's
-// size. Mobile keeps the integrated strip — drags never start there.
+// viewport, and the position persists per browser. Mobile keeps the
+// integrated strip — drags never start there.
 const mediaCard = ref(null);
-const POSITION_KEY = 'perigram:media-dock-position';
+const { startDrag, applyPersisted } = useFloatingDrag({ storageKey: 'perigram:media-dock-position' });
 const isDesktop = () => typeof window !== 'undefined'
     && window.matchMedia('(min-width: 768px)').matches;
 
-const readPersistedPosition = () => {
-    try {
-        const raw = JSON.parse(window.localStorage.getItem(POSITION_KEY) || 'null');
-        if (!raw || !Number.isFinite(raw.left) || !Number.isFinite(raw.top)) return null;
-        return raw;
-    } catch {
-        return null;
-    }
+const onCardDragStart = (event) => {
+    if (!isDesktop()) return;
+    if (event.target?.closest?.('button, video, audio')) return;
+    startDrag(event, mediaCard.value);
 };
 
-const applyPersistedPosition = () => {
-    if (!mediaCard.value || !isDesktop()) return;
-    const raw = readPersistedPosition();
-    if (!raw) return;
-    mediaCard.value.style.right = 'auto';
-    mediaCard.value.style.left = `${Math.max(0, Math.min(raw.left, window.innerWidth - 80))}px`;
-    mediaCard.value.style.top = `${Math.max(0, Math.min(raw.top, window.innerHeight - 48))}px`;
-};
-watch(mediaCard, applyPersistedPosition);
+watch(mediaCard, el => applyPersisted(el));
 watch(() => media.docked?.url, () => {
     if (mediaCard.value) {
         mediaCard.value.style.left = '';
         mediaCard.value.style.top = '';
         mediaCard.value.style.right = '';
     }
-    applyPersistedPosition();
-});
-
-let dragState = null;
-const startDrag = (event) => {
-    if (!isDesktop()) return;
-    if (event.button !== 0 && event.pointerType === 'mouse') return;
-    if (event.target?.closest?.('button, video, audio')) return;
-    const target = mediaCard.value;
-    if (!target) return;
-    const rect = target.getBoundingClientRect();
-    dragState = { target, startX: event.clientX, startY: event.clientY, left: rect.left, top: rect.top };
-    target.style.right = 'auto';
-    window.addEventListener('pointermove', moveDrag);
-    window.addEventListener('pointerup', endDrag);
-    event.preventDefault();
-};
-const moveDrag = (event) => {
-    if (!dragState) return;
-    const nextLeft = dragState.left + event.clientX - dragState.startX;
-    const nextTop = dragState.top + event.clientY - dragState.startY;
-    dragState.target.style.left = `${Math.max(0, Math.min(nextLeft, window.innerWidth - 80))}px`;
-    dragState.target.style.top = `${Math.max(0, Math.min(nextTop, window.innerHeight - 48))}px`;
-};
-const endDrag = () => {
-    if (dragState?.target) {
-        try {
-            window.localStorage.setItem(POSITION_KEY, JSON.stringify({
-                left: parseFloat(dragState.target.style.left),
-                top: parseFloat(dragState.target.style.top)
-            }));
-        } catch {
-            // Storage is best-effort; the session keeps its position.
-        }
-    }
-    dragState = null;
-    window.removeEventListener('pointermove', moveDrag);
-    window.removeEventListener('pointerup', endDrag);
-};
-onBeforeUnmount(() => {
-    window.removeEventListener('pointermove', moveDrag);
-    window.removeEventListener('pointerup', endDrag);
+    applyPersisted(mediaCard.value);
 });
 
 // The dock's element registration follows the rendered kind; the media

@@ -8,22 +8,20 @@
     v-model:visible="visible"
     :size="isDirectoryType ? 'md' : 'xl'"
     :show-default-footer="false"
+    :title="title"
   >
-    <template #header>
-      <div class="flex w-full min-w-0 items-center justify-between gap-2 pr-6">
-        <span class="min-w-0 truncate text-label">{{ title }}</span>
-        <Button
-          v-if="expandable()"
-          icon="pi pi-external-link"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="$t('common.expand')"
-          :title="$t('common.expand')"
-          @click="expand"
-        />
-      </div>
+    <template #header-actions>
+      <Button
+        v-if="expandable()"
+        icon="pi pi-external-link"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        :aria-label="$t('common.expand')"
+        :title="$t('common.expand')"
+        @click="expand"
+      />
     </template>
     <div class="max-h-dvh overflow-y-auto">
       <DirectoryDetailSurface

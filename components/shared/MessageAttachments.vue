@@ -110,23 +110,22 @@
     size="full"
     fill
     :show-default-footer="false"
+    :title="previewAttachment?.name || previewAttachment?.mimeType || ''"
+    :subtitle="previewMeta"
     @update:visible="value => { if (!value) previewAttachment = null }"
   >
-    <template #header>
-      <div class="flex min-w-0 flex-1 items-center gap-2">
-        <span class="min-w-0 flex-1 truncate text-label">{{ previewAttachment?.name || previewAttachment?.mimeType }}</span>
-        <Button
-          icon="pi pi-download"
-          severity="secondary"
-          text
-          rounded
-          size="small"
-          class="shrink-0"
-          :aria-label="$t('support.download', { name: previewAttachment?.name || previewAttachment?.mimeType || '' })"
-          data-testid="chat-attachment-download"
-          @click="download(previewAttachment)"
-        />
-      </div>
+    <template #header-actions>
+      <Button
+        icon="pi pi-download"
+        severity="secondary"
+        text
+        rounded
+        size="small"
+        class="shrink-0"
+        :aria-label="$t('support.download', { name: previewAttachment?.name || previewAttachment?.mimeType || '' })"
+        data-testid="chat-attachment-download"
+        @click="download(previewAttachment)"
+      />
     </template>
     <div v-if="previewAttachment" class="flex min-h-0 w-full flex-1 flex-col">
       <div v-if="previewKind === 'image'" class="flex min-h-0 flex-1 items-center justify-center">
@@ -288,6 +287,11 @@ const summaryOverflow = computed(() => Math.max(0, (summaryItems.value || []).le
 
 // The descriptor is held so the dialog serves the same URL as the inline render.
 const previewAttachment = ref(null);
+// Header meta for the preview dialog: the file's kind facts, not just its name.
+const previewMeta = computed(() => {
+    const attachment = previewAttachment.value || {};
+    return [attachment.mimeType, formatBytes(attachment.size)].filter(Boolean).join(' · ');
+});
 
 // Office mimes embed "xml" (openxmlformats): only mime-exact text kinds
 // preview; extensions sniff solely octet-stream uploads.

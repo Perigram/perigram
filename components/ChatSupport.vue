@@ -79,27 +79,18 @@ class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rou
                 />
             </section>
         </div>
-        <StandardDialog
+        <CallDialog
             v-model:visible="callDialog"
-            size="full"
-            fill
-            :show-default-footer="false"
-        >
-            <template #header>
-                <span class="min-w-0 truncate text-label">{{ callHeaderLabel }}</span>
-            </template>
-            <div class="flex min-h-0 flex-1 flex-col">
-                <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" park-on-unmount @closed="callDialog = false" />
-            </div>
-        </StandardDialog>
+            :room="callRoom"
+            :label="callHeaderLabel"
+            park-on-unmount
+        />
         <StandardDialog
             v-model:visible="newChatDialog"
             size="sm"
             :show-default-footer="false"
+            :title="$t('support.newChat')"
         >
-            <template #header>
-                <span>{{ $t('support.newChat') }}</span>
-            </template>
             <div class="flex flex-col gap-3" data-testid="new-chat-picker">
                 <!-- The picker's own search: empty query keeps the
                      organization-scoped list; a typed query searches the
@@ -153,12 +144,10 @@ class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rou
             :save-label="$t('support.groupCreate')"
             :cancel-label="$t('common.cancel')"
             :loading="groupSaving"
+            :title="$t('support.newGroup')"
             @save="createGroup"
             @cancel="groupDialog = false"
         >
-            <template #header>
-                <span>{{ $t('support.newGroup') }}</span>
-            </template>
             <div class="flex flex-col gap-3">
                 <InputText
                     v-model="groupName"
@@ -197,12 +186,10 @@ class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rou
             :save-label="pendingCreateActionLabel"
             :cancel-label="$t('common.cancel')"
             :loading="executingCreate"
+            :title="pendingCreateActionLabel"
             @save="submitCreatePrompt"
             @cancel="createPromptVisible = false; pendingCreateAction = null"
         >
-            <template #header>
-                <span>{{ pendingCreateActionLabel }}</span>
-            </template>
             <div class="flex flex-col gap-3">
                 <label v-for="field in createPromptFields" :key="field.id" class="flex flex-col gap-1">
                     <span class="text-muted text-supporting">{{ field.label || field.id }}</span>
@@ -275,10 +262,8 @@ class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rou
             v-model:visible="forwardDialog"
             size="sm"
             :show-default-footer="false"
+            :title="$t('support.forwardTo')"
         >
-            <template #header>
-                <span>{{ $t('support.forwardTo') }}</span>
-            </template>
             <div class="flex flex-col gap-3" data-testid="chat-forward-picker">
                 <StateBlock
                     v-if="!forwardOptions.length"
@@ -337,7 +322,7 @@ class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rou
 import AiAvatar from '~/components/shared/AiAvatar.vue'
 import Avatar from 'primevue/avatar'
 import Button from 'primevue/button'
-import CallPanel from '~/components/calls/CallPanel.vue'
+import CallDialog from '~/components/calls/CallDialog.vue'
 import ChatAttachmentPicker from '~/components/shared/ChatAttachmentPicker.vue'
 import ChatBotPanel from '~/components/shared/ChatBotPanel.vue'
 import ChatComposer from '~/components/chat/ChatComposer.vue'

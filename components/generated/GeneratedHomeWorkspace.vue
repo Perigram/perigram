@@ -221,7 +221,8 @@ import { useSupportChatStore } from '~/stores/supportChat';
 import { useCallsStore } from '~/stores/calls';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js';
-import { callRoomIcon, callRoomLabel } from '~/utils/call-rooms.js';
+import { callRoomIcon } from '~/utils/call-rooms.js';
+import { useCallRoomLabel } from '~/composables/useCallRoomLabel.js';
 import { conversationKeyForRoom } from '#shared/call-rooms.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
@@ -1037,14 +1038,9 @@ onBeforeUnmount(() => {
   mobileViewportQuery?.removeEventListener?.('change', readMobileViewport);
 });
 
+const resolveRoomLabel = useCallRoomLabel();
 function activeRoomLabel(room = {}) {
-  return callRoomLabel(room.room, supportChatStore.conversations, {
-    userId: currentUserId.value,
-    orgName: authStore.organizationData?.identity?.name
-      || authStore.organizationData?.data?.name
-      || undefined,
-    fallback: t('call.activeRoom')
-  });
+  return resolveRoomLabel(room.room, t('call.activeRoom'));
 }
 
 // Calls open as ephemeral workspace tabs (never persisted with the pane
