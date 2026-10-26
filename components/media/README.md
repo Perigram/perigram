@@ -4,8 +4,8 @@ Persistent playback surfaces for media and calls that outlive their source
 surface (SPEC §11). One dock host, mounted by the app layout, with
 two placements from one component: on desktop a floating media card
 top-right whose identity row drags it anywhere in the viewport
-(viewport-clamped, position persisted per browser like the call window's
-size — the same pointer-event pattern); on mobile an integrated full-width
+(viewport-clamped, position persisted per browser through the shared
+floating-panel drag kernel); on mobile an integrated full-width
 strip flush at the top of the screen (safe-area aware, hairline-separated
 entries, no floating card chrome), beneath the bottom-nav stacking.
 
@@ -29,20 +29,24 @@ from the descriptor, seeks to the handed-over position on
 attribute races the seek). Native
 controls remain the interface; the dock's chrome adds identity (icon,
 title, kind) and dismissal. `dismiss()` pauses and clears; `ended` clears
-by itself.
+by itself. The desktop card drags through the shared floating-panel drag
+kernel ([`useFloatingDrag`](../../composables/README.md)) — the same
+pointer-following move, viewport clamping, and per-browser position
+persistence the call window uses.
 
 ## Parked calls on mobile
 
 `MediaDock` also renders the mobile top-lane entry for a parked call: a
 `callsStore.parkedRoom` with no adopting surface (`floatingRoom` empty —
-desktop's floating window clears its own adoption path). The pill names the
-conversation through the same `callRoomLabel` resolver the home sidebar
-rows use; expand reopens the full-screen call dialog whose `CallPanel`
-adopts the parked room without reconnecting, and close leaves the call
-(`dropLiveRoom`). Remote audio never pauses while parked: the parking
-handoff moves the LiveKit-attached audio elements into the calls store's
-hidden document sink, so the connection and its audio stay live until a
-surface adopts them (see
+desktop's floating window clears its own adoption path). The pill names
+the conversation through the shared call-room label resolver
+(`useCallRoomLabel`) the home sidebar rows use; expand reopens the
+full-screen call dialog ([`CallDialog`](../calls/README.md)) whose
+`CallPanel` adopts the parked room without reconnecting, and close leaves
+the call (`dropLiveRoom`). Remote audio never pauses while parked: the
+parking handoff moves the LiveKit-attached audio elements into the calls
+store's hidden document sink, so the connection and its audio stay live
+until a surface adopts them (see
 [components/calls](../calls/README.md#call-line-state-machine)).
 
 ## Related

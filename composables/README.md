@@ -434,6 +434,38 @@ app-level `ProfileSettingsDialog` host).
 
 ---
 
+## useCallRoomLabel
+
+```js
+const callRoomLabel = useCallRoomLabel();
+const label = callRoomLabel(room, t('call.title'));
+```
+
+The one display-label resolver for call rooms: the pure grammar helper in
+`utils/call-rooms.js` fed with the loaded conversation summaries and the
+auth store's viewer id and active organization name. Every call surface
+that names a room consumes it — the floating call window, the media
+dock's parked-call pill, the home sidebar's active-room rows, and the
+full-screen call dialog headers — so one room reads the same name
+everywhere. Callers pass their localized fallback.
+
+---
+
+## useFloatingDrag
+
+```js
+const { startDrag, applyPersisted, dragging } = useFloatingDrag({ storageKey: 'perigram:call-window-position' });
+```
+
+Pointer drag for floating panels (the call window, the media dock card):
+the element follows the pointer clamped to the viewport, the resting
+position persists per browser under the storage key, and `applyPersisted`
+seats a freshly mounted panel at its stored position. `startDrag(event,
+el)` binds window listeners until pointer-up and cleans up on unmount;
+the call window adds its own size resize beside the shared drag.
+
+---
+
 ## State Management (Pinia) — stores/
 
 The store inventory and the client state model live in
