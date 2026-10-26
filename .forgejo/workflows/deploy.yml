@@ -23,17 +23,31 @@ jobs:
           git -c http.proxy=http://192.168.0.100:12334 \
               -c https.proxy=http://192.168.0.100:12334 \
               submodule update --init --depth 1 workers/nesting/jagua-rs
+      - name: pull base images
+        # Registry egress from the runner is DPI-flaky (the same class the
+        # npm layer's LAN relay covers): warm the daemon's store with
+        # retries so base-image resolution survives a blocked window.
+        run: |
+          retry() { i=0; while [ $i -lt 5 ]; do "$@" && return 0; i=$((i+1)); echo "attempt $i failed" >&2; sleep $((i*10)); done; "$@"; }
+          for image in node:24.15.0-slim rust:1.83 python:3.11-slim node:24-alpine; do
+            retry docker pull "$image" || echo "WARN: pull $image kept failing; the build retry may still resolve it"
+          done
       - name: build image
-        run: docker build --network=host -t perigram:staging --build-arg PORT=3001 .
+        run: |
+          retry() { i=0; while [ $i -lt 5 ]; do "$@" && return 0; i=$((i+1)); echo "attempt $i failed" >&2; sleep $((i*10)); done; "$@"; }
+          retry docker build --network=host -t perigram:staging --build-arg PORT=3001 .
       - name: build nesting worker image
-        run: docker build --network=host -t perigram-nesting:staging -f workers/nesting/Dockerfile .
+        run: |
+          retry() { i=0; while [ $i -lt 5 ]; do "$@" && return 0; i=$((i+1)); echo "attempt $i failed" >&2; sleep $((i*10)); done; "$@"; }
+          retry docker build --network=host -t perigram-nesting:staging -f workers/nesting/Dockerfile .
       - name: build plugin executor images
         # Each plugin executor as its own image (its dependency install
         # beside the zero-dep SDK — the extracted hosting form).
         run: |
-          docker build --network=host -t perigram-executor-facade:staging --build-arg PLUGIN=facade -f workers/plugin-executor.Dockerfile .
-          docker build --network=host -t perigram-executor-documents:staging --build-arg PLUGIN=documents -f workers/plugin-executor.Dockerfile .
-          docker build --network=host -t perigram-executor-tech-drawing:staging --build-arg PLUGIN=tech-drawing -f workers/plugin-executor.Dockerfile .
+          retry() { i=0; while [ $i -lt 5 ]; do "$@" && return 0; i=$((i+1)); echo "attempt $i failed" >&2; sleep $((i*10)); done; "$@"; }
+          retry docker build --network=host -t perigram-executor-facade:staging --build-arg PLUGIN=facade -f workers/plugin-executor.Dockerfile .
+          retry docker build --network=host -t perigram-executor-documents:staging --build-arg PLUGIN=documents -f workers/plugin-executor.Dockerfile .
+          retry docker build --network=host -t perigram-executor-tech-drawing:staging --build-arg PLUGIN=tech-drawing -f workers/plugin-executor.Dockerfile .
       - name: plugin executor stack
         # The plugins host beside the app: the nesting solver (the facade
         # executor's HTTP dependency) and the three plugin executors,
