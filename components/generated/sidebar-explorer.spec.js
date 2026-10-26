@@ -150,17 +150,14 @@ async function renderSidebarModel() {
 }
 
 describe('sidebar explorer hierarchy', () => {
-  it('carries instance rows on root panels only; a nested child-type row is type-screen navigation', async () => {
+  it('panels carry instance rows alone — no type rows, contained types never panel on their own', async () => {
     const model = await renderSidebarModel();
     const groupPanel = model.find(item => item.typeId === 't-group');
     expect(groupPanel).toBeTruthy();
     expect(groupPanel.items.map(row => row.key)).toEqual([
-      'type:text-document',
       't-group:report1',
       't-group:report2'
     ]);
-    const textNode = groupPanel.items.find(item => item.id === 'home-type-text-document');
-    expect(textNode).toBeTruthy();
-    expect(textNode.items).toEqual([]);
+    expect(model.some(item => item.typeId === 'text-document')).toBe(false);
   });
 });
