@@ -366,10 +366,12 @@ from the compiled manifest.
   definition does not station renders nothing (stale types from old
   applies stay invisible). Class panels carry procedural labels only (the
   generated type key with a locale override over the authored render
-  label) and no icon — the glyph is the instance signal. A type's
-  home-section instances hang beneath it as plain default rows carrying
-  the type's registry icon and the one title resolver label
-  (`instanceLabelOf`). Opening a type panel opens its compiled
+  label) and no icon — the glyph is the instance signal. A ROOT type
+  panel's home-section instances hang beneath it as plain default rows
+  carrying the type's registry icon and the one title resolver label
+  (`instanceLabelOf`); a nested child-type row opens its compiled
+  `typeList` screen and carries no instance rows — the type list and
+  the instance tree never blend. Opening a type panel opens its compiled
   `typeList` screen as a pane tab (`GeneratedScreenPane`, below) and
   toggles the panel. Menu selection follows the active pane's selected
   tab: opening an instance selects exactly its row, opening a type screen
@@ -401,8 +403,7 @@ from the compiled manifest.
   cross-type children edges alike — lists ROOT rows only over the loaded
   pool (`rootSectionItems`: an item whose parent ref resolves to a loaded
   instance nests beneath it), so a child never appears both beneath its
-  parent and beside it; the child type's node keeps the unparented rows
-  and its type-screen command. Every workspace
+  parent and beside it. Every workspace
   lineage walk matches refs in both stored shapes (the `{ id }` object
   the instance store projects and the normalized id — the same law the
   ui-mapping matchers read). Entity nodes whose type
