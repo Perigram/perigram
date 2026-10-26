@@ -475,3 +475,19 @@ AttachmentKind row.
   designer-side (construction.inputs derives from declared fields).
 - Validation results in the session handoff report.
 =======
+
+## Generative UI program rolled back (owner direction 2026-10-26)
+
+The arrangement program of 2026-10-23..26 is reverted on `local`
+(one `revert:` commit): the traits/visible/everyday rounds, the
+arrangement rework, the rail budget round, and the layout-language
+round, with their SPEC §22.7–22.11 law and the engine SPEC file. The
+engine and materialization stand at their 2026-10-25 16:28 state
+(pre-`agent/genui-traits-spec`); root SPEC §22 carries the 22.1–22.6
+directions only. Kept: the random-world currency integer roll (a
+pre-existing generator bug, fixed independently) and the artifact
+cutover's SPEC link repairs.
+
+- [ ] WAITING — owner verification: the showcase (`/test/ui-mapping`)
+  and generated surfaces read as they did before the program; SPEC §22
+  carries no 22.7+ text.
