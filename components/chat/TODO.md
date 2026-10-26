@@ -57,3 +57,9 @@ mount-time native listener does not attach in the e2e probe environment
 (component onMounted marker never fired, zero console errors, fresh
 modules served, dev app restarted). Owner check on a real browser
 session is the next diagnostic step.
+### Agent Notes (2026-10-26, avatar gutter)
+Owner direction: the small chatbox shows the sender badge above the
+message; the left-gutter avatar is the expected arrangement at every
+pane width. Delivered: gutter avatar at all widths (ml-12 always for
+others' rows), the narrow sender-label badge row retired.
+- WAITING — owner verification.

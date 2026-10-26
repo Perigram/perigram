@@ -2644,15 +2644,13 @@ watch(() => messagesContainer.value, (element) => {
 // AI-only rooms are two-party: every non-own message is the assistant's.
 const senderIdentityRoom = computed(() => ((['group', 'instance'].includes(activeConversation.value?.conversationKind)
     && !isAiOnlyRoom.value) || isAiOnlyRoom.value))
-const showSenderLabel = (messageItem) => senderIdentityRoom.value
-    && !threadIsWide.value
-    && Boolean(messageItem?.senderUserId)
-    && !docksRight(messageItem)
+const showSenderLabel = () => false
     && messageItem.firstOfSenderRun
 
 const showSenderAvatar = (messageItem) => senderIdentityRoom.value
-    && threadIsWide.value
     && Boolean(messageItem?.senderUserId)
+    && !docksRight(messageItem)
+    && messageItem.lastOfSenderRun
     && messageItem.lastOfSenderRun
 
 const openConversation = async (conversation) => {

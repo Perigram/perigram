@@ -31,11 +31,6 @@
                                     avatar-only
                                     class="absolute -left-12 bottom-0"
                                 />
-                                <UserChip
-                                    v-if="showSenderLabel(messageItem)"
-                                    :user-id="messageSenderKey(messageItem)"
-                                    class="max-w-full"
-                                />
                                 <!-- Reply quote: a quote block, not a control —
                                      plain element with quote styling; no PrimeVue
                                      primitive fits without fighting its chrome. -->
