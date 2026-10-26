@@ -860,3 +860,18 @@ and relation-linked children nest with the link glyph.
   docs guard reports only the pre-existing jagua-rs submodule link; the
   one failing test repo-wide is the pre-existing
   `useProcessDesignerNodeSync` legacy-draft spec.
+
+### Agent Notes (2026-10-26, agent/sidebar-hierarchy-2-20261026-1805)
+
+- Owner follow-up ("didn't fix"): the containment root-cut was correct
+  but addressed the wrong shape — a mounted-model reproduction spec
+  (`sidebar-explorer.spec.js`, renderToString over the real component
+  with mocked stores) proved the cut works, and the live nesting under
+  parent instances is relation-driven. The actual defect is the nested
+  child-type row carrying its whole section list beside the instance
+  tree.
+- `typeNode` now attaches home-section instances to ROOT panels only; a
+  nested child-type row opens its typeList screen with no instance rows.
+  The reproduction spec pins the law (root panel rows, child row without
+  rows); the cross-type root cut stays (it is what lets section-loaded
+  children re-enter beneath parent rows).
