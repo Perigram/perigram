@@ -6,7 +6,7 @@
     data-key="id"
     :class="virtual ? '' : 'min-w-max'"
     :scrollable="virtual"
-    :scroll-height="virtual ? '26rem' : undefined"
+    :scroll-height="virtual ? `${TABLE_VIRTUAL_SCROLL_REM}rem` : undefined"
     :virtual-scroller-options="virtual ? { itemSize: 40 } : undefined"
     :paginator="!virtual && instances.length > pagination.paginateAt"
     :rows="pagination.rows"
@@ -86,9 +86,10 @@ import Button from 'primevue/button';
 import {
   LAYOUT, fieldLabel, tableColumnCount, ROW_RELATION_BUDGET, applyBudget,
   titleFor, resolveListControls, stateDisplayFor,
-  localizedLabel, fieldLabelKey, incomingChildrenEdges
+  localizedLabel, fieldLabelKey, incomingChildrenEdges, TABLE_VIRTUAL_SCROLL_REM
 } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
+import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import FieldControl from './FieldControl.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import ParentRef from './ParentRef.vue';
@@ -150,8 +151,13 @@ const sortByStatus = item => String(item?.state || '');
 // bounded by the richness-scaled column budget. Quantity values sort by
 // their numeric `value`. Filtering belongs to the region toolbar
 // (the region header's search/facet toggles over the same contract), not the table.
+// The host's width step sizes the column budget: a narrow or medium
+// host (pane, popup) takes the compact scale — a surface sized for its
+// container.
+const hostContainer = useHostContainerTraits();
+const compactHost = computed(() => hostContainer.value.width !== 'wide');
 const scalarFields = computed(() => resolvedControls.value.sortKeys
-  .slice(0, tableColumnCount(props.type))
+  .slice(0, tableColumnCount(props.type, compactHost.value))
   .map(key => {
     const descriptor = props.type?.fields?.[key.name] || {};
     const label = localizedLabel({ te, t }, fieldLabelKey(props.type?.id, key.name), fieldLabel(key.name, descriptor));

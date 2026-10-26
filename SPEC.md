@@ -1188,17 +1188,18 @@ Filled structural content renders open as labeled sections, and a
 collapsed fact group always carries its show-more control.
 
 ### 22.2 Instance page arrangement fills the screen (owner direction
-2026-10-22)
+2026-10-22; fill amendment 2026-10-25)
 Arrangement is content-aware and bounds the record page. A child
 collection with no loaded instances is layout-inert: it claims no side
 rail, column, or tab weight and renders as a compact stub below the
 arranged content. A dominant child keeps the flow while its remainder
 fits the surface budget; a heavier remainder tabs the whole set in
-weight order. The record body itself fills its surface by packing:
-every body block renders at content width (sections capped at
-`fit-content(46rem)`), a dead collection renders as a compact
-content-width stub, wide content (tables, boards) keeps the full row,
-and overflow stays inside the child surfaces' own bounded scrolls.
+weight order. The record body fills its surface: every body block
+renders at content width and grows into the width its host grants —
+fact groups fill in columns, sections share spare width, and the record
+preview scales with its container; wide content (tables, boards) keeps
+the full row, and overflow stays inside the child surfaces' own bounded
+scrolls.
 
 ### 22.3 A hosted surface carries its title once (owner direction
 2026-10-23)
@@ -1222,6 +1223,23 @@ owns them.
 The CTS `required` and `identifier` flags say how a field is used: the
 identifier field's value is the instance's title; a required field gates
 creation — the record is created only once the field is filled.
+
+### 22.7 Arrangement foundations (owner direction 2026-10-25)
+
+The generative UI's layout is founded on two derived records: data traits
+(compose-time facts about content, pure over the type record and the loaded
+pool) and container traits (runtime facts about the host box). Every
+arrangement decision is a pure, total function over data traits × container
+traits. One composed tree serves every host — page, pane, dialog, popup,
+mobile tab — with container traits selecting which arrangement engages.
+Content takes the place it needs: width follows breadth, height follows
+weight, growth belongs to the owning scroll. Composition is placement-aware:
+the container picks the child's variant, placement picks the presentation,
+and a class reference inside another component renders as an instance chip.
+Layout derives; a pin is declared data through the declared seams. The
+trait definitions, the layout language (atoms and composition rules), the
+arrangement decision procedure, and the placement
+slots are specified in shared/ui-mapping/SPEC.md.
 
 ## 23. Deslopification (owner direction 2026-10-23)
 

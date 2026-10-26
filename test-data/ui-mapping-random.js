@@ -10,7 +10,7 @@
 // `compileClientBundle()` does (`renderPolicyFor` over the authored
 // declaration).
 import { renderPolicyFor } from '#packages/cts/src/index.js';
-import { resolveListLayout, ROW_WEIGHT_BY_LAYOUT, BOARD_MIN_COLUMNS } from '#shared/ui-mapping/index.js';
+import { resolveListLayout, ROW_WEIGHT_BY_LAYOUT, BOARD_MIN_COLUMNS, FULL_BREADTH_LAYOUTS } from '#shared/ui-mapping/index.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -161,14 +161,16 @@ function randomValue(rnd, descriptor, refTargets) {
 
 export function generateUiMappingWorld(seed = 7) {
   const rnd = makeRandom(seed);
-  const typeCount = rnd.rand(6, 11);
+  const typeCount = rnd.rand(9, 11);
   const ids = Array.from({ length: typeCount }, (_, index) => `t${index + 1}_${pick2(rnd)}`);
-  const kinds = [];
-  kinds[0] = 'group';
-  for (let index = 1; index < typeCount; index += 1) {
+  // Class floors: two group hosts for the peer guarantees, three file
+  // classes (the volume collection plus two columnable peers), the
+  // durational and scheduled items (gantt, calendar), one process (the
+  // board projection).
+  const kinds = ['group', 'group', 'file', 'file', 'file', 'item', 'item', 'process'];
+  for (let index = 8; index < typeCount; index += 1) {
     kinds[index] = rnd.pick(['group', 'item', 'file', 'item', 'process', 'file']);
   }
-  if (!kinds.includes('item')) kinds[typeCount - 1] = 'item';
 
   // Flat state vocabularies (SPEC §7): authored in the process, not the
   // type — the world keeps them beside the types and serves their display
@@ -216,6 +218,12 @@ export function generateUiMappingWorld(seed = 7) {
     if (shortString && rnd.chance(0.3)) shortString[1].control = 'Textarea';
     return type;
   });
+  // Projection floors (structural, every world): the sixth type is
+  // durational (two instants → gantt), the seventh scheduled (exactly
+  // one instant → calendar), the eighth the boardable process class.
+  types[5].fields = { serial: { base: 'string', label: 'Serial', identifier: true }, spanStart: { base: 'instant', label: 'Start' }, spanEnd: { base: 'instant', label: 'End' } };
+  types[6].fields = { serial: { base: 'string', label: 'Serial', identifier: true }, scheduledFor: { base: 'instant', label: 'Scheduled for' } };
+  const projectionFloors = new Set([types[5].id, types[6].id, types[7].id]);
   // Guarantee at least one authored editor control per world: pin a
   // Textarea on the first short string, preferring non-identity fields.
   if (!types.some(type => Object.values(type.fields).some(field => field.control))) {
@@ -300,13 +308,40 @@ export function generateUiMappingWorld(seed = 7) {
     else break;
   }
   const peerHosts = groupsWithEdges.slice(0, 2);
-  // Each host claims its peer types exclusively, so its collections
-  // resolve under its own loaded record and carry the sized weight.
-  const claimedPeers = new Set([volumeType.id]);
-  const hostPeerEdges = new Map();
-  const pickHostPeers = host => {
-    const chosen = [];
+  // The guaranteed-empty type is reserved before peer claiming — hosts
+  // never claim it, so the empty-state screens keep their type.
+  const emptyType = types.find(type => !['file', 'group'].includes(type.class) && !projectionFloors.has(type.id))
+    || types.find(type => type.class !== 'group' && type.id !== volumeType.id && !projectionFloors.has(type.id))
+    || types[types.length - 1];
+  // A peer host renders exactly its claimed peers: host-targeting and
+  // volume-targeting child edges die, and each host keeps only its
+  // claims below — the guarantees own the shape.
+  for (const host of peerHosts) {
+    if (!host) continue;
     for (const [key, edge] of Object.entries(host.edges.children || {})) {
+      if (edge.types.some(id => id === volumeType.id || peerHosts.some(other => other && other.id === id))) {
+        delete host.edges.children[key];
+      }
+    }
+  }
+  // Each host claims its peer types exclusively, so its collections
+  // resolve under its own loaded record and carry the sized weight. The
+  // moderate host claims columnable peers (content-breadth collections —
+  // card/stats shapes), the shape the column arrangement exists for.
+  const claimedPeers = new Set([volumeType.id, emptyType.id]);
+  const hostPeerEdges = new Map();
+  const isColumnable = type => !FULL_BREADTH_LAYOUTS.includes(resolveListLayout(type, { stateful: false, size: null }));
+  const pickHostPeers = (host, columnable) => {
+    const chosen = [];
+    const edgeCandidates = [];
+    for (const [key, edge] of Object.entries(host.edges.children || {})) {
+      const target = edge.types.find(id => !claimedPeers.has(id) && id !== host.id);
+      if (!target) continue;
+      const type = types.find(candidate => candidate.id === target);
+      if (columnable && !(type && isColumnable(type))) continue;
+      edgeCandidates.push([key, edge]);
+    }
+    for (const [key, edge] of edgeCandidates) {
       if (chosen.length >= 2) break;
       const target = edge.types.find(id => !claimedPeers.has(id));
       if (!target) continue;
@@ -314,7 +349,10 @@ export function generateUiMappingWorld(seed = 7) {
       chosen.push([key, edge]);
     }
     while (chosen.length < 2) {
-      const target = types.find(type => !claimedPeers.has(type.id) && type.id !== host.id);
+      const pool = types.filter(type => !claimedPeers.has(type.id) && type.id !== host.id
+        && !peerHosts.includes(type)
+        && (!columnable || isColumnable(type)));
+      const target = pool[0];
       if (!target) break;
       claimedPeers.add(target.id);
       const key = `peers${chosen.length}`;
@@ -323,9 +361,22 @@ export function generateUiMappingWorld(seed = 7) {
     }
     hostPeerEdges.set(host.id, chosen);
   };
-  peerHosts.forEach(pickHostPeers);
-  const moderatePeers = new Set((hostPeerEdges.get(peerHosts[0]?.id) || []).flatMap(([, edge]) => edge.types));
-  const heavyPeers = new Set((hostPeerEdges.get(peerHosts[1]?.id) || []).flatMap(([, edge]) => edge.types));
+  const [moderateHost, heavyHost] = [...peerHosts].sort((a, b) => (a.id < b.id ? -1 : 1));
+  if (moderateHost) pickHostPeers(moderateHost, true);
+  if (heavyHost) pickHostPeers(heavyHost, false);
+  // A peer host renders exactly its claimed peers: every other child
+  // edge (pre-existing or stray) dies, so lineage stamps and detail
+  // screens resolve the guaranteed shape.
+  for (const [hostId, chosen] of hostPeerEdges) {
+    const keep = new Set(chosen.map(([, edge]) => edge.types[0]));
+    const host = types.find(type => type.id === hostId);
+    if (!host) continue;
+    for (const [key, edge] of Object.entries(host.edges.children || {})) {
+      if (!keep.has(edge.types[0])) delete host.edges.children[key];
+    }
+  }
+  const moderatePeers = new Set((hostPeerEdges.get(moderateHost?.id) || []).flatMap(([, edge]) => edge.types));
+  const heavyPeers = new Set((hostPeerEdges.get(heavyHost?.id) || []).flatMap(([, edge]) => edge.types));
   // Peer collections are sized by estimated rendered weight, not raw
   // count: a card collection of 3 weighs what a table of 12 does, so the
   // two peers of a host land comparable whatever their class.
@@ -341,14 +392,7 @@ export function generateUiMappingWorld(seed = 7) {
     const target = moderatePeers.has(id) ? 10 : 18;
     peerCounts[id] = Math.min(60, weightToCount(type, target));
   });
-  // The empty type stays outside the reserved set; on a tiny world the
-  // fallbacks avoid the hosts first — a missing peer degrades the band
-  // guarantee, an emptied host kills its screen.
-  const reserved = new Set([volumeType.id, ...moderatePeers, ...heavyPeers, ...peerHosts.map(host => host.id)]);
-  const emptyType = types.find(type => type.class === 'group' && !reserved.has(type.id))
-    || types.find(type => !reserved.has(type.id))
-    || types.find(type => !peerHosts.includes(type) && type.id !== volumeType.id)
-    || types[0];
+  const reserved = new Set([volumeType.id, emptyType.id, ...moderatePeers, ...heavyPeers, ...peerHosts.map(host => host.id)]);
   types.forEach(type => {
     const max = type.id === volumeType.id ? 60
       : (moderatePeers.has(type.id) || heavyPeers.has(type.id)) ? (peerCounts[type.id] || 0)
@@ -357,6 +401,7 @@ export function generateUiMappingWorld(seed = 7) {
     const exact = moderatePeers.has(type.id) || heavyPeers.has(type.id)
       || peerHosts.some(host => host.id === type.id);
     const count = type.id === volumeType.id ? max : type.id === emptyType.id ? 0
+      : projectionFloors.has(type.id) ? Math.max(1, max)
       : exact ? max : rnd.rand(0, max);
     instancesByType[type.id] = Array.from({ length: count }, (_, index) => ({ id: `${type.id}-i${index + 1}`, type: type.id }));
   });
@@ -421,7 +466,7 @@ export function generateUiMappingWorld(seed = 7) {
       .map(edge => ({ key: edge.key, parentId: edge.parentId, pool: instancesByType[edge.parentId] }))
       .filter(entry => entry.pool.length);
     if (!pools.length) return;
-    const claimingHost = moderatePeers.has(type.id) ? peerHosts[0] : heavyPeers.has(type.id) ? peerHosts[1] : null;
+    const claimingHost = moderatePeers.has(type.id) ? moderateHost : heavyPeers.has(type.id) ? heavyHost : null;
     const guaranteedPeer = Boolean(claimingHost);
     const hostPool = claimingHost ? pools.find(entry => entry.parentId === claimingHost.id) || null : null;
     instancesByType[type.id].forEach(instance => {
@@ -511,7 +556,11 @@ export function generateUiMappingWorld(seed = 7) {
     screens.home_operator.sources.push({ id: `s${index}`, typeId: type.id, mode: 'list', required: null });
     screens.home_operator.regions.push({ id: `r${index}`, slot: 'main', sourceId: `s${index}`, surface: 'list', actions: [] });
   });
-  populated.slice(0, 3).forEach(type => {
+  const listScreenTypes = [...new Set([
+    ...populated.filter(type => projectionFloors.has(type.id)),
+    ...populated
+  ])].slice(0, 4);
+  listScreenTypes.forEach(type => {
     const key = `list_${type.id}`;
     screens[key] = {
       id: key, screenKey: key, label: `${type.name} list`, kind: 'typeList', template: 'typeList',
@@ -601,8 +650,14 @@ export function generateUiMappingWorld(seed = 7) {
   // screens, only sources that exist.
   const stateMatrix = {};
   const STATES = ['loading', 'denied', 'error'];
+  // The matrix errors NON-floor list screens: the projection floors
+  // exist to render, and so do the peer-host screens.
+  const floorScreenKeys = new Set(listScreenTypes
+    .filter(type => projectionFloors.has(type.id))
+    .map(type => `list_${type.id}`));
   const matrixScreens = Object.values(screens)
-    .filter(screen => screen.template === 'typeList' && screen.sources.length)
+    .filter(screen => screen.template === 'typeList' && screen.sources.length
+      && !floorScreenKeys.has(screen.screenKey))
     .slice(0, STATES.length);
   matrixScreens.forEach((screen, index) => {
     stateMatrix[screen.screenKey] = { [screen.sources[0].id]: STATES[index] };

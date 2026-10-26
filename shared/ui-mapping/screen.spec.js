@@ -377,12 +377,14 @@ describe('screen composition', () => {
         ...extra },
       contract, bundle, widgetPool
     );
-    // Two light table peers (8 estimated rows each) share proportional
-    // columns; their relation keys cover the record body's chip rows.
+    // Two light table peers claim whole rows (full breadth) and stack
+    // below the body at every step; their relation keys cover the record
+    // body's chip rows. Full-breadth children never ride the side rail.
     const light = relationScreen();
     expect(light.regions[0].childRegions.map(region => region.relationKey)).toEqual(['reviews', 'audits']);
-    expect(light.regions[0].childArrangement.mode).toBe('columns');
-    expect(light.regions[0].childArrangement.tracks).toBe('minmax(0, 8fr) minmax(0, 8fr)');
+    expect(light.regions[0].childArrangement.narrow).toEqual({ mode: 'stack' });
+    expect(light.regions[0].childArrangement.wide).toEqual({ mode: 'stack' });
+    expect(light.regions[0].sideRail).toBe(null);
 
     // Heavy card-scale peers (3 preview cards = 14 estimated rows each)
     // tab in weight order.
@@ -414,57 +416,69 @@ describe('screen composition', () => {
         ] },
       contract, cardBundle, heavyPool
     );
-    expect(heavy.regions[0].childArrangement.mode).toBe('tabs');
+    expect(heavy.regions[0].childArrangement.wide.mode).toBe('tabs');
+    expect(heavy.regions[0].childArrangement.narrow.mode).toBe('tabs');
   });
 
   it('excludes tabs inside a tabbed sections arrangement', () => {
-    // A tabbed screen places every top-level region inside a tab, so the
-    // record's heavy child set stacks there — tabs never nest, even over
-    // one ancestor (SPEC §22.1).
+    // A tabbed screen step places every top-level region inside a tab,
+    // so the record's heavy child set stacks there — tabs sit one tab
+    // deep, even over one ancestor (SPEC §22.1).
     const cardBundle = { types: bundle.types.map(type => (
       type.id === 'widget' ? { ...type, class: 'file', payload: { mime: ['image/png'], preview: 'image' } } : type
     )) };
     const related = Array.from({ length: 3 }, (_, index) => (
       { id: `rw${index}`, type: 'widget', fields: { name: `RW${index}` }, relations: {}, lineage: {}, state: 'draft' }
     ));
-    const poolFor = feedRefs => buildInstancePool({
+    const feedWidgets = Array.from({ length: 3 }, (_, index) => (
+      { id: `fw${index}`, type: 'widget', fields: { name: `FW${index}` }, relations: {}, lineage: {}, state: 'draft' }
+    ));
+    const ref = instance => ({ type: 'widget', id: instance.id });
+    const poolFor = feedBRefs => buildInstancePool({
       widgets: [
         { id: 'host', type: 'widget', fields: { name: 'Host' }, relations: {
-          reviews: related.map(instance => ({ type: 'widget', id: instance.id })),
-          audits: related.map(instance => ({ type: 'widget', id: instance.id })),
-          feed: feedRefs
+          reviews: related.map(ref),
+          audits: related.map(ref),
+          feedA: [ref(feedWidgets[0])],
+          feedB: feedBRefs
         }, lineage: {}, state: 'draft' },
-        ...related
+        ...related,
+        ...feedWidgets
       ]
     });
     const screen = pool => composeScreen(
       { screenKey: 'nt', template: 'home', label: 'NT', typeId: 'widget', scope: { instanceId: 'host' },
         sources: [
           { id: 'widget', typeId: 'widget', mode: 'single' },
-          { id: 'widget_reviews_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'reviews' } },
-          { id: 'widget_audits_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'audits' } },
-          { id: 'widget_feed_related', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'feed' } }
+          { id: 'reviews_src', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'reviews' } },
+          { id: 'audits_src', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'audits' } },
+          { id: 'feed_a_src', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'feedA' } },
+          { id: 'feed_b_src', typeId: 'widget', mode: 'list', relation: { sourceId: 'widget', key: 'feedB' } }
         ],
         regions: [
           { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
-          { id: 'feed', slot: 'main', sourceId: 'widget_feed_related', surface: 'list' },
-          { id: 'reviews', slot: 'children', sourceId: 'widget_reviews_related', surface: 'card' },
-          { id: 'audits', slot: 'children', sourceId: 'widget_audits_related', surface: 'card' }
+          { id: 'feedA', slot: 'main', sourceId: 'feed_a_src', surface: 'list' },
+          { id: 'feedB', slot: 'main', sourceId: 'feed_b_src', surface: 'list' },
+          { id: 'reviews', slot: 'children', sourceId: 'reviews_src', surface: 'card' },
+          { id: 'audits', slot: 'children', sourceId: 'audits_src', surface: 'card' }
         ] },
       contract, cardBundle, pool
     );
-    // The heavy feed section (3 preview cards = 14 rows) tabs the screen:
-    // both top-level regions sit inside tabs, so their heavy children
-    // stack.
-    const heavy = screen(poolFor(related.map(instance => ({ type: 'widget', id: instance.id }))));
-    expect(heavy.regionsMode).toBe('tabs');
-    expect(heavy.regions[0].childArrangement.mode).toBe('stack');
-    expect(heavy.regions[1].childArrangement.mode).toBe('stack');
-    // The same record with a light feed keeps stacking its sections, and
-    // its heavy child set tabs.
+    // The heavy feedB section (3 preview cards = 14 rows) pushes the
+    // section set past the column cap: every step tabs, and the
+    // top-level regions' own heavy children stack at every step.
+    const heavy = screen(poolFor(feedWidgets.map(ref)));
+    expect(heavy.regionsArrangement.wide.mode).toBe('tabs');
+    expect(heavy.regionsArrangement.narrow.mode).toBe('tabs');
+    expect(heavy.regions[0].childArrangement.wide.mode).toBe('stack');
+    expect(heavy.regions[0].childArrangement.narrow.mode).toBe('stack');
+    expect(heavy.regions[2].childArrangement.wide.mode).toBe('stack');
+    // The same record with an empty feedB columns its sections, and its
+    // heavy child set tabs at every step.
     const light = screen(poolFor([]));
-    expect(light.regionsMode).toBe('stack');
-    expect(light.regions[0].childArrangement.mode).toBe('tabs');
+    expect(light.regionsArrangement.wide.mode).toBe('columns');
+    expect(light.regions[0].childArrangement.wide.mode).toBe('tabs');
+    expect(light.regions[0].childArrangement.narrow.mode).toBe('tabs');
   });
 
   it('keeps empty child collections layout-inert as stubs', () => {
@@ -487,19 +501,22 @@ describe('screen composition', () => {
         ] },
       contract, bundle, pool
     );
-    // One filled, one empty: the filled child arranges alone (light set
-    // rides beside the body); the empty one is a stub claiming no layout.
+    // One filled, one empty: the light filled set rides beside the body
+    // at wide (the side outcome, span earned by weight); the empty one is
+    // a stub claiming no layout.
     const mixed = relationScreen(buildInstancePool({ widgets: [host, filled] }));
     expect(mixed.regions[0].childRegions.map(region => region.relationKey)).toEqual(['reviews']);
     expect(mixed.regions[0].stubRegions.map(region => region.relationKey)).toEqual(['audits']);
-    expect(mixed.regions[0].besideBody).toBe(true);
+    expect(mixed.regions[0].childArrangement.narrow).toEqual({ mode: 'stack' });
+    expect(mixed.regions[0].childArrangement.wide).toEqual({ mode: 'side', span: 3 });
+    expect(mixed.regions[0].sideRail).toEqual({ mode: 'side', span: 3 });
     // An all-empty child set renders the body full-width with the
     // collections as stubs below.
     const emptyHost = { ...host, relations: { reviews: [], audits: [] } };
     const allEmpty = relationScreen(buildInstancePool({ widgets: [emptyHost] }));
     expect(allEmpty.regions[0].childRegions).toEqual([]);
     expect(allEmpty.regions[0].stubRegions.map(region => region.relationKey)).toEqual(['reviews', 'audits']);
-    expect(allEmpty.regions[0].besideBody).toBe(false);
+    expect(allEmpty.regions[0].sideRail).toBe(null);
   });
 
   it('attaches the list-controls contract to list regions only', () => {

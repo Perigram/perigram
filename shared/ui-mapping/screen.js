@@ -1,7 +1,7 @@
 // Screen composition: projects a compiled screen contract
 // plus a CTS client bundle and an instance pool into a pure render tree.
 // No Vue here — the components/ui-mapping layer materializes this tree.
-import { resolveSurface, resolveChrome, arrangeChildren, regionSideSpanFor, estimateRegionWeight, resolveListControls, childrenModeFor, SIDE_MAX_WEIGHT } from './index.js';
+import { resolveSurface, resolveChrome, arrangeChildren, TAB_ANCESTOR_NONE, regionSideSpanFor, regionDataTraits, estimateRegionWeight, resolveListControls, SIDE_MAX_WEIGHT } from './index.js';
 import { filterFromFlatFilters, instanceMatchesFilter } from '#shared/instance-filters/index.js';
 
 // Region data state: the data layer may report per-source states
@@ -140,6 +140,14 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   // compact stubs below the arranged content (`stubRegions`).
   const childRegions = composedChildren.filter(child => child.instances.length > 0);
   const stubRegions = composedChildren.filter(child => child.instances.length === 0);
+  // Data traits (SPEC → Data traits): the compose-time record arrangement
+  // consumes, derived pure over the type record and the loaded pool.
+  const dataTraits = regionDataTraits({
+    surfaceKind,
+    type,
+    instances,
+    statePolicy: contract.statePolicy?.[source.typeId] || null
+  });
   return Object.freeze({
     id: region.id,
     slot: region.slot,
@@ -147,12 +155,7 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     dataState: dataStateFor(source, surfaceKind, instances, providedStates),
     chrome,
     level: depth,
-    weight: estimateRegionWeight({
-      surfaceKind,
-      type,
-      instances,
-      statePolicy: contract.statePolicy?.[source.typeId] || null
-    }),
+    dataTraits,
     relationKey: source.relation?.key || null,
     lineageKey: source.lineage?.key || null,
     typeId: source.typeId || null,
@@ -175,26 +178,42 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   });
 }
 
-// Arrangement applies top down (SPEC §22.1): tabs sit at any level, and
-// a sibling set inside a tab arrangement stacks. Sibling arrangement is
-// weight-driven (arrangeChildren); a depth-0 record body carries a
-// light stack-mode child set beside it in a weight-proportional side
-// column.
+// Arrangement applies top down (SPEC §22.1): tabs sit at any tree level,
+// and a tab arrangement at a step excludes tabs in its descendants at
+// that step — the pass threads each step's tab ancestry into the child
+// sets while composing their outcomes.
+function tabAncestorOf(insideTabs, arrangement) {
+  return Object.freeze({
+    narrow: insideTabs.narrow || arrangement.narrow?.mode === 'tabs',
+    medium: insideTabs.medium || arrangement.medium?.mode === 'tabs',
+    wide: insideTabs.wide || arrangement.wide?.mode === 'tabs'
+  });
+}
+
+// The record page's side rail is the wide outcome (SPEC rule 4): a light
+// child set — no full-breadth child, combined weight at or under
+// SIDE_MAX_WEIGHT — rides beside the record body, the side column's span
+// earned by weight. Narrower hosts take the step's own outcome below the
+// body.
 function withArrangement(node, insideTabs) {
-  const childRegions = node.childRegions.map(child => withArrangement(child, insideTabs));
+  const childRegions = node.childRegions;
   const childWeight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
-  const childArrangement = arrangeChildren(childRegions, insideTabs);
-  const besideBody = node.surfaceKind === 'detail' && node.level === 0 && childRegions.length > 0
-    && childArrangement.mode === 'stack' && childWeight <= SIDE_MAX_WEIGHT;
-  const sideSpan = besideBody ? regionSideSpanFor(childWeight) : 0;
-  const tabbed = insideTabs || childArrangement.mode === 'tabs';
+  const stepped = arrangeChildren(childRegions, insideTabs);
+  const sideRail = node.surfaceKind === 'detail' && node.level === 0 && childRegions.length > 0
+    && childWeight <= SIDE_MAX_WEIGHT
+    && childRegions.every(child => (child.dataTraits || regionDataTraits(child)).breadth !== 'full')
+    ? Object.freeze({ mode: 'side', span: regionSideSpanFor(childWeight) })
+    : null;
+  const childArrangement = sideRail
+    ? Object.freeze({ ...stepped, wide: sideRail })
+    : stepped;
+  const childInsideTabs = tabAncestorOf(insideTabs, childArrangement);
   return Object.freeze({
     ...node,
-    childRegions: Object.freeze(childRegions),
-    stubRegions: Object.freeze(node.stubRegions.map(child => withArrangement(child, tabbed))),
+    childRegions: Object.freeze(childRegions.map(child => withArrangement(child, childInsideTabs))),
+    stubRegions: Object.freeze(node.stubRegions.map(child => withArrangement(child, childInsideTabs))),
     childArrangement,
-    besideBody,
-    sideSpan
+    sideRail
   });
 }
 
@@ -209,14 +228,15 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
   const typesById = Object.fromEntries((bundle.types || []).map(type => [type.id, type]));
   const providedStates = options.sourceStates || null;
   // Every top-level region sits at depth 0 — the tree position decides
-  // chrome and variant, never the region's index in the contract.
+  // chrome and variant, never the region's index in the contract. Screen
+  // sections arrange through the same ordered rules record children do.
   const composed = (screen.regions || [])
     .filter(region => region.slot !== 'children')
     .map(region => composeRegion(region, screen, contract, pool, typesById, 0, providedStates));
-  // A tabbed sections arrangement places every top-level region inside a
-  // tab, so their own children arrange with tabs excluded.
-  const regionsMode = childrenModeFor(composed);
-  const regions = composed.map(region => withArrangement(region, regionsMode === 'tabs'));
+  // A tabbed sections step places every top-level region inside a tab at
+  // that step, so their own child sets exclude tabs there.
+  const regionsArrangement = arrangeChildren(composed, TAB_ANCESTOR_NONE);
+  const regions = composed.map(region => withArrangement(region, tabAncestorOf(TAB_ANCESTOR_NONE, regionsArrangement)));
   return Object.freeze({
     key: screen.screenKey || screen.id,
     template: screen.template,
@@ -224,6 +244,6 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
     typeId: screen.typeId || null,
     type: typesById[screen.typeId] || null,
     regions: Object.freeze(regions),
-    regionsMode
+    regionsArrangement
   });
 }
