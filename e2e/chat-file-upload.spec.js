@@ -225,12 +225,33 @@ test.describe('chat file uploads', () => {
     await orgRow.click();
     await app.page.locator('[data-testid="chat-attach-trigger"]').click();
     await expect(app.page.locator('[data-testid="chat-file-trigger"]')).toBeVisible({ timeout: 10000 });
-    await app.page.locator('[data-testid="chat-file-input"]').setInputFiles({
-      name: 'org-note.png', mimeType: 'image/png', buffer: PNG_BYTES
-    });
+    await app.page.locator('[data-testid="chat-file-input"]').setInputFiles([
+      { name: 'org-note.png', mimeType: 'image/png', buffer: PNG_BYTES },
+      { name: 'org-note-2.png', mimeType: 'image/png', buffer: PNG_BYTES }
+    ]);
     await app.page.getByRole('button', { name: 'Send' }).click();
-    await expect(app.page.locator('[data-testid="chat-attachments"]').last().locator('img')).toBeVisible({ timeout: 20000 });
-    outcomes.orgChat = { uploadStagedAndSent: true };
+    const orgGallery = app.page.locator('[data-testid="chat-attachments"]').last();
+    await expect(orgGallery.locator('img')).toHaveCount(2, { timeout: 20000 });
+
+    // -- Preview dialog: the header carries the file's kind facts, and the
+    //    arrows walk the message's openable set with a position counter. --
+    await orgGallery.locator('img').first().click();
+    const previewDialog = app.page.locator('.p-dialog:visible')
+      .filter({ has: app.page.locator('[data-testid="chat-attachment-download"]') });
+    await expect(previewDialog).toBeVisible({ timeout: 10000 });
+    await expect(previewDialog.locator('[data-testid="chat-attachment-position"]')).toHaveText('1 / 2');
+    await expect(previewDialog.locator('small').first()).toContainText('image/png');
+    await previewDialog.locator('[data-testid="chat-attachment-next"]').click();
+    await expect(previewDialog.locator('[data-testid="chat-attachment-position"]')).toHaveText('2 / 2');
+    await expect(previewDialog).toContainText('org-note-2.png');
+    await app.page.keyboard.press('ArrowLeft');
+    await expect(previewDialog.locator('[data-testid="chat-attachment-position"]')).toHaveText('1 / 2');
+    await testInfo.attach('chat-attachment-preview', {
+      body: await previewDialog.screenshot(),
+      contentType: 'image/png'
+    });
+    await app.page.keyboard.press('Escape');
+    outcomes.orgChat = { uploadStagedAndSent: true, previewNavigation: true };
 
     await app.expectCleanRuntime();
 
