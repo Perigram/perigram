@@ -391,14 +391,18 @@ from the compiled manifest.
   beside containment — expanding a row resolves its relation refs
   (`resolveInstanceRelationRefs` over the canonical DTO, fetching the full
   record when the list DTO omits relations) and nests the referenced
-  entities under the row. Section roots never nest, and a type is never its
+  entities under the row wearing the link glyph (`pi pi-link`) in place of
+  the type glyph — the mark separating a link from a containment child.
+  Section roots never nest, and a type is never its
   own type-level parent: recursive containment nests instances under
   instances (`typeParentOf` skips self-pairs, the same law the compiler's
   home suppression applies), so a self-referential type keeps its root
-  node — and its home section lists ROOT rows only (compiled-binding
-  recursion through `filterRootSourceItems`, declared self-containment
-  through the merged containment the nesting itself reads), so a child
-  never appears both beneath its parent and beside it. Every workspace
+  node. A sectioned type with a containment parent edge — self-pairs and
+  cross-type children edges alike — lists ROOT rows only over the loaded
+  pool (`rootSectionItems`: an item whose parent ref resolves to a loaded
+  instance nests beneath it), so a child never appears both beneath its
+  parent and beside it; the child type's node keeps the unparented rows
+  and its type-screen command. Every workspace
   lineage walk matches refs in both stored shapes (the `{ id }` object
   the instance store projects and the normalized id — the same law the
   ui-mapping matchers read). Entity nodes whose type
