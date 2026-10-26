@@ -45,12 +45,37 @@ const REPORT_TYPE = {
   fields: { name: { base: 'string', identifier: true } }
 };
 const PLAIN_TYPE = { id: 'plain', class: 'item', version: 1, fields: { name: { base: 'string' } } };
+const DRAWING_TYPE = {
+  id: 'drawing',
+  class: 'file',
+  version: 1,
+  payload: { mime: ['application/dxf'], accept: ['.dxf'], maxSize: 1048576 },
+  fields: { name: { base: 'string', identifier: true } },
+  operators: {
+    place: {
+      id: 'place',
+      species: 'construct',
+      input: {
+        base: 'record',
+        fields: {
+          name: { base: 'string', nullable: true },
+          template: { base: 'ref', accepts: ['drawing'] },
+          parts: { base: 'list', itemType: { base: 'ref', accepts: ['drawing'] } }
+        }
+      }
+    }
+  }
+};
 pluginInstalls.findDeclarationByTypeId.mockImplementation(async (organizationId, typeId) => (
-  typeId === 'report' ? REPORT_TYPE : typeId === 'plain' ? PLAIN_TYPE : null
+  typeId === 'report' ? REPORT_TYPE : typeId === 'plain' ? PLAIN_TYPE : typeId === 'drawing' ? DRAWING_TYPE : null
 ));
 constructionsForOrganization.mockImplementation(async organizationId => (
   organizationId === 'org-1'
-    ? { report: { fromTemplate: 'plugin.docs.fill', upload: 'plugin.docs.upload' }, plain: { fromTemplate: 'plugin.docs.fill' } }
+    ? {
+        report: { fromTemplate: 'plugin.docs.fill', upload: 'plugin.docs.upload' },
+        plain: { fromTemplate: 'plugin.docs.fill' },
+        drawing: { place: 'plugin.td.place-dxf' }
+      }
     : {}
 ));
 
@@ -166,5 +191,40 @@ describe('service-backed construction executor payloads (SPEC §24)', () => {
     const merged = await applyConstructionService('report', 'fromTemplate', draft, { userId: 'u1', organizationId: 'org-2' });
     expect(merged).toBe(draft);
     expect(executeConnectorService).not.toHaveBeenCalled();
+  });
+
+  it('resolves a list-of-ref input item by item with payloads (SPEC §24)', async () => {
+    const coll = stubCollection();
+    const stored = new Map([
+      ['t1', { _id: 't1', type: 'drawing', organizationId: 'org-1', name: 'Sheet template', data: {}, payload: { fileId: 'f-t', mime: 'application/dxf' } }],
+      ['p1', { _id: 'p1', type: 'drawing', organizationId: 'org-1', name: 'frame', data: {}, payload: { fileId: 'f-1', mime: 'application/dxf' } }],
+      ['p2', { _id: 'p2', type: 'drawing', organizationId: 'org-1', name: 'logo', data: {}, payload: { fileId: 'f-2', mime: 'application/dxf' } }]
+    ]);
+    coll.findOne.mockImplementation(query => stored.get(String(query._id)) || null);
+    executorOutput({ payload: { base64: b64('0\nEOF\n'), mime: 'application/dxf' } });
+
+    const merged = await applyConstructionService('drawing', 'place', {
+      name: 'Site plan',
+      data: { template: 't1', parts: ['p1', 'p2'] }
+    }, CONTEXT);
+
+    const [, call] = executeConnectorService.mock.calls[0];
+    expect(call.parameters.refs.template.name).toBe('Sheet template');
+    expect(call.parameters.refs.template.payloadBase64).toBe(b64('uploaded'));
+    expect(call.parameters.refs.parts.map(part => part.name)).toEqual(['frame', 'logo']);
+    expect(call.parameters.refs.parts.every(part => part.payloadBase64 === b64('uploaded'))).toBe(true);
+    expect(merged.payload.fileId).toBe('stored-Site plan.dxf');
+  });
+
+  it('refuses a list-of-ref item none of the accepted types serves', async () => {
+    const coll = stubCollection();
+    const stored = new Map([
+      ['t1', { _id: 't1', type: 'drawing', organizationId: 'org-1', name: 'Sheet template', data: {}, payload: { fileId: 'f-t', mime: 'application/dxf' } }]
+    ]);
+    coll.findOne.mockImplementation(query => stored.get(String(query._id)) || null);
+    await expect(applyConstructionService('drawing', 'place', {
+      name: 'X',
+      data: { template: 't1', parts: ['ghost'] }
+    }, CONTEXT)).rejects.toThrow(/Construction input parts references ghost/);
   });
 });

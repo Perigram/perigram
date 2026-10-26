@@ -1,16 +1,20 @@
 # CONTAINER: Tech-Drawing Plugin Executor
 
-The tech-drawing domain as a third-party plugin (SPEC §20): `listing.json` is the whole declaration surface (pen
+The tech-drawing domain as a third-party plugin (SPEC §20): `listing.json` is the declaration surface (pen
 templates, layer standards, colors, DXF/SVG sources, the sketch type,
-and the sketch editor binding). The plugin is declarations-only — no
-services, no compute: its types ride the generic instance machinery, and
-this process exists to serve the sketch editor surface module and its
-vendored runtime dependencies as static GETs. The platform's module
-proxy streams them to browsers same-origin; orgs connect the executor
-through the install's `surfaceOrigin`.
+the sketch editor binding, and the DXF placement construction). The
+types ride the generic instance machinery; the process serves the DXF
+placement service, the sketch editor surface module, and its vendored
+runtime dependencies — static GETs through the platform's module proxy,
+same-origin. Orgs connect the executor through the install's
+`surfaceOrigin`.
 
 - Listing: `workers/tech-drawing/listing.json` (validate with
   `npx perigram-plugin validate workers/tech-drawing/listing.json`).
+- Service: `place-dxf` (`services.js`, endpoint mode, construction
+  `place` on `dxf-source`). Input `{ refs: { template, parts }, draft }`
+  — template and part refs arrive with `payloadBase64`; output
+  `payload: { base64, mime: 'application/dxf', name }`.
 - Editor surface: `surfaces/sketch-editor.mjs` (surface contract 3 — the
   capability mount; background images upload through the host file
   channel, undo/redo over scene snapshots inline).
@@ -22,6 +26,21 @@ through the install's `surfaceOrigin`.
 
 Runs from the repo mount (compose `tech-drawing-executor`, port 8792) —
 nothing here imports platform code.
+
+## DXF placement law (SPEC §24)
+
+A DXF template marks each placement anchor with a TEXT/MTEXT entity whose
+whole text is `{spot:<name>}`. The service matches each marker to a part
+ref by instance name, translates the part's ENTITIES so its extents
+minimum lands on the marker's insertion point, removes the marker entity,
+and splices the translated entities into the template's ENTITIES —
+everything else in the template (header, tables, blocks) is preserved
+verbatim. Unmatched markers and unplaced parts both refuse with the
+offending names; one nesting level does not apply here (there is none).
+
+Translation covers coordinate pairs 10–18 (x) and 20–28 (y) and rounds
+to six decimals. Header `$EXTMIN`/`$EXTMAX` values stay as authored;
+viewers recompute extents from entities.
 
 ## Publish, install, migrate
 

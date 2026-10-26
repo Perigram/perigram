@@ -191,7 +191,9 @@ protocol — and the compute half of the payload protocols — to the
 organization's installed-plugin services: the operator's input record
 travels to the executor with ref inputs resolved to values (`{ id, name,
 fields, payloadBase64 }`, cross-org references refuse) and the draft's
-uploaded payload as base64; the executor returns computed field values
+uploaded payload as base64; a `list` input whose `itemType` is a `ref`
+resolves item by item into an array of those same values; the executor
+returns computed field values
 the platform merges before creating the record through the generic
 machinery. The executor may also return `payload: { base64, mime,
 name? }`: the bytes are stored in the `files` bucket and become the

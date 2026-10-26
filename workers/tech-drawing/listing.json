@@ -1,8 +1,8 @@
 {
   "pluginId": "tech-drawing",
   "name": "Technical drawing",
-  "description": "Drawing reference types (pens, layer standards, colors), CAD exchange documents (DXF, SVG), and the sketch editor as an installable plugin",
-  "version": "1",
+  "description": "Drawing reference types (pens, layer standards, colors), CAD exchange documents (DXF, SVG) with template placement, and the sketch editor as an installable plugin",
+  "version": "2",
   "requires": [],
   "declarations": {
     "types": [
@@ -186,6 +186,36 @@
             "base": "string",
             "identifier": true
           }
+        },
+        "operators": {
+          "place": {
+            "id": "place",
+            "species": "construct",
+            "input": {
+              "base": "record",
+              "fields": {
+                "name": {
+                  "base": "string",
+                  "nullable": true
+                },
+                "template": {
+                  "base": "ref",
+                  "accepts": [
+                    "dxf-source"
+                  ]
+                },
+                "parts": {
+                  "base": "list",
+                  "itemType": {
+                    "base": "ref",
+                    "accepts": [
+                      "dxf-source"
+                    ]
+                  }
+                }
+              }
+            }
+          }
         }
       },
       {
@@ -250,6 +280,26 @@
         ]
       }
     ],
+    "services": [
+      {
+        "id": "place-dxf",
+        "label": "Place DXF parts",
+        "mode": "endpoint",
+        "signature": {
+          "input": {
+            "base": "json"
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      }
+    ],
+    "constructions": {
+      "dxf-source": {
+        "place": "plugin.tech-drawing.place-dxf"
+      }
+    },
     "surfaces": [
       {
         "id": "sketch-editor",

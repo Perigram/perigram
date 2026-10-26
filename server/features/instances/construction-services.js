@@ -13,6 +13,7 @@
 import { createError } from 'h3';
 import * as filesService from '../files/service.js';
 import { executeConnectorService, constructionsForOrganization } from '../plugins/service.js';
+import { executorPayload } from '../plugins/executor-payload.js';
 
 // Service-backed construction (SPEC §Plugin marketplace): construction
 // modes of installed-plugin types dispatch to the plugin's executor.
@@ -70,28 +71,9 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
   }
   const data = output.data && typeof output.data === 'object' && !Array.isArray(output.data) ? output.data : {};
   const merged = { ...draft, fields: { ...(draft.fields || {}), ...data } };
-  const file = executorPayloadFile(serviceRef, output.payload);
+  const file = executorPayload(serviceRef, output.payload);
   if (!file) return merged;
   return { ...merged, payload: await storeExecutorPayload(typeId, draft, file, context, organizationId) };
-}
-
-// Executor payload contract (SPEC §24): { base64, mime, name? } — the
-// filled file the created instance stores.
-function executorPayloadFile(serviceRef, raw) {
-  if (raw == null) return null;
-  if (typeof raw !== 'object' || Array.isArray(raw)) {
-    throw createError({ statusCode: 502, message: `Construction service ${serviceRef} returned a malformed payload` });
-  }
-  const { base64, mime, name } = raw;
-  if (typeof base64 !== 'string' || typeof mime !== 'string' || !mime) {
-    throw createError({ statusCode: 502, message: `Construction service ${serviceRef} payload requires base64 and mime` });
-  }
-  const normalized = base64.replace(/\s+/g, '');
-  const buffer = Buffer.from(normalized, 'base64');
-  if (!buffer.length || buffer.toString('base64') !== normalized) {
-    throw createError({ statusCode: 502, message: `Construction service ${serviceRef} payload base64 does not decode` });
-  }
-  return { buffer, mime, name: typeof name === 'string' && name ? name : null };
 }
 
 async function storeExecutorPayload(typeId, draft, file, context, organizationId) {
@@ -142,28 +124,28 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
   }
 
   // Ref inputs resolve to values: the referenced instance, its identity,
-  // and — when it carries a payload — the payload document as base64.
-  // Cross-org references refuse, exactly like the in-process handlers did.
+  // and — when it carries a payload — the payload document as base64. A
+  // list of refs resolves item by item under the same rules. Cross-org
+  // references refuse, exactly like the in-process handlers did.
   const refs = {};
   for (const [field, fieldDef] of Object.entries(operator?.input?.fields || {})) {
-    if (fieldDef?.base !== 'ref') continue;
-    const id = String(draftData[field] ?? '').trim();
-    if (!id) continue;
-    const accepted = Array.isArray(fieldDef.accepts) ? fieldDef.accepts : [];
-    let instance = null;
-    for (const acceptedType of accepted) {
-      instance = await instanceServiceResolver(acceptedType).getById(id).catch(() => null);
-      if (instance) break;
+    if (fieldDef?.base === 'ref') {
+      const id = String(draftData[field] ?? '').trim();
+      if (id) refs[field] = await resolveRefValue(instanceServiceResolver, id, acceptedTypesOf(fieldDef), field, organizationId);
+      continue;
     }
-    if (!instance) {
-      throw createError({ statusCode: 400, message: `Construction input ${field} references ${id}, which none of [${accepted.join(', ')}] serves` });
+    if (fieldDef?.base === 'list' && fieldDef?.itemType?.base === 'ref') {
+      const raw = draftData[field];
+      const ids = (Array.isArray(raw) ? raw : [raw])
+        .filter(value => value != null && String(value).trim() !== '')
+        .map(value => String(value).trim());
+      if (ids.length) {
+        refs[field] = [];
+        for (const id of ids) {
+          refs[field].push(await resolveRefValue(instanceServiceResolver, id, acceptedTypesOf(fieldDef.itemType), field, organizationId));
+        }
+      }
     }
-    const tenancy = instance.organizationId ?? instance.lineage?.organizationId;
-    const instanceOrg = tenancy != null ? String(tenancy) : null;
-    if (instanceOrg && instanceOrg !== String(organizationId)) {
-      throw createError({ statusCode: 400, message: `Construction input ${field} references an instance of another organization` });
-    }
-    refs[field] = await referencedValue(instance);
   }
 
   // The upload protocol's file: the draft's payload as base64.
@@ -192,6 +174,27 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
     refs,
     ...(payloadBase64 ? { payloadBase64, payloadMeta } : {})
   };
+}
+
+function acceptedTypesOf(fieldDef) {
+  return Array.isArray(fieldDef.accepts) ? fieldDef.accepts : [];
+}
+
+async function resolveRefValue(instanceServiceResolver, id, accepted, field, organizationId) {
+  let instance = null;
+  for (const acceptedType of accepted) {
+    instance = await instanceServiceResolver(acceptedType).getById(id).catch(() => null);
+    if (instance) break;
+  }
+  if (!instance) {
+    throw createError({ statusCode: 400, message: `Construction input ${field} references ${id}, which none of [${accepted.join(', ')}] serves` });
+  }
+  const tenancy = instance.organizationId ?? instance.lineage?.organizationId;
+  const instanceOrg = tenancy != null ? String(tenancy) : null;
+  if (instanceOrg && instanceOrg !== String(organizationId)) {
+    throw createError({ statusCode: 400, message: `Construction input ${field} references an instance of another organization` });
+  }
+  return referencedValue(instance);
 }
 
 async function referencedValue(instance) {

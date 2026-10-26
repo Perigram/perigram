@@ -1,0 +1,105 @@
+import { describe, expect, it } from 'vitest';
+import { composeDxfPlacement } from './placement.js';
+import { services } from './services.js';
+
+const b64 = value => Buffer.from(value, 'utf8').toString('base64');
+const pairText = pairs => pairs.map(([code, value]) => `${code}\n${value}`).join('\n') + '\n';
+
+const dxf = body => pairText([
+  ['0', 'SECTION'], ['2', 'ENTITIES'], ...body, ['0', 'ENDSEC'], ['0', 'EOF']
+]);
+
+const spot = (name, x, y, handle) => ([
+  ['0', 'TEXT'], ['5', handle], ['8', 'SLOTS'], ['10', x], ['20', y], ['40', '5'], ['1', `{spot:${name}}`]
+]);
+
+const line = (x1, y1, x2, y2, handle) => ([
+  ['0', 'LINE'], ['5', handle], ['8', 'PARTS'], ['10', x1], ['20', y1], ['11', x2], ['21', y2]
+]);
+
+const TEMPLATE = dxf([
+  ...spot('frame', 100, 200, 'A1'),
+  ...spot('logo', 300, 400, 'A2'),
+  ...line(0, 0, 10, 10, 'A3')
+]);
+
+const FRAME_PART = dxf(line(10, 10, 110, 10, 'B1'));
+const LOGO_PART = dxf(line(50, 50, 90, 90, 'B2'));
+
+function linesOf(text) {
+  const lines = text.split('\n');
+  const records = [];
+  for (let index = 0; index < lines.length - 1; index += 2) {
+    if (lines[index].trim() === '0') records.push({ type: lines[index + 1].trim(), pairs: [] });
+    else if (records.length) records[records.length - 1].pairs.push([Number(lines[index]), lines[index + 1]]);
+  }
+  return records;
+}
+
+describe('composeDxfPlacement', () => {
+  it('places each part at its spot anchor, translating to the part extents minimum', () => {
+    const composed = composeDxfPlacement(TEMPLATE, [
+      { name: 'frame', text: FRAME_PART },
+      { name: 'logo', text: LOGO_PART }
+    ]);
+    const records = linesOf(composed);
+    expect(composed).not.toContain('{spot:');
+    // Template line preserved verbatim.
+    expect(records.filter(entry => entry.type === 'LINE').length).toBe(3);
+    // Frame part min x/y (10,10) translated to anchor (100,200): (100,200) -> (200,200).
+    const frameLine = records.filter(entry => entry.type === 'LINE').find(entry => entry.pairs.some(([, value]) => value === '200'));
+    expect(frameLine.pairs).toEqual(expect.arrayContaining([[10, '100'], [20, '200'], [11, '200'], [21, '200']]));
+    // Logo part min (50,50) to anchor (300,400): (300,400) -> (340,440).
+    const logoLine = records.filter(entry => entry.type === 'LINE').find(entry => entry.pairs.some(([, value]) => value === '400'));
+    expect(logoLine.pairs).toEqual(expect.arrayContaining([[10, '300'], [20, '400']]));
+  });
+
+  it('refuses spots without a part and parts without a spot, naming both', () => {
+    expect(() => composeDxfPlacement(TEMPLATE, [{ name: 'frame', text: FRAME_PART }]))
+      .toThrow(/spots without a part: logo/);
+    expect(() => composeDxfPlacement(TEMPLATE, [
+      { name: 'frame', text: FRAME_PART }, { name: 'logo', text: LOGO_PART }, { name: 'spare', text: FRAME_PART }
+    ])).toThrow(/parts without a spot: spare/);
+  });
+
+  it('refuses a template without spot markers and one without an ENTITIES section', () => {
+    expect(() => composeDxfPlacement(dxf(line(0, 0, 1, 1, 'A1')), [{ name: 'x', text: FRAME_PART }]))
+      .toThrow(/no \{spot:name\} markers/);
+    expect(() => composeDxfPlacement('0\nEOF\n', [{ name: 'x', text: FRAME_PART }]))
+      .toThrow(/no ENTITIES section/);
+  });
+
+  it('rounds translated coordinates to six decimals', () => {
+    const part = dxf(line('1', '0', '2', '1', 'B1'));
+    const composed = composeDxfPlacement(dxf(spot('x', '2.0000005', '0', 'A1')), [{ name: 'x', text: part }]);
+    expect(composed).toContain('2.000001');
+  });
+});
+
+describe('place-dxf service', () => {
+  it('returns the composed DXF as the construction payload', async () => {
+    const output = await services['place-dxf']({
+      refs: {
+        template: { name: 'sheet.dxf', payloadBase64: b64(TEMPLATE) },
+        parts: [
+          { name: 'frame', payloadBase64: b64(FRAME_PART) },
+          { name: 'logo', payloadBase64: b64(LOGO_PART) }
+        ]
+      },
+      draft: { name: 'Site plan' }
+    });
+    expect(output.payload.mime).toBe('application/dxf');
+    expect(output.payload.name).toBe('Site plan.dxf');
+    const composed = Buffer.from(output.payload.base64, 'base64').toString('utf8');
+    expect(composed).not.toContain('{spot:');
+    expect(linesOf(composed).filter(entry => entry.type === 'LINE').length).toBe(3);
+  });
+
+  it('refuses empty parts and missing payloads', async () => {
+    await expect(services['place-dxf']({ refs: { template: { payloadBase64: b64(TEMPLATE) } } }))
+      .rejects.toThrow(/requires parts/);
+    await expect(services['place-dxf']({
+      refs: { template: { payloadBase64: b64(TEMPLATE) }, parts: [{ name: 'frame' }] }
+    })).rejects.toThrow(/every part to carry a payload/);
+  });
+});

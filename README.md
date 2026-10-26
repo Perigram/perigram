@@ -75,9 +75,9 @@ commands.
 |---|---|---|
 | `perigram-app` | `server/`, `pages/`, `components/`, `composables/` | Nuxt UI, Nitro API, command/task runtimes, feature services. |
 | `nesting-worker` | `workers/nesting/` | FastAPI HTTP solver for nesting geometry. |
-| `documents-executor` | `workers/documents/` | The documents plugin's endpoint-mode executor (table projections, text extraction, CSV composition; serves the text/csv editor surfaces and their vendored runtimes as static GETs). |
+| `documents-executor` | `workers/documents/` | The documents plugin's endpoint-mode executor (table projections, text extraction, CSV composition, template fills and PDF rendering; serves the text/csv editor surfaces and their vendored runtimes as static GETs). |
 | `facade-executor` | `workers/facade/` | The facade plugin's endpoint-mode executor (DXF/OCCS/nesting compute over values; serves the plugin's editor and preview surface modules as static GETs). |
-| `tech-drawing-executor` | `workers/tech-drawing/` | The tech-drawing plugin's executor (declarations-only plugin): serves the sketch editor surface module and its vendored runtime dependencies as static GETs. |
+| `tech-drawing-executor` | `workers/tech-drawing/` | The tech-drawing plugin's executor: serves the DXF placement service, the sketch editor surface module, and its vendored runtime dependencies. |
 | `mongo` | Docker image | MongoDB documents and GridFS files. |
 | `livekit` | Docker image (`livekit/livekit-server`, `livekit.dev.yaml`) | Self-hosted WebRTC SFU for voice/video calls; rooms are derived and token-gated by the `livekit` capability module. Call recordings ride an external egress plane (LiveKit + Redis + `livekit/egress` + an S3-compatible bucket) deployed beside whichever server the app targets. |
 
