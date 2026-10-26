@@ -16,11 +16,13 @@
       class="w-36 max-w-full"
       :aria-label="t('uiMapping.creationMode')"
     />
-    <ActionButton
-      :action="selectedAction"
-      :state-policy="statePolicy"
-      :label="label"
-      @run="run"
+    <Button
+      :icon="resolved.icon || undefined"
+      :severity="resolved.severity || undefined"
+      :aria-label="buttonLabel"
+      :title="buttonLabel"
+      size="small"
+      @click="run(selectedAction)"
     />
   </InputGroup>
 </template>
@@ -28,8 +30,10 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import Button from 'primevue/button';
 import InputGroup from 'primevue/inputgroup';
 import Select from 'primevue/select';
+import { resolveActionButton, actionLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { creationModeLabel } from '~/packages/processes/src/ui-contract-projection.js';
 import ActionButton from './ActionButton.vue';
 
@@ -45,7 +49,7 @@ const props = defineProps({
 
 const emit = defineEmits(['run']);
 
-const { t } = useI18n();
+const { te, t } = useI18n();
 const grouped = computed(() => (props.group?.length || 0) > 1);
 const selectedId = ref(props.action?.id ?? null);
 const selectedAction = computed(() => (
@@ -55,5 +59,13 @@ const modeOptions = computed(() => (props.group || []).map(action => ({
   label: creationModeLabel(action.construction?.mode) || action.label || action.id,
   value: action.id
 })));
+// The grouped button renders attached inside the InputGroup: the resolver
+// still owns its icon/severity, and the caption chain its accessible name.
+const resolved = computed(() => resolveActionButton(selectedAction.value, { statePolicy: props.statePolicy }));
+const buttonLabel = computed(() => localizedLabel(
+  { te, t },
+  actionLabelKey(selectedAction.value.id),
+  props.label ?? (resolved.value.label || selectedAction.value.label)
+));
 const run = action => emit('run', action);
 </script>
