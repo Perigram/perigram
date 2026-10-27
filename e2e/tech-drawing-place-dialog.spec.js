@@ -120,10 +120,16 @@ test.describe('tech-drawing place dialog', () => {
     await dialog.locator('.p-dialog-footer').getByRole('button').last().click();
 
     // --- the composed file: marker gone, part translated, stamp kept ---
-    const listResponse = await app.request.get('/api/instances/dxf-source');
-    expect(listResponse.ok(), await listResponse.text()).toBeTruthy();
-    const rows = await listResponse.json();
-    const composedRow = (Array.isArray(rows) ? rows : []).find(row => row.name === 'composed-dialog');
+    // The dialog's run is fire-and-forget client-side; the created toast is
+    // its completion signal, so the list read polls briefly.
+    let composedRow = null;
+    for (let attempt = 0; attempt < 20 && !composedRow; attempt += 1) {
+      const listResponse = await app.request.get('/api/instances/dxf-source');
+      expect(listResponse.ok(), await listResponse.text()).toBeTruthy();
+      const rows = await listResponse.json();
+      composedRow = (Array.isArray(rows) ? rows : []).find(row => row.name === 'composed-dialog');
+      if (!composedRow) await app.page.waitForTimeout(1000);
+    }
     expect(composedRow, 'the dialog run created the composed instance').toBeTruthy();
     const fileId = composedRow?.payload?.fileId || composedRow?.payload?.id;
     expect(fileId).toBeTruthy();
