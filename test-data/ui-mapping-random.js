@@ -578,8 +578,9 @@ export function generateUiMappingWorld(seed = 7) {
   });
   const listScreenTypes = [...new Set([
     ...populated.filter(type => projectionFloors.has(type.id)),
+    volumeType,
     ...populated
-  ])].slice(0, 4);
+  ])].slice(0, 5);
   listScreenTypes.forEach(type => {
     const key = `list_${type.id}`;
     screens[key] = {

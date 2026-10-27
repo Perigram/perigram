@@ -172,6 +172,9 @@ describe('showcase-reachable contracts in every world', () => {
       // projections.
       const volumeTableType = world.bundle.types.find(type => (world.instances[type.id] || []).length > 50);
       expect(resolveListLayout(volumeTableType, { size: 'large' }), `seed ${seed} volume table layout`).toBe('table');
+      const volumeScreen = Object.values(world.contract.screens)
+        .find(screen => screen.template === 'typeList' && screen.typeId === volumeTableType.id);
+      expect(volumeScreen, `seed ${seed} volume list screen`).toBeTruthy();
       // The guaranteed-empty type has a screen whose main region composes
       // empty — an inert section that left the arrangement as a stub.
       const emptyScreen = Object.values(world.contract.screens)
