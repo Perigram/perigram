@@ -382,6 +382,16 @@ it. Peer-column engagement is derived (owner direction 2026-10-22):
 columns engage when the measured host grants every composed track its
 earned minimum, for any track count.
 
+The design language is one type-and-ink ladder applied by the system,
+never per surface (owner direction 2026-10-27): the small tier — labels,
+tags, state chips, small controls, technical data — renders at 15px
+(`0.9375rem`); body values render at 16px in full ink; muted color is
+reserved for labels, supporting text, and placeholders — a data value
+never renders muted, and a fact row carries its small muted label beside
+its larger ink value. Popups and dialogs render the page rhythm: the
+compact rhythm belongs to data-dense panes alone, and no host profile
+tightens a surface that is already small.
+
 Mobile devices scale the whole UI through the root font-size (the rem
 basis PrimeVue components and the typography roles share). Mobile record
 opens ROUTE to the compiled detail screen — no popup middleman.
