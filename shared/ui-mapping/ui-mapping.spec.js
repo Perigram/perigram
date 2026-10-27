@@ -35,6 +35,7 @@ import {
   analyzeInstanceShape,
   resolveListControls,
   resolveInstanceActions,
+  constructRerunAction,
   createActionControls,
   sortControlRows,
   pageSlice,
@@ -537,6 +538,35 @@ describe('action launch plan', () => {
     expect(planActionLaunch({ actionKind: 'updateInstance' })).toBe('run');
     expect(planActionLaunch({ actionKind: 'updateInstance', access: { level: 'admin' }, state: { to: 'DONE' } })).toBe('run');
     expect(planActionLaunch({ actionKind: 'runCommand' })).toBe('run');
+  });
+
+  it('derives the construct re-run from a constructed record\'s provenance (SPEC §24)', () => {
+    const actions = {
+      fill: { id: 'fill', actionKind: 'createInstance', typeId: 'pdf-document', label: 'New Report from Fill', access: { level: 'write' } },
+      other: { id: 'other', actionKind: 'deleteInstance', typeId: 'pdf-document' }
+    };
+    const rerun = constructRerunAction(actions, {
+      type: 'pdf-document',
+      provenance: { op: 'cts.construct:fill:fill', sources: [] }
+    });
+    expect(rerun).toMatchObject({
+      id: 'fill:rerun',
+      actionKind: 'rerunInstance',
+      rerunOf: 'fill',
+      rerun: true,
+      typeId: 'pdf-document'
+    });
+    // The stored inputs are the run's inputs: the re-run prompts nothing.
+    expect(planActionLaunch(rerun)).toBe('run');
+    expect(resolveActionButton(rerun)).toMatchObject({ component: 'Button', icon: 'pi pi-refresh', iconOnly: true, confirm: false });
+
+    expect(constructRerunAction(actions, { type: 'pdf-document', provenance: { op: 'cts.mutate:n1' } })).toBeNull();
+    expect(constructRerunAction(actions, null)).toBeNull();
+    // The named construct must be a create of the record's own type.
+    expect(constructRerunAction(actions, {
+      type: 'text-document',
+      provenance: { op: 'cts.construct:fill:fill' }
+    })).toBeNull();
   });
 
   it('opens the run dialog for a run action carrying prompted inputs', () => {

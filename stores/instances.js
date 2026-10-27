@@ -303,7 +303,7 @@ export const useInstancesStore = defineStore('instances', () => {
     const result = await outbox.mutate({
       url: `/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`,
       method: 'POST',
-      body: { instanceId, entities, data, parameters },
+      body: { instanceId, entities, data, parameters, ...(action?.rerun && instanceId ? { rerun: true } : {}) },
       meta: { kind: 'action', instanceId, change: 'updated', reason: 'process-action' }
     });
     if (isCreateAction(action)) {

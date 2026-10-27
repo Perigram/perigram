@@ -49,6 +49,7 @@
     v-else-if="outcome.component === 'InstanceInlineRef'"
     :type="String(model?.type || '')"
     :id="model?.id ?? null"
+    :revision="model?.revision ?? null"
     :entity="pool?.[model?.type]?.[model?.id] || null"
   />
   <FileChip v-else-if="outcome.component === 'FileChip'" :file="model" @open="openPayload" />
@@ -63,6 +64,7 @@
         v-if="entry.ref"
         :type="entry.ref.type"
         :id="entry.ref.id"
+        :revision="entry.ref.revision ?? null"
         :entity="pool?.[entry.ref.type]?.[entry.ref.id] || null"
       />
       <span v-else class="min-w-0 truncate text-body">{{ entry.value }}</span>

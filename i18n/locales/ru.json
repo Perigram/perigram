@@ -99,6 +99,7 @@
         "unnamed": "Без названия",
         "user": "Пользователь",
         "notAvailable": "Н/Д",
+        "pinnedRevision": "Закреплённая ревизия",
         "noResults": "Нет результатов",
         "componentError": "Ошибка компонента",
         "tryAgain": "Повторить",

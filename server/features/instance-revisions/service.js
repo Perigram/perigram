@@ -151,6 +151,21 @@ export async function getCurrentForEntity(typeId, instanceId, scope = DEFAULT_SC
   return toDTO(await repository.findLatest(typeId, toFlexibleId(instanceId), scope));
 }
 
+// The pinned-ref read (SPEC §24 version fabric): a ref pinned to a
+// revision consumes the bytes that revision froze — its primary
+// attachment — whatever the source's current payload holds.
+export async function pinnedRevisionFile(revisionId) {
+  const revision = await repository.findById(revisionId);
+  const primary = revision?.attachments?.primary;
+  if (!primary?.fileId) return null;
+  return {
+    fileId: String(primary.fileId),
+    bucket: primary?.metadata?.bucketName || 'files',
+    mime: primary?.metadata?.mimeType || null,
+    name: primary?.name || null
+  };
+}
+
 export async function getById(id, userId, userRole, userPermissions) {
   const revision = await repository.findById(id);
   if (!revision) throw createError({ statusCode: 404, message: 'Entity revision not found' });

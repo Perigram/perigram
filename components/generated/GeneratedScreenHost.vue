@@ -291,7 +291,7 @@ async function runGeneratedAction(action, data = {}, context = {}) {
   try {
     // The store's runAction lands the created entity in the pool itself
     // (create hosts only decide where the record opens).
-    const result = await instances.runAction({ action, actionId: action.id, instanceId, entities: {}, data, parameters: {} });
+    const result = await instances.runAction({ action, actionId: action.rerunOf || action.id, instanceId, entities: {}, data, parameters: {} });
     // Created entities open through the shared created-open contract
     // (the workspace seam or the compiled detail route); hosts without a
     // compiled home keep the routed detail destination.

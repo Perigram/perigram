@@ -21,7 +21,7 @@ import * as instanceRevisionsService from '../instance-revisions/service.js';
 import { hasInstanceAccess } from '../../core/access/service.js';
 import { appendFieldChangeEvent } from '../../core/machines/service.js';
 import { resolveActiveWorkflow } from '../workflow-overrides/service.js';
-import { serviceAwareConstructionHandlers, applyConstructionService } from './construction-services.js';
+import { serviceAwareConstructionHandlers, applyConstructionService, storedConstructionDraft } from './construction-services.js';
 
 // The composed system view (framework + mounted packs in dependency
 // order): every pack type is executable through the generic instance
@@ -239,8 +239,9 @@ function typeIdOf(declaration = {}) {
 }
 
 // Provenance (SPEC §3/§8): the causal record stamped by the construct
-// boundary — `{ op, sources: [{ type, id }], effective }`. Stored
-// verbatim; never patched.
+// boundary — `{ op, sources: [{ type, id, revision? }], effective }`.
+// Stored verbatim; never patched. A source's `revision` is its version
+// pin (SPEC §24).
 function provenanceFromWire(draft = {}) {
   const provenance = draft.provenance;
   if (!provenance || typeof provenance !== 'object') return null;
@@ -248,13 +249,40 @@ function provenanceFromWire(draft = {}) {
   const sources = Array.isArray(provenance.sources)
     ? provenance.sources
       .filter(ref => ref?.id != null)
-      .map(ref => ({ ...(ref.type != null ? { type: String(ref.type) } : {}), id: String(ref.id) }))
+      .map(ref => ({
+        ...(ref.type != null ? { type: String(ref.type) } : {}),
+        id: String(ref.id),
+        ...(ref.revision != null ? { revision: String(ref.revision) } : {})
+      }))
     : [];
   if (!op && !sources.length) return null;
   const effective = provenance.effective && typeof provenance.effective === 'object'
     ? structuredClone(provenance.effective)
     : {};
   return { ...(op ? { op } : {}), sources, effective };
+}
+
+// The version-fabric mint (SPEC §24): every payload write on a
+// revision-scoped type records an immutable revision — creation, payload
+// replacement, and re-derive all pass through this one home.
+async function recordPayloadRevision(typeId, entity, declaration, payload, userId, reason) {
+  if (!declaration?.revisions || !payload?.fileId) return;
+  await instanceRevisionsService.ensureForEntitySnapshot({
+    typeId,
+    entity,
+    scope: declaration.revisions,
+    content: { fileId: payload.fileId, mime: payload.mime || null, size: payload.size ?? null, name: payload.name || null },
+    snapshot: { payload },
+    attachments: {
+      primary: {
+        fileId: payload.fileId,
+        name: payload.name || 'payload',
+        metadata: { mimeType: payload.mime || 'application/octet-stream', bucketName: PAYLOAD_BUCKET }
+      }
+    },
+    userId,
+    reason
+  });
 }
 
 // The compiled screen-source filter vocabulary normalizes through the
@@ -381,6 +409,7 @@ function instanceService(typeId) {
       updatedAt: now
     };
     await repository.insertInstance(repository.collectionForClass(declaration.class), doc);
+    await recordPayloadRevision(typeId, doc, declaration, payload, userId, 'created');
     return toDto(doc);
   }
 
@@ -567,22 +596,7 @@ function instanceService(typeId) {
             name: filename || 'payload'
           }
         }, declaration);
-        await instanceRevisionsService.ensureForEntitySnapshot({
-          typeId: typeId,
-          entity: current,
-          scope: declaration.revisions,
-          content: { fileId: payload.fileId, mime: payload.mime || null, size: payload.size ?? null, name: payload.name || null },
-          snapshot: { payload },
-          attachments: {
-            primary: {
-              fileId: payload.fileId,
-              name: payload.name || 'payload',
-              metadata: { mimeType: payload.mime || 'application/octet-stream', bucketName: PAYLOAD_BUCKET }
-            }
-          },
-          userId,
-          reason: 'payload-replaced'
-        });
+        await recordPayloadRevision(typeId, current, declaration, payload, userId, 'payload-replaced');
         const updated = await repository.updateInstanceFields(collection, id, {
           payload,
           updatedAt: new Date().toISOString()
@@ -595,6 +609,54 @@ function instanceService(typeId) {
         await filesService.deleteFile(stored.id, PAYLOAD_BUCKET).catch(() => {});
         throw error;
       }
+    },
+
+    // Re-derive (SPEC §24 version fabric, owner decision 2026-10-27):
+    // the compiled construct action's re-run over its stored inputs. The
+    // construction service executes against the stored refs' pinned
+    // revisions (or current, for follow-latest refs) and the same
+    // instance takes the recomputed fields, payload, and provenance.
+    // Same write gate as payload replacement.
+    async rederive(id, mode, { provenance = null, userId, organizationId, auth } = {}) {
+      const declaration = await requireDeclaration(typeId, organizationId);
+      if (!organizationId) {
+        throw createError({ statusCode: 400, message: `Re-derive of ${typeId} requires an organization context` });
+      }
+      const { constructionsForOrganization } = await import('../plugins/service.js');
+      const bindings = await constructionsForOrganization(organizationId).catch(() => ({}));
+      if (!bindings[typeId]?.[mode]) {
+        throw createError({ statusCode: 400, message: `Type ${typeId} has no ${mode} construction service to re-run` });
+      }
+      const collection = repository.collectionForClass(declaration.class);
+      const doc = await repository.findInstance(collection, id, typeId);
+      if (!doc) {
+        throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
+      }
+      const current = toDto(doc);
+      const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
+      if (!hasInstanceAccess({ entity: current, typeId: typeId, feature, level: 'write', auth: auth || null })) {
+        throw createError({ statusCode: 403, message: 'Permission denied' });
+      }
+      const stored = storedConstructionDraft(current, declaration, mode);
+      if (!stored) {
+        throw createError({ statusCode: 400, message: `Type ${typeId} declares no ${mode} construct to re-run` });
+      }
+      const merged = await applyConstructionService(typeId, mode, stored, { userId, organizationId, auth });
+      const nextProvenance = { ...(merged.provenance || current.provenance || {}) };
+      if (provenance?.op) nextProvenance.op = provenance.op;
+      const updated = await repository.updateInstanceFields(collection, id, {
+        fields: merged.fields || current.fields,
+        ...(merged.payload ? { payload: merged.payload } : {}),
+        provenance: nextProvenance,
+        updatedAt: new Date().toISOString()
+      });
+      if (!updated) {
+        throw createError({ statusCode: 409, message: `${typeId} ${id} changed before its re-derive was saved` });
+      }
+      if (merged.payload) {
+        await recordPayloadRevision(typeId, current, declaration, merged.payload, userId, 'rederived');
+      }
+      return toDto(updated);
     },
 
     // -- process bindings --

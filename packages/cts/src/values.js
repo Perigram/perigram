@@ -103,6 +103,11 @@ export function checkValue(descriptor, value) {
       if (!isPlainObject(value) || typeof value.type !== 'string' || typeof value.id !== 'string') {
         return ['expected { type, id } ref'];
       }
+      // Revision pinning (SPEC §24, owner direction 2026-10-27): a ref may
+      // carry the revision it is pinned to; an absent pin follows latest.
+      if (value.revision != null && (typeof value.revision !== 'string' || !value.revision)) {
+        return ['ref revision pin must be a non-empty revision id'];
+      }
       return descriptor.accepts.includes(value.type) ? [] : [`ref target ${value.type} not in accepts [${descriptor.accepts.join(', ')}]`];
     }
     case 'record': {

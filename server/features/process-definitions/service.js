@@ -959,7 +959,7 @@ export async function projectEntityThroughSocket({ socketId, instanceId, targetO
   };
 }
 
-export async function executeActiveProcessAction({ actionId, instanceId, data = {}, parameters = {}, entities = {}, targetOrganizationId = null } = {}, auth = {}) {
+export async function executeActiveProcessAction({ actionId, instanceId, data = {}, parameters = {}, entities = {}, targetOrganizationId = null, rerun = false } = {}, auth = {}) {
   const organizationId = resolveOrganizationId(auth);
   if (!actionId) throw createError({ statusCode: 400, message: 'Action id is required' });
   const process = await loadActiveSetProcess(auth);
@@ -1008,7 +1008,8 @@ export async function executeActiveProcessAction({ actionId, instanceId, data = 
     data,
     parameters,
     entities,
-    targetOrganizationId
+    targetOrganizationId,
+    rerun
   }, auth);
 }
 
@@ -1105,11 +1106,34 @@ async function resolveManualRelationMutation(typeId, targetId, mutation = {}, ac
   return result;
 }
 
-async function executeDataflowActionRun({ process, actionId, instanceId, data, parameters, entities, targetOrganizationId }, auth) {
+async function executeDataflowActionRun({ process, actionId, instanceId, data, parameters, entities, targetOrganizationId, rerun = false }, auth) {
   const effect = Object.values(process.data.processNodes || {})
     .find(node => node.id === actionId && node.kind?.startsWith('cts.'));
   if (!effect || (effect.trigger?.mode || 'manual') !== 'manual') {
     throw createError({ statusCode: 409, message: `Action ${actionId} has no entry trigger` });
+  }
+  // Re-derive (SPEC §24, owner decision 2026-10-27): a construct action
+  // re-run over its record's stored inputs executes against the refs'
+  // pinned revisions and patches the same instance. An explicit rerun
+  // launch only — a context instance alone stays parent context for a
+  // fresh create.
+  if (rerun && effect.kind === 'cts.construct' && effect.typeId && instanceId) {
+    const targetId = String(instanceId);
+    const service = getAppRegistry().getInstanceService(effect.typeId);
+    const contextRecord = await service?.processGetById?.(targetId, auth).catch(() => null);
+    if (!contextRecord) {
+      throw createError({ statusCode: 404, message: `${effect.typeId} ${targetId} not found` });
+    }
+    const mode = effect.construction?.mode || '';
+    const organizationId = resolveOrganizationId(auth);
+    const rederived = await service.rederive(targetId, mode, {
+      provenance: { op: `${effect.kind}:${effect.id}${mode ? `:${mode}` : ''}` },
+      userId: auth.userId,
+      organizationId,
+      auth
+    });
+    await publishActionEntityEvent(auth, effect.typeId, rederived, 'mutated', 'process-rederive');
+    return rederived;
   }
   const graphNode = (process.data.graph?.nodes || [])
     .find(node => String(node.data?.refId || node.id) === String(effect.id));

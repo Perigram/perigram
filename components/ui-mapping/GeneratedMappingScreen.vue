@@ -102,7 +102,7 @@ import { useI18n } from 'vue-i18n';
 import Toast from 'primevue/toast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
-import { LAYOUT, spacingClasses, spacingCoefficientFor, screenWeight, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
+import { LAYOUT, spacingClasses, spacingCoefficientFor, screenWeight, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, resolveInstanceActions, constructRerunAction, planActionLaunch } from '#shared/ui-mapping/index.js';
 import { withinRelationDomain } from '#shared/relation-domain.js';
 import { provideDefaultContainerTraits, useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import { refusalFailuresOf } from '~/utils/action-failures.js';
@@ -203,12 +203,15 @@ const openable = computed(() => typeof props.onOpen === 'function');
 // merged with the RUNTIME state-service transitions for the opened
 // detail instance (the declaration-derived machine serves transitions
 // org types author on their declarations and transition nodes; the
-// compiled manifest alone only knows graph-authored action records).
+// compiled manifest alone only knows graph-authored action records) and
+// the construct re-run a constructed detail record carries (SPEC §24).
+const detailRerunAction = computed(() => constructRerunAction(props.contract?.actions || {}, detailInstance.value));
 const instanceActionsByType = computed(() => Object.fromEntries((props.bundle.types || [])
   .map(type => [type.id, [
     ...resolveInstanceActions(props.contract?.actions || {}, type.id),
     ...((props.runtimeTransitions || {})[type.id] || []),
-    ...((props.exportActions || {})[type.id] || [])
+    ...((props.exportActions || {})[type.id] || []),
+    ...(detailRerunAction.value && detailRerunAction.value.typeId === type.id ? [detailRerunAction.value] : [])
   ]])));
 // Runtime state transitions dispatch through the page's executor
 // (`onTransition`); without one they are display-only.

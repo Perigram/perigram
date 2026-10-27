@@ -52,6 +52,8 @@ vi.mock('../cts-types/repository.js', () => ({
 }));
 
 import { instanceServiceResolver } from './service.js';
+import * as revisionService from '../instance-revisions/service.js';
+import * as pluginsService from '../plugins/service.js';
 import * as repository from './repository.js';
 import { findByTypeId } from '../cts-types/repository.js';
 import { resolveActiveWorkflow } from '../workflow-overrides/service.js';
@@ -502,8 +504,8 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
 
   it('refuses types without a revision scope or payload traits', async () => {
     stubCollection();
-    const docx = instanceServiceResolver('docx-document'); // payload, no revisions
-    await expect(docx.replacePayload(SKETCH_ID, { buffer: Buffer.from('x'), filename: 'm.docx' }, { organizationId: 'org-1' }))
+    const gallery = instanceServiceResolver('gallery'); // payload, no revisions (org-store fixture)
+    await expect(gallery.replacePayload(SKETCH_ID, { buffer: Buffer.from('x'), filename: 'm.png' }, { organizationId: 'org-1' }))
       .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('revision scope') });
 
     const note = instanceServiceResolver('plain-note'); // revisions absent, no payload (org-store fixture)
@@ -618,5 +620,81 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
       expect(coll.insertOne.mock.calls[0][0].name).toBe('Custom title');
       expect(dto.name).toBe('Custom title');
     });
+  });
+});
+
+describe('version fabric (SPEC §24)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('mints revision 1 on a payload create of a revision-scoped type', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('pdf-document');
+
+    await service.create(
+      { name: 'Report', payload: { fileId: 'file-1', mime: 'application/pdf', size: 1024 } },
+      'user-1',
+      'org-1'
+    );
+
+    expect(revisionService.ensureForEntitySnapshot).toHaveBeenCalledTimes(1);
+    const call = revisionService.ensureForEntitySnapshot.mock.calls[0][0];
+    expect(call.scope).toBe('content');
+    expect(call.reason).toBe('created');
+    expect(call.content.fileId).toBe('file-1');
+    expect(coll.insertOne).toHaveBeenCalled();
+  });
+
+  it('re-runs the construct over stored inputs and patches fields, payload, and provenance', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockResolvedValue({
+      _id: new ObjectId('0123456789abcdef01234567'),
+      type: 'pdf-document',
+      organizationId: 'org-1',
+      name: 'Filled report',
+      fields: { name: 'Filled report' },
+      provenance: { op: 'cts.construct:fill:fill', sources: [], effective: { via: 'fill', parameters: { values: { title: 'Old' } } } }
+    });
+    coll.findOneAndUpdate.mockResolvedValue({ _id: new ObjectId('0123456789abcdef01234567'), type: 'pdf-document', fields: { name: 'Filled report' } });
+    const constructions = vi.spyOn(pluginsService, 'constructionsForOrganization')
+      .mockResolvedValue({ 'pdf-document': { fill: 'plugin.documents.fill' } });
+    const execute = vi.spyOn(pluginsService, 'executeConnectorService')
+      .mockResolvedValue({ data: { pages: 2 }, payload: { base64: Buffer.from('%PDF-1.4 new').toString('base64'), mime: 'application/pdf' } });
+
+    const service = instanceServiceResolver('pdf-document');
+    const dto = await service.rederive('0123456789abcdef01234567', 'fill', {
+      provenance: { op: 'cts.construct:fill:fill' },
+      userId: 'user-1',
+      organizationId: 'org-1'
+    });
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    const parameters = execute.mock.calls[0][1].parameters;
+    expect(parameters.mode).toBe('fill');
+    expect(parameters.draft.data.values).toEqual({ title: 'Old' });
+    const patch = coll.findOneAndUpdate.mock.calls[0][1].$set;
+    expect(patch.fields.pages).toBe(2);
+    expect(patch.provenance.op).toBe('cts.construct:fill:fill');
+    expect(patch.payload.fileId).toBe('stored-Filled report.pdf');
+    expect(revisionService.ensureForEntitySnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: 'rederived', scope: 'content' })
+    );
+    expect(dto.type).toBe('pdf-document');
+    constructions.mockRestore();
+    execute.mockRestore();
+  });
+
+  it('refuses a re-run when the organization binds no service for the mode', async () => {
+    stubCollection();
+    const constructions = vi.spyOn(pluginsService, 'constructionsForOrganization')
+      .mockResolvedValue({});
+    const service = instanceServiceResolver('pdf-document');
+
+    await expect(service.rederive('0123456789abcdef01234567', 'fill', { userId: 'user-1', organizationId: 'org-1' }))
+      .rejects.toMatchObject({ statusCode: 400 });
+    expect(revisionService.ensureForEntitySnapshot).not.toHaveBeenCalled();
+
+    constructions.mockRestore();
   });
 });
