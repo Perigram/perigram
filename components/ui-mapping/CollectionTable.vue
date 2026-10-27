@@ -1,5 +1,5 @@
 <template>
-  <div :class="[LAYOUT.scrollX, 'ck-collection-rows']">
+  <div :class="LAYOUT.scrollX">
     <DataTable
     :value="instances"
     size="small"
@@ -218,12 +218,3 @@ const hiddenRefCount = instance => {
 };
 </script>
 
-<style scoped>
-/* Row-surface rhythm (layout-only declarations): separated cell borders
-   leave a hairline gap between the rounded content rows, so each row
-   reads as its own surface card over the transparent table box. */
-.ck-collection-rows :deep(.p-datatable-table) {
-  border-collapse: separate;
-  border-spacing: 0 0.25rem;
-}
-</style>
