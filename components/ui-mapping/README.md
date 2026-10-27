@@ -251,8 +251,8 @@ beside the transition history in `StateHistory`.
 - `BreadcrumbTrail.vue` — the lineage trail: a Breadcrumb of ancestor
   identities walked from the instance's lineage through the pool.
   Ancestors are navigation: each crumb opens its instance through the
-  screen's identity-open channel; the opened record is the trailing plain
-  crumb.
+  screen's identity-open channel; the opened record's title is the
+  header identity line below the trail.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identity (a link button when the screen has an `onOpen` handler),
   status, budgeted scalar descriptor columns, and the first declared
@@ -471,7 +471,8 @@ beside the transition history in `StateHistory`.
   the compiled action record, and the containment cross-cut's parent
   context token (a muted parent-type icon + the parent's resolved label
   through `incomingChildrenEdges`/`parentRefOf`; a parent missing from
-  the pool still names its type; non-interactive by contract — context).
+  the pool still names its type through the one type-label chain;
+  non-interactive by contract — context).
   Instance references (relation chips, table relation columns, `ref`
   field values) render through the shared
   [InstanceInlineRef](../shared/README.md) — the app's one interactive

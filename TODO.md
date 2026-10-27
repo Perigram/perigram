@@ -1360,6 +1360,20 @@ system, violates the raw-PrimeVue rule, reads ugly overall.
   (PreviewBox's file-facts band consumes it); the dead spacing inject in
   CalendarCollection dies.
 
+Follow-up sweep (post-merge audit re-run still showed 50 record names
+at 12px muted — the same value-face defect in three more homes):
+
+- [x] ParentRef: the parent record's name renders in ink at the
+  inherited face (the muted type icon alone marks context), and the
+  unloaded-parent fallback resolves through the one type-label chain
+  instead of the raw bundle `type.name`.
+- [x] BreadcrumbTrail drops the trailing current-record crumb — it
+  duplicated the header identity line below it at 12px muted; the trail
+  carries ancestors alone.
+- [x] FileUploadControl renders the chosen file through the shared
+  `FileChip` (was a bare 12px muted span) and localizes its labels
+  (`common.upload`, `errors.uploadFailed`).
+
 ### Agent Notes (2026-10-27, round 15)
 
 Session `agent/genui-raw-chips-20261027-1915` (worktree
