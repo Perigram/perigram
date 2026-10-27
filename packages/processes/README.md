@@ -216,7 +216,7 @@ the inspector:
 | `source.literalList` | An authored list literal is a value; lives in the values group. |
 | `collection.join` | Keys `leftKey`/`rightKey`. |
 | `value.recordField` | `path` plus authored output type. |
-| `value.cast` | `sourceType`/`outputType` base pair over the re-base vocabulary (json, record, list, string, number, boolean); the node asserts the value already matches the target base. |
+| `value.cast` | Authored output base over the re-base vocabulary (json, record, list, string, number, boolean); the input is the universal json acceptor, so every source wires in and the node asserts the value already matches the target base. |
 | `record.construct` | `fields`. |
 | `value.format` | Template with named `{key}` slots substituted from a wired record (missing keys keep their placeholder, `{value}` from the value input); template-free formatting is numeric. |
 | `forEachEntity` | Authors the loop PAIR: dropping it creates `control.forEach` and its `control.forEachEnd` closer. |
