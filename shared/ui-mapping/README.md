@@ -100,7 +100,7 @@ read-only presentations derive from shape.
 | `quantity` | QuantityInput (InputGroup: InputNumber plus unit addon) |
 | few-option `enum` | SelectButton |
 | large `enum` | filtered Select |
-| ordinal `enum` (p0..p3, tier0..2 — value shapes matching a rank pattern) | Rating |
+| ordinal `enum` (p0..p3, tier0..2 — value shapes matching a rank pattern; quantitative type) | Rating |
 | bounded scalar (declared min/max) | Slider |
 | `ref` | InstancePicker |
 | `list` of strings | ChipsInput |
@@ -118,9 +118,9 @@ read-only presentations derive from shape.
 | `ref` | InstanceInlineRef (the app's interactive reference surface; the shared layer names the key) |
 | `quantity` | QuantityText |
 | `blob` | FileChip |
-| percent quantity | Knob dial |
-| percent-valued map | MeterGroup |
-| non-percent quantity map | bar Chart |
+| percent quantity (quantitative type) | Knob dial |
+| percent-valued map (quantitative type) | MeterGroup |
+| non-percent quantity map (quantitative type) | bar Chart |
 | long string | prose |
 | string list | budgeted chips |
 | detail spec-row value | Inplace (click-to-edit through `InlineField`) |
@@ -502,8 +502,7 @@ REGION_COLUMN_EARNED_REM`), shedding to the stack when it cannot.
 
 Arrangement is content-aware (SPEC §22, 2026-10-22): a child
 collection with zero loaded instances is layout-inert — it joins the node's
-`stubRegions`, renders as the compact stub line (label, count, its own
-create action — see RegionBlock in
+`stubRegions`, renders its create affordance alone (see RegionBlock in
 [components/ui-mapping](../../components/ui-mapping/README.md)) below the
 arranged content, and every arrangement decision (weights, columns, tabs,
 the side rail) sees filled children only; its relation key still covers the
@@ -524,7 +523,7 @@ section gaps, fact-row padding, chip-row leading, toolbar gaps, control
 size, and editor size move together — real coefficients,
 Tailwind-scannable by construction. The coefficient derives from context
 and data (`spacingCoefficientFor`, the one derivation): the host
-record's density tier tightened one step when the screen's composed
+record's density tier tightened one step for bounded hosts when the screen's composed
 weight passes `SPACING_WEIGHT_AT`, floored at the tightest; an explicit
 coefficient (the showcase slider) overrides the derivation. The rule binds everywhere siblings exist: detail nodes carry
 `childArrangement` for their child regions, and the composed screen carries

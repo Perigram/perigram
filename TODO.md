@@ -1048,3 +1048,47 @@ the primary checkout; theme tokens bake at boot, so the change is
 visible after `docker compose -f docker-compose.dev.yml restart app`
 once merged (the primary checkout carries unrelated uncommitted edits,
 so the restart is the owner's call).
+
+## Generative UI layout sanity round 1 (owner direction 2026-10-27)
+
+Law: SPEC §22.8. Engine home `shared/ui-mapping`, materializations
+`components/ui-mapping`. Owner findings this session: crammed stacks,
+stub clutter, bad side-rail splits, kitchen-sink rows, noisy fact
+structure, wrong preview bands, dashboard widgets in ordinary records.
+
+- [x] Page rhythm: weight tightening applies to bounded hosts only —
+  `spacingCoefficientFor` keeps page hosts at their profile rhythm.
+- [x] Stubs render the create affordance alone (packed row, no
+  icon-label-count strip) — `RegionBlock` stub branch.
+- [x] Side-rail span fallback 5 → 3 (an unspecified rail stays a
+  quarter of the record grid) — `RegionBlock` splitTracks.
+- [x] Rows carry identity, status, one fact: `ROW_FIELD_BUDGET` max 1,
+  relation chips leave the row variant — `tables.js`, `SurfaceBody`.
+- [x] Single-group record bodies render no group titles —
+  `SurfaceDetailBody`.
+- [x] Seeded placeholder preview art removed; payload-less instances
+  render the quiet type glyph band — `PreviewBox` (the `seed` prop and
+  its callers went with it).
+- [x] Dashboard widgets gate on `quantitative` (`typeIsQuantitative`:
+  the type's statlike shape): Knob, MeterGroup, Chart, Rating match
+  quantitative types alone; plain values elsewhere — `tables.js`,
+  `index.js`, `FieldControl`, `InlineField`, and the detail/row
+  callers.
+- [x] Guards and docs: ui-mapping spec pins updated; ui-mapping and
+  components READMEs match.
+
+### Agent Notes (2026-10-27, layout round 1)
+
+Root causes found for the owner's findings: heavy page screens
+tightened their own rhythm to the 0.75 coefficient (gap-3 sections on
+pages); every empty collection advertised itself with an
+icon-label-count strip; a missing side-rail span fell back to 5/12 of
+the record grid; rows carried three fields plus relation chips; every
+fact group printed its title; payload-less image/geometry types
+rendered invented seeded SVG art; and the widget derivations fired on
+field shape alone, putting dials and charts inside ordinary text
+records.
+
+Status: WAITING owner verification — live look at the showcase
+(`/test/ui-mapping`) and real record pages after the app picks up the
+change. Expect a round 2 from what still reads wrong.
