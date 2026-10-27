@@ -194,12 +194,6 @@ test.describe('markdown editor repair', () => {
       buffer: Buffer.from(MD_SOURCE, 'utf8')
     });
     await expect(dialog.getByText('probe-notes.md').first()).toBeVisible({ timeout: 20000 });
-    // The dialog prompts the identifier row beside the payload: fill it
-    // (the required-input gate keeps Create disabled until every
-    // required row carries a value).
-    for (const input of await dialog.locator('input:visible:not([type="file"])').all()) {
-      await input.fill('probe notes');
-    }
     await dialog.getByRole('button', { name: 'Create', exact: true }).click();
     // The create posts after its payload upload settles; the dialog
     // closing is the completion signal — only then does the newest
@@ -228,11 +222,7 @@ test.describe('markdown editor repair', () => {
       await expect(dialog).toBeVisible({ timeout: 5000 }).catch(() => {});
     }
     await expect(dialog).toBeVisible({ timeout: 10000 });
-    // The content protocol prompts its text body beside the identifier
-    // row; both must carry values for Create.
-    for (const input of await dialog.locator('input:visible').all()) {
-      await input.fill('field notes');
-    }
+    // The content protocol prompts its text body alone.
     await dialog.locator('textarea').first().fill(CSV_SOURCE);
     await dialog.getByRole('button', { name: 'Create', exact: true }).click();
 

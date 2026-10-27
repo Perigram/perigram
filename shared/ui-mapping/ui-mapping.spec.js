@@ -1188,21 +1188,19 @@ describe('create dialog input resolution', () => {
       type,
       bundle
     );
-    // The naming law derives the identifier row even when the construction
-    // contract omits it (an upload constructor's inputs carry the file and
-    // relations alone).
-    expect(unflagged[0]).toMatchObject({ id: 'note', required: true });
-    expect(unflagged[1]).toMatchObject({ id: 'fields.width', required: false });
+    // Rows come from the contract alone: an identifier row the contract
+    // omits stays out of the dialog.
+    expect(unflagged).toHaveLength(1);
+    expect(unflagged[0]).toMatchObject({ id: 'fields.width', required: false });
   });
 
-  it('derives the identifier row for a construction contract without one', () => {
+  it('prompts only the contract rows: no row derives beyond the contract', () => {
     const rows = resolveCreateDialogInputs(
       { construction: { inputs: ['payload'] }, inputPolicy: { fields: [] } },
       type,
       bundle
     );
-    expect(rows[0]).toMatchObject({ id: 'note', required: true, descriptor: { base: 'string' } });
-    expect(rows.some(row => row.id === 'payload')).toBe(false);
+    expect(rows).toEqual([]);
   });
 
   it('resolves lineage inputs to parent pickers over reverse containment', () => {
@@ -1211,9 +1209,8 @@ describe('create dialog input resolution', () => {
       type,
       bundle
     );
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatchObject({ id: 'note', required: true });
-    expect(rows[1]).toMatchObject({
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
       id: 'lineage.tPart1Id',
       label: 'Bin',
       lineage: { key: 'tPart1Id', accepts: ['t-bin-1'] }
@@ -1232,9 +1229,8 @@ describe('create dialog input resolution', () => {
       type,
       bundle
     );
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatchObject({ id: 'note', required: true });
-    expect(rows[1]).toEqual({
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual({
       id: 'content',
       label: 'Content',
       descriptor: { base: 'string', control: 'Textarea' },
@@ -1256,9 +1252,8 @@ describe('create dialog input resolution', () => {
       type,
       bundle
     );
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatchObject({ id: 'note', required: true });
-    expect(rows[1]).toEqual({
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual({
       id: 'content',
       label: 'Content',
       descriptor: { base: 'string', control: 'Textarea' },
@@ -1287,9 +1282,8 @@ describe('create dialog input resolution', () => {
       type,
       authoredBundle
     );
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatchObject({ id: 'note', required: true });
-    expect(rows[1]).toMatchObject({ lineage: { key: 'tBin1Id', accepts: ['t-bin-1'] } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ lineage: { key: 'tBin1Id', accepts: ['t-bin-1'] } });
   });
 
   it('emits file inputs as upload rows outside the row grammar', () => {
@@ -1298,10 +1292,9 @@ describe('create dialog input resolution', () => {
     // resolving against fields or disappearing silently.
     const rows = resolveCreateDialogInputs(
       {
-        construction: { inputs: ['name', 'payload'] },
+        construction: { inputs: ['payload'] },
         inputPolicy: {
           fields: [
-            { id: 'name', label: 'Name', path: 'name', type: 'string' },
             { id: 'payload', label: 'File', path: 'payload', type: 'file', required: true }
           ]
         }
@@ -1309,8 +1302,8 @@ describe('create dialog input resolution', () => {
       type,
       bundle
     );
-    expect(rows.map(row => row.id)).toEqual(['note', 'name', 'payload']);
-    expect(rows[2]).toMatchObject({ label: 'File', descriptor: { base: 'blob' }, span: 'full', required: true });
+    expect(rows.map(row => row.id)).toEqual(['payload']);
+    expect(rows[0]).toMatchObject({ label: 'File', descriptor: { base: 'blob' }, span: 'full', required: true });
   });
 
   it('keeps inputs that resolve to nothing hidden', () => {
@@ -1318,12 +1311,12 @@ describe('create dialog input resolution', () => {
       { construction: { inputs: ['templateId'] } },
       type,
       bundle
-    ).map(row => row.id)).toEqual(['note']);
+    ).map(row => row.id)).toEqual([]);
     expect(resolveCreateDialogInputs(
       { construction: { inputs: ['lineage.unknownId'] } },
       type,
       bundle
-    ).map(row => row.id)).toEqual(['note']);
+    ).map(row => row.id)).toEqual([]);
   });
 });
 

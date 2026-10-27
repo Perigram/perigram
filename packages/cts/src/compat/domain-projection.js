@@ -305,32 +305,12 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
 
   // Construction prompts are the type's own vocabulary only — row fields
   // and addressable edges (SPEC §4 "not in the row means does not
-  // exist"). There is no hardcoded Name input: a type with an identifier
-  // row names its records through the row; a type without one creates
-  // unnamed records and the unnamed placeholder is the authoring prompt
-  // to fix the declaration. Renaming stays a patch-channel concern
-  // (identity.name), never a construct prompt.
+  // exist"). Protocol modes prompt their protocol input alone; a record's
+  // name arrives through an authored row, graph composition, the uploaded
+  // file's name, or the identity rename channel.
 
   function protocolModeInputs(type, protocol) {
     const inputs = [];
-    // A type with an identifier row names its records through the row:
-    // dialog protocols (upload/capture/content) carry the row beside the
-    // protocol input — the naming law. The editor protocol stays blank:
-    // its first save names the record.
-    if (protocol !== 'editor') {
-      for (const [name, descriptor] of Object.entries(type.fields || {})) {
-        if (descriptor?.identifier && descriptor.base === 'string') {
-          inputs.push({
-            id: name,
-            label: descriptor.label || name,
-            path: name,
-            type: 'string',
-            prompt: true
-          });
-          break;
-        }
-      }
-    }
     if (protocol === 'upload' || protocol === 'capture') {
       inputs.push({
         id: 'payload',
