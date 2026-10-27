@@ -201,8 +201,10 @@ The value and list/tree groups are exhaustive over the catalog's
 author-facing basics (SPEC §8): every
 tree-algebra kind (flatten, graft, simplify, branch, zip, unzip, cross,
 transpose, clean, stats), the list reshapes (reverse, shift, partition,
-reduce), the value utilities (cast, convertUnit, coalesce, format,
-required, validate), and the current-time source are palette items. The
+reduce), the value utilities (cast, select, convertUnit, coalesce,
+format, required, validate), and the current-time source are palette
+items. `value.string` owns parsing (`toNumber`, `toDateTime` — string in,
+typed value out; `value.cast` asserts shape and converts nothing). The
 fixed-arity `collection.makeList` and the persisted-array boundary
 (`collection.packArray`/`unpackArray`) stay catalog-only: a graph reaches
 stored reference arrays through declared-edge reads (`cts.read
@@ -1174,7 +1176,7 @@ aligned key list produced by Get Field:
 |---|---|
 | Sort | `items` + `keys` (both required); original items in aligned key order; one canonical `direction` (`asc`/`desc`, default asc); stable for equal keys; null keys sort after non-null ascending. |
 | Distinct | `items` plus optional `keys`: with keys, keeps the first item per aligned key value; keyless, dedups the items themselves by structural equality. |
-| Group By | `items` + `keys`, grouped by the aligned key, appending a group index to each source branch path. |
+| Group By | `items` + `keys`, grouped by the aligned key, appending a group index to each source branch path; the `keys` output emits the grouping key of each branch, tree-aligned with `groups`. |
 | Slice / Item At | Authorable integer fallbacks (`start`/`end`, `index`) with native negative-index and empty-list semantics; Item At resolves an absent, out-of-range, or empty index to null. |
 
 Sort, Distinct, and Group By reuse the strict `alignSelectorPackets`
@@ -1234,12 +1236,18 @@ coercions cover reference and JSON needs; persisted drafts that still wire
 the retired converter nodes reconnect through the one-shot migration.
 
 Record Field (`value.recordField`) is the record elimination form: one
-authored key read off each record value of the List input (a service row,
+key read off each record value of the List input (a service row,
 a composed parameter record), with the authored output type — the same
-authoring gesture open-block Get Field uses, for plain record values; a
+authoring gesture open-block Get Field uses, for plain record values; the
+key arrives by wire (`key`, the socket-algebra gesture `cts.field`'s field
+socket allows) or from the authored `path`, the wire winning; a
 field whose value is an array emits one item per entry (the output
 socket's List access — list projections itemize the same way at extract
-reads). Filter and Dispatch are selectors: they return the original entity
+reads). Select (`value.select`) is the typed ternary: a boolean condition
+picks one of two same-typed operands, and a scalar condition broadcasts
+over item operands. `record.merge` shallow-merges two records, the right
+side winning; a missing side merges as absent content. Filter and
+Dispatch are selectors: they return the original entity
 values and require an equal-length mask with the same branch paths,
 rejecting any branch or item mismatch. The authoring projection filters a
 typed list with the same data algebra: read/deconstruct the compared field
