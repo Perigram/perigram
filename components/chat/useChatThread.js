@@ -123,6 +123,13 @@ const replyTo = ref(null)
 const swipeArmed = ref(new Set())
 const highlightKey = ref('')
 const loadingAnchor = ref(false)
+const expandedLongMessages = ref(new Set())
+const toggleLongMessage = (messageId) => {
+    const next = new Set(expandedLongMessages.value)
+    if (next.has(messageId)) next.delete(messageId)
+    else next.add(messageId)
+    expandedLongMessages.value = next
+}
 const instances = useInstancesStore()
 const registry = useRegistryStore()
 const newChatDialog = ref(false)
@@ -2797,6 +2804,8 @@ const directConversationKey = (left, right) => {
         replyTo,
         swipeArmed,
         highlightKey,
+        expandedLongMessages,
+        toggleLongMessage,
         loadingAnchor,
         instances,
         registry,

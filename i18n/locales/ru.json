@@ -239,7 +239,8 @@
         "scrollToEnd": "К последним сообщениям",
         "resizeRail": null,
         "searchType": "Тип",
-        "searchAnyType": "Любой тип"
+        "searchAnyType": "Любой тип",
+        "showMore": "Показать ещё"
     },
     "footer": {
         "termsAndConditions": "Условия и положения",

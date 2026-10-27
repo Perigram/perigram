@@ -239,7 +239,8 @@
         "scrollToEnd": "Scroll to latest",
         "resizeRail": "Resize chats pane",
         "searchType": "Type",
-        "searchAnyType": "Any type"
+        "searchAnyType": "Any type",
+        "showMore": "Show more"
     },
     "footer": {
         "termsAndConditions": "Terms and Conditions",

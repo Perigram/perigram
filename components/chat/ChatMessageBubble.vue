@@ -118,12 +118,25 @@
                                     >
                                         <SupportMessageContent :message="bubbleContentMessage(messageItem)" />
                                     </Message>
-                                    <div v-else class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
+                                    <div
+                                        v-else
+                                        ref="bodyContent"
+                                        class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]"
+                                        :class="collapsedLong ? 'max-h-72 overflow-hidden' : ''"
+                                    >
                                         <SupportMessageContent
                                             :message="bubbleContentMessage(messageItem)"
                                             :markdown="Boolean(messageItem.agent)"
                                         />
                                     </div>
+                                    <button
+                                        v-if="collapsedLong"
+                                        type="button"
+                                        class="mt-1 text-supporting text-primary hover:underline"
+                                        @click="toggleLongMessage(messageItem._id)"
+                                    >
+                                        {{ $t('support.showMore') }}
+                                    </button>
                                 </div>
                                 <!-- The attachment surface: files, media, and
                                      attached instance refs ride one row group
@@ -209,5 +222,15 @@ import SupportMessageContent from '~/components/shared/SupportMessageContent.vue
 import UserChip from '~/components/shared/UserChip.vue'
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 const props = defineProps({ thread: Object, messageItem: Object })
-const { bubbleContentMessage, currentUserId, docksRight, entityPopupOpenable, formatTime, goToMessage, highlightKey, instanceLinkLabel, instanceRefs, instances, isAudioOnlyMessage, isOwnMessage, lowerInstanceChip, message, messageBubbleText, messageSeen, messageSenderKey, messages, openLowerInstanceChat, parentAttachmentIcon, showSenderAvatar, swipeDrag, swipeStyle, transcribingMessageIds } = props.thread
+const { bubbleContentMessage, currentUserId, docksRight, entityPopupOpenable, expandedLongMessages, formatTime, goToMessage, highlightKey, instanceLinkLabel, instanceRefs, instances, isAudioOnlyMessage, isOwnMessage, lowerInstanceChip, message, messageBubbleText, messageSeen, messageSenderKey, messages, openLowerInstanceChat, parentAttachmentIcon, showSenderAvatar, swipeDrag, swipeStyle, toggleLongMessage, transcribingMessageIds } = props.thread
+const bodyContent = ref(null)
+const clampable = ref(false)
+onMounted(async () => {
+    await nextTick()
+    if (bodyContent.value && bodyContent.value.scrollHeight > bodyContent.value.clientHeight + 1) clampable.value = true
+})
+// A jump-to-message highlight reveals a clamped body (SPEC §7).
+const collapsedLong = computed(() => clampable.value
+    && !expandedLongMessages.value.has(props.messageItem._id)
+    && highlightKey.value !== String(props.messageItem._id))
 </script>
