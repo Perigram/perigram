@@ -31,7 +31,7 @@ carries no meaning by design. Every card — the operation card and the
 declaration family alike — composes the shared frame and handle
 primitives (`DesignerNodeCard`, `DesignerSocketHandle` from
 [components/shared](../shared/README.md)), so the contract is enforced
-by construction.
+by construction. A handle renders only while its port spec exists.
 
 **Sockets and wires**
 
@@ -478,7 +478,11 @@ every mutation is an event back to the page's update/sync entry points.
   tokens follow SPEC §4: beside the name, a glyph row offers a curated
   PrimeIcon set, the generated icon-font palette (every `ck-*` glyph the
   fonts carry, `shared/icon-fonts.js`), and a free-text override; an
-  absent glyph derives from the class default table. A field authors its
+  absent glyph derives from the class default table. A `file`-class type
+  authors its payload traits (SPEC §4) beside the class pick: accepted
+  MIME (comma-separated; an empty list leaves the type payload-less and
+  fields alone satisfy the class), size limit, preview mode, and creation
+  protocols. A field authors its
   descriptor through the shared `DescriptorEditor`
   (`components/type-designer/DescriptorEditor.vue`): base kind,
   qualifiers (unit, ref targets, enum values, variant tags, list/map item

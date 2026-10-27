@@ -1273,7 +1273,9 @@ blocks authors the local key and output type explicitly.
 the bound type's projected field schemas declare — identity, row fields,
 `lineage.<key>` per declared edge, `relations.<key>`, the state axis,
 provenance, `_id` — is its own typed output socket, derived from the
-projection. A facet the runtime value does not carry reads as the
+projection. The bound type follows the wired entity input (the consumer
+binding contract), so the facet sockets render once a typed entity stream
+feeds the node. A facet the runtime value does not carry reads as the
 missing-field marker. `cts.field` is the single-field projection over the
 same path vocabulary: its bound type follows the wired entity input, and
 the record's `path` is the single persisted home of the field selection —
