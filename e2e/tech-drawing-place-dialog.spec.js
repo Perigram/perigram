@@ -129,14 +129,14 @@ test.describe('tech-drawing place dialog', () => {
     expect(fileId).toBeTruthy();
     const fileResponse = await app.request.get(`/api/files/download/${encodeURIComponent(String(fileId))}?bucket=files`);
     expect(fileResponse.ok(), await fileResponse.text()).toBeTruthy();
-    const composed = await fileResponse.text();
+    const composedText = await fileResponse.text();
     const { writeFile, mkdir } = await import('node:fs/promises');
     await mkdir('.playwright', { recursive: true });
-    await writeFile('.playwright/place-dialog-composed.dxf', composed);
+    await writeFile('.playwright/place-dialog-composed.dxf', composedText);
 
-    expect(composed).not.toContain('{spot:');
-    expect(composed).toContain('PLACE DIALOG E2E');
-    expect(composed).toContain('0\nCIRCLE\n8\nHOLES\n10\n70\n20\n90\n40\n4.0');
-    expect(composed).toContain('0\nCIRCLE\n8\nHOLES\n10\n110\n20\n90\n40\n4.0');
+    expect(composedText).not.toContain('{spot:');
+    expect(composedText).toContain('PLACE DIALOG E2E');
+    expect(composedText).toContain('0\nCIRCLE\n8\nHOLES\n10\n70\n20\n90\n40\n4.0');
+    expect(composedText).toContain('0\nCIRCLE\n8\nHOLES\n10\n110\n20\n90\n40\n4.0');
   });
 });
