@@ -404,6 +404,21 @@ describe('Design system manifest', () => {
     expect(supportMessageContent).toContain('text-prose');
   });
 
+  it('rides the spacing ladder in the generative tree', () => {
+    // SPEC §22.9: steps 1/2/3/4/6/8 only; half-steps belong to the
+    // rhythm interpolator (SPACING_SCALES), keyed by density.
+    const offLadder = /(?:^|[\s"'`/])((?:gap|p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr)-(?:0\.5|1\.5|2\.5|3\.5|5|7))(?=[\s"'`/]|$)/;
+    const layoutOffenders = Object.entries(LAYOUT)
+      .filter(([, recipe]) => offLadder.test(` ${recipe} `))
+      .map(([key]) => `LAYOUT.${key}`);
+    expect(layoutOffenders).toEqual([]);
+
+    const offenders = usedVueFiles()
+      .filter(file => file.startsWith('components/ui-mapping/'))
+      .filter(file => offLadder.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')));
+    expect(offenders).toEqual([]);
+  });
+
   it('bans case transforms on app surfaces', () => {
     // Section labels render in natural case (SPEC §22.8); a transform
     // utility is the stamp the law retires. Plugin editor surfaces and

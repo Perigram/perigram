@@ -47,7 +47,7 @@
                type name per card — the collection's own header names it.
                Only containment context (ParentRef) earns the line. -->
           <template v-if="parented" #subtitle>
-            <span class="inline-flex min-w-0 items-center gap-1.5">
+            <span class="inline-flex min-w-0 items-center gap-2">
               <ParentRef
                 :instance="instance"
                 :bundle="bundle"

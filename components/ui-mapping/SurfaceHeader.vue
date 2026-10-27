@@ -23,7 +23,7 @@
       <slot name="navigation" />
       <div :class="[LAYOUT.row, LAYOUT.headerIdentity]" class="header-identity">
         <Avatar :icon="glyph" shape="circle" size="large" class="shrink-0" />
-        <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div class="flex min-w-0 flex-1 flex-col gap-1">
           <div class="flex min-w-0 items-center gap-2">
             <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
             <!-- One state surface per header: an instance carrying a flat

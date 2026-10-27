@@ -64,7 +64,7 @@
     <TabList>
       <Tab v-for="child in orderedRegions" :key="child.id" :value="child.id">
         {{ labelFor(child) }}
-        <Tag v-if="child.instances.length" :value="String(child.instances.length)" severity="secondary" />
+        <span v-if="child.instances.length" :class="COUNT_CHIP_CLASS">{{ child.instances.length }}</span>
       </Tab>
     </TabList>
     <TabPanels>
@@ -105,8 +105,8 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import Tag from 'primevue/tag';
 import { localizedLabel, typeLabelKey, REGION_COLUMN_EARNED_REM, LAYOUT } from '#shared/ui-mapping/index.js';
+import { COUNT_CHIP_CLASS } from '../shared/chip-surface.js';
 import { useContainerTraits, useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import RegionBlock from './RegionBlock.vue';
 import PlacementBox from './PlacementBox.vue';

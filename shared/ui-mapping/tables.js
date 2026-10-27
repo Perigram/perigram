@@ -245,6 +245,12 @@ export const DETAIL_FACT_BUDGET = Object.freeze({ max: 4, overflow: 'more' });
 
 export const SCALAR_BASES = Object.freeze(['string', 'number', 'quantity', 'instant', 'boolean', 'enum']);
 
+// The spacing ladder (SPEC §22.9): generated surfaces space on one
+// 4px-based ladder — Tailwind steps 1, 2, 3, 4, 6, 8 (4, 8, 12, 16, 24,
+// 32px). Static recipes and materialization utilities ride these steps
+// alone; the rhythm interpolator (SPACING_SCALES) owns the sub-steps
+// between them, keyed by the density coefficient.
+//
 // Layout vocabulary: the only layout classes the materializations may use.
 // Components never declare gaps, grids, or stacks of their own — PrimeVue
 // components own their internal layout, and everything else comes from
@@ -344,8 +350,8 @@ export const LAYOUT = Object.freeze({
   calendarStack: 'flex w-full min-w-0 flex-col gap-2',
   calendarHead: 'flex min-w-0 items-center justify-between gap-2',
   calendarGrid: 'grid w-full min-w-0 grid-cols-7 gap-1',
-  calendarCell: 'flex min-h-20 flex-col gap-1 rounded-panel bg-subtle p-1.5',
-  calendarCellToday: 'flex min-h-20 flex-col gap-1 rounded-panel bg-content p-1.5',
+  calendarCell: 'flex min-h-20 flex-col gap-1 rounded-panel bg-subtle p-2',
+  calendarCellToday: 'flex min-h-20 flex-col gap-1 rounded-panel bg-content p-2',
   nameClamp: 'min-w-0 truncate',
   chipClamp: 'max-w-48 [&_.p-chip-label]:truncate',
   // Identity link buttons (collection rows, board/calendar/timeline cards,

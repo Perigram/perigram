@@ -41,7 +41,7 @@
     :stroke-width="8"
     readonly
   />
-  <div v-else-if="outcome.component === 'ChipsDisplay'" class="flex min-w-0 flex-wrap items-center gap-1.5">
+  <div v-else-if="outcome.component === 'ChipsDisplay'" class="flex min-w-0 flex-wrap items-center gap-2">
     <Chip v-for="tag in chipsShown" :key="tag" :label="String(tag ?? fallback)" />
     <Tag v-if="chipsHidden > 0" :value="`+${chipsHidden}`" severity="contrast" />
   </div>

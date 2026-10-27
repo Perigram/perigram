@@ -22,7 +22,7 @@
       </template>
     <Column sortable :sort-field="sortByIdentity" :header="$t('uiMapping.identityColumn')">
       <template #body="{ data }">
-        <div class="flex min-w-0 items-center gap-1.5">
+        <div class="flex min-w-0 items-center gap-2">
           <Button
             v-if="openable"
             link

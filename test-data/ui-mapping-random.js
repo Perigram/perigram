@@ -563,7 +563,7 @@ export function generateUiMappingWorld(seed = 7) {
   listScreenTypes.forEach(type => {
     const key = `list_${type.id}`;
     screens[key] = {
-      id: key, screenKey: key, label: `${type.name} list`, kind: 'typeList', template: 'typeList',
+      id: key, screenKey: key, label: `${type.name}`, kind: 'typeList', template: 'typeList',
       route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'hub', typeId: type.id,
       required: null, roleIds: ['operator'], scope: {}, bindings: {},
       sources: [{ id: 'main', typeId: type.id, mode: 'list', required: null }],
@@ -584,7 +584,7 @@ export function generateUiMappingWorld(seed = 7) {
     const type = emptyType;
     const key = `list_${type.id}`;
     screens[key] = {
-      id: key, screenKey: key, label: `${type.name} list`, kind: 'typeList', template: 'typeList',
+      id: key, screenKey: key, label: `${type.name}`, kind: 'typeList', template: 'typeList',
       route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'hub', typeId: type.id,
       required: null, roleIds: ['operator'], scope: {}, bindings: {},
       sources: [{ id: 'main', typeId: type.id, mode: 'list', required: null }],
@@ -622,7 +622,7 @@ export function generateUiMappingWorld(seed = 7) {
       regions.push({ id: 'crel', slot: 'children', sourceId: 'crel', surface: 'list', actions: [] });
     }
     screens[key] = {
-      id: key, screenKey: key, label: `${type.name} detail`, kind: 'instanceDetail', template: 'instanceDetail',
+      id: key, screenKey: key, label: `${type.name}`, kind: 'instanceDetail', template: 'instanceDetail',
       route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'detail', typeId: type.id,
       required: null, roleIds: ['operator'], scope: { instanceId: instance.id }, bindings: {},
       sources, regions, actions: regions.flatMap(region => region.actions)
@@ -635,7 +635,7 @@ export function generateUiMappingWorld(seed = 7) {
     const type = emptyType;
     const key = `detail_missing_${type.id}`;
     screens[key] = {
-      id: key, screenKey: key, label: `${type.name} detail`, kind: 'instanceDetail', template: 'instanceDetail',
+      id: key, screenKey: key, label: `${type.name}`, kind: 'instanceDetail', template: 'instanceDetail',
       route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'detail', typeId: type.id,
       required: null, roleIds: ['operator'], scope: { instanceId: `${type.id}-none` }, bindings: {},
       sources: [{ id: 'main', typeId: type.id, mode: 'single', required: null, identifier: '$screen.scope.instanceId' }],

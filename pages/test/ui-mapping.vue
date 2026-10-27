@@ -33,7 +33,7 @@
 
     <section v-for="screen in screens" :id="`wsection-${screen.screenKey}`" :key="screen.screenKey" class="flex flex-col gap-3 scroll-mt-24">
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-section-heading">{{ screen.label }}</span>
+        <span class="text-section-heading">{{ headingFor(screen) }}</span>
       </div>
       <GeneratedMappingScreen
         :screen="screen"
@@ -62,7 +62,7 @@ import ScrollTop from 'primevue/scrolltop';
 import Slider from 'primevue/slider';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import { generateUiMappingWorld, DEFAULT_RANDOM_SEED } from '~/test-data/ui-mapping-random.js';
-import { SPACING_STEPS, stateDisplayFor } from '#shared/ui-mapping/index.js';
+import { SPACING_STEPS, stateDisplayFor, titleFor } from '#shared/ui-mapping/index.js';
 
 definePageMeta({ layout: 'ui-lab-layout' });
 
@@ -102,6 +102,16 @@ const setScale = value => {
 // The real-world fixture source died with the legacy entity fixtures;
 // the lab always renders the synthetic world now.
 const screens = computed(() => Object.values(world.value.contract.screens));
+// The section heading follows the host law (SPEC §22.3): a list section
+// names its type, a detail section names the record it opens — template
+// words never narrate.
+function headingFor(screen) {
+  if (screen.template !== 'instanceDetail') return screen.label;
+  const record = (instancesWithOverrides.value[screen.typeId] || [])
+    .find(instance => instance.id === screen.scope?.instanceId);
+  const type = world.value.bundle.types.find(entry => entry.id === screen.typeId);
+  return record ? titleFor(record, type, { unnamedLabel: t('common.unnamed') }) : screen.label;
+}
 
 // Data-state matrix: applies the world's seeded loading/denied/error
 // source states so every RegionDataState presentation renders beside the

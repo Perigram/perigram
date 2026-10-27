@@ -1,7 +1,7 @@
 <template>
   <Inplace v-if="editable" closable>
     <template #display>
-      <div class="flex min-w-0 items-center gap-1.5 rounded-ui px-1 py-0.5 transition-colors hover:bg-subtle">
+      <div class="flex min-w-0 items-center gap-2 rounded-ui px-1 py-1 transition-colors hover:bg-subtle">
         <FieldControl
           :model-value="field.value"
           :descriptor="field.descriptor"
@@ -41,7 +41,7 @@
       </div>
     </template>
   </Inplace>
-  <div v-else class="flex min-w-0 items-center gap-1.5 rounded-ui px-1 py-0.5">
+  <div v-else class="flex min-w-0 items-center gap-2 rounded-ui px-1 py-1">
     <FieldControl
       :model-value="field.value"
       :descriptor="field.descriptor"

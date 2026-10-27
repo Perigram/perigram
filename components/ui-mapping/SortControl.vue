@@ -11,7 +11,7 @@
     />
 
     <Popover ref="popover">
-      <div class="flex min-w-44 flex-col gap-0.5">
+      <div class="flex min-w-44 flex-col gap-1">
         <Button
           v-for="option in options"
           :key="option.value"
