@@ -36,17 +36,18 @@ persistence the call window uses.
 
 ## Parked calls on mobile
 
-`MediaDock` also renders the mobile top-lane entry for a parked call: a
-`callsStore.parkedRoom` with no adopting surface (`floatingRoom` empty —
-desktop's floating window clears its own adoption path). The pill names
+`MediaDock` also renders the mobile top-lane entry for the connected call
+session while it has no mounted surface (the desktop auto-rule opens the
+floating window instead — `floatingRoom` set — which is itself a mounted
+surface, so the pill stays mobile). The pill names
 the conversation through the shared call-room label resolver
 (`useCallRoomLabel`) the home sidebar rows use; expand reopens the
 full-screen call dialog ([`CallDialog`](../calls/README.md)) whose
-`CallPanel` adopts the parked room without reconnecting, and close leaves
-the call (`dropLiveRoom`). Remote audio never pauses while parked: the
-parking handoff moves the LiveKit-attached audio elements into the calls
-store's hidden document sink, so the connection and its audio stay live
-until a surface adopts them (see
+`CallPanel` renders the same session, and close leaves the
+call (`leaveSession`). Remote audio never pauses in between: the app-level
+[`CallAudioRenderer`](../calls/README.md) keeps every remote audio track
+attached while the session lives, so the connection and its audio stay
+live across any surface move (see
 [components/calls](../calls/README.md#call-line-state-machine)).
 
 ## Related

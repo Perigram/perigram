@@ -117,17 +117,21 @@ projection for handwritten card/detail surfaces.
   `call.activity` on the user/org topics, keeps the
   `/api/livekit/active-rooms` snapshot fresh (debounced refetch, refetch on
   connections-stream reopen, last known snapshot kept on failed refetch),
-  owns incoming invites with a 30s TTL so accepting or declining anywhere
-  stops the ring everywhere, parks accepted calls as a pending
-  home-workspace tab, and keeps live WebRTC rooms across surface transfers
-  (tab ↔ floating window) so a pop-out never drops the connection. Ringing
+  and owns incoming invites with a 30s TTL so accepting or declining
+  anywhere stops the ring everywhere. The connected room is one session in
+  the store — the LiveKit Room, a single event binder, and a reactive
+  participant/track state block — and every call surface (workspace tab,
+  dialog, floating window, mobile lane) renders it as a view; panels
+  register in `mountedRooms` while mounted, and a connected session with
+  no mounted surface parks into the desktop floating window (SPEC §11)
+  while mobile keeps the media-dock lane entry. Accepted calls park as a
+  pending home-workspace tab. Ringing
   is room-scoped, not just time-scoped: an invite is dropped only after its
   room was observed running and then left the snapshot, so a caller hanging
   up before the callee answers stops the ring immediately while a caller
   still on the pre-join screen cannot dismiss it. The line machine tracks
-  the local user's own participation (tolerating concurrent rooms —
-  `in-call` holds until the last joined room is left); the room lifecycle
-  ("anyone still in it") is carried by the snapshot and drives the sidebar
+  the local user's own participation; the room lifecycle ("anyone still in
+  it") is carried by the snapshot and drives the sidebar
   rows and chat ongoing-call banner through `activeRoomForConversation`,
   which resolves through the shared room grammar
   ([`shared/call-rooms.js`](../shared/README.md)). The machine's canonical

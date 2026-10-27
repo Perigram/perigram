@@ -109,9 +109,11 @@ call surfaces in the stacking order. The now-playing dock
 host for media and parked calls that outlive their source surface: a
 floating card top-right on desktop and a lane pinned to the top of the
 screen on mobile. The call window doubles as the
-navigation-proof call host: a call panel unmounting while connected from
-a park-on-unmount host parks its live room there
-(see [components/calls](../components/calls/README.md)).
+navigation-proof call host: the shell seats a connected session with no
+mounted surface there automatically
+(see [components/calls](../components/calls/README.md)), beside the
+app-level `CallAudioRenderer` that keeps remote call audio playing
+across every surface move.
 
 ## Related
 
