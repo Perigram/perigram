@@ -134,9 +134,12 @@ Detail surfaces are sectioned by the derived `sections`
 relations/notes order, fields a stale bundle left unassigned trailing in an
 unlabeled default group), so record views carry field-group semantics.
 
-**Create dialogs.** Generated create dialogs resolve their rows from
-compiled construction inputs through `resolveCreateDialogInputs(action,
-type, bundle)`: declared fields match by flat-wire `fields.<name>` path
+**Create dialogs.** Generated create dialogs resolve their rows from the
+compiled input policy through `resolveCreateDialogInputs(action, type,
+bundle)` — the policy owns the row list, and the compiler keeps it to the
+fields the graph leaves unsupplied, so wired producers and authored socket
+defaults stay out of the dialog; construction inputs serve actions compiled
+without a policy. Declared fields match by flat-wire `fields.<name>` path
 (the §3 stored shape compiled construction inputs speak) or bare name
 (authored compose inputs) and render through their descriptor; the identity
 `name` renders as a plain string control; `lineage.<key>` inputs render
