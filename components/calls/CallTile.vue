@@ -8,7 +8,7 @@
         <video
             :ref="videoRef"
             class="h-full w-full"
-            :class="[tile.isScreen ? 'object-contain' : 'object-cover', { 'opacity-0': !tile.hasVideo }]"
+            :class="[tile.isScreen ? 'object-contain' : 'object-cover', { 'opacity-0': !tile.hasVideo, 'scale-x-[-1]': mirrored && !tile.isScreen }]"
             autoplay
             playsinline
             muted
@@ -55,7 +55,10 @@ import Button from 'primevue/button';
 
 const props = defineProps({
     tile: { type: Object, required: true },
-    spotlight: { type: Boolean, default: false }
+    spotlight: { type: Boolean, default: false },
+    // Local camera self-view mirrors, the way every video caller expects
+    // to see themselves; screen shares never mirror.
+    mirrored: { type: Boolean, default: false }
 });
 const emit = defineEmits(['toggle-pin', 'video', 'aspect']);
 

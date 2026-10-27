@@ -29,7 +29,7 @@
             </div>
             <Button
                 icon="pi pi-phone"
-                severity="danger"
+                severity="success"
                 rounded
                 size="small"
                 :aria-label="$t('call.join')"
