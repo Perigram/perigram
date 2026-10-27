@@ -4043,7 +4043,14 @@ function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
     : (modes.includes(contract.defaultMode) ? contract.defaultMode : (modes[0] || ''));
   const declaredInputs = Array.isArray(source.inputs) ? source.inputs : [];
   const blocksOwnConstruction = source.blockComposed && mode === 'genericCreate';
-  const contractInputs = constructionInputsForContract(contract, mode)
+  const contractInputsRaw = constructionInputsForContract(contract, mode);
+  // Lineage axes are contract vocabulary (the containment declaration
+  // owns them): the contract's current lineage set is the addressable
+  // set on every construction, block-composed or not.
+  const contractLineage = new Set(contractInputsRaw
+    .map(input => String(input.id || input.path || ''))
+    .filter(path => path.startsWith('lineage.')));
+  const contractInputs = contractInputsRaw
     .filter(input => !blocksOwnConstruction || !isCanonicalBlockConstructionPath(input.path));
   // A declared mode (creation protocols, construct operators) addresses
   // exactly its mode inputs plus edges, and every authored input
@@ -4057,6 +4064,7 @@ function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
   }));
   for (const input of declaredInputs) {
     const key = input.id || input.path;
+    if (String(input.path || key || '').startsWith('lineage.') && !contractLineage.has(key)) continue;
     const contractInput = inputsById.get(key);
     const composedBlock = blocksOwnConstruction && isCanonicalBlockConstructionPath(input.path);
     if (!contractInput && (restrictToContract || !composedBlock)) continue;
