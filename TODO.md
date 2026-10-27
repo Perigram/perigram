@@ -978,3 +978,50 @@ listing's `tools` declaration). DWG stays out — the owner decision of
   the ride in `runtime.js` `systemPrompt` (platform instructions first,
   guide after) for chat runs and wakes alike. Docs: agent-bots, llm, and
   pages/organization READMEs.
+
+## Design language lands in pixels (owner direction 2026-10-27)
+
+Law: SPEC §4 (type-and-ink ladder). Token home `assets/tokens/index.js`,
+preset home `assets/presets/re_l.js` over it, rhythm homes
+`shared/ui-mapping/tables.js` and `assets/css/main.css`, guard
+`shared/design-system.spec.js`. Owner decisions this session: small tier
+15px; values in ink, monochrome language unchanged.
+
+- [x] Small tier 15px: `label` and `technical` roles `0.875rem` →
+  `0.9375rem`; PrimeVue small controls (`formField.sm.fontSize`) and
+  tags (`tag.root.fontSize`) to `0.9375rem`; small-table body cells
+  breathe (`datatable.bodyCell.sm.padding` `0.5rem 0.75rem`).
+  Landed 2026-10-27 in `assets/tokens/index.js`.
+- [x] Ink ladder: light-scheme text color `surface.700` → `surface.800`,
+  `--ck-primary-ink` to zinc-800; muted stays `surface.500`.
+  Landed 2026-10-27 in `assets/tokens/index.js`.
+- [x] Fact-row recipe: `LAYOUT.labelCell` and the structural-field label
+  row in `SurfaceDetailBody` render `text-label text-muted`.
+  Landed 2026-10-27 in `shared/ui-mapping/tables.js`,
+  `components/ui-mapping/SurfaceDetailBody.vue`.
+- [x] Host profiles: `dialog`/`popup` density `1`, and the narrow-box
+  density cap removed from `resolveContainerTraits` (it re-tightened
+  exactly the popups the profile change relaxed).
+  Landed 2026-10-27 in `shared/ui-mapping/tables.js`,
+  `shared/ui-mapping/index.js`.
+- [x] Guard: `shared/design-system.spec.js` pins the tier size, the ink
+  tokens, the label-cell recipe, and the host-profile densities;
+  `framework.manifest.json` regenerated (it embeds the design tokens).
+- [x] Docs: `assets/tokens/README.md`, `shared/ui-mapping/README.md`,
+  `shared/ui-mapping/SPEC.md` match the landed values.
+
+### Agent Notes (2026-10-27)
+
+Diagnosis before the change: a computed-style audit of the live
+showcase (301 text elements) showed the contract layer never reached
+the pixels — half the rendered text muted zinc-500, the 14px tier
+split between the app `label` role and PrimeVue small controls, and
+popups double-compacted (profile 0.75 plus a narrow-width density cap).
+That is why tidy-up passes moved nothing: the levers are global tokens,
+and the previous agent work stayed per-surface.
+
+Status: WAITING owner verification. The running dev container serves
+the primary checkout; theme tokens bake at boot, so the change is
+visible after `docker compose -f docker-compose.dev.yml restart app`
+once merged (the primary checkout carries unrelated uncommitted edits,
+so the restart is the owner's call).

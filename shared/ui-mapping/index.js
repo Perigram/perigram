@@ -988,10 +988,10 @@ export function regionDataTraits(node = {}) {
 // the truth, the host profile the fallback; the record is plain data the
 // pure arrangement consumes. A placement box (a side column, a column
 // track) overrides `height`/`scroll` with the host record's values while
-// measuring its own width. Density derives from the host profile (bounded
-// hosts compact, pages neutral) with narrow boxes capped at the compact
-// tier; an explicit value (a placement box inheriting its host's density)
-// wins over the derivation.
+// measuring its own width. Density derives from the host profile alone
+// (data-dense panes compact, pages and reading hosts neutral); no width
+// step tightens a host that is already small. An explicit value (a
+// placement box inheriting its host's density) wins over the derivation.
 export function resolveContainerTraits({
   widthRem = null, hostKind = 'page', density = null, height = null, scroll = null
 } = {}) {
@@ -1006,7 +1006,7 @@ export function resolveContainerTraits({
     widthRem: Number.isFinite(widthRem) ? widthRem : null,
     height: height || profile.height,
     scroll: scroll || profile.scroll,
-    density: width === 'narrow' ? Math.min(profileDensity, 0.75) : profileDensity
+    density: profileDensity
   });
 }
 

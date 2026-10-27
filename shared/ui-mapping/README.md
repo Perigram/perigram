@@ -475,8 +475,8 @@ maps to the `CONTAINER_WIDTH_STEPS` steps (narrow / medium 40rem / wide
 per host
 kind — the measured box wins over the profile, and a placement box
 overrides height/scroll with the host record's values while measuring its
-own width. Density derives from the host profile (bounded hosts compact,
-pages neutral) and caps at the compact tier for narrow boxes; an explicit
+own width. Density derives from the host profile alone (data-dense panes
+compact; pages, dialogs, and popups ride the page rhythm); an explicit
 value (a placement box inheriting its host's density) wins over the
 profile. The app-side measurement seam is `useContainerTraits`
 ([composables](../../composables/README.md)): hosts declare their profile
@@ -545,10 +545,9 @@ section gaps, fact-row padding, chip-row leading, toolbar gaps, control
 size, and editor size move together — real coefficients,
 Tailwind-scannable by construction. The coefficient derives from context
 and data (`spacingCoefficientFor`, the one derivation): the host
-record's density tier (bounded hosts and narrow boxes ride the compact
-rhythm) tightened one step when the screen's composed weight passes
-`SPACING_WEIGHT_AT`, floored at the tightest; an explicit coefficient
-(the showcase slider) overrides the derivation. The rule binds everywhere siblings exist: detail nodes carry
+record's density tier tightened one step when the screen's composed
+weight passes `SPACING_WEIGHT_AT`, floored at the tightest; an explicit
+coefficient (the showcase slider) overrides the derivation. The rule binds everywhere siblings exist: detail nodes carry
 `childArrangement` for their child regions, and the composed screen carries
 `regionsArrangement` for its top-level sections. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` (depth from
 two rides the tight rhythm) and

@@ -50,6 +50,10 @@ import { normalizeType, renderPolicyFor } from '../packages/cts/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { resolveInstanceRelationRefs } from '../utils/instance-relations.js';
 import {
+  HOST_PROFILES,
+  LAYOUT
+} from '../shared/ui-mapping/index.js';
+import {
   analyzeVueVisuals,
   INLINE_STYLE_EXCEPTIONS,
   inlineStyleAttributes,
@@ -203,6 +207,7 @@ describe('Design system manifest', () => {
       listbox: { root: { borderColor: 'transparent' } },
       splitter: { gutter: { background: 'transparent' } },
       card: { root: { shadow: 'none' } },
+      tag: { root: { fontSize: '0.9375rem' } },
       datatable: {
         root: { background: 'transparent' },
         header: {
@@ -213,7 +218,10 @@ describe('Design system manifest', () => {
           background: 'transparent', hoverBackground: 'transparent',
           selectedBackground: 'transparent', borderColor: 'transparent'
         },
-        bodyCell: { background: 'transparent', borderColor: 'transparent' },
+        bodyCell: {
+          background: 'transparent', borderColor: 'transparent',
+          sm: { padding: '0.5rem 0.75rem' }
+        },
         body: { background: 'transparent' },
         row: { background: 'var(--p-content-background)' },
         footer: { background: 'transparent', borderColor: 'transparent' },
@@ -251,7 +259,7 @@ describe('Design system manifest', () => {
       tabs: { tablist: { background: 'transparent' }, tabpanel: { background: 'transparent' } },
       tree: { root: { background: 'transparent' } }
     });
-    expect(Object.keys(primeSemanticTokens)).toEqual(['primary', 'accent', 'colorScheme']);
+    expect(Object.keys(primeSemanticTokens)).toEqual(['primary', 'accent', 'formField', 'colorScheme']);
     expect(Object.keys(primeSemanticTokens.colorScheme)).toEqual(['light', 'dark']);
     expect(primeSemanticTokens.colorScheme.light.surface[100]).toBe('{zinc.100}');
     expect(primeSemanticTokens.colorScheme.dark.surface[950]).toBe('{zinc.950}');
@@ -297,6 +305,22 @@ describe('Design system manifest', () => {
     expect(designTokens.typography.serif).toContain('IBM Plex Serif');
     expect(cssVariableTokens['--ck-font-serif']).toBe(designTokens.typography.serif);
     expect(tailwindThemeExtension.fontFamily.serif).toBe('var(--ck-font-serif)');
+    // The type-and-ink ladder (SPEC §4, owner direction 2026-10-27): the
+    // small tier — labels, tags, small controls, technical data — renders
+    // at 15px; body values render in full ink one step darker than
+    // Aura's surface.700 default; muted stays surface.500 and serves
+    // labels, supporting text, and placeholders alone.
+    expect(designTokens.typography.roles.label.fontSize).toBe('0.9375rem');
+    expect(designTokens.typography.roles.technical.fontSize).toBe('0.9375rem');
+    expect(primeSemanticTokens.colorScheme.light.text).toEqual({ color: '{surface.800}', hoverColor: '{surface.900}' });
+    expect(primeSemanticTokens.formField).toEqual({ sm: { fontSize: '0.9375rem' } });
+    expect(cssVariableTokens['--ck-primary-ink']).toBe('#27272a');
+    // Fact rows: small muted label beside the larger ink value; popups and
+    // dialogs render the page rhythm (compact belongs to panes alone).
+    expect(LAYOUT.labelCell).toBe('shrink-0 text-label text-muted');
+    expect(HOST_PROFILES.popup.density).toBe(1);
+    expect(HOST_PROFILES.dialog.density).toBe(1);
+    expect(HOST_PROFILES.pane.density).toBe(0.75);
     expect(Object.keys(designTokens.typography.roles)).toEqual([
       'page-title',
       'section-heading',

@@ -104,9 +104,9 @@ peer-column engagement). Budgets consume the provided record: a `narrow`
 or `medium` host sheds table columns and card facts through the compact
 budgets — a surface sized for its host, every host.
 
-Density derives from the host record: bounded hosts (pane, dialog,
-popup) and narrow boxes ride the compact rhythm, page hosts the neutral
-one. A screen whose composed weight passes the density budget tightens
+Density derives from the host record: data-dense panes ride the
+compact rhythm; pages, dialogs, and popups ride the neutral page rhythm.
+A screen whose composed weight passes the density budget tightens
 one step, floored at the tightest — the rhythm is data-aware. An
 explicit host coefficient (the design-lab slider) overrides the
 derivation.

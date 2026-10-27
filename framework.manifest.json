@@ -268,7 +268,7 @@
         "--ck-primary-800": "#27272a",
         "--ck-primary-900": "#18181b",
         "--ck-primary-950": "#09090b",
-        "--ck-primary-ink": "#3f3f46",
+        "--ck-primary-ink": "#27272a",
         "--ck-process-canvas-background": "var(--p-surface-50)",
         "--ck-scrollbar-thumb": "color-mix(in srgb, var(--p-text-color) 32%, transparent)",
         "--ck-scrollbar-thumb-hover": "color-mix(in srgb, var(--p-text-color) 55%, transparent)",
@@ -429,10 +429,10 @@
             },
             "label": {
               "fontFamily": "ui",
-              "fontSize": "0.875rem",
+              "fontSize": "0.9375rem",
               "fontWeight": "600",
               "letterSpacing": "0.02em",
-              "lineHeight": "1.25rem"
+              "lineHeight": "1.375rem"
             },
             "metric": {
               "fontFamily": "ui",
@@ -467,9 +467,9 @@
             },
             "technical": {
               "fontFamily": "mono",
-              "fontSize": "0.875rem",
+              "fontSize": "0.9375rem",
               "fontWeight": "400",
-              "lineHeight": "1.25rem"
+              "lineHeight": "1.375rem"
             }
           },
           "serif": "'IBM Plex Serif', serif",

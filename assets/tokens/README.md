@@ -26,7 +26,11 @@ Parent: [assets](../README.md).
   type contract: page title, section heading, body, label, supporting, metric,
   technical, and prose. The roles select IBM Plex Sans, Mono, or Serif and own
   their full treatment; Tailwind generates one `text-*` alias per role directly
-  from this object.
+  from this object. The ladder: the label and technical roles ride the 15px
+  small tier with PrimeVue's small controls and tags (`formField.sm`,
+  `tag.root`), body values render 16px in the light scheme's ink text color
+  (`surface.800`), and muted stays `surface.500` for labels, supporting text,
+  and placeholders — never data values (SPEC §4, owner direction 2026-10-27).
   Aura owns generic control and container typography,
   spacing, borders, radii, shadows, and interaction states.
 - `index.js` also exports `primeFormFluidPT`, the global passthrough that

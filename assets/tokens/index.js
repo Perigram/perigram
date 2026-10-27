@@ -100,10 +100,10 @@ export const designTokens = {
             'page-title': { fontFamily: 'ui', fontSize: 'clamp(1.75rem, 1.5rem + 1vw, 2.25rem)', lineHeight: '1.15', fontWeight: '700' },
             'section-heading': { fontFamily: 'ui', fontSize: '1.25rem', lineHeight: '1.5rem', fontWeight: '700' },
             body: { fontFamily: 'ui', fontSize: '1rem', lineHeight: '1.5rem', fontWeight: '400' },
-            label: { fontFamily: 'ui', fontSize: '0.875rem', lineHeight: '1.25rem', fontWeight: '600', letterSpacing: '0.02em' },
+            label: { fontFamily: 'ui', fontSize: '0.9375rem', lineHeight: '1.375rem', fontWeight: '600', letterSpacing: '0.02em' },
             supporting: { fontFamily: 'ui', fontSize: '0.75rem', lineHeight: '1rem', fontWeight: '400' },
             metric: { fontFamily: 'ui', fontSize: '1.75rem', lineHeight: '2rem', fontWeight: '700', fontVariantNumeric: 'tabular-nums' },
-            technical: { fontFamily: 'mono', fontSize: '0.875rem', lineHeight: '1.25rem', fontWeight: '400' },
+            technical: { fontFamily: 'mono', fontSize: '0.9375rem', lineHeight: '1.375rem', fontWeight: '400' },
             prose: { fontFamily: 'serif', fontSize: '1rem', lineHeight: '1.625', fontWeight: '400' },
             // The document editing voice: serif like prose, one step larger
             // so authored content reads at a comfortable document size.
@@ -167,7 +167,7 @@ export const cssVariableTokens = {
     // step strengthens the same mix.
     '--ck-scrollbar-thumb': 'color-mix(in srgb, var(--p-text-color) 32%, transparent)',
     '--ck-scrollbar-thumb-hover': 'color-mix(in srgb, var(--p-text-color) 55%, transparent)',
-    '--ck-primary-ink': '#3f3f46',
+    '--ck-primary-ink': '#27272a',
     '--ck-accent-ink': '#be0033',
     '--ck-font-ui': designTokens.typography.ui,
     '--ck-font-mono': designTokens.typography.mono,
@@ -402,9 +402,14 @@ const zincSurface = {
 export const primeSemanticTokens = {
     primary: zincPrimary,
     accent: perigramAccent,
+    formField: { sm: { fontSize: '0.9375rem' } },
     colorScheme: {
         light: {
             surface: zincSurface,
+            // The ink ladder: body values render one step darker than
+            // Aura's surface.700 default so ink outranks every muted
+            // surface; muted stays surface.500.
+            text: { color: '{surface.800}', hoverColor: '{surface.900}' },
             primary: {
                 color: '{surface.900}',
                 hoverColor: '{surface.800}',
@@ -492,6 +497,11 @@ export const primeComponentTokens = {
             shadow: 'none'
         }
     },
+    tag: {
+        root: {
+            fontSize: '0.9375rem'
+        }
+    },
     datatable: {
         root: {
             background: 'transparent'
@@ -515,8 +525,10 @@ export const primeComponentTokens = {
             background: 'transparent',
             // Notion-style rows: internal cell dividers stay structurally
             // present (1px) but transparent — a row surface reads as one
-            // whole card, never as bordered strips.
-            borderColor: 'transparent'
+            // whole card, never as bordered strips. The small table rides
+            // the 15px tier, so its rows keep breathing room at 0.5rem.
+            borderColor: 'transparent',
+            sm: { padding: '0.5rem 0.75rem' }
         },
         body: {
             background: 'transparent'
