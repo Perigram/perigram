@@ -331,12 +331,14 @@ const submitDialog = () => {
   if (action) runAction(action, payload);
 };
 
-// Lineage pickers model `{ type, id }`; the construction path wants the
-// bare instance id. Quantity controls model the SPEC §2 `{ value, unit }`
+// Lineage and entity pickers model `{ type, id }`; the construction path
+// wants the bare instance id, and a picker list carries one ref per entry.
+// Quantity controls model the SPEC §2 `{ value, unit }`
 // shape; the run parameter channel wants the scalar. File references
 // (`{ fileId, ... }`) already are the payload the construct path validates.
 const scalarDraftValue = value => {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || value.fileId) return value;
+  if (Array.isArray(value)) return value.map(scalarDraftValue);
+  if (!value || typeof value !== 'object' || value.fileId) return value;
   if (value.id !== undefined) return value.id;
   if (value.unit !== undefined && value.value !== undefined) return value.value;
   return value;

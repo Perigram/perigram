@@ -148,14 +148,17 @@ instance pickers over the parent types whose children edges declare that
 lineage key for the target type (reverse containment over the bundle —
 parents' edges are the declaration home, the child carries no parent list;
 an edge matches by its declared `lineageKey`, the entry's map key is
-authoring identity). Rows carry the compiled input's `required` flag, and
+authoring identity). Construct operator reference inputs render as
+instance pickers over the operator's `accepts` — an `entity` single, a
+`typeList` list. Rows carry the compiled input's `required` flag, and
 the type's `identifier` row is required unconditionally (the naming law:
 its value is the record's title — the row derives even when the
 construction contract omits it, and the dialog's submit stays disabled
 while a required row is empty). Quantity rows draft the SPEC §2
 `{ value, unit }` shape their control models (a unit-carrying default
 prefills in that shape), and the dialog's payload scalarizes drafts at the
-boundary: instance refs by `id`, quantities by `value`. Inputs resolving to
+boundary: instance refs by `id` (picker lists entrywise), quantities by
+`value`. Inputs resolving to
 nothing stay hidden, so typed constructor inputs keep their editor
 surfaces. Construction-input labels are authored vocabulary resolved at the
 domain projection (parent type name, start-cased row name).
