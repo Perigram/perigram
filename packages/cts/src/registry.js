@@ -13,7 +13,7 @@ import { checkBooleanExpression } from './expressions.js';
 // a bare MIME string and a `byteLimit` key (legacy persisted org docs
 // and pack fixtures) normalize at this boundary. This is the whole of
 // today's attachment-kind authoring, as data on the type.
-const CREATION_PROTOCOLS = Object.freeze(['upload', 'capture', 'editor', 'content']);
+export const CREATION_PROTOCOLS = Object.freeze(['upload', 'capture', 'editor', 'content']);
 
 // Compact-snapshot preview paths (SPEC §4): dot paths into the wire DTO
 // a compact snapshot keeps. Bounded by design — a snapshot is a preview,

@@ -197,7 +197,8 @@ function definition(kind, label, family, level, pure, ports = { inputs: [], outp
 // persistent Type binding pin: constructs, and the reads that start from
 // nothing but a declared type (current, all). The
 // entity-derived reads (parent, children, related), the effect consumers
-// (mutate, transition, remove), and the field projection are consumers:
+// (mutate, transition, remove), the field projection, and the instance
+// elimination (decompose) are consumers:
 // no pin, entity input only, binding adapts to the entity stream's type.
 // `carriesTypePin(record)` is the per-record seam — kind plus read
 // select — every binding consumer routes through.
@@ -211,7 +212,7 @@ export function carriesTypePin(record = {}) {
   return false;
 }
 
-export const TYPE_BOUND_SPECIES = Object.freeze(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.read', 'cts.field']);
+export const TYPE_BOUND_SPECIES = Object.freeze(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.read', 'cts.field', 'cts.decompose']);
 
 
 function declarationTypePin(record = {}) {

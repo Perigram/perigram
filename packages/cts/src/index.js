@@ -28,7 +28,7 @@ export {
   diffTypes, requireCompatible, normalizeMigrateSteps, planTypeMigration
 } from './diff.js';
 export {
-  normalizeType, createTypeRegistry, validateInstance, schemaFor
+  normalizeType, createTypeRegistry, validateInstance, schemaFor, CREATION_PROTOCOLS
 } from './registry.js';
 export {
   renderPolicyFor, compileClientBundle

@@ -15,8 +15,8 @@ import { interpretDeclarationEdges } from '~/packages/processes/src/designer.js'
 //   dependent surface (tree overlay, registry, ports, palette options).
 // - `resolveEntityBinding(recordId)` supplies the entity-input source type
 //   of one record from the designer's port resolution, so plugging an
-//   entity stream into an unbound consumer species (mutate/transition/
-//   remove — they carry no Type pin) adapts it to that type live.
+//   entity stream into an unbound consumer species (no Type pin) adapts
+//   it to that type live.
 // - `knownTypeIds` (array or getter) names every type the binding may
 //   resolve to: the registry view. A binding to none of them is dangling
 //   (its class left the tree in an earlier session) and is cleared.

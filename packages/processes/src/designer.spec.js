@@ -544,6 +544,20 @@ describe('tree declaration compilation', () => {
     expect(declarations[0].edges).toEqual({ children: { parts: { types: ['assembly'], onRemove: 'restrict' } } });
   });
 
+  it('a file class carries its authored payload traits into the posted declaration', () => {
+    const blueprint = classNode('blueprint', {
+      class: 'file',
+      payload: { mime: ['image/*', 'application/pdf'], maxSize: 5 * 1024 * 1024, creation: ['upload', 'capture'] }
+    });
+    const { declarations, diagnostics } = compileTreeDeclarations([blueprint], []);
+    expect(diagnostics).toEqual([]);
+    expect(declarations[0].payload).toEqual({
+      mime: ['image/*', 'application/pdf'],
+      maxSize: 5 * 1024 * 1024,
+      creation: ['upload', 'capture']
+    });
+  });
+
   it('authored field names are labels; the row id derives, not validates', () => {
     const widget = classNode('widget');
     const nodes = [widget,
@@ -982,5 +996,28 @@ describe('live declaration wire interpretation', () => {
     // a stored preset survives when no channel ever supplied a binding
     const preset = interpretDeclarationEdges(nodes, [], { mut: { id: 'mut', kind: 'cts.mutate', typeId: 'sheet' } }, {}, resolvers);
     expect(preset.mutations.filter(mutation => mutation.scope === 'record')).toEqual([]);
+  });
+
+  it('adapts the instance elimination form to its entity input like every consumer species', () => {
+    const nodes = [
+      { id: 'src', type: 'processNode', data: { refId: 'src' } },
+      { id: 'dec', type: 'processNode', data: { refId: 'dec' } }
+    ];
+    const edges = [
+      { id: 'flow', source: 'src', target: 'dec', sourceHandle: 'data:result', targetHandle: 'data:entity' }
+    ];
+    const records = {
+      src: { id: 'src', kind: 'cts.construct', typeId: 'panel' },
+      dec: { id: 'dec', kind: 'cts.decompose', typeId: '' }
+    };
+    const pass = interpretDeclarationEdges(nodes, edges, records, {}, {
+      entityInputType: recordId => (recordId === 'dec' ? 'panel' : '')
+    });
+    apply({ nodes, records }, pass.mutations);
+    expect(records.dec.typeId).toBe('panel');
+
+    const unplugged = interpretDeclarationEdges(nodes, [], records, pass.bindings, { entityInputType: () => '' });
+    apply({ nodes, records }, unplugged.mutations);
+    expect(records.dec.typeId).toBe('');
   });
 });

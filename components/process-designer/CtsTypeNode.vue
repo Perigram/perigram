@@ -7,8 +7,7 @@
       <strong class="min-w-0 flex-1 truncate text-label">{{ type?.label || typeId }}</strong>
       <Tag :value="type?.class || ''" severity="secondary" />
     </div>
-    <DesignerSocketHandle :socket="inputSpec" side="left" handle-id="input:declare" />
-    <DesignerSocketHandle :socket="outputSpec" side="right" handle-id="output:type" />
+    <DesignerSocketHandle v-if="hasOutput" :socket="outputSpec" side="right" handle-id="output:type" />
   </DesignerNodeCard>
 </template>
 
@@ -16,6 +15,8 @@
 // Type reference anchor (SPEC §20/§4): a canvas node for one registry type.
 // It owns no records — its wires carry type bindings into species records
 // (role: 'type' edges are gestures, the binding lands in the record's type).
+// A source-only leaf: the port contract carries no inputs, and the output
+// handle renders only while the referenced type resolves in the view.
 import { computed } from 'vue';
 import Tag from 'primevue/tag';
 import DesignerNodeCard from '~/components/shared/DesignerNodeCard.vue';
@@ -28,6 +29,6 @@ const props = defineProps({
 
 const typeId = computed(() => props.data?.typeId || '');
 const type = computed(() => props.data?.type || null);
-const inputSpec = computed(() => props.data?.inputSpecs?.[0] || {});
+const hasOutput = computed(() => (props.data?.outputSpecs?.length || 0) > 0);
 const outputSpec = computed(() => props.data?.outputSpecs?.[0] || {});
 </script>

@@ -46,9 +46,52 @@
             :options="classOptions"
             option-label="label"
             option-value="value"
-            @update:model-value="value => { node.data.class = value; }"
+            @update:model-value="setClass"
           />
         </div>
+        <template v-if="node.data.class === 'file'">
+          <div class="flex flex-col gap-1">
+            <label>{{ $t('processDesigner.payloadMime') }}</label>
+            <InputText
+              :model-value="payloadMime"
+              :placeholder="$t('processDesigner.payloadMimePlaceholder')"
+              @update:model-value="value => writePayload({ mime: String(value || '').split(',').map(entry => entry.trim()).filter(Boolean) })"
+            />
+          </div>
+          <div v-if="hasPayload" class="flex flex-col gap-2">
+            <div class="flex flex-col gap-1">
+              <label>{{ $t('processDesigner.payloadSize') }}</label>
+              <InputNumber
+                :model-value="payloadSizeMb"
+                :min="0"
+                show-buttons
+                button-layout="horizontal"
+                @update:model-value="value => writePayload({ maxSize: Number(value) > 0 ? Math.round(Number(value) * 1024 * 1024) : undefined })"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label>{{ $t('processDesigner.payloadPreview') }}</label>
+              <Select
+                :model-value="node.data.payload?.preview || ''"
+                :options="previewOptions"
+                option-label="label"
+                option-value="value"
+                @update:model-value="value => writePayload({ preview: value || undefined })"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label>{{ $t('processDesigner.payloadCreation') }}</label>
+              <MultiSelect
+                :model-value="node.data.payload?.creation || []"
+                :options="creationOptions"
+                option-label="label"
+                option-value="value"
+                class="w-full"
+                @update:model-value="value => writePayload({ creation: value })"
+              />
+            </div>
+          </div>
+        </template>
         <div v-if="identifierFieldOptions.length" class="flex flex-col gap-1">
           <label>{{ $t('processDesigner.namesRecord') }}</label>
           <Select
@@ -131,24 +174,29 @@
 </template>
 
 <script setup>
-// The declaration inspector: class (name + glyph + class preset + the
-// identifier dropdown over the class's field nodes + declaration
-// diagnostics), field (name + descriptor via the shared type-designer
-// editor), state (name, severity, icon — a first-class canvas node wired
-// into a Create node for the entry or into a status-mutating effect for
-// the transition target), and type reference selection. The identifier
-// dropdown emits `update-identifier-field` (the page's single-holder
-// move across the sibling field nodes). Mutations write the canvas
-// node's declaration data and emit `sync`; the live-graph pass
-// re-derives records, ports, and the tree overlay from it.
+// The declaration inspector: class (name + glyph + class preset + payload
+// traits for file types + the identifier dropdown over the class's field
+// nodes + declaration diagnostics), field (name + descriptor via the
+// shared type-designer editor), state (name, severity, icon — a
+// first-class canvas node wired into a Create node for the entry or into
+// a status-mutating effect for the transition target), and type reference
+// selection. The identifier dropdown emits `update-identifier-field` (the
+// page's single-holder move across the sibling field nodes). Mutations
+// write the canvas node's declaration data and emit `sync`; the
+// live-graph pass re-derives records, ports, and the tree overlay
+// from it.
+import { computed } from 'vue';
 import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
+import MultiSelect from 'primevue/multiselect';
 import Message from 'primevue/message';
 import Select from '~/components/shared/InstanceSelect.vue';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
-import { DECLARABLE_CLASSES } from '~/packages/cts/src/index.js';
+import { DECLARABLE_CLASSES, CREATION_PROTOCOLS } from '~/packages/cts/src/index.js';
+import { RENDERABLE_PREVIEW_MODES, VISUAL_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
 import { iconFontGlyphs } from '#shared/icon-fonts.js';
 
-defineProps({
+const props = defineProps({
   node: { type: Object, required: true },
   typeIdValid: { type: Boolean, default: true },
   diagnostics: { type: Array, default: () => [] },
@@ -160,11 +208,55 @@ defineProps({
   identifierFieldValue: { type: String, default: '' }
 });
 
-defineEmits(['sync', 'update-name', 'update-identifier-field']);
+const emit = defineEmits(['sync', 'update-name', 'update-identifier-field']);
 
 const classOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
 
 const severityOptions = ['info', 'success', 'warn', 'danger', 'secondary'].map(value => ({ label: value, value }));
+
+const creationOptions = CREATION_PROTOCOLS.map(value => ({ label: value, value }));
+
+// Preview picks: the unset default renders as download (the projection's
+// fallback), the rest are the app's renderable and visual preview modes.
+const previewOptions = [
+  { label: 'download', value: '' },
+  ...[...new Set([...RENDERABLE_PREVIEW_MODES, ...VISUAL_PREVIEW_MODES, 'attachment', 'none'])]
+    .map(value => ({ label: value, value }))
+];
+
+const hasPayload = computed(() => Boolean(props.node.data?.payload?.mime?.length));
+const payloadMime = computed(() => (props.node.data?.payload?.mime || []).join(', '));
+const payloadSizeMb = computed(() => {
+  const bytes = Number(props.node.data?.payload?.maxSize);
+  return Number.isFinite(bytes) && bytes > 0 ? bytes / (1024 * 1024) : null;
+});
+
+// The payload facet (SPEC §4): an empty accepted-MIME list leaves the type
+// payload-less (fields alone satisfy the file class), any authored MIME
+// carries the trait set through compileTreeDeclarations to the registry.
+function writePayload(patch) {
+  const current = props.node.data?.payload || {};
+  const next = { ...current, ...patch };
+  const mime = (next.mime || []).map(entry => String(entry).trim()).filter(Boolean);
+  if (!mime.length) {
+    props.node.data.payload = null;
+  } else {
+    const maxSize = Number(next.maxSize);
+    props.node.data.payload = {
+      mime,
+      ...(Number.isFinite(maxSize) && maxSize > 0 ? { maxSize: Math.round(maxSize) } : {}),
+      ...(next.preview ? { preview: String(next.preview) } : {}),
+      creation: (next.creation || []).length ? [...new Set(next.creation.map(String))] : ['upload']
+    };
+  }
+  emit('sync');
+}
+
+function setClass(value) {
+  props.node.data.class = value;
+  if (value !== 'file') props.node.data.payload = null;
+  emit('sync');
+}
 
 // A curated PrimeIcon set (the class defaults plus common entity shapes)
 // followed by the built icon-font palette (every ck-* glyph the font

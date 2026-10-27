@@ -11,7 +11,7 @@
       <Tag :value="classOf" severity="secondary" />
     </div>
     <DesignerSocketHandle :socket="inputSpec" side="left" handle-id="input:declare" />
-    <DesignerSocketHandle :socket="outputSpec" side="right" handle-id="output:type" />
+    <DesignerSocketHandle v-if="hasOutput" :socket="outputSpec" side="right" handle-id="output:type" />
   </DesignerNodeCard>
 </template>
 
@@ -44,6 +44,7 @@ const metaTooltip = computed(() => ({
   ].filter(Boolean).join(' · ') || label.value
 }));
 const inputSpec = computed(() => props.data.inputSpecs?.[0] || {});
+const hasOutput = computed(() => (props.data.outputSpecs?.length || 0) > 0);
 const outputSpec = computed(() => props.data.outputSpecs?.[0] || {});
 const classIcon = computed(() => ({
   file: 'pi pi-file',
