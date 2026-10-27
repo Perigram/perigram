@@ -1164,10 +1164,13 @@ async function executeDataflowActionRun({ process, actionId, instanceId, data, p
         : {})
     });
   }
-  // A settled run may carry mutation failures (the shape-preserving
-  // report): the action refuses with the first failure's body — a
-  // structured refusal keeps its named offenders (SPEC §24).
-  const mutationFailures = Array.isArray(run.result?.failures) ? run.result.failures : [];
+  const effectStep = [...(run.steps || [])].reverse()
+    .find(step => step.kind?.startsWith('cts.'));
+  const outcome = effectStep?.output ?? run.result;
+  // A settled run may carry mutation failures on the effect's report:
+  // the action refuses with the first failure's body — a structured
+  // refusal keeps its named offenders (SPEC §24).
+  const mutationFailures = Array.isArray(outcome?.failures) ? outcome.failures : [];
   if (mutationFailures.length) {
     const first = mutationFailures[0]?.error || {};
     throw createError({
@@ -1178,9 +1181,7 @@ async function executeDataflowActionRun({ process, actionId, instanceId, data, p
         : {})
     });
   }
-  const effectStep = [...(run.steps || [])].reverse()
-    .find(step => step.kind?.startsWith('cts.'));
-  return effectStep?.output ?? run.result;
+  return outcome;
 }
 
 export async function resolveProcessGraphEntity(typeId, candidate, { instanceId = null, entities = {}, auth = {} } = {}) {
