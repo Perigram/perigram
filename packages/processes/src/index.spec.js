@@ -391,6 +391,53 @@ describe('@perigram/processes compiler', () => {
     expect(compiled.actions.create_facade.construction.inputs.map(input => input.id)).toEqual(['name']);
   });
 
+  it('drops a stale lineage axis on a block-composed create', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      producerOutputs: producerOutputRecords([['create_run', 'nesting_run', {}, 'result']]),
+      processNodes: {
+        create_run: {
+          id: 'create_run',
+          kind: 'cts.construct',
+          typeId: 'nesting_run',
+          producerOutputId: 'create_run:result',
+          trigger: { mode: 'manual' },
+          construction: {
+            mode: 'genericCreate',
+            blockComposed: true,
+            inputs: [
+              { id: 'lineage.queueId', path: 'lineage.queueId', type: 'entity', typeId: 'queue', prompt: true },
+              { id: 'lineage.projectId', path: 'lineage.projectId', type: 'entity', typeId: 'project', prompt: true },
+              { id: 'name', path: 'name', type: 'string', required: true, prompt: true }
+            ]
+          },
+          state: { to: SOURCE_STATE }
+        }
+      },
+      graph: {
+        nodes: [{ id: 'create_run', type: 'processNode', data: { refId: 'create_run' } }],
+        edges: []
+      }
+    }, {
+      ...domain,
+      construction: {
+        ...domain.construction,
+        nesting_run: {
+          modes: ['genericCreate'],
+          defaultMode: 'genericCreate',
+          inputs: [
+            { id: 'lineage.queueId', path: 'lineage.queueId', type: 'entity', typeId: 'queue', required: false, prompt: true }
+          ]
+        }
+      }
+    });
+    // Lineage axes address the contract's lineage set — the immediate
+    // parent — on a block-composed construct too; the ancestor axis is a
+    // stale stamp and dies, the composed block entries stay.
+    expect(compiled.actions.create_run.construction.inputs.map(input => input.id))
+      .toEqual(['lineage.queueId', 'name']);
+  });
+
   it('drops a wired construction input from the prompted create form', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
