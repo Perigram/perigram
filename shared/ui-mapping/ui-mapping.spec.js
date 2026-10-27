@@ -1287,6 +1287,24 @@ describe('create dialog input resolution', () => {
     });
   });
 
+  it('keeps the lineage binding on entity-typed policy fields (the served compiled shape)', () => {
+    // The compiler types lineage inputs `entity` on the served policy:
+    // the containment binding must survive, or the launch context can
+    // seed and hide the row inside the parent's surface.
+    const rows = resolveCreateDialogInputs(
+      {
+        construction: { inputs: ['lineage.tPart1Id'] },
+        inputPolicy: {
+          fields: [{ id: 'lineage.tPart1Id', path: 'lineage.tPart1Id', type: 'entity', typeId: 't-bin-1', required: false, prompt: true }]
+        }
+      },
+      type,
+      bundle
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: 'lineage.tPart1Id', lineage: { key: 'tPart1Id', accepts: ['t-bin-1'] } });
+  });
+
   it('prompts a string protocol input as a full-width row carrying its control pin', () => {
     // The `content` creation protocol's text body: not a row field, so it
     // resolves through the input object itself, control pin riding the

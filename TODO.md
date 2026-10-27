@@ -1880,3 +1880,22 @@ the chips-in-card presentation dies with it. The identifier component
 centralizes what nine projections hand-rolled.
 
 Status: WAITING owner verification.
+
+### Agent Notes (2026-10-27, agent/lineage-row-20261027)
+
+The persisting dialog symptom lived client-side: the served policy types
+lineage inputs `entity`, and `resolveCreateDialogInputs` ran its
+operator-reference branch before the lineage branch — the row rendered
+as a plain ref picker with the `lineage` binding stripped, so the launch
+context could seed and hide nothing and the parent prompted by hand
+inside the parent's own surface. The lineage branch now owns `lineage.*`
+ids first; the served-shape policy pin (entity-typed lineage field)
+joins the suite, closing the fixture gap that let this survive (specs
+fed bare construction strings, the served shape arrived typed).
+Verified against the live org's served manifest + bundle: inside the
+queue detail, `mkAttempt` prompts `fields.label` alone and the xlsx
+upload prompts its file alone. shared suites green (4 known fact-display
+failures pre-exist), SSR smoke 16, check-arch green; app container
+restarted to serve the module.
+
+Status: WAITING owner verification.

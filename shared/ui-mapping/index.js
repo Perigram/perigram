@@ -1231,6 +1231,25 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
       });
       continue;
     }
+    // A lineage input is a containment-declared parent picker: the row
+    // carries its binding (key, accepted parent types) so the launch
+    // context seeds and hides it inside the parent's surface. Compiled
+    // policies type lineage inputs `entity` — this branch owns them
+    // before the operator-reference branch.
+    if (id.startsWith('lineage.')) {
+      const key = id.slice('lineage.'.length);
+      const accepts = parentTypesForChildrenKey(bundle, type?.id, key);
+      if (accepts.length) {
+        const parentLabel = (bundle?.types || []).find(candidate => candidate.id === accepts[0])?.name;
+        rows.push({
+          id,
+          label: parentLabel || fieldLabel(key.replace(/Id$/, '')),
+          lineage: { key, accepts },
+          span: 'half'
+        });
+        continue;
+      }
+    }
     // A string protocol input (the `content` creation protocol's text
     // body): a scalar prompt row, its control pin riding the descriptor —
     // whether the construction input arrives as the full object or as
@@ -1262,19 +1281,6 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
         required: policy.required === true
       });
       continue;
-    }
-    if (id.startsWith('lineage.')) {
-      const key = id.slice('lineage.'.length);
-      const accepts = parentTypesForChildrenKey(bundle, type?.id, key);
-      if (accepts.length) {
-        const parentLabel = (bundle?.types || []).find(candidate => candidate.id === accepts[0])?.name;
-        rows.push({
-          id,
-          label: parentLabel || fieldLabel(key.replace(/Id$/, '')),
-          lineage: { key, accepts },
-          span: 'half'
-        });
-      }
     }
   }
   return Object.freeze(rows.map(row => Object.freeze(row)));
