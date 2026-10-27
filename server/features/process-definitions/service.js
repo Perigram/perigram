@@ -1164,6 +1164,20 @@ async function executeDataflowActionRun({ process, actionId, instanceId, data, p
         : {})
     });
   }
+  // A settled run may carry mutation failures (the shape-preserving
+  // report): the action refuses with the first failure's body — a
+  // structured refusal keeps its named offenders (SPEC §24).
+  const mutationFailures = Array.isArray(run.result?.failures) ? run.result.failures : [];
+  if (mutationFailures.length) {
+    const first = mutationFailures[0]?.error || {};
+    throw createError({
+      statusCode: first.statusCode || 400,
+      message: first.message || `Action ${actionId} failed`,
+      ...(Array.isArray(first.failures) && first.failures.length
+        ? { data: { failures: first.failures } }
+        : {})
+    });
+  }
   const effectStep = [...(run.steps || [])].reverse()
     .find(step => step.kind?.startsWith('cts.'));
   return effectStep?.output ?? run.result;

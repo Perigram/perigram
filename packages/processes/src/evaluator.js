@@ -335,7 +335,8 @@ function serializeMutationError(error) {
     name: error?.name || 'Error',
     message: error?.message || String(error),
     ...(error?.code ? { code: error.code } : {}),
-    ...(error?.statusCode ? { statusCode: error.statusCode } : {})
+    ...(error?.statusCode ? { statusCode: error.statusCode } : {}),
+    ...(Array.isArray(error?.data?.failures) && error.data.failures.length ? { failures: error.data.failures } : {})
   };
 }
 
