@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { inferProcessDataflowContracts, portSpecsCompatible, resolveNodePort, resolveProcessNodePorts, validateProcessEdges } from './ports.js';
+import { processSocketsCompatible } from './types.js';
 
 describe('process programming node ports', () => {
   it('gives every string operation its actual input arity and scalar types', () => {
@@ -49,6 +50,19 @@ describe('process programming node ports', () => {
   it('rejects wiring unlike scalar types while allowing typed values into generic data inputs', () => {
     expect(portSpecsCompatible({ kind: 'string' }, { kind: 'number' }).ok).toBe(false);
     expect(portSpecsCompatible({ kind: 'string' }, { kind: 'data' }).ok).toBe(true);
+  });
+
+  it('honors the wire law: the validator accepts what the canvas gate accepts', () => {
+    const socket = (id, type) => ({ id, label: id, type, role: 'data' });
+    for (const [name, source, target] of [
+      ['dateTime -> string (temporalToString)', socket('value', { base: 'dateTime' }), socket('left', { base: 'string' })],
+      ['integer -> number (integerToNumber)', socket('value', { base: 'integer' }), socket('left', { base: 'number' })]
+    ]) {
+      expect(processSocketsCompatible(source, target).ok, name).toBe(true);
+      expect(portSpecsCompatible(source, target).ok, name).toBe(true);
+    }
+    // Refusals agree too, and the diagnostic names the types.
+    expect(portSpecsCompatible(socket('value', { base: 'dateTime' }), socket('left', { base: 'number' })).ok).toBe(false);
   });
 
   it('exposes a status definition as a typed status output', () => {
