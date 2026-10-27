@@ -96,6 +96,29 @@
           />
         </div>
       </div>
+      <!-- The cast authoring row: source base → target base over the
+           re-base vocabulary; the node asserts the value's shape. -->
+      <div v-if="opKind === 'value.cast'" class="flex items-center gap-1.5">
+        <Select
+          :model-value="record.sourceType?.base || 'json'"
+          :options="castBaseOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="value => update({ sourceType: { base: value } })"
+        />
+        <i class="pi pi-arrow-right text-muted" aria-hidden="true" />
+        <Select
+          :model-value="record.outputType?.base || 'record'"
+          :options="castBaseOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="value => update({ outputType: { base: value } })"
+        />
+      </div>
       <Textarea
         v-if="['source.literalList', 'source.literalTree'].includes(opKind)"
         :model-value="literalStructureDisplay"
@@ -160,6 +183,7 @@ import Select from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
 import { useI18n } from 'vue-i18n';
 import {
+  CAST_BASES,
   EFFECT_SPECIES_KINDS,
   MAPPED_MUTATION_SPECIES_KINDS, formatProcessType } from '~/packages/processes/src/index.js';
 import { socketSpecLine } from '~/composables/useNodeSpec.js';
@@ -223,12 +247,14 @@ const baseTypeOptions = computed(() => [
   'enum',
   'entityRef'
 ].map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value })));
+const castBaseOptions = CAST_BASES.map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value }));
 const literalStructureDisplay = computed(() => (
   typeof record.value.value === 'string' ? record.value.value : JSON.stringify(record.value.value, null, 2)
 ));
 const hasInlineConfiguration = computed(() => (
   showTypeEditor.value
   || operationOptions.value.length
+  || opKind.value === 'value.cast'
   || opKind.value.startsWith('source.literal')
 ));
 

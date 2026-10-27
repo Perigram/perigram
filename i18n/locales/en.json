@@ -2762,7 +2762,7 @@
             "literalList": "An authored list of typed values — one item per element of the composed data.",
             "aggregateList": "Reduces a numeric list to one value (sum, average, min, max).",
             "decomposeInstance": "Exposes every facet of the instance — fields, lineage, state — as outputs.",
-            "castValue": "Converts a value to another base type.",
+            "castValue": "Asserts the value already matches the target base type.",
             "convertUnit": "Converts a quantity from one unit to another (mm → m, …).",
             "coalesceValue": "Falls back to a replacement when the value is empty or missing.",
             "requireValue": "Fails the run when the value is missing or null.",
@@ -2777,6 +2777,8 @@
             "treeStats": "Branch/item counts and depth of a tree."
         },
         "dataTypes": {
+            "record": "Record",
+            "list": "List",
             "string": "Text",
             "number": "Number",
             "integer": "Whole number",

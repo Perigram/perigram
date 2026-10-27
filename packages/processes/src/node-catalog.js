@@ -214,6 +214,10 @@ export function carriesTypePin(record = {}) {
 
 export const TYPE_BOUND_SPECIES = Object.freeze(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.read', 'cts.field', 'cts.decompose']);
 
+// The re-base vocabulary `value.cast` accepts; the evaluator enforces
+// the same set with named errors.
+export const CAST_BASES = Object.freeze(['json', 'record', 'list', 'string', 'number', 'boolean']);
+
 
 function declarationTypePin(record = {}) {
   const typeId = typeIdOf(record);
