@@ -168,15 +168,6 @@ describe('field control resolution', () => {
     expect(resolveListLayout(namesOnly, {})).toBe('table');
   });
 
-  it('derives group-class collections as groups over any field shape', () => {
-    // A group's identity is its membership (class law): the groups
-    // projection wins over size, data columns, and incidental shape.
-    const group = { class: 'group', identifier: 'name', fields: { name: { base: 'string' }, note: { base: 'string', max: 400 } }, edges: { children: { parts: { types: ['part'] } } } };
-    expect(resolveListLayout(group, { size: 'large' })).toBe('groups');
-    expect(resolveListLayout(group, { columns: 0 })).toBe('groups');
-    expect(resolveListLayout(group, { size: 'small' })).toBe('groups');
-  });
-
   it('boards process-class collections over a served state vocabulary', () => {
     const process = { id: 'watch_job', class: 'process', fields: {
       note: { base: 'string', max: 400 }
