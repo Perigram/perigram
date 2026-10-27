@@ -33,7 +33,7 @@
                         <div
                             :data-message-id="messageItem._id"
                             class="relative flex min-w-0 max-w-support-chat-message touch-pan-y flex-col"
-                            :class="docksRight(messageItem) ? 'ml-auto' : ['mr-auto', 'ml-12']"
+                            :class="docksRight(messageItem) ? 'ml-auto' : ['mr-auto', threadIsWide ? 'ml-12' : '']"
                             @touchstart="onTouchStart($event, messageItem)"
                             @touchmove="onTouchMove($event, messageItem)"
                             @touchend="onTouchEnd(messageItem)"

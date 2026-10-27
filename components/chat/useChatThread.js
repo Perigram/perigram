@@ -2640,13 +2640,18 @@ watch(() => messagesContainer.value, (element) => {
 // AI-only rooms are two-party: every non-own message is the assistant's.
 const senderIdentityRoom = computed(() => ((['group', 'instance'].includes(activeConversation.value?.conversationKind)
     && !isAiOnlyRoom.value) || isAiOnlyRoom.value))
-const showSenderLabel = () => false
+// Narrow panes lead others' runs with the sender chip; the avatar-only
+// gutter mark closes the run in wide panes only (SPEC §7 Chat thread).
+const showSenderLabel = (messageItem) => senderIdentityRoom.value
+    && !threadIsWide.value
+    && Boolean(messageItem?.senderUserId)
+    && !docksRight(messageItem)
     && messageItem.firstOfSenderRun
 
 const showSenderAvatar = (messageItem) => senderIdentityRoom.value
+    && threadIsWide.value
     && Boolean(messageItem?.senderUserId)
     && !docksRight(messageItem)
-    && messageItem.lastOfSenderRun
     && messageItem.lastOfSenderRun
 
 const openConversation = async (conversation) => {

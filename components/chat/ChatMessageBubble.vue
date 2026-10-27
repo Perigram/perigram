@@ -20,16 +20,24 @@
                                 <div
                                     :class="['relative flex min-w-0 max-w-full flex-col gap-1', docksRight(messageItem) ? 'items-end' : 'items-start']"
                                 >
-                                <!-- Sender label: group threads lead others'
-                                     runs with the sender's avatar and name (the
-                                     shared user chip, which opens the entity
-                                     popup) — once per run, never for the
-                                     viewer's own messages. -->
+                                <!-- Wide panes close others' runs with the
+                                     avatar-only gutter mark (SPEC §7 Chat
+                                     thread). -->
                                 <UserChip
                                     v-if="showSenderAvatar(messageItem)"
                                     :user-id="messageSenderKey(messageItem)"
                                     avatar-only
                                     class="absolute -left-12 bottom-0"
+                                />
+                                <!-- Narrow panes lead others' runs with the
+                                     sender's avatar and name (the shared user
+                                     chip, which opens the entity popup) —
+                                     once per run, never for the viewer's own
+                                     messages. -->
+                                <UserChip
+                                    v-if="showSenderLabel(messageItem)"
+                                    :user-id="messageSenderKey(messageItem)"
+                                    class="max-w-full"
                                 />
                                 <!-- Reply quote: a quote block, not a control —
                                      plain element with quote styling; no PrimeVue
