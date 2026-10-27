@@ -254,6 +254,13 @@ gate (`resolveTypeFeature`: field-policy feature, else the class
 collection) and checks it through the shared evaluator with the entity
 and type id; the server stays fail-closed behind it.
 
+`ReplacePayloadAction` is the generic replace affordance (SPEC §24):
+every revision-scoped payload type's record header carries it beside the
+editor action — new bytes through `PUT /api/instances/:type/:id/payload`,
+the revisioned channel that bumps the record's revision in place. The
+same write-level grant gates it; the accept list narrows to the type's
+declared MIME set when it carries no wildcards.
+
 The `sketch-editor` surface is the tech-drawing pack's surface module
 (`workers/tech-drawing/surfaces/`) and the `text-editor`/`csv-editor`
 surfaces are the documents pack's (`workers/documents/surfaces/`); they

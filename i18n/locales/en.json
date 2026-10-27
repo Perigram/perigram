@@ -100,6 +100,7 @@
         "user": "User",
         "notAvailable": "N/A",
         "pinnedRevision": "Pinned revision",
+        "replaceFile": "Replace file",
         "noResults": "No results",
         "componentError": "Component Error",
         "tryAgain": "Try Again",
