@@ -1,11 +1,10 @@
 <template>
-  <Breadcrumb v-if="crumbs.length > 1" :model="crumbs" class="w-full">
+  <Breadcrumb v-if="ancestors.length" :model="ancestors" class="w-full">
     <template #item="{ item, props: breadcrumbProps }">
       <!-- Ancestors are navigation: each crumb opens its instance through
-           the screen's identity-open channel. The last crumb is the
-           opened record itself — plain text, never a self-link. -->
+           the screen's identity-open channel. The opened record's own
+           title is the header identity line below the trail. -->
       <Button
-        v-if="!item.current"
         v-bind="breadcrumbProps"
         link
         size="small"
@@ -14,7 +13,6 @@
       >
         {{ item.label }}
       </Button>
-      <span v-else class="text-supporting text-muted block max-w-44 truncate" :title="item.label">{{ item.label }}</span>
     </template>
   </Breadcrumb>
 </template>
@@ -37,22 +35,21 @@ defineEmits(['open']);
 const { t } = useI18n();
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
 
-const crumbs = computed(() => {
+const ancestors = computed(() => {
   const chain = [];
   let cursor = props.instance;
   const seen = new Set([cursor.id]);
-  while (cursor) {
-    chain.unshift({
-      label: titleFor(cursor, typesById.value[cursor.type], { unnamedLabel: t('common.unnamed') }),
-      instance: cursor
-    });
+  for (;;) {
     const parentRef = Object.values(cursor.lineage || {})[0];
     const parent = parentRef ? props.pool[parentRef.type]?.[parentRef.id] : null;
     if (!parent || seen.has(parent.id)) break;
     seen.add(parent.id);
+    chain.unshift({
+      label: titleFor(parent, typesById.value[parent.type], { unnamedLabel: t('common.unnamed') }),
+      instance: parent
+    });
     cursor = parent;
   }
-  if (chain.length) chain[chain.length - 1].current = true;
   return chain;
 });
 </script>
