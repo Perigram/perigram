@@ -334,7 +334,7 @@ describe('screen composition', () => {
 
   it('arranges relation child collections through the weight ladder', () => {
     const relatedWidgets = Array.from({ length: 6 }, (_, index) => ({
-      id: `rw${index}`, type: 'widget', fields: { name: `RW${index}` }, relations: {}, lineage: {}, state: 'draft'
+      id: `rw${index}`, type: 'widget', fields: { name: `RW${index}`, size: { value: index + 1, unit: 'mm' } }, relations: {}, lineage: {}, state: 'draft'
     }));
     const widgetPool = buildInstancePool({
       widgets: [

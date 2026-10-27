@@ -220,7 +220,7 @@ describe('Design system manifest', () => {
           background: 'transparent', hoverBackground: 'transparent',
           selectedBackground: 'transparent', borderColor: 'transparent'
         },
-        bodyCell: { background: 'transparent', borderColor: 'transparent' },
+        bodyCell: { background: 'transparent', borderColor: 'transparent', sm: { padding: '0.5rem 0.75rem' } },
         body: { background: 'transparent' },
         row: { background: 'var(--p-content-background)' },
         footer: { background: 'transparent', borderColor: 'transparent' },
@@ -320,10 +320,10 @@ describe('Design system manifest', () => {
     expect(HOST_PROFILES.popup.density).toBe(1);
     expect(HOST_PROFILES.dialog.density).toBe(1);
     expect(HOST_PROFILES.pane.density).toBe(0.75);
-    // Chips ride the preset (SPEC §22.8): the recipe classes carry the
-    // clamps alone — surface, radius, and typography are the Chip's own.
-    expect(FILE_CHIP_CLASS).toBe('min-w-0 max-w-full');
-    expect(INSTANCE_CHIP_CLASS).toBe('min-w-0 max-w-full');
+    // Chips ride the bordered recipe (SPEC §22.8): the classes carry the
+    // clamps, the border, and the supporting face.
+    expect(FILE_CHIP_CLASS).toBe('min-w-0 max-w-full border border-content-border bg-subtle text-supporting');
+    expect(INSTANCE_CHIP_CLASS).toBe('min-w-0 max-w-full border border-content-border bg-transparent text-supporting');
     expect(Object.keys(designTokens.typography.roles)).toEqual([
       'page-title',
       'section-heading',

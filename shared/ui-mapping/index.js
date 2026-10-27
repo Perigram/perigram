@@ -273,13 +273,15 @@ export function createUiMapping(overrides = {}) {
     });
   }
 
-  // resolveListLayout(typeRecord, { size, stateful }): shape-derived
-  // only — the authored list-layout override channel is gone (display
-  // derivation replaced it); the matcher table over `analyzeTypeShape`
-  // decides. `stateful` is the caller's derived signal that the region's
-  // served state vocabulary spans enough values to board
-  // (hasStateVocabulary); it composes with the process class and flat
-  // collections into the `boardable` candidate signal. A class's list
+  // resolveListLayout(typeRecord, { size, stateful, columns }): the
+  // authored list-layout override channel is gone (display derivation
+  // replaced it); the matcher table over `analyzeTypeShape` decides.
+  // `stateful` is the caller's derived signal that the region's served
+  // state vocabulary spans enough values to board (hasStateVocabulary);
+  // it composes with the process class and flat collections into the
+  // `boardable` candidate signal. `columns` is the caller's value-aware
+  // count of data columns a table would show beside identity and status
+  // (zero demotes the name pile to the list projection). A class's list
   // surface is always flat — containment is navigation (the workspace
   // explorer), never a class-screen projection.
   function resolveListLayout(typeRecord = {}, options = {}) {
@@ -295,7 +297,8 @@ export function createUiMapping(overrides = {}) {
               : null,
       stateful: stateful ? true : null,
       boardable: typeRecord.class === 'process' && stateful ? true : null,
-      size: options.size === 'small' ? 'small' : options.size === 'large' ? 'large' : null
+      size: options.size === 'small' ? 'small' : options.size === 'large' ? 'large' : null,
+      columns: Number.isInteger(options.columns) ? options.columns : null
     });
     return entry.layout;
   }
@@ -903,12 +906,9 @@ export function estimateRegionWeight(node = {}) {
     return facts + structural * 2 + Math.ceil(relationRefs / 4);
   }
   const count = node.instances?.length || 0;
-  // The same size classes and derivation the materialization resolves —
-  // sibling arrangement must weight the layout that actually renders.
-  const layout = resolveListLayout(node.type || {}, {
-    stateful: hasStateVocabulary(node.statePolicy),
-    size: count <= SMALL_LIST_AT ? 'small' : count > 12 ? 'large' : null
-  });
+  // The same derivation the materialization resolves — sibling
+  // arrangement must weight the layout that actually renders.
+  const layout = listLayoutOf(node);
   const perRow = ROW_WEIGHT_BY_LAYOUT[layout] || 1;
   // Rows grow with budgeted relation chips: the first declared relation's
   // refs across the loaded instances add wrapped chip rows to the weight.
@@ -936,11 +936,26 @@ export function shapeFamilyOf(typeRecord = {}, { stateful = false } = {}) {
   return 'plain';
 }
 
-function listLayoutOf(node) {
+// The table's data-column signal: filled non-identifier short scalars
+// (the listControls sort keys — a field no instance fills never becomes
+// a column) plus the first declared relation's chip column. Zero means
+// a table would carry names alone.
+function tableDataColumns(node = {}) {
+  const { sortKeys } = resolveListControls(node.type || {}, node.instances || []);
+  const relations = Object.keys(node.type?.edges?.relations || {});
+  return sortKeys.length + (relations.length ? 1 : 0);
+}
+
+// listLayoutOf(node): the one list-layout derivation — compose-time
+// traits, weight estimation, and the RegionBlock materialization resolve
+// the same layout over the same node, so the weighted arrangement is
+// the rendered one.
+export function listLayoutOf(node = {}) {
   const count = node.instances?.length || 0;
   return resolveListLayout(node.type || {}, {
     stateful: hasStateVocabulary(node.statePolicy),
-    size: count <= SMALL_LIST_AT ? 'small' : count > 12 ? 'large' : null
+    size: count <= SMALL_LIST_AT ? 'small' : count > 12 ? 'large' : null,
+    columns: tableDataColumns(node)
   });
 }
 

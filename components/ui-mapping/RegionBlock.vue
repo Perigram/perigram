@@ -199,8 +199,9 @@ import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
 import {
-  LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout, toolbarVisibleFor, sortControlRows,
+  LAYOUT, GAP_BY_LEVEL, toolbarVisibleFor, sortControlRows,
   hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar, incomingChildrenEdges, iconFor,
+  listLayoutOf,
   createActionControls
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
@@ -402,15 +403,11 @@ const stubLine = computed(() => props.stub && props.node.surfaceKind === 'list'
 const embeddedStack = computed(() => (spacing ? spacing.stackTight : LAYOUT.stackTight));
 const regionLabel = computed(() => localizedLabel({ te, t }, typeLabelKey(props.node.typeId), props.node.type ? generatedEntityLabel(props.node.type, { t, te }) : props.node.id));
 // The derived list layout — the resolver's contract decision over shape,
-// class, size, and the served state vocabulary. The projection
-// switch below is the user's view-state override inside a bounded pair,
-// never a second derivation.
-const derivedListLayout = computed(() => resolveListLayout(props.node.type, {
-  stateful: hasStateVocabulary(props.node.statePolicy),
-  size: props.node.instances.length <= SMALL_LIST_AT
-    ? 'small'
-    : props.node.instances.length > 12 ? 'large' : null
-}));
+// class, size, the served state vocabulary, and the value-aware table
+// column signal (listLayoutOf is the one derivation compose-time weights
+// read too). The projection switch below is the user's view-state
+// override inside a bounded pair, never a second derivation.
+const derivedListLayout = computed(() => listLayoutOf(props.node));
 // The projection switch rides the same persisted-view-state seam as sort
 // and filters: a stateful collection (a served vocabulary spanning at
 // least BOARD_MIN_COLUMNS values) whose derived layout is a structural

@@ -97,6 +97,9 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
   // way chronology already does.
   { match: { shape: 'scheduled' }, layout: 'calendar' },
   { match: { size: 'small' }, layout: 'list' },
+  // A table with no data column beside identity (and status) is a name
+  // pile — the stacked rows of the list projection carry it.
+  { match: { columns: 0 }, layout: 'list' },
   { match: {}, layout: 'table' }
 ]);
 
