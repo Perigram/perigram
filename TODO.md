@@ -470,6 +470,23 @@ AttachmentKind row.
   authored `place` constructs with their definitions, and land documents'
   xlsx/md engines on the same mode beside the future PDF engine. Docs:
   tech-drawing README, plugin-sdk listing contract.
+  Landed 2026-10-27 (session `agent/fill-mode-20261027`): tech-drawing v3
+  renamed onto `fill` (engine and endpoint stay `place-dxf`), projection
+  fixture and the create-dialog e2e migrated, Org1 upgraded, SPEC §24
+  carries the one-mode law. Residue: operator input labels landed with v4
+  (`Template`/`Parts`) beside `descriptor.label` support in the domain
+  projection.
+- [ ] Action ids are one org-wide namespace: two active definitions sharing
+  a construct node id cannot coexist, and activation refuses with a
+  dangling-edge error naming the other definition's graph instead of the
+  collision. Surface the collision as its own diagnostic (or
+  definition-qualify action ids in the manifest).
+- [ ] Pinned-entity-ref palette source: a `source` node emitting one
+  authored entityRef (the "select exact instance" producer), so a graph can
+  wire a pinned record into any construct's ref sockets. Authored socket
+  defaults already supply ref inputs today (supplied fields drop out of the
+  create dialog); the palette node is the visible authoring surface for the
+  same law.
 
 ## Generative UI arrangement foundations (owner direction 2026-10-25)
 
