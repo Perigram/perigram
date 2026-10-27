@@ -412,6 +412,12 @@ icon, the bordered subtle chip, `name · size` on hover. Accepts either
 wire shape (generator blobs and chat attachments); consumers own the
 open behavior through the `open` event.
 
+### `chip-surface.js`
+The chip recipe home: `CHIP_LABEL_PT` (the truncating label
+passthrough), `FILE_CHIP_CLASS`, `INSTANCE_CHIP_CLASS`. Every chip the
+app renders — file chips, instance chips, card identity chips —
+consumes these; a second copy of a chip class string is a defect.
+
 ### `InstanceInlineRef.vue`
 Compact embedded entity reference for relation rows inside cards and details.
 When only an id is provided, it resolves the DTO through the entity store's

@@ -1164,3 +1164,26 @@ empty state"); plugin editor surfaces still stamped uppercase labels.
 ### Agent Notes (2026-10-27, round 4)
 
 Status: WAITING owner verification.
+
+## Design-system centralization pass (owner direction 2026-10-27)
+
+Law: SPEC §22.8; the ui-mapping layout-language law ("materializations
+never declare their own stacks") and the chip recipe home.
+
+- [x] `LAYOUT.labeledBlock` owns the label-line/content-below recipe;
+  the four hand-rolled stacks in `SurfaceDetailBody`/`JsonEditor`
+  consume it; structural field labels ride `sectionTitle`.
+- [x] `components/shared/chip-surface.js` is the one chip recipe home
+  (`CHIP_LABEL_PT`, `FILE_CHIP_CLASS`, `INSTANCE_CHIP_CLASS`);
+  `FileChip`, `InstanceInlineRef`, and `InstanceCard` consume it; the
+  chat's identical instance-chip override is gone.
+
+### Agent Notes (2026-10-27, centralization pass)
+
+Recipe duplication measured before the cut: the truncating chip
+passthrough lived in three components; the chat passed an instance
+chip class byte-identical to the new default; four generator stacks
+hand-rolled `flex w-full flex-col gap-1` against the layout-language
+law. All now resolve through the vocabulary and the recipe module.
+
+Status: WAITING owner verification.
