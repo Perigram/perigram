@@ -1,8 +1,5 @@
 <template>
   <div v-if="stubLine" :class="[LAYOUT.row, 'w-fit']">
-    <i v-if="node.type" :class="iconFor(node.type)" />
-    <span class="text-label text-muted">{{ regionLabel }}</span>
-    <span class="text-supporting text-muted">{{ node.instances.length }}</span>
     <CreateControl
       v-for="control in createControls"
       :key="control.action.id"
@@ -281,7 +278,7 @@ const hostContainer = useHostContainerTraits();
 const childOutcome = computed(() => props.node.childArrangement?.[hostContainer.value.width] || { mode: 'stack' });
 const splitSide = computed(() => props.depth === 0 && childOutcome.value.mode === 'side');
 const splitTracks = computed(() => ({
-  gridTemplateColumns: `minmax(0, ${12 - (childOutcome.value.span || 5)}fr) minmax(0, ${childOutcome.value.span || 5}fr)`
+  gridTemplateColumns: `minmax(0, ${12 - (childOutcome.value.span || 3)}fr) minmax(0, ${childOutcome.value.span || 3}fr)`
 }));
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);

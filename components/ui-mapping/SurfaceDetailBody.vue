@@ -2,7 +2,7 @@
   <div v-if="d" :class="d.stack">
     <div v-if="hasPreview" :class="LAYOUT.previewHero">
       <div :class="LAYOUT.previewHeroBand">
-        <PreviewBox fill :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" :seed="instance.id" />
+        <PreviewBox fill :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
       </div>
     </div>
 
@@ -17,7 +17,7 @@
         :key="group.id"
         :class="d.stackTight"
       >
-        <span v-if="group.label" :class="d.sectionTitle">{{ group.label }}</span>
+        <span v-if="showGroupTitles && group.label" :class="d.sectionTitle">{{ group.label }}</span>
         <div v-if="shownFacts(group).length" :class="variant === 'full' ? LAYOUT.factsGrid : LAYOUT.specList">
           <div v-for="field in shownFacts(group)" :key="field.name" :class="d.specRow">
             <span :class="LAYOUT.labelCell">{{ field.label }}</span>
@@ -25,6 +25,7 @@
               <InlineField
                 :field="field"
                 :editable="editable"
+                :quantitative="quantitative"
                 :pool="pool"
                 :bundle="bundle"
                 @inline-change="change => emit('inline-change', change)"
@@ -64,6 +65,7 @@
             <InlineField
               :field="field"
               :editable="editable"
+              :quantitative="quantitative"
               :pool="pool"
               :bundle="bundle"
               @inline-change="change => emit('inline-change', change)"
@@ -79,6 +81,7 @@
           <InlineField
             :field="field"
             :editable="editable"
+            :quantitative="quantitative"
             :pool="pool"
             :bundle="bundle"
             @inline-change="change => emit('inline-change', change)"
@@ -124,7 +127,7 @@ import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import { LAYOUT, resolveSurface, resolveActionButton, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups, fieldLabelKey, localizedLabel, startCaseKey, isIdentifierField } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, resolveActionButton, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups, fieldLabelKey, localizedLabel, startCaseKey, isIdentifierField, typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import InlineField from './InlineField.vue';
 import StructuralFieldPanel from './StructuralFieldPanel.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
@@ -154,6 +157,9 @@ const editingField = ref(null);
 const expandedFacts = ref({});
 
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
+const quantitative = computed(() => typeIsQuantitative(props.type));
+// SPEC §22.8: a single-group body renders its fields with no group titles.
+const showGroupTitles = computed(() => groups.value.filter(group => group.label).length > 1);
 const hasPreview = computed(() => surface.value.slots.includes('preview'));
 
 const isLongString = descriptor => descriptor.base === 'string'

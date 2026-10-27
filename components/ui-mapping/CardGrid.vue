@@ -10,7 +10,7 @@
       <ResponsiveGrid variant="dense" responsive-context="container">
         <Card v-for="instance in slotProps.items" :key="instance.id" :class="[LAYOUT.clip, 'w-full']">
           <template #header>
-            <PreviewBox :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" :seed="instance.id" />
+            <PreviewBox :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
           </template>
           <template #title>
             <div :class="LAYOUT.rowBetween">
@@ -63,6 +63,7 @@
                   :model-value="instance.fields?.[field.name]"
                   :descriptor="field.descriptor"
                   variant="inline"
+                  :quantitative="quantitative"
                   :pool="pool"
                   :bundle="bundle"
                 />
@@ -94,7 +95,7 @@ import {
   LAYOUT, SCALAR_BASES, cardFactCount, titleFor, iconFor, isIdentifierField,
   fieldLabel, fieldLabelKey, localizedLabel, resolveListControls,
   resolveActionButton, actionLabelKey, stateDisplayFor
-} from '#shared/ui-mapping/index.js';
+, typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import ParentRef from './ParentRef.vue';
@@ -104,6 +105,8 @@ const spacing = inject('uiMappingSpacing', null);
 const props = defineProps({
   instances: { type: Array, default: () => [] },
   type: { type: Object, default: null },
+  // SPEC §22.8: the type's quantitative dominance earns the dashboard
+  // field presentations.
   // Composed list-controls contract from the region tree; recomputed from
   // the type and loaded instances when absent (direct grid usage).
   controls: { type: Object, default: null },
@@ -122,6 +125,8 @@ const props = defineProps({
   // card status badge renders exactly when the vocabulary exists.
   statePolicy: { type: Object, default: null }
 });
+
+const quantitative = computed(() => typeIsQuantitative(props.type));
 
 const emit = defineEmits(['open', 'run']);
 

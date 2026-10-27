@@ -207,6 +207,9 @@ import VariantEditor from './VariantEditor.vue';
 const props = defineProps({
   descriptor: { type: Object, required: true },
   variant: { type: String, default: 'detail' },
+  // The type's quantitative dominance (typeIsQuantitative): earns the
+  // dashboard presentations (SPEC §22.8).
+  quantitative: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   payload: { type: Object, default: null }
@@ -218,7 +221,7 @@ const spacing = inject('uiMappingSpacing', null);
 const densityScale = computed(() => ({ factValue: 'text-body', knob: spacing ? spacing.knob : 64 }));
 const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));
 
-const outcome = computed(() => resolveFieldControl(props.descriptor, { variant: props.variant }));
+const outcome = computed(() => resolveFieldControl(props.descriptor, { variant: props.variant, quantitative: props.quantitative }));
 const displayValue = computed(() => formatValue({ base: 'string' }, props.modelValue));
 // Plain number fields land on ValueText too: the numeric face applies to
 // them, string fields keep the UI face.

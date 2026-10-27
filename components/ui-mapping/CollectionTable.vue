@@ -53,6 +53,7 @@
           :model-value="data.fields?.[field.name]"
           :descriptor="field.descriptor"
           variant="row"
+          :quantitative="quantitative"
           :pool="pool"
           :bundle="bundle"
         />
@@ -87,7 +88,7 @@ import {
   LAYOUT, fieldLabel, tableColumnCount, ROW_RELATION_BUDGET, applyBudget,
   titleFor, resolveListControls, stateDisplayFor,
   localizedLabel, fieldLabelKey, TABLE_VIRTUAL_SCROLL_REM
-} from '#shared/ui-mapping/index.js';
+, typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import FieldControl from './FieldControl.vue';
@@ -97,6 +98,8 @@ import ParentRef from './ParentRef.vue';
 const props = defineProps({
   instances: { type: Array, default: () => [] },
   type: { type: Object, default: null },
+  // SPEC §22.8: the type's quantitative dominance earns the dashboard
+  // field presentations.
   // Composed list-controls contract from the region tree; recomputed from
   // the type and loaded instances when absent (direct table usage).
   controls: { type: Object, default: null },
@@ -111,6 +114,8 @@ const props = defineProps({
   // compiled process authored a state vocabulary for the type.
   statePolicy: { type: Object, default: null }
 });
+
+const quantitative = computed(() => typeIsQuantitative(props.type));
 
 defineEmits(['open']);
 

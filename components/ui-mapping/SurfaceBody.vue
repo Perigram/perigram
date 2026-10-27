@@ -35,18 +35,11 @@
       :model-value="instance.fields?.[field.name]"
       :descriptor="field.descriptor"
       variant="inline"
+      :quantitative="quantitative"
       :pool="pool"
       :bundle="bundle"
     />
     <Tag v-if="hiddenFieldCount > 0" :value="`+${hiddenFieldCount}`" severity="contrast" />
-    <InstanceInlineRef
-      v-for="ref in rowRefs"
-      :key="ref.id"
-      :type="String(ref?.type || '')"
-      :id="ref?.id"
-      :entity="pool?.[ref?.type]?.[ref?.id] || null"
-    />
-    <Tag v-if="rowHidden > 0" :value="`+${rowHidden}`" severity="contrast" />
   </div>
 </template>
 
@@ -56,9 +49,8 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import { useI18n } from 'vue-i18n';
-import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, titleFor, iconFor, stateDisplayFor, startCaseKey, isIdentifierField } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, titleFor, iconFor, stateDisplayFor, startCaseKey, isIdentifierField, typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
-import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import SurfaceDetailBody from './SurfaceDetailBody.vue';
 
 const props = defineProps({
@@ -91,7 +83,8 @@ const detailBodyProps = computed(() => ({
   coveredRelations: props.coveredRelations,
   editable: props.editable
 }));
-const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));const toggleRelation = key => {
+const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
+const quantitative = computed(() => typeIsQuantitative(props.type));const toggleRelation = key => {
   expanded.value[key] = !expanded.value[key];
 };
 const detailBodyEvents = {
@@ -127,15 +120,4 @@ const fieldOutcome = computed(() => applyBudget(fieldEntries.value, fieldBudget.
 const shownFields = computed(() => (fieldOutcome.value.mode === 'collapsed' ? fieldOutcome.value.visible : fieldEntries.value));
 const hiddenFieldCount = computed(() => (fieldOutcome.value.mode === 'collapsed' ? fieldOutcome.value.hidden : 0));
 
-const rowRelation = computed(() => {
-  if (!surface.value.slots.includes('relations')) return { shown: [], hidden: 0 };
-  // Per-SLOT budgets (the surface entry's `relations` budget), applied to
-  // the first declared relation's refs — the documented budget mechanism.
-  const first = Object.values(props.instance.relations || {})[0];
-  const list = Array.isArray(first) ? first : first ? [first] : [];
-  const outcome = applyBudget(list, surface.value.budgets.relations || null);
-  return { shown: outcome.visible, hidden: outcome.hidden };
-});
-const rowRefs = computed(() => rowRelation.value.shown);
-const rowHidden = computed(() => rowRelation.value.hidden);
 </script>

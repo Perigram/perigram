@@ -44,13 +44,17 @@ export const FIELD_EDIT_ENTRIES = Object.freeze([
 // Display-family entries: compact value presentations for rows and inline
 // contexts. The resolved density ('row' | 'inline') travels as a prop.
 // Data-shaped refinements: percent quantities render as Knob dials, string
-// lists render as budgeted chips.
+// lists render as budgeted chips. The dashboard presentations (Knob,
+// MeterGroup, Chart, Rating) are quantitative-type decisions (SPEC §22.8):
+// they match only when the caller resolves the field with
+// `quantitative: true` — the type's statlike shape — and every other type
+// falls through to the plain-value entries.
 export const FIELD_DISPLAY_ENTRIES = Object.freeze([
   { match: { base: 'string', long: true }, component: 'ProseText', span: 'full' },
-  { match: { base: 'map', itemBase: 'quantity', itemUnit: 'percent' }, component: 'MeterGroup', span: 'full' },
-  { match: { base: 'map', itemBase: 'quantity' }, component: 'Chart', span: 'full' },
-  { match: { base: 'enum', ordinal: true }, component: 'Rating', span: 'full' },
-  { match: { base: 'quantity', unit: 'percent' }, component: 'Knob', span: 'half' },
+  { match: { base: 'map', itemBase: 'quantity', itemUnit: 'percent', quantitative: true }, component: 'MeterGroup', span: 'full' },
+  { match: { base: 'map', itemBase: 'quantity', quantitative: true }, component: 'Chart', span: 'full' },
+  { match: { base: 'enum', ordinal: true, quantitative: true }, component: 'Rating', span: 'full' },
+  { match: { base: 'quantity', unit: 'percent', quantitative: true }, component: 'Knob', span: 'half' },
   { match: { base: 'enum' }, component: 'Tag', span: 'half' },
   { match: { base: 'ref' }, component: 'InstanceInlineRef', span: 'half' },
   { match: { base: 'quantity' }, component: 'QuantityText', span: 'half' },
@@ -384,9 +388,9 @@ export const LAYOUT_AMBIENT = Object.freeze({
   geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
 });
 
-// Row-variant field budgets: dense rows show a bounded number of fields and
-// count the rest, reusing the same budget mechanism as slot cardinality.
-export const ROW_FIELD_BUDGET = Object.freeze({ max: 3, overflow: 'count' });
+// Row-variant field budgets (SPEC §22.8): a row carries identity, status,
+// and one fact; the rest counts, reusing the slot-cardinality mechanism.
+export const ROW_FIELD_BUDGET = Object.freeze({ max: 1, overflow: 'count' });
 
 // --- Surfaces ---------------------------------------------------------------
 
@@ -614,7 +618,8 @@ export const SPACING_WEIGHT_AT = SURFACE_ROW_BUDGET * 2;
 // explicit coefficient (the design-lab slider) bypasses this entirely.
 export function spacingCoefficientFor(container = {}, totalWeight = 0) {
   const base = Number.isFinite(container.density) ? container.density : 1;
-  const wanted = (Number.isFinite(totalWeight) && totalWeight > SPACING_WEIGHT_AT)
+  const bounded = base < 1;
+  const wanted = (bounded && Number.isFinite(totalWeight) && totalWeight > SPACING_WEIGHT_AT)
     ? base - 0.25
     : base;
   const clamped = Math.min(2, Math.max(0.5, wanted));
