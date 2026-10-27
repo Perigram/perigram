@@ -16,19 +16,31 @@ Parent: [components](../README.md).
   and the film strip scroll inside their own boxes), and all controls live
   in one docked bar below the stage — a wrapped header can never eat the
   video area. A connection that drops while the panel stays mounted
-  returns to the pre-join stage.
+  returns to the pre-join stage. Device failures are per-track: a missing
+  or unplugged mic/camera toasts the failed device and the call continues
+  with that track off; only a failed connection fails the join, and the
+  half-joined room disconnects. Toggle state reads back through the
+  `LocalParticipant` `isMicrophoneEnabled`/`isCameraEnabled`/
+  `isScreenShareEnabled` getters — `set*Enabled` resolves with the
+  `LocalTrackPublication`, which stays truthy on mute.
 - `CallPrejoin.vue` owns device enumeration (device lists pick through
   the shared `InstanceSelect` wrapper in its plain, non-entity mode),
   live camera preview, a bare microphone-activity dot, and
-  mic/cam pre-toggles carried into the join. It shows no room ids — the
+  mic/cam pre-toggles carried into the join. The pickers switch the live
+  source (preview and meter restart on selection), the lists re-read after
+  the permission grant and on `devicechange` (labels arrive with the
+  grant), and the meter's stream stays live for its analyser to see
+  levels. It shows no room ids — the
   caller is identified by the surface that opened the call.
 - `CallTile.vue` renders one participant or screen-share track: video or
   Avatar fallback, speaking level dot, mute/hand badges, and pin. The
   identity chip is the single name owner; the no-video fallback is the
-  avatar alone. The connection-quality glyph appears only for degraded
-  links (`fair`/`poor`/`lost`) — a healthy connection is the silent
-  default. The chip truncates, so long display names cannot overflow a
-  tile.
+  avatar alone — a muted camera reads as the avatar, both locally and for
+  remote participants. The connection-quality glyph appears only for
+  degraded links (`fair`/`poor`/`lost`) — a healthy connection is the
+  silent default. The chip truncates, so long display names cannot
+  overflow a tile. The local camera self-view mirrors (the caller sees
+  themselves the way a mirror does); screen shares stay unmirrored.
 - `CallWorkspacePage.vue` is the pane-hosted call surface used by the home
   workspace: the `CallPanel` stage plus the call's own conversation thread
   (`ChatSupport` embedded and pinned through its `conversation-key` prop,
@@ -126,7 +138,9 @@ re-attaching — a fresh `track.attach()` would double the audio).
 Transferring a call that has not
 connected yet aborts the transfer — the adopting surface falls back to
 its own pre-join stage — and a panel that unmounts mid-join never reports
-the room joined.
+the room joined. A parked room whose connection died while parked (its
+listeners were stripped for the park) adopts as nothing: the adopting
+panel checks the room state and falls back to its own pre-join stage.
 Navigation uses the same parking machinery: hosts that set
 `parkOnUnmount` (the workspace call tab, the chat call dialog, and the
 mobile top-lane dialog) park the live room when they unmount while
@@ -158,20 +172,30 @@ rows agree on the name.
 
 ## Media plumbing
 
-- Remote audio must be attached to an element to play: subscribed audio
-  tracks are attached through LiveKit's `track.attach()` into a hidden
-  sink container inside the panel and detached on unsubscribe/disconnect.
-  Attached elements register with the room, so the speaker device switch
-  (`room.switchActiveDevice('audiooutput', …)`) keeps working. Local mic
-  audio is never played back locally.
-- Video attachment is idempotent and stable: `CallTile` emits its video
-  element only when the element actually changes, and `CallPanel` skips
-  `srcObject` resets for elements already playing the track. Tiles are
-  patched in place, so audio-level ticks leave every surface untouched.
+- Every track attachment rides LiveKit's own element pool
+  (`track.attach(element)` / `track.detach(element)`): the library owns
+  `srcObject`, autoplay, and the Safari/Firefox attach quirks, and the
+  attached elements register with the room — adaptiveStream visibility
+  (a backgrounded tab pauses video, returning resumes it) and dynacast
+  dimensions follow the real tiles. Detaching on unsubscribe, tile drop,
+  and teardown keeps the pool exact.
+- Remote audio plays through attached elements kept in a hidden sink
+  container inside the panel; the speaker device switch
+  (`room.switchActiveDevice('audiooutput', …)`) keeps working through
+  the same registrations. Local mic audio stays silent for its own
+  panel.
+- A screen tile lives only while its track does (subscribe/unpublish drop
+  it); a camera tile lives with its participant and falls back to the
+  avatar when its video mutes or unpublishes. Tiles are patched in place,
+  so audio-level ticks leave every surface untouched.
+- Raise-hand and reactions ride a `call.events`-topic data channel;
+  inbound data on any other topic is ignored.
 - The speaker spotlight is sticky: pinning and screen shares take it
   immediately, but a new dominant speaker must hold the top audio level
   for ~1.2s before the spotlight follows, otherwise per-tick level
   changes would bounce (and remount) the spotlight tile mid-sentence.
+- Device lists in the mid-call settings refresh when the dialog opens and
+  on the room's `MediaDevicesChanged`.
 
 ## Layouts
 
