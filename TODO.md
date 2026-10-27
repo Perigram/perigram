@@ -481,13 +481,37 @@ AttachmentKind row.
   dangling-edge error naming the other definition's graph instead of the
   collision. Surface the collision as its own diagnostic (or
   definition-qualify action ids in the manifest).
-- [ ] Template editor surfaces per format (SPEC §24): every template type
-  rides the editor-binding + revision-scope law — the listing binds the
-  surface, the type declares a revision scope, and the surface saves
-  through the revisioned payload channel. First cut: dxf-source over the
-  CAD engine the plugin already ships (the sketch editor's MLightCAD),
-  authoring {spot:...} markers in-app; PDF/xlsx surfaces follow their fill
-  engines.
+- [ ] Template editors program (SPEC §24 engines + §20 editor law):
+  every template type rides the same three pieces — an editor binding in
+  the listing, a revision scope on the type, and the revisioned payload
+  channel for saves and replacement. Ordered steps:
+  - [ ] Revision scope on template types: dxf-source declares `revisions`
+    (tech-drawing v5); the revisioned payload channel then serves
+    replace-in-place — new bytes onto the same instance, so a re-authored
+    template keeps its identity, its pins, and its history.
+  - [ ] DXF editor surface: editor binding for dxf-source; a surface module
+    over the CAD engine the plugin already ships (the sketch editor's
+    MLightCAD) that opens the payload, edits, and saves through the
+    revisioned channel.
+  - [ ] Spot-marker authoring in that surface: inserting a named anchor is
+    the `{spot:<name>}` TEXT law made visible — the anchor name is the
+    part-matching vocabulary, authored where the drawing is drawn.
+  - [ ] Documents fill engines on the `fill` mode: xlsx (template workbook
+    ref + rows/values in, filled workbook out), md on the same shape.
+  - [ ] PDF render engine (md/xlsx/dxf → PDF) bound to `fill`.
+  - [ ] PDF template flow: a pdf-payload type with a `fill` signature; its
+    marker law (form fields or anchors) is decided with the engine.
+  - [ ] Create-dialog failure surfacing: a fill refusal returns HTTP 200
+    with a structured `failures` body; the dialog renders the refusal
+    (named spots/parts) instead of silence.
+  - [ ] Configure per-kind field whitelist: every gesture value validates
+    against the node contract table, closing the seam to unknown keys.
+  - [ ] Template lifecycle: replacement rides the revisioned payload
+    channel (file detail affordance); retirement rides a compiled remove
+    construct in the definition that stations the type.
+  Beside the program: the pinned-entity-ref palette source and the
+  action-id collision diagnostic (tracked above) are the definition-design
+  pieces the program composes with.
 - [ ] Pinned-entity-ref palette source: a `source` node emitting one
   authored entityRef (the "select exact instance" producer), so a graph can
   wire a pinned record into any construct's ref sockets. Authored socket
