@@ -1421,3 +1421,53 @@ after the dev container restarts.
 
 Status: WAITING owner verification.
 
+## Create dialogs prompt the contract alone (owner direction 2026-10-27)
+
+Law: [SPEC §UI generated creates](./SPEC.md). A create dialog's row list
+is its compiled construction contract — exactly the inputs the authored
+declaration and graph compose. The "naming law" injections that prepended
+a required identifier/Name row to every create dialog (including
+registry-minted identity rows a declaration never authored, and beside
+upload/capture/content protocol inputs) are slop and die.
+
+- [x] `protocolModeInputs` (cts domain projection): upload/capture carry
+  the payload input alone; content carries the text body alone.
+- [x] `resolveCreateDialogInputs` (shared ui-mapping): rows come from the
+  policy/construction inputs; drop the identifier unshift and the bare
+  `name` ghost row.
+- [x] Upload/capture constructs fill the record's `name` from the
+  uploaded file's name (extension stripped) when the draft carries none
+  (`createWithPayloadProtocol`).
+- [x] Specs re-pinned (domain-projection, graph-protocol-construction,
+  ui-mapping, instances service); md-editor-repair drops its dead
+  identifier-fill loops.
+- [x] Docs: SPEC §UI amended; shared/ui-mapping, components/ui-mapping,
+  processes, instances READMEs; e2e README.
+
+### Agent Notes (2026-10-27, agent/create-dialog-name-ghost-20261027)
+
+Session worktree `.agent-worktrees/create-dialog-name-ghost`. The slop
+had two injection sites contradicting four standing contracts (SPEC §UI
+"upload/capture creates prompt only the file", compiler "No
+identity.name ghost", e2e fixtures "protocol creates prompt none of the
+rows", and the projection's own comment): `protocolModeInputs` rode an
+identifier row into every protocol mode, and `resolveCreateDialogInputs`
+derived identifier rows beyond the contract plus a ghost row for a bare
+`name` id resolving no declared field. Registry-minted identity rows
+(`constructible: false`, "authors nothing" per the registry comment)
+were prompted too — a Name field for a field the declaration never had.
+Records stay named for uploads by deriving the name slot from the
+uploaded file's name at the construct seam; content/editor creates and
+graph-supplied creates name through authored rows, composition, or the
+rename channel. `packages/processes/README.md`'s construction-contracts
+paragraph still described the retired always-promptable `name` compile
+and was rewritten against current pins. Validation: cts + processes +
+shared + instances suites green (887/891 — the 4 failures are
+`shared/fact-display-vocabulary.spec.js`, pre-existing on `local`,
+identifier-exclusion work in flight by another session); root guards,
+SSR smoke, and architecture guard green. E2E not run (no live stack in
+this session); md-editor-repair and order-process cover the changed
+dialogs on the next stack run.
+
+Status: WAITING owner verification.
+

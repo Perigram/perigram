@@ -25,9 +25,11 @@ Parent: [server/features](../README.md).
   customization of a system instance is an org-authored instance
   shadowing it by declared key (e.g. `code`), never a mutation of the
   system row. Naming follows SPEC §4: the stored `name` slot is the
-  explicit rename channel; the declared identifier row's value resolves
-  client-side through the display contract (`titleFor`), never by
-  copying row data into a second wire field.
+  explicit rename channel; upload/capture constructs fill it from the
+  uploaded file's name (extension stripped) when the draft carries
+  none, and the declared identifier row's value resolves
+  client-side through the display contract (`titleFor`), staying in its
+  row.
 - Type migration executor (`migrations.js`): runs a covered `migrate` step
   set against the type's persisted instances when
   [cts-types](../cts-types/README.md) lands a breaking redefinition.

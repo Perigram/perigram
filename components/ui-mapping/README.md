@@ -39,7 +39,7 @@ Region actions run through `ActionButton`. Actions with construction
 inputs open the generated create dialog, whose rows come from
 `resolveCreateDialogInputs`
 ([shared/ui-mapping](../../shared/ui-mapping/README.md) — the canonical
-row-derivation and naming law). Launch context is the engine's one
+row-derivation contract). Launch context is the engine's one
 addition: when the dialog opens on a detail surface whose scope carries
 the opened instance (`screen.scope.instanceId` + `screen.typeId`), every
 lineage row whose accepted parent types include that type submits the

@@ -68,8 +68,8 @@ that drive executor-backed surfaces or services wire them through
 - `md-editor-repair.spec.js`: the markdown editor repair legs — the blank
   text-document editor opens pristine (save disabled until edited), the
   format controls and slash commands insert their blocks, a `.md`
-  uploads through the protocol create dialog (identifier row and payload
-  both prompted), and csv cell edits commit and serialize on save.
+  uploads through the protocol create dialog (the file input alone),
+  and csv cell edits commit and serialize on save.
 - `plugin-surface.spec.js`: plugin-delivered surfaces end to end — the
   fixture plugin publishes through the real catalog API and installs
   through the real gate, its editor surface mounts over the host
