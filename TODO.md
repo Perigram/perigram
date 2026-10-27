@@ -1693,6 +1693,10 @@ still asked for the grandparent — and skipping it stored a broken chain.
   cross-org parents refuse.
 - [x] Specs: projection pins immediate-only construction + deep schemas;
   instance service pins derivation, precedence, and the cross-org refusal.
+- [x] `normalizeConstruction` reconciles authored construction inputs
+  against the current contract on every mode (stale ancestor-axis stamps
+  persisted in authored definitions die at compile; block-composed
+  constructs keep their canonical block entries).
 - [ ] Optional repair for legacy rows whose prompts allowed skipping
   ancestors (chains written incomplete before this law) — owner decides.
 
@@ -1717,6 +1721,26 @@ change). Guards: check-arch, framework:validate, docs:validate, SSR
 smoke green. E2E not run (dev stack serves the primary tree; contextual
 create is covered next stack run by process-generated-screen's child
 region leg).
+
+### Agent Notes (2026-10-27, agent/lineage-context-2-20261027)
+
+Owner reported the symptom persisting. The live manifest confirmed the
+projection fix served clean for protocol modes (xlsx upload: payload +
+queueId alone) while `mkAttempt` (genericCreate) still prompted
+`lineage.projectId`: the authored definition document persisted
+construction inputs machine-stamped from the retired recursive contract
+(`authoring.js` stamps node inputs from the contract of the moment), and
+`normalizeConstruction` only dropped stale authored extras for declared
+modes — on genericCreate they survived verbatim as prompts. The
+reconciliation now runs on every mode: an authored input the current
+contract leaves unaddressed dies at compile (a block-composed construct
+keeps its canonical block entries), so the stale stamps self-heal at
+serve and the stored drafts clean on their next authoring touch — no
+definition rewrite needed. Compiler pin added; processes 545 green, cts/
+shared/instances green (4 known fact-display failures pre-exist).
+`packages/processes/README.md` already states the law ("compilation
+discards construction inputs the current domain contract has retired") —
+the cut makes the sentence true.
 
 Status: WAITING owner verification.
 
