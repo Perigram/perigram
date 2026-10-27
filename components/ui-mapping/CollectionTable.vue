@@ -4,11 +4,8 @@
     :value="instances"
     size="small"
     data-key="id"
-    :class="virtual ? '' : 'min-w-max'"
-    :scrollable="virtual"
-    :scroll-height="virtual ? `${TABLE_VIRTUAL_SCROLL_REM}rem` : undefined"
-    :virtual-scroller-options="virtual ? { itemSize: 40 } : undefined"
-    :paginator="!virtual && instances.length > pagination.paginateAt"
+    class="min-w-max"
+    :paginator="instances.length > pagination.paginateAt"
     :rows="pagination.rows"
     :sort-field="activeSortField"
     :sort-order="activeSortOrder"
@@ -87,7 +84,7 @@ import Button from 'primevue/button';
 import {
   LAYOUT, fieldLabel, tableColumnCount, ROW_RELATION_BUDGET, applyBudget,
   titleFor, resolveListControls, stateDisplayFor,
-  localizedLabel, fieldLabelKey, TABLE_VIRTUAL_SCROLL_REM
+  localizedLabel, fieldLabelKey
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
@@ -139,7 +136,6 @@ const tablePt = {
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
 const pagination = computed(() => resolvedControls.value.pagination);
-const virtual = computed(() => props.instances.length > pagination.value.virtualizeAt);
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const hasStatus = computed(() => Boolean(props.statePolicy));

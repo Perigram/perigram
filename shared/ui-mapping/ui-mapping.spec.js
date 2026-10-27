@@ -947,7 +947,7 @@ describe('instance-aware list controls', () => {
     expect(controls.sortKeys.map(key => key.name)).toEqual(['size', 'grade']);
     expect(controls.defaultSort).toBe('size');
     expect(controls.facets).toEqual([{ name: 'grade', label: 'Grade', values: ['a', 'b'] }]);
-    expect(controls.pagination).toEqual({ paginateAt: 10, rows: 10, virtualizeAt: 50 });
+    expect(controls.pagination).toEqual({ paginateAt: 10, rows: 10 });
   });
 
   it('drops unfilled sort keys entirely on empty collections', () => {

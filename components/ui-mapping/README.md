@@ -263,8 +263,7 @@ beside the transition history in `StateHistory`.
   background is not clipped by its radius) — every instance row sits
   one step above the canvas, flush on the table's own rhythm, while
   the table box stays unpainted (SPEC §22.10).
-  The virtualized body clamps to the shared `TABLE_VIRTUAL_SCROLL_REM`
-  bound, and the resolved container record sizes the column budget — a
+  The resolved container record sizes the column budget — a
   `narrow`/`medium` box (pane, popup, side rail, column track) takes the
   compact column scale through the container seam. Columns come from the composed `listControls` contract (filled
   short scalars bounded by the richness budget — a field no loaded instance
@@ -272,8 +271,8 @@ beside the transition history in `StateHistory`.
   sortable (quantity values sort by their numeric value), the
   list-controls contract's `defaultSort` (the first filled short scalar)
   is the default sort, the user's last sort persists per type through
-  `utils/ui-view-state.js`, and the paginate/virtualize thresholds are the
-  shared `TABLE_*` budgets from the mapping contract. Filtering belongs to
+  `utils/ui-view-state.js`, and the paginate threshold is the
+  shared `TABLE_*` budget from the mapping contract. Filtering belongs to
   the region toolbar above the table. The region toolbar renders
   type-level actions only (creates): every other action kind addresses a
   concrete instance (delete, transitions, instance-scoped commands) and

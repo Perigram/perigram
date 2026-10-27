@@ -280,7 +280,7 @@ export function generateUiMappingWorld(seed = 7) {
   // Instances: random counts (some types stay empty), values conform to
   // descriptors, each instance takes at most one random lineage parent.
   // Budget guarantees, not chances: one file type always carries a large
-  // collection (virtualized table >50, paginated views, toolbar search
+  // collection (paginated views, toolbar search
   // past SEARCH_AT), and one type always stays empty
   // so the empty-state surface is reachable in every world. Two group
   // hosts always carry populated peer children — moderate collections on

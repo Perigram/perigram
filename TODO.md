@@ -1317,3 +1317,20 @@ grid-gap token — double rhythm on top of the preset.
 ### Agent Notes (2026-10-27, round 12)
 
 Status: WAITING owner verification.
+
+## Table virtualization retires (owner direction 2026-10-27)
+
+Law: SPEC §22.10. Owner finding: the showcase's first large table
+rendered as an internal scroll box with sticky headers floating over
+the rows (transparent header backgrounds over a scroll viewport) —
+the dormant virtualization mode, tripped by round 11's 60-row volume
+guarantee.
+
+- [x] The generator's tables page, they never scroll-box: the
+  virtual/scrollable mode, `TABLE_VIRTUALIZE_AT`,
+  `TABLE_VIRTUAL_SCROLL_REM`, and the pagination contract's
+  `virtualizeAt` die together.
+
+### Agent Notes (2026-10-27, round 14)
+
+Status: WAITING owner verification.

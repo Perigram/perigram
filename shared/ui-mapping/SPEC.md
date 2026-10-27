@@ -49,7 +49,7 @@ data trait reads declarations and instances; it reads the DOM at no phase.
 |---|---|---|---|
 | `weight` | row units (number) | estimated rendered height: facts, structural fields, relation chips; list row factors × instance counts at the derived size class | the ladder, side-rail spans, tab order, surface budgets |
 | `breadth` | `chip` \| `content` \| `full` | intrinsic width demand, from the resolved list layout kind and field shapes; detail bodies are `content`, ref/scalar sets are `chip`, table/board/gantt/calendar/canvas surfaces are `full` | row claiming, packing, column engagement |
-| `volume` | instance count (number) | the pool | budgets, pagination and virtualization thresholds, size classes |
+| `volume` | instance count (number) | the pool | budgets, the pagination threshold, size classes |
 | `shape` | `media` \| `temporal` \| `stateful` \| `prose` \| `measure` \| `plain` | the type-shape analysis signals, named | list layout resolution, preview policy |
 | `filledness` | `filled` \| `inert` | a list source with zero loaded instances; a field no loaded instance fills | ladder participation, stubs, list controls |
 | `growth` | `flowing` \| `bounded` | the resolved layout kind under its budgets: surfaces that scroll or page past a budget are `bounded`; sections, fact strips, and small lists are `flowing` | scroll ownership, host fit |
@@ -61,7 +61,7 @@ Breadth semantics:
 - `content` — reads at its own width up to the content cap; packs beside
   peers when the host grants the width.
 - `full` — demands the whole row to stay readable; claims the row and
-  scrolls, pages, or virtualizes inside it.
+  scrolls or pages inside it.
 
 Growth semantics: `flowing` content grows its parent's flow; `bounded`
 content owns a scroll inside its box once past its budget, wherever it

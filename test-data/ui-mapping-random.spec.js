@@ -165,7 +165,7 @@ describe('showcase-reachable contracts in every world', () => {
     for (const seed of SEEDS) {
       const world = generateUiMappingWorld(seed);
       const pool = buildInstancePool(world.instances);
-      // One large collection: virtualization (>50), pagination, toolbar search.
+      // One large collection: pagination, toolbar search.
       expect(world.bundle.types.some(type => world.instances[type.id].length > 50), `seed ${seed} volume type`).toBe(true);
       // The volume type derives the default table projection — the
       // showcase renders a real DataTable, not only shape-specialized

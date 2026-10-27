@@ -25,7 +25,6 @@ import {
   TABLE_COLUMN_SCALE,
   TABLE_PAGE_ROWS,
   TABLE_PAGINATE_AT,
-  TABLE_VIRTUALIZE_AT,
   CARD_FACT_SCALE,
   ROW_WEIGHT_BY_LAYOUT,
   SCALAR_BASES,
@@ -65,8 +64,6 @@ export {
   TABLE_COLUMN_SCALE,
   TABLE_PAGE_ROWS,
   TABLE_PAGINATE_AT,
-  TABLE_VIRTUALIZE_AT,
-  TABLE_VIRTUAL_SCROLL_REM,
   CARD_FACT_SCALE,
   ROW_WEIGHT_BY_LAYOUT,
   GAP_BY_LEVEL,
@@ -555,7 +552,6 @@ export function resolveListControls(typeRecord = {}, instances = []) {
     pagination: Object.freeze({
       paginateAt: TABLE_PAGINATE_AT,
       rows: TABLE_PAGE_ROWS,
-      virtualizeAt: TABLE_VIRTUALIZE_AT
     })
   });
 }

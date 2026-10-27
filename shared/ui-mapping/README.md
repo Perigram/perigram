@@ -410,7 +410,7 @@ materialization reads the same numbers:
 | Constants | Bound |
 |---|---|
 | `TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE` | columns and facts per type richness |
-| `TABLE_PAGINATE_AT`, `TABLE_PAGE_ROWS`, `TABLE_VIRTUALIZE_AT`, `TABLE_VIRTUAL_SCROLL_REM`, `SEARCH_AT` | collection thresholds: pagination, page size, virtualization, the virtual scroll bound, toolbar search |
+| `TABLE_PAGINATE_AT`, `TABLE_PAGE_ROWS`, `SEARCH_AT` | collection thresholds: pagination, page size, toolbar search |
 | `CHIP_BUDGET`, `ROW_RELATION_BUDGET`, `SUMMARY_BUDGET`, `DETAIL_FACT_BUDGET` | chip, relation-chip, structural-summary, detail-fact counts |
 | `CHILDREN_TABS_AT`, `HEADER_ACTIONS_INLINE` | child regions per tab, inline header actions before the overflow menu |
 | `ROW_FIELD_BUDGET`, `SCALAR_BASES` | dense-row field count, scalar base set |
@@ -640,7 +640,7 @@ handwritten.
   least one `identifier`-flagged field, an authored `name`/`glyph` per
   type, and a per-field `control` pin; `runCommand` and `unlink` beside the
   create/transition/delete/link/hidden kinds; one volume collection over
-  fifty instances (virtualized tables, paginated views, toolbar search);
+  fifty instances (paginated views, toolbar search);
   one guaranteed-empty type with its own list screen (empty state) and a
   detail screen over it (missing state); loaded parent records with
   weight-sized peer collections (concentrated lineage — each parent type
