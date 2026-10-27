@@ -3030,7 +3030,7 @@
         "writeFields": "Поля записи",
         "privateFields": "Приватные поля",
         "payloadMime": "Принимаемые MIME",
-        "payloadMimePlaceholder": "image/png, image/*",
+        "payloadMimePlaceholder": "image/*",
         "payloadSize": "Лимит размера (МБ)",
         "payloadPreview": "Предпросмотр",
         "payloadCreation": "Создание",

@@ -52,10 +52,16 @@
         <template v-if="node.data.class === 'file'">
           <div class="flex flex-col gap-1">
             <label>{{ $t('processDesigner.payloadMime') }}</label>
-            <InputText
-              :model-value="payloadMime"
+            <AutoComplete
+              :model-value="node.data.payload?.mime || []"
+              :suggestions="mimeSuggestions"
               :placeholder="$t('processDesigner.payloadMimePlaceholder')"
-              @update:model-value="value => writePayload({ mime: String(value || '').split(',').map(entry => entry.trim()).filter(Boolean) })"
+              class="w-full"
+              multiple
+              typeahead
+              complete-on-focus
+              @complete="event => completeMime(event.query)"
+              @update:model-value="value => writePayload({ mime: value })"
             />
           </div>
           <div v-if="hasPayload" class="flex flex-col gap-2">
@@ -185,7 +191,8 @@
 // write the canvas node's declaration data and emit `sync`; the
 // live-graph pass re-derives records, ports, and the tree overlay
 // from it.
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import AutoComplete from 'primevue/autocomplete';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import MultiSelect from 'primevue/multiselect';
@@ -225,11 +232,23 @@ const previewOptions = [
 ];
 
 const hasPayload = computed(() => Boolean(props.node.data?.payload?.mime?.length));
-const payloadMime = computed(() => (props.node.data?.payload?.mime || []).join(', '));
 const payloadSizeMb = computed(() => {
   const bytes = Number(props.node.data?.payload?.maxSize);
   return Number.isFinite(bytes) && bytes > 0 ? bytes / (1024 * 1024) : null;
 });
+
+// Offered MIME families, wildcards first: picking "any image" is the
+// authoring gesture; vendor-specific strings stay typable beside them.
+const MIME_SUGGESTIONS = Object.freeze([
+  'image/*', 'video/*', 'audio/*', 'text/*',
+  'application/pdf', 'application/json', 'application/zip',
+  'text/plain', 'text/csv', 'text/markdown'
+]);
+const mimeSuggestions = ref(MIME_SUGGESTIONS);
+function completeMime(query = '') {
+  const needle = String(query).toLowerCase();
+  mimeSuggestions.value = MIME_SUGGESTIONS.filter(mime => mime.includes(needle));
+}
 
 // The payload facet (SPEC §4): an empty accepted-MIME list leaves the type
 // payload-less (fields alone satisfy the file class), any authored MIME

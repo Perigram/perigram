@@ -3030,7 +3030,7 @@
         "writeFields": "Writable fields",
         "privateFields": "Private fields",
         "payloadMime": "Accepted MIME",
-        "payloadMimePlaceholder": "image/png, image/*",
+        "payloadMimePlaceholder": "image/*",
         "payloadSize": "Size limit (MB)",
         "payloadPreview": "Preview",
         "payloadCreation": "Creation",
