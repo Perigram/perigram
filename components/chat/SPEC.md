@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-10-25
-updated: 2026-10-25
+updated: 2026-10-27
 ```
 # SPEC: Chat Surfaces
 The chat column as a component family a coding agent can navigate one
@@ -37,4 +37,5 @@ the owning file and its README row.
 | Live state | An open thread reconciles every `conversation:<key>` event — message, read, typing, bot activity — and a reconnect refetches the page; inbox counters ride the store's inbox pings. |
 | Thread rhythm | Day dividers split day boundaries; the unread divider marks the first unread message after a visit; sender runs group within the three-minute window; rows and bubbles keep their swipe actions. |
 | Avatars | Panes 64rem and wider close every sender run with the avatar-only left-gutter mark; group and instance threads anchor others' runs in the same gutter at every pane width; 1:1 threads carry no sender stamp in the two-sided variant. |
+| Long messages | A very long body clamps behind a show-more control; expanding reveals it in place; a jump to a clamped message reveals it. |
 | Rail resize | The two-pane inbox rail drags at its right edge between 16 and 34 rem; the width persists per browser. |
