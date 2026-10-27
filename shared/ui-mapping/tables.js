@@ -59,7 +59,7 @@ export const FIELD_DISPLAY_ENTRIES = Object.freeze([
   { match: { base: 'ref' }, component: 'InstanceInlineRef', span: 'half' },
   { match: { base: 'quantity' }, component: 'QuantityText', span: 'half' },
   { match: { base: 'instant' }, component: 'InstantText', span: 'half' },
-  { match: { base: 'boolean' }, component: 'BooleanIcon', span: 'half' },
+  { match: { base: 'boolean' }, component: 'BooleanCheck', span: 'half' },
   { match: { base: 'blob' }, component: 'FileChip', span: 'half' },
   { match: { base: 'list', itemBase: 'string' }, component: 'ChipsDisplay', span: 'full' },
   { match: { base: 'record' }, component: 'ObjectSummary', span: 'half' },

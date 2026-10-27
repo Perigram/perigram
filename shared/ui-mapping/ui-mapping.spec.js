@@ -611,7 +611,7 @@ describe('value formatting and layout vocabulary', () => {
     expect(formatValue({ base: 'quantity', unit: 'deg' }, { value: 25.5, unit: 'deg' })).toBe('25.5 °');
     expect(formatValue({ base: 'quantity', unit: 'count' }, { value: 42000, unit: 'count' })).toBe('42,000');
     expect(formatValue({ base: 'instant' }, '2026-03-14T08:30:00.000Z')).toBeTruthy();
-    expect(formatValue({ base: 'boolean' }, true)).toBe('✓');
+    expect(formatValue({ base: 'boolean' }, true)).toBe('true');
     expect(formatValue({ base: 'enum' }, 'h-alpha')).toBe('H Alpha');
     expect(formatValue({ base: 'list' }, [1, 2, 3])).toBe('3');
     expect(formatValue({ base: 'string' }, null)).toBe('—');

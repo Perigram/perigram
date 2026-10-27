@@ -43,11 +43,12 @@
               </div>
             </div>
           </template>
-          <template #subtitle>
+          <!-- SPEC §22.8: a homogeneous collection never repeats the
+               type name per card — the collection's own header names it.
+               Only containment context (ParentRef) earns the line. -->
+          <template v-if="parented" #subtitle>
             <span class="inline-flex min-w-0 items-center gap-1.5">
-              <span class="truncate">{{ type?.name }}</span>
               <ParentRef
-                v-if="parented"
                 :instance="instance"
                 :bundle="bundle"
                 :pool="pool"

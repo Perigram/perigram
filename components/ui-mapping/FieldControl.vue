@@ -24,10 +24,14 @@
        alias). Prose, labels, and identities stay in the UI face. -->
   <span v-else-if="outcome.component === 'QuantityText'" :class="[densityScale.factValue, 'text-technical tabular-nums']">{{ quantityValue }}</span>
   <span v-else-if="outcome.component === 'InstantText'" :class="[densityScale.factValue, 'text-technical tabular-nums']">{{ instantValue }}</span>
-  <Tag
-    v-else-if="outcome.component === 'BooleanIcon'"
-    :value="model === true ? '✓' : model === false ? '—' : '·'"
-    :severity="model === true ? 'success' : 'secondary'"
+  <!-- SPEC §22.8: a boolean renders as the checkbox state it is —
+       checked, unchecked, indeterminate — with no glyph characters. -->
+  <Checkbox
+    v-else-if="outcome.component === 'BooleanCheck'"
+    :model-value="model === true"
+    :indeterminate="model !== true && model !== false"
+    binary
+    readonly
   />
   <Tag v-else-if="outcome.component === 'Tag'" :value="enumLabel" severity="secondary" class="max-w-48 truncate" />
   <Knob
@@ -188,6 +192,7 @@ import ColorPicker from 'primevue/colorpicker';
 import Textarea from 'primevue/textarea';
 import InputNumber from 'primevue/inputnumber';
 import ToggleSwitch from 'primevue/toggleswitch';
+import Checkbox from 'primevue/checkbox';
 import DatePicker from 'primevue/datepicker';
 import SelectButton from 'primevue/selectbutton';
 import Tag from 'primevue/tag';

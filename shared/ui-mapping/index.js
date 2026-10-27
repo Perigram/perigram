@@ -883,7 +883,7 @@ export function formatValue(descriptor = {}, value) {
     case 'instant':
       return new Date(value).toLocaleDateString();
     case 'boolean':
-      return value ? '✓' : '—';
+      return String(value);
     case 'enum':
       return String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
     case 'ref':
