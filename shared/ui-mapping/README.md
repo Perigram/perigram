@@ -117,6 +117,7 @@ read-only presentations derive from shape.
 | `enum` | Tag |
 | `ref` | InstanceInlineRef (the app's interactive reference surface; the shared layer names the key) |
 | `quantity` | QuantityText |
+| `boolean` | BooleanCheck — the readonly checkbox state (checked, unchecked, indeterminate) |
 | `blob` | FileChip |
 | percent quantity (quantitative type) | Knob dial |
 | percent-valued map (quantitative type) | MeterGroup |

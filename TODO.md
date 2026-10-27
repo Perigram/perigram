@@ -1187,3 +1187,21 @@ hand-rolled `flex w-full flex-col gap-1` against the layout-language
 law. All now resolve through the vocabulary and the recipe module.
 
 Status: WAITING owner verification.
+
+## Generative UI layout sanity round 6 (owner direction 2026-10-27)
+
+Law: SPEC §22.8 (boolean checkbox states; no per-card type names in
+homogeneous collections). Owner findings: booleans rendered a Tag with
+glyph characters; every card in a single-type grid repeated the raw
+authored type name as its subtitle.
+
+- [x] Booleans render as the readonly checkbox state (`BooleanCheck`:
+  checked / unchecked / indeterminate, binary, no glyph characters);
+  the pure text fallback prints `true`/`false`.
+- [x] CardGrid drops the per-card type-name subtitle — the collection
+  header names the type; only containment context (ParentRef) earns
+  the line.
+
+### Agent Notes (2026-10-27, round 6)
+
+Status: WAITING owner verification.
