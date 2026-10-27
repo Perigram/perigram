@@ -950,3 +950,31 @@ and relation-linked children nest with the link glyph.
   carry no type row — their instances reach the sidebar beneath their
   parent instances. `typePanelItem` maps entity rows only. The pinned
   mounting spec asserts the panel rows exactly.
+
+## Agent tooling extensions (owner direction 2026-10-27)
+
+SPEC §3 (plugin-declared agent tools, the assistant guide) and §20 (the
+listing's `tools` declaration). DWG stays out — the owner decision of
+2026-10-13 stands.
+
+- [ ] Listing `tools` declaration: `parseListing` / `normalizeListing` /
+  `listing.schema.json` in the plugin SDK, descriptor-to-service binding
+  (endpoint mode only), plugin-qualified ids `plugin.<id>.<tool>`; catalog
+  publish and install snapshot in the plugins feature (the pinned
+  declaration layer); install-gate refusals (unknown service, shadowed
+  name). Docs: plugin-sdk and plugins feature READMEs.
+- [ ] Catalog composition and dispatch in agent-bots: installed plugins'
+  tools compose into `chatToolDescriptors` and `mcpToolDescriptors`
+  org-scoped (the `web_search` availability law — an org without the
+  install offers them nowhere); `executeTool` dispatches through the
+  connector under the delegated principal; focused specs on both surfaces.
+  Docs: agent-bots README catalog table.
+- [ ] DXF agent tools, the first consumer, on the facade executor's
+  vendored DXF engine: a geometry digest read (entities, layers, extents)
+  over file-instance payloads and declared transforms, bound as plugin
+  tools. Docs: workers/facade README service table.
+- [ ] The assistant guide: org settings storage behind the models-screen
+  settings gate, the models-screen block beside the search provider, and
+  the ride in `runtime.js` `systemPrompt` (platform instructions first,
+  guide after) for chat runs and wakes alike. Docs: agent-bots, llm, and
+  pages/organization READMEs.
