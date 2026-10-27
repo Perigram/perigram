@@ -1,15 +1,14 @@
 import { createDataPacket, isDataTree, packetValue } from './data-tree.js';
 import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
-import { resolveCatalogNodePorts } from './node-catalog.js';
+import { resolveCatalogNodePorts, EFFECT_SPECIES_KINDS } from './node-catalog.js';
 
 export const PROCESS_RUN_STATUSES = Object.freeze(['running', 'waiting', 'succeeded', 'failed', 'cancelled']);
 export const PROCESS_STEP_STATUSES = Object.freeze(['pending', 'running', 'waiting', 'succeeded', 'failed', 'skipped']);
 
-const NATIVE_EFFECT_KINDS = new Set(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.command', 'cts.service', 'cts.conversion', 'cts.emit']);
 const NATIVE_MUTATION_KINDS = new Set(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove']);
 
 function isNativeEffect(record = {}) {
-  return NATIVE_EFFECT_KINDS.has(String(record.kind || ''));
+  return EFFECT_SPECIES_KINDS.has(String(record.kind || ''));
 }
 
 function isEffectRecord(record = {}) {
