@@ -1781,3 +1781,20 @@ in every projection carried a type glyph the collection's own header
 already states.
 
 Status: WAITING owner verification.
+
+### Agent Notes (2026-10-27, agent/lineage-context-3-20261027)
+
+The reload asymmetry explained the persisting symptom: the dev server
+externalizes workspace packages (`#packages` law), so the running nitro
+process kept the pre-merge `packages/processes` module in its Node
+module cache while the `packages/cts` change served fresh — protocol
+modes healed (xlsx), the compiler reconciliation did not. While
+verifying, one more seam surfaced and closed: lineage axes are contract
+vocabulary on every construction path — a block-composed construct
+reconciles its authored `lineage.*` entries against the contract's
+lineage set (the immediate axes), so a stale ancestor stamp dies there
+too; composed `fields`/`name` entries stay authored. Compiler pins for
+both; processes 546 green; the running stack needs an app-container
+restart to drop the cached module.
+
+Status: WAITING owner verification.
