@@ -140,7 +140,11 @@ compiled input policy through `resolveCreateDialogInputs(action, type,
 bundle)` — the policy owns the row list, and the compiler keeps it to the
 fields the graph leaves unsupplied, so wired producers and authored socket
 defaults stay out of the dialog; construction inputs serve actions compiled
-without a policy. The contract's input list is the dialog's complete row
+without a policy. A structured refusal (SPEC §24) keeps the dialog open:
+the run's `failures` render as the offender list under the rows
+(`refusalFailuresOf` in utils/action-failures.js reads the error body),
+and the dialog closes only on success; row-level launches toast the same
+list. The contract's input list is the dialog's complete row
 list: an identifier row reaches the dialog only as a contract input (a
 registry-minted identity row authors nothing and stays out of every
 contract). Declared fields match by flat-wire `fields.<name>` path

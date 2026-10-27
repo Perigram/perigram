@@ -99,7 +99,9 @@ whose preview slots mount the bound preview surface, one per type),
 services — the platform resolves ref inputs and payloads as base64
 values; the executor returns `data` fields and may return `payload:
 { base64, mime, name? }`, which becomes the created record's
-payload), `starterConstructs` (`[{ typeId, construction }]` —
+payload, or answer a refusal as `{ failures: [{ name?, message }] }`
+naming its offenders, which the platform refuses the construction
+with), `starterConstructs` (`[{ typeId, construction }]` —
 constructs the plugin stations into every installing organization's
 initial process: the plugin's own file type, a declared mode, one per
 type), `dependencies` (declared runtime dependencies:

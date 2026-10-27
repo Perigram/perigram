@@ -1479,3 +1479,30 @@ endpoint keep the bake id. Cassettes and sheets follow the app canon:
 constructions carry the declared inputs, the typed relation travels with
 the computed snapshot (a sheet design's `parts` list commits with its
 geometry on every save), and provenance rides refs and revisions.
+
+Owner direction (2026-10-27, revisions are the version fabric): every
+file type carries a revision scope — the file's payload, geometry, or
+content versions. A derived record refers to the revision it was derived
+from: construction-time ref resolution stamps the resolved source
+revision beside the stored ref, an editor save or payload upload bumps
+the source revision, and every flow consuming such data (fills, renders,
+nesting, exports, pickers) reads the revision it is pinned to. A
+reference either pins its revision or follows latest. Re-derive is the
+compiled construct action's re-run over the stored inputs — it executes
+against the current referenced revisions and updates the record's pins.
+
+Owner decision (2026-10-27): construction refusals are structured. A
+construction service answers a refusal as `{ failures: [...] }` beside
+its data, each failure naming its offender (a spot, a part, a field),
+and the create dialog renders the named offenders; a refusal never
+collapses into an unnamed error.
+
+Owner decision (2026-10-27): template replacement is generic — every
+revision-scoped file type's detail carries the replace affordance, new
+bytes onto the same instance through the revisioned payload channel.
+Template retirement is a matter of the process definition: the
+definition that stations the type owns the remove construct.
+
+The DXF editor surface grows marker-first: open the template payload on
+the CAD canvas, author and rename `{spot:<name>}` anchors, save through
+the revisioned channel; full editing grows on the same surface.

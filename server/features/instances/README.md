@@ -206,7 +206,11 @@ name? }`: the bytes are stored in the `files` bucket and become the
 created instance's payload — validated through the same construct-time
 trait check every wire payload reference takes (`payloadFromWire`), the
 stored blob deleted on refusal; an executor payload overrides the
-draft's uploaded one. Template fills ride this shape (SPEC §24): a
+draft's uploaded one. A refusal may be structured (SPEC §24): the
+executor answers `{ failures: [{ name?, message }] }` naming its
+offenders, and the platform refuses the construction with the same body
+on the error's `data.failures` — the create dialog renders the list.
+Template fills ride this shape (SPEC §24): a
 `template` ref input plus wired values in, the filled file out.
 `constructionHandlers` reports every mode as served (the
 capability projections filter on it); genuinely unbound modes fail

@@ -539,21 +539,30 @@ AttachmentKind row.
     itself is generic machinery (instance-revisions + the payload
     patch law); the file-detail replace affordance rides the lifecycle
     step below.
-  - [ ] DXF editor surface: editor binding for dxf-source; a surface
-    module over the MLightCAD runtime homed in this plugin (the
-    cross-plugin vendor dependency serves facade's cassette designer from
-    the same bundle) that opens the payload, edits, and saves through
-    the revisioned channel.
-  - [ ] Spot-marker authoring in that surface: inserting a named anchor is
-    the `{spot:<name>}` TEXT law made visible — the anchor name is the
-    part-matching vocabulary, authored where the drawing is drawn.
-  - [ ] Create-dialog refusal surfacing: an executor refusal surfaces
-    through the connector error path as one message today; decide the
-    structured refusal shape (named spots/parts) and where the dialog
-    renders it.
-  - [ ] Template lifecycle: replacement rides the revisioned payload
-    channel (file detail affordance); retirement rides a compiled remove
-    construct in the definition that stations the type.
+  - [ ] DXF editor surface, marker-first: editor binding for dxf-source;
+    a surface module over the MLightCAD runtime homed in this plugin
+    (the cross-plugin vendor dependency serves facade's cassette
+    designer from the same bundle) that opens the template payload on
+    the CAD canvas, authors and renames `{spot:<name>}` anchors — the
+    part-matching vocabulary, authored where the drawing is drawn — and
+    saves through the revisioned channel; full editing grows on the same
+    surface.
+  - [ ] WAITING — Create-dialog refusal surfacing: a construction service
+    answers `{ failures: [...] }` (each failure naming its offender) and
+    the dialog renders the named offenders (SPEC §24 law).
+
+    ### Agent Notes (2026-10-27)
+
+    Executor seam: tech-drawing `place-dxf` and documents `fill` return
+    `{ failures: [{ message, name? }] }` for offender-named refusals
+    (unmatched markers, unplaced parts, unknown tokens); platform
+    `applyConstructionService` refuses with the structured body; the
+    create dialog renders the list. Focused specs: construction
+    services, both executors' engine specs.
+  - [ ] Template lifecycle: replacement is the generic file-detail
+    affordance on every revision-scoped file type (new bytes through the
+    revisioned payload channel); retirement is a compiled remove
+    construct owned by the process definition that stations the type.
   Landed beside the program: the per-kind field whitelist (every gesture
   value validates against the node contract table — configure refuses
   `inputDefaults`, `setInputDefault` refuses undeclared sockets,
@@ -562,17 +571,26 @@ AttachmentKind row.
   Beside the program: the pinned-entity-ref palette source and the
   action-id collision diagnostic (tracked above) are the
   definition-design pieces the program composes with.
-- [ ] Re-derive-in-place (design, SPEC §24 app canon): a constructed
-  record carries its construction inputs (`template`, `parameters`,
-  `parts`, `source` are stored fields); a re-derive action re-executes the
-  same construction over the current referenced instances and patches the
-  same instance's fields/payload — one mechanism for "re-render when the
-  template changed", "re-fill with new values", "re-derive the sheet when
-  cassettes changed", composing with the revisioned payload channel.
-  Design decision pending: the compiled action shape (a re-run affordance
-  on the construct node vs a generic instance action over the stored
-  inputs) and the drift story (explicit re-derive only — the snapshot law
-  stands).
+- [ ] Revisioned references (SPEC §24 version-fabric law, owner
+  direction 2026-10-27): revisions are the version fabric — every file
+  versions its content, derived records pin the revision they were
+  derived from, and consumers read the pin. Ordered steps:
+  - [ ] Every file type declares a revision scope (payload/geometry/
+    content); types missing one gain it in their listings.
+  - [ ] Ref fields carry revision pinning: a stored ref either pins the
+    source revision or follows latest; pinning rides the ref shape, and
+    pickers/ref chips surface which.
+  - [ ] Construction-time ref resolution stamps the resolved revision
+    beside the stored ref on the derived record.
+  - [ ] Editor saves and payload uploads bump the source revision; every
+    consuming flow (fills, renders, nesting, exports, previews) reads
+    the pinned revision.
+  - [ ] Re-derive rides the compiled construct action (owner decision
+    2026-10-27): a re-run over the stored inputs executes against
+    current referenced revisions and updates the record's pins and
+    derived fields/payload — one mechanism for "re-render when the
+    template changed", "re-fill with new values", "re-derive the sheet
+    when cassettes changed".
 - [ ] Pinned-entity-ref palette source: a `source` node emitting one
   authored entityRef (the "select exact instance" producer), so a graph can
   wire a pinned record into any construct's ref sockets. Authored socket

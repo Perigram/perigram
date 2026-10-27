@@ -14,7 +14,8 @@ same-origin. Orgs connect the executor through the install's
 - Service: `place-dxf` (`services.js`, endpoint mode, construction
   `fill` on `dxf-source`). Input `{ refs: { template, parts }, draft }`
   — template and part refs arrive with `payloadBase64`; output
-  `payload: { base64, mime: 'application/dxf', name }`.
+  `payload: { base64, mime: 'application/dxf', name }`, or
+  `{ failures: [{ name, message }] }` on refusal.
 - Editor surface: `surfaces/sketch-editor.mjs` (surface contract 3 — the
   capability mount; background images upload through the host file
   channel, undo/redo over scene snapshots inline).
@@ -41,8 +42,9 @@ ref by instance name, translates the part's ENTITIES so its extents
 minimum lands on the marker's insertion point, removes the marker entity,
 and splices the translated entities into the template's ENTITIES —
 everything else in the template (header, tables, blocks) is preserved
-verbatim. Unmatched markers and unplaced parts both refuse with the
-offending names; one nesting level does not apply here (there is none).
+verbatim. Unmatched markers and unplaced parts both answer the
+structured refusal — `{ failures: [{ name, message }] }` naming each
+offender — which the create dialog renders as the list.
 
 Translation covers coordinate pairs 10–18 (x) and 20–28 (y) and rounds
 to six decimals. Header `$EXTMIN`/`$EXTMAX` values stay as authored;
