@@ -34,7 +34,7 @@ test.describe('process generated screens', () => {
   for (const typeId of [...PACK_LIST_TYPES, PARENT_TYPE]) {
     test(`list screen auto_${typeId} resolves its contracted source endpoint`, async ({ app }) => {
       test.setTimeout(120_000);
-      await app.installPlugins(['documents', 'tech-drawing', 'facade']);
+      await app.installPlugins(['tech-drawing', 'documents', 'facade']);
       await seedMatrixTypes(app);
       const { manifest } = await app.seedSpeciesProcess({
         types: [...PACK_LIST_TYPES, PARENT_TYPE, CHILD_TYPE],
@@ -75,7 +75,7 @@ test.describe('process generated screens', () => {
 
   test('detail screen resolves the single source and the lineage-scoped child region', async ({ app }) => {
     test.setTimeout(120_000);
-    await app.installPlugins(['documents', 'tech-drawing', 'facade']);
+    await app.installPlugins(['tech-drawing', 'documents', 'facade']);
     await seedMatrixTypes(app);
     const { manifest } = await app.seedSpeciesProcess({
       types: [...PACK_LIST_TYPES, PARENT_TYPE, CHILD_TYPE],
@@ -193,7 +193,7 @@ test.describe('process generated screens', () => {
 
   test('home screen renders every contracted source section from its own endpoint', async ({ app }) => {
     test.setTimeout(120_000);
-    await app.installPlugins(['documents', 'tech-drawing', 'facade']);
+    await app.installPlugins(['tech-drawing', 'documents', 'facade']);
     await seedMatrixTypes(app);
     const { manifest } = await app.seedSpeciesProcess({
       types: [...PACK_LIST_TYPES, PARENT_TYPE, CHILD_TYPE],

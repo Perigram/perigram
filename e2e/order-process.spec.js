@@ -21,7 +21,7 @@ const ART = 'test-results/order-process-live.json';
 
 test('the order process runs live: table rows become baked designs, materials, and nesting runs', async ({ app }) => {
   test.setTimeout(240_000);
-  await app.installPlugins(['documents', 'tech-drawing', 'facade']);
+  await app.installPlugins(['tech-drawing', 'documents', 'facade']);
   await app.connectPlugin('documents', 'http://documents-executor:8791');
   await app.connectPlugin('facade', 'http://facade-executor:8790');
 
@@ -201,9 +201,15 @@ test('the order process runs live: table rows become baked designs, materials, a
   };
   expect(designs.map(boundsOf).sort()).toEqual(['300x300', '600x450']);
   // The template ref rides the §3 provenance (the effect boundary's
-  // causal record: sources collect the construct's typed entity inputs).
+  // causal record: sources collect the construct's typed entity inputs),
+  // pinned to the revision the render consumed (SPEC §24 version fabric:
+  // the upload minted geometry revision 1).
   for (const design of designs) {
-    expect(design.provenance?.sources).toContainEqual({ type: 'cassette', id: templateId });
+    expect(design.provenance?.sources).toContainEqual({
+      type: 'cassette',
+      id: templateId,
+      revision: `revision:cassette:${templateId}:geometry:1`
+    });
     expect((design.data?.geometry?.nestingPolygons || design.fields?.geometry?.nestingPolygons || []).length).toBeGreaterThan(0);
   }
 
