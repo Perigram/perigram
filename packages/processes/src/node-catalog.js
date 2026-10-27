@@ -59,6 +59,7 @@ const definitions = [
   source('source.currentOrganization', 'currentOrganization'),
 
   data('value.cast', 'cast'),
+  data('value.select', 'select'),
   data('value.recordField', 'recordField'),
   data('value.convertUnit', 'convertUnit'),
   data('value.required', 'required'),
@@ -100,6 +101,7 @@ const definitions = [
   data('tree.stats', 'treeStatistics'),
 
   data('record.construct', 'constructRecord'),
+  data('record.merge', 'mergeRecords'),
 
   // Reads are native-species only (SPEC §20): persisted `read.*` kinds
   // migrate one-way to `cts.read` + select at the load boundary, so the
@@ -616,11 +618,36 @@ function catalogPorts(record = {}, context = {}) {
     // The record elimination form: one authored key read off each record
     // value (a service row, a composed parameter record). The input is
     // the element-typed List socket — mapped per item, preserving the
-    // source topology; the key and the output type are authored on the
-    // node, the same authoring gesture open-block Get Field uses.
+    // source topology; the key arrives by wire or from the record's
+    // authored `path`, the same gesture cts.field's field socket allows.
     return {
-      inputs: [socket('value', processType('record', { nullable: true }), DATA, true, 'list')],
+      inputs: [
+        socket('value', processType('record', { nullable: true }), DATA, true, 'list'),
+        socket('key', processType('string'), DATA, false)
+      ],
       outputs: [socket('value', processTypeFrom(record.type, processType('json', { nullable: true })), DATA, false, 'list')]
+    };
+  }
+  if (kind === 'value.select') {
+    // The typed ternary: a boolean picks one of two same-typed operands;
+    // a scalar condition broadcasts across item operands.
+    const selected = processTypeFrom(record.type, processType('json', { nullable: true }));
+    return {
+      inputs: [
+        socket('condition', processType('boolean'), DATA, true),
+        socket('left', selected, DATA, true),
+        socket('right', selected, DATA, true)
+      ],
+      outputs: [socket('value', selected)]
+    };
+  }
+  if (kind === 'record.merge') {
+    return {
+      inputs: [
+        socket('left', processType('record', { nullable: true }), DATA, true),
+        socket('right', processType('record', { nullable: true }), DATA, true)
+      ],
+      outputs: [socket('record', processType('record'))]
     };
   }
   // The cast input is the universal json acceptor (the wire's toJson
@@ -713,7 +740,12 @@ function catalogPorts(record = {}, context = {}) {
   };
   if (kind === 'collection.groupBy') return {
     inputs: [socket('items', configured, DATA, true, 'list'), socket('keys', processType('json'), DATA, true, 'list')],
-    outputs: [socket('groups', configured, DATA, false, 'tree')]
+    outputs: [
+      socket('groups', configured, DATA, false, 'tree'),
+      // The grouping key per branch: the value that formed each group,
+      // tree-aligned with `groups`.
+      socket('keys', processType('json', { nullable: true }), DATA, false, 'tree')
+    ]
   };
   if (kind === 'collection.filter') return {
     inputs: [socket('items', configured, DATA, true, 'list'), socket('mask', processType('boolean'), DATA, true, 'list')],

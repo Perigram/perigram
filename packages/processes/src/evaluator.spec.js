@@ -19,6 +19,76 @@ describe('process v4 data execution', () => {
     expect(scalar.branches[0].items).toEqual([{ placed: 2 }]);
   });
 
+  it('reads a record field by a wired key and prefers it over the authored path', async () => {
+    const record = { kind: 'value.recordField', path: 'ignored', type: { base: 'json', nullable: true } };
+    const packet = await executeProcessDataNode(record, {
+      value: createDataPacket({ serial: 'S-1', name: 'Sheet' }),
+      key: createDataPacket('serial')
+    });
+    expect(packet.branches[0].items).toEqual(['S-1']);
+  });
+
+  it('parses strings to numbers and dates through the string registry', async () => {
+    const number = await executeProcessDataNode(
+      { kind: 'value.string', operation: 'toNumber' },
+      { value: createDataPacket('3.14') });
+    expect(number.branches[0].items[0]).toBe(3.14);
+    await expect(executeProcessDataNode(
+      { kind: 'value.string', operation: 'toNumber' },
+      { value: createDataPacket('nope') })).rejects.toThrow('Cannot parse "nope" as number');
+    const date = await executeProcessDataNode(
+      { kind: 'value.string', operation: 'toDateTime' },
+      { value: createDataPacket('2026-10-27T10:00:00Z') });
+    expect(date.branches[0].items[0]).toBe('2026-10-27T10:00:00.000Z');
+  });
+
+  it('selects one operand by a boolean condition, broadcasting a scalar condition over item lists', async () => {
+    const record = { kind: 'value.select', type: { base: 'number', nullable: false } };
+    const single = await executeProcessDataNode(record, {
+      condition: createDataPacket(true),
+      left: createDataPacket(1),
+      right: createDataPacket(2)
+    });
+    expect(single.branches[0].items[0]).toBe(1);
+    const list = await executeProcessDataNode(record, {
+      condition: createDataPacket([false, true], 'list'),
+      left: createDataPacket([10, 20], 'list'),
+      right: createDataPacket([1, 2], 'list')
+    });
+    expect(list.branches[0].items).toEqual([1, 20]);
+  });
+
+  it('merges two records shallowly with the right side winning; a missing side merges as absent', async () => {
+    const merged = await executeProcessDataNode(
+      { kind: 'record.merge' },
+      {
+        left: createDataPacket({ a: 1, shared: 'left' }),
+        right: createDataPacket({ b: 2, shared: 'right' })
+      });
+    expect(merged.branches[0].items[0]).toEqual({ a: 1, b: 2, shared: 'right' });
+    const oneSided = await executeProcessDataNode(
+      { kind: 'record.merge' },
+      { left: createDataPacket({ a: 1 }), right: createDataPacket(missingFieldMarker('x')) });
+    expect(oneSided.branches[0].items[0]).toEqual({ a: 1 });
+  });
+
+  it('emits the grouping key per branch beside the grouped items', async () => {
+    const groups = await executeProcessDataNode(
+      { kind: 'collection.groupBy' },
+      {
+        items: createDataPacket([{ n: 1 }, { n: 2 }, { n: 1 }], 'list'),
+        keys: createDataPacket(['a', 'b', 'a'], 'list')
+      });
+    expect(groups.branches.map(branch => branch.items)).toEqual([[{ n: 1 }, { n: 1 }], [{ n: 2 }]]);
+    const keys = await executeProcessDataNode(
+      { kind: 'collection.groupBy' },
+      {
+        items: createDataPacket([{ n: 1 }, { n: 2 }, { n: 1 }], 'list'),
+        keys: createDataPacket(['a', 'b', 'a'], 'list')
+      }, { outputId: 'keys' });
+    expect(keys.branches.map(branch => branch.items)).toEqual([['a'], ['b']]);
+  });
+
   it('drops foreign-type items from a union entity stream feeding a typed extract', async () => {
     const record = { kind: 'cts.read', typeId: 'cassette-design', select: 'extract', projection: 'nesting-polygons' };
     const project = vi.fn(async (typeId, projectionId, value) => ({ polygons: value.id }));

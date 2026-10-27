@@ -2587,7 +2587,9 @@
             "zipTrees": "Zip trees",
             "unzipTree": "Unzip tree",
             "crossTrees": "Cross trees",
-            "treeStats": "Tree statistics"
+            "treeStats": "Tree statistics",
+            "selectValue": "Select value",
+            "mergeRecords": "Merge records"
         },
         "paletteDescriptions": {
             "logic": "Combines Boolean conditions.",
@@ -2653,7 +2655,9 @@
             "currentUser": "The acting user.",
             "currentOrganization": "The active organization.",
             "getField": "Read one field off each entity.",
-            "literal": "A typed constant value."
+            "literal": "A typed constant value.",
+            "selectValue": "Pick one of two values by a boolean condition.",
+            "mergeRecords": "Shallow-merge two records; the right side wins."
         },
         "dataTypes": {
             "record": "Record",
@@ -2724,7 +2728,9 @@
             "indexOf": "Find position",
             "repeat": "Repeat text",
             "sum": "Sum",
-            "average": "Average"
+            "average": "Average",
+            "toNumber": "Parse number",
+            "toDateTime": "Parse date"
         },
         "socketLabels": {
             "in": "run after",

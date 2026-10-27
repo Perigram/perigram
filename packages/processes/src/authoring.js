@@ -332,6 +332,7 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
 // everything else resolves from its own contract.
 const TYPE_PROPAGATING_INPUTS = {
   'value.compare': ['left', 'right'],
+  'value.select': ['left', 'right'],
   'value.logic': ['left', 'value', '']
 };
 

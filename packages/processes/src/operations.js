@@ -172,7 +172,16 @@ export const PROCESS_OPERATION_REGISTRY = Object.freeze({
       { id: 'value', base: 'integer' },
       (text, search) => String(text).indexOf(String(search))),
     repeat: pair({ id: 'text', base: 'string' }, { id: 'count', base: 'integer' }, stringOut,
-      (text, count) => String(text).repeat(Number(count)))
+      (text, count) => String(text).repeat(Number(count))),
+    toNumber: unary({ id: 'value', base: 'string' }, numberOut, value => {
+      const parsed = Number(value);
+      if (value == null || value === '' || Number.isNaN(parsed)) {
+        throw new Error(`Cannot parse ${JSON.stringify(value)} as number`);
+      }
+      return parsed;
+    }),
+    toDateTime: unary({ id: 'value', base: 'string' }, dateTimeOut,
+      value => dateValue(value).toISOString())
   }),
 
   'value.dateTime': Object.freeze({
