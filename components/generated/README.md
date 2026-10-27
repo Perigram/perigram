@@ -91,9 +91,11 @@ both channels agree on a no-op.
 
 ## Prompted Action Inputs
 
-The pure `action-inputs.js` contract combines compiled `inputPolicy.fields`
-with normalized construction inputs, removes duplicate field ids, selects
-required/prompted controls, and builds the nested submission payload. It is
+The pure `action-inputs.js` contract reads the compiled `inputPolicy.fields`
+as the prompt list — the compiler keeps it to the fields the graph leaves
+unsupplied, so wired producers and authored socket defaults never prompt;
+construction inputs serve actions compiled without a policy. It selects
+required/prompted controls and builds the nested submission payload. It is
 the shared executable boundary for generic block-composed Create forms and
 typed entity-reference constructors; `ChatSupport` renders its prompted
 fields from it, and focused specs exercise it without mounting a surface.

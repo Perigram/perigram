@@ -1120,7 +1120,11 @@ visual-designer view of these types is in
 
 Graph edges are validated through the typed port helpers
 `normalizePortSpec()`, `portSpecsCompatible()`, `resolveNodePort()`, and
-`validateProcessEdges()`. Canvas socket handles have one vocabulary home,
+`validateProcessEdges()`. Value-plane mismatches delegate to the same
+coercion lattice as the canvas connect gate (`processSocketsCompatible`),
+so a wire the canvas accepts validates; an incompatible-port diagnostic
+names the expected and received types beside the socket labels. Canvas
+socket handles have one vocabulary home,
 `ports.js`: `mintProcessSocketHandle()` mints `data:<id>`/`control:<id>`
 by port role and `parseProcessSocketHandleId()` strips it (plus the legacy
 `input:`/`output:` spellings persisted by older drafts). Edge
