@@ -345,8 +345,10 @@ from the compiled manifest.
   top-level panel, avatar) and the wordmark returns on expand; the
   wrapped state persists with the workspace layout (`sidebarCollapsed`).
   Communication is two entries in the menu: Chats is a plain entry
-  opening the general chats pane tab in the active pane, and Calls
-  toggles the shared `CommunicationMenu` flyout (see
+  opening the general chats pane tab in the active pane and carrying
+  the total unread badge on its icon in both sidebar shapes (the
+  wrapped rail overlay and the expanded menu's `headericon` badge), and
+  Calls toggles the shared `CommunicationMenu` flyout (see
   [components/shared/README.md](../../components/shared/README.md)) —
   it lists every direct/group conversation with a ring action and
   carries the active joinable call rooms as its rows (icon, label,

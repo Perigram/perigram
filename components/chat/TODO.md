@@ -77,6 +77,16 @@ at every pane width, and 1:1 threads (human and AI) carry no stamp in
 the two-sided variant. SPEC §7 amended to this law.
 - WAITING — owner verification.
 
+## Sidebar chats unread badge (owner direction, 2026-10-27)
+- [x] The home sidebar's chats entry carries the total unread badge in
+  both shapes — the wrapped icon rail and the expanded menu.
+### Agent Notes (2026-10-27, sidebar unread badge)
+Delivered in `components/generated/GeneratedHomeWorkspace.vue` (rail
+icon overlay + PanelMenu `headericon` slot badge on the chats icon)
+and matched by the layouts README's mobile chats-tab row; the store's
+`totalUnread` feeds every surface.
+- WAITING — owner verification.
+
 ## Long-message clamp (owner direction, 2026-10-27)
 - [x] Very long message bodies clamp behind a show-more control;
   expanding reveals the body in place; a jump to a clamped message

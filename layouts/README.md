@@ -68,8 +68,8 @@ On mobile, `app.vue` replaces the desktop header with a fixed bottom panel of
 PrimeVue tabs: one tab per stationed type screen (the home sidebar tree's top
 level through `useMobileHomeTabs`, selection shared with the home workspace's
 mobile branch), a home fallback tab when the process stations no type screens,
-the chats tab (which opens the bounded `/chats` route), and the profile-menu
-button.
+the chats tab (which opens the bounded `/chats` route and carries the total
+unread badge), and the profile-menu button.
 The profile button opens the same account menu used on desktop; theme
 switching lives in that account menu on both desktop and mobile.
 `/chats` and account routes (`/organization` and

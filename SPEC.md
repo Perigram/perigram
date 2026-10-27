@@ -444,7 +444,9 @@ conversation row opens its menu (pin, archive), and a left swipe on touch
 unveils the same actions as a sticky rail — one row
 at a time, tap to dismiss. Inbox rows are exactly two lines at one constant height: the name with
 the read check and timestamp, and the message preview with the pin
-indicator and unread-count badge trailing it. Preview text never carries
+indicator and unread-count badge trailing it. The home sidebar's chats
+entry carries the total unread badge in both shapes — the wrapped icon
+rail and the expanded menu (owner direction 2026-10-27). Preview text never carries
 links — the row itself opens the conversation; every top-level row shares
 one left edge, nested children indent by compact steps, and the disclosure
 chevron overlays the gutter before the avatar. Replies quote the
