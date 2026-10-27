@@ -1245,3 +1245,28 @@ narrating templates.
 ### Agent Notes (2026-10-27, spacing ladder)
 
 Status: WAITING owner verification.
+
+## Generative UI rhythm step-down (owner direction 2026-10-27)
+
+Law: SPEC §22.9 (amended). Findings from the first layout-geometry dump
+(`e2e/zz-layout-geometry-probe.spec.js` → `.playwright/geometry-*.json`):
+headless count chips on pane-hosted headers (round 9's own slop), a
+uniform 24px rhythm at every tree level, gantt axis labels overflowing
+their 16px row, and the showcase defaulting to the denied/error state
+matrix.
+
+- [x] Hosted regions render no count — a count rides beside its
+  heading or not at all.
+- [x] The screen root separates sections on the ladder's top step
+  (`LAYOUT.stackSection`, interpolated as `screenRoot` in the rhythm
+  sets) — hierarchy reads through spacing.
+- [x] The gantt axis row hosts its month labels (h-6).
+- [x] The showcase reviews the natural world by default; the state
+  matrix opts in (`?state=on`).
+
+### Agent Notes (2026-10-27, geometry round)
+
+The geometry probe is the session's feedback loop for layout: measured
+box trees read as text, so layout defects are found without eyes.
+
+Status: WAITING owner verification.

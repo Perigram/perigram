@@ -1295,9 +1295,10 @@ slots are specified in shared/ui-mapping/SPEC.md.
 Generative surfaces space on one 4px-based ladder: steps 4, 8, 12, 16,
 24, 32px (Tailwind 1, 2, 3, 4, 6, 8). Static layout recipes and
 materialization utilities ride these steps alone; the density-keyed
-rhythm interpolator owns the sub-steps between them. Collection counts
-render as the count chip — the subtle well pill — and bare count text
-never rides a heading.
+rhythm interpolator owns the sub-steps between them. Hierarchy reads
+through the ladder: screen sections separate on the top step, one step
+above their content stacks. Collection counts render as the count chip
+and only beside their heading — a hosted region renders no count.
 
 ### 22.8 Layout sanity (owner direction 2026-10-27)
 
