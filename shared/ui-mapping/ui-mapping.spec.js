@@ -599,6 +599,17 @@ describe('hierarchy materialization', () => {
     expect(children.map(child => child.id)).toEqual(['nested']);
   });
 
+  it('falls back to the edge map key when the edge authors no lineageKey', () => {
+    const type = { edges: { children: { holds: { types: ['t-part-1'] } } } };
+    const pool = {
+      't-part-1': {
+        nested: { id: 'nested', type: 't-part-1', lineage: { holds: { id: 'bin' } } },
+        loose: { id: 'loose', type: 't-part-1', lineage: {} }
+      }
+    };
+    expect(childrenOfParent(type, pool, 'bin').map(child => child.id)).toEqual(['nested']);
+  });
+
   it('matches lineage references in both stored shapes', () => {
     const type = { edges: { children: { parts: { types: ['t-part-1'], lineageKey: 'binId' } } } };
     const pool = {
