@@ -101,6 +101,14 @@ wave. `npx vitest run packages/processes` green.
   (`EFFECT_SPECIES_KINDS`, node-catalog) and consumed by compiler-core
   and orchestration; the trigger-mode gate admits `schedule`; a manual
   emit compiles into the manifest as an `emitEvent` action.
+- 2026-10-27 (review, delivery): the scanner fed projected definition
+  documents into the run seam — `dataflowVersion` was stripped, so every
+  schedule fire failed the dataflow-version gate; the scanner loads full
+  documents. The UI action-kind vocabulary lacked `emitEvent`, so the
+  hydration manifest projection dropped every manual emit action
+  (`projectManifestAction` returns null on unknown kinds); the kind
+  joins `ACTION_KIND_BY_LEGACY`, `UI_CONTRACT_ACTION_KINDS`, and the
+  button table.
 
 ### Implemented in the same direction (2026-10-27)
 

@@ -367,8 +367,9 @@ bundle only direct fields derive. Pure over the type record and bundle.
 `resolveActionButton(action, { statePolicy })` → `{ component, tone, icon,
 iconOnly, confirm, hidden, inline }` from a fixed table: `createInstance` →
 primary + icon-only (`+`), `deleteInstance` → danger + confirmation +
-icon-only (trash), plain `updateInstance` → secondary + icon-only
-(pencil), relation link/unlink → text/icon presentations,
+icon-only (trash), stateless `updateInstance` → hidden (fields edit
+inline on detail surfaces), relation link/unlink → text/icon
+presentations, `runCommand` and `emitEvent` → secondary + bolt,
 event-triggered actions → hidden. Icon-only is the obvious-action
 channel: the caption stays the tooltip and accessible name, and menus
 keep full labels. An entry with `inline: true` declares reference-bound
