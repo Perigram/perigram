@@ -1312,7 +1312,8 @@ chat surfaces own: file chips name the file, instance chips ride
 InstanceInlineRef's bordered default. A boolean renders as the checkbox
 state it is. A homogeneous collection never repeats the type name per
 card; only mixed-type contexts and containment context carry type
-identity.
+identity. A collection's count renders only for loaded, accessible,
+non-empty collections.
 
 ## 23. Deslopification (owner direction 2026-10-23)
 

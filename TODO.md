@@ -1205,3 +1205,22 @@ authored type name as its subtitle.
 ### Agent Notes (2026-10-27, round 6)
 
 Status: WAITING owner verification.
+
+## Generative UI layout sanity round 7 (owner direction 2026-10-27)
+
+Law: SPEC §22.8 (count law); §22.3 (the host owns the name). Owner
+finding: a denied list screen rendered the screen title and the region
+label (the type name twice) beside a "0" count and the denial message.
+
+- [x] The count renders only for loaded, accessible, non-empty
+  collections — denied, failed, missing, and empty sources carry no
+  count — `RegionBlock`.
+- [x] The showcase passes `pane-hosted` (§22.3): its section headings
+  own the screen names; region headers stop repeating them.
+
+### Agent Notes (2026-10-27, round 7)
+
+The routed screens page already carried `pane-hosted`; the showcase was
+the duplicating host.
+
+Status: WAITING owner verification.
