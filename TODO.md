@@ -1739,3 +1739,40 @@ in every projection carried a type glyph the collection's own header
 already states.
 
 Status: WAITING owner verification.
+
+## Identifier icons and the groups projection (owner direction
+2026-10-27)
+
+Law: SPEC §22.3 (bare title bars), §22.8 (identifier icons), §22.11
+(groups projection). Owner findings: icons belong on exact instance
+identifiers, never on type names — the state was inverted (bare card
+titles, iconed table titles); and round 17's membership chips dumped
+every child of every type into cards.
+
+- [x] `InstanceIdentity.vue` is the one instance-identifier surface:
+  the record's icon (authored glyph, the record's declared thumb
+  winning) beside its identity link, consumed by every projection
+  (card-grid, board, stat, table identity cells, gantt, timeline,
+  calendar, row/detail bodies). The collection title bar drops its
+  icon — type names render bare (§22.3 amendment).
+- [x] The `groups` projection replaces membership cards: a group-class
+  collection renders each group instance as a group — its identifier
+  heading a section, its members beneath as identifier rows (every
+  children edge's instances over the overlaid pool), member count
+  beside the header, budgeted per group, overflow opening the group's
+  record popup. The class outranks incidental field shape in the
+  matcher; `LIST_LAYOUT_VALUES` and the row weights carry `groups`.
+- [x] The random world gains a prose floor (a long-body file type) so
+  the timeline projection stays reachable — groups now outrank
+  incidental chronology on group types; the world spec pins it.
+
+### Agent Notes (2026-10-27, round 19)
+
+Session `agent/genui-identicon-20261027-2140` (worktree
+`.agent-worktrees/genui-ident`). Round 17's card-grid-for-groups was the
+wrong reading of "rendered as groups in their dataviews" — the group
+instance IS the group: a section of members, one level, no tree, and
+the chips-in-card presentation dies with it. The identifier component
+centralizes what nine projections hand-rolled.
+
+Status: WAITING owner verification.

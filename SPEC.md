@@ -1273,7 +1273,7 @@ scrolls.
 2026-10-23; amendments 2026-10-26, 2026-10-27)
 The host that names a screen owns that name: the pane strip's tab, the
 routed page's title bar. A collection region carries its own title bar
-in every host — icon, label, count chip, controls — a collection
+in every host — label, count chip, controls — a collection
 surface is never titleless. A record page keeps its full header in
 every host — identity block, state surface, actions — beside its
 collections.
@@ -1328,16 +1328,17 @@ component's internals is a defect.
 ### 22.11 Group surfaces carry their membership (owner direction
 2026-10-27)
 
-A group-class instance renders as a group in collection surfaces: its
-card carries its membership — the children edge's instances as budgeted
-reference chips, flat, one level; a child opens its own surface, and
-the budget's overflow opens the group's own record popup. No tree
-projection: a class's list surface stays flat, and hierarchy navigation
-stays the workspace explorer's. Group collections derive the card grid —
-the class's identity law (identity is its membership) makes membership
-the card's content. Children resolve through the one hierarchy matcher
-over the overlaid pool; child types load lazily through the load-type
-seam, and an unloaded type renders without its context.
+A group-class collection renders as groups: each group instance is a
+group — its identifier heads a section, its members ride beneath as
+identifier rows (every children edge's instances, all child types),
+budgeted per group, and the overflow opens the group's own record
+popup, where the full membership arranges through the record ladder.
+The class outranks incidental field shape in the list matcher. No tree
+projection: members render one level, a member opens its own surface,
+and hierarchy navigation stays the workspace explorer's. Children
+resolve through the one hierarchy matcher over the overlaid pool; child
+types load lazily through the load-type seam, and an unloaded type
+renders without its context.
 
 ### 22.9 Spacing ladder (owner direction 2026-10-27)
 
@@ -1371,10 +1372,12 @@ its child collections alone; the hierarchy tree projection is retired.
 File and instance references render through the shared chip recipes the
 chat surfaces own: file chips name the file, instance chips ride
 InstanceInlineRef's bordered default. A boolean renders as the checkbox
-state it is. A homogeneous collection never repeats the type name or
-glyph per card; the collection's own title bar and the record header's
-avatar carry type identity, and only mixed-type contexts and
-containment context repeat it. A card's beyond-budget overflow opens
+state it is. A record's identifier carries its icon (the authored
+glyph, a record's declared thumb winning) through the one identifier
+surface; type names render bare — a collection's title bar labels its
+class in text alone. A homogeneous collection never repeats the type
+name per card; only mixed-type contexts and containment context carry
+type identity. A card's beyond-budget overflow opens
 the record's popup — the record surface carries the full set; a type
 with no record surface counts. A collection's count renders only for loaded, accessible,
 non-empty collections. The record header is the record's one identity

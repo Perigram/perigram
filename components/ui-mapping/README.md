@@ -138,7 +138,8 @@ beside the transition history in `StateHistory`.
   share one host.
 - `RegionBlock.vue` — one composed region with data-driven layout: the
   list layout comes from `resolveListLayout` (`table` | `card-grid` |
-  `timeline` | `stats` | `list` | `board` | `gantt` | `calendar`; the
+  `timeline` | `stats` | `list` | `board` | `gantt` | `calendar` |
+  `groups`; the
   matcher is [shared/ui-mapping](../../shared/ui-mapping/README.md)'s).
   The list header is one wrapping line — label, count, in-place controls,
   actions (see above). List regions stack the header row and the
@@ -254,8 +255,8 @@ beside the transition history in `StateHistory`.
   screen's identity-open channel; the opened record's title is the
   header identity line below the trail.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
-  identity (a link button when the screen has an `onOpen` handler),
-  status, budgeted scalar descriptor columns, and the first declared
+  identifier (`InstanceIdentity`), status, budgeted scalar descriptor
+  columns, and the first declared
   relation as budgeted chips. Rows are surface cards — the
   preset paints every row as the content surface with transparent
   internal dividers, the recipe clips the row corners
@@ -298,11 +299,7 @@ beside the transition history in `StateHistory`.
   preview as `#header`, identity + status in `#title`, the row's
   `ParentRef` parent context when the collection composes the
   cross-cut
-  in `#subtitle`, and in `#content` a group class's membership —
-  children as budgeted `InstanceInlineRef` chips through
-  `childrenOfParent`, the overflow opening the group's record popup
-  (SPEC §22.11) — ahead of
-  the labeled budgeted facts. Card ordering
+  in `#subtitle`, and the labeled budgeted facts in `#content`. Card ordering
   lives in the region header's sort control (RegionBlock applies the
   `sortKeys` contract through the shared comparator before the grid
   mounts; the DataView itself renders no header). The card identity is a
@@ -315,13 +312,13 @@ beside the transition history in `StateHistory`.
 - `StatGrid.vue` — the stats projection for percent/quantity-dominant
   types (the shape matcher is
   [shared/ui-mapping](../../shared/ui-mapping/README.md)'s): a dense
-  `ResponsiveGrid` of cards — identity (link button under the `onOpen`
-  contract), state tag, and the type's derived
+  `ResponsiveGrid` of cards — identifier (`InstanceIdentity`), state
+  tag, and the type's derived
   metric field rendered in the `text-metric` face, quantities formatted
   through `formatQuantity`.
 - `TimelineCollection.vue` — the chronological list projection (Timeline):
-  marker-per-entry with identity (link button under the `onOpen`
-  contract, trimmed at the timeline column's edge — the bounded
+  marker-per-entry with identifier (`InstanceIdentity`, trimmed at the
+  timeline column's edge — the bounded
   identity-link recipe the tables use: `min-w-0 max-w-full` with a
   truncating label), inline scalar facts, and the type's primary long-text
   (or first structural) field as the entry body, selected by type matcher
@@ -378,7 +375,7 @@ beside the transition history in `StateHistory`.
   the title attribute as the debugging channel.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card, `row` /
-  `inline` → dense flex row with the identity link, status, and one
+  `inline` → dense flex row with the identifier, status, and one
   budgeted fact (SPEC §22.8); the row identity is a link button
   under the screen's `onOpen` contract, like every collection identity.
 - `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
@@ -476,6 +473,17 @@ beside the transition history in `StateHistory`.
   [shared/ui-mapping](../../shared/ui-mapping/README.md)); spec-row values
   are click-to-edit through Inplace with visible affordance — hover
   highlights the value row and reveals a pencil icon.
+- `InstanceIdentity.vue` — the one instance-identifier surface (SPEC
+  §22.8): a record's identity line carries its icon (the authored
+  glyph, a record's declared thumb winning) and opens the record under
+  the screen's `onOpen` contract; every projection's collection
+  identities render through it.
+- `GroupCollection.vue` — the groups projection for group-class
+  collections (SPEC §22.11): each group instance heads a section with
+  its members beneath as `InstanceIdentity` rows (every children edge's
+  instances over the overlaid pool), the member count beside the
+  header, budgeted per group — the overflow opens the group's record
+  popup. One level; a member opens its own surface.
 - `ActionButton.vue`, `ParentRef.vue` — action-button presentation from
   the compiled action record, and the containment cross-cut's parent
   context token (a muted parent-type icon + the parent's resolved label
