@@ -306,7 +306,8 @@ beside the transition history in `StateHistory`.
 - `StatGrid.vue` — the stats projection for percent/quantity-dominant
   types (the shape matcher is
   [shared/ui-mapping](../../shared/ui-mapping/README.md)'s): a dense
-  `ResponsiveGrid` of cards — identity, state tag, and the type's derived
+  `ResponsiveGrid` of cards — identity (link button under the `onOpen`
+  contract), state tag, and the type's derived
   metric field rendered in the `text-metric` face, quantities formatted
   through `formatQuantity`.
 - `TimelineCollection.vue` — the chronological list projection (Timeline):

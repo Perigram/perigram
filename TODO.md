@@ -1334,3 +1334,52 @@ guarantee.
 ### Agent Notes (2026-10-27, round 14)
 
 Status: WAITING owner verification.
+
+## Generative UI raw-chips deslop (owner direction 2026-10-27)
+
+Law: SPEC §4 (raw PrimeVue), §22.8 (chip recipe), §22.9 (spacing
+ladder). Owner verdict: the generative UI follows no reasonable design
+system, violates the raw-PrimeVue rule, reads ugly overall.
+
+- [x] Chips ride the preset: `FILE_CHIP_CLASS`/`INSTANCE_CHIP_CLASS`
+  drop the hand-rolled re-skin (border, background, 12px supporting
+  face) and carry the clamps alone — raw PrimeVue Chip chrome and
+  inherited typography; the compact ref header label inherits the body
+  face. SPEC §22.8's "bordered default" sentence reconciled with the
+  chat law (§7: raw PrimeVue Chips, no hand-rolled chip chrome).
+- [x] One count surface: `COUNT_CHIP_CLASS` dies; region headers and
+  arrangement tabs render `Tag severity="secondary"` — the board's
+  existing count materialization.
+- [x] StatGrid: the raw per-card `type?.name` subtitle dies (§22.8
+  no-type-name law, one type-label chain); identity renders the standard
+  openable link (the stats projection was the only closed one).
+- [x] The rhythm interpolator rides declared steps: `gap-5` (20px) at
+  the 1.25/1.5 densities moves to the ladder neighbors (4/6); the guard
+  scans `SPACING_SCALES` for off-ladder full steps.
+- [x] Vocabulary and hygiene: `LAYOUT.well` owns the quiet inset recipe
+  (PreviewBox's file-facts band consumes it); the dead spacing inject in
+  CalendarCollection dies.
+
+### Agent Notes (2026-10-27, round 15)
+
+Session `agent/genui-raw-chips-20261027-1915` (worktree
+`.agent-worktrees/genui-raw-chips`). Diagnosis was measured, not
+guessed: the live showcase audit (`e2e/zz-design-audit-probe.spec.js` →
+`.playwright/design-audit-showcase.json`, 362 text elements) put 22% of
+all text at 12px — the chip classes stamped the supporting role on
+record and file names (data values), and re-skinned PrimeVue Chips with
+utility chrome. The board already used `Tag` for counts while headers
+and tabs used a hand-rolled pill — two count surfaces. StatGrid rendered
+the raw authored type name per card and was the only projection whose
+identity could not open a record. `SPACING_SCALES` carried `gap-5`
+(20px) at two densities — a step the §22.9 ladder does not declare
+(16→24 is the designed jump); the spacing guard scanned LAYOUT and the
+component tree but never the interpolator table. All now fixed; the
+design-system guard pins the chip classes and scans the interpolator.
+Specs: 151 unit (design-system, ui-mapping, screen, module-imports,
+timeline) green. Visual verification is the owner's: chips and counts
+step up to preset size on the showcase (`/test/ui-mapping`) and in chat
+after the dev container restarts.
+
+Status: WAITING owner verification.
+

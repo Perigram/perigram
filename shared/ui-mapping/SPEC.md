@@ -127,7 +127,7 @@ vocabulary cannot express is a pin (see Pins) recorded here when admitted.
 | `row` | horizontal wrap at content width | items pack and wrap freely | `LAYOUT.row`/`rowBetween`/`chipRow` |
 | `grid` | track-derived columns | `earned`: track fr from sibling weights, zero-floored, engaging when the measured box grants every track its earned minimum · `floor`: auto-fill at a content floor while the host grants growth · `steps`: fixed columns per width step | `RegionChildren` tracks and the record split (earned); `.ck-facts-grid`/`.ck-body-grid` (floor); `.ck-form-grid` (steps) |
 | `band` | a full-width strip whose height steps with its container | steps from `CONTAINER_WIDTH_STEPS` | `.ck-preview-hero` |
-| `well` | an inset cell one step above the canvas | a bounded well owns its scroll | `LAYOUT.boardColumn*`, `calendarCell`, `ganttTrack` |
+| `well` | an inset cell one step above the canvas | a bounded well owns its scroll | `LAYOUT.boardColumn*`, `calendarCell`, `ganttTrack`, `LAYOUT.well` |
 | `tabs` | the page-height bound arrangement | descending weight order | PrimeVue Tabs in `RegionChildren` |
 | `placement` | a slot that measures its own box | width is the placement box; height/scroll/density inherit the host record | `PlacementBox` |
 | `stub` | the inert one-line claim | the create affordance alone, packed at the surface foot | `RegionBlock` stub slot |
