@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassettes, cassette designs, sheet designs, and the nesting solver as an installable plugin with an external executor",
-  "version": "19",
+  "version": "20",
   "requires": [
     "tech-drawing"
   ],
@@ -200,8 +200,8 @@
           "fields.parameters"
         ],
         "operators": {
-          "bake": {
-            "id": "bake",
+          "render": {
+            "id": "render",
             "species": "construct",
             "input": {
               "base": "record",
@@ -602,7 +602,7 @@
     "constructions": {
       "cassette-design": {
         "upload": "plugin.facade.extract-geometry",
-        "bake": "plugin.facade.bake",
+        "render": "plugin.facade.bake",
         "convertDxf": "plugin.facade.extract-geometry"
       },
       "sheet-design": {

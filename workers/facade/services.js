@@ -47,11 +47,12 @@ export async function extractGeometry({ mode, payloadBase64 } = {}) {
   return { data: { geometry: { polygons: polygonParts, nestingPolygons: polygonParts, layerData } } };
 }
 
-// cassette-design bake: evaluate an OCCS parametric template once at the
-// authored parameter values. Input: { refs: { template: { id, name,
-// payloadBase64 } }, draft: { data: { parameters } } }. Output:
-// { data: { geometry } } — the template/parameters provenance rides the
-// platform's draft, evaluation is construction-time only.
+// cassette-design render (the bake engine): evaluate an OCCS parametric
+// template once at the authored parameter values. Input:
+// { refs: { template: { id, name, payloadBase64 } }, draft: { data:
+// { parameters } } }. Output: { data: { geometry } } — the
+// template/parameters provenance rides the platform's draft, evaluation
+// is construction-time only.
 export async function bake({ refs = {}, draft = {} } = {}) {
   const template = refs.template || badRequest('bake requires a template reference');
   const parameters = draft?.data?.parameters || {};

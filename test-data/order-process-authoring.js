@@ -68,7 +68,7 @@ export function composeOrderGraph(authoring, tableType) {
 
   authoring.drop('construct', { id: 'bake' });
   authoring.wireDeclaration('designRef', 'bake', 'binds');
-  authoring.configure('bake', { construction: { mode: 'bake' } });
+  authoring.configure('bake', { construction: { mode: 'render' } });
 
   authoring.drop('literalList', { id: 'codes' });
   authoring.configure('codes', { type: { base: 'string', nullable: false }, value: ['ACM-1250x2500-04', 'ACM-1500x3000-06'] });
