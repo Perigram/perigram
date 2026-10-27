@@ -822,7 +822,11 @@ export function createActionControls(actions = []) {
 // its form instead of executing an empty draft behind a bare confirm.
 export function planActionLaunch(action = {}) {
   if (action.actionKind === 'link') return 'link';
-  if (action.construction?.inputs?.length) return 'dialog';
+  const policyFields = action.inputPolicy?.fields;
+  const dialogRows = policyFields != null
+    ? policyFields.filter(field => field?.prompt !== false).length
+    : (action.construction?.inputs || []).length;
+  if (dialogRows) return 'dialog';
   if (action.actionKind === 'runCommand' && resolveRunDialogInputs(action).length) return 'dialog';
   return defaultMapping.resolveActionButton(action).confirm ? 'confirm' : 'run';
 }
@@ -1151,9 +1155,17 @@ export function typeLabelFor(type, { t, te, entitiesLabelKey = '', unnamedLabel 
 export function resolveCreateDialogInputs(action = {}, type = null, bundle = null) {
   const fields = type?.fields || {};
   const identifier = type?.identifier || null;
-  const policyById = new Map((action.inputPolicy?.fields || []).map(field => [field?.id || field?.path, field]));
+  const policyFields = action.inputPolicy?.fields || [];
+  // The compiled input policy owns the row list: the compiler keeps it to
+  // the fields the graph leaves unsupplied (wired producers and authored
+  // socket defaults drop out), so a supplied field stays out of the
+  // dialog. Construction inputs serve actions compiled without a policy.
+  const source = policyFields.length
+    ? policyFields.filter(field => field?.prompt !== false)
+    : [...(action.construction?.inputs || [])];
+  const policyById = new Map(policyFields.map(field => [field?.id || field?.path, field]));
   const rows = [];
-  for (const inputId of action.construction?.inputs || []) {
+  for (const inputId of source) {
     const id = typeof inputId === 'string' ? inputId : String(inputId?.id || inputId?.path || '');
     if (!id) continue;
     const policy = policyById.get(id) || (typeof inputId === 'object' && inputId ? inputId : null);

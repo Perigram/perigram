@@ -195,7 +195,7 @@ import { computed, ref } from 'vue';
 import AutoComplete from 'primevue/autocomplete';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
-import MultiSelect from 'primevue/multiselect';
+import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Message from 'primevue/message';
 import Select from '~/components/shared/InstanceSelect.vue';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';

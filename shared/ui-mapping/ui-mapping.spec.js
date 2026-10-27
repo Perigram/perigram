@@ -477,6 +477,19 @@ describe('action launch plan', () => {
     expect(planActionLaunch({ actionKind: 'createInstance', construction: { inputs: ['name'] } })).toBe('dialog');
   });
 
+  it('launches by the compiled input policy: fully graph-supplied creates run without a dialog', () => {
+    expect(planActionLaunch({
+      actionKind: 'createInstance',
+      construction: { inputs: [{ id: 'fields.name' }, { id: 'fields.kind' }] },
+      inputPolicy: { fields: [{ id: 'fields.kind', prompt: false }] }
+    })).toBe('run');
+    expect(planActionLaunch({
+      actionKind: 'createInstance',
+      construction: { inputs: [{ id: 'fields.name' }, { id: 'fields.kind' }] },
+      inputPolicy: { fields: [{ id: 'fields.name', prompt: true }] }
+    })).toBe('dialog');
+  });
+
   it('never replaces a create form with a bare confirm because of the grant level', () => {
     // The reported defect: admin-granted creates ran behind a
     // confirmation with an empty draft — grant level is an access signal,
@@ -1096,6 +1109,22 @@ describe('create dialog input resolution', () => {
     expect(rows.map(row => row.id)).toEqual(['fields.note', 'fields.width']);
     expect(rows[0]).toMatchObject({ label: 'Note', descriptor: { base: 'string' } });
     expect(rows[1]).toMatchObject({ descriptor: { base: 'quantity', unit: 'mm' } });
+  });
+
+  it('keeps graph-supplied fields out of the dialog: the policy owns the rows', () => {
+    // The compiled shape: fields.width is wired upstream and drops out of
+    // the policy while construction.inputs restates the whole contract.
+    const rows = resolveCreateDialogInputs(
+      {
+        construction: { inputs: [{ id: 'fields.note' }, { id: 'fields.width' }] },
+        inputPolicy: {
+          fields: [{ id: 'fields.note', path: 'fields.note', type: 'string', prompt: true }]
+        }
+      },
+      type,
+      bundle
+    );
+    expect(rows.map(row => row.id)).toEqual(['fields.note']);
   });
 
   it('requires the identifier row and carries the compiled required flag', () => {
