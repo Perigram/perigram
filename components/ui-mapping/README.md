@@ -256,14 +256,13 @@ beside the transition history in `StateHistory`.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identity (a link button when the screen has an `onOpen` handler),
   status, budgeted scalar descriptor columns, and the first declared
-  relation as budgeted chips. Rows are Notion-style surface cards — the
+  relation as budgeted chips. Rows are surface cards — the
   preset paints every row as the content surface with transparent
   internal dividers, and the recipe clips the row corners
   (`[clip-path:inset(0_round_var(--p-border-radius-xl))]`, since a row's
-  background is not clipped by its radius), adds a hairline
-  separated-border gap (the layout-only scoped block) and a muted
-  transparent header band — every instance row sits one step above the
-  canvas, with no border and no ring, while the table box stays unpainted.
+  background is not clipped by its radius) — every instance row sits
+  one step above the canvas, flush on the table's own rhythm, while
+  the table box stays unpainted (SPEC §22.10).
   The virtualized body clamps to the shared `TABLE_VIRTUAL_SCROLL_REM`
   bound, and the resolved container record sizes the column budget — a
   `narrow`/`medium` box (pane, popup, side rail, column track) takes the

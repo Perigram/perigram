@@ -1294,6 +1294,18 @@ trait definitions, the layout language (atoms and composition rules), the
 arrangement decision procedure, and the placement
 slots are specified in shared/ui-mapping/SPEC.md.
 
+### 22.10 PrimeVue owns component internals (owner direction
+2026-10-27)
+
+A PrimeVue component's internal spacing is the preset's business:
+no wrapper, wedge, scoped rule, or utility adds spacing inside a
+DataTable, DataView, Timeline, or any other PrimeVue collection —
+rows, cards, and entries ride the component's own rhythm and size
+variants. Generator spacing lives at the arrangement level (section
+rhythm, region stacks, the grid-gap token) and in the preset's token
+layer; a utility class inside a PrimeVue component's internals is a
+defect.
+
 ### 22.9 Spacing ladder (owner direction 2026-10-27)
 
 Generative surfaces space on one 4px-based ladder: steps 4, 8, 12, 16,

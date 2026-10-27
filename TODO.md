@@ -1292,3 +1292,20 @@ surfaces.
 ### Agent Notes (2026-10-27, round 11)
 
 Status: WAITING owner verification.
+
+## PrimeVue owns component internals (owner direction 2026-10-27)
+
+Law: SPEC §22.10. Owner finding: the generator added spacing inside
+PrimeVue collections that space themselves — a 4px separated-border
+wedge between DataTable rows, a hardcoded dense-grid gap beside the
+grid-gap token — double rhythm on top of the preset.
+
+- [x] The DataTable row wedge (scoped `border-spacing`) and its wrapper
+  class die; rows ride the component's own rhythm, flush.
+- [x] The dense card grid rides `--ck-grid-gap` (one token home for
+  grid gaps); the last hardcoded `gap-4` grid joins it.
+- [x] The scoped-style exception registry entry dies with the block.
+
+### Agent Notes (2026-10-27, round 12)
+
+Status: WAITING owner verification.
