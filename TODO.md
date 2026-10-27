@@ -1144,3 +1144,23 @@ the chat recipes. The record body rendered the descendant tree above
 the same children the child collections listed below it.
 
 Status: WAITING owner verification.
+
+## Generative UI layout sanity round 4 (owner direction 2026-10-27)
+
+Law: SPEC §22.8 (no app surface applies a case transform; internal
+vocabulary stays internal). Owner findings: the showcase rendered the
+compiled template name as a Tag beside every screen heading and the
+random-world fixture labels narrated their own purpose ("<Type> list —
+empty state"); plugin editor surfaces still stamped uppercase labels.
+
+- [x] The showcase header drops the template Tag (internal vocabulary);
+  fixture labels render `<Type> list` / `<Type> detail`; the random-world
+  spec finds the empty screen structurally (typeList over a type with
+  zero instances), by label.
+- [x] Plugin editor section labels render in natural case (cassette
+  designer, sheet editor); the case-transform guard now scans plugin
+  surface modules and package editors beside the app tree.
+
+### Agent Notes (2026-10-27, round 4)
+
+Status: WAITING owner verification.
