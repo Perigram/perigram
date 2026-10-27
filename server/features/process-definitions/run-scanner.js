@@ -75,7 +75,7 @@ async function scanDueSchedules(now) {
       const schedule = node?.trigger?.mode === 'schedule' ? node.trigger.schedule : null;
       if (!schedule) continue;
       const due = schedule.at
-        ? new Date(schedule.at).getTime() <= now.getTime()
+        ? await oneShotDue(definition, node, schedule, now)
         : schedule.interval ? await intervalDue(definition, node, schedule, now) : false;
       if (!due) continue;
       try {
@@ -87,6 +87,11 @@ async function scanDueSchedules(now) {
     }
   }
   return fired;
+}
+
+async function oneShotDue(definition, node, schedule, now) {
+  if (new Date(schedule.at).getTime() > now.getTime()) return false;
+  return !(await findLastScheduleFire(definition._id, node.id));
 }
 
 async function intervalDue(definition, node, schedule, now) {

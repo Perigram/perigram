@@ -3,6 +3,7 @@ import { operationKindOf, typeIdOf, setTypeBinding } from '~/packages/cts/src/in
 import {
   EFFECT_SPECIES_KINDS,
   createProcessRecordSync,
+  effectTriggerFor,
   formatProcessType,
   getProcessNodeDefinition,
   humanizeNodeLabel,
@@ -210,20 +211,12 @@ export function useProcessDesignerNodeSync({
       .filter(Boolean);
   }
 
-  // Trigger mode is derived, never authored: the event input is always
-  // present on effects, and an effect runs automatically iff that input
-  // is wired. The compiled `trigger.mode` spelling is written here from
-  // the graph, so persisted authored modes heal into derived ones.
+  // Persisted authored trigger modes heal into derived ones
+  // (effectTriggerFor owns the derivation).
   function syncEffectTriggerMode(graphNode = {}, record = {}) {
     if (!EFFECT_SPECIES_KINDS.has(opKind(record))) return;
-    // Wire wins; an unwired entry with an authored schedule starts at its
-    // time, one with an authored eventId starts on that event.
     const connected = connectedProcessInputIds(graphNode, record);
-    if (connected.includes('in')) record.trigger = { mode: 'event' };
-    else if (record.trigger?.schedule?.at || record.trigger?.schedule?.interval) {
-      record.trigger = { mode: 'schedule', schedule: record.trigger.schedule };
-    } else if (record.eventId) record.trigger = { mode: 'event', eventId: record.eventId };
-    else record.trigger = { mode: 'manual' };
+    record.trigger = effectTriggerFor(connected.includes('in'), record);
   }
 
   // Pure port lookup shared by every consumer of handle-shaped ports.

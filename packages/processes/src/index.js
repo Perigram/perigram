@@ -65,7 +65,8 @@ export {
   childrenWireLegality,
   servicesPaletteGroups,
   packPaletteGroups,
-  syncProcessNodeProducerOutputs
+  syncProcessNodeProducerOutputs,
+  effectTriggerFor
 } from './designer.js';
 export { resolveProcessActionInputContext } from './algebra.js';
 export {

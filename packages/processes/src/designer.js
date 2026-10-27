@@ -16,6 +16,18 @@ import { processType } from './types.js';
 // Exported as the one derivation home: designer surfaces mapping a field
 // id back to its authored label (the type-migration step dialog) derive
 // ids exactly the way the compiled declaration does.
+// The one trigger-mode derivation: the wire wins; an unwired entry with an
+// authored schedule starts at its time, one with an authored eventId
+// starts on that event.
+export function effectTriggerFor(wired, record = {}) {
+  if (wired) return { mode: 'event' };
+  if (record.trigger?.schedule?.at || record.trigger?.schedule?.interval) {
+    return { mode: 'schedule', schedule: record.trigger.schedule };
+  }
+  if (record.eventId) return { mode: 'event', eventId: record.eventId };
+  return { mode: 'manual' };
+}
+
 export function camelCaseId(value = '') {
   const segments = String(value).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
   if (!segments.length) return '';

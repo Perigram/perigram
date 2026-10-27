@@ -699,7 +699,7 @@ export async function resumeParkedRun(record) {
     data: base.data(record.run)
   });
   const settled = await advanceToBoundary(resumed, record.definitionData, parkingEnvironment(definitionLike, base));
-  await persistRun(definitionLike, settled);
+  await persistRun(definitionLike, settled, { kind: record.kind, nodeId: record.nodeId });
   return settled;
 }
 
@@ -1795,8 +1795,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       id: crypto.randomUUID(),
       organizationId: auth.organizationId ?? null,
       type,
-      payload: inputs.payload ?? null,
-      sourceDefinitionId: ''
+      payload: inputs.payload ?? null
     });
     try {
       const { dispatchEventToSubscribers } = await import('./run-scanner.js');

@@ -11,6 +11,7 @@ import {
   camelCaseId,
   createProcessDesignerContract,
   declarationWireLegality,
+  effectTriggerFor,
   interpretDeclarationEdges,
   syncProcessNodeProducerOutputs
 } from './designer.js';
@@ -1024,7 +1025,7 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
       const wired = data.graph.edges.some(edge => (
         edge.target === recordId && parseProcessSocketHandleId(edge.targetHandle) === 'in'
       ));
-      record.trigger = { mode: wired ? 'event' : 'manual' };
+      record.trigger = effectTriggerFor(wired, record);
     }
     return record;
   }
