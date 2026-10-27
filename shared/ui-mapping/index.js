@@ -1327,10 +1327,10 @@ export function childrenOfParent(type = null, pool = {}, parentId = null) {
   const children = [];
   const parentKey = parentId === null || parentId === undefined ? '' : String(parentId);
   if (!parentKey) return children;
-  for (const declaration of Object.values(type?.edges?.children || {})) {
+  for (const [mapKey, declaration] of Object.entries(type?.edges?.children || {})) {
     for (const childTypeId of declaration?.types || []) {
       for (const instance of Object.values(pool[childTypeId] || {})) {
-        const ref = instance.lineage?.[lineageKeyOfEdge(declaration)];
+        const ref = instance.lineage?.[lineageKeyOfEdge(declaration, mapKey)];
         const value = ref?.id ?? ref;
         if (value !== null && value !== undefined && String(value) === parentKey) {
           children.push(instance);
