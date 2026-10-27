@@ -25,7 +25,7 @@ const edges = ref([]);
 const draft = ref(null);
 const toast = { add: () => {} };
 
-const { designer } = useProcessDesignerTypes({
+const { designer, loadOrgTypes } = useProcessDesignerTypes({
   nodes, edges, t, toast,
   activeOrganizationId: () => 'org-1',
   baseDomain: facadeDomain,
@@ -59,10 +59,17 @@ describe('effect record access stays a grant object', () => {
     expect(record.access).toEqual({ level: 'write', roleIds: [], grants: [] });
   });
 
-  it('a legacy draft record carrying via adopts construction.mode and drops the stale key', () => {
+  it('a legacy draft record carrying via adopts construction.mode and drops the stale key', async () => {
+    // The served type view delivers the registry's pack types; without it
+    // every type is a vocabulary gap and the sync preserves authored state
+    // verbatim by contract.
+    globalThis.$fetch = vi.fn(async () => ({ types: facadePackContent.types.map(type => ({ ...type, scope: 'system' })) }));
+    await loadOrgTypes();
+    delete globalThis.$fetch;
     freshDraft();
     const record = nodeRecords.createProcessNode('create', 'cts.construct');
     delete record.construction;
+    record.typeId = 'profile';
     record.via = 'genericCreate';
     sync.syncProcessNode(record);
     expect(record.construction.mode).toBe('genericCreate');

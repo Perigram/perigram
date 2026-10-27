@@ -134,8 +134,9 @@ describe('creation-protocol construction inputs', () => {
     const domain = realDomain();
     const authoring = createDefinitionAuthoring(domain);
     authoring.drop('construct', { id: 'n1' });
+    authoring.declareTypeRef({ id: 'ref_td', typeId: 'text-document' });
+    authoring.wireDeclaration('ref_td', 'n1', 'binds');
     authoring.configure('n1', {
-      typeId: 'text-document',
       construction: {
         mode: 'editor',
         inputs: [{ id: 'fields.name', path: 'fields.name', type: 'string', required: true, prompt: true }]
