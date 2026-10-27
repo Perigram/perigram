@@ -253,7 +253,7 @@ describe('field control resolution', () => {
     expect(stateTransitionsByType({})).toEqual({});
   });
 
-  it('resolves prose, meters, sliders, and galleries from shape', () => {
+  it('resolves prose, meters, sliders, and preview collections from shape', () => {
     expect(resolveFieldControl({ base: 'string', max: 400 }, { variant: 'row' })).toMatchObject({
       component: 'ProseText', span: 'full'
     });
@@ -269,11 +269,10 @@ describe('field control resolution', () => {
     expect(resolveFieldControl({ base: 'quantity', unit: 'mm', min: 0, max: 1000 }, { variant: 'detail' })).toMatchObject({
       component: 'Slider'
     });
-    // The gallery serves preview-dominated collections only: a visual
-    // payload preview earns it at large size; an attachment payload
-    // stays a grid whatever its size.
+    // Preview-dominant collections render the card grid (SPEC §22.8):
+    // the carousel projection is retired, whatever the payload preview.
     const gallery = { class: 'file', payload: { preview: 'image' }, fields: { title: { base: 'string' } } };
-    expect(resolveListLayout(gallery, { size: 'large' })).toBe('gallery');
+    expect(resolveListLayout(gallery, { size: 'large' })).toBe('card-grid');
     expect(resolveListLayout(gallery, {})).toBe('card-grid');
     const attachments = { class: 'file', payload: { preview: 'attachment' }, fields: { title: { base: 'string' } } };
     expect(resolveListLayout(attachments, { size: 'large' })).toBe('card-grid');

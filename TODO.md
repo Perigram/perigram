@@ -1092,3 +1092,23 @@ records.
 Status: WAITING owner verification — live look at the showcase
 (`/test/ui-mapping`) and real record pages after the app picks up the
 change. Expect a round 2 from what still reads wrong.
+
+## Generative UI layout sanity round 2 (owner direction 2026-10-27)
+
+Law: SPEC §22.8 (carousel retired; section labels in natural case).
+Owner findings: the galleria projection is the wrong component for
+in-page collections; uppercase section labels read as artificial.
+
+- [x] The `gallery` projection is retired: matcher entry, layout
+  vocabulary (`galleryItem`/`galleryThumb`), `GalleryCollection.vue`,
+  the `ck-gallery` styles, `VISUAL_PREVIEW_MODES` (its dominance signal,
+  no remaining consumer), the random-world gallery guarantee, and the
+  declaration inspector's redundant union. Preview-dominant collections
+  render the card grid.
+- [x] Section labels render in natural case: `sectionTitle` drops the
+  `uppercase` stamp across `LAYOUT` and every spacing scale; the
+  entity-card section label the same.
+
+### Agent Notes (2026-10-27, round 2)
+
+Status: WAITING owner verification.

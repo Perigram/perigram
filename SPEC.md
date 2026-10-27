@@ -1304,6 +1304,8 @@ Dashboard presentations — dials, meter groups, charts, ratings — render
 for quantitative-dominant types alone; every other type renders plain
 values. Preview bands render real content: payload viewers, declared
 preview sources, plugin previews, or the quiet type glyph.
+Preview-dominant collections render the card grid; the carousel
+projection is retired. Section labels render in natural case.
 
 ## 23. Deslopification (owner direction 2026-10-23)
 

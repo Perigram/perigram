@@ -42,15 +42,6 @@
     @run="(action, context) => emit('run', action, context)"
     @transition="payload => emit('transition', payload)"
   />
-  <GalleryCollection
-    v-else-if="listLayout === 'gallery'"
-    :instances="filteredInstances"
-    :type="node.type"
-    :openable="openable"
-    :pool="effectivePool"
-    :bundle="bundle"
-    @open="instance => emit('open', instance)"
-  />
   <TimelineCollection
     v-else-if="listLayout === 'timeline'"
     :instances="filteredInstances"
@@ -113,7 +104,6 @@ import CardGrid from './CardGrid.vue';
 import BoardCollection from './BoardCollection.vue';
 import GanttCollection from './GanttCollection.vue';
 import CalendarCollection from './CalendarCollection.vue';
-import GalleryCollection from './GalleryCollection.vue';
 import TimelineCollection from './TimelineCollection.vue';
 import StatGrid from './StatGrid.vue';
 

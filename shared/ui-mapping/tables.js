@@ -91,9 +91,6 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
   { match: { shape: 'durational' }, layout: 'gantt' },
   { match: { shape: 'chronological' }, layout: 'timeline' },
   { match: { shape: 'statlike' }, layout: 'stats' },
-  // The gallery serves preview-dominated collections: a payload type
-  // whose declared preview renders visually (image, geometry), large.
-  { match: { gallery: true, size: 'large' }, layout: 'gallery' },
   { match: { class: 'file' }, layout: 'card-grid' },
   // Scheduled (exactly one instant, no stronger shape): appointment-like
   // collections lay out as the month grid; temporal shape beats size the
@@ -112,7 +109,7 @@ export const BOARD_MIN_COLUMNS = 2;
 
 // Known list-layout values: validates authored `render.listLayout` and
 // bounds the resolver vocabulary.
-export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'card-grid', 'gallery', 'timeline', 'stats', 'list', 'board', 'gantt', 'calendar']);
+export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'card-grid', 'timeline', 'stats', 'list', 'board', 'gantt', 'calendar']);
 
 // Collection thresholds live with the other design-system budgets so
 // materializations carry no magic numbers: tables paginate past
@@ -204,7 +201,7 @@ export const HOST_PROFILES = Object.freeze({
 // demand the full row to stay readable; layouts whose surfaces own a
 // scroll or page bound past a budget; the bare stacked list is chip-scale.
 export const FULL_BREADTH_LAYOUTS = Object.freeze(['table', 'board', 'gantt', 'calendar']);
-export const BOUNDED_GROWTH_LAYOUTS = Object.freeze(['table', 'board', 'gantt', 'calendar', 'gallery']);
+export const BOUNDED_GROWTH_LAYOUTS = Object.freeze(['table', 'board', 'gantt', 'calendar']);
 export const PAGINATED_GROWTH_LAYOUTS = Object.freeze(['card-grid', 'timeline']);
 
 // Full-height weight: every element counts, scaled by how tall its
@@ -214,7 +211,6 @@ export const ROW_WEIGHT_BY_LAYOUT = Object.freeze({
   table: 1,
   timeline: 2,
   'card-grid': 4,
-  gallery: 3,
   board: 4,
   gantt: 2,
   calendar: 3
@@ -286,7 +282,7 @@ export const LAYOUT = Object.freeze({
   // clipping. The one constant every table rowClass channel returns.
   rowSurface: '[clip-path:inset(0_round_var(--p-border-radius-xl))]',
   bounded: 'w-full max-w-[var(--ck-bounded-grid-item-max-width)]',
-  sectionTitle: 'text-label text-muted uppercase',
+  sectionTitle: 'text-label text-muted',
   // The record-header row is container-relative, never viewport-relative —
   // but through scoped CSS in SurfaceHeader (the ResponsiveGrid pattern),
   // not Tailwind variants: the tailwindcss build here has no
@@ -342,11 +338,6 @@ export const LAYOUT = Object.freeze({
   ganttAxisSpacer: 'w-44 shrink-0',
   ganttTrack: 'relative h-5 min-w-0 flex-1 rounded-panel bg-subtle',
   ganttBar: 'absolute inset-y-1 rounded-ui',
-  // The gallery projection's bands: the item band steps with its
-  // container (real CSS in main.css — the ResponsiveGrid pattern); the
-  // thumbnail cell keeps a fixed stamp.
-  galleryItem: 'ck-gallery-item',
-  galleryThumb: 'h-12 w-16',
   calendarStack: 'flex w-full min-w-0 flex-col gap-2',
   calendarHead: 'flex min-w-0 items-center justify-between gap-2',
   calendarGrid: 'grid w-full min-w-0 grid-cols-7 gap-1',
@@ -373,7 +364,7 @@ export const LAYOUT_ATOMS = Object.freeze({
   stack: Object.freeze(['stack', 'stackTight', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
-  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewBand', 'galleryItem']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewBand']),
   well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack']),
   tabs: Object.freeze([]),
   placement: Object.freeze([]),
@@ -382,7 +373,7 @@ export const LAYOUT_ATOMS = Object.freeze({
 });
 
 export const LAYOUT_AMBIENT = Object.freeze({
-  cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText', 'galleryThumb']),
+  cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText']),
   clamps: Object.freeze(['nameClamp', 'chipClamp', 'linkClamp']),
   chrome: Object.freeze(['clip', 'rowSurface', 'bounded', 'scrollX', 'dialog', 'headerRow', 'headerIdentity', 'ganttIdentity']),
   geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
@@ -486,11 +477,6 @@ export const RENDERABLE_PREVIEW_MODES = Object.freeze([
   'dxf', 'svg', 'sketch', 'image', 'pdf', 'docx', 'table', 'workbook', 'text'
 ]);
 
-// Preview modes that render as visual media (the gallery projection's
-// dominance signal): imagery and geometry, the payloads a gallery band
-// exists for.
-export const VISUAL_PREVIEW_MODES = Object.freeze(['image', 'geometry']);
-
 // --- Actions ----------------------------------------------------------------
 
 // Compiled action records → button presentation. `hidden` entries must be
@@ -535,7 +521,7 @@ export const SPACING_SCALES = Object.freeze({
     specRow: 'flex min-w-0 items-center justify-between gap-2 py-0.5',
     chipRow: 'flex flex-wrap items-center gap-1 pt-0.5',
     toolbar: 'flex flex-wrap items-center gap-1',
-    sectionTitle: 'text-label text-muted uppercase',
+    sectionTitle: 'text-label text-muted',
     knob: 40,
     editorSize: 'small'
   }),
@@ -545,7 +531,7 @@ export const SPACING_SCALES = Object.freeze({
     specRow: 'flex min-w-0 items-center justify-between gap-3 py-1',
     chipRow: 'flex flex-wrap items-center gap-1 pt-1',
     toolbar: 'flex flex-wrap items-center gap-1',
-    sectionTitle: 'text-label text-muted uppercase',
+    sectionTitle: 'text-label text-muted',
     knob: 48,
     editorSize: 'small'
   }),
@@ -555,7 +541,7 @@ export const SPACING_SCALES = Object.freeze({
     specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
     chipRow: 'flex flex-wrap items-center gap-2 pt-2',
     toolbar: 'flex flex-wrap items-center gap-2',
-    sectionTitle: 'text-label text-muted uppercase',
+    sectionTitle: 'text-label text-muted',
     knob: 64,
     editorSize: null
   }),
@@ -565,7 +551,7 @@ export const SPACING_SCALES = Object.freeze({
     specRow: 'flex min-w-0 items-center justify-between gap-5 py-2',
     chipRow: 'flex flex-wrap items-center gap-2 pt-2',
     toolbar: 'flex flex-wrap items-center gap-2',
-    sectionTitle: 'text-label text-muted uppercase',
+    sectionTitle: 'text-label text-muted',
     knob: 72,
     editorSize: null
   }),
@@ -575,7 +561,7 @@ export const SPACING_SCALES = Object.freeze({
     specRow: 'flex min-w-0 items-center justify-between gap-6 py-3',
     chipRow: 'flex flex-wrap items-center gap-3 pt-3',
     toolbar: 'flex flex-wrap items-center gap-3',
-    sectionTitle: 'text-label text-muted uppercase',
+    sectionTitle: 'text-label text-muted',
     knob: 80,
     editorSize: null
   }),
@@ -585,7 +571,7 @@ export const SPACING_SCALES = Object.freeze({
     specRow: 'flex min-w-0 items-center justify-between gap-6 py-4',
     chipRow: 'flex flex-wrap items-center gap-3 pt-4',
     toolbar: 'flex flex-wrap items-center gap-3',
-    sectionTitle: 'text-label text-muted uppercase',
+    sectionTitle: 'text-label text-muted',
     knob: 88,
     editorSize: null
   }),
@@ -595,7 +581,7 @@ export const SPACING_SCALES = Object.freeze({
     specRow: 'flex min-w-0 items-center justify-between gap-8 py-6',
     chipRow: 'flex flex-wrap items-center gap-4 pt-4',
     toolbar: 'flex flex-wrap items-center gap-4',
-    sectionTitle: 'text-label text-muted uppercase',
+    sectionTitle: 'text-label text-muted',
     knob: 96,
     editorSize: null
   })

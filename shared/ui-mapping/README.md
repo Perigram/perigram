@@ -160,7 +160,7 @@ surfaces. Construction-input labels are authored vocabulary resolved at the
 domain projection (parent type name, start-cased row name).
 
 **List layouts.** `resolveListLayout(type, { size, stateful })` → one of
-`table`, `card-grid`, `gallery`, `timeline`, `stats`, `list`, `board`,
+`table`, `card-grid`, `timeline`, `stats`, `list`, `board`,
 `gantt`, `calendar`, from one matcher table over `analyzeTypeShape(type)` —
 the layout derives from declaration data alone:
 
@@ -168,7 +168,6 @@ the layout derives from declaration data alone:
 |---|---|
 | prose-dominant | `timeline` (chronological) |
 | percent/quantity-dominant | `stats` (StatGrid cards with the `text-metric` role) |
-| visual payload preview + large | `gallery` (the preview-dominated projection) |
 | media | `card-grid` |
 | two declared instants | `gantt` (an interval outranks chronology — the stronger structure) |
 | lone instant | `calendar` (`temporalFieldsFor` derives the fields in declaration order) |
@@ -319,8 +318,6 @@ data. `RENDERABLE_PREVIEW_MODES`
 (`dxf`, `svg`, `sketch`, `image`, `pdf`, `docx`, `table`,
 `workbook`, `text`); app-side materializations import it instead of
 restating the list, and every other mode degrades to a payload download.
-`VISUAL_PREVIEW_MODES` (`image`, `geometry`) lists the modes that render
-as visual media — the gallery projection's preview-dominance signal.
 
 ### Filterable fields
 
@@ -473,7 +470,7 @@ Sibling arrangement is weight-driven, compose-time, and step-carried.
 `estimateRegionWeight` estimates each region's full rendered height from
 its own data — facts, structural fields, and relation refs for detail
 regions; per-layout row factors (`ROW_WEIGHT_BY_LAYOUT`: a preview card ≈ 4
-table rows, a board card ≈ 4, a gallery item ≈ 3, a timeline entry ≈ 2)
+table rows, a board card ≈ 4, a timeline entry ≈ 2)
 times actual instance counts for lists (with the same size classes the
 materialization derives, so the weighted layout is the rendered layout),
 plus the wrapped relation-chip rows the first declared relation adds.

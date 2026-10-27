@@ -200,7 +200,7 @@ import Message from 'primevue/message';
 import Select from '~/components/shared/InstanceSelect.vue';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
 import { DECLARABLE_CLASSES, CREATION_PROTOCOLS } from '~/packages/cts/src/index.js';
-import { RENDERABLE_PREVIEW_MODES, VISUAL_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
+import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
 import { iconFontGlyphs } from '#shared/icon-fonts.js';
 
 const props = defineProps({
@@ -227,7 +227,7 @@ const creationOptions = CREATION_PROTOCOLS.map(value => ({ label: value, value }
 // fallback), the rest are the app's renderable and visual preview modes.
 const previewOptions = [
   { label: 'download', value: '' },
-  ...[...new Set([...RENDERABLE_PREVIEW_MODES, ...VISUAL_PREVIEW_MODES, 'attachment', 'none'])]
+  ...[...new Set([...RENDERABLE_PREVIEW_MODES, 'attachment', 'none'])]
     .map(value => ({ label: value, value }))
 ];
 

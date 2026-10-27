@@ -453,27 +453,4 @@ body {
             height: 14rem;
         }
     }
-
-    /* The gallery projection's item band (LAYOUT.galleryItem): the
-       galleria is its own layout container, and the item band steps with
-       it — a gallery in a pane renders shorter than one on a page. */
-    .ck-gallery {
-        container-type: inline-size;
-    }
-
-    .ck-gallery-item {
-        height: 14rem;
-    }
-
-    @container (min-width: 40rem) {
-        .ck-gallery-item {
-            height: 18rem;
-        }
-    }
-
-    @container (min-width: 60rem) {
-        .ck-gallery-item {
-            height: 22rem;
-        }
-    }
 }

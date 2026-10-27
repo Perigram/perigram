@@ -414,8 +414,8 @@ const derivedListLayout = computed(() => resolveListLayout(props.node.type, {
 // and filters: a stateful collection (a served vocabulary spanning at
 // least BOARD_MIN_COLUMNS values) whose derived layout is a structural
 // collection (table) may board, and a derived board may
-// table back. Shape-specialized projections (timeline, stats, gallery,
-// the handful list) never switch — the board would fight their shape.
+// table back. Shape-specialized projections (timeline, stats, the
+// handful list) never switch — the board would fight their shape.
 // A stored preference for a non-switchable collection is ignored.
 const projectionSwitchable = computed(() => hasStateVocabulary(props.node.statePolicy)
   && ['table', 'board'].includes(derivedListLayout.value));

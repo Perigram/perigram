@@ -108,7 +108,7 @@ beside the transition history in `StateHistory`.
   board, and a derived board may switch back — one icon toggle in the
   header cluster; a stored preference for a non-switchable collection is
   ignored, so the derivation stays the default and the switch stays clear
-  of shape-specialized projections (timeline, stats, gallery, the handful
+  of shape-specialized projections (timeline, stats, the handful
   list).
 
 ## Components
@@ -248,11 +248,6 @@ beside the transition history in `StateHistory`.
   and month navigation is local view state — the month opens on the first
   loaded instance's month. Labels and weekday headers format through the
   active locale.
-- `GalleryCollection.vue` — the preview-dominated collection projection:
-  a raw PrimeVue Galleria — a large preview band (container-stepped
-  `LAYOUT.galleryItem`) with the identity as the caption link under the
-  `onOpen` contract, and a thumbnail strip whose per-row count derives
-  from the container record.
 - `BreadcrumbTrail.vue` — the lineage trail: a Breadcrumb of ancestor
   identities walked from the instance's lineage through the pool.
   Ancestors are navigation: each crumb opens its instance through the

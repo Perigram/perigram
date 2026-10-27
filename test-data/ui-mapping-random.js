@@ -10,7 +10,7 @@
 // `compileClientBundle()` does (`renderPolicyFor` over the authored
 // declaration).
 import { renderPolicyFor } from '#packages/cts/src/index.js';
-import { resolveListLayout, ROW_WEIGHT_BY_LAYOUT, BOARD_MIN_COLUMNS, FULL_BREADTH_LAYOUTS, VISUAL_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
+import { resolveListLayout, ROW_WEIGHT_BY_LAYOUT, BOARD_MIN_COLUMNS, FULL_BREADTH_LAYOUTS } from '#shared/ui-mapping/index.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -281,7 +281,7 @@ export function generateUiMappingWorld(seed = 7) {
   // descriptors, each instance takes at most one random lineage parent.
   // Budget guarantees, not chances: one file type always carries a large
   // collection (virtualized table >50, paginated views, toolbar search
-  // past SEARCH_AT, large-size gallery), and one type always stays empty
+  // past SEARCH_AT), and one type always stays empty
   // so the empty-state surface is reachable in every world. Two group
   // hosts always carry populated peer children — moderate collections on
   // one, heavy on the other — the parent shape real domains have, so
@@ -289,12 +289,6 @@ export function generateUiMappingWorld(seed = 7) {
   const instancesByType = {};
   const fileTypes = types.filter(type => type.class === 'file');
   const volumeType = fileTypes[0] || types[types.length - 1];
-  // The volume collection guarantees the gallery projection: the volume
-  // file type carries a visual payload preview. Deterministic mapping —
-  // the seeded stream has closed, and a late roll would shift the world.
-  if (volumeType.payload && !VISUAL_PREVIEW_MODES.includes(volumeType.payload.preview)) {
-    volumeType.payload = { ...volumeType.payload, preview: 'image', mime: [MIMES.image], accept: ['.image'] };
-  }
   const allGroups = types.filter(type => type.class === 'group');
   let groupsWithEdges = allGroups.filter(type => Object.keys(type.edges.children || {}).length >= 2);
   const ensureTwoEdges = host => {
