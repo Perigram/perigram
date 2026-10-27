@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures.js';
 
-// The place construction (tech-drawing `place-dxf`) driven through its
-// generated create dialog: the mode select opens the place form, the
+// The fill construction (tech-drawing `place-dxf`) driven through its
+// generated create dialog: the mode select opens the fill form, the
 // template and parts operator inputs render as instance pickers, and the
 // submitted draft scalarizes to bare ids the placement service accepts.
 // Authoring and instance seeding ride the MCP tool surface; the dialog is
@@ -29,13 +29,13 @@ const PART = [
   '0', 'ENDSEC', '0', 'EOF'
 ].join('\n');
 
-test.describe('tech-drawing place dialog', () => {
-  test('the place create form picks template and parts and composes the DXF', async ({ app }) => {
+test.describe('tech-drawing fill dialog', () => {
+  test('the fill create form picks template and parts and composes the DXF', async ({ app }) => {
     test.setTimeout(240_000);
     await app.installPlugins(['tech-drawing']);
     await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
 
-    // --- authoring through the MCP surface: upload + place constructs ---
+    // --- authoring through the MCP surface: upload + fill constructs ---
     let rpcId = 0;
     const mcp = (method, params) => app.request.post('/api/mcp', {
       data: { jsonrpc: '2.0', id: ++rpcId, method, params }
@@ -48,7 +48,7 @@ test.describe('tech-drawing place dialog', () => {
       return JSON.parse(text);
     };
 
-    await call('create_process_definition', { name: 'Bare place-dialog draft' });
+    await call('create_process_definition', { name: 'Bare fill-dialog draft' });
     const vocab = await call('get_authoring_vocabulary', {});
     const roleId = vocab.roles?.[0]?.id;
     expect(roleId, 'no organization role for the construct lane').toBeTruthy();
@@ -61,10 +61,10 @@ test.describe('tech-drawing place dialog', () => {
         { op: 'wireDeclaration', from: 'dxf', to: 'up', role: 'binds' },
         { op: 'configure', id: 'up', values: { construction: { mode: 'upload' } } },
         { op: 'configure', id: 'up', values: grant },
-        { op: 'drop', item: 'construct', id: 'place' },
-        { op: 'wireDeclaration', from: 'dxf', to: 'place', role: 'binds' },
-        { op: 'configure', id: 'place', values: { construction: { mode: 'place' } } },
-        { op: 'configure', id: 'place', values: grant }
+        { op: 'drop', item: 'construct', id: 'fill' },
+        { op: 'wireDeclaration', from: 'dxf', to: 'fill', role: 'binds' },
+        { op: 'configure', id: 'fill', values: { construction: { mode: 'fill' } } },
+        { op: 'configure', id: 'fill', values: grant }
       ]
     });
     const definitionId = composed.id || composed._id;
@@ -99,7 +99,7 @@ test.describe('tech-drawing place dialog', () => {
     const modeSelect = main.getByLabel('Creation mode');
     await expect(modeSelect).toBeVisible({ timeout: 30_000 });
     await modeSelect.click();
-    await app.page.getByRole('option', { name: 'Place', exact: true }).click();
+    await app.page.getByRole('option', { name: 'Fill', exact: true }).click();
     await main.locator('.p-inputgroup').getByRole('button').last().click();
 
     const dialog = app.page.locator('.p-dialog');
@@ -138,7 +138,7 @@ test.describe('tech-drawing place dialog', () => {
     const composedText = await fileResponse.text();
     const { writeFile, mkdir } = await import('node:fs/promises');
     await mkdir('.playwright', { recursive: true });
-    await writeFile('.playwright/place-dialog-composed.dxf', composedText);
+    await writeFile('.playwright/fill-dialog-composed.dxf', composedText);
 
     expect(composedText).not.toContain('{spot:');
     expect(composedText).toContain('PLACE DIALOG E2E');

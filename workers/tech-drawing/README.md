@@ -2,7 +2,7 @@
 
 The tech-drawing domain as a third-party plugin (SPEC §20): `listing.json` is the declaration surface (pen
 templates, layer standards, colors, DXF/SVG sources, the sketch type,
-the sketch editor binding, and the DXF placement construction). The
+the sketch editor binding, and the fill construction). The
 types ride the generic instance machinery; the process serves the DXF
 placement service, the sketch editor surface module, and its vendored
 runtime dependencies — static GETs through the platform's module proxy,
@@ -12,7 +12,7 @@ same-origin. Orgs connect the executor through the install's
 - Listing: `workers/tech-drawing/listing.json` (validate with
   `npx perigram-plugin validate workers/tech-drawing/listing.json`).
 - Service: `place-dxf` (`services.js`, endpoint mode, construction
-  `place` on `dxf-source`). Input `{ refs: { template, parts }, draft }`
+  `fill` on `dxf-source`). Input `{ refs: { template, parts }, draft }`
   — template and part refs arrive with `payloadBase64`; output
   `payload: { base64, mime: 'application/dxf', name }`.
 - Editor surface: `surfaces/sketch-editor.mjs` (surface contract 3 — the

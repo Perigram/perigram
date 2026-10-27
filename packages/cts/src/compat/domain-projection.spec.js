@@ -87,8 +87,8 @@ const orgPlaced = {
   version: 1,
   fields: { name: { base: 'string', identifier: true } },
   operators: {
-    place: {
-      id: 'place',
+    fill: {
+      id: 'fill',
       species: 'construct',
       input: {
         base: 'record',
@@ -258,8 +258,8 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
   it('projects construct operator reference inputs as typed prompt rows', () => {
     const projected = projectDomainFromView(orgRegistry(), 'org-1');
     const placed = projected.construction['placed-sheet'];
-    expect(placed.modes).toEqual(['place']);
-    const byId = new Map(placed.modeInputs.place.map(input => [input.id, input]));
+    expect(placed.modes).toEqual(['fill']);
+    const byId = new Map(placed.modeInputs.fill.map(input => [input.id, input]));
     expect(byId.get('template')).toMatchObject({ type: 'entity', typeId: 'placed-sheet' });
     expect(byId.get('parts')).toMatchObject({ type: 'typeList', typeId: 'placed-sheet' });
   });
