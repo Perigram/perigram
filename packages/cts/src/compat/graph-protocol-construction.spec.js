@@ -100,20 +100,14 @@ describe('creation-protocol construction inputs', () => {
       .not.toContain('fields.name');
   });
 
-  it('an upload mode carries the identifier row beside its payload input', () => {
+  it('an upload mode keeps its payload input alone', () => {
     const contract = realDomain().construction['xlsx-workbook'];
-    expect(constructionInputsForContract(contract, 'upload').map(input => input.id)).toEqual(['name', 'payload']);
+    expect(constructionInputsForContract(contract, 'upload').map(input => input.id)).toEqual(['payload']);
   });
 
   it('a content mode prompts the content string (the wired text becomes the payload)', () => {
     const contract = realDomain().construction['text-document'];
     expect(contract.modeInputs.content).toEqual([{
-      id: 'name',
-      label: 'name',
-      path: 'name',
-      type: 'string',
-      prompt: true
-    }, {
       id: 'content',
       label: 'Content',
       path: 'content',
@@ -122,7 +116,7 @@ describe('creation-protocol construction inputs', () => {
       prompt: true,
       control: 'Textarea'
     }]);
-    expect(constructionInputsForContract(contract, 'content').map(input => input.id)).toEqual(['name', 'content']);
+    expect(constructionInputsForContract(contract, 'content').map(input => input.id)).toEqual(['content']);
   });
 
   it('an undeclared mode keeps the whole contract input list (genericCreate)', () => {

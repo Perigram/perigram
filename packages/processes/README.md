@@ -322,10 +322,10 @@ source for a generic create.
 ### Construction contracts
 
 Compilation hydrates create-action construction and prompt policy from the
-domain construction contract: a sparse visual action for `cassette` still
-compiles with promptable `name` and `templateId` fields, so generated
-screens open the input dialog even when the draft stored neither
-`construction.inputs` nor `inputPolicy.fields`. Domain construction
+domain construction contract: a sparse visual action for `cassette`
+(editor protocol) compiles with zero prompted inputs — its editor surface
+owns the create — and an `xlsx-workbook` upload action prompts its
+payload file alone. Domain construction
 contracts own structural input metadata during compilation — field id,
 label, path, type, and accepted entity types come from the current domain
 registry; process projections preserve the domain-declared `required` flag,

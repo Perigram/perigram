@@ -369,11 +369,16 @@ is the editing substrate, and checkpoint saves serialize it back
 through the payload transport.
 
 Generated creates enforce their construction contract (owner decision
-2026-10-12): the form prompts the compiled inputs in the flat-wire
-vocabulary the contract speaks, a required input gates the submit, and
-the type's identifier field is required above all — records are created
-named, and "Unnamed" stays a degradation for legacy rows, never a create
-outcome. Record headers carry the identifier value as title with the
+2026-10-12, amended 2026-10-27): the form prompts exactly the compiled
+inputs in the flat-wire vocabulary the contract speaks — the contract's
+input list is the dialog's complete row list, so an authored declaration
+determines every prompted field — a required input gates the submit, and
+an identifier row the contract prompts is required above all.
+Upload/capture creates fill the record's name from the uploaded file's
+name; every other create names through an authored row, graph
+composition, or the rename channel, and "Unnamed" marks a record
+awaiting one of those. Record headers carry the identifier value as
+title with the
 type label as subtitle; instance ids are private and never render. The
 identifier value renders once per surface (owner direction 2026-10-22):
 the record title, the card title, or the table identity column is its

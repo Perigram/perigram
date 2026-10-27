@@ -268,9 +268,8 @@ const dialogAction = ref(null);
 const dialogDraft = reactive({});
 const dialogType = computed(() => (props.bundle.types || []).find(type => type.id === dialogAction.value?.typeId) || null);
 // Dialog rows come from the shared resolver: authored fields (matched by
-// bare name or slot-qualified path), the identity name, and lineage parent
-// pickers over reverse containment — construction inputs are never dropped
-// for a path/name mismatch again. The draft is keyed by the compiled input
+// bare name or slot-qualified path), protocol inputs, and lineage parent
+// pickers over reverse containment. The draft is keyed by the compiled input
 // id, so the submitted payload lands exactly on the construction paths.
 const dialogRows = computed(() => (
   dialogAction.value?.actionKind === 'runCommand'

@@ -395,7 +395,11 @@ function instanceService(typeId) {
       if (!reference?.fileId && !reference?.id) {
         throw createError({ statusCode: 400, message: `Creation protocol ${protocol} requires a payload file` });
       }
-      return await createValidated(draft, declaration, userId, organizationId);
+      // The record name derives from the uploaded file's name (extension
+      // stripped); an explicit draft name wins.
+      const filename = typeof reference?.name === 'string' ? reference.name.replace(/\.[^.]+$/, '') : '';
+      const named = draft.name == null && filename ? { ...draft, name: filename } : draft;
+      return await createValidated(named, declaration, userId, organizationId);
     },
 
     async processUpdate(id, patch = {}, context = null) {

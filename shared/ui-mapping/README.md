@@ -140,21 +140,26 @@ compiled input policy through `resolveCreateDialogInputs(action, type,
 bundle)` — the policy owns the row list, and the compiler keeps it to the
 fields the graph leaves unsupplied, so wired producers and authored socket
 defaults stay out of the dialog; construction inputs serve actions compiled
-without a policy. Declared fields match by flat-wire `fields.<name>` path
+without a policy. The contract's input list is the dialog's complete row
+list: an identifier row reaches the dialog only as a contract input (a
+registry-minted identity row authors nothing and stays out of every
+contract). Declared fields match by flat-wire `fields.<name>` path
 (the §3 stored shape compiled construction inputs speak) or bare name
-(authored compose inputs) and render through their descriptor; the identity
-`name` renders as a plain string control; `lineage.<key>` inputs render
+(authored compose inputs) and render through their descriptor; string
+protocol inputs (the `content` body) render as full-width scalar rows
+carrying their control pin; `lineage.<key>` inputs render
 instance pickers over the parent types whose children edges declare that
 lineage key for the target type (reverse containment over the bundle —
 parents' edges are the declaration home, the child carries no parent list;
 an edge matches by its declared `lineageKey`, the entry's map key is
 authoring identity). Construct operator reference inputs render as
 instance pickers over the operator's `accepts` — an `entity` single, a
-`typeList` list. Rows carry the compiled input's `required` flag, and
-the type's `identifier` row is required unconditionally (the naming law:
-its value is the record's title — the row derives even when the
-construction contract omits it, and the dialog's submit stays disabled
-while a required row is empty). Quantity rows draft the SPEC §2
+`typeList` list. Rows carry the compiled input's `required` flag; an
+identifier row the contract prompts is required unconditionally (its
+value is the record's title), and the dialog's submit stays disabled
+while a required row is empty. Upload/capture dialogs prompt the file
+alone; the construct seam fills the record's name from the uploaded
+file's name. Quantity rows draft the SPEC §2
 `{ value, unit }` shape their control models (a unit-carrying default
 prefills in that shape), and the dialog's payload scalarizes drafts at the
 boundary: instance refs by `id` (picker lists entrywise), quantities by

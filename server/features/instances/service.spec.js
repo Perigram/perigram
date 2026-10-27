@@ -531,11 +531,14 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
       .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('requires a payload file') });
 
     const shot = await image.constructionHandlers.upload(
-      { identity: { name: 'Shot' }, payload: { fileId: 'img-1', mime: 'image/jpeg', size: 2048 } },
+      { payload: { fileId: 'img-1', mime: 'image/jpeg', size: 2048, name: 'shot-42.jpeg' } },
       { userId: 'u-1', organizationId: 'org-1' }
     );
     expect(shot.type).toBe('image');
-    expect(coll.insertOne.mock.calls[0][0].payload).toMatchObject({ fileId: 'img-1', mime: 'image/jpeg' });
+    expect(coll.insertOne.mock.calls[0][0]).toMatchObject({
+      name: 'shot-42',
+      payload: { fileId: 'img-1', mime: 'image/jpeg' }
+    });
 
     const table = instanceServiceResolver('csv-table'); // editor protocol: blank-first-save
     const blank = await table.constructionHandlers.editor({ identity: { name: 'Field notes' } }, { userId: 'u-1', organizationId: 'org-1' });

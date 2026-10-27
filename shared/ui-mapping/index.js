@@ -1151,8 +1151,8 @@ export function typeLabelFor(type, { t, te, entitiesLabelKey = '', unnamedLabel 
 }
 
 // Create-dialog input resolution — the contract (flat-wire input
-// matching, the identifier-required law, row shapes) is canonical in
-// this module's README; keep this comment a pointer.
+// matching, row shapes, the prompted-identifier required law) is
+// canonical in this module's README; keep this comment a pointer.
 export function resolveCreateDialogInputs(action = {}, type = null, bundle = null) {
   const fields = type?.fields || {};
   const identifier = type?.identifier || null;
@@ -1188,16 +1188,6 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
         descriptor: fields[fieldName],
         span: 'half',
         required: policy?.required === true || fieldName === identifier
-      });
-      continue;
-    }
-    if (id === 'name') {
-      rows.push({
-        id,
-        label: fieldLabel('name'),
-        descriptor: { base: 'string' },
-        span: 'half',
-        required: policy?.required === true || id === identifier
       });
       continue;
     }
@@ -1246,17 +1236,6 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
         });
       }
     }
-  }
-  // The naming law: the identifier row rides every create dialog — a
-  // construction contract without it still names its record.
-  if (identifier && !rows.some(row => row.id === identifier || row.id === `fields.${identifier}`)) {
-    rows.unshift({
-      id: identifier,
-      label: fieldLabel(identifier, fields[identifier]),
-      descriptor: fields[identifier] || { base: 'string' },
-      span: 'half',
-      required: true
-    });
   }
   return Object.freeze(rows.map(row => Object.freeze(row)));
 }
