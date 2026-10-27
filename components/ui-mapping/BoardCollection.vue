@@ -39,7 +39,6 @@
           <template #title>
             <div :class="LAYOUT.rowBetween">
               <div :class="LAYOUT.row">
-                <i :class="iconFor(type, instance)" class="text-muted" />
                 <Button
                   v-if="openable"
                   link
@@ -73,15 +72,15 @@
                   :bundle="bundle"
                 />
               </div>
+              <!-- The overflow opens the card's record popup — the record
+                   surface carries the full fact set. -->
               <Button
                 v-if="hiddenFieldCount(instance)"
-                :label="expandedCards.has(instance.id)
-                  ? $t('uiMapping.showLess')
-                  : $t('uiMapping.showMore', { count: hiddenFieldCount(instance) })"
+                :label="$t('uiMapping.showMore', { count: hiddenFieldCount(instance) })"
                 link
                 size="small"
                 severity="secondary"
-                @click="toggleFacts(instance.id)"
+                @click="openRecord(instance)"
               />
             </div>
           </template>
@@ -101,11 +100,12 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
 import {
-  LAYOUT, SCALAR_BASES, cardFactCount, titleFor, iconFor,
+  LAYOUT, SCALAR_BASES, cardFactCount, titleFor,
   fieldLabel, fieldLabelKey, localizedLabel, sortControlRows,
   resolveActionButton, actionLabelKey, stateDisplayFor
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
+import { useEntityPopup } from '~/composables/useEntityPopup';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import StateTag from './StateTag.vue';
@@ -160,21 +160,20 @@ const hostContainer = useHostContainerTraits();
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 // Facts follow the card-grid budget (cardFactCount over CARD_FACT_SCALE:
 // wide types earn more facts); beyond-budget facts collapse behind the
-// shared show-more keys — board lanes are dense, so the budget is the
-// collapse, and one expand per card lifts it.
+// show-more control, which opens the record popup.
 const factBudget = computed(() => cardFactCount(props.type, { compact: hostContainer.value.width === 'narrow' }));
-const expandedCards = ref(new Set());
-const visibleFieldsFor = instance => (expandedCards.value.has(instance.id)
-  ? scalarFields.value
-  : scalarFields.value.slice(0, factBudget.value));
-const hiddenFieldCount = instance => (expandedCards.value.has(instance.id)
-  ? 0
-  : Math.max(0, scalarFields.value.length - factBudget.value));
-function toggleFacts(id) {
-  const next = new Set(expandedCards.value);
-  if (next.has(id)) next.delete(id);
-  else next.add(id);
-  expandedCards.value = next;
+const visibleFieldsFor = () => scalarFields.value.slice(0, factBudget.value);
+const hiddenFieldCount = () => Math.max(0, scalarFields.value.length - factBudget.value);
+// The popup is the record surface; the screen's open channel is the
+// fallback.
+const { open: openEntityPopup, openable: popupOpenable } = useEntityPopup();
+function openRecord(instance) {
+  const typeId = String(props.type?.id || '');
+  if (typeId && popupOpenable(typeId)) {
+    openEntityPopup({ typeId, instanceId: String(instance.id) });
+    return;
+  }
+  emit('open', instance);
 }
 const scalarFields = computed(() => Object.entries(props.type?.fields || {})
   .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)

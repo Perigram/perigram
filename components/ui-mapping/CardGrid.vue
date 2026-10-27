@@ -15,7 +15,6 @@
           <template #title>
             <div :class="LAYOUT.rowBetween">
               <div :class="LAYOUT.row">
-                <i :class="iconFor(type, instance)" class="text-muted" />
                 <Button
                   v-if="openable"
                   link
@@ -60,25 +59,26 @@
             <div :class="spacing ? spacing.stackTight : 'flex flex-col gap-3'">
               <!-- A group's membership rides its card (class law: identity
                    is membership): children render as budgeted reference
-                   chips — flat, one level; a child opens its own surface. -->
+                   chips — flat, one level. The overflow opens the group's
+                   own record popup, where the full children collection
+                   lives; a type with no record surface counts instead. -->
               <div v-if="groupChildrenOf(instance).length" :class="LAYOUT.row">
                 <InstanceInlineRef
-                  v-for="child in visibleChildrenOf(instance)"
+                  v-for="child in childrenOutcomeOf(instance).visible"
                   :key="`${child.type}:${child.id}`"
                   :type="String(child.type)"
                   :id="child.id"
                   :entity="child"
                 />
                 <Button
-                  v-if="childrenOutcomeOf(instance).hidden > 0 || expandedCards.has(instance.id)"
-                  :label="expandedCards.has(instance.id)
-                    ? $t('uiMapping.showLess')
-                    : $t('uiMapping.showMore', { count: childrenOutcomeOf(instance).hidden })"
+                  v-if="childrenOutcomeOf(instance).hidden > 0 && recordOpenable"
+                  :label="$t('uiMapping.showMore', { count: childrenOutcomeOf(instance).hidden })"
                   link
                   size="small"
                   severity="secondary"
-                  @click="toggleChildren(instance.id)"
+                  @click="openRecord(instance)"
                 />
+                <Tag v-else-if="childrenOutcomeOf(instance).hidden > 0" :value="`+${childrenOutcomeOf(instance).hidden}`" severity="contrast" />
               </div>
               <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
                 <span class="text-supporting text-muted">{{ field.label }}</span>
@@ -114,8 +114,9 @@ import Message from 'primevue/message';
 import Menu from 'primevue/menu';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
+import { useEntityPopup } from '~/composables/useEntityPopup';
 import {
-  LAYOUT, SCALAR_BASES, cardFactCount, titleFor, iconFor, isIdentifierField,
+  LAYOUT, SCALAR_BASES, cardFactCount, titleFor, isIdentifierField,
   fieldLabel, fieldLabelKey, localizedLabel, resolveListControls,
   resolveActionButton, actionLabelKey, stateDisplayFor,
   childrenOfParent, resolveSurface, applyBudget
@@ -160,16 +161,19 @@ const isGroup = computed(() => props.type?.class === 'group');
 const childrenBudget = computed(() => resolveSurface(props.type || {}, { variant: 'detail' }).budgets?.children || null);
 const groupChildrenOf = instance => (isGroup.value ? childrenOfParent(props.type, props.pool, instance?.id) : []);
 const childrenOutcomeOf = instance => applyBudget(groupChildrenOf(instance), childrenBudget.value);
-const visibleChildrenOf = instance => (expandedCards.value.has(instance.id)
-  ? groupChildrenOf(instance)
-  : childrenOutcomeOf(instance).visible);
-const expandedCards = ref(new Set());
-const toggleChildren = id => {
-  const next = new Set(expandedCards.value);
-  if (next.has(id)) next.delete(id);
-  else next.add(id);
-  expandedCards.value = next;
-};
+// The overflow opens the group's own record popup (the record surface
+// carries the full children collection); the screen's open channel is
+// the fallback, the count the last resort.
+const { open: openEntityPopup, openable: popupOpenable } = useEntityPopup();
+const recordOpenable = computed(() => Boolean(props.type?.id)
+  && (popupOpenable(String(props.type.id)) || props.openable));
+function openRecord(instance) {
+  if (props.type?.id && popupOpenable(String(props.type.id))) {
+    openEntityPopup({ typeId: String(props.type.id), instanceId: String(instance.id) });
+    return;
+  }
+  emit('open', instance);
+}
 
 const emit = defineEmits(['open', 'run']);
 

@@ -24,7 +24,6 @@
       data-testid="gantt-row"
     >
       <div :class="LAYOUT.ganttIdentity">
-        <i :class="iconFor(type, row.instance)" class="shrink-0 text-muted" />
         <Button
           v-if="openable"
           link
@@ -63,7 +62,7 @@
 import { computed, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
-import { LAYOUT, titleFor, iconFor, temporalFieldsFor, stateDisplayFor } from '#shared/ui-mapping/index.js';
+import { LAYOUT, titleFor, temporalFieldsFor, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
