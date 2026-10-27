@@ -505,6 +505,13 @@ server-owned activation records preserved, the same step grammar and
 legality gates; the tool catalog in
 [agent-bots](../agent-bots/README.md) serves them as
 `compose_process_definition` / `edit_process_definition`).
+Gesture values are contract-gated: `configure` writes record semantics
+only (`value` on literals, `access` lanes, `construction` modes, the
+per-kind authored fields) and refuses `inputDefaults`; socket defaults
+ride `setInputDefault (id, input, value)`, which refuses sockets the node
+does not declare (the error lists the node's input sockets) and authors
+entity references only in the `{type, id}` picker shape. The compile-side
+default normalize drops defaults addressing undeclared sockets.
 `listConstructionModes(organizationId)` serves the projected domain's
 per-type construction modes with each type's default to the
 [agent-bots](../agent-bots/README.md) vocabulary's `detail:
