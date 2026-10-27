@@ -190,9 +190,9 @@ beside the transition history in `StateHistory`.
   omissions: the status badge (the lane already is the state) and the type
   subtitle (a lane is single-type). Facts follow the card-grid budget
   (`cardFactCount` over `CARD_FACT_SCALE`, compact in a `narrow` host
-  through the container seam); beyond-budget facts collapse
-  behind the shared show-more keys with one expand per card — board lanes
-  are dense, so the budget is the collapse — and the facts rhythm follows
+  through the container seam); the beyond-budget overflow opens the
+  card's record popup — the record surface carries the full fact set —
+  and the facts rhythm follows
   the screen's injected spacing coefficient (compact screens shrink board
   cards with everything else). Per-instance quick actions (deletion,
   instance-scoped commands) ride the card's ellipsis menu like the card
@@ -258,10 +258,13 @@ beside the transition history in `StateHistory`.
   status, budgeted scalar descriptor columns, and the first declared
   relation as budgeted chips. Rows are surface cards — the
   preset paints every row as the content surface with transparent
-  internal dividers, and the recipe clips the row corners
+  internal dividers, the recipe clips the row corners
   (`[clip-path:inset(0_round_var(--p-border-radius-xl))]`, since a row's
-  background is not clipped by its radius) — every instance row sits
-  one step above the canvas, flush on the table's own rhythm, while
+  background is not clipped by its radius), and the recipe's other half
+  separates the rows (`LAYOUT.rowSurfaceTable` through the pt table
+  channel: separated cell borders leave the ladder-step gap between
+  rows) — every instance row sits
+  one step above the canvas on its own card, while
   the table box stays unpainted (SPEC §22.10).
   The resolved container record sizes the column budget — a
   `narrow`/`medium` box (pane, popup, side rail, column track) takes the
@@ -297,7 +300,8 @@ beside the transition history in `StateHistory`.
   cross-cut
   in `#subtitle`, and in `#content` a group class's membership —
   children as budgeted `InstanceInlineRef` chips through
-  `childrenOfParent`, one show-more per card (SPEC §22.11) — ahead of
+  `childrenOfParent`, the overflow opening the group's record popup
+  (SPEC §22.11) — ahead of
   the labeled budgeted facts. Card ordering
   lives in the region header's sort control (RegionBlock applies the
   `sortKeys` contract through the shared comparator before the grid
