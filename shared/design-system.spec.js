@@ -49,9 +49,11 @@ import { frameworkTypes } from '../packages/cts/src/index.js';
 import { normalizeType, renderPolicyFor } from '../packages/cts/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { resolveInstanceRelationRefs } from '../utils/instance-relations.js';
+import { FILE_CHIP_CLASS, INSTANCE_CHIP_CLASS } from '../components/shared/chip-surface.js';
 import {
   HOST_PROFILES,
-  LAYOUT
+  LAYOUT,
+  SPACING_SCALES
 } from '../shared/ui-mapping/index.js';
 import {
   analyzeVueVisuals,
@@ -318,6 +320,10 @@ describe('Design system manifest', () => {
     expect(HOST_PROFILES.popup.density).toBe(1);
     expect(HOST_PROFILES.dialog.density).toBe(1);
     expect(HOST_PROFILES.pane.density).toBe(0.75);
+    // Chips ride the preset (SPEC §22.8): the recipe classes carry the
+    // clamps alone — surface, radius, and typography are the Chip's own.
+    expect(FILE_CHIP_CLASS).toBe('min-w-0 max-w-full');
+    expect(INSTANCE_CHIP_CLASS).toBe('min-w-0 max-w-full');
     expect(Object.keys(designTokens.typography.roles)).toEqual([
       'page-title',
       'section-heading',
@@ -409,6 +415,14 @@ describe('Design system manifest', () => {
       .filter(([, recipe]) => offLadder.test(` ${recipe} `))
       .map(([key]) => `LAYOUT.${key}`);
     expect(layoutOffenders).toEqual([]);
+
+    // The interpolator owns the half-steps alone: its full steps ride
+    // the ladder like every static recipe.
+    const offLadderFullStep = /(?:^|[\s"'`/])((?:gap|p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr)-(?:5|7))(?=[\s"'`/]|$)/;
+    const scaleOffenders = Object.entries(SPACING_SCALES)
+      .filter(([, set]) => Object.values(set).some(recipe => typeof recipe === 'string' && offLadderFullStep.test(` ${recipe} `)))
+      .map(([scale]) => `SPACING_SCALES.${scale}`);
+    expect(scaleOffenders).toEqual([]);
 
     const offenders = usedVueFiles()
       .filter(file => file.startsWith('components/ui-mapping/'))

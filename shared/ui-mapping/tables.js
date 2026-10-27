@@ -347,6 +347,9 @@ export const LAYOUT = Object.freeze({
   ganttAxisSpacer: 'w-44 shrink-0',
   ganttTrack: 'relative h-5 min-w-0 flex-1 rounded-panel bg-subtle',
   ganttBar: 'absolute inset-y-1 rounded-ui',
+  // The plain in-surface well: a quiet rounded inset one step off the
+  // canvas (the preview file-facts band).
+  well: 'rounded-ui bg-subtle',
   calendarStack: 'flex w-full min-w-0 flex-col gap-2',
   calendarHead: 'flex min-w-0 items-center justify-between gap-2',
   calendarGrid: 'grid w-full min-w-0 grid-cols-7 gap-1',
@@ -374,7 +377,7 @@ export const LAYOUT_ATOMS = Object.freeze({
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
   band: Object.freeze(['previewHero', 'previewHeroBand', 'previewBand']),
-  well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack']),
+  well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack', 'well']),
   tabs: Object.freeze([]),
   placement: Object.freeze([]),
   stub: Object.freeze([]),
@@ -561,7 +564,7 @@ export const SPACING_SCALES = Object.freeze({
     screenRoot: 'flex flex-col gap-8',
     stack: 'flex flex-col gap-6',
     stackTight: 'flex flex-col gap-4',
-    specRow: 'flex min-w-0 items-center justify-between gap-5 py-2',
+    specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
     chipRow: 'flex flex-wrap items-center gap-2 pt-2',
     toolbar: 'flex flex-wrap items-center gap-2',
     sectionTitle: 'text-label text-muted',
@@ -571,7 +574,7 @@ export const SPACING_SCALES = Object.freeze({
   1.5: Object.freeze({
     screenRoot: 'flex flex-col gap-8',
     stack: 'flex flex-col gap-8',
-    stackTight: 'flex flex-col gap-5',
+    stackTight: 'flex flex-col gap-6',
     specRow: 'flex min-w-0 items-center justify-between gap-6 py-3',
     chipRow: 'flex flex-wrap items-center gap-3 pt-3',
     toolbar: 'flex flex-wrap items-center gap-3',

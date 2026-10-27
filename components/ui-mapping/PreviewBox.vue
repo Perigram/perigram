@@ -22,7 +22,7 @@
     mode="card"
     :class="bandClass"
   />
-  <div v-else-if="preview.component && payload" :class="[LAYOUT.row, bandClass, 'rounded-ui bg-subtle text-supporting text-muted']">
+  <div v-else-if="preview.component && payload" :class="[LAYOUT.row, bandClass, LAYOUT.well, 'text-supporting text-muted']">
     <i class="pi pi-file" />
     <span>{{ sizeLabel }}</span>
   </div>
