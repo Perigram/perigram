@@ -56,3 +56,29 @@ in code. check-docs: the package's homing entries clear (repo debt
 26→17); pre-existing blocking broken link
 `workers/nesting/README.md` → `./jagua-rs/README.md` stays outside this
 wave. `npx vitest run packages/processes` green.
+
+## Time and event extension (owner direction 2026-10-27)
+
+### Design decisions owed before implementation
+
+- [ ] Wake durability fork for wait/delay: park the run on the existing
+  in-process continuation Map keyed by a delayed task run (matches the
+  async-command boundary's durability class today) vs a durable
+  `process_runs` store plus a server-side sweeper (true durability, new
+  persistence + lifecycle). Owner decision required: the task queue has
+  no delayed claim today, so either fork adds one moving part.
+- [ ] Fire-on-date entry shape: `trigger.mode: 'schedule'` with authored
+  date/cron on the entry effect vs a definition-plane schedule record;
+  either needs a scheduler driving starts and a self-rearming rule for
+  recurring schedules.
+- [ ] Event emission delivery: persisted event records + subscriber
+  compilation from receiving definitions; event value shape
+  (`{ type, payload, at }`) rides the packet tree as a record.
+
+### Implemented in the same direction (2026-10-27)
+
+- [x] Palette gap fixes: `value.string` parse operations
+  (`toNumber`, `toDateTime`), `value.select` (typed ternary),
+  `record.merge` (shallow merge, right wins), `value.recordField` wired
+  `key` socket, `collection.groupBy` `keys` output (the grouping key
+  per branch).

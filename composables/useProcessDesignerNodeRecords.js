@@ -31,6 +31,8 @@ export function useProcessDesignerNodeRecords({
     padEnd: translate('processDesigner.operationLabels.padEnd'),
     indexOf: translate('processDesigner.operationLabels.indexOf'),
     repeat: translate('processDesigner.operationLabels.repeat'),
+    toNumber: translate('processDesigner.operationLabels.toNumber'),
+    toDateTime: translate('processDesigner.operationLabels.toDateTime'),
     sum: translate('processDesigner.operationLabels.sum'),
     average: translate('processDesigner.operationLabels.average'),
     concat: translate('processDesigner.useJoinText'),

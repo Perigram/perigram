@@ -73,9 +73,14 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   }
   if (kind.startsWith('source.')) return executeSource(record, context);
   if (kind === 'value.cast') return mapDataPacket(required(packets, 'value', record), value => cast(value, record.outputType?.base || record.base));
+  if (kind === 'value.select') return combineDataPackets(
+    [required(packets, 'condition', record), required(packets, 'left', record), required(packets, 'right', record)],
+    ([condition, left, right]) => (condition ? left : right)
+  );
   if (kind === 'value.recordField') return spreadListValues(mapDataPacket(required(packets, 'value', record), value => {
-    const fieldValue = readPath(value, String(record.path || ''));
-    return isMissingField(fieldValue) ? missingFieldMarker(record.path) : fieldValue;
+    const path = String(packets.key ? packetValue(packets.key) : (record.path || ''));
+    const fieldValue = readPath(value, path);
+    return isMissingField(fieldValue) ? missingFieldMarker(path) : fieldValue;
   }));
   if (kind === 'value.convertUnit') return mapDataPacket(required(packets, 'value', record), value => convertUnit(value, record.fromUnit, record.toUnit, context.units));
   if (kind === 'value.required') return mapDataPacket(required(packets, 'value', record), value => {
@@ -148,7 +153,7 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     { tree: required(packets, 'items', record), access: 'list' }, { tree: required(packets, 'size', record), access: 'item' }
   ], ([items, size]) => partitionValues(items, Number(size)), { outputAccess: 'tree', matching: record.matching });
   if (kind === 'collection.dispatch') return dispatchPackets(required(packets, 'items', record), required(packets, 'mask', record), context.outputId);
-  if (kind === 'collection.groupBy') return groupByPackets(required(packets, 'items', record), required(packets, 'keys', record));
+  if (kind === 'collection.groupBy') return groupByPackets(required(packets, 'items', record), required(packets, 'keys', record), context.outputId);
   if (kind === 'collection.filter') return filterPackets(required(packets, 'items', record), required(packets, 'mask', record));
   if (kind === 'collection.join') {
     // The relational brick: strict inner join of two value lists by
@@ -206,6 +211,15 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
       return composed;
     }, { matching: record.matching });
   }
+  if (kind === 'record.merge') return combineDataPackets(
+    [required(packets, 'left', record), required(packets, 'right', record)],
+    // Shallow merge, the right side winning; a missing side merges as
+    // absent content.
+    ([left, right]) => ({
+      ...(isMissingField(left) ? {} : left),
+      ...(isMissingField(right) ? {} : right)
+    })
+  );
   if (kind.startsWith('read.')) {
     throw new Error(`Read node ${record.id || kind} uses retired kind ${kind}; loads migrate it to cts.read before execution`);
   }
@@ -639,20 +653,22 @@ function compareKeyValues(left, right) {
   return 0;
 }
 
-function groupByPackets(itemsPacket, keysPacket) {
-  const branches = [];
+function groupByPackets(itemsPacket, keysPacket, outputId = 'groups') {
+  const groups = [];
+  const groupKeys = [];
   for (const branch of alignSelectorPackets(itemsPacket, keysPacket, 'Group By')) {
-    const groups = new Map();
+    const byKey = new Map();
     for (const [item, key] of branch.pairs) {
       const serialized = stableKey(key);
-      if (!groups.has(serialized)) groups.set(serialized, []);
-      groups.get(serialized).push(item);
+      if (!byKey.has(serialized)) byKey.set(serialized, []);
+      byKey.get(serialized).push(item);
     }
-    [...groups.values()].forEach((items, index) => {
-      branches.push({ path: [...branch.path, index], items });
+    [...byKey.entries()].forEach(([serialized, items], index) => {
+      groups.push({ path: [...branch.path, index], items });
+      groupKeys.push({ path: [...branch.path, index], items: [branch.pairs.find(([, key]) => stableKey(key) === serialized)[1]] });
     });
   }
-  return { branches };
+  return outputId === 'keys' ? { branches: groupKeys } : { branches: groups };
 }
 
 function filterPackets(itemsPacket, maskPacket) {

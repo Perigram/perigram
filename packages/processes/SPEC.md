@@ -118,6 +118,15 @@ CTS declaration records and designer authoring in; runtime contracts out. The se
 | Identity backfill | `migrateProducerOutputIdentities` derives stored producer identity; a stale self-binding drops and re-derives; ambiguous same-type ownership returns diagnostics. |
 | Stored graphs | One-shot migrations live in [server/scripts](../../server/scripts/README.md) and report unmigratable shapes. A stored definition carrying `data.compiled` with no canonical records fails clearly at the designer and activation. |
 
+## Time and events (owner direction 2026-10-27, target state)
+
+| Aspect | Law |
+|---|---|
+| Wait/delay | A process can park its control flow until a dateTime and continue from the same token; a parked run survives and is woken by the platform, and the wake contract is the same boundary async command effects park on. |
+| Fire on date | A process can be started by time (authored date or schedule on an entry), beside the manual start. |
+| Event values | Events are values a graph can construct, deconstruct, and carry through data sockets (typed payload, occurred-at). |
+| Event emission | A process step can emit an event; an emitted event starts processes authored to receive it. |
+
 ## Structure
 
 | Modules | Role |
