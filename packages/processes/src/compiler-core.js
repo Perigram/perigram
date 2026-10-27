@@ -4322,7 +4322,7 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
     validateFieldList(action.projection?.excludeFields, domain, action.typeId, `action ${actionId} excluded fields`, errors);
   }
   const triggerMode = action.trigger?.mode || 'manual';
-  if (!['manual', 'event', 'date', 'entityChanged', 'domainEvent'].includes(triggerMode)) {
+  if (!['manual', 'event', 'schedule', 'date', 'entityChanged', 'domainEvent'].includes(triggerMode)) {
     errors.push(`Action ${actionId} uses unknown trigger mode ${triggerMode}`);
   }
   for (const roleId of normalizedAccess.roleIds) {
