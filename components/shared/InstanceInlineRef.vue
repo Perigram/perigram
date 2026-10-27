@@ -224,7 +224,7 @@ function executeContextualAction(action) {
         <span class="instance-inline-compact-header">
           <template v-if="compactLayout === 'stacked' && resolved">
             <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true" />
-            <span class="min-w-0 flex-1 truncate text-supporting" :title="identityLabel">{{ identityLabel }}</span>
+            <span class="min-w-0 flex-1 truncate" :title="identityLabel">{{ identityLabel }}</span>
             <!-- One caption line: identity truncates, the state tag stays
                  whole. -->
             <StateTag

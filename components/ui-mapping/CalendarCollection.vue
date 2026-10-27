@@ -43,7 +43,7 @@
 // is local view state; labels and weekday headers format through the
 // active locale, and the month opens on the first loaded instance's
 // month (or the current month for empty pools).
-import { computed, inject, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import { LAYOUT, titleFor, temporalFieldsFor } from '#shared/ui-mapping/index.js';
@@ -59,7 +59,6 @@ const props = defineProps({
 
 defineEmits(['open']);
 
-inject('uiMappingSpacing', null);
 const { t, locale } = useI18n();
 
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });

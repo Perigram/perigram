@@ -18,7 +18,7 @@
         <!-- SPEC §22.8: the count renders only for loaded, accessible,
              non-empty collections — a denied or failed source has no
              count, and an empty one states itself through its message. -->
-        <span v-if="showSurfaces && hasInstances" :class="COUNT_CHIP_CLASS">{{ node.instances.length }}</span>
+        <Tag v-if="showSurfaces && hasInstances" :value="String(node.instances.length)" severity="secondary" />
       </div>
       <div v-if="createControls.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
         <!-- Search expands IN PLACE: the icon button becomes an icon field
@@ -194,6 +194,7 @@ import { computed, inject, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
+import Tag from 'primevue/tag';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
@@ -215,7 +216,6 @@ import RegionCollections from './RegionCollections.vue';
 import RegionChildren from './RegionChildren.vue';
 import PlacementBox from './PlacementBox.vue';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
-import { COUNT_CHIP_CLASS } from '../shared/chip-surface.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 const props = defineProps({
   node: { type: Object, required: true },

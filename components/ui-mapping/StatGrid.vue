@@ -5,12 +5,18 @@
         <div :class="LAYOUT.rowBetween">
           <div :class="LAYOUT.row">
             <i :class="iconFor(type)" class="text-muted" />
-            <span>{{ identityOf(instance) }}</span>
+            <Button
+              v-if="openable"
+              link
+              :label="identityOf(instance)"
+              :class="LAYOUT.linkClamp"
+              @click="$emit('open', instance)"
+            />
+            <span v-else class="truncate">{{ identityOf(instance) }}</span>
           </div>
           <Tag v-if="statusOf(instance)" :value="statusOf(instance).label" :severity="statusOf(instance).severity" />
         </div>
       </template>
-      <template #subtitle>{{ type?.name }}</template>
       <template #content>
         <div :class="LAYOUT.factCell">
           <span class="text-metric">{{ metricOf(instance) }}</span>
@@ -25,6 +31,7 @@
 import { computed } from 'vue';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
+import Button from 'primevue/button';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { useI18n } from 'vue-i18n';
 import { LAYOUT, analyzeTypeShape, titleFor, iconFor, formatQuantity, stateDisplayFor } from '#shared/ui-mapping/index.js';
@@ -32,11 +39,15 @@ import { LAYOUT, analyzeTypeShape, titleFor, iconFor, formatQuantity, stateDispl
 const props = defineProps({
   instances: { type: Array, default: () => [] },
   type: { type: Object, default: null },
+  // Collection identities render as links when an open handler exists.
+  openable: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   // Per-type state policy map from the compiled process contract.
   statePolicy: { type: Object, default: null }
 });
+
+defineEmits(['open']);
 
 const shape = computed(() => analyzeTypeShape(props.type));
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());

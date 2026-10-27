@@ -1336,8 +1336,8 @@ transform. Structural values
 render as labeled blocks on their own lines. The record page carries
 its child collections alone; the hierarchy tree projection is retired.
 File and instance references render through the shared chip recipes the
-chat surfaces own: file chips name the file, instance chips ride
-InstanceInlineRef's bordered default. A boolean renders as the checkbox
+chat surfaces own: raw PrimeVue Chips — file chips name the file,
+instance chips ride InstanceInlineRef's default. A boolean renders as the checkbox
 state it is. A homogeneous collection never repeats the type name per
 card; only mixed-type contexts and containment context carry type
 identity. A collection's count renders only for loaded, accessible,

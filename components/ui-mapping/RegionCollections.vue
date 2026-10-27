@@ -71,9 +71,11 @@
     v-else-if="listLayout === 'stats'"
     :instances="filteredInstances"
     :type="node.type"
+    :openable="openable"
     :pool="effectivePool"
     :bundle="bundle"
     :state-policy="node.statePolicy"
+    @open="instance => emit('open', instance)"
   />
   <div v-else :class="LAYOUT.stackTight">
     <SurfaceBody
