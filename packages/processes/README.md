@@ -201,7 +201,7 @@ The value and list/tree groups are exhaustive over the catalog's
 author-facing basics (SPEC §8): every
 tree-algebra kind (flatten, graft, simplify, branch, zip, unzip, cross,
 transpose, clean, stats), the list reshapes (reverse, shift, partition,
-reduce), the value utilities (cast, parse, convertUnit, coalesce, format,
+reduce), the value utilities (cast, convertUnit, coalesce, format,
 required, validate), and the current-time source are palette items. The
 fixed-arity `collection.makeList` and the persisted-array boundary
 (`collection.packArray`/`unpackArray`) stay catalog-only: a graph reaches
@@ -216,6 +216,7 @@ the inspector:
 | `source.literalList` | An authored list literal is a value; lives in the values group. |
 | `collection.join` | Keys `leftKey`/`rightKey`. |
 | `value.recordField` | `path` plus authored output type. |
+| `value.cast` | `sourceType`/`outputType` base pair over the re-base vocabulary (json, record, list, string, number, boolean); the node asserts the value already matches the target base. |
 | `record.construct` | `fields`. |
 | `value.format` | Template with named `{key}` slots substituted from a wired record (missing keys keep their placeholder, `{value}` from the value input); template-free formatting is numeric. |
 | `forEachEntity` | Authors the loop PAIR: dropping it creates `control.forEach` and its `control.forEachEnd` closer. |
@@ -1211,8 +1212,9 @@ otherwise). Fixed-field and open-entry composers both evaluate through
 aligned tuple matching, so list-shaped inputs emit one composed block per
 aligned tuple and multi-entity creation needs no loop node. Duplicate
 operations are consolidated: same-type stream concatenation is
-`collection.concat` with an entityRef element type, `value.cast` owns type
-conversion, and the wire law's implicit entity→entityRef and JSON
+`collection.concat` with an entityRef element type, `value.cast` owns
+explicit base re-basing (asserting a value whose shape already satisfies
+the target), and the wire law's implicit entity→entityRef and JSON
 coercions cover reference and JSON needs; persisted drafts that still wire
 the retired converter nodes reconnect through the one-shot migration.
 
