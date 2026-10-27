@@ -76,3 +76,14 @@ sender run with it, group/instance threads anchor others' runs in it
 at every pane width, and 1:1 threads (human and AI) carry no stamp in
 the two-sided variant. SPEC §7 amended to this law.
 - WAITING — owner verification.
+
+## Long-message clamp (owner direction, 2026-10-27)
+- [x] Very long message bodies clamp behind a show-more control;
+  expanding reveals the body in place; a jump to a clamped message
+  reveals it.
+### Agent Notes (2026-10-27, long-message clamp)
+Delivered: the bubble body clamps past 18rem (`max-h-72` +
+`overflow-hidden`, measured on mount); `support.showMore` expands in
+place through the bag's per-message expansion set; the jump-to-message
+highlight reveals a clamped body.
+- WAITING — owner verification.

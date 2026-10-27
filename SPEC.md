@@ -489,7 +489,10 @@ message's content bottom. Group chats and instance chats
 (the organization chat included) anchor others' runs in the same avatar
 gutter at every pane width; 1:1 threads — human chats and the AI chat —
 carry no sender stamp in the two-sided variant (owner
-direction 2026-10-27). Forwarded messages carry a distinct
+direction 2026-10-27). A very long message body clamps behind a
+show-more control; expanding reveals the full body in place, and a jump
+to a clamped message reveals it (owner direction 2026-10-27). Forwarded
+messages carry a distinct
 forwarded-from header above
 their content, on every message shape — text, media, or files.
 
