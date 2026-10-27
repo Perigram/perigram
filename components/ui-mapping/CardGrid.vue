@@ -58,6 +58,28 @@
           </template>
           <template #content>
             <div :class="spacing ? spacing.stackTight : 'flex flex-col gap-3'">
+              <!-- A group's membership rides its card (class law: identity
+                   is membership): children render as budgeted reference
+                   chips — flat, one level; a child opens its own surface. -->
+              <div v-if="groupChildrenOf(instance).length" :class="LAYOUT.row">
+                <InstanceInlineRef
+                  v-for="child in visibleChildrenOf(instance)"
+                  :key="`${child.type}:${child.id}`"
+                  :type="String(child.type)"
+                  :id="child.id"
+                  :entity="child"
+                />
+                <Button
+                  v-if="childrenOutcomeOf(instance).hidden > 0 || expandedCards.has(instance.id)"
+                  :label="expandedCards.has(instance.id)
+                    ? $t('uiMapping.showLess')
+                    : $t('uiMapping.showMore', { count: childrenOutcomeOf(instance).hidden })"
+                  link
+                  size="small"
+                  severity="secondary"
+                  @click="toggleChildren(instance.id)"
+                />
+              </div>
               <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
                 <span class="text-supporting text-muted">{{ field.label }}</span>
                 <FieldControl
@@ -95,11 +117,13 @@ import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import {
   LAYOUT, SCALAR_BASES, cardFactCount, titleFor, iconFor, isIdentifierField,
   fieldLabel, fieldLabelKey, localizedLabel, resolveListControls,
-  resolveActionButton, actionLabelKey, stateDisplayFor
+  resolveActionButton, actionLabelKey, stateDisplayFor,
+  childrenOfParent, resolveSurface, applyBudget
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import ParentRef from './ParentRef.vue';
+import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 const spacing = inject('uiMappingSpacing', null);
 
@@ -128,6 +152,24 @@ const props = defineProps({
 });
 
 const quantitative = computed(() => typeIsQuantitative(props.type));
+
+// A group card carries its membership: children resolve through the one
+// hierarchy matcher over the (overlaid) pool, budgeted by the surface
+// contract's children slot. Non-group types render no membership.
+const isGroup = computed(() => props.type?.class === 'group');
+const childrenBudget = computed(() => resolveSurface(props.type || {}, { variant: 'detail' }).budgets?.children || null);
+const groupChildrenOf = instance => (isGroup.value ? childrenOfParent(props.type, props.pool, instance?.id) : []);
+const childrenOutcomeOf = instance => applyBudget(groupChildrenOf(instance), childrenBudget.value);
+const visibleChildrenOf = instance => (expandedCards.has(instance.id)
+  ? groupChildrenOf(instance)
+  : childrenOutcomeOf(instance).visible);
+const expandedCards = ref(new Set());
+const toggleChildren = id => {
+  const next = new Set(expandedCards.value);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  expandedCards.value = next;
+};
 
 const emit = defineEmits(['open', 'run']);
 

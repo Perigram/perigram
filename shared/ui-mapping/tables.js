@@ -92,11 +92,17 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
   { match: { shape: 'chronological' }, layout: 'timeline' },
   { match: { shape: 'statlike' }, layout: 'stats' },
   { match: { class: 'file' }, layout: 'card-grid' },
+  // A group's identity is its membership (class law): group collections
+  // render as the cards that carry their children.
+  { match: { class: 'group' }, layout: 'card-grid' },
   // Scheduled (exactly one instant, no stronger shape): appointment-like
   // collections lay out as the month grid; temporal shape beats size the
   // way chronology already does.
   { match: { shape: 'scheduled' }, layout: 'calendar' },
   { match: { size: 'small' }, layout: 'list' },
+  // A table with no data column beside identity (and status) is a name
+  // pile — the stacked rows of the list projection carry it.
+  { match: { columns: 0 }, layout: 'list' },
   { match: {}, layout: 'table' }
 ]);
 

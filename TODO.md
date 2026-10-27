@@ -1495,3 +1495,80 @@ dialogs on the next stack run.
 
 Status: WAITING owner verification.
 
+## Generative UI owner corrections (owner direction 2026-10-27)
+
+Law: SPEC §22.8 (chip recipe), §22.10 (the preset token layer is a
+sanctioned spacing channel), the list-layout matcher. Owner findings on
+round 15 and earlier rounds: the bordered instance/file chips were the
+intended recipe; the small-table cell padding was the intended preset
+deviation; a table must never render with no data column beside
+identity (and status).
+
+- [x] The bordered chip recipe is restored (round 15 over-reached):
+  `FILE_CHIP_CLASS`/`INSTANCE_CHIP_CLASS` and the compact ref header
+  label carry the border, surface, and supporting face again; SPEC
+  §22.8's "bordered default" stands; the guard pins the restored
+  classes.
+- [x] The small-table cell padding is restored at its token home:
+  `datatable.bodyCell.sm.padding: '0.5rem 0.75rem'` (removed by the
+  §22.10 round 12 cleanup, which swept a preset token — the layer
+  §22.10 itself sanctions); the design-system guard pins it and the
+  tokens README deviation table carries the row.
+- [x] The list-layout matcher demotes name-pile tables: a `columns: 0`
+  signal (filled non-identifier short scalars + the first declared
+  relation — the value-aware count of data columns a table would show
+  beside identity and status) renders the `list` projection instead.
+  `listLayoutOf(node)` is the one region-level derivation — compose
+  traits, weight estimation, and RegionBlock resolve the same layout
+  over the same node.
+
+### Agent Notes (2026-10-27, round 16)
+
+Session `agent/genui-corrections-20261027-2000` (worktree
+`.agent-worktrees/genui-corrections`). The demotion is value-aware by
+design: a type whose declared scalars no instance fills also demotes
+(the census showed a detail screen rendering a one-column "Record"
+table). Arrangement follows automatically — the demoted peers carry
+chip breadth and share columns instead of claiming full rows. Specs:
+175 unit (design-system, ui-mapping, screen, fixtures, random world,
+module-imports, timeline) green; the traits fixture and the
+relation-children composition fixture now fill a non-identifier scalar
+so the table projections they pin derive over a shown data column.
+Token change bakes at boot: the padding is visible after
+`docker compose -f docker-compose.dev.yml restart app` once merged.
+
+Status: WAITING owner verification.
+
+## Group surfaces carry their membership (owner direction 2026-10-27)
+
+Law: SPEC §22.11. Owner direction: group-class instances render as
+groups in their collection surfaces, showing their children — flat, no
+tree projection.
+
+- [x] Group collections derive the card grid (matcher entry beside the
+  file class): the class identity law — identity is its membership —
+  makes membership the card's content.
+- [x] A group card carries its children as budgeted reference chips
+  (`InstanceInlineRef` over `childrenOfParent`, the surface contract's
+  children slot: max 6, show-more per card) ahead of its facts; a child
+  opens its own surface — one level, never a tree.
+- [x] Child types lazy-load through the `loadType` overlay seam the
+  containment cross-cut already owns (the parent-type overlay
+  generalizes to overlaid types); an unloaded type renders without its
+  context.
+
+### Agent Notes (2026-10-27, round 17)
+
+Session `agent/genui-corrections-20261027-2000` (worktree
+`.agent-worktrees/genui-corrections`). The `children` slot existed in
+the surface contract since the class archetypes landed (collection,
+collection-card, collection-row with per-variant budgets) — no
+materialization consumed it; group instances rendered as plain records.
+Answer to the owner's question: yes — the correct way is the class
+surface's own children slot over the one hierarchy matcher, budgeted
+like relation chips, with the lazy overlay for pool data. The fixtures
+spec's folder pin moves with the law (the stale comment asserted the
+table default). Specs: 176 unit green (design-system, ui-mapping,
+screen, fixtures, random world, module-imports, timeline).
+Status: WAITING owner verification.
+

@@ -283,17 +283,22 @@ beside the transition history in `StateHistory`.
   render inside the surface that already states their parent): every
   instance lists with its parent beside the
   identity (`ParentRef.vue` — the parent type's icon plus the parent's
-  resolved label, non-interactive; the region host lazily overlays loaded
-  parent types onto the pool through the same `loadType` seam the tree
+  resolved label, non-interactive; the region host lazily overlays
+  loaded parent types — and a group collection's child types — onto the
+  pool through the same `loadType` seam the tree
   uses). Containment navigation belongs to the workspace explorer.
-- `CardGrid.vue` — the media collection projection (DataView, paginated):
-  cards lay out in the shared `ResponsiveGrid` primitive with container
+- `CardGrid.vue` — the media and membership collection projection
+  (DataView, paginated): cards lay out in the shared `ResponsiveGrid`
+  primitive with container
   queries and bounded item tokens (viewport breakpoints lie inside
   panels), each Card clipped (`overflow-hidden`) on the stock anatomy —
-  preview as `#header`, identity + status in `#title`, type label (with
-  the row's `ParentRef` parent context when the collection composes the
-  cross-cut)
-  in `#subtitle`, labeled budgeted facts in `#content`. Card ordering
+  preview as `#header`, identity + status in `#title`, the row's
+  `ParentRef` parent context when the collection composes the
+  cross-cut
+  in `#subtitle`, and in `#content` a group class's membership —
+  children as budgeted `InstanceInlineRef` chips through
+  `childrenOfParent`, one show-more per card (SPEC §22.11) — ahead of
+  the labeled budgeted facts. Card ordering
   lives in the region header's sort control (RegionBlock applies the
   `sortKeys` contract through the shared comparator before the grid
   mounts; the DataView itself renders no header). The card identity is a

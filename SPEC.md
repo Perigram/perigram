@@ -1311,6 +1311,19 @@ rhythm, region stacks, the grid-gap token) and in the preset's token
 layer; a utility class inside a PrimeVue component's internals is a
 defect.
 
+### 22.11 Group surfaces carry their membership (owner direction
+2026-10-27)
+
+A group-class instance renders as a group in collection surfaces: its
+card carries its membership — the children edge's instances as budgeted
+reference chips, flat, one level; a child opens its own surface. No tree
+projection: a class's list surface stays flat, and hierarchy navigation
+stays the workspace explorer's. Group collections derive the card grid —
+the class's identity law (identity is its membership) makes membership
+the card's content. Children resolve through the one hierarchy matcher
+over the overlaid pool; child types load lazily through the load-type
+seam, and an unloaded type renders without its context.
+
 ### 22.9 Spacing ladder (owner direction 2026-10-27)
 
 Generative surfaces space on one 4px-based ladder: steps 4, 8, 12, 16,
@@ -1341,8 +1354,8 @@ transform. Structural values
 render as labeled blocks on their own lines. The record page carries
 its child collections alone; the hierarchy tree projection is retired.
 File and instance references render through the shared chip recipes the
-chat surfaces own: raw PrimeVue Chips — file chips name the file,
-instance chips ride InstanceInlineRef's default. A boolean renders as the checkbox
+chat surfaces own: file chips name the file, instance chips ride
+InstanceInlineRef's bordered default. A boolean renders as the checkbox
 state it is. A homogeneous collection never repeats the type name per
 card; only mixed-type contexts and containment context carry type
 identity. A collection's count renders only for loaded, accessible,

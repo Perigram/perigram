@@ -156,6 +156,26 @@ describe('field control resolution', () => {
     expect(mapping.resolveListLayout({ id: 'probe', class: 'item', fields: plain.fields })).toBe('timeline');
   });
 
+  it('demotes a table with no data column to the list projection', () => {
+    // Only the identifier field (plus a state vocabulary at most): a
+    // table would carry names alone. A filled non-identifier scalar or a
+    // declared relation column earns the table.
+    const namesOnly = { class: 'item', identifier: 'name', fields: { name: { base: 'string' } } };
+    expect(resolveListLayout(namesOnly, { columns: 0, size: 'large' })).toBe('list');
+    expect(resolveListLayout(namesOnly, { columns: 0, stateful: true })).toBe('list');
+    expect(resolveListLayout(namesOnly, { columns: 1 })).toBe('table');
+    expect(resolveListLayout(namesOnly, {})).toBe('table');
+  });
+
+  it('derives group-class collections as membership cards', () => {
+    // A group's identity is its membership (class law): the card grid
+    // carries the children, at any size and with no data columns.
+    const group = { class: 'group', identifier: 'name', fields: { name: { base: 'string' } }, edges: { children: { parts: { types: ['part'] } } } };
+    expect(resolveListLayout(group, { size: 'large' })).toBe('card-grid');
+    expect(resolveListLayout(group, { columns: 0 })).toBe('card-grid');
+    expect(resolveListLayout(group, { size: 'small' })).toBe('card-grid');
+  });
+
   it('boards process-class collections over a served state vocabulary', () => {
     const process = { id: 'watch_job', class: 'process', fields: {
       note: { base: 'string', max: 400 }
@@ -800,15 +820,24 @@ describe('weight-driven arrangement', () => {
     });
     expect(detail).toEqual({ weight: 2, breadth: 'content', volume: 1, shape: 'plain', filledness: 'filled', growth: 'flowing' });
     // The default list projection is the full-breadth, bounded-growth
-    // table; the handful list is chip-scale and flowing.
+    // table; the handful list is chip-scale and flowing. The instances
+    // fill the scalar field — a table derives over a shown data column.
     const tableTraits = count => regionDataTraits({
       surfaceKind: 'list',
       type: { fields: { a: { base: 'string' } } },
-      instances: Array.from({ length: count }, (_, i) => ({ id: String(i), relations: {} }))
+      instances: Array.from({ length: count }, (_, i) => ({ id: String(i), fields: { a: `v${i}` }, relations: {} }))
     });
     expect(tableTraits(6)).toEqual({ weight: 8, breadth: 'full', volume: 6, shape: 'plain', filledness: 'filled', growth: 'bounded' });
     expect(tableTraits(2).breadth).toBe('chip');
     expect(tableTraits(2).growth).toBe('flowing');
+    // No filled non-identifier scalar and no declared relation: the table
+    // demotes to the list projection (chip-scale, flowing) — a table with
+    // no data column beside identity is a name pile.
+    expect(regionDataTraits({
+      surfaceKind: 'list',
+      type: { fields: { a: { base: 'string' } } },
+      instances: Array.from({ length: 6 }, (_, i) => ({ id: String(i), relations: {} }))
+    })).toMatchObject({ breadth: 'chip', growth: 'flowing' });
     expect(regionDataTraits({ surfaceKind: 'list', type: { fields: { a: { base: 'string' } } }, instances: [] }).filledness).toBe('inert');
     const mediaTraits = count => regionDataTraits({
       surfaceKind: 'list',
