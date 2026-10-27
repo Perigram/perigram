@@ -13,9 +13,12 @@
   <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-wrap items-center gap-2">
-        <i v-if="node.type" :class="iconFor(node.type)" />
+        <i v-if="node.type && !paneHosted" :class="iconFor(node.type)" />
         <span v-if="!paneHosted" :class="embedded ? 'text-label min-w-0 truncate' : 'text-section-heading'">{{ regionLabel }}</span>
-        <span class="text-supporting text-muted">{{ node.instances.length }}</span>
+        <!-- SPEC §22.8: the count renders only for loaded, accessible,
+             non-empty collections — a denied or failed source has no
+             count, and an empty one states itself through its message. -->
+        <span v-if="showSurfaces && hasInstances" class="text-supporting text-muted">{{ node.instances.length }}</span>
       </div>
       <div v-if="createControls.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
         <!-- Search expands IN PLACE: the icon button becomes an icon field
