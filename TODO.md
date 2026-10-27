@@ -481,6 +481,13 @@ AttachmentKind row.
   dangling-edge error naming the other definition's graph instead of the
   collision. Surface the collision as its own diagnostic (or
   definition-qualify action ids in the manifest).
+- [ ] Template editor surfaces per format (SPEC §24): every template type
+  rides the editor-binding + revision-scope law — the listing binds the
+  surface, the type declares a revision scope, and the surface saves
+  through the revisioned payload channel. First cut: dxf-source over the
+  CAD engine the plugin already ships (the sketch editor's MLightCAD),
+  authoring {spot:...} markers in-app; PDF/xlsx surfaces follow their fill
+  engines.
 - [ ] Pinned-entity-ref palette source: a `source` node emitting one
   authored entityRef (the "select exact instance" producer), so a graph can
   wire a pinned record into any construct's ref sockets. Authored socket
