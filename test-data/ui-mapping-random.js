@@ -218,12 +218,14 @@ export function generateUiMappingWorld(seed = 7) {
     if (shortString && rnd.chance(0.3)) shortString[1].control = 'Textarea';
     return type;
   });
-  // Projection floors (structural, every world): the sixth type is
-  // durational (two instants → gantt), the seventh scheduled (exactly
+  // Projection floors (structural, every world): the third type is
+  // prose-dominant (a long body → timeline), the sixth durational (two
+  // instants → gantt), the seventh scheduled (exactly
   // one instant → calendar), the eighth the boardable process class.
+  types[3].fields = { serial: { base: 'string', label: 'Serial', identifier: true }, body: { base: 'string', max: 400, label: 'Body' } };
   types[5].fields = { serial: { base: 'string', label: 'Serial', identifier: true }, spanStart: { base: 'instant', label: 'Start' }, spanEnd: { base: 'instant', label: 'End' } };
   types[6].fields = { serial: { base: 'string', label: 'Serial', identifier: true }, scheduledFor: { base: 'instant', label: 'Scheduled for' } };
-  const projectionFloors = new Set([types[5].id, types[6].id, types[7].id]);
+  const projectionFloors = new Set([types[3].id, types[5].id, types[6].id, types[7].id]);
   // Guarantee at least one authored editor control per world: pin a
   // Textarea on the first short string, preferring non-identity fields.
   if (!types.some(type => Object.values(type.fields).some(field => field.control))) {

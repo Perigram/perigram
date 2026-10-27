@@ -24,14 +24,12 @@
       data-testid="gantt-row"
     >
       <div :class="LAYOUT.ganttIdentity">
-        <Button
-          v-if="openable"
-          link
-          :label="identityOf(row.instance)"
-          :class="LAYOUT.linkClamp"
-          @click="$emit('open', row.instance)"
+        <InstanceIdentity
+          :instance="row.instance"
+          :type="type"
+          :openable="openable"
+          @open="target => $emit('open', target)"
         />
-        <span v-else class="truncate">{{ identityOf(row.instance) }}</span>
       </div>
       <div :class="LAYOUT.ganttTrack">
         <span
@@ -61,8 +59,8 @@
 // links follow the shared onOpen navigation contract.
 import { computed, inject } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Button from 'primevue/button';
 import { LAYOUT, titleFor, temporalFieldsFor, stateDisplayFor } from '#shared/ui-mapping/index.js';
+import InstanceIdentity from './InstanceIdentity.vue';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
@@ -78,7 +76,6 @@ defineEmits(['open']);
 inject('uiMappingSpacing', null);
 const { t, locale } = useI18n();
 
-const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const temporal = computed(() => temporalFieldsFor(props.type || {}));
 
 const rows = computed(() => {
@@ -151,7 +148,7 @@ const tickStyle = tick => ({ left: `${tick.left}%` });
 const todayStyle = computed(() => ({ left: `${todayLeft.value}%` }));
 const barStyle = bar => ({ left: `${Math.max(0, bar.left)}%`, width: `${Math.max(1, Math.min(100 - bar.left, bar.width))}%` });
 const pointStyle = point => ({ left: `${Math.max(0, Math.min(99, point.left))}%` });
-const barTitle = row => identityOf(row.instance);
+const barTitle = row => titleFor(row.instance, props.type, { unnamedLabel: t('common.unnamed') });
 // Bar tone: the state severity's status token class — data-decided
 // color, never a raw palette.
 const TONE_BY_SEVERITY = Object.freeze({

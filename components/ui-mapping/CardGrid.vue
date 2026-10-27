@@ -14,16 +14,12 @@
           </template>
           <template #title>
             <div :class="LAYOUT.rowBetween">
-              <div :class="LAYOUT.row">
-                <Button
-                  v-if="openable"
-                  link
-                  :label="identityOf(instance)"
-                  :class="LAYOUT.linkClamp"
-                  @click="$emit('open', instance)"
-                />
-                <span v-else class="truncate">{{ identityOf(instance) }}</span>
-              </div>
+              <InstanceIdentity
+                :instance="instance"
+                :type="type"
+                :openable="openable"
+                @open="target => $emit('open', target)"
+              />
               <div :class="LAYOUT.row">
                 <Tag
                   v-if="statusOf(instance)"
@@ -57,29 +53,6 @@
           </template>
           <template #content>
             <div :class="spacing ? spacing.stackTight : 'flex flex-col gap-3'">
-              <!-- A group's membership rides its card (class law: identity
-                   is membership): children render as budgeted reference
-                   chips — flat, one level. The overflow opens the group's
-                   own record popup, where the full children collection
-                   lives; a type with no record surface counts instead. -->
-              <div v-if="groupChildrenOf(instance).length" :class="LAYOUT.row">
-                <InstanceInlineRef
-                  v-for="child in childrenOutcomeOf(instance).visible"
-                  :key="`${child.type}:${child.id}`"
-                  :type="String(child.type)"
-                  :id="child.id"
-                  :entity="child"
-                />
-                <Button
-                  v-if="childrenOutcomeOf(instance).hidden > 0 && recordOpenable"
-                  :label="$t('uiMapping.showMore', { count: childrenOutcomeOf(instance).hidden })"
-                  link
-                  size="small"
-                  severity="secondary"
-                  @click="openRecord(instance)"
-                />
-                <Tag v-else-if="childrenOutcomeOf(instance).hidden > 0" :value="`+${childrenOutcomeOf(instance).hidden}`" severity="contrast" />
-              </div>
               <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
                 <span class="text-supporting text-muted">{{ field.label }}</span>
                 <FieldControl
@@ -114,17 +87,15 @@ import Message from 'primevue/message';
 import Menu from 'primevue/menu';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
-import { useEntityPopup } from '~/composables/useEntityPopup';
 import {
-  LAYOUT, SCALAR_BASES, cardFactCount, titleFor, isIdentifierField,
+  LAYOUT, SCALAR_BASES, cardFactCount, isIdentifierField,
   fieldLabel, fieldLabelKey, localizedLabel, resolveListControls,
-  resolveActionButton, actionLabelKey, stateDisplayFor,
-  childrenOfParent, resolveSurface, applyBudget
+  resolveActionButton, actionLabelKey, stateDisplayFor
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import ParentRef from './ParentRef.vue';
-import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
+import InstanceIdentity from './InstanceIdentity.vue';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 const spacing = inject('uiMappingSpacing', null);
 
@@ -154,27 +125,6 @@ const props = defineProps({
 
 const quantitative = computed(() => typeIsQuantitative(props.type));
 
-// A group card carries its membership: children resolve through the one
-// hierarchy matcher over the (overlaid) pool, budgeted by the surface
-// contract's children slot. Non-group types render no membership.
-const isGroup = computed(() => props.type?.class === 'group');
-const childrenBudget = computed(() => resolveSurface(props.type || {}, { variant: 'detail' }).budgets?.children || null);
-const groupChildrenOf = instance => (isGroup.value ? childrenOfParent(props.type, props.pool, instance?.id) : []);
-const childrenOutcomeOf = instance => applyBudget(groupChildrenOf(instance), childrenBudget.value);
-// The overflow opens the group's own record popup (the record surface
-// carries the full children collection); the screen's open channel is
-// the fallback, the count the last resort.
-const { open: openEntityPopup, openable: popupOpenable } = useEntityPopup();
-const recordOpenable = computed(() => Boolean(props.type?.id)
-  && (popupOpenable(String(props.type.id)) || props.openable));
-function openRecord(instance) {
-  if (props.type?.id && popupOpenable(String(props.type.id))) {
-    openEntityPopup({ typeId: String(props.type.id), instanceId: String(instance.id) });
-    return;
-  }
-  emit('open', instance);
-}
-
 const emit = defineEmits(['open', 'run']);
 
 const { te, t } = useI18n();
@@ -182,7 +132,6 @@ const { te, t } = useI18n();
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
 const pagination = computed(() => resolvedControls.value.pagination);
 
-const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const statusOf = instance => {
   const display = stateDisplayFor(props.statePolicy, instance?.state);
   return display ? { label: display.label, severity: display.severity } : null;

@@ -172,6 +172,13 @@ describe('showcase-reachable contracts in every world', () => {
       // projections.
       const volumeTableType = world.bundle.types.find(type => (world.instances[type.id] || []).length > 50);
       expect(resolveListLayout(volumeTableType, { size: 'large' }), `seed ${seed} volume table layout`).toBe('table');
+      // The prose floor keeps the timeline projection reachable — the
+      // groups projection outranks incidental field shape on groups, so
+      // the chronology floor rides a file class (shape outranks it).
+      const proseType = world.bundle.types.find(type => type.class === 'file'
+        && Object.values(type.fields).some(field => field.base === 'string' && (field.max || 0) >= 120));
+      expect(proseType, `seed ${seed} prose floor type`).toBeTruthy();
+      expect(resolveListLayout(proseType), `seed ${seed} timeline layout`).toBe('timeline');
       const volumeScreen = Object.values(world.contract.screens)
         .find(screen => screen.template === 'typeList' && screen.typeId === volumeTableType.id);
       expect(volumeScreen, `seed ${seed} volume list screen`).toBeTruthy();
