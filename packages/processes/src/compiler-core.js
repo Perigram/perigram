@@ -14,7 +14,7 @@ import {
   resolveProcessNodePorts,
   validateProcessEdges
 } from './ports.js';
-import { CONSUMER_SPECIES_KINDS, constructionInputsForContract, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
+import { CONSUMER_SPECIES_KINDS, constructionInputsForContract, entityBlocks, EFFECT_SPECIES_KINDS, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { normalizeStateFieldPolicy } from './designer.js';
 import { normalizeDesignerAccess } from './authoring.js';
 import { projectUiAction, projectUiContractChannels, creationModeLabel } from './ui-contract-projection.js';
@@ -30,16 +30,6 @@ const MAPPED_MUTATION_KINDS = new Set([
   'cts.transition',
   'cts.remove'
 ]);
-const NATIVE_EFFECT_KINDS = new Set([
-  'cts.construct',
-  'cts.mutate',
-  'cts.transition',
-  'cts.remove',
-  'cts.command',
-  'cts.service',
-  'cts.conversion'
-]);
-
 function effectKindOf(record = {}) {
   return operationKindOf(record);
 }
@@ -49,7 +39,7 @@ function isMappedMutation(record = {}) {
 }
 
 function isEffectRecord(record = {}) {
-  return NATIVE_EFFECT_KINDS.has(String(record.kind || ''));
+  return EFFECT_SPECIES_KINDS.has(String(record.kind || ''));
 }
 
 export {
@@ -330,7 +320,8 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       'cts.remove': 'deleteEntity',
       'cts.command': 'runCommand',
       'cts.service': 'runCommand',
-      'cts.conversion': 'runCommand'
+      'cts.conversion': 'runCommand',
+      'cts.emit': 'emitEvent'
     })[classification];
     if (!actionKind) continue;
 
@@ -4285,14 +4276,14 @@ function normalizeAccessLevel(level) {
 function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors, stateDefinitions = {}, process = {}, lineageBindings = [] }) {
   const kind = action.actionKind || 'createEntity';
   const normalizedAccess = normalizeActionAccess(action.access);
-  if (!['createEntity', 'updateEntity', 'archiveEntity', 'deleteEntity', 'runCommand', 'sendToOrganization'].includes(kind)) {
+  if (!['createEntity', 'updateEntity', 'archiveEntity', 'deleteEntity', 'runCommand', 'sendToOrganization', 'emitEvent'].includes(kind)) {
     errors.push(`Action ${actionId} uses unknown action kind ${kind}`);
     return;
   }
   if (kind === 'runCommand') {
     if (!action.commandId) errors.push(`Action ${actionId} must select a command`);
     if (action.commandId && !commands.has(action.commandId)) errors.push(`Action ${actionId} uses unknown command ${action.commandId}`);
-  } else if (!['updateEntity', 'archiveEntity', 'deleteEntity'].includes(kind)) {
+  } else if (!['updateEntity', 'archiveEntity', 'deleteEntity', 'emitEvent'].includes(kind)) {
     if (!action.typeId) errors.push(`Action ${actionId} must select an entity type`);
     if (action.typeId && !entities.has(action.typeId)) errors.push(`Action ${actionId} uses unknown entity type ${action.typeId}`);
   }
@@ -4375,7 +4366,7 @@ function inferConnectedActionTypeId(actionId, process = {}) {
       const refId = String(node.data?.refId || node.id);
       const processNode = node.type === 'processNode' ? process.processNodes?.[refId] : null;
       return (node.type === 'action' && refId === String(actionId))
-        || (NATIVE_EFFECT_KINDS.has(String(processNode?.kind || '')) && String(processNode.entryTriggerId || processNode.id || refId) === String(actionId));
+        || (EFFECT_SPECIES_KINDS.has(String(processNode?.kind || '')) && String(processNode.entryTriggerId || processNode.id || refId) === String(actionId));
     })
     .map(node => String(node.id)));
   for (const edge of process.graph?.edges || []) {
@@ -4385,7 +4376,7 @@ function inferConnectedActionTypeId(actionId, process = {}) {
     const sourceRecord = sourceNode?.type === 'processNode' ? process.processNodes?.[sourceRefId] : null;
     const sourceActionId = sourceNode?.type === 'action'
       ? sourceRefId
-      : NATIVE_EFFECT_KINDS.has(String(sourceRecord?.kind || '')) ? String(sourceRecord.id || sourceRefId) : '';
+      : EFFECT_SPECIES_KINDS.has(String(sourceRecord?.kind || '')) ? String(sourceRecord.id || sourceRefId) : '';
     const sourceAction = process.actions?.[sourceActionId];
     const sourceType = sourceAction && actionTypeId(sourceAction);
     if (sourceType) return sourceType;
@@ -4597,7 +4588,7 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors, p
       }
     }
   }
-  if (isEffectRecord(node) && !['manual', 'event'].includes(node.trigger?.mode || 'manual')) {
+  if (isEffectRecord(node) && !['manual', 'event', 'schedule'].includes(node.trigger?.mode || 'manual')) {
     errors.push(`Process node ${nodeId} uses unknown trigger mode ${node.trigger?.mode}`);
   }
   if (node.type) {
