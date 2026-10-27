@@ -253,7 +253,8 @@ Inline authoring:
   node: value/type, entity, declared edge, field, operator, and socket
   fallback. Access grants live in the contextual inspector.
   Record-carried semantics (`collection.join` keys, `value.recordField`
-  path, `record.construct` fields — see
+  path, `record.construct` fields, the terminal nodes' failure
+  `message`/success `result` — see
   [packages/processes](../../packages/processes/README.md)) author in the
   inspector's per-kind configuration. Entity bindings are explicit
   where no wire supplies them: EntityRef literals keep their type picker;

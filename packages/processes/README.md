@@ -42,7 +42,7 @@ Each gesture has its removal twin:
 | Declaration tree | `declareClass`/`declareField`/`declareTypeRef`/`declareState` plus `wireDeclaration` (declares/targets/children/binds/entry wires), gated by `declarationWireLegality`, interpreted by `interpretDeclarationEdges` | `unwireDeclaration` |
 | Palette drop | record factory + preset; a construct's type binding is its `binds` declaration wire (class or type reference wired onto the construct) — `configure` refuses `typeId` on a construct and validation reports an unbound one | `removeNode` — removes the node with its record, its wires, and the producer outputs it anchored (join selections pointing at removed outputs reset) |
 | Record configuration | the same writes the inspector performs, including socket input defaults (typed scalars; the entityRef picker writes `{type, id}`) | — |
-| Connection | `processSocketsCompatible` (the canvas gate); wire gestures address socket handles — `data:<id>` for data sockets, `control:<id>` for control; bare ids and the retired `input:`/`output:` spellings refuse; `ports.js` mints them on the stored edge | `disconnect` |
+| Connection | `processSocketsCompatible` (the canvas gate); wire gestures address socket handles — `data:<id>` for data sockets, `control:<id>` for control; bare ids and the retired `input:`/`output:` spellings refuse; `ports.js` mints them on the stored edge; a typed source into a configured socket retypes the target record before the gate (`propagateConnectionType`, one home shared with the canvas gesture) | `disconnect` |
 
 Children wires land child-first — `wireDeclaration(childId, parentId,
 'children')` wires the child's output into the parent's declare input — and
@@ -207,6 +207,11 @@ fixed-arity `collection.makeList` and the persisted-array boundary
 (`collection.packArray`/`unpackArray`) stay catalog-only: a graph reaches
 stored reference arrays through declared-edge reads (`cts.read
 select=related` resolves stored refs into an entity stream).
+`control.switch` and `control.fork` stay catalog-only beside them: an
+equality dispatch composes from `control.if` chains, and fan-out is the
+multi-wire gesture — every effect's `completed` output wires to each
+consumer. The palette keeps the branch, the rendezvous
+(`joinAll`/`joinAny`), the loop pair, and the terminals.
 
 Record-carried semantics are configured on the record through the seam and
 the inspector:
@@ -299,7 +304,10 @@ reachability the same way. A required input is satisfied by a connected
 upstream value, an authored `inputDefaults` fallback, a domain-owned
 `default`, a generated manual prompt (manual actions only), or the run
 context (manual actions only); a prompt serves manual actions alone, so an
-event-triggered effect must be complete on its own. The emptiness rule is
+event-triggered effect must be complete on its own. Control nodes with
+required data inputs (`control.if` condition, `control.switch` value,
+`control.forEach` items) run under the automatic-path rule: a wire, a
+fallback, or a domain default. The emptiness rule is
 shared by authored fallbacks and domain defaults: `null`/`undefined`
 satisfy nothing; an empty collection or attachment fails a required
 entity-list/attachment input; an empty string or zero satisfies a required
