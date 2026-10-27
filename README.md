@@ -213,7 +213,10 @@ builds only).
   production builds register `/sw.js`.
 - Offline mutations are queued in a client-side IndexedDB outbox
   (`utils/outbox.js`, `stores/outbox.js`) and replayed through the same API
-  endpoints when connectivity returns. Entity CRUD (the instances
+  endpoints when connectivity returns. The browser's own offline state gates
+  the queue; a server outage that fails in-flight requests latches the tab
+  offline, and the next mutation on a browser-online tab attempts anyway —
+  success heals the latch and replays the queue. Entity CRUD (the instances
   store), status transitions (`useStateController`), and generated
   process actions route through the outbox; queued operations raise a
   typed `OfflineQueuedError`,
