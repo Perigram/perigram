@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-09-26
-updated: 2026-10-25
+updated: 2026-10-27
 ```
 
 This spec is human-write only. 
@@ -478,21 +478,18 @@ quotes, and inbox previews never carry it.
 
 ## 7. Chat thread
 
-Messages from one sender sent in a row read as one run: the sender label
-leads the run and the timestamp trails it under the last message only;
-consecutive messages sit close together. A message row caps at 70% of the
+Messages from one sender sent in a row read as one run: the timestamp
+trails it under the last message only; consecutive messages sit close
+together. A message row caps at 70% of the
 thread column. Narrow thread panes dock the viewer's own messages right
 and the counterpart's left; panes 64rem and wider align every message
 left, the viewer's included, and each sender run closes with an
 avatar-only sender mark in the left gutter, aligned with the last
-message's content bottom (owner
-direction 2026-10-19). Group chats and instance chats
-(the organization chat included) show the sender on others' messages as
-avatar plus display name (resolved names, never
-ids, never the identifier/email). The assistant's own chat (the AI 1:1
-thread) leads the assistant's runs with the same sender chip — the AI
-face plus name; the viewer's docked messages carry no stamp, and human
-1:1 chats carry none. Forwarded messages carry a distinct
+message's content bottom. Group chats and instance chats
+(the organization chat included) anchor others' runs in the same avatar
+gutter at every pane width; 1:1 threads — human chats and the AI chat —
+carry no sender stamp in the two-sided variant (owner
+direction 2026-10-27). Forwarded messages carry a distinct
 forwarded-from header above
 their content, on every message shape — text, media, or files.
 

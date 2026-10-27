@@ -69,3 +69,10 @@ variant. Restored the SPEC §7 arrangement — the gutter mark and its
 row indent are wide-pane (≥64rem) only; narrow panes lead others' runs
 with the sender chip again.
 - WAITING — owner verification.
+### Agent Notes (2026-10-27, sender marks verdict)
+Owner verdict: the sender chip over the message is legacy — deleted.
+The avatar gutter is the only sender mark: wide panes close every
+sender run with it, group/instance threads anchor others' runs in it
+at every pane width, and 1:1 threads (human and AI) carry no stamp in
+the two-sided variant. SPEC §7 amended to this law.
+- WAITING — owner verification.
