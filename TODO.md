@@ -539,14 +539,30 @@ AttachmentKind row.
     itself is generic machinery (instance-revisions + the payload
     patch law); the file-detail replace affordance rides the lifecycle
     step below.
-  - [ ] DXF editor surface, marker-first: editor binding for dxf-source;
-    a surface module over the MLightCAD runtime homed in this plugin
-    (the cross-plugin vendor dependency serves facade's cassette
-    designer from the same bundle) that opens the template payload on
-    the CAD canvas, authors and renames `{spot:<name>}` anchors — the
-    part-matching vocabulary, authored where the drawing is drawn — and
-    saves through the revisioned channel; full editing grows on the same
-    surface.
+  - [ ] WAITING — owner verification: DXF editor surface, marker-first:
+    editor binding for dxf-source; a surface module over the MLightCAD
+    runtime homed in this plugin (the cross-plugin vendor dependency
+    serves facade's cassette designer from the same bundle) that opens
+    the template payload on the CAD canvas, authors and renames
+    `{spot:<name>}` anchors — the part-matching vocabulary, authored
+    where the drawing is drawn — and saves through the revisioned
+    channel; full editing grows on the same surface.
+
+    ### Agent Notes (2026-10-27)
+
+    `surfaces/dxf-editor.mjs` (surface contract 2, `dxf-source` edit
+    binding; tech-drawing v7 with the own-scope `cad-viewer` dependency).
+    The canvas opens the template read-only through
+    `AcApDocManager.openDocument`; the marker panel adds (name + X/Y,
+    height from the drawing's own markers or extents), renames, and
+    deletes anchors; every edit splices the DXF text and re-opens, so
+    the canvas always shows the saved truth; saves ride
+    `saveDocument` → the revisioned payload channel. The pair model and
+    marker ops live in `dxf-markers.js`, single-homed with the placement
+    engine (placement.js imports them). Focused spec
+    `dxf-markers.spec.js` (7 cases incl. the authored-template
+    round-trip through `composeDxfPlacement`). Canvas-click point
+    picking and full geometry editing grow on the same surface.
   - [ ] WAITING — Create-dialog refusal surfacing: a construction service
     answers `{ failures: [...] }` (each failure naming its offender) and
     the dialog renders the named offenders (SPEC §24 law).
