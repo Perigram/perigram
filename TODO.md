@@ -623,6 +623,26 @@ AttachmentKind row.
     for "re-render when the template changed", "re-fill with new values",
     "re-derive the sheet when cassettes changed".
 
+    ### Agent Notes (2026-10-27, stack round)
+
+    The live-stack e2e round (session `agent/e2e-refusal-20261027-2310`)
+    verified the fabric end to end: the cassette upload minted geometry
+    revision 1 and the bake pinned it — `provenance.sources` carries
+    `{ type: cassette, id, revision: revision:cassette:<id>:geometry:1 }`
+    (order-process pins the exact shape). En route repairs: the
+    mutation-error serializer dropped refusal bodies and the action API
+    returned the failure report as a settled result, so the create dialog
+    closed over silent refusals — both fixed (the serializer carries
+    `data.failures`; the action run refuses with the first mutation
+    failure's body); the fill-dialog e2e speaks the current upload naming
+    law (records name from the payload reference's file name — the
+    name-ghost session's contract, untested until this round) and gains
+    the refusal leg; every documents-first spec install order now
+    installs tech-drawing first (documents v2 requires it; the catalog
+    re-seed surfaced the drift — the catalog had not been re-seeded since
+    v1). tech-drawing-fill-dialog 2/2 and order-process green on the
+    stack; md-editor-repair and process-generated-screen 14/15 green.
+
   ### Agent Notes (2026-10-27, revision fabric session)
 
   Session `agent/rev-fabric-20261027-2155` (worktree
