@@ -37,16 +37,25 @@
           class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto p-1.5"
           :aria-label="$t('nav.home')"
         >
-          <Button
-            icon="pi pi-comments"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="$t('support.chatTitle')"
-            :title="$t('support.chatTitle')"
-            @click="openChatsPage"
-          />
+          <span class="relative inline-flex">
+            <Button
+              icon="pi pi-comments"
+              text
+              rounded
+              size="small"
+              severity="secondary"
+              :aria-label="$t('support.chatTitle')"
+              :title="$t('support.chatTitle')"
+              @click="openChatsPage"
+            />
+            <Badge
+              v-if="supportChatStore.totalUnread"
+              :value="supportChatStore.totalUnread"
+              severity="danger"
+              size="small"
+              class="absolute -right-1.5 -top-1.5"
+            />
+          </span>
           <Button
             icon="pi pi-phone"
             text
@@ -87,7 +96,20 @@
             :aria-label="$t('nav.home')"
             :pt="menuPt"
             @click.capture="onMenuClickCapture"
-          />
+          >
+            <template #headericon="{ item, class: iconClass }">
+              <span v-if="item.key === 'communication:chats' && supportChatStore.totalUnread" class="relative inline-flex">
+                <i :class="iconClass" aria-hidden="true" />
+                <Badge
+                  :value="supportChatStore.totalUnread"
+                  severity="danger"
+                  size="small"
+                  class="absolute -right-1.5 -top-1.5"
+                />
+              </span>
+              <i v-else :class="iconClass" aria-hidden="true" />
+            </template>
+          </PanelMenu>
         </div>
 
         <!-- The Calls flyout is anchored at whichever entry toggled it
@@ -196,6 +218,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
+import Badge from 'primevue/badge';
 import PanelMenu from 'primevue/panelmenu';
 import { useI18n } from 'vue-i18n';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
