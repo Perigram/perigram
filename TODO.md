@@ -1224,3 +1224,24 @@ The routed screens page already carried `pane-hosted`; the showcase was
 the duplicating host.
 
 Status: WAITING owner verification.
+
+## Generative UI spacing ladder (owner direction 2026-10-27)
+
+Law: SPEC §22.9. Owner demands this session: one spacing system for the
+generative UI; counts that look designed; showcase headings that stop
+narrating templates.
+
+- [x] The ladder: steps 4/8/12/16/24/32px (Tailwind 1/2/3/4/6/8) declared
+  at the layout vocabulary; the rhythm interpolator (SPACING_SCALES)
+  owns sub-steps alone; calendar cells and six materializations
+  normalized off half-steps; the guard pins LAYOUT and the ui-mapping
+  tree.
+- [x] Counts render as the count chip (`COUNT_CHIP_CLASS` in the chip
+  recipe home): region headers and arrangement tabs.
+- [x] Showcase headings follow the host law: list sections name the
+  type, detail sections name the record they open; fixture labels lose
+  the `list`/`detail` suffix narration.
+
+### Agent Notes (2026-10-27, spacing ladder)
+
+Status: WAITING owner verification.

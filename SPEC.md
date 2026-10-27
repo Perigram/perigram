@@ -1290,6 +1290,15 @@ trait definitions, the layout language (atoms and composition rules), the
 arrangement decision procedure, and the placement
 slots are specified in shared/ui-mapping/SPEC.md.
 
+### 22.9 Spacing ladder (owner direction 2026-10-27)
+
+Generative surfaces space on one 4px-based ladder: steps 4, 8, 12, 16,
+24, 32px (Tailwind 1, 2, 3, 4, 6, 8). Static layout recipes and
+materialization utilities ride these steps alone; the density-keyed
+rhythm interpolator owns the sub-steps between them. Collection counts
+render as the count chip — the subtle well pill — and bare count text
+never rides a heading.
+
 ### 22.8 Layout sanity (owner direction 2026-10-27)
 
 Arrangement serves readability. A page host keeps its neutral rhythm at
