@@ -69,6 +69,22 @@ conversation's own messages by family — text, spreadsheets as CSV, PDF page
 text, DOCX bodies, audio as transcripts through the org's transcription
 provider — always room-scoped, never a file the room does not already
 carry; images and video carry no text and are refused with that boundary.
+
+The catalog composes with installed plugins (owner direction 2026-10-27):
+a listing's `tools` bind tool descriptors — name, description, input
+schema — to the plugin's own declared endpoint-mode services; a tool call
+is a synchronous round and parks on no claim queue (the projection law).
+The install snapshots them with every other declaration, and they compose
+into the organization's catalog on every surface beside the platform
+tools — chat runs and the MCP listing alike, offered exactly where the
+plugin is installed (the `web_search` availability law). Tool names are
+plugin-qualified (`plugin.<pluginId>.<toolId>`, the service no-shadowing
+rule), and every call dispatches through the connector under the
+delegated principal's rights — the platform carries no plugin code. The
+first consumer is DXF: reading a DXF payload as structured geometry (an
+entities, layers, and extents digest) and manipulating it through
+declared transforms, computed on the plugin's own DXF engine. DWG stays
+out (owner decision 2026-10-13 stands).
 There are no created bots: every organization has
 exactly one AI — the assistant, a member-shaped attribution identity with no
 operational grants of its own — present in the new-chat pickers without any
@@ -105,7 +121,13 @@ falling back to the next. The conversation point is picked in the chat
 itself, never on the models screen: the picker lists the models the
 endpoints actually serve, is never blank (it shows the room's effective
 model), and the choice overrides the served model at request time. The
-models screen administers providers and endpoints only.
+models screen administers the org's AI settings: providers and endpoints,
+the public-web search provider block, and the assistant's guide — a
+markdown document, empty by default, that rides every agent run's system
+prompt after the platform's fixed instructions (owner direction
+2026-10-27). The platform prompt stays first: access laws, authoring
+discipline, and tool truth are platform-owned; the guide carries the
+org's domain vocabulary, conventions, and tone.
 
 In group and organization chats the AI is woken by address, not by
 traffic (owner direction 2026-10-17): the subscribed assistant answers a
@@ -617,6 +639,10 @@ A third-party plugin is declarations plus connectors — never in-process code:
   a per-install connector token whose claims are pinned to the installing
   organization's queue for that plugin. The platform stays free of third-party
   code.
+- **Agent tools** ride a listing as `tools`: tool descriptors bound to the
+  plugin's own declared endpoint-mode services. Installs snapshot them; they
+  compose into the installing org's agent catalog on every surface and
+  dispatch through the connector under the delegated principal (SPEC §3).
 - Install is consent-gated: the admin sees what the plugin adds (its types and
   required capabilities) and confirms.
 - Uninstall blocks until drained: live instances of a plugin type, or processes
