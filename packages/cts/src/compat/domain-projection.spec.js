@@ -25,6 +25,9 @@ const orgPanel = {
     width: { base: 'quantity', unit: 'mm' }
   },
   edges: {
+    children: {
+      placed: { types: ['placed-sheet'] }
+    },
     relations: {
       'placed-on': {
         types: ['sheet'],
@@ -228,6 +231,20 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     expect(projected.containment).toEqual(expect.arrayContaining([
       { parentType: 'project', childType: 'queue', lineageKey: 'projectId' }
     ]));
+  });
+
+  it('construction addresses immediate lineage axes; the schema pass keeps the ancestor chain', () => {
+    const projected = projectDomainFromView(orgRegistry(), 'org-1');
+    // placed-sheet sits two levels under bin (bin → panel →
+    // placed-sheet): its construct contract addresses the immediate
+    // parent axis alone — ancestor axes derive at the construct seam.
+    expect(projected.construction['placed-sheet'].inputs.map(input => input.id))
+      .toEqual(expect.arrayContaining(['lineage.panelId']));
+    expect(projected.construction['placed-sheet'].inputs.some(input => input.id === 'lineage.binId')).toBe(false);
+    // The read model keeps the whole chain: ancestor axes stay
+    // addressable for filters and access facts.
+    expect(projected.fieldSchemas['placed-sheet'].some(schema => schema.path === 'lineage.panelId')).toBe(true);
+    expect(projected.fieldSchemas['placed-sheet'].some(schema => schema.path === 'lineage.binId')).toBe(true);
   });
 
   it('synthesizes generic construction plus declared construct operators', () => {

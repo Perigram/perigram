@@ -312,6 +312,32 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(dto.lineage).toEqual({ projectId: 'p-1' });
   });
 
+  it('derives the lineage chain from referenced parents; authored axes win', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockResolvedValue({
+      _id: 'bin-1', type: 'bin', organizationId: 'org-1', lineage: { projectId: 'project-9' }
+    });
+    const service = instanceServiceResolver('label');
+
+    await service.create({ fields: { code: 'LB-7' }, lineage: { binId: 'bin-1' } }, 'user-1', 'org-1');
+    expect(coll.insertOne.mock.calls[0][0].lineage).toEqual({ binId: 'bin-1', projectId: 'project-9' });
+
+    await service.create(
+      { fields: { code: 'LB-8' }, lineage: { binId: { type: 'bin', id: 'bin-1' }, projectId: 'authored-project' } },
+      'user-1',
+      'org-1'
+    );
+    expect(coll.insertOne.mock.calls[1][0].lineage).toEqual({ binId: 'bin-1', projectId: 'authored-project' });
+  });
+
+  it('refuses a lineage parent from another organization', async () => {
+    const coll = stubCollection();
+    coll.findOne.mockResolvedValue({ _id: 'foreign-1', type: 'bin', organizationId: 'org-2', lineage: {} });
+    const service = instanceServiceResolver('label');
+    await expect(service.create({ lineage: { binId: 'foreign-1' } }, 'user-1', 'org-1'))
+      .rejects.toMatchObject({ statusCode: 400 });
+  });
+
   it('createForHttp stores the §3 draft under the access gate and refuses without a grant', async () => {
     const coll = stubCollection();
     const service = instanceServiceResolver('label'); // item class
