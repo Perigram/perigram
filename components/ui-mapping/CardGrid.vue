@@ -160,7 +160,7 @@ const isGroup = computed(() => props.type?.class === 'group');
 const childrenBudget = computed(() => resolveSurface(props.type || {}, { variant: 'detail' }).budgets?.children || null);
 const groupChildrenOf = instance => (isGroup.value ? childrenOfParent(props.type, props.pool, instance?.id) : []);
 const childrenOutcomeOf = instance => applyBudget(groupChildrenOf(instance), childrenBudget.value);
-const visibleChildrenOf = instance => (expandedCards.has(instance.id)
+const visibleChildrenOf = instance => (expandedCards.value.has(instance.id)
   ? groupChildrenOf(instance)
   : childrenOutcomeOf(instance).visible);
 const expandedCards = ref(new Set());
