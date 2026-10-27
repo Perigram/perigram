@@ -33,7 +33,7 @@
                         <div
                             :data-message-id="messageItem._id"
                             class="relative flex min-w-0 max-w-support-chat-message touch-pan-y flex-col"
-                            :class="docksRight(messageItem) ? 'ml-auto' : ['mr-auto', threadIsWide ? 'ml-12' : '']"
+                            :class="docksRight(messageItem) ? 'ml-auto' : ['mr-auto', gutterAvatarRoom ? 'ml-12' : '']"
                             @touchstart="onTouchStart($event, messageItem)"
                             @touchmove="onTouchMove($event, messageItem)"
                             @touchend="onTouchEnd(messageItem)"
@@ -100,5 +100,5 @@ import ProgressSpinner from 'primevue/progressspinner';
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 const props = defineProps({ thread: Object })
-const { agentActivity, docksRight, handleMessagesScroll, hasMoreMessages, loadOlderMessages, loadingAnchor, loadingOlder, message, messageMenu, messageMenuItems, messages, messagesContainer, messagesList, onTouchCancel, onTouchEnd, onTouchMove, onTouchStart, openMessageMenuFromRow, swipeArmed, swipeDrag, swipeIconOpacity, threadIsWide } = props.thread
+const { agentActivity, docksRight, gutterAvatarRoom, handleMessagesScroll, hasMoreMessages, loadOlderMessages, loadingAnchor, loadingOlder, message, messageMenu, messageMenuItems, messages, messagesContainer, messagesList, onTouchCancel, onTouchEnd, onTouchMove, onTouchStart, openMessageMenuFromRow, swipeArmed, swipeDrag, swipeIconOpacity } = props.thread
 </script>

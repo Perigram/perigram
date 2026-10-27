@@ -20,24 +20,14 @@
                                 <div
                                     :class="['relative flex min-w-0 max-w-full flex-col gap-1', docksRight(messageItem) ? 'items-end' : 'items-start']"
                                 >
-                                <!-- Wide panes close others' runs with the
-                                     avatar-only gutter mark (SPEC §7 Chat
-                                     thread). -->
+                                <!-- The avatar gutter mark closes the
+                                     run: wide panes and multi-party
+                                     threads (SPEC §7 Chat thread). -->
                                 <UserChip
                                     v-if="showSenderAvatar(messageItem)"
                                     :user-id="messageSenderKey(messageItem)"
                                     avatar-only
                                     class="absolute -left-12 bottom-0"
-                                />
-                                <!-- Narrow panes lead others' runs with the
-                                     sender's avatar and name (the shared user
-                                     chip, which opens the entity popup) —
-                                     once per run, never for the viewer's own
-                                     messages. -->
-                                <UserChip
-                                    v-if="showSenderLabel(messageItem)"
-                                    :user-id="messageSenderKey(messageItem)"
-                                    class="max-w-full"
                                 />
                                 <!-- Reply quote: a quote block, not a control —
                                      plain element with quote styling; no PrimeVue
@@ -219,5 +209,5 @@ import SupportMessageContent from '~/components/shared/SupportMessageContent.vue
 import UserChip from '~/components/shared/UserChip.vue'
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 const props = defineProps({ thread: Object, messageItem: Object })
-const { bubbleContentMessage, currentUserId, docksRight, entityPopupOpenable, formatTime, goToMessage, highlightKey, instanceLinkLabel, instanceRefs, instances, isAudioOnlyMessage, isOwnMessage, lowerInstanceChip, message, messageBubbleText, messageSeen, messageSenderKey, messages, openLowerInstanceChat, parentAttachmentIcon, showSenderAvatar, showSenderLabel, swipeDrag, swipeStyle, transcribingMessageIds } = props.thread
+const { bubbleContentMessage, currentUserId, docksRight, entityPopupOpenable, formatTime, goToMessage, highlightKey, instanceLinkLabel, instanceRefs, instances, isAudioOnlyMessage, isOwnMessage, lowerInstanceChip, message, messageBubbleText, messageSeen, messageSenderKey, messages, openLowerInstanceChat, parentAttachmentIcon, showSenderAvatar, swipeDrag, swipeStyle, transcribingMessageIds } = props.thread
 </script>

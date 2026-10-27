@@ -2637,19 +2637,15 @@ watch(() => messagesContainer.value, (element) => {
     syncThreadWidth()
 })
 
-// AI-only rooms are two-party: every non-own message is the assistant's.
-const senderIdentityRoom = computed(() => ((['group', 'instance'].includes(activeConversation.value?.conversationKind)
-    && !isAiOnlyRoom.value) || isAiOnlyRoom.value))
-// Narrow panes lead others' runs with the sender chip; the avatar-only
-// gutter mark closes the run in wide panes only (SPEC §7 Chat thread).
-const showSenderLabel = (messageItem) => senderIdentityRoom.value
-    && !threadIsWide.value
-    && Boolean(messageItem?.senderUserId)
-    && !docksRight(messageItem)
-    && messageItem.firstOfSenderRun
+// The avatar gutter is the only sender mark: wide panes close every
+// sender run with it, multi-party threads anchor others' runs in it at
+// every pane width, and two-party threads carry none in the two-sided
+// variant (SPEC §7 Chat thread).
+const multiPartyRoom = computed(() => ['group', 'instance'].includes(activeConversation.value?.conversationKind)
+    && !isAiOnlyRoom.value)
+const gutterAvatarRoom = computed(() => threadIsWide.value || multiPartyRoom.value)
 
-const showSenderAvatar = (messageItem) => senderIdentityRoom.value
-    && threadIsWide.value
+const showSenderAvatar = (messageItem) => gutterAvatarRoom.value
     && Boolean(messageItem?.senderUserId)
     && !docksRight(messageItem)
     && messageItem.lastOfSenderRun
@@ -3087,8 +3083,7 @@ const directConversationKey = (left, right) => {
         docksRight,
         threadWidthObserver,
         syncThreadWidth,
-        senderIdentityRoom,
-        showSenderLabel,
+        gutterAvatarRoom,
         showSenderAvatar,
         openConversation,
         showInbox,
