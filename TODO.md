@@ -1414,3 +1414,47 @@ after the dev container restarts.
 
 Status: WAITING owner verification.
 
+## Generative UI owner corrections (owner direction 2026-10-27)
+
+Law: SPEC §22.8 (chip recipe), §22.10 (the preset token layer is a
+sanctioned spacing channel), the list-layout matcher. Owner findings on
+round 15 and earlier rounds: the bordered instance/file chips were the
+intended recipe; the small-table cell padding was the intended preset
+deviation; a table must never render with no data column beside
+identity (and status).
+
+- [x] The bordered chip recipe is restored (round 15 over-reached):
+  `FILE_CHIP_CLASS`/`INSTANCE_CHIP_CLASS` and the compact ref header
+  label carry the border, surface, and supporting face again; SPEC
+  §22.8's "bordered default" stands; the guard pins the restored
+  classes.
+- [x] The small-table cell padding is restored at its token home:
+  `datatable.bodyCell.sm.padding: '0.5rem 0.75rem'` (removed by the
+  §22.10 round 12 cleanup, which swept a preset token — the layer
+  §22.10 itself sanctions); the design-system guard pins it and the
+  tokens README deviation table carries the row.
+- [x] The list-layout matcher demotes name-pile tables: a `columns: 0`
+  signal (filled non-identifier short scalars + the first declared
+  relation — the value-aware count of data columns a table would show
+  beside identity and status) renders the `list` projection instead.
+  `listLayoutOf(node)` is the one region-level derivation — compose
+  traits, weight estimation, and RegionBlock resolve the same layout
+  over the same node.
+
+### Agent Notes (2026-10-27, round 16)
+
+Session `agent/genui-corrections-20261027-2000` (worktree
+`.agent-worktrees/genui-corrections`). The demotion is value-aware by
+design: a type whose declared scalars no instance fills also demotes
+(the census showed a detail screen rendering a one-column "Record"
+table). Arrangement follows automatically — the demoted peers carry
+chip breadth and share columns instead of claiming full rows. Specs:
+175 unit (design-system, ui-mapping, screen, fixtures, random world,
+module-imports, timeline) green; the traits fixture and the
+relation-children composition fixture now fill a non-identifier scalar
+so the table projections they pin derive over a shown data column.
+Token change bakes at boot: the padding is visible after
+`docker compose -f docker-compose.dev.yml restart app` once merged.
+
+Status: WAITING owner verification.
+

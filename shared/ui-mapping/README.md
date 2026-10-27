@@ -163,12 +163,15 @@ nothing stay hidden, so typed constructor inputs keep their editor
 surfaces. Construction-input labels are authored vocabulary resolved at the
 domain projection (parent type name, start-cased row name).
 
-**List layouts.** `resolveListLayout(type, { size, stateful })` → one of
-`table`, `card-grid`, `timeline`, `stats`, `list`, `board`,
-`gantt`, `calendar`, from one matcher table over `analyzeTypeShape(type)` —
-the layout derives from declaration data alone:
+**List layouts.** `resolveListLayout(type, { size, stateful, columns })` →
+one of `table`, `card-grid`, `timeline`, `stats`, `list`, `board`,
+`gantt`, `calendar`, from one matcher table over `analyzeTypeShape(type)`
+plus two caller-derived signals — `size` (the collection's size class)
+and `columns` (the value-aware count of data columns a table would show
+beside identity and status: filled non-identifier short scalars plus the
+first declared relation):
 
-| Shape signal | Layout |
+| Signal | Layout |
 |---|---|
 | prose-dominant | `timeline` (chronological) |
 | percent/quantity-dominant | `stats` (StatGrid cards with the `text-metric` role) |
@@ -177,7 +180,13 @@ the layout derives from declaration data alone:
 | lone instant | `calendar` (`temporalFieldsFor` derives the fields in declaration order) |
 | process class whose state vocabulary spans ≥ `BOARD_MIN_COLUMNS` | `board` |
 | handful-sized set | `list` (bare stacked) |
+| `columns` = 0 | `list` (a table with no data column beside identity is a name pile) |
 | default | `table` (generated columnar) |
+
+`listLayoutOf(node)` is the one region-level derivation: compose-time
+traits, weight estimation, and the RegionBlock materialization pass the
+same node through it, so the weighted arrangement is the rendered
+layout.
 
 Temporal shape beats size the way chronology already does. The board is the
 one class+vocabulary decision: a process-class type whose served state

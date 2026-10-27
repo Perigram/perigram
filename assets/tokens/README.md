@@ -57,6 +57,7 @@ Parent: [assets](../README.md).
   | Component | Deviation from Aura |
   |---|---|
   | Table / TreeTable / view headers, footers, footer cells, paginators (standalone or embedded) | render transparent — the hosting surface (page, panel, card) owns the background |
+  | DataTable small body cells | `0.5rem 0.75rem` — the 15px tier keeps small-table rows breathing |
   | Header chrome | free of hover and sorted-column tint (the sort state is the icon) and of the bottom border |
   | Header slots (the generated search/sort strips) | theme side padding dropped — they align inside padded surfaces with a bottom rhythm |
   | Embedded paginators (table, tree-table, view — top and bottom) | separator borders dropped |
