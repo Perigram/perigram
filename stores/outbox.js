@@ -89,14 +89,22 @@ export const useOutboxStore = defineStore('outbox', () => {
     async function mutate({ url, method, body, meta = {} }) {
         const id = newOperationId()
         const headers = { 'Idempotency-Key': id }
-        if (!online.value) {
+        // The browser's own offline state gates the fast path; a
+        // failure-latched tab with the browser online still attempts, so
+        // one success heals the latch and replays the queue.
+        if (typeof window !== 'undefined' && window.navigator.onLine === false) {
             const operation = { id, url, method, body, meta, createdAt: new Date().toISOString(), attempts: 0 }
             await queue.enqueue(operation)
             await refreshFromStorage()
             throw new OfflineQueuedError(id)
         }
         try {
-            return await $fetch(url, { method, body, headers })
+            const result = await $fetch(url, { method, body, headers })
+            if (!online.value) {
+                online.value = true
+                flush()
+            }
+            return result
         } catch (error) {
             if (isNetworkFailure(error)) {
                 online.value = false
