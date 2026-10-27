@@ -85,7 +85,7 @@ test.describe('tech-drawing fill dialog', () => {
       const blob = await uploadBlob(text, `${name}.dxf`);
       const run = await call('run_action', {
         actionId: 'up',
-        data: { name, payload: { fileId: blob.id, mime: 'application/dxf', size: text.length } }
+        data: { payload: { fileId: blob.id, name: `${name}.dxf`, mime: 'application/dxf', size: text.length } }
       });
       return (run.created || run.instance || run)._id;
     };
@@ -144,5 +144,104 @@ test.describe('tech-drawing fill dialog', () => {
     expect(composedText).toContain('PLACE DIALOG E2E');
     expect(composedText).toContain('0\nCIRCLE\n8\nHOLES\n10\n70\n20\n90\n40\n4.0');
     expect(composedText).toContain('0\nCIRCLE\n8\nHOLES\n10\n110\n20\n90\n40\n4.0');
+  });
+
+  test('a structured refusal keeps the dialog open and names the offenders (SPEC §24)', async ({ app }) => {
+    test.setTimeout(180_000);
+    await app.installPlugins(['tech-drawing']);
+    await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
+
+    let rpcId = 0;
+    const mcp = (method, params) => app.request.post('/api/mcp', {
+      data: { jsonrpc: '2.0', id: ++rpcId, method, params }
+    });
+    const call = async (name, args) => {
+      const response = await mcp('tools/call', { name, arguments: args });
+      expect(response.ok(), await response.text()).toBeTruthy();
+      const payload = await response.json();
+      const text = (payload.result?.content || []).map(part => part.text ?? '').join('\n');
+      return JSON.parse(text);
+    };
+
+    await call('create_process_definition', { name: 'Refusal dialog draft' });
+    const vocab = await call('get_authoring_vocabulary', {});
+    const roleId = vocab.roles?.[0]?.id;
+    const grant = { access: { grants: [{ roleId, level: 'write' }] } };
+    const composed = await call('compose_process_definition', {
+      name: 'Refusal dialog probe',
+      steps: [
+        { op: 'drop', item: 'construct', id: 'up' },
+        { op: 'declareTypeRef', id: 'dxf', typeId: 'dxf-source' },
+        { op: 'wireDeclaration', from: 'dxf', to: 'up', role: 'binds' },
+        { op: 'configure', id: 'up', values: { construction: { mode: 'upload' } } },
+        { op: 'configure', id: 'up', values: grant },
+        { op: 'drop', item: 'construct', id: 'fill' },
+        { op: 'wireDeclaration', from: 'dxf', to: 'fill', role: 'binds' },
+        { op: 'configure', id: 'fill', values: { construction: { mode: 'fill' } } },
+        { op: 'configure', id: 'fill', values: grant }
+      ]
+    });
+    await call('activate_process_definition', { definitionId: composed.id || composed._id });
+
+    const upload = async (text, filename) => {
+      const response = await app.request.post('/api/files/upload?bucket=files', {
+        multipart: { file: { name: filename, mimeType: 'application/dxf', buffer: Buffer.from(text) } }
+      });
+      expect(response.ok(), await response.text()).toBeTruthy();
+      return await response.json();
+    };
+    // The template carries two markers; the sole part matches neither.
+    const twoSpots = [
+      '0', 'SECTION', '2', 'ENTITIES',
+      '0', 'TEXT', '8', 'SPOT', '10', '40.0', '20', '40.0', '40', '5.0', '1', '{spot:alpha}',
+      '0', 'TEXT', '8', 'SPOT', '10', '80.0', '20', '80.0', '40', '5.0', '1', '{spot:beta}',
+      '0', 'ENDSEC', '0', 'EOF'
+    ].join('\n');
+    const onePart = [
+      '0', 'SECTION', '2', 'ENTITIES',
+      '0', 'LINE', '8', 'OUTLINE', '10', '0.0', '20', '0.0', '11', '30.0', '21', '0.0',
+      '0', 'ENDSEC', '0', 'EOF'
+    ].join('\n');
+    const runUpload = async (text, name) => {
+      const blob = await upload(text, `${name}.dxf`);
+      const run = await call('run_action', {
+        actionId: 'up',
+        data: { payload: { fileId: blob.id, name: `${name}.dxf`, mime: 'application/dxf', size: text.length } }
+      });
+      return (run.created || run.instance || run)._id;
+    };
+    await runUpload(twoSpots, 'two-spots');
+    await runUpload(onePart, 'gamma');
+
+    await app.gotoClient('/screens/auto_dxf-source');
+    const main = app.page.locator('main');
+    const modeSelect = main.getByLabel('Creation mode');
+    await expect(modeSelect).toBeVisible({ timeout: 30_000 });
+    await modeSelect.click();
+    await app.page.getByRole('option', { name: 'Fill', exact: true }).click();
+    await main.locator('.p-inputgroup').getByRole('button').last().click();
+
+    const dialog = app.page.locator('.p-dialog');
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('textbox').first().fill('refused');
+
+    const templateInput = dialog.locator('.p-autocomplete input');
+    await templateInput.fill('two-spots');
+    await app.page.locator('.p-autocomplete-item, [role="option"]', { hasText: 'two-spots' }).first().click();
+
+    await dialog.locator('.p-multiselect').click();
+    await app.page.getByRole('option', { hasText: 'gamma' }).first().click();
+    await app.page.keyboard.press('Escape');
+    await dialog.locator('.p-dialog-footer').getByRole('button').last().click();
+
+    // The refusal renders in the open dialog, naming every offender.
+    await expect(dialog.getByText(/spot alpha has no matching part/)).toBeVisible({ timeout: 30_000 });
+    await expect(dialog.getByText(/spot beta has no matching part/)).toBeVisible();
+    await expect(dialog.getByText(/part gamma has no matching spot/)).toBeVisible();
+
+    // The refusal created nothing: the type's rows stay the two uploads.
+    const rows = await (await app.request.get('/api/instances/dxf-source')).json();
+    const names = (Array.isArray(rows) ? rows : []).map(row => row.name).sort();
+    expect(names).toEqual(['gamma', 'two-spots']);
   });
 });

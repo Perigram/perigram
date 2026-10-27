@@ -202,6 +202,25 @@ describe('process v4 data execution', () => {
     ]);
   });
 
+  it('carries a structured refusal\'s offenders onto the mutation failure (SPEC §24)', async () => {
+    const invoke = vi.fn(async () => {
+      throw Object.assign(new Error('logo: spot logo has no matching part'), {
+        statusCode: 422,
+        data: { failures: [{ name: 'logo', message: 'spot logo has no matching part' }] }
+      });
+    });
+    const result = await executeProcessEffectNode(
+      { kind: 'cts.construct', typeId: 'text-document', construction: { mode: 'fill' } },
+      {},
+      invoke
+    );
+    expect(result.failures[0].error).toMatchObject({
+      statusCode: 422,
+      message: 'logo: spot logo has no matching part',
+      failures: [{ name: 'logo', message: 'spot logo has no matching part' }]
+    });
+  });
+
   it('names the missing value instead of invoking with it', async () => {
     // A Record field whose path matched nothing yields one marker per
     // item; the effect must refuse with the input id and the authored
