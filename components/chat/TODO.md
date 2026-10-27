@@ -63,3 +63,9 @@ message; the left-gutter avatar is the expected arrangement at every
 pane width. Delivered: gutter avatar at all widths (ml-12 always for
 others' rows), the narrow sender-label badge row retired.
 - WAITING — owner verification.
+### Agent Notes (2026-10-27, gutter rework)
+Owner verdict: a gutter shows even in 1:1 threads in the two-sided
+variant. Restored the SPEC §7 arrangement — the gutter mark and its
+row indent are wide-pane (≥64rem) only; narrow panes lead others' runs
+with the sender chip again.
+- WAITING — owner verification.
