@@ -208,7 +208,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
       write: [...(rowPaths.length ? rowPaths : ['fields.*']), 'relations.*'],
       admin: ['fields.*']
     };
-    const lineageFields = orgLineageFields(type, view);
+    const lineageFields = orgLineageFieldsDeep(type, view);
 
     // Declared relation edges are addressable fields (SPEC §6): each key
     // projects as ONE `relations.<key>` schema so constructs receive them as
@@ -382,9 +382,11 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         ? protocols[0]
         : (constructOperators[0]?.id || 'genericCreate'),
       inputs: [
-        // lineage and relation edges are construct-addressable: a child
-        // type's parent key and declared relation keys arrive as typed
-        // inputs where the entity begins. Labels are authored vocabulary
+        // Immediate lineage axes and relation edges are
+        // construct-addressable: a child type's parent key and declared
+        // relation keys arrive as typed inputs where the entity begins;
+        // ancestor axes derive at the construct seam (instances service).
+        // Labels are authored vocabulary
         // (the parent type's name; the row's start-cased name) —
         // raw storage paths never reach a generated create dialog.
         ...(edgeFieldsFor(type).lineage)
@@ -506,11 +508,11 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   };
 }
 
-// Lineage fields of one type: every children edge pointing at it
-// contributes its key, recursively through ancestors in the same view.
-function orgLineageFields(type, view, visited = new Set()) {
-  if (visited.has(type.id)) return [];
-  const nextVisited = new Set(visited).add(type.id);
+// Immediate lineage axes of one type: every children edge pointing at it
+// contributes its key. Ancestor axes are read-model vocabulary alone —
+// the construct seam derives the stored chain from the referenced
+// parents (instances service, §3).
+function orgLineageFields(type, view) {
   const fields = [];
   for (const parent of view.values()) {
     for (const [key, declaration] of Object.entries(parent.edges?.children || {})) {
@@ -524,8 +526,22 @@ function orgLineageFields(type, view, visited = new Set()) {
         writable: false,
         constructible: true
       });
-      fields.push(...orgLineageFields(parent, view, nextVisited));
     }
+  }
+  return fields;
+}
+
+// The read model's lineage block: immediate axes plus every ancestor
+// axis, recursively (filters, access facts, and breadcrumbs address the
+// whole chain).
+function orgLineageFieldsDeep(type, view, visited = new Set()) {
+  if (visited.has(type.id)) return [];
+  const nextVisited = new Set(visited).add(type.id);
+  const fields = [...orgLineageFields(type, view)];
+  for (const parent of view.values()) {
+    const parentsThis = Object.values(parent.edges?.children || {})
+      .some(declaration => (declaration.types || []).includes(type.id));
+    if (parentsThis) fields.push(...orgLineageFieldsDeep(parent, view, nextVisited));
   }
   return fields;
 }

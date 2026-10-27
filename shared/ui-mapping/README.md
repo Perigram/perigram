@@ -149,7 +149,9 @@ contract). Declared fields match by flat-wire `fields.<name>` path
 protocol inputs (the `content` body) render as full-width scalar rows
 carrying their control pin; `lineage.<key>` inputs render
 instance pickers over the parent types whose children edges declare that
-lineage key for the target type (reverse containment over the bundle —
+lineage key for the target type — immediate axes alone, the ancestor
+chain derives at the construct seam
+(reverse containment over the bundle —
 parents' edges are the declaration home, the child carries no parent list;
 an edge matches by its declared `lineageKey`, the entry's map key is
 authoring identity). Construct operator reference inputs render as

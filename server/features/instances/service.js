@@ -296,6 +296,32 @@ async function writeGrantTarget(declaration, organizationId) {
 
 export { writeGrantTarget };
 
+// The §3 lineage chain a create stores: every referenced parent
+// contributes its own lineage; authored axes win over derived ones
+// (canonical law: this feature's README). A parent in another
+// organization refuses.
+async function lineageWithDerivedChain(draft = {}, organizationId = null) {
+  const wire = draft.lineage && typeof draft.lineage === 'object' ? draft.lineage : {};
+  // The stored lineage is pure tree edges: ref objects (`{ type, id }`)
+  // scalarize to ids at this boundary.
+  const authored = {};
+  for (const [key, value] of Object.entries(wire)) {
+    authored[key] = value && typeof value === 'object' ? value.id : value;
+  }
+  const chain = {};
+  for (const [key, parentRef] of Object.entries(authored)) {
+    if (key === 'organizationId' || parentRef == null || parentRef === '') continue;
+    const parentId = String(parentRef);
+    const parent = await repository.findInstanceAnywhere(parentId, null);
+    if (!parent) continue;
+    if (parent.organizationId && organizationId && String(parent.organizationId) !== String(organizationId)) {
+      throw createError({ statusCode: 400, message: `Lineage parent ${parentId} belongs to another organization` });
+    }
+    Object.assign(chain, parent.lineage || {});
+  }
+  return { ...chain, ...authored };
+}
+
 function instanceService(typeId) {
   // Static-declaration construct modes (SPEC §4): payload types offer
   // only their creation protocols, payload-less types offer
@@ -337,6 +363,7 @@ function instanceService(typeId) {
     const provenance = provenanceFromWire(draft);
     const now = new Date().toISOString();
     const state = typeof draft.state === 'string' && draft.state ? draft.state : null;
+    const lineage = await lineageWithDerivedChain(draft, organizationId);
     const doc = {
       _id: new ObjectId(),
       type: typeId,
@@ -346,7 +373,7 @@ function instanceService(typeId) {
       fields: { ...(draft.fields || {}) },
       state,
       ...(state ? { stateChangedAt: now } : {}),
-      lineage: { ...(draft.lineage || {}) },
+      lineage,
       ...(draft.relations ? { relations: draft.relations } : {}),
       ...(payload ? { payload } : {}),
       ...(provenance ? { provenance } : {}),
