@@ -4046,8 +4046,10 @@ function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
   const contractInputs = constructionInputsForContract(contract, mode)
     .filter(input => !blocksOwnConstruction || !isCanonicalBlockConstructionPath(input.path));
   // A declared mode (creation protocols, construct operators) addresses
-  // exactly its mode inputs plus edges: authored inputs outside that set
-  // are stale drafts, dropped here instead of surviving as prompts.
+  // exactly its mode inputs plus edges, and every authored input
+  // addresses the current contract (a block-composed construct keeps
+  // its canonical block entries): authored inputs outside that set are
+  // stale contract stamps, dropped here instead of surviving as prompts.
   const restrictToContract = contract.derived || Object.hasOwn(contract.modeInputs || {}, mode);
   const inputsById = new Map(contractInputs.map(input => {
     const normalizedInput = normalizeConstructionInput(input, domain);
@@ -4056,7 +4058,8 @@ function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
   for (const input of declaredInputs) {
     const key = input.id || input.path;
     const contractInput = inputsById.get(key);
-    if (restrictToContract && !contractInput) continue;
+    const composedBlock = blocksOwnConstruction && isCanonicalBlockConstructionPath(input.path);
+    if (!contractInput && (restrictToContract || !composedBlock)) continue;
     inputsById.set(key, contractInput
       ? mergeConstructionInput(contractInput, input)
       : { ...input }

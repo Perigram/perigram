@@ -343,6 +343,54 @@ describe('@perigram/processes compiler', () => {
     expect(compiled.actions.create_facade.construction.inputs.map(input => input.id)).toEqual(['name', 'customLabel']);
   });
 
+  it('drops an authored construction input the current contract does not address', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      producerOutputs: producerOutputRecords([['create_facade', 'facade', {}, 'result']]),
+      processNodes: {
+        create_facade: {
+          id: 'create_facade',
+          kind: 'cts.construct',
+          typeId: 'facade',
+          producerOutputId: 'create_facade:result',
+          trigger: { mode: 'manual' },
+          construction: {
+            mode: 'genericCreate',
+            inputs: [
+              { id: 'customLabel', path: 'customLabel', type: 'string', required: false, prompt: true },
+              { id: 'name', path: 'name', type: 'string', required: true, prompt: true }
+            ]
+          },
+          state: { to: SOURCE_STATE }
+        }
+      },
+      graph: {
+        nodes: [{ id: 'create_facade', type: 'processNode', data: { refId: 'create_facade' } }],
+        edges: []
+      }
+    }, {
+      ...domain,
+      entities: [...domain.entities, { type: 'facade' }],
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        facade: domain.fieldSchemas.queue
+      },
+      construction: {
+        ...domain.construction,
+        facade: {
+          modes: ['genericCreate'],
+          defaultMode: 'genericCreate',
+          inputs: [
+            { id: 'name', path: 'name', type: 'string', required: true, prompt: true }
+          ]
+        }
+      }
+    });
+    // Authored entries address the current contract; a stale stamp from a
+    // retired contract (the ancestor-axis prompts) dies here.
+    expect(compiled.actions.create_facade.construction.inputs.map(input => input.id)).toEqual(['name']);
+  });
+
   it('drops a wired construction input from the prompted create form', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
