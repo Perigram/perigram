@@ -2216,6 +2216,13 @@
         "setOrigin": "Связать источник",
         "clearOrigin": "Убрать источник"
     },
+    "dxfEditor": {
+        "editorTitle": "DXF-шаблон",
+        "markers": "Якоря",
+        "markerName": "Имя якоря",
+        "noMarkers": "Якорей пока нет",
+        "add": "Добавить якорь"
+    },
     "assets": {
         "cassettes": "Кассеты",
         "templates": "Шаблоны",

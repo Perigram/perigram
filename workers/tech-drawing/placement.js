@@ -1,62 +1,15 @@
 // The tech-drawing plugin's DXF placement engine (SPEC §24); the spot
-// marker law lives in the plugin README.
+// marker law and the pair model live in ./dxf-markers.js.
+import { dxfPairs, entitiesBounds, entityRecords, fieldValue } from './dxf-markers.js';
+
 const SPOT = /^\{spot:([^}]+)\}$/;
+const rounded = value => Math.round(value * 1e6) / 1e6;
 
 function badRequest(message) {
   const error = new Error(message);
   error.status = 400;
   throw error;
 }
-
-function dxfPairs(text) {
-  const lines = String(text ?? '').replace(/\r\n/g, '\n').split('\n');
-  const pairs = [];
-  for (let index = 0; index + 1 < lines.length; index += 2) {
-    const code = Number.parseInt(lines[index].trim(), 10);
-    if (Number.isFinite(code)) pairs.push({ code, value: lines[index + 1] });
-  }
-  return pairs;
-}
-
-// Locates the ENTITIES section body: [firstEntityPairIndex, endsecPairIndex).
-function entitiesBounds(pairs) {
-  let pendingSection = false;
-  let inEntities = false;
-  let start = -1;
-  let end = -1;
-  for (let index = 0; index < pairs.length; index += 1) {
-    const pair = pairs[index];
-    if (pair.code === 0 && pair.value.trim() === 'SECTION') pendingSection = true;
-    else if (pendingSection && pair.code === 2) {
-      inEntities = pair.value.trim() === 'ENTITIES';
-      pendingSection = false;
-      if (inEntities) start = index + 1;
-      continue;
-    }
-    if (inEntities && pair.code === 0 && pair.value.trim() === 'ENDSEC') {
-      end = index;
-      return { start, end };
-    }
-  }
-  return { start, end };
-}
-
-function entityRecords(pairs, start, end) {
-  const records = [];
-  let recordStart = -1;
-  for (let index = start; index < end; index += 1) {
-    if (pairs[index].code !== 0) continue;
-    if (recordStart >= 0) records.push({ start: recordStart, end: index });
-    recordStart = index;
-  }
-  if (recordStart >= 0) records.push({ start: recordStart, end });
-  return records;
-}
-
-const fieldValue = (pairs, record, code) => pairs
-  .slice(record.start, record.end).find(pair => pair.code === code)?.value;
-
-const rounded = value => Math.round(value * 1e6) / 1e6;
 
 export function composeDxfPlacement(templateText, parts) {
   const newline = String(templateText ?? '').includes('\r\n') ? '\r\n' : '\n';
