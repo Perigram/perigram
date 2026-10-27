@@ -222,6 +222,12 @@ export function cassettesForNestingResult(result = {}) {
   return Array.from(counts.values()).sort((left, right) => String(left.cassetteId).localeCompare(String(right.cassetteId)));
 }
 
+// The sheet design's typed parts relation: one cassette ref per placement.
+export function cassettePartsList(result = {}) {
+  return cassettesForNestingResult(result).flatMap(({ cassetteId, count }) =>
+    Array.from({ length: count }, () => ({ type: 'cassette', id: String(cassetteId) })));
+}
+
 export function nestingResultToPreview(result = {}, params = {}, options = {}) {
   const allLayouts = result.solution?.layouts || result.layouts || [];
   const layouts = Number.isInteger(options.layoutIndex)
@@ -291,9 +297,8 @@ export function nestingResultToPreview(result = {}, params = {}, options = {}) {
 
 // The manual layout update's recompute: the design's stored geometry
 // (fields.geometry, the §3 wire) merged with the editor's placed items →
-// the next geometry record and preview. Pure — the caller persists the
-// geometry through the generic instance patch; the returned summary is
-// derived display state, never persisted.
+// the next geometry record, the typed parts relation, and a preview.
+// Pure — the caller persists both through the generic instance patch.
 export function recomputeSheetLayout(design = {}, { items = [], placedItems = [] } = {}) {
   const geometry = design.fields?.geometry || {};
   const existingResult = geometry.data || {};
@@ -310,19 +315,12 @@ export function recomputeSheetLayout(design = {}, { items = [], placedItems = []
     }
   };
   const params = { ...(existingResult.solveParams || {}) };
-  const cassetteDesigns = cassettesForNestingResult(result);
-  const cassettePlacementCount = cassetteDesigns.reduce((sum, item) => sum + Number(item.count || 0), 0);
   return {
     geometry: {
       ...geometry,
       data: result,
       preview: nestingResultToPreview(result, params, { layoutIndex: 0 })
     },
-    summary: {
-      placedCount: placedItems.length,
-      partsCount: placedItems.length,
-      cassetteDesignCount: cassetteDesigns.length,
-      cassettePlacementCount
-    }
+    parts: cassettePartsList(result)
   };
 }

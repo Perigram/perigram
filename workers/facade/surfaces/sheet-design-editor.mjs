@@ -406,11 +406,11 @@ export default function createSurface({ vue, components, locale, queries, notify
       async function save() {
         saving.value = true;
         try {
-          const { geometry } = recomputeSheetLayout(props.record, {
+          const { geometry, parts } = recomputeSheetLayout(props.record, {
             items: items.value,
             placedItems: placedItems.value
           });
-          await props.persistence.patch(props.record, { geometry });
+          await props.persistence.patch(props.record, { geometry, parts });
           notify({ severity: 'success', summary: t('common.success'), detail: t('sheetDesign.layoutSaved'), life: 2500 });
         } catch (error) {
           notify({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || t('sheetDesign.layoutSaveFailed') });

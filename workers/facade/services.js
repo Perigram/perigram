@@ -12,7 +12,7 @@ import {
   nestingPartsProjection,
   summarizeNestingResult
 } from './nesting-projections.js';
-import { cassettesForNestingResult, nestingResultToPreview } from './surfaces/lib/sheetLayout.js';
+import { cassettePartsList, nestingResultToPreview } from './surfaces/lib/sheetLayout.js';
 
 const IDENTITY_LAYERS = [OCCS_LAYER_CUT_OUTER];
 
@@ -180,8 +180,7 @@ export async function constructSheet({ draft = {} } = {}) {
         data: { ...result, ...(sheetPolygon ? { sheetPolygon } : {}), solveParams: { width, height } },
         preview: nestingResultToPreview(result, { width, height }, { layoutIndex: 0 })
       },
-      parts: cassettesForNestingResult(result).flatMap(({ cassetteId, count }) =>
-        Array.from({ length: count }, () => ({ type: 'cassette', id: String(cassetteId) })))
+      parts: cassettePartsList(result)
     }
   };
 }
