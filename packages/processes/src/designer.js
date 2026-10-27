@@ -179,7 +179,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
           inputDefaults: { amount: 30 }
         }
       }),
-      paletteItem('castValue', 'value.cast', { preset: { base: 'json', sourceType: { base: 'json' }, outputType: { base: 'record' } } }),
+      paletteItem('castValue', 'value.cast', { preset: { outputType: { base: 'record' } } }),
       paletteItem('convertUnit', 'value.convertUnit', { preset: { type: { base: 'number', nullable: false }, fromUnit: 'mm', toUnit: 'm' } }),
       paletteItem('coalesceValue', 'value.coalesce', { preset: { type: { base: 'string', nullable: false } } }),
       paletteItem('formatValue', 'value.format', { preset: { type: { base: 'number', nullable: false }, template: '' } }),

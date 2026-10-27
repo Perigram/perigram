@@ -270,6 +270,13 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
     if (node?.kind === 'value.logic' && ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith'].includes(node.operation)) {
       return [id, { ...node, kind: 'value.compare' }];
     }
+    // `value.cast` authors the target base alone: the input is the
+    // universal json acceptor, so a persisted `sourceType` is retired
+    // vocabulary and loads strip it one-way.
+    if (node?.kind === 'value.cast' && 'sourceType' in node) {
+      const { sourceType, ...rest } = node;
+      return [id, rest];
+    }
     // Stale-block pruning on persisted constructs: when the entity's
     // current field schema marks every field of a previously persisted
     // canonical block non-constructible, the block and its inline

@@ -5,7 +5,7 @@ import { missingFieldMarker } from './missing-field.js';
 
 describe('process v4 data execution', () => {
   it('casts a json object to a record and refuses a shape mismatch', async () => {
-    const record = { kind: 'value.cast', sourceType: { base: 'json' }, outputType: { base: 'record' } };
+    const record = { kind: 'value.cast', outputType: { base: 'record' } };
     const cast = await executeProcessDataNode(record, { value: createDataPacket({ layouts: [] }) });
     expect(cast.branches[0].items[0]).toEqual({ layouts: [] });
     await expect(executeProcessDataNode(record, { value: createDataPacket([1, 2]) })).rejects.toThrow('cast to record requires an object');

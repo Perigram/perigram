@@ -135,7 +135,7 @@ describe('port inventory pin (every catalog kind, frozen surface)', () => {
       "tree.transpose": "data:value(json:tree)!|data:value(json:tree)",
       "tree.unzip": "data:value(json)!|data:value(json)",
       "tree.zip": "data:left(json)!|data:right(json)!|data:value(json)",
-      "value.cast": "data:value(json)!|data:value(json)",
+      "value.cast": "data:value(json)!|data:value(record)",
       "value.coalesce": "data:value(json)!|data:fallback(json)!|data:value(json)",
       "value.compare": "data:left(json)!|data:right(json)!|data:result(boolean)",
       "value.convertUnit": "data:value(json)!|data:value(json)",

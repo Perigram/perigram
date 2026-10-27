@@ -96,18 +96,9 @@
           />
         </div>
       </div>
-      <!-- The cast authoring row: source base → target base over the
-           re-base vocabulary; the node asserts the value's shape. -->
+      <!-- The cast authoring row: the authored target base over the
+           re-base vocabulary; the input accepts every source. -->
       <div v-if="opKind === 'value.cast'" class="flex items-center gap-1.5">
-        <Select
-          :model-value="record.sourceType?.base || 'json'"
-          :options="castBaseOptions"
-          option-label="label"
-          option-value="value"
-          size="small"
-          class="min-w-0 flex-1"
-          @update:model-value="value => update({ sourceType: { base: value } })"
-        />
         <i class="pi pi-arrow-right text-muted" aria-hidden="true" />
         <Select
           :model-value="record.outputType?.base || 'record'"

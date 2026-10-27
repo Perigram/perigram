@@ -619,7 +619,15 @@ function catalogPorts(record = {}, context = {}) {
       outputs: [socket('value', processTypeFrom(record.type, processType('json', { nullable: true })), DATA, false, 'list')]
     };
   }
-  if (kind === 'value.cast' || kind === 'value.convertUnit' || kind === 'value.required' || kind === 'value.validate') {
+  // The cast input is the universal json acceptor (the wire's toJson
+  // coercion admits every source); the authored fact is the target base.
+  if (kind === 'value.cast') {
+    return unary(
+      processType('json'),
+      processTypeFrom(record.outputType, processType('record'))
+    );
+  }
+  if (kind === 'value.convertUnit' || kind === 'value.required' || kind === 'value.validate') {
     return unary(
       processTypeFrom(record.sourceType, configured),
       processTypeFrom(record.outputType, configured)
