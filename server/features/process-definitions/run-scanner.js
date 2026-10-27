@@ -16,7 +16,6 @@ export async function dispatchEventToSubscribers(event) {
   const db = await connectDB();
   const definitions = await db.collection('process_definitions')
     .find({ 'states.main': 'ACTIVE', 'lineage.organizationId': event.organizationId })
-    .project({ 'data.processNodes': 1 })
     .toArray();
   let started = 0;
   for (const definition of definitions) {
@@ -65,7 +64,6 @@ async function scanDueSchedules(now) {
   const db = await connectDB();
   const definitions = await db.collection('process_definitions')
     .find({ 'states.main': 'ACTIVE' })
-    .project({ 'lineage.organizationId': 1, 'data.processNodes': 1 })
     .toArray();
   let fired = 0;
   for (const definition of definitions) {

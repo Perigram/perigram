@@ -27,6 +27,7 @@ const ACTION_KIND_BY_LEGACY = Object.freeze({
   changeStatus: 'updateInstance',
   deleteEntity: 'deleteInstance',
   runCommand: 'runCommand',
+  emitEvent: 'emitEvent',
   // Already-projected kinds pass through: the assignment channel emits
   // projected records, and this seam is the single projection — running
   // it twice must stay a no-op, never a drop.
@@ -250,5 +251,6 @@ export const UI_CONTRACT_ACTION_KINDS = Object.freeze([
   'deleteInstance',
   'link',
   'unlink',
-  'runCommand'
+  'runCommand',
+  'emitEvent'
 ]);

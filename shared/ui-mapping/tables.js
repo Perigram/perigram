@@ -507,6 +507,7 @@ export const ACTION_ENTRIES = Object.freeze([
   { match: { actionKind: 'deleteInstance' }, component: 'Button', tone: 'danger', icon: 'pi pi-trash', confirm: true, iconOnly: true },
   { match: { actionKind: 'rerunInstance' }, component: 'Button', tone: 'secondary', icon: 'pi pi-refresh', iconOnly: true },
   { match: { actionKind: 'runCommand' }, component: 'Button', tone: 'secondary', icon: 'pi pi-bolt' },
+  { match: { actionKind: 'emitEvent' }, component: 'Button', tone: 'secondary', icon: 'pi pi-bolt' },
   { match: { actionKind: 'link' }, component: 'Button', tone: 'text', icon: 'pi pi-link' },
   { match: { actionKind: 'unlink' }, component: 'Button', tone: 'text', icon: 'pi pi-times', inline: true },
   { match: { actionKind: 'updateInstance', stateTarget: true }, component: 'Button', tone: 'state', icon: 'pi pi-arrow-right-arrow-left' },
