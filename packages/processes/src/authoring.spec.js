@@ -155,6 +155,13 @@ describe('headless definition authoring', () => {
     expect(context.record('sub').trigger).toEqual({ mode: 'event', eventId: 'org1.test' });
   });
 
+  it('keeps the trigger-payload path the palette preset authors', () => {
+    const context = authoring();
+    context.drop('eventPayload', { id: 'payload' });
+    context.drop('finish', { id: 'end' });
+    expect(context.record('payload').path).toBe('event.payload');
+  });
+
   it('stores a socket fallback as one broadcast item packet', () => {
     const context = authoring();
     context.drop('itemAtPosition', { id: 'first' });

@@ -263,9 +263,10 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
       if (node.path && node.path !== '_id' && available.some(field => field.value === node.path)) return;
       node.path = preferredFieldDefault(available);
     } else {
-      // `value.recordField` owns an authored key path (plain records have
-      // no declared row to select from); every other kind carries no path.
-      if (node.kind !== 'value.recordField') node.path = '';
+      // `value.recordField` and `source.triggerPayload` own an authored
+      // key path (plain records and the run trigger have no declared row
+      // to select from); every other kind carries no path.
+      if (!['value.recordField', 'source.triggerPayload'].includes(node.kind)) node.path = '';
       delete node.fieldSchemas;
       delete node.fieldSchema;
     }
