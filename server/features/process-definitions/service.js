@@ -1132,7 +1132,13 @@ async function executeDataflowActionRun({ process, actionId, instanceId, data, p
     }
   }, { auth });
   if (run.status === 'failed') {
-    throw createError({ statusCode: 400, message: run.error?.message || `Action ${actionId} failed` });
+    throw createError({
+      statusCode: 400,
+      message: run.error?.message || `Action ${actionId} failed`,
+      ...(Array.isArray(run.error?.failures) && run.error.failures.length
+        ? { data: { failures: run.error.failures } }
+        : {})
+    });
   }
   const effectStep = [...(run.steps || [])].reverse()
     .find(step => step.kind?.startsWith('cts.'));

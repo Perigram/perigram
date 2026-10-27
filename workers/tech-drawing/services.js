@@ -15,7 +15,7 @@ export const services = {
     if (!template?.payloadBase64) badRequest('place-dxf requires a template ref with a payload');
     const parts = input?.refs?.parts;
     if (!Array.isArray(parts) || !parts.length) badRequest('place-dxf requires parts refs with payloads');
-    const composed = composeDxfPlacement(
+    const { dxf, failures } = composeDxfPlacement(
       Buffer.from(template.payloadBase64, 'base64').toString('utf8'),
       parts.map(part => {
         if (!part?.payloadBase64) badRequest('place-dxf requires every part to carry a payload');
@@ -25,10 +25,11 @@ export const services = {
         };
       })
     );
+    if (failures?.length) return { failures };
     const name = String(input.draft?.name || input.draft?.identity?.name || template.name || 'drawing').replace(/\.[^.]+$/, '');
     return {
       payload: {
-        base64: Buffer.from(composed, 'utf8').toString('base64'),
+        base64: Buffer.from(dxf, 'utf8').toString('base64'),
         mime: 'application/dxf',
         name: `${name}.dxf`
       }

@@ -69,6 +69,22 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
   if (!output || typeof output !== 'object' || Array.isArray(output)) {
     throw createError({ statusCode: 502, message: `Construction service ${serviceRef} returned no object output` });
   }
+  // A structured refusal (SPEC §24): the executor answers named
+  // offenders instead of a payload/data result; the refusal carries
+  // through to the create dialog as `failures`.
+  if (Array.isArray(output.failures) && output.failures.length) {
+    const failures = output.failures
+      .map(failure => ({ ...(failure && typeof failure === 'object' ? failure : { message: String(failure) }) }))
+      .map(failure => ({ name: failure.name == null ? null : String(failure.name), message: String(failure.message || '') }))
+      .filter(failure => failure.message || failure.name);
+    if (failures.length) {
+      throw createError({
+        statusCode: 422,
+        message: failures.map(failure => [failure.name, failure.message].filter(Boolean).join(': ')).join('; '),
+        data: { failures }
+      });
+    }
+  }
   const data = output.data && typeof output.data === 'object' && !Array.isArray(output.data) ? output.data : {};
   const merged = { ...draft, fields: { ...(draft.fields || {}), ...data } };
   const file = executorPayload(serviceRef, output.payload);

@@ -83,20 +83,20 @@ export function composeDxfPlacement(templateText, parts) {
   }
   if (!spots.size) badRequest('the template DXF carries no {spot:name} markers');
 
-  const unmatchedSpots = [...spots.keys()].filter(name => !parts.some(part => part.name === name));
-  const unmatchedParts = parts.filter(part => !spots.has(part.name)).map(part => part.name);
-  if (unmatchedSpots.length || unmatchedParts.length) {
-    const problems = [];
-    if (unmatchedSpots.length) problems.push(`spots without a part: ${unmatchedSpots.join(', ')}`);
-    if (unmatchedParts.length) problems.push(`parts without a spot: ${unmatchedParts.join(', ')}`);
-    badRequest(problems.join('; '));
+  const failures = [];
+  for (const name of spots.keys()) {
+    if (!parts.some(part => part.name === name)) failures.push({ name, message: `spot ${name} has no matching part` });
   }
+  for (const part of parts) {
+    if (!spots.has(part.name)) failures.push({ name: part.name, message: `part ${part.name} has no matching spot` });
+  }
+  if (failures.length) return { failures };
 
   const blocks = keptRecords.map(record => render(record.start, record.end));
   for (const [spotName, anchor] of spots) {
     blocks.push(placedEntities(parts.find(part => part.name === spotName).text, anchor, newline));
   }
-  return [render(0, start), ...blocks, render(end, pairs.length)].join(newline) + newline;
+  return { dxf: [render(0, start), ...blocks, render(end, pairs.length)].join(newline) + newline };
 }
 
 function placedEntities(partText, anchor, newline) {

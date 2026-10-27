@@ -435,6 +435,19 @@ describe('durable process orchestration', () => {
     expect(run.error.message).toMatch(/requires a dateTime/);
   });
 
+  it('carries a structured refusal\'s failures onto the failed run error', async () => {
+    const definition = process([
+      { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } }
+    ], ['start'], []);
+    const refusal = new Error('logo: spot logo has no matching part');
+    refusal.data = { failures: [{ name: 'logo', message: 'spot logo has no matching part' }] };
+    const run = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+      executeEffect: vi.fn().mockRejectedValue(refusal)
+    });
+    expect(run.status).toBe('failed');
+    expect(run.error.failures).toEqual([{ name: 'logo', message: 'spot logo has no matching part' }]);
+  });
+
   it('starts a run at a scheduled entry', async () => {
     const definition = process([
       { id: 'daily', kind: 'cts.command', commandId: 'ping', trigger: { mode: 'schedule', schedule: { interval: 'P1D' } } }

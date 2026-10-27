@@ -680,5 +680,9 @@ function instant(now) {
 }
 
 function serializeError(error) {
-  return { name: error?.name || 'Error', message: error?.message || String(error) };
+  return {
+    name: error?.name || 'Error',
+    message: error?.message || String(error),
+    ...(Array.isArray(error?.data?.failures) && error.data.failures.length ? { failures: error.data.failures } : {})
+  };
 }

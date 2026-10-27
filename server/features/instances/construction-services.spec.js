@@ -193,6 +193,19 @@ describe('service-backed construction executor payloads (SPEC §24)', () => {
     expect(executeConnectorService).not.toHaveBeenCalled();
   });
 
+  it('refuses with the structured failures body an executor refusal names (SPEC §24)', async () => {
+    stubCollection();
+    executorOutput({ failures: [{ name: 'logo', message: 'spot logo has no matching part' }] });
+
+    await expect(applyConstructionService('report', 'fromTemplate', { name: 'X' }, CONTEXT))
+      .rejects.toMatchObject({
+        statusCode: 422,
+        message: 'logo: spot logo has no matching part',
+        data: { failures: [{ name: 'logo', message: 'spot logo has no matching part' }] }
+      });
+    expect(filesService.uploadFile).not.toHaveBeenCalled();
+  });
+
   it('resolves a list-of-ref input item by item with payloads (SPEC §24)', async () => {
     const coll = stubCollection();
     const stored = new Map([

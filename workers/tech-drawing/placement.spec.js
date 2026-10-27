@@ -38,12 +38,12 @@ function linesOf(text) {
 
 describe('composeDxfPlacement', () => {
   it('places each part at its spot anchor, translating to the part extents minimum', () => {
-    const composed = composeDxfPlacement(TEMPLATE, [
+    const { dxf } = composeDxfPlacement(TEMPLATE, [
       { name: 'frame', text: FRAME_PART },
       { name: 'logo', text: LOGO_PART }
     ]);
-    const records = linesOf(composed);
-    expect(composed).not.toContain('{spot:');
+    const records = linesOf(dxf);
+    expect(dxf).not.toContain('{spot:');
     // Template line preserved verbatim.
     expect(records.filter(entry => entry.type === 'LINE').length).toBe(3);
     // Frame part min x/y (10,10) translated to anchor (100,200): (100,200) -> (200,200).
@@ -55,11 +55,12 @@ describe('composeDxfPlacement', () => {
   });
 
   it('refuses spots without a part and parts without a spot, naming both', () => {
-    expect(() => composeDxfPlacement(TEMPLATE, [{ name: 'frame', text: FRAME_PART }]))
-      .toThrow(/spots without a part: logo/);
-    expect(() => composeDxfPlacement(TEMPLATE, [
+    const missing = composeDxfPlacement(TEMPLATE, [{ name: 'frame', text: FRAME_PART }]);
+    expect(missing.failures).toEqual([{ name: 'logo', message: 'spot logo has no matching part' }]);
+    const spare = composeDxfPlacement(TEMPLATE, [
       { name: 'frame', text: FRAME_PART }, { name: 'logo', text: LOGO_PART }, { name: 'spare', text: FRAME_PART }
-    ])).toThrow(/parts without a spot: spare/);
+    ]);
+    expect(spare.failures).toEqual([{ name: 'spare', message: 'part spare has no matching spot' }]);
   });
 
   it('refuses a template without spot markers and one without an ENTITIES section', () => {
@@ -71,7 +72,7 @@ describe('composeDxfPlacement', () => {
 
   it('rounds translated coordinates to six decimals', () => {
     const part = dxf(line('1', '0', '2', '1', 'B1'));
-    const composed = composeDxfPlacement(dxf(spot('x', '2.0000005', '0', 'A1')), [{ name: 'x', text: part }]);
+    const { dxf: composed } = composeDxfPlacement(dxf(spot('x', '2.0000005', '0', 'A1')), [{ name: 'x', text: part }]);
     expect(composed).toContain('2.000001');
   });
 });
@@ -93,6 +94,16 @@ describe('place-dxf service', () => {
     const composed = Buffer.from(output.payload.base64, 'base64').toString('utf8');
     expect(composed).not.toContain('{spot:');
     expect(linesOf(composed).filter(entry => entry.type === 'LINE').length).toBe(3);
+  });
+
+  it('answers an offender-named refusal as the structured failures body', async () => {
+    const output = await services['place-dxf']({
+      refs: {
+        template: { payloadBase64: b64(TEMPLATE) },
+        parts: [{ name: 'frame', payloadBase64: b64(FRAME_PART) }]
+      }
+    });
+    expect(output).toEqual({ failures: [{ name: 'logo', message: 'spot logo has no matching part' }] });
   });
 
   it('refuses empty parts and missing payloads', async () => {

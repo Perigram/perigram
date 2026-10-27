@@ -80,6 +80,16 @@
           />
         </div>
       </div>
+      <ul v-if="dialogFailures" class="m-0 flex list-none flex-col gap-1 p-0">
+        <li
+          v-for="(failure, index) in dialogFailures"
+          :key="index"
+          class="flex items-center gap-2 text-supporting text-status-danger"
+        >
+          <i class="pi pi-exclamation-circle" />
+          <span>{{ [failure.name, failure.message].filter(Boolean).join(' — ') }}</span>
+        </li>
+      </ul>
     </StandardDialog>
     <!-- Toast host: the toast service fires into the nearest host in the tree. -->
     <Toast />
@@ -95,6 +105,7 @@ import { useToast } from 'primevue/usetoast';
 import { LAYOUT, spacingClasses, spacingCoefficientFor, screenWeight, composeScreen, buildInstancePool, resolveCreateDialogInputs, resolveRunDialogInputs, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
 import { withinRelationDomain } from '#shared/relation-domain.js';
 import { provideDefaultContainerTraits, useHostContainerTraits } from '~/composables/useContainerTraits.js';
+import { refusalFailuresOf } from '~/utils/action-failures.js';
 import RegionChildren from './RegionChildren.vue';
 import InstancePicker from './InstancePicker.vue';
 import FieldControl from './FieldControl.vue';
@@ -265,6 +276,7 @@ const confirm = useConfirm();
 const toast = useToast();
 const dialogVisible = ref(false);
 const dialogAction = ref(null);
+const dialogFailures = ref(null);
 const dialogDraft = reactive({});
 const dialogType = computed(() => (props.bundle.types || []).find(type => type.id === dialogAction.value?.typeId) || null);
 // Dialog rows come from the shared resolver: authored fields (matched by
@@ -309,6 +321,22 @@ const runAction = async (action, draft = {}, context = {}) => {
     submitting.value = true;
     try {
       await props.onRun(action, draft, context);
+    } catch (error) {
+      // A structured refusal renders where the user launched the action:
+      // inline in the open dialog, or as the offender list in a toast.
+      const failures = refusalFailuresOf(error);
+      if (!failures) throw error;
+      if (dialogVisible.value && dialogAction.value === action) {
+        dialogFailures.value = failures;
+      } else {
+        toast.add({
+          severity: 'error',
+          summary: action.label || action.id,
+          detail: failures.map(failure => [failure.name, failure.message].filter(Boolean).join(' — ')).join('\n'),
+          life: 6000
+        });
+      }
+      return;
     } finally {
       submitting.value = false;
     }
@@ -321,11 +349,12 @@ const runAction = async (action, draft = {}, context = {}) => {
     life: 2400
   });
 };
-const submitDialog = () => {
+const submitDialog = async () => {
   const action = dialogAction.value;
   const payload = draftPayload();
-  closeDialog();
-  if (action) runAction(action, payload);
+  if (!action) return;
+  await runAction(action, payload);
+  if (!dialogFailures.value) closeDialog();
 };
 
 // Lineage and entity pickers model `{ type, id }`; the construction path
@@ -408,6 +437,7 @@ const openAction = (action, context = {}) => {
   }
   if (launch === 'dialog') {
     dialogAction.value = action;
+    dialogFailures.value = null;
     seedDialogDraft();
     if (!visibleDialogRows.value.length) {
       const payload = draftPayload();
@@ -433,6 +463,7 @@ const openAction = (action, context = {}) => {
 function closeDialog() {
   dialogVisible.value = false;
   dialogAction.value = null;
+  dialogFailures.value = null;
 }
 
 // Prefill the draft: authored defaults, then the scoped detail instance's

@@ -57,6 +57,7 @@ import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 import { instanceEditorActionFor } from '~/components/generated/instance-editor-action.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
+import { refusalFailuresOf } from '~/utils/action-failures.js';
 import { useOutboxStore } from '~/stores/outbox';
 import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
@@ -319,6 +320,9 @@ async function runGeneratedAction(action, data = {}, context = {}) {
       notifyQueued();
       return;
     }
+    // A structured refusal renders at the launch surface — the screen's
+    // dialog or toast owns it.
+    if (refusalFailuresOf(error)) throw error;
     notifyFailure(error, action.label || action.id);
   }
 }
