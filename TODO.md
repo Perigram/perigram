@@ -1737,4 +1737,5 @@ Session `agent/genui-rowgap-20261027-2100` (worktree
 half-applied: names died per card, glyphs stayed — every identity row
 in every projection carried a type glyph the collection's own header
 already states.
+
 Status: WAITING owner verification.
