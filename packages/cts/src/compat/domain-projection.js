@@ -577,7 +577,7 @@ function operatorModeInputs(operator = {}) {
   return Object.entries(fields).map(([name, descriptor]) => {
     const input = {
       id: name,
-      label: name,
+      label: descriptor.label || name,
       path: name,
       required: descriptor.nullable !== true
     };

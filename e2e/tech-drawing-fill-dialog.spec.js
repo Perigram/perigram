@@ -104,8 +104,8 @@ test.describe('tech-drawing fill dialog', () => {
 
     const dialog = app.page.locator('.p-dialog');
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByText('template')).toBeVisible();
-    await expect(dialog.getByText('parts')).toBeVisible();
+    await expect(dialog.getByText('Template')).toBeVisible();
+    await expect(dialog.getByText('Parts')).toBeVisible();
 
     await dialog.getByRole('textbox').first().fill('composed-dialog');
 

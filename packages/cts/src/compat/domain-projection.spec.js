@@ -94,7 +94,7 @@ const orgPlaced = {
         base: 'record',
         fields: {
           name: { base: 'string', nullable: true },
-          template: { base: 'ref', accepts: ['placed-sheet'] },
+          template: { base: 'ref', label: 'Template', accepts: ['placed-sheet'] },
           parts: { base: 'list', itemType: { base: 'ref', accepts: ['placed-sheet'] } }
         }
       }
@@ -260,7 +260,8 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     const placed = projected.construction['placed-sheet'];
     expect(placed.modes).toEqual(['fill']);
     const byId = new Map(placed.modeInputs.fill.map(input => [input.id, input]));
-    expect(byId.get('template')).toMatchObject({ type: 'entity', typeId: 'placed-sheet' });
+    expect(byId.get('template')).toMatchObject({ type: 'entity', typeId: 'placed-sheet', label: 'Template' });
+    expect(byId.get('parts')).toMatchObject({ label: 'parts' });
     expect(byId.get('parts')).toMatchObject({ type: 'typeList', typeId: 'placed-sheet' });
   });
 
