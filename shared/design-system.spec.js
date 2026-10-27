@@ -406,9 +406,15 @@ describe('Design system manifest', () => {
 
   it('bans case transforms on app surfaces', () => {
     // Section labels render in natural case (SPEC §22.8); a transform
-    // utility is the stamp the law retires.
+    // utility is the stamp the law retires. Plugin editor surfaces and
+    // package editors count as app surfaces.
     const caseTransform = /\b(?:uppercase|lowercase|capitalize)\b/;
-    const offenders = usedVueFiles().filter((file) => caseTransform.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')));
+    const editorSurfaces = [
+      ...walkFiles(path.join(REPO_ROOT, 'workers'), (file) => /[/\\]surfaces[/\\].*\.(mjs|js)$/.test(file)),
+      ...walkFiles(path.join(REPO_ROOT, 'packages'), (file) => /[/\\]src[/\\]editors[/\\].*\.(vue|js|mjs)$/.test(file))
+    ].map((file) => path.relative(REPO_ROOT, file));
+    const offenders = [...usedVueFiles(), ...editorSurfaces]
+      .filter((file) => caseTransform.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')));
 
     expect(offenders).toEqual([]);
   });

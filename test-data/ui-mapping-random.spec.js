@@ -169,7 +169,9 @@ describe('showcase-reachable contracts in every world', () => {
       expect(world.bundle.types.some(type => world.instances[type.id].length > 50), `seed ${seed} volume type`).toBe(true);
       // The guaranteed-empty type has a screen whose main region composes
       // empty — an inert section that left the arrangement as a stub.
-      const emptyScreen = Object.values(world.contract.screens).find(screen => screen.label?.endsWith('— empty state'));
+      const emptyScreen = Object.values(world.contract.screens)
+        .find(screen => screen.template === 'typeList'
+          && screen.typeId && (world.instances[screen.typeId] || []).length === 0);
       expect(emptyScreen, `seed ${seed} empty screen`).toBeTruthy();
       const emptyComposed = composeScreen(emptyScreen, world.contract, world.bundle, pool);
       expect(emptyComposed.stubRegions[0].dataState).toBe('empty');

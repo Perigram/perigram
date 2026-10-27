@@ -1987,7 +1987,7 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const renderGlobalParameters = () => h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
         h('div', { class: 'flex items-center justify-between gap-2' }, [
-          h('small', { class: 'uppercase text-muted text-supporting' }, t('cassette.v2.globalParameters')),
+          h('small', { class: 'text-muted text-supporting' }, t('cassette.v2.globalParameters')),
           h(Button, {
             icon: 'pi pi-plus',
             severity: 'secondary',
@@ -2029,7 +2029,7 @@ export default function createSurface({ vue, components, locale, queries, record
       ]);
 
       const renderLayerRows = () => h('section', { class: 'flex min-w-0 flex-col gap-1' }, [
-        h('small', { class: 'uppercase text-muted text-supporting' }, t('common.layers')),
+        h('small', { class: 'text-muted text-supporting' }, t('common.layers')),
         ...layerRows.value.map(row => h('div', {
           key: row.key,
           class: ['flex min-w-0 items-center gap-2 py-0.5', row.present ? '' : 'opacity-50']

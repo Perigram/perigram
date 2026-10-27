@@ -34,7 +34,6 @@
     <section v-for="screen in screens" :id="`wsection-${screen.screenKey}`" :key="screen.screenKey" class="flex flex-col gap-3 scroll-mt-24">
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-section-heading">{{ screen.label }}</span>
-        <Tag :value="screen.template" severity="secondary" />
       </div>
       <GeneratedMappingScreen
         :screen="screen"
@@ -58,7 +57,6 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
-import Tag from 'primevue/tag';
 import ScrollTop from 'primevue/scrolltop';
 import Slider from 'primevue/slider';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';

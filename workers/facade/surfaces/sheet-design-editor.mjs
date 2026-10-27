@@ -687,7 +687,7 @@ export default function createSurface({ vue, components, locale, queries, notify
       const renderPalette = () => h('aside', { class: 'flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3' }, [
         h('div', { class: 'flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto' }, [
           h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
-            h('small', { class: 'uppercase text-muted text-supporting' }, t('sheetDesign.cassettes')),
+            h('small', { class: 'text-muted text-supporting' }, t('sheetDesign.cassettes')),
             h('div', { class: 'flex min-w-0 items-start gap-2' }, [
               h(components.InstanceSelect, {
                 modelValue: selectedCassetteId.value,
@@ -713,7 +713,7 @@ export default function createSurface({ vue, components, locale, queries, notify
             ])
           ]),
           h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
-            h('small', { class: 'uppercase text-muted text-supporting' }, t('sheetDesign.margin')),
+            h('small', { class: 'text-muted text-supporting' }, t('sheetDesign.margin')),
             h(components.InputNumber, {
               modelValue: margin.value,
               'onUpdate:modelValue': value => { margin.value = Math.max(0, Number(value) || 0); },
@@ -728,7 +728,7 @@ export default function createSurface({ vue, components, locale, queries, notify
             })
           ]),
           h('section', { class: 'flex min-w-0 flex-col gap-1' }, [
-            h('small', { class: 'uppercase text-muted text-supporting' }, t('common.layers')),
+            h('small', { class: 'text-muted text-supporting' }, t('common.layers')),
             ...layerRows.value.map(row => h('div', {
               key: row.key,
               class: 'flex min-w-0 items-center gap-2 py-0.5'
@@ -762,7 +762,7 @@ export default function createSurface({ vue, components, locale, queries, notify
           selectedPlacement.value
             ? [
                 h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
-                  h('small', { class: 'uppercase text-muted text-supporting' }, t('common.name')),
+                  h('small', { class: 'text-muted text-supporting' }, t('common.name')),
                   h('span', { class: 'min-w-0 truncate font-medium', title: selectedSource.value?.name || '' },
                     selectedSource.value?.name || '')
                 ]),
@@ -778,7 +778,7 @@ export default function createSurface({ vue, components, locale, queries, notify
               ]
             : [
                 h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
-                  h('small', { class: 'uppercase text-muted text-supporting' }, t('sheetDesign.sheet')),
+                  h('small', { class: 'text-muted text-supporting' }, t('sheetDesign.sheet')),
                   factRow(t('sheetDesign.size'), `${rounded(sheetWidth.value)}×${rounded(sheetHeight.value)} mm`),
                   factRow(t('sheetDesign.placements'), placedItems.value.length),
                   factRow(t('sheetDesign.cassettes'),
