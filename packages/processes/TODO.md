@@ -108,7 +108,9 @@ wave. `npx vitest run packages/processes` green.
   hydration manifest projection dropped every manual emit action
   (`projectManifestAction` returns null on unknown kinds); the kind
   joins `ACTION_KIND_BY_LEGACY`, `UI_CONTRACT_ACTION_KINDS`, and the
-  button table.
+  button table. The record sync wiped `path` on every kind beside
+  `value.recordField`, so the trigger-payload source always returned the
+  whole trigger; `source.triggerPayload` owns its authored path.
 
 ### Implemented in the same direction (2026-10-27)
 
