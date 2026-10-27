@@ -327,17 +327,19 @@ export function createProcessRecordSync({ contract, defaultEntityTypeId = () => 
 // Connection type propagation: connecting a typed source into a
 // type-carrying socket writes the source's element type onto the target
 // record — the same gesture the canvas performs. Generic collection
-// kinds, logic, and the string/math/dateTime value nodes carry their
-// operand type on the record; everything else resolves from its own
-// contract.
+// kinds and the value nodes whose sockets read the record's operand type
+// (compare, logic, string/math/dateTime) carry that type on the record;
+// everything else resolves from its own contract.
 const TYPE_PROPAGATING_INPUTS = {
+  'value.compare': ['left', 'right'],
   'value.logic': ['left', 'value', '']
 };
 
 export function propagateConnectionType(targetRecord = {}, targetInput = '', sourcePort = null) {
   if (!sourcePort?.type) return;
   const kind = targetRecord.kind || '';
-  const input = String(targetInput || '');
+  // The canvas passes the bare socket id, the seam the handle spelling.
+  const input = parseProcessSocketHandleId(String(targetInput || '')) || String(targetInput || '');
   const generic = TYPE_PROPAGATING_INPUTS[kind]?.includes(input)
     || (['collection.makeList', 'collection.concat', 'collection.itemAt', 'collection.slice', 'collection.count', 'collection.distinct',
       'collection.sort', 'collection.groupBy', 'collection.filter', 'collection.packArray', 'collection.unpackArray',
@@ -891,8 +893,14 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
         throw new Error(`Incompatible ports ${sourceId}:${sourcePortId} → ${targetId}:${targetPortId} — control into a data socket`);
       }
     } else {
-      const compatibility = processSocketsCompatible(sourcePort, targetPort);
+      // The canvas gesture propagates the source type before the gate and
+      // the gate reads the record it will keep; a refused wire rolls the
+      // retype back.
+      const previousType = target.type ? { ...target.type } : target.type;
+      propagateConnectionType(target, targetPortId, sourcePort);
+      const compatibility = processSocketsCompatible(sourcePort, portOf(target, targetPortId, 'input') || targetPort);
       if (!compatibility.ok) {
+        target.type = previousType;
         throw new Error(`Incompatible ports ${sourceId}:${sourcePortId} → ${targetId}:${targetPortId}${compatibility.reason ? ` — ${compatibility.reason}` : ''}`);
       }
     }
@@ -902,7 +910,6 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
       const occupied = connectedInputHandles(targetId).includes(targetPort.id);
       if (occupied) throw new Error(`Socket ${targetId}:${targetPortId} accepts one wire`);
     }
-    propagateConnectionType(target, targetPortId, sourcePort);
     const edge = {
       id,
       source: sourceId,

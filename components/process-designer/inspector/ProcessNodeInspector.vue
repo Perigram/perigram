@@ -202,9 +202,13 @@
         @update:model-value="mode => $emit('update-construction-mode', mode)"
       />
     </div>
-    <div v-if="record.kind === 'control.domainEventTrigger'" class="flex flex-col gap-1">
-      <label>{{ $t('processDesigner.event') }}</label>
-      <Select v-model="record.eventId" :options="designer.eventOptions" option-label="label" option-value="value" filter @change="$emit('sync')" />
+    <div v-if="record.kind === 'control.stopFailure'" class="flex flex-col gap-1">
+      <label>{{ $t('processDesigner.failureMessage') }}</label>
+      <InputText v-model="record.message" class="w-full" @change="$emit('sync')" />
+    </div>
+    <div v-if="record.kind === 'control.stopSuccess'" class="flex flex-col gap-1">
+      <label>{{ $t('processDesigner.successResult') }}</label>
+      <InputText v-model="record.result" class="w-full" @change="$emit('sync')" />
     </div>
     <div v-if="record.kind === 'cts.conversion'" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.attachmentKind') }}</label>

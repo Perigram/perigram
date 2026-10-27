@@ -350,8 +350,6 @@ describe('process designer domain contract', () => {
     ]));
     expect(groups.control.map(item => item.kind)).toEqual([
       'control.if',
-      'control.switch',
-      'control.fork',
       'control.joinAll',
       'control.joinAny',
       'control.forEach',

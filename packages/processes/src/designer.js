@@ -108,7 +108,10 @@ const definitionPaletteItem = (id, type, options = {}) => Object.freeze({
 // per-facet elimination form (SPEC §20) and lives in the palette;
 // `cts.compose` stays catalog-only — fresh constructs take fields directly
 // and fresh mutates patch leaves, so block composition is reachable only
-// by migrated legacy graphs.
+// by migrated legacy graphs. `control.switch` and `control.fork` are
+// catalog-only the same way: an equality dispatch composes from
+// `control.if` chains, and fan-out is the multi-wire gesture from any
+// `completed` output (palette law: README Palette).
 export const TYPE_AUTHORING_PALETTE_ITEMS = Object.freeze([
   definitionPaletteItem('class', 'ctsClass'),
   definitionPaletteItem('field', 'ctsField'),
@@ -134,8 +137,6 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     id: 'control',
     items: [
       paletteItem('choosePath', 'control.if'),
-      paletteItem('switchPaths', 'control.switch'),
-      paletteItem('parallelPaths', 'control.fork'),
       paletteItem('joinAllPaths', 'control.joinAll'),
       paletteItem('joinAnyPaths', 'control.joinAny'),
       paletteItem('forEachEntity', 'control.forEach'),

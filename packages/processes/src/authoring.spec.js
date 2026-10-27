@@ -167,6 +167,40 @@ describe('headless definition authoring', () => {
     expect(() => context.connect('other', 'data:value', 'first', 'data:index')).toThrow(/accepts one wire/);
   });
 
+  it('wires two upstream completions into a join (fan-out is the multi-wire gesture)', () => {
+    const context = authoring();
+    context.declareTypeRef({ id: 'ref_sheet', typeId: 'sheet' });
+    context.drop('construct', { id: 'first' });
+    context.wireDeclaration('ref_sheet', 'first', 'binds');
+    context.drop('construct', { id: 'second' });
+    context.wireDeclaration('ref_sheet', 'second', 'binds');
+    context.drop('joinAllPaths', { id: 'join' });
+    context.connect('first', 'control:completed', 'join', 'control:branches');
+    expect(() => context.connect('second', 'control:completed', 'join', 'control:branches')).not.toThrow();
+    expect(context.definition().graph.edges.filter(edge => edge.target === 'join')).toHaveLength(2);
+  });
+
+  it('retypes a compare node by wiring a typed source', () => {
+    const context = authoring();
+    context.drop('literal', { id: 'left' });
+    context.configure('left', { type: { base: 'number', nullable: false }, value: 5 });
+    context.drop('compareValues', { id: 'cmp' });
+    expect(() => context.connect('left', 'data:value', 'cmp', 'data:left')).not.toThrow();
+    expect(context.record('cmp').type).toMatchObject({ base: 'number' });
+  });
+
+  it('propagates an entity element type through the seam (concat over entity lists)', () => {
+    const context = authoring();
+    context.declareTypeRef({ id: 'ref_sheet', typeId: 'sheet' });
+    context.drop('allEntities', { id: 'all' });
+    context.configure('all', { typeId: 'sheet' });
+    context.drop('joinLists', { id: 'cat' });
+    context.connect('all', 'data:result', 'cat', 'data:left');
+    expect(context.record('cat').type).toMatchObject({ base: 'entityRef', typeId: 'sheet' });
+    context.drop('mutate', { id: 'mut' });
+    expect(() => context.connect('cat', 'data:value', 'mut', 'data:entity')).not.toThrow();
+  });
+
   it('authors the declaration tree in-definition: classes, ref fields, children to type references, wired bindings', () => {    const context = authoring();
     context.declareClass({ id: 'orderClass', typeId: 'facade-order', class: 'group', name: 'Facade order' });
     context.declareClass({ id: 'attemptClass', typeId: 'nesting-attempt', class: 'item', name: 'Nesting attempt' });

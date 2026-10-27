@@ -1170,6 +1170,11 @@ function declaredInputMetadata(record = {}, domain = {}, portId = '') {
 
 // The one activation-time availability contract for required inputs (law:
 // README Required inputs).
+// Control nodes whose required data inputs share the availability
+// contract: they evaluate automatically, so only a wire, an authored
+// fallback, or a domain default serves them.
+const CONTROL_REQUIRED_INPUT_KINDS = new Set(['control.if', 'control.switch', 'control.forEach']);
+
 export function validateRequiredInputAvailability(process = {}, domain = {}) {
   const errors = [];
   const nodes = process.graph?.nodes || [];
@@ -1178,8 +1183,8 @@ export function validateRequiredInputAvailability(process = {}, domain = {}) {
     // Species records classify through the operation-kind seam (SPEC §20):
     // `cts.construct`/`cts.service` carry the same required-input contract
     // their legacy effect twins do.
-    if (!isEffectRecord(record)) continue;
-    const manual = (record.trigger?.mode || 'manual') === 'manual';
+    if (!isEffectRecord(record) && !CONTROL_REQUIRED_INPUT_KINDS.has(String(record.kind || ''))) continue;
+    const manual = isEffectRecord(record) && (record.trigger?.mode || 'manual') === 'manual';
     const graphNode = nodes.find(node => String(node.data?.refId || node.id) === String(recordId));
     let ports = [];
     try { ports = resolveCatalogNodePorts(record, catalogContext(domain, record)).inputs; } catch { continue; }

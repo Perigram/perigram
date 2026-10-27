@@ -769,7 +769,10 @@ function catalogPorts(record = {}, context = {}) {
     return { inputs: controlInput, outputs: Array.from({ length: branches }, (_, index) => socket(`branch${index + 1}`, event, CONTROL)) };
   }
   if (kind === 'control.joinAll' || kind === 'control.joinAny') {
-    return { inputs: [socket('branches', event, CONTROL, true)], outputs: [socket('out', event, CONTROL)] };
+    return {
+      inputs: [{ ...socket('branches', event, CONTROL, true), multiple: true }],
+      outputs: [socket('out', event, CONTROL)]
+    };
   }
   if (kind === 'control.forEach') return {
     inputs: [...controlInput, socket('items', configured, DATA, true, 'tree')],

@@ -264,11 +264,7 @@ const nodeSpecTooltip = computed(() => {
 const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutputs.value, 'event'));
 const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));
 const operationOptions = computed(() => props.data.processOperationOptions || []);
-const showTypeEditor = computed(() => (
-  opKind.value.startsWith('source.literal')
-  || (opKind.value === 'value.logic'
-    && ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull'].includes(record.value.operation))
-));
+const showTypeEditor = computed(() => opKind.value.startsWith('source.literal'));
 const baseTypeOptions = computed(() => [
   'string',
   'number',

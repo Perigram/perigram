@@ -10,8 +10,6 @@ describe('process designer hard-cut localization', () => {
       expect(copy.paletteGroups.control).toBeTruthy();
       expect(copy.paletteItems.allEntities).toBeTruthy();
       expect(copy.paletteItems.choosePath).toBeTruthy();
-      expect(copy.paletteItems.switchPaths).toBeTruthy();
-      expect(copy.paletteItems.parallelPaths).toBeTruthy();
       expect(copy.paletteItems.joinAllPaths).toBeTruthy();
       expect(copy.paletteItems.joinAnyPaths).toBeTruthy();
       expect(copy.paletteItems.finish).toBeTruthy();

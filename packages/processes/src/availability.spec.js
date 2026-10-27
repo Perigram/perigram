@@ -323,4 +323,16 @@ describe('required input availability', () => {
     expect(diagnostics[0]).toMatchObject({ nodeId: 'gn', socketId: 'templateId' });
     expect(diagnostics[0].message).toContain('templateId');
   });
+
+  it('requires control-node data inputs as automatic paths — a wired or defaulted source only', () => {
+    const gate = { id: 'n', kind: 'control.if' };
+    const errors = check(gate);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('condition');
+    expect(errors[0]).toContain('automatically evaluated path');
+    const wired = check(gate, [{ id: 'e', source: 'x', target: 'gn', targetHandle: 'data:condition', sourceHandle: 'data:value', role: 'data' }]);
+    expect(wired).toEqual([]);
+    const defaulted = check({ ...gate, inputDefaults: { condition: true } });
+    expect(defaulted).toEqual([]);
+  });
 });
