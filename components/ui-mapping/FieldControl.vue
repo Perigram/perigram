@@ -47,9 +47,13 @@
     :id="model?.id ?? null"
     :entity="pool?.[model?.type]?.[model?.id] || null"
   />
-  <Chip v-else-if="outcome.component === 'FileChip'" :label="model?.mime || fallback" icon="pi pi-file" />
-  <div v-else-if="outcome.component === 'ObjectSummary'" :class="LAYOUT.stackTight">
-    <div v-for="entry in summaryEntries" :key="entry.key" :class="LAYOUT.rowBetween">
+  <FileChip v-else-if="outcome.component === 'FileChip'" :file="model" @open="openPayload" />
+  <div v-else-if="outcome.component === 'ObjectSummary'" :class="LAYOUT.row">
+    <span
+      v-for="entry in summaryEntries"
+      :key="entry.key"
+      class="inline-flex min-w-0 items-baseline gap-1"
+    >
       <span class="text-supporting text-muted">{{ entry.key }}</span>
       <InstanceInlineRef
         v-if="entry.ref"
@@ -57,17 +61,21 @@
         :id="entry.ref.id"
         :entity="pool?.[entry.ref.type]?.[entry.ref.id] || null"
       />
-      <span v-else class="text-body">{{ entry.value }}</span>
-    </div>
+      <span v-else class="min-w-0 truncate text-body">{{ entry.value }}</span>
+    </span>
   </div>
-  <div v-else-if="outcome.component === 'ListSummary'" :class="LAYOUT.stackTight">
-    <div v-for="(entry, index) in listEntries" :key="index" :class="LAYOUT.row">
+  <div v-else-if="outcome.component === 'ListSummary'" :class="LAYOUT.row">
+    <span
+      v-for="(entry, index) in listEntries"
+      :key="index"
+      class="inline-flex min-w-0 items-center gap-1"
+    >
       <i
         v-if="entry.done !== null"
         :class="entry.done ? 'pi pi-check-circle text-status-success' : 'pi pi-minus-circle text-muted'"
       />
-      <span class="text-body">{{ entry.label }}</span>
-    </div>
+      <span class="min-w-0 truncate text-body">{{ entry.label }}</span>
+    </span>
     <Tag v-if="listHidden > 0" :value="`+${listHidden}`" severity="contrast" />
   </div>
   <div v-else-if="outcome.component === 'VariantTag'" :class="LAYOUT.row">
@@ -193,6 +201,7 @@ import OrderList from 'primevue/orderlist';
 import { LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity, formatValue } from '#shared/ui-mapping/index.js';
 import { designTokens } from '~/assets/tokens/index.js';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
+import FileChip from '../shared/FileChip.vue';
 import QuantityInput from './QuantityInput.vue';
 import EnumSelect from './EnumSelect.vue';
 import InstancePicker from './InstancePicker.vue';
@@ -216,6 +225,11 @@ const props = defineProps({
 });
 
 const model = defineModel();
+function openPayload() {
+  const fileId = props.modelValue?.fileId;
+  if (!fileId || typeof window === 'undefined') return;
+  window.open(`/api/files/download/${encodeURIComponent(String(fileId))}?bucket=files`, '_blank');
+}
 const fallback = '—';
 const spacing = inject('uiMappingSpacing', null);
 const densityScale = computed(() => ({ factValue: 'text-body', knob: spacing ? spacing.knob : 64 }));

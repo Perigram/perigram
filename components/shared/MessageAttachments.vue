@@ -92,15 +92,11 @@
         :class="['flex max-w-80 flex-wrap gap-1', ownMessage ? 'justify-end' : 'justify-start']"
         data-testid="chat-attachment-files"
       >
-        <Chip
+        <FileChip
           v-for="attachment in documents"
           :key="attachment.fileId"
-          :label="attachment.name || attachment.mimeType"
-          :icon="fileIcon(attachment)"
-          :pt="chipPt"
-          :class="fileChipClass"
-          :title="chipTitle(attachment)"
-          @click="openAttachment(attachment)"
+          :file="attachment"
+          @open="openAttachment(attachment)"
         />
       </span>
     </template>
@@ -183,10 +179,10 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
-import Chip from 'primevue/chip';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
+import FileChip from '~/components/shared/FileChip.vue';
 import { chatAttachmentUrl } from '~/utils/chat-file-targets.js';
 import { useMediaStore } from '~/stores/media';
 import { useInstancesStore } from '~/stores/instances';
@@ -210,9 +206,7 @@ const media = useMediaStore();
 const instances = useInstancesStore();
 const { typeById } = useFileTypeView();
 
-const fileChipClass = 'min-w-0 max-w-full cursor-pointer border border-content-border bg-subtle text-supporting';
 const instanceChipClass = 'min-w-0 max-w-full cursor-pointer border border-content-border bg-transparent text-supporting';
-const chipPt = { label: { class: 'truncate' } };
 
 const restrictedView = computed(() => Boolean(
   props.viewerUserId && props.senderUserId && props.senderUserId !== props.viewerUserId
@@ -375,12 +369,6 @@ const openAttachment = (attachment) => {
   download(attachment);
 };
 
-const chipTitle = (attachment = {}) => {
-  const name = attachment.name || attachment.mimeType || '';
-  const size = formatBytes(attachment.size);
-  return size ? `${name} · ${size}` : name;
-};
-
 // Now-playing handoff (components/media README): a media element that
 // starts playback claims the app's single-play channel; when this surface
 // unmounts while it is still playing, its descriptor and position go to
@@ -413,14 +401,6 @@ const url = (attachment) => chatAttachmentUrl(attachment);
 const download = (attachment) => {
   const href = chatAttachmentUrl(attachment, { download: true });
   if (href && typeof window !== 'undefined') window.open(href, '_blank');
-};
-
-const fileIcon = (attachment = {}) => {
-  const mime = String(attachment.mimeType || '');
-  if (mime.includes('pdf')) return 'pi pi-file-pdf';
-  if (mime.includes('sheet') || mime.includes('excel')) return 'pi pi-file-excel';
-  if (mime.includes('word')) return 'pi pi-file-word';
-  return 'pi pi-file';
 };
 
 function formatBytes(size = 0) {

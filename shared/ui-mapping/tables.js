@@ -290,7 +290,7 @@ export const LAYOUT = Object.freeze({
   // compiles to nothing. These tokens carry only the static stacked
   // layout; the row direction and the 16rem identity floor live in the
   // component scoped block.
-  headerRow: 'flex flex-col items-start gap-3',
+  headerRow: 'flex flex-col items-start gap-2',
   headerIdentity: 'min-w-0 flex-1',
   cellText: 'line-clamp-2 max-w-96 break-words text-left',
   chipRow: 'flex flex-wrap items-center gap-2 pt-2',

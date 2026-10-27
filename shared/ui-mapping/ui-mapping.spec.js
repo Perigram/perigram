@@ -635,7 +635,7 @@ describe('value formatting and layout vocabulary', () => {
     // (min-w-0 keeps long names truncating instead of overflowing). The
     // header paints no box — retired with the boxed headerBar token.
     expect(LAYOUT.headerBar).toBeUndefined();
-    expect(LAYOUT.headerRow).toBe('flex flex-col items-start gap-3');
+    expect(LAYOUT.headerRow).toBe('flex flex-col items-start gap-2');
     expect(LAYOUT.headerIdentity).toBe('min-w-0 flex-1');
     expect(HEADER_ACTIONS_INLINE).toBe(2);
   });

@@ -48,7 +48,7 @@
               <StateHistory :instance="instance" :type-id="type.id" :target-id="instance.id" compact />
             </Popover>
           </div>
-          <span v-if="typeLabel" class="text-supporting text-muted truncate">{{ typeLabel }}</span>
+          <span v-if="typeLabel" class="text-label text-muted truncate">{{ typeLabel }}</span>
         </div>
       </div>
       <div :class="LAYOUT.row" class="header-actions">

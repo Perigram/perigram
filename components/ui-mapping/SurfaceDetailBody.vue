@@ -60,7 +60,7 @@
               @inline-change="change => emit('inline-change', change)"
             />
           </div>
-          <div v-else :class="d.specRow">
+          <div v-else class="flex w-full flex-col gap-1">
             <span class="text-label text-muted">{{ field.label }}</span>
             <InlineField
               :field="field"
@@ -111,14 +111,6 @@
         </div>
       </section>
     </div>
-
-    <HierarchyTree
-      v-if="surface.slots.includes('children')"
-      :root="instance"
-      :bundle="bundle"
-      :pool="pool"
-      @open="target => emit('open-instance', target)"
-    />
   </div>
 </template>
 
@@ -132,7 +124,6 @@ import InlineField from './InlineField.vue';
 import StructuralFieldPanel from './StructuralFieldPanel.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import PreviewBox from './PreviewBox.vue';
-import HierarchyTree from './HierarchyTree.vue';
 
 const props = defineProps({
   instance: { type: Object, required: true },

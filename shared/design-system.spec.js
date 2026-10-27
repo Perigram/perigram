@@ -404,6 +404,15 @@ describe('Design system manifest', () => {
     expect(supportMessageContent).toContain('text-prose');
   });
 
+  it('bans case transforms on app surfaces', () => {
+    // Section labels render in natural case (SPEC §22.8); a transform
+    // utility is the stamp the law retires.
+    const caseTransform = /\b(?:uppercase|lowercase|capitalize)\b/;
+    const offenders = usedVueFiles().filter((file) => caseTransform.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')));
+
+    expect(offenders).toEqual([]);
+  });
+
   it('keeps app chrome and process signals on semantic color aliases', () => {
     const rawPaletteUtility = /\b(?:bg|text|border|ring)-(?:slate|zinc|gray|neutral|stone|blue|sky|teal|cyan|indigo|violet|fuchsia|purple|emerald|green|lime|red|orange|amber|yellow|pink|rose)-\d{1,3}\b/;
     const offenders = usedVueFiles().filter((file) => rawPaletteUtility.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')));

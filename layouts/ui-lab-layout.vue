@@ -10,7 +10,7 @@
                     >
                         <span>{{ $t('uiLab.shellTitle') }}</span>
                     </NuxtLink>
-                    <div class="px-2 py-0.5 rounded-ui border [border-color:var(--ck-chrome-border)] bg-[var(--ck-chrome-subtle)] uppercase text-[var(--ck-chrome-muted)] text-label">
+                    <div class="px-2 py-0.5 rounded-ui border [border-color:var(--ck-chrome-border)] bg-[var(--ck-chrome-subtle)] text-[var(--ck-chrome-muted)] text-label">
                         {{ $t('uiLab.testMode') }}
                     </div>
                 </div>

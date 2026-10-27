@@ -279,7 +279,7 @@ function executeContextualAction(action) {
         :label="identityLabel"
         :icon="icon || undefined"
         :pt="chipPt"
-        class="min-w-0 max-w-full"
+        class="min-w-0 max-w-full border border-content-border bg-transparent text-supporting"
         :class="[chipClass, { 'cursor-pointer': refOpenable }, refOpenable ? chipInteractiveClass : null]"
         :role="refOpenable ? 'button' : undefined"
         :tabindex="refOpenable ? 0 : undefined"
