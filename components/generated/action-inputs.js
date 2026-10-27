@@ -10,10 +10,14 @@ export function collectActionInputFields(action = {}) {
         path: field.path || (field.typeId ? `entities.${field.id}` : `parameters.${field.id}`)
       }));
   }
+  // The compiled input policy owns the prompt list: the compiler keeps it
+  // to the fields the graph leaves unsupplied (wired producers and
+  // authored socket defaults drop out), so a supplied field must stay out
+  // of the dialog. Construction inputs serve actions compiled without a
+  // policy.
   const policyFields = action.inputPolicy?.fields || [];
-  const constructionFields = action.construction?.inputs || action.inputs || [];
-  return [...policyFields, ...constructionFields]
-    .filter((field, index, fields) => fields.findIndex(item => item.id === field.id) === index);
+  if (policyFields.length) return policyFields;
+  return action.construction?.inputs || action.inputs || [];
 }
 
 export function promptedFields(action = {}) {

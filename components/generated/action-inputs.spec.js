@@ -48,4 +48,32 @@ describe('generated action inputs', () => {
       parameters: { width: '120', optional: '' }
     })).toEqual({ templateId: 'cassette-1', parameters: { width: 120 } });
   });
+
+  it('keeps graph-supplied fields out of the dialog: the policy owns the prompt list', () => {
+    // The compiled shape: fields.kind is wired, fields.process carries an
+    // authored socket default, and construction.inputs still restates the
+    // domain contract's prompt flags for every field.
+    const action = {
+      actionKind: 'createEntity',
+      typeId: 'profile',
+      construction: {
+        mode: 'genericCreate',
+        inputs: [
+          { id: 'fields.name', path: 'fields.name', type: 'string', prompt: true, required: true },
+          { id: 'fields.kind', path: 'fields.kind', type: 'string', prompt: true, required: true },
+          { id: 'fields.process', path: 'fields.process', type: 'string', prompt: true, required: true }
+        ]
+      },
+      inputPolicy: {
+        prompt: true,
+        fields: [
+          { id: 'fields.name', path: 'fields.name', type: 'string', prompt: true, required: true }
+        ]
+      }
+    };
+
+    expect(promptedFields(action).map(field => field.id)).toEqual(['fields.name']);
+    expect(promptData(collectActionInputFields(action), { 'fields.name': 'Stainless' }))
+      .toEqual({ fields: { name: 'Stainless' } });
+  });
 });

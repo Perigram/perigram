@@ -1,5 +1,5 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { PROCESS_PROTOCOL_VERSION } from './types.js';
+import { PROCESS_PROTOCOL_VERSION, processTypesCompatible, formatProcessType } from './types.js';
 
 const HANDLE_PREFIXES = ['input:', 'output:', 'data:', 'control:'];
 export const PROCESS_SCALAR_KINDS = Object.freeze(['string', 'number', 'boolean', 'json', 'date']);
@@ -50,6 +50,8 @@ export function normalizePortSpec(io = {}, fallback = {}) {
     id: String(source.id || fallback.id || ''),
     label: source.label || source.typeId || source.kind || fallback.label || source.id || fallback.id || '',
     kind: multiple && kind === 'entity' ? 'entity_list' : kind,
+    ...(typed.base ? { base: typed.base } : {}),
+    ...(source.type ? { type: source.type } : {}),
     typeId,
     block: source.block || typed.block || fallback.block || '',
     dataPath: source.dataPath || source.path || fallback.dataPath || '',
@@ -67,21 +69,39 @@ function structuredPortType(type) {
   if (type.base === 'array') {
     const item = type.itemType || {};
     if (['entity', 'entityRef'].includes(item.base)) {
-      return { kind: 'entity_list', typeId: item.typeId || '', multiple: true };
+      return { kind: 'entity_list', base: type.base, typeId: item.typeId || '', multiple: true };
     }
-    return { kind: 'list', multiple: true };
+    return { kind: 'list', base: type.base, multiple: true };
   }
   if (['entity', 'entityRef'].includes(type.base)) {
-    return { kind: 'entity', typeId: type.typeId || '', multiple: false };
+    return { kind: 'entity', base: type.base, typeId: type.typeId || '', multiple: false };
   }
-  if (type.base === 'block') return { kind: 'block', block: type.block || '', multiple: false };
+  if (type.base === 'block') return { kind: 'block', base: type.base, block: type.block || '', multiple: false };
   if (['status', 'predicate', 'event'].includes(type.base)) {
-    return { kind: type.base, typeId: type.typeId || '' };
+    return { kind: type.base, base: type.base, typeId: type.typeId || '' };
   }
-  if (type.base === 'attachmentRef') return { kind: 'attachment' };
-  if (type.base === 'taskRef') return { kind: 'task' };
-  if (type.base === 'dateTime') return { kind: 'date' };
-  return { kind: PROCESS_SCALAR_KINDS.includes(type.base) ? type.base : 'data' };
+  if (type.base === 'attachmentRef') return { kind: 'attachment', base: type.base };
+  if (type.base === 'taskRef') return { kind: 'task', base: type.base };
+  if (type.base === 'dateTime') return { kind: 'date', base: type.base };
+  return { kind: PROCESS_SCALAR_KINDS.includes(type.base) ? type.base : 'data', base: type.base };
+}
+
+const VALUE_PLANE_KINDS = new Set(['data', 'list', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(kind => `${kind}_list`)]);
+const baseOfPort = spec => spec.type?.base || spec.base
+  || (PROCESS_SCALAR_KINDS.includes(spec.kind) ? spec.kind : '');
+
+// One coercion law for both gates (SPEC §20 wire law): when the kind
+// lattice would refuse a value-plane pair, the base lattice decides —
+// the canvas connect gate and edge validation accept the same wires.
+function valuePlaneCompatible(source, target) {
+  if (!VALUE_PLANE_KINDS.has(source.kind) || !VALUE_PLANE_KINDS.has(target.kind)) return { ok: false };
+  const sourceBase = baseOfPort(source);
+  const targetBase = baseOfPort(target);
+  if (!sourceBase || !targetBase) return { ok: false };
+  return processTypesCompatible(
+    { base: sourceBase, ...(source.typeId ? { typeId: source.typeId } : {}) },
+    { base: targetBase, ...(target.typeId ? { typeId: target.typeId } : {}) }
+  );
 }
 
 export function portSpecsCompatible(source = {}, target = {}) {
@@ -133,6 +153,8 @@ export function portSpecsCompatible(source = {}, target = {}) {
     return entityLikeCompatible(sourceSpec, targetSpec);
   }
   if (sourceSpec.kind === targetSpec.kind) return { ok: true };
+  const coerced = valuePlaneCompatible(sourceSpec, targetSpec);
+  if (coerced.ok) return coerced;
   return incompatible(sourceSpec, targetSpec);
 }
 
@@ -151,7 +173,7 @@ export function validateProcessEdges(process = {}) {
       // Anchored like every other graph diagnostic (SPEC §20): the
       // designer focuses the responsible edge from these ids.
       diagnostics.push({
-        message: `Edge ${edge.id || `${edge.source}-${edge.target}`} connects incompatible ports ${portLabel(source)} -> ${portLabel(target)}`,
+        message: `Edge ${edge.id || `${edge.source}-${edge.target}`} connects incompatible ports ${portLabel(source)} -> ${portLabel(target)}: expected ${portTypeLabel(target)}, received ${portTypeLabel(source)}`,
         edgeId: edge.id || `${edge.source}-${edge.target}`,
         nodeId: String(edge.target),
         socketId: parseProcessSocketHandleId(edge.targetHandle)
@@ -578,7 +600,7 @@ function dataCompatible(source, target) {
   if (target.kind === 'data' && ['data', 'list', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(value => `${value}_list`)].includes(source.kind)) return { ok: true };
   if (source.kind === 'data' && target.kind === 'data') return { ok: true };
   if (source.kind === 'block' && ['data', 'block'].includes(target.kind)) return blockCompatible(source, target);
-  return incompatible(source, target);
+  return valuePlaneCompatible(source, target).ok ? { ok: true } : incompatible(source, target);
 }
 
 function scalarPorts(ids = [], kind = 'string') {
@@ -642,4 +664,10 @@ function incompatible(source, target) {
 
 function portLabel(port = {}) {
   return port.label || [port.kind, port.typeId || port.block || port.dataPath || port.id].filter(Boolean).join(':') || 'port';
+}
+
+function portTypeLabel(port = {}) {
+  const base = baseOfPort(port);
+  if (!base) return port.kind || 'value';
+  return formatProcessType({ base, ...(port.typeId ? { typeId: port.typeId } : {}) });
 }
