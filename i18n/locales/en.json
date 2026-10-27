@@ -2216,6 +2216,13 @@
         "setOrigin": "Link origin",
         "clearOrigin": "Clear origin"
     },
+    "dxfEditor": {
+        "editorTitle": "DXF template",
+        "markers": "Anchors",
+        "markerName": "Anchor name",
+        "noMarkers": "No anchors yet",
+        "add": "Add anchor"
+    },
     "assets": {
         "cassettes": "Cassettes",
         "templates": "Templates",

@@ -2,8 +2,9 @@
 // The tech-drawing plugin's executor (endpoint mode): the plugin's types
 // are pure declarations served by the generic instance machinery, and
 // this process serves its services (DXF spot placement) plus the sketch
-// editor surface module (and its vendored runtime dependencies) as static
-// GETs — the platform's module proxy streams them to browsers same-origin.
+// and DXF editor surface modules (and their vendored runtime
+// dependencies) as static GETs — the platform's module proxy streams
+// them to browsers same-origin.
 import { createEndpointExecutor } from '../../packages/plugin-sdk/src/endpoint-executor.js';
 import { services } from './services.js';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +17,7 @@ const server = createEndpointExecutor({
   staticRoot: fileURLToPath(new URL('.', import.meta.url))
 }).listen(port, () => {
   const served = Object.keys(services).map(id => `  POST http://localhost:${port}/${id}`).join('\n');
-  process.stdout.write(`tech-drawing executor on :${port}${token ? ' (key required)' : ''}\n${served}\n  GET  http://localhost:${port}/surfaces/*\n  GET  http://localhost:${port}/assets/vendor/*\n`);
+  process.stdout.write(`tech-drawing executor on :${port}${token ? ' (key required)' : ''}\n${served}\n  GET  http://localhost:${port}/surfaces/*\n  GET  http://localhost:${port}/dxf-markers.js\n  GET  http://localhost:${port}/assets/vendor/*\n`);
 });
 
 for (const signal of ['SIGINT', 'SIGTERM']) {

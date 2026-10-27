@@ -2,7 +2,7 @@
   "pluginId": "tech-drawing",
   "name": "Technical drawing",
   "description": "Drawing reference types (pens, layer standards, colors), CAD exchange documents (DXF, SVG) with template placement, and the sketch editor as an installable plugin",
-  "version": "6",
+  "version": "7",
   "requires": [],
   "declarations": {
     "types": [
@@ -282,6 +282,13 @@
         "modes": [
           "edit"
         ]
+      },
+      {
+        "type": "dxf-source",
+        "surface": "dxf-editor",
+        "modes": [
+          "edit"
+        ]
       }
     ],
     "services": [
@@ -309,13 +316,18 @@
         "id": "sketch-editor",
         "module": "/surfaces/sketch-editor.mjs",
         "surfaceContract": 3
+      },
+      {
+        "id": "dxf-editor",
+        "module": "/surfaces/dxf-editor.mjs",
+        "surfaceContract": 2
       }
     ],
     "dependencies": [
       {
-        "name": "perfect-freehand",
-        "version": "1.2.3",
-        "module": "/assets/vendor/perfect-freehand.mjs",
+        "name": "cad-viewer",
+        "version": "1.7.5",
+        "module": "/assets/vendor/cad-viewer/cad-viewer.mjs",
         "license": "MIT"
       }
     ]
