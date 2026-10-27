@@ -44,6 +44,11 @@ Each gesture has its removal twin:
 | Record configuration | the same writes the inspector performs, including socket input defaults (typed scalars; the entityRef picker writes `{type, id}`) | — |
 | Connection | `processSocketsCompatible` (the canvas gate); wire gestures address socket handles — `data:<id>` for data sockets, `control:<id>` for control; bare ids and the retired `input:`/`output:` spellings refuse; `ports.js` mints them on the stored edge; a typed source into a configured socket retypes the target record before the gate (`propagateConnectionType`, one home shared with the canvas gesture) | `disconnect` |
 
+An effect's trigger mode derives from the graph on every sync
+(`effectTriggerFor`): a wired event socket wins; an unwired entry with an
+authored `trigger.schedule` starts at its time, one with an authored
+`eventId` starts on that event, and the rest stay manual.
+
 Children wires land child-first — `wireDeclaration(childId, parentId,
 'children')` wires the child's output into the parent's declare input — and
 accept type-reference children, so an org type's containment may name pack

@@ -80,6 +80,21 @@ wave. `npx vitest run packages/processes` green.
 - [ ] Event emission between organizations stays out of scope (delivery
   is scoped to the emitting organization's active definitions).
 
+### Agent Notes
+
+- 2026-10-27 (review): one-shot schedules refired on every scan tick —
+  the `at` due-check skipped the ledger; `oneShotDue` now requires an
+  empty ledger. `resumeParkedRun` re-persisted the woken run with
+  default meta, wiping its `kind: 'schedule'`/`nodeId` ledger row; it
+  keeps the stored identity. The headless seam still derived trigger
+  modes as wired/manual only, wiping an authored schedule/eventId in
+  the same `configure` gesture — the derivation lives in
+  `effectTriggerFor` (designer.js), shared with the designer composable.
+  Ledger law pinned in
+  `server/features/process-definitions/run-scanner.spec.js`; seam law
+  pinned in `authoring.spec.js`; the always-empty `sourceDefinitionId`
+  field left the event document.
+
 ### Implemented in the same direction (2026-10-27)
 
 - [x] Palette gap fixes: `value.string` parse operations
