@@ -661,9 +661,10 @@ id.
 ### Action records
 
 Action records represent executable process steps on the visual canvas. The
-compiler validates `createEntity`, `updateEntity`, `runCommand`, and
-`sendToOrganization` actions against the domain entity, construction,
-field-policy, status-definition, value-input, and command registries,
+compiler validates `createEntity`, `updateEntity`, `runCommand`,
+`emitEvent`, and `sendToOrganization` actions against the domain entity,
+construction, field-policy, status-definition, value-input, and command
+registries,
 preserves their typed inputs/outputs and completion events, and emits
 trigger contracts. `trigger.mode` is only the execution mode: `manual`
 means a user starts the action from UI; `event` means another node's

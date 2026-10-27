@@ -94,6 +94,13 @@ wave. `npx vitest run packages/processes` green.
   `server/features/process-definitions/run-scanner.spec.js`; seam law
   pinned in `authoring.spec.js`; the always-empty `sourceDefinitionId`
   field left the event document.
+- 2026-10-27 (review, compiler): compiler-core kept a private effect-kind
+  set without `cts.emit`, so emit effects were invisible to the compiler
+  — unreachable-from-trigger errors on control-only successors, no
+  required-input or manifest derivation. The species union is single-homed
+  (`EFFECT_SPECIES_KINDS`, node-catalog) and consumed by compiler-core
+  and orchestration; the trigger-mode gate admits `schedule`; a manual
+  emit compiles into the manifest as an `emitEvent` action.
 
 ### Implemented in the same direction (2026-10-27)
 
