@@ -10,8 +10,7 @@ import * as transcriptionService from '~/server/features/transcription/service.j
  * read_attachment). Text decodes as UTF-8, spreadsheets flatten to CSV,
  * PDFs extract their page text, DOCX unwraps its document body, audio
  * rides the organization's transcription seam — images and video are
- * refused with the boundary (chat models read text only). Everything
- * caps well below the catalog's tool-result truncation.
+ * refused with the boundary (chat models read text only).
  */
 
 const TEXT_LIMIT = 64 * 1024;
