@@ -1112,3 +1112,35 @@ in-page collections; uppercase section labels read as artificial.
 ### Agent Notes (2026-10-27, round 2)
 
 Status: WAITING owner verification.
+
+## Generative UI layout sanity round 3 (owner direction 2026-10-27)
+
+Law: SPEC §22.8 (round-3 amendments). Owner findings this session:
+array values stacked mid-line, uppercase remnant in the ui-lab chrome,
+file chips rendering MIME strings and instance chips borderless against
+the chat standard, SurfaceHeader layout/spacing, and the hierarchy tree
+duplicating child collections on record pages.
+
+- [x] Structural values render as labeled blocks (label line, value
+  below), list summaries wrap inline — `SurfaceDetailBody`,
+  `FieldControl`.
+- [x] Uppercase leaves the ui-lab chrome; the design-system guard bans
+  the transform (`uppercase|lowercase|capitalize` across
+  components/pages/layouts).
+- [x] File chips centralize on the chat recipe (shared `FileChip`:
+  name label, mime-aware icon, bordered subtle chip, `name · size`
+  title); `MessageAttachments` and the generator's blob fields consume
+  it; `InstanceInlineRef`'s default chip adopts the bordered recipe.
+- [x] `SurfaceHeader` rhythm: tighter identity-to-actions gap, the type
+  label rides the label tier.
+- [x] `HierarchyTree` leaves the record body (child collections are the
+  children surface); component retired.
+
+### Agent Notes (2026-10-27, round 3)
+
+The blob chip previously rendered the raw MIME string as its label;
+that plus the borderless default instance chip were the divergence from
+the chat recipes. The record body rendered the descendant tree above
+the same children the child collections listed below it.
+
+Status: WAITING owner verification.

@@ -322,12 +322,6 @@ beside the transition history in `StateHistory`.
   unbreakable content from eating half the row, pushing the separator, and
   drifting items' left borders out of alignment. Past the shared page
   budget the entries page through a standalone Paginator over `pageSlice`.
-- `HierarchyTree.vue` — the deep-nesting projection: a fully expanded
-  PrimeVue Tree built recursively from the type's declared children edges
-  and the instance pool's lineage, shown on group surfaces. The tree
-  re-derives from the reactive pool, so reconciliation (a new child, a
-  moved parent) re-nests it in place. Nodes are navigation: selecting one
-  opens its instance through the screen's identity-open channel.
 - `SurfaceHeader.vue` — the record header. It paints nothing — the record
   page's stack rhythm separates it from the body, and pane boxes / route
   shells own the frames around it. Inline-resolved actions (relation
@@ -388,7 +382,7 @@ beside the transition history in `StateHistory`.
   relations a child region covers render no duplicate section — and
   each chip carries the
   relation's inline-resolved operations (unlink) as `contextActionEntries`
-  bound to the opened record, and the hierarchy tree for groups. The
+  bound to the opened record. The
   `full` variant fills its surface through the
   `LAYOUT.bodyGrid`/`LAYOUT.factsGrid` utilities: content width is the
   floor and the host grants growth — fact groups fill in tracking
@@ -445,7 +439,7 @@ beside the transition history in `StateHistory`.
   mono face with tabular figures; prose and labels stay in the UI face.
   Structural displays are labeled: records/maps/json render as budgeted
   description lists (instance-ref subfields render as `InstanceInlineRef`
-  chips), record lists as checklist rows (boolean + string subfields),
+  chips), record lists as inline checklist items (boolean + string subfields),
   variants as tag plus payload value. Every component it
   dispatches to (including MeterGroup, Chart, Rating, Slider, OrderList)
   is imported explicitly — the module-imports spec fails on any

@@ -1302,7 +1302,13 @@ for quantitative-dominant types alone; every other type renders plain
 values. Preview bands render real content: payload viewers, declared
 preview sources, plugin previews, or the quiet type glyph.
 Preview-dominant collections render the card grid; the carousel
-projection is retired. Section labels render in natural case.
+projection is retired. Section labels render in natural case, and no
+generated surface applies an uppercase transform. Structural values
+render as labeled blocks on their own lines. The record page carries
+its child collections alone; the hierarchy tree projection is retired.
+File and instance references render through the shared chip recipes the
+chat surfaces own: file chips name the file, instance chips ride
+InstanceInlineRef's bordered default.
 
 ## 23. Deslopification (owner direction 2026-10-23)
 

@@ -199,8 +199,8 @@ normalized id.
 
 `formatValue(descriptor, value)` projects any field to display text (unit
 symbols, dates, enums, counts), which text surfaces (timeline meta) consume;
-structural displays render as labeled description lists and checklists
-bounded by `SUMMARY_BUDGET`.
+structural displays render as labeled inline summaries (SPEC §22.8:
+wrapping rows, values on their own lines) bounded by `SUMMARY_BUDGET`.
 
 ### Instance shape and list controls
 

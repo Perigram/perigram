@@ -406,6 +406,12 @@ layers such as sheet/stock, cut, fold, and bend layers in compact cards while
 suppressing dimension annotation layers so in-card sheet-design previews stay
 readable.
 
+### `FileChip.vue`
+The app's one file chip (SPEC §22.8): the file's name, a mime-aware
+icon, the bordered subtle chip, `name · size` on hover. Accepts either
+wire shape (generator blobs and chat attachments); consumers own the
+open behavior through the `open` event.
+
 ### `InstanceInlineRef.vue`
 Compact embedded entity reference for relation rows inside cards and details.
 When only an id is provided, it resolves the DTO through the entity store's
@@ -714,8 +720,9 @@ element plays at a time across surfaces); a source surface unmounting
 while its media still plays hands the descriptor and position to the
 app-level dock, which resumes playback there
 (see [components/media](../media/README.md)). Every
-other file renders as a raw PrimeVue `Chip` (type icon, cropped name,
-size in the title); a click opens the in-app viewer when one exists —
+other file renders the shared `FileChip` (the app's one file chip:
+mime-aware icon, cropped name, size in the title); a click opens the
+in-app viewer when one exists —
 PDF through the browser's engine, markdown through the shared formatted
 pipeline, other text kinds preformatted; matching is mime-exact, so
 office containers download — with the download action beside the
