@@ -1290,6 +1290,21 @@ trait definitions, the layout language (atoms and composition rules), the
 arrangement decision procedure, and the placement
 slots are specified in shared/ui-mapping/SPEC.md.
 
+### 22.8 Layout sanity (owner direction 2026-10-27)
+
+Arrangement serves readability. A page host keeps its neutral rhythm at
+any composed weight; rhythm tightening belongs to bounded hosts. An
+inert child collection renders its create affordance alone — packed at
+the foot of its surface, with no icon-label-count strip. The record side
+rail is a minor column: a quarter of the record grid when its weight
+earns no explicit span. A collection row carries identity, status, and
+one fact; relations render on detail surfaces. A record body with a
+single field group renders the group's fields with no group titles.
+Dashboard presentations — dials, meter groups, charts, ratings — render
+for quantitative-dominant types alone; every other type renders plain
+values. Preview bands render real content: payload viewers, declared
+preview sources, plugin previews, or the quiet type glyph.
+
 ## 23. Deslopification (owner direction 2026-10-23)
 
 The current architecture carries the whole platform idea and its important

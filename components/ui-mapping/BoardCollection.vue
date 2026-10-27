@@ -34,7 +34,7 @@
           @dragend="onDragEnd"
         >
           <template #header>
-            <PreviewBox :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" :seed="instance.id" />
+            <PreviewBox :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
           </template>
           <template #title>
             <div :class="LAYOUT.rowBetween">
@@ -68,6 +68,7 @@
                   :model-value="instance.fields?.[field.name]"
                   :descriptor="field.descriptor"
                   variant="inline"
+                  :quantitative="quantitative"
                   :pool="pool"
                   :bundle="bundle"
                 />
@@ -103,7 +104,7 @@ import {
   LAYOUT, SCALAR_BASES, cardFactCount, titleFor, iconFor,
   fieldLabel, fieldLabelKey, localizedLabel, sortControlRows,
   resolveActionButton, actionLabelKey, stateDisplayFor
-} from '#shared/ui-mapping/index.js';
+, typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
@@ -114,6 +115,8 @@ import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 const props = defineProps({
   instances: { type: Array, default: () => [] },
   type: { type: Object, default: null },
+  // SPEC §22.8: the type's quantitative dominance earns the dashboard
+  // field presentations.
   // Composed list-controls contract from the region tree: the column
   // sort controls render over its sortKeys.
   controls: { type: Object, default: null },
@@ -141,6 +144,8 @@ const props = defineProps({
   // showcase) — there the contract edges are the whole truth.
   resolveTransitions: { type: Function, default: null }
 });
+
+const quantitative = computed(() => typeIsQuantitative(props.type));
 
 const emit = defineEmits(['open', 'run', 'transition']);
 

@@ -120,6 +120,18 @@ const LONG_STRING_AT = 120;
 const isLongText = descriptor => descriptor?.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= LONG_STRING_AT);
 
+// The quantitative-dominance signal (SPEC §22.8): the statlike shape —
+// scalars dominated by numbers and quantities — earns a type the
+// dashboard field presentations.
+export function typeIsQuantitative(typeRecord = {}) {
+  const fields = Object.values(typeRecord.fields || {});
+  const scalars = fields.filter(descriptor => SCALAR_BASES.includes(descriptor.base) && !isLongText(descriptor));
+  if (typeRecord.payload || scalars.length < 2) return false;
+  const percents = scalars.filter(descriptor => descriptor.base === 'quantity' && descriptor.unit === 'percent');
+  const quantities = scalars.filter(descriptor => descriptor.base === 'quantity' || descriptor.base === 'number');
+  return percents.length + quantities.length >= Math.max(2, scalars.length - 1);
+}
+
 export function createUiMapping(overrides = {}) {
   const fieldEntries = [...(overrides.fields || []), ...FIELD_EDIT_ENTRIES];
   const fieldDisplayEntries = [...(overrides.fieldDisplay || []), ...FIELD_DISPLAY_ENTRIES];
@@ -128,9 +140,10 @@ export function createUiMapping(overrides = {}) {
   const actionEntries = [...(overrides.actions || []), ...ACTION_ENTRIES];
   const listLayoutEntries = [...(overrides.listLayouts || []), ...LIST_LAYOUT_ENTRIES];
 
-  function fieldCandidate(descriptor, variant) {
+  function fieldCandidate(descriptor, variant, quantitative) {
     const base = descriptor.base;
     const candidate = { type: descriptor.type || null, base: base || null, variant };
+    if (quantitative) candidate.quantitative = true;
     if (isLongText(descriptor)) candidate.long = true;
     if ((base === 'number' || base === 'quantity')
       && Number.isFinite(descriptor.min) && Number.isFinite(descriptor.max)) {
@@ -160,7 +173,7 @@ export function createUiMapping(overrides = {}) {
     const authored = edit && typeof descriptor.control === 'string' && descriptor.control
       ? descriptor.control
       : null;
-    const entry = pickEntry(edit ? fieldEntries : fieldDisplayEntries, fieldCandidate(descriptor, variant));
+    const entry = pickEntry(edit ? fieldEntries : fieldDisplayEntries, fieldCandidate(descriptor, variant, options.quantitative === true));
     const props = { ...(entry.props || {}) };
     if (entry.unitSuffix && descriptor.unit) props.suffix = ` ${descriptor.unit}`;
     if (entry.filterable) props.filter = true;

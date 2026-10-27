@@ -15,7 +15,7 @@
           :instance="slotProps.item"
           :payload="slotProps.item.payload"
           :preview-source="slotProps.item.previewSource"
-          :seed="slotProps.item.id"
+         
         />
       </div>
     </template>
@@ -39,7 +39,7 @@
           :instance="slotProps.item"
           :payload="slotProps.item.payload"
           :preview-source="slotProps.item.previewSource"
-          :seed="slotProps.item.id"
+         
         />
       </div>
     </template>

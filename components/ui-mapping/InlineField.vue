@@ -6,6 +6,7 @@
           :model-value="field.value"
           :descriptor="field.descriptor"
           variant="row"
+          :quantitative="quantitative"
           :pool="pool"
           :bundle="bundle"
         />
@@ -64,6 +65,7 @@ import FieldControl from './FieldControl.vue';
 const props = defineProps({
   field: { type: Object, required: true },
   editable: { type: Boolean, default: false },
+  quantitative: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });

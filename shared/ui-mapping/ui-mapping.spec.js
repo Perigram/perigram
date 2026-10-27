@@ -115,7 +115,12 @@ describe('field control resolution', () => {
   });
 
   it('refines display presentations by data shape', () => {
+    // SPEC §22.8: dashboard presentations match quantitative types
+    // alone; plain types render values.
     expect(resolveFieldControl({ base: 'quantity', unit: 'percent' }, { variant: 'row' })).toMatchObject({
+      component: 'QuantityText'
+    });
+    expect(resolveFieldControl({ base: 'quantity', unit: 'percent' }, { variant: 'row', quantitative: true })).toMatchObject({
       component: 'Knob'
     });
     expect(resolveFieldControl({ base: 'quantity', unit: 'mm' }, { variant: 'row' })).toMatchObject({
@@ -252,8 +257,11 @@ describe('field control resolution', () => {
     expect(resolveFieldControl({ base: 'string', max: 400 }, { variant: 'row' })).toMatchObject({
       component: 'ProseText', span: 'full'
     });
-    expect(resolveFieldControl({ base: 'map', itemType: { base: 'quantity', unit: 'percent' } }, { variant: 'row' })).toMatchObject({
+    expect(resolveFieldControl({ base: 'map', itemType: { base: 'quantity', unit: 'percent' } }, { variant: 'row', quantitative: true })).toMatchObject({
       component: 'MeterGroup'
+    });
+    expect(resolveFieldControl({ base: 'map', itemType: { base: 'quantity', unit: 'percent' } }, { variant: 'row' })).toMatchObject({
+      component: 'ObjectSummary'
     });
     expect(resolveFieldControl({ base: 'number', min: 0, max: 100 }, { variant: 'detail' })).toMatchObject({
       component: 'Slider'
@@ -284,13 +292,16 @@ describe('field control resolution', () => {
   });
 
   it('resolves ratings, charts, and order lists from shape', () => {
-    expect(resolveFieldControl({ base: 'enum', values: ['p0', 'p1', 'p2', 'p3'] }, { variant: 'row' })).toMatchObject({
+    expect(resolveFieldControl({ base: 'enum', values: ['p0', 'p1', 'p2', 'p3'] }, { variant: 'row', quantitative: true })).toMatchObject({
       component: 'Rating', span: 'full'
+    });
+    expect(resolveFieldControl({ base: 'enum', values: ['p0', 'p1', 'p2', 'p3'] }, { variant: 'row' })).toMatchObject({
+      component: 'Tag'
     });
     expect(resolveFieldControl({ base: 'enum', values: ['red', 'green'] }, { variant: 'row' })).toMatchObject({
       component: 'Tag'
     });
-    expect(resolveFieldControl({ base: 'map', itemType: { base: 'quantity', unit: 'count' } }, { variant: 'row' })).toMatchObject({
+    expect(resolveFieldControl({ base: 'map', itemType: { base: 'quantity', unit: 'count' } }, { variant: 'row', quantitative: true })).toMatchObject({
       component: 'Chart'
     });
     expect(resolveFieldControl({ base: 'list', itemType: { base: 'enum', values: ['a', 'b'] } }, { variant: 'detail' })).toMatchObject({
@@ -837,8 +848,9 @@ describe('weight-driven arrangement', () => {
     const pane = { density: 0.75 };
     expect(spacingCoefficientFor(page, 4)).toBe(1);
     expect(spacingCoefficientFor(pane, 4)).toBe(0.75);
-    // Heavy screens tighten one step, floored at the tightest.
-    expect(spacingCoefficientFor(page, SPACING_WEIGHT_AT + 1)).toBe(0.75);
+    // SPEC §22.8: page hosts keep their rhythm at any weight; heavy
+    // bounded hosts tighten one step, floored at the tightest.
+    expect(spacingCoefficientFor(page, SPACING_WEIGHT_AT + 1)).toBe(1);
     expect(spacingCoefficientFor(pane, SPACING_WEIGHT_AT + 1)).toBe(0.5);
     expect(spacingCoefficientFor({}, 0)).toBe(1);
   });
@@ -865,7 +877,7 @@ describe('weight-driven arrangement', () => {
 describe('shared vocabulary', () => {
   it('exposes the shared severity vocabulary and row field budget', () => {
     expect(SEVERITY_MAP.danger).toBe('danger');
-    expect(ROW_FIELD_BUDGET).toEqual({ max: 3, overflow: 'count' });
+    expect(ROW_FIELD_BUDGET).toEqual({ max: 1, overflow: 'count' });
     expect(HEADER_ACTIONS_INLINE).toBe(2);
   });
 });

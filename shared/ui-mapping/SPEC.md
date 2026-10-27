@@ -130,7 +130,7 @@ vocabulary cannot express is a pin (see Pins) recorded here when admitted.
 | `well` | an inset cell one step above the canvas | a bounded well owns its scroll | `LAYOUT.boardColumn*`, `calendarCell`, `ganttTrack` |
 | `tabs` | the page-height bound arrangement | descending weight order | PrimeVue Tabs in `RegionChildren` |
 | `placement` | a slot that measures its own box | width is the placement box; height/scroll/density inherit the host record | `PlacementBox` |
-| `stub` | the inert one-line claim | type glyph, label, count, own create action | `RegionBlock` stub slot |
+| `stub` | the inert one-line claim | the create affordance alone, packed at the surface foot | `RegionBlock` stub slot |
 | `pack` | content-width side-by-side | inert stubs pack in a wrap row | `RegionChildren` `pack` |
 
 The atom registry in `tables.js` (`LAYOUT_ATOMS`) assigns every
@@ -239,7 +239,7 @@ presentation: a node's slot decides how it renders.
 | Column peer | its resolved layout at proportional width, medium budgets | card variant |
 | Tab panel | its resolved layout at full width | card/section variant |
 | Row | chip row or dense row, tight budgets | row variant, budgeted fields |
-| Stub | one compact line: label, count, its own create action | one compact line |
+| Stub | the create affordance alone | packed at the surface foot |
 
 Composition recursion terminates at the reference: a class reference
 inside another component's surface renders as an instance chip — the

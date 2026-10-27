@@ -148,9 +148,8 @@ beside the transition history in `StateHistory`.
   the stepped outcomes and budgets canonical in
   [shared/ui-mapping](../../shared/ui-mapping/README.md). A region
   rendering in the stub slot (`stub` prop, the pack strip under a record
-  body) renders one compact line — icon, label, count, its own create
-  action — while loading/denied/error states keep the shared
-  `RegionDataState` surface. A create action for the region's own type
+  body) renders its create affordance alone — while
+  loading/denied/error states keep the shared `RegionDataState` surface. A create action for the region's own type
   collapses its caption to the bare localized `uiMapping.new` ("New")
   through ActionButton's context label: the header already names the class
   (creates for other types and every other action keep the full label).
@@ -382,8 +381,8 @@ beside the transition history in `StateHistory`.
   the title attribute as the debugging channel.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card, `row` /
-  `inline` → dense flex row with
-  budgeted fields and relation chips; the row identity is a link button
+  `inline` → dense flex row with the identity link, status, and one
+  budgeted fact (SPEC §22.8); the row identity is a link button
   under the screen's `onOpen` contract, like every collection identity.
 - `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
   scalar facts strip (`DETAIL_FACT_BUDGET`, identifier-excluded — the
@@ -437,11 +436,9 @@ beside the transition history in `StateHistory`.
   the declared preview channel (cassette geometry, raw layer/polygon
   parts, and the OCCS template document, which renders through the
   canvas's `occs-cassette` source) independent of an uploaded payload.
-  Payload-less instances without a declared preview keep the
-  deterministic per-instance inline SVG (seeded hue) built entirely from
-  theme tokens — `--ck-subtle-background` bases with translucent hsl
-  accents — so generated art adapts to light/dark and owns no hardcoded
-  colors; `image` renders a seeded gradient sky, `geometry` a star plot.
+  A payload-less instance without a declared preview renders the quiet
+  type-glyph band (SPEC §22.8: preview bands render real content or the
+  glyph).
   Attachment-class previews carry honest surfaces: an instance with a
   payload the viewer cannot render states the file's size and MIME, while
   a payload-less instance renders the quiet type-glyph band (the authored
