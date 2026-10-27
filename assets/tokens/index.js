@@ -525,10 +525,8 @@ export const primeComponentTokens = {
             background: 'transparent',
             // Notion-style rows: internal cell dividers stay structurally
             // present (1px) but transparent — a row surface reads as one
-            // whole card, never as bordered strips. The small table rides
-            // the 15px tier, so its rows keep breathing room at 0.5rem.
-            borderColor: 'transparent',
-            sm: { padding: '0.5rem 0.75rem' }
+            // whole card, never as bordered strips.
+            borderColor: 'transparent'
         },
         body: {
             background: 'transparent'

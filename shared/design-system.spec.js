@@ -218,10 +218,7 @@ describe('Design system manifest', () => {
           background: 'transparent', hoverBackground: 'transparent',
           selectedBackground: 'transparent', borderColor: 'transparent'
         },
-        bodyCell: {
-          background: 'transparent', borderColor: 'transparent',
-          sm: { padding: '0.5rem 0.75rem' }
-        },
+        bodyCell: { background: 'transparent', borderColor: 'transparent' },
         body: { background: 'transparent' },
         row: { background: 'var(--p-content-background)' },
         footer: { background: 'transparent', borderColor: 'transparent' },
