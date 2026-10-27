@@ -452,16 +452,24 @@ AttachmentKind row.
   the seed's home is `emptyAuthoredDocument` in
   `packages/processes/src/authoring.js`.
 
-- [ ] Documents plugin: xlsx fill service on the new seam (template
-  workbook ref + rows/values in, filled workbook payload out); md fill
-  rides the same service shape.
-- [ ] PDF render service (md/xlsx/dxf → PDF) on the same seam; the
-  parse-render engines are recoverable from git history
+- [ ] Documents plugin: xlsx fill engine (template workbook ref + rows/values
+  in, filled workbook payload out) bound to the `fill` construction; md fill
+  rides the same engine shape.
+- [ ] PDF render engine (md/xlsx/dxf → PDF) bound to the same `fill`
+  construction; the parse-render engines are recoverable from git history
   (`server/features/artifact-templates/format.js` at 713aa2396,
   retired by the artifact-family cutover).
-- [ ] DXF spot placement service (template DXF + referenced DXF payloads →
-  composed DXF); the facade nesting → construct-sheet → export flow is the
-  reference geometry path.
+- [x] DXF spot placement engine (template DXF + referenced DXF payloads →
+  composed DXF) — `place-dxf` in the tech-drawing executor; the facade
+  nesting → construct-sheet → export flow is the reference geometry path.
+  Landed bound to a bespoke `place` construct; superceded by the
+  unification below (listing v3 renames the construct onto `fill`, the
+  engine and its endpoint stay `place-dxf`).
+- [ ] Fill-mode unification (SPEC §24): the template construct is `fill`
+  everywhere. Rename tech-drawing's construct onto it (listing v3), migrate
+  authored `place` constructs with their definitions, and land documents'
+  xlsx/md engines on the same mode beside the future PDF engine. Docs:
+  tech-drawing README, plugin-sdk listing contract.
 
 ## Generative UI arrangement foundations (owner direction 2026-10-25)
 

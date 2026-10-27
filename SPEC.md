@@ -1427,3 +1427,9 @@ PDF (including PDFs rendered from other file types) ride this one seam as
 plugin compute. DWG arrives through DXF conversion in the executor. Chat
 and MCP agents see fill actions with their input contracts and read
 file-instance payloads through the shared tool catalog.
+
+The mode id is `fill` — one template-flow construct per file type, carrying
+the template ref beside the fill's declared inputs (values and part
+references). A template flow under any other construct id is a defect:
+engines differ per format through the listing's `constructions` binding;
+the mode is one.
