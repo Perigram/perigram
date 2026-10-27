@@ -5,6 +5,9 @@
         :style="hugAspect ? { aspectRatio: String(tile.aspect) } : null"
         :data-call-tile="tile.identity"
     >
+        <!-- The video element attaches its track itself (VideoTrack
+             semantics): mount attaches, track change re-attaches, unmount
+             detaches — the element pool follows the tile. -->
         <video
             :ref="videoRef"
             class="h-full w-full"
@@ -43,13 +46,13 @@
             size="small"
             class="absolute top-2 right-2"
             :aria-label="tile.pinned ? $t('call.unpin') : $t('call.pin')"
-            @click="$emit('toggle-pin', tile.identity)"
+            @click="$emit('toggle-pin', tile.key)"
         />
     </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 
@@ -60,7 +63,7 @@ const props = defineProps({
     // to see themselves; screen shares never mirror.
     mirrored: { type: Boolean, default: false }
 });
-const emit = defineEmits(['toggle-pin', 'video', 'aspect']);
+const emit = defineEmits(['toggle-pin', 'aspect']);
 
 const degradedQuality = computed(() => ['fair', 'poor', 'lost'].includes(props.tile.quality));
 
@@ -82,19 +85,43 @@ const tileClass = computed(() => {
     return 'aspect-video';
 });
 
-// A stable ref callback: re-creating the callback every render re-fires it
-// with the same element, and re-attaching the same stream made tiles flash.
-let lastVideoEl = null;
-const videoRef = (el) => {
-    if (el && el !== lastVideoEl) {
-        lastVideoEl = el;
-        emit('video', el);
-        reportAspect();
+const videoEl = ref(null);
+
+const attach = (track, el) => {
+    if (!track || !el) return;
+    if (track.attachedElements?.includes(el)) {
+        el.play?.().catch(() => {});
+        return;
+    }
+    try {
+        track.attach(el);
+    } catch {
+        return;
+    }
+    el.play?.().catch(() => {});
+};
+
+const detach = (track, el) => {
+    if (!track || !el) return;
+    try {
+        track.detach(el);
+    } catch {
+        /* the track may already be gone */
     }
 };
 
+// A track swap on the same tile re-attaches the element to the new track.
+watch(() => [props.tile.track, videoEl.value], ([track, el], [previousTrack] = []) => {
+    if (previousTrack && previousTrack !== track) detach(previousTrack, el);
+    attach(track, el);
+});
+
+onBeforeUnmount(() => {
+    detach(props.tile.track, videoEl.value);
+});
+
 const reportAspect = () => {
-    const el = lastVideoEl;
+    const el = videoEl.value;
     if (!el?.videoWidth || !el?.videoHeight) return;
     const ratio = el.videoWidth / el.videoHeight;
     if (Number.isFinite(ratio) && ratio > 0) emit('aspect', ratio);

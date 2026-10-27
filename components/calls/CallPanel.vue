@@ -1,13 +1,12 @@
 <template>
-    <!-- Bounded videocall surface:
-         the stage owns every pixel of height and the panel never
-         page-scrolls — only the grid and the film strip scroll inside
-         their own boxes. All controls live in one docked bar below the
-         stage, so a wrapped header can never eat the video area. -->
+    <!-- Bounded videocall surface — a view over the shared room session
+         (stores/calls.js): the stage owns every pixel of height, only the
+         grid and the film strip scroll inside their own boxes, and all
+         controls live in one docked bar below the stage. -->
     <div class="call-panel relative flex h-full min-h-0 flex-col overflow-hidden">
-        <StateBlock v-if="stage === 'failed'" state="error" :message="error">
+        <StateBlock v-if="failed" state="error" :message="failureMessage">
             <template #action>
-                <Button :label="$t('call.retry')" severity="secondary" size="small" @click="stage = 'prejoin'" />
+                <Button :label="$t('call.retry')" severity="secondary" size="small" @click="retry" />
             </template>
         </StateBlock>
         <CallPrejoin
@@ -19,43 +18,40 @@
         <template v-else>
             <div class="relative flex min-h-0 flex-1 flex-col">
                 <div v-if="layout === 'speaker'" class="call-stage flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
-                    <!-- Spotlight: screen shares keep their source proportions
-                         (CallTile hugs the live video aspect, capped by the stage
-                         box); cameras fill the stage. -->
+                    <!-- Official focus semantics: pin > screen share >
+                         active speaker > first tile. Screen shares hug their
+                         live source proportions; cameras fill the stage. -->
                     <div class="flex min-h-0 min-w-0 flex-1 items-center justify-center">
                         <CallTile
-                            v-if="spotlightTile"
-                            :key="`spotlight-${spotlightTile.identity}-${spotlightTile.isScreen}`"
-                            :tile="spotlightTile"
-                            :mirrored="spotlightTile.identity === localIdentity"
+                            v-if="focusTile"
+                            :key="`focus-${focusTile.identity}-${focusTile.source}`"
+                            :tile="focusTile"
+                            :mirrored="focusTile.isLocal"
                             spotlight
-                            @toggle-pin="togglePin"
-                            @video="el => attachTile(spotlightTile, el)"
-                            @aspect="ratio => patchTileAspect(spotlightTile, ratio)"
+                            @toggle-pin="callsStore.togglePin"
+                            @aspect="ratio => patchAspect(focusTile, ratio)"
                         />
                     </div>
                     <div class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-1">
                         <CallTile
                             v-for="tile in stripTiles"
-                            :key="`strip-${tile.identity}-${tile.isScreen}`"
+                            :key="`strip-${tile.identity}-${tile.source}`"
                             :tile="tile"
-                            :mirrored="tile.identity === localIdentity"
+                            :mirrored="tile.isLocal"
                             class="call-strip-tile w-40 shrink-0"
-                            @toggle-pin="togglePin"
-                            @video="el => attachTile(tile, el)"
-                            @aspect="ratio => patchTileAspect(tile, ratio)"
+                            @toggle-pin="callsStore.togglePin"
+                            @aspect="ratio => patchAspect(tile, ratio)"
                         />
                     </div>
                 </div>
                 <div v-else class="call-grid grid min-h-0 flex-1 auto-rows-min content-start gap-3 overflow-y-auto">
                     <CallTile
                         v-for="tile in tiles"
-                        :key="`grid-${tile.identity}-${tile.isScreen}`"
+                        :key="`grid-${tile.identity}-${tile.source}`"
                         :tile="tile"
-                        :mirrored="tile.identity === localIdentity"
-                        @toggle-pin="togglePin"
-                        @video="el => attachTile(tile, el)"
-                        @aspect="ratio => patchTileAspect(tile, ratio)"
+                        :mirrored="tile.isLocal"
+                        @toggle-pin="callsStore.togglePin"
+                        @aspect="ratio => patchAspect(tile, ratio)"
                     />
                 </div>
 
@@ -88,9 +84,8 @@
                  painted background — the flat surface ladder keeps call
                  chrome structural; bg-content stays on chips over media).
                  The inner row is w-max with auto margins, so it centers
-                 when it fits and scrolls instead of wrapping when it
-                 does not — controls never fold into a second row that
-                 would eat the stage. -->
+                 when it fits and scrolls — never wraps — when the pane is
+                 narrow. -->
             <div class="flex h-12 shrink-0 items-center overflow-x-auto">
                 <div class="mx-auto flex w-max items-center gap-1 px-2">
                     <Button
@@ -100,17 +95,17 @@
                         rounded
                         size="small"
                         :aria-label="$t('call.toggleMic')"
-                        :disabled="!connected"
+                        :disabled="!isConnected"
                         @click="toggleMic"
                     />
                     <Button
-                        :icon="cameraEnabled ? 'pi pi-video' : 'pi pi-video-off'"
+                        :icon="camEnabled ? 'pi pi-video' : 'pi pi-video-off'"
                         severity="secondary"
                         text
                         rounded
                         size="small"
                         :aria-label="$t('call.toggleCamera')"
-                        :disabled="!connected"
+                        :disabled="!isConnected"
                         @click="toggleCamera"
                     />
                     <Button
@@ -120,8 +115,8 @@
                         rounded
                         size="small"
                         :aria-label="sharing ? $t('call.shareStop') : $t('call.share')"
-                        :disabled="!connected"
-                        @click="toggleShare"
+                        :disabled="!isConnected"
+                        @click="callsStore.toggleShare()"
                     />
                     <Button
                         v-if="canRecord"
@@ -131,7 +126,7 @@
                         rounded
                         size="small"
                         :aria-label="recording ? $t('call.recordStop') : $t('call.record')"
-                        :disabled="!connected || recordPending"
+                        :disabled="!isConnected || recordPending"
                         @click="toggleRecording"
                     />
                     <Button
@@ -141,8 +136,8 @@
                         rounded
                         size="small"
                         :aria-label="$t('call.hand')"
-                        :disabled="!connected"
-                        @click="toggleHand"
+                        :disabled="!isConnected"
+                        @click="callsStore.toggleHand()"
                     />
                     <span class="inline-flex shrink-0">
                         <Button
@@ -152,11 +147,11 @@
                             rounded
                             size="small"
                             :aria-label="$t('call.reactions')"
-                            :disabled="!connected"
-                            @click="toggleReactionPicker"
+                            :disabled="!isConnected"
+                            @click="event => reactionPicker?.toggle(event)"
                         />
                         <Popover ref="reactionPicker">
-                            <div class="flex items-center gap-1" @click="hideReactionPicker">
+                            <div class="flex items-center gap-1" @click="reactionPicker?.hide()">
                                 <Button
                                     v-for="emoji in REACTION_EMOJIS"
                                     :key="emoji"
@@ -165,7 +160,7 @@
                                     rounded
                                     size="small"
                                     :aria-label="$t('call.react', { emoji })"
-                                    @click="sendReaction(emoji)"
+                                    @click="callsStore.sendReaction(emoji)"
                                 />
                             </div>
                         </Popover>
@@ -178,7 +173,7 @@
                         size="small"
                         :allow-empty="false"
                         :aria-label="$t('call.layout')"
-                        @update:model-value="value => layout = value"
+                        @update:model-value="value => callsStore.setLayout(value)"
                     />
                     <Button
                         icon="pi pi-cog"
@@ -195,16 +190,11 @@
                         rounded
                         size="small"
                         :aria-label="$t('call.leave')"
-                        :disabled="!connected"
+                        :disabled="!isConnected"
                         @click="leave"
                     />
                 </div>
             </div>
-
-            <!-- Remote audio sink: subscribed mic and screen-share audio
-                 tracks play through LiveKit-attached elements kept off the
-                 visible layout. -->
-            <div ref="audioSink" class="hidden"></div>
         </template>
 
         <StandardDialog
@@ -216,15 +206,39 @@
             <div class="flex flex-col gap-3">
                 <label class="flex flex-col gap-1">
                     <span class="text-muted text-supporting">{{ $t('call.devices.microphone') }}</span>
-                    <Select v-model="deviceId.audioinput" :options="audioInputs" option-label="label" option-value="deviceId" size="small" class="w-full" @update:model-value="value => switchDevice('audioinput', value)" />
+                    <Select
+                        :model-value="devices.audioinput"
+                        :options="audioInputs"
+                        option-label="label"
+                        option-value="deviceId"
+                        size="small"
+                        class="w-full"
+                        @update:model-value="value => callsStore.switchDevice('audioinput', value)"
+                    />
                 </label>
                 <label class="flex flex-col gap-1">
                     <span class="text-muted text-supporting">{{ $t('call.devices.camera') }}</span>
-                    <Select v-model="deviceId.videoinput" :options="videoInputs" option-label="label" option-value="deviceId" size="small" class="w-full" @update:model-value="value => switchDevice('videoinput', value)" />
+                    <Select
+                        :model-value="devices.videoinput"
+                        :options="videoInputs"
+                        option-label="label"
+                        option-value="deviceId"
+                        size="small"
+                        class="w-full"
+                        @update:model-value="value => callsStore.switchDevice('videoinput', value)"
+                    />
                 </label>
                 <label class="flex flex-col gap-1">
                     <span class="text-muted text-supporting">{{ $t('call.devices.speaker') }}</span>
-                    <Select v-model="deviceId.audiooutput" :options="audioOutputs" option-label="label" option-value="deviceId" size="small" class="w-full" @update:model-value="value => switchDevice('audiooutput', value)" />
+                    <Select
+                        :model-value="devices.audiooutput"
+                        :options="audioOutputs"
+                        option-label="label"
+                        option-value="deviceId"
+                        size="small"
+                        class="w-full"
+                        @update:model-value="value => callsStore.switchDevice('audiooutput', value)"
+                    />
                 </label>
             </div>
         </StandardDialog>
@@ -232,7 +246,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 import Select from '~/components/shared/InstanceSelect.vue';
@@ -244,44 +258,160 @@ import CallPrejoin from '~/components/calls/CallPrejoin.vue';
 import CallTile from '~/components/calls/CallTile.vue';
 import { riseAndFade } from '~/composables/useMotion.js';
 import { useCallsStore } from '~/stores/calls';
-import { useCallRouting } from '~/composables/useCallRouting.js';
 import { conversationKeyForRoom } from '#shared/call-rooms.js';
 import { useToast } from 'primevue/usetoast';
 
 const props = defineProps({
-    room: { type: String, required: true },
-    // Hosts that should keep the call alive when they unmount (workspace
-    // tabs, chat surfaces, the mobile top-lane dialog) set this; the
-    // floating window host keeps leave-on-close semantics.
-    parkOnUnmount: { type: Boolean, default: false }
+    room: { type: String, required: true }
 });
 const emit = defineEmits(['closed']);
 const { t } = useI18n();
 const callsStore = useCallsStore();
-const { isMobileViewport } = useCallRouting();
+const toast = useToast();
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '🎉', '👏'];
-const CALL_DATA_TOPIC = 'call.events';
 
-const stage = ref('prejoin');
-const error = ref('');
-const reconnecting = ref(false);
-const connected = ref(false);
-// True while this panel waits for a parked room from a transferring
-// surface; cleared on adoption or when the transfer aborts.
-const awaitingTransfer = ref(false);
-const micEnabled = ref(false);
-const cameraEnabled = ref(false);
-const sharing = ref(false);
-const handRaised = ref(false);
-// Recording rides the egress lifecycle routes; the shared calls store holds
-// the live state (refreshed from `call.activity` egress events), so every
-// participant sees the dot without acting. Conversation rooms only — org
-// rooms have no thread to record into.
+const settingsVisible = ref(false);
+const reactionPicker = ref(null);
 const recordPending = ref(false);
+// Stage before/outside the session: prejoin or connecting. The connected
+// and failed stages render from the session itself.
+const localStage = ref('prejoin');
+const lastReactionEls = new Map();
+// Live video aspect per tile key, fed by the tiles' resize events; a
+// reactive Map so the tiles computed re-runs when an aspect lands.
+const aspectByKey = reactive(new Map());
+
+const sessionState = computed(() => (
+    callsStore.session && callsStore.session.state.name === props.room
+        ? callsStore.session.state
+        : null
+));
+const stage = computed(() => sessionState.value?.state || localStage.value);
+const failed = computed(() => stage.value === 'failed');
+const failureMessage = computed(() => {
+    if (typeof navigator !== 'undefined' && !navigator.mediaDevices) return t('call.insecureContext');
+    return sessionState.value?.error || t('call.failed');
+});
+const isConnected = computed(() => sessionState.value?.state === 'connected');
+const reconnecting = computed(() => Boolean(sessionState.value?.reconnecting));
+const micEnabled = computed(() => Boolean(sessionState.value?.micEnabled));
+const camEnabled = computed(() => Boolean(sessionState.value?.camEnabled));
+const sharing = computed(() => Boolean(sessionState.value?.sharing));
+const handRaised = computed(() => Boolean(sessionState.value?.handRaised));
+const layout = computed(() => sessionState.value?.layout || 'speaker');
+const devices = computed(() => sessionState.value?.devices || {});
+const audioInputs = computed(() => sessionState.value?.audioInputs || []);
+const videoInputs = computed(() => sessionState.value?.videoInputs || []);
+const audioOutputs = computed(() => sessionState.value?.audioOutputs || []);
+const reactions = computed(() => sessionState.value?.reactions || []);
+
 const recording = computed(() => Boolean(callsStore.roomRecording(props.room)));
 const canRecord = computed(() => Boolean(conversationKeyForRoom(props.room)));
-const toast = useToast();
+
+const layoutOptions = computed(() => [
+    { value: 'speaker', label: t('call.layoutSpeaker') },
+    { value: 'grid', label: t('call.layoutGrid') }
+]);
+
+// One tile per participant camera plus one per live screen share, the
+// demo's participant-tile shape. `source` keys pinning ('camera'/'screen').
+const tiles = computed(() => {
+    const state = sessionState.value;
+    if (!state) return [];
+    const list = [];
+    for (const participant of state.participants) {
+        list.push({
+            key: `${participant.identity}:camera`,
+            identity: participant.identity,
+            name: participant.name,
+            isLocal: participant.isLocal,
+            source: 'camera',
+            isScreen: false,
+            hasVideo: Boolean(participant.cameraTrack) && !participant.cameraMuted,
+            track: participant.cameraTrack,
+            muted: participant.audioMuted,
+            speaking: participant.speaking,
+            audioLevel: participant.audioLevel,
+            handRaised: participant.handRaised,
+            quality: participant.quality,
+            pinned: state.pinnedKey === `${participant.identity}:camera`,
+            aspect: aspectByKey.get(`${participant.identity}:camera`) || 0
+        });
+        if (participant.screenTrack) {
+            list.push({
+                key: `${participant.identity}:screen`,
+                identity: participant.identity,
+                name: participant.name,
+                isLocal: participant.isLocal,
+                source: 'screen',
+                isScreen: true,
+                hasVideo: true,
+                track: participant.screenTrack,
+                muted: participant.audioMuted,
+                speaking: false,
+                audioLevel: 0,
+                handRaised: false,
+                quality: participant.quality,
+                pinned: state.pinnedKey === `${participant.identity}:screen`,
+                aspect: aspectByKey.get(`${participant.identity}:screen`) || 0
+            });
+        }
+    }
+    return list;
+});
+
+// Official focus resolution: pinned tile, else the first screen share,
+// else the active speaker, else the first tile.
+const focusTile = computed(() => {
+    const list = tiles.value;
+    if (!list.length) return null;
+    const state = sessionState.value;
+    const pinned = list.find(tile => tile.pinned);
+    if (pinned) return pinned;
+    const screen = list.find(tile => tile.isScreen);
+    if (screen) return screen;
+    const speaker = state?.activeSpeakerKey
+        ? list.find(tile => tile.key === state.activeSpeakerKey)
+        : null;
+    return speaker || list[0];
+});
+const stripTiles = computed(() => tiles.value.filter(tile => tile !== focusTile.value));
+
+const patchAspect = (tile, ratio) => {
+    if (!tile || !Number.isFinite(ratio) || ratio <= 0) return;
+    const previous = aspectByKey.get(tile.key) || 0;
+    if (Math.abs(previous - ratio) > 0.01) aspectByKey.set(tile.key, ratio);
+};
+
+const deviceErrorToast = (error) => {
+    if (!error) return;
+    const label = error.device === 'microphone'
+        ? t('call.devices.microphone')
+        : error.device === 'camera'
+            ? t('call.devices.camera')
+            : t('call.share');
+    toast.add({ severity: 'warn', summary: label, detail: error.message || '', life: 4000 });
+};
+
+const join = async (prejoin = {}) => {
+    localStage.value = 'connecting';
+    const result = await callsStore.openSession(props.room, prejoin);
+    // A fatal failure with no session leaves nothing to render the failed
+    // stage from; the pre-join screen takes over (connect failures carry
+    // their failed session and render it).
+    if (result?.fatal && !sessionState.value) localStage.value = 'prejoin';
+    for (const deviceError of result?.deviceErrors || []) deviceErrorToast(deviceError);
+};
+
+const toggleMic = async () => {
+    deviceErrorToast(await callsStore.toggleMic());
+};
+
+const toggleCamera = async () => {
+    deviceErrorToast(await callsStore.toggleCamera());
+};
+
 const toggleRecording = async () => {
     if (recordPending.value || !canRecord.value) return;
     recordPending.value = true;
@@ -292,709 +422,46 @@ const toggleRecording = async () => {
             await $fetch('/api/livekit/recordings', { method: 'POST', body: { room: props.room } });
         }
         await callsStore.refresh();
-    } catch (error) {
-        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
+    } catch (recordError) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: recordError?.data?.message || recordError?.message || '', life: 4000 });
     } finally {
         recordPending.value = false;
     }
 };
-const layout = ref('speaker');
-const settingsVisible = ref(false);
-const pinnedIdentities = reactive(new Set());
-const tiles = reactive([]);
-const reactions = reactive([]);
-const reactionPicker = ref(null);
-const deviceId = ref({ audioinput: '', videoinput: '', audiooutput: '' });
-const audioInputs = ref([]);
-const videoInputs = ref([]);
-const audioOutputs = ref([]);
-const audioSink = ref(null);
-const localIdentity = ref('');
 
-let livekitRoom = null;
-let LiveKit = null;
-// Set on unmount: an in-flight join() must never report a room joined from
-// a panel that no longer exists.
-let disposed = false;
-const tileVideos = new Map();
-const attachedAudio = new Map();
-// Audio attachments adopted with a parked room whose sink element is not
-// mounted yet; flushed into the panel's sink on mount.
-let adoptedAudioAttachments = [];
-const reactionEls = new Map();
-
-// set*Enabled resolves with the LocalTrackPublication (truthy on mute too),
-// so toggle state always reads back through the is*Enabled getters.
-const syncLocalStates = () => {
-    const local = livekitRoom?.localParticipant;
-    if (!local) return;
-    micEnabled.value = local.isMicrophoneEnabled;
-    cameraEnabled.value = local.isCameraEnabled;
-    sharing.value = local.isScreenShareEnabled;
-};
-
-// A missing/unplugged device fails one track, never the call: the room is
-// already connected and stays joined; the toast names the failed device.
-const runDeviceToggle = async (run, deviceLabel) => {
-    try {
-        await run();
-    } catch (deviceError) {
-        toast.add({ severity: 'warn', summary: deviceLabel, detail: deviceError?.message || '', life: 4000 });
-    }
-    syncLocalStates();
-};
-
-const layoutOptions = computed(() => [
-    { value: 'speaker', label: t('call.layoutSpeaker') },
-    { value: 'grid', label: t('call.layoutGrid') }
-]);
-
-const toggleReactionPicker = (event) => {
-    reactionPicker.value?.toggle(event);
-};
-
-const hideReactionPicker = () => {
-    reactionPicker.value?.hide();
-};
-
-const tileKey = (identity, isScreen) => `${identity}:${isScreen ? 'screen' : 'camera'}`;
-
-// Tiles are mutated in place — object identity stays stable across audio-level ticks.
-const syncTile = (identity, name = '', patch = {}) => {
-    const key = tileKey(identity, patch.isScreen);
-    const index = tiles.findIndex(entry => tileKey(entry.identity, entry.isScreen) === key);
-    if (index < 0) {
-        tiles.push({
-            identity,
-            name,
-            isScreen: false,
-            hasVideo: false,
-            muted: false,
-            speaking: false,
-            audioLevel: 0,
-            handRaised: false,
-            quality: 'unknown',
-            pinned: false,
-            aspect: 0,
-            track: null,
-            ...patch
-        });
-    } else {
-        const tile = tiles[index];
-        if (name) tile.name = name;
-        for (const [field, value] of Object.entries(patch)) {
-            if (value !== undefined) tile[field] = value;
-        }
-    }
-    syncPins();
-};
-
-const patchTileAspect = (tile, ratio) => {
-    if (!tile || !Number.isFinite(ratio) || ratio <= 0) return;
-    if (Math.abs((tile.aspect || 0) - ratio) > 0.01) tile.aspect = ratio;
-};
-
-const dropTile = (identity, isScreen) => {
-    const key = tileKey(identity, isScreen);
-    const tile = tiles.find(entry => tileKey(entry.identity, entry.isScreen) === key);
-    detachTileVideo(tile);
-    const index = tiles.indexOf(tile);
-    if (index >= 0) tiles.splice(index, 1);
-    tileVideos.delete(key);
-};
-
-const syncPins = () => {
-    for (const tile of tiles) {
-        tile.pinned = pinnedIdentities.has(tileKey(tile.identity, tile.isScreen));
-    }
-};
-
-// Video rides LiveKit's own element pool (`track.attach`): attached
-// elements register with the room, so adaptiveStream visibility (tab
-// switches) and dynacast dimensions follow the real tiles, and the
-// library owns srcObject/autoplay and the Safari/Firefox quirks.
-const attachTrackToElement = (track, el) => {
-    if (!track || !el) return;
-    if (track.attachedElements?.includes(el)) {
-        el.play?.().catch(() => {});
-        return;
-    }
-    try {
-        track.attach(el);
-    } catch {
-        return;
-    }
-    el.play?.().catch(() => {});
-};
-
-const attachTile = (tile, el) => {
-    const key = tileKey(tile.identity, tile.isScreen);
-    if (!el) {
-        tileVideos.delete(key);
-        return;
-    }
-    tileVideos.set(key, el);
-    attachTrackToElement(tile.track, el);
-};
-
-const detachTileVideo = (tile) => {
-    if (!tile?.track) return;
-    const el = tileVideos.get(tileKey(tile.identity, tile.isScreen));
-    if (!el) return;
-    try {
-        tile.track.detach(el);
-    } catch {
-        /* the track may already be gone */
-    }
-};
-
-const playInto = (key) => {
-    const el = tileVideos.get(key);
-    const tile = tiles.find(entry => tileKey(entry.identity, entry.isScreen) === key);
-    if (el && tile?.track) attachTrackToElement(tile.track, el);
-};
-
-// Remote audio: LiveKit attaches the track to its own element, which the
-// panel keeps in a hidden sink container. Attached elements register with
-// the room, so speaker switching keeps working.
-const attachRemoteAudio = (track) => {
-    if (!track || attachedAudio.has(track)) return;
-    let element = null;
-    try {
-        element = track.attach();
-    } catch {
-        return;
-    }
-    attachedAudio.set(track, element);
-    audioSink.value?.appendChild(element);
-    element.play?.().catch(() => {});
-};
-
-const detachRemoteAudio = (track) => {
-    if (!track || !attachedAudio.has(track)) return;
-    attachedAudio.delete(track);
-    try {
-        for (const element of track.detach()) element.remove();
-    } catch {
-        /* element may already be gone with the track */
-    }
-};
-
-// Parking hands the attached audio elements to the store instead of
-// detaching them: they keep playing in the store's hidden sink, so a parked
-// call stays audible, and the adopting panel moves the same elements back
-// into its own sink without re-attaching (which would double the audio).
-const handoffAudioAttachments = () => {
-    const entries = [...attachedAudio.entries()].map(([track, element]) => ({ track, element }));
-    attachedAudio.clear();
-    return entries;
-};
-
-const flushAdoptedAudio = () => {
-    if (!adoptedAudioAttachments.length || !audioSink.value) return;
-    for (const { element } of adoptedAudioAttachments) audioSink.value.appendChild(element);
-    adoptedAudioAttachments = [];
-};
-
-const screenTile = computed(() => tiles.find(tile => tile.isScreen) || null);
-const topSpeakerTile = computed(() => [...tiles]
-    .filter(tile => !tile.isScreen)
-    .sort((a, b) => (b.audioLevel || 0) - (a.audioLevel || 0))[0] || null);
-const pinnedTile = computed(() => [...tiles].filter(tile => tile.pinned).sort((a, b) => Number(b.isScreen) - Number(a.isScreen))[0] || null);
-
-// Speaker spotlight sticks: raw audio-level ticks would bounce the spotlight
-// between participants (and remount their video elements) many times per
-// sentence. A new top speaker must hold the lead for a moment before the
-// spotlight follows.
-const sustainedSpeakerKey = ref('');
-let speakerCandidateKey = '';
-let speakerCandidateSince = 0;
-const SPEAKER_HOLD_MS = 1200;
-
-const syncSustainedSpeaker = () => {
-    const top = topSpeakerTile.value;
-    const topKey = top && !top.isScreen ? tileKey(top.identity, false) : '';
-    if (!topKey || (top.audioLevel || 0) <= 0) return;
-    if (topKey === sustainedSpeakerKey.value) {
-        speakerCandidateKey = '';
-        return;
-    }
-    const now = Date.now();
-    if (topKey !== speakerCandidateKey) {
-        speakerCandidateKey = topKey;
-        speakerCandidateSince = now;
-        return;
-    }
-    if (now - speakerCandidateSince >= SPEAKER_HOLD_MS) {
-        sustainedSpeakerKey.value = topKey;
-        speakerCandidateKey = '';
-    }
-};
-
-const sustainedSpeakerTile = computed(() => {
-    if (!sustainedSpeakerKey.value) return null;
-    const tile = tiles.find(entry => !entry.isScreen && tileKey(entry.identity, false) === sustainedSpeakerKey.value);
-    return tile || null;
-});
-
-const spotlightTile = computed(() => pinnedTile.value
-    || screenTile.value
-    || sustainedSpeakerTile.value
-    || tiles[0]
-    || null);
-const stripTiles = computed(() => tiles.filter(tile => tile !== spotlightTile.value));
-
-// A surface transfer (tab → floating window) parks the connected room in
-// the calls store; the adopting panel takes the live connection over
-// instead of reconnecting. Until adoption completes, the floating panel
-// shows the connecting stage. The adoption watcher is registered after
-// bindRoomEvents is defined (see below) so the immediate run cannot hit a
-// temporal dead zone.
-const adoptLiveRoom = () => {
-    const entry = callsStore.takeLiveRoom(props.room);
-    if (!entry) return false;
-    // A parked room whose connection died while parked (nobody listened
-    // for its Disconnected) must not adopt as a frozen stage.
-    if (entry.room.state !== 'connected') {
-        entry.room.disconnect?.().catch?.(() => {});
-        return false;
-    }
-    awaitingTransfer.value = false;
-    ({ room: livekitRoom, LiveKit } = entry);
-    // Seed the adopted audio into the map BEFORE the publication walk, so
-    // handed-over tracks are not attached a second time; the elements move
-    // from the store's sink into this panel's sink on flush.
-    adoptedAudioAttachments = entry.audioAttachments || [];
-    for (const { track, element } of adoptedAudioAttachments) attachedAudio.set(track, element);
-    bindRoomEvents(livekitRoom);
-    const local = livekitRoom.localParticipant;
-    localIdentity.value = local.identity;
-    syncLocalStates();
-    syncTile(local.identity, local.name, { muted: !micEnabled.value });
-    // The local camera/screen publications will not re-publish on adoption,
-    // so seed them from the current publications or the local tile degrades
-    // to the avatar after a transfer.
-    for (const publication of local.trackPublications.values()) {
-        if (publication.kind !== LiveKit.Track.Kind.Video) continue;
-        const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
-        syncTile(local.identity, local.name, { isScreen, hasVideo: Boolean(publication.track) && !publication.isMuted, track: publication.track || null });
-    }
-    for (const participant of livekitRoom.remoteParticipants.values()) {
-        syncTile(participant.identity, participant.name);
-        for (const publication of participant.trackPublications.values()) {
-            const track = publication.track;
-            if (!track || !publication.isSubscribed) continue;
-            if (publication.kind === LiveKit.Track.Kind.Video) {
-                const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
-                syncTile(participant.identity, participant.name, { isScreen, hasVideo: true, track });
-            } else if (!participant.isLocal) {
-                attachRemoteAudio(track);
-            }
-        }
-    }
-    connected.value = true;
-    stage.value = 'connected';
-    flushAdoptedAudio();
-    callsStore.joinRoom(props.room);
-    return true;
-};
-
-// Room event wiring is a standalone binder so both the fresh join and the
-// parked-room adoption get identical behavior.
-const bindRoomEvents = (room) => {
-    room
-        .on(LiveKit.RoomEvent.ParticipantConnected, participant => {
-            syncTile(participant.identity, participant.name);
-        })
-        .on(LiveKit.RoomEvent.ParticipantDisconnected, participant => {
-            dropTile(participant.identity, false);
-            dropTile(participant.identity, true);
-        })
-        .on(LiveKit.RoomEvent.TrackSubscribed, (track, publication, participant) => {
-            if (track.kind === LiveKit.Track.Kind.Video) {
-                const isScreen = track.source === LiveKit.Track.Source.ScreenShare;
-                syncTile(participant.identity, participant.name, { isScreen, hasVideo: true, track });
-                playInto(tileKey(participant.identity, isScreen));
-                return;
-            }
-            if (track.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
-                attachRemoteAudio(track);
-            }
-        })
-        .on(LiveKit.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
-            if (track.kind === LiveKit.Track.Kind.Video) {
-                const isScreen = track.source === LiveKit.Track.Source.ScreenShare;
-                // A screen tile lives only while its track does; a camera
-                // tile stays as the participant's avatar tile.
-                if (isScreen) {
-                    dropTile(participant.identity, true);
-                    return;
-                }
-                const tile = tiles.find(entry => entry.identity === participant.identity && !entry.isScreen);
-                detachTileVideo(tile);
-                syncTile(participant.identity, participant.name, { isScreen: false, hasVideo: false, track: null });
-                return;
-            }
-            if (track.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
-                detachRemoteAudio(track);
-            }
-        })
-        .on(LiveKit.RoomEvent.TrackUnpublished, (publication, participant) => {
-            if (publication.kind !== LiveKit.Track.Kind.Video) return;
-            const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
-            if (isScreen) {
-                dropTile(participant.identity, true);
-                return;
-            }
-            const tile = tiles.find(entry => entry.identity === participant.identity && !entry.isScreen);
-            detachTileVideo(tile);
-            syncTile(participant.identity, participant.name, { isScreen: false, hasVideo: false, track: null });
-        })
-        .on(LiveKit.RoomEvent.LocalTrackPublished, (publication, participant) => {
-            if (publication.kind === LiveKit.Track.Kind.Video) {
-                const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
-                if (isScreen) sharing.value = true;
-                syncTile(participant.identity, participant.name, { isScreen, hasVideo: Boolean(publication.track), track: publication.track });
-                playInto(tileKey(participant.identity, isScreen));
-            }
-        })
-        .on(LiveKit.RoomEvent.LocalTrackUnpublished, (publication, participant) => {
-            if (publication.kind !== LiveKit.Track.Kind.Video) return;
-            const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
-            if (isScreen) {
-                dropTile(participant.identity, true);
-                sharing.value = false;
-                return;
-            }
-            const tile = tiles.find(entry => entry.identity === participant.identity && !entry.isScreen);
-            detachTileVideo(tile);
-            syncTile(participant.identity, participant.name, { isScreen: false, hasVideo: false, track: null });
-        })
-        .on(LiveKit.RoomEvent.TrackMuted, (publication, participant) => {
-            if (participant.isLocal) return;
-            const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
-            if (publication.kind === LiveKit.Track.Kind.Audio) {
-                syncTile(participant.identity, participant.name, { muted: true });
-            } else {
-                syncTile(participant.identity, participant.name, { isScreen, hasVideo: false });
-            }
-        })
-        .on(LiveKit.RoomEvent.TrackUnmuted, (publication, participant) => {
-            if (participant.isLocal) return;
-            const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
-            if (publication.kind === LiveKit.Track.Kind.Audio) {
-                syncTile(participant.identity, participant.name, { muted: false });
-            } else {
-                syncTile(participant.identity, participant.name, { isScreen, hasVideo: Boolean(publication.track) });
-            }
-        })
-        .on(LiveKit.RoomEvent.ActiveSpeakersChanged, speakers => {
-            const levels = new Map(speakers.map(speaker => [speaker.identity, speaker.audioLevel || 0.6]));
-            for (const tile of tiles) {
-                tile.speaking = levels.has(tile.identity);
-                tile.audioLevel = levels.get(tile.identity) || 0;
-            }
-            syncSustainedSpeaker();
-        })
-        .on(LiveKit.RoomEvent.ConnectionQualityChanged, (quality, participant) => {
-            syncTile(participant.identity, participant.name, { quality });
-        })
-        .on(LiveKit.RoomEvent.MediaDevicesChanged, () => {
-            enumerateDevices();
-        })
-        .on(LiveKit.RoomEvent.Reconnecting, () => { reconnecting.value = true; })
-        .on(LiveKit.RoomEvent.Reconnected, () => { reconnecting.value = false; })
-        .on(LiveKit.RoomEvent.Disconnected, () => {
-            connected.value = false;
-            reconnecting.value = false;
-            sharing.value = false;
-            handRaised.value = false;
-            teardownMedia();
-            callsStore.leaveRoom(props.room);
-            livekitRoom = null;
-            // A dropped connection while the panel stays mounted returns to
-            // the pre-join stage instead of stranding an empty stage with a
-            // disabled dock; deliberate leaves unmount the panel anyway.
-            if (stage.value === 'connected') stage.value = 'prejoin';
-        })
-        .on(LiveKit.RoomEvent.DataReceived, (payload, participant, _kind, topic) => {
-            if (topic !== CALL_DATA_TOPIC) return;
-            receiveCallEvent(participant.identity, participant.name, payload);
-        });
-};
-
-const join = async (prejoin = {}) => {
-    stage.value = 'connecting';
-    error.value = '';
-    try {
-        if (!LiveKit) LiveKit = await import('livekit-client');
-        const grant = await $fetch('/api/livekit/token', { method: 'POST', body: { room: props.room } });
-        if (disposed) return;
-        livekitRoom = new LiveKit.Room({ adaptiveStream: true, dynacast: true });
-        bindRoomEvents(livekitRoom);
-
-        await livekitRoom.connect(grant.url, grant.token);
-        if (disposed) {
-            livekitRoom.disconnect().catch(() => {});
-            livekitRoom = null;
-            return;
-        }
-        const local = livekitRoom.localParticipant;
-        localIdentity.value = local.identity;
-        // Device failures are per-track: the connected room stays joined
-        // (mic/cam simply off) and the toast names the failed device.
-        await runDeviceToggle(
-            () => local.setMicrophoneEnabled(prejoin.micEnabled !== false, {
-                deviceId: prejoin.deviceId?.audioinput || undefined
-            }),
-            t('call.devices.microphone')
-        );
-        await runDeviceToggle(
-            () => local.setCameraEnabled(Boolean(prejoin.cameraEnabled), {
-                deviceId: prejoin.deviceId?.videoinput || undefined
-            }),
-            t('call.devices.camera')
-        );
-        if (disposed) {
-            livekitRoom.disconnect().catch(() => {});
-            livekitRoom = null;
-            return;
-        }
-        syncTile(local.identity, local.name, { muted: !micEnabled.value });
-        for (const participant of livekitRoom.remoteParticipants.values()) {
-            syncTile(participant.identity, participant.name);
-        }
-        connected.value = true;
-        stage.value = 'connected';
-        enumerateDevices();
-        // Report the live connection to the call line machine: joining stops
-        // every remaining ring for this room in every surface.
-        callsStore.joinRoom(props.room);
-    } catch (joinError) {
-        console.error('Failed to join call:', joinError);
-        livekitRoom?.disconnect?.().catch?.(() => {});
-        livekitRoom = null;
-        const insecureContext = typeof navigator !== 'undefined' && !navigator.mediaDevices;
-        error.value = insecureContext
-            ? t('call.insecureContext')
-            : joinError?.data?.message || joinError?.message || t('call.failed');
-        stage.value = 'failed';
-    }
-};
-
-// Registered after bindRoomEvents: the immediate run adopts an
-// already-parked room (a pop-out transfer) without hitting setup TDZ.
-watch(() => callsStore.parkedRoom, name => {
-    if (name === props.room && stage.value !== 'connected') adoptLiveRoom();
-}, { immediate: true });
-
-// A transfer that aborts (the source panel was never connected, so nothing
-// will be parked) drops the connecting stage back to pre-join.
-watch(() => callsStore.transferRoom, name => {
-    if (awaitingTransfer.value && name !== props.room && !connected.value) {
-        awaitingTransfer.value = false;
-        if (stage.value === 'connecting') stage.value = 'prejoin';
-    }
-});
-
-onMounted(() => {
-    // Transferred calls wait briefly for the parked room; show the
-    // connecting state instead of the pre-join screen while the handoff
-    // completes.
-    if (callsStore.transferRoom === props.room && !callsStore.parkedRoom) {
-        awaitingTransfer.value = true;
-        stage.value = 'connecting';
-    }
-    // Setup-time adoption (an immediate parked-room watcher run) happens
-    // before the sink element exists; move the adopted audio in now.
-    flushAdoptedAudio();
-    enumerateDevices();
-});
-
-// Device lists refresh whenever the settings surface opens: labels and
-// late-arriving devices change while the dialog stays closed.
-watch(settingsVisible, visible => {
-    if (visible) enumerateDevices();
-});
-
-const enumerateDevices = async () => {
-    try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        audioInputs.value = devices.filter(device => device.kind === 'audioinput');
-        videoInputs.value = devices.filter(device => device.kind === 'videoinput');
-        audioOutputs.value = devices.filter(device => device.kind === 'audiooutput');
-    } catch {
-        audioInputs.value = [];
-        videoInputs.value = [];
-        audioOutputs.value = [];
-    }
-};
-
-const switchDevice = async (kind, id) => {
-    if (!id || !livekitRoom) return;
-    try {
-        if (kind === 'audiooutput') {
-            await livekitRoom.switchActiveDevice('audiooutput', id);
-        } else {
-            await livekitRoom.localParticipant.switchActiveDevice(kind, id);
-        }
-    } catch (switchError) {
-        console.error(`Failed to switch ${kind}:`, switchError);
-    }
-};
-
-const toggleMic = async () => {
-    if (!livekitRoom) return;
-    const local = livekitRoom.localParticipant;
-    await runDeviceToggle(
-        () => local.setMicrophoneEnabled(!local.isMicrophoneEnabled),
-        t('call.devices.microphone')
-    );
-    syncTile(local.identity, local.name, { muted: !micEnabled.value });
-};
-
-const toggleCamera = async () => {
-    if (!livekitRoom) return;
-    const local = livekitRoom.localParticipant;
-    await runDeviceToggle(
-        () => local.setCameraEnabled(!local.isCameraEnabled),
-        t('call.devices.camera')
-    );
-    const publication = local.getTrackPublication(LiveKit.Track.Source.Camera);
-    syncTile(local.identity, local.name, { hasVideo: cameraEnabled.value && Boolean(publication?.track), track: publication?.track || null });
-    playInto(tileKey(local.identity, false));
-};
-
-const toggleShare = async () => {
-    if (!livekitRoom) return;
-    await runDeviceToggle(
-        () => livekitRoom.localParticipant.setScreenShareEnabled(!livekitRoom.localParticipant.isScreenShareEnabled),
-        t('call.share')
-    );
-};
-
-const togglePin = (identity) => {
-    const tile = tiles.find(entry => entry.identity === identity && !entry.isScreen);
-    if (!tile) return;
-    const key = tileKey(tile.identity, false);
-    if (pinnedIdentities.has(key)) pinnedIdentities.delete(key);
-    else pinnedIdentities.add(key);
-    syncPins();
-};
-
-const publishCallEvent = (payload) => {
-    if (!livekitRoom) return;
-    livekitRoom.localParticipant.publishData(
-        new TextEncoder().encode(JSON.stringify(payload)),
-        { reliable: true, topic: CALL_DATA_TOPIC }
-    ).catch(() => {});
-};
-
-const toggleHand = () => {
-    handRaised.value = !handRaised.value;
-    publishCallEvent({ type: 'hand', raised: handRaised.value });
-    const local = livekitRoom?.localParticipant;
-    if (local) syncTile(local.identity, local.name, { handRaised: handRaised.value });
-};
-
-const receiveCallEvent = (identity, name, payload) => {
-    let event;
-    try {
-        event = JSON.parse(new TextDecoder().decode(payload));
-    } catch {
-        return;
-    }
-    if (event?.type === 'hand') {
-        syncTile(identity, name, { handRaised: Boolean(event.raised) });
-    } else if (event?.type === 'reaction' && event.emoji) {
-        showReaction(event.emoji, name || identity);
-    }
-};
-
-const sendReaction = (emoji) => {
-    publishCallEvent({ type: 'reaction', emoji });
-    showReaction(emoji, livekitRoom?.localParticipant?.name || '');
-};
-
-const showReaction = (emoji, name) => {
-    const reaction = {
-        id: `reaction-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        emoji,
-        name,
-        left: 10 + Math.random() * 75
-    };
-    reactions.push(reaction);
-    setTimeout(async () => {
-        const el = reactionEls.get(reaction.id);
-        if (el) await riseAndFade(el);
-        const index = reactions.indexOf(reaction);
-        if (index >= 0) reactions.splice(index, 1);
-        reactionEls.delete(reaction.id);
-    }, 50);
-};
-
+// Reactions animate once and leave the session list; the ref callback
+// fires only for newly mounted spans.
 const registerReactionEl = (id, el) => {
-    if (el) reactionEls.set(id, el);
+    if (el) {
+        lastReactionEls.set(id, el);
+        runReaction(id);
+    }
 };
 
-const teardownMedia = () => {
-    for (const tile of tiles) detachTileVideo(tile);
-    for (const track of [...attachedAudio.keys()]) detachRemoteAudio(track);
-    attachedAudio.clear();
-    tileVideos.clear();
-    sustainedSpeakerKey.value = '';
-    speakerCandidateKey = '';
-    tiles.splice(0, tiles.length);
+const runReaction = async (id) => {
+    await new Promise(resolve => setTimeout(resolve, 50));
+    const el = lastReactionEls.get(id);
+    if (el) await riseAndFade(el);
+    lastReactionEls.delete(id);
+    callsStore.removeReaction(id);
+};
+
+const retry = async () => {
+    await callsStore.leaveSession();
+    localStage.value = 'prejoin';
 };
 
 const leave = async () => {
-    await livekitRoom?.disconnect();
-    livekitRoom = null;
-    connected.value = false;
-    teardownMedia();
-    callsStore.leaveRoom(props.room);
+    await callsStore.leaveSession();
     emit('closed');
 };
 
+onMounted(() => {
+    callsStore.mountSurface(props.room);
+});
+
 onBeforeUnmount(() => {
-    disposed = true;
-    // Surface transfer (pop-out or dock): another surface is taking this
-    // call, so park the live connection instead of dropping it.
-    if (connected.value && callsStore.transferRoom === props.room && livekitRoom) {
-        try {
-            livekitRoom.removeAllListeners();
-        } catch {
-            /* listener cleanup is best-effort */
-        }
-        callsStore.parkLiveRoom(props.room, livekitRoom, LiveKit, handoffAudioAttachments());
-        livekitRoom = null;
-        teardownMedia();
-        return;
-    }
-    // Navigating away from a park-on-unmount host (route change, pane tab
-    // switch, host dialog close) must not end the call: the live room parks
-    // and another surface adopts it without reconnecting — the desktop
-    // floating window, or the mobile top lane (components/media README)
-    // when no floating surface follows.
-    if (connected.value && livekitRoom && props.parkOnUnmount) {
-        try {
-            livekitRoom.removeAllListeners();
-        } catch {
-            /* listener cleanup is best-effort */
-        }
-        callsStore.parkLiveRoom(props.room, livekitRoom, LiveKit, handoffAudioAttachments());
-        if (!isMobileViewport()) callsStore.setFloating(props.room);
-        livekitRoom = null;
-        teardownMedia();
-        return;
-    }
-    // A pending transfer this panel can never fulfill (it never connected)
-    // must not strand the adopting surface on the connecting stage.
-    callsStore.abortTransfer(props.room);
-    livekitRoom?.disconnect().catch(() => {});
-    livekitRoom = null;
-    teardownMedia();
-    callsStore.leaveRoom(props.room);
+    callsStore.unmountSurface(props.room);
 });
 </script>
 
