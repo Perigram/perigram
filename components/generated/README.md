@@ -463,8 +463,8 @@ from the compiled manifest.
   host: it measures its scroll column and provides the resolved record,
   so hosted surfaces size budgets to the pane the user shaped. The pane tab names the hosted
   surface (SPEC §22): the host receives
-  `paneHosted` and the engine keeps list-screen labels with the host; a
-  hosted record page renders its full header (SPEC §22.3). Collection creation
+  every collection region carries its own title bar (SPEC §22.3); a
+  hosted record page renders its full header. Collection creation
   belongs to sidebar sections and entity operations to the detail
   screens' own action surfaces.
 - Tab creation is explicit: new tabs come only from the tab strip's add

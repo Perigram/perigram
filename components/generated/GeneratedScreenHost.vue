@@ -15,7 +15,6 @@
     :bundle="processBundle"
     :instances="instanceGroups"
     :source-states="poolStates"
-    :pane-hosted="paneHosted"
     :on-run="runGeneratedAction"
     :on-transition="runRuntimeTransition"
     :on-fetch-transitions="fetchTransitions"
@@ -70,10 +69,7 @@ const props = defineProps({
   // (`{ icon, label, command }` — SurfaceHeader's navigation channel):
   // hosts that opened this record inside another surface feed it so a
   // detail deep link can return to where the user came from.
-  navigation: { type: Object, default: null },
-  // The pane tab names the hosted surface; the surface renders its
-  // title through the pane strip alone.
-  paneHosted: { type: Boolean, default: false }
+  navigation: { type: Object, default: null }
 });
 
 const emit = defineEmits(['open-instance', 'refresh']);

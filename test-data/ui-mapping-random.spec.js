@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { checkValue } from '#packages/cts/src/values.js';
-import { composeScreen, buildInstancePool, resolveFieldControl, VARIANTS } from '#shared/ui-mapping/index.js';
+import { composeScreen, buildInstancePool, resolveFieldControl, resolveListLayout, VARIANTS } from '#shared/ui-mapping/index.js';
 import { generateUiMappingWorld } from './ui-mapping-random.js';
 
 const SEEDS = [1, 2, 3, 7, 11, 19, 42, 99, 123, 777];
@@ -167,6 +167,11 @@ describe('showcase-reachable contracts in every world', () => {
       const pool = buildInstancePool(world.instances);
       // One large collection: virtualization (>50), pagination, toolbar search.
       expect(world.bundle.types.some(type => world.instances[type.id].length > 50), `seed ${seed} volume type`).toBe(true);
+      // The volume type derives the default table projection — the
+      // showcase renders a real DataTable, not only shape-specialized
+      // projections.
+      const volumeTableType = world.bundle.types.find(type => (world.instances[type.id] || []).length > 50);
+      expect(resolveListLayout(volumeTableType, { size: 'large' }), `seed ${seed} volume table layout`).toBe('table');
       // The guaranteed-empty type has a screen whose main region composes
       // empty — an inert section that left the arrangement as a stub.
       const emptyScreen = Object.values(world.contract.screens)

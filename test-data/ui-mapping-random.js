@@ -287,8 +287,28 @@ export function generateUiMappingWorld(seed = 7) {
   // one, heavy on the other — the parent shape real domains have, so
   // sibling arrangements engage over realistic weight.
   const instancesByType = {};
-  const fileTypes = types.filter(type => type.class === 'file');
-  const volumeType = fileTypes[0] || types[types.length - 1];
+  // The volume collection guarantees the default table projection: a
+  // plain item type — short scalars only, no payload, no instants, no
+  // long text, one numeric field so no statlike dominance — carrying
+  // the >50 collection where virtualization, pagination, and toolbar
+  // search all engage (SPEC: the showcase reaches every projection).
+  const volumeType = types.find(type => type.class === 'item' && !projectionFloors.has(type.id))
+    || types.find(type => type.class !== 'group' && !projectionFloors.has(type.id))
+    || types[types.length - 1];
+  // Every seed derives the table: whatever type carries the volume, it
+  // renders as the plain item class with the plain scalar set.
+  volumeType.class = 'item';
+  volumeType.payload = undefined;
+  volumeType.fields = {
+    serial: { base: 'string', label: 'Serial', identifier: true },
+    stage: { base: 'enum', label: 'Stage', values: ['draft', 'review', 'done'] },
+    batch: { base: 'string', label: 'Batch' },
+    amount: { base: 'number', label: 'Amount' },
+    holder: { base: 'string', label: 'Holder' },
+    // The authored-control floor rides here too: forcing the fields
+    // above wipes any earlier pin on this type.
+    note: { base: 'string', label: 'Note', control: 'Textarea' }
+  };
   const allGroups = types.filter(type => type.class === 'group');
   let groupsWithEdges = allGroups.filter(type => Object.keys(type.edges.children || {}).length >= 2);
   const ensureTwoEdges = host => {
@@ -310,7 +330,7 @@ export function generateUiMappingWorld(seed = 7) {
   const peerHosts = groupsWithEdges.slice(0, 2);
   // The guaranteed-empty type is reserved before peer claiming — hosts
   // never claim it, so the empty-state screens keep their type.
-  const emptyType = types.find(type => !['file', 'group'].includes(type.class) && !projectionFloors.has(type.id))
+  const emptyType = types.find(type => type.id !== volumeType.id && !['file', 'group'].includes(type.class) && !projectionFloors.has(type.id))
     || types.find(type => type.class !== 'group' && type.id !== volumeType.id && !projectionFloors.has(type.id))
     || types[types.length - 1];
   // A peer host renders exactly its claimed peers: host-targeting and

@@ -42,7 +42,6 @@
         :instances="instancesWithOverrides"
         :source-states="sourceStatesFor(screen)"
         :spacing-scale="scale"
-        :pane-hosted="true"
         :on-open="openInstance"
         :on-transition="applyTransition"
       />

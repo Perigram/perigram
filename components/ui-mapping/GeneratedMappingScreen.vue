@@ -153,7 +153,6 @@ const props = defineProps({
   navigation: { type: Object, default: null },
   // The host surface names this screen (the pane tab, the routed page's
   // title bar); the list header label stays with the host.
-  paneHosted: { type: Boolean, default: false },
   // Explicit rhythm coefficient (the design-lab slider); null rides the
   // derived system.
   spacingScale: { type: Number, default: null }
@@ -247,7 +246,6 @@ const regionBlockProps = computed(() => ({
   resolveTransitions: props.onFetchTransitions,
   loadType: props.onLoadType,
   navigation: props.navigation,
-  paneHosted: props.paneHosted,
   editorActions: props.editorActions
 }));
 const submitPatch = async ({ instance, patch } = {}) => {
