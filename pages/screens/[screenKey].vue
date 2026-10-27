@@ -9,7 +9,6 @@
       :screen="screen"
       :screen-key="screenKey"
       :navigation="detailNavigation"
-      pane-hosted
       @open-instance="openInstance"
     />
   </StandardPage>
@@ -66,8 +65,8 @@ const screenKey = computed(() => Array.isArray(route.params.screenKey)
 // Every compiled screen renders through the generator host: generator
 // templates directly, the home template as the host's overload branch.
 // The routed surface keeps the route title strip (with the back control);
-// detail, form, and home surfaces own their headers, and panes name
-// hosted surfaces through the pane tab (the host's paneHosted).
+// detail, form, and home surfaces own their headers, and every
+// collection region carries its own title bar (SPEC §22.3).
 const GENERATOR_TEMPLATES = ['typeList', 'instanceDetail', 'formAction'];
 const pageTitle = computed(() => (
   ['instanceDetail', 'formAction', 'home'].includes(screen.value?.template)

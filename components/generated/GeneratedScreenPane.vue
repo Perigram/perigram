@@ -23,7 +23,6 @@
       <GeneratedScreenHost
         v-else
         :screen="scopedScreen"
-        pane-hosted
         @open-instance="payload => $emit('open-entity', { typeId: payload.typeId, instanceId: payload.instanceId })"
         @refresh="$emit('refresh')"
       />

@@ -13,12 +13,12 @@
   <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-wrap items-center gap-2">
-        <i v-if="node.type && !paneHosted" :class="iconFor(node.type)" />
-        <span v-if="!paneHosted" :class="embedded ? 'text-label min-w-0 truncate' : 'text-section-heading'">{{ regionLabel }}</span>
+        <i v-if="node.type" :class="iconFor(node.type)" />
+        <span :class="embedded ? 'text-label min-w-0 truncate' : 'text-section-heading'">{{ regionLabel }}</span>
         <!-- SPEC §22.8: the count renders only for loaded, accessible,
              non-empty collections — a denied or failed source has no
              count, and an empty one states itself through its message. -->
-        <span v-if="showSurfaces && hasInstances && !paneHosted" :class="COUNT_CHIP_CLASS">{{ node.instances.length }}</span>
+        <span v-if="showSurfaces && hasInstances" :class="COUNT_CHIP_CLASS">{{ node.instances.length }}</span>
       </div>
       <div v-if="createControls.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
         <!-- Search expands IN PLACE: the icon button becomes an icon field
@@ -244,9 +244,6 @@ const props = defineProps({
   // Editor action components by type (the host resolves them over the
   // file-surface registry; the header renders what it is given).
   editorActions: { type: Object, default: null },
-  // The host surface names this screen (the pane tab, the routed page's
-  // title bar); the list header's label stays with the host.
-  paneHosted: { type: Boolean, default: false },
   // The stub slot (SPEC → Placement-aware composition): an inert child
   // renders one compact line — label, count, its own create action.
   stub: { type: Boolean, default: false }
