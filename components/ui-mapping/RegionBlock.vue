@@ -385,11 +385,12 @@ const instanceActionsForType = computed(() => props.instanceActions?.[props.node
 // other types keep their own buttons.
 const createControls = computed(() => createActionControls(props.node.actions || []));
 // The detail header's action set: the composed node's manifest actions
-// PLUS the per-instance quick actions (runtime state transitions ride
-// here) — the strip's steps draw from this combined list.
+// PLUS the per-instance quick actions (runtime state transitions and the
+// construct re-run ride here) — the strip's steps draw from this
+// combined list.
 const headerActions = computed(() => [
   ...(props.node.actions || []),
-  ...instanceActionsForType.value.filter(action => action?.__runtime)
+  ...instanceActionsForType.value.filter(action => action?.__runtime || action?.__rerun)
 ]);
 // Surface visibility derives from the composed dataState: ready regions
 // render; a loading region with already-loaded instances keeps its stale

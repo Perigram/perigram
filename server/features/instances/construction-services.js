@@ -87,6 +87,23 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
   }
   const data = output.data && typeof output.data === 'object' && !Array.isArray(output.data) ? output.data : {};
   const merged = { ...draft, fields: { ...(draft.fields || {}), ...data } };
+  // Revision stamps (SPEC §24): the resolved pin rides the stored ref —
+  // a declared ref field stores `{ type, id, revision }`, and every
+  // resolved ref pins in provenance.sources, where the causal refs live.
+  const declaredRefFields = new Set(parameters.declaredRefFields || []);
+  for (const [field, pin] of Object.entries(parameters.pins || {})) {
+    if (declaredRefFields.has(field)) merged.fields[field] = pin;
+  }
+  const pins = Object.values(parameters.pins || {}).flatMap(pin => (Array.isArray(pin) ? pin : [pin]));
+  if (pins.length) {
+    const sources = [...(merged.provenance?.sources || [])];
+    for (const pin of pins) {
+      const at = sources.findIndex(source => source.type === pin.type && String(source.id) === String(pin.id));
+      if (at >= 0) sources[at] = { ...sources[at], revision: pin.revision };
+      else sources.push(pin);
+    }
+    merged.provenance = { ...(merged.provenance || {}), sources };
+  }
   const file = executorPayload(serviceRef, output.payload);
   if (!file) return merged;
   return { ...merged, payload: await storeExecutorPayload(typeId, draft, file, context, organizationId) };
@@ -140,26 +157,44 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
   }
 
   // Ref inputs resolve to values: the referenced instance, its identity,
-  // and — when it carries a payload — the payload document as base64. A
-  // list of refs resolves item by item under the same rules. Cross-org
-  // references refuse, exactly like the in-process handlers did.
+  // and — when it carries one — the payload document as base64. A list
+  // of refs resolves item by item under the same rules. Cross-org
+  // references refuse, exactly like the in-process handlers did. Every
+  // resolved ref of a revision-scoped type also resolves its pin (SPEC
+  // §24): the current revision for a fresh read, the pinned revision's
+  // frozen bytes for a stored pin.
   const refs = {};
+  const pins = {};
+  const declaredRefFields = [];
+  for (const [field, fieldDef] of Object.entries(declaration?.fields || {})) {
+    if (fieldDef?.base === 'ref' || (fieldDef?.base === 'list' && fieldDef?.itemType?.base === 'ref')) {
+      declaredRefFields.push(field);
+    }
+  }
   for (const [field, fieldDef] of Object.entries(operator?.input?.fields || {})) {
     if (fieldDef?.base === 'ref') {
-      const id = String(draftData[field] ?? '').trim();
-      if (id) refs[field] = await resolveRefValue(instanceServiceResolver, id, acceptedTypesOf(fieldDef), field, organizationId);
+      const input = refInputOf(draftData[field]);
+      if (input) {
+        const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, acceptedTypesOf(fieldDef), field, organizationId);
+        refs[field] = resolved.value;
+        if (resolved.pin) pins[field] = resolved.pin;
+      }
       continue;
     }
     if (fieldDef?.base === 'list' && fieldDef?.itemType?.base === 'ref') {
       const raw = draftData[field];
-      const ids = (Array.isArray(raw) ? raw : [raw])
-        .filter(value => value != null && String(value).trim() !== '')
-        .map(value => String(value).trim());
-      if (ids.length) {
+      const inputs = (Array.isArray(raw) ? raw : [raw])
+        .map(refInputOf)
+        .filter(Boolean);
+      if (inputs.length) {
         refs[field] = [];
-        for (const id of ids) {
-          refs[field].push(await resolveRefValue(instanceServiceResolver, id, acceptedTypesOf(fieldDef.itemType), field, organizationId));
+        pins[field] = [];
+        for (const input of inputs) {
+          const resolved = await resolveRefValue(instanceServiceResolver, declarationForType, input, acceptedTypesOf(fieldDef.itemType), field, organizationId);
+          refs[field].push(resolved.value);
+          if (resolved.pin) pins[field].push(resolved.pin);
         }
+        if (!pins[field].length) delete pins[field];
       }
     }
   }
@@ -188,37 +223,82 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
       lineage: draft?.lineage || null
     },
     refs,
+    pins,
+    declaredRefFields,
     ...(payloadBase64 ? { payloadBase64, payloadMeta } : {})
   };
+}
+
+// A ref input travels as a bare id (the dialog's scalarized picker value,
+// the graph's wired id) or as the stored ref shape `{ type, id,
+// revision? }` — a re-derive reads its stored pins (SPEC §24).
+function refInputOf(value) {
+  if (value == null) return null;
+  if (typeof value === 'string') return String(value).trim() ? { id: String(value).trim() } : null;
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const id = String(value.id ?? value._id ?? '').trim();
+    if (!id) return null;
+    const revision = value.revision == null ? null : String(value.revision);
+    return revision ? { id, revision } : { id };
+  }
+  return null;
 }
 
 function acceptedTypesOf(fieldDef) {
   return Array.isArray(fieldDef.accepts) ? fieldDef.accepts : [];
 }
 
-async function resolveRefValue(instanceServiceResolver, id, accepted, field, organizationId) {
+async function resolveRefValue(instanceServiceResolver, declarationForType, input, accepted, field, organizationId) {
   let instance = null;
   for (const acceptedType of accepted) {
-    instance = await instanceServiceResolver(acceptedType).getById(id).catch(() => null);
+    instance = await instanceServiceResolver(acceptedType).getById(input.id).catch(() => null);
     if (instance) break;
   }
   if (!instance) {
-    throw createError({ statusCode: 400, message: `Construction input ${field} references ${id}, which none of [${accepted.join(', ')}] serves` });
+    throw createError({ statusCode: 400, message: `Construction input ${field} references ${input.id}, which none of [${accepted.join(', ')}] serves` });
   }
   const tenancy = instance.organizationId ?? instance.lineage?.organizationId;
   const instanceOrg = tenancy != null ? String(tenancy) : null;
   if (instanceOrg && instanceOrg !== String(organizationId)) {
     throw createError({ statusCode: 400, message: `Construction input ${field} references an instance of another organization` });
   }
-  return referencedValue(instance);
+
+  // The version-fabric seam (SPEC §24): resolution stamps the revision
+  // beside the ref. A stored pin reads the frozen bytes; a fresh read
+  // resolves the source's current revision when its type declares a
+  // scope.
+  const typeId = instance.type || accepted[0];
+  const declaration = await declarationForType(typeId, organizationId);
+  const scope = declaration?.revisions || null;
+  let revisionId = input.revision || null;
+  if (!revisionId && scope) {
+    const { getCurrentForEntity } = await import('../instance-revisions/service.js');
+    const current = await getCurrentForEntity(typeId, instance._id ?? input.id, scope).catch(() => null);
+    revisionId = current?._id ? String(current._id) : null;
+  }
+  const value = await referencedValue(instance, input.revision || null);
+  if (revisionId) value.revision = revisionId;
+  const pin = revisionId ? { type: typeId, id: String(instance._id ?? input.id), revision: revisionId } : null;
+  return { value, pin };
 }
 
-async function referencedValue(instance) {
+async function referencedValue(instance, pinnedRevisionId) {
   const value = {
     id: String(instance._id),
     name: instance.identity?.name || instance.name || null,
     fields: instance.data || instance.fields || {}
   };
+  if (pinnedRevisionId) {
+    const { pinnedRevisionFile } = await import('../instance-revisions/service.js');
+    const pinned = await pinnedRevisionFile(pinnedRevisionId);
+    if (!pinned) {
+      throw createError({ statusCode: 400, message: `Pinned revision ${pinnedRevisionId} no longer exists` });
+    }
+    const buffer = await filesService.getFileBuffer(pinned.fileId, pinned.bucket);
+    value.payloadBase64 = Buffer.from(buffer).toString('base64');
+    value.payloadMime = pinned.mime;
+    return value;
+  }
   const payloadRef = instance.attachments?.primary || instance.payload || null;
   const fileId = payloadRef?.fileId || payloadRef?.id || null;
   if (fileId) {
@@ -227,4 +307,59 @@ async function referencedValue(instance) {
     value.payloadMime = payloadRef.mime || null;
   }
   return value;
+}
+
+// The stored-inputs draft for a construct re-run (SPEC §24, owner
+// decision 2026-10-27): each operator input reads back from the record —
+// a declared ref field carries its pin; an input the type does not
+// declare reads its authored value from provenance's replay-safety
+// parameters, with the ref pin recovered from the causal sources.
+export function storedConstructionDraft(record = {}, declaration = null, mode = '') {
+  const operator = Object.values(declaration?.operators || {})
+    .find(candidate => candidate?.species === 'construct' && candidate.id === mode) || null;
+  if (!operator) return null;
+  const fields = record.fields || {};
+  const effective = record.provenance?.effective?.parameters || {};
+  const pinnedSource = (type, id) => {
+    const source = (record.provenance?.sources || [])
+      .find(entry => entry.type === type && String(entry.id) === String(id));
+    return source?.revision || null;
+  };
+  const data = {};
+  for (const [field, fieldDef] of Object.entries(operator.input?.fields || {})) {
+    const isRef = fieldDef?.base === 'ref';
+    const isRefList = fieldDef?.base === 'list' && fieldDef?.itemType?.base === 'ref';
+    const stored = fields[field];
+    if (isRef && stored && typeof stored === 'object' && stored.id != null) {
+      data[field] = stored;
+      continue;
+    }
+    const authored = effective[field] ?? undefined;
+    if (authored === undefined) continue;
+    if (isRef && typeof authored === 'string') {
+      const accepts = acceptedTypesOf(fieldDef);
+      const revision = pinnedSource(accepts[0], authored);
+      data[field] = revision ? { type: accepts[0], id: authored, revision } : authored;
+      continue;
+    }
+    if (isRefList && Array.isArray(authored)) {
+      const accepts = acceptedTypesOf(fieldDef.itemType);
+      data[field] = authored.map(id => (
+        typeof id === 'object' && id?.id != null ? id
+          : (() => {
+            const revision = pinnedSource(accepts[0], String(id));
+            return revision ? { type: accepts[0], id: String(id), revision } : String(id);
+          })()
+      ));
+      continue;
+    }
+    data[field] = authored;
+  }
+  return {
+    name: record.name ?? null,
+    fields: { ...fields },
+    lineage: { ...(record.lineage || {}) },
+    ...(record.provenance ? { provenance: record.provenance } : {}),
+    data
+  };
 }

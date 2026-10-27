@@ -254,6 +254,16 @@ describe('expressions (totality, CEL semantics)', () => {
       .toThrow(/integer minor units/);
   });
 
+  it('refs carry an optional revision pin (SPEC §24 version fabric)', () => {
+    const descriptor = { base: 'ref', accepts: ['sheet'] };
+    expect(checkValue(descriptor, { type: 'sheet', id: 'x' })).toEqual([]);
+    expect(checkValue(descriptor, { type: 'sheet', id: 'x', revision: 'rev-1' })).toEqual([]);
+    expect(checkValue(descriptor, { type: 'sheet', id: 'x', revision: 3 }))
+      .toEqual(['ref revision pin must be a non-empty revision id']);
+    expect(checkValue(descriptor, { type: 'sheet', id: 'x', revision: '' }))
+      .toEqual(['ref revision pin must be a non-empty revision id']);
+  });
+
   it('match exhaustiveness is compile-checked', () => {
     const variant = { base: 'variant', tags: ['circle', 'rect'] };
     const partial = { op: 'match', expr: { op: 'lit', value: { tag: 'circle' } }, arms: { circle: { op: 'lit', value: 1 } } };

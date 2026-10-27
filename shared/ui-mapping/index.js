@@ -793,6 +793,31 @@ export function resolveInstanceActions(actions = {}, typeId = null) {
     && action?.trigger?.mode === 'manual');
 }
 
+// The compiled construct action's re-run (SPEC §24, owner decision
+// 2026-10-27): a record whose provenance names a construct carries the
+// action that built it; the synthesized row launches that action with
+// `rerun`, and the effect re-derives over the stored inputs. The row
+// prompts nothing — the stored inputs are the run's inputs.
+export function constructRerunAction(actions = {}, record = null) {
+  const op = record?.provenance?.op;
+  const match = typeof op === 'string' ? op.match(/^cts\.construct:([^:]+)(?::([^:]+))?$/) : null;
+  if (!match) return null;
+  const action = actions[match[1]];
+  if (!action || action.actionKind !== 'createInstance' || action.typeId !== record.type) return null;
+  return {
+    id: `${match[1]}:rerun`,
+    actionKind: 'rerunInstance',
+    rerunOf: match[1],
+    rerun: true,
+    typeId: action.typeId,
+    label: action.label || match[1],
+    icon: 'pi pi-refresh',
+    trigger: { mode: 'manual' },
+    access: action.access || {},
+    __rerun: true
+  };
+}
+
 // Create controls for a collection surface: creates targeting one type
 // collapse to a single control whose `group` carries every sibling, so a
 // type with several creation modes renders one affordance that opens the

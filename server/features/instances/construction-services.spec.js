@@ -7,7 +7,9 @@ vi.mock('../files/service.js', () => ({
   getFileBuffer: vi.fn(async () => Buffer.from('uploaded'))
 }));
 vi.mock('../instance-revisions/service.js', () => ({
-  ensureForEntitySnapshot: vi.fn(async () => ({ _id: 'rev-1', data: { number: 1, contentHash: 'sha256:x' } }))
+  ensureForEntitySnapshot: vi.fn(async () => ({ _id: 'rev-1', data: { number: 1, contentHash: 'sha256:x' } })),
+  getCurrentForEntity: vi.fn(),
+  pinnedRevisionFile: vi.fn()
 }));
 vi.mock('../../core/access/service.js', () => ({
   hasInstanceAccess: vi.fn(() => true)
@@ -28,10 +30,11 @@ vi.mock('../cts-types/repository.js', () => ({
   listByOrganization: vi.fn(async () => [])
 }));
 
-import { applyConstructionService, serviceBackedConstruction } from './construction-services.js';
+import { applyConstructionService, serviceBackedConstruction, storedConstructionDraft } from './construction-services.js';
 import { executeConnectorService, constructionsForOrganization } from '../plugins/service.js';
 import * as filesService from '../files/service.js';
 import * as pluginInstalls from '../plugins/repository.js';
+import * as revisionService from '../instance-revisions/service.js';
 
 const connectDB = (await import('~/server/db/mongo')).connectDB;
 const db = { collection: vi.fn() };
@@ -239,5 +242,156 @@ describe('service-backed construction executor payloads (SPEC §24)', () => {
       name: 'X',
       data: { template: 't1', parts: ['ghost'] }
     }, CONTEXT)).rejects.toThrow(/Construction input parts references ghost/);
+  });
+});
+
+describe('revision pinning (SPEC §24 version fabric)', () => {
+  const SOURCE_TYPE = {
+    id: 'dxftpl',
+    class: 'file',
+    version: 1,
+    revisions: 'geometry',
+    payload: { mime: ['application/dxf'], accept: ['.dxf'], maxSize: 1048576 },
+    fields: { name: { base: 'string', identifier: true } }
+  };
+  const SHEET_TYPE = {
+    id: 'sheetd',
+    class: 'file',
+    version: 1,
+    revisions: 'geometry',
+    payload: { mime: ['application/dxf'], accept: ['.dxf'], maxSize: 1048576 },
+    fields: {
+      name: { base: 'string', identifier: true },
+      template: { base: 'ref', accepts: ['dxftpl'] },
+      parts: { base: 'list', itemType: { base: 'ref', accepts: ['dxftpl'] } }
+    },
+    operators: {
+      place: {
+        id: 'place',
+        species: 'construct',
+        input: {
+          base: 'record',
+          fields: {
+            name: { base: 'string', nullable: true },
+            template: { base: 'ref', accepts: ['dxftpl'] },
+            parts: { base: 'list', itemType: { base: 'ref', accepts: ['dxftpl'] } }
+          }
+        }
+      }
+    }
+  };
+
+  function stubStored(type = 'dxftpl') {
+    const coll = stubCollection();
+    const stored = new Map([
+      ['t1', { _id: 't1', type, organizationId: 'org-1', name: 'Sheet template', data: {}, payload: { fileId: 'f-t', mime: 'application/dxf' } }],
+      ['p1', { _id: 'p1', type, organizationId: 'org-1', name: 'frame', data: {}, payload: { fileId: 'f-1', mime: 'application/dxf' } }]
+    ]);
+    coll.findOne.mockImplementation(query => stored.get(String(query._id)) || null);
+    return coll;
+  }
+
+  beforeEach(() => {
+    pluginInstalls.findDeclarationByTypeId.mockImplementation(async (organizationId, typeId) => (
+      typeId === 'sheetd' ? SHEET_TYPE
+        : typeId === 'dxftpl' ? SOURCE_TYPE
+          : typeId === 'drawing' ? DRAWING_TYPE
+            : null
+    ));
+    constructionsForOrganization.mockImplementation(async organizationId => (
+      organizationId === 'org-1' ? { drawing: { place: 'plugin.td.place-dxf' }, sheetd: { place: 'plugin.td.place-dxf' } } : {}
+    ));
+    revisionService.getCurrentForEntity.mockResolvedValue({ _id: 'rev-9' });
+    revisionService.pinnedRevisionFile.mockResolvedValue(null);
+  });
+
+  it('stamps resolved revisions onto declared ref fields and provenance sources', async () => {
+    stubStored();
+    executorOutput({ data: { geometry: { ok: true } } });
+
+    const merged = await applyConstructionService('sheetd', 'place', {
+      name: 'Site plan',
+      data: { template: 't1', parts: ['p1'] },
+      provenance: { op: 'cts.construct:n1:place', sources: [{ type: 'drawing', id: 't1' }] }
+    }, CONTEXT);
+
+    expect(merged.fields.template).toEqual({ type: 'dxftpl', id: 't1', revision: 'rev-9' });
+    expect(merged.fields.parts).toEqual([{ type: 'dxftpl', id: 'p1', revision: 'rev-9' }]);
+    expect(merged.provenance.sources).toEqual([
+      { type: 'drawing', id: 't1' },
+      { type: 'dxftpl', id: 't1', revision: 'rev-9' },
+      { type: 'dxftpl', id: 'p1', revision: 'rev-9' }
+    ]);
+    const [, call] = executeConnectorService.mock.calls[0];
+    expect(call.parameters.refs.template.revision).toBe('rev-9');
+    expect(call.parameters.pins).toEqual({
+      template: { type: 'dxftpl', id: 't1', revision: 'rev-9' },
+      parts: [{ type: 'dxftpl', id: 'p1', revision: 'rev-9' }]
+    });
+  });
+
+  it('stamps no field when the type declares no ref field, and no pin when the source type has no revision scope', async () => {
+    stubStored('drawing');
+    revisionService.getCurrentForEntity.mockResolvedValue(null);
+    executorOutput({ data: { geometry: { ok: true } } });
+
+    const merged = await applyConstructionService('drawing', 'place', {
+      name: 'Site plan',
+      data: { template: 't1', parts: ['p1'] }
+    }, CONTEXT);
+
+    expect(merged.fields.template).toBeUndefined();
+    expect(merged.fields.parts).toBeUndefined();
+    expect(merged.provenance).toBeUndefined();
+    expect(revisionService.getCurrentForEntity).not.toHaveBeenCalled();
+  });
+
+  it('reads a stored pin against the frozen revision bytes', async () => {
+    stubStored();
+    revisionService.pinnedRevisionFile.mockResolvedValue({ fileId: 'f-rev3', bucket: 'files', mime: 'application/dxf', name: 'old.dxf' });
+    filesService.getFileBuffer.mockImplementation(async fileId => Buffer.from(fileId === 'f-rev3' ? 'frozen' : 'uploaded'));
+    executorOutput({ data: { geometry: { ok: true } } });
+
+    const merged = await applyConstructionService('sheetd', 'place', {
+      name: 'Re-run',
+      data: { template: { type: 'dxftpl', id: 't1', revision: 'rev-3' } }
+    }, CONTEXT);
+
+    const [, call] = executeConnectorService.mock.calls[0];
+    expect(call.parameters.refs.template.payloadBase64).toBe(b64('frozen'));
+    expect(call.parameters.refs.template.revision).toBe('rev-3');
+    expect(merged.fields.template).toEqual({ type: 'dxftpl', id: 't1', revision: 'rev-3' });
+  });
+
+  it('refuses a stored pin whose revision is gone', async () => {
+    stubStored();
+    revisionService.pinnedRevisionFile.mockResolvedValue(null);
+
+    await expect(applyConstructionService('sheetd', 'place', {
+      name: 'Re-run',
+      data: { template: { type: 'dxftpl', id: 't1', revision: 'rev-gone' } }
+    }, CONTEXT)).rejects.toThrow(/Pinned revision rev-gone no longer exists/);
+  });
+
+  it('builds the stored-inputs draft from declared fields, replay parameters, and source pins', () => {
+    const record = {
+      type: 'sheetd',
+      name: 'Site plan',
+      fields: { template: { type: 'dxftpl', id: 't1', revision: 'rev-3' } },
+      provenance: {
+        op: 'cts.construct:n1:place',
+        sources: [{ type: 'dxftpl', id: 't1', revision: 'rev-3' }, { type: 'dxftpl', id: 'p1', revision: 'rev-4' }],
+        effective: { via: 'place', parameters: { template: 't1', parts: ['p1'] } }
+      }
+    };
+
+    const draft = storedConstructionDraft(record, SHEET_TYPE, 'place');
+
+    expect(draft.data).toEqual({
+      template: { type: 'dxftpl', id: 't1', revision: 'rev-3' },
+      parts: [{ type: 'dxftpl', id: 'p1', revision: 'rev-4' }]
+    });
+    expect(draft.fields).toEqual(record.fields);
+    expect(draft.provenance).toEqual(record.provenance);
   });
 });

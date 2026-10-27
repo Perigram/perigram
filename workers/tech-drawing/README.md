@@ -28,8 +28,9 @@ same-origin. Orgs connect the executor through the install's
   ([`assets/vendor/cad-viewer`](./assets/vendor/cad-viewer/README.md)) —
   the base for DXF editing; facade's cassette designer consumes the same
   bundle through its declared cross-plugin dependency.
-- `dxf-source` declares the `geometry` revision scope: the revisioned
-  payload channel serves replace-in-place for DXF templates.
+- `dxf-source` and `svg-file` declare the `geometry` revision scope and
+  `sketch` the `scene` scope: the revisioned payload channel serves
+  replace-in-place for drawing templates (SPEC §24).
 
 Runs from the repo mount (compose `tech-drawing-executor`, port 8792) —
 nothing here imports platform code.

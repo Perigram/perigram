@@ -129,6 +129,15 @@ Parent: [server/features](../README.md).
   feature `resolveInstanceFeature` compiles grants against) with the type
   id as the type-id filter, so a write requires a compiled process
   grant — fail-closed.
+- Version fabric (SPEC §24): every payload write on a revision-scoped
+  type records an immutable revision through `recordPayloadRevision` —
+  creation mints revision 1 (`created`), replacement and re-derive bump
+  (`payload-replaced`, `rederived`). `rederive(id, mode, { provenance })`
+  is the construct re-run: it rebuilds the stored-inputs draft
+  (`storedConstructionDraft`), executes the bound construction service
+  against the refs' pinned revisions, and patches the same instance's
+  fields, payload, and provenance under the same access gate as payload
+  replacement.
 - Field updates (`patch`): `PATCH /api/instances/:type/:id` carries the
   same wire patch `processUpdate` writes (the `name` rename channel,
   `fields` leaves, non-tenancy `lineage` edges, `relations` — state
@@ -220,3 +229,10 @@ bare `genericCreate` — the per-call declaration check refuses it.
 See [plugins](../plugins/README.md) for the listing grammar and
 [workers/facade](../../../workers/facade/README.md) for the reference
 executor.
+
+Ref resolution stamps the version fabric (SPEC §24): every resolved ref
+of a revision-scoped source type pins the revision it read — a declared
+ref field on the constructed record stores `{ type, id, revision }`,
+and the causal refs in `provenance.sources` carry the same `revision`
+slot. A stored pin re-reads the frozen revision bytes (a missing pin
+refuses); a ref with no pin follows the source's current payload.

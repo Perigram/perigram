@@ -45,7 +45,14 @@ v ::= String | Number | Boolean | Instant        -- atoms; Instant is the only
     | Id                                         -- opaque; meaningless without
                                                  -- a Ref that carries it
     | Ref(T, Id)                                 -- typed pointer to a stored
-                                                 -- instance of type T
+                                                 -- instance of type T; on the
+                                                 -- wire `{ type, id }` follows
+                                                 -- the source's latest
+                                                 -- revision, `{ type, id,
+                                                 -- revision }` pins the named
+                                                 -- revision (root SPEC §24,
+                                                 -- owner direction
+                                                 -- 2026-10-27)
     | Blob                                       -- { fileId, mime, size };
                                                  -- storage handle (GridFS)
     | (l1: v1, ... ln: vn)                       -- Record (labeled product)

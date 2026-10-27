@@ -29,7 +29,8 @@ const props = defineProps({
   variant: { type: String, default: 'inline' },
   compactLayout: { type: String, default: 'row' },
   contextActionEntries: { type: Array, default: () => [] },
-  chipClass: { type: [String, Array, Object], default: '' }
+  chipClass: { type: [String, Array, Object], default: '' },
+  revision: { type: String, default: null }
 });
 
 const loaded = ref(null);
@@ -85,6 +86,12 @@ const compactDisplay = computed(() => resolveInstanceDisplayContract({
 const typeView = computed(() => typeById(generatedTypeId.value));
 const identityLabel = computed(() =>
   instanceRecordTitle(resolved.value, typeView.value) || t('common.unnamed'));
+// The version pin (SPEC §24): a locked revision rides the chip as its
+// own marker — the ref consumes that revision whatever the source's
+// current payload holds.
+const chipTitle = computed(() => props.revision
+  ? `${identityLabel.value} · ${t('common.pinnedRevision')}`
+  : identityLabel.value);
 const unresolvedLabel = computed(() => generatedEntityLabel(
   generatedTypeId.value || props.type,
   { t, te }
@@ -282,7 +289,7 @@ function executeContextualAction(action) {
         :class="[INSTANCE_CHIP_CLASS, chipClass, { 'cursor-pointer': refOpenable }, refOpenable ? chipInteractiveClass : null]"
         :role="refOpenable ? 'button' : undefined"
         :tabindex="refOpenable ? 0 : undefined"
-        :title="identityLabel"
+        :title="chipTitle"
         data-instance-card-interactive="true"
         @click="openRefPopup($event)"
         @keydown="onRefKeydown($event)"
@@ -291,6 +298,12 @@ function executeContextualAction(action) {
         <i :class="icon" class="shrink-0"></i>
         <span class="truncate">{{ resolvedId ? unresolvedLabel : $t('common.notAvailable') }}</span>
       </span>
+      <i
+        v-if="revision && resolved"
+        class="pi pi-lock shrink-0 text-muted"
+        :title="$t('common.pinnedRevision')"
+        aria-hidden="true"
+      />
     </template>
 
     <InstanceActionsPopover v-if="contextualActions.length">

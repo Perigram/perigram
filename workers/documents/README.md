@@ -51,6 +51,10 @@ types ride the generic instance machinery from the install snapshot.
 Runs from the repo mount (compose `documents-executor`, port 8791) —
 nothing here imports platform code.
 
+Every payload-bearing type declares the `content` revision scope: the
+revisioned payload channel serves replace-in-place and construction-time
+revision pinning for every file the plugin serves.
+
 ## Template fills (SPEC §24)
 
 The `fill` and `render-pdf` services are bound by the listing's
