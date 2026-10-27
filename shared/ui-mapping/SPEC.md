@@ -258,8 +258,8 @@ record's surface at no placement.
 - The identifier field is the identity slot: it renders once per surface
   as the title (header, card, row identity), and fact rows never repeat
   it — generated surfaces and the design-system fact contract alike.
-- The gallery projection serves preview-dominated collections: a payload
-  type whose declared preview renders visually, at large size. Every
+- The card grid serves preview-dominated collections: a payload
+  type whose declared preview renders visually. Every
   other collection resolves its shape-derived layout.
 
 ## Pins
