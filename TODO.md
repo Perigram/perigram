@@ -1568,7 +1568,16 @@ Answer to the owner's question: yes — the correct way is the class
 surface's own children slot over the one hierarchy matcher, budgeted
 like relation chips, with the lazy overlay for pool data. The fixtures
 spec's folder pin moves with the law (the stale comment asserted the
-table default). Specs: 176 unit green (design-system, ui-mapping,
-screen, fixtures, random world, module-imports, timeline).
+table default). En route, two latent defects surfaced and died:
+`childrenOfParent` dropped the edge map key (edges authoring no
+explicit `lineageKey` never matched — the same law the cross-cut's
+`incomingChildrenEdges` already carries), and the live probe caught a
+500 (the card expansion set read through its ref). Specs: 176 unit
+green (design-system, ui-mapping, screen, fixtures, random world,
+module-imports, timeline); SSR smoke 16; live verification
+`e2e/zz-round1617-verify.spec.js` → `.playwright/genui-round1617.json`:
+no identity-only tables, group cards carry membership chips at the
+budget cap.
+
 Status: WAITING owner verification.
 
