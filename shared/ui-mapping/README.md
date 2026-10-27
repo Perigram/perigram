@@ -403,6 +403,13 @@ order. Plain `updateInstance` edits, creates, relation link/unlink
 (owner-scoped), and event-triggered actions never qualify — they belong
 to their own surfaces.
 
+`constructRerunAction(actions, record)` derives the construct re-run
+(SPEC §24): a record whose `provenance.op` names a construct
+(`cts.construct:<action>:<mode>`) carries a `rerunInstance` row for that
+compiled action — icon-only refresh, `rerunOf` naming the action id it
+launches with `rerun: true`. The stored inputs are the run's inputs: the
+row prompts nothing (`planActionLaunch` → `run`).
+
 `createActionControls(actions)` collapses the collection toolbar's create
 set: creates targeting one type become a single control
 `{ action, group }` whose `group` carries every same-type sibling in

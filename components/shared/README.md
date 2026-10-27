@@ -426,7 +426,9 @@ access-filtered optional-reference lookup (with a directory-card fallback for
 the framework party types, so cross-tenant users and organizations still
 resolve to their name-level card), resolves the matching design-system
 entity card, and renders that card with
-`variant="inline"`. The record preview popup is the shared entity popup
+`variant="inline"`. A ref carrying a `revision` pin renders the lock glyph
+beside the chip (SPEC §24: the ref consumes that revision whatever the
+source's current payload holds). The record preview popup is the shared entity popup
 ([`EntityPopup.vue`](#entitypopupvue-with-useentitypopup): the referenced
 record's compiled detail screen — or its record floor — in the standard
 dialog); the chip, the

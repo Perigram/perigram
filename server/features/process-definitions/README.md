@@ -138,6 +138,11 @@ through the construction/update/delete adapters, `cts.command`/
 status runtime using its declared `state` reference — target path, axis
 (`state.axis` becomes the transition region), and note. `cts.emit`
 persists one `process_events` record and dispatches it to subscriber
+
+A construct action re-run (`rerun: true` in the execute body beside the
+constructed record's `instanceId`) skips the graph and re-derives the
+record through the instance service's `rederive` — the compiled action
+is the entry, the stored inputs are the run's inputs (SPEC §24).
 entries. Effect nodes
 are manual, automatic-from-socket, scheduled, or event-subscribed;
 time-driven status moves belong to

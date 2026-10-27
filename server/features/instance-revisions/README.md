@@ -40,6 +40,10 @@ workflow.
   content and stores the source snapshot.
 - `getCurrentForEntity()` returns the latest revision for a source entity and
   scope.
+- `pinnedRevisionFile(revisionId)` resolves a pinned ref's frozen bytes: the
+  revision's primary attachment `{ fileId, bucket, mime, name }` — the
+  construction seam reads it when a stored ref carries a revision pin
+  (SPEC §24).
 - `derivedFromRevision()` builds the canonical provenance fact for
   derived entities, such as revision provenance for cassette geometry
   revisions.

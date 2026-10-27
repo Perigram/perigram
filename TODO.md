@@ -575,22 +575,67 @@ AttachmentKind row.
   direction 2026-10-27): revisions are the version fabric — every file
   versions its content, derived records pin the revision they were
   derived from, and consumers read the pin. Ordered steps:
-  - [ ] Every file type declares a revision scope (payload/geometry/
-    content); types missing one gain it in their listings.
-  - [ ] Ref fields carry revision pinning: a stored ref either pins the
-    source revision or follows latest; pinning rides the ref shape, and
-    pickers/ref chips surface which.
-  - [ ] Construction-time ref resolution stamps the resolved revision
-    beside the stored ref on the derived record.
-  - [ ] Editor saves and payload uploads bump the source revision; every
-    consuming flow (fills, renders, nesting, exports, previews) reads
-    the pinned revision.
-  - [ ] Re-derive rides the compiled construct action (owner decision
-    2026-10-27): a re-run over the stored inputs executes against
-    current referenced revisions and updates the record's pins and
-    derived fields/payload — one mechanism for "re-render when the
-    template changed", "re-fill with new values", "re-derive the sheet
-    when cassettes changed".
+  - [ ] WAITING — owner verification: Every file type declares a revision
+    scope (payload/geometry/content); types missing one gain it in their
+    listings.
+  - [ ] WAITING — owner verification: Ref fields carry revision pinning:
+    a stored ref either pins the source revision or follows latest;
+    pinning rides the ref shape, and pickers/ref chips surface which.
+  - [ ] WAITING — owner verification: Construction-time ref resolution
+    stamps the resolved revision beside the stored ref on the derived
+    record.
+  - [ ] WAITING — owner verification: Editor saves and payload uploads
+    bump the source revision; every consuming flow (fills, renders,
+    nesting, exports, previews) reads the pinned revision.
+  - [ ] WAITING — owner verification: Re-derive rides the compiled
+    construct action (owner decision 2026-10-27): a re-run over the
+    stored inputs executes against current referenced revisions and
+    updates the record's pins and derived fields/payload — one mechanism
+    for "re-render when the template changed", "re-fill with new values",
+    "re-derive the sheet when cassettes changed".
+
+  ### Agent Notes (2026-10-27, revision fabric session)
+
+  Session `agent/rev-fabric-20261027-2155` (worktree
+  `.agent-worktrees/rev-fabric`). All five steps landed:
+
+  - Scopes: documents v3 (image, pdf-document, xlsx-workbook,
+    docx-document → `content`), tech-drawing v6 (svg-file → `geometry`).
+    Every payload-bearing file type now declares a scope. Payload-less
+    catalog types (pen-template, layer-standard, color) stay unscoped:
+    their content is fields and no channel writes field revisions today.
+  - Ref shape: CTS `checkValue` accepts `{ type, id, revision? }`
+    (absent pin follows latest); CTS SPEC §2 carries the wire law.
+  - Stamping: `applyConstructionService` resolves each ref's pin
+    (`getCurrentForEntity` on the source type's scope) and stamps
+    declared ref/list-of-ref fields with the pinned object plus every
+    causal ref in `provenance.sources` (the source slot survives
+    `provenanceFromWire`). Undeclared operator inputs (documents'
+    template/values) pin in provenance only — the closed row stays
+    closed.
+  - Bumps: `recordPayloadRevision` is the one mint home (creation
+    `created`, replace `payload-replaced`, re-derive `rederived`);
+    editor saves already rode the revisioned PUT payload channel.
+    Pinned reads: `resolveRefValue` reads the frozen bytes through
+    `pinnedRevisionFile`; a stored pin whose revision is gone refuses.
+  - Re-derive: `rederive` on the instance service rebuilds the
+    stored-inputs draft (`storedConstructionDraft`: declared ref fields
+    with pins, replay parameters from provenance, source pins recovered
+    from provenance.sources) and patches fields/payload/provenance. The
+    compiled construct action is the entry: `rerun: true` beside the
+    constructed record's instanceId on the action-run transport skips
+    the graph and re-derives (explicit flag — a context instance alone
+    stays parent context for a fresh create). `constructRerunAction`
+    derives the refresh affordance on a constructed record's detail
+    header and rows; the chip lock glyph surfaces pins
+    (`common.pinnedRevision`).
+  - Validation: 917 tests green across cts/processes/ui-mapping/
+    instances/plugins/documents/tech-drawing; both listings validate
+    (`perigram-plugin validate`); check-arch, framework:validate, SSR
+    smoke 16 green; check-docs reports only the pre-existing worktree
+    jagua-rs link. Live-stack verification pending (the re-derive run
+    and the pinned chip render on the next stack pass).
+
 - [ ] Pinned-entity-ref palette source: a `source` node emitting one
   authored entityRef (the "select exact instance" producer), so a graph can
   wire a pinned record into any construct's ref sockets. Authored socket
