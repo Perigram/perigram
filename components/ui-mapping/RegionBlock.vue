@@ -300,18 +300,12 @@ const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[M
 // The containment cross-cut's data (SPEC → Surface context laws): an
 // unscoped list of a type someone's children edge names renders every
 // row WITH its parent — and the parent records are not in this surface's
-// pool (it loads the child type). A group collection rides the same
-// seam in the other direction: its cards carry membership, so the
-// children edge's target types load lazily too. Overlaid types never
-// gate correctness — an unloaded type just renders without its context.
+// pool (it loads the child type). Overlaid types never gate
+// correctness — an unloaded type just renders without its context.
 const parented = computed(() => props.node.crossCut === true);
-const parentTypeIds = computed(() => (parented.value ? [...new Set(
+const overlayTypeIds = computed(() => (parented.value ? [...new Set(
   incomingChildrenEdges(props.bundle, props.node.typeId).map(edge => edge.parentTypeId)
 )] : []));
-const childTypeIds = computed(() => (props.node.surfaceKind === 'list' && props.node.type?.class === 'group'
-  ? [...new Set(Object.values(props.node.type.edges?.children || {}).flatMap(edge => edge.types || []))]
-  : []));
-const overlayTypeIds = computed(() => [...new Set([...parentTypeIds.value, ...childTypeIds.value])]);
 const loadedTypes = ref({});
 const effectivePool = computed(() => {
   if (!Object.keys(loadedTypes.value).length) return props.pool;
