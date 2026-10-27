@@ -803,6 +803,9 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     }
     // Rebind keeps a still-valid path/relation selection and defaults
     // an invalid one.
+    if (updates.inputDefaults !== undefined) {
+      throw new Error(`Socket defaults ride setInputDefault (${recordId}, input, value) — configure writes record semantics only`);
+    }
     const { typeId, ...rest } = updates;
     Object.assign(record, rest);
     if (typeId !== undefined) setTypeBinding(record, typeId);
@@ -828,7 +831,19 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
   function setInputDefault(recordId, socketId, value) {
     const record = recordOf(recordId);
     if (!record) throw new Error(`No process node ${recordId}`);
+    const inputPorts = resolveCatalogNodePorts(record, sync.catalogContext(record)).inputs;
+    const port = inputPorts.find(candidate => candidate.id === socketId);
+    if (!port) {
+      throw new Error(`${recordId} has no input socket ${socketId} — valid: ${inputPorts.map(candidate => candidate.id).join(', ') || '(none)'}`);
+    }
     assertAuthoredValue(record.kind, `${recordId}:${socketId}`, value);
+    if (port.type?.base === 'entityRef' && value != null && value !== '') {
+      const pickerShape = typeof value === 'object' && !Array.isArray(value)
+        && typeof value.type === 'string' && typeof value.id === 'string';
+      if (!pickerShape) {
+        throw new Error(`${recordId}:${socketId} authors an entity reference as {type, id}`);
+      }
+    }
     const inputDefaults = { ...(record.inputDefaults || {}) };
     if (value == null || value === '') delete inputDefaults[socketId];
     else inputDefaults[socketId] = { branches: [{ path: [], items: [value] }] };

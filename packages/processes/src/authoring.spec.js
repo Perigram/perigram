@@ -151,6 +151,27 @@ describe('headless definition authoring', () => {
     expect(record.inputDefaults.index).toEqual({ branches: [{ path: [], items: [0] }] });
   });
 
+  it('refuses socket defaults through configure — setInputDefault is the only channel', () => {
+    const context = authoring();
+    context.drop('itemAtPosition', { id: 'first' });
+    expect(() => context.configure('first', { inputDefaults: { index: 0 } }))
+      .toThrow(/setInputDefault/);
+  });
+
+  it('refuses defaults on sockets the node does not declare', () => {
+    const context = authoring();
+    context.drop('itemAtPosition', { id: 'first' });
+    expect(() => context.setInputDefault('first', 'banana', 0))
+      .toThrow(/no input socket banana/);
+  });
+
+  it('refuses bare ids as entity-reference defaults — the picker shape is the law', () => {
+    const context = authoring();
+    context.drop('mutate', { id: 'mut' });
+    expect(() => context.setInputDefault('mut', 'entity', '6ae079fcbc3d8a96eea8cc55'))
+      .toThrow(/\{type, id\}/);
+  });
+
   it('rejects incompatible wires and single-socket double wires at the gate', () => {
     const context = authoring();
     context.drop('literal', { id: 'text' });

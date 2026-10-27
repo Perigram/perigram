@@ -233,10 +233,18 @@ function normalizeProcessInputDefaults(processNodes = {}, domain = {}) {
     let ports = [];
     try { ports = resolveCatalogNodePorts(record, catalogContext(domain, record)).inputs; } catch { ports = []; }
     const accessById = new Map(ports.map(port => [port.id, port.access || 'item']));
+    // Smuggled defaults on sockets the node does not declare die here —
+    // only when the port set actually resolved (a draft overlay whose
+    // domain gap fails resolution keeps its defaults with the item
+    // fallback, the load-time contract).
+    const resolved = ports.length > 0;
+    const declared = Object.entries(record.inputDefaults)
+      .filter(([socketId]) => !resolved || accessById.has(socketId));
+    if (!declared.length) return [id, record];
     const mutationEffect = isMappedMutation(record);
     return [id, {
       ...record,
-      inputDefaults: Object.fromEntries(Object.entries(record.inputDefaults).map(([socketId, value]) => {
+      inputDefaults: Object.fromEntries(declared.map(([socketId, value]) => {
         const access = accessById.get(socketId) || 'item';
         // Mapped mutation sockets declare List access; a scalar authored
         // default is one broadcast item, not an arity error.
