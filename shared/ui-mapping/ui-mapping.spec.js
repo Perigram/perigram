@@ -806,16 +806,16 @@ describe('weight-driven arrangement', () => {
     expect(resolveContainerTraits({ widthRem: 45, hostKind: 'popup' }).width).toBe('medium');
     expect(resolveContainerTraits({ widthRem: 45, hostKind: 'unknown-host' }).height).toBe('flow');
     expect(resolveContainerTraits({ widthRem: 45, density: 2 }).density).toBe(2);
-    // Density derives from the host profile: bounded hosts ride the
-    // compact tier, and a narrow box caps at it.
-    expect(resolveContainerTraits({ hostKind: 'popup' }).density).toBe(0.75);
+    // Density derives from the host profile alone: data-dense panes ride
+    // the compact tier; reading hosts keep the page rhythm at any width.
+    expect(resolveContainerTraits({ hostKind: 'popup' }).density).toBe(1);
+    expect(resolveContainerTraits({ hostKind: 'dialog' }).density).toBe(1);
     expect(resolveContainerTraits({ hostKind: 'pane' }).density).toBe(0.75);
-    expect(resolveContainerTraits({ widthRem: 24, hostKind: 'page' }).density).toBe(0.75);
+    expect(resolveContainerTraits({ widthRem: 24, hostKind: 'page' }).density).toBe(1);
     expect(resolveContainerTraits({ widthRem: 70, hostKind: 'page' }).density).toBe(1);
     // A placement box measures its own width and inherits the host's
-    // height/scroll; a narrow box caps at the compact rhythm whatever
-    // density it inherits.
-    expect(resolveContainerTraits({ widthRem: 24, height: 'bounded', scroll: 'surface', density: 1 }))
+    // height/scroll and density unchanged.
+    expect(resolveContainerTraits({ widthRem: 24, height: 'bounded', scroll: 'surface', density: 0.75 }))
       .toEqual({ width: 'narrow', widthRem: 24, height: 'bounded', scroll: 'surface', density: 0.75 });
     expect(resolveContainerTraits({ widthRem: 45, height: 'bounded', scroll: 'surface', density: 1 }).density).toBe(1);
   });

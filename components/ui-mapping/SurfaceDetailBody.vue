@@ -60,7 +60,7 @@
             />
           </div>
           <div v-else :class="d.specRow">
-            <span class="text-body text-muted">{{ field.label }}</span>
+            <span class="text-label text-muted">{{ field.label }}</span>
             <InlineField
               :field="field"
               :editable="editable"

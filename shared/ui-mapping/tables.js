@@ -191,8 +191,8 @@ export const CONTAINER_WIDTH_STEPS = Object.freeze({
 export const HOST_PROFILES = Object.freeze({
   page: { height: 'flow', scroll: 'page', width: 'wide', density: 1 },
   pane: { height: 'bounded', scroll: 'surface', width: 'medium', density: 0.75 },
-  dialog: { height: 'bounded', scroll: 'surface', width: 'medium', density: 0.75 },
-  popup: { height: 'bounded', scroll: 'surface', width: 'narrow', density: 0.75 },
+  dialog: { height: 'bounded', scroll: 'surface', width: 'medium', density: 1 },
+  popup: { height: 'bounded', scroll: 'surface', width: 'narrow', density: 1 },
   'mobile-tab': { height: 'flow', scroll: 'page', width: 'narrow', density: 0.75 }
 });
 
@@ -256,7 +256,7 @@ export const LAYOUT = Object.freeze({
   stack: 'flex flex-col gap-6',
   stackTight: 'flex flex-col gap-3',
   row: 'flex flex-wrap items-center gap-2',
-  labelCell: 'shrink-0 text-body text-muted',
+  labelCell: 'shrink-0 text-label text-muted',
   rowBetween: 'flex flex-wrap items-center justify-between gap-2',
   factCell: 'flex min-w-0 flex-col gap-1',
   // Container-relative form grid: the utility body lives in the global
