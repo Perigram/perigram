@@ -559,10 +559,23 @@ AttachmentKind row.
     `applyConstructionService` refuses with the structured body; the
     create dialog renders the list. Focused specs: construction
     services, both executors' engine specs.
-  - [ ] Template lifecycle: replacement is the generic file-detail
-    affordance on every revision-scoped file type (new bytes through the
-    revisioned payload channel); retirement is a compiled remove
-    construct owned by the process definition that stations the type.
+  - [ ] WAITING — owner verification: Template lifecycle: replacement is
+    the generic file-detail affordance on every revision-scoped file type
+    (new bytes through the revisioned payload channel); retirement is a
+    compiled remove construct owned by the process definition that
+    stations the type.
+
+    ### Agent Notes (2026-10-27, replacement half)
+
+    `ReplacePayloadAction` renders in every record header whose type
+    declares payload + revisions (SPEC §24): new bytes through the
+    revisioned `PUT /api/instances/:type/:id/payload` channel — the
+    record keeps identity, pins, and history. Write-gated like the editor
+    action (`resolveTypeFeature` + the shared grant evaluator); accept
+    list narrows to the declared MIME set when it carries no wildcards;
+    saves emit the shared instance event. Retirement (the remove
+    construct) stays open — the compiler already compiles `cts.remove`
+    as the admin-only manual delete action; verification below.
   Landed beside the program: the per-kind field whitelist (every gesture
   value validates against the node contract table — configure refuses
   `inputDefaults`, `setInputDefault` refuses undeclared sockets,
