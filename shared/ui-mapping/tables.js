@@ -296,6 +296,11 @@ export const LAYOUT = Object.freeze({
   // background is not clipped by its border-radius, so rows round by
   // clipping. The one constant every table rowClass channel returns.
   rowSurface: '[clip-path:inset(0_round_var(--p-border-radius-xl))]',
+  // The row-surface recipe's other half: separated cell borders leave
+  // the ladder-step gap between the rounded content rows, so each row
+  // reads as its own surface card over the transparent table box (the
+  // pt table channel carries it).
+  rowSurfaceTable: 'border-separate border-spacing-x-0 border-spacing-y-1',
   bounded: 'w-full max-w-[var(--ck-bounded-grid-item-max-width)]',
   sectionTitle: 'text-label text-muted',
   // The record-header row is container-relative, never viewport-relative —
@@ -393,7 +398,7 @@ export const LAYOUT_ATOMS = Object.freeze({
 export const LAYOUT_AMBIENT = Object.freeze({
   cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText']),
   clamps: Object.freeze(['nameClamp', 'chipClamp', 'linkClamp']),
-  chrome: Object.freeze(['clip', 'rowSurface', 'bounded', 'scrollX', 'dialog', 'headerRow', 'headerIdentity', 'ganttIdentity']),
+  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'headerRow', 'headerIdentity', 'ganttIdentity']),
   geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
 });
 

@@ -7,10 +7,7 @@
     <template #content>
       <div :class="LAYOUT.stackTight">
         <div :class="LAYOUT.rowBetween">
-          <div :class="LAYOUT.row">
-            <i :class="glyph" />
-            <span class="text-section-heading">{{ instanceLabel }}</span>
-          </div>
+          <span class="text-section-heading">{{ instanceLabel }}</span>
           <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
         </div>
         <SurfaceDetailBody v-bind="detailBodyProps" variant="detail" v-on="detailBodyEvents" />
@@ -19,7 +16,6 @@
   </Card>
 
   <div v-else :class="['min-w-0', LAYOUT.row]">
-    <i :class="glyph" />
     <Button
       v-if="openable"
       link
@@ -49,7 +45,7 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import { useI18n } from 'vue-i18n';
-import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, titleFor, iconFor, stateDisplayFor, startCaseKey, isIdentifierField, typeIsQuantitative } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, titleFor, stateDisplayFor, startCaseKey, isIdentifierField, typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import SurfaceDetailBody from './SurfaceDetailBody.vue';
 
@@ -96,7 +92,6 @@ const detailBodyEvents = {
 
 const { t } = useI18n();
 const instanceLabel = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
-const glyph = computed(() => iconFor(props.type, props.instance));
 const statusValue = computed(() => props.instance?.state || null);
 const statusTag = computed(() => {
   if (!statusValue.value) return null;

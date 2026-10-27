@@ -130,6 +130,10 @@ const { te, t } = useI18n();
 const rowSurfaceClass = () => LAYOUT.rowSurface;
 const tablePt = {
   root: { class: 'bg-transparent' },
+  // The row-surface recipe's separation half: the table element carries
+  // it through PrimeVue's pt channel (SPEC §22.10's sanctioned recipe
+  // exception, like the rowClass clip).
+  table: { class: LAYOUT.rowSurfaceTable },
   headerRow: { class: 'bg-transparent text-muted' },
   headerCell: { class: 'bg-transparent text-muted' }
 };

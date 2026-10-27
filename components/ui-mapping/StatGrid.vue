@@ -4,7 +4,6 @@
       <template #title>
         <div :class="LAYOUT.rowBetween">
           <div :class="LAYOUT.row">
-            <i :class="iconFor(type)" class="text-muted" />
             <Button
               v-if="openable"
               link
@@ -34,7 +33,7 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { useI18n } from 'vue-i18n';
-import { LAYOUT, analyzeTypeShape, titleFor, iconFor, formatQuantity, stateDisplayFor } from '#shared/ui-mapping/index.js';
+import { LAYOUT, analyzeTypeShape, titleFor, formatQuantity, stateDisplayFor } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },

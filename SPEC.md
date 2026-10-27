@@ -1320,15 +1320,18 @@ DataTable, DataView, Timeline, or any other PrimeVue collection —
 rows, cards, and entries ride the component's own rhythm and size
 variants. Generator spacing lives at the arrangement level (section
 rhythm, region stacks, the grid-gap token) and in the preset's token
-layer; a utility class inside a PrimeVue component's internals is a
-defect.
+layer; the row-surface recipe carries its own row separation through
+the pt table channel (separated cell borders, the ladder-step gap
+between the rounded rows). A utility class inside a PrimeVue
+component's internals is a defect.
 
 ### 22.11 Group surfaces carry their membership (owner direction
 2026-10-27)
 
 A group-class instance renders as a group in collection surfaces: its
 card carries its membership — the children edge's instances as budgeted
-reference chips, flat, one level; a child opens its own surface. No tree
+reference chips, flat, one level; a child opens its own surface, and
+the budget's overflow opens the group's own record popup. No tree
 projection: a class's list surface stays flat, and hierarchy navigation
 stays the workspace explorer's. Group collections derive the card grid —
 the class's identity law (identity is its membership) makes membership
@@ -1368,9 +1371,12 @@ its child collections alone; the hierarchy tree projection is retired.
 File and instance references render through the shared chip recipes the
 chat surfaces own: file chips name the file, instance chips ride
 InstanceInlineRef's bordered default. A boolean renders as the checkbox
-state it is. A homogeneous collection never repeats the type name per
-card; only mixed-type contexts and containment context carry type
-identity. A collection's count renders only for loaded, accessible,
+state it is. A homogeneous collection never repeats the type name or
+glyph per card; the collection's own title bar and the record header's
+avatar carry type identity, and only mixed-type contexts and
+containment context repeat it. A card's beyond-budget overflow opens
+the record's popup — the record surface carries the full set; a type
+with no record surface counts. A collection's count renders only for loaded, accessible,
 non-empty collections. The record header is the record's one identity
 surface: the type glyph beside the title is its type identity, and no
 host heading, subtitle, or dialog title repeats the record's name or

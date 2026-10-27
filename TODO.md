@@ -1701,3 +1701,40 @@ create is covered next stack run by process-generated-screen's child
 region leg).
 
 Status: WAITING owner verification.
+
+## Table row rhythm, card overflow, and icon noise (owner direction
+2026-10-27)
+
+Law: SPEC §22.8 (glyph law, card overflow), §22.10 (row-surface
+separation), §22.11 (membership overflow). Owner findings: the row gap
+the table had is still gone; a card's show-more should open the
+instance popup, not unwrap the card; typography is ugly with instance
+icons sprayed at random.
+
+- [x] The row gap returns as the row-surface recipe's other half:
+  `LAYOUT.rowSurfaceTable` (`border-separate border-spacing-x-0
+  border-spacing-y-1`) through the pt table channel — the recipe owns
+  the clip and the separation, §22.10 names it, and the scoped-style
+  wedge stays dead. (Round 12's cleanup had swept both the cell-padding
+  token and the separation; the token returned in round 16, the
+  separation now.)
+- [x] Card overflow opens the record popup (§22.8): the group
+  membership overflow and the board card's fact overflow open the
+  instance's record popup through `useEntityPopup` — the record surface
+  carries the full set — with the screen's open channel as fallback and
+  the `+n` count when nothing opens; the per-card unwrap state dies.
+- [x] The glyph follows the round-6 name law (§22.8): homogeneous
+  collections repeat neither the type name nor the type glyph per card
+  — the icons die on card-grid, board, stat, gantt, and row/detail
+  surfaces; the collection title bar, the record header avatar,
+  ParentRef, and reference chips keep their icons (mixed-type and
+  containment context).
+
+### Agent Notes (2026-10-27, round 18)
+
+Session `agent/genui-rowgap-20261027-2100` (worktree
+`.agent-worktrees/genui-round18`). The icon noise was the round-6 law
+half-applied: names died per card, glyphs stayed — every identity row
+in every projection carried a type glyph the collection's own header
+already states.
+Status: WAITING owner verification.
