@@ -7,20 +7,30 @@ chunk).
 
 Parent: [components](../README.md).
 
-- `CallPanel.vue` orchestrates the call: pre-join → connected stages, the
-  room event wiring (tracks, mute, speaking levels, connection quality,
-  reconnection), speaker/grid layouts with pinning and screen-share
-  spotlight, raise-hand, mid-call device settings, and mic/camera/share/
-  leave controls. The panel is a **bounded videocall surface**: the stage
-  owns every pixel of height, the root never page-scrolls (only the grid
-  and the film strip scroll inside their own boxes), and all controls live
-  in one docked bar below the stage — a wrapped header can never eat the
-  video area. A connection that drops while the panel stays mounted
-  returns to the pre-join stage. Device failures are per-track: a missing
-  or unplugged mic/camera toasts the failed device and the call continues
-  with that track off; only a failed connection fails the join, and the
-  half-joined room disconnects. Toggle state reads back through the
-  `LocalParticipant` `isMicrophoneEnabled`/`isCameraEnabled`/
+## Architecture: one session, view surfaces
+
+The connected room is **one session in `stores/calls.js`**: the LiveKit
+Room instance, a single event binder, and a reactive state block
+(participants with their camera/screen tracks, speaking, quality, local
+device states, layout, pin, reactions, device lists). Every call surface —
+workspace tab, full-screen dialog, floating window, mobile lane — is a
+thin view over that state; mounting or unmounting a surface never touches
+the connection. Panels register their room in the store's
+`mountedRooms` set while mounted; a connected session with no mounted
+surface parks into the desktop floating window automatically (SPEC §11) —
+on mobile the media dock's call lane entry takes it. A pending tab room
+suspends the auto-rule while the home workspace mounts the adopting tab.
+
+- `CallPanel.vue` renders the session: pre-join → connecting → connected
+  or failed stages, speaker/grid stages, the docked control bar, and the
+  mid-call device settings. It is a **bounded videocall surface**: the
+  stage owns every pixel of height, the root never page-scrolls (only the
+  grid and the film strip scroll inside their own boxes), and all controls
+  live in one docked bar below the stage. Device failures are per-track:
+  a missing or unplugged mic/camera toasts the failed device and the call
+  continues with that track off; only a failed connection fails the
+  session, and the failed session clears on retry. Toggle state always
+  reads the `LocalParticipant` `isMicrophoneEnabled`/`isCameraEnabled`/
   `isScreenShareEnabled` getters — `set*Enabled` resolves with the
   `LocalTrackPublication`, which stays truthy on mute.
 - `CallPrejoin.vue` owns device enumeration (device lists pick through
@@ -30,22 +40,30 @@ Parent: [components](../README.md).
   source (preview and meter restart on selection), the lists re-read after
   the permission grant and on `devicechange` (labels arrive with the
   grant), and the meter's stream stays live for its analyser to see
-  levels. It shows no room ids — the
-  caller is identified by the surface that opened the call.
-- `CallTile.vue` renders one participant or screen-share track: video or
-  Avatar fallback, speaking level dot, mute/hand badges, and pin. The
-  identity chip is the single name owner; the no-video fallback is the
-  avatar alone — a muted camera reads as the avatar, both locally and for
-  remote participants. The connection-quality glyph appears only for
-  degraded links (`fair`/`poor`/`lost`) — a healthy connection is the
-  silent default. The chip truncates, so long display names cannot
-  overflow a tile. The local camera self-view mirrors (the caller sees
-  themselves the way a mirror does); screen shares stay unmirrored.
+  levels. It shows no room ids — the caller is identified by the surface
+  that opened the call.
+- `CallTile.vue` renders one participant camera or screen-share track:
+  video or Avatar fallback, speaking level dot, mute/hand badges, and
+  pin. The video element attaches its track itself (`track.attach` on
+  mount and track swap, `track.detach` on unmount) — the demo's
+  VideoTrack semantics, so adaptiveStream visibility and dynacast
+  dimensions follow the real tiles. The identity chip is the single name
+  owner; the no-video fallback is the avatar alone — a muted camera reads
+  as the avatar, both locally and for remote participants. The
+  connection-quality glyph appears only for degraded links
+  (`fair`/`poor`/`lost`). The local camera self-view mirrors; screen
+  shares never mirror.
+- `CallAudioRenderer.vue` is the app-level remote-audio host, mounted
+  once by the app shell beside the session: every subscribed remote audio
+  track plays through LiveKit-attached elements kept off the visible
+  layout, so call audio survives every surface move and stays audible
+  while the session is parked (SPEC §11). Attached elements register with
+  the room, so the speaker device switch keeps working.
 - `CallWorkspacePage.vue` is the pane-hosted call surface used by the home
   workspace: the `CallPanel` stage plus the call's own conversation thread
   (`ChatSupport` embedded and pinned through its `conversation-key` prop,
-  meet-style stage + chat), with a pop-out control that hands the live call
-  to the shell's floating window and closes the tab. The stage mounts
+  meet-style stage + chat), with a pop-out control that seats the session
+  in the shell's floating window and closes the tab. The stage mounts
   full-bleed (no wrapper padding) so the panel's dock hairline spans the
   pane and the video keeps maximum area; the pop-out floats over the stage
   top-right like the tile pin control. It is responsive to
@@ -59,7 +77,8 @@ Parent: [components](../README.md).
   `StandardDialog` (viewport-capped root, non-scrolling content column)
   hosting one `CallPanel`, titled by the conversation or caller name.
   Mobile invites, chat-hosted calls, and the parked-call expansion all
-  host it; hosts that keep the call alive on close pass `park-on-unmount`.
+  host it. Closing the dialog keeps the session live — the desktop
+  floating window or the mobile lane takes it (SPEC §11).
 - `IncomingCalls.vue` is the global ring surface: floating invite cards
   (Join/Decline) mounted by the app shell for every authenticated user.
   A card carries the caller's avatar and name plus, for group and
@@ -68,16 +87,15 @@ Parent: [components](../README.md).
   Only *new* calls float; ongoing rooms are listed in the home sidebar and
   in chats. Joining opens the call as a home workspace tab (mobile keeps
   the full-screen dialog).
-- `CallFloatingWindow.vue` is the absolute floating call window: a draggable
-  fixed panel above the app that hosts a popped-out `CallPanel`. Dragging
-  rides the shared floating-panel drag kernel
+- `CallFloatingWindow.vue` is the absolute floating call window: a
+  draggable fixed panel above the app that hosts the session's desktop
+  parking surface. Dragging rides the shared floating-panel drag kernel
   ([`useFloatingDrag`](../../composables/README.md)): pointer-following
   move clamped to the viewport with the resting position persisted per
   browser; the window's size is resizable and persisted the same way.
-  Docking
-  returns the call to a home workspace tab. The mobile counterpart — the
-  parked-call entry in the top lane with its reopen dialog — lives beside
-  the now-playing dock in [components/media](../media/README.md).
+  Docking seats the session in a home workspace tab; closing leaves the
+  call. The mobile counterpart — the parked-call entry in the top lane —
+  lives beside the now-playing dock in [components/media](../media/README.md).
 
 ## Panel chrome
 
@@ -101,56 +119,32 @@ The user's call is one explicit machine in `stores/calls.js`, so every
 surface agrees on ringing:
 
 ```
-idle ──invite──▶ ringing ──accept──▶ joining ──CallPanel connected──▶ in-call
+idle ──invite──▶ ringing ──accept──▶ joining ──session connected──▶ in-call
   ▲                 │                                   │               │
   └─ decline/TTL ───┘◄───────────────────────────────────┴─── leave ─────┘
 ```
 
 `acceptInvite` is a single global transition — accepting or declining in
-any surface clears the ring for that room everywhere. `CallPanel` reports
-`joinRoom`/`leaveRoom`, and joining also stops any remaining ring for the
-room.
+any surface clears the ring for that room everywhere. The session's
+connect reports `joinRoom`; leaving and an unexpected disconnect report
+`leaveRoom`.
 
-The machine tracks the local user's participation and tolerates
-concurrent rooms: `in-call` holds while any joined room is live and falls
-back to ringing/idle when the last one is left. The room lifecycle —
-alive while *anyone* is in it — rides the activity snapshot: webhook
-`call.activity` events debounce into an `active-rooms` refetch
-(server-filtered to rooms with at least one participant) that drives the
-sidebar rows and the chat ongoing-call banner. Ringing is room-scoped too:
-an invite drops only after its room was observed running and then left
-the snapshot (a caller hanging up before the callee answers stops the
-ring immediately), while a room the snapshot never saw running — invites
-publish before the caller joins — lives out its 30s TTL. A failed
-refetch keeps the last snapshot, and a reopened connections stream
-refetches it, so missed webhook events self-heal.
+The machine tracks the local user's participation: `in-call` holds while
+the session is connected and falls back to ringing/idle when it ends. The
+room lifecycle — alive while *anyone* is in it — rides the activity
+snapshot: webhook `call.activity` events debounce into an
+`active-rooms` refetch (server-filtered to rooms with at least one
+participant) that drives the sidebar rows and the chat ongoing-call
+banner. Ringing is room-scoped too: an invite drops only after its room
+was observed running and then left the snapshot (a caller hanging up
+before the callee answers stops the ring immediately), while a room the
+snapshot never saw running — invites publish before the caller joins —
+lives out its 30s TTL. A failed refetch keeps the last snapshot, and a
+reopened connections stream refetches it, so missed webhook events
+self-heal.
 
-Surface transfers keep the WebRTC connection alive: popping a call out of
-its workspace tab (or docking a floating call back) marks the room as
-transferring; the unmounting `CallPanel` strips its listeners and parks
-the live room in the store, and the adopting panel rebinds the same
-events, rebuilds tiles from the current participants/publications, and
-continues the call without reconnecting. Parking also hands over the
-LiveKit-attached remote-audio elements: they keep playing in the calls
-store's hidden document-level sink, so a parked room stays audible, and
-the adopting panel moves the same elements into its own sink (never
-re-attaching — a fresh `track.attach()` would double the audio).
-Transferring a call that has not
-connected yet aborts the transfer — the adopting surface falls back to
-its own pre-join stage — and a panel that unmounts mid-join never reports
-the room joined. A parked room whose connection died while parked (its
-listeners were stripped for the park) adopts as nothing: the adopting
-panel checks the room state and falls back to its own pre-join stage.
-Navigation uses the same parking machinery: hosts that set
-`parkOnUnmount` (the workspace call tab, the chat call dialog, and the
-mobile top-lane dialog) park the live room when they unmount while
-connected — route change, pane tab switch, or dialog close. On desktop
-the shell floating window adopts it without reconnecting; on mobile the
-now-playing lane's call entry hosts it (see
-[components/media](../media/README.md)) — expand reopens the full-screen
-dialog whose panel adopts the parked room, and the entry's close leaves
-the call. The floating window's own close button keeps leave-on-close
-semantics.
+The session tolerates one connected room at a time: opening a session for
+another room tears the previous one down first.
 
 ## Surface routing
 
@@ -159,51 +153,49 @@ workspace tab is the default (navigating home when the caller lives on
 another route); organizations without a generated home workspace fall back
 to the floating window, and mobile keeps the full-screen dialog. Accepted
 invites and docked calls are parked as `pendingTabRoom` and consumed by
-the home workspace's watcher. The mobile and chat-hosted full-screen call
-dialogs are the one `CallDialog` host: the dialog root is capped to the
-viewport (full-bleed on mobile, viewport-minus-margins on desktop) and
-the content area is a non-scrolling flex column, so the call stage owns
-every pixel and the control dock stays in view; the dialog header names
-the conversation (chat host) or the caller (mobile invites). Room labels
-resolve through `composables/useCallRoomLabel.js` — the one resolver over
-the loaded conversation summaries and the auth store — so the floating
-window, the media dock's parked-call pill, and the sidebar's active-room
-rows agree on the name.
+the home workspace's watcher (the pending tab also suspends the
+floating-window auto-rule until the tab mounts). The mobile and
+chat-hosted full-screen call dialogs are the one `CallDialog` host: the
+dialog root is capped to the viewport (full-bleed on mobile,
+viewport-minus-margins on desktop) and the content area is a non-scrolling
+flex column, so the call stage owns every pixel and the control dock
+stays in view; the dialog header names the conversation (chat host) or
+the caller (mobile invites). Room labels resolve through
+`composables/useCallRoomLabel.js` — the one resolver over the loaded
+conversation summaries and the auth store — so the floating window, the
+media dock's parked-call pill, and the sidebar's active-room rows agree
+on the name.
 
 ## Media plumbing
 
 - Every track attachment rides LiveKit's own element pool
-  (`track.attach(element)` / `track.detach(element)`): the library owns
-  `srcObject`, autoplay, and the Safari/Firefox attach quirks, and the
-  attached elements register with the room — adaptiveStream visibility
-  (a backgrounded tab pauses video, returning resumes it) and dynacast
-  dimensions follow the real tiles. Detaching on unsubscribe, tile drop,
-  and teardown keeps the pool exact.
-- Remote audio plays through attached elements kept in a hidden sink
-  container inside the panel; the speaker device switch
-  (`room.switchActiveDevice('audiooutput', …)`) keeps working through
-  the same registrations. Local mic audio stays silent for its own
-  panel.
+  (`track.attach` / `track.detach`): the library owns `srcObject`,
+  autoplay, and the Safari/Firefox attach quirks, and attached elements
+  register with the room — adaptiveStream visibility (a backgrounded tab
+  pauses video, returning resumes it) and dynacast dimensions follow the
+  real elements. Call tiles attach in `CallTile`; remote audio attaches
+  in the app-level `CallAudioRenderer`.
+- Local mic audio stays silent for its own panel; the renderer plays
+  remote audio only.
 - A screen tile lives only while its track does (subscribe/unpublish drop
   it); a camera tile lives with its participant and falls back to the
-  avatar when its video mutes or unpublishes. Tiles are patched in place,
-  so audio-level ticks leave every surface untouched.
+  avatar when its video mutes or unpublishes.
 - Raise-hand and reactions ride a `call.events`-topic data channel;
   inbound data on any other topic is ignored.
-- The speaker spotlight is sticky: pinning and screen shares take it
-  immediately, but a new dominant speaker must hold the top audio level
-  for ~1.2s before the spotlight follows, otherwise per-tick level
-  changes would bounce (and remount) the spotlight tile mid-sentence.
-- Device lists in the mid-call settings refresh when the dialog opens and
-  on the room's `MediaDevicesChanged`.
+- Device lists live on the session, refreshed on connect (labels arrive
+  with the permission grant), when the settings dialog opens, and on the
+  room's `MediaDevicesChanged`.
 
 ## Layouts
 
-- Speaker view: one large spotlight plus a film strip (side strip on wide
-  containers through a container query). Spotlighted screen shares hug
-  their live source proportions — `CallTile` reports the video's aspect
-  from the element's own resize events and the tile caps itself to the
-  stage box — while cameras fill the stage (`object-cover`).
+- Speaker view follows the demo's focus semantics: **pinned tile, else
+  the first screen share, else the active speaker, else the first
+  tile**, rendered as one large spotlight plus a film strip (side strip
+  on wide containers through a container query). Pinning works per tile
+  — a camera or a screen share. Spotlighted screen shares hug their live
+  source proportions (the tile reports the video's aspect from the
+  element's own resize events and caps itself to the stage box) while
+  cameras fill the stage (`object-cover`).
 - Grid view is a self-fitting masonry: `repeat(auto-fit, minmax(min(100%,
   14rem), 1fr))` with fixed-aspect 16:9 cells, so the participant count and
   the pane width choose the column count together and the grid never
@@ -231,8 +223,8 @@ user topic and `call.activity` on the user/org topics, keeps the
 
 - the app shell mounts `IncomingCalls` for ring notifications;
 - the app shell mounts the now-playing dock (`components/media`), whose
-  mobile lane carries the parked-call entry for calls that lost their
-  surface (SPEC §11);
+  mobile lane carries the parked-call entry for the connected session
+  while it has no mounted surface (SPEC §11);
 - the generated home sidebar lists ongoing rooms as persistent flat rows
   under the Calls entry (label, participant count, row click joins),
   whose popup flyout lists ringable conversations;

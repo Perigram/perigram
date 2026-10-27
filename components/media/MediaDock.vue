@@ -102,7 +102,6 @@
         v-model:visible="callDialog"
         :room="parkedCallRoom"
         :label="parkedCallLabel"
-        park-on-unmount
     />
 </template>
 
@@ -120,11 +119,15 @@ const { t } = useI18n();
 const media = useMediaStore();
 const callsStore = useCallsStore();
 
-// A parked room with no adopting surface is the mobile strip call: the
-// desktop floating window clears its own room on adoption paths, so this
-// stays empty there.
+// The mobile lane's call entry: a connected session with no mounted
+// surface (the desktop auto-rule opens the floating window instead, which
+// is itself a mounted surface).
 const parkedCallRoom = computed(() => (
-    callsStore.parkedRoom && !callsStore.floatingRoom ? callsStore.parkedRoom : ''
+    callsStore.session?.state?.state === 'connected'
+        && !callsStore.floatingRoom
+        && !callsStore.mountedRooms.has(callsStore.session.state.name)
+        ? callsStore.session.state.name
+        : ''
 ));
 
 const callRoomLabel = useCallRoomLabel();
@@ -138,11 +141,8 @@ const openParkedCall = () => {
 };
 
 const leaveParkedCall = () => {
-    const room = parkedCallRoom.value;
-    if (!room) return;
     callDialog.value = false;
-    callsStore.dropLiveRoom(room);
-    callsStore.leaveRoom(room);
+    callsStore.leaveSession();
 };
 
 // Desktop drag: the media card follows the pointer, clamped to the

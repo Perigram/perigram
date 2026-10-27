@@ -2,7 +2,9 @@
     <!-- The one full-screen call dialog (calls README · Surface routing):
          the bounded `fill` host for mobile invites, chat-hosted calls, and
          the parked-call expansion. The header names the conversation or
-         caller; the panel owns every pixel below it. -->
+         caller; the panel owns every pixel below it. Closing the dialog
+         keeps the session live — the desktop floating window or the mobile
+         lane takes it (SPEC §11). -->
     <StandardDialog
         v-model:visible="visibleModel"
         size="full"
@@ -16,7 +18,6 @@
                 v-if="visibleModel && room"
                 :key="room"
                 :room="room"
-                :park-on-unmount="parkOnUnmount"
                 @closed="visibleModel = false"
             />
         </div>
@@ -31,10 +32,7 @@ import CallPanel from '~/components/calls/CallPanel.vue';
 const props = defineProps({
     visible: { type: Boolean, default: false },
     room: { type: String, default: '' },
-    label: { type: String, default: '' },
-    // Hosts that keep the call alive when the dialog closes set this; the
-    // panel parks the live room instead of leaving it.
-    parkOnUnmount: { type: Boolean, default: false }
+    label: { type: String, default: '' }
 });
 
 const emit = defineEmits(['update:visible']);

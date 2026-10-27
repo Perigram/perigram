@@ -155,6 +155,9 @@
         <IncomingCalls v-if="authStore.userIsSet" />
         <OfflineOutboxBadge v-if="authStore.userIsSet" />
         <CallFloatingWindow v-if="authStore.userIsSet" />
+        <!-- App-level remote-call audio: mounts once beside the room
+             session so call audio survives every surface move (SPEC §11). -->
+        <CallAudioRenderer v-if="authStore.userIsSet && callsStore.session" />
         <MediaDock v-if="authStore.userIsSet" />
         <!-- The profile settings popup follows the same single-host law:
              one instance for the whole layout, opened through the shared
@@ -194,6 +197,7 @@
     const ProfileSettingsDialog = defineAsyncComponent(() => import('~/components/shared/ProfileSettingsDialog.vue'))
     const CallFloatingWindow = defineAsyncComponent(() => import('~/components/calls/CallFloatingWindow.vue'))
     const MediaDock = defineAsyncComponent(() => import('~/components/media/MediaDock.vue'))
+    const CallAudioRenderer = defineAsyncComponent(() => import('~/components/calls/CallAudioRenderer.vue'))
     import { useCallsStore } from '~/stores/calls'
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'

@@ -83,7 +83,6 @@ class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rou
             v-model:visible="callDialog"
             :room="callRoom"
             :label="callHeaderLabel"
-            park-on-unmount
         />
         <StandardDialog
             v-model:visible="newChatDialog"

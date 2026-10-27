@@ -1,15 +1,19 @@
 import { defineStore } from 'pinia';
-import { computed, ref, watch } from 'vue';
+import { computed, markRaw, reactive, ref, shallowRef, watch } from 'vue';
 import { useAuthStore } from './auth';
 import { useConnections } from '~/composables/useConnections.js';
 import { roomForConversationKey } from '#shared/call-rooms.js';
 
+const CALL_DATA_TOPIC = 'call.events';
+
 /**
- * Global call-activity store and the app's call line state machine. The
- * canonical contract (line states, room-scoped ringing, surface transfers)
- * lives in components/calls/README.md; the store subscribes once for the
- * whole app so every surface sees the same snapshot without per-surface
- * polling.
+ * Global call-activity store: the app's call line state machine
+ * (canonical contract in components/calls/README.md) and the one live
+ * room session every call surface renders as a view. The room, its event
+ * binder, and its reactive participant/track state live here for the
+ * whole connected lifetime; panels, dialogs, the floating window, and
+ * the mobile lane are thin surfaces over the same state, so moving
+ * between them never touches the connection.
  */
 export const useCallsStore = defineStore('calls', () => {
     const authStore = useAuthStore();
@@ -24,27 +28,11 @@ export const useCallsStore = defineStore('calls', () => {
     const activeRoom = ref('');
     const pendingTabRoom = ref('');
     const floatingRoom = ref('');
-    // Live rooms parked during a surface transfer (tab → floating window or
-    // the reverse) or into the mobile top lane: the WebRTC connection
-    // survives and remote audio keeps playing through the store's hidden
-    // sink; the adopting CallPanel takes the room — and its audio
-    // attachments — over.
-    const parkedRoom = ref('');
-    const transferRoom = ref('');
-    const liveRooms = new Map();
-    const joinedRooms = new Set();
-    // Hidden document-level sink keeping parked rooms audible; created
-    // lazily client-side because the store also constructs on the server.
-    let parkedAudioSink = null;
-    function parkedAudioSinkEl() {
-        if (!parkedAudioSink) {
-            parkedAudioSink = document.createElement('div');
-            parkedAudioSink.dataset.parkedCallAudio = '';
-            parkedAudioSink.style.display = 'none';
-            document.body.appendChild(parkedAudioSink);
-        }
-        return parkedAudioSink;
-    }
+
+    // Rooms with a mounted call surface (any stage). The auto-surface rule
+    // parks the live session into the floating window (desktop) or the
+    // mobile lane exactly when its room has none.
+    const mountedRooms = reactive(new Set());
 
     let unsubscribeUser = null;
     let unsubscribeOrg = null;
@@ -98,7 +86,7 @@ export const useCallsStore = defineStore('calls', () => {
                 continue;
             }
             if (!invite.wasRunning) continue;
-            if (joinedRooms.has(invite.room)) continue;
+            if (session.value?.name === invite.room) continue;
             dismissIncoming(invite.room);
         }
     }
@@ -124,8 +112,6 @@ export const useCallsStore = defineStore('calls', () => {
             from: payload.from || '',
             fromName: payload.fromName || '',
             fromAvatarUrl: payload.fromAvatarUrl || '',
-            // Set by reconcileInvitesWithSnapshot once a snapshot lists the
-            // room; only then can a later absence dismiss the invite.
             wasRunning: false
         };
         incoming.value = [...incoming.value, invite];
@@ -157,10 +143,6 @@ export const useCallsStore = defineStore('calls', () => {
         pendingTabRoom.value = '';
     }
 
-    // CallPanel reports live connections; joining the room stops every
-    // remaining ring for it (the fix for surfaces that kept ringing). The
-    // machine tolerates concurrent rooms: in-call holds until the last
-    // joined room is left.
     function joinRoom(room = '') {
         if (!room) return;
         joinedRooms.add(room);
@@ -181,86 +163,6 @@ export const useCallsStore = defineStore('calls', () => {
         }
         activeRoom.value = '';
         status.value = incoming.value.length ? 'ringing' : 'idle';
-    }
-
-    // The floating window: a popped-out call that stays above the app.
-    function setFloating(room = '') {
-        if (!room) return;
-        floatingRoom.value = room;
-        status.value = 'joining';
-    }
-
-    function closeFloating() {
-        floatingRoom.value = '';
-    }
-
-    function popOutToFloating(room = '') {
-        if (!room) return;
-        transferRoom.value = room;
-        floatingRoom.value = room;
-    }
-
-    // Docking hands the floating call back to a home workspace tab; the
-    // floating window closes and the tab's panel adopts the parked room.
-    function beginTransferToTab(room = '') {
-        if (!room) return;
-        transferRoom.value = room;
-        floatingRoom.value = '';
-    }
-
-    // A transfer that cannot complete (the source panel was never connected,
-    // so nothing will be parked): the adopting surface falls back to its own
-    // pre-join stage.
-    function abortTransfer(room = '') {
-        if (room && transferRoom.value === room) transferRoom.value = '';
-    }
-
-    // Surface transfer: park the connected room (its CallPanel is unmounting
-    // because the call moved to another surface), then hand it to the
-    // adopting panel. The connection is never dropped mid-transfer. The
-    // handed-off audio attachments (track + LiveKit-attached element pairs)
-    // keep playing in the store's hidden sink, so a parked call stays
-    // audible; the adopting panel moves the same elements into its own sink
-    // without a gap.
-    function parkLiveRoom(name = '', livekitRoomInstance = null, liveKitLib = null, audioAttachments = []) {
-        if (!name || !livekitRoomInstance) return;
-        liveRooms.set(name, { room: livekitRoomInstance, LiveKit: liveKitLib, audioAttachments });
-        parkedRoom.value = name;
-        if (process.client && audioAttachments.length) {
-            const sink = parkedAudioSinkEl();
-            for (const { element } of audioAttachments) sink.appendChild(element);
-        }
-    }
-
-    function takeLiveRoom(name = '') {
-        const entry = liveRooms.get(name) || null;
-        liveRooms.delete(name);
-        parkedRoom.value = '';
-        if (transferRoom.value === name) transferRoom.value = '';
-        return entry;
-    }
-
-    function dropLiveRoom(name = '') {
-        const entry = liveRooms.get(name);
-        liveRooms.delete(name);
-        if (parkedRoom.value === name) parkedRoom.value = '';
-        for (const { track, element } of entry?.audioAttachments || []) {
-            try {
-                if (track) track.detach(element);
-            } catch {
-                /* the track may already be gone */
-            }
-            element?.remove?.();
-        }
-        entry?.room?.disconnect?.().catch?.(() => {});
-    }
-
-    // A conversation's ongoing room: the room derived from the conversation
-    // key must currently appear in the active snapshot.
-    function activeRoomForConversation(conversationKey = '') {
-        const room = roomForConversationKey(conversationKey, userId.value);
-        if (!room) return null;
-        return activeRooms.value.find(item => item.room === room) || null;
     }
 
     function handleUserEvent(payload) {
@@ -288,7 +190,7 @@ export const useCallsStore = defineStore('calls', () => {
             unsubscribeUser = connections.subscribe(`user:${userId.value}`, handleUserEvent);
         }
         if (organizationId.value && !unsubscribeOrg) {
-            unsubscribeOrg = connections.subscribe(`org:${organizationId.value}`, scheduleRefresh);
+            unsubscribeOrg = connections.subscribe(`org:${organizationId}`, scheduleRefresh);
         }
         connected.value = true;
         refresh();
@@ -317,9 +219,469 @@ export const useCallsStore = defineStore('calls', () => {
         joinedRooms.clear();
         pendingTabRoom.value = '';
         floatingRoom.value = '';
-        transferRoom.value = '';
-        for (const name of [...liveRooms.keys()]) dropLiveRoom(name);
+        teardownSession();
         connected.value = false;
+    }
+
+    // A conversation's ongoing room: the room derived from the conversation
+    // key must currently appear in the active snapshot.
+    function activeRoomForConversation(conversationKey = '') {
+        const room = roomForConversationKey(conversationKey, userId.value);
+        if (!room) return null;
+        return activeRooms.value.find(item => item.room === room) || null;
+    }
+
+    // ------------------------------------------------------------------
+    // The live room session. One room is connected at a time; surfaces are
+    // views. `session` is a shallowRef: it holds the LiveKit Room raw and
+    // a reactive state block the surfaces render from.
+    // ------------------------------------------------------------------
+
+    const session = shallowRef(null);
+    const joinedRooms = new Set();
+
+    function newSessionState(name) {
+        return reactive({
+            name,
+            state: 'connecting', // connecting | connected | failed
+            error: '',
+            reconnecting: false,
+            micEnabled: false,
+            camEnabled: false,
+            sharing: false,
+            handRaised: false,
+            layout: 'speaker',
+            pinnedKey: '',
+            activeSpeakerKey: '',
+            participants: [],
+            remoteAudioTracks: [],
+            reactions: [],
+            devices: { audioinput: '', videoinput: '', audiooutput: '' },
+            audioInputs: [],
+            videoInputs: [],
+            audioOutputs: []
+        });
+    }
+
+    const participantKey = (identity, source) => `${identity}:${source}`;
+
+    function ensureParticipant(room, identity, isLocal = false) {
+        const state = session.value.state;
+        let participant = state.participants.find(entry => entry.identity === identity);
+        if (!participant) {
+            const source = isLocal ? room.localParticipant : room.remoteParticipants.get(identity);
+            participant = reactive({
+                identity,
+                name: source?.name || identity,
+                isLocal,
+                speaking: false,
+                audioLevel: 0,
+                handRaised: false,
+                quality: 'unknown',
+                audioMuted: false,
+                cameraTrack: null,
+                cameraMuted: false,
+                screenTrack: null
+            });
+            state.participants.push(participant);
+        }
+        return participant;
+    }
+
+    function syncLocalEnabled() {
+        const entry = session.value;
+        if (!entry?.room) return;
+        const local = entry.room.localParticipant;
+        entry.state.micEnabled = local.isMicrophoneEnabled;
+        entry.state.camEnabled = local.isCameraEnabled;
+        entry.state.sharing = local.isScreenShareEnabled;
+    }
+
+    function setCameraTrack(participant, track, muted = false) {
+        participant.cameraTrack = track ? markRaw(track) : null;
+        participant.cameraMuted = muted;
+    }
+
+    function setScreenTrack(participant, track) {
+        participant.screenTrack = track ? markRaw(track) : null;
+    }
+
+    function dropParticipant(identity) {
+        const state = session.value?.state;
+        if (!state) return;
+        const index = state.participants.findIndex(entry => entry.identity === identity);
+        if (index >= 0) state.participants.splice(index, 1);
+        if (state.activeSpeakerKey.startsWith(`${identity}:`)) state.activeSpeakerKey = '';
+    }
+
+    async function enumerateSessionDevices() {
+        const entry = session.value;
+        if (!entry || process.server) return;
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            entry.state.audioInputs = devices.filter(device => device.kind === 'audioinput');
+            entry.state.videoInputs = devices.filter(device => device.kind === 'videoinput');
+            entry.state.audioOutputs = devices.filter(device => device.kind === 'audiooutput');
+        } catch {
+            entry.state.audioInputs = [];
+            entry.state.videoInputs = [];
+            entry.state.audioOutputs = [];
+        }
+    }
+
+    function bindSessionEvents(entry) {
+        const { room, LiveKit, state } = entry;
+        room
+            .on(LiveKit.RoomEvent.ParticipantConnected, participant => {
+                ensureParticipant(room, participant.identity);
+            })
+            .on(LiveKit.RoomEvent.ParticipantDisconnected, participant => {
+                dropParticipant(participant.identity);
+            })
+            .on(LiveKit.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+                const target = ensureParticipant(room, participant.identity, participant.isLocal);
+                if (track.kind === LiveKit.Track.Kind.Video) {
+                    if (track.source === LiveKit.Track.Source.ScreenShare) setScreenTrack(target, track);
+                    else setCameraTrack(target, track);
+                    return;
+                }
+                if (track.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
+                    const audio = state.remoteAudioTracks;
+                    if (!audio.includes(track)) audio.push(markRaw(track));
+                }
+            })
+            .on(LiveKit.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+                const target = state.participants.find(item => item.identity === participant.identity);
+                if (track.kind === LiveKit.Track.Kind.Video) {
+                    if (!target) return;
+                    if (track.source === LiveKit.Track.Source.ScreenShare) setScreenTrack(target, null);
+                    else setCameraTrack(target, null);
+                    return;
+                }
+                if (track.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
+                    const index = state.remoteAudioTracks.indexOf(track);
+                    if (index >= 0) state.remoteAudioTracks.splice(index, 1);
+                }
+            })
+            .on(LiveKit.RoomEvent.TrackUnpublished, (publication, participant) => {
+                if (publication.kind !== LiveKit.Track.Kind.Video) return;
+                const target = state.participants.find(item => item.identity === participant.identity);
+                if (!target) return;
+                if (publication.source === LiveKit.Track.Source.ScreenShare) setScreenTrack(target, null);
+                else setCameraTrack(target, null);
+            })
+            .on(LiveKit.RoomEvent.LocalTrackPublished, (publication, participant) => {
+                const target = ensureParticipant(room, participant.identity, true);
+                if (publication.kind !== LiveKit.Track.Kind.Video) return;
+                if (publication.source === LiveKit.Track.Source.ScreenShare) setScreenTrack(target, publication.track);
+                else setCameraTrack(target, publication.track);
+                syncLocalEnabled();
+            })
+            .on(LiveKit.RoomEvent.LocalTrackUnpublished, () => {
+                syncLocalEnabled();
+            })
+            .on(LiveKit.RoomEvent.TrackMuted, (publication, participant) => {
+                const target = state.participants.find(item => item.identity === participant.identity);
+                if (publication.kind === LiveKit.Track.Kind.Audio) {
+                    if (participant.isLocal) state.micEnabled = false;
+                    if (target) target.audioMuted = true;
+                } else if (target && !participant.isLocal) {
+                    setCameraTrack(target, target.cameraTrack, true);
+                }
+            })
+            .on(LiveKit.RoomEvent.TrackUnmuted, (publication, participant) => {
+                const target = state.participants.find(item => item.identity === participant.identity);
+                if (publication.kind === LiveKit.Track.Kind.Audio) {
+                    if (participant.isLocal) state.micEnabled = true;
+                    if (target) target.audioMuted = false;
+                } else if (target && !participant.isLocal) {
+                    setCameraTrack(target, target.cameraTrack, false);
+                }
+            })
+            .on(LiveKit.RoomEvent.ActiveSpeakersChanged, speakers => {
+                const levels = new Map();
+                for (const speaker of speakers) {
+                    levels.set(speaker.identity, speaker.audioLevel || 0.6);
+                }
+                for (const participant of state.participants) {
+                    participant.speaking = levels.has(participant.identity);
+                    participant.audioLevel = levels.get(participant.identity) || 0;
+                }
+                const top = speakers[0];
+                state.activeSpeakerKey = top ? participantKey(top.identity, 'camera') : '';
+            })
+            .on(LiveKit.RoomEvent.ConnectionQualityChanged, (quality, participant) => {
+                const target = state.participants.find(item => item.identity === participant.identity)
+                    || (participant.isLocal ? ensureParticipant(room, participant.identity, true) : null);
+                if (target) target.quality = quality;
+            })
+            .on(LiveKit.RoomEvent.MediaDevicesChanged, () => {
+                enumerateSessionDevices();
+            })
+            .on(LiveKit.RoomEvent.Reconnecting, () => { state.reconnecting = true; })
+            .on(LiveKit.RoomEvent.Reconnected, () => { state.reconnecting = false; })
+            .on(LiveKit.RoomEvent.Disconnected, () => {
+                if (leavingSession) return;
+                state.reconnecting = false;
+                state.state = 'failed';
+                state.error = 'disconnected';
+                leaveRoom(state.name);
+            })
+            .on(LiveKit.RoomEvent.DataReceived, (payload, participant, _kind, topic) => {
+                if (topic !== CALL_DATA_TOPIC) return;
+                receiveCallEvent(participant.identity, participant.name, payload);
+            });
+    }
+
+    function receiveCallEvent(identity, name, payload) {
+        let event;
+        try {
+            event = JSON.parse(new TextDecoder().decode(payload));
+        } catch {
+            return;
+        }
+        const state = session.value?.state;
+        if (!state) return;
+        if (event?.type === 'hand') {
+            const target = state.participants.find(item => item.identity === identity);
+            if (target) target.handRaised = Boolean(event.raised);
+        } else if (event?.type === 'reaction' && event.emoji) {
+            state.reactions.push({
+                id: `reaction-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                emoji: event.emoji,
+                name: name || identity,
+                left: 10 + Math.random() * 75
+            });
+            if (state.reactions.length > 12) state.reactions.splice(0, state.reactions.length - 12);
+        }
+    }
+
+    function removeReaction(id) {
+        const state = session.value?.state;
+        if (!state) return;
+        const index = state.reactions.findIndex(reaction => reaction.id === id);
+        if (index >= 0) state.reactions.splice(index, 1);
+    }
+
+    let leavingSession = false;
+
+    async function teardownSession() {
+        const entry = session.value;
+        if (!entry) return;
+        leavingSession = true;
+        session.value = null;
+        try {
+            entry.room.removeAllListeners?.();
+        } catch {
+            /* best-effort listener cleanup */
+        }
+        entry.room.disconnect?.().catch?.(() => {});
+        leaveRoom(entry.state.name);
+        if (floatingRoom.value === entry.state.name) floatingRoom.value = '';
+        leavingSession = false;
+    }
+
+    /**
+     * Connects the session room. Device failures are per-track: each is
+     * reported back to the caller (for a localized toast) and the call
+     * continues with that track off; only a failed connection fails the
+     * session.
+     */
+    async function openSession(roomName = '', prejoin = {}) {
+        if (session.value && session.value.state.name === roomName) return { deviceErrors: [] };
+        if (session.value) await teardownSession();
+        let LiveKit;
+        try {
+            LiveKit = await import('livekit-client');
+        } catch (importError) {
+            console.error('Failed to load livekit-client:', importError);
+            return { fatal: importError?.message || 'livekit-client failed to load' };
+        }
+        const entry = { room: markRaw(new LiveKit.Room({ adaptiveStream: true, dynacast: true })), LiveKit: markRaw(LiveKit), state: newSessionState(roomName) };
+        session.value = entry;
+        try {
+            const grant = await $fetch('/api/livekit/token', { method: 'POST', body: { room: roomName } });
+            bindSessionEvents(entry);
+            await entry.room.connect(grant.url, grant.token);
+        } catch (connectError) {
+            console.error('Failed to join call:', connectError);
+            entry.state.state = 'failed';
+            entry.state.error = connectError?.data?.message || connectError?.message || '';
+            return { fatal: entry.state.error };
+        }
+        const local = entry.room.localParticipant;
+        ensureParticipant(entry.room, local.identity, true);
+        for (const participant of entry.room.remoteParticipants.values()) {
+            const target = ensureParticipant(entry.room, participant.identity);
+            for (const publication of participant.trackPublications.values()) {
+                if (!publication.track || !publication.isSubscribed) continue;
+                if (publication.kind !== LiveKit.Track.Kind.Video) continue;
+                if (publication.source === LiveKit.Track.Source.ScreenShare) setScreenTrack(target, publication.track);
+                else setCameraTrack(target, publication.track, publication.isMuted);
+            }
+            for (const publication of participant.trackPublications.values()) {
+                const track = publication.track;
+                if (track && publication.kind === LiveKit.Track.Kind.Audio && publication.isSubscribed) {
+                    if (!entry.state.remoteAudioTracks.includes(track)) entry.state.remoteAudioTracks.push(markRaw(track));
+                }
+            }
+        }
+        const deviceErrors = [];
+        try {
+            await local.setMicrophoneEnabled(prejoin.micEnabled !== false, {
+                deviceId: prejoin.deviceId?.audioinput || undefined
+            });
+        } catch (micError) {
+            deviceErrors.push({ device: 'microphone', message: micError?.message || '' });
+        }
+        try {
+            await local.setCameraEnabled(Boolean(prejoin.cameraEnabled), {
+                deviceId: prejoin.deviceId?.videoinput || undefined
+            });
+        } catch (cameraError) {
+            deviceErrors.push({ device: 'camera', message: cameraError?.message || '' });
+        }
+        syncLocalEnabled();
+        const self = ensureParticipant(entry.room, local.identity, true);
+        self.cameraMuted = !entry.state.camEnabled;
+        entry.state.state = 'connected';
+        enumerateSessionDevices();
+        joinRoom(roomName);
+        return { deviceErrors };
+    }
+
+    async function leaveSession() {
+        await teardownSession();
+    }
+
+    async function toggleMic() {
+        const entry = session.value;
+        if (!entry) return null;
+        const local = entry.room.localParticipant;
+        try {
+            await local.setMicrophoneEnabled(!local.isMicrophoneEnabled);
+        } catch (deviceError) {
+            syncLocalEnabled();
+            return { device: 'microphone', message: deviceError?.message || '' };
+        }
+        syncLocalEnabled();
+        const self = entry.state.participants.find(item => item.isLocal);
+        if (self) self.audioMuted = !entry.state.micEnabled;
+        return null;
+    }
+
+    async function toggleCamera() {
+        const entry = session.value;
+        if (!entry) return null;
+        const local = entry.room.localParticipant;
+        try {
+            await local.setCameraEnabled(!local.isCameraEnabled);
+        } catch (deviceError) {
+            syncLocalEnabled();
+            return { device: 'camera', message: deviceError?.message || '' };
+        }
+        syncLocalEnabled();
+        const self = entry.state.participants.find(item => item.isLocal);
+        if (self) setCameraTrack(self, self.cameraTrack, !entry.state.camEnabled);
+        return null;
+    }
+
+    async function toggleShare() {
+        const entry = session.value;
+        if (!entry) return null;
+        const local = entry.room.localParticipant;
+        try {
+            await local.setScreenShareEnabled(!local.isScreenShareEnabled);
+        } catch (shareError) {
+            syncLocalEnabled();
+            return { device: 'share', message: shareError?.message || '' };
+        }
+        syncLocalEnabled();
+        return null;
+    }
+
+    async function switchDevice(kind, id) {
+        const entry = session.value;
+        if (!entry || !id) return;
+        entry.state.devices[kind] = id;
+        try {
+            if (kind === 'audiooutput') await entry.room.switchActiveDevice('audiooutput', id);
+            else await entry.room.localParticipant.switchActiveDevice(kind, id);
+        } catch (switchError) {
+            console.error(`Failed to switch ${kind}:`, switchError);
+        }
+    }
+
+    function toggleHand() {
+        const entry = session.value;
+        if (!entry) return;
+        entry.state.handRaised = !entry.state.handRaised;
+        publishCallEvent({ type: 'hand', raised: entry.state.handRaised });
+        const self = entry.state.participants.find(item => item.isLocal);
+        if (self) self.handRaised = entry.state.handRaised;
+    }
+
+    function sendReaction(emoji) {
+        const entry = session.value;
+        if (!entry) return;
+        publishCallEvent({ type: 'reaction', emoji });
+        receiveCallEvent(entry.room.localParticipant.identity, entry.room.localParticipant.name || '',
+            new TextEncoder().encode(JSON.stringify({ type: 'reaction', emoji })));
+    }
+
+    function publishCallEvent(payload) {
+        const entry = session.value;
+        if (!entry) return;
+        entry.room.localParticipant.publishData(
+            new TextEncoder().encode(JSON.stringify(payload)),
+            { reliable: true, topic: CALL_DATA_TOPIC }
+        ).catch(() => {});
+    }
+
+    function togglePin(key = '') {
+        const state = session.value?.state;
+        if (!state) return;
+        state.pinnedKey = state.pinnedKey === key ? '' : key;
+    }
+
+    function setLayout(layout = 'speaker') {
+        const state = session.value?.state;
+        if (state) state.layout = layout;
+    }
+
+    // Surface registry: panels register their room while mounted. The live
+    // session with no mounted surface parks into the desktop floating
+    // window (SPEC §11); mobile surfaces never set floatingRoom, so the
+    // media dock's call lane entry takes over there. A pending tab room
+    // suspends the rule while the home workspace mounts the adopting tab.
+    function mountSurface(roomName = '') {
+        if (roomName) mountedRooms.add(roomName);
+    }
+
+    function unmountSurface(roomName = '') {
+        mountedRooms.delete(roomName);
+    }
+
+    const isDesktopViewport = () => process.client
+        && window.matchMedia?.('(min-width: 768px)')?.matches;
+
+    watch(() => [session.value?.state?.state, session.value?.state?.name, pendingTabRoom.value, mountedRooms.size], () => {
+        const entry = session.value;
+        if (!entry || entry.state.state !== 'connected') return;
+        if (pendingTabRoom.value) return;
+        if (mountedRooms.has(entry.state.name)) return;
+        if (floatingRoom.value === entry.state.name) return;
+        if (isDesktopViewport()) floatingRoom.value = entry.state.name;
+    });
+
+    function closeFloating() {
+        floatingRoom.value = '';
+    }
+
+    // The floating window as an opening surface (the routing fallback for
+    // organizations with no generated home workspace).
+    function setFloating(room = '') {
+        if (room) floatingRoom.value = room;
     }
 
     return {
@@ -332,8 +694,8 @@ export const useCallsStore = defineStore('calls', () => {
         activeRoom,
         pendingTabRoom,
         floatingRoom,
-        parkedRoom,
-        transferRoom,
+        mountedRooms,
+        session,
         connect,
         disconnect,
         refresh,
@@ -343,14 +705,21 @@ export const useCallsStore = defineStore('calls', () => {
         consumePendingTabRoom,
         joinRoom,
         leaveRoom,
-        setFloating,
+        openSession,
+        leaveSession,
+        toggleMic,
+        toggleCamera,
+        toggleShare,
+        switchDevice,
+        toggleHand,
+        sendReaction,
+        removeReaction,
+        togglePin,
+        setLayout,
+        mountSurface,
+        unmountSurface,
         closeFloating,
-        popOutToFloating,
-        beginTransferToTab,
-        abortTransfer,
-        parkLiveRoom,
-        takeLiveRoom,
-        dropLiveRoom,
+        setFloating,
         activeRoomForConversation
     };
 });

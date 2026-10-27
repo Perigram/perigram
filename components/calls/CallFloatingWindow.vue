@@ -1,7 +1,8 @@
 <template>
-    <!-- The absolute floating call window: a popped-out call that stays
-         above the app independent of routes and tabs. Dragging rides the
-         header; dock returns the call to a home workspace tab. -->
+    <!-- The absolute floating call window: the session's desktop parking
+         surface (SPEC §11), draggable and resizable above the app.
+         Docking returns the call to a home workspace tab; closing leaves
+         the call. -->
     <div
         v-if="callsStore.floatingRoom"
         ref="windowEl"
@@ -31,15 +32,15 @@
                 text
                 rounded
                 size="small"
-                :aria-label="$t('common.close')"
-                @click="callsStore.closeFloating()"
+                :aria-label="$t('call.leave')"
+                @click="leave"
             />
         </header>
         <div class="flex min-h-0 flex-1 flex-col p-2">
-            <CallPanel :room="callsStore.floatingRoom" @closed="callsStore.closeFloating()" />
+            <CallPanel :room="callsStore.floatingRoom" @closed="leave" />
         </div>
         <!-- Resize grip: the window is bottom-right anchored, so the grip
-             grows it up-left. Pointer-driven like the drag header. -->
+              grows it up-left. Pointer-driven like the drag header. -->
         <span
             class="absolute bottom-0 left-0 h-4 w-4 cursor-nwse-resize"
             aria-hidden="true"
@@ -67,6 +68,20 @@ const { openCallInWorkspaceTab } = useCallRouting();
 // word — same resolver the home sidebar rows use.
 const callRoomLabel = useCallRoomLabel();
 const roomLabel = computed(() => callRoomLabel(callsStore.floatingRoom, t('call.title')));
+
+const leave = () => {
+    callsStore.closeFloating();
+    callsStore.leaveSession();
+};
+
+// Docking seats the session in a home workspace tab: the tab mounts as
+// this window closes, so the session never loses its surface.
+const dock = () => {
+    const room = callsStore.floatingRoom;
+    if (!room) return;
+    callsStore.closeFloating();
+    openCallInWorkspaceTab(room);
+};
 
 const windowEl = ref(null);
 const { startDrag, applyPersisted, dragging } = useFloatingDrag({ storageKey: 'perigram:call-window-position' });
@@ -150,16 +165,6 @@ const endResize = () => {
     }
     window.removeEventListener('pointermove', moveResize);
     window.removeEventListener('pointerup', endResize);
-};
-
-const dock = () => {
-    const room = callsStore.floatingRoom;
-    if (!room) return;
-    // The transfer flag makes the unmounting floating panel park the live
-    // connection; openCallInWorkspaceTab then routes to the home tab whose
-    // panel adopts it (or back to floating when no workspace exists).
-    callsStore.beginTransferToTab(room);
-    openCallInWorkspaceTab(room);
 };
 
 onBeforeUnmount(() => {

@@ -16,7 +16,7 @@
             @click="popOut"
           />
         </div>
-        <CallPanel :room="room" park-on-unmount @closed="$emit('closed')" />
+        <CallPanel :room="room" @closed="$emit('closed')" />
       </div>
       <aside
         v-if="conversationKey"
@@ -54,8 +54,10 @@ const emit = defineEmits(['closed']);
 
 const callsStore = useCallsStore();
 
+// Pop-out seats the session in the shell's floating window and closes this
+// tab; the window's panel mounts as this tab's panel unmounts.
 const popOut = () => {
-  callsStore.popOutToFloating(props.room);
+  callsStore.setFloating(props.room);
   emit('closed');
 };
 </script>
