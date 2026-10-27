@@ -96,11 +96,14 @@ assistive technology. Resolved input/output contracts are shown by the
 labelled socket rails and hover/focus metadata; the inspector does not
 repeat a socket-specification table.
 
-The event section renders on effect cards only. An effect's trigger mode
-is derived from wire presence: every effect card shows its incoming event
-socket, and the operation runs automatically if and only if that socket
-is wired — the derived `trigger.mode` lands on the compiled record at the
-sync pass, and unwiring reverts the operation to manual.
+The event section renders on effect cards only. An effect's trigger
+mode derives from the graph: a wired incoming event socket makes the
+operation automatic, and an unwired entry starts by its authored
+schedule or event subscription (manual otherwise). The derived
+`trigger.mode` lands on the compiled record at the sync pass;
+`effectTriggerFor` in
+[packages/processes](../../packages/processes/README.md) owns the
+derivation.
 
 ### Lanes (the authorization surface)
 

@@ -50,7 +50,6 @@ export async function persistEvent(event) {
     type: String(event.type || ''),
     payload: structuredClone(event.payload ?? null),
     at: event.at || new Date().toISOString(),
-    sourceDefinitionId: event.sourceDefinitionId || '',
     dispatchedAt: null
   };
   await db.collection(EVENTS).insertOne(document);

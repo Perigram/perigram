@@ -144,6 +144,17 @@ describe('headless definition authoring', () => {
     expect(context.configure('params', { fields: ['A', 'B'] }).fields).toEqual(['A', 'B']);
   });
 
+  it('authors scheduled and event-subscribed entries that survive later gestures', () => {
+    const context = authoring();
+    context.drop('emitEvent', { id: 'tick' });
+    context.configure('tick', { trigger: { mode: 'schedule', schedule: { interval: 'PT2M' } } });
+    context.drop('emitEvent', { id: 'sub' });
+    context.configure('sub', { eventId: 'org1.test' });
+    context.drop('finish', { id: 'end' });
+    expect(context.record('tick').trigger).toEqual({ mode: 'schedule', schedule: { interval: 'PT2M' } });
+    expect(context.record('sub').trigger).toEqual({ mode: 'event', eventId: 'org1.test' });
+  });
+
   it('stores a socket fallback as one broadcast item packet', () => {
     const context = authoring();
     context.drop('itemAtPosition', { id: 'first' });
