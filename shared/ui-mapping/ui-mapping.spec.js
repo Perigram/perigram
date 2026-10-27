@@ -1122,6 +1122,32 @@ describe('create dialog input resolution', () => {
     expect(rows[1]).toMatchObject({ descriptor: { base: 'quantity', unit: 'mm' } });
   });
 
+  it('renders operator reference prompts as instance pickers', () => {
+    const rows = resolveCreateDialogInputs(
+      {
+        construction: { mode: 'place', inputs: ['name', 'template', 'parts'] },
+        inputPolicy: {
+          fields: [
+            { id: 'name', path: 'name', type: 'string', prompt: true, required: false },
+            { id: 'template', path: 'template', type: 'entity', prompt: true, required: true, typeId: 't-part-1' },
+            { id: 'parts', path: 'parts', type: 'typeList', prompt: true, required: true, typeId: 't-part-1' }
+          ]
+        }
+      },
+      type,
+      bundle
+    );
+    const byId = new Map(rows.map(row => [row.id, row]));
+    expect(byId.get('template')).toMatchObject({
+      descriptor: { base: 'ref', accepts: ['t-part-1'] },
+      required: true
+    });
+    expect(byId.get('parts')).toMatchObject({
+      descriptor: { base: 'list', itemType: { base: 'ref' }, accepts: ['t-part-1'] },
+      required: true
+    });
+  });
+
   it('keeps graph-supplied fields out of the dialog: the policy owns the rows', () => {
     // The compiled shape: fields.width is wired upstream and drops out of
     // the policy while construction.inputs restates the whole contract.

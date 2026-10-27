@@ -61,7 +61,7 @@ const orgDoc = {
 
 function orgRegistry() {
   const reg = registry();
-  for (const declaration of [orgPanel, orgBin, orgDoc, orgDerivedPlan]) reg.defineType(declaration);
+  for (const declaration of [orgPanel, orgBin, orgDoc, orgDerivedPlan, orgPlaced]) reg.defineType(declaration);
   return reg;
 }
 
@@ -74,6 +74,32 @@ const orgDerivedPlan = {
   version: 1,
   derived: true,
   fields: { geometry: { base: 'json', nullable: true } }
+};
+
+// The placement-operator shape (SPEC §8 construct species): single and
+// list reference inputs over one accepted type.
+const orgPlaced = {
+  id: 'placed-sheet',
+  name: 'Placed sheet',
+  class: 'file',
+  scope: 'org',
+  organizationId: 'org-1',
+  version: 1,
+  fields: { name: { base: 'string', identifier: true } },
+  operators: {
+    place: {
+      id: 'place',
+      species: 'construct',
+      input: {
+        base: 'record',
+        fields: {
+          name: { base: 'string', nullable: true },
+          template: { base: 'ref', accepts: ['placed-sheet'] },
+          parts: { base: 'list', itemType: { base: 'ref', accepts: ['placed-sheet'] } }
+        }
+      }
+    }
+  }
 };
 
 const legacyBase = {
@@ -227,6 +253,15 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     expect(construction.inputs.find(input => input.id === 'lineage.binId')).toMatchObject({ label: 'Bin' });
     expect(construction.inputs.find(input => input.id === 'fields.serial')).toMatchObject({ label: 'Serial' });
     expect(construction.inputs.find(input => input.id === 'fields.width')).toMatchObject({ label: 'Width' });
+  });
+
+  it('projects construct operator reference inputs as typed prompt rows', () => {
+    const projected = projectDomainFromView(orgRegistry(), 'org-1');
+    const placed = projected.construction['placed-sheet'];
+    expect(placed.modes).toEqual(['place']);
+    const byId = new Map(placed.modeInputs.place.map(input => [input.id, input]));
+    expect(byId.get('template')).toMatchObject({ type: 'entity', typeId: 'placed-sheet' });
+    expect(byId.get('parts')).toMatchObject({ type: 'typeList', typeId: 'placed-sheet' });
   });
 
   it('projects payload creation protocols as construct via modes', () => {

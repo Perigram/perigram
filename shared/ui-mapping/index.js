@@ -1220,6 +1220,23 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
       });
       continue;
     }
+    // Construct operator reference inputs: typed pickers over the
+    // operator's accepts — single refs pick one (`entity`), list refs pick
+    // many (`typeList`). The pickers model `{ type, id }` refs; the
+    // dialog's payload scalarizes them to bare ids.
+    if (policy?.type === 'entity' || policy?.type === 'typeList') {
+      const accepts = policy.accepts?.length ? [...policy.accepts] : (policy.typeId ? [policy.typeId] : []);
+      rows.push({
+        id,
+        label: policy.label || fieldLabel(id),
+        descriptor: policy.type === 'entity'
+          ? { base: 'ref', accepts }
+          : { base: 'list', itemType: { base: 'ref' }, accepts },
+        span: policy.type === 'entity' ? 'half' : 'full',
+        required: policy.required === true
+      });
+      continue;
+    }
     if (id.startsWith('lineage.')) {
       const key = id.slice('lineage.'.length);
       const accepts = parentTypesForChildrenKey(bundle, type?.id, key);

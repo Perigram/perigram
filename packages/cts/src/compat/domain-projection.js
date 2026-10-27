@@ -585,6 +585,11 @@ function operatorModeInputs(operator = {}) {
       input.type = 'entity';
       if (descriptor.accepts?.length === 1) input.typeId = descriptor.accepts[0];
       else if (descriptor.accepts?.length) input.accepts = [...descriptor.accepts];
+    } else if (descriptor.base === 'list' && descriptor.itemType?.base === 'ref') {
+      input.type = 'typeList';
+      const accepts = descriptor.itemType.accepts || [];
+      if (accepts.length === 1) input.typeId = accepts[0];
+      else if (accepts.length) input.accepts = [...accepts];
     } else if (descriptor.base === 'quantity') {
       input.type = 'number';
     } else if (descriptor.base === 'instant') {
