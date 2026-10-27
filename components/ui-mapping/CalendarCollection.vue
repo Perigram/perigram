@@ -19,14 +19,14 @@
         :aria-label="cell.key"
       >
         <span class="text-technical text-muted">{{ cell.day }}</span>
-        <Button
+        <InstanceIdentity
           v-for="entry in cell.visible"
           :key="entry.id"
-          link
+          :instance="entry"
+          :type="type"
+          :openable="openable"
           size="small"
-          :label="identityOf(entry)"
-          :class="LAYOUT.linkClamp"
-          @click="$emit('open', entry)"
+          @open="target => $emit('open', target)"
         />
         <span v-if="cell.hidden" class="text-supporting text-muted">+{{ cell.hidden }}</span>
       </div>
@@ -46,7 +46,8 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
-import { LAYOUT, titleFor, temporalFieldsFor } from '#shared/ui-mapping/index.js';
+import { LAYOUT, temporalFieldsFor } from '#shared/ui-mapping/index.js';
+import InstanceIdentity from './InstanceIdentity.vue';
 
 const CHIP_BUDGET = 3;
 
@@ -61,7 +62,6 @@ defineEmits(['open']);
 
 const { t, locale } = useI18n();
 
-const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const temporal = computed(() => temporalFieldsFor(props.type || {}));
 
 const monthFormatter = new Intl.DateTimeFormat(locale.value || undefined, { month: 'long', year: 'numeric' });

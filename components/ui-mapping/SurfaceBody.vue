@@ -7,7 +7,11 @@
     <template #content>
       <div :class="LAYOUT.stackTight">
         <div :class="LAYOUT.rowBetween">
-          <span class="text-section-heading">{{ instanceLabel }}</span>
+          <InstanceIdentity
+            :instance="instance"
+            :type="type"
+            text-class="text-section-heading"
+          />
           <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
         </div>
         <SurfaceDetailBody v-bind="detailBodyProps" variant="detail" v-on="detailBodyEvents" />
@@ -16,14 +20,12 @@
   </Card>
 
   <div v-else :class="['min-w-0', LAYOUT.row]">
-    <Button
-      v-if="openable"
-      link
-      :label="instanceLabel"
-      :class="LAYOUT.linkClamp"
-      @click="$emit('open', instance)"
+    <InstanceIdentity
+      :instance="instance"
+      :type="type"
+      :openable="openable"
+      @open="target => $emit('open', target)"
     />
-    <span v-else class="text-body">{{ instanceLabel }}</span>
     <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
     <FieldControl
       v-for="field in shownFields"
@@ -41,12 +43,12 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import { useI18n } from 'vue-i18n';
-import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, titleFor, stateDisplayFor, startCaseKey, isIdentifierField, typeIsQuantitative } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, stateDisplayFor, startCaseKey, isIdentifierField, typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
+import InstanceIdentity from './InstanceIdentity.vue';
 import SurfaceDetailBody from './SurfaceDetailBody.vue';
 
 const props = defineProps({
@@ -91,7 +93,6 @@ const detailBodyEvents = {
 };
 
 const { t } = useI18n();
-const instanceLabel = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
 const statusValue = computed(() => props.instance?.state || null);
 const statusTag = computed(() => {
   if (!statusValue.value) return null;

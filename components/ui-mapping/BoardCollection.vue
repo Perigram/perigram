@@ -38,16 +38,12 @@
           </template>
           <template #title>
             <div :class="LAYOUT.rowBetween">
-              <div :class="LAYOUT.row">
-                <Button
-                  v-if="openable"
-                  link
-                  :label="identityOf(instance)"
-                  :class="LAYOUT.linkClamp"
-                  @click="$emit('open', instance)"
-                />
-                <span v-else class="truncate">{{ identityOf(instance) }}</span>
-              </div>
+              <InstanceIdentity
+                :instance="instance"
+                :type="type"
+                :openable="openable"
+                @open="target => $emit('open', target)"
+              />
               <Button
                 v-if="actions.length"
                 icon="pi pi-ellipsis-v"
@@ -100,7 +96,7 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
 import {
-  LAYOUT, SCALAR_BASES, cardFactCount, titleFor,
+  LAYOUT, SCALAR_BASES, cardFactCount,
   fieldLabel, fieldLabelKey, localizedLabel, sortControlRows,
   resolveActionButton, actionLabelKey, stateDisplayFor
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
@@ -110,6 +106,7 @@ import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import StateTag from './StateTag.vue';
 import SortControl from './SortControl.vue';
+import InstanceIdentity from './InstanceIdentity.vue';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 
 const props = defineProps({
@@ -157,7 +154,6 @@ const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
 const hostContainer = useHostContainerTraits();
 
-const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 // Facts follow the card-grid budget (cardFactCount over CARD_FACT_SCALE:
 // wide types earn more facts); beyond-budget facts collapse behind the
 // show-more control, which opens the record popup.

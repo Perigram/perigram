@@ -3,15 +3,13 @@
     <template #content="{ item }">
       <div :class="LAYOUT.stackTight">
         <div :class="LAYOUT.rowBetween">
-          <Button
-            v-if="openable"
-            link
+          <InstanceIdentity
+            :instance="item"
+            :type="type"
+            :openable="openable"
             size="small"
-            :label="identityOf(item)"
-            :class="LAYOUT.linkClamp"
-            @click="$emit('open', item)"
+            @open="target => $emit('open', target)"
           />
-          <span v-else :class="LAYOUT.linkClamp" class="text-body">{{ identityOf(item) }}</span>
           <div v-if="scalarFields.length" :class="LAYOUT.row">
             <div v-for="field in scalarFields" :key="field.name" class="flex items-baseline gap-1">
               <span class="text-supporting text-muted">{{ field.label }}</span>
@@ -43,11 +41,11 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Timeline from 'primevue/timeline';
 import Paginator from 'primevue/paginator';
-import Button from 'primevue/button';
 import {
   LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, formatValue,
-  SCALAR_BASES, titleFor, resolveListControls, pageSlice
+  SCALAR_BASES, resolveListControls, pageSlice
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
+import InstanceIdentity from './InstanceIdentity.vue';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
@@ -83,7 +81,6 @@ const page = computed(() => pageSlice(props.instances, first.value, pageSize.val
 
 const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
-const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const bodyField = computed(() => {
   const entries = Object.entries(props.type?.fields || {});
   const long = entries.find(([, descriptor]) => isLongString(descriptor));

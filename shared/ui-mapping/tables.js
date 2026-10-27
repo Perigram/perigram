@@ -85,6 +85,9 @@ export const FIELD_DISPLAY_ENTRIES = Object.freeze([
 // through the override splice — the extension mechanism stays intact.
 export const LIST_LAYOUT_ENTRIES = Object.freeze([
   { match: { boardable: true }, layout: 'board' },
+  // A group's identity is its membership (class law): a group collection
+  // renders as groups — the class outranks incidental field shape.
+  { match: { class: 'group' }, layout: 'groups' },
   // Durational beats chronological: two declared instants form an
   // interval, the stronger temporal structure — prose shape on top of
   // an interval still gantts.
@@ -92,9 +95,6 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
   { match: { shape: 'chronological' }, layout: 'timeline' },
   { match: { shape: 'statlike' }, layout: 'stats' },
   { match: { class: 'file' }, layout: 'card-grid' },
-  // A group's identity is its membership (class law): group collections
-  // render as the cards that carry their children.
-  { match: { class: 'group' }, layout: 'card-grid' },
   // Scheduled (exactly one instant, no stronger shape): appointment-like
   // collections lay out as the month grid; temporal shape beats size the
   // way chronology already does.
@@ -115,7 +115,7 @@ export const BOARD_MIN_COLUMNS = 2;
 
 // Known list-layout values: validates authored `render.listLayout` and
 // bounds the resolver vocabulary.
-export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'card-grid', 'timeline', 'stats', 'list', 'board', 'gantt', 'calendar']);
+export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'card-grid', 'timeline', 'stats', 'list', 'board', 'gantt', 'calendar', 'groups']);
 
 // Collection thresholds live with the other design-system budgets so
 // materializations carry no magic numbers: tables paginate past
@@ -215,7 +215,8 @@ export const ROW_WEIGHT_BY_LAYOUT = Object.freeze({
   'card-grid': 4,
   board: 4,
   gantt: 2,
-  calendar: 3
+  calendar: 3,
+  groups: 3
 });
 
 // Card anatomy variants, selected by type shape: media cards for payloads,

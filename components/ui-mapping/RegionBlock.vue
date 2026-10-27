@@ -13,7 +13,6 @@
   <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-wrap items-center gap-2">
-        <i v-if="node.type" :class="iconFor(node.type)" />
         <span :class="embedded ? 'text-label min-w-0 truncate' : 'text-section-heading'">{{ regionLabel }}</span>
         <!-- SPEC §22.8: the count renders only for loaded, accessible,
              non-empty collections — a denied or failed source has no
@@ -200,7 +199,7 @@ import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
 import {
   LAYOUT, GAP_BY_LEVEL, toolbarVisibleFor, sortControlRows,
-  hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar, incomingChildrenEdges, iconFor,
+  hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar, incomingChildrenEdges,
   listLayoutOf,
   createActionControls
 } from '#shared/ui-mapping/index.js';

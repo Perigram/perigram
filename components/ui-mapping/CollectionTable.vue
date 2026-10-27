@@ -20,15 +20,13 @@
     <Column sortable :sort-field="sortByIdentity" :header="$t('uiMapping.identityColumn')">
       <template #body="{ data }">
         <div class="flex min-w-0 items-center gap-2">
-          <Button
-            v-if="openable"
-            link
+          <InstanceIdentity
+            :instance="data"
+            :type="type"
+            :openable="openable"
             size="small"
-            :label="identityOf(data)"
-            :class="LAYOUT.linkClamp"
-            @click="$emit('open', data)"
+            @open="target => $emit('open', target)"
           />
-          <span v-else class="text-body max-w-72 truncate">{{ identityOf(data) }}</span>
           <ParentRef v-if="parented" :instance="data" :bundle="bundle" :pool="pool" class="min-w-0 shrink-0" />
         </div>
       </template>
@@ -80,7 +78,6 @@ import { useI18n } from 'vue-i18n';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
-import Button from 'primevue/button';
 import {
   LAYOUT, fieldLabel, tableColumnCount, ROW_RELATION_BUDGET, applyBudget,
   titleFor, resolveListControls, stateDisplayFor,
@@ -91,6 +88,7 @@ import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import FieldControl from './FieldControl.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import ParentRef from './ParentRef.vue';
+import InstanceIdentity from './InstanceIdentity.vue';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
@@ -141,13 +139,12 @@ const tablePt = {
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
 const pagination = computed(() => resolvedControls.value.pagination);
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const hasStatus = computed(() => Boolean(props.statePolicy));
 const statusOf = instance => {
   const display = stateDisplayFor(props.statePolicy, instance?.state);
   return display ? { label: display.label, severity: display.severity } : null;
 };
-const sortByIdentity = item => identityOf(item).toLowerCase();
+const sortByIdentity = item => titleFor(item, props.type, { unnamedLabel: t('common.unnamed') }).toLowerCase();
 const sortByStatus = item => String(item?.state || '');
 // Value-aware sortable columns: the filled short-scalar fields from the
 // controls contract (fields no instance fills never become columns),

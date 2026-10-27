@@ -3,16 +3,12 @@
     <Card v-for="instance in instances" :key="instance.id" :class="[LAYOUT.clip, 'w-full']">
       <template #title>
         <div :class="LAYOUT.rowBetween">
-          <div :class="LAYOUT.row">
-            <Button
-              v-if="openable"
-              link
-              :label="identityOf(instance)"
-              :class="LAYOUT.linkClamp"
-              @click="$emit('open', instance)"
-            />
-            <span v-else class="truncate">{{ identityOf(instance) }}</span>
-          </div>
+          <InstanceIdentity
+            :instance="instance"
+            :type="type"
+            :openable="openable"
+            @open="target => $emit('open', target)"
+          />
           <Tag v-if="statusOf(instance)" :value="statusOf(instance).label" :severity="statusOf(instance).severity" />
         </div>
       </template>
@@ -30,10 +26,10 @@
 import { computed } from 'vue';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
-import Button from 'primevue/button';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { useI18n } from 'vue-i18n';
-import { LAYOUT, analyzeTypeShape, titleFor, formatQuantity, stateDisplayFor } from '#shared/ui-mapping/index.js';
+import { LAYOUT, analyzeTypeShape, formatQuantity, stateDisplayFor } from '#shared/ui-mapping/index.js';
+import InstanceIdentity from './InstanceIdentity.vue';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
@@ -51,7 +47,6 @@ defineEmits(['open']);
 const shape = computed(() => analyzeTypeShape(props.type));
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const { t } = useI18n();
-const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const metricLabel = computed(() => (shape.value.metricField
   ? (props.type.fields[shape.value.metricField].label || startCase(shape.value.metricField))
   : null));
