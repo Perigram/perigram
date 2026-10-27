@@ -1316,7 +1316,10 @@ InstanceInlineRef's bordered default. A boolean renders as the checkbox
 state it is. A homogeneous collection never repeats the type name per
 card; only mixed-type contexts and containment context carry type
 identity. A collection's count renders only for loaded, accessible,
-non-empty collections.
+non-empty collections. The record header is the record's one identity
+surface: the type glyph beside the title is its type identity, and no
+host heading, subtitle, or dialog title repeats the record's name or
+type.
 
 ## 23. Deslopification (owner direction 2026-10-23)
 

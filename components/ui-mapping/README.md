@@ -334,10 +334,10 @@ beside the transition history in `StateHistory`.
   header; a host that opened the record inside another surface injects its
   back affordance ahead of the identity block), then one identity line,
   rendered in every host (the pane tab names the record beside it, and
-  the header stays the record page's own title surface): Avatar, the title with the
-  localized type label muted below — both resolved through the one
-  type-label chain ([shared/ui-mapping](../../shared/ui-mapping/README.md);
-  instance ids are private display vocabulary) — and exactly one
+  the header stays the record page's own title surface): Avatar carrying
+  the type glyph, and the title (the one title resolver —
+  [shared/ui-mapping](../../shared/ui-mapping/README.md); instance ids
+  are private display vocabulary) — and exactly one
   state surface riding the title line. A state axis is a tree, so stateful
   records carry no lifecycle strip: an instance with a flat `state`
   renders the segmented current-state tag (`StateTag`, resolved against
