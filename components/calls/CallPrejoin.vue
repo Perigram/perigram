@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 import Select from '~/components/shared/InstanceSelect.vue';
@@ -74,9 +74,12 @@ const audioInputs = ref([]);
 const videoInputs = ref([]);
 
 let previewTrack = null;
+let previewStartToken = 0;
+let meterStream = null;
 let analyserContext = null;
 let analyserSource = null;
 let levelTimer = null;
+let meterStartToken = 0;
 
 const enumerate = async () => {
     try {
@@ -92,24 +95,43 @@ const enumerate = async () => {
 };
 
 const startPreview = async () => {
-    if (previewTrack || !cameraEnabled.value) return;
+    stopPreview();
+    if (!cameraEnabled.value) return;
+    const token = ++previewStartToken;
     try {
         const { createLocalVideoTrack } = await import('livekit-client');
-        previewTrack = await createLocalVideoTrack({
+        const track = await createLocalVideoTrack({
             deviceId: deviceId.value.videoinput || undefined
         });
+        if (token !== previewStartToken) {
+            track.stop();
+            return;
+        }
+        previewTrack = track;
         if (previewEl.value) {
-            previewEl.value.srcObject = new MediaStream([previewTrack.mediaStreamTrack]);
+            previewTrack.attach(previewEl.value);
             await previewEl.value.play().catch(() => {});
         }
         cameraReady.value = true;
+        cameraError.value = false;
     } catch {
         cameraError.value = true;
         cameraReady.value = false;
     }
+    // Permission was (just) granted or denied: labels and ids are readable
+    // now, so the pickers re-read their lists.
+    enumerate();
 };
 
 const stopPreview = () => {
+    previewStartToken++;
+    if (previewTrack && previewEl.value) {
+        try {
+            previewTrack.detach(previewEl.value);
+        } catch {
+            /* the element may already be gone */
+        }
+    }
     previewTrack?.stop();
     previewTrack = null;
     cameraReady.value = false;
@@ -121,31 +143,66 @@ const toggleCameraPreview = () => {
     else stopPreview();
 };
 
+const stopMicMeter = () => {
+    meterStartToken++;
+    if (levelTimer) clearInterval(levelTimer);
+    levelTimer = null;
+    analyserSource?.disconnect();
+    analyserSource = null;
+    analyserContext?.close().catch(() => {});
+    analyserContext = null;
+    meterStream?.getTracks().forEach(track => track.stop());
+    meterStream = null;
+    micLevel.value = false;
+};
+
+// The meter's stream must stay live for the analyser to see levels;
+// stopping it here would silence the dot for the whole pre-join.
 const startMicMeter = async () => {
-    if (!micEnabled.value || analyserContext) return;
+    stopMicMeter();
+    if (!micEnabled.value) return;
+    const token = meterStartToken;
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             audio: { deviceId: deviceId.value.audioinput || undefined }
         });
+        if (token !== meterStartToken) {
+            stream.getTracks().forEach(track => track.stop());
+            return;
+        }
+        meterStream = stream;
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         analyserContext = new AudioContextClass();
         const analyser = analyserContext.createAnalyser();
         analyser.fftSize = 512;
-        analyserSource = analyserContext.createMediaStreamSource(stream);
+        analyserSource = analyserContext.createMediaStreamSource(meterStream);
         analyserSource.connect(analyser);
         const buffer = new Uint8Array(analyser.frequencyBinCount);
         levelTimer = setInterval(() => {
             analyser.getByteFrequencyData(buffer);
             micLevel.value = buffer.some(value => value > 24);
         }, 250);
-        stream.getTracks().forEach(track => track.stop());
+        enumerate();
     } catch {
-        micLevel.value = false;
+        stopMicMeter();
     }
 };
 
+// Pickers switch the live source, the way a device picker is expected to.
+watch(() => deviceId.value.videoinput, () => {
+    if (cameraEnabled.value) startPreview();
+});
+watch(() => deviceId.value.audioinput, () => {
+    if (micEnabled.value) startMicMeter();
+});
+watch(micEnabled, enabled => {
+    if (enabled) startMicMeter();
+    else stopMicMeter();
+});
+
 const join = () => {
     stopPreview();
+    stopMicMeter();
     emit('join', {
         micEnabled: micEnabled.value,
         cameraEnabled: cameraEnabled.value,
@@ -157,12 +214,12 @@ onMounted(async () => {
     await enumerate();
     startPreview();
     startMicMeter();
+    navigator.mediaDevices?.addEventListener?.('devicechange', enumerate);
 });
 
 onBeforeUnmount(() => {
+    navigator.mediaDevices?.removeEventListener?.('devicechange', enumerate);
     stopPreview();
-    if (levelTimer) clearInterval(levelTimer);
-    analyserSource?.disconnect();
-    analyserContext?.close().catch(() => {});
+    stopMicMeter();
 });
 </script>

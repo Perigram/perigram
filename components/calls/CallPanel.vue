@@ -27,6 +27,7 @@
                             v-if="spotlightTile"
                             :key="`spotlight-${spotlightTile.identity}-${spotlightTile.isScreen}`"
                             :tile="spotlightTile"
+                            :mirrored="spotlightTile.identity === localIdentity"
                             spotlight
                             @toggle-pin="togglePin"
                             @video="el => attachTile(spotlightTile, el)"
@@ -38,6 +39,7 @@
                             v-for="tile in stripTiles"
                             :key="`strip-${tile.identity}-${tile.isScreen}`"
                             :tile="tile"
+                            :mirrored="tile.identity === localIdentity"
                             class="call-strip-tile w-40 shrink-0"
                             @toggle-pin="togglePin"
                             @video="el => attachTile(tile, el)"
@@ -50,6 +52,7 @@
                         v-for="tile in tiles"
                         :key="`grid-${tile.identity}-${tile.isScreen}`"
                         :tile="tile"
+                        :mirrored="tile.identity === localIdentity"
                         @toggle-pin="togglePin"
                         @video="el => attachTile(tile, el)"
                         @aspect="ratio => patchTileAspect(tile, ratio)"
@@ -306,6 +309,7 @@ const audioInputs = ref([]);
 const videoInputs = ref([]);
 const audioOutputs = ref([]);
 const audioSink = ref(null);
+const localIdentity = ref('');
 
 let livekitRoom = null;
 let LiveKit = null;
@@ -318,6 +322,27 @@ const attachedAudio = new Map();
 // mounted yet; flushed into the panel's sink on mount.
 let adoptedAudioAttachments = [];
 const reactionEls = new Map();
+
+// set*Enabled resolves with the LocalTrackPublication (truthy on mute too),
+// so toggle state always reads back through the is*Enabled getters.
+const syncLocalStates = () => {
+    const local = livekitRoom?.localParticipant;
+    if (!local) return;
+    micEnabled.value = local.isMicrophoneEnabled;
+    cameraEnabled.value = local.isCameraEnabled;
+    sharing.value = local.isScreenShareEnabled;
+};
+
+// A missing/unplugged device fails one track, never the call: the room is
+// already connected and stays joined; the toast names the failed device.
+const runDeviceToggle = async (run, deviceLabel) => {
+    try {
+        await run();
+    } catch (deviceError) {
+        toast.add({ severity: 'warn', summary: deviceLabel, detail: deviceError?.message || '', life: 4000 });
+    }
+    syncLocalStates();
+};
 
 const layoutOptions = computed(() => [
     { value: 'speaker', label: t('call.layoutSpeaker') },
@@ -371,7 +396,9 @@ const patchTileAspect = (tile, ratio) => {
 
 const dropTile = (identity, isScreen) => {
     const key = tileKey(identity, isScreen);
-    const index = tiles.findIndex(entry => tileKey(entry.identity, entry.isScreen) === key);
+    const tile = tiles.find(entry => tileKey(entry.identity, entry.isScreen) === key);
+    detachTileVideo(tile);
+    const index = tiles.indexOf(tile);
     if (index >= 0) tiles.splice(index, 1);
     tileVideos.delete(key);
 };
@@ -382,8 +409,24 @@ const syncPins = () => {
     }
 };
 
-// Attaching is idempotent: resetting srcObject on an element that already
-// plays the track restarts the stream and flashes the tile.
+// Video rides LiveKit's own element pool (`track.attach`): attached
+// elements register with the room, so adaptiveStream visibility (tab
+// switches) and dynacast dimensions follow the real tiles, and the
+// library owns srcObject/autoplay and the Safari/Firefox quirks.
+const attachTrackToElement = (track, el) => {
+    if (!track || !el) return;
+    if (track.attachedElements?.includes(el)) {
+        el.play?.().catch(() => {});
+        return;
+    }
+    try {
+        track.attach(el);
+    } catch {
+        return;
+    }
+    el.play?.().catch(() => {});
+};
+
 const attachTile = (tile, el) => {
     const key = tileKey(tile.identity, tile.isScreen);
     if (!el) {
@@ -391,28 +434,24 @@ const attachTile = (tile, el) => {
         return;
     }
     tileVideos.set(key, el);
-    const track = tile.track?.mediaStreamTrack || null;
-    if (!track) return;
-    if (el.srcObject?.getTracks?.().includes(track)) {
-        el.play().catch(() => {});
-        return;
+    attachTrackToElement(tile.track, el);
+};
+
+const detachTileVideo = (tile) => {
+    if (!tile?.track) return;
+    const el = tileVideos.get(tileKey(tile.identity, tile.isScreen));
+    if (!el) return;
+    try {
+        tile.track.detach(el);
+    } catch {
+        /* the track may already be gone */
     }
-    el.srcObject = new MediaStream([track]);
-    el.play().catch(() => {});
 };
 
 const playInto = (key) => {
     const el = tileVideos.get(key);
     const tile = tiles.find(entry => tileKey(entry.identity, entry.isScreen) === key);
-    if (el && tile?.track) {
-        const track = tile.track.mediaStreamTrack;
-        if (el.srcObject?.getTracks?.().includes(track)) {
-            el.play().catch(() => {});
-            return;
-        }
-        el.srcObject = new MediaStream([track]);
-        el.play().catch(() => {});
-    }
+    if (el && tile?.track) attachTrackToElement(tile.track, el);
 };
 
 // Remote audio: LiveKit attaches the track to its own element, which the
@@ -514,6 +553,12 @@ const stripTiles = computed(() => tiles.filter(tile => tile !== spotlightTile.va
 const adoptLiveRoom = () => {
     const entry = callsStore.takeLiveRoom(props.room);
     if (!entry) return false;
+    // A parked room whose connection died while parked (nobody listened
+    // for its Disconnected) must not adopt as a frozen stage.
+    if (entry.room.state !== 'connected') {
+        entry.room.disconnect?.().catch?.(() => {});
+        return false;
+    }
     awaitingTransfer.value = false;
     ({ room: livekitRoom, LiveKit } = entry);
     // Seed the adopted audio into the map BEFORE the publication walk, so
@@ -523,11 +568,8 @@ const adoptLiveRoom = () => {
     for (const { track, element } of adoptedAudioAttachments) attachedAudio.set(track, element);
     bindRoomEvents(livekitRoom);
     const local = livekitRoom.localParticipant;
-    // Track enablement is a getter triple on LocalParticipant (the set*
-    // counterparts are the methods); calling them crashed every adoption.
-    micEnabled.value = local.isMicrophoneEnabled;
-    cameraEnabled.value = local.isCameraEnabled;
-    sharing.value = local.isScreenShareEnabled;
+    localIdentity.value = local.identity;
+    syncLocalStates();
     syncTile(local.identity, local.name, { muted: !micEnabled.value });
     // The local camera/screen publications will not re-publish on adoption,
     // so seed them from the current publications or the local tile degrades
@@ -535,7 +577,7 @@ const adoptLiveRoom = () => {
     for (const publication of local.trackPublications.values()) {
         if (publication.kind !== LiveKit.Track.Kind.Video) continue;
         const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
-        syncTile(local.identity, local.name, { isScreen, hasVideo: Boolean(publication.track), track: publication.track || null });
+        syncTile(local.identity, local.name, { isScreen, hasVideo: Boolean(publication.track) && !publication.isMuted, track: publication.track || null });
     }
     for (const participant of livekitRoom.remoteParticipants.values()) {
         syncTile(participant.identity, participant.name);
@@ -582,35 +624,68 @@ const bindRoomEvents = (room) => {
         .on(LiveKit.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
             if (track.kind === LiveKit.Track.Kind.Video) {
                 const isScreen = track.source === LiveKit.Track.Source.ScreenShare;
-                syncTile(participant.identity, participant.name, { isScreen, hasVideo: false, track: null });
+                // A screen tile lives only while its track does; a camera
+                // tile stays as the participant's avatar tile.
+                if (isScreen) {
+                    dropTile(participant.identity, true);
+                    return;
+                }
+                const tile = tiles.find(entry => entry.identity === participant.identity && !entry.isScreen);
+                detachTileVideo(tile);
+                syncTile(participant.identity, participant.name, { isScreen: false, hasVideo: false, track: null });
                 return;
             }
             if (track.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
                 detachRemoteAudio(track);
             }
         })
+        .on(LiveKit.RoomEvent.TrackUnpublished, (publication, participant) => {
+            if (publication.kind !== LiveKit.Track.Kind.Video) return;
+            const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
+            if (isScreen) {
+                dropTile(participant.identity, true);
+                return;
+            }
+            const tile = tiles.find(entry => entry.identity === participant.identity && !entry.isScreen);
+            detachTileVideo(tile);
+            syncTile(participant.identity, participant.name, { isScreen: false, hasVideo: false, track: null });
+        })
         .on(LiveKit.RoomEvent.LocalTrackPublished, (publication, participant) => {
             if (publication.kind === LiveKit.Track.Kind.Video) {
                 const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
-                syncTile(participant.identity, participant.name, { isScreen, hasVideo: true, track: publication.track });
+                if (isScreen) sharing.value = true;
+                syncTile(participant.identity, participant.name, { isScreen, hasVideo: Boolean(publication.track), track: publication.track });
                 playInto(tileKey(participant.identity, isScreen));
             }
         })
         .on(LiveKit.RoomEvent.LocalTrackUnpublished, (publication, participant) => {
-            if (publication.kind === LiveKit.Track.Kind.Video) {
-                const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
-                dropTile(participant.identity, isScreen);
-                if (isScreen) sharing.value = false;
+            if (publication.kind !== LiveKit.Track.Kind.Video) return;
+            const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
+            if (isScreen) {
+                dropTile(participant.identity, true);
+                sharing.value = false;
+                return;
             }
+            const tile = tiles.find(entry => entry.identity === participant.identity && !entry.isScreen);
+            detachTileVideo(tile);
+            syncTile(participant.identity, participant.name, { isScreen: false, hasVideo: false, track: null });
         })
         .on(LiveKit.RoomEvent.TrackMuted, (publication, participant) => {
-            if (publication.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
+            if (participant.isLocal) return;
+            const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
+            if (publication.kind === LiveKit.Track.Kind.Audio) {
                 syncTile(participant.identity, participant.name, { muted: true });
+            } else {
+                syncTile(participant.identity, participant.name, { isScreen, hasVideo: false });
             }
         })
         .on(LiveKit.RoomEvent.TrackUnmuted, (publication, participant) => {
-            if (publication.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
+            if (participant.isLocal) return;
+            const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
+            if (publication.kind === LiveKit.Track.Kind.Audio) {
                 syncTile(participant.identity, participant.name, { muted: false });
+            } else {
+                syncTile(participant.identity, participant.name, { isScreen, hasVideo: Boolean(publication.track) });
             }
         })
         .on(LiveKit.RoomEvent.ActiveSpeakersChanged, speakers => {
@@ -624,19 +699,26 @@ const bindRoomEvents = (room) => {
         .on(LiveKit.RoomEvent.ConnectionQualityChanged, (quality, participant) => {
             syncTile(participant.identity, participant.name, { quality });
         })
+        .on(LiveKit.RoomEvent.MediaDevicesChanged, () => {
+            enumerateDevices();
+        })
         .on(LiveKit.RoomEvent.Reconnecting, () => { reconnecting.value = true; })
         .on(LiveKit.RoomEvent.Reconnected, () => { reconnecting.value = false; })
         .on(LiveKit.RoomEvent.Disconnected, () => {
             connected.value = false;
             reconnecting.value = false;
+            sharing.value = false;
+            handRaised.value = false;
             teardownMedia();
             callsStore.leaveRoom(props.room);
+            livekitRoom = null;
             // A dropped connection while the panel stays mounted returns to
             // the pre-join stage instead of stranding an empty stage with a
             // disabled dock; deliberate leaves unmount the panel anyway.
             if (stage.value === 'connected') stage.value = 'prejoin';
         })
-        .on(LiveKit.RoomEvent.DataReceived, (payload, participant) => {
+        .on(LiveKit.RoomEvent.DataReceived, (payload, participant, _kind, topic) => {
+            if (topic !== CALL_DATA_TOPIC) return;
             receiveCallEvent(participant.identity, participant.name, payload);
         });
 };
@@ -647,6 +729,7 @@ const join = async (prejoin = {}) => {
     try {
         if (!LiveKit) LiveKit = await import('livekit-client');
         const grant = await $fetch('/api/livekit/token', { method: 'POST', body: { room: props.room } });
+        if (disposed) return;
         livekitRoom = new LiveKit.Room({ adaptiveStream: true, dynacast: true });
         bindRoomEvents(livekitRoom);
 
@@ -657,12 +740,21 @@ const join = async (prejoin = {}) => {
             return;
         }
         const local = livekitRoom.localParticipant;
-        micEnabled.value = await local.setMicrophoneEnabled(prejoin.micEnabled !== false, {
-            deviceId: prejoin.deviceId?.audioinput || undefined
-        });
-        cameraEnabled.value = await local.setCameraEnabled(Boolean(prejoin.cameraEnabled), {
-            deviceId: prejoin.deviceId?.videoinput || undefined
-        });
+        localIdentity.value = local.identity;
+        // Device failures are per-track: the connected room stays joined
+        // (mic/cam simply off) and the toast names the failed device.
+        await runDeviceToggle(
+            () => local.setMicrophoneEnabled(prejoin.micEnabled !== false, {
+                deviceId: prejoin.deviceId?.audioinput || undefined
+            }),
+            t('call.devices.microphone')
+        );
+        await runDeviceToggle(
+            () => local.setCameraEnabled(Boolean(prejoin.cameraEnabled), {
+                deviceId: prejoin.deviceId?.videoinput || undefined
+            }),
+            t('call.devices.camera')
+        );
         if (disposed) {
             livekitRoom.disconnect().catch(() => {});
             livekitRoom = null;
@@ -674,11 +766,14 @@ const join = async (prejoin = {}) => {
         }
         connected.value = true;
         stage.value = 'connected';
+        enumerateDevices();
         // Report the live connection to the call line machine: joining stops
         // every remaining ring for this room in every surface.
         callsStore.joinRoom(props.room);
     } catch (joinError) {
         console.error('Failed to join call:', joinError);
+        livekitRoom?.disconnect?.().catch?.(() => {});
+        livekitRoom = null;
         const insecureContext = typeof navigator !== 'undefined' && !navigator.mediaDevices;
         error.value = insecureContext
             ? t('call.insecureContext')
@@ -713,6 +808,13 @@ onMounted(() => {
     // Setup-time adoption (an immediate parked-room watcher run) happens
     // before the sink element exists; move the adopted audio in now.
     flushAdoptedAudio();
+    enumerateDevices();
+});
+
+// Device lists refresh whenever the settings surface opens: labels and
+// late-arriving devices change while the dialog stays closed.
+watch(settingsVisible, visible => {
+    if (visible) enumerateDevices();
 });
 
 const enumerateDevices = async () => {
@@ -743,28 +845,32 @@ const switchDevice = async (kind, id) => {
 
 const toggleMic = async () => {
     if (!livekitRoom) return;
-    micEnabled.value = await livekitRoom.localParticipant.setMicrophoneEnabled(!micEnabled.value);
     const local = livekitRoom.localParticipant;
+    await runDeviceToggle(
+        () => local.setMicrophoneEnabled(!local.isMicrophoneEnabled),
+        t('call.devices.microphone')
+    );
     syncTile(local.identity, local.name, { muted: !micEnabled.value });
 };
 
 const toggleCamera = async () => {
     if (!livekitRoom) return;
-    cameraEnabled.value = await livekitRoom.localParticipant.setCameraEnabled(!cameraEnabled.value);
     const local = livekitRoom.localParticipant;
+    await runDeviceToggle(
+        () => local.setCameraEnabled(!local.isCameraEnabled),
+        t('call.devices.camera')
+    );
     const publication = local.getTrackPublication(LiveKit.Track.Source.Camera);
-    syncTile(local.identity, local.name, { hasVideo: Boolean(publication?.track), track: publication?.track || null });
+    syncTile(local.identity, local.name, { hasVideo: cameraEnabled.value && Boolean(publication?.track), track: publication?.track || null });
     playInto(tileKey(local.identity, false));
 };
 
 const toggleShare = async () => {
     if (!livekitRoom) return;
-    try {
-        sharing.value = await livekitRoom.localParticipant.setScreenShareEnabled(!sharing.value);
-    } catch (shareError) {
-        console.error('Failed to toggle screen share:', shareError);
-        sharing.value = false;
-    }
+    await runDeviceToggle(
+        () => livekitRoom.localParticipant.setScreenShareEnabled(!livekitRoom.localParticipant.isScreenShareEnabled),
+        t('call.share')
+    );
 };
 
 const togglePin = (identity) => {
@@ -832,6 +938,7 @@ const registerReactionEl = (id, el) => {
 };
 
 const teardownMedia = () => {
+    for (const tile of tiles) detachTileVideo(tile);
     for (const track of [...attachedAudio.keys()]) detachRemoteAudio(track);
     attachedAudio.clear();
     tileVideos.clear();
