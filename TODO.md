@@ -452,20 +452,60 @@ AttachmentKind row.
   the seed's home is `emptyAuthoredDocument` in
   `packages/processes/src/authoring.js`.
 
-- [ ] Documents plugin: xlsx fill engine (template workbook ref + rows/values
-  in, filled workbook payload out) bound to the `fill` construction; md fill
-  rides the same engine shape.
-- [ ] PDF render engine (md/xlsx/dxf → PDF) bound to the same `fill`
-  construction; the parse-render engines are recoverable from git history
-  (`server/features/artifact-templates/format.js` at 713aa2396,
-  retired by the artifact-family cutover).
+- [ ] WAITING — owner verification: documents fills — `plugin.documents.fill`
+  (markdown `{key}` substitution; xlsx `{key}` cells plus `{#key}`/`{/key}`
+  repeated row sections; PDF template token masking/redraw) and
+  `plugin.documents.render-pdf` (markdown/xlsx/csv/image/dxf → PDF) bound
+  as `fill` constructions on `text-document`/`xlsx-workbook`/`pdf-document`
+  and a `render` construction on `pdf-document`; documents requires
+  tech-drawing for the `dxf-source` render source.
+
+  ### Agent Notes (2026-10-26)
+
+  `workers/documents/fill.js` (engines, PT Sans OFL fonts embedded via
+  `@pdf-lib/fontkit`), service dispatch in `workers/documents/services.js`,
+  listing v2 (services, constructions, requires). Token law and traps in
+  the plugin README `## Template fills`. Focused spec
+  `workers/documents/fill.spec.js` (19 cases).
+
+  ### Agent Notes (2026-10-27, ledger repair)
+
+  This box was deleted by the 2026-10-26 12:30 SPEC-restore session, which
+  rewrote the section to its pre-landing shape; the template editors
+  program then re-listed the landed engines as open steps. Restored; the
+  program's stale steps (documents fill engines, PDF render engine, PDF
+  template flow, per-kind field whitelist) close below or fold here.
+
+- [ ] WAITING — owner verification: render-mode rename — the cassette-design
+  construct renames `bake` → `render` (SPEC §24 two-mode law; facade v20);
+  the engine and endpoint keep the bake id, the place-dxf precedent.
+
+  ### Agent Notes (2026-10-27)
+
+  Listing v20 (operator + constructions binding), Org1 seed authoring
+  (`test-data/order-process-authoring.js` mode `render`). Authored
+  definitions in other orgs carrying `mode: 'bake'` re-author or upgrade —
+  the place→fill rename accepted the same exposure.
+
+- [ ] WAITING — owner verification: sheet-design parts maintenance — editor
+  saves commit the typed `parts` relation beside the geometry (SPEC §24
+  app-canon law).
+
+  ### Agent Notes (2026-10-27)
+
+  `recomputeSheetLayout` returns `parts` (one flat ref per placement,
+  `cassettePartsList` single-homed in `surfaces/lib/sheetLayout.js`,
+  consumed by both the editor save and the `construct-sheet` executor
+  path); the editor patches `{ geometry, parts }`. The stale
+  `cassetteDesigns` local naming in the recompute died with it.
+
 - [x] DXF spot placement engine (template DXF + referenced DXF payloads →
   composed DXF) — `place-dxf` in the tech-drawing executor; the facade
   nesting → construct-sheet → export flow is the reference geometry path.
   Landed bound to a bespoke `place` construct; superceded by the
   unification below (listing v3 renames the construct onto `fill`, the
   engine and its endpoint stay `place-dxf`).
-- [ ] Fill-mode unification (SPEC §24): the template construct is `fill`
+- [x] Fill-mode unification (SPEC §24): the template construct is `fill`
   everywhere. Rename tech-drawing's construct onto it (listing v3), migrate
   authored `place` constructs with their definitions, and land documents'
   xlsx/md engines on the same mode beside the future PDF engine. Docs:
@@ -473,9 +513,11 @@ AttachmentKind row.
   Landed 2026-10-27 (session `agent/fill-mode-20261027`): tech-drawing v3
   renamed onto `fill` (engine and endpoint stay `place-dxf`), projection
   fixture and the create-dialog e2e migrated, Org1 upgraded, SPEC §24
-  carries the one-mode law. Residue: operator input labels landed with v4
+  carries the mode law. Residue: operator input labels landed with v4
   (`Template`/`Parts`) beside `descriptor.label` support in the domain
-  projection.
+  projection. The 2026-10-27 render amendment completes the vocabulary:
+  `render` for derivations (cassette bake, PDF render), `fill` for
+  template fills.
 - [ ] Action ids are one org-wide namespace: two active definitions sharing
   a construct node id cannot coexist, and activation refuses with a
   dangling-edge error naming the other definition's graph instead of the
@@ -485,39 +527,74 @@ AttachmentKind row.
   every template type rides the same three pieces — an editor binding in
   the listing, a revision scope on the type, and the revisioned payload
   channel for saves and replacement. Ordered steps:
-  - [ ] Revision scope on template types: dxf-source declares `revisions`
-    (tech-drawing v5); the revisioned payload channel then serves
-    replace-in-place — new bytes onto the same instance, so a re-authored
-    template keeps its identity, its pins, and its history.
-  - [ ] DXF editor surface: editor binding for dxf-source; a surface module
-    over the CAD engine the plugin already ships (the sketch editor's
-    MLightCAD) that opens the payload, edits, and saves through the
-    revisioned channel.
+  - [ ] WAITING — Revision scope on template types: dxf-source declares
+    `revisions: "geometry"` (tech-drawing v5); the revisioned payload
+    channel then serves replace-in-place — new bytes onto the same
+    instance, so a re-authored template keeps its identity, its pins, and
+    its history.
+
+    ### Agent Notes (2026-10-27)
+
+    Declared on `dxf-source` in the tech-drawing listing (v5). The channel
+    itself is generic machinery (instance-revisions + the payload
+    patch law); the file-detail replace affordance rides the lifecycle
+    step below.
+  - [ ] DXF editor surface: editor binding for dxf-source; a surface
+    module over the MLightCAD runtime homed in this plugin (the
+    cross-plugin vendor dependency serves facade's cassette designer from
+    the same bundle) that opens the payload, edits, and saves through
+    the revisioned channel.
   - [ ] Spot-marker authoring in that surface: inserting a named anchor is
     the `{spot:<name>}` TEXT law made visible — the anchor name is the
     part-matching vocabulary, authored where the drawing is drawn.
-  - [ ] Documents fill engines on the `fill` mode: xlsx (template workbook
-    ref + rows/values in, filled workbook out), md on the same shape.
-  - [ ] PDF render engine (md/xlsx/dxf → PDF) bound to `fill`.
-  - [ ] PDF template flow: a pdf-payload type with a `fill` signature; its
-    marker law (form fields or anchors) is decided with the engine.
-  - [ ] Create-dialog failure surfacing: a fill refusal returns HTTP 200
-    with a structured `failures` body; the dialog renders the refusal
-    (named spots/parts) instead of silence.
-  - [ ] Configure per-kind field whitelist: every gesture value validates
-    against the node contract table, closing the seam to unknown keys.
+  - [ ] Create-dialog refusal surfacing: an executor refusal surfaces
+    through the connector error path as one message today; decide the
+    structured refusal shape (named spots/parts) and where the dialog
+    renders it.
   - [ ] Template lifecycle: replacement rides the revisioned payload
     channel (file detail affordance); retirement rides a compiled remove
     construct in the definition that stations the type.
+  Landed beside the program: the per-kind field whitelist (every gesture
+  value validates against the node contract table — configure refuses
+  `inputDefaults`, `setInputDefault` refuses undeclared sockets,
+  compile-side normalize drops stray defaults, `b6cb68051`); the
+  documents engines and the PDF template flow (the WAITING box above).
   Beside the program: the pinned-entity-ref palette source and the
-  action-id collision diagnostic (tracked above) are the definition-design
-  pieces the program composes with.
+  action-id collision diagnostic (tracked above) are the
+  definition-design pieces the program composes with.
+- [ ] Re-derive-in-place (design, SPEC §24 app canon): a constructed
+  record carries its construction inputs (`template`, `parameters`,
+  `parts`, `source` are stored fields); a re-derive action re-executes the
+  same construction over the current referenced instances and patches the
+  same instance's fields/payload — one mechanism for "re-render when the
+  template changed", "re-fill with new values", "re-derive the sheet when
+  cassettes changed", composing with the revisioned payload channel.
+  Design decision pending: the compiled action shape (a re-run affordance
+  on the construct node vs a generic instance action over the stored
+  inputs) and the drift story (explicit re-derive only — the snapshot law
+  stands).
 - [ ] Pinned-entity-ref palette source: a `source` node emitting one
   authored entityRef (the "select exact instance" producer), so a graph can
   wire a pinned record into any construct's ref sockets. Authored socket
   defaults already supply ref inputs today (supplied fields drop out of the
   create dialog); the palette node is the visible authoring surface for the
   same law.
+- [ ] WAITING — owner verification: cross-plugin vendor dependency — the
+  MLightCAD CAD runtime moves to tech-drawing and the facade cassette
+  designer consumes it through a declared `plugin:tech-drawing/…`
+  dependency (SPEC §20 law above).
+
+  ### Agent Notes (2026-10-27)
+
+  Bundle moved to `workers/tech-drawing/assets/vendor/cad-viewer/` (served
+  by its executor); facade listing declares
+  `{ name: 'cad-viewer', module: 'plugin:tech-drawing/assets/vendor/cad-viewer/cad-viewer.mjs' }`
+  and the sketch editor lazy-imports the bare `cad-viewer`. Mechanism:
+  `parseListing` admits `plugin:<id><path>` modules when `<id>` is in
+  `requires`; the module proxy rewrites the bare import to the required
+  plugin's proxied scope; the surface check exempts cross-plugin modules
+  from the own-root existence rule. Focused specs: sdk (validation),
+  plugins (proxy rewrite).
 
 ## Generative UI arrangement foundations (owner direction 2026-10-25)
 

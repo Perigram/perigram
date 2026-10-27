@@ -1,11 +1,12 @@
 # Vendored MLightCAD CAD runtime
 
-The cassette designer's profile sketch canvas runs on a vendored,
-self-contained ESM bundle of the MLightCAD browser CAD engine
-([cad-viewer](https://github.com/mlightcad/cad-viewer), MIT) so the
-plugin serves its own drawing runtime — the surface module lazy-imports
-`cad-viewer.mjs` by relative URL against the executor's static tree, and
-the SDK surfaces check keeps the graph free of bare specifiers.
+The drawing-domain CAD engine as a vendored, self-contained ESM bundle
+of MLightCAD ([cad-viewer](https://github.com/mlightcad/cad-viewer),
+MIT) — the base for DXF editing in this plugin; the facade cassette
+designer's profile sketch canvas consumes the same bundle through its
+declared cross-plugin `cad-viewer` dependency (the module proxy serves
+it from this executor). The surface module lazy-imports the bare
+`cad-viewer` name.
 
 Bundled with esbuild from npm (DXF-only configuration — the open-source
 DWG path is GPL LibreDWG and stays out):

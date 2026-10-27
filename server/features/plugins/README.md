@@ -186,7 +186,10 @@ executor assets, and an executor update must reach the next browser
 load ahead of the app-wide stale-while-revalidate rule. A JS module's
 declared dependencies resolve to the
 plugin's own vendor scope: bare specifiers naming a declared dependency
-rewrite to same-origin proxied URLs; binary assets stream untouched.
+rewrite to same-origin proxied URLs; a dependency module of the form
+`plugin:<id><path>` rewrites to the required plugin's proxied scope
+(`<id>` must appear in the listing's `requires`); binary assets stream
+untouched.
 The served type view composes these same-origin URLs
 ([cts-types](../cts-types/README.md)); connection settings stay
 server-side.

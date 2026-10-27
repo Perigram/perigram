@@ -21,8 +21,14 @@ same-origin. Orgs connect the executor through the install's
 - Scene model: `surfaces/lib/sketch.js` — the plugin's editing copy of
   the sketch scene contract; the host's `utils/sketch.js` keeps the
   DrawingCanvas preview adapter over the same stored shape.
-- Vendored runtime: `perfect-freehand` (declared dependency, MIT;
-  rebuilt with `perigram-plugin vendor --listing listing.json`).
+- Vendored runtimes: `perfect-freehand` (declared dependency, MIT;
+  rebuilt with `perigram-plugin vendor --listing listing.json`) and the
+  MLightCAD CAD engine
+  ([`assets/vendor/cad-viewer`](./assets/vendor/cad-viewer/README.md)) —
+  the base for DXF editing; facade's cassette designer consumes the same
+  bundle through its declared cross-plugin dependency.
+- `dxf-source` declares the `geometry` revision scope: the revisioned
+  payload channel serves replace-in-place for DXF templates.
 
 Runs from the repo mount (compose `tech-drawing-executor`, port 8792) —
 nothing here imports platform code.

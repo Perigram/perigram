@@ -106,7 +106,9 @@ type), `dependencies` (declared runtime dependencies:
 `[{ name, version, module, license }]` — one flat vendor
 bundle per npm name served by the executor at `module`; surface modules
 import the bare `name` and the platform's module proxy resolves it to
-the plugin's own vendor scope; what the mount injects — `vue`,
+the plugin's own vendor scope, or — for a `module` of the form
+`plugin:<id><path>` — to the required plugin's scope (`<id>` must appear
+in `requires`); what the mount injects — `vue`,
 `primevue`, `pinia`, and the host markdown pipeline
 `marked`/`dompurify`/`pele` — refuses as a dependency;
 `perigram-plugin vendor`
@@ -149,7 +151,9 @@ markdown pipeline is provided, never vendored), the default export is the factor
 against a stub context without logging errors. A bare specifier naming a
 declared dependency is legal (the platform's
 module proxy resolves it); with `dependencies` and `pluginRoot`, every
-declared vendor module must also exist under the plugin root. The stub
+declared vendor module must also exist under the plugin root — a
+`plugin:<id><path>` module lives under the required plugin's root and is
+exempt. The stub
 carries the contract-4 superset (queries, records, notify, access, sync,
 upload, open beside the base context), so modules smoke against their
 full mount context; the author-facing contract shapes live in §Surface mount

@@ -1201,6 +1201,15 @@ instance with pele for mermaid fences) rather than carrying copies. Declared lic
 GPL-stays-out law a gate refusal instead of a review: the install gate
 and operator policy audit the dependency list.
 
+Owner decision (2026-10-27): a dependency module may name another
+plugin's served module — the `plugin:<id><path>` spelling — where `<id>`
+must appear in the listing's `requires`; the module proxy resolves the
+bare import to the required plugin's proxied scope, and the surface
+check exempts it from the own-root existence rule. The MLightCAD CAD
+runtime homes in tech-drawing (the drawing-domain plugin) as the base
+for DXF editing; the facade's cassette designer consumes it through this
+seam.
+
 Owner decision (2026-10-17): the surface mount grows two editor-grade
 capabilities — `sync`, realtime document sync through the host's room
 model, and `upload`, asset upload through the host's file channel (the
@@ -1446,8 +1455,18 @@ plugin compute. DWG arrives through DXF conversion in the executor. Chat
 and MCP agents see fill actions with their input contracts and read
 file-instance payloads through the shared tool catalog.
 
-The mode id is `fill` — one template-flow construct per file type, carrying
-the template ref beside the fill's declared inputs (values and part
-references). A template flow under any other construct id is a defect:
-engines differ per format through the listing's `constructions` binding;
-the mode is one.
+The mode vocabulary is two construct ids (owner decision 2026-10-27).
+`fill` — one per file type — carries the template ref beside the fill's
+declared inputs (values and part references) and returns the filled file
+as the created instance's payload, same format as the template. `render`
+carries a source ref beside the render's inputs and returns the derived
+instance: file renderings emit the rendered payload, parametric
+renderings emit computed fields. A template flow under any other
+construct id is a defect: engines differ per format through the listing's
+`constructions` binding; the mode vocabulary is these two. The facade's
+cassette bake rides `render` — a cassette design is the rendering of its
+parametric cassette template at the wired parameters; the engine and its
+endpoint keep the bake id. Cassettes and sheets follow the app canon:
+constructions carry the declared inputs, the typed relation travels with
+the computed snapshot (a sheet design's `parts` list commits with its
+geometry on every save), and provenance rides refs and revisions.

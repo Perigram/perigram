@@ -15,7 +15,7 @@ Target law: [SPEC.md](./SPEC.md).
 | nesting | HTTP solver | `workers/nesting/worker_service.py` | 2D nesting solver, called by the facade executor through `NESTING_WORKER_URL` — see [workers/nesting](./nesting/README.md). |
 | facade | Endpoint-mode plugin executor | `workers/facade/index.js` | The facade plugin's compute and surfaces — see [workers/facade](./facade/README.md). |
 | documents | Endpoint-mode plugin executor | `workers/documents/index.js` | The documents plugin's projections and text/csv surfaces — see [workers/documents](./documents/README.md). |
-| tech-drawing | Static-serving plugin executor (declarations-only plugin, no services) | `workers/tech-drawing/index.js` | Serves the sketch editor surface module and vendored runtimes — see [workers/tech-drawing](./tech-drawing/README.md). |
+| tech-drawing | Endpoint-mode plugin executor | `workers/tech-drawing/index.js` | Serves the DXF placement service, the sketch editor surface module, and vendored runtimes (MLightCAD CAD engine included) — see [workers/tech-drawing](./tech-drawing/README.md). |
 
 ## Docker
 
