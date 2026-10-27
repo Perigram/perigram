@@ -134,11 +134,34 @@ boundary; `command_runs` and `task_runs` are the audit trail.
 Durable effect dispatch classifies once (`operationKindOf`) and keeps
 the record's species kind: `cts.construct`/`cts.mutate`/`cts.remove` run
 through the construction/update/delete adapters, `cts.command`/
-`cts.service` run commands, and `cts.transition` executes through the
+`cts.service` run commands, `cts.transition` executes through the
 status runtime using its declared `state` reference — target path, axis
-(`state.axis` becomes the transition region), and note. Effect nodes
-are manual or automatic-from-socket; time-driven status moves belong to
+(`state.axis` becomes the transition region), and note. `cts.emit`
+persists one `process_events` record and dispatches it to subscriber
+entries. Effect nodes
+are manual, automatic-from-socket, scheduled, or event-subscribed;
+time-driven status moves belong to
 the deadline scanner's declared deadlines.
+
+## Time-driven runs (canonical: `run-store.js`, `run-scanner.js`)
+
+Wait Until parks an evaluation at the pending-effect boundary with a
+`wakeAt` date-time; the parked execution persists to
+`process_executions` beside the definition snapshot it started with,
+and the run scanner (`server/plugins/process-run-scanner.js`,
+`PROCESS_RUN_SCAN_INTERVAL_MS`, default 15s) resumes it at the authored
+time under its original actor, re-parking or completing through the same
+boundaries. Scheduled entries (`trigger.schedule` — one-shot `at` or
+re-arming ISO `interval`) fire as the SYSTEM principal of the
+organization; every fire is ledgered as a `process_executions` document
+(`kind: 'schedule'`), and a one-shot fires only while no ledger entry
+exists for its entry node. Emitted events deliver inline at emit and the
+scanner retries every undispatched `process_events` record; delivery
+starts one run per matching subscriber entry, the event riding the run
+trigger. Runs parked on an async command task keep their in-process
+continuation; a restart drops those (the task runtime records the work)
+while Wait Until parks survive it.
+
 
 Consumer effects accept the operated entity in every shape the run
 context produces — a typed `{ type, id }` ref, a full DTO, or the bare

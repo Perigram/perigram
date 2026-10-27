@@ -399,6 +399,65 @@ describe('durable process orchestration', () => {
     expect(untouched).toEqual(waiting);
   });
 
+  it('parks a run on Wait Until and resumes through the pending-effect seam', async () => {
+    const definition = process([
+      { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } },
+      { id: 'until', kind: 'source.literalItem', type: { base: 'dateTime' }, value: '2030-01-01T00:00:00.000Z' },
+      { id: 'wait', kind: 'control.waitUntil' },
+      { id: 'stop', kind: 'control.stopSuccess' }
+    ], ['start', 'until', 'wait', 'stop'], [
+      control('start', 'completed', 'wait'),
+      data('until', 'wait', 'until'),
+      control('wait', 'completed', 'stop')
+    ]);
+    const executeEffect = vi.fn().mockResolvedValue({ ok: true });
+
+    let run = await runProcessUntilSettled(createProcessRun(definition, {}), definition, { executeEffect });
+    expect(run.status).toBe('waiting');
+    expect(run.wakeAt).toBe('2030-01-01T00:00:00.000Z');
+    expect(run.pendingEffect).toMatchObject({ nodeId: 'wait' });
+
+    run = await resumeProcessRun(run, definition, { output: {} }, { executeEffect });
+    const finished = await runProcessUntilSettled(run, definition, { executeEffect });
+    expect(finished.status).toBe('succeeded');
+    expect(finished.pendingEffect).toBeUndefined();
+  });
+
+  it('refuses a Wait Until without a dateTime', async () => {
+    const definition = process([
+      { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } },
+      { id: 'wait', kind: 'control.waitUntil' }
+    ], ['start', 'wait'], [control('start', 'completed', 'wait')]);
+    const run = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+      executeEffect: vi.fn().mockResolvedValue({})
+    });
+    expect(run.status).toBe('failed');
+    expect(run.error.message).toMatch(/requires a dateTime/);
+  });
+
+  it('starts a run at a scheduled entry', async () => {
+    const definition = process([
+      { id: 'daily', kind: 'cts.command', commandId: 'ping', trigger: { mode: 'schedule', schedule: { interval: 'P1D' } } }
+    ], ['daily'], []);
+    const executeEffect = vi.fn().mockResolvedValue({ ok: true });
+    const run = await runProcessUntilSettled(createProcessRun(definition, { nodeId: 'daily' }), definition, { executeEffect });
+    expect(run.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledOnce();
+  });
+
+  it('starts a run at an event-subscribed entry and exposes the event payload', async () => {
+    const definition = process([
+      { id: 'onEvent', kind: 'cts.command', commandId: 'ping', eventId: 'order.shipped', trigger: { mode: 'event', eventId: 'order.shipped' } },
+      { id: 'payload', kind: 'source.triggerPayload', path: 'event.payload.order' }
+    ], ['onEvent', 'payload'], []);
+    const run = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'onEvent', eventId: 'order.shipped', event: { type: 'order.shipped', payload: { order: 'o-1' } } }),
+      definition,
+      { executeEffect: vi.fn().mockResolvedValue({}) }
+    );
+    expect(run.status).toBe('succeeded');
+  });
+
   it('waits for every fork branch at join-all', async () => {
     const definition = process([
       { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } },

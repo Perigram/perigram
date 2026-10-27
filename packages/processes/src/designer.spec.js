@@ -271,13 +271,14 @@ describe('process designer domain contract', () => {
     expect(groups.types.map(item => item.type)).toEqual([
       'ctsClass', 'ctsField', 'ctsState', 'ctsType'
     ]);
-    // operations are native entity-bound species only. Producer convergence
-    // is compiler behavior, not an author-facing node.
+    // operations are native entity-bound species plus the event emitter.
+    // Producer convergence is compiler behavior, not an author-facing node.
     expect(groups.operations.map(item => item.kind || item.type)).toEqual([
       'cts.construct',
       'cts.mutate',
       'cts.transition',
-      'cts.remove'
+      'cts.remove',
+      'cts.emit'
     ]);
     // The retained instance sources are current, typed-reference, and All<T>;
     // declared-edge traversal remains separate from unfiltered collection
@@ -298,6 +299,7 @@ describe('process designer domain contract', () => {
       'source.literalItem',
       'source.literalList',
       'source.currentTime',
+      'source.triggerPayload',
       'value.compare',
       'value.select',
       'value.logic',
@@ -355,13 +357,13 @@ describe('process designer domain contract', () => {
       'control.joinAll',
       'control.joinAny',
       'control.forEach',
+      'control.waitUntil',
       'control.stopSuccess',
       'control.stopFailure'
     ]);
     expect(items.map(item => item.kind)).not.toContain('control.manualTrigger');
     expect(items.map(item => item.kind)).not.toContain('control.entityChangedTrigger');
     expect(items.map(item => item.kind)).not.toContain('control.domainEventTrigger');
-    expect(items.map(item => item.kind)).not.toContain('source.triggerPayload');
     expect(items.map(item => item.kind)).not.toContain('cts.command');
     // stateDefinition and the ctsType reference node are canvas surfaces, not catalog operations
     // declaration canvas nodes (class/field/state/reference) are tree vocabulary, not catalog operations

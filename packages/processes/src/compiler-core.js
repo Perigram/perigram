@@ -1,4 +1,4 @@
-import { operationKindOf } from '../../cts/src/index.js';
+import { operationKindOf, durationMs } from '../../cts/src/index.js';
 import { normalizeWorkflow, resolveWorkflowStatePath } from '../../workflows/src/index.js';
 import {
   generatedScreenRoute,
@@ -1181,7 +1181,7 @@ function declaredInputMetadata(record = {}, domain = {}, portId = '') {
 // Control nodes whose required data inputs share the availability
 // contract: they evaluate automatically, so only a wire, an authored
 // fallback, or a domain default serves them.
-const CONTROL_REQUIRED_INPUT_KINDS = new Set(['control.if', 'control.switch', 'control.forEach']);
+const CONTROL_REQUIRED_INPUT_KINDS = new Set(['control.if', 'control.switch', 'control.forEach', 'control.waitUntil']);
 
 export function validateRequiredInputAvailability(process = {}, domain = {}) {
   const errors = [];
@@ -4765,11 +4765,26 @@ function validateDataflowEdges(process, domain) {
     const cycle = findGraphCycle(process, role);
     if (cycle.length) push(`${role === 'data' ? 'Data' : 'Control'} graph contains a cycle: ${cycle.join(' → ')}`);
   }
+  for (const record of Object.values(process.processNodes || {})) {
+    if (!isEffectRecord(record) || !record.trigger?.schedule) continue;
+    const { at, interval } = record.trigger.schedule;
+    if (at && Number.isNaN(new Date(at).getTime())) {
+      push(`Action ${record.id || 'effect'} schedule.at is not a valid date-time`);
+    }
+    if (interval && !(durationMs(interval) > 0)) {
+      push(`Action ${record.id || 'effect'} schedule.interval is not a valid duration`);
+    }
+    if (!at && !interval) {
+      push(`Action ${record.id || 'effect'} schedule declares neither at nor interval`);
+    }
+  }
   const triggers = (process.graph?.nodes || []).filter(node => {
     const record = process.processNodes?.[String(node.data?.refId || node.id)];
-    // A manual species effect is an entry trigger.
+    // Entry points: manual, scheduled, and event-subscribed species
+    // effects are reachability roots.
+    const mode = record?.trigger?.mode || 'manual';
     return record?.kind?.endsWith('Trigger')
-      || (isEffectRecord(record || {}) && record.trigger?.mode === 'manual');
+      || (isEffectRecord(record || {}) && (mode === 'manual' || mode === 'schedule' || (mode === 'event' && record.eventId)));
   });
   const reachable = reachableControlNodes(process, triggers.map(node => String(node.id)));
   for (const node of process.graph?.nodes || []) {

@@ -130,7 +130,8 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('construct', 'cts.construct'),
       paletteItem('mutate', 'cts.mutate'),
       paletteItem('transition', 'cts.transition'),
-      paletteItem('remove', 'cts.remove')
+      paletteItem('remove', 'cts.remove'),
+      paletteItem('emitEvent', 'cts.emit')
     ]
   },
   {
@@ -140,6 +141,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('joinAllPaths', 'control.joinAll'),
       paletteItem('joinAnyPaths', 'control.joinAny'),
       paletteItem('forEachEntity', 'control.forEach'),
+      paletteItem('waitUntil', 'control.waitUntil'),
       paletteItem('finish', 'control.stopSuccess'),
       paletteItem('fail', 'control.stopFailure')
     ]
@@ -167,6 +169,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('literal', 'source.literalItem', { preset: { type: { base: 'string', nullable: false }, access: 'item', value: '' } }),
       paletteItem('literalList', 'source.literalList', { preset: { type: { base: 'string', nullable: false }, value: [] } }),
       paletteItem('currentTime', 'source.currentTime'),
+      paletteItem('eventPayload', 'source.triggerPayload', { preset: { path: 'event.payload' } }),
       paletteItem('compareValues', 'value.compare', { preset: { type: { base: 'string', nullable: true }, operation: 'eq' } }),
       paletteItem('selectValue', 'value.select', { preset: { type: { base: 'string', nullable: true } } }),
       paletteItem('logic', 'value.logic', { preset: { type: { base: 'string', nullable: true }, operation: 'and' } }),

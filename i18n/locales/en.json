@@ -2589,7 +2589,10 @@
             "crossTrees": "Cross trees",
             "treeStats": "Tree statistics",
             "selectValue": "Select value",
-            "mergeRecords": "Merge records"
+            "mergeRecords": "Merge records",
+            "waitUntil": "Wait until",
+            "emitEvent": "Emit event",
+            "eventPayload": "Event payload"
         },
         "paletteDescriptions": {
             "logic": "Combines Boolean conditions.",
@@ -2657,7 +2660,10 @@
             "getField": "Read one field off each entity.",
             "literal": "A typed constant value.",
             "selectValue": "Pick one of two values by a boolean condition.",
-            "mergeRecords": "Shallow-merge two records; the right side wins."
+            "mergeRecords": "Shallow-merge two records; the right side wins.",
+            "waitUntil": "Pause the flow until a date-time, then continue.",
+            "emitEvent": "Emit a typed event to other processes.",
+            "eventPayload": "Read a field off the event that started this flow."
         },
         "dataTypes": {
             "record": "Record",
@@ -3160,7 +3166,11 @@
         "fieldToRead": "Field",
         "bindTypeFirst": "Bind a type first",
         "failureMessage": "Failure message",
-        "successResult": "Success result"
+        "successResult": "Success result",
+        "scheduleStart": "Start at",
+        "scheduleInterval": "Repeat every",
+        "scheduleIntervalPlaceholder": "ISO duration, e.g. P1D",
+        "startOnEvent": "Start on event"
     },
     "generatedScreen": {
         "home": "Home",

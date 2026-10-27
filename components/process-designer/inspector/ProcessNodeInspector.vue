@@ -202,6 +202,41 @@
         @update:model-value="mode => $emit('update-construction-mode', mode)"
       />
     </div>
+    <div v-if="isEffect && !hasIncomingEventWire" class="flex flex-col gap-2">
+      <div class="flex flex-col gap-1">
+        <label>{{ $t('processDesigner.scheduleStart') }}</label>
+        <DatePicker
+          :model-value="scheduleAt"
+          date-format="yy-mm-dd"
+          show-time
+          size="small"
+          class="w-full"
+          @update:model-value="setScheduleAt"
+        />
+        <label>{{ $t('processDesigner.scheduleInterval') }}</label>
+        <InputText
+          :model-value="record.trigger?.schedule?.interval || ''"
+          :placeholder="$t('processDesigner.scheduleIntervalPlaceholder')"
+          size="small"
+          class="w-full"
+          @update:model-value="setScheduleInterval"
+        />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label>{{ $t('processDesigner.startOnEvent') }}</label>
+        <Select
+          :model-value="record.eventId || ''"
+          :options="designer.eventOptions || []"
+          option-label="label"
+          option-value="value"
+          filter
+          show-clear
+          size="small"
+          class="w-full"
+          @update:model-value="value => { record.eventId = value || ''; $emit('sync'); }"
+        />
+      </div>
+    </div>
     <div v-if="record.kind === 'control.stopFailure'" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.failureMessage') }}</label>
       <InputText v-model="record.message" class="w-full" @change="$emit('sync')" />
@@ -279,6 +314,7 @@ import { computed } from 'vue';
 import { operationKindOf, typeIdOf } from '~/packages/cts/src/index.js';
 import { EFFECT_SPECIES_KINDS } from '~/packages/processes/src/index.js';
 import Button from 'primevue/button';
+import DatePicker from 'primevue/datepicker';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
@@ -332,6 +368,35 @@ const { t, te } = useI18n();
 const op = computed(() => operationKindOf(props.record || {}));
 const isEffect = computed(() => EFFECT_SPECIES_KINDS.has(op.value));
 const typeId = computed(() => typeIdOf(props.record || {}));
+
+// Schedule/event authoring renders on unwired entries: the wire wins the
+// trigger mode, so an authored start time or subscription is an entry fact.
+const hasIncomingEventWire = computed(() => Boolean(props.inputs?.some?.(input => input.id === 'in' && input.role !== 'data')));
+const scheduleAt = computed(() => {
+  const at = props.record.trigger?.schedule?.at;
+  return at ? new Date(at) : null;
+});
+function setScheduleAt(value) {
+  const trigger = { ...(props.record.trigger || {}) };
+  const schedule = { ...(trigger.schedule || {}) };
+  if (value) schedule.at = new Date(value).toISOString();
+  else delete schedule.at;
+  if (Object.keys(schedule).length) trigger.schedule = schedule;
+  else delete trigger.schedule;
+  props.record.trigger = trigger;
+  emit('sync');
+}
+function setScheduleInterval(value) {
+  const trigger = { ...(props.record.trigger || {}) };
+  const schedule = { ...(trigger.schedule || {}) };
+  const text = String(value ?? '').trim();
+  if (text) schedule.interval = text;
+  else delete schedule.interval;
+  if (Object.keys(schedule).length) trigger.schedule = schedule;
+  else delete trigger.schedule;
+  props.record.trigger = trigger;
+  emit('sync');
+}
 
 // Get field's pick list: the bound type's readable field paths (the
 // projection owns the list — party rows included). Labels localize when

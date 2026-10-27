@@ -471,6 +471,9 @@ every mutation is an event back to the page's update/sync entry points.
   list over the bound type's row-relative fields — a projection reading
   and writing the guard expression AST), pure output inspection, and
   per-grant access LEVELS (role assignment itself is lane placement).
+  Unwired effect entries author their start: a schedule (`at`
+  date-time, repeating ISO `interval`) or an event subscription
+  (`eventId` over the domain events) — the wire keeps precedence.
   The state-policy facet (visible/editable row-field lists narrowing
   instances of the state, SPEC §7) authors here, on the typed operation
   (transition target / construct initial state).
