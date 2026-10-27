@@ -1270,3 +1270,25 @@ The geometry probe is the session's feedback loop for layout: measured
 box trees read as text, so layout defects are found without eyes.
 
 Status: WAITING owner verification.
+
+## Collection title bars and the table floor (owner direction 2026-10-27)
+
+Law: SPEC §22.3 (amended) — a collection region carries its own title
+bar in every host; SPEC §22.9 count line amended to match. Owner
+finding: datatables rendered with a floating icon row and no title —
+the pane-hosted label suppression (rounds 7/10, applying the 2026-10-26
+amendment too broadly) stripped collection titles from hosted
+surfaces.
+
+- [x] Every collection region renders its title bar (icon, label,
+  count chip, controls) in every host; the `paneHosted` plumbing is
+  removed end-to-end (RegionBlock, GeneratedMappingScreen,
+  GeneratedScreenHost/Pane, the routed page, the showcase).
+- [x] The random world guarantees the default table projection: the
+  volume type is a plain item type (short scalars, one numeric) so the
+  >50 collection renders a real DataTable — the showcase reaches every
+  projection; the random-world spec asserts the layout.
+
+### Agent Notes (2026-10-27, round 11)
+
+Status: WAITING owner verification.

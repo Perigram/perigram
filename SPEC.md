@@ -1251,11 +1251,13 @@ the full row, and overflow stays inside the child surfaces' own bounded
 scrolls.
 
 ### 22.3 A hosted surface carries its title once (owner direction
-2026-10-23; record header amendment 2026-10-26)
+2026-10-23; amendments 2026-10-26, 2026-10-27)
 The host that names a screen owns that name: the pane strip's tab, the
-routed page's title bar. A hosted list surface renders its label through
-its host alone. A record page keeps its full header in every host —
-identity block, state surface, actions — beside its collections.
+routed page's title bar. A collection region carries its own title bar
+in every host — icon, label, count chip, controls — a collection
+surface is never titleless. A record page keeps its full header in
+every host — identity block, state surface, actions — beside its
+collections.
 
 ### 22.4 Presentation has one home per concern (owner direction 2026-10-21)
 Action presentation, action applicability, and record/picker labels
@@ -1297,8 +1299,7 @@ Generative surfaces space on one 4px-based ladder: steps 4, 8, 12, 16,
 materialization utilities ride these steps alone; the density-keyed
 rhythm interpolator owns the sub-steps between them. Hierarchy reads
 through the ladder: screen sections separate on the top step, one step
-above their content stacks. Collection counts render as the count chip
-and only beside their heading — a hosted region renders no count.
+above their content stacks. Collection counts render as the count chip beside their heading.
 
 ### 22.8 Layout sanity (owner direction 2026-10-27)
 
