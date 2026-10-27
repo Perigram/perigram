@@ -292,7 +292,10 @@ act, so chained process effects fire at creation, not at click. A create
 launched from a context that already binds a record (a child created from
 inside its parent) never prompts that binding: the context's reference is
 submitted with the create, and the form prompts only what the context
-cannot supply. `upload`/`capture` creates prompt only the file.
+cannot supply. A create prompts immediate lineage parents at most — the
+referenced parent's own lineage supplies the ancestor chain, and the
+construct derives it (owner direction 2026-10-27); nothing ever prompts
+a grandparent. `upload`/`capture` creates prompt only the file.
 
 Generated create actions carry procedural names (owner direction
 2026-10-26): an authored label wins; a generic one derives `New <Type>`

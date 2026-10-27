@@ -1658,3 +1658,46 @@ budget cap.
 
 Status: WAITING owner verification.
 
+
+## Contextual creates derive their lineage chain (owner direction 2026-10-27)
+
+Law: [SPEC §UI contextual creates](./SPEC.md). The stored lineage is the
+full ancestor chain (§3 read model: filters, access facts, breadcrumbs).
+That chain vocabulary leaked into the write model: construction contracts
+prompted a picker per ancestor axis, so creating a child inside its parent
+still asked for the grandparent — and skipping it stored a broken chain.
+
+- [x] `orgLineageFields` splits: construction addresses immediate parent
+  axes; the fieldSchemas pass keeps the recursive ancestor chain (read
+  model).
+- [x] `createValidated` derives the chain: every referenced parent
+  contributes its own lineage, authored axes win, ref objects scalarize,
+  cross-org parents refuse.
+- [x] Specs: projection pins immediate-only construction + deep schemas;
+  instance service pins derivation, precedence, and the cross-org refusal.
+- [ ] Optional repair for legacy rows whose prompts allowed skipping
+  ancestors (chains written incomplete before this law) — owner decides.
+
+### Agent Notes (2026-10-27, agent/lineage-context-20261027)
+
+Session worktree `.agent-worktrees/lineage-context`. Diagnosis came from
+the live org (org-6a05940e manifest over the API): the xlsx-workbook
+create inside a queue detail carried `lineage.queueId` AND
+`lineage.projectId` prompts — `orgLineageFields` recursed through
+ancestors and `edgeFieldsFor` fed the whole list into construction
+inputs. All axes were optional, so a skipped grandparent stored a broken
+chain (project-scoped access facts and filters silently never matched).
+The dialog's scoped seeding (SPEC §UI "never prompts that binding")
+hid only the axis matching the screen's type; ancestors still prompted.
+The read model keeps the chain; the write model now derives it at the
+construct seam. Authored explicit ancestor values survive (draft axes
+overlay the derived chain). Validation: cts + instances suites green
+(154); processes/shared/server sweep green except 15 pre-existing
+failures on `local` head (4 fact-display, 11 agent-tooling-loop /
+invitations — another session's in-flight work, reproduced without this
+change). Guards: check-arch, framework:validate, docs:validate, SSR
+smoke green. E2E not run (dev stack serves the primary tree; contextual
+create is covered next stack run by process-generated-screen's child
+region leg).
+
+Status: WAITING owner verification.

@@ -79,10 +79,14 @@ modules onto its sections.
   (SPEC §13), synthesis-only: every authorable type in the view
   synthesizes its entities entry (per-class collection, §13),
   `fieldSchemas` (the §3 stored shape plus row fields as flat
-  `fields.*` paths), `fieldAccess`, `containment`, `construction`
-  (`genericCreate` plus declared construct operators as `via` modes
-  with signature-derived mode inputs), `relations`, and
-  `attachmentKinds`. Party types project as readable principals
+  `fields.*` paths — lineage schemas carry the full ancestor chain,
+  read-model vocabulary for filters and access facts), `fieldAccess`,
+  `containment`, `construction` (`genericCreate` plus declared
+  construct operators as `via` modes with signature-derived mode
+  inputs; construction lineage inputs address immediate parent axes —
+  the ancestor chain derives at the instance construct seam),
+  `relations`, and `attachmentKinds`. Party types project as readable
+  principals
   (SPEC §13). The base domain contributes operator contracts, the
   framework block vocabulary, and pack service registrations only
   (SPEC §13). Owns the per-class collection map (`CLASS_COLLECTIONS`)

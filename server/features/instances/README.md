@@ -29,7 +29,11 @@ Parent: [server/features](../README.md).
   uploaded file's name (extension stripped) when the draft carries
   none, and the declared identifier row's value resolves
   client-side through the display contract (`titleFor`), staying in its
-  row.
+  row. The lineage chain derives at `createValidated`: every referenced
+  parent contributes its own `lineage` to the created record (authored
+  axes win over derived ones; ref objects scalarize to ids; a parent in
+  another organization refuses), so a create submits immediate parent
+  axes alone and construction contracts prompt no grandparent.
 - Type migration executor (`migrations.js`): runs a covered `migrate` step
   set against the type's persisted instances when
   [cts-types](../cts-types/README.md) lands a breaking redefinition.
