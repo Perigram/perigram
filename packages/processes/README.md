@@ -666,7 +666,14 @@ completion event starts it automatically. Effect records derive the same
 semantic action manifest consumed by screen and access compilation —
 grants, trigger mode, entity type, fields, construction contract, command,
 and status target are the same contract action evaluation and generated UI
-use.
+use. Entry effects start runs three ways: manual (user action),
+scheduled (authored `trigger.schedule`), and event-subscribed (authored
+`eventId`, mode `event`) — an emitted event carrying that type starts the
+subscribed entry, the event record riding the run trigger (the
+`eventPayload` source, `source.triggerPayload`, reads it). Emit
+(`cts.emit`) is the event-producing effect: a type string plus an
+optional payload persist one `process_events` record and dispatch it to
+every active subscriber entry.
 
 Generic Entity creation accepts typed canonical block values. Entity-valued
 sockets carry explicit element types. An open Relations entry authors its
@@ -989,12 +996,19 @@ receiver lifecycle contract.
 ## Runtime orchestration
 
 `orchestration.js` executes the full runtime control plane. Effect nodes
-have two execution modes: `manual`, exposed through authorized UI, and
-`event`, which requires an incoming control socket. An evaluation carries
+have three execution modes: `manual`, exposed through authorized UI;
+`event`, which requires an incoming control socket; and `schedule`,
+authored on an unwired entry (`trigger.schedule`, a one-shot `at`
+date-time or an ISO-8601 `interval` re-arming after each fire). An
+evaluation carries
 control tokens, foreach scopes, join arrivals, attempts, and step outputs
 as in-process state; data subgraphs are evaluated lazily for the
 operational node that consumes them, and data or control cycles are
-rejected during activation. Declaration wires (`role: 'type'`) survive
+rejected during activation. Wait Until (`control.waitUntil`) parks the
+evaluation at the pending-effect boundary with `wakeAt` set; the run
+store persists the parked execution beside its definition snapshot and
+the scanner resumes it at the authored time through the same seam async
+command effects resume on. Declaration wires (`role: 'type'`) survive
 normalization with their role and label intact — machine vocabulary reads
 them by node type and handle, and every role-classifying consumer (cycle
 checks, data and control walkers) skips them, so a declaration wire,
