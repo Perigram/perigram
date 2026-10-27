@@ -8,7 +8,6 @@
     v-model:visible="visible"
     :size="isDirectoryType ? 'md' : 'xl'"
     :show-default-footer="false"
-    :title="title"
   >
     <template #header-actions>
       <Button
@@ -41,7 +40,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
 import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
@@ -54,9 +53,6 @@ import { screenByKey } from '~/utils/process-navigation.js';
 import { useEntityPopup } from '~/composables/useEntityPopup';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
-import { titleFor, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
-import { dtoToScreenInstance } from '~/utils/instance-shape.js';
-import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { provideContainerTraits } from '~/composables/useContainerTraits.js';
 import { useI18n } from 'vue-i18n';
 
@@ -64,7 +60,6 @@ const { request, close } = useEntityPopup();
 const { isMobileViewport } = useCallRouting();
 const instances = useInstancesStore();
 const authStore = useAuthStore();
-const { typeById } = useFileTypeView();
 const { t, te } = useI18n();
 
 // The record popup is a fixed-shape container host: hosted surfaces
@@ -80,19 +75,14 @@ const visible = computed({
 });
 const isDirectoryType = computed(() => ['user', 'organization'].includes(request.value?.typeId));
 
-// The header title: the subject's display name (never an id) — cached
-// instance first, then the store's readable-reference resolution.
-const title = ref('');
+// Hydration for the hosted surfaces: the readable-reference resolution
+// populates the pool even when the hosted screen's own source loading
+// has not run yet.
 watch(request, async (current) => {
-  title.value = '';
   if (!current) return;
-  const record = typeById(current.typeId);
   const cached = instances.dtoFor(current.typeId, current.instanceId);
-  const dto = cached
-    || await instances.resolveReadableReference(current.typeId, current.instanceId, { silent: true }).catch(() => null);
-  if (request.value !== current) return;
-  if (dto) {
-    title.value = titleFor(dtoToScreenInstance(dto, record), record, { unnamedLabel: t('common.unnamed') });
+  if (!cached) {
+    await instances.resolveReadableReference(current.typeId, current.instanceId, { silent: true }).catch(() => null);
   }
 }, { immediate: true });
 
@@ -117,12 +107,6 @@ const detailScreen = computed(() => {
     }
   };
 });
-
-function typeLabelOf(typeId = '') {
-  const record = typeById(typeId);
-  if (!record) return typeId;
-  return localizedLabel({ te, t }, typeLabelKey(typeId), record.name || '');
-}
 
 function expand() {
   const current = request.value;

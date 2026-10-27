@@ -48,7 +48,6 @@
               <StateHistory :instance="instance" :type-id="type.id" :target-id="instance.id" compact />
             </Popover>
           </div>
-          <span v-if="typeLabel" class="text-label text-muted truncate">{{ typeLabel }}</span>
         </div>
       </div>
       <div :class="LAYOUT.row" class="header-actions">
@@ -112,7 +111,6 @@ import ActionButton from './ActionButton.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import BackControl from '../shared/BackControl.vue';
 import StateTag from './StateTag.vue';
-import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import InstanceChatEntry from '../shared/InstanceChatEntry.vue';
 import StateHistory from '../shared/state/StateHistory.vue';
 
@@ -139,9 +137,6 @@ const props = defineProps({
 
 const emit = defineEmits(['run', 'transition', 'refresh', 'open-instance']);
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
-// The subtitle names the class through the single label seam — instance
-// ids are private display vocabulary and never render (SPEC §UI).
-const typeLabel = computed(() => (props.type?.id ? generatedEntityLabel(props.type, { t, te }) : ''));
 
 const glyph = computed(() => iconFor(props.type, props.instance));
 // Action placement budget: at most HEADER_ACTIONS_INLINE generated
