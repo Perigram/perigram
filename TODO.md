@@ -1010,6 +1010,29 @@ preset home `assets/presets/re_l.js` over it, rhythm homes
 - [x] Docs: `assets/tokens/README.md`, `shared/ui-mapping/README.md`,
   `shared/ui-mapping/SPEC.md` match the landed values.
 
+### Agent Notes (2026-10-27, generator consumption audit)
+
+Follow-up audit of what the generator's materializations actually
+consume, surface by surface:
+
+- Values land in ink: `FieldControl` renders every value face as
+  `text-body`/`text-technical` (inherit), so the `surface.800` ink
+  flip reaches table cells, fact rows, card/board facts, dialogs, and
+  popups through one token. Muted spans in the materializations are
+  labels, placeholders, overflow counts, and axis chrome.
+- One defect fixed: the timeline projection rendered a non-openable
+  record name as `text-supporting text-muted` — a value muted, now
+  `text-body` with the shared clamp recipe.
+- The chrome contract was dead and is removed
+  (`CHROME_ROLES`/`CHROME_TABLE`/`DEGRADE`/`resolveChrome`, the
+  `node.chrome` field, SurfaceBody's chrome/parentRole props and
+  Divider branch): no materialization consumed the surface/padding/
+  border token names, and `flattened` could never fire (compose
+  hardcodes the parent role, nested regions render as sibling cards).
+  Surface chrome is owned by the preset component tokens and the
+  `LAYOUT` recipes; rhythm by the spacing coefficient. Specs and the
+  three contract READMEs updated in the same cut.
+
 ### Agent Notes (2026-10-27)
 
 Diagnosis before the change: a computed-style audit of the live

@@ -2,7 +2,7 @@
 
 Level-2 design-system contract: one matcher table plus one resolver that maps
 CTS declarations and compiled process contracts to presentation decisions —
-component keys, spans, variants, chrome, budgets, and action presentation.
+component keys, spans, variants, budgets, and action presentation.
 It is the seam between the semantic layers (the CTS client bundle from
 `@perigram/cts` and the compiled screen/action manifests from
 `@perigram/processes`) and the app's PrimeVue component registry.
@@ -37,8 +37,8 @@ Target law: [SPEC.md](./SPEC.md).
 - **Action records** — compiled process actions (`actionKind`, `trigger`,
   `state.to`, relation operation), per
   [packages/processes/README.md](../../packages/processes/README.md).
-- **Render context** — `variant` and parent chrome role, supplied by the
-  renderer, never authored.
+- **Render context** — `variant`, supplied by the renderer, never
+  authored.
 
 ## Resolution
 
@@ -126,7 +126,7 @@ read-only presentations derive from shape.
 | detail spec-row value | Inplace (click-to-edit through `InlineField`) |
 
 Spans are `'full' | 'half'`; the layout is a dumb responsive grid that
-consumes spans (the container-relative `.ck-form-grid`; see Chrome). Dense
+consumes spans (the container-relative `.ck-form-grid`). Dense
 rows bound their field count through `ROW_FIELD_BUDGET`.
 
 Detail surfaces are sectioned by the derived `sections`
@@ -385,29 +385,6 @@ the create button in one PrimeVue `InputGroup`; the button dispatches
 the selected action, which follows the ordinary launch contract (its
 params dialog, or a direct run for a mode without prompted inputs).
 
-## Chrome
-
-Components declare a role; `resolveChrome(role, parentRole)` →
-`{ surface, padding, border }` token names from one table:
-
-| Role | Surface | Padding | Border |
-|---|---|---|---|
-| `canvas` | `page` | `none` | `none` |
-| `section` | `none` | `lg` | `none` |
-| `card` | `content` | `md` | `hairline` |
-| `control` | `control` | `sm` | `ui` |
-| `inline` | `none` | `none` | `none |
-
-Same-role nesting flattens: a card inside a card does not paint a second
-surface — it degrades to padding plus a divider (`border: 'divider'`,
-materialized as PrimeVue `Divider`). Surfaces step only when the role steps;
-the `card` role itself materializes as PrimeVue `Card` so preset chrome owns
-borders and surfaces. The app materializes remaining token names with the
-existing Tailwind/PrimeVue aliases (`bg-content`, `bg-subtle`,
-`border-content-border`, …, see
-[assets/tokens/README.md](../../assets/tokens/README.md)); this module never
-emits raw visual values.
-
 ## Budgets
 
 `applyBudget(items, budget)` → `{ mode, visible, hidden }` with
@@ -452,8 +429,7 @@ recipe outside the registries is a vocabulary defect.
 ### Arrangement
 
 Presentation context is tree-owned: every composed region node carries
-`chrome` (`resolveChrome` of its container role by depth — top regions are
-sections, nested regions are cards) plus its `level` — real tree depth:
+`level` — real tree depth:
 every top-level region sits at level 0, and the record-page treatment
 follows surface kind — so materializations style themselves from their
 position in the hierarchy.
@@ -674,7 +650,7 @@ handwritten.
   seeds, and pins each guarantee. Percent quantities roll within their
   scale so meter and knob presentations show distributions instead of
   clamped saturation.
-- Spec: `ui-mapping.spec.js` (table-driven resolver/chrome/budget tests),
+- Spec: `ui-mapping.spec.js` (table-driven resolver/budget tests),
   `screen.spec.js` (composition mechanics), and
   `test-data/ui-mapping-fixtures.spec.js` (fixture/composition integration).
 

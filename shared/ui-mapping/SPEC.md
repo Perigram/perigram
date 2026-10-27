@@ -135,10 +135,9 @@ vocabulary cannot express is a pin (see Pins) recorded here when admitted.
 
 The atom registry in `tables.js` (`LAYOUT_ATOMS`) assigns every
 `LAYOUT` recipe to its atom; the engine specs pin the partition, so the
-vocabulary stays closed by guard. Chrome rides the role ladder
-(`resolveChrome`), typography rides the role tokens, and the spacing
-coefficient scales every rhythm; these are ambient, and atoms compose
-under them.
+vocabulary stays closed by guard. Typography rides the role tokens and
+the spacing coefficient scales every rhythm; these are ambient, and
+atoms compose under them.
 
 ### Composition rules
 

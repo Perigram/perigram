@@ -3,7 +3,7 @@
 Materialization layer for the design-system mapping contract: real Vue
 components that render the pure resolver outputs and the composed screen
 tree. Every component decision (component choice, span, variant, budget,
-chrome, action tone) comes from
+action tone) comes from
 [shared/ui-mapping](../../shared/ui-mapping/README.md); the registry of
 component keys to these SFCs is the handwritten design-system surface, and
 the only handwritten part. The display helpers (`titleFor`,
@@ -381,8 +381,8 @@ beside the transition history in `StateHistory`.
   nested/nested-legacy state values stay readable. The raw value rides in
   the title attribute as the debugging channel.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
-  bare content column of a record page, `detail` → Card (same-role
-  nesting flattens to a Divider), `row` / `inline` → dense flex row with
+  bare content column of a record page, `detail` → Card, `row` /
+  `inline` → dense flex row with
   budgeted fields and relation chips; the row identity is a link button
   under the screen's `onOpen` contract, like every collection identity.
 - `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
