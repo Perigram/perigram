@@ -32,7 +32,6 @@ import {
   SURFACE_ENTRIES,
   PREVIEW_ENTRIES,
   RENDERABLE_PREVIEW_MODES,
-  VISUAL_PREVIEW_MODES,
   ACTION_ENTRIES,
   LIST_LAYOUT_ENTRIES,
   SEVERITY_MAP,
@@ -50,7 +49,6 @@ export {
   SEVERITY_MAP,
   ROW_FIELD_BUDGET,
   RENDERABLE_PREVIEW_MODES,
-  VISUAL_PREVIEW_MODES,
   LAYOUT,
   LAYOUT_ATOMS,
   LAYOUT_AMBIENT,
@@ -263,11 +261,6 @@ export function createUiMapping(overrides = {}) {
       scalarCount: scalars.length,
       instantCount: instants.length,
       hasMedia: Boolean(typeRecord.payload),
-      // Preview dominance (the gallery projection's signal): a payload
-      // type whose declared preview renders visually. Attachment-style
-      // payloads (documents, tables) preview through icons and text.
-      gallery: Boolean(typeRecord.payload
-        && VISUAL_PREVIEW_MODES.includes(typeRecord.payload.preview)),
       // Temporal structure: two instants declare an interval (durational
       // — the gantt), one declares a schedule (the calendar). Durational
       // outranks chronological in the matcher — an interval is the
@@ -303,7 +296,6 @@ export function createUiMapping(overrides = {}) {
           : shape.statlike ? 'statlike'
             : shape.scheduled ? 'scheduled'
               : null,
-      gallery: shape.gallery ? true : null,
       stateful: stateful ? true : null,
       boardable: typeRecord.class === 'process' && stateful ? true : null,
       size: options.size === 'small' ? 'small' : options.size === 'large' ? 'large' : null

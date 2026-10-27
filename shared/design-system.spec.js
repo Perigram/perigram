@@ -491,7 +491,6 @@ describe('Design system manifest', () => {
       'components/ui-mapping/CardGrid.vue',
       'components/ui-mapping/BoardCollection.vue',
       'components/ui-mapping/StatGrid.vue',
-      'components/ui-mapping/GalleryCollection.vue'
     ]);
 
     const offenders = usedVueFiles().filter((file) => {

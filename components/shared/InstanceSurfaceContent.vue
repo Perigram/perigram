@@ -15,7 +15,7 @@
         :key="section.name"
         class="flex min-w-0 flex-col gap-2"
       >
-        <small v-if="detailSections.length > 1" class="uppercase text-muted text-supporting">
+        <small v-if="detailSections.length > 1" class="text-muted text-supporting">
           {{ sectionLabel(section.name) }}
         </small>
         <DataBlock
