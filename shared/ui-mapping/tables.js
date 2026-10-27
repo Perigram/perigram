@@ -255,6 +255,9 @@ export const SCALAR_BASES = Object.freeze(['string', 'number', 'quantity', 'inst
 export const LAYOUT = Object.freeze({
   stack: 'flex flex-col gap-6',
   stackTight: 'flex flex-col gap-3',
+  // A labeled block: label line, content below (SPEC §22.8 structural
+  // values) — the tightest stack the vocabulary owns.
+  labeledBlock: 'flex w-full flex-col gap-1',
   row: 'flex flex-wrap items-center gap-2',
   labelCell: 'shrink-0 text-label text-muted',
   rowBetween: 'flex flex-wrap items-center justify-between gap-2',
@@ -361,7 +364,7 @@ export const LAYOUT = Object.freeze({
 // atoms materialize as components (Tabs in RegionChildren, PlacementBox,
 // the RegionBlock stub slot), so their recipe lists are empty.
 export const LAYOUT_ATOMS = Object.freeze({
-  stack: Object.freeze(['stack', 'stackTight', 'panelBody', 'ganttStack', 'calendarStack']),
+  stack: Object.freeze(['stack', 'stackTight', 'labeledBlock', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
   band: Object.freeze(['previewHero', 'previewHeroBand', 'previewBand']),

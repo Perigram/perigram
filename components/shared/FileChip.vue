@@ -2,9 +2,8 @@
   <Chip
     :label="label"
     :icon="icon"
-    :pt="chipPt"
-    class="min-w-0 max-w-full border border-content-border bg-subtle text-supporting"
-    :class="{ 'cursor-pointer': openable }"
+    :pt="CHIP_LABEL_PT"
+    :class="[FILE_CHIP_CLASS, { 'cursor-pointer': openable }]"
     :title="title"
     :role="openable ? 'button' : undefined"
     :tabindex="openable ? 0 : undefined"
@@ -20,6 +19,7 @@
 // hover. Consumers own the open behavior through the `open` event.
 import { computed } from 'vue';
 import Chip from 'primevue/chip';
+import { CHIP_LABEL_PT, FILE_CHIP_CLASS } from './chip-surface.js';
 
 const props = defineProps({
   // The stored file reference in either wire shape: generator blobs
@@ -29,7 +29,6 @@ const props = defineProps({
 });
 const emit = defineEmits(['open']);
 
-const chipPt = { label: { class: 'truncate' } };
 const mime = computed(() => String(props.file?.mime || props.file?.mimeType || ''));
 const name = computed(() => String(props.file?.name || '').trim());
 const label = computed(() => name.value || mime.value || '—');

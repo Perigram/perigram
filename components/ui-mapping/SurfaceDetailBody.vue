@@ -47,7 +47,7 @@
              on the record page: a labeled open block per field, rendered in
              the open. -->
         <template v-for="field in structuralOf(group)" :key="field.name">
-          <div v-if="isRichStructure(field)" class="flex w-full flex-col gap-1">
+          <div v-if="isRichStructure(field)" :class="LAYOUT.labeledBlock">
             <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
             <StructuralFieldPanel
               :field="field"
@@ -60,8 +60,8 @@
               @inline-change="change => emit('inline-change', change)"
             />
           </div>
-          <div v-else class="flex w-full flex-col gap-1">
-            <span class="text-label text-muted">{{ field.label }}</span>
+          <div v-else :class="LAYOUT.labeledBlock">
+            <span :class="d.sectionTitle">{{ field.label }}</span>
             <InlineField
               :field="field"
               :editable="editable"
@@ -75,7 +75,7 @@
         <div
           v-for="field in inlineMapsOf(group)"
           :key="field.name"
-          class="flex w-full flex-col gap-1"
+          :class="LAYOUT.labeledBlock"
         >
           <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
           <InlineField

@@ -13,7 +13,7 @@
             <Chip
                 :label="identityLabel"
                 :icon="instanceConfig.icon || undefined"
-                :pt="{ label: { class: 'truncate' } }"
+                :pt="CHIP_LABEL_PT"
                 class="min-w-0 max-w-full"
                 :title="identityLabel"
             />
@@ -147,6 +147,7 @@ import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
 import Card from 'primevue/card';
 import Chip from 'primevue/chip';
+import { CHIP_LABEL_PT } from './chip-surface.js';
 import { useRegistryStore } from '~/stores/registry';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';

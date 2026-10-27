@@ -206,7 +206,6 @@ const media = useMediaStore();
 const instances = useInstancesStore();
 const { typeById } = useFileTypeView();
 
-const instanceChipClass = 'min-w-0 max-w-full cursor-pointer border border-content-border bg-transparent text-supporting';
 
 const restrictedView = computed(() => Boolean(
   props.viewerUserId && props.senderUserId && props.senderUserId !== props.viewerUserId
@@ -261,8 +260,7 @@ const chipRefProps = (ref = {}) => ({
   type: ref.type,
   id: ref.id,
   entity: ref.instance || null,
-  fetch: canFetch(ref),
-  chipClass: instanceChipClass
+  fetch: canFetch(ref)
 });
 
 // Naming law: the support README — empty names localize the type label.

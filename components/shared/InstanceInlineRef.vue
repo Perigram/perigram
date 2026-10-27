@@ -2,6 +2,7 @@
 import { computed, inject, unref, watch, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Chip from 'primevue/chip';
+import { CHIP_LABEL_PT, INSTANCE_CHIP_CLASS } from './chip-surface.js';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import StateTag from '~/components/ui-mapping/StateTag.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
@@ -71,7 +72,6 @@ const cardProps = computed(() => ({
   variant: 'inline',
   expandable: props.interactive
 }));
-const chipPt = { label: { class: 'truncate' } };
 // The open reference's hover affordance: one step up the surface ladder.
 const hoverSurface = 'transition-colors hover:bg-subtle';
 const chipInteractiveClass = `${hoverSurface} rounded-ui`;
@@ -238,7 +238,7 @@ function executeContextualAction(action) {
             v-else-if="resolved"
             :label="identityLabel"
             :icon="icon || undefined"
-            :pt="chipPt"
+            :pt="CHIP_LABEL_PT"
             class="min-w-0 max-w-full flex-1"
             :title="identityLabel"
           />
@@ -278,9 +278,8 @@ function executeContextualAction(action) {
         v-else-if="resolved"
         :label="identityLabel"
         :icon="icon || undefined"
-        :pt="chipPt"
-        class="min-w-0 max-w-full border border-content-border bg-transparent text-supporting"
-        :class="[chipClass, { 'cursor-pointer': refOpenable }, refOpenable ? chipInteractiveClass : null]"
+        :pt="CHIP_LABEL_PT"
+        :class="[INSTANCE_CHIP_CLASS, chipClass, { 'cursor-pointer': refOpenable }, refOpenable ? chipInteractiveClass : null]"
         :role="refOpenable ? 'button' : undefined"
         :tabindex="refOpenable ? 0 : undefined"
         :title="identityLabel"

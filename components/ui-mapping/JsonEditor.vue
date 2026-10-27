@@ -1,5 +1,5 @@
 <template>
-  <div class="flex w-full flex-col gap-1">
+  <div :class="LAYOUT.labeledBlock">
     <Textarea
       :model-value="text"
       rows="5"
@@ -15,6 +15,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import Textarea from 'primevue/textarea';
+import { LAYOUT } from '#shared/ui-mapping/index.js';
 
 const model = defineModel();
 
