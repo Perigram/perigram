@@ -217,6 +217,9 @@ the inspector:
 | `collection.join` | Keys `leftKey`/`rightKey`. |
 | `value.recordField` | `path` plus authored output type. |
 | `value.cast` | Authored output base over the re-base vocabulary (json, record, list, string, number, boolean); the input is the universal json acceptor, so every source wires in and the node asserts the value already matches the target base. |
+| `value.required` / `value.validate` / `value.coalesce` | Authored operand base (`type`). |
+| `value.format` | Authored operand base (`type`) plus `template`; an empty template formats numerically. |
+| `value.convertUnit` | `fromUnit`/`toUnit` over the convert unit set (the shared factor table in the operation registry). |
 | `record.construct` | `fields`. |
 | `value.format` | Template with named `{key}` slots substituted from a wired record (missing keys keep their placeholder, `{value}` from the value input); template-free formatting is numeric. |
 | `forEachEntity` | Authors the loop PAIR: dropping it creates `control.forEach` and its `control.forEachEnd` closer. |
