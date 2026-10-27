@@ -1,6 +1,6 @@
 import { mapDomainInputType, normalizeProcessSocket, processType } from './types.js';
 
-import { PROCESS_OPERATION_REGISTRY, processOperation } from './operations.js';
+import { PROCESS_OPERATION_REGISTRY, CONVERT_UNIT_FACTORS, processOperation } from './operations.js';
 import { typeIdOf, ctsFieldToProcessType } from '../../cts/src/index.js';
 
 const DATA = 'data';
@@ -217,6 +217,10 @@ export const TYPE_BOUND_SPECIES = Object.freeze(['cts.construct', 'cts.mutate', 
 // The re-base vocabulary `value.cast` accepts; the evaluator enforces
 // the same set with named errors.
 export const CAST_BASES = Object.freeze(['json', 'record', 'list', 'string', 'number', 'boolean']);
+
+// `value.convertUnit` authoring picks: the unit set the shared factor
+// table defines (`CONVERT_UNIT_FACTORS` in the operation registry).
+export const CONVERT_UNITS = Object.freeze(Object.keys(CONVERT_UNIT_FACTORS));
 
 
 function declarationTypePin(record = {}) {

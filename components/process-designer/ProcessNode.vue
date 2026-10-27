@@ -110,6 +110,48 @@
           @update:model-value="value => update({ outputType: { base: value } })"
         />
       </div>
+      <!-- Value-utility authoring: the operand base rides the record
+           (`type`); format's template sits beside it, convertUnit's unit
+           pair over the shared factor set. -->
+      <div v-else-if="isTypedValueUtility" class="flex items-center gap-1.5">
+        <Select
+          :model-value="record.type?.base || 'json'"
+          :options="baseTypeOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="value => update({ type: { base: value } })"
+        />
+        <InputText
+          v-if="opKind === 'value.format'"
+          :model-value="record.template ?? ''"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="value => update({ template: String(value ?? '') })"
+        />
+      </div>
+      <div v-else-if="opKind === 'value.convertUnit'" class="flex items-center gap-1.5">
+        <Select
+          :model-value="record.fromUnit || 'mm'"
+          :options="convertUnitOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="value => update({ fromUnit: value })"
+        />
+        <i class="pi pi-arrow-right text-muted" aria-hidden="true" />
+        <Select
+          :model-value="record.toUnit || 'm'"
+          :options="convertUnitOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+          class="min-w-0 flex-1"
+          @update:model-value="value => update({ toUnit: value })"
+        />
+      </div>
       <Textarea
         v-if="['source.literalList', 'source.literalTree'].includes(opKind)"
         :model-value="literalStructureDisplay"
@@ -175,6 +217,7 @@ import Textarea from 'primevue/textarea';
 import { useI18n } from 'vue-i18n';
 import {
   CAST_BASES,
+  CONVERT_UNITS,
   EFFECT_SPECIES_KINDS,
   MAPPED_MUTATION_SPECIES_KINDS, formatProcessType } from '~/packages/processes/src/index.js';
 import { socketSpecLine } from '~/composables/useNodeSpec.js';
@@ -239,6 +282,8 @@ const baseTypeOptions = computed(() => [
   'entityRef'
 ].map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value })));
 const castBaseOptions = CAST_BASES.map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value }));
+const convertUnitOptions = CONVERT_UNITS.map(value => ({ label: value, value }));
+const isTypedValueUtility = computed(() => ['value.required', 'value.validate', 'value.coalesce', 'value.format'].includes(opKind.value));
 const literalStructureDisplay = computed(() => (
   typeof record.value.value === 'string' ? record.value.value : JSON.stringify(record.value.value, null, 2)
 ));
@@ -246,6 +291,8 @@ const hasInlineConfiguration = computed(() => (
   showTypeEditor.value
   || operationOptions.value.length
   || opKind.value === 'value.cast'
+  || isTypedValueUtility.value
+  || opKind.value === 'value.convertUnit'
   || opKind.value.startsWith('source.literal')
 ));
 

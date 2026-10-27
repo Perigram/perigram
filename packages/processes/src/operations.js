@@ -12,6 +12,13 @@ import { solveDataTrees } from './data-tree.js';
 const num = { base: 'number' };
 const str = { base: 'string' };
 
+// `value.convertUnit` factors: the node converts within these units; the
+// catalog's authoring picks and the evaluator's arithmetic read the same
+// set (run environments may extend it with `context.units`).
+export const CONVERT_UNIT_FACTORS = Object.freeze({
+  mm: 1, cm: 10, m: 1000, mm2: 1, cm2: 100, m2: 1_000_000, degree: 1, radian: 180 / Math.PI
+});
+
 const unary = (input, output, run) => ({ inputs: [input], output, run });
 const pair = (left, right, output, run) => ({
   inputs: [left, right],

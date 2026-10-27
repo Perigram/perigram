@@ -19,7 +19,7 @@ import {
 } from './data-tree.js';
 import { operationKindOf } from '../../cts/src/index.js';
 import { MAKE_LIST_INPUTS } from './node-catalog.js';
-import { PROCESS_OPERATION_REGISTRY, processOperation, runProcessOperation, stableKey } from './operations.js';
+import { PROCESS_OPERATION_REGISTRY, CONVERT_UNIT_FACTORS, processOperation, runProcessOperation, stableKey } from './operations.js';
 import { isMissingField, missingFieldMarker } from './missing-field.js';
 
 export async function executeProcessDataNode(record = {}, inputs = {}, context = {}) {
@@ -464,7 +464,7 @@ function assertDeclaredBlock(domain, record, block) {
 
 function convertUnit(value, from, to, custom = {}) {
   if (!from || !to || from === to) return value;
-  const factors = { mm: 1, cm: 10, m: 1000, mm2: 1, cm2: 100, m2: 1_000_000, degree: 1, radian: 180 / Math.PI, ...custom };
+  const factors = { ...CONVERT_UNIT_FACTORS, ...custom };
   if (!factors[from] || !factors[to]) throw new Error(`Unsupported unit conversion ${from} → ${to}`);
   return Number(value) * factors[from] / factors[to];
 }
