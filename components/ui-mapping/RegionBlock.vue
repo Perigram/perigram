@@ -301,40 +301,43 @@ const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[M
 // The containment cross-cut's data (SPEC → Surface context laws): an
 // unscoped list of a type someone's children edge names renders every
 // row WITH its parent — and the parent records are not in this surface's
-// pool (it loads the child type). Parent types load lazily through the
-// same `loadType` seam the tree projection uses and overlay the pool
-// every collection below reads; an unloaded parent still names its type
-// (ParentRef degrades), so correctness never depends on the load
-// landing. A scoped list skips the cross-cut and the overlay load.
+// pool (it loads the child type). A group collection rides the same
+// seam in the other direction: its cards carry membership, so the
+// children edge's target types load lazily too. Overlaid types never
+// gate correctness — an unloaded type just renders without its context.
 const parented = computed(() => props.node.crossCut === true);
 const parentTypeIds = computed(() => (parented.value ? [...new Set(
   incomingChildrenEdges(props.bundle, props.node.typeId).map(edge => edge.parentTypeId)
 )] : []));
-const loadedParents = ref({});
+const childTypeIds = computed(() => (props.node.surfaceKind === 'list' && props.node.type?.class === 'group'
+  ? [...new Set(Object.values(props.node.type.edges?.children || {}).flatMap(edge => edge.types || []))]
+  : []));
+const overlayTypeIds = computed(() => [...new Set([...parentTypeIds.value, ...childTypeIds.value])]);
+const loadedTypes = ref({});
 const effectivePool = computed(() => {
-  if (!Object.keys(loadedParents.value).length) return props.pool;
-  const overlay = Object.fromEntries(Object.entries(loadedParents.value)
+  if (!Object.keys(loadedTypes.value).length) return props.pool;
+  const overlay = Object.fromEntries(Object.entries(loadedTypes.value)
     .map(([typeId, byId]) => [typeId, { ...(props.pool[typeId] || {}), ...byId }]));
   return { ...props.pool, ...overlay };
 });
-async function ensureParentTypes() {
+async function ensureOverlayTypes() {
   if (!props.loadType) return;
-  for (const parentTypeId of parentTypeIds.value) {
-    if (props.pool[parentTypeId] && Object.keys(props.pool[parentTypeId]).length) continue;
-    if (loadedParents.value[parentTypeId]) continue;
+  for (const typeId of overlayTypeIds.value) {
+    if (props.pool[typeId] && Object.keys(props.pool[typeId]).length) continue;
+    if (loadedTypes.value[typeId]) continue;
     try {
-      const rows = await props.loadType(parentTypeId);
-      loadedParents.value = {
-        ...loadedParents.value,
-        [parentTypeId]: Object.fromEntries((rows || []).filter(Boolean).map(row => [row.id, row]))
+      const rows = await props.loadType(typeId);
+      loadedTypes.value = {
+        ...loadedTypes.value,
+        [typeId]: Object.fromEntries((rows || []).filter(Boolean).map(row => [row.id, row]))
       };
     } catch {
-      loadedParents.value = { ...loadedParents.value, [parentTypeId]: {} };
+      loadedTypes.value = { ...loadedTypes.value, [typeId]: {} };
     }
   }
 }
-onMounted(ensureParentTypes);
-watch(() => [props.node.typeId, props.loadType], ensureParentTypes);
+onMounted(ensureOverlayTypes);
+watch(() => [props.node.typeId, props.loadType], ensureOverlayTypes);
 
 // Field-name changes map onto the flat §3 wire patch: the identifier row
 // `name` writes the wire name slot, every other field lands under

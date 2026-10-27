@@ -92,6 +92,9 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
   { match: { shape: 'chronological' }, layout: 'timeline' },
   { match: { shape: 'statlike' }, layout: 'stats' },
   { match: { class: 'file' }, layout: 'card-grid' },
+  // A group's identity is its membership (class law): group collections
+  // render as the cards that carry their children.
+  { match: { class: 'group' }, layout: 'card-grid' },
   // Scheduled (exactly one instant, no stronger shape): appointment-like
   // collections lay out as the month grid; temporal shape beats size the
   // way chronology already does.

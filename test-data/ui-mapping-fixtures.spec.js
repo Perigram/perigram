@@ -86,9 +86,10 @@ describe('hydration four breaks the previous skeleton', () => {
     expect(main.childRegions[0].instances[0].id).toBe('folder-a1aialpha');
     expect(main.childRegions[1].instances.every(document => document.lineage.documents?.id === 'folder-a1ai')).toBe(true);
     // Class screens stay flat by contract: a folder type (containment
-    // edges and all) resolves the plain columnar table — hierarchy is
-    // navigation (the workspace explorer), never a class projection.
-    expect(resolveListLayout(bundle.types.find(type => type.id === 'folder'))).toBe('table');
+    // edges and all) resolves the membership card grid — children ride
+    // the cards as reference chips, and hierarchy navigation stays the
+    // workspace explorer's.
+    expect(resolveListLayout(bundle.types.find(type => type.id === 'folder'))).toBe('card-grid');
   });
 
   it('composes document, sheet, and job details from relation scopes', () => {
