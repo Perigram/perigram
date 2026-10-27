@@ -91,7 +91,6 @@
       :instance="instance"
       :type="node.type"
       variant="row"
-      parent-role="card"
       :openable="openable"
       :pool="effectivePool"
       :bundle="bundle"

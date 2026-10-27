@@ -259,7 +259,6 @@ const bodyProps = computed(() => ({
   instance: props.node.instances[0],
   type: props.node.type,
   actions: props.node.actions,
-  chrome: props.node.chrome,
   coveredRelations: coveredRelationKeys.value,
   pool: props.pool,
   bundle: props.bundle,

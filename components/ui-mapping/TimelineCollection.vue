@@ -11,7 +11,7 @@
             :class="LAYOUT.linkClamp"
             @click="$emit('open', item)"
           />
-          <span v-else class="text-supporting text-muted">{{ identityOf(item) }}</span>
+          <span v-else :class="LAYOUT.linkClamp" class="text-body">{{ identityOf(item) }}</span>
           <div v-if="scalarFields.length" :class="LAYOUT.row">
             <div v-for="field in scalarFields" :key="field.name" class="flex items-baseline gap-1">
               <span class="text-supporting text-muted">{{ field.label }}</span>

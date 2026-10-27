@@ -3,7 +3,7 @@
     <SurfaceDetailBody v-bind="detailBodyProps" variant="full" v-on="detailBodyEvents" />
   </div>
 
-  <Card v-else-if="variant === 'detail' && !flattened" class="w-full">
+  <Card v-else-if="variant === 'detail'" class="w-full">
     <template #content>
       <div :class="LAYOUT.stackTight">
         <div :class="LAYOUT.rowBetween">
@@ -17,18 +17,6 @@
       </div>
     </template>
   </Card>
-
-  <div v-else-if="variant === 'detail' && flattened" :class="LAYOUT.stackTight">
-    <Divider class="my-0" />
-    <div :class="LAYOUT.rowBetween">
-      <div :class="LAYOUT.row">
-        <i :class="glyph" />
-        <span class="text-section-heading">{{ instanceLabel }}</span>
-      </div>
-      <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
-    </div>
-    <SurfaceDetailBody v-bind="detailBodyProps" variant="detail" v-on="detailBodyEvents" />
-  </div>
 
   <div v-else :class="['min-w-0', LAYOUT.row]">
     <i :class="glyph" />
@@ -67,7 +55,6 @@ import { computed, ref } from 'vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
-import Divider from 'primevue/divider';
 import { useI18n } from 'vue-i18n';
 import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, titleFor, iconFor, stateDisplayFor, startCaseKey, isIdentifierField } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
@@ -78,9 +65,7 @@ const props = defineProps({
   instance: { type: Object, required: true },
   type: { type: Object, required: true },
   variant: { type: String, default: 'detail' },
-  parentRole: { type: String, default: null },
   actions: { type: Array, default: () => [] },
-  chrome: { type: Object, default: null },
   coveredRelations: { type: Array, default: () => [] },
   editable: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
@@ -95,8 +80,7 @@ const props = defineProps({
 const emit = defineEmits(['run', 'inline-change', 'open', 'open-instance']);
 
 const expanded = ref({});
-// One binding set for the detail body across the full, card, and
-// flattened-detail chrome branches.
+// One binding set for the detail body across the full and card branches.
 const detailBodyProps = computed(() => ({
   instance: props.instance,
   type: props.type,
@@ -107,9 +91,7 @@ const detailBodyProps = computed(() => ({
   coveredRelations: props.coveredRelations,
   editable: props.editable
 }));
-const flattened = computed(() => (props.chrome ? props.chrome.flattened : props.parentRole === 'card' && props.variant === 'detail'));
-const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
-const toggleRelation = key => {
+const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));const toggleRelation = key => {
   expanded.value[key] = !expanded.value[key];
 };
 const detailBodyEvents = {

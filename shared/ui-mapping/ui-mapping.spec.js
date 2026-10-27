@@ -27,7 +27,6 @@ import {
   tableColumnCount,
   cardFactCount,
   cardVariantFor,
-  resolveChrome,
   applyBudget,
   SEVERITY_MAP,
   ROW_FIELD_BUDGET,
@@ -850,26 +849,11 @@ describe('weight-driven arrangement', () => {
   });
 });
 
-describe('chrome', () => {
-  it('maps roles to token names', () => {
-    expect(resolveChrome('canvas')).toEqual({ role: 'canvas', flattened: false, surface: 'page', padding: 'none', border: 'none' });
-    expect(resolveChrome('card')).toEqual({ role: 'card', flattened: false, surface: 'content', padding: 'md', border: 'hairline' });
-  });
-
-  it('flattens same-role nesting instead of repeating the surface', () => {
-    expect(resolveChrome('card', 'card')).toEqual({ role: 'card', flattened: true, surface: 'none', padding: 'md', border: 'divider' });
-    expect(resolveChrome('card', 'section').flattened).toBe(false);
-    expect(resolveChrome('section', 'section').flattened).toBe(false);
-  });
-
+describe('shared vocabulary', () => {
   it('exposes the shared severity vocabulary and row field budget', () => {
     expect(SEVERITY_MAP.danger).toBe('danger');
     expect(ROW_FIELD_BUDGET).toEqual({ max: 3, overflow: 'count' });
     expect(HEADER_ACTIONS_INLINE).toBe(2);
-  });
-
-  it('degrades unknown roles to section chrome', () => {
-    expect(resolveChrome('mystery').surface).toBe('none');
   });
 });
 

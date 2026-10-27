@@ -518,27 +518,7 @@ export const SEVERITY_MAP = Object.freeze({
   neutral: 'secondary'
 });
 
-// --- Chrome -----------------------------------------------------------------
-
-export const CHROME_ROLES = Object.freeze(['canvas', 'section', 'card', 'control', 'inline']);
-
-export const CHROME_TABLE = Object.freeze({
-  canvas: Object.freeze({ surface: 'page', padding: 'none', border: 'none' }),
-  section: Object.freeze({ surface: 'none', padding: 'lg', border: 'none' }),
-  card: Object.freeze({ surface: 'content', padding: 'md', border: 'hairline' }),
-  control: Object.freeze({ surface: 'control', padding: 'sm', border: 'ui' }),
-  inline: Object.freeze({ surface: 'none', padding: 'none', border: 'none' })
-});
-
-// Same-role nesting degrades one step instead of repeating chrome:
-// a card in a card becomes padding plus a divider; sections already separate
-// by spacing and stay as they are; controls degrade to inline chrome.
-const DEGRADE = Object.freeze({
-  card: Object.freeze({ surface: 'none', padding: 'md', border: 'divider' }),
-  control: Object.freeze({ surface: 'none', padding: 'none', border: 'none' })
-});
-
-export { EDIT_VARIANTS, DEGRADE };
+export { EDIT_VARIANTS };
 
 // Spacing coefficient: one slider step maps to a full literal rhythm set
 // (Tailwind only compiles classes it can see, so every step is written out).

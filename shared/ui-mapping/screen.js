@@ -1,7 +1,7 @@
 // Screen composition: projects a compiled screen contract
 // plus a CTS client bundle and an instance pool into a pure render tree.
 // No Vue here — the components/ui-mapping layer materializes this tree.
-import { resolveSurface, resolveChrome, arrangeChildren, TAB_ANCESTOR_NONE, regionSideSpanFor, regionDataTraits, estimateRegionWeight, resolveListControls, SIDE_MAX_WEIGHT } from './index.js';
+import { resolveSurface, arrangeChildren, TAB_ANCESTOR_NONE, regionSideSpanFor, regionDataTraits, estimateRegionWeight, resolveListControls, SIDE_MAX_WEIGHT } from './index.js';
 import { filterFromFlatFilters, instanceMatchesFilter } from '#shared/instance-filters/index.js';
 
 // Region data state: the data layer may report per-source states
@@ -129,8 +129,6 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     : resolveList(source, screen, pool, sourcesById);
   const type = typesById[source.typeId] || null;
   const variant = surfaceKind === 'detail' ? (depth === 0 ? 'full' : 'detail') : 'row';
-  const containerRole = depth === 0 ? 'section' : 'card';
-  const chrome = resolveChrome(containerRole, depth === 0 ? null : 'section');
   // Surface context law: the containment cross-cut composes on unscoped
   // class lists only — a source scoped by relation, lineage, or pinned
   // filters renders inside the surface that already states its parent.
@@ -159,7 +157,6 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     slot: region.slot,
     surfaceKind,
     dataState: dataStateFor(source, surfaceKind, instances, providedStates),
-    chrome,
     level: depth,
     dataTraits,
     relationKey: source.relation?.key || null,

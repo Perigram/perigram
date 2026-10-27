@@ -36,9 +36,6 @@ import {
   ACTION_ENTRIES,
   LIST_LAYOUT_ENTRIES,
   SEVERITY_MAP,
-  CHROME_ROLES,
-  CHROME_TABLE,
-  DEGRADE,
   EDIT_VARIANTS,
   VARIANTS,
   CONTAINER_WIDTH_STEPS,
@@ -50,7 +47,6 @@ import {
 
 export {
   VARIANTS,
-  CHROME_ROLES,
   SEVERITY_MAP,
   ROW_FIELD_BUDGET,
   RENDERABLE_PREVIEW_MODES,
@@ -341,16 +337,6 @@ export function createUiMapping(overrides = {}) {
     tableColumnCount,
     cardFactCount
   };
-}
-
-// Chrome: role + parent role -> token names. Same-role nesting degrades
-// instead of painting the same surface twice.
-export function resolveChrome(role = 'section', parentRole = null) {
-  const table = CHROME_ROLES.includes(role) ? CHROME_TABLE[role] : CHROME_TABLE.section;
-  if (parentRole && parentRole === role && DEGRADE[role]) {
-    return Object.freeze({ role, flattened: true, ...DEGRADE[role] });
-  }
-  return Object.freeze({ role, flattened: false, surface: table.surface, padding: table.padding, border: table.border });
 }
 
 // Budgets: the container bounds unbounded slots; children never know.
