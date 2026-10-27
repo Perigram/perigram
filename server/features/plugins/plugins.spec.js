@@ -1055,6 +1055,37 @@ describe('fetchSurfaceModule (the plugin-module proxy core)', () => {
     }
   });
 
+  it('rewrites a cross-plugin dependency to the required plugin\'s scope', async () => {
+    repository.findInstall.mockImplementation(async (organizationId, pluginId) => (
+      String(organizationId) === ORG && pluginId === 'coatings'
+        ? {
+          ...moduleInstall,
+          declarations: {
+            ...moduleInstall.declarations,
+            dependencies: [
+              { name: 'cad-viewer', version: '1.7.5', module: 'plugin:tech-drawing/assets/vendor/cad-viewer/cad-viewer.mjs', license: 'MIT' }
+            ]
+          }
+        }
+        : null
+    ));
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      'const load = () => import(\'cad-viewer\');\nexport default null;\n',
+      { status: 200, headers: { 'content-type': 'application/javascript' } }
+    )));
+    try {
+      const module = await fetchSurfaceModule({
+        organizationId: ORG,
+        pluginId: 'coatings',
+        modulePath: '/surfaces/designer.mjs',
+        auth: AUTH
+      });
+      expect(module.body.toString()).toContain(`'/api/plugins/tech-drawing/module/assets/vendor/cad-viewer/cad-viewer.mjs'`);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('streams non-JS vendor assets untouched', async () => {
     const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     vi.stubGlobal('fetch', vi.fn(async () => new Response(bytes, {

@@ -166,7 +166,7 @@
             "properties": {
               "name": { "type": "string", "pattern": "^(@[a-z0-9-~][a-z0-9-._~]*\\/)?[a-z0-9-~][a-z0-9-._~]*(\\/[a-z0-9-._~]+)*$" },
               "version": { "type": "string", "minLength": 1 },
-              "module": { "type": "string", "pattern": "^\\/[a-z0-9\\/._-]+\\.m?js$" },
+              "module": { "type": "string", "pattern": "^(\\/[a-z0-9\\/._-]+\\.m?js|plugin:[a-z0-9-]+\\/[a-z0-9\\/._-]+\\.m?js)$", "description": "Root-relative module path the executor serves, or plugin:<id><path> naming a required plugin's served module (owner decision 2026-10-27)" },
               "license": { "type": "string", "pattern": "^[A-Za-z0-9.+-]+$" }
             }
           },

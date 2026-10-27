@@ -25,8 +25,10 @@ export async function checkSurfaceModule(path, { dependencies = [], pluginRoot =
   }
   if (pluginRoot) {
     for (const dependency of dependencies || []) {
-      // Listing module paths are root-relative in the plugin's own space
-      // (`/assets/vendor/x.mjs`); on disk they anchor at the plugin root.
+      // Cross-plugin modules (plugin:<id><path>) live under the required
+      // plugin's root; every other listing module path is root-relative
+      // in the plugin's own space and anchors at the plugin root.
+      if (String(dependency.module || '').startsWith('plugin:')) continue;
       let exists = false;
       try {
         exists = statSync(resolve(pluginRoot, `.${dependency.module}`)).isFile();

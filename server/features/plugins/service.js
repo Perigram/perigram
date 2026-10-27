@@ -414,10 +414,15 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
 
 function rewriteDeclaredImports(source, pluginId, dependencies = []) {
   if (!dependencies.length) return source;
-  const targets = new Map(dependencies.map(dependency => [
-    dependency.name,
-    `/api/plugins/${encodeURIComponent(pluginId)}/module${dependency.module}`
-  ]));
+  // A cross-plugin dependency (plugin:<id><path>) resolves to the
+  // required plugin's proxied scope; own-scope dependencies to this
+  // plugin's.
+  const targets = new Map(dependencies.map(dependency => {
+    const crossPlugin = String(dependency.module || '').match(/^plugin:([a-z0-9-]+)(\/[a-z0-9/._-]+\.m?js)$/);
+    const scope = crossPlugin ? crossPlugin[1] : pluginId;
+    const path = crossPlugin ? crossPlugin[2] : dependency.module;
+    return [dependency.name, `/api/plugins/${encodeURIComponent(scope)}/module${path}`];
+  }));
   return source.replace(/(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])([^'"]+)\2/g, (whole, prefix, quote, specifier) => {
     const target = targets.get(specifier);
     return target ? `${prefix}${quote}${target}${quote}` : whole;

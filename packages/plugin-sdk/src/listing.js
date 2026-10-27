@@ -34,7 +34,10 @@
 //   resolves it to the plugin's own vendor scope. What the mount
 //   injects is never vendorable (`vue`, `primevue`, `pinia`, and the
 //   host markdown pipeline `marked`/`dompurify`/`pele`); declared licenses
-//   make the platform's license policy a gate;
+//   make the platform's license policy a gate. A `module` of the form
+//   `plugin:<id><path>` (owner decision 2026-10-27) names another
+//   plugin's served module: `<id>` must appear in `requires`, and the
+//   module proxy resolves the import to that plugin's scope;
 // - `visibility` — 'public' (the default) or 'private': a private
 //   listing is served only to the organizations its `organizations` array
 //   names (org ids). The catalog stays platform-published; the operator
@@ -43,6 +46,10 @@
 const SERVICE_REF = /^plugin\.([a-z0-9-]+)\.([a-z0-9-]+)$/;
 const MODULE_PATH = /^\/[a-z0-9/_-]+\.m?js$/;
 const DEPENDENCY_MODULE_PATH = /^\/[a-z0-9/._-]+\.m?js$/;
+// A cross-plugin dependency module (owner decision 2026-10-27): the
+// required plugin's id plus a root-relative path that plugin's executor
+// serves.
+const CROSS_PLUGIN_DEPENDENCY_MODULE = /^plugin:([a-z0-9-]+)(\/[a-z0-9/._-]+\.m?js)$/;
 // An npm specifier: package name (scoped or plain), optionally with
 // subpaths — milkdown's '@milkdown/prose/commands' family needs them,
 // and the vendor build's shared chunks keep one class identity across
@@ -292,8 +299,12 @@ export function parseListing(listing = {}) {
     if (!SPDX_LIKE.test(dependency?.license || '')) {
       throw listingError(`dependency ${dependency.name} needs a license identifier (got ${JSON.stringify(dependency?.license)})`);
     }
-    if (!DEPENDENCY_MODULE_PATH.test(dependency?.module || '')) {
+    const crossPlugin = String(dependency?.module || '').match(CROSS_PLUGIN_DEPENDENCY_MODULE);
+    if (!crossPlugin && !DEPENDENCY_MODULE_PATH.test(dependency?.module || '')) {
       throw listingError(`dependency ${dependency.name} module must be a root-relative .js/.mjs path the executor serves (got ${JSON.stringify(dependency?.module)})`);
+    }
+    if (crossPlugin && !requires.includes(crossPlugin[1])) {
+      throw listingError(`dependency ${dependency.name} names plugin ${crossPlugin[1]}, which the listing does not require`);
     }
     if (dependency.module.split('/').includes('..')) {
       throw listingError(`dependency ${dependency.name} module must not traverse (${dependency.module})`);

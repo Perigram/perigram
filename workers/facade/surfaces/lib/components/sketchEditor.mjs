@@ -1,8 +1,8 @@
 // The profile sketch editor as a plugin surface component: a CAD canvas
-// (the vendored MLightCAD runtime, loaded lazily from the executor's
-// static tree) over the OCCS profile shape model. Drawing, snapping,
-// grips, and undo/redo run in the engine; entity records and the sketch
-// model normalize through occs/profiles.js.
+// (the MLightCAD runtime homed in tech-drawing, loaded lazily through the
+// declared cad-viewer dependency) over the OCCS profile shape model.
+// Drawing, snapping, grips, and undo/redo run in the engine; entity
+// records and the sketch model normalize through occs/profiles.js.
 import {
   OCCS_PROFILE_SHAPE_OPS,
   adoptOccsProfileBindingParameter,
@@ -1701,7 +1701,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (typeof window === 'undefined' || runtime.value) return;
         engineError.value = '';
         try {
-          const loaded = await import('../../../assets/vendor/cad-viewer/cad-viewer.mjs');
+          const loaded = await import('cad-viewer');
           if (disposed) return;
           runtime.value = loaded;
           await engineChain;

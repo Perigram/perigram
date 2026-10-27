@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassettes, cassette designs, sheet designs, and the nesting solver as an installable plugin with an external executor",
-  "version": "20",
+  "version": "21",
   "requires": [
     "tech-drawing"
   ],
@@ -628,6 +628,14 @@
       {
         "type": "profile",
         "surface": "profile-preview"
+      }
+    ],
+    "dependencies": [
+      {
+        "name": "cad-viewer",
+        "version": "1.7.5",
+        "module": "plugin:tech-drawing/assets/vendor/cad-viewer/cad-viewer.mjs",
+        "license": "MIT"
       }
     ]
   }

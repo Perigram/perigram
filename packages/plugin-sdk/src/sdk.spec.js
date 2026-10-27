@@ -128,6 +128,22 @@ describe('parseListing', () => {
       .toThrow(/version/);
     expect(() => withDeps([{ name: 'three', version: '1', module: '/assets/vendor/x.mjs' }]))
       .toThrow(/license/);
+    const crossPlugin = { name: 'cad-viewer', version: '1.7.5', module: 'plugin:tech-drawing/assets/vendor/cad-viewer/cad-viewer.mjs', license: 'MIT' };
+    expect(() => withDeps([crossPlugin])).toThrow(/does not require/);
+    expect(parseListing({
+      ...fullListing,
+      requires: ['tech-drawing'],
+      declarations: { ...fullListing.declarations, dependencies: [crossPlugin] }
+    }).dependencies).toEqual([crossPlugin]);
+    expect(() => withDeps([{ name: 'cad-viewer', version: '1.7.5', module: 'plugin:tech-drawing/../etc.mjs', license: 'MIT' }]))
+      .toThrow(/does not require/);
+    expect(() => parseListing({
+      ...fullListing,
+      requires: ['tech-drawing'],
+      declarations: { ...fullListing.declarations, dependencies: [{ name: 'cad-viewer', version: '1.7.5', module: 'plugin:tech-drawing/../etc.mjs', license: 'MIT' }] }
+    })).toThrow(/traverse/);
+    expect(() => withDeps([{ name: 'cad-viewer', version: '1.7.5', module: 'plugin:Not A Slug/x.mjs', license: 'MIT' }]))
+      .toThrow(/root-relative/);
   });
 
   it('validates starter constructs: own file type, declared mode, one per type', () => {
@@ -590,6 +606,11 @@ describe('declared runtime dependencies (owner decision 2026-10-17)', () => {
       mkdirSync(join(dir, 'assets/vendor'), { recursive: true });
       writeFileSync(join(dir, 'assets/vendor/three.mjs'), 'export const THREE = true;\n');
       await expect(checkSurfaceModule(modulePath, { dependencies: declared, pluginRoot: dir }))
+        .resolves.toBe(true);
+      // A cross-plugin module lives under the required plugin's root; the
+      // own-root existence rule exempts it.
+      const crossPlugin = [{ name: 'cad-viewer', version: '1.7.5', module: 'plugin:tech-drawing/assets/vendor/cad-viewer/cad-viewer.mjs', license: 'MIT' }];
+      await expect(checkSurfaceModule(modulePath, { dependencies: crossPlugin, pluginRoot: dir }))
         .resolves.toBe(true);
     } finally {
       rmSync(dir, { recursive: true, force: true });
