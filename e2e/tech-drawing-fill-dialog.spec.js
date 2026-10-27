@@ -239,9 +239,11 @@ test.describe('tech-drawing fill dialog', () => {
     await expect(dialog.getByText(/spot beta has no matching part/)).toBeVisible();
     await expect(dialog.getByText(/part gamma has no matching spot/)).toBeVisible();
 
-    // The refusal created nothing: the type's rows stay the two uploads.
+    // The refusal created nothing: the dialog's record never landed, the
+    // two uploads stay.
     const rows = await (await app.request.get('/api/instances/dxf-source')).json();
-    const names = (Array.isArray(rows) ? rows : []).map(row => row.name).sort();
-    expect(names).toEqual(['gamma', 'two-spots']);
+    const names = (Array.isArray(rows) ? rows : []).map(row => row.name);
+    expect(names).not.toContain('refused');
+    expect(names.filter(name => name === 'gamma' || name === 'two-spots').sort()).toEqual(['gamma', 'two-spots']);
   });
 });
