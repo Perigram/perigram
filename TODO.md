@@ -1880,3 +1880,33 @@ the chips-in-card presentation dies with it. The identifier component
 centralizes what nine projections hand-rolled.
 
 Status: WAITING owner verification.
+
+## Group membership leaves the collection (owner direction 2026-10-27)
+
+Law: SPEC §22.11 (rewritten). Owner verdict on the groups projection:
+pure slop, awful, not an appropriate approach in the collection at all.
+
+- [x] The `groups` projection dies whole: `GroupCollection.vue`, the
+  class matcher entry, the `groups` layout value and row weight, the
+  RegionCollections branch, and the group child-type overlay loading.
+  A group-class collection is its record collection like any other —
+  the standard matcher derives its projection over shape, size, and
+  data columns.
+- [x] Membership renders on the record surface alone: the record
+  ladder arranges the child collections on the record page and popup.
+  The identifier-icon law (§22.8) and the record-popup overflow stand
+  untouched.
+- [x] The random world's prose floor stays (a structural timeline
+  guarantee, now standing on its own); the fixtures folder pin returns
+  to the plain table.
+
+### Agent Notes (2026-10-27, round 20)
+
+Session `agent/genui-groups-revert-20261027-2230` (worktree
+`.agent-worktrees/genui-groups-revert`). Two attempts at membership in
+the group collection (chips in cards, then member-row sections) both
+failed review; the collection is the wrong place. The record surface
+already arranges members through the ladder — that is the whole
+membership story.
+
+Status: WAITING owner verification.

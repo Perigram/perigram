@@ -138,8 +138,7 @@ beside the transition history in `StateHistory`.
   share one host.
 - `RegionBlock.vue` — one composed region with data-driven layout: the
   list layout comes from `resolveListLayout` (`table` | `card-grid` |
-  `timeline` | `stats` | `list` | `board` | `gantt` | `calendar` |
-  `groups`; the
+  `timeline` | `stats` | `list` | `board` | `gantt` | `calendar`; the
   matcher is [shared/ui-mapping](../../shared/ui-mapping/README.md)'s).
   The list header is one wrapping line — label, count, in-place controls,
   actions (see above). List regions stack the header row and the
@@ -288,9 +287,9 @@ beside the transition history in `StateHistory`.
   instance lists with its parent beside the
   identity (`ParentRef.vue` — the parent type's icon plus the parent's
   resolved label, non-interactive; the region host lazily overlays
-  loaded parent types — and a group collection's child types — onto the
-  pool through the same `loadType` seam the tree
-  uses). Containment navigation belongs to the workspace explorer.
+  loaded parent types onto the pool through the same `loadType` seam
+  the tree uses). Containment navigation belongs to the workspace
+  explorer.
 - `CardGrid.vue` — the media and membership collection projection
   (DataView, paginated): cards lay out in the shared `ResponsiveGrid`
   primitive with container
@@ -478,12 +477,6 @@ beside the transition history in `StateHistory`.
   glyph, a record's declared thumb winning) and opens the record under
   the screen's `onOpen` contract; every projection's collection
   identities render through it.
-- `GroupCollection.vue` — the groups projection for group-class
-  collections (SPEC §22.11): each group instance heads a section with
-  its members beneath as `InstanceIdentity` rows (every children edge's
-  instances over the overlaid pool), the member count beside the
-  header, budgeted per group — the overflow opens the group's record
-  popup. One level; a member opens its own surface.
 - `ActionButton.vue`, `ParentRef.vue` — action-button presentation from
   the compiled action record, and the containment cross-cut's parent
   context token (a muted parent-type icon + the parent's resolved label

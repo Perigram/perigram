@@ -1325,20 +1325,17 @@ the pt table channel (separated cell borders, the ladder-step gap
 between the rounded rows). A utility class inside a PrimeVue
 component's internals is a defect.
 
-### 22.11 Group surfaces carry their membership (owner direction
-2026-10-27)
+### 22.11 Group membership renders on the record surface (owner
+direction 2026-10-27)
 
-A group-class collection renders as groups: each group instance is a
-group — its identifier heads a section, its members ride beneath as
-identifier rows (every children edge's instances, all child types),
-budgeted per group, and the overflow opens the group's own record
-popup, where the full membership arranges through the record ladder.
-The class outranks incidental field shape in the list matcher. No tree
-projection: members render one level, a member opens its own surface,
-and hierarchy navigation stays the workspace explorer's. Children
-resolve through the one hierarchy matcher over the overlaid pool; child
-types load lazily through the load-type seam, and an unloaded type
-renders without its context.
+A group-class type's collection is its record collection like any
+other: the standard list matcher derives its projection over shape,
+size, and data columns, and membership stays off it — no member rows,
+chips, counts, or grouped sections in a group's collection. A group's
+members are its record surface's child collections, arranged through
+the record ladder (columns, tabs, the side rail) on the record page
+and popup. No tree projection in class collections; hierarchy
+navigation is the workspace explorer's.
 
 ### 22.9 Spacing ladder (owner direction 2026-10-27)
 

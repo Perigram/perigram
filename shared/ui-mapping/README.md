@@ -187,7 +187,6 @@ first declared relation):
 | prose-dominant | `timeline` (chronological) |
 | percent/quantity-dominant | `stats` (StatGrid cards with the `text-metric` role) |
 | media | `card-grid` |
-| group class | `groups` (the class's identity law outranks field shape) |
 | two declared instants | `gantt` (an interval outranks chronology — the stronger structure) |
 | lone instant | `calendar` (`temporalFieldsFor` derives the fields in declaration order) |
 | process class whose state vocabulary spans ≥ `BOARD_MIN_COLUMNS` | `board` |
@@ -212,9 +211,9 @@ user view state on the sort/filter seam, see
 [components/ui-mapping](../../components/ui-mapping/README.md) — offers the
 board for any stateful structural collection. A class's list surface is
 always flat: containment is navigation (the workspace explorer owns
-hierarchy), and a group-class collection renders as groups (SPEC
-§22.11) — members resolve through `childrenOfParent` over the overlaid
-pool.
+hierarchy), and a group-class collection is its record collection like
+any other — membership renders on the record surface through the record
+ladder (SPEC §22.11).
 
 **Hierarchy materialization** (InstancePicker's hierarchical mode, the
 workspace explorer) matches children through `childrenOfParent(type, pool,
