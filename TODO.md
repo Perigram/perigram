@@ -1796,6 +1796,9 @@ lineage set (the immediate axes), so a stale ancestor stamp dies there
 too; composed `fields`/`name` entries stay authored. Compiler pins for
 both; processes 546 green; the running stack needs an app-container
 restart to drop the cached module.
+
+Status: WAITING owner verification.
+
 ## Identifier icons and the groups projection (owner direction
 2026-10-27)
 
