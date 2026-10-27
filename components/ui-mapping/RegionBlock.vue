@@ -18,7 +18,7 @@
         <!-- SPEC §22.8: the count renders only for loaded, accessible,
              non-empty collections — a denied or failed source has no
              count, and an empty one states itself through its message. -->
-        <span v-if="showSurfaces && hasInstances" :class="COUNT_CHIP_CLASS">{{ node.instances.length }}</span>
+        <span v-if="showSurfaces && hasInstances && !paneHosted" :class="COUNT_CHIP_CLASS">{{ node.instances.length }}</span>
       </div>
       <div v-if="createControls.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
         <!-- Search expands IN PLACE: the icon button becomes an icon field

@@ -260,6 +260,10 @@ export const SCALAR_BASES = Object.freeze(['string', 'number', 'quantity', 'inst
 // below), and the engine spec pins that partition.
 export const LAYOUT = Object.freeze({
   stack: 'flex flex-col gap-6',
+  // The screen root's section rhythm: the ladder's top step, one above
+  // the section stack so screen sections step down into their content
+  // (SPEC §22.9).
+  stackSection: 'flex flex-col gap-8',
   stackTight: 'flex flex-col gap-3',
   // A labeled block: label line, content below (SPEC §22.8 structural
   // values) — the tightest stack the vocabulary owns.
@@ -370,7 +374,7 @@ export const LAYOUT = Object.freeze({
 // atoms materialize as components (Tabs in RegionChildren, PlacementBox,
 // the RegionBlock stub slot), so their recipe lists are empty.
 export const LAYOUT_ATOMS = Object.freeze({
-  stack: Object.freeze(['stack', 'stackTight', 'labeledBlock', 'panelBody', 'ganttStack', 'calendarStack']),
+  stack: Object.freeze(['stack', 'stackSection', 'stackTight', 'labeledBlock', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
   band: Object.freeze(['previewHero', 'previewHeroBand', 'previewBand']),
@@ -525,6 +529,7 @@ export { EDIT_VARIANTS };
 // editor size together; density classification still derives per screen.
 export const SPACING_SCALES = Object.freeze({
   0.5: Object.freeze({
+    screenRoot: 'flex flex-col gap-4',
     stack: 'flex flex-col gap-2',
     stackTight: 'flex flex-col gap-1',
     specRow: 'flex min-w-0 items-center justify-between gap-2 py-0.5',
@@ -535,6 +540,7 @@ export const SPACING_SCALES = Object.freeze({
     editorSize: 'small'
   }),
   0.75: Object.freeze({
+    screenRoot: 'flex flex-col gap-6',
     stack: 'flex flex-col gap-3',
     stackTight: 'flex flex-col gap-2',
     specRow: 'flex min-w-0 items-center justify-between gap-3 py-1',
@@ -545,6 +551,7 @@ export const SPACING_SCALES = Object.freeze({
     editorSize: 'small'
   }),
   1: Object.freeze({
+    screenRoot: 'flex flex-col gap-8',
     stack: 'flex flex-col gap-6',
     stackTight: 'flex flex-col gap-3',
     specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
@@ -555,6 +562,7 @@ export const SPACING_SCALES = Object.freeze({
     editorSize: null
   }),
   1.25: Object.freeze({
+    screenRoot: 'flex flex-col gap-8',
     stack: 'flex flex-col gap-6',
     stackTight: 'flex flex-col gap-4',
     specRow: 'flex min-w-0 items-center justify-between gap-5 py-2',
@@ -565,6 +573,7 @@ export const SPACING_SCALES = Object.freeze({
     editorSize: null
   }),
   1.5: Object.freeze({
+    screenRoot: 'flex flex-col gap-8',
     stack: 'flex flex-col gap-8',
     stackTight: 'flex flex-col gap-5',
     specRow: 'flex min-w-0 items-center justify-between gap-6 py-3',
@@ -575,6 +584,7 @@ export const SPACING_SCALES = Object.freeze({
     editorSize: null
   }),
   1.75: Object.freeze({
+    screenRoot: 'flex flex-col gap-8',
     stack: 'flex flex-col gap-8',
     stackTight: 'flex flex-col gap-6',
     specRow: 'flex min-w-0 items-center justify-between gap-6 py-4',
@@ -585,6 +595,7 @@ export const SPACING_SCALES = Object.freeze({
     editorSize: null
   }),
   2: Object.freeze({
+    screenRoot: 'flex flex-col gap-8',
     stack: 'flex flex-col gap-8',
     stackTight: 'flex flex-col gap-8',
     specRow: 'flex min-w-0 items-center justify-between gap-8 py-6',

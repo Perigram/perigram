@@ -2,7 +2,7 @@
   <div :class="LAYOUT.ganttStack" data-testid="gantt-collection">
     <div :class="LAYOUT.ganttAxisRow">
       <div :class="LAYOUT.ganttAxisSpacer" />
-      <div class="relative h-4 min-w-0 flex-1">
+      <div class="relative h-6 min-w-0 flex-1">
         <span
           v-for="tick in ticks"
           :key="tick.key"

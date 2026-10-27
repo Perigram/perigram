@@ -118,7 +118,7 @@ function headingFor(screen) {
 // naturally-ready screens (empty and no-record already ship as screens).
 // On by default — the showcase exists to display the possibilities; the
 // toggle opts back to the natural world.
-const stateMatrix = computed(() => route.query.state !== 'off');
+const stateMatrix = computed(() => route.query.state === 'on');
 const sourceStatesFor = screen => (stateMatrix.value
   ? world.value.sourceStatesMatrix?.[screen.screenKey] || null
   : null);
