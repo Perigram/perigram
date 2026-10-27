@@ -5,7 +5,7 @@ import { resolveCatalogNodePorts } from './node-catalog.js';
 export const PROCESS_RUN_STATUSES = Object.freeze(['running', 'waiting', 'succeeded', 'failed', 'cancelled']);
 export const PROCESS_STEP_STATUSES = Object.freeze(['pending', 'running', 'waiting', 'succeeded', 'failed', 'skipped']);
 
-const NATIVE_EFFECT_KINDS = new Set(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.command', 'cts.service', 'cts.conversion']);
+const NATIVE_EFFECT_KINDS = new Set(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.command', 'cts.service', 'cts.conversion', 'cts.emit']);
 const NATIVE_MUTATION_KINDS = new Set(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove']);
 
 function isNativeEffect(record = {}) {
@@ -292,6 +292,25 @@ async function executeOperationalNode({ run, process, node, record, current, ste
     }
     return;
   }
+  if (record.kind === 'control.waitUntil') {
+    const until = inputs.until ? packetValue(inputs.until) : null;
+    const date = new Date(until);
+    if (!until || Number.isNaN(date.getTime())) {
+      throw new Error(`Wait Until ${record.id || node.id} requires a dateTime, received ${JSON.stringify(until)}`);
+    }
+    // Parks the run on the same boundary async effects park on; the run
+    // store owns the wake and resumes through the pending-effect seam.
+    step.status = 'waiting';
+    run.status = 'waiting';
+    run.wakeAt = date.toISOString();
+    run.pendingEffect = {
+      stepId: step.id,
+      nodeId: node.id,
+      invocationId: null,
+      controlToken: structuredClone(current)
+    };
+    return;
+  }
   if (record.kind === 'control.stopSuccess') {
     run.tokens = [];
     run.status = 'succeeded';
@@ -571,11 +590,14 @@ function processData(definition) {
 }
 
 function findTriggerNode(process, trigger) {
-  // Entry points are manual effect records (SPEC §20): the run's first
-  // token lands on the authored entry operation.
+  // Entry points (SPEC §20): a manual effect starts on user action; a
+  // scheduled effect starts at its authored time; an event-subscribed
+  // effect (authored `eventId`, no wire) starts when that event arrives.
   const nodes = (process.graph?.nodes || []).filter(node => {
     const record = process.processNodes?.[recordId(node)] || {};
-    return isEffectRecord(record) && (record.trigger?.mode || 'manual') === 'manual';
+    if (!isEffectRecord(record)) return false;
+    const mode = record.trigger?.mode || 'manual';
+    return mode === 'manual' || mode === 'schedule' || (mode === 'event' && record.eventId);
   });
   const match = trigger.nodeId
     ? nodes.find(node => String(node.id) === String(trigger.nodeId))

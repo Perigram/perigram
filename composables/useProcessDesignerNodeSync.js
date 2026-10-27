@@ -216,8 +216,14 @@ export function useProcessDesignerNodeSync({
   // the graph, so persisted authored modes heal into derived ones.
   function syncEffectTriggerMode(graphNode = {}, record = {}) {
     if (!EFFECT_SPECIES_KINDS.has(opKind(record))) return;
+    // Wire wins; an unwired entry with an authored schedule starts at its
+    // time, one with an authored eventId starts on that event.
     const connected = connectedProcessInputIds(graphNode, record);
-    record.trigger = { mode: connected.includes('in') ? 'event' : 'manual' };
+    if (connected.includes('in')) record.trigger = { mode: 'event' };
+    else if (record.trigger?.schedule?.at || record.trigger?.schedule?.interval) {
+      record.trigger = { mode: 'schedule', schedule: record.trigger.schedule };
+    } else if (record.eventId) record.trigger = { mode: 'event', eventId: record.eventId };
+    else record.trigger = { mode: 'manual' };
   }
 
   // Pure port lookup shared by every consumer of handle-shaped ports.

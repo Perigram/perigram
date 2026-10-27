@@ -30,10 +30,12 @@ export const CONSUMER_SPECIES_KINDS = new Set([
   'cts.remove'
 ]);
 
-// The operational species union: origin + consumer species.
+// The operational species union: origin + consumer species, plus the
+// event-emitting effect (an effect with no entity contract).
 export const EFFECT_SPECIES_KINDS = new Set([
   ...PRODUCER_ORIGIN_SPECIES_KINDS,
-  ...CONSUMER_SPECIES_KINDS
+  ...CONSUMER_SPECIES_KINDS,
+  'cts.emit'
 ]);
 
 // The species the shared effect mapper aligns per item (mapped mutations).
@@ -123,6 +125,7 @@ const definitions = [
   cts('cts.conversion', 'conversion', 'effects', 'effect'),
   cts('cts.read', 'read', 'reads', 'read'),
   cts('cts.field', 'field', 'records', 'data'),
+  cts('cts.emit', 'emitEvent', 'effects', 'effect'),
   cts('cts.compose', 'compose', 'records', 'data'),
   cts('cts.decompose', 'decompose', 'records', 'data'),
 
@@ -133,6 +136,7 @@ const definitions = [
   control('control.joinAny', 'joinAny'),
   control('control.forEach', 'forEach'),
   control('control.forEachEnd', 'forEachEnd'),
+  control('control.waitUntil', 'waitUntil'),
   control('control.stopSuccess', 'stopSuccess'),
   control('control.stopFailure', 'stopFailure')
 ];
@@ -543,6 +547,16 @@ function cts(kind, label, family, level) {
       if (record.kind === 'cts.command') return nativeCommandPorts(record, context);
       if (record.kind === 'cts.read') return nativeReadPorts(record, context);
       if (record.kind === 'cts.field') return nativeFieldPorts(record, context);
+      if (record.kind === 'cts.emit') {
+        return {
+          inputs: [
+            ...nativeControlInput(),
+            socket('type', processType('string'), DATA, true),
+            socket('payload', processType('json', { nullable: true }), DATA, false)
+          ],
+          outputs: [completedSocket()]
+        };
+      }
       if (record.kind === 'cts.compose' || record.kind === 'cts.decompose') {
         return nativeStructurePorts(record, context);
       }
@@ -811,6 +825,12 @@ function catalogPorts(record = {}, context = {}) {
     outputs: [socket('each', event, CONTROL), socket('item', configured), socket('path', processType('array', { itemType: processType('integer') })), socket('index', processType('integer')), socket('done', event, CONTROL)]
   };
   if (kind === 'control.forEachEnd') return { inputs: controlInput, outputs: [] };
+  if (kind === 'control.waitUntil') {
+    return {
+      inputs: [...controlInput, socket('until', processType('dateTime'), DATA, true)],
+      outputs: [socket('completed', event, CONTROL)]
+    };
+  }
   if (kind === 'control.stopSuccess' || kind === 'control.stopFailure') return { inputs: controlInput, outputs: [] };
   throw new Error(`Node ${kind} has no port contract`);
 }

@@ -30,6 +30,7 @@ import {
   packetValue
 } from '~/packages/processes/src/index.js';
 import { createDefinitionAuthoring, collapseEffectAccessGrants, emptyAuthoredDocument, graphEdgeSocketProblems, graphIntegrityProblems } from '~/packages/processes/src/authoring.js';
+import { persistRun, persistEvent, markEventDispatched } from './run-store.js';
 import {
   getBlockFieldSchema,
   getBlockFieldSchemas,
@@ -646,7 +647,20 @@ async function evaluateDataflow(definition, payload = {}, { auth, actor, domain 
     processDefinitionId: runnableDefinition._id || runnableDefinition.id,
     context: { inputs: payload.inputs || {}, actor: actor || buildRunActor(auth, resolveOrganizationId(auth)) }
   });
-  const environment = current => ({
+  const environment = parkingEnvironment(runnableDefinition, base);
+  const settled = await advanceToBoundary(run, runnableDefinition.data, environment);
+  if (settled.status === 'waiting' && settled.wakeAt) {
+    // A Wait Until park is durable: the run store owns the wake.
+    await persistRun(runnableDefinition, settled);
+  }
+  return settled;
+}
+
+// Effect dispatch with the async-command parking boundary: a command with
+// a task-run dispatch parks the evaluation in memory under the task id;
+// the task runtime's terminal boundary continues it.
+function parkingEnvironment(runnableDefinition, base) {
+  return current => ({
     ...base,
     executeEffect: async (request, runState) => {
       const dispatch = await base.executeEffect(request, runState);
@@ -657,7 +671,7 @@ async function evaluateDataflow(definition, payload = {}, { auth, actor, domain 
       pendingActionContinuations.set(taskRunId, {
         run: structuredClone(runState),
         definition: runnableDefinition,
-        actor: actor || runState?.context?.actor || {},
+        actor: runState?.context?.actor || {},
         snapshot
       });
       return { __processEffectPending: true };
@@ -666,7 +680,35 @@ async function evaluateDataflow(definition, payload = {}, { auth, actor, domain 
     // object (it spreads environment.data per evaluated node).
     data: base.data(current)
   });
-  return await advanceToBoundary(run, runnableDefinition.data, environment);
+}
+
+export async function resumeParkedRun(record) {
+  const definitionLike = {
+    _id: record.definitionId,
+    lineage: { organizationId: record.organizationId },
+    data: record.definitionData
+  };
+  const domain = await getProjectedDomain(record.organizationId);
+  const auth = record.run?.context?.actor
+    ? { ...record.run.context.actor }
+    : { userId: 'SYSTEM', system: true, memberships: [] };
+  const base = manualRunEnvironment(definitionLike, auth, domain);
+  const resumed = await resumeProcessRun(record.run, record.definitionData, { output: {} }, {
+    catalogContext: base.catalogContext,
+    domain,
+    data: base.data(record.run)
+  });
+  const settled = await advanceToBoundary(resumed, record.definitionData, parkingEnvironment(definitionLike, base));
+  await persistRun(definitionLike, settled);
+  return settled;
+}
+
+export async function runDefinitionEntry(definition, trigger = {}, meta = {}) {
+  const organizationId = meta.organizationId ?? definition.lineage?.organizationId ?? null;
+  const systemAuth = { userId: 'SYSTEM', system: true, memberships: [], organizationId };
+  const run = await evaluateDataflow(definition, { trigger }, { auth: systemAuth });
+  await persistRun(definition, run, { kind: meta.kind || 'action', nodeId: meta.nodeId || '' });
+  return run;
 }
 
 export async function evaluateDefinitionDataflow(id, payload = {}, auth = {}) {
@@ -1740,6 +1782,25 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   // keyed on the species while the record keeps its discriminator and
   // authored state reference intact.
   const operation = operationKindOf(record || {}) || kind;
+  if (operation === 'cts.emit') {
+    const type = String(inputs.type ?? '');
+    if (!type) throw new Error('Emit effect requires an event type');
+    const event = await persistEvent({
+      id: crypto.randomUUID(),
+      organizationId: auth.organizationId ?? null,
+      type,
+      payload: inputs.payload ?? null,
+      sourceDefinitionId: ''
+    });
+    try {
+      const { dispatchEventToSubscribers } = await import('./run-scanner.js');
+      await dispatchEventToSubscribers(event);
+      await markEventDispatched(event._id);
+    } catch {
+      // The event record persists: the scanner retries delivery.
+    }
+    return { eventId: event._id, type, at: event.at };
+  }
   if (operation === 'cts.command' || operation === 'cts.service') {
     if (!record.commandId) throw new Error('Command effect requires commandId');
     // The command's declared gates ride the execution auth: the action
