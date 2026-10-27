@@ -133,10 +133,11 @@ export const test = base.extend({
         });
         return assigned;
       },
-      // Installs catalog plugins for the current org in dependency order
-      // (documents; tech-drawing; facade requires tech-drawing). Orgs get
-      // no plugins at creation: every spec that reads a pack/plugin type
-      // installs it explicitly. Idempotent — 409 means already installed.
+      // Installs catalog plugins for the current org; requires gates fire
+      // on install order (documents and facade require tech-drawing).
+      // Orgs get no plugins at creation: every spec that reads a
+      // pack/plugin type installs it explicitly. Idempotent — 409 means
+      // already installed.
       async installPlugins(pluginIds = []) {
         const me = await (await request.get('/api/auth/me')).json();
         for (const pluginId of pluginIds) {

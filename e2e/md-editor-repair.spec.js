@@ -32,7 +32,7 @@ async function payloadText(app, typeId) {
 test.describe('markdown editor repair', () => {
   test('blank markdown editor opens pristine and round-trips source', async ({ app }) => {
     test.setTimeout(180_000);
-    await app.installPlugins(['documents']);
+    await app.installPlugins(['tech-drawing', 'documents']);
     await app.connectPlugin('documents', 'http://documents-executor:8791');
     await app.seedSpeciesProcess({ types: ['text-document'] });
 
@@ -72,7 +72,7 @@ test.describe('markdown editor repair', () => {
 
   test('format controls toggle blocks and the focused block shows its markdown source', async ({ app }) => {
     test.setTimeout(180_000);
-    await app.installPlugins(['documents']);
+    await app.installPlugins(['tech-drawing', 'documents']);
     await app.connectPlugin('documents', 'http://documents-executor:8791');
     await app.seedSpeciesProcess({ types: ['text-document'] });
 
@@ -162,7 +162,7 @@ test.describe('markdown editor repair', () => {
 
   test('uploaded .md opens in the editor with its content', async ({ app }) => {
     test.setTimeout(180_000);
-    await app.installPlugins(['documents']);
+    await app.installPlugins(['tech-drawing', 'documents']);
     await app.connectPlugin('documents', 'http://documents-executor:8791');
     await app.seedSpeciesProcess({ types: ['text-document'], via: { 'text-document': 'upload' } });
 
@@ -206,7 +206,7 @@ test.describe('markdown editor repair', () => {
 
   test('csv edits serialize rows on save', async ({ app }) => {
     test.setTimeout(180_000);
-    await app.installPlugins(['documents']);
+    await app.installPlugins(['tech-drawing', 'documents']);
     await app.connectPlugin('documents', 'http://documents-executor:8791');
     await app.seedSpeciesProcess({ types: ['csv-table'], via: { 'csv-table': 'content' } });
 
