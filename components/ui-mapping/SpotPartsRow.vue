@@ -31,8 +31,8 @@
         :type-ids="accepts"
         :bundle="bundle"
         :editor-actions="editorActions"
-        :constructible-type-ids="constructibleTypeIds"
-        @construct="typeId => emit('construct', typeId)"
+        :create-actions="createActions"
+        @construct-create="action => emit('construct-create', action)"
       />
     </template>
     <div v-else-if="templateRef" class="flex items-center gap-2">
@@ -41,8 +41,8 @@
         :type-ids="accepts"
         :bundle="bundle"
         :editor-actions="editorActions"
-        :constructible-type-ids="constructibleTypeIds"
-        @construct="typeId => emit('construct', typeId)"
+        :create-actions="createActions"
+        @construct-create="action => emit('construct-create', action)"
       />
     </div>
   </div>
@@ -69,9 +69,9 @@ const props = defineProps({
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   editorActions: { type: Object, default: null },
-  constructibleTypeIds: { type: Array, default: () => [] }
+  createActions: { type: Object, default: () => ({}) }
 });
-const emit = defineEmits(['update:modelValue', 'construct']);
+const emit = defineEmits(['update:modelValue', 'construct-create']);
 const { t, te } = useI18n();
 const instances = useInstancesStore();
 const view = useFileTypeView();

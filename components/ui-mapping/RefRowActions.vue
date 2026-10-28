@@ -38,42 +38,55 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
+import { creationModeLabel } from '~/packages/processes/src/ui-contract-projection.js';
+import { createdEntity } from '~/utils/instance-run-results.js';
 import { useInstancesStore } from '~/stores/instances';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 
 // The fill dialog's reference-slot affordances (SPEC §24 rails): create
-// through the accepted type's declared creation mode — upload inline,
-// editor as the blank page, construct through the host dialog — and open
-// the picked instance's editor when its type binds one.
+// through the accepted type's declared creation mode — the editor
+// protocol opens the blank page, an upload-mode create runs inline over
+// the files channel, every other create opens the host's nested dialog —
+// and open the picked instance's editor when its type binds one.
 const props = defineProps({
   typeIds: { type: Array, default: () => [] },
   bundle: { type: Object, default: null },
   value: { type: Object, default: null },
   editorActions: { type: Object, default: null },
-  constructibleTypeIds: { type: Array, default: () => [] }
+  // Compiled create actions by accepted type id: `{ [typeId]: action[] }`.
+  createActions: { type: Object, default: () => ({}) }
 });
 
-const emit = defineEmits(['select', 'construct']);
+const emit = defineEmits(['select', 'construct-create']);
 const { t } = useI18n();
+const toast = useToast();
 const instances = useInstancesStore();
 const menuRef = ref(null);
 const fileRef = ref(null);
 const creating = ref(false);
-const pendingFileEntry = ref(null);
+const pendingUpload = ref(null);
 
-const PROTOCOL_LABELS = { upload: 'Upload', capture: 'Capture', editor: 'Editor', content: 'Content', construct: 'Create' };
+const typeRecordOf = typeId => (props.bundle?.types || []).find(candidate => candidate.id === typeId) || null;
 
+// The editor protocol is the declared `payload.creation` vocabulary; the
+// create actions are what the org can actually run.
 const entries = computed(() => props.typeIds.flatMap(typeId => {
-  const type = (props.bundle?.types || []).find(candidate => candidate.id === typeId);
+  const type = typeRecordOf(typeId);
   if (!type) return [];
-  const label = type.name || typeId;
-  if (type.payload) {
-    const protocols = type.payload.creation?.length ? type.payload.creation : ['upload'];
-    return protocols.map(protocol => ({ typeId, protocol, label: protocols.length > 1 ? `${label} · ${PROTOCOL_LABELS[protocol] || protocol}` : label }));
+  const list = [];
+  if ((type.payload?.creation || []).includes('editor')) {
+    list.push({ typeId, protocol: 'editor', modeLabel: 'Editor', action: null });
   }
-  return props.constructibleTypeIds.includes(typeId) ? [{ typeId, protocol: 'construct', label }] : [];
+  for (const action of props.createActions[typeId] || []) {
+    const mode = action.construction?.mode || '';
+    list.push({ typeId, protocol: mode === 'upload' ? 'upload' : 'construct', modeLabel: creationModeLabel(mode) || 'Create', action });
+  }
+  if (!list.length) return [];
+  const label = type.name || typeId;
+  return list.map(entry => ({ ...entry, label: list.length > 1 ? `${label} · ${entry.modeLabel}` : label }));
 }));
 
 const hasAffordances = computed(() => entries.value.length > 0 || Boolean(props.value?.id && props.editorActions?.[String(props.value.type)]));
@@ -86,26 +99,26 @@ const menuModel = computed(() => entries.value.map((entry, index) => ({
 })));
 
 const fileAccept = computed(() => {
-  const type = (props.bundle?.types || []).find(candidate => candidate.id === pendingFileEntry.value?.typeId);
+  const type = typeRecordOf(pendingUpload.value?.typeId);
   return (type?.payload?.accept || type?.payload?.mime || []).join(',') || undefined;
 });
 
 function runCreate(entry) {
   if (entry.protocol === 'editor') {
-    if (!openBlankFileEditor(entry.typeId) && props.constructibleTypeIds.includes(entry.typeId)) emit('construct', entry.typeId);
+    openBlankFileEditor(entry.typeId);
     return;
   }
-  if (entry.protocol === 'upload' || entry.protocol === 'capture') {
-    pendingFileEntry.value = entry;
+  if (entry.protocol === 'upload') {
+    pendingUpload.value = entry;
     fileRef.value?.click();
     return;
   }
-  emit('construct', entry.typeId);
+  emit('construct-create', entry.action);
 }
 
 async function onFilePicked(event = {}) {
   const file = event.target?.files?.[0];
-  const entry = pendingFileEntry.value;
+  const entry = pendingUpload.value;
   event.target.value = '';
   if (!file || !entry) return;
   creating.value = true;
@@ -113,14 +126,21 @@ async function onFilePicked(event = {}) {
     const form = new FormData();
     form.append('file', file);
     const stored = await $fetch('/api/files/upload?bucket=files', { method: 'POST', body: form });
-    const created = await instances.createInstance(entry.typeId, {
-      name: file.name.replace(/\.[^.]+$/, '') || file.name,
-      payload: { fileId: stored.id, mime: file.type || null, size: file.size, name: file.name }
+    const result = await instances.runAction({
+      action: entry.action,
+      actionId: entry.action.id,
+      entities: {},
+      data: { payload: { fileId: stored.id, mime: file.type || null, size: file.size, name: file.name } },
+      parameters: {}
     });
-    if (created?._id) emit('select', { type: entry.typeId, id: String(created._id) });
+    const entity = createdEntity(entry.action, result);
+    const id = entity?._id ?? entity?.id;
+    if (id) emit('select', { type: entry.typeId, id: String(id) });
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
   } finally {
     creating.value = false;
-    pendingFileEntry.value = null;
+    pendingUpload.value = null;
   }
 }
 </script>

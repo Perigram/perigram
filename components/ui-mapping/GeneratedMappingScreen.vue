@@ -77,8 +77,8 @@
             :pool="pool"
             :bundle="bundle"
             :editor-actions="editorActions"
-            :constructible-type-ids="constructibleTypeIds"
-            @construct="openNestedCreate(null, $event)"
+            :create-actions="createActionsByType"
+            @construct-create="openNestedCreate(null, $event)"
             @update:model-value="value => (dialogDraft[row.id] = value)"
           />
           <div v-else-if="row.descriptor?.base === 'ref'" class="flex items-center gap-2">
@@ -96,9 +96,9 @@
               :bundle="bundle"
               :value="dialogDraft[row.id]"
               :editor-actions="editorActions"
-              :constructible-type-ids="constructibleTypeIds"
+              :create-actions="createActionsByType"
               @select="value => (dialogDraft[row.id] = value)"
-              @construct="typeId => openNestedCreate(row.id, typeId)"
+              @construct-create="action => openNestedCreate(row.id, action)"
             />
           </div>
           <FieldControl
@@ -483,12 +483,13 @@ const draftPayload = () => {
 // inside the fill dialog; the created record selects into its row without
 // leaving the dialog.
 const instancesStore = useInstancesStore();
-const constructibleTypeIds = computed(() => {
-  const ids = new Set();
+const createActionsByType = computed(() => {
+  const grouped = {};
   for (const action of Object.values(props.contract?.actions || {})) {
-    if (isCreateAction(action) && action.typeId && !action.__command) ids.add(action.typeId);
+    if (!isCreateAction(action) || action.__command || !action.typeId) continue;
+    (grouped[action.typeId] ||= []).push(action);
   }
-  return [...ids];
+  return grouped;
 });
 const nestedCreate = ref(null);
 const nestedDraft = reactive({});
@@ -503,12 +504,10 @@ const nestedRows = computed(() => (
   nestedCreate.value?.action ? resolveCreateDialogInputs(nestedCreate.value.action, nestedType.value, props.bundle) : []
 ));
 
-function openNestedCreate(rowId, typeId) {
-  const action = Object.values(props.contract?.actions || {})
-    .find(candidate => isCreateAction(candidate) && candidate.typeId === typeId && !candidate.__command);
+function openNestedCreate(rowId, action) {
   if (!action) return;
   for (const key of Object.keys(nestedDraft)) delete nestedDraft[key];
-  nestedCreate.value = { rowId, typeId, action };
+  nestedCreate.value = { rowId, typeId: action.typeId, action };
 }
 
 async function submitNestedCreate() {
