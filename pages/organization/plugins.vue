@@ -28,47 +28,45 @@
             <Column :header="$t('common.actions.title')" class="text-right">
               <template #body="{ data }">
                 <div class="flex justify-end gap-2">
-                  <template>
                     <Tag
-                      v-if="data.availableVersion"
-                      :value="`${data.version} → ${data.availableVersion}`"
-                      severity="warn"
-                    />
-                    <Button
-                      v-if="data.availableVersion"
-                      icon="pi pi-arrow-up"
-                      :aria-label="$t('plugins.upgrade')"
-                      size="small"
-                      @click="openUpgrade(data)"
-                    />
-                    <Button
-                      v-if="data.services.length"
-                      icon="pi pi-key"
-                      :aria-label="$t('plugins.connector')"
-                      severity="secondary"
-                      size="small"
-                      text
-                      @click="openConnector(data)"
-                    />
-                    <Button
-                      v-if="hasEndpointServices(data)"
-                      icon="pi pi-sliders-h"
-                      :aria-label="$t('plugins.settings')"
-                      severity="secondary"
-                      size="small"
-                      text
-                      @click="openSettings(data)"
-                    />
-                    <Button
-                      icon="pi pi-trash"
-                      :aria-label="$t('plugins.uninstall')"
-                      severity="danger"
-                      size="small"
-                      text
-                      :loading="workingPluginId === data.pluginId"
+                    v-if="data.availableVersion"
+                    :value="`${data.version} → ${data.availableVersion}`"
+                    severity="warn"
+                  />
+                  <Button
+                    v-if="data.availableVersion"
+                    icon="pi pi-arrow-up"
+                    :aria-label="$t('plugins.upgrade')"
+                    size="small"
+                    @click="openUpgrade(data)"
+                  />
+                  <Button
+                    v-if="data.services.length"
+                    icon="pi pi-key"
+                    :aria-label="$t('plugins.connector')"
+                    severity="secondary"
+                    size="small"
+                    text
+                    @click="openConnector(data)"
+                  />
+                  <Button
+                    v-if="hasEndpointServices(data)"
+                    icon="pi pi-sliders-h"
+                    :aria-label="$t('plugins.settings')"
+                    severity="secondary"
+                    size="small"
+                    text
+                    @click="openSettings(data)"
+                  />
+                  <Button
+                    icon="pi pi-trash"
+                    :aria-label="$t('plugins.uninstall')"
+                    severity="danger"
+                    size="small"
+                    text
+                    :loading="workingPluginId === data.pluginId"
                       @click="uninstall(data)"
                     />
-                  </template>
                 </div>
               </template>
             </Column>
