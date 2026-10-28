@@ -998,8 +998,15 @@ async function buildUpgradePlan(install, listing, organizationId) {
   for (const [id, oldType] of oldTypes) {
     const instances = await countInstancesOfType(id, organizationId);
     if (!newTypes.has(id)) {
+      const boundBy = await findTypeReferences(organizationId, id);
       if (instances > 0) {
         blocked.push({ typeId: id, instances, reason: 'removed with live instances — delete or migrate them first' });
+      } else if (boundBy.length) {
+        blocked.push({
+          typeId: id,
+          instances,
+          reason: `removed while bound by ${boundBy.map(binding => binding.name || binding.id).join(', ')} — re-author or migrate the definition first`
+        });
       } else {
         removed.push(typeSummary(oldType));
       }

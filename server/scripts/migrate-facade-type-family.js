@@ -36,34 +36,33 @@ function rewriteRefs(value) {
   return count;
 }
 
-// Authored graph records: type ids on records, binds, and entity
-// descriptors.
-function rewriteGraphRecords(graph = {}) {
-  let nodes = 0;
-  const walkRecords = (records = {}) => {
-    for (const record of Object.values(records)) {
-      if (!record || typeof record !== 'object') continue;
-      let changed = false;
-      if (record.typeId === FROM_TYPE) { record.typeId = TO_TYPE; changed = true; }
-      if (record.preset?.typeId === FROM_TYPE) { record.preset.typeId = TO_TYPE; changed = true; }
-      for (const field of ['type', 'via', 'operator']) {
-        if (record[field] === FROM_TYPE) { record[field] = TO_TYPE; changed = true; }
-      }
-      const typeDescriptor = record.type || record.preset?.type;
-      if (typeDescriptor && typeof typeDescriptor === 'object' && typeDescriptor.typeId === FROM_TYPE) {
-        typeDescriptor.typeId = TO_TYPE;
-        changed = true;
-      }
-      if (Array.isArray(record.accepts)) {
-        record.accepts = record.accepts.map(entry => (entry === FROM_TYPE ? TO_TYPE : entry));
-      }
-      if (changed) nodes += 1;
+// Authored graph records: type bindings on the persisted draft shape
+// (`data.processNodes.*`, `data.ctsTypes.*`, `data.graph.nodes.*`,
+// `data.producerOutputs.*`, and the draft's history snapshots). Only
+// type-binding slots rewrite — `typeId` fields and `{type, id}` ref
+// objects — so same-named non-type vocabulary (a join column key)
+// survives.
+function rewriteDefinition(definition = {}) {
+  let count = 0;
+  const rewriteTree = (node) => {
+    if (Array.isArray(node)) {
+      for (const entry of node) rewriteTree(entry);
+      return;
     }
+    if (!node || typeof node !== 'object' || node instanceof Date) return;
+    if (node.typeId === FROM_TYPE) {
+      node.typeId = TO_TYPE;
+      count += 1;
+    }
+    if (node.type === FROM_TYPE && ('id' in node)) {
+      node.type = TO_TYPE;
+      count += 1;
+    }
+    for (const entry of Object.values(node)) rewriteTree(entry);
   };
-  walkRecords(graph.nodes);
-  walkRecords(graph.records);
-  walkRecords(graph.declarations);
-  return nodes;
+  const data = definition.data && typeof definition.data === 'object' ? definition.data : definition;
+  rewriteTree(data);
+  return count;
 }
 
 const persist = apply
@@ -90,11 +89,11 @@ for (const collection of ['files', 'items', 'groups', 'processes']) {
 
 const definitions = await db.collection('process_definitions').find({}).toArray();
 for (const definition of definitions) {
-  const added = rewriteGraphRecords(definition.graph || {});
+  const added = rewriteDefinition(definition);
   if (added > 0) {
     report.definitionsRewritten += 1;
     report.nodesRewritten += added;
-    await persist('process_definitions', { _id: definition._id }, { $set: { graph: definition.graph } });
+    await persist('process_definitions', { _id: definition._id }, { $set: { data: definition.data } });
   }
 }
 
