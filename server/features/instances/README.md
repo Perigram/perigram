@@ -227,8 +227,8 @@ Template fills ride this shape (SPEC §24): a
 `POST /api/instances/:type/construction-preview` runs the same service
 over `{ mode, draft }` with nothing persisted: it answers `{ payload:
 { base64, mime, name? } | null, fields }` (the fill dialog's composed
-preview) or the same structured refusal; an unbound mode answers 404 and
-the create write gate applies.
+preview), 204 when the org binds no service for the mode, or the same
+structured refusal; the create write gate applies.
 `constructionHandlers` reports every mode as served (the
 capability projections filter on it); genuinely unbound modes fail
 loudly at dispatch. Types that declare construction modes never offer a
