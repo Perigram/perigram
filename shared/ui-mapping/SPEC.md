@@ -262,6 +262,18 @@ record's surface at no placement.
   type whose declared preview renders visually. Every
   other collection resolves its shape-derived layout.
 
+## Field I/O law (owner direction 2026-10-28)
+
+Raw JSON is not a UI vocabulary: field display renders structural
+summaries, field input renders typed controls.
+
+- A schemaless `json` field is machine data: every variant renders its
+  read-only structural summary. Human authoring of such values belongs
+  to dedicated surface editors.
+- A `map` field edits as key-value rows: each value cell resolves its
+  control from the declared `itemType`, else from the value's own type;
+  a nested value renders its read-only summary.
+
 ## Pins
 
 Derivation is the default. A presentation the trait vocabulary cannot

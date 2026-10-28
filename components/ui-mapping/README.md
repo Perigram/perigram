@@ -525,10 +525,13 @@ beside the transition history in `StateHistory`.
   the accepted type's creation mode, open the picked instance's editor),
   `FillDialogBody` (the fill-dialog shell: form pane beside the live
   composed preview), `TemplateValuesRow` (the per-token values form a
-  `template-values` pin renders), and the recursive `ObjectEditor` / `ListEditor` / `VariantEditor`
-  (compact density shrinks editors through PrimeVue sizes); maps and json
-  edit through the JsonEditor textarea (pretty-printed, invalid JSON
-  flagged inline). The instance pickers render every suggestion, tree
+  `template-values` pin renders), `MapEditor` (key-value rows: the key
+  an input, each value cell the resolver's control for the declared
+  itemType or the value's own type — a nested value renders its
+  read-only summary), and the recursive `ObjectEditor` / `ListEditor` / `VariantEditor`
+  (compact density shrinks editors through PrimeVue sizes); schemaless
+  json renders read-only (the ObjectSummary presentation — machine
+  data, the shared SPEC's Field I/O law). The instance pickers render every suggestion, tree
   node, and option as the one-line instance option row and build their
   options through the shared instance-option derivation
   ([shared](../shared/README.md) — SPEC §22.13); `SpotPartsRow` picks each

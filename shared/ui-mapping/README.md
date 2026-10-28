@@ -109,6 +109,8 @@ read-only presentations derive from shape.
 | long string | Textarea |
 | payload blob | FileUpload |
 | `record` / `variant` / heterogeneous `list` | recursive structural editors |
+| `map` | MapEditor key-value rows (itemType-typed value cells, value-shape cells otherwise) |
+| schemaless `json` | ObjectSummary read-only summary — machine data ([SPEC](./SPEC.md) → Field I/O law) |
 
 **Display variants** resolve read-only presentations, refined by data shape:
 
@@ -189,7 +191,7 @@ an edge matches by its declared `lineageKey`, the entry's map key is
 authoring identity). Construct operator reference inputs render as
 instance pickers over the operator's `accepts` — an `entity` single, a
 `typeList` list; every other operator data input renders by its own
-base (a free-form map as the json editor, quantities their unit field).
+base (a free-form map as key-value rows, quantities their unit field).
 Rows carry the compiled input's `required` flag; an
 identifier row the contract prompts is required unconditionally (its
 value is the record's title), and the dialog's submit stays disabled
