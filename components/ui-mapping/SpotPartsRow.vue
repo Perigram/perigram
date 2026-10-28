@@ -2,7 +2,7 @@
   <div class="flex min-w-0 flex-col gap-2">
     <div v-if="loading" class="text-supporting text-muted">{{ t('uiMapping.loadingRegion') }}</div>
     <Message v-else-if="error" severity="error" :closable="false">{{ error }}</Message>
-    <template v-else-if="spots.length">
+    <template v-else-if="templateRef && spots.length">
       <div
         v-for="spot in spots"
         :key="spot"
@@ -22,7 +22,7 @@
         />
       </div>
     </template>
-    <span v-else class="text-supporting text-muted">{{ t('uiMapping.noSpots') }}</span>
+    <span v-else-if="templateRef" class="text-supporting text-muted">{{ t('uiMapping.noSpots') }}</span>
   </div>
 </template>
 
