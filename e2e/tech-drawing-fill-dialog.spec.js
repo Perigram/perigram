@@ -112,6 +112,9 @@ test.describe('tech-drawing fill dialog', () => {
     const templateInput = dialog.locator('.p-autocomplete input');
     await templateInput.fill('frame');
     await app.page.locator('.p-autocomplete-item, [role="option"]', { hasText: 'frame' }).first().click();
+    // The selected template renders its label — the picker's model is the
+    // instance ref, the input never shows the raw object.
+    await expect(templateInput).toHaveValue(/frame/);
 
     await dialog.locator('.p-multiselect').click();
     await app.page.getByRole('option', { hasText: 'bracket' }).first().click();
