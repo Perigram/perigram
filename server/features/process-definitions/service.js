@@ -2214,9 +2214,20 @@ function effectConstructionInputs(record = {}, domain = {}) {
 
 function relationInputValue(supplied) {
   if (supplied && typeof supplied === 'object' && (supplied.type || supplied.typeId)) {
-    return { type: supplied.type || supplied.typeId, id: String(supplied.id ?? supplied._id ?? '') };
+    return {
+      type: supplied.type || supplied.typeId,
+      id: String(supplied.id ?? supplied._id ?? ''),
+      ...(supplied.spot != null ? { spot: String(supplied.spot) } : {})
+    };
   }
-  return entityInputId(supplied);
+  const id = entityInputId(supplied);
+  if (id == null) return null;
+  // A spot assignment (SPEC §24 spot-parts) rides beside the id: the
+  // explicit anchor pairing survives the construction-input scalarize.
+  if (supplied && typeof supplied === 'object' && supplied.spot != null) {
+    return { id, spot: String(supplied.spot) };
+  }
+  return id;
 }
 
 // Field sockets spell row paths as `fields.<path>` (the catalog's socket
