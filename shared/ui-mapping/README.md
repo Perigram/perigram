@@ -180,7 +180,7 @@ one of `table`, `card-grid`, `timeline`, `stats`, `list`, `board`,
 plus two caller-derived signals — `size` (the collection's size class)
 and `columns` (the value-aware count of data columns a table would show
 beside identity and status: filled non-identifier short scalars plus the
-first declared relation):
+filled first declared relation):
 
 | Signal | Layout |
 |---|---|
@@ -240,9 +240,14 @@ compose-time list contract every collection surface consumes:
 searches by title and id alone), `sortKeys` (filled short scalars
 with labels, the identifier field excepted — it is the identity axis;
 the
-first filled short scalar is the natural default), `facets` (enum
+first filled short scalar is the natural default), `relationColumn`
+(the first declared relation, `{ key }`, a column only when any loaded
+instance carries its refs — the same filledness law as scalar columns,
+and the table-floor signal counts it the same way), `facets` (enum
 fields over the values actually present), and `pagination` from the
-shared table budgets. The contract is total and deterministic over the
+shared table budgets. Filledness is display-aware: a quantity carrying
+a null value renders the fallback dash and counts as unfilled. The
+contract is total and deterministic over the
 type record plus instances.
 Two pure helpers consume it: `toolbarVisibleFor(node)` decides the bar
 (large lists always, small lists through multi-value facets, list

@@ -225,7 +225,9 @@ Generated record surfaces have no record-level edit mode: no header
 Edit/Save toggle, no draft mode that switches the whole record into
 editors. Every editable field edits inline through its own pencil —
 scalar facts click-to-edit in place, structural panels carry their own
-pencil — and nothing else toggles them. Every field change drops into
+pencil — and nothing else toggles them. Collection cells ride the same
+pencil: a table cell (the empty ones included) edits in place on
+patchable surfaces, patching one field like every other inline change. Every field change drops into
 the state record (`status_events`) attributed: who changed which field,
 from what value to what value, beside the transition history.
 
