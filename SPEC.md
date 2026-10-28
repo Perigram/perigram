@@ -1091,3 +1091,12 @@ definition that stations the type owns the remove construct.
 The DXF editor surface grows marker-first: open the template payload on
 the CAD canvas, author and rename `{spot:<name>}` anchors, save through
 the revisioned channel; full editing grows on the same surface.
+
+Owner direction (2026-10-28): the fill dialog is general rails for every
+fill construction. Part inputs pick existing instances, create new ones
+through the accepted type's declared creation mode, and open the picked
+instance's editor when its type binds one. The dialog previews the
+composed result — the actual template with its parts placed — through
+the created type's payload preview, from the same construction service
+the create runs, with nothing persisted. The rails serve every fill
+type; format-specific pairing rides declared control pins.

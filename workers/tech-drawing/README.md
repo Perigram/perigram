@@ -22,11 +22,14 @@ same-origin. Orgs connect the executor through the install's
 - DXF template editor: `surfaces/dxf-editor.mjs` (surface contract 2,
   bound to `dxf-source` edit). Marker-first: the template opens on the
   MLightCAD canvas (the declared `cad-viewer` dependency), the
-  `{spot:<name>}` anchors list beside it — add (name + X/Y), rename,
-  delete — and every edit re-opens the spliced DXF so the canvas shows
-  the saved truth. Saves ride the revisioned payload channel; the pair
+  `{spot:<name>}` anchors list beside it — add (a canvas click picks the
+  insertion point into the X/Y form), rename, delete — and every edit
+  re-opens the spliced DXF so the canvas shows the saved truth. Saves
+  ride the revisioned payload channel; the pair
   model and the marker operations live in `dxf-markers.js`, shared with
-  the placement engine.
+  the placement engine; `spotNamesOf` (the anchor read the fill dialog's
+  spot-parts row consumes through the served surface module) homes there
+  too.
 - Scene model: `surfaces/lib/sketch.js` — the plugin's editing copy of
   the sketch scene contract; the host's `utils/sketch.js` keeps the
   DrawingCanvas preview adapter over the same stored shape.

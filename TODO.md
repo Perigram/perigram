@@ -563,6 +563,25 @@ AttachmentKind row.
     `dxf-markers.spec.js` (7 cases incl. the authored-template
     round-trip through `composeDxfPlacement`). Canvas-click point
     picking and full geometry editing grow on the same surface.
+  - [ ] Fill dialog general rails (owner direction 2026-10-28): part
+    inputs pick, create through the accepted type's declared creation
+    mode, and open the picked instance's editor when its type binds one;
+    the dialog previews the composed result through the created type's
+    payload preview over the same construction service, persisting
+    nothing. Ordered steps:
+    - [ ] Anchor read single-homing: the `{spot:}` parse law lives in
+      the plugin's `dxf-markers.js`; the app-side pin renderer reads it
+      through the served editor surface module.
+    - [ ] Construction preview seam: a non-persisting service invocation
+      (`{ mode, draft }` → `{ payload, fields, failures }`).
+    - [ ] Rich part rows: create affordances dispatch by creation
+      protocol (upload inline, editor as the blank tab, construct as the
+      nested dialog); edit affordance rides the file-surface registry.
+    - [ ] Preview pane in the create dialog over the composed payload.
+
+    ### Agent Notes (2026-10-28)
+
+    In progress (session `agent/dxf-editor-20261028-1525`).
   - [ ] WAITING — Create-dialog refusal surfacing: a construction service
     answers `{ failures: [...] }` (each failure naming its offender) and
     the dialog renders the named offenders (SPEC §24 law).
