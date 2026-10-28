@@ -65,3 +65,9 @@ export async function deleteInstance(collection, id) {
   const result = await db.collection(collection).deleteOne({ _id: toFlexibleId(id) });
   return result.deletedCount > 0;
 }
+
+// Unbounded raw-filter scan (the remove path's referrer sweep).
+export async function findInstancesByFilter(collection, filter = {}) {
+  const db = await connectDB();
+  return await db.collection(collection).find(filter).toArray();
+}
