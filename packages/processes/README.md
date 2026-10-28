@@ -392,7 +392,9 @@ to the entry — the first manual action over it owns the derivation. The
 compiled contract carries the relation key, accepted target types,
 cardinality, the declared target domain (`where`, CTS SPEC §6 — pickers
 offer what writes accept, and the write boundary evaluates the same
-expression), and access grants (each accepted type's read); array
+expression), and access grants (each accepted type's read); an entry
+declaring `unlink: 'delete'` rides the compiled Unlink action's
+`relationMutation.unlink` (Link actions carry no policy); array
 cardinality is inferred from the typed Collect Array output when the entry
 sits outside the global domain relations, and a same-target domain relation
 leaves an independently authored graph entry its own key.

@@ -32,7 +32,8 @@ sizes, socket tones, and the quiet-card law follow the
 `DescriptorEditor.vue` is the v-model editor for the whole field
 descriptor grammar: base select over the CTS `FIELD_BASES`, `nullable`,
 `writable`/`constructible`, and the per-base qualifiers — unit (CTS
-`UNITS`) for `quantity`, `accepts` from `typeOptions` for `ref`,
+`UNITS`) for `quantity`, `accepts` from `typeOptions` for `ref`
+(beside its unlink policy over CTS `UNLINK_POLICIES`),
 chip-authored values/tags for `enum`/`variant`, recursive `itemType`
 for `list`/`map`, and named record fields recursing the editor. Every
 change emits a fresh object through `update:modelValue`; switching the

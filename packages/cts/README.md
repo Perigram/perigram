@@ -30,7 +30,10 @@ modules onto its sections.
   `lineageKey` (authored, else the derived
   `camel(declaringTypeId)+"Id"` — one derivation home, consumed by the
   domain projection, derived indexes, and the UI generator); relation
-  entries carry their optional target domain `where`; lineage
+  entries carry their optional target domain `where` and their optional
+  unlink policy `unlink: 'detach' | 'delete'` (absent means `detach`;
+  `UNLINK_POLICIES` is the closed vocabulary — the registry check
+  covers ref-field entries the same way); lineage
   acyclicity (R2) with recursive self-containment compiling clean.
 - `states.js` — the state-vocabulary facet of declarations:
   normalization (flat values, per-state display policy) and its readers.
