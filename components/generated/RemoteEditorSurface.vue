@@ -10,7 +10,7 @@ import { useI18n } from 'vue-i18n';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import {
-  surfaceHostContext, editorSurfacePersistence, editorSurfaceQueries, editorSurfaceRecords, surfaceNotify, editorSurfaceAccess, editorSurfaceSync, editorSurfaceUpload, editorSurfaceOpen, editorSurfaceConstruct, editorSurfaceRemove
+  surfaceHostContext, editorSurfacePersistence, editorSurfaceQueries, editorSurfaceRecords, surfaceNotify, editorSurfaceAccess, editorSurfaceSync, editorSurfaceUpload, editorSurfaceOpen
 } from '~/components/generated/remote-surface-mount.js';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
@@ -46,9 +46,7 @@ const hostIo = {
   access: editorSurfaceAccess(props.typeId),
   sync: editorSurfaceSync(props.typeId, () => props.record),
   upload: editorSurfaceUpload(),
-  open: editorSurfaceOpen(),
-  construct: editorSurfaceConstruct(),
-  remove: editorSurfaceRemove()
+  open: editorSurfaceOpen()
 };
 
 function fail(severity, key) {

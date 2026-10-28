@@ -2480,7 +2480,8 @@ next catalog version bump.
 The facade flow becomes a six-type family (cassette-template,
 cassette-design, cassette-instance, sheet-design, sheet-cut-plan,
 sheet-instance) composed through declared constructs, relations, and the
-generic machinery; the sheet-design editor becomes a multi-sheet canvas.
+generic machinery; the sheet-design editor edits the opened record on
+one canvas (multi-sheet retracted, owner direction 2026-10-28 evening).
 Ordered steps:
 
 - [ ] WAITING — owner verification: Listing compliance: delete the dead
@@ -2524,14 +2525,11 @@ Ordered steps:
   live instances). The nesting-polygons projection output itself is
   unchanged — the design key enters at composition (the demo process
   wires `getField('_id')` from the bake result into `designId`).
-- [ ] WAITING — owner verification: Surface contract 5: construct and
-  remove host transports (host-executed like sync/upload), loader +
-  install-gate teaching.
-- [ ] WAITING — owner verification: Sheet-design editor: multi-record
-  canvas — sibling sheet designs side by side, sheets added/removed as
-  records, cassette designs dragged between sheets with target-sheet
-  re-clamping, palette from existing designs and the declared create
-  modes, per-record saves.
+- [ ] WAITING — owner verification: Multi-sheet canvas retraction (owner
+  rejection 2026-10-28 evening): the sheet-design editor edits the
+  opened record on one canvas; surface contract 5 retires with its
+  construct/remove mount transports; the generic
+  `DELETE /api/instances/:type/:id` transport and its ref sweep stay.
 - [ ] WAITING — owner verification: Demo process, seeds, and e2e
   recomposed onto the family (design refs threaded through the solve;
   grouped layouts consumed as sheet designs with counts).
@@ -2554,6 +2552,18 @@ Ordered steps:
   cassette-template (the pairs-join table column stays `cassette` —
   it keys by template name, the join's leftKey); live E2E needs the
   running stack.
+
+  ### Agent Notes (2026-10-28, retraction)
+
+  Session `agent/unslop-sheet-editor-20261028` (worktree
+  `.agent-worktrees/unslop-sheet-editor`). The owner rejected the
+  canvas slice on delivery. The editor surface restores the
+  single-record canvas (contract 4, listing v25); contract 5 leaves the
+  supported set with its construct route, `constructInstance`, and
+  mount transports; the `addSheet` locale keys go. The generic
+  `DELETE /api/instances/:type/:id` transport and `removeForHttp` stay —
+  the §22.12 ref sweep rides them and the store's `removeInstance`
+  spoke that path before the slice.
 
 ## Relation link lifecycle (owner direction 2026-10-28, SPEC §22.12)
 

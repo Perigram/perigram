@@ -166,16 +166,11 @@ Parent: [server/features](../README.md).
   construct boundary keeps its own `create` with execution auth;
   framework feature types keep their feature create routes (no
   `createForHttp`, the generic route 404s for them).
-- Construction transport (`POST /api/instances/:type/construct` with
-  `{ mode, draft }`): runs a declared construction mode through its
-  handler — the standard payload protocols and the service-backed modes
-  alike — under the same write gate the create transport takes. This is
-  the server side of the contract-5 `construct` host capability; the
-  multi-sheet canvas constructs blank sheet designs through it.
 - Remove transport (`DELETE /api/instances/:type/:id`): the record death
   behind the same write gate `patch` takes (`removeForHttp` loads the
-  entity and checks the compiled grant — fail-closed). The server side
-  of the contract-5 `remove` host capability. The remove path sweeps
+  entity and checks the compiled grant — fail-closed), completing the
+  generic instance transport the client store speaks. The remove path
+  sweeps
   relation refs (SPEC §22.12: a dangling ref is a defect): every
   declared relation edge targeting the type — explicit `edges.relations`
   entries and ref fields alike, derived over the same per-org view the

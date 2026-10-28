@@ -438,19 +438,14 @@ empty canvas clears the selection. Opening a placed cassette is host
 navigation: the surface asks through the mount's workspace-open channel
 (surface contract 4), and the workspace owns the tab.
 
-Owner decision (2026-10-28, multi-sheet canvas): each sheet is its own
-sheet-design record, and the sheet-design editor edits several of them
-simultaneously on one canvas. The canvas carries every sheet of the
-working set side by side and treats them uniformly: sheets are added and
-removed — a new sheet is a new sheet-design record created through the
-editor, removing one removes its record — and cassette designs are
-placed by dragging between sheets, a cross-sheet drag re-clamping into
-the target sheet's geometry. The palette adds cassette designs from
-existing records and from the create modes the cassette-design type
-declares. The mount grows two editor-grade transports for this —
-construct (run a type's construction mode) and remove — host-executed
-like sync and upload, landing as the next surface-contract major. Saves
-stay per record: a cross-sheet drag commits both records' patches.
+Owner decision (2026-10-28, sheet-design editor scope, evening): the
+multi-sheet canvas is retracted — the sheet-design editor edits exactly
+the opened record on one canvas, and each sheet-design record opens in
+its own editor. Creating and deleting sheet designs belongs to the
+workspace's record machinery; a save commits the opened record's
+placements alone. The construct and remove mount transports minted for
+the multi-sheet canvas are retired with it; the generic HTTP instance
+transports keep serving the host's own store.
 
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components

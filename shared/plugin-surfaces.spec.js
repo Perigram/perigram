@@ -2,14 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { endpointOriginOf, pluginModuleUrl, SUPPORTED_SURFACE_CONTRACTS, isSupportedSurfaceContract } from './plugin-surfaces.js';
 
 describe('plugin surface origins and supported contracts', () => {
-  it('supports contract majors through the lifecycle mount (owner decision 2026-10-28)', () => {
-    // Major 4 added the sheet-design editor's open.instance channel;
-    // major 5 added the construct and remove lifecycle transports.
-    expect(SUPPORTED_SURFACE_CONTRACTS).toEqual([1, 2, 3, 4, 5]);
+  it('supports contract majors through the capability mount (owner decision 2026-10-17)', () => {
+    // Major 4 added the sheet-design editor's open.instance channel.
+    expect(SUPPORTED_SURFACE_CONTRACTS).toEqual([1, 2, 3, 4]);
     expect(isSupportedSurfaceContract(3)).toBe(true);
     expect(isSupportedSurfaceContract(4)).toBe(true);
-    expect(isSupportedSurfaceContract(5)).toBe(true);
-    expect(isSupportedSurfaceContract(6)).toBe(false);
+    expect(isSupportedSurfaceContract(5)).toBe(false);
   });
 
   it('derives the module origin from service endpoints first, then the surface origin', () => {
