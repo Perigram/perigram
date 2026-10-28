@@ -65,7 +65,16 @@
             :id="ref?.id"
             :entity="pool?.[ref?.typeId]?.[ref?.id] || ref?.entity || null"
           />
-          <Tag v-if="hiddenRefCount(data) > 0" :value="`+${hiddenRefCount(data)}`" severity="contrast" />
+          <!-- The overflow opens the row's record popup — the record
+               surface carries the full relation set. -->
+          <Button
+            v-if="hiddenRefCount(data) > 0"
+            :label="$t('uiMapping.showMore', { count: hiddenRefCount(data) })"
+            link
+            size="small"
+            severity="secondary"
+            @click.stop="openRowRecord(data)"
+          />
         </div>
       </template>
     </Column>
@@ -91,7 +100,16 @@
             :id="child.id"
             :entity="child"
           />
-          <Tag v-if="hiddenChildCount(data) > 0" :value="`+${hiddenChildCount(data)}`" severity="contrast" />
+          <!-- The overflow opens the row's record popup — the record
+               surface carries every child collection in full. -->
+          <Button
+            v-if="hiddenChildCount(data) > 0"
+            :label="$t('uiMapping.showMore', { count: hiddenChildCount(data) })"
+            link
+            size="small"
+            severity="secondary"
+            @click.stop="openRowRecord(data)"
+          />
         </div>
       </template>
     </Column>
@@ -132,6 +150,7 @@ import { generatedActionLabel } from '~/utils/generated-labels.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
+import { useEntityPopup } from '~/composables/useEntityPopup';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import ParentRef from './ParentRef.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
@@ -322,6 +341,18 @@ const childrenLabel = computed(() => {
 });
 const budgetedChildren = instance => applyBudget(childrenOf(instance), ROW_RELATION_BUDGET).visible;
 const hiddenChildCount = instance => applyBudget(childrenOf(instance), ROW_RELATION_BUDGET).hidden;
+// The chip-cell overflows open the row's record popup — the record
+// surface carries the full relation and child sets (the round-18
+// overflow law); the screen's open channel is the fallback.
+const { open: openEntityPopup, openable: popupOpenable } = useEntityPopup();
+function openRowRecord(instance) {
+  const typeId = String(props.type?.id || '');
+  if (typeId && popupOpenable(typeId)) {
+    openEntityPopup({ typeId, instanceId: String(instance.id) });
+    return;
+  }
+  emit('open', instance);
+}
 
 // One shared row-action menu (the card-grid pattern): the ellipsis
 // renders on a row only when that row carries an applicable action, and

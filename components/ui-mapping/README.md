@@ -280,7 +280,10 @@ beside the transition history in `StateHistory`.
   summary cell — a narrow host sheds it with the compact column scale —
   and the loaded children as budgeted chips (`childrenOfParent` over
   the host-overlaid pool; the single children edge's key labels the
-  column, several edges take `uiMapping.childrenColumn`). Scalar cells are
+  column, several edges take `uiMapping.childrenColumn`). Both chip
+  cells' overflow controls open the row's record popup (SPEC §22.8's
+  overflow law — the record surface carries the full sets), the
+  screen's open channel as fallback. Scalar cells are
   `InlineField` in its cell variant: on patchable surfaces every value
   (the empty ones included) edits in place through the per-field
   pencil, patching through the region's `inline-change` channel; rows
