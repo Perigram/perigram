@@ -5,7 +5,7 @@
     class="w-full"
     :model-value="modelValue"
     :options="options"
-    :option-label="optionLabel"
+    :option-label="entityOptionLabel"
     :option-value="optionValue"
     @update:model-value="emit('update:modelValue', $event)"
   >
@@ -21,19 +21,6 @@
         />
       </div>
       <span v-else>{{ labelFor(option) }}</span>
-    </template>
-    <template #value="{ placeholder }">
-      <div v-if="hasSelectedEntity" class="pointer-events-none w-full min-w-0">
-        <InstanceInlineRef
-          :type="typeFor(selectedOptionRef)"
-          :entity="selectedEntityRef"
-          :fetch="false"
-          :interactive="false"
-          variant="option"
-          :show-type-label="!typeId"
-        />
-      </div>
-      <span v-else>{{ placeholder }}</span>
     </template>
     <template v-for="slotName in forwardedSlotNames" #[slotName]="slotProps">
       <slot :name="slotName" v-bind="slotProps || {}" />
@@ -58,6 +45,8 @@
 import { computed, useSlots } from 'vue';
 import PrimeSelect from 'primevue/select';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { instanceRecordTitle } from '~/utils/instance-shape.js';
 import {
   instanceFromSelectOption,
   instanceSelectOptions,
@@ -77,12 +66,10 @@ const props = defineProps({
 });
 const emit = defineEmits(['update:modelValue']);
 const slots = useSlots();
+const { typeById } = useFileTypeView();
 const entityMode = computed(() => instanceSelectOptions(props.options, props.typeId).length > 0);
 const slotNames = computed(() => Object.keys(slots));
-const forwardedSlotNames = computed(() => slotNames.value.filter(name => !['option', 'value'].includes(name)));
-const selectedOptionRef = computed(() => selectedOption(props.modelValue));
-const selectedEntityRef = computed(() => entityFor(selectedOptionRef.value));
-const hasSelectedEntity = computed(() => Boolean(selectedEntityRef.value && typeFor(selectedOptionRef.value)));
+const forwardedSlotNames = computed(() => slotNames.value.filter(name => !['option'].includes(name)));
 
 function selectedOption(value) {
   return selectOptionForValue(props.options, value, props.optionValue);
@@ -94,6 +81,17 @@ function entityFor(option) {
 
 function typeFor(option) {
   return typeIdFromSelectOption(option, props.typeId);
+}
+
+// The §22.13 identifier title also feeds the filter; an unloaded type view falls back to the option's label.
+function entityOptionLabel(option) {
+  const entity = entityFor(option);
+  const typeId = typeFor(option);
+  if (entity && typeId) {
+    const title = instanceRecordTitle(entity, typeById(typeId));
+    if (title) return title;
+  }
+  return selectOptionLabel(option, props.optionLabel);
 }
 
 function labelFor(option) {
