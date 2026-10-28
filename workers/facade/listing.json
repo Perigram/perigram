@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, sheet instances, and the nesting solver as an installable plugin with an external executor",
-  "version": "23",
+  "version": "24",
   "requires": [
     "tech-drawing"
   ],
@@ -149,6 +149,16 @@
         },
         "name": "Cassette design",
         "glyph": "ck-entity-icon ck-entity-icon-cassette-design",
+        "migrate": [
+          {
+            "kind": "retype-field",
+            "field": "template",
+            "via": {
+              "op": "field",
+              "path": ["value"]
+            }
+          }
+        ],
         "snapshot": [
           "fields.template",
           "fields.parameters"
