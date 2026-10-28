@@ -958,9 +958,10 @@ materialization utilities ride these steps alone; the density-keyed
 rhythm interpolator owns the sub-steps between them. Hierarchy reads
 through the ladder: screen sections separate on the top step, one step
 above their content stacks. Collection counts render as the count chip beside their heading.
-Loading strips overlay their surface's top edge: a loading indicator
-takes no flow slot, so its appearance and disappearance shift nothing
-below it.
+Loading strips ride their surface's top edge (collections, nested
+cards) or underline the record header (depth-0 details): a loading
+indicator takes no flow slot, so its appearance and disappearance shift
+nothing below it.
 
 ### 22.8 Layout sanity (owner direction 2026-10-27)
 

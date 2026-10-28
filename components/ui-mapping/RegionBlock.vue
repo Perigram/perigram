@@ -127,22 +127,24 @@
   <div v-else :class="[stackFor, 'w-full', 'relative']">
     <RegionDataState v-if="showState" :node="node" />
     <template v-if="depth === 0 && showSurfaces">
-      <ProgressBar v-if="isReloading" mode="indeterminate" :class="LAYOUT.reloadBar" :aria-label="$t('uiMapping.loadingRegion')" />
-      <SurfaceHeader
-        :type="node.type"
-        :instance="node.instances[0]"
-        :actions="headerActions"
-        :level="node.level"
-        :pool="pool"
-        :bundle="bundle"
-        :state-policy="node.statePolicy"
-        :navigation="depth === 0 ? navigation : null"
-        :editor-action="editorActions?.[node.type?.id] || null"
-        @run="emitRun"
-        @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
-        @refresh="emit('refresh')"
-        @open-instance="emitOpen"
-      />
+      <div class="relative">
+        <SurfaceHeader
+          :type="node.type"
+          :instance="node.instances[0]"
+          :actions="headerActions"
+          :level="node.level"
+          :pool="pool"
+          :bundle="bundle"
+          :state-policy="node.statePolicy"
+          :navigation="depth === 0 ? navigation : null"
+          :editor-action="editorActions?.[node.type?.id] || null"
+          @run="emitRun"
+          @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
+          @refresh="emit('refresh')"
+          @open-instance="emitOpen"
+        />
+        <ProgressBar v-if="isReloading" mode="indeterminate" :class="LAYOUT.reloadBarUnder" :aria-label="$t('uiMapping.loadingRegion')" />
+      </div>
       <div v-if="splitSide" class="region-split grid w-full grid-cols-1 gap-6" :style="splitTracks">
         <div class="min-w-0 flex flex-col gap-6">
           <SurfaceBody
