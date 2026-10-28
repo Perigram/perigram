@@ -16,10 +16,16 @@ device states, layout, pin, reactions, device lists). Every call surface —
 workspace tab, full-screen dialog, floating window, mobile lane — is a
 thin view over that state; mounting or unmounting a surface never touches
 the connection. Panels register their room in the store's
-`mountedRooms` set while mounted; a connected session with no mounted
-surface parks into the desktop floating window automatically (SPEC §11) —
-on mobile the media dock's call lane entry takes it. A pending tab room
-suspends the auto-rule while the home workspace mounts the adopting tab.
+`mountedRooms` set while mounted, and an open workspace call tab registers
+in `callTabs` — the pane renders the selected tab only, so the tab, open
+or active, is the session's workspace surface: switching tabs keeps the
+call seated (audio rides the app-level renderer; returning to the tab
+re-renders the live session). A connected session with neither a mounted
+surface nor an open tab parks into the desktop floating window
+automatically (SPEC §11) — on mobile the media dock's call lane entry
+takes it. A pending tab room suspends the auto-rule while the home
+workspace mounts the adopting tab, and the workspace clears its tab
+registry on route leave so the floating-window rule takes over.
 
 - `CallPanel.vue` renders the session: pre-join → connecting → connected
   or failed stages, speaker/grid stages, the floating control pill, and

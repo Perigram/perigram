@@ -122,9 +122,11 @@ projection for handwritten card/detail surfaces.
   the store — the LiveKit Room, a single event binder, and a reactive
   participant/track state block — and every call surface (workspace tab,
   dialog, floating window, mobile lane) renders it as a view; panels
-  register in `mountedRooms` while mounted, and a connected session with
-  no mounted surface parks into the desktop floating window (SPEC §11)
-  while mobile keeps the media-dock lane entry. Accepted calls park as a
+  register in `mountedRooms` while mounted and open workspace call tabs
+  register in `callTabs` (the tab is the session's surface, active or
+  not), and a connected session with neither parks into the desktop
+  floating window (SPEC §11) while mobile keeps the media-dock lane
+  entry. Accepted calls park as a
   pending home-workspace tab. Ringing
   is room-scoped, not just time-scoped: an invite is dropped only after its
   room was observed running and then left the snapshot, so a caller hanging
