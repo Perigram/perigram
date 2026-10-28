@@ -89,15 +89,14 @@ async function invokeConstructionService(typeId, mode, draft = {}, context = {})
 
 // The fill dialog's composed preview (SPEC §24): the same service the
 // create runs, invoked with nothing persisted — the payload returns as
-// base64 wire, the fields as the computed draft.
+// base64 wire, the fields as the computed draft. An unbound mode is a
+// quiet null (the route answers 204), a missing organization refuses.
 export async function previewConstructionService(typeId, mode, draft = {}, context = {}) {
   if (!context.organizationId) {
     throw createError({ statusCode: 400, message: 'Organization context is required' });
   }
   const run = await invokeConstructionService(typeId, mode, draft, context);
-  if (!run) {
-    throw createError({ statusCode: 404, message: `No construction service bound for ${typeId}.${mode}` });
-  }
+  if (!run) return null;
   const file = executorPayload(run.serviceRef, run.output.payload);
   return {
     payload: file ? { base64: file.buffer.toString('base64'), mime: file.mime, ...(file.name ? { name: file.name } : {}) } : null,
