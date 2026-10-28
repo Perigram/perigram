@@ -297,9 +297,12 @@ helpers for its editor-surface consumers. File-typed instances preview
 through the served render policy: the mapping generator's `PreviewBox`
 renders payload previews on generated details and cards, and
 `InstancePreview` renders the same contract on entity-card surfaces. The
-preview is a bounded
-non-scrolling surface (`components/shared/FilePayloadViewer.vue`); the
-payload download stays the escape hatch. The type records come from
+viewer (`components/shared/FilePayloadViewer.vue`) sizes by surface:
+fixed-height card bands fit visual modes and degrade document modes
+(`DOCUMENT_PREVIEW_MODES`) to the file chip, while the detail hero's
+document band (`LAYOUT.previewHeroBandDocument`) renders the readers —
+the PDF frame, scrolling prose, scrolling tables. The payload download
+stays the escape hatch. The type records come from
 `useFileTypeView()` ([composables/README.md](../../composables/README.md)),
 the organization-scoped cached read of the served type view. Editor-bound
 types keep this read preview in their details — the editors themselves
