@@ -2253,7 +2253,7 @@ reports only the pre-existing jagua-rs submodule link.
 
 Status: WAITING owner verification.
 
-## Facade domain model — template, design, instance (SPEC §20, owner direction 2026-10-28)
+## Facade domain model — template, design, instance (facade SPEC, owner direction 2026-10-28)
 
 The facade flow becomes a six-type family (cassette-template,
 cassette-design, cassette-instance, sheet-design, sheet-cut-plan,

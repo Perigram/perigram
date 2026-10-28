@@ -84,5 +84,6 @@ values and files out, free of service imports, persistence, and auth.
   dry-run by default) — see the
   [scripts README](../../server/scripts/README.md).
 
-Parent: [workers README](../README.md). Platform consumer:
+Parent: [workers README](../README.md). Domain law: [SPEC.md](./SPEC.md).
+Platform consumer:
 [plugins feature](../../server/features/plugins/README.md).
