@@ -1,4 +1,4 @@
-import { createError, defineEventHandler, getRouterParam, readBody } from 'h3';
+import { createError, defineEventHandler, getRouterParam, readBody, setResponseStatus } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
 import { previewConstructionService } from '~/server/features/instances/construction-services.js';
 import { declarationForType, writeGrantTarget } from '~/server/features/instances/service.js';
@@ -26,5 +26,10 @@ export default defineEventHandler(async (event) => {
     userId: auth.userId,
     organizationId,
     role: auth.role
+  }).then(result => {
+    // An unbound mode is a quiet nothing-to-preview, never a failed read.
+    if (result) return result;
+    setResponseStatus(event, 204);
+    return null;
   });
 });

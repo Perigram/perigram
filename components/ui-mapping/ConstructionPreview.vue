@@ -77,6 +77,12 @@ async function run() {
       body: { mode: props.mode, draft: props.draft }
     });
     if (ticket !== sequence) return;
+    if (result == null || result.payload === undefined) {
+      bound.value = false;
+      releaseBlob();
+      attachment.value = null;
+      return;
+    }
     bound.value = true;
     releaseBlob();
     const payload = result?.payload || null;

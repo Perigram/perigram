@@ -268,11 +268,9 @@ describe('construction preview (SPEC §24)', () => {
     expect(preview).toEqual({ payload: null, fields: { pages: 3 } });
   });
 
-  it('refuses 404 when the org binds no service for the mode', async () => {
-    await expect(previewConstructionService('drawing', 'fill', {}, CONTEXT))
-      .rejects.toMatchObject({ statusCode: 404 });
-    await expect(previewConstructionService('drawing', 'place', {}, { userId: 'u1', organizationId: 'org-2' }))
-      .rejects.toMatchObject({ statusCode: 404 });
+  it('answers null when the org binds no service for the mode', async () => {
+    await expect(previewConstructionService('drawing', 'fill', {}, CONTEXT)).resolves.toBe(null);
+    await expect(previewConstructionService('drawing', 'place', {}, { userId: 'u1', organizationId: 'org-2' })).resolves.toBe(null);
     expect(executeConnectorService).not.toHaveBeenCalled();
   });
 
