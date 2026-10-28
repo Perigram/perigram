@@ -310,6 +310,15 @@ option's label stands in until the view loads) and the trigger renders
 that label — PrimeVue's own one-line control rhythm. SPEC §22.13 gains
 the closed-control sentence.
 
+#### Agent Notes (2026-10-29, identity chip)
+
+Owner feedback: the label-only trigger hid the instance (nameless
+records rendered empty). The closed control now renders the identity
+chip (chip-surface recipe + type glyph) and the label chain is total:
+identifier title → wire name → option label → unnamed fallback.
+`dtoToScreenInstance`'s wire-name absorption fires on null identifier
+rows too. SPEC §22.13 restated on the chip.
+
 ### Region reload strips take no flow slot (SPEC §22.8)
 
 - [ ] WAITING — owner verification: the indeterminate reload bar takes no

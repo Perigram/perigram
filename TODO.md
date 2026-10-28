@@ -2622,6 +2622,22 @@ Ordered steps:
   (`border-primary` marks the active sheet; the old wrapper's bg tint
   painted behind the borderless card and never showed), section labels
   carry the count chip, and both rails space on the ladder's 24px step.
+
+  ### Agent Notes (2026-10-29, trigger repair)
+
+  Owner feedback: the label-only trigger was worse — cassette designs
+  (nameless records) rendered an empty trigger, sheets a bare text
+  line, and the add-all icon button meant nothing. Landed: the closed
+  control renders the selected instance's identity chip (chip-surface
+  recipe + type glyph), the label chain is total (identifier title →
+  wire name → option label → unnamed), `dtoToScreenInstance` absorbs
+  the wire name into a null identifier row (the empty-value law),
+  add-all is a labeled full-width button shown only when sibling sheets
+  exist, and the trigger/filter/rows were verified live in the dev
+  stack against `org-6a05940e` (chip + glyph confirmed in DOM; trigger
+  52px one line). Finding: this org's five cassette-designs carry no
+  name in any slot — records created before the designer's
+  save-time rename; the picker shows their unnamed chip honestly.
 - [ ] WAITING — owner verification: Demo process, seeds, and e2e
   recomposed onto the family (design refs threaded through the solve;
   grouped layouts consumed as sheet designs with counts).
