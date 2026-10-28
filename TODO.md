@@ -2540,10 +2540,12 @@ Ordered steps:
   live instances). The nesting-polygons projection output itself is
   unchanged — the design key enters at composition (the demo process
   wires `getField('_id')` from the bake result into `designId`).
-- [ ] WAITING — owner verification: Multi-sheet canvas retraction (owner
-  rejection 2026-10-28 evening): the sheet-design editor edits the
-  opened record on one canvas; surface contract 5 retires with its
-  construct/remove mount transports; the generic
+- [ ] WAITING — owner verification: Multi-sheet canvas, second pass
+  (owner direction 2026-10-28 evening): explicit working set — sheets
+  added from the sheet-design picker or as all siblings, one canvas
+  with wheel zoom, drag-to-pan, and fit-to-set; cross-sheet placement
+  drags; the instance behind a placement or sheet selection in the
+  inspector. Surface contract 5 stays retired; the generic
   `DELETE /api/instances/:type/:id` transport and its ref sweep stay.
 - [ ] WAITING — owner verification: Demo process, seeds, and e2e
   recomposed onto the family (design refs threaded through the solve;
@@ -2579,6 +2581,25 @@ Ordered steps:
   `DELETE /api/instances/:type/:id` transport and `removeForHttp` stay —
   the §22.12 ref sweep rides them and the store's `removeInstance`
   spoke that path before the slice.
+
+  ### Agent Notes (2026-10-28, canvas second pass)
+
+  Session `agent/sheet-canvas-v2-20261028` (worktree
+  `.agent-worktrees/sheet-canvas-v2`). One canvas over an explicit
+  working set: the opened record alone on mount; sheets join from the
+  palette's sheet-design picker or the add-all button; a sheet leaves
+  the canvas from its inspector row (blocked while dirty). Navigation:
+  wheel zoom anchored at the cursor, left/middle-drag pan, dock
+  zoom/fit; the view model is `{ cx, cy, k }` over measured svg size
+  (ResizeObserver). Dragging a placement inside its sheet keeps the
+  magnetic sweep; over another sheet it free-follows, and the drop
+  moves it between records through the target's free sweep (the
+  retraction session's `movePlacementToSheet`, gated per-record by
+  `access.canWrite`). The inspector resolves the record behind the
+  selection: the cassette-design behind a placement (with open), the
+  sheet-design behind a sheet. Undo spans the working set; save
+  patches each dirty record. Listing stays v25 (module bytes are live
+  executor assets; no declaration changed).
 
 ## Relation link lifecycle (owner direction 2026-10-28, SPEC §22.12)
 
