@@ -113,18 +113,18 @@ function withAccessFlags(schema, policy) {
 function relationEntriesFor(type, view) {
   const entries = [];
   const seen = new Set();
-  const push = (key, target, where = null) => {
+  const push = (key, target, where = null, unlink = null) => {
     const dedupe = `${key}:${target}`;
     if (seen.has(dedupe) || !view.has(target)) return;
     seen.add(dedupe);
-    entries.push(where ? { key, target, where } : { key, target });
+    entries.push({ key, target, ...(where ? { where } : {}), ...(unlink ? { unlink } : {}) });
   };
   for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
-    for (const target of declaration.types || []) push(key, target, declaration.where || null);
+    for (const target of declaration.types || []) push(key, target, declaration.where || null, declaration.unlink || null);
   }
   for (const [name, descriptor] of Object.entries(type.fields || {})) {
     if (descriptor?.base !== 'ref') continue;
-    for (const target of descriptor.accepts || []) push(name, target, descriptor.where || null);
+    for (const target of descriptor.accepts || []) push(name, target, descriptor.where || null, descriptor.unlink || null);
   }
   return entries;
 }
@@ -432,8 +432,9 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   }
 
   // relations: declared relation edges from every view type. The target
-  // domain (`where`, SPEC §6) rides the contract — enforced at every ref
-  // write, projected to pickers.
+  // domain (`where`, SPEC §6) and the unlink policy ride the contract —
+  // the domain enforced at every ref write and projected to pickers, the
+  // policy executed by the compiled Unlink action.
   const relations = [];
   for (const type of types) {
     for (const entry of relationEntriesFor(type, view)) {
@@ -442,7 +443,8 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         key: entry.key,
         targetType: entry.target,
         cardinality: 'many',
-        ...(entry.where ? { where: entry.where } : {})
+        ...(entry.where ? { where: entry.where } : {}),
+        ...(entry.unlink ? { unlink: entry.unlink } : {})
       });
     }
   }

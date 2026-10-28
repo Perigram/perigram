@@ -3220,6 +3220,7 @@
         "stateName": "state name",
         "unit": "Unit",
         "accepts": "Accepts",
+        "unlink": "On unlink",
         "itemType": "Item type",
         "wiringHint": "Wire fields/states into a type; state wires are transitions; type wires are children.",
         "invalidWire": "Not a type-canvas wire",

@@ -437,6 +437,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
       if (relation.cardinality === 'many') entry.cardinality = 'many';
       if (relation.association && !entry.association) entry.association = relation.association;
       if (relation.where && !entry.where) entry.where = relation.where;
+      if (relation.unlink === 'delete') entry.unlink = 'delete';
       if (relation.creator && !entry.creator) entry.creator = relation.creator;
     }
     for (const entry of contractsByKey.values()) {
@@ -492,6 +493,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
             operation,
             ...(entry.where ? { where: entry.where } : {}),
             ...(entry.association ? { association: entry.association } : {}),
+            ...(operation === 'unlink' && entry.unlink ? { unlink: entry.unlink } : {}),
             ...(operation === 'link' && creator ? { creator } : {})
           },
           mutation: { fields: [`relations.${entry.key}`], relationContracts: entry.contracts },
@@ -680,6 +682,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
       targetType: declared?.targetType || entry.typeId,
       cardinality: declared?.cardinality || (entry.type?.base === 'array' || sourcePort?.type?.base === 'array' ? 'many' : 'one'),
       ...(declared?.where ? { where: declared.where } : {}),
+      ...(declared?.unlink === 'delete' ? { unlink: 'delete' } : {}),
       ...(processCreator ? { creator: processCreator } : {}),
       ...(hasDomainAttachmentKinds(declared?.targetType || entry.typeId, domain) ? {
         creator: {
@@ -764,7 +767,8 @@ function declaredRelationContracts(domain = {}, ownerType = '', targetType = '',
       key: relation.key,
       targetType: relation.targetType,
       cardinality: relation.cardinality || 'one',
-      ...(relation.where ? { where: relation.where } : {})
+      ...(relation.where ? { where: relation.where } : {}),
+      ...(relation.unlink ? { unlink: relation.unlink } : {})
     }));
 }
 

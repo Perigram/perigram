@@ -10,6 +10,7 @@ import {
   cncTypePack, partyTypes, frameworkTypes, nestingOperators, packFixtures,
   classMayDeclareChildren, lineageKeyForParent,
   declarationsFromCtsRecords,
+  projectDomainFromView,
   payloadAccepts
 } from './index.js';
 
@@ -64,6 +65,35 @@ describe('typed edges (R2)', () => {
       id: 'broken-2', class: 'file',
       edges: { relations: { r: { types: ['material'], onRemove: 'explode' } } }
     })).toThrow(/onRemove/);
+    expect(() => registry.defineType({
+      id: 'broken-3', class: 'file',
+      edges: { relations: { r: { types: ['material'], unlink: 'vaporize' } } }
+    })).toThrow(/unlink/);
+    registry.defineType({
+      id: 'ref-owner', class: 'file',
+      fields: { partner: { base: 'ref', accepts: ['material'], unlink: 'vanish' } }
+    });
+    expect(registry.compile().errors).toContainEqual(expect.stringMatching(/fields\.partner unlink/));
+  });
+
+  it('projects a declared unlink policy onto relation contracts', () => {
+    const registry = packRegistry();
+    registry.defineType({
+      id: 'edge-owner', class: 'file',
+      edges: { relations: { partners: { types: ['material'], unlink: 'delete' } } }
+    });
+    registry.defineType({
+      id: 'field-owner', class: 'file',
+      fields: { mate: { base: 'ref', accepts: ['material'], unlink: 'delete' } }
+    });
+    const projection = projectDomainFromView(registry, null);
+    expect(projection.relations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ ownerType: 'edge-owner', key: 'partners', unlink: 'delete' }),
+      expect.objectContaining({ ownerType: 'field-owner', key: 'mate', unlink: 'delete' })
+    ]));
+    // Entries without an authored policy carry none — detach is the
+    // absence, never a stamped value.
+    expect(projection.relations.some(relation => relation.key === 'placed-on' && relation.unlink)).toBe(false);
   });
 
   it('rejects lineage cycles', () => {

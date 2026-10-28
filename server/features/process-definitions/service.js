@@ -1031,6 +1031,16 @@ async function executeCompiledRelationMutationAction({ action, actionId, instanc
   const { relationReplaces, ...relationPatch } = mutation;
   const updated = await persistProcessEntityPatch(typeId, targetId, relationPatch, executionAuth);
   await publishActionEntityEvent(auth, typeId, updated || { _id: targetId }, 'updated', 'process-relation-update');
+  const contract = action.relationMutation;
+  if (contract?.operation === 'unlink' && contract.unlink === 'delete') {
+    const unlinkedRef = normalizeRelationRef(getByPath(selectedMutation, `relations.${contract.key}`), contract.targetTypes);
+    const targetService = getAppRegistry().getInstanceService(unlinkedRef.type);
+    if (!targetService?.processDelete) {
+      throw createError({ statusCode: 400, message: `Entity service cannot delete ${unlinkedRef.type}` });
+    }
+    await targetService.processDelete(unlinkedRef.id, executionAuth);
+    await publishActionEntityEvent(executionAuth, unlinkedRef.type, { _id: unlinkedRef.id }, 'deleted', 'relation-unlink-delete');
+  }
   return updated;
 }
 

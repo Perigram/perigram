@@ -11,7 +11,7 @@ export {
   CLASSES, DECLARABLE_CLASSES, checkClassObligations, classMayDeclareChildren
 } from './classes.js';
 export {
-  EDGE_KINDS, ON_REMOVE, normalizeEdges, checkLineageAcyclic, lineageKeyForParent
+  EDGE_KINDS, ON_REMOVE, UNLINK_POLICIES, normalizeEdges, checkLineageAcyclic, lineageKeyForParent
 } from './edges.js';
 export { mimeMatches, payloadAccepts } from './payload.js';
 export {
