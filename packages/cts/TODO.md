@@ -80,6 +80,42 @@ palette E2E); resurrect nothing from it.
   per the audit TOC with the decided revision package landed (wire law,
   history out, dedups, code homes, deadline law, protocol naming).
 
+### Identifier law (owner direction 2026-10-29)
+
+- [ ] WAITING — owner verification: the identifier flag is authored —
+  zero or two flagged fields is a compile error through the standard
+  channel (write gate refuses, reads stay served, records render the
+  unnamed placeholder); the boundary mint is retired and the designer's
+  empty dropdown pick leaves the flag unowned.
+
+#### Agent Notes (2026-10-29)
+
+Session `agent/authored-identifier-law-20261029` (worktree
+`.agent-wt-idlaw-20261029`). SPEC §4 rewritten; the mint deleted from
+`registry.js` `normalizeType` and the zero-flag error added to
+`checkDisplayFacet`. `cassette-design` in the facade listing and the
+cnc pack's `partyTypes`/`sheet`/`part`/`project`/`facade` gained their
+authored flags; spec fixtures rebased. The designer dropdown's empty
+option relabels Auto → Not set (`processDesigner.unset`). Side repairs,
+all pre-existing drift on `local` from the cassette→cassette-design
+rename (`2feb68cff`): `graph-protocol-construction.spec.js` rebound,
+`test-data/persisted-acceptance.js` rebound (16→4 failures in the
+process-definitions service specs; the 4 remaining are untouched
+pre-existing drift). `components/shared/README.md` `UserChip` entry
+corrected to `identifier: "name"` (framework.js is the authority).
+Fixtures across `server/features/cts-types` and
+`server/features/plugins` specs gained their authored flags. Full-suite
+delta vs `local` baseline: 16 baseline failures repaired
+(graph-protocol-construction, ui-contract, process-definitions service
+family), zero new failures; the remaining failing server specs
+(support, app-registry, plugins upgrades, process-definitions runtime)
+are pre-existing baseline drift. `npx vitest run packages/cts` 98/98,
+`packages/processes` 551/551, cts-types 23/23, plugins 60/60,
+framework/design-system 39/39, SSR smoke 23/23, check-arch,
+framework:validate, check-docs (one pre-existing broken link:
+`workers/nesting/README.md` → `./jagua-rs/README.md`). E2E not run
+(requires a running stack).
+
 ### Agent Notes (2026-10-25)
 
 Session `agent/deslop-execute-20261025` executed the decided SPEC

@@ -106,8 +106,9 @@ until the declaration post consumes and clears them. Authored field names
 are labels; `camelCaseId` derives the row key (letters and digits in any
 script — a Cyrillic label derives a Cyrillic key). The class inspector
 authors the record-naming field as a dropdown over the class's field nodes
-— the single-holder `identifier` move, with Auto returning the choice to
-the registry boundary mint (SPEC §4); the field inspector authors the name
+— the single-holder `identifier` move, with the empty pick leaving it
+unowned and the declaration carrying the identifier compile error
+(SPEC §4); the field inspector authors the name
 and the row descriptor, and display tokens derive. Declaration binding
 edges are live channels interpreted over the declaration graph, while
 process species records persist the resolved type and retain their

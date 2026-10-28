@@ -62,8 +62,8 @@ modules onto its sections.
   types refused as children targets; relation `where` domains
   row-checked against every declared target), instance validation with
   `typeVersion` ill-typing, payload normalization to the canonical
-  trait shape, and the SPEC §4 display-flag laws (identifier mint
-  total by the boundary, at most one `depiction`, a name on every
+  trait shape, and the SPEC §4 display-flag laws (exactly one authored
+  `identifier` field, at most one `depiction`, a name on every
   type). `defineType` gates redefinition per SPEC §11; the free paths
   are zero live instances (synchronous `hasInstances` probe) and repair
   of a stored declaration that violates class obligations or declares

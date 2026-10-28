@@ -499,9 +499,9 @@ every mutation is an event back to the page's update/sync entry points.
   Writable governs mutate leaf sockets and update paths, Constructible
   governs construct sockets and creation forms. The class inspector's
   names-the-record dropdown moves the single `identifier: true` holder
-  across the class's field nodes (enabling clears the previous holder,
-  and with none authored the registry boundary mints the first string
-  field).
+  across the class's field nodes (enabling clears the previous holder;
+  with none authored the declaration carries the identifier compile
+  error until a field is picked).
 - `DeclarationEdgeInspector.vue` — typed edge integrity.
 
 Pure and read nodes expose the on-demand Output data inspector: it
