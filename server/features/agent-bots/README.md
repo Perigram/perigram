@@ -223,6 +223,12 @@ asking conversation (consumed by the observer as the answer), ended by
 stop, or timed out (10 minutes) with a readable no-answer error the run
 concludes from.
 
+The in-flight registry keeps each run's last published snapshot;
+`GET /api/agent-bots/live?conversationKey=` serves it to a thread
+resynchronizing after a stream gap (admission like a conversation
+read), restoring the live block, the typing presence, and a suspended
+question.
+
 ### Stop
 
 A run in flight is stoppable (`POST /api/agent-bots/stop` with the
@@ -372,6 +378,10 @@ into proactive AI runs:
   tables), `GET /api/agent-bots/wake-options` (active compiled primary
   states for the wake-rule pickers), and `POST /api/agent-bots/stop`
   (`{ conversationKey }` — stop the room's in-flight run).
+- `GET /api/agent-bots/live?conversationKey=` — the room's in-flight
+  run snapshot `{ active, userId, name, steps, answer, question }`
+  (`question` is `{ question, options }` while `ask_user` waits);
+  `{ active: false }` when no run holds the room.
 
 ## Related
 

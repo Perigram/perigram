@@ -568,11 +568,13 @@ which drops the box's border while the legend strip keeps its filled
 surface and its exact horizontal position, so a collapsed disclosure
 reads as kin to the tool messages and nothing shifts. Compact geometry (legend
 padding/gap, root insets) lives in the PrimeVue tokens and applies to
-every Fieldset. Rendered both for a live run and
-for the `agent` provenance persisted on a bot's reply; both sites start
-open, so the chronology stays visible with the answer (the collapsed
-state is the user's own toggling). The answer is never rendered here:
-it is the message body at both sites.
+every Fieldset. Rendered both
+for a live run and for the `agent` provenance persisted on a bot's
+reply. A live disclosure collapses once the run moves past it — a later
+step or a streaming answer — while the persisted chronology starts
+open; the collapsed state stays the user's own toggling over that seed
+([chat SPEC](../chat/SPEC.md) Live thought). The answer is
+never rendered here: it is the message body at both sites.
 
 ### `AiAvatar.vue`
 The AI identity face: the microchip PrimeIcon in the brand accent on

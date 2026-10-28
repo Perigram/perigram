@@ -2792,3 +2792,41 @@ Ordered steps:
   instances suites green (50), shared/design-system, module-imports,
   SSR smoke 23, check-arch, framework:validate green; check-docs
   carries only the pre-existing jagua-rs link.
+
+## Chat heals after a stream gap (owner report 2026-10-28)
+
+The owner's session saw the chat agent stop answering after switching
+browser tabs. The run persists server-side; the connections stream drops
+under tab suspension, and events published during the gap were
+unrecoverable for an open thread — the reply stayed invisible until a
+manual reload, and the live run block plus a suspended `ask_user`
+question had no pull path at all.
+
+- [x] WAITING — owner verification: Reconnect reconcile. The connections
+  composable exposes `epoch` (advances on every `ready`); an open chat
+  thread refetches its tail and the room's in-flight run snapshot
+  (`GET /api/agent-bots/live?conversationKey=`, admitted like a
+  conversation read) on epoch change, restoring missed messages, the
+  live run block, the pre-step typing presence, and a suspended
+  question. Law: chat SPEC Live state row.
+- [x] WAITING — owner verification: A live reasoning disclosure
+  collapses once the run moves past it — a later step or a streaming
+  answer; the persisted chronology starts open. Law: chat SPEC Live
+  thought row.
+
+### Agent Notes (2026-10-28, chat reconnect reconcile)
+
+Session `agent/chat-reconnect-reconcile-20261028` (worktree
+`.agent-worktrees/chat-reconnect-20261028`). Diagnosis from the owning
+READMEs (connections client contract, agent-bots streaming events,
+support lazy history): delivery is fire-and-forget to live connections
+with no replay, and the thread reconciles live events only — the chat
+SPEC already declared "a reconnect refetches the page" and the code
+never implemented it; the contradiction is resolved by this delivery.
+The runtime keeps the run's last published snapshot on its in-flight
+entry (both reply and wake runs) and serves it through the live
+endpoint; `AgentActivity` collapses a live thinking disclosure once a
+later step or the answer exists (the Fieldset `collapsed` prop seeds
+initial state only, so the v-for key carries the seed). Spec:
+`agent-bots.spec.js` pins the snapshot's lifecycle (mid-run active
+under the assistant identity, org boundary, cleared at run end).

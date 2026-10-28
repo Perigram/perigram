@@ -52,7 +52,9 @@ unsubscribe function; when the last handler of a topic goes away the topic is
 dropped from the subscription sync. After every (re)connect the server's
 `ready` event reports the new connection id and the current presence
 snapshot, and the composable re-posts the active topic set, so EventSource's
-native reconnect heals subscriptions without consumer involvement.
+native reconnect heals subscriptions without consumer involvement. Every
+`ready` event also advances `epoch`, a counter consumers watch to refetch
+state a stream gap may have dropped (the chat thread's reconnect reconcile).
 Presence arrives as `org:` topic events; `onlineUserIds` is a reactive Set of
 user ids with at least one live connection.
 

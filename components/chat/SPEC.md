@@ -34,7 +34,8 @@ the owning file and its README row.
 | Seen by | The message context menu lists every other participant whose cursor covers the message, each row carrying the participant name and the locale-formatted cursor time. |
 | Search | In-thread search scans stored history server-side, filtered by text, sender, and attachment kind; a result jumps to the message in place under the highlight. The inbox filter field keeps scoping the conversation list. |
 | Scroll to end | The list shows a floating scroll-to-end control while scrolled away from the live end; the control carries the count of messages waiting below. |
-| Live state | An open thread reconciles every `conversation:<key>` event — message, read, typing, bot activity — and a reconnect refetches the page; inbox counters ride the store's inbox pings. |
+| Live state | An open thread reconciles every `conversation:<key>` event — message, read, typing, bot activity — and a reconnect refetches the tail and the live agent run snapshot; inbox counters ride the store's inbox pings. |
+| Live thought | A reasoning disclosure collapses once the run moves past it — a later step or a streaming answer; the persisted chronology starts open. |
 | Thread rhythm | Day dividers split day boundaries; the unread divider marks the first unread message after a visit; sender runs group within the three-minute window; rows and bubbles keep their swipe actions. |
 | Avatars | Panes 64rem and wider close every sender run with the avatar-only left-gutter mark; group and instance threads anchor others' runs in the same gutter at every pane width; 1:1 threads carry no sender stamp in the two-sided variant. |
 | Long messages | A very long body clamps behind a show-more control; expanding reveals it in place; a jump to a clamped message reveals it. |

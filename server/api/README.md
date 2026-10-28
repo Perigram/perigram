@@ -6,8 +6,8 @@ Parent: [server](../README.md).
 Routes are grouped into sub-directories corresponding to features:
 - `agent-bots/`: The organization AI's conversation membership — AI chat
   thread creation, conversation subscriptions (wake rules, profile/model
-  pins), the capability-gated contacts and wake-options reads, and run
-  stop. Every route gates on the caller's agent-chat role capability. See
+  pins), the capability-gated contacts and wake-options reads, run stop,
+  and the live run-state read (admitted like a conversation read). See
   [agent-bots feature](../features/agent-bots/README.md).
 - `mcp/`: `POST /api/mcp` — the MCP streamable-HTTP endpoint over the
   shared agent tool catalog (single JSON-RPC messages, `application/json`
