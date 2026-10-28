@@ -166,11 +166,11 @@ describe('pdf template fill', () => {
     return Buffer.from(await doc.save());
   }
 
-  it('masks {key} tokens and redraws substituted text', async () => {
+  it('masks {key} tokens and redraws substituted text once per run', async () => {
     const filled = await fillPdfTemplate(await templatePdf('Client: {client}  Date: {date}'), { client: 'ООО Ромашка', date: '2026-10-26' });
     const text = await pdfText(filled);
-    expect(text).toContain('ООО Ромашка');
-    expect(text).toContain('2026-10-26');
+    expect(text).toContain('Client: ООО Ромашка Date: 2026-10-26');
+    expect(text.split('Ромашка').length - 1).toBe(1);
   });
 
   it('leaves a template without tokens byte-shape compatible', async () => {

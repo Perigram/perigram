@@ -542,7 +542,7 @@ async function pdfTextRuns(buffer) {
       const height = Math.max(1, Math.abs(Number(item.transform?.[3])) || 10);
       if (!current || Math.abs(current.y - y) > 0.6) {
         if (current) runs.push(current);
-        current = { x, y, height, text: item.str, items: [] };
+        current = { x, y, height, text: '', items: [] };
       }
       current.text += item.str;
       current.items.push({ x, y, width: Math.max(1, Number(item.width) || 1), height });
