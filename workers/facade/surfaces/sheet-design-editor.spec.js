@@ -14,7 +14,7 @@ function mountContext() {
     vue: { h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent },
     components: {
       Button: stub, Checkbox: stub, InputNumber: stub, InputText: stub,
-      Popover: stub, SpeedDial: stub, InstanceSelect: stub,
+      Popover: stub, SpeedDial: stub, Tag: stub, InstanceSelect: stub,
       InstanceInlineRef: stub, DesignerSurface: stub, DesignerWorkspace: stub
     },
     locale: { t: key => key, te: () => true, locale: ref('en') },

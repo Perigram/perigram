@@ -68,7 +68,6 @@ export default function createSurface({ vue, components, locale, queries, notify
       const sheetOptions = computed(() => sheetDesigns.value
         .filter(row => !sheets.value.some(entry => entry.id === String(row._id)))
         .map(row => ({
-          label: row.name || t('common.unnamed'),
           value: String(row._id),
           entity: row,
           typeId: 'sheet-design'
@@ -115,7 +114,6 @@ export default function createSurface({ vue, components, locale, queries, notify
       });
 
       const designOptions = computed(() => designs.value.map(design => ({
-        label: design.name || t('common.unnamed'),
         value: design._id?.toString(),
         entity: design,
         typeId: 'cassette-design'
@@ -1168,7 +1166,7 @@ export default function createSurface({ vue, components, locale, queries, notify
       const rounded = value => Math.round(Number(value) * 10) / 10;
 
       const renderPalette = () => h('aside', { class: 'flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3' }, [
-        h('div', { class: 'flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto' }, [
+        h('div', { class: 'flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto' }, [
           h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
             h('small', { class: 'text-muted text-supporting' }, t('sheetDesign.margin')),
             h(components.InputNumber, {
@@ -1215,12 +1213,14 @@ export default function createSurface({ vue, components, locale, queries, notify
       ]);
 
       const instanceRow = (typeId, entity, id, { active = false, onClick = null, onRemove = null, removeDisabled = false } = {}) =>
-        h('div', { class: 'flex min-w-0 items-center gap-1' }, [
+        h('div', {
+          class: 'flex min-w-0 items-center gap-1 rounded-panel border p-1'
+            + (active ? ' border-primary' : ' border-transparent')
+            + (onClick ? ' hover:bg-subtle' : '')
+        }, [
           h('button', {
             type: 'button',
-            class: 'min-w-0 flex-1 rounded-ui text-left'
-              + (active ? ' bg-subtle' : '')
-              + (onClick ? ' hover:bg-subtle' : ''),
+            class: 'min-w-0 flex-1 text-left',
             onClick: onClick || (() => {})
           }, [
             h(components.InstanceInlineRef, {
@@ -1244,20 +1244,24 @@ export default function createSurface({ vue, components, locale, queries, notify
           }) : null
         ]);
 
+      const sectionLabel = (label, count = null) => h('div', { class: 'flex items-center gap-2' }, [
+        h('small', { class: 'text-muted text-supporting' }, label),
+        count === null ? null : h(components.Tag, { value: count, severity: 'secondary' })
+      ]);
+
       const renderSheetsSection = () => h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
-        h('small', { class: 'text-muted text-supporting' }, t('sheetDesign.sheetDesigns')),
-        ...sheets.value.map((entry, index) => instanceRow('sheet-design', entry.record, entry.id, {
+        sectionLabel(t('sheetDesign.sheetDesigns'), sheets.value.length),
+        ...sheets.value.map(entry => instanceRow('sheet-design', entry.record, entry.id, {
           active: activeSheetId.value === entry.id,
           onClick: () => { selectSheet(entry.id); },
           onRemove: () => { removeSheetFromCanvas(entry); },
           removeDisabled: entry.dirty || sheets.value.length <= 1
         })),
-        h('div', { class: 'flex min-w-0 items-start gap-2' }, [
+        h('div', { class: 'flex min-w-0 items-center gap-2' }, [
           h(components.InstanceSelect, {
             modelValue: selectedSheetId.value,
             'onUpdate:modelValue': value => { selectedSheetId.value = value; },
             options: sheetOptions.value,
-            optionLabel: 'label',
             optionValue: 'value',
             typeId: 'sheet-design',
             filter: true,
@@ -1288,13 +1292,12 @@ export default function createSurface({ vue, components, locale, queries, notify
       ]);
 
       const renderDesignsSection = () => h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
-        h('small', { class: 'text-muted text-supporting' }, t('sheetDesign.designs')),
-        h('div', { class: 'flex min-w-0 items-start gap-2' }, [
+        sectionLabel(t('sheetDesign.designs'), designOptions.value.length),
+        h('div', { class: 'flex min-w-0 items-center gap-2' }, [
           h(components.InstanceSelect, {
             modelValue: selectedDesignId.value,
             'onUpdate:modelValue': value => { selectedDesignId.value = value; },
             options: designOptions.value,
-            optionLabel: 'label',
             optionValue: 'value',
             typeId: 'cassette-design',
             filter: true,
@@ -1315,7 +1318,7 @@ export default function createSurface({ vue, components, locale, queries, notify
       ]);
 
       const renderInspector = () => h('aside', { class: 'flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3' }, [
-        h('div', { class: 'flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto' }, [
+        h('div', { class: 'flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto' }, [
           selectedPlacement.value && selectedEntry.value
             ? h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
               h('small', { class: 'text-muted text-supporting' }, t('sheetDesign.design')),

@@ -10,10 +10,19 @@ vi.mock('primevue/select', async () => {
   return {
     default: defineComponent({
       inheritAttrs: false,
-      props: ['modelValue', 'options'],
+      props: ['modelValue', 'options', 'optionLabel', 'optionValue', 'placeholder'],
       setup(props, { slots, attrs }) {
+        const label = () => {
+          if (slots.value) return null;
+          const option = (props.options || [])
+            .find(item => String(item?.[props.optionValue || 'value']) === String(props.modelValue));
+          if (!option) return props.placeholder || 'Choose';
+          return typeof props.optionLabel === 'function'
+            ? props.optionLabel(option)
+            : props.optionLabel ? option[props.optionLabel] : option?.label;
+        };
         return () => render('div', { ...attrs, 'data-prime-select': '' }, [
-          render('div', { 'data-prime-value': '' }, slots.value?.({ value: props.modelValue, placeholder: 'Choose' })),
+          render('div', { 'data-prime-value': '' }, [slots.value?.({ value: props.modelValue, placeholder: 'Choose' }), label()]),
           ...(props.options || []).map(option => slots.option?.({ option }))
         ]);
       }
@@ -95,7 +104,7 @@ describe('entity Select wrappers', () => {
     expect(violations).toEqual([]);
   });
 
-  it('renders the selected entity inside a normal full-width Select control', async () => {
+  it('renders the selected entity as the control label and options as instance rows', async () => {
     const html = await render(InstanceSelect, {
       modelValue: 'queue-2',
       options,
@@ -105,8 +114,8 @@ describe('entity Select wrappers', () => {
     });
 
     expect(html).toContain('data-entity-id="queue-2"');
-    expect(html.match(/data-variant="option"/g)).toHaveLength(3);
-    expect(html.match(/data-interactive="false"/g)).toHaveLength(3);
+    expect(html.match(/data-variant="option"/g)).toHaveLength(2);
+    expect(html).toMatch(/data-prime-value[^>]*>(?:<!---->)?Queue 2</);
     expect(html).toContain('data-prime-select');
     expect(html).toContain('class="w-full"');
   });
@@ -120,7 +129,7 @@ describe('entity Select wrappers', () => {
       typeId: 'queue'
     });
 
-    expect(html).toMatch(/data-prime-value[^>]*><span>Choose<\/span><\/div>/);
+    expect(html).toMatch(/data-prime-value[^>]*>(?:<!---->)?Choose</);
   });
 
   it('renders selected entities as chips inside the control and options as rows', async () => {
@@ -167,7 +176,8 @@ describe('entity Select wrappers', () => {
 
     expect(html).toContain('data-entity-id="pen-1"');
     expect(html).toContain('data-type-id="pen-template"');
-    expect(html.match(/data-variant="option"/g)).toHaveLength(2);
+    expect(html.match(/data-variant="option"/g)).toHaveLength(1);
+    expect(html).toMatch(/data-prime-value[^>]*>(?:<!---->)?Pen one</);
   });
 
   it('derives picker options procedurally from an instance pool', () => {

@@ -2610,6 +2610,18 @@ Ordered steps:
   construct-sheet never named its sheets. `constructSheet` now returns
   `data.name` (the construction boundary merges it into
   `fields.name`); existing dev rows backfill out-of-band.
+
+  ### Agent Notes (2026-10-28, sane chrome round)
+
+  Owner feedback on the chrome round: the rail read as visual hell.
+  Kept by owner call: §22.13 preview thumbs and the compact micro cards
+  in the inspector. Landed: `InstanceSelect`'s closed trigger renders
+  the derived identifier label (one-line control rhythm; the option row
+  rides the open list), the editor pickers pass `entity`+`typeId` and
+  no hand-rolled label, working-set rows sit in one bordered row
+  (`border-primary` marks the active sheet; the old wrapper's bg tint
+  painted behind the borderless card and never showed), section labels
+  carry the count chip, and both rails space on the ladder's 24px step.
 - [ ] WAITING — owner verification: Demo process, seeds, and e2e
   recomposed onto the family (design refs threaded through the solve;
   grouped layouts consumed as sheet designs with counts).
