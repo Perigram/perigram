@@ -29,10 +29,13 @@ export const useCallsStore = defineStore('calls', () => {
     const pendingTabRoom = ref('');
     const floatingRoom = ref('');
 
-    // Rooms with a mounted call surface (any stage). The auto-surface rule
-    // parks the live session into the floating window (desktop) or the
-    // mobile lane exactly when its room has none.
+    // Rooms with a mounted call surface (any stage), and rooms with an
+    // open workspace call tab. A call tab keeps its session seated even
+    // while inactive (the pane renders the selected tab only): the
+    // auto-surface rule parks into the floating window (desktop) or the
+    // mobile lane exactly when the session has neither.
     const mountedRooms = reactive(new Set());
+    const callTabs = reactive(new Set());
 
     let unsubscribeUser = null;
     let unsubscribeOrg = null;
@@ -219,6 +222,7 @@ export const useCallsStore = defineStore('calls', () => {
         joinedRooms.clear();
         pendingTabRoom.value = '';
         floatingRoom.value = '';
+        resetCallTabs();
         teardownSession();
         connected.value = false;
     }
@@ -670,14 +674,29 @@ export const useCallsStore = defineStore('calls', () => {
         mountedRooms.delete(roomName);
     }
 
+    function tabOpened(roomName = '') {
+        if (roomName) callTabs.add(roomName);
+    }
+
+    function tabClosed(roomName = '') {
+        callTabs.delete(roomName);
+    }
+
+    // The home workspace unmounts on route leave; its call tabs go with
+    // it, and the floating-window rule takes over (SPEC §11).
+    function resetCallTabs() {
+        callTabs.clear();
+    }
+
     const isDesktopViewport = () => process.client
         && window.matchMedia?.('(min-width: 768px)')?.matches;
 
-    watch(() => [session.value?.state?.state, session.value?.state?.name, pendingTabRoom.value, mountedRooms.size], () => {
+    watch(() => [session.value?.state?.state, session.value?.state?.name, pendingTabRoom.value, mountedRooms.size, callTabs.size], () => {
         const entry = session.value;
         if (!entry || entry.state.state !== 'connected') return;
         if (pendingTabRoom.value) return;
         if (mountedRooms.has(entry.state.name)) return;
+        if (callTabs.has(entry.state.name)) return;
         if (floatingRoom.value === entry.state.name) return;
         if (isDesktopViewport()) floatingRoom.value = entry.state.name;
     });
@@ -703,6 +722,10 @@ export const useCallsStore = defineStore('calls', () => {
         pendingTabRoom,
         floatingRoom,
         mountedRooms,
+        callTabs,
+        tabOpened,
+        tabClosed,
+        resetCallTabs,
         session,
         connect,
         disconnect,

@@ -1064,6 +1064,9 @@ onBeforeUnmount(() => {
   window.removeEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
   window.removeEventListener(workspacePageOpenEvent, openRequestedWorkspacePage);
   mobileViewportQuery?.removeEventListener?.('change', readMobileViewport);
+  // Route leave: the workspace's call tabs go with it and the
+  // floating-window rule takes the sessions (components/calls README).
+  callsStore.resetCallTabs();
 });
 
 const resolveRoomLabel = useCallRoomLabel();
@@ -1119,14 +1122,16 @@ function openRequestedWorkspacePage(event) {
 
 function openCallTab(room = '', meta = {}) {
   if (!room) return;
-  // Live call stages own their tab; navigating away parks the live room
-  // into the shell floating window (components/calls README).
+  // An open call tab seats the session even while inactive: the pane
+  // renders the selected tab only, so the tab — not the mounted panel —
+  // is the session's workspace surface (components/calls README).
   openEphemeralTab(callPageRefs, {
     key: room,
     room,
     conversationKey: meta.conversationKey || '',
     label: typeof meta.label === 'string' ? meta.label : ''
   });
+  callsStore.tabOpened(room);
 }
 
 // The CommunicationMenu's start-call action: ring the chosen
@@ -1388,6 +1393,7 @@ function forgetClosedTabRefs(key) {
   if (!remainingTabKeys.has(key)) {
     openedPageRefs.value = openedPageRefs.value.filter(reference => reference.key !== key);
     openedScreenRefs.value = openedScreenRefs.value.filter(reference => reference.key !== key);
+    if (callPageRefs.value.some(call => call.key === key)) callsStore.tabClosed(key);
     callPageRefs.value = callPageRefs.value.filter(call => call.key !== key);
   }
 }
