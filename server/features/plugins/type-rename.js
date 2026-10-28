@@ -48,12 +48,9 @@ export async function applyTypeRename({ from, to }, organizationId) {
     );
     report.instances += renamed.modifiedCount || 0;
 
-    // Typed refs live under relation keys and ref fields; the dot path
-    // reaches single objects and array elements alike.
-    const cursor = db.collection(collection).find({
-      organizationId: organization,
-      $or: [{ 'relations.type': from }, { 'fields.type': from }]
-    });
+    // Typed refs (`{type, id}` objects) sit under arbitrary relation
+    // and ref-field keys, so the scan walks the org's documents.
+    const cursor = db.collection(collection).find({ organizationId: organization });
     for await (const doc of cursor) {
       const state = { touched: false };
       rewriteRefs(doc.relations, from, to, state);
