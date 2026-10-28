@@ -8,9 +8,7 @@ import {
   Identity
 } from '../../core/blocks/index.js';
 import * as workflowOverridesService from '../workflow-overrides/service.js';
-import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { pluralize } from '../../utils/strings.js';
 import { EntityRevision } from './model.js';
 import { stateService } from '../../core/machines/service.js';
 
@@ -50,16 +48,14 @@ export function revisionIdentity(typeId, instanceId, scope, number) {
   );
 }
 
+// Revision reads follow their source records' read law: org-scoped, with
+// system revisions (no organization) admitted beside org rows.
 function canReadRevision(userPermissions, revision) {
   if (!userPermissions) return true;
-  const user = userPermissions;
-  const lineage = revision?.lineage || {};
-  const sourceFeature = pluralize(revision?.data?.source?.type || '');
-  if (sourceFeature && hasLineagePermission(user, lineage, sourceFeature, 'read')) {
-    return true;
-  }
-  return hasLineagePermission(user, lineage || {}, 'cassettes', 'read') ||
-    hasLineagePermission(user, lineage || {}, 'projects', 'read');
+  const orgId = (revision?.lineage?.organizationId ?? revision?.organizationId)?.toString?.() || null;
+  if (!orgId) return true;
+  const activeOrgId = userPermissions.organizationId?.toString?.() || null;
+  return Boolean(activeOrgId) && orgId === activeOrgId;
 }
 
 export function derivedFromRevision(revision, parameters = {}) {
@@ -177,8 +173,11 @@ export async function getById(id, userId, userRole, userPermissions) {
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, filter = {}) {
-  const lineageFilter = userPermissions?.memberships
-    ? getLineageFilter(userPermissions)
+  // The read scope mirrors the source records' list law: own-org rows
+  // with system rows (no organization) admitted beside them.
+  const activeOrgId = userPermissions?.organizationId?.toString?.() || null;
+  const orgScope = activeOrgId
+    ? { $or: [{ 'lineage.organizationId': toFlexibleId(activeOrgId) }, { 'lineage.organizationId': null }] }
     : {};
   const processed = { ...filter };
   if (processed.instanceId) {
@@ -194,7 +193,7 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
     delete processed.scope;
   }
 
-  const revisions = await repository.find({ ...lineageFilter, ...processed });
+  const revisions = await repository.find({ ...orgScope, ...processed });
   return revisions.filter(revision => canReadRevision(userPermissions, revision)).map(toDTO);
 }
 
