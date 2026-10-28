@@ -1277,18 +1277,19 @@ export default function createSurface({ vue, components, locale, queries, notify
             'aria-label': t('sheetDesign.addSheet'),
             disabled: !selectedSheetId.value,
             onClick: addSelectedSheet
-          }),
-          h(components.Button, {
-            icon: 'pi pi-th-large',
+          })
+        ]),
+        sheetOptions.value.length
+          ? h(components.Button, {
+            label: t('sheetDesign.addAllSheets'),
+            icon: 'pi pi-clone',
             severity: 'secondary',
             outlined: true,
-            rounded: true,
             size: 'small',
-            'aria-label': t('sheetDesign.addAllSheets'),
-            disabled: !sheetOptions.value.length,
+            class: 'w-full',
             onClick: addAllSheets
           })
-        ])
+          : null
       ]);
 
       const renderDesignsSection = () => h('section', { class: 'flex min-w-0 flex-col gap-2' }, [

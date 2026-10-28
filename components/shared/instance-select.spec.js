@@ -68,6 +68,7 @@ vi.mock('~/components/shared/InstanceInlineRef.vue', async () => {
 import InstanceSelect from './InstanceSelect.vue';
 import InstanceMultiSelect from './InstanceMultiSelect.vue';
 import { instancePickerOptions } from '~/utils/instance-select.js';
+import { createI18n } from 'vue-i18n';
 
 const entities = [
   { _id: 'queue-1', identity: { uid: 'queue-1', name: 'Queue 1' }, data: {} },
@@ -78,6 +79,7 @@ const options = entities.map(entity => ({ label: entity.identity.name, value: en
 async function render(component, props, slots = {}) {
   const app = createSSRApp({ render: () => h(component, props, slots) });
   app.use(createPinia());
+  app.use(createI18n({ legacy: false, locale: 'en', messages: { en: {} } }));
   return await renderToString(app);
 }
 
@@ -104,7 +106,7 @@ describe('entity Select wrappers', () => {
     expect(violations).toEqual([]);
   });
 
-  it('renders the selected entity as the control label and options as instance rows', async () => {
+  it('renders the selected entity as the control chip and options as instance rows', async () => {
     const html = await render(InstanceSelect, {
       modelValue: 'queue-2',
       options,
@@ -115,7 +117,8 @@ describe('entity Select wrappers', () => {
 
     expect(html).toContain('data-entity-id="queue-2"');
     expect(html.match(/data-variant="option"/g)).toHaveLength(2);
-    expect(html).toMatch(/data-prime-value[^>]*>(?:<!---->)?Queue 2</);
+    expect(html).toMatch(/p-chip-label[^>]*>Queue 2</);
+    expect(html).toContain('data-prime-value');
     expect(html).toContain('data-prime-select');
     expect(html).toContain('class="w-full"');
   });
@@ -129,7 +132,7 @@ describe('entity Select wrappers', () => {
       typeId: 'queue'
     });
 
-    expect(html).toMatch(/data-prime-value[^>]*>(?:<!---->)?Choose</);
+    expect(html).toMatch(/data-prime-value[^>]*>(?:<!--\[-->)?<span>Choose<\/span>/);
   });
 
   it('renders selected entities as chips inside the control and options as rows', async () => {
@@ -177,7 +180,9 @@ describe('entity Select wrappers', () => {
     expect(html).toContain('data-entity-id="pen-1"');
     expect(html).toContain('data-type-id="pen-template"');
     expect(html.match(/data-variant="option"/g)).toHaveLength(1);
-    expect(html).toMatch(/data-prime-value[^>]*>(?:<!---->)?Pen one</);
+    // No type view resolves in specs: the wire name stands in so the
+    // chip never renders empty.
+    expect(html).toMatch(/p-chip-label[^>]*>Pen one</);
   });
 
   it('derives picker options procedurally from an instance pool', () => {
