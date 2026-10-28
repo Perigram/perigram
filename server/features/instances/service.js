@@ -640,7 +640,7 @@ function instanceService(typeId) {
     // payload bytes are ever lost to a silent overwrite. Gated by the
     // shared access engine on the class-collection feature (the feature
     // grants compile against) with the type id as type-id filter.
-    async replacePayload(id, { buffer, filename, mimeType } = {}, { userId, organizationId, auth } = {}) {
+    async replacePayload(id, { buffer, filename, mimeType } = {}, { userId, organizationId, auth, reason = 'payload-replaced' } = {}) {
       const declaration = await requireDeclaration(typeId, organizationId);
       if (!declaration.payload) {
         throw createError({ statusCode: 400, message: `Type ${typeId} declares no payload` });
@@ -675,7 +675,7 @@ function instanceService(typeId) {
             name: filename || 'payload'
           }
         }, declaration);
-        await recordPayloadRevision(typeId, current, declaration, payload, userId, 'payload-replaced');
+        await recordPayloadRevision(typeId, current, declaration, payload, userId, reason);
         const updated = await repository.updateInstanceFields(collection, id, {
           payload,
           updatedAt: new Date().toISOString()
@@ -688,6 +688,49 @@ function instanceService(typeId) {
         await filesService.deleteFile(stored.id, PAYLOAD_BUCKET).catch(() => {});
         throw error;
       }
+    },
+
+    // Restore (SPEC §24, owner decision 2026-10-28): a prior revision's
+    // frozen bytes re-enter through the payload channel as a new
+    // revision. The revision must belong to this record and the type's
+    // declared scope; the write gate, trait validation, and the mint are
+    // replacePayload's own.
+    async restorePayloadRevision(id, revisionId, { userId, organizationId, auth } = {}) {
+      const declaration = await requireDeclaration(typeId, organizationId);
+      if (!declaration.payload) {
+        throw createError({ statusCode: 400, message: `Type ${typeId} declares no payload` });
+      }
+      if (!declaration.revisions) {
+        throw createError({ statusCode: 400, message: `Type ${typeId} declares no revision scope; restore requires revisions` });
+      }
+      const collection = repository.collectionForClass(declaration.class);
+      const doc = await repository.findInstance(collection, id, typeId);
+      if (!doc) {
+        throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
+      }
+      const current = toDto(doc);
+      const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
+      if (!hasInstanceAccess({ entity: current, typeId: typeId, feature, level: 'write', auth: auth || null })) {
+        throw createError({ statusCode: 403, message: 'Permission denied' });
+      }
+      const revision = await instanceRevisionsService.getById(revisionId, userId, auth?.role ?? null, auth || null);
+      const source = revision?.data?.source || {};
+      if (String(source.type || '') !== typeId
+        || String(source.id || '') !== String(current._id)
+        || revision?.data?.scope !== declaration.revisions) {
+        throw createError({ statusCode: 400, message: 'Revision does not belong to this record' });
+      }
+      const file = await instanceRevisionsService.pinnedRevisionFile(revisionId);
+      if (!file?.fileId) {
+        throw createError({ statusCode: 400, message: 'Revision carries no frozen payload' });
+      }
+      const buffer = await filesService.getFileBuffer(file.fileId, file.bucket);
+      return await this.replacePayload(id, { buffer, filename: file.name, mimeType: file.mime }, {
+        userId,
+        organizationId,
+        auth,
+        reason: 'payload-restored'
+      });
     },
 
     // Re-derive (SPEC §24 version fabric, owner decision 2026-10-27):

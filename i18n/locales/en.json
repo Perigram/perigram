@@ -696,7 +696,17 @@
         "source": "Source",
         "sourceRevision": "Source revision",
         "parentRevision": "Pinned parent revision",
-        "currentGeometry": "Current geometry"
+        "currentGeometry": "Current geometry",
+        "pickerLabel": "Revisions",
+        "current": "current",
+        "view": "View",
+        "restore": "Restore",
+        "download": "Download",
+        "none": "No revisions",
+        "reasonCreated": "created",
+        "reasonReplaced": "replaced",
+        "reasonRederived": "re-derived",
+        "reasonRestored": "restored"
     },
     "nesting": {
         "title": "Nesting",

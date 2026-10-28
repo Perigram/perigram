@@ -126,6 +126,7 @@ export async function ensureForEntitySnapshot({
       scope,
       number,
       contentHash,
+      createdAt: new Date().toISOString(),
       snapshot: snapshot || {
         name: entity.name ?? null,
         fields: entity.fields || {},

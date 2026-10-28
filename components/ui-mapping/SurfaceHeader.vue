@@ -62,6 +62,12 @@
           :type-id="type?.id"
           @refresh="$emit('refresh')"
         />
+        <PayloadRevisionPicker
+          v-if="instance && type?.payload && type?.revisions"
+          :entity="instance"
+          :type="type"
+          @refresh="$emit('refresh')"
+        />
         <ReplacePayloadAction
           v-if="instance && type?.payload && type?.revisions"
           :entity="instance"
@@ -115,6 +121,7 @@ import {
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import ActionButton from './ActionButton.vue';
 import ReplacePayloadAction from '~/components/generated/ReplacePayloadAction.vue';
+import PayloadRevisionPicker from '~/components/generated/PayloadRevisionPicker.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import BackControl from '../shared/BackControl.vue';
 import StateTag from './StateTag.vue';
