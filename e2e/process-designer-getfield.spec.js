@@ -31,7 +31,7 @@ test('wiring Current user into Get field types the output as the row field', asy
   test.setTimeout(180_000);
   const { page } = app;
   await app.installPlugins(['tech-drawing', 'facade']);
-  await app.seedSpeciesProcess({ types: ['cassette'] });
+  await app.seedSpeciesProcess({ types: ['cassette-template'] });
   await bootDesigner(app);
 
   await page.getByRole('button', { name: /open/i }).first().click();
@@ -75,7 +75,7 @@ test('a persisted draft with the machine `_id` default heals to the row field', 
   test.setTimeout(180_000);
   const { page, request } = app;
   await app.installPlugins(['tech-drawing', 'facade']);
-  await app.seedSpeciesProcess({ types: ['cassette'] });
+  await app.seedSpeciesProcess({ types: ['cassette-template'] });
 
   const name = app.uniqueName('Get field poisoned');
   const draftResponse = await request.post('/api/process-definitions', {

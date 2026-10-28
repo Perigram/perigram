@@ -96,9 +96,15 @@ export function surfaceHostContext({ t, te, locale }, surfaceContract = 1, io = 
     upload: io.upload || null
   });
   if (Number(surfaceContract) < 4) return capability;
-  return Object.freeze({
+  const navigation = Object.freeze({
     ...capability,
     open: io.open || { instance: () => false }
+  });
+  if (Number(surfaceContract) < 5) return navigation;
+  return Object.freeze({
+    ...navigation,
+    construct: io.construct || { run: () => Promise.reject(new Error('construct transport unavailable')) },
+    remove: io.remove || { record: () => Promise.reject(new Error('remove transport unavailable')) }
   });
 }
 
@@ -162,6 +168,23 @@ export function editorSurfaceOpen() {
   return Object.freeze({
     instance: ({ typeId = '', instanceId = '', editor = false } = {}) =>
       openInstanceInWorkspace({ typeId, instanceId, editor })
+  });
+}
+
+// Lifecycle transports (contract 5, owner decision 2026-10-28): a
+// surface that composes records runs declared construction modes and
+// removes records through the host's gated instance transports.
+export function editorSurfaceConstruct() {
+  const instances = useInstancesStore();
+  return Object.freeze({
+    run: (typeId, mode, draft = {}) => instances.constructInstance(instances.canonicalTypeKey(typeId), mode, draft)
+  });
+}
+
+export function editorSurfaceRemove() {
+  const instances = useInstancesStore();
+  return Object.freeze({
+    record: (typeId, id) => instances.removeInstance(instances.canonicalTypeKey(typeId), String(id))
   });
 }
 

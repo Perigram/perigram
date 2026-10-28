@@ -550,6 +550,23 @@ function instanceService(typeId) {
       return await createValidated(draft, declaration, auth?.userId || null, organizationId);
     },
 
+    // HTTP remove transport (`DELETE /api/instances/:type/:id`): the
+    // record death behind the same write gate the patch transport
+    // takes — the loaded entity against the compiled grant.
+    async removeForHttp(id, { auth = null, organizationId = null } = {}) {
+      const declaration = await requireDeclaration(typeId, organizationId);
+      const collection = repository.collectionForClass(declaration.class);
+      const doc = await repository.findInstance(collection, id, typeId);
+      if (!doc) {
+        throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
+      }
+      const target = await writeGrantTarget(declaration, organizationId);
+      if (!target || !hasInstanceAccess({ entity: toDto(doc), typeId: target.typeId, feature: target.feature, level: 'write', auth })) {
+        throw createError({ statusCode: 403, message: 'Permission denied' });
+      }
+      return await this.remove(id);
+    },
+
     async remove(id) {
       const declaration = await declarationFor(typeId, null);
       const collection = repository.collectionForClass(declaration?.class);

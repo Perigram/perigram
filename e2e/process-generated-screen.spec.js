@@ -8,7 +8,7 @@ import { test, expect } from './fixtures.js';
 // patch flows run live through the process action and instance update
 // transports.
 
-const PACK_LIST_TYPES = ['cassette', 'sketch', 'text-document', 'csv-table'];
+const PACK_LIST_TYPES = ['cassette-template', 'sketch', 'text-document', 'csv-table'];
 const CHILD_TYPE = 'e2e-mnote';
 const PARENT_TYPE = 'e2e-mfolder';
 

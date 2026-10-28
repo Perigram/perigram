@@ -46,7 +46,9 @@ const hostIo = {
   access: editorSurfaceAccess(props.typeId),
   sync: editorSurfaceSync(props.typeId, () => props.record),
   upload: editorSurfaceUpload(),
-  open: editorSurfaceOpen()
+  open: editorSurfaceOpen(),
+  construct: editorSurfaceConstruct(),
+  remove: editorSurfaceRemove()
 };
 
 function fail(severity, key) {

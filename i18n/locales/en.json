@@ -2476,6 +2476,7 @@
     "sheetDesign": {
         "sheetDesigns": "Sheet designs",
         "editor": "Sheet layout editor",
+        "addSheet": "Add sheet",
         "margin": "Margin",
         "actions": "Actions",
         "sheet": "Sheet",

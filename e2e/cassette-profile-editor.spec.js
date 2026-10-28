@@ -36,8 +36,8 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   test.setTimeout(300_000);
   await app.installPlugins(['documents', 'tech-drawing', 'facade']);
   await app.connectPlugin('facade', 'http://facade-executor:8790');
-  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'], via: { cassette: 'editor' } });
-  const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette');
+  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'], via: { 'cassette-template': 'editor' } });
+  const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette-template');
   expect(list?.route, 'Expected a compiled cassette list screen').toBeTruthy();
 
   const page = app.page;

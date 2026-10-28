@@ -20,8 +20,8 @@ function entry(page, text) {
 
 async function bootHome(app, { rooms = [] } = {}) {
   await app.installPlugins(['tech-drawing', 'facade']);
-  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'] });
-  await app.page.route('**/api/instances/cassette**', route => route.fulfill({ json: [] }));
+  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'] });
+  await app.page.route('**/api/instances/cassette-template**', route => route.fulfill({ json: [] }));
   await app.page.route('**/api/support/conversations**', route => route.fulfill({ json: CONVERSATIONS }));
   await app.page.route('**/api/livekit/active-rooms', route => route.fulfill({ json: rooms }));
   const home = (manifest.screens || []).find(screen => screen.template === 'home');
