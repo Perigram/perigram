@@ -10,7 +10,7 @@ import { useI18n } from 'vue-i18n';
 import Message from 'primevue/message';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import {
-  surfaceHostContext, editorSurfacePersistence, editorSurfaceQueries, editorSurfaceRecords, surfaceNotify, editorSurfaceAccess, editorSurfaceSync, editorSurfaceUpload, editorSurfaceOpen
+  surfaceHostContext, editorSurfacePersistence, editorSurfaceQueries, editorSurfaceRecords, surfaceNotify, editorSurfaceAccess, editorSurfaceSync, editorSurfaceUpload, editorSurfaceOpen, editorSurfaceConstruct, editorSurfaceRemove
 } from '~/components/generated/remote-surface-mount.js';
 import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 
