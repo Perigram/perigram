@@ -1020,8 +1020,8 @@ Option lists are built through one shared derivation (entity, type id,
 value, and the identifier-field label), so no picker hand-rolls its own
 label or renders a raw record id. A multi-picker shows selected
 instances as chips inside the control. A single picker's closed control
-renders the selected option's identifier label, and its filter matches
-that label.
+renders the selected instance's identity chip, and its filter matches
+the identifier-field label.
 
 ## 23. Deslopification (owner direction 2026-10-23)
 
