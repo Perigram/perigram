@@ -296,9 +296,12 @@ export const LAYOUT = Object.freeze({
   // in main.css).
   previewHeroBandFlow: 'ck-preview-hero-band-flow',
   packRow: 'flex flex-wrap items-start gap-6',
-  // The reload strip overlays its surface's top edge — appearing and
-  // vanishing take no flow slot, so nothing below shifts.
+  // The reload strip takes no flow slot — appearing and vanishing shift
+  // nothing below it. `reloadBar` overlays a collection surface's top
+  // edge; `reloadBarUnder` underlines the record header (depth-0
+  // details), riding the gap above the body.
   reloadBar: 'pointer-events-none absolute inset-x-0 top-0 z-10 h-1',
+  reloadBarUnder: 'pointer-events-none absolute inset-x-0 bottom-0 z-10 h-1',
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
   // Row-surface recipe (the table row IS the card): a row's own
@@ -407,7 +410,7 @@ export const LAYOUT_ATOMS = Object.freeze({
 export const LAYOUT_AMBIENT = Object.freeze({
   cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText']),
   clamps: Object.freeze(['nameClamp', 'chipClamp', 'linkClamp']),
-  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar']),
+  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar', 'reloadBarUnder']),
   geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
 });
 
