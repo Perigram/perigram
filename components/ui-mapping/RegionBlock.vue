@@ -400,9 +400,12 @@ const instanceActionsForType = computed(() => props.instanceActions?.[props.node
 // other types keep their own buttons.
 const createControls = computed(() => createActionControls(props.node.actions || []));
 // SPEC §22.12: a relation link action renders in the toolbar of the
-// section its relation targets; its run context binds the parent
-// through the screen scope.
-const linkControls = computed(() => (props.node.actions || []).filter(isRelationLinkAction));
+// relation-scoped section its relation targets (the composition injects
+// it with the parent attached); a class list region carries no link —
+// the action addresses a concrete parent instance.
+const linkControls = computed(() => (props.node.relationParent
+  ? (props.node.actions || []).filter(isRelationLinkAction)
+  : []));
 // Unlink entries for this section's linked rows: the parent record and
 // the per-row relation ref travel as the run context.
 const relationUnlink = computed(() => {

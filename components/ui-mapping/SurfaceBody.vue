@@ -38,6 +38,22 @@
       :bundle="bundle"
     />
     <Tag v-if="hiddenFieldCount > 0" :value="`+${hiddenFieldCount}`" severity="contrast" />
+    <!-- SPEC §22.12: a relation-scoped section's linked rows carry the
+         parent's unlink actions — the row menu's run context binds the
+         parent record and the row's relation ref. -->
+    <InstanceActionsPopover v-if="relationUnlink">
+      <ActionButton
+        v-for="action in relationUnlink.actions"
+        :key="action.id"
+        :action="action"
+        :label="action.label || action.id"
+        menu-item
+        @run="launched => $emit('run', launched, {
+          instance: relationUnlink.parent,
+          data: { relations: { [action.relation?.key || action.relationMutation?.key || '']: { type: type?.id, id: instance.id } } }
+        })"
+      />
+    </InstanceActionsPopover>
   </div>
 </template>
 
@@ -50,6 +66,8 @@ import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, stateDisplayFor,
 import FieldControl from './FieldControl.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
 import SurfaceDetailBody from './SurfaceDetailBody.vue';
+import ActionButton from './ActionButton.vue';
+import InstanceActionsPopover from '../shared/InstanceActionsPopover.vue';
 
 const props = defineProps({
   instance: { type: Object, required: true },
@@ -60,11 +78,14 @@ const props = defineProps({
   editable: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
-  // Row identities render as links when an instance-open handler exists
+  // Identity links render as links when an instance-open handler exists
   // upstream (the handful-list projection's rows).
   openable: { type: Boolean, default: false },
   // Per-type state policy map from the compiled process contract.
-  statePolicy: { type: Object, default: null }
+  statePolicy: { type: Object, default: null },
+  // SPEC §22.12 `{ parent, actions }` on a relation-scoped section: the
+  // row's linked-ref unlink entries.
+  relationUnlink: { type: Object, default: null }
 });
 
 const emit = defineEmits(['run', 'inline-change', 'open', 'open-instance']);
