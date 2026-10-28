@@ -880,6 +880,20 @@ export default function createSurface({ vue, components, locale, queries, record
         applyTemplate(hydrated);
       };
 
+      // A blank tab has no record yet: its draft name rides the first save.
+      const applyRename = async () => {
+        const name = cassetteNameDraft.value.trim();
+        closeDockPopover();
+        const target = selectedTemplateId.value ? (props.record || blankCreatedTarget) : null;
+        if (!name || !target || recordTitle(target) === name) return;
+        try {
+          await props.persistence.rename(target, name);
+          if (loadedDocument.value) loadedDocument.value = { ...loadedDocument.value, name };
+        } catch (error) {
+          notify({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || t('cassette.errors.saveFailed') });
+        }
+      };
+
       const saveTemplate = async ({ saveAs = false } = {}) => {
         const tree = JSON.parse(JSON.stringify(cassetteTree.value));
         const definition = await createCassetteV2OccsDocument(tree, cassetteMarkContext.value);
@@ -2801,7 +2815,13 @@ export default function createSurface({ vue, components, locale, queries, record
                   'onUpdate:modelValue': value => { cassetteNameDraft.value = value; },
                   placeholder: t('cassette.name'),
                   class: 'w-full',
-                  'aria-label': t('common.rename')
+                  'aria-label': t('common.rename'),
+                  onKeydown: event => {
+                    if (event.key !== 'Enter') return;
+                    event.stopPropagation();
+                    event.preventDefault();
+                    applyRename();
+                  }
                 })
               : null,
             dockPopoverPanel.value === 'open'
@@ -2836,7 +2856,8 @@ export default function createSurface({ vue, components, locale, queries, record
                   icon: 'pi pi-check',
                   label: t('common.save'),
                   size: 'small',
-                  onClick: () => closeDockPopover()
+                  disabled: !cassetteNameDraft.value.trim(),
+                  onClick: () => applyRename()
                 })
               : null
           ])
