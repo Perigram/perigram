@@ -20,10 +20,10 @@ the connection. Panels register their room in the store's
 in `callTabs` — the pane renders the selected tab only, so the tab, open
 or active, is the session's workspace surface: switching tabs keeps the
 call seated (audio rides the app-level renderer; returning to the tab
-re-renders the live session). A connected session with neither a mounted
-surface nor an open tab parks into the desktop floating window
-automatically (SPEC §11) — on mobile the media dock's call lane entry
-takes it. A pending tab room suspends the auto-rule while the home
+re-renders the live session). Closing the call tab ends the
+session — an explicit close is a leave. A connected session left by
+route navigation parks into the desktop floating window automatically
+(SPEC §11) — on mobile the media dock's call lane entry takes it. A pending tab room suspends the auto-rule while the home
 workspace mounts the adopting tab, and the workspace clears its tab
 registry on route leave so the floating-window rule takes over.
 
