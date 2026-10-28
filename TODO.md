@@ -2339,6 +2339,23 @@ reconciliation is an owner edit (SPEC files are agent-untouchable).
 
 Status: WAITING owner verification.
 
+## Chip-cell overflows open the record (owner direction 2026-10-28)
+
+Owner findings on the children column: the `+N` badge does nothing, and
+the chip cells are flat piles with no route to the full structure.
+
+- [x] The relation and children chip cells' overflow controls open the
+  row's record popup (`useEntityPopup`, the round-18 overflow law — the
+  record surface carries the full relation and child sets); the
+  screen's open channel is the fallback. The inert `+n` Tags die.
+
+### Agent Notes (2026-10-28)
+
+Session `agent/genui-overflow-20261028-1815` (worktree
+`.agent-worktrees/round28`).
+
+Status: WAITING owner verification.
+
 ## Random world decorruption (owner direction 2026-10-28)
 
 Law: the random UI world generator rolls its world; nothing overwrites
