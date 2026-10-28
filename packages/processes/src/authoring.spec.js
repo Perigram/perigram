@@ -305,6 +305,32 @@ describe('headless definition authoring', () => {
     expect(errors).toEqual([]);
   });
 
+  it('configures declaration nodes: state display policy and value, class glyph, field descriptor', () => {
+    const context = authoring();
+    context.declareClass({ id: 'cls', typeId: 'part', class: 'item', name: 'Part' });
+    context.declareState({ id: 'stNew', value: 'NEW' });
+    context.declareField({ id: 'f1', ownerClassId: 'cls', name: 'title', descriptor: { base: 'string' } });
+    context.drop('construct', { id: 'mk' });
+    context.wireDeclaration('cls', 'mk', 'binds');
+    context.wireDeclaration('stNew', 'mk', 'entry');
+
+    context.configure('stNew', { severity: 'warn', icon: 'pi pi-flag', label: 'New' });
+    context.configure('stNew', { value: 'FRESH' });
+    // A state rename re-authors every entry wire that carries it.
+    expect(context.definition().processNodes.mk.inputDefaults.state).toBe('FRESH');
+    context.configure('cls', { glyph: 'ck-entity-icon ck-entity-icon-bolt' });
+    context.configure('f1', { descriptor: { base: 'string', nullable: true, identifier: true } });
+
+    const definition = context.definition();
+    expect(definition.graph.nodes.find(node => node.id === 'stNew').data)
+      .toMatchObject({ value: 'FRESH', severity: 'warn', icon: 'pi pi-flag', label: 'New' });
+    expect(definition.graph.nodes.find(node => node.id === 'cls').data.glyph)
+      .toBe('ck-entity-icon ck-entity-icon-bolt');
+    expect(definition.ctsTypes.f1.descriptor).toEqual({ base: 'string', nullable: true, identifier: true });
+    expect(() => context.configure('cls', { typeId: 'nope' })).toThrow(/authors name, glyph/);
+    expect(() => context.configure('ghost', {})).toThrow(/No process node ghost/);
+  });
+
   it('preserves authored relation selection and socket defaults across a vocabulary gap', () => {
     const context = authoring();
     // Bind against the full domain first: the relation selection derives

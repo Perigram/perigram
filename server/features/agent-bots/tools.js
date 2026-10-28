@@ -9,6 +9,8 @@ import * as filesService from '~/server/features/files/service.js';
 import { readAttachmentContent } from './attachment-read.js';
 import { buildPrincipalAuth } from './service.js';
 import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_CATALOG, PROCESS_NODE_FAMILIES, PROCESS_OPERATION_REGISTRY, parseProcessSocketHandleId, resolveCatalogNodePorts } from '~/packages/processes/src/index.js';
+import { FIELD_BASES } from '~/packages/cts/src/index.js';
+import { iconFontGlyphs } from '#shared/icon-fonts.js';
 
 /**
  * The agent tool catalog: one curated vocabulary over the existing service
@@ -88,10 +90,10 @@ const AUTHORING_GUIDE = [
     '## What a process definition is',
     "The organization's authored contract in two layers: a DECLARATION TREE — the entity vocabulary — and an OPERATION GRAPH — behavior. Activating compiles both into the runtime contract: actions, screens, role grants, workflows.",
     '## The declaration tree — the entity vocabulary',
-    "- A CLASS declares an entity type. Five identity laws (CTS SPEC §5): item — a tracked individual; group — identity IS its membership, declares children; file — payload content, replaceable; process — a run with provenance inputs and typed outputs; party — framework principals (user, organization), read-only: parties bind as instance sources and relation targets and are never constructed or mutated.",
+    "- A CLASS declares an entity type. Five identity laws (CTS SPEC §5): item — a tracked individual; group — identity IS its membership, declares children; file — payload content, replaceable; process — a run with provenance inputs and typed outputs; party — framework principals (user, organization), read-only: parties bind as instance sources and relation targets and are never constructed or mutated. Glyphs ride declareClass/configure; {detail:'glyphs'} lists them.",
     "- Containment: {op:'wireDeclaration', from: child, to: parent, role:'children'} — an item, group, or process class parents; file and party never parent. The child's construct node gains a lineage input named for the parent type (lineage.<parentTypeId>Id — read the exact id from the digest after the wire lands); connect the parent construct's result into it. onRemove: restrict (default) | cascade | detach.",
     '- Re-parenting is three gestures: unwireDeclaration the old children wire, wireDeclaration the new one, then disconnect/connect the lineage sockets to the new parent construct.',
-    "- A FIELD declares a typed slot on a class: the name is a label in any script (the storage key derives), descriptor.base picks the type (string, number, boolean, date, enum, entityRef, ...).",
+    "- A FIELD declares a typed slot on a class: the name is a label in any script (the storage key derives), descriptor.base picks from fieldBases; nullable:true marks it optional (required by default); identifier:true names the record. Edits ride configure (name, descriptor).",
     "- A STATE is a flat lifecycle value. Its wiring: {op:'wireDeclaration', from: stateId, to: constructOrTransitionId, role:'entry'} — a construct's initial state, a transition's target, the wire IS the value; {op:'wireDeclaration', from: parentStateId, to: childStateId, role:'nested'} — the child nests under the parent. These two wires are the whole state grammar.",
     "- A TYPE REFERENCE ({op:'declareTypeRef', typeId}) binds an existing registry type (ids from list_types) into the tree; it wires as child, target, or binding exactly like a class.",
     '## The operation graph — behavior',
@@ -122,6 +124,7 @@ const AUTHORING_GUIDE = [
     '3. cts.field reads one field off an instance packet; value operations (string, math, compare, ...) transform packets; constructRecord composes wired values into one record.',
     '4. A control wire (control:completed → control:in) orders effects within ONE action run — the first construct\'s result socket feeds the chained effect as a packet.',
     '5. Ref inputs resolve with their payloads: a file-instance ref carries its bytes to the consuming service.',
+    '6. Instances and lists: allEntities lists a type (configure typeId); childEntities/relatedEntities/parentEntity navigate edges; filterList (compare/logic condition) and sortItems shape lists.',
     'When the installed operators do not obviously cover a need, compose it from these primitives in a scratch definition and run it before concluding the platform lacks the capability. When composition truly cannot express it, say exactly that and stop — a capability request belongs to the owner.',
     '## A worked example (every law above, one flow)',
     "Fill a markdown template into a text-document — steps exactly as composed:",
@@ -338,11 +341,11 @@ export const TOOL_SPECS = [
     },
     {
         name: 'get_authoring_vocabulary',
-        description: 'The process authoring vocabulary, COMPACT by default: the authoring skill (guide: what a process definition is — the declaration tree\'s class/field/state laws and containment, the operation graph\'s effects and lanes — the gesture grammar, and the compose→validate→apply→activate loop), the organization\'s roles (grant vocabulary for effect access — the designer\'s lanes, one grant per effect), node families, declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners), and the palette\'s droppable items (id + kind per group). Deep details on request via detail: \'sockets\' (the catalog-static kinds\' socket ids and base types — record-bound kinds resolve live sockets off the digest of the dropped node), detail: \'nodeCatalog\' (every valid node kind with family and level), detail: \'valueOperations\' (typed input sockets and output per operation), narrowed by family/kind, or detail: \'construction\' (per-type construction modes with each type\'s default — the list the compiler enforces). A processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + edit_process_definition; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
+        description: 'The process authoring vocabulary, COMPACT by default: the authoring skill (guide: what a process definition is — the declaration tree\'s class/field/state laws and containment, the operation graph\'s effects and lanes — the gesture grammar, and the compose→validate→apply→activate loop), the organization\'s roles (grant vocabulary for effect access — the designer\'s lanes, one grant per effect), node families, declaration node types (ctsClass/ctsType/ctsField/ctsState — they wire only to declaration partners), the palette\'s droppable items (id + kind per group). Deep details on request via detail: \'sockets\' (the catalog-static kinds\' socket ids and base types — record-bound kinds resolve live sockets off the digest of the dropped node), detail: \'nodeCatalog\' (every valid node kind with family and level), detail: \'valueOperations\' (typed input sockets and output per operation), narrowed by family/kind, or detail: \'construction\' (per-type construction modes with each type\'s default — the list the compiler enforces). A processNode palette item composes a canvas node {type: \'processNode\', data: {refId}} whose semantic record in data.processNodes carries the kind. Compose new definitions through compose_process_definition; edit existing ones with get_process_definition + edit_process_definition; validate_process_definition\'s anchored diagnostics are the authoring teacher.',
         inputSchema: {
             type: 'object',
             properties: {
-                detail: { type: 'string', enum: ['nodeCatalog', 'valueOperations', 'sockets', 'construction'] },
+                detail: { type: 'string', enum: ['nodeCatalog', 'valueOperations', 'sockets', 'construction', 'glyphs'] },
                 family: { type: 'string' },
                 kind: { type: 'string' }
             },
@@ -353,6 +356,7 @@ export const TOOL_SPECS = [
                 guide: AUTHORING_GUIDE,
                 families: [...PROCESS_NODE_FAMILIES],
                 declarationNodeTypes: [...DECLARATION_NODE_TYPES],
+                fieldBases: [...FIELD_BASES],
                 palette: PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
                     id: group.id,
                     items: (group.items || []).map(item => ({ id: item.id, kind: item.kind || item.type || null }))
@@ -384,6 +388,11 @@ export const TOOL_SPECS = [
                     .filter(entry => !args.family || entry.family === args.family)
                     .filter(entry => !args.kind || entry.kind === args.kind);
                 return { ...(await base()), roles: await roles(), nodeCatalog: entries };
+            }
+            if (args.detail === 'glyphs') {
+                // The class glyph palette (the icon fonts' authoring
+                // listing) — consumed like any PrimeIcon class string.
+                return { ...(await base()), roles: await roles(), glyphs: [...iconFontGlyphs] };
             }
             if (args.detail === 'sockets') {
                 // The per-kind socket inventory off the catalog's own port

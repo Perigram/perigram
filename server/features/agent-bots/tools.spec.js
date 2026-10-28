@@ -190,6 +190,11 @@ describe('definition tool authoring surface', () => {
         expect(vocabulary.palette.some(group => group.items.some(item => item.kind))).toBe(true);
         expect(vocabulary.palette.every(group => group.items.every(item => Object.keys(item).length <= 2))).toBe(true);
         expect(vocabulary.declarationNodeTypes).toEqual(['ctsClass', 'ctsType', 'ctsField', 'ctsState']);
+        expect(vocabulary.fieldBases).toContain('string');
+        expect(vocabulary.glyphs).toBeUndefined();
+        expect(vocabulary.guide).toContain('filterList');
+        const glyphView = await executeTool('get_authoring_vocabulary', { detail: 'glyphs' }, AUTH);
+        expect(glyphView.glyphs.length).toBeGreaterThan(0);
         expect(vocabulary.guide).toContain('compose_process_definition');
         expect(vocabulary.guide).toContain('wireDeclaration');
         expect(vocabulary.guide).toContain('grants');

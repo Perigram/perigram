@@ -771,9 +771,30 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     return record;
   }
 
+  // The inspector's declaration writes: display policy and value on
+  // states, identity chrome on classes, the row contract on fields.
+  const DECLARATION_NODE_WRITES = Object.freeze({
+    ctsState: ['value', 'label', 'severity', 'icon'],
+    ctsClass: ['name', 'glyph'],
+    ctsField: ['name', 'descriptor']
+  });
+
+  function configureDeclaration(recordId, updates = {}) {
+    const node = data.graph.nodes.find(candidate => candidate.id === recordId) || null;
+    const writable = node ? DECLARATION_NODE_WRITES[node.type] || null : null;
+    if (!writable) throw new Error(`No process node ${recordId}`);
+    const refused = Object.keys(updates).filter(key => !writable.includes(key));
+    if (refused.length) {
+      throw new Error(`${node.type} ${recordId} authors ${writable.join(', ')}: ${refused.join(', ')} refused`);
+    }
+    Object.assign(node.data, updates);
+    interpretNow();
+    return node;
+  }
+
   function configure(recordId, updates = {}) {
     const record = recordOf(recordId);
-    if (!record) throw new Error(`No process node ${recordId}`);
+    if (!record) return configureDeclaration(recordId, updates);
     // A construct's type arrives by its binds declaration wire — the
     // designer's only binding flow. The wire's interpretation writes the
     // derived typeId; authoring it on the record has no gesture.
