@@ -543,16 +543,29 @@ describe('connector services', () => {
             input: { base: 'record', fields: { base: { base: 'string' }, tint: { base: 'string', nullable: true } } },
             output: { base: 'json' }
           }
+        },
+        {
+          id: 'blend',
+          label: 'Color blend',
+          group: 'mixing',
+          signature: {
+            input: { base: 'record', fields: { base: { base: 'string' } } },
+            output: { base: 'json' }
+          }
         }
       ]
     }]);
     const services = await servicesForOrganization(ORG);
-    expect(services).toHaveLength(1);
+    expect(services).toHaveLength(2);
     expect(services[0]).toMatchObject({
       id: 'plugin.coatings.mix',
       species: 'service',
       command: 'plugin.coatings.mix',
       group: 'Coatings'
+    });
+    expect(services[1]).toMatchObject({
+      id: 'plugin.coatings.blend',
+      group: 'mixing'
     });
     const merged = await projectedServicesForOrganization(ORG);
     expect(merged.some(service => service.id === 'plugin.coatings.mix')).toBe(true);
