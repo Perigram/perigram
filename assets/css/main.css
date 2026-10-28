@@ -476,9 +476,20 @@ body {
         }
     }
 
-    /* A rendered preview (payload viewer, declared source, plugin
-       module) reads in the tall band; the quiet glyph band keeps the
-       small ladder. */
+    /* A rendered preview renders in a framed media surface (rounded,
+       hairline border, subtle ground — the app owns the chrome).
+       Reading modes (prose, tables, Word documents) scroll a stepped
+       height; aspect modes (rasters, pages, drawings) yield height to
+       the content under the record body's content column cap. The quiet
+       glyph band stays bare. */
+    .ck-preview-hero-band-content,
+    .ck-preview-hero-band-aspect {
+        border: 1px solid var(--p-content-border-color);
+        border-radius: var(--p-border-radius-lg);
+        background: var(--ck-subtle-background);
+        overflow: hidden;
+    }
+
     .ck-preview-hero-band-content {
         height: 16rem;
     }
@@ -493,5 +504,10 @@ body {
         .ck-preview-hero-band-content {
             height: 32rem;
         }
+    }
+
+    .ck-preview-hero-band-aspect {
+        height: auto;
+        max-width: 46rem;
     }
 }

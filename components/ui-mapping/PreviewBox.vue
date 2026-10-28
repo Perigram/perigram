@@ -12,7 +12,7 @@
   <FilePayloadViewer
     v-else-if="hasRenderablePayload"
     :source="{ mode: preview.mode, fileUrl, attachment: payload }"
-    :variant="fill && documentMode ? 'pane' : 'card'"
+    :variant="fill ? 'pane' : 'card'"
     :class="bandClass"
   />
   <DrawingCanvas
@@ -36,7 +36,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { LAYOUT, RENDERABLE_PREVIEW_MODES, DOCUMENT_PREVIEW_MODES, resolvePreview } from '#shared/ui-mapping/index.js';
+import { LAYOUT, RENDERABLE_PREVIEW_MODES, resolvePreview } from '#shared/ui-mapping/index.js';
 import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
 import FileChip from '~/components/shared/FileChip.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
@@ -64,7 +64,6 @@ const props = defineProps({
 const bandClass = computed(() => (props.fill ? 'h-full w-full' : LAYOUT.previewBand));
 
 const preview = computed(() => resolvePreview(props.type || {}));
-const documentMode = computed(() => DOCUMENT_PREVIEW_MODES.includes(preview.value.mode));
 const typeId = computed(() => String(props.type?.id || ''));
 const pluginPreview = computed(() => (props.instance ? resolvePluginPreview(typeId.value) : null));
 const hasDeclaredPreviewSource = computed(() => Boolean(

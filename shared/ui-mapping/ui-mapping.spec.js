@@ -24,6 +24,7 @@ import {
   resolvePreview,
   RENDERABLE_PREVIEW_MODES,
   DOCUMENT_PREVIEW_MODES,
+  ASPECT_PREVIEW_MODES,
   resolveActionButton,
   resolveListLayout,
   listLayoutOf,
@@ -408,6 +409,13 @@ describe('preview resolution', () => {
       expect(RENDERABLE_PREVIEW_MODES).toContain(mode);
     }
     expect(DOCUMENT_PREVIEW_MODES).toEqual(['pdf', 'docx', 'table', 'workbook', 'text']);
+  });
+
+  it('keeps aspect modes inside the renderable set', () => {
+    for (const mode of ASPECT_PREVIEW_MODES) {
+      expect(RENDERABLE_PREVIEW_MODES).toContain(mode);
+    }
+    expect(ASPECT_PREVIEW_MODES).toEqual(['image', 'pdf', 'dxf', 'svg', 'sketch']);
   });
 });
 
