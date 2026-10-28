@@ -11,7 +11,7 @@
     @update:model-value="keys => selectTreeKey(keys)"
   />
   <AutoComplete v-else
-    :model-value="model"
+    :model-value="selectedOption"
     :suggestions="suggestions"
     option-label="label"
     force-selection
@@ -20,7 +20,7 @@
     :complete-on-focus="true"
     class="w-full"
     @complete="search"
-    @update:model-value="value => (model = value?.value ?? null)"
+    @update:model-value="option => (model = option?.value ?? null)"
   />
 </template>
 
@@ -90,4 +90,10 @@ const search = event => {
   const query = String(event.query || '').toLowerCase();
   suggestions.value = options.value.filter(option => option.label.toLowerCase().includes(query));
 };
+
+// The autocomplete's input label resolves from the option object; the
+// model stays the bare `{ type, id }` instance ref, translated here.
+const selectedOption = computed(() => options.value.find(option => (
+  option.value?.type === props.model?.type && option.value?.id === props.model?.id
+)) || null);
 </script>
