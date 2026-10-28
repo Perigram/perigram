@@ -285,12 +285,16 @@ export const LAYOUT = Object.freeze({
   // CSS in main.css); the card slot keeps the fixed previewBand stamp.
   previewHero: 'ck-preview-hero',
   previewHeroBand: 'ck-preview-hero-band',
-  // The reading band: prose and tables scroll a stepped height (real
-  // CSS in main.css, inside the framed media surface).
-  previewHeroBandContent: 'ck-preview-hero-band-content',
-  // The aspect band: content with intrinsic geometry sizes it (real CSS
+  // The media region: bounded previews (rasters, drawings, tables,
+  // documents, plugin modules) fill the framed stepped band (real CSS
   // in main.css).
+  previewHeroBandContent: 'ck-preview-hero-band-content',
+  // The page-scale band: the page fills the column's width at its own
+  // aspect (real CSS in main.css).
   previewHeroBandAspect: 'ck-preview-hero-band-aspect',
+  // The prose band: record prose flows at the body's measure (real CSS
+  // in main.css).
+  previewHeroBandFlow: 'ck-preview-hero-band-flow',
   packRow: 'flex flex-wrap items-start gap-6',
   // The reload strip overlays its surface's top edge — appearing and
   // vanishing take no flow slot, so nothing below shifts.
@@ -392,7 +396,7 @@ export const LAYOUT_ATOMS = Object.freeze({
   stack: Object.freeze(['stack', 'stackSection', 'stackTight', 'labeledBlock', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
-  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewBand']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewHeroBandFlow', 'previewBand']),
   well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack', 'well']),
   tabs: Object.freeze([]),
   placement: Object.freeze([]),
@@ -505,20 +509,10 @@ export const RENDERABLE_PREVIEW_MODES = Object.freeze([
   'dxf', 'svg', 'sketch', 'image', 'pdf', 'docx', 'table', 'workbook', 'text'
 ]);
 
-// Document preview modes render readable content (pages, prose, tables):
-// sized panes render the readers (scrolling prose, paginated tables) and
-// fixed-height card bands carry content thumbnails (clipped rows,
-// clamped prose).
-export const DOCUMENT_PREVIEW_MODES = Object.freeze([
-  'pdf', 'docx', 'table', 'workbook', 'text'
-]);
-
-// Aspect preview modes carry intrinsic geometry (a raster, a page, a
-// drawing viewBox): the detail band yields its height to the content
-// instead of stepping a ladder (`LAYOUT.previewHeroBandAspect`).
-export const ASPECT_PREVIEW_MODES = Object.freeze([
-  'image', 'pdf', 'dxf', 'svg', 'sketch'
-]);
+// Page-scale preview modes render the content's own geometry: the page
+// fills the record column's width at its MediaBox aspect
+// (`LAYOUT.previewHeroBandAspect`).
+export const ASPECT_PREVIEW_MODES = Object.freeze(['pdf']);
 
 // --- Actions ----------------------------------------------------------------
 

@@ -151,17 +151,20 @@ const expandedFacts = ref({});
 
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
 const quantitative = computed(() => typeIsQuantitative(props.type));
-// SPEC §22.8: the framed media surface carries every rendered preview —
-// aspect modes yield height to the content, reading modes scroll the
-// stepped ladder, the quiet glyph band stays bare. Band choice mirrors
-// PreviewBox's branch order: plugin, payload, declared source, quiet.
+// SPEC §22.8: the preview treatment follows the content — prose flows
+// at the body's measure, a page fills the column's width at its own
+// aspect, bounded media fills the framed region; the quiet glyph band
+// stays bare. Band choice mirrors PreviewBox's branch order: plugin,
+// payload, declared source, quiet.
 const heroBand = computed(() => {
   if (resolvePluginPreview(String(props.type?.id || ''))) return LAYOUT.previewHeroBandContent;
   const mode = props.instance.payload?.fileId ? resolvePreview(props.type).mode : null;
   if (mode && RENDERABLE_PREVIEW_MODES.includes(mode)) {
-    return ASPECT_PREVIEW_MODES.includes(mode) ? LAYOUT.previewHeroBandAspect : LAYOUT.previewHeroBandContent;
+    if (ASPECT_PREVIEW_MODES.includes(mode)) return LAYOUT.previewHeroBandAspect;
+    if (mode === 'text') return LAYOUT.previewHeroBandFlow;
+    return LAYOUT.previewHeroBandContent;
   }
-  if (props.type?.previewSource?.display === 'geometry' && props.instance.previewSource) return LAYOUT.previewHeroBandAspect;
+  if (props.type?.previewSource?.display === 'geometry' && props.instance.previewSource) return LAYOUT.previewHeroBandContent;
   return LAYOUT.previewHeroBand;
 });
 // SPEC §22.8: a single-group body renders its fields with no group titles.
