@@ -31,6 +31,7 @@
       v-if="editorAction && value?.id"
       :entity="value"
       :type-id="String(value.type)"
+      prefer-dialog
     />
   </div>
 </template>

@@ -51,7 +51,10 @@ const props = defineProps({
   entity: { type: Object, default: null },
   typeId: { type: String, default: '' },
   menuItem: { type: Boolean, default: false },
-  openInWorkspace: { type: Boolean, default: false }
+  openInWorkspace: { type: Boolean, default: false },
+  // Open the surface in the in-place dialog instead of the workspace
+  // page — the modal context (the fill dialog) stays put.
+  preferDialog: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['open-page', 'refresh']);
@@ -114,13 +117,15 @@ async function openEditor() {
     });
     return;
   }
-  const mobile = typeof window !== 'undefined'
-    && window.matchMedia?.('(max-width: 767px)')?.matches;
-  if (!mobile && openWorkspacePageFromChrome({
-    pageId: surface.value.surface,
-    entity,
-    typeId: props.typeId
-  })) return;
+  if (!props.preferDialog) {
+    const mobile = typeof window !== 'undefined'
+      && window.matchMedia?.('(max-width: 767px)')?.matches;
+    if (!mobile && openWorkspacePageFromChrome({
+      pageId: surface.value.surface,
+      entity,
+      typeId: props.typeId
+    })) return;
+  }
   dialogEntity.value = entity;
   dialogVisible.value = true;
 }

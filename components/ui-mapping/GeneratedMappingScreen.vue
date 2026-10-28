@@ -45,6 +45,7 @@
     <StandardDialog
       v-model:visible="dialogVisible"
       :size="fillDialogActive ? 'lg' : 'md'"
+      :fill="fillDialogActive"
       :header="dialogAction?.label || ''"
       show-default-footer
       :cancel-label="$t('uiMapping.dialogCancel')"
