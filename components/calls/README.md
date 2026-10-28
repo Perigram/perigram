@@ -104,21 +104,23 @@ suspends the auto-rule while the home workspace mounts the adopting tab.
 The controls are one floating pill overlay at the bottom center of the
 stage: a `bg-content` chip over media with `shadow-overlay`, rounded
 text icon buttons (default severity — ink on the content surface), the
-layout switch as one
-icon button (its icon and aria-label name the layout it switches to), a
-full-screen toggle (Fullscreen API on the panel root),
+layout switch as a two-button segmented control (speaker `pi-id-card`,
+grid `pi-th-large`; the active layout is the filled button), a
+speaker-layout maximize toggle that hides the film strip so the focus
+stream fills the stage, a dispatch control (desktop) that seats the
+session in the floating window — the floating window's own panel carries
+the dock variant of the same control,
 reactions and device settings as PrimeVue `Popover`s anchored at their
 buttons, and leave as the single danger button, separated by a hairline
 divider. The pill wraps to a second row on narrow panes — every control
 stays reachable at any width. Tiles carry the speaking state as a
-`ring-status-success` ring, and the spotlight control — a star chip over
-the media — reveals on tile hover on
+`ring-status-success` ring, and the spotlight control — a push-pin chip
+over the media (an inline Material `push_pin` SVG; primeicons ships no
+pin glyph) — reveals on tile hover on
 pointer devices (touch widths keep it visible; a spotlighted tile keeps it
 lit). Toggled-off devices keep their glyph and carry the state as the
 danger color: primeicons ships no slash variants for microphone or
-video. The floating window's dock and the workspace tab's pop-out carry
-their own icons (`pi-table`, `pi-external-link`), each distinct from the
-full-screen toggle. Floating reaction badges ride the `riseAndFade` motion pattern over
+video. Floating reaction badges ride the `riseAndFade` motion pattern over
 the stage, above the pill. Status is shown only where it changes
 behavior: a reconnecting pill while the room re-connects,
 degraded-quality glyphs on tile chips.
@@ -204,7 +206,8 @@ on the name.
   the first screen share, else the active speaker, else the first
   tile**, rendered as one large spotlight plus a film strip (side strip
   on wide containers through a container query). Pinning works per tile
-  — a camera or a screen share. Spotlighted screen shares hug their live
+  — a camera or a screen share. The maximize toggle hides the strip and
+  the focus stream fills the whole stage. Spotlighted screen shares hug their live
   source proportions (the tile reports the video's aspect from the
   element's own resize events and caps itself to the stage box) while
   cameras fill the stage (`object-cover`).
