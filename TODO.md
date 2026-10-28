@@ -2144,6 +2144,57 @@ ref consumption now rides the one resolver.
 
 Status: WAITING owner verification.
 
+## Relation-grammar columns and the N/A retirement (owner direction 2026-10-28)
+
+Law: SPEC §22.8 (the table floor) + SPEC §6 (one relation grammar).
+Owner findings: N/A badges in generated collections; flat
+identifier-only lists on top-level data-rich types; card footer
+whitespace.
+
+- [x] Ref fields join the relation column: `resolveListControls`
+  derives `relationColumn` over explicit edges ∪ declared ref fields
+  (their wire values ride `relations.<name>` — the storage law now
+  stated in the instances README). The typeless-shape fallback adopts
+  the ref field's first accepted type. A filled ref field alone earns
+  the table projection — facade-order, project, and every ref-carrying
+  group render the chip column.
+- [x] The structural summary column: the first filled json/record/map
+  field derives `summaryColumn` and renders a bounded inline summary
+  cell (narrow hosts shed it); `tableDataColumns` counts it —
+  nesting-attempt (label + result json) renders its data.
+- [x] The N/A badge dies in generated ref display: `FieldControl`'s
+  ref dispatch renders nothing when the value resolves no reference
+  (empty and unrecognized shapes alike); `SurfaceBody` row facts read
+  ref values from `relations.<name>`.
+- [ ] Card footer whitespace: NOT reproduced. Measured on a live card
+  grid (probe `.playwright/genui-round25.json`): 0px gap below every
+  card's last child, 20px card-body padding, no stretch (the grid is
+  `items-start`). Needs the owner to name the surface (screen + type)
+  — the board columns, the record popup, or the entity-card family are
+  the unprobed candidates.
+
+### Agent Notes (2026-10-28, round 25)
+
+Session `agent/genui-round25-20261028-1500` (worktree
+`.agent-worktrees/round25`). Diagnosis was measured on a live org
+reproducing the owner's type shapes (`e2e/zz-round25-probe.spec.js` →
+`.playwright/genui-round25.json`): the project list rendered one N/A
+badge per row (the row fact read `fields.libraries` while the value
+lives in `relations.libraries`), and all four ref/json-rich types
+rendered zero tables (the columns signal counted short scalars and
+explicit edges only). Fixes land in the contract
+(`resolveListControls`/`tableDataColumns`), the materializations
+(CollectionTable relation target + summary cell, SurfaceBody row read,
+FieldControl ref render-nothing), and the storage law is now stated in
+the instances README beside the §3 shape. Specs: the two new
+relation-grammar pins + the summary pin in ui-mapping.spec; the new
+`ui-mapping-refcolumns.ssr-smoke.js` mounts the real engine over the
+live shapes and asserts the columns render, chips resolve, and no
+N/A text exists. 177 unit + 19 SSR green; check-arch green; check-docs
+green except the pre-existing jagua-rs submodule link.
+
+Status: WAITING owner verification.
+
 ## Random world decorruption (owner direction 2026-10-28)
 
 Law: the random UI world generator rolls its world; nothing overwrites

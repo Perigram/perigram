@@ -8,7 +8,10 @@ The page SSR smoke harness: real page SFCs mounted through
 - `*.ssr-smoke.js` — smoke cases (named outside the default
   `*.spec.js` glob so the normal suite does not pick them up): whole
   pages (`chats-page`, `process-page`, `screens-page`,
-  `ui-mapping-page` — each boots an assembled surface) and
+  `ui-mapping-page` — each boots an assembled surface),
+  `ui-mapping-refcolumns.ssr-smoke.js` for the generated collection
+  columns over the SPEC §6 relation grammar (ref-field chip column,
+  structural summary column, the bare list floor), and
   `chat-content.ssr-smoke.js` for the chat content components (message
   body modes, attached refs, the agent chronology, the inline-ref chip
   branches).

@@ -69,6 +69,18 @@
         </div>
       </template>
     </Column>
+    <Column v-if="summaryField" :header="summaryField.label">
+      <template #body="{ data }">
+        <FieldControl
+          :model-value="data.fields?.[summaryField.name]"
+          :descriptor="summaryField.descriptor"
+          variant="inline"
+          :quantitative="quantitative"
+          :pool="pool"
+          :bundle="bundle"
+        />
+      </template>
+    </Column>
     <Column v-if="actions.length" class="w-10">
       <template #body="{ data }">
         <Button
@@ -109,6 +121,7 @@ import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import ParentRef from './ParentRef.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
 import InlineField from './InlineField.vue';
+import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
@@ -228,15 +241,25 @@ function onSortChange({ sortField, sortOrder }) {
   if (name) storeSortPreference(sortScope.value, { name, order: activeSortOrder.value });
 }
 // The relation chip column rides the contract: the first declared
-// relation, a column only when any loaded instance carries its refs.
+// relation (an explicit edge or a declared ref field), a column only
+// when any loaded instance carries its refs.
 const relationKey = computed(() => resolvedControls.value.relationColumn?.key || null);
-const relationLabel = computed(() => (relationKey.value ? startCase(relationKey.value) : ''));
+const relationLabel = computed(() => {
+  if (!relationKey.value) return '';
+  const descriptor = props.type?.fields?.[relationKey.value];
+  if (descriptor) {
+    return localizedLabel({ te, t }, fieldLabelKey(props.type?.id, relationKey.value), fieldLabel(relationKey.value, descriptor));
+  }
+  return startCase(relationKey.value);
+});
 // Relation refs normalize through the one app resolver: stored shapes
-// without a type adopt the relation's single declared target, so a chip
-// always knows what it references.
+// without a type adopt the relation's single declared target — the
+// edge's type list or the ref field's first accepted type.
 const relationTargetType = computed(() => {
-  const types = props.type?.edges?.relations?.[relationKey.value]?.types || [];
-  return types.length === 1 ? types[0] : null;
+  const edgeTypes = props.type?.edges?.relations?.[relationKey.value]?.types || [];
+  if (edgeTypes.length === 1) return edgeTypes[0];
+  const accepts = props.type?.fields?.[relationKey.value]?.accepts || [];
+  return accepts.length === 1 ? accepts[0] : null;
 });
 const relationRefsOf = instance => resolveInstanceRelationRefs(
   instance?.relations?.[relationKey.value],
@@ -244,6 +267,21 @@ const relationRefsOf = instance => resolveInstanceRelationRefs(
 );
 const budgetedRefs = instance => applyBudget(relationRefsOf(instance), ROW_RELATION_BUDGET).visible;
 const hiddenRefCount = instance => applyBudget(relationRefsOf(instance), ROW_RELATION_BUDGET).hidden;
+
+// The structural summary column: the contract's first filled
+// json/record/map field renders its bounded inline summary (SPEC §22.8)
+// beside the scalar columns; a narrow host sheds it with the rest.
+const summaryField = computed(() => {
+  const key = resolvedControls.value.summaryColumn?.key;
+  if (!key || compactHost.value) return null;
+  const descriptor = props.type?.fields?.[key] || null;
+  if (!descriptor) return null;
+  return {
+    name: key,
+    descriptor,
+    label: localizedLabel({ te, t }, fieldLabelKey(props.type?.id, key), fieldLabel(key, descriptor))
+  };
+});
 
 // One shared row-action menu (the card-grid pattern): the ellipsis
 // renders on a row only when that row carries an applicable action, and

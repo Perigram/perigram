@@ -30,7 +30,7 @@
     <FieldControl
       v-for="field in shownFields"
       :key="field.name"
-      :model-value="instance.fields?.[field.name]"
+      :model-value="rowValueOf(field)"
       :descriptor="field.descriptor"
       variant="inline"
       :quantitative="quantitative"
@@ -110,6 +110,11 @@ const statusTag = computed(() => {
 const fieldEntries = computed(() => Object.entries(props.type.fields || {})
   .filter(([name]) => !isIdentifierField(props.type, name))
   .map(([name, descriptor]) => ({ name, descriptor })));
+// A declared ref field's value rides `relations.<name>` on the wire
+// (SPEC §6 relation grammar); every other field reads `fields`.
+const rowValueOf = field => (field.descriptor?.base === 'ref'
+  ? props.instance?.relations?.[field.name]
+  : props.instance?.fields?.[field.name]);
 const fieldBudget = computed(() => surface.value.budgets.fields
   || (props.variant === 'row' || props.variant === 'inline' ? ROW_FIELD_BUDGET : null));
 const fieldOutcome = computed(() => applyBudget(fieldEntries.value, fieldBudget.value));
