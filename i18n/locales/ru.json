@@ -696,7 +696,17 @@
         "source": "Источник",
         "sourceRevision": "Ревизия источника",
         "parentRevision": "Зафиксированная ревизия родителя",
-        "currentGeometry": "Текущая геометрия"
+        "currentGeometry": "Текущая геометрия",
+        "pickerLabel": "Версии",
+        "current": "текущая",
+        "view": "Открыть",
+        "restore": "Восстановить",
+        "download": "Скачать",
+        "none": "Нет версий",
+        "reasonCreated": "создана",
+        "reasonReplaced": "заменена",
+        "reasonRederived": "пересчитана",
+        "reasonRestored": "восстановлена"
     },
     "nesting": {
         "title": "Раскрой",

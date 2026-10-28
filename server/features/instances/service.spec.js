@@ -4,10 +4,13 @@ import { ObjectId } from 'mongodb';
 vi.mock('~/server/db/mongo', () => ({ connectDB: vi.fn() }));
 vi.mock('../files/service.js', () => ({
   uploadFile: vi.fn(async (buffer, filename) => ({ id: `stored-${filename}`, filename, url: '#' })),
-  deleteFile: vi.fn(async () => {})
+  deleteFile: vi.fn(async () => {}),
+  getFileBuffer: vi.fn(async () => Buffer.from('%PDF-1.4 frozen'))
 }));
 vi.mock('../instance-revisions/service.js', () => ({
-  ensureForEntitySnapshot: vi.fn(async () => ({ _id: 'rev-1', data: { number: 1, contentHash: 'sha256:x' } }))
+  ensureForEntitySnapshot: vi.fn(async () => ({ _id: 'rev-1', data: { number: 1, contentHash: 'sha256:x' } })),
+  getById: vi.fn(async () => null),
+  pinnedRevisionFile: vi.fn(async () => null)
 }));
 vi.mock('../../core/access/service.js', () => ({
   hasInstanceAccess: vi.fn(() => true)
@@ -717,6 +720,121 @@ describe('version fabric (SPEC §24)', () => {
     expect(revisionService.ensureForEntitySnapshot).not.toHaveBeenCalled();
 
     constructions.mockRestore();
+  });
+
+  describe('restore (SPEC §24 restore-as-new)', () => {
+    const DOC_ID = new ObjectId('0123456789abcdef01234567');
+
+    function stubPdfDoc() {
+      const coll = stubCollection();
+      coll.findOne.mockResolvedValue({
+        _id: DOC_ID,
+        type: 'pdf-document',
+        organizationId: 'org-1',
+        name: 'Report',
+        fields: {},
+        payload: { fileId: 'file-2', mime: 'application/pdf', size: 2048 }
+      });
+      coll.findOneAndUpdate.mockResolvedValue({
+        _id: DOC_ID, type: 'pdf-document', fields: {}, payload: { fileId: 'stored-Report.pdf' }
+      });
+      return coll;
+    }
+
+    function stubRevision(overrides = {}) {
+      revisionService.getById.mockResolvedValue({
+        _id: 'rev-1',
+        data: {
+          source: { type: 'pdf-document', id: DOC_ID.toString() },
+          scope: 'content',
+          number: 1
+        },
+        ...overrides
+      });
+      revisionService.pinnedRevisionFile.mockResolvedValue({
+        fileId: 'file-1',
+        bucket: 'files',
+        mime: 'application/pdf',
+        name: 'Report.pdf'
+      });
+    }
+
+    it("re-enters a prior revision's frozen bytes as a new revision", async () => {
+      const coll = stubPdfDoc();
+      stubRevision();
+      const service = instanceServiceResolver('pdf-document');
+
+      const dto = await service.restorePayloadRevision(DOC_ID.toString(), 'rev-1', {
+        userId: 'user-1',
+        organizationId: 'org-1'
+      });
+
+      const files = (await import('../files/service.js'));
+      expect(files.getFileBuffer).toHaveBeenCalledWith('file-1', 'files');
+      expect(files.uploadFile).toHaveBeenCalledWith(
+        Buffer.from('%PDF-1.4 frozen'),
+        'Report.pdf',
+        expect.objectContaining({ type: 'pdf-document' }),
+        'files'
+      );
+      expect(revisionService.ensureForEntitySnapshot).toHaveBeenCalledWith(
+        expect.objectContaining({ reason: 'payload-restored', scope: 'content' })
+      );
+      expect(coll.findOneAndUpdate.mock.calls[0][1].$set.payload).toMatchObject({
+        fileId: 'stored-Report.pdf',
+        mime: 'application/pdf'
+      });
+      expect(dto.payload.fileId).toBe('stored-Report.pdf');
+    });
+
+    it('refuses a revision of another record, type, or scope', async () => {
+      stubPdfDoc();
+      const service = instanceServiceResolver('pdf-document');
+
+      stubRevision({ data: { source: { type: 'pdf-document', id: 'other-record' }, scope: 'content', number: 1 } });
+      await expect(service.restorePayloadRevision(DOC_ID.toString(), 'rev-1', { userId: 'user-1', organizationId: 'org-1' }))
+        .rejects.toMatchObject({ statusCode: 400 });
+
+      stubRevision({ data: { source: { type: 'other-type', id: DOC_ID.toString() }, scope: 'content', number: 1 } });
+      await expect(service.restorePayloadRevision(DOC_ID.toString(), 'rev-1', { userId: 'user-1', organizationId: 'org-1' }))
+        .rejects.toMatchObject({ statusCode: 400 });
+
+      stubRevision({ data: { source: { type: 'pdf-document', id: DOC_ID.toString() }, scope: 'geometry', number: 1 } });
+      await expect(service.restorePayloadRevision(DOC_ID.toString(), 'rev-1', { userId: 'user-1', organizationId: 'org-1' }))
+        .rejects.toMatchObject({ statusCode: 400 });
+
+      expect(revisionService.ensureForEntitySnapshot).not.toHaveBeenCalled();
+    });
+
+    it('refuses an unknown instance or a revision without frozen bytes', async () => {
+      const coll = stubPdfDoc();
+      coll.findOne.mockResolvedValue(null);
+      const service = instanceServiceResolver('pdf-document');
+
+      await expect(service.restorePayloadRevision(DOC_ID.toString(), 'rev-1', { userId: 'user-1', organizationId: 'org-1' }))
+        .rejects.toMatchObject({ statusCode: 404 });
+
+      coll.findOne.mockResolvedValue({
+        _id: DOC_ID, type: 'pdf-document', organizationId: 'org-1', fields: {}
+      });
+      stubRevision();
+      revisionService.pinnedRevisionFile.mockResolvedValue(null);
+      await expect(service.restorePayloadRevision(DOC_ID.toString(), 'rev-1', { userId: 'user-1', organizationId: 'org-1' }))
+        .rejects.toMatchObject({ statusCode: 400 });
+      expect(revisionService.ensureForEntitySnapshot).not.toHaveBeenCalled();
+    });
+
+    it('refuses without the write grant', async () => {
+      stubPdfDoc();
+      stubRevision();
+      const access = (await import('../../core/access/service.js'));
+      access.hasInstanceAccess.mockReturnValueOnce(false);
+      const service = instanceServiceResolver('pdf-document');
+
+      await expect(service.restorePayloadRevision(DOC_ID.toString(), 'rev-1', { userId: 'user-1', organizationId: 'org-1' }))
+        .rejects.toMatchObject({ statusCode: 403 });
+      expect(revisionService.ensureForEntitySnapshot).not.toHaveBeenCalled();
+    });
   });
 });
 

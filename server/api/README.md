@@ -29,7 +29,9 @@ Routes are grouped into sub-directories corresponding to features:
   as `generateAttachment`.
 - `instances/`: The generic per-type instance transport (`/api/instances/:type`
   and `/api/instances/:type/:id`) serving every pack and org-authored type
-  through the CTS instance machinery, including typed payload upload/download.
+  through the CTS instance machinery, including typed payload upload/download
+  and revision restore (`POST /api/instances/:type/:id/restore-revision`,
+  [instances feature](../features/instances/README.md)).
 - `files/`: Shared file transport — `POST /api/files/upload` and
   `GET /api/files/download/:id` for instance payloads and attachments.
   Downloads serve HTTP byte ranges (`Range` → `206` + `Content-Range`,

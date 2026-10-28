@@ -63,7 +63,7 @@ export const fieldAccessPolicies = {
   },
   entityRevision: {
     feature: 'files',
-    read: [...COMMON_READ_FIELDS, 'data.source', 'data.scope', 'data.number', 'data.shortHash', 'data.contentHash', 'data.createdAt'],
+    read: [...COMMON_READ_FIELDS, 'data.source', 'data.scope', 'data.number', 'data.shortHash', 'data.contentHash', 'data.createdAt', 'data.reason', 'attachments.primary'],
     write: [],
     admin: ['data.*', 'attachments.*']
   },

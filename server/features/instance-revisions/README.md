@@ -16,11 +16,13 @@ Revision records are normal v24 entities with immutable revision metadata under
 - `data.number`: monotonically increasing number within
   `(typeId, instanceId, scope)`.
 - `data.contentHash`: `sha256:` hash of canonicalized content for dedupe.
+- `data.createdAt`: ISO creation stamp.
 - `data.snapshot`: source identity and scoped content used to reproduce the
   revision.
 - `data.sourceStatus`: source entity status at revision creation.
-- `data.reason`: creation reason such as `template-created`, `template-updated`,
-  or `migration`.
+- `data.reason`: creation reason such as `created`, `payload-replaced`,
+  `rederived`, `payload-restored`, or `content-change` (the direct-caller
+  default).
 
 The unique content index is `(data.source.type, data.source.id, data.scope,
 data.contentHash)`. Re-saving identical content reuses the existing revision.
@@ -63,6 +65,15 @@ lineage-read fallback.
 | `GET /api/instance-revisions` | List revisions (filters `typeId`, `instanceId`, `scope`), access-serialized. |
 | `GET /api/instance-revisions/:id` | One revision DTO. |
 | `GET /api/instance-revisions/:id/file` | Streams the revision's primary GridFS attachment (404 when it has none). |
+
+The read-level DTO carries `data.source`, `data.scope`, `data.number`,
+`data.reason`, `data.createdAt`, and `attachments.primary` — the frozen
+bytes reference preview surfaces resolve through the shared payload
+download URL. The policy table lives in
+[shared/README.md](../../../shared/README.md). Payload revision restore
+rides the instances transport:
+`POST /api/instances/:type/:id/restore-revision`
+([instances](../instances/README.md)).
 
 ## Related
 

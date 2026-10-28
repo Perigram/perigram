@@ -135,12 +135,22 @@ Parent: [server/features](../README.md).
 - Version fabric (SPEC §24): every payload write on a revision-scoped
   type records an immutable revision through `recordPayloadRevision` —
   creation mints revision 1 (`created`), replacement and re-derive bump
-  (`payload-replaced`, `rederived`). `rederive(id, mode, { provenance })`
+  (`payload-replaced`, `rederived`), and restore mints
+  (`payload-restored`). `rederive(id, mode, { provenance })`
   is the construct re-run: it rebuilds the stored-inputs draft
   (`storedConstructionDraft`), executes the bound construction service
   against the refs' pinned revisions, and patches the same instance's
   fields, payload, and provenance under the same access gate as payload
   replacement.
+- Revision restore (`restorePayloadRevision`, SPEC §24 restore-as-new):
+  a prior revision's frozen bytes re-enter through the payload channel
+  as a new revision — the bytes are read from the revision's primary
+  attachment and re-run `replacePayload` with reason `payload-restored`,
+  so trait validation, storage, revisioning, and the write gate are the
+  replacement path's own. The revision must belong to the target record
+  and the type's declared revision scope; anything else refuses 400.
+  `POST /api/instances/:type/:id/restore-revision` with
+  `{ revisionId }` is the transport.
 - Field updates (`patch`): `PATCH /api/instances/:type/:id` carries the
   same wire patch `processUpdate` writes (the `name` rename channel,
   `fields` leaves, non-tenancy `lineage` edges, `relations` — state

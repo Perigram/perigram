@@ -163,6 +163,12 @@ that drive executor-backed surfaces or services wire them through
   PanelMenu entries, active rooms rendering as auto-expanded rows
   (including a late initial snapshot), the Calls flyout listing every
   ringable conversation, and the empty no-rooms state.
+- `payload-revisions.spec.js`: the record's version surface (SPEC §24)
+  on a revision-scoped file type — the detail header's revision picker
+  lists prior payload revisions newest-first with the current one
+  marked, opens any revision read-only through its frozen bytes, and
+  restores a prior revision as a new one. Writes the durable artifact
+  `test-results/payload-revisions-live.json`.
 
 Full nesting tests need explicit fixture cassette geometry and a running
 worker stack; keep those in a separate spec so smoke tests stay cheap.
