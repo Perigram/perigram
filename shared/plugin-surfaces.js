@@ -31,13 +31,6 @@
 //     plus `open`. `open.instance({ typeId, instanceId, editor })` asks
 //     the host workspace to open a record as a tab (the workspace owns
 //     tabs; a surface never navigates on its own).
-// 5 — the lifecycle mount (owner decision 2026-10-28): everything in 4
-//     plus `construct` and `remove`. `construct.run(typeId, mode, draft)`
-//     executes a declared construction mode through the host's gated
-//     construct transport (the created record returns as the wire DTO);
-//     `remove.record(typeId, id)` deletes a record through the host's
-//     gated remove transport. Both are host-executed like sync and
-//     upload: the module calls, never fetches.
 //
 // Kinds (M7): a surface entry is an `editor` (the default — mounts over
 // `{ record, persistence }` inside the editor chrome) or a `preview`
@@ -48,7 +41,7 @@
 // The listing contract validates the kind and its bindings (SDK
 // `parseListing`); the platform serves resolved preview bindings on the
 // type view.
-export const SUPPORTED_SURFACE_CONTRACTS = [1, 2, 3, 4, 5];
+export const SUPPORTED_SURFACE_CONTRACTS = [1, 2, 3, 4];
 
 export function isSupportedSurfaceContract(version) {
   return SUPPORTED_SURFACE_CONTRACTS.includes(Number(version));
