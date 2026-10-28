@@ -2,14 +2,32 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
 vi.mock('../instances/count.js', () => ({ countInstancesOfType: vi.fn(async () => 0) }));
-vi.mock('~/server/db/mongo', () => ({
-  connectDB: vi.fn(async () => ({
+vi.mock('~/server/db/mongo', () => {
+  const updates = [];
+  const makeDb = () => ({
     collection: vi.fn(() => ({
-      updateMany: vi.fn(async () => ({ modifiedCount: 0 })),
-      find: () => ({ [Symbol.asyncIterator]: async function* () {} })
-    }))
-  }))
-}));
+      updateMany: vi.fn(async (filter, update) => {
+        updates.push({ kind: 'many', filter, update });
+        return { modifiedCount: filter.type === 'coating' ? 1 : 0 };
+      }),
+      updateOne: vi.fn(async (filter, update) => {
+        updates.push({ kind: 'one', filter, update });
+      }),
+      find: () => ({
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            _id: 'doc-with-ref',
+            organizationId: 'org-1',
+            relations: { template: { type: 'coating', id: 'c-1' }, other: [{ type: 'primer', id: 'p-1' }] }
+          };
+        }
+      })
+    })),
+    get updates() { return updates; }
+  });
+  const db = makeDb();
+  return { connectDB: vi.fn(async () => db), __db: db };
+});
 vi.mock('../instances/migrations.js', () => ({
   applyTypeMigrationSteps: vi.fn(async () => ({ appliedAt: '2026-10-08T00:00:00.000Z', actor: 'user-1', counts: {}, failures: [] }))
 }));
@@ -57,6 +75,7 @@ vi.mock('./repository.js', () => ({
 }));
 
 import * as repository from './repository.js';
+import { __db } from '~/server/db/mongo';
 import * as typeStore from '../cts-types/repository.js';
 import {
   install, installFromCatalog, uninstall, listInstalled, listCatalog, servicesForOrganization,
@@ -748,6 +767,15 @@ describe('upgrades', () => {
     const persisted = repository.updateInstallSnapshot.mock.calls[0][2];
     expect(persisted.declarations.types.map(type => type.id)).toContain('enamel');
     expect(persisted.declarations.types.every(type => type.renameFrom === undefined)).toBe(true);
+    expect(__db.updates).toContainEqual(expect.objectContaining({
+      kind: 'many',
+      filter: expect.objectContaining({ type: 'coating' }),
+      update: { $set: expect.objectContaining({ type: 'enamel' }) }
+    }));
+    expect(__db.updates).toContainEqual(expect.objectContaining({
+      kind: 'one',
+      update: { $set: expect.objectContaining({ relations: { template: { type: 'enamel', id: 'c-1' }, other: [{ type: 'primer', id: 'p-1' }] } }) }
+    }));
     countInstancesOfType.mockResolvedValue(0);
   });
 
