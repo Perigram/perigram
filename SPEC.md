@@ -993,13 +993,15 @@ type.
 
 Every control that selects instances — generated ref editors and create
 dialogs, the process designer's reference inputs, plugin editor surfaces —
-renders its option list through the one procedural instance item: the
-compact instance card, which derives preview, identifier-field title,
-state, and facts from the served type view. A picker lists plain option
-text only for non-instance options (enums, profiles, providers). Option
-lists are built through one shared derivation (entity, type id, value,
-and the identifier-field label), so no picker hand-rolls its own label
-or renders a raw record id.
+renders its option list through the one instance option row: a preview
+thumb (the type glyph when the type serves no preview), the
+identifier-field title, and trailing state and type meta, all derived
+from the served type view and sized to one line. A picker lists plain
+option text only for non-instance options (enums, profiles, providers).
+Option lists are built through one shared derivation (entity, type id,
+value, and the identifier-field label), so no picker hand-rolls its own
+label or renders a raw record id. A multi-picker shows selected
+instances as chips inside the control.
 
 ## 23. Deslopification (owner direction 2026-10-23)
 

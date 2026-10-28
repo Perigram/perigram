@@ -523,8 +523,8 @@ beside the transition history in `StateHistory`.
   (compact density shrinks editors through PrimeVue sizes); maps and json
   edit through the JsonEditor textarea (pretty-printed, invalid JSON
   flagged inline). The instance pickers render every suggestion, tree
-  node, and option as the compact instance card and build their options
-  through the shared instance-option derivation
+  node, and option as the one-line instance option row and build their
+  options through the shared instance-option derivation
   ([shared](../shared/README.md) — SPEC §22.13); `SpotPartsRow` picks each
   anchor's part through the shared entity Select wrapper. Which presentation an editor family resolves to
   (Knob, MeterGroup, Chart, Rating, OrderList, Inplace) is the mapping
