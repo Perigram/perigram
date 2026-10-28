@@ -1,11 +1,11 @@
 <template>
-  <div v-if="shown" class="flex min-w-0 flex-col gap-2">
+  <div v-if="shown" class="flex min-w-0 flex-col gap-2" :class="fill ? 'h-full min-h-0' : 'h-56'">
     <ProgressSpinner v-if="loading" style="width: 1.25rem; height: 1.25rem" />
     <FilePayloadViewer
       v-else-if="blobUrl"
       :source="{ mode: previewMode, fileUrl: blobUrl, attachment }"
       variant="card"
-      class="h-56 min-h-0"
+      :class="fill ? 'h-full min-h-0' : 'h-56 min-h-0'"
     />
     <ul v-if="failures.length" class="m-0 flex list-none flex-col gap-1 p-0">
       <li v-for="(failure, index) in failures" :key="index" class="flex items-center gap-2 text-supporting text-status-danger">
@@ -28,7 +28,9 @@ const props = defineProps({
   typeId: { type: String, required: true },
   mode: { type: String, required: true },
   type: { type: Object, default: null },
-  draft: { type: Object, default: () => ({}) }
+  draft: { type: Object, default: () => ({}) },
+  // Fill the composed pane instead of the fixed-height band.
+  fill: { type: Boolean, default: false }
 });
 
 const loading = ref(false);

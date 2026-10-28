@@ -44,7 +44,7 @@
     </StandardDialog>
     <StandardDialog
       v-model:visible="dialogVisible"
-      size="md"
+      :size="fillDialogActive ? 'lg' : 'md'"
       :header="dialogAction?.label || ''"
       show-default-footer
       :cancel-label="$t('uiMapping.dialogCancel')"
@@ -54,7 +54,14 @@
       @cancel="closeDialog"
       @save="submitDialog"
     >
-      <div :class="LAYOUT.formGrid">
+      <FillDialogBody
+        :active="fillDialogActive"
+        :type-id="dialogAction?.typeId || ''"
+        :mode="dialogAction?.construction?.mode || ''"
+        :type="dialogType"
+        :draft="draftPayload()"
+      >
+        <div :class="LAYOUT.formGrid">
         <div
           v-for="row in visibleDialogRows"
           :key="row.id"
@@ -122,13 +129,7 @@
           <span>{{ [failure.name, failure.message].filter(Boolean).join(' — ') }}</span>
         </li>
       </ul>
-      <ConstructionPreview
-        v-if="dialogType?.payload && dialogAction?.construction?.mode"
-        :type-id="dialogAction.typeId"
-        :mode="dialogAction.construction.mode"
-        :type="dialogType"
-        :draft="draftPayload()"
-      />
+      </FillDialogBody>
     </StandardDialog>
     <StandardDialog
       v-model:visible="nestedVisible"
@@ -188,7 +189,7 @@ import RegionChildren from './RegionChildren.vue';
 import InstancePicker from './InstancePicker.vue';
 import SpotPartsRow from './SpotPartsRow.vue';
 import RefRowActions from './RefRowActions.vue';
-import ConstructionPreview from './ConstructionPreview.vue';
+import FillDialogBody from './FillDialogBody.vue';
 import FieldControl from './FieldControl.vue';
 import StandardDialog from '../shared/StandardDialog.vue';
 import { isCreateAction } from '~/utils/action-visibility.js';
@@ -376,6 +377,9 @@ const dialogRows = computed(() => (
     ? resolveRunDialogInputs(dialogAction.value)
     : resolveCreateDialogInputs(dialogAction.value || {}, dialogType.value, props.bundle)
 ));
+// The fill-dialog shell composes a live preview beside the form when the
+// create targets a payload-bearing type through a construction mode.
+const fillDialogActive = computed(() => Boolean(dialogType.value?.payload && dialogAction.value?.construction?.mode));
 
 // The opened record on a scoped detail surface — the launch context's
 // parent binding for creates (SPEC §UI): lineage rows accepting that type
