@@ -58,8 +58,9 @@ Process-definition tools ride the authoring and lifecycle seam of
 [process-definitions](../process-definitions/README.md):
 
 - `get_process_definition` serves a compact digest by default (node
-  ids/kinds/typeIds with their socket handles, edges with socket ids,
-  value-input keys); the full authored document only on `full: true`. The definition tools move
+  ids/kinds/typeIds with their socket handles and authored entry facts
+  (schedule, event subscription), edges with socket ids, value-input
+  keys); the full authored document only on `full: true`. The definition tools move
   authored data only: the activation-written records (`compiled`,
   `history`, `activated`) are stripped on load and preserved on save —
   the stored record runs to megabytes, past what a model can echo back
@@ -79,22 +80,27 @@ Process-definition tools ride the authoring and lifecycle seam of
   compile resolves the registry.
 - `declare_status_mappings` authors the Apply gate's status-migration
   decision without a whole-document echo.
+- `activate_process_definition` and `deactivate_process_definition`
+  answer the digest of the changed definition; activation gates return
+  as the structured `{ activationBlocked, gate }` result.
 - `update_definition_graph` is the graph-level save — nodes, wires, and
   value inputs — with activation gates returned as structured results.
 
 `get_authoring_vocabulary` serves the authoring skill: the domain model
 (the two layers, the class identity laws, containment and lineage,
-effects and lanes), the gesture grammar with its removal twins, and the
-compose→validate→apply→activate loop; the organization's role list (the
-grant vocabulary the designer's
+effects and lanes, time and event entries), the gesture grammar with its
+removal twins, and the compose→validate→apply→activate loop; the
+organization's role list (the grant vocabulary the designer's
 [lanes](../../../components/process-designer/README.md) author through
 effect `access.grants`, one grant per effect); node families; and the
 palette's droppable item ids — COMPACT by default. The per-kind socket
 inventory, the node catalog, typed value-operation sockets, and per-type
 construction modes (the [process-definitions](../process-definitions/README.md)
 projection's mode list, with each type's default) arrive on request
-through `detail` filters, each carrying the guide and roles
-beside its detail; the palette list rides the default view only.
+through `detail` filters, each carrying the roles beside its detail (the
+guide rides the compact view alone — the socket inventory outgrew the
+conversation limit beside it); the palette list rides the default view
+only.
 Record-bound kinds resolve live sockets off the digest of the dropped
 node, and a filter naming no entry fails with the valid families.
 
