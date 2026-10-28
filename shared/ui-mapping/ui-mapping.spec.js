@@ -1037,6 +1037,39 @@ describe('instance-aware list controls', () => {
     ]).relationColumn).toEqual({ key: 'docs' });
   });
 
+  it('counts a declared ref field as the relation column — its value rides relations', () => {
+    // SPEC §6 relation grammar: a declared ref field is a relation entry;
+    // its wire value lives under `relations.<name>`.
+    const refField = { class: 'item', identifier: 'name', fields: {
+      name: { base: 'string' },
+      table: { base: 'ref', accepts: ['workbook'] }
+    } };
+    const rows = [
+      { id: '1', fields: { name: 'A' }, relations: { table: [{ type: 'workbook', id: '9' }] } },
+      { id: '2', fields: { name: 'B' }, relations: {} }
+    ];
+    expect(resolveListControls(refField, rows).relationColumn).toEqual({ key: 'table' });
+    expect(resolveListControls(refField, rows.map(row => ({ ...row, relations: {} }))).relationColumn).toBeNull();
+    // A filled ref field alone earns the table: the collection is not a
+    // name pile.
+    expect(listLayoutOf({ surfaceKind: 'list', type: refField, instances: rows })).toBe('table');
+    expect(listLayoutOf({ surfaceKind: 'list', type: refField, instances: rows.map(row => ({ ...row, relations: {} })) })).toBe('list');
+  });
+
+  it('carries the structural summary column for a filled json/record/map field', () => {
+    const structural = { class: 'item', identifier: 'label', fields: {
+      label: { base: 'string' },
+      result: { base: 'json' }
+    } };
+    const rows = instance => [{ id: '1', fields: { label: 'A', ...(instance ? { result: { layouts: [1] } } : { result: null }) }, relations: {} }];
+    expect(resolveListControls(structural, rows(true)).summaryColumn).toEqual({ key: 'result' });
+    expect(resolveListControls(structural, rows(false)).summaryColumn).toBeNull();
+    expect(resolveListControls(structural, [{ id: '1', fields: { label: 'A', result: {} }, relations: {} }]).summaryColumn).toBeNull();
+    // Structural data is data: a filled summary field earns the table.
+    expect(listLayoutOf({ surfaceKind: 'list', type: structural, instances: rows(true) })).toBe('table');
+    expect(listLayoutOf({ surfaceKind: 'list', type: structural, instances: rows(false) })).toBe('list');
+  });
+
   it('treats a null-valued quantity as unfilled — it renders the dash', () => {
     const withNull = analyzeInstanceShape(
       { fields: { size: { base: 'quantity', unit: 'mm' }, grade: { base: 'enum', values: ['a'] } } },

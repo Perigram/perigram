@@ -45,13 +45,15 @@
     <Chip v-for="tag in chipsShown" :key="tag" :label="String(tag ?? fallback)" />
     <Tag v-if="chipsHidden > 0" :value="`+${chipsHidden}`" severity="contrast" />
   </div>
-  <InstanceInlineRef
-    v-else-if="outcome.component === 'InstanceInlineRef'"
-    :type="String(refValue?.type || '')"
-    :id="refValue?.id ?? null"
-    :revision="refValue?.revision ?? null"
-    :entity="pool?.[refValue?.type]?.[refValue?.id] || null"
-  />
+  <template v-else-if="outcome.component === 'InstanceInlineRef'">
+    <InstanceInlineRef
+      v-if="refValue"
+      :type="String(refValue.type || '')"
+      :id="refValue.id ?? null"
+      :revision="refValue.revision ?? null"
+      :entity="pool?.[refValue.type]?.[refValue.id] || null"
+    />
+  </template>
   <FileChip v-else-if="outcome.component === 'FileChip'" :file="model" @open="openPayload" />
   <div v-else-if="outcome.component === 'ObjectSummary'" :class="LAYOUT.row">
     <span

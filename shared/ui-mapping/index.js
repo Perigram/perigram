@@ -548,22 +548,43 @@ export function resolveListControls(typeRecord = {}, instances = []) {
   const facets = Object.entries(shape.enumValues)
     .filter(([, values]) => values.length > 0)
     .map(([name, values]) => ({ name, label: fieldLabel(name, descriptors[name]), values }));
-  // The relation chip column: the first declared relation, a column only
-  // when any loaded instance carries its refs — the same filledness law
-  // as scalar columns, and the table-floor signal counts it the same
-  // way.
-  const firstRelationKey = Object.keys(typeRecord.edges?.relations || {})[0] || null;
+  // The relation chip column: the first declared relation — an explicit
+  // edge or a declared ref field (SPEC §6: one relation grammar; ref
+  // field values ride `relations.<name>` on the wire exactly like edge
+  // refs) — a column only when any loaded instance carries its refs,
+  // the same filledness law as scalar columns, and the table-floor
+  // signal counts it the same way.
+  const firstRelationKey = [
+    ...Object.keys(typeRecord.edges?.relations || {}),
+    ...Object.entries(descriptors)
+      .filter(([, descriptor]) => descriptor?.base === 'ref')
+      .map(([name]) => name)
+  ][0] || null;
   const relationColumn = firstRelationKey && instances.some(instance => {
     const refs = instance?.relations?.[firstRelationKey];
     return Array.isArray(refs) ? refs.length > 0 : Boolean(refs);
   })
     ? Object.freeze({ key: firstRelationKey })
     : null;
+  // The compact structural summary column: the first declared structural
+  // field (json/record/map) any loaded instance fills — the same
+  // value-aware law as every other column. Structural data is data: a
+  // collection carrying it is never a name pile.
+  const hasStructuralValue = instance => value => {
+    if (value === null || value === undefined) return false;
+    return Array.isArray(value) ? value.length > 0 : typeof value === 'object' ? Object.keys(value).length > 0 : true;
+  };
+  const summaryEntry = Object.entries(descriptors)
+    .filter(([, descriptor]) => ['json', 'record', 'map'].includes(descriptor?.base))
+    .find(([name]) => instances.some(instance => hasStructuralValue(instance)(instance?.fields?.[name])))
+    || null;
+  const summaryColumn = summaryEntry ? Object.freeze({ key: summaryEntry[0] }) : null;
   return Object.freeze({
     searchKeys: Object.freeze(searchKeys),
     sortKeys: Object.freeze(sortKeys.map(key => Object.freeze({ ...key }))),
     defaultSort: sortKeys[0]?.name || null,
     relationColumn,
+    summaryColumn,
     facets: Object.freeze(facets.map(facet => Object.freeze({ ...facet, values: Object.freeze([...facet.values]) }))),
     pagination: Object.freeze({
       paginateAt: TABLE_PAGINATE_AT,
@@ -976,11 +997,11 @@ export function shapeFamilyOf(typeRecord = {}, { stateful = false } = {}) {
 
 // The table's data-column signal: filled non-identifier short scalars
 // (the listControls sort keys — a field no instance fills never becomes
-// a column) plus the first declared relation's chip column. Zero means
-// a table would carry names alone.
+// a column) plus the relation chip column and the structural summary
+// column. Zero means a table would carry names alone.
 function tableDataColumns(node = {}) {
-  const { sortKeys, relationColumn } = resolveListControls(node.type || {}, node.instances || []);
-  return sortKeys.length + (relationColumn ? 1 : 0);
+  const { sortKeys, relationColumn, summaryColumn } = resolveListControls(node.type || {}, node.instances || []);
+  return sortKeys.length + (relationColumn ? 1 : 0) + (summaryColumn ? 1 : 0);
 }
 
 // listLayoutOf(node): the one list-layout derivation — compose-time
