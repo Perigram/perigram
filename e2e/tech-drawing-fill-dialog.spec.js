@@ -394,7 +394,13 @@ test.describe('fill dialog rails (SPEC §24, owner direction 2026-10-28)', () =>
 
     // The edit affordance opens the DXF editor beside the picked
     // template; a canvas click picks the anchor point, the marker saves
-    // through the revisioned channel.
+    // through the revisioned channel. The canvas copy declares every
+    // referenced layer — the strict viewer converts every entity or the
+    // test fails on its console errors.
+    const layerErrors = [];
+    app.page.on('console', message => {
+      if (/layer .+ (doesn't exist|not found in drawing database)/i.test(message.text())) layerErrors.push(message.text());
+    });
     await dialog.locator('.p-dialog-content').getByRole('button', { name: 'Edit', exact: true }).first().click();
     const editorGrid = app.page.getByText(/Anchors · \d/).locator('xpath=ancestor::div[contains(@class, "grid")]');
     await expect(editorGrid).toBeVisible({ timeout: 60_000 });
@@ -424,5 +430,6 @@ test.describe('fill dialog rails (SPEC §24, owner direction 2026-10-28)', () =>
     expect(templateText).toContain('{spot:gamma}');
     expect(templateText).toContain('{spot:alpha}');
     await writeFile('.playwright/rails-template-reauthored.dxf', templateText);
+    expect(layerErrors, 'the canvas converted every entity through declared layers').toEqual([]);
   });
 });

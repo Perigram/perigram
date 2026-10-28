@@ -563,6 +563,16 @@ AttachmentKind row.
     `dxf-markers.spec.js` (7 cases incl. the authored-template
     round-trip through `composeDxfPlacement`). Canvas-click point
     picking and full geometry editing grow on the same surface.
+
+    ### Agent Notes (2026-10-28, layer law)
+
+    Strict CAD viewers resolve each entity's layer against the LAYER
+    table; tables-less templates rendered a blank canvas (console:
+    `layer 'FRAME' doesn't exist`). `withLayerTable` (dxf-markers.js)
+    builds the canvas copy with every referenced layer plus layer 0
+    declared over the CONTINUOUS linetype — existing tables gain only
+    missing records; saves keep the authored bytes. Spec grows to 10
+    cases; the rails e2e fails on any layer-resolution console error.
   - [ ] Fill dialog general rails (owner direction 2026-10-28): part
     inputs pick, create through the accepted type's declared creation
     mode, and open the picked instance's editor when its type binds one;

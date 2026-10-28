@@ -24,8 +24,12 @@ same-origin. Orgs connect the executor through the install's
   MLightCAD canvas (the declared `cad-viewer` dependency), the
   `{spot:<name>}` anchors list beside it — add (a canvas click picks the
   insertion point into the X/Y form), rename, delete — and every edit
-  re-opens the spliced DXF so the canvas shows the saved truth. Saves
-  ride the revisioned payload channel; the pair
+  re-opens the spliced DXF so the canvas shows the saved truth. The
+  canvas reads the layer-normalized copy (`withLayerTable`: every
+  entity-referenced layer plus layer 0 gains a LAYER record and the
+  CONTINUOUS linetype, so strict viewers draw the whole template);
+  saves ride the authored bytes through the revisioned payload channel.
+  The pair
   model and the marker operations live in `dxf-markers.js`, shared with
   the placement engine; `spotNamesOf` (the anchor read the fill dialog's
   spot-parts row consumes through the served surface module) homes there
