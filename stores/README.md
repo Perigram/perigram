@@ -83,7 +83,7 @@ Three cells; every surface derives from them, nothing else caches:
   hydration boundary; see its entry below.
 
 Direct feature CRUD lives on the instances store too:
-`createInstance`/`updateInstance`/`removeInstance` wrap `mutateDirect` (and `constructInstance` posts a declared construction mode through the construct transport)
+`createInstance`/`updateInstance`/`removeInstance` wrap `mutateDirect`
 with the shared instance-event emission contract (browser-local event plus
 the typed invalidation other sessions poll). `dtoRegistry` is the wire-DTO
 projection for handwritten card/detail surfaces.
