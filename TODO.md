@@ -581,6 +581,26 @@ AttachmentKind row.
     compiled remove construct owned by the process definition that
     stations the type.
 
+    ### Agent Notes (2026-10-28, spot assignment)
+
+    Owner direction (2026-10-28): name-matching as the only fill path
+    forced part renames — degenerate. Landed: the fill operator's parts
+    input carries the `spot-parts` control pin (tech-drawing v8); the
+    dialog lists the picked template's anchors and picks any part per
+    anchor (`SpotPartsRow` over `shared/dxf-spots.js`), name-equal parts
+    prefilled; the assignment travels as `{ id, spot }` beside the
+    resolved ref and the placement engine places explicit assignments,
+    falling back to name matching for bare refs (unknown-spot, double,
+    and claimed-name collisions join the structured refusal). En route,
+    a pre-existing broadcast defect died: the mutation runner aligned
+    every input per item, so a multi-part fill invoked the construct
+    once per part — typeList construction inputs now solve as one value.
+    Validation: 868 tests green across the touched planes (the 5
+    fact-display failures pre-exist on local); fill-dialog e2e 2/2 on
+    the live stack (assignment surface + API refusal); live-verified in
+    Org1 — mismatched names composed through explicit assignments
+    (artifact `.playwright/org1-assigned-composed.dxf`).
+
     ### Agent Notes (2026-10-27, replacement half)
 
     `ReplacePayloadAction` renders in every record header whose type
