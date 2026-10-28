@@ -285,8 +285,9 @@ export const LAYOUT = Object.freeze({
   // CSS in main.css); the card slot keeps the fixed previewBand stamp.
   previewHero: 'ck-preview-hero',
   previewHeroBand: 'ck-preview-hero-band',
-  // Document modes' reading band: taller steps (real CSS in main.css).
-  previewHeroBandDocument: 'ck-preview-hero-band-document',
+  // The content band: every rendered preview sizes it (real CSS in
+  // main.css).
+  previewHeroBandContent: 'ck-preview-hero-band-content',
   packRow: 'flex flex-wrap items-start gap-6',
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
@@ -385,7 +386,7 @@ export const LAYOUT_ATOMS = Object.freeze({
   stack: Object.freeze(['stack', 'stackSection', 'stackTight', 'labeledBlock', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
-  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandDocument', 'previewBand']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewBand']),
   well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack', 'well']),
   tabs: Object.freeze([]),
   placement: Object.freeze([]),
@@ -499,9 +500,9 @@ export const RENDERABLE_PREVIEW_MODES = Object.freeze([
 ]);
 
 // Document preview modes render readable content (pages, prose, tables):
-// detail surfaces give them the tall reading band
-// (`LAYOUT.previewHeroBandDocument`), and fixed-height card bands degrade
-// to the file chip — text alone clamps, because prose survives a band.
+// sized panes render the readers (the PDF viewer controls, scrolling
+// prose, paginated tables) and fixed-height card bands carry content
+// thumbnails (the chrome-free PDF page, clipped rows, clamped prose).
 export const DOCUMENT_PREVIEW_MODES = Object.freeze([
   'pdf', 'docx', 'table', 'workbook', 'text'
 ]);

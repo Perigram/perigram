@@ -391,9 +391,10 @@ data. `RENDERABLE_PREVIEW_MODES`
 `workbook`, `text`); app-side materializations import it instead of
 restating the list, and every other mode degrades to a payload download.
 `DOCUMENT_PREVIEW_MODES` (`pdf`, `docx`, `table`, `workbook`, `text`)
-marks the reading modes: detail bodies give them the tall reading band
-(`LAYOUT.previewHeroBandDocument`), and fixed-height card bands degrade
-them to the file chip (text clamps).
+marks the reading modes: sized panes render the readers (the PDF viewer
+controls, scrolling prose, paginated tables) and fixed-height card bands
+carry content thumbnails — the chrome-free PDF page, clipped table rows,
+clamped prose.
 
 ### Filterable fields
 
@@ -637,10 +638,11 @@ body blocks grow into spare row width under a 46rem content cap, and
 preview hero (`LAYOUT.previewHero`/`LAYOUT.previewHeroBand`: the detail
 body's band steps up with its container — 7rem base, 11rem past the
 medium step, 14rem past the wide step — while the card slot keeps the
-fixed `LAYOUT.previewBand` stamp; document payloads
-(`DOCUMENT_PREVIEW_MODES`) read in the taller
-`LAYOUT.previewHeroBandDocument` steps — 20rem base, 28rem past the
-medium step, 36rem past the wide step). Every other container-relative
+fixed `LAYOUT.previewBand` stamp; a rendered preview — a renderable
+payload, a declared previewSource, or a plugin preview — sizes the one
+content ladder `LAYOUT.previewHeroBandContent`: 16rem base, 24rem past
+the medium step, 32rem past the wide step, the same band for every
+mode). Every other container-relative
 mechanism — the record split and the peer columns — engages through the
 container seam alone: `RegionChildren` renders the weight-derived
 zero-floored track list (`minmax(0, Nfr)`, so wide content scrolls inside
