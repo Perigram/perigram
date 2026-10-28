@@ -114,6 +114,15 @@ describe('relation action placement (SPEC §22.12, SSR)', () => {
     expect(html).not.toContain('Link Library');
   });
 
+  it('renders the children column in the parent table', async () => {
+    const html = await render('list');
+    expect(html).toContain('Kids');
+    // The rows' children render as chips (labels resolve against the
+    // served type view — the live probe's assertion; the SSR harness
+    // has none).
+    expect((html.match(/p-chip/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+
   it('renders the link in the relation section toolbar and unlink on its rows', async () => {
     const html = await render('detail');
     expect(html).toContain('pi-link');

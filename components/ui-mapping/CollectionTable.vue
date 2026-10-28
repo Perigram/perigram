@@ -81,6 +81,20 @@
         />
       </template>
     </Column>
+    <Column v-if="childrenTypes.length" :header="childrenLabel">
+      <template #body="{ data }">
+        <div class="flex flex-wrap items-center gap-1">
+          <InstanceInlineRef
+            v-for="child in budgetedChildren(data)"
+            :key="`${child.type}:${child.id}`"
+            :type="child.type"
+            :id="child.id"
+            :entity="child"
+          />
+          <Tag v-if="hiddenChildCount(data) > 0" :value="`+${hiddenChildCount(data)}`" severity="contrast" />
+        </div>
+      </template>
+    </Column>
     <Column v-if="actions.length || relationUnlink" class="w-10">
       <template #body="{ data }">
         <Button
@@ -110,7 +124,7 @@ import Button from 'primevue/button';
 import Menu from 'primevue/menu';
 import {
   LAYOUT, fieldLabel, tableColumnCount, ROW_RELATION_BUDGET, applyBudget,
-  titleFor, resolveListControls, stateDisplayFor,
+  titleFor, resolveListControls, stateDisplayFor, childrenOfParent,
   resolveActionButton, actionLabelKey, localizedLabel, fieldLabelKey
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
@@ -179,7 +193,8 @@ const tablePt = {
   headerCell: { class: 'bg-transparent text-muted' }
 };
 
-const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
+const resolvedControls = computed(() => props.controls
+  || resolveListControls(props.type, props.instances, { pool: props.pool }));
 const pagination = computed(() => resolvedControls.value.pagination);
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const hasStatus = computed(() => Boolean(props.statePolicy));
@@ -286,6 +301,27 @@ const summaryField = computed(() => {
     label: localizedLabel({ te, t }, fieldLabelKey(props.type?.id, key), fieldLabel(key, descriptor))
   };
 });
+
+// The children column: every children edge's instances whose lineage
+// points at the row (`childrenOfParent`, the one containment matcher)
+// render as chips under the row's own budget — the parent's data beside
+// identity. Presence derives live over the pool (the host overlays
+// child types lazily; the column appears when they land), so the
+// compose-frozen controls never gate it.
+const childTypeIds = [...new Set(Object.values(props.type?.edges?.children || {})
+  .flatMap(edge => edge?.types || []))];
+const childrenOf = instance => childrenOfParent(props.type, props.pool, instance?.id);
+const childrenPresent = computed(() => props.instances.some(instance => childrenOf(instance).length > 0));
+const childrenTypes = computed(() => (childTypeIds.length && childrenPresent.value ? childTypeIds : []));
+const childrenLabel = computed(() => {
+  const edges = Object.entries(props.type?.edges?.children || {});
+  if (edges.length === 1) {
+    return localizedLabel({ te, t }, fieldLabelKey(props.type?.id, edges[0][0]), startCase(edges[0][0]));
+  }
+  return t('uiMapping.childrenColumn');
+});
+const budgetedChildren = instance => applyBudget(childrenOf(instance), ROW_RELATION_BUDGET).visible;
+const hiddenChildCount = instance => applyBudget(childrenOf(instance), ROW_RELATION_BUDGET).hidden;
 
 // One shared row-action menu (the card-grid pattern): the ellipsis
 // renders on a row only when that row carries an applicable action, and

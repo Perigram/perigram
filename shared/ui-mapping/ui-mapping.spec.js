@@ -1077,6 +1077,22 @@ describe('instance-aware list controls', () => {
     expect(listLayoutOf({ surfaceKind: 'list', type: structural, instances: rows(false) })).toBe('list');
   });
 
+  it('carries the children column when the pool holds any listed row\'s children', () => {
+    const parentType = { class: 'group', identifier: 'name', fields: { name: { base: 'string', identifier: true } }, edges: {
+      children: { kids: { types: ['kid'], onRemove: 'restrict', lineageKey: 'parentId' } }
+    } };
+    const rows = [
+      { id: 'p1', fields: { name: 'A' }, relations: {} },
+      { id: 'p2', fields: { name: 'B' }, relations: {} }
+    ];
+    const poolWithKids = { kid: { k1: { id: 'k1', type: 'kid', fields: { label: 'One' }, lineage: { parentId: { type: 'parent', id: 'p1' } }, relations: {} } } };
+    expect(resolveListControls(parentType, rows, { pool: poolWithKids }).childrenColumn).toEqual({ types: ['kid'] });
+    expect(resolveListControls(parentType, rows, { pool: {} }).childrenColumn).toBeNull();
+    expect(resolveListControls(parentType, rows).childrenColumn).toBeNull();
+    // Children are data: a loaded child earns the table.
+    expect(listLayoutOf({ surfaceKind: 'list', type: parentType, instances: rows, listControls: resolveListControls(parentType, rows, { pool: poolWithKids }) })).toBe('table');
+  });
+
   it('treats a null-valued quantity as unfilled — it renders the dash', () => {
     const withNull = analyzeInstanceShape(
       { fields: { size: { base: 'quantity', unit: 'mm' }, grade: { base: 'enum', values: ['a'] } } },
