@@ -164,10 +164,11 @@ beside the transition history in `StateHistory`.
   `CreateControl` (see below) whose mode selection names the siblings.
   A relation-scoped section's toolbar also renders the injected link
   actions for its relation (SPEC §22.12) beside the create set — the
-  same-type link collapses to the bare "Link" — and its rows (table and
-  card-grid projections) carry the relation's unlink actions in their
-  ellipsis menus, running against the parent record with the row's
-  relation ref as payload.
+  same-type link collapses to the bare "Link" — and its rows (every
+  projection, the bare list included) carry the relation's unlink
+  actions in their ellipsis menus, running against the parent record
+  with the row's relation ref as payload. A class list region renders
+  no link — the action addresses a concrete parent instance.
   Top-level detail regions compose a record page: a full-width
   `SurfaceHeader`, then the record body with the filled child regions
   arranged around it — the wide step's side outcome lays the body beside
@@ -410,6 +411,9 @@ beside the transition history in `StateHistory`.
   reads either stored block (§6 law) and renders a chip; the row
   identity is a link button
   under the screen's `onOpen` contract, like every collection identity.
+  On a relation-scoped section the row carries the section's unlink
+  actions in its ellipsis menu (SPEC §22.12, the same run context the
+  table and card rows use).
 - `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
   scalar facts strip (`DETAIL_FACT_BUDGET`, identifier-excluded — the
   title owns that value; collapsed behind one show-more control per
