@@ -17,24 +17,6 @@
         >
             <i class="pi pi-phone shrink-0 text-primary" aria-hidden="true" />
             <span class="min-w-0 flex-1 truncate text-label">{{ roomLabel }}</span>
-            <Button
-                icon="pi pi-table"
-                severity="secondary"
-                text
-                rounded
-                size="small"
-                :aria-label="$t('call.dock')"
-                @click="dock"
-            />
-            <Button
-                icon="pi pi-times"
-                severity="secondary"
-                text
-                rounded
-                size="small"
-                :aria-label="$t('call.leave')"
-                @click="leave"
-            />
         </header>
         <div class="flex min-h-0 flex-1 flex-col p-2">
             <CallPanel :room="callsStore.floatingRoom" host-floating @closed="leave" />
@@ -56,13 +38,11 @@ import Button from 'primevue/button';
 const CallPanel = defineAsyncComponent(() => import('~/components/calls/CallPanel.vue'));
 import { useI18n } from 'vue-i18n';
 import { useCallsStore } from '~/stores/calls';
-import { useCallRouting } from '~/composables/useCallRouting.js';
 import { useCallRoomLabel } from '~/composables/useCallRoomLabel.js';
 import { useFloatingDrag } from '~/composables/useFloatingDrag.js';
 
 const callsStore = useCallsStore();
 const { t } = useI18n();
-const { openCallInWorkspaceTab } = useCallRouting();
 
 // The header names the call (conversation or caller), not the generic
 // word — same resolver the home sidebar rows use.
@@ -72,15 +52,6 @@ const roomLabel = computed(() => callRoomLabel(callsStore.floatingRoom, t('call.
 const leave = () => {
     callsStore.closeFloating();
     callsStore.leaveSession();
-};
-
-// Docking seats the session in a home workspace tab: the tab mounts as
-// this window closes, so the session never loses its surface.
-const dock = () => {
-    const room = callsStore.floatingRoom;
-    if (!room) return;
-    callsStore.closeFloating();
-    openCallInWorkspaceTab(room);
 };
 
 const windowEl = ref(null);
