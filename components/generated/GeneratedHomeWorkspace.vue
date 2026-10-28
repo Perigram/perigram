@@ -98,14 +98,9 @@
             @click.capture="onMenuClickCapture"
           >
             <template #headericon="{ item, class: iconClass }">
-              <span v-if="item.key === 'communication:chats' && supportChatStore.totalUnread" class="relative inline-flex">
+              <span v-if="item.key === 'communication:chats' && supportChatStore.totalUnread" class="inline-flex items-center gap-1">
                 <i :class="iconClass" aria-hidden="true" />
-                <Badge
-                  :value="supportChatStore.totalUnread"
-                  severity="danger"
-                  size="small"
-                  class="absolute -right-1.5 -top-1.5"
-                />
+                <Badge :value="supportChatStore.totalUnread" severity="danger" size="small" />
               </span>
               <i v-else :class="iconClass" aria-hidden="true" />
             </template>
