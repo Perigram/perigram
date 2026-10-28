@@ -38,11 +38,10 @@
             <i v-if="degradedQuality" class="pi pi-wifi" :class="qualityClass" :aria-label="$t(`call.quality.${tile.quality}`)" />
         </span>
 
-        <!-- Spotlight control: a star chip over the media, revealed on
+        <!-- Spotlight control: a push-pin chip over the media, revealed on
              tile hover on pointer devices, always visible on touch
              widths; a spotlighted tile keeps it lit as its state. -->
         <Button
-            :icon="tile.pinned ? 'pi pi-star-fill text-primary' : 'pi pi-star'"
             severity="secondary"
             text
             rounded
@@ -53,7 +52,20 @@
                 : 'opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100'"
             :aria-label="tile.pinned ? $t('call.unpin') : $t('call.pin')"
             @click="$emit('toggle-pin', tile.key)"
-        />
+        >
+            <template #icon>
+                <!-- Material Symbols push_pin (Apache-2.0): primeicons
+                     ships no pin glyph. -->
+                <svg
+                    :class="['w-4 h-4', tile.pinned ? 'text-primary' : '']"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden="true"
+                >
+                    <path d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z" />
+                </svg>
+            </template>
+        </Button>
     </div>
 </template>
 

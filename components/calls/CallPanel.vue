@@ -3,7 +3,7 @@
          (stores/calls.js): the video stage owns every pixel, only the grid
          and the film strip scroll inside their own boxes, and the controls
          float as one pill overlay at the bottom. -->
-    <div ref="panelRoot" class="call-panel relative h-full min-h-0 overflow-hidden">
+    <div class="call-panel relative h-full min-h-0 overflow-hidden">
         <StateBlock v-if="failed" state="error" :message="failureMessage">
             <template #action>
                 <Button :label="$t('call.retry')" severity="secondary" size="small" @click="retry" />
@@ -32,7 +32,7 @@
                             @aspect="ratio => patchAspect(focusTile, ratio)"
                         />
                     </div>
-                    <div class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-24">
+                    <div v-if="!focusMaximized" class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-24">
                         <CallTile
                             v-for="tile in stripTiles"
                             :key="`strip-${tile.identity}-${tile.source}`"
@@ -138,20 +138,44 @@
                         @click="event => reactionPicker?.toggle(event)"
                     />
                     <Button
-                        :icon="fullscreen ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+                        v-if="layout === 'speaker'"
+                        :icon="focusMaximized
+                            ? 'pi pi-arrow-down-left-and-arrow-up-right-to-center'
+                            : 'pi pi-arrow-up-right-and-arrow-down-left-from-center'"
                         text
                         rounded
-                        :aria-label="fullscreen ? $t('call.restore') : $t('call.maximize')"
+                        :aria-label="focusMaximized ? $t('call.restore') : $t('call.maximize')"
                         :disabled="!isConnected"
-                        @click="toggleFullscreen"
+                        @click="callsStore.toggleFocusMaximized()"
                     />
+                    <span v-if="!isMobile" class="inline-flex shrink-0 items-center" role="group" :aria-label="$t('call.layout')">
+                        <Button
+                            icon="pi pi-id-card"
+                            severity="secondary"
+                            :text="layout !== 'speaker'"
+                            rounded
+                            :aria-label="$t('call.layoutSpeaker')"
+                            :disabled="!isConnected"
+                            @click="callsStore.setLayout('speaker')"
+                        />
+                        <Button
+                            icon="pi pi-th-large"
+                            severity="secondary"
+                            :text="layout !== 'grid'"
+                            rounded
+                            :aria-label="$t('call.layoutGrid')"
+                            :disabled="!isConnected"
+                            @click="callsStore.setLayout('grid')"
+                        />
+                    </span>
                     <Button
-                        :icon="layout === 'speaker' ? 'pi pi-th-large' : 'pi pi-id-card'"
+                        v-if="!isMobile"
+                        :icon="hostFloating ? 'pi pi-table' : 'pi pi-external-link'"
                         text
                         rounded
-                        :aria-label="layout === 'speaker' ? $t('call.layoutGrid') : $t('call.layoutSpeaker')"
+                        :aria-label="hostFloating ? $t('call.dock') : $t('call.popOut')"
                         :disabled="!isConnected"
-                        @click="callsStore.setLayout(layout === 'speaker' ? 'grid' : 'speaker')"
+                        @click="dispatch"
                     />
                     <Button
                         icon="pi pi-cog"
@@ -241,32 +265,26 @@ import CallPrejoin from '~/components/calls/CallPrejoin.vue';
 import CallTile from '~/components/calls/CallTile.vue';
 import { riseAndFade } from '~/composables/useMotion.js';
 import { useCallsStore } from '~/stores/calls';
+import { useCallRouting } from '~/composables/useCallRouting.js';
 import { conversationKeyForRoom } from '#shared/call-rooms.js';
 import { useToast } from 'primevue/usetoast';
 
 const props = defineProps({
-    room: { type: String, required: true }
+    room: { type: String, required: true },
+    // Set by the floating window host: the pill's dispatch action becomes
+    // the dock action (back to a workspace tab).
+    hostFloating: { type: Boolean, default: false }
 });
 const emit = defineEmits(['closed']);
 const { t } = useI18n();
 const callsStore = useCallsStore();
+const { isMobileViewport, openCallInWorkspaceTab } = useCallRouting();
 const toast = useToast();
+const isMobile = isMobileViewport();
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '🎉', '👏'];
 
 const settingsPopover = ref(null);
-const panelRoot = ref(null);
-const fullscreen = ref(false);
-
-const syncFullscreen = () => {
-    fullscreen.value = document.fullscreenElement === panelRoot.value;
-};
-const toggleFullscreen = () => {
-    const el = panelRoot.value;
-    if (!el) return;
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    else el.requestFullscreen?.().catch(() => {});
-};
 const reactionPicker = ref(null);
 const recordPending = ref(false);
 // Stage before/outside the session: prejoin or connecting. The connected
@@ -295,6 +313,7 @@ const camEnabled = computed(() => Boolean(sessionState.value?.camEnabled));
 const sharing = computed(() => Boolean(sessionState.value?.sharing));
 const handRaised = computed(() => Boolean(sessionState.value?.handRaised));
 const layout = computed(() => sessionState.value?.layout || 'speaker');
+const focusMaximized = computed(() => Boolean(sessionState.value?.focusMaximized));
 const devices = computed(() => sessionState.value?.devices || {});
 const audioInputs = computed(() => sessionState.value?.audioInputs || []);
 const videoInputs = computed(() => sessionState.value?.videoInputs || []);
@@ -436,6 +455,19 @@ const runReaction = async (id) => {
     callsStore.removeReaction(id);
 };
 
+// Dispatch seats the session in the floating window and closes this
+// surface; in the floating window it docks the session back into a
+// workspace tab.
+const dispatch = () => {
+    if (props.hostFloating) {
+        callsStore.closeFloating();
+        openCallInWorkspaceTab(props.room);
+        return;
+    }
+    callsStore.setFloating(props.room);
+    emit('closed');
+};
+
 const retry = async () => {
     await callsStore.leaveSession();
     localStage.value = 'prejoin';
@@ -447,7 +479,6 @@ const leave = async () => {
 };
 
 onMounted(() => {
-    document.addEventListener('fullscreenchange', syncFullscreen);
     callsStore.mountSurface(props.room);
     // The pending tab room is consumed by the surface that actually
     // mounts: until then it keeps the floating-window auto-rule
@@ -456,8 +487,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-    document.removeEventListener('fullscreenchange', syncFullscreen);
-    if (document.fullscreenElement === panelRoot.value) document.exitFullscreen?.().catch?.(() => {});
     callsStore.unmountSurface(props.room);
 });
 </script>

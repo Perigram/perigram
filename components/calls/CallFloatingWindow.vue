@@ -37,7 +37,7 @@
             />
         </header>
         <div class="flex min-h-0 flex-1 flex-col p-2">
-            <CallPanel :room="callsStore.floatingRoom" @closed="leave" />
+            <CallPanel :room="callsStore.floatingRoom" host-floating @closed="leave" />
         </div>
         <!-- Resize grip: the window is bottom-right anchored, so the grip
               grows it up-left. Pointer-driven like the drag header. -->
