@@ -14,6 +14,7 @@ import Step from 'primevue/step';
 import StepPanel from 'primevue/steppanel';
 import ProgressSpinner from 'primevue/progressspinner';
 import Button from 'primevue/button';
+import Tag from 'primevue/tag';
 import StateTag from '~/components/ui-mapping/StateTag.vue';
 import { useStatePolicy } from '~/composables/useStatePolicy';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
@@ -85,6 +86,20 @@ const eventNote = (event) => event.status?.metadata?.note || event.metadata?.not
 // each step lists the changed leaves with from → to values.
 const isFieldChange = (event) => event.operation?.kind === 'field_change';
 const fieldChangesOf = (event) => (isFieldChange(event) ? event.operation.changes || [] : []);
+
+// Payload-revision events (SPEC §24): the audit trail's "who minted
+// which version" — reason, version, and the prior version a restore
+// re-entered. Labels ride the revision surface's own keys.
+const isPayloadRevision = (event) => event.operation?.kind === 'payload_revision';
+const payloadRevisionOf = (event) => (isPayloadRevision(event) ? event.operation : null);
+const PAYLOAD_REASON_KEYS = {
+  'payload-replaced': 'revision.reasonReplaced',
+  'rederived': 'revision.reasonRederived',
+  'payload-restored': 'revision.reasonRestored'
+};
+const payloadReasonLabel = (operation) => (PAYLOAD_REASON_KEYS[operation?.reason]
+  ? t(PAYLOAD_REASON_KEYS[operation.reason])
+  : operation?.reason || '');
 const formatChangeValue = (value) => {
   const text = value === null || value === undefined || value === ''
     ? '—'
@@ -200,6 +215,7 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
         <Step :pt="stepPt">
           <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-1 text-left">
             <i v-if="isFieldChange(event)" class="pi pi-pencil text-muted text-[0.75rem]" aria-hidden="true"></i>
+            <i v-else-if="isPayloadRevision(event)" class="pi pi-history text-muted text-[0.75rem]" aria-hidden="true"></i>
             <StateTag :value="eventState(event)" :policy="policyByValue" />
             <span v-if="actorUserId(event) && actorStartsRun(index)" class="inline-flex min-w-0 items-center gap-1" :title="actorTitle(event)">
               <InstanceInlineRef type="user" :id="actorUserId(event)" :entity="{ _id: actorUserId(event), identity: { name: actorName(event) }, data: {} }" />
@@ -225,7 +241,14 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
           </div>
         </Step>
         <StepPanel :value="stepKey(event, index)" v-slot="{ activateCallback }">
-          <div v-if="eventNote(event) || eventAttachments(event).length || eventSnapshots(event).length || fieldChangesOf(event).length" class="min-w-0 pb-3 pl-1">
+          <div v-if="eventNote(event) || eventAttachments(event).length || eventSnapshots(event).length || fieldChangesOf(event).length || payloadRevisionOf(event)" class="min-w-0 pb-3 pl-1">
+            <div v-if="payloadRevisionOf(event)" class="flex min-w-0 flex-wrap items-center gap-2">
+              <small class="text-muted">{{ payloadReasonLabel(payloadRevisionOf(event)) }}</small>
+              <Tag v-if="payloadRevisionOf(event).revision?.number != null" :value="`v${payloadRevisionOf(event).revision.number}`" />
+              <small v-if="payloadRevisionOf(event).restoredFrom?.number != null" class="text-muted">
+                {{ $t('revision.restoredFrom', { n: payloadRevisionOf(event).restoredFrom.number }) }}
+              </small>
+            </div>
             <div v-if="fieldChangesOf(event).length" class="flex min-w-0 flex-col gap-1">
               <small
                 v-for="change in fieldChangesOf(event)"

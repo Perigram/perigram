@@ -28,6 +28,7 @@
           </div>
           <small class="text-muted">
             <time v-if="revisionTime(revision)" :datetime="revision.data?.createdAt">{{ revisionTime(revision) }}</time>
+            <span v-if="revisionActor(revision)"> · {{ revisionActor(revision) }}</span>
           </small>
         </div>
         <Button
@@ -132,8 +133,20 @@ const REASON_KEYS = {
 
 function revisionLabel(revision) {
   const reason = revision.data?.reason;
+  if (reason === 'payload-restored' && revision.data?.restoredFrom?.number != null) {
+    return `${t('revision.reasonRestored')} · ${t('revision.restoredFrom', { n: revision.data.restoredFrom.number })}`;
+  }
   if (KNOWN_REASONS.has(reason)) return t(REASON_KEYS[reason]);
   return revision.identity?.name || `v${revision.data?.number ?? ''}`;
+}
+
+// The mint's acting principal (SPEC §24 stamp); the system principal
+// renders by its label alone.
+function revisionActor(revision) {
+  const actor = revision.data?.actor || null;
+  if (!actor) return '';
+  if (actor.principalType === 'SYSTEM') return t('status.systemActor');
+  return actor.label || '';
 }
 
 function revisionTime(revision) {

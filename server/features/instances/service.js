@@ -20,7 +20,7 @@ import * as filesService from '../files/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import * as entityEventService from '../instance-events/service.js';
 import { hasInstanceAccess } from '../../core/access/service.js';
-import { appendFieldChangeEvent } from '../../core/machines/service.js';
+import { appendFieldChangeEvent, appendPayloadRevisionEvent, buildEventActor } from '../../core/machines/service.js';
 import { resolveActiveWorkflow } from '../workflow-overrides/service.js';
 import { serviceAwareConstructionHandlers, applyConstructionService, storedConstructionDraft } from './construction-services.js';
 
@@ -318,10 +318,13 @@ function provenanceFromWire(draft = {}) {
 
 // The version-fabric mint (SPEC §24): every payload write on a
 // revision-scoped type records an immutable revision — creation, payload
-// replacement, and re-derive all pass through this one home.
-async function recordPayloadRevision(typeId, entity, declaration, payload, userId, reason) {
+// replacement, and re-derive all pass through this one home. The mint
+// stamps the acting principal and, on restore, the restored revision;
+// every write past creation also rides the status_events audit trail.
+async function recordPayloadRevision(typeId, entity, declaration, payload, userId, reason, { auth = null, restoredFrom = null } = {}) {
   if (!declaration?.revisions || !payload?.fileId) return;
-  await instanceRevisionsService.ensureForEntitySnapshot({
+  const actor = buildEventActor(auth || {}, userId);
+  const revision = await instanceRevisionsService.ensureForEntitySnapshot({
     typeId,
     entity,
     scope: declaration.revisions,
@@ -335,8 +338,20 @@ async function recordPayloadRevision(typeId, entity, declaration, payload, userI
       }
     },
     userId,
-    reason
+    reason,
+    actor,
+    ...(restoredFrom ? { restoredFrom } : {})
   });
+  if (reason !== 'created') {
+    await appendPayloadRevisionEvent(typeId, entity._id ?? entity.id, {
+      reason,
+      revision: revision ? { id: String(revision._id), number: revision.data?.number ?? null } : null,
+      restoredFrom,
+      actorId: userId,
+      auth: auth || {},
+      state: typeof entity.state === 'string' && entity.state ? entity.state : null
+    });
+  }
 }
 
 // The compiled screen-source filter vocabulary normalizes through the
@@ -640,7 +655,7 @@ function instanceService(typeId) {
     // payload bytes are ever lost to a silent overwrite. Gated by the
     // shared access engine on the class-collection feature (the feature
     // grants compile against) with the type id as type-id filter.
-    async replacePayload(id, { buffer, filename, mimeType } = {}, { userId, organizationId, auth, reason = 'payload-replaced' } = {}) {
+    async replacePayload(id, { buffer, filename, mimeType } = {}, { userId, organizationId, auth, reason = 'payload-replaced', restoredFrom = null } = {}) {
       const declaration = await requireDeclaration(typeId, organizationId);
       if (!declaration.payload) {
         throw createError({ statusCode: 400, message: `Type ${typeId} declares no payload` });
@@ -675,7 +690,7 @@ function instanceService(typeId) {
             name: filename || 'payload'
           }
         }, declaration);
-        await recordPayloadRevision(typeId, current, declaration, payload, userId, reason);
+        await recordPayloadRevision(typeId, current, declaration, payload, userId, reason, { auth, restoredFrom });
         const updated = await repository.updateInstanceFields(collection, id, {
           payload,
           updatedAt: new Date().toISOString()
@@ -729,7 +744,8 @@ function instanceService(typeId) {
         userId,
         organizationId,
         auth,
-        reason: 'payload-restored'
+        reason: 'payload-restored',
+        restoredFrom: { id: String(revision._id), number: revision.data?.number ?? null }
       });
     },
 
@@ -776,7 +792,7 @@ function instanceService(typeId) {
         throw createError({ statusCode: 409, message: `${typeId} ${id} changed before its re-derive was saved` });
       }
       if (merged.payload) {
-        await recordPayloadRevision(typeId, current, declaration, merged.payload, userId, 'rederived');
+        await recordPayloadRevision(typeId, current, declaration, merged.payload, userId, 'rederived', { auth });
       }
       return toDto(updated);
     },

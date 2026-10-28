@@ -706,7 +706,8 @@
         "reasonCreated": "создана",
         "reasonReplaced": "заменена",
         "reasonRederived": "пересчитана",
-        "reasonRestored": "восстановлена"
+        "reasonRestored": "восстановлена",
+        "restoredFrom": "из v{n}"
     },
     "nesting": {
         "title": "Раскрой",

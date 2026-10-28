@@ -706,7 +706,38 @@ export async function appendFieldChangeEvent(typeId, targetId, { changes = [], a
   return record;
 }
 
-function buildEventActor(auth = {}, actorId) {
+// Payload revision writes ride the same audit trail as transitions and
+// field edits (SPEC §24): who minted which revision, restoring from
+// which prior revision. The record carries the instance's current state
+// on both ends — a payload write never moves the machine.
+export async function appendPayloadRevisionEvent(typeId, targetId, { reason = null, revision = null, restoredFrom = null, actorId = null, auth = {}, state = null } = {}) {
+  if (!reason) return null;
+  const flexId = toFlexibleId(targetId);
+  const db = await connectDB();
+  const record = buildStatusEventRecord({
+    eventId: new ObjectId(),
+    targetId: flexId,
+    targetType: normalizeTypeId(typeId),
+    fromState: state,
+    toState: state,
+    fromStatePrimary: state,
+    toStatePrimary: state,
+    region: null,
+    statusData: null,
+    actor: buildEventActor(auth || {}, actorId),
+    operation: {
+      kind: 'payload_revision',
+      reason,
+      ...(revision ? { revision } : {}),
+      ...(restoredFrom ? { restoredFrom } : {})
+    },
+    evidence: buildEventEvidence({}, {})
+  });
+  await db.collection('status_events').insertOne(record);
+  return record;
+}
+
+export function buildEventActor(auth = {}, actorId) {
   const label = auth?.name || auth?.label || null;
   return {
     id: actorId,
