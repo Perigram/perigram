@@ -17,12 +17,13 @@ export function useCallRouting() {
 
     const homeWorkspaceRoute = computed(() => {
         if (!authStore.processActive) return '';
-        const screens = authStore.screenManifest.filter(screen => (
-            screen.kind !== 'system'
-            && typeof screen.route === 'string'
-            && screen.route.startsWith('/screens/')
+        // The home screen's route is whatever the compiled manifest says
+        // (`/home` or a `/screens/...` key); the routing follows the
+        // template, so generated and authored home screens both dock.
+        const home = authStore.screenManifest.find(screen => (
+            screen.template === 'home' && typeof screen.route === 'string'
         ));
-        return screens.find(screen => screen.template === 'home')?.route || '';
+        return home?.route || '';
     });
 
     const isMobileViewport = () => process.client
