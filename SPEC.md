@@ -980,7 +980,10 @@ preview sources, plugin previews, or the quiet type glyph. On detail
 surfaces the treatment follows the content: prose flows as record
 content at the body's measure, a page fills the record column's width
 at its own aspect, and bounded media (rasters, drawings, tables,
-documents) fit one framed media region. A fixed-height card band
+documents) fit one framed media region. The measure column — prose and
+the record body — centers when the record column is wider. Rendered
+markdown reads as a document: headings, lists, tables, and code blocks
+carry document element styles through one shared style set. A fixed-height card band
 carries a content thumbnail.
 Preview-dominant collections render the card grid; the carousel
 projection is retired. Section labels render in natural case, and no app
