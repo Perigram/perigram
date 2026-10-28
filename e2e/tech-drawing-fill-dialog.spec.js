@@ -236,7 +236,6 @@ test.describe('tech-drawing fill dialog', () => {
     // The template's anchors list with no name match: nothing prefills.
     await expect(dialog.getByText('alpha', { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(dialog.getByText('beta', { exact: true })).toBeVisible();
-    await dialog.locator('.p-dialog-footer').getByRole('button').last().click();
 
     // The widget gates incomplete assignments before submit (Create stays
     // disabled while a spot has no part); the refusal contract is the
