@@ -2079,3 +2079,22 @@ stored shape existed all along (utils/instance-relations.js — the
 explorer's), the generator surfaces simply never consumed it.
 
 Status: WAITING owner verification.
+
+## The projection switch is the user's explicit view (owner direction
+2026-10-28)
+
+Law: SPEC §22.8 (the table floor governs derivation). Owner finding:
+collections that had the view switch render only the board — the table
+view became unreachable.
+
+- [x] Round 22 over-reached: binding the table floor to the STORED
+  preference blocked the user's explicit choice on floor-failing board
+  types. The floor governs the default derivation alone; a stored
+  preference is the user's view and renders.
+
+### Agent Notes (2026-10-28, round 23)
+
+Session `agent/genui-switch-hotfix-20261028-1115` (worktree
+`.agent-worktrees/genui-hotfix`).
+
+Status: WAITING owner verification.
