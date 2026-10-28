@@ -9,6 +9,9 @@ import { computed, ref } from 'vue'
  */
 const status = ref('idle')
 const onlineUsers = ref([])
+// Advances on every `ready` event — each (re)connect is a new epoch, so
+// consumers that can miss events during a stream gap refetch state.
+const epoch = ref(0)
 let source = null
 let connectionId = null
 let syncing = false
@@ -92,6 +95,7 @@ function handleMessage(rawEvent) {
     if (parsed.type === 'heartbeat') return
     if (parsed.type === 'ready') {
         connectionId = parsed.connectionId
+        epoch.value += 1
         if (Array.isArray(parsed.presence)) onlineUsers.value = parsed.presence
         status.value = 'open'
         syncSubscriptions()
@@ -159,6 +163,7 @@ export function useConnections() {
 
     return {
         status,
+        epoch,
         onlineUsers,
         onlineUserIds,
         subscribe

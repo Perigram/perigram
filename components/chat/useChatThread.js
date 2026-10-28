@@ -1947,6 +1947,65 @@ watch(
     }
 )
 
+// A stream gap swallows every event published while the tab was
+// suspended: each reconnect epoch refetches the open thread's tail and
+// the live run snapshot, so missed messages, the run's presence, and a
+// suspended question heal.
+const connections = useConnections()
+const reconcileAfterReconnect = async () => {
+    const conversation = activeConversation.value
+    if (!conversation?.conversationKey || !unsubscribeConversation) return
+    const token = ++conversationLoadToken
+    try {
+        const [snapshot, live] = await Promise.all([
+            $fetch('/api/support/messages', {
+                query: conversationQuery({ limit: MESSAGES_PAGE_SIZE })
+            }),
+            $fetch('/api/agent-bots/live', {
+                query: { conversationKey: conversation.conversationKey }
+            }).catch(() => null)
+        ])
+        if (token !== conversationLoadToken) return
+        const known = new Set(messages.value.map(item => item._id))
+        const fresh = (snapshot?.data || []).filter(item => !known.has(item._id))
+        if (fresh.length) {
+            messages.value = [...messages.value, ...fresh]
+            if (!atBottom.value) waitingMessages.value += fresh.length
+        }
+        hasMoreMessages.value = hasMoreMessages.value || Boolean(snapshot?.hasMore)
+        for (const row of snapshot?.readCursors || []) {
+            if (row.userId && String(row.userId) !== String(currentUserId.value)) {
+                readCursors.value = [
+                    ...readCursors.value.filter(item => String(item.userId) !== String(row.userId)),
+                    { userId: row.userId, lastReadAt: row.lastReadAt }
+                ]
+                resolveUserName(row.userId)
+            }
+        }
+        if (fresh.length) supportChatStore.markRead(conversation.conversationKey)
+        if (live?.active && !agentStopping.value) {
+            agentActivity.value = {
+                userId: live.userId,
+                name: live.name || '',
+                steps: Array.isArray(live.steps) ? live.steps : [],
+                answer: live.answer || ''
+            }
+            agentQuestion.value = live.question || null
+        } else if (live && !live.active) {
+            agentActivity.value = null
+            agentQuestion.value = null
+            agentStopping.value = false
+        }
+        if (fresh.length) {
+            await nextTick()
+            if (atBottom.value) scrollToBottom()
+        }
+    } catch (error) {
+        console.error('Failed to reconcile after reconnect:', error)
+    }
+}
+watch(() => connections.epoch.value, reconcileAfterReconnect)
+
 watch(() => messages.value.length, (newLength, oldLength) => {
     if (!newLength || !oldLength || newLength <= oldLength) return
     nextTick().then(() => {

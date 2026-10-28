@@ -75,7 +75,7 @@ vi.mock('./service.js', () => mockedBotsService);
 vi.mock('./repository.js', () => mockedBotRepository);
 vi.mock('./tools.js', () => mockedTools);
 
-import { resolveAssistantTarget, runAssistantReply, runAssistantWake, registerSupportMessageObserver, handleMessageInserted, stopConversationRuns } from './runtime.js';
+import { resolveAssistantTarget, runAssistantReply, runAssistantWake, registerSupportMessageObserver, handleMessageInserted, stopConversationRuns, liveConversationRun } from './runtime.js';
 import { handleMcpRequest } from './mcp.js';
 
 const HUMAN = 'user-human';
@@ -488,6 +488,23 @@ describe('runAssistantReply', () => {
         const topics = mockedConnections.publish.mock.calls.map(([topic]) => topic);
         expect(topics).toContain('conversation:instance:cassette:c1');
         expect(topics).toContain('conversation:instance:organization:org-1');
+    });
+
+    it('serves the in-flight run snapshot until the run lands', async () => {
+        let releaseCompletion;
+        mockedLlm.chatCompletion.mockImplementation(() => new Promise(resolve => {
+            releaseCompletion = () => resolve({ content: 'done waiting', toolCalls: [] });
+        }));
+        const run = runAssistantReply(target, context, message);
+        await vi.waitFor(() => expect(liveConversationRun('org-1', context.conversationKey).active).toBe(true));
+        const midRun = liveConversationRun('org-1', context.conversationKey);
+        expect(midRun.userId).toBe(ASSISTANT);
+        expect(midRun.name).toBe('Assistant');
+        expect(midRun.steps).toEqual([]);
+        expect(liveConversationRun('org-2', context.conversationKey)).toEqual({ active: false });
+        releaseCompletion();
+        await run;
+        expect(liveConversationRun('org-1', context.conversationKey)).toEqual({ active: false });
     });
 });
 

@@ -57,6 +57,16 @@ const onThinkingToggle = (index) => {
     collapsedThinking.value = next;
 };
 
+// A live disclosure collapses once the run moves past it — a later step
+// or a streaming answer — while the persisted chronology starts open.
+// Fieldset's `collapsed` seeds initial state only, so the key carries
+// the seed and remounts the disclosure when it flips.
+const thoughtEnded = (index) => props.live
+    && (index < steps.value.length - 1 || Boolean(props.activity.answer));
+const thinkingCollapsed = (index) => (
+    collapsedThinking.value.has(index) ? !thoughtEnded(index) : thoughtEnded(index)
+);
+
 // Compact geometry (legend padding/gap, root insets) lives in the
 // PrimeVue tokens (assets/tokens) and applies to every Fieldset; this
 // pt owns only what tokens cannot express — the caption-size,
@@ -84,16 +94,15 @@ const thinkingPtFor = (index) => {
 
 <template>
     <div class="flex min-w-0 flex-col gap-1 text-muted text-supporting" data-testid="agent-activity">
-        <template v-for="(step, index) in steps" :key="step.kind === 'tool' ? step.id : `thinking-${index}`">
-            <!-- Reasoning starts open at both sites so the chronology
-                 stays visible with the answer; `collapsed` only seeds
-                 the initial state, so the user's own toggling
-                 survives. -->
+        <template v-for="(step, index) in steps" :key="step.kind === 'tool' ? step.id : `thinking-${index}-${thinkingCollapsed(index)}`">
+            <!-- The disclosure seeds open while its thought is the run's
+                 live edge and collapses once the run moves past it; the
+                 user's own toggling survives on both sites. -->
             <Fieldset
                 v-if="step.kind === 'thinking'"
                 :legend="t('support.thinking')"
                 toggleable
-                :collapsed="false"
+                :collapsed="thinkingCollapsed(index)"
                 :pt="thinkingPtFor(index)"
                 class="min-w-0"
                 data-testid="agent-thinking"
