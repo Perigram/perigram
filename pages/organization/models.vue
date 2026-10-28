@@ -179,6 +179,15 @@
           :aria-label="$t('llm.apiKey')"
           input-class="w-full"
         />
+        <InputNumber
+          v-if="profileForm.kind === 'chat'"
+          v-model="profileForm.maxTokens"
+          :placeholder="$t('llm.maxTokensPlaceholder')"
+          :aria-label="$t('llm.maxTokens')"
+          :use-grouping="false"
+          class="w-full"
+          data-testid="llm-profile-max-tokens"
+        />
         <div class="flex justify-end gap-2">
           <Button
             :label="$t('common.save')"
@@ -199,6 +208,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
+import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Select from 'primevue/select';
@@ -232,7 +242,7 @@ const profiles = ref([]);
 const routes = reactive({ chat: '', 'chat.summaries': '' });
 const profileVisible = ref(false);
 const profileEditingExisting = ref(false);
-const profileForm = reactive({ id: '', kind: 'chat', provider: 'ollama', baseUrl: '', apiKey: '', apiKeySet: false });
+const profileForm = reactive({ id: '', kind: 'chat', provider: 'ollama', baseUrl: '', apiKey: '', apiKeySet: false, maxTokens: null });
 const savingProvider = ref(false);
 const testingId = ref('');
 
@@ -352,9 +362,10 @@ function editProfile(profile) {
         provider: presetOf(profile),
         baseUrl: profile.baseUrl,
         apiKey: '',
-        apiKeySet: profile.apiKeySet
+        apiKeySet: profile.apiKeySet,
+        maxTokens: profile.maxTokens ?? null
     } : {
-        id: '', kind: 'chat', provider: 'ollama', baseUrl: '', model: '', apiKey: '', apiKeySet: false
+        id: '', kind: 'chat', provider: 'ollama', baseUrl: '', model: '', apiKey: '', apiKeySet: false, maxTokens: null
     });
     profileVisible.value = true;
 }

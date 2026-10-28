@@ -126,14 +126,14 @@ describe('readLlmSettings', () => {
     it('masks keys and exposes finite routes', async () => {
         withSetting({
             profiles: {
-                big: { kind: 'chat', provider: 'anthropic', baseUrl: 'https://big', model: 'glm-4.7', apiKey: 'secret' },
+                big: { kind: 'chat', provider: 'anthropic', baseUrl: 'https://big', model: 'glm-4.7', apiKey: 'secret', maxTokens: 8192 },
                 images: { kind: 'image', provider: 'openai', baseUrl: 'http://img:8080', model: 'sd-xl' }
             },
             routes: { chat: 'big', 'chat.summaries': 'big', bogus: 'big' }
         });
         const result = await readLlmSettings(AUTH);
         expect(result.profiles).toHaveLength(2);
-        expect(result.profiles.find(profile => profile.id === 'big')).toMatchObject({ apiKeySet: true, kind: 'chat' });
+        expect(result.profiles.find(profile => profile.id === 'big')).toMatchObject({ apiKeySet: true, kind: 'chat', maxTokens: 8192 });
         expect(result.profiles.find(profile => profile.id === 'images')).toMatchObject({ kind: 'image', apiKeySet: false });
         expect(result.routes).toEqual({ chat: 'big', 'chat.summaries': 'big' });
         expect(JSON.stringify(result)).not.toContain('secret');
@@ -176,6 +176,20 @@ describe('saveLlmSettings', () => {
 
         await saveLlmSettings(AUTH, { profiles: [{ ...row, apiKey: 'fresh' }] });
         expect(mockedOrganizations.updateSettingsSection.mock.calls[2][2].profiles.p1.apiKey).toBe('fresh');
+    });
+
+    it('stores a positive-integer output budget on chat profiles only', async () => {
+        await saveLlmSettings(AUTH, { profiles: [{ id: 'p1', kind: 'chat', provider: 'ollama', baseUrl: 'b', model: 'm', maxTokens: 8192 }] });
+        expect(mockedOrganizations.updateSettingsSection.mock.calls[0][2].profiles.p1.maxTokens).toBe(8192);
+        await saveLlmSettings(AUTH, { profiles: [{ id: 'img', kind: 'image', provider: 'openai', baseUrl: 'b', model: 'm', maxTokens: 8192 }] });
+        expect(mockedOrganizations.updateSettingsSection.mock.calls[1][2].profiles.img.maxTokens).toBeUndefined();
+    });
+
+    it('rejects a non-positive or fractional maxTokens', async () => {
+        for (const bad of [0, -5, 2.5, 'many']) {
+            await expect(saveLlmSettings(AUTH, { profiles: [{ id: 'p1', kind: 'chat', provider: 'ollama', baseUrl: 'b', model: 'm', maxTokens: bad }] }))
+                .rejects.toMatchObject({ statusCode: 400 });
+        }
     });
 
     it('derives the model — a new login backfills the first model its endpoint serves', async () => {

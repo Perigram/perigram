@@ -62,6 +62,9 @@ export function egressFetch(url, options = {}) {
 
 const PROVIDERS = new Set(['ollama', 'anthropic', 'openai']);
 const ANTHROPIC_VERSION = '2023-06-01';
+// The Messages dialect requires max_tokens, and reasoning counts against
+// it — the default leaves room for a reasoning model's thinking.
+const DEFAULT_MAX_TOKENS = 16384;
 
 async function orgLlmSetting(organizationId) {
     const id = organizationId?.toString?.().trim?.() || '';
@@ -82,6 +85,8 @@ function profileWireConfig(profile) {
     const model = String(profile?.model || '').trim();
     const apiKey = String(profile?.apiKey || '').trim();
     if (!baseUrl || !model) return { provider: 'none' };
+    const maxTokens = Math.trunc(Number(profile?.maxTokens));
+    if (maxTokens > 0) return { provider, baseUrl, apiKey, model, maxTokens };
     return { provider, baseUrl, apiKey, model };
 }
 
@@ -172,7 +177,8 @@ function maskedProfile([id, profile = {}]) {
         provider: String(profile.provider || ''),
         baseUrl: String(profile.baseUrl || ''),
         model: String(profile.model || ''),
-        apiKeySet: Boolean(profile.apiKey)
+        apiKeySet: Boolean(profile.apiKey),
+        ...(profile.maxTokens ? { maxTokens: profile.maxTokens } : {})
     };
 }
 
@@ -221,11 +227,18 @@ export async function saveLlmSettings(auth = {}, payload = {}) {
         if (!baseUrl) {
             throw createError({ statusCode: 400, message: `Profile ${id}: base URL is required` });
         }
+        const maxTokensRaw = row?.maxTokens;
+        const maxTokensSet = maxTokensRaw !== undefined && maxTokensRaw !== null && String(maxTokensRaw).trim() !== '';
+        const maxTokens = Number(maxTokensRaw);
+        if (maxTokensSet && (!Number.isInteger(maxTokens) || maxTokens <= 0)) {
+            throw createError({ statusCode: 400, message: `Profile ${id}: maxTokens must be a positive integer` });
+        }
         const apiKey = row?.apiKey === undefined || row?.apiKey === null
             ? String(previousProfiles[id]?.apiKey || '').trim()
             : String(row.apiKey).trim();
         const profile = { kind, provider, baseUrl };
         if (apiKey) profile.apiKey = apiKey;
+        if (kind === 'chat' && maxTokensSet) profile.maxTokens = maxTokens;
         // The model is derived data, never picked in profile setup: a login
         // keeps the endpoint's stored default while endpoint and key stand,
         // and a new (or re-pointed) login takes the first model its own
@@ -687,7 +700,7 @@ function wireRequest(provider, config, system, messages, tools, { stream = false
     if (provider === 'anthropic') {
         return {
             model: config.model,
-            max_tokens: 4096,
+            max_tokens: config.maxTokens || DEFAULT_MAX_TOKENS,
             ...(system ? { system } : {}),
             messages: neutralMessagesToWire(provider, system, messages),
             ...(wireTools ? { tools: wireTools } : {}),
@@ -884,12 +897,18 @@ function streamAccumulator({ reasoningFirst = false } = {}) {
 async function* streamOpenAI(response, options = {}) {
     const acc = streamAccumulator(options);
     const calls = [];
+    let stopReason = '';
     for await (const line of readLines(response)) {
         const data = sseData(line);
         if (!data) continue;
         let chunk;
         try { chunk = JSON.parse(data); } catch { continue; }
-        const delta = chunk?.choices?.[0]?.delta;
+        if (chunk.error) {
+            throw createError({ statusCode: 502, message: `LLM stream error: ${chunk.error?.message || 'unknown'}` });
+        }
+        const choice = chunk.choices?.[0];
+        if (typeof choice?.finish_reason === 'string' && choice.finish_reason) stopReason = choice.finish_reason;
+        const delta = choice?.delta;
         if (!delta) continue;
         const reasoning = delta.reasoning_content ?? delta.reasoning;
         if (typeof reasoning === 'string' && reasoning) yield* acc.note(reasoning);
@@ -906,6 +925,7 @@ async function* streamOpenAI(response, options = {}) {
     return {
         content: acc.totals.content,
         thinking: acc.totals.thinking,
+        stopReason,
         toolCalls: calls.filter(Boolean).map(call => ({
             id: call.id, name: call.name, arguments: parseJsonObject(call.args)
         }))
@@ -915,11 +935,13 @@ async function* streamOpenAI(response, options = {}) {
 async function* streamOllama(response, options = {}) {
     const acc = streamAccumulator(options);
     const toolCalls = [];
+    let stopReason = '';
     for await (const line of readLines(response)) {
         const trimmed = line.trim();
         if (!trimmed) continue;
         let chunk;
         try { chunk = JSON.parse(trimmed); } catch { continue; }
+        if (typeof chunk.done_reason === 'string' && chunk.done_reason) stopReason = chunk.done_reason;
         const message = chunk?.message || {};
         if (typeof message.thinking === 'string' && message.thinking) yield* acc.note(message.thinking);
         if (typeof message.content === 'string' && message.content) yield* acc.feed(message.content);
@@ -932,13 +954,14 @@ async function* streamOllama(response, options = {}) {
         }
     }
     yield* acc.end();
-    return { content: acc.totals.content, thinking: acc.totals.thinking, toolCalls };
+    return { content: acc.totals.content, thinking: acc.totals.thinking, stopReason, toolCalls };
 }
 
 async function* streamAnthropic(response, options = {}) {
     const acc = streamAccumulator(options);
     const toolCalls = [];
     let openBlock = null;
+    let stopReason = '';
     for await (const line of readLines(response)) {
         const data = sseData(line);
         if (!data) continue;
@@ -958,10 +981,14 @@ async function* streamAnthropic(response, options = {}) {
         } else if (event.type === 'content_block_stop' && openBlock) {
             toolCalls.push({ id: openBlock.id, name: openBlock.name, arguments: parseJsonObject(openBlock.args) });
             openBlock = null;
+        } else if (event.type === 'message_delta' && typeof event.delta?.stop_reason === 'string' && event.delta.stop_reason) {
+            stopReason = event.delta.stop_reason;
+        } else if (event.type === 'error') {
+            throw createError({ statusCode: 502, message: `LLM stream error: ${event.error?.message || 'unknown'}` });
         }
     }
     yield* acc.end();
-    return { content: acc.totals.content, thinking: acc.totals.thinking, toolCalls };
+    return { content: acc.totals.content, thinking: acc.totals.thinking, stopReason, toolCalls };
 }
 
 /**
@@ -995,7 +1022,8 @@ export async function* streamChatCompletion({ organizationId = null, capability 
         }
         const message = step.value || { content: '', thinking: '', toolCalls: [] };
         if (!message.content && !message.toolCalls.length) {
-            throw createError({ statusCode: 502, message: 'LLM service returned no completion' });
+            const reason = message.stopReason ? ` (stop_reason: ${message.stopReason})` : '';
+            throw createError({ statusCode: 502, message: `LLM service returned no completion${reason}` });
         }
         yield { type: 'message', content: message.content, thinking: message.thinking || '', toolCalls: message.toolCalls };
     } finally {

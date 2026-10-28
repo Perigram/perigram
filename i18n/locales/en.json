@@ -3325,6 +3325,8 @@
         "model": "Model",
         "apiKey": "API key (optional)",
         "apiKeySet": "Key stored — type to replace",
+        "maxTokens": "Max output tokens",
+        "maxTokensPlaceholder": "Default 16384",
         "test": "Test",
         "testOk": "Connected",
         "unconfigured": "Not configured",

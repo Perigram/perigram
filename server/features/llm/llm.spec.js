@@ -186,11 +186,24 @@ describe('chatCompletion: anthropic', () => {
         expect(url).toBe('http://llm.internal/v1/messages');
         expect(headers['anthropic-version']).toBe('2023-06-01');
         expect(request.system).toBe('be brief');
-        expect(request.max_tokens).toBeGreaterThan(0);
+        expect(request.max_tokens).toBe(16384);
         expect(request.tools[0]).toEqual({
             name: 'list_types', description: 'lists types', input_schema: { type: 'object', properties: {} }
         });
         expect(result).toEqual({ content: 'answer', thinking: '', toolCalls: [{ id: 'tu_1', name: 'list_types', arguments: { b: 2 } }] });
+    });
+
+    it('sends the profile output budget as max_tokens', async () => {
+        mockedOrganizations.getById.mockResolvedValue({
+            data: { settings: { llm: {
+                profiles: { big: { kind: 'chat', provider: 'anthropic', baseUrl: 'https://big', model: 'glm-4.7', maxTokens: 8192 } },
+                routes: { chat: 'big' }
+            } } }
+        });
+        fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ content: [{ type: 'text', text: 'ok' }] }) });
+        await chatCompletion({ organizationId: 'org-1' });
+        const request = JSON.parse(fetchMock.mock.calls[0][1].body);
+        expect(request.max_tokens).toBe(8192);
     });
 
     it('merges consecutive tool results into one tool_result user turn', async () => {
@@ -428,6 +441,25 @@ describe('streamChatCompletion', () => {
         });
         const result = await chatCompletion({ organizationId: null });
         expect(result).toEqual({ content: '42', thinking: 'hmmwhy', toolCalls: [] });
+    });
+
+    it('names the stop reason when reasoning spent the output budget', async () => {
+        await expect(streamRound('anthropic', [
+            'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"long"}}\n\n',
+            'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"max_tokens"}}\n\n'
+        ])).rejects.toThrow('stop_reason: max_tokens');
+    });
+
+    it('surfaces a mid-stream provider error event', async () => {
+        await expect(streamRound('anthropic', [
+            'event: error\ndata: {"type":"error","error":{"message":"overloaded"}}\n\n'
+        ])).rejects.toThrow('overloaded');
+    });
+
+    it('surfaces an OpenAI-shaped mid-stream error payload', async () => {
+        await expect(streamRound('openai', [
+            'data: {"error":{"message":"rate limited"}}\n\n'
+        ])).rejects.toThrow('rate limited');
     });
 
     it('throws 503 when no provider resolves', async () => {
