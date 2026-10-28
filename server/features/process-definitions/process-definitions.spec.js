@@ -424,6 +424,30 @@ describe('current process-definition service contract', () => {
       .toEqual({});
   });
 
+  it('keeps a spot assignment beside the scalarized typeList id (SPEC §24)', async () => {
+    const { processConstructionInputRecord } = await import('./service.js');
+    const domain = {
+      construction: {
+        sheet: {
+          modes: ['fill'],
+          defaultMode: 'fill',
+          inputs: [
+            { id: 'template', path: 'template', type: 'entity' },
+            { id: 'parts', path: 'parts', type: 'typeList' }
+          ]
+        }
+      }
+    };
+    const record = { typeId: 'sheet', construction: { mode: 'fill', inputs: [] } };
+    expect(processConstructionInputRecord(record, {
+      template: { type: 'dxf-source', id: 't-1' },
+      parts: [{ id: 'p-1', spot: 'Marker' }, 'p-2']
+    }, domain)).toEqual({
+      template: 't-1',
+      parts: [{ id: 'p-1', spot: 'Marker' }, 'p-2']
+    });
+  });
+
   it('accepts the manifest action record shape in the availability check', async () => {    // Regression: the assignment manifest carries full records keyed `id`
     // while the check matched only `actionId` — every manual action 403'd.
     const { executeActiveProcessAction } = await import('./service.js');
