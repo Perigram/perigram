@@ -85,6 +85,13 @@ Delivered in `components/generated/GeneratedHomeWorkspace.vue` (rail
 icon overlay + PanelMenu `headericon` slot badge on the chats icon)
 and matched by the layouts README's mobile chats-tab row; the store's
 `totalUnread` feeds every surface.
+
+### Agent Notes (2026-10-28, badge placement repair)
+Owner rejected the overlay placement on bare icons: the 1rem small
+badge covers a 1rem menu/tab icon. The expanded menu's `headericon`
+badge and the mobile chats-tab badge now ride beside the icon
+(`inline-flex` row); the wrapped rail keeps its corner overlay on the
+2rem rail button.
 - WAITING — owner verification.
 
 ## Long-message clamp (owner direction, 2026-10-27)
