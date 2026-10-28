@@ -510,7 +510,8 @@ beside the transition history in `StateHistory`.
   `FileUploadControl`, `Slider` for bounded scalars (declared min/max),
   `RefRowActions` (the fill-dialog reference-slot affordances: create by
   the accepted type's creation mode, open the picked instance's editor),
-  and the recursive `ObjectEditor` / `ListEditor` / `VariantEditor`
+  `FillDialogBody` (the fill-dialog shell: form pane beside the live
+  composed preview), and the recursive `ObjectEditor` / `ListEditor` / `VariantEditor`
   (compact density shrinks editors through PrimeVue sizes); maps and json
   edit through the JsonEditor textarea (pretty-printed, invalid JSON
   flagged inline). Which presentation an editor family resolves to

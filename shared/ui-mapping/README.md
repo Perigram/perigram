@@ -158,10 +158,13 @@ compiled upload-mode create runs inline (the bytes travel the files
 channel, the created record selects into the row), and every other
 compiled create opens the nested create dialog inside the fill dialog —
 and opens the picked instance's editor when its type binds one. A create whose created type declares a payload and whose action
-carries a construction mode renders the composed preview
-(`ConstructionPreview`): the draft debounces into
-`POST /api/instances/:type/construction-preview` and the returned
-payload renders through the created type's preview mode
+carries a construction mode composes through the fill-dialog shell
+(`FillDialogBody` widens the dialog and splits the form pane from the
+preview pane; the shell renders transparent when there is nothing to
+compose): the form pane keeps the rows and the refusal's named
+offenders, the preview pane debounces the draft into
+`POST /api/instances/:type/construction-preview` and renders the
+returned payload through the created type's preview mode
 ([instances feature](../../server/features/instances/README.md) owns
 the route), with the refusal's named offenders shown inline. The contract's input list is the dialog's complete row
 list: an identifier row reaches the dialog only as a contract input (a
