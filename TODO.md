@@ -685,12 +685,25 @@ AttachmentKind row.
     jagua-rs link. Live-stack verification pending (the re-derive run
     and the pinned chip render on the next stack pass).
 
-- [ ] Pinned-entity-ref palette source: a `source` node emitting one
-  authored entityRef (the "select exact instance" producer), so a graph can
-  wire a pinned record into any construct's ref sockets. Authored socket
-  defaults already supply ref inputs today (supplied fields drop out of the
-  create dialog); the palette node is the visible authoring surface for the
-  same law.
+- [ ] WAITING — owner verification: Pinned-entity-ref palette source: a
+  `source` node emitting one authored entityRef (the "select exact
+  instance" producer), so a graph can wire a pinned record into any
+  construct's ref sockets. Authored socket defaults already supply ref
+  inputs today (supplied fields drop out of the create dialog); the
+  palette node is the visible authoring surface for the same law.
+
+  ### Agent Notes (2026-10-28)
+
+  The law pre-existed: a `source.literalItem` with an `entityRef` output
+  type already carries the authored pick (`seedLiteralEntityBinding`
+  seeds the type, the canvas node renders the type select beside
+  `TypedValueControl`'s InstanceSelect — ids are never typed by hand),
+  and the construct seam consumes the wired ref object (revision pinning
+  stamps it at construction, SPEC §24). The palette entry is the whole
+  delta: `pinnedEntity` in the `instances` group drops the literal
+  pre-typed `entityRef` (`preset.type.base`), so the author picks the
+  type and the exact instance on the node. Spec pins: the designer
+  palette pin and the round-trip species pin carry the item.
 - [ ] WAITING — owner verification: cross-plugin vendor dependency — the
   MLightCAD CAD runtime moves to tech-drawing and the facade cassette
   designer consumes it through a declared `plugin:tech-drawing/…`
