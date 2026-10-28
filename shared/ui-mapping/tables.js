@@ -292,6 +292,9 @@ export const LAYOUT = Object.freeze({
   // in main.css).
   previewHeroBandAspect: 'ck-preview-hero-band-aspect',
   packRow: 'flex flex-wrap items-start gap-6',
+  // The reload strip overlays its surface's top edge — appearing and
+  // vanishing take no flow slot, so nothing below shifts.
+  reloadBar: 'pointer-events-none absolute inset-x-0 top-0 z-10 h-1',
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
   // Row-surface recipe (the table row IS the card): a row's own
@@ -400,7 +403,7 @@ export const LAYOUT_ATOMS = Object.freeze({
 export const LAYOUT_AMBIENT = Object.freeze({
   cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText']),
   clamps: Object.freeze(['nameClamp', 'chipClamp', 'linkClamp']),
-  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'headerRow', 'headerIdentity', 'ganttIdentity']),
+  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar']),
   geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
 });
 
