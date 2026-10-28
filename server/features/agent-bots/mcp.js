@@ -15,8 +15,10 @@ const SUPPORTED_PROTOCOL_VERSIONS = new Set(['2024-11-05', '2025-03-26', '2025-0
 const DEFAULT_PROTOCOL_VERSION = '2024-11-05';
 const SERVER_INFO = { name: 'perigram', version: '1.0.0' };
 const INSTRUCTIONS = [
-    'Perigram agent tools: author process definitions (read, save, validate, activate — always validate first and treat activation gates as confirmations to resolve, not bypass),',
-    'inspect the type vocabulary and instances, and run compiled process actions. Every call enforces the authenticated principal\'s access.'
+    'Perigram agent tools: every call enforces the authenticated principal\'s access.',
+    'Authoring: start from get_authoring_vocabulary — the authoring skill (domain model, gesture grammar, roles, palette) and the compose→validate→apply→activate loop; compose and edit definitions through gestures (never whole-graph echo-backs), read definitions as the compact digest, always validate_process_definition before activate_process_definition.',
+    'Activation and deletion gates (status migration, type death) are confirmations to resolve — declare_status_mappings, confirmTypeDeath — never to bypass.',
+    'Data: list_types / list_instances (flat filters plus a substring query) / get_instance, read file payloads with read_instance_file, and run compiled process actions from the live manifest (list_actions → run_action).'
 ].join(' ');
 
 function rpcResult(id, result) {

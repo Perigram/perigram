@@ -14,6 +14,7 @@ const { mockedProcessDefinitions, mockedSupport, mockedTypes, mockedRegistry, mo
         validate: vi.fn(),
         activate: vi.fn(),
         deactivate: vi.fn(),
+        remove: vi.fn(),
         executeActiveProcessAction: vi.fn(),
         composeDefinition: vi.fn(),
         editDefinition: vi.fn(),
@@ -283,6 +284,40 @@ describe('definition tool authoring surface', () => {
         expect(result.id).toBe('d1');
         expect(result.name).toBe('Edited');
         expect((await mcpToolDescriptors()).map(tool => tool.name)).toContain('edit_process_definition');
+    });
+
+    it('deletion surfaces the type-death gate as a structured result; confirmation proceeds', async () => {
+        const gate = { typeDeath: [{ typeId: 'cassette', instances: 4 }] };
+        mockedProcessDefinitions.remove.mockRejectedValueOnce(Object.assign(
+            new Error('Deleting this definition deletes 1 type(s) no other definition declares, with all their data'),
+            { statusCode: 409, data: gate }
+        ));
+        const blocked = await executeTool('delete_process_definition', { definitionId: 'd1' }, AUTH);
+        expect(blocked).toMatchObject({ deletionBlocked: true, gate });
+        expect(mockedProcessDefinitions.remove.mock.calls[0][2]).toEqual({ confirmTypeDeath: false });
+
+        mockedProcessDefinitions.remove.mockResolvedValueOnce({ removed: true });
+        await expect(executeTool('delete_process_definition', { definitionId: 'd1', confirmTypeDeath: true }, AUTH))
+            .resolves.toEqual({ removed: true });
+        expect(mockedProcessDefinitions.remove.mock.calls[1][2]).toEqual({ confirmTypeDeath: true });
+        expect((await mcpToolDescriptors()).map(tool => tool.name)).toContain('delete_process_definition');
+    });
+
+    it('list_instances passes the flat filter map and searches the fetched page', async () => {
+        const processList = vi.fn(async filters => {
+            expect(filters.primaryState).toBe('ACTIVE');
+            expect(filters.limit).toBe(200);
+            return [
+                { _id: 'a1', type: 'cassette', name: 'Alpha frame', states: { main: 'ACTIVE' } },
+                { _id: 'b2', type: 'cassette', name: 'Beta frame', states: { main: 'ACTIVE' } }
+            ];
+        });
+        mockedRegistry.getAppRegistry.mockReturnValue({
+            getInstanceService: () => ({ processList, processGetById: vi.fn() })
+        });
+        const rows = await executeTool('list_instances', { type: 'cassette', query: 'alp', filters: { primaryState: 'ACTIVE' } }, AUTH);
+        expect(rows).toHaveLength(1);
+        expect(rows[0].name).toBe('Alpha frame');
     });
 
     it('truncates oversized tool results instead of blinding the model', async () => {

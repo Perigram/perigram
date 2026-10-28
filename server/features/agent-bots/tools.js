@@ -23,6 +23,9 @@ import { PROCESS_DESIGNER_PALETTE_GROUPS, DECLARATION_NODE_TYPES, PROCESS_NODE_C
 
 const LIST_LIMIT_DEFAULT = 25;
 const LIST_LIMIT_MAX = 100;
+// The instance list seam's own page ceiling — a query run searches the
+// full page, not the sliced result budget.
+const LIST_POOL_MAX = 200;
 
 function requireString(value, field) {
     const text = String(value ?? '').trim();
@@ -111,7 +114,7 @@ const AUTHORING_GUIDE = [
     '- a declared field\'s port exists in the SAME session once wireDeclaration lands (fields.* on construct/mutate nodes) — never hand-edit construction.inputs, it derives from the class\'s declared fields;',
     "- {op:'connect', id, fromPort, to, toPort} — id is the FROM node; ports are socket HANDLES: data:<socketId> for data sockets, control:<socketId> for control. Bare socket ids and the retired input:/output: spellings refuse;",
     "- {op:'disconnect', id, fromPort, to, toPort} — removes the data wire those handles name;",
-    "- {op:'removeNode', id} — removes a node: its record, its wires, and the producer outputs it anchored;",
+    "- {op:'removeNode', id} — removes a node: its record, its wires, and the producer outputs it anchored; a declaration node (class, typeRef, field, state) goes the same way — its declaration record and every wire touching it;",
     '## Composition algebra (runtime laws)',
     'A definition is the extension mechanism: compose a need from these primitives before treating it as a capability gap. Canonical law: packages/processes/README.md.',
     '1. A wired data socket takes its producer\'s packet at run time; an unwired prompted input is asked of the runner at run time.',
@@ -637,6 +640,37 @@ export const TOOL_SPECS = [
         }
     },
     {
+        name: 'delete_process_definition',
+        description: 'Deletes a definition permanently (admin access). Types no other stored definition declares die with it, WITH ALL THEIR DATA: that type-death manifest returns as a structured { deletionBlocked, gate } result — read it, surface it to the room when it carries live data, and re-call with confirmTypeDeath: true to proceed. Prefer deactivate_process_definition for removing a definition from the active set.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                definitionId: { type: 'string' },
+                confirmTypeDeath: { type: 'boolean' }
+            },
+            required: ['definitionId'],
+            additionalProperties: false
+        },
+        execute: async (args, auth) => {
+            try {
+                return await processDefinitionsService.remove(
+                    requireString(args.definitionId, 'definitionId'),
+                    auth,
+                    { confirmTypeDeath: Boolean(args.confirmTypeDeath) }
+                );
+            } catch (error) {
+                if (error?.statusCode === 409) {
+                    return {
+                        deletionBlocked: true,
+                        message: error.message,
+                        ...(error.data ? { gate: error.data } : {})
+                    };
+                }
+                throw error;
+            }
+        }
+    },
+    {
         name: 'list_types',
         description: 'Lists the CTS type vocabulary the organization\'s registry view declares (pack, plugin, and org-authored types).',
         inputSchema: { type: 'object', properties: {}, additionalProperties: false },
@@ -652,19 +686,30 @@ export const TOOL_SPECS = [
     },
     {
         name: 'list_instances',
-        description: 'Lists readable instances of a type through the registry-resolved instance service (party types user and organization included).',
+        description: 'Lists readable instances of a type through the registry-resolved instance service (party types user and organization included). filters carries the list seam\'s flat filter map — primaryState, primaryStates (comma-separated), states.<key>, a declared lineage.<key>, _id; query is a case-insensitive substring over the row\'s name, id, and state.',
         inputSchema: {
             type: 'object',
             properties: {
                 type: { type: 'string' },
+                query: { type: 'string' },
+                filters: { type: 'object' },
                 limit: { type: 'number' }
             },
             required: ['type'],
             additionalProperties: false
         },
         execute: async (args, auth) => {
-            const rows = await instanceServiceFor(args.type).processList({}, auth);
-            return (rows || []).slice(0, boundLimit(args.limit)).map(instanceRow);
+            const filters = args.filters && typeof args.filters === 'object' && !Array.isArray(args.filters)
+                ? args.filters
+                : {};
+            const query = String(args.query || '').trim().toLowerCase();
+            const rows = await instanceServiceFor(args.type)
+                .processList({ ...filters, limit: query ? LIST_POOL_MAX : boundLimit(args.limit) }, auth);
+            return (rows || [])
+                .filter(row => !query || [row?.name, row?.identity?.name, row?._id ?? row?.id, row?.states?.main ?? row?.state]
+                    .some(value => String(value ?? '').toLowerCase().includes(query)))
+                .map(instanceRow)
+                .slice(0, boundLimit(args.limit));
         }
     },
     {
