@@ -257,10 +257,12 @@ beside the transition history in `StateHistory`.
   identifier (`InstanceIdentity`), status, budgeted scalar descriptor
   columns, the first declared relation as budgeted chips when any
   loaded instance carries its refs (the contract's `relationColumn` —
-  an explicit edge or a declared ref field, whose wire value rides
-  `relations.<name>`; a typeless stored shape adopts the edge's single
-  declared target or the ref field's first accepted type; an unfilled
-  relation renders no column), and the first filled structural field
+  an explicit edge or a declared ref field, whose stored value is the
+  scalarized id under `fields` or ref objects under `relations`, both
+  read through the one resolver; a typeless stored shape adopts the
+  edge's single declared target or the ref field's first accepted
+  type; an unfilled relation renders no column), and the first filled
+  structural field
   (json/record/map, the contract's `summaryColumn`) as a bounded inline
   summary cell — a narrow host sheds it with the compact column scale. Scalar cells are
   `InlineField` in its cell variant: on patchable surfaces every value
@@ -392,9 +394,9 @@ beside the transition history in `StateHistory`.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card, `row` /
   `inline` → dense flex row with the identifier, status, and one
-  budgeted fact (SPEC §22.8); the row fact of a declared ref field reads
-  its value from `relations.<name>` (the §6 storage law) and renders a
-  chip; the row identity is a link button
+  budgeted fact (SPEC §22.8); the row fact of a declared ref field
+  reads either stored block (§6 law) and renders a chip; the row
+  identity is a link button
   under the screen's `onOpen` contract, like every collection identity.
 - `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
   scalar facts strip (`DETAIL_FACT_BUDGET`, identifier-excluded — the

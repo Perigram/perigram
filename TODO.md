@@ -2195,6 +2195,17 @@ green except the pre-existing jagua-rs submodule link.
 
 Status: WAITING owner verification.
 
+### Agent Notes (2026-10-28, round 25 follow-up)
+
+The live probe's verification pass exposed a second stored shape: the
+construct boundary scalarizes ref drafts to bare ids under
+`fields.<name>` (the dialog boundary law) while relation operations
+write ref objects under `relations.<name>` — the probe org's projects
+stored the first, the owner's order data the second. The column
+filledness, the table relation cell, and the row fact now read both
+blocks through the one resolver; the instances README states the
+two-block storage law beside the §3 shape.
+
 ## Random world decorruption (owner direction 2026-10-28)
 
 Law: the random UI world generator rolls its world; nothing overwrites
