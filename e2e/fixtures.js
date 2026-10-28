@@ -198,7 +198,7 @@ export const test = base.extend({
       // child's file type): every org type the suite posted must be
       // declared by some stored definition, or activation 409s on the
       // type-lifetime gate (cts SPEC §4).
-      async seedSpeciesProcess({ types = ['cassette', 'image'], via = {}, label = null, domainTypes = [], declares = [] } = {}) {
+      async seedSpeciesProcess({ types = ['cassette-template', 'image'], via = {}, label = null, domainTypes = [], declares = [] } = {}) {
         const me = await (await request.get('/api/auth/me')).json();
         const organizationId = me.organizationId;
         const roleResponse = await request.post(`/api/organizations/${organizationId}/roles`, {

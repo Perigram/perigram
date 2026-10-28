@@ -100,8 +100,8 @@ test('the order process runs live: table rows become baked designs, materials, a
   // persistence path: the compiled create action, then payload PUT).
   const { createDefaultOccsCassetteTemplateDefinition } = await import('../workers/facade/occs/templates.js');
   const templateName = `Tray 600 ${Date.now()}`;
-  const species = await app.seedSpeciesProcess({ types: [TABLE_TYPE, 'cassette'], via: { [TABLE_TYPE]: 'upload', cassette: 'editor' } });
-  const cassetteCreate = (await app.activeActions()).find(action => action.actionKind === 'createEntity' && action.typeId === 'cassette');
+  const species = await app.seedSpeciesProcess({ types: [TABLE_TYPE, 'cassette-template'], via: { [TABLE_TYPE]: 'upload', cassette: 'editor' } });
+  const cassetteCreate = (await app.activeActions()).find(action => action.actionKind === 'createEntity' && action.typeId === 'cassette-template');
   expect(cassetteCreate, 'the species process seeds a cassette create action').toBeTruthy();
   const createAction = await app.executeAction(cassetteCreate.id, { data: { 'fields.name': templateName } });
   const createdTemplateRecord = createAction?.created ?? createAction?.entity ?? createAction;
@@ -109,12 +109,12 @@ test('the order process runs live: table rows become baked designs, materials, a
   expect(templateId, 'the create action produced a cassette template').toBeTruthy();
   // Editor-protocol creates prompt no rows: the template's name rides the
   // identity rename channel, the slot the pairs join keys templates by.
-  const templateRename = await app.request.patch(`/api/instances/cassette/${templateId}`, {
+  const templateRename = await app.request.patch(`/api/instances/cassette-template/${templateId}`, {
     data: { name: templateName },
     failOnStatusCode: false
   });
   expect(templateRename.ok(), await templateRename.text()).toBeTruthy();
-  const payloadUpload = await app.request.put(`/api/instances/cassette/${templateId}/payload`, {
+  const payloadUpload = await app.request.put(`/api/instances/cassette-template/${templateId}/payload`, {
     multipart: {
       file: {
         name: `${templateName}.occs`,
@@ -125,7 +125,7 @@ test('the order process runs live: table rows become baked designs, materials, a
   });
   expect(payloadUpload.ok(), await payloadUpload.text()).toBeTruthy();
   app.trackCleanup(async () => {
-    await app.request.delete(`/api/instances/cassette/${templateId}`, { failOnStatusCode: false });
+    await app.request.delete(`/api/instances/cassette-template/${templateId}`, { failOnStatusCode: false });
   });
 
   // A real xlsx order table uploaded through the workbook create action
@@ -206,7 +206,7 @@ test('the order process runs live: table rows become baked designs, materials, a
   // the upload minted geometry revision 1).
   for (const design of designs) {
     expect(design.provenance?.sources).toContainEqual({
-      type: 'cassette',
+      type: 'cassette-template',
       id: templateId,
       revision: `revision:cassette:${templateId}:geometry:1`
     });

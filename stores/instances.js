@@ -360,6 +360,21 @@ export const useInstancesStore = defineStore('instances', () => {
     return data;
   }
 
+  // Creates through a declared construction mode (the construct
+  // transport): the outbox path mirrors createInstance; the server runs
+  // the mode's handler under the write gate and returns the created DTO.
+  async function constructInstance(typeKey = '', mode = '', draft = {}, { typeId = typeKey } = {}) {
+    const data = await useOutboxStore().mutate({
+      url: `/api/instances/${String(typeKey).replace(/_/g, '-')}/construct`,
+      method: 'POST',
+      body: { mode, draft },
+      meta: { kind: 'instance', typeId, change: 'created', reason: `construct:${mode}` }
+    });
+    emitInstanceCreated({ type: typeId, id: data?._id, instance: data });
+    publishMutation({ type: typeId, id: data?._id, change: 'created', reason: `construct:${mode}` });
+    return data;
+  }
+
   // Optimistic updates (stores README): a cached record previews the wire
   // patch immediately and rolls back to the server-known DTO on any
   // failure — an offline queueing (OfflineQueuedError) reverts the
@@ -487,6 +502,7 @@ export const useInstancesStore = defineStore('instances', () => {
     mutateDirect,
     notifyMutated,
     createInstance,
+    constructInstance,
     updateInstance,
     removeInstance,
     iconFor,

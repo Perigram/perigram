@@ -10,7 +10,7 @@ test('process designer boots, creates, and saves', async ({ app }) => {
   test.setTimeout(120_000);
   const { page } = app;
   await app.installPlugins(['tech-drawing', 'facade']);
-  await app.seedSpeciesProcess({ types: ['cassette'] });
+  await app.seedSpeciesProcess({ types: ['cassette-template'] });
 
   const errors = [];
   page.on('pageerror', error => errors.push(`pageerror: ${error.message}`));

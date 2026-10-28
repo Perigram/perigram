@@ -11,8 +11,8 @@ test('the cassette designer folded 3D viewport becomes visible once the preview 
   test.setTimeout(180_000);
   await app.installPlugins(['tech-drawing', 'facade']);
   await app.connectPlugin('facade', 'http://facade-executor:8790');
-  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'], via: { cassette: 'editor' } });
-  const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette');
+  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'], via: { 'cassette-template': 'editor' } });
+  const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette-template');
   expect(list?.route, 'Expected a compiled cassette list screen').toBeTruthy();
 
   await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));

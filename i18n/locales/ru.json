@@ -2476,6 +2476,7 @@
     "sheetDesign": {
         "sheetDesigns": "Дизайны листов",
         "editor": "Редактор раскладки листа",
+        "addSheet": "Добавить лист",
         "margin": "Отступ",
         "actions": "Действия",
         "sheet": "Лист",
