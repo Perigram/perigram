@@ -104,7 +104,9 @@ values; the executor returns `data` fields and may return `payload:
 { base64, mime, name? }`, which becomes the created record's
 payload, or answer a refusal as `{ failures: [{ name?, message }] }`
 naming its offenders, which the platform refuses the construction
-with), `starterConstructs` (`[{ typeId, construction }]` —
+with; the executor may also return `meta`, an ephemeral object the
+construction preview answers verbatim and records never store — the
+documents fills name the template's tokens through it), `starterConstructs` (`[{ typeId, construction }]` —
 constructs the plugin stations into every installing organization's
 initial process: the plugin's own file type, a declared mode, one per
 type), `dependencies` (declared runtime dependencies:

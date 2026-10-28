@@ -240,8 +240,9 @@ Template fills ride this shape (SPEC §24): a
 `template` ref input plus wired values in, the filled file out.
 `POST /api/instances/:type/construction-preview` runs the same service
 over `{ mode, draft }` with nothing persisted: it answers `{ payload:
-{ base64, mime, name? } | null, fields }` (the fill dialog's composed
-preview), 204 when the org binds no service for the mode, or the same
+{ base64, mime, name? } | null, fields, meta? }` (the fill dialog's
+composed preview; `meta` is the executor's ephemeral channel, verbatim),
+204 when the org binds no service for the mode, or the same
 structured refusal; the create write gate applies.
 `constructionHandlers` reports every mode as served (the
 capability projections filter on it); genuinely unbound modes fail

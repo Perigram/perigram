@@ -511,7 +511,8 @@ beside the transition history in `StateHistory`.
   `RefRowActions` (the fill-dialog reference-slot affordances: create by
   the accepted type's creation mode, open the picked instance's editor),
   `FillDialogBody` (the fill-dialog shell: form pane beside the live
-  composed preview), and the recursive `ObjectEditor` / `ListEditor` / `VariantEditor`
+  composed preview), `TemplateValuesRow` (the per-token values form a
+  `template-values` pin renders), and the recursive `ObjectEditor` / `ListEditor` / `VariantEditor`
   (compact density shrinks editors through PrimeVue sizes); maps and json
   edit through the JsonEditor textarea (pretty-printed, invalid JSON
   flagged inline). Which presentation an editor family resolves to
