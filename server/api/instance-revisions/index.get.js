@@ -1,16 +1,17 @@
 import { defineEventHandler, getQuery } from 'h3';
 import { requireAuth } from '~/server/utils/permissions';
-import { serializeManyForAccess } from '~/server/utils/entity-redaction.js';
 import * as revisionService from '~/server/features/instance-revisions/service';
 
+// Revision listing (SPEC §24): the service owns the read scope (the
+// source records' org-scope law) and the DTO serializes like the records
+// — the stored document verbatim.
 export default defineEventHandler(async (event) => {
   const auth = await requireAuth(event);
-  const revisions = await revisionService.list(
+  return await revisionService.list(
     auth.userId,
     auth.organizationId,
     auth.role,
     auth,
     getQuery(event)
   );
-  return serializeManyForAccess('entityRevision', revisions, auth);
 });
