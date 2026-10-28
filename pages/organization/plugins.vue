@@ -285,7 +285,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
@@ -351,6 +351,12 @@ const activeOrganizationId = computed(() =>
   || null);
 const installedPluginIds = computed(() => new Set(installed.value.map(item => item.pluginId)));
 
+// Loading follows the active organization: a cold mount can outrun the
+// auth store's session hydration, so the fetch re-runs when the id
+// arrives (and again on an organization switch).
+watch(activeOrganizationId, (id, previous) => {
+  if (id && id !== previous) load();
+}, { immediate: true });
 onMounted(load);
 
 async function load() {
