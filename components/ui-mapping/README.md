@@ -107,10 +107,9 @@ beside the transition history in `StateHistory`.
   derived layout is a structural collection (table) may switch to the
   board, and a derived board may switch back — one icon toggle in the
   header cluster; a stored preference for a non-switchable collection is
-  ignored, and a stored table preference obeys the table floor — a
-  board type with no data column beside identity and state stays a
-  board. The switch stays clear of shape-specialized projections
-  (timeline, stats, the handful list).
+  ignored. A stored preference is the user's explicit view — the table
+  floor governs the derivation alone. The switch stays clear of
+  shape-specialized projections (timeline, stats, the handful list).
 
 ## Components
 
