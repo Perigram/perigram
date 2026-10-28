@@ -1,7 +1,7 @@
 <template>
   <div v-if="d" :class="d.stack">
     <div v-if="hasPreview" :class="LAYOUT.previewHero">
-      <div :class="heroContent ? LAYOUT.previewHeroBandContent : LAYOUT.previewHeroBand">
+      <div :class="heroBand">
         <PreviewBox fill :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
       </div>
     </div>
@@ -119,7 +119,7 @@ import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import { LAYOUT, resolveSurface, resolveActionButton, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, RENDERABLE_PREVIEW_MODES, resolveFieldGroups, resolvePreview, fieldLabelKey, localizedLabel, startCaseKey, isIdentifierField, typeIsQuantitative } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, resolveActionButton, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, RENDERABLE_PREVIEW_MODES, ASPECT_PREVIEW_MODES, resolveFieldGroups, resolvePreview, fieldLabelKey, localizedLabel, startCaseKey, isIdentifierField, typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import InlineField from './InlineField.vue';
 import StructuralFieldPanel from './StructuralFieldPanel.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
@@ -151,14 +151,19 @@ const expandedFacts = ref({});
 
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
 const quantitative = computed(() => typeIsQuantitative(props.type));
-// SPEC §22.8: a rendered preview — a renderable payload, a declared
-// previewSource, or a plugin preview module — sizes the tall band; the
-// quiet glyph and non-renderable payloads keep the small ladder.
-const heroContent = computed(() => Boolean(
-  (props.instance.payload?.fileId && RENDERABLE_PREVIEW_MODES.includes(resolvePreview(props.type).mode))
-  || (props.type?.previewSource?.display === 'geometry' && props.instance.previewSource)
-  || resolvePluginPreview(String(props.type?.id || ''))
-));
+// SPEC §22.8: the framed media surface carries every rendered preview —
+// aspect modes yield height to the content, reading modes scroll the
+// stepped ladder, the quiet glyph band stays bare. Band choice mirrors
+// PreviewBox's branch order: plugin, payload, declared source, quiet.
+const heroBand = computed(() => {
+  if (resolvePluginPreview(String(props.type?.id || ''))) return LAYOUT.previewHeroBandContent;
+  const mode = props.instance.payload?.fileId ? resolvePreview(props.type).mode : null;
+  if (mode && RENDERABLE_PREVIEW_MODES.includes(mode)) {
+    return ASPECT_PREVIEW_MODES.includes(mode) ? LAYOUT.previewHeroBandAspect : LAYOUT.previewHeroBandContent;
+  }
+  if (props.type?.previewSource?.display === 'geometry' && props.instance.previewSource) return LAYOUT.previewHeroBandAspect;
+  return LAYOUT.previewHeroBand;
+});
 // SPEC §22.8: a single-group body renders its fields with no group titles.
 const showGroupTitles = computed(() => groups.value.filter(group => group.label).length > 1);
 const hasPreview = computed(() => surface.value.slots.includes('preview'));

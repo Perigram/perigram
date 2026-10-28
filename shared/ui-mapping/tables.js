@@ -285,9 +285,12 @@ export const LAYOUT = Object.freeze({
   // CSS in main.css); the card slot keeps the fixed previewBand stamp.
   previewHero: 'ck-preview-hero',
   previewHeroBand: 'ck-preview-hero-band',
-  // The content band: every rendered preview sizes it (real CSS in
-  // main.css).
+  // The reading band: prose and tables scroll a stepped height (real
+  // CSS in main.css, inside the framed media surface).
   previewHeroBandContent: 'ck-preview-hero-band-content',
+  // The aspect band: content with intrinsic geometry sizes it (real CSS
+  // in main.css).
+  previewHeroBandAspect: 'ck-preview-hero-band-aspect',
   packRow: 'flex flex-wrap items-start gap-6',
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
@@ -386,7 +389,7 @@ export const LAYOUT_ATOMS = Object.freeze({
   stack: Object.freeze(['stack', 'stackSection', 'stackTight', 'labeledBlock', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
-  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewBand']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewBand']),
   well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack', 'well']),
   tabs: Object.freeze([]),
   placement: Object.freeze([]),
@@ -500,11 +503,18 @@ export const RENDERABLE_PREVIEW_MODES = Object.freeze([
 ]);
 
 // Document preview modes render readable content (pages, prose, tables):
-// sized panes render the readers (the PDF viewer controls, scrolling
-// prose, paginated tables) and fixed-height card bands carry content
-// thumbnails (the chrome-free PDF page, clipped rows, clamped prose).
+// sized panes render the readers (scrolling prose, paginated tables) and
+// fixed-height card bands carry content thumbnails (clipped rows,
+// clamped prose).
 export const DOCUMENT_PREVIEW_MODES = Object.freeze([
   'pdf', 'docx', 'table', 'workbook', 'text'
+]);
+
+// Aspect preview modes carry intrinsic geometry (a raster, a page, a
+// drawing viewBox): the detail band yields its height to the content
+// instead of stepping a ladder (`LAYOUT.previewHeroBandAspect`).
+export const ASPECT_PREVIEW_MODES = Object.freeze([
+  'image', 'pdf', 'dxf', 'svg', 'sketch'
 ]);
 
 // --- Actions ----------------------------------------------------------------

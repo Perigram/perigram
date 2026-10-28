@@ -964,10 +964,13 @@ single field group renders the group's fields with no group titles.
 Dashboard presentations — dials, meter groups, charts, ratings — render
 for quantitative-dominant types alone; every other type renders plain
 values. Preview bands render real content: payload viewers, declared
-preview sources, plugin previews, or the quiet type glyph. A document
-payload (pages, prose, tables) reads: detail surfaces give it a tall
-scrolling pane, and a fixed-height card band carries a content
-thumbnail. The hero band sizes every rendered preview alike.
+preview sources, plugin previews, or the quiet type glyph. On detail
+surfaces a rendered preview sits in a framed media surface (rounded,
+hairline border, subtle ground — the app owns the chrome) whose height
+follows the content: previews with intrinsic geometry (rasters, pages,
+drawings) size to it, reading content (prose, tables, documents)
+scrolls a stepped height. A fixed-height card band carries a content
+thumbnail.
 Preview-dominant collections render the card grid; the carousel
 projection is retired. Section labels render in natural case, and no app
 surface — generated, editor, or plugin-delivered — applies an uppercase
