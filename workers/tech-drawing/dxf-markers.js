@@ -171,3 +171,132 @@ export function removeSpotMarker(text, name) {
   pairs.splice(record.start, record.end - record.start);
   return pairsToText(pairs);
 }
+
+const layerRecordPairs = name => [
+  { code: 0, value: 'LAYER' },
+  { code: 2, value: name },
+  { code: 70, value: '0' },
+  { code: 62, value: '7' },
+  { code: 6, value: 'CONTINUOUS' }
+];
+
+// Locates the LAYER table: { countAt, endtabAt } — countAt is the
+// table's 70-count pair index, endtabAt its ENDTAB pair index. Absent
+// when the file carries none.
+function layerTableOf(pairs) {
+  let inTables = false;
+  let pendingSection = false;
+  let pendingTable = false;
+  let tableKind = '';
+  let countAt = -1;
+  for (let index = 0; index < pairs.length; index += 1) {
+    const pair = pairs[index];
+    if (pair.code === 0 && pair.value.trim() === 'SECTION') {
+      pendingSection = true;
+      pendingTable = false;
+      continue;
+    }
+    if (pendingSection && pair.code === 2) {
+      inTables = pair.value.trim() === 'TABLES';
+      pendingSection = false;
+      continue;
+    }
+    if (!inTables) continue;
+    if (pair.code === 0 && pair.value.trim() === 'ENDSEC') {
+      inTables = false;
+      continue;
+    }
+    if (pair.code === 0 && pair.value.trim() === 'TABLE') {
+      pendingTable = true;
+      tableKind = '';
+      countAt = -1;
+      continue;
+    }
+    if (pendingTable && pair.code === 2) {
+      tableKind = pair.value.trim();
+      pendingTable = false;
+      if (pairs[index + 1]?.code === 70) countAt = index + 1;
+      continue;
+    }
+    if (tableKind === 'LAYER' && pair.code === 0 && pair.value.trim() === 'ENDTAB') {
+      return { countAt, endtabAt: index };
+    }
+  }
+  return null;
+}
+
+function declaredLayerNames(pairs, endtabAt) {
+  const names = new Set();
+  let atRecord = false;
+  for (let index = 0; index < endtabAt; index += 1) {
+    const pair = pairs[index];
+    if (pair.code === 0 && pair.value.trim() === 'LAYER') {
+      atRecord = true;
+      continue;
+    }
+    if (atRecord && pair.code === 2) {
+      names.add(pair.value.trim());
+      atRecord = false;
+    }
+  }
+  return names;
+}
+
+// The canvas copy's layer law (SPEC §24): every layer an entity
+// references — and layer 0 — carries a LAYER table record with the
+// CONTINUOUS linetype declared, so strict viewers draw the whole
+// template. The stored payload keeps its authored bytes.
+export function withLayerTable(text) {
+  const pairs = dxfPairs(text);
+  const { start, end } = entitiesBounds(pairs);
+  if (start < 0) return text;
+
+  const referenced = new Set(['0']);
+  for (const record of entityRecords(pairs, start, end)) {
+    const layer = fieldValue(pairs, record, 8);
+    if (layer && layer.trim()) referenced.add(layer.trim());
+  }
+
+  const ltypeTable = [
+    { code: 0, value: 'TABLE' },
+    { code: 2, value: 'LTYPE' },
+    { code: 70, value: '1' },
+    { code: 0, value: 'LTYPE' },
+    { code: 2, value: 'CONTINUOUS' },
+    { code: 70, value: '0' },
+    { code: 72, value: '65' },
+    { code: 73, value: '0' },
+    { code: 40, value: '0.0' },
+    { code: 3, value: 'Solid line' },
+    { code: 0, value: 'ENDTAB' }
+  ];
+
+  const table = layerTableOf(pairs);
+  if (table) {
+    const missing = [...referenced].filter(name => !declaredLayerNames(pairs, table.endtabAt).has(name));
+    if (!missing.length) return text;
+    const count = Number.parseInt(pairs[table.countAt].value, 10) || 0;
+    pairs[table.countAt] = { ...pairs[table.countAt], value: String(count + missing.length) };
+    pairs.splice(table.endtabAt, 0, ...missing.flatMap(layerRecordPairs));
+    return pairsToText(pairs);
+  }
+
+  const layerTable = [
+    { code: 0, value: 'TABLE' },
+    { code: 2, value: 'LAYER' },
+    { code: 70, value: String(referenced.size) },
+    ...[...referenced].flatMap(layerRecordPairs),
+    { code: 0, value: 'ENDTAB' }
+  ];
+  // DXF section order places TABLES before ENTITIES; the section start
+  // pair of ENTITIES is the splice point.
+  const sectionStart = start - 2;
+  pairs.splice(sectionStart, 0,
+    { code: 0, value: 'SECTION' },
+    { code: 2, value: 'TABLES' },
+    ...ltypeTable,
+    ...layerTable,
+    { code: 0, value: 'ENDSEC' }
+  );
+  return pairsToText(pairs);
+}

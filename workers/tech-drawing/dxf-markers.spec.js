@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dxfPairs, spotMarkersOf, addSpotMarker, renameSpotMarker, removeSpotMarker, defaultMarkerHeight, pairsToText } from './dxf-markers.js';
+import { dxfPairs, spotMarkersOf, addSpotMarker, renameSpotMarker, removeSpotMarker, defaultMarkerHeight, pairsToText, withLayerTable } from './dxf-markers.js';
 import { composeDxfPlacement } from './placement.js';
 
 const line = (x1, y1, x2, y2, layer = 'OUTLINE') => (
@@ -62,5 +62,57 @@ describe('dxf-markers (SPEC §24 spot vocabulary)', () => {
   it('round-trips the pair model through pairsToText', () => {
     const text = dxf(line(0, 0, 10, 10));
     expect(pairsToText(JSON.parse(JSON.stringify(dxfPairs(text))))).toBe(text);
+  });
+});
+
+describe('withLayerTable — the canvas copy declares every referenced layer (SPEC §24)', () => {
+  it('adds a TABLES section declaring layer 0, CONTINUOUS, and every referenced layer of a tables-less template, entities verbatim', () => {
+    const text = dxf(line(0, 0, 10, 10, 'FRAME'), spot('a', 1, 1, '5', 'SPOT'));
+    const normalized = withLayerTable(text);
+
+    expect(normalized).toContain('2\nLTYPE');
+    expect(normalized).toContain('2\nCONTINUOUS');
+    for (const layer of ['0', 'FRAME', 'SPOT']) {
+      expect(normalized).toContain(`0\nLAYER\n2\n${layer}\n70\n0\n62\n7\n6\nCONTINUOUS`);
+    }
+    const entities = normalized.slice(normalized.indexOf('2\nENTITIES'));
+    expect(entities.startsWith('2\nENTITIES\n0\nLINE\n8\nFRAME')).toBe(true);
+    expect(normalized.indexOf('2\nTABLES')).toBeLessThan(normalized.indexOf('2\nENTITIES'));
+    expect(spotMarkersOf(normalized).map(marker => marker.name)).toEqual(['a']);
+  });
+
+  it('fills only the missing records into an existing LAYER table and bumps its count', () => {
+    const text = [
+      '0', 'SECTION', '2', 'TABLES',
+      '0', 'TABLE', '2', 'LAYER', '70', '1',
+      '0', 'LAYER', '2', 'FRAME', '70', '0', '62', '3', '6', 'CONTINUOUS',
+      '0', 'ENDTAB',
+      '0', 'ENDSEC',
+      '0', 'SECTION', '2', 'ENTITIES',
+      ...line(0, 0, 10, 10, 'FRAME'),
+      ...line(0, 0, 10, 10, 'SPOT'),
+      '0', 'ENDSEC', '0', 'EOF'
+    ].join('\n') + '\n';
+    const normalized = withLayerTable(text);
+
+    expect(normalized).toContain('0\nLAYER\n2\nFRAME\n70\n0\n62\n3\n6\nCONTINUOUS');
+    expect(normalized).toContain('0\nLAYER\n2\nSPOT\n70\n0\n62\n7\n6\nCONTINUOUS');
+    expect(normalized).toContain('0\nTABLE\n2\nLAYER\n70\n3');
+    expect(normalized.indexOf('2\nSPOT')).toBeGreaterThan(normalized.indexOf('2\nFRAME'));
+  });
+
+  it('returns a template whose layers are all declared unchanged', () => {
+    const declared = [
+      '0', 'SECTION', '2', 'TABLES',
+      '0', 'TABLE', '2', 'LAYER', '70', '2',
+      '0', 'LAYER', '2', '0', '70', '0', '62', '7', '6', 'CONTINUOUS',
+      '0', 'LAYER', '2', 'OUTLINE', '70', '0', '62', '7', '6', 'CONTINUOUS',
+      '0', 'ENDTAB',
+      '0', 'ENDSEC',
+      '0', 'SECTION', '2', 'ENTITIES',
+      ...line(0, 0, 10, 10),
+      '0', 'ENDSEC', '0', 'EOF'
+    ].join('\n') + '\n';
+    expect(withLayerTable(declared)).toBe(declared);
   });
 });

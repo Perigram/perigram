@@ -1,6 +1,6 @@
 // The tech-drawing plugin's DXF template editor (surface contract 2 —
 // the editor-grade mount). Marker law homes in ../dxf-markers.js.
-import { spotMarkersOf, addSpotMarker, renameSpotMarker, removeSpotMarker, defaultMarkerHeight } from '../dxf-markers.js';
+import { spotMarkersOf, addSpotMarker, renameSpotMarker, removeSpotMarker, defaultMarkerHeight, withLayerTable } from '../dxf-markers.js';
 
 // The anchor read host surfaces consume (the fill dialog's spot-parts
 // row): the parse law stays homed with the placement engine.
@@ -43,9 +43,11 @@ export default function createSurface({ vue, components, locale, notify }) {
 
       async function reopen(skipFit = false) {
         if (!manager || disposed || !templateText.value) return;
+        // The canvas reads the layer-normalized copy (dxf-markers);
+        // saves ride the authored bytes verbatim.
         await manager.openDocument(
           `${props.record?.name || 'template'}.dxf`,
-          new TextEncoder().encode(templateText.value).buffer,
+          new TextEncoder().encode(withLayerTable(templateText.value)).buffer,
           OPEN_OPTIONS
         );
         if (!skipFit) manager.curView?.zoomToFitDrawing?.();
