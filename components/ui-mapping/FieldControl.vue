@@ -208,6 +208,7 @@ import OrderList from 'primevue/orderlist';
 import { LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity, formatValue } from '#shared/ui-mapping/index.js';
 import { designTokens } from '~/assets/tokens/index.js';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
+import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import FileChip from '../shared/FileChip.vue';
 import QuantityInput from './QuantityInput.vue';
 import EnumSelect from './EnumSelect.vue';
@@ -243,13 +244,20 @@ const densityScale = computed(() => ({ factValue: 'text-body', knob: spacing ? s
 const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));
 
 const outcome = computed(() => resolveFieldControl(props.descriptor, { variant: props.variant, quantitative: props.quantitative }));
-// A ref value stored without its type adopts the descriptor's first
-// accepted type — the chip always knows what it references.
+// Ref values normalize through the one app resolver: alternate id keys
+// (`instanceId`, `_id`, `value`), bare ids, and typeless refs resolve
+// against the descriptor's first accepted type — the chip renders the
+// record, and the revision channel passes through.
 const refValue = computed(() => {
   const value = props.modelValue;
-  if (!value || typeof value !== 'object' || value.type) return value;
-  const fallback = props.descriptor?.accepts?.[0] || null;
-  return fallback ? { ...value, type: fallback } : value;
+  if (value === null || value === undefined || value === '') return null;
+  const [normalized] = resolveInstanceRelationRefs(value, { typeId: props.descriptor?.accepts?.[0] || null });
+  if (!normalized) return null;
+  return {
+    type: normalized.typeId,
+    id: normalized.id,
+    revision: value && typeof value === 'object' ? (value.revision ?? null) : null
+  };
 });
 const displayValue = computed(() => formatValue({ base: 'string' }, props.modelValue));
 // Plain number fields land on ValueText too: the numeric face applies to
@@ -267,10 +275,12 @@ const firstMeaningful = value => {
   if (first === undefined) return fallback;
   return compactValue(first);
 };
-const isInstanceRef = value => Boolean(value)
-  && typeof value === 'object' && !Array.isArray(value)
-  && typeof value.type === 'string'
-  && (typeof value.id === 'string' || typeof value.id === 'number');
+// Summary entries chip their ref subfields through the same resolver
+// the ref dispatch rides.
+const summaryRefOf = entry => {
+  const [normalized] = resolveInstanceRelationRefs(entry, { typeId: null });
+  return normalized ? { type: normalized.typeId, id: normalized.id } : null;
+};
 const summaryEntries = computed(() => {
   const value = props.modelValue;
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
@@ -280,7 +290,7 @@ const summaryEntries = computed(() => {
   ).visible.map(([key, entry]) => ({
     key: startCase(key),
     value: compactValue(entry),
-    ref: isInstanceRef(entry) ? entry : null
+    ref: summaryRefOf(entry)
   }));
 });
 const listEntries = computed(() => {
