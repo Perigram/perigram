@@ -93,6 +93,9 @@ test('join a call tab, dispatch to floating, dock back, and keep the tab seated'
   await app.page.getByRole('button', { name: 'Leave' }).waitFor({ timeout: 20000 });
   await expect(app.page.locator('[data-floating-call]')).toHaveCount(0);
 
-  await app.page.getByRole('button', { name: 'Leave' }).click();
+  // Closing the call tab ends the call: session gone, no floating window.
+  const callTab = app.page.locator('.p-tab', { hasText: 'Call' }).first();
+  await callTab.locator('button').first().click();
+  await expect(app.page.getByRole('button', { name: 'Leave' })).toHaveCount(0);
   await expect(app.page.locator('[data-floating-call]')).toHaveCount(0);
 });

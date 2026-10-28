@@ -548,6 +548,9 @@ export const useCallsStore = defineStore('calls', () => {
         } catch (cameraError) {
             deviceErrors.push({ device: 'camera', message: cameraError?.message || '' });
         }
+        // The session may have been torn down while the devices opened
+        // (the call tab closed mid-join): the detached entry goes quiet.
+        if (session.value !== entry) return { deviceErrors };
         syncLocalEnabled();
         const self = ensureParticipant(entry.room, local.identity, true);
         self.cameraMuted = !entry.state.camEnabled;
@@ -679,7 +682,16 @@ export const useCallsStore = defineStore('calls', () => {
     }
 
     function tabClosed(roomName = '') {
+        if (!roomName || !callTabs.has(roomName)) return;
         callTabs.delete(roomName);
+        // Closing the call tab ends the call. A dispatched call keeps its
+        // floating surface (floatingRoom holds the room), and route leaves
+        // clear the registry without this path, so the floating window
+        // takes those sessions (SPEC §11).
+        const entry = session.value;
+        if (entry && entry.state.name === roomName && floatingRoom.value !== roomName) {
+            teardownSession();
+        }
     }
 
     // The home workspace unmounts on route leave; its call tabs go with
