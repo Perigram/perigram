@@ -2579,8 +2579,9 @@ Ordered steps:
 - [x] Replace affordance law (SPEC §24 refinement): construct-derived
   payloads (provenance sources non-empty) carry no replace button; the
   button renders labeled.
-- [ ] Per-relation unlink policy — compiler vocabulary
-  (`detach` default | `delete`), server execution, authoring surface.
+- [ ] WAITING — owner verification: per-relation unlink policy — compiler
+  vocabulary (`detach` default | `delete`), server execution, authoring
+  surface.
 - [ ] WAITING — owner verification: deletion ref-cascade — deleting a
   referenced instance removes the refs pointing at it
   (`server/features/instances` remove path sweeps relation refs).
@@ -2609,6 +2610,35 @@ Ordered steps:
   (+6 sweep cases); check-arch green; check-docs carries only the
   pre-existing jagua-rs submodule link; the 17 process-definitions spec
   failures reproduce at base 11c687e99 (concurrent merges, untouched).
+
+  ### Agent Notes (2026-10-28, unlink policy)
+
+  Session `agent/unlink-policy-20261028-1930` (worktree
+  `.agent-worktrees/unlink-policy`). Vocabulary: `unlink: 'detach' |
+  'delete'` on relation entries — explicit `edges.relations` validate at
+  edge normalize (`UNLINK_POLICIES` in edges.js), ref-field entries at
+  the registry check; absence means detach (no stamped default). The
+  domain projection carries authored policies onto relation rows; the
+  compiler rides the policy onto the compiled Unlink action's
+  `relationMutation.unlink` alone (Link carries none) from either
+  contract minting path (composer entries and construction inputs).
+  Execution: the unlink action with `unlink: 'delete'` deletes the
+  unlinked target through its entity service after the reference write
+  (the `cts.remove` delete/event path; reason
+  `relation-unlink-delete`); the delete itself sweeps refs through the
+  landed remove path. Authoring: `DescriptorEditor`'s ref branch offers
+  the policy over `UNLINK_POLICIES` (`typeCanvas.unlink`, en+ru).
+  Specs: cts vocabulary + projection pins, processes compiler pin (the
+  policy rides Unlink alone). Validation: cts 96, processes 548,
+  instances 79, design-system, localization, SSR smoke 23 green;
+  check-arch, framework:validate green; check-docs carries only the
+  pre-existing jagua-rs link. FINDING (pre-existing at base, reproduced
+  by stash): 21 spec failures across
+  packages/cts graph-protocol-construction, packages/processes
+  ui-contract, and server/features/process-definitions — the
+  facade-family `cassette` → `cassette-template` rename left their
+  fixtures naming the dead type; the owner should schedule the fixture
+  sweep.
 
   ### Agent Notes (2026-10-28, placement delivery)
 

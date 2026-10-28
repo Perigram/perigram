@@ -333,7 +333,10 @@ according to relation cardinality; contextual Unlink removes the exact
 reference supplied by the linked entity row. Persistence delegates to
 the owner entity's `processUpdate` service, and auth hydration and
 execution resolve actions from the same freshly compiled canonical
-graph.
+graph. An Unlink action whose relation entry declares
+`unlink: 'delete'` deletes the unlinked target instance through its
+entity service after the reference write (the `cts.remove` delete and
+event path; the default `detach` policy removes the reference alone).
 
 Compiled Link actions grant their exposed roles read access to the
 declared target entity feature so generated entity pickers can load

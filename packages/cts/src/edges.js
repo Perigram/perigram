@@ -2,6 +2,7 @@
 // provenance — every declaration carries integrity.
 export const EDGE_KINDS = Object.freeze(['children', 'relations', 'provenance']);
 export const ON_REMOVE = Object.freeze(['restrict', 'cascade', 'detach']);
+export const UNLINK_POLICIES = Object.freeze(['detach', 'delete']);
 
 // The single lineage-key derivation: the storage key a parent's children
 // declaration names on the child (`lineage.<lineageKey>`). Authored value
@@ -29,6 +30,9 @@ export function normalizeEdges(edges = {}, declaringTypeId = '') {
       normalizedEntry.onRemove = declaration.onRemove || 'restrict';
       if (!ON_REMOVE.includes(normalizedEntry.onRemove)) {
         throw new Error(`edge ${kind}.${key}: onRemove must be one of ${ON_REMOVE.join(' | ')}`);
+      }
+      if (kind === 'relations' && declaration.unlink != null && !UNLINK_POLICIES.includes(declaration.unlink)) {
+        throw new Error(`edge relations.${key}: unlink must be one of ${UNLINK_POLICIES.join(' | ')}`);
       }
       if (kind === 'children') {
         const authored = String(declaration.lineageKey || '').trim();

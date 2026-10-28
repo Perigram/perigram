@@ -57,6 +57,13 @@
         size="small"
         @update:model-value="value => patch({ accepts: value })"
       />
+      <label>{{ $t('typeCanvas.unlink') }}</label>
+      <SelectButton
+        :model-value="modelValue.unlink || 'detach'"
+        :options="unlinkOptions"
+        size="small"
+        @update:model-value="value => patch({ unlink: value === 'delete' ? 'delete' : undefined })"
+      />
     </div>
 
     <div v-else-if="modelValue.base === 'enum'" class="flex flex-col gap-1">
@@ -118,7 +125,7 @@ import InputChips from 'primevue/inputchips';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import SelectButton from 'primevue/selectbutton';
-import { describeType, FIELD_BASES, UNITS } from '~/packages/cts/src/index.js';
+import { describeType, FIELD_BASES, UNITS, UNLINK_POLICIES } from '~/packages/cts/src/index.js';
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -129,6 +136,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const baseOptions = FIELD_BASES.map(base => ({ label: base, value: base }));
 const units = [...UNITS];
+const unlinkOptions = [...UNLINK_POLICIES];
 
 const error = computed(() => {
   // An unset ref (no accepted targets yet) is authored-in-progress, not a
@@ -163,7 +171,10 @@ function setBase(base) {
   }
   if (props.modelValue.nullable === true) next.nullable = true;
   if (base === 'quantity') next.unit = props.modelValue.unit || units[0];
-  if (base === 'ref') next.accepts = props.modelValue.accepts?.length ? props.modelValue.accepts : [];
+  if (base === 'ref') {
+    next.accepts = props.modelValue.accepts?.length ? props.modelValue.accepts : [];
+    if (props.modelValue.unlink === 'delete') next.unlink = 'delete';
+  }
   emit('update:modelValue', next);
 }
 

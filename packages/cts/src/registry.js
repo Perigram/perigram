@@ -1,7 +1,7 @@
 // Type records + registry (SPEC §4, §13): declarations as data, tenancy
 // (system first, org overlay, no shadowing), compile = R1-R6.
 import { normalizeRow, checkFields, rowToSchema } from './rows.js';
-import { normalizeEdges, checkLineageAcyclic } from './edges.js';
+import { normalizeEdges, checkLineageAcyclic, UNLINK_POLICIES } from './edges.js';
 import { checkClassObligations } from './classes.js';
 import { normalizeOperator, OPERATOR_SPECIES_BY_LETTER } from './operators.js';
 import { requireCompatible, normalizeMigrateSteps } from './diff.js';
@@ -319,6 +319,7 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
       errors.push(...checkRefTargets(type, view));
       errors.push(...checkChildrenDeclared(type, view));
       errors.push(...checkRelationDomains(type, view));
+      errors.push(...checkRelationUnlinkPolicy(type));
     }
     errors.push(...checkLineageAcyclic(view));
     return Object.freeze({
@@ -380,6 +381,19 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
         else if (view.get(childType)?.class === 'party') {
           errors.push(`type ${type.id}: children.${key} may not target party type ${childType} — parties are never lineage children`);
         }
+      }
+    }
+    return errors;
+  }
+
+  // Unlink policy vocabulary (SPEC §6/§22.12): explicit edges validate at
+  // edge normalize; ref-field entries validate here — one closed set.
+  function checkRelationUnlinkPolicy(type) {
+    const errors = [];
+    for (const [name, descriptor] of Object.entries(type.fields || {})) {
+      if (descriptor?.base !== 'ref' || descriptor.unlink == null) continue;
+      if (!UNLINK_POLICIES.includes(descriptor.unlink)) {
+        errors.push(`type ${type.id}: fields.${name} unlink must be one of ${UNLINK_POLICIES.join(' | ')}`);
       }
     }
     return errors;

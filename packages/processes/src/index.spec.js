@@ -2431,6 +2431,63 @@ describe('@perigram/processes compiler', () => {
     ]));
   });
 
+  it('rides a declared delete policy on the compiled Unlink action alone', () => {
+    const relationDomain = {
+      ...domain,
+      relations: [
+        { ownerType: 'project', key: 'libraries', targetType: 'library', cardinality: 'many', unlink: 'delete' }
+      ],
+      construction: {
+        ...domain.construction,
+        project: {
+          modes: ['genericCreate'],
+          defaultMode: 'genericCreate',
+          inputs: [
+            { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
+            { id: 'relations.libraries', path: 'relations.libraries', type: 'entity', typeId: 'library', required: false, prompt: true }
+          ]
+        }
+      },
+      fieldAccess: {
+        ...domain.fieldAccess,
+        project: { ...domain.fieldAccess.project, write: [...domain.fieldAccess.project.write, 'relations.*'] }
+      }
+    };
+    const definition = {
+      dataflowVersion: 4,
+      roles: { role_admin: { id: 'role_admin', label: 'Admin' } },
+      producerOutputs: producerOutputRecords([
+        ['create', 'project', {}, 'result']
+      ]),
+      processNodes: {
+        create: {
+          id: 'create',
+          kind: 'cts.construct',
+          typeId: 'project',
+          producerOutputId: 'create:result',
+          construction: {
+            mode: 'genericCreate',
+            inputs: [
+              { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
+              { id: 'relations.libraries', path: 'relations.libraries', type: 'entity', typeId: 'library', required: false, prompt: true }
+            ]
+          },
+          state: { to: INITIAL_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
+        }
+      },
+      graph: { nodes: [{ id: 'create', type: 'processNode', data: { refId: 'create' } }], edges: [] }
+    };
+    const compiled = compileProcessDefinition(definition, relationDomain);
+
+    expect(compiled.actions['create:unlink:libraries'].relationMutation).toMatchObject({
+      operation: 'unlink',
+      unlink: 'delete'
+    });
+    expect(compiled.actions['create:link:libraries'].relationMutation.unlink).toBeUndefined();
+  });
+
   it('derives one Link/Unlink pair per relation entry across sibling constructs', () => {
     const relationDomain = {
       ...domain,
