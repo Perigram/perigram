@@ -2040,3 +2040,42 @@ relation/quantity pins live in the spec; `.playwright/genui-identgap.json`
 records the 21px measurement.
 
 Status: WAITING owner verification.
+
+## Projection floor everywhere, honest menus and refs (owner direction
+2026-10-28)
+
+Law: SPEC §22.8 (the table floor). Owner findings: an ellipsis opening
+an empty menu in table rows; label-with-state collections still forming
+tables; "Н/Д" chips; flat label lists where the instances are the most
+data-rich.
+
+- [x] The ellipsis renders per row/card only where that instance has an
+  applicable action (`actionAppliesToEntity` per instance) — a
+  type-level action set never opens an empty menu (table, card grid,
+  board alike).
+- [x] The stored board→table projection preference obeys the table
+  floor: a boardable type with no data column beside identity and
+  state stays a board — the latched per-type view state no longer
+  overrides what displays.
+- [x] Relation refs normalize through the one app resolver at every
+  generator site (table relation column, detail relation sections, ref
+  field values): stored shapes without a type adopt the relation's
+  single declared target (the descriptor's first accepted type for ref
+  fields), so chips resolve instead of rendering the locale's Н/Д; the
+  compact ref's unresolved fallback rides the one type-label chain (raw
+  type ids stay internal).
+- [x] The handful-size rule retires (`size: small → list` and the size
+  signal): the display-aware columns floor subsumes it — a small rich
+  collection renders its data (table/cards), a small name pile still
+  stacks. `SMALL_LIST_AT` dies with it.
+
+### Agent Notes (2026-10-28, round 22)
+
+Session `agent/genui-projections-20261028-1035` (worktree
+`.agent-worktrees/genui-round22`). Н/Д was `common.notAvailable`
+rendering on relation references the chip could not type — stored
+relation refs without a type component; the resolver that handles every
+stored shape existed all along (utils/instance-relations.js — the
+explorer's), the generator surfaces simply never consumed it.
+
+Status: WAITING owner verification.
