@@ -56,8 +56,14 @@ test.describe('documents fill dialog', () => {
     const main = app.page.locator('main');
     const modeSelect = main.getByLabel('Creation mode');
     await expect(modeSelect).toBeVisible({ timeout: 30_000 });
-    await modeSelect.click();
-    await app.page.getByRole('option', { name: 'Fill', exact: true }).click();
+    // The opening panel animates; the settle wait plus the value check
+    // keeps the click off the first row's coordinates.
+    await expect(async () => {
+      await modeSelect.click();
+      await app.page.waitForTimeout(400);
+      await app.page.getByRole('option', { name: 'Fill', exact: true }).click();
+      await expect(modeSelect).toContainText('Fill');
+    }).toPass({ timeout: 30_000 });
     await main.locator('.p-inputgroup').getByRole('button').last().click();
 
     const dialog = app.page.locator('.p-dialog').first();
