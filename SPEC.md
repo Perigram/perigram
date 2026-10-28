@@ -1019,7 +1019,9 @@ option text only for non-instance options (enums, profiles, providers).
 Option lists are built through one shared derivation (entity, type id,
 value, and the identifier-field label), so no picker hand-rolls its own
 label or renders a raw record id. A multi-picker shows selected
-instances as chips inside the control.
+instances as chips inside the control. A single picker's closed control
+renders the selected option's identifier label, and its filter matches
+that label.
 
 ## 23. Deslopification (owner direction 2026-10-23)
 

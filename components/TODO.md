@@ -297,6 +297,19 @@ as glyph chips inside the control (PrimeVue chip display + the
 chip-surface recipe) and the outside-cards grid retires with its spec
 assertions. SPEC §22.13 restated on the row.
 
+#### Agent Notes (2026-10-28, closed control)
+
+Session `agent/sheet-sane-chrome-20261028` (worktree
+`.agent-worktrees/sheet-sane-chrome`), owner review of the sheet editor
+chrome: the option row rode the closed control's trigger and the
+editor pickers hand-rolled labels (`row.name`), so constructed sheets
+(whose name lands in `fields.name`) read "Unnamed" in the trigger and
+matched nothing in the filter. `InstanceSelect` entity mode now derives
+the label through `instanceRecordTitle` over the served type view (the
+option's label stands in until the view loads) and the trigger renders
+that label — PrimeVue's own one-line control rhythm. SPEC §22.13 gains
+the closed-control sentence.
+
 ### Region reload strips take no flow slot (SPEC §22.8)
 
 - [ ] WAITING — owner verification: the indeterminate reload bar takes no

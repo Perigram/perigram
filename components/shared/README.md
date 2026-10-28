@@ -425,8 +425,12 @@ Collection counts render as a `Tag` with `secondary` severity.
 
 ### `InstanceSelect.vue` / `InstanceMultiSelect.vue`
 The entity dropdown wrappers: options carrying an entity render as
-one-line instance option rows (below) in the option list and the selected
-area; plain options keep PrimeVue's label rendering. An option is
+one-line instance option rows (below) in the option list; plain options
+keep PrimeVue's label rendering. The single select's closed control and
+filter speak the identifier-field label through the one derivation
+(`instanceRecordTitle` over the served type view; the option's own label
+stands in while the view loads), so the trigger stays a one-line label.
+An option is
 entity-bearing when it carries an `entity` (or is itself) a record with
 an id slot plus one of the record dialects — an `identity` block or the
 flat §3 `fields` object — and a type id resolves (the `typeId` prop, the
