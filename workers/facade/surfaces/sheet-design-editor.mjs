@@ -180,14 +180,6 @@ export default function createSurface({ vue, components, locale, queries, notify
         fitView();
       }
 
-      // The workspace opens editor tabs from an id stub; the record body
-      // hydrates afterwards under the same id.
-      watch(
-        () => [props.record?._id, Boolean(props.record?.fields?.geometry)],
-        resetCanvas,
-        { immediate: true }
-      );
-
       // ---- canvas geometry -------------------------------------------------
 
       const sheetFrames = computed(() => {
@@ -392,6 +384,15 @@ export default function createSurface({ vue, components, locale, queries, notify
           selection.value = null;
         }
       });
+
+      // The workspace opens editor tabs from an id stub; the record body
+      // hydrates afterwards under the same id. The immediate run needs
+      // the history and geometry declarations above it.
+      watch(
+        () => [props.record?._id, Boolean(props.record?.fields?.geometry)],
+        resetCanvas,
+        { immediate: true }
+      );
 
       // ---- chrome actions -----------------------------------------------------
 
