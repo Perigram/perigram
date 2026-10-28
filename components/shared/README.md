@@ -719,11 +719,10 @@ through the shared sanitized markdown pipeline
 ([shared/markdown.js](../../shared/markdown.js)) — plain
 text on SSR, formatting on hydration. Markdown mode also lays the root out as
 a full-width block column in the prose reading voice (`text-prose` — an agent
-answer is a room document; human chat text keeps the UI voice), with document
-typography as role-and-token arbitrary variants on that host: preflight
-zeroes element margins, so the chain restores block spacing, list markers and
-indent, rules, and table borders; headings step up through the `editor` role
-and code reads in the `technical` role. Text parts wrap with
+answer is a room document; human chat text keeps the UI voice), with the
+rendered HTML wearing the shared `ck-markdown` document element styles
+([shared/README.md](../../shared/README.md) — markdown.js). Text parts wrap
+with
 `overflow-wrap: anywhere` and the `min-w-0`/`max-w-full` chain keeps unbroken
 strings (urls, serials) inside the chat bounds instead of overflowing it.
 Messages carrying `attachment.kind === 'audio'` render a leading voice-message
