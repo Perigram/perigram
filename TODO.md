@@ -2123,3 +2123,50 @@ relation sections normalized in round 22; the ref FIELD dispatch read
 ref consumption now rides the one resolver.
 
 Status: WAITING owner verification.
+
+## Random world decorruption (owner direction 2026-10-28)
+
+Law: the random UI world generator rolls its world; nothing overwrites
+a rolled type, edge, or count with hand-authored shapes or vocabulary.
+Owner verdict on the accreted "guarantee" machinery (projection
+floors, forced class list, the Stage/Batch/Amount/Holder/Note
+volume-type stamp, peer-host claiming with rolled-edge deletion, the
+reserved empty type, concentrated lineage, weight-sized peer counts,
+forced 60/0 instance counts, the forced empty/missing screens): sabotage
+— delete it all.
+
+- [x] `test-data/ui-mapping-random.js`: classes, fields, edges, and
+  instance counts are pure seed rolls again (the 2026-09-19 law).
+  Post-roll touches are validity floors alone (authored name/glyph,
+  an identifier flag somewhere, a control pin somewhere, nullable
+  marking on refs whose targets rolled empty). Transition actions
+  author no label — the resolver names them from their target state.
+  The `sourceStatesMatrix` stays (an opt-in showcase overlay, it
+  mutates nothing).
+- [x] Spec migrated: determinism, CTS `checkValue` conformity,
+  whole-world composition, traits/arrangement totality, and the
+  validity-floor/matrix pins stand; the guarantee pins (volume table,
+  prose floor, peer columns, empty/missing screens, >50 collection)
+  die with the machinery. The SSR smoke's pinned seed 37 carries
+  board/gantt/calendar naturally — no pin needed.
+- [x] Docs: test-data, shared/ui-mapping, pages/test READMEs state the
+  rolled-world law.
+
+### Agent Notes (2026-10-28)
+
+Session `agent/random-world-decorrupt-20261028-1405` (worktree
+`.agent-worktrees/decorrupt`). Corruption timeline established before
+the cut: `1eb7248ee` (10-21) introduced the volume/peer/empty
+machinery; `2544b7068` (10-25) forced the class list and projection
+floor stamps; `3b6e882a8`+`c26963809` (10-27, round 11) stamped the
+hardcoded Serial/Stage/Batch/Amount/Holder/Note field set over the
+rolled volume type; `ecdf27f02` (round 19) added the prose floor. All
+deleted. Post-cut verification across seeds 1–400: every world
+composes; natural layout coverage per seed spans table/card-grid/
+timeline/stats/gantt/calendar/board with no stamps (seed 37 alone
+carries board+gantt+calendar+table+timeline); empty types occur
+naturally. Validation: random-world spec (8), test-data+ui-mapping+
+design-system suites (175), SSR smoke 16, check-arch green; check-docs
+reports only the pre-existing jagua-rs submodule link.
+
+Status: WAITING owner verification.
