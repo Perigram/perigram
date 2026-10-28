@@ -1125,6 +1125,15 @@ revision selector listing prior payload revisions, each opening
 read-only. Template retirement is a matter of the process definition:
 the definition that stations the type owns the remove construct.
 
+Owner decision (2026-10-28): the revision selector is the record's
+version surface. It lists the record's payload revisions — version,
+creation stamp, and the write that minted each — marks the current
+revision, and opens any revision read-only through its frozen bytes. A
+prior revision restores: its frozen bytes re-enter through the
+revisioned payload channel as a new revision, behind the same write
+grant the replace affordance takes. Restore mints history; it never
+rewrites or deletes a revision — the fabric is append-only.
+
 The DXF editor surface grows marker-first: open the template payload on
 the CAD canvas, author and rename `{spot:<name>}` anchors, save through
 the revisioned channel; full editing grows on the same surface.

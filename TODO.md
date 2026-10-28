@@ -2600,8 +2600,9 @@ Ordered steps:
 - [ ] WAITING — owner verification: deletion ref-cascade — deleting a
   referenced instance removes the refs pointing at it
   (`server/features/instances` remove path sweeps relation refs).
-- [ ] Revision selector on revision-scoped details — lists prior payload
-  revisions, opens one read-only.
+- [ ] WAITING — owner verification: Revision selector on revision-scoped
+  details — lists prior payload revisions, opens one read-only, restores
+  a prior revision as a new one (SPEC §24 owner decision 2026-10-28).
 
   ### Agent Notes (2026-10-28, ref sweep)
 
@@ -2663,3 +2664,25 @@ Ordered steps:
   `RegionBlock` toolbar link controls, row-menu unlink entries through
   a `context.data` run-context channel (the chip path's contract
   generalized), replace gating on `provenance.sources`.
+
+  ### Agent Notes (2026-10-28, revision picker + restore)
+
+  Session `agent/payload-revision-picker-20261028` (worktree
+  `.agent-worktrees/payload-revision-picker-20261028`). SPEC §24 owner
+  decision added from owner words this session: the revision selector
+  is the record's version surface; restore mints a new revision and the
+  fabric is append-only. Delivered: `PayloadRevisionPicker` on the
+  record header (popover over `GET /api/instance-revisions` filters,
+  newest-first rows with the current revision marked, read-only dialog
+  previewing the frozen bytes through the shared payload download URL,
+  restore behind the replace affordance's write grant and
+  authored-content law); `restorePayloadRevision` in the instances
+  service re-running `replacePayload` over the frozen bytes (ownership
+  check: record, type, and declared scope; reason `payload-restored`)
+  with `POST /api/instances/:type/:id/restore-revision` as transport;
+  revisions mint `data.createdAt`, and the entityRevision read policy
+  adds `data.reason` and `attachments.primary` (the frozen bytes
+  reference preview surfaces resolve). E2E
+  `payload-revisions.spec.js` drives list → read-only preview → restore
+  over the tech-drawing `dxf-source` type, artifact
+  `test-results/payload-revisions-live.json`.

@@ -264,6 +264,23 @@ the revisioned channel that bumps the record's revision in place. The
 same write-level grant gates it; the accept list narrows to the type's
 declared MIME set when it carries no wildcards.
 
+`PayloadRevisionPicker` is the record's version surface (SPEC §24): the
+same header mounts it for every revision-scoped payload type. A history
+affordance opens a popover listing the record's payload revisions
+newest-first (version, creation stamp, minting write) with the current
+revision marked; the rows come from
+`GET /api/instance-revisions?typeId&instanceId&scope` through the
+instances store. Every row opens read-only in a dialog: the revision's
+frozen bytes preview through the shared payload download URL
+(`attachments.primary`, the same contract the record's own payload
+preview resolves), degrading to a download action for preview modes the
+viewer cannot render. A prior row restores through
+`POST /api/instances/:type/:id/restore-revision`: the frozen bytes
+re-enter as a new revision, the popover reloads, and the write-level
+grant plus the authored-content law gate the affordance exactly as the
+replace button's. Restore rides a direct fetch — the payload transport
+is online-only (PWA law).
+
 The `sketch-editor` surface is the tech-drawing pack's surface module
 (`workers/tech-drawing/surfaces/`) and the `text-editor`/`csv-editor`
 surfaces are the documents pack's (`workers/documents/surfaces/`); they
