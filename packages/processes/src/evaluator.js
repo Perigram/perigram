@@ -226,7 +226,7 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   throw new Error(`Node ${record.id || kind} is not a data/read operation`);
 }
 
-export async function executeProcessEffectNode(record = {}, inputs = {}, invoke) {
+export async function executeProcessEffectNode(record = {}, inputs = {}, invoke, { accessById = new Map() } = {}) {
   if (typeof invoke !== 'function') throw new Error(`Effect executor is required for ${record.kind}`);
   if (record.matching === 'cross') throw new Error(`${record.kind} cannot use Cross matching for mutations`);
 
@@ -236,8 +236,14 @@ export async function executeProcessEffectNode(record = {}, inputs = {}, invoke)
   ]);
   assertMutationInputsAlign(record.kind, entries.map(([, tree]) => tree));
 
+  // A list-valued input (a construction typeList — the parts of one fill)
+  // enters each invocation as ONE value: the whole list. Every other
+  // input aligns per item — the entity broadcast drives batch mutations.
   const invocations = [];
-  const result = solveDataTrees(entries.map(([, tree]) => ({ tree, access: 'item' })), (values, location) => {
+  const result = solveDataTrees(entries.map(([id, tree]) => ({
+    tree,
+    access: accessById.get(id) === 'list' ? 'list' : 'item'
+  })), (values, location) => {
     const marker = invocations.length;
     invocations.push({
       inputs: Object.fromEntries(entries.map(([id], index) => [id, values[index]])),

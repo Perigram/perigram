@@ -1,6 +1,6 @@
 import { createDataPacket, isDataTree, packetValue } from './data-tree.js';
 import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
-import { resolveCatalogNodePorts, EFFECT_SPECIES_KINDS } from './node-catalog.js';
+import { resolveCatalogNodePorts, EFFECT_SPECIES_KINDS, constructionInputsForContract, resolveConstructionMode } from './node-catalog.js';
 
 export const PROCESS_RUN_STATUSES = Object.freeze(['running', 'waiting', 'succeeded', 'failed', 'cancelled']);
 export const PROCESS_STEP_STATUSES = Object.freeze(['pending', 'running', 'waiting', 'succeeded', 'failed', 'skipped']);
@@ -186,6 +186,23 @@ async function executeOperationalNode({ run, process, node, record, current, ste
   if (isEffectRecord(record)) {
     if (!environment.executeEffect) throw new Error(`Effect executor is required for ${record.kind}`);
     const mappedMutation = NATIVE_MUTATION_KINDS.has(String(record.kind));
+    // List-valued construction inputs (a typeList — the parts of one fill)
+    // carry their whole list into each invocation; entity and scalar ports
+    // align per item — the entity broadcast drives batch mutations.
+    const context = environment.catalogContext?.(record) || {};
+    const contract = context.domain?.construction?.[record.typeId] || null;
+    const listValued = new Set(
+      (contract
+        ? constructionInputsForContract(contract, resolveConstructionMode(record, contract))
+        : (record.construction?.inputs || []))
+        .filter(input => input.type === 'typeList')
+        .map(input => String(input.path || input.id || ''))
+    );
+    const accessById = new Map(
+      (resolveCatalogNodePorts(record, context).inputs || [])
+        .filter(port => port.role === 'data' && port.id !== 'entity')
+        .map(port => [port.id, listValued.has(port.id) ? 'list' : 'item'])
+    );
     const result = mappedMutation
       ? await executeProcessEffectNode(record, inputs, (mutationInputs, location) => environment.executeEffect({
           kind: record.kind,
@@ -196,7 +213,7 @@ async function executeOperationalNode({ run, process, node, record, current, ste
             : `${step.idempotencyKey}:${location.branchPath.join('.') || 'root'}:${location.itemIndex}`,
           attempt: step.attempt,
           run
-        }))
+        }), { accessById })
       : await environment.executeEffect({
           kind: record.kind,
           record,
