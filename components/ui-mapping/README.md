@@ -435,11 +435,11 @@ beside the transition history in `StateHistory`.
   floor and the host grants growth — fact groups fill in tracking
   columns, body blocks grow into spare row width; nested card
   variants keep the hairline spec list. The preview renders in the
-  stepped hero band (`LAYOUT.previewHero`: 7rem base, taller past the
-  container width steps) with `PreviewBox fill`; a rendered preview — a
-  renderable payload, a declared previewSource, or a plugin preview —
-  sizes the one content band (`LAYOUT.previewHeroBandContent`, the same
-  ladder for every mode). A list region with
+  framed media surface with `PreviewBox fill`; the band follows the
+  content — `LAYOUT.previewHeroBandAspect` for intrinsic geometry
+  (image/pdf/drawing payloads, declared previewSource),
+  `LAYOUT.previewHeroBandContent` for reading modes and plugin previews,
+  the bare small ladder for the quiet glyph. A list region with
   nothing to show
   renders at content width, and a record's empty child regions pack side
   by side as compact stubs (`RegionChildren pack`). Every scalar and
@@ -465,13 +465,14 @@ beside the transition history in `StateHistory`.
   non-interactive canvas that fills its band with no own border, because
   the host card owns the chrome; images and sketch scenes fill the band
   at uniform scale, vector drawings (dxf/svg/occs) fit inside it, and
-  dimension text renders big. Document modes
-  (`DOCUMENT_PREVIEW_MODES`) render the pane variant in the fill hero —
-  the PDF frame with viewer controls, scrolling prose, paginated tables —
-  and content thumbnails in fixed-height card bands: the chrome-free PDF
-  page, clipped table rows, clamped prose. Fetch-backed modes state
-  their load (spinner) and surface a failed download; markdown documents
-  render through the shared pipeline while plain text keeps its breaks. A
+  dimension text renders big. The fill hero passes the pane variant:
+  the drawing keeps its aspect frame, the raster renders at natural
+  size (contained by the band and the viewport), the PDF renders its
+  page shape (MediaBox aspect, A4 fallback) with viewer chrome hidden,
+  and reading modes render the readers — scrolling prose, paginated
+  tables. Fetch-backed modes state their load (spinner) and surface a
+  failed download; markdown documents render through the shared
+  pipeline while plain text keeps its breaks. A
   type that declares a `previewSource` field (the authored pack vocabulary
   adopted by the CTS registry, carried on the bundle type record and read
   off the wire DTO by `dtoToScreenInstance` as `instance.previewSource` —
