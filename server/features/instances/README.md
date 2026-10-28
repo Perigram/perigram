@@ -175,7 +175,16 @@ Parent: [server/features](../README.md).
 - Remove transport (`DELETE /api/instances/:type/:id`): the record death
   behind the same write gate `patch` takes (`removeForHttp` loads the
   entity and checks the compiled grant — fail-closed). The server side
-  of the contract-5 `remove` host capability.
+  of the contract-5 `remove` host capability. The remove path sweeps
+  relation refs (SPEC §22.12: a dangling ref is a defect): every
+  declared relation edge targeting the type — explicit `edges.relations`
+  entries and ref fields alike, derived over the same per-org view the
+  lineage keys use — has its referrers' slots rewritten in both storage
+  blocks; a single ref nulls, an array drops its matching entries
+  (`relations.<key>` ref objects, `fields.<key>` bare ids). A system
+  target (`organizationId: null`) sweeps every org over the static
+  view's edges; each swept referrer publishes the shared entity event
+  with reason `ref-sweep`.
 - Write-gate delegation (`access.inherits`): a type may authorize its
   record writes by another type's grant — the declaration's
   `access: { inherits: <typeId> }` (listing grammar; the parent must be

@@ -19,6 +19,9 @@ vi.mock('../plugins/repository.js', () => ({
 vi.mock('../workflow-overrides/service.js', () => ({
   resolveActiveWorkflow: vi.fn(async () => null)
 }));
+vi.mock('../instance-events/service.js', () => ({
+  publishEntityChanged: vi.fn(async () => null)
+}));
 vi.mock('../cts-types/repository.js', () => ({
   findByTypeId: vi.fn(async (organizationId, typeId) => (
     typeId === 'panel'
@@ -40,13 +43,31 @@ vi.mock('../cts-types/repository.js', () => ({
           ? { id: 'memo', class: 'item', version: 1, fields: { title: { base: 'string' }, body: { base: 'string' } }, states: { main: { initial: 'new', states: { new: {} } } }, access: { inherits: 'gallery' } }
         : typeId === 'plain-note'
           ? { id: 'plain-note', class: 'item', version: 1, fields: { name: { base: 'string', identifier: true } }, states: { main: { initial: 'new', states: { new: {} } } } }
-          : null
+          : typeId === 'project'
+            ? {
+                id: 'project',
+                class: 'group',
+                version: 1,
+                fields: { name: { base: 'string' }, library: { base: 'ref', accepts: ['panel'] } },
+                edges: { relations: { panels: { types: ['panel'], cardinality: 'many', onRemove: 'detach' } } }
+              }
+            : null
   )),
   // org-1 declares the panel-under-bin hierarchy (SPEC §6 children edge,
-  // no authored lineageKey -> stamped 'binId' at edge normalize)
+  // no authored lineageKey -> stamped 'binId' at edge normalize) and the
+  // project relation owner (an explicit edge and a ref field over panel)
   listByOrganization: vi.fn(async (organizationId) => (
     organizationId === 'org-1'
-      ? [{ id: 'bin', class: 'group', version: 1, fields: { name: { base: 'string' } }, edges: { children: { panels: { types: ['panel'], onRemove: 'restrict' } } } }]
+      ? [
+          { id: 'bin', class: 'group', version: 1, fields: { name: { base: 'string' } }, edges: { children: { panels: { types: ['panel'], onRemove: 'restrict' } } } },
+          {
+            id: 'project',
+            class: 'group',
+            version: 1,
+            fields: { name: { base: 'string' }, library: { base: 'ref', accepts: ['panel'] } },
+            edges: { relations: { panels: { types: ['panel'], cardinality: 'many', onRemove: 'detach' } } }
+          }
+        ]
       : []
   ))
 }));
@@ -696,5 +717,145 @@ describe('version fabric (SPEC §24)', () => {
     expect(revisionService.ensureForEntitySnapshot).not.toHaveBeenCalled();
 
     constructions.mockRestore();
+  });
+});
+
+describe('remove sweeps relation refs (SPEC §22.12)', () => {
+  const PANEL_ID = 'panel-7';
+
+  function stubPanel(overrides = {}) {
+    const coll = stubCollection();
+    coll.deleteOne.mockResolvedValue({ deletedCount: 1 });
+    coll.findOne.mockResolvedValue({
+      _id: PANEL_ID,
+      type: 'panel',
+      organizationId: 'org-1',
+      fields: { serial: 'P-7' },
+      lineage: {},
+      ...overrides
+    });
+    return coll;
+  }
+
+  function stubReferrers(referrer) {
+    return vi.spyOn(repository, 'findInstancesByFilter')
+      .mockResolvedValue(referrer ? [referrer] : []);
+  }
+
+  it('rewrites both storage blocks on every referrer and publishes the event', async () => {
+    const coll = stubPanel();
+    const referrer = {
+      _id: 'project-1',
+      type: 'project',
+      organizationId: 'org-1',
+      relations: { panels: [{ type: 'panel', id: PANEL_ID }, { type: 'panel', id: 'panel-8' }] },
+      fields: { library: PANEL_ID }
+    };
+    const find = stubReferrers(referrer);
+    const service = instanceServiceResolver('panel');
+
+    await service.remove(PANEL_ID, { actor: 'user-1', organizationId: 'org-1' });
+
+    expect(coll.deleteOne).toHaveBeenCalledWith({ _id: PANEL_ID });
+    // Both declared edges over panel — the explicit `panels` edge and the
+    // `library` ref field — scanned the owner collection.
+    const scans = find.mock.calls.filter(([, filter]) => filter.type === 'project');
+    expect(scans).toHaveLength(2);
+    expect(scans[0][1].$or).toEqual([
+      { 'relations.panels.id': { $in: [PANEL_ID] } },
+      { 'relations.panels': { $in: [PANEL_ID] } },
+      { 'fields.panels': { $in: [PANEL_ID] } }
+    ]);
+    const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
+    expect(set['relations.panels']).toEqual([{ type: 'panel', id: 'panel-8' }]);
+    expect(coll.findOneAndUpdate.mock.calls[1][1].$set['fields.library']).toBeNull();
+
+    const { publishEntityChanged } = await import('../instance-events/service.js');
+    expect(publishEntityChanged).toHaveBeenCalledWith(
+      { userId: 'user-1', organizationId: 'org-1' },
+      { type: 'project', id: 'project-1', change: 'updated', reason: 'ref-sweep' }
+    );
+    find.mockRestore();
+  });
+
+  it('nulls a single relation ref and keeps other targets of a multi-target slot', async () => {
+    const coll = stubPanel();
+    const referrer = {
+      _id: 'project-2',
+      type: 'project',
+      organizationId: 'org-1',
+      relations: { library: { type: 'panel', id: PANEL_ID } },
+      fields: { library: { type: 'panel', id: PANEL_ID } }
+    };
+    const find = stubReferrers(referrer);
+    const service = instanceServiceResolver('panel');
+
+    await service.remove(PANEL_ID, { organizationId: 'org-1' });
+
+    const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
+    expect(set['relations.library']).toBeNull();
+    expect(set['fields.library']).toBeNull();
+    find.mockRestore();
+  });
+
+  it('keeps a ref of another type sharing the deleted id (multi-target edges)', async () => {
+    const coll = stubPanel();
+    const referrer = {
+      _id: 'project-3',
+      type: 'project',
+      organizationId: 'org-1',
+      relations: { panels: [{ type: 'bin', id: PANEL_ID }, { type: 'panel', id: PANEL_ID }] }
+    };
+    const find = stubReferrers(referrer);
+    const service = instanceServiceResolver('panel');
+
+    await service.remove(PANEL_ID, { organizationId: 'org-1' });
+
+    const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
+    expect(set['relations.panels']).toEqual([{ type: 'bin', id: PANEL_ID }]);
+    find.mockRestore();
+  });
+
+  it('derives a system target\'s edges from the static view alone', async () => {
+    stubPanel({ organizationId: null });
+    const find = stubReferrers([]);
+    const service = instanceServiceResolver('panel');
+
+    await service.remove(PANEL_ID, { organizationId: 'org-1' });
+
+    // org-1's project edges stay out: a system row is referenced through
+    // its pack's declared relations (README: system targets sweep the
+    // static view's edges).
+    expect(find).not.toHaveBeenCalled();
+    find.mockRestore();
+  });
+
+  it('skips the scan when no declared edge targets the type', async () => {
+    const coll = stubPanel();
+    const find = stubReferrers([]);
+    const service = instanceServiceResolver('label');
+
+    await service.remove('label-1', { organizationId: 'org-1' });
+
+    expect(find).not.toHaveBeenCalled();
+    expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
+    find.mockRestore();
+  });
+
+  it('removes through the HTTP transport gate and sweeps before the delete', async () => {
+    const coll = stubPanel();
+    const find = stubReferrers({
+      _id: 'project-4',
+      type: 'project',
+      organizationId: 'org-1',
+      fields: { library: PANEL_ID }
+    });
+    const service = instanceServiceResolver('panel');
+
+    await service.removeForHttp(PANEL_ID, { auth: { userId: 'user-1' }, organizationId: 'org-1' });
+
+    expect(coll.deleteOne).toHaveBeenCalled();
+    expect(coll.findOneAndUpdate.mock.calls[0][1].$set['fields.library']).toBeNull();
+    find.mockRestore();
   });
 });

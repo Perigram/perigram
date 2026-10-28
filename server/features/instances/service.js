@@ -18,6 +18,7 @@ import * as repository from './repository.js';
 import { listQueryFilter } from './filters.js';
 import * as filesService from '../files/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
+import * as entityEventService from '../instance-events/service.js';
 import { hasInstanceAccess } from '../../core/access/service.js';
 import { appendFieldChangeEvent } from '../../core/machines/service.js';
 import { resolveActiveWorkflow } from '../workflow-overrides/service.js';
@@ -36,6 +37,12 @@ const declarationCache = new Map();
 // cache and invalidate with it on registry writes.
 let staticLineageKeys = null;
 const lineageKeysCache = new Map();
+// Declared relation edges per target type (SPEC §6: explicit
+// edges.relations entries and ref fields alike — a ref row is a declared
+// relation), derived over the same view as the lineage keys and
+// invalidated with it.
+let staticRelationEdges = null;
+const relationEdgesCache = new Map();
 
 // The attributed change list for the field-change audit event: which
 // patched leaves actually differ from the current DTO. Values compare by
@@ -101,24 +108,69 @@ function declaredLineageKeysOf(declarations = []) {
   return keysByType;
 }
 
+// Relation edges keyed by target type. The `*` strangler wildcard
+// accepts every target, so wildcard ref fields ride beside every
+// target's edge set.
+function declaredRelationEdgesOf(declarations = []) {
+  const edgesByTarget = new Map();
+  const wildcardEdges = [];
+  const push = (target, entry) => {
+    const edges = edgesByTarget.get(target) || [];
+    edges.push(entry);
+    edgesByTarget.set(target, edges);
+  };
+  for (const owner of declarations) {
+    const seen = new Set();
+    for (const [key, declaration] of Object.entries(owner?.edges?.relations || {})) {
+      seen.add(key);
+      for (const target of declaration?.types || []) push(target, { ownerTypeId: owner.id, key });
+    }
+    for (const [name, descriptor] of Object.entries(owner?.fields || {})) {
+      if (descriptor?.base !== 'ref' || seen.has(name)) continue;
+      const accepts = descriptor?.accepts || [];
+      if (accepts.includes('*')) wildcardEdges.push({ ownerTypeId: owner.id, key: name });
+      for (const target of accepts) if (target !== '*') push(target, { ownerTypeId: owner.id, key: name });
+    }
+  }
+  return { byTarget: edgesByTarget, wildcardEdges };
+}
+
+async function overlayDeclarationsFor(organizationId) {
+  try {
+    return [
+      ...staticTypes.values(),
+      ...await pluginInstalls.listDeclarationsByOrganization(organizationId),
+      ...await typeStore.listByOrganization(organizationId)
+    ];
+  } catch {
+    return [];
+  }
+}
+
 async function lineageKeysFor(typeId, organizationId = null) {
   staticLineageKeys ||= declaredLineageKeysOf([...staticTypes.values()]);
   if (!organizationId) return staticLineageKeys.get(typeId) || new Set();
   const cacheKey = String(organizationId);
   if (!lineageKeysCache.has(cacheKey)) {
-    let overlayDeclarations = [];
-    try {
-      overlayDeclarations = [
-        ...staticTypes.values(),
-        ...await pluginInstalls.listDeclarationsByOrganization(organizationId),
-        ...await typeStore.listByOrganization(organizationId)
-      ];
-    } catch {
-      overlayDeclarations = [];
-    }
-    lineageKeysCache.set(cacheKey, declaredLineageKeysOf(overlayDeclarations));
+    lineageKeysCache.set(cacheKey, declaredLineageKeysOf(await overlayDeclarationsFor(organizationId)));
   }
   return lineageKeysCache.get(cacheKey).get(typeId) || new Set();
+}
+
+async function relationEdgesFor(typeId, organizationId = null) {
+  staticRelationEdges ||= declaredRelationEdgesOf([...staticTypes.values()]);
+  const edgesFor = (derived) => {
+    const typed = derived.byTarget.get(typeId) || [];
+    const seen = new Set(typed.map(edge => `${edge.ownerTypeId}:${edge.key}`));
+    const wildcards = derived.wildcardEdges.filter(edge => !seen.has(`${edge.ownerTypeId}:${edge.key}`));
+    return [...typed, ...wildcards];
+  };
+  if (!organizationId) return edgesFor(staticRelationEdges);
+  const cacheKey = String(organizationId);
+  if (!relationEdgesCache.has(cacheKey)) {
+    relationEdgesCache.set(cacheKey, declaredRelationEdgesOf(await overlayDeclarationsFor(organizationId)));
+  }
+  return edgesFor(relationEdgesCache.get(cacheKey));
 }
 
 async function declarationFor(typeId, organizationId = null) {
@@ -149,10 +201,12 @@ export function invalidateInstanceDeclarations(organizationId = null) {
       if (key.endsWith(`@${organizationId}`)) declarationCache.delete(key);
     }
     lineageKeysCache.delete(String(organizationId));
+    relationEdgesCache.delete(String(organizationId));
     return;
   }
   declarationCache.clear();
   lineageKeysCache.clear();
+  relationEdgesCache.clear();
 }
 
 // The cached declaration accessor for sibling features (the
@@ -564,12 +618,20 @@ function instanceService(typeId) {
       if (!target || !hasInstanceAccess({ entity: toDto(doc), typeId: target.typeId, feature: target.feature, level: 'write', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
-      return await this.remove(id);
+      return await this.remove(id, { actor: auth?.userId || null, organizationId: doc.organizationId ?? null });
     },
 
-    async remove(id) {
-      const declaration = await declarationFor(typeId, null);
+    // The sweep runs before the delete (SPEC §22.12); the doc's own
+    // organization scopes the referrer scan, so a system target sweeps
+    // every org.
+    async remove(id, { actor = null, organizationId = null } = {}) {
+      organizationId = organizationId == null ? null : String(organizationId);
+      const declaration = await declarationFor(typeId, organizationId);
       const collection = repository.collectionForClass(declaration?.class);
+      const doc = await repository.findInstance(collection, id, typeId);
+      if (doc) {
+        await sweepRelationRefs({ typeId, id: String(doc._id), organizationId: doc.organizationId ?? null }, actor);
+      }
       return await repository.deleteInstance(collection, id);
     },
 
@@ -683,7 +745,7 @@ function instanceService(typeId) {
       if (!declaration) return null;
       return toDto(await repository.findInstance(repository.collectionForClass(declaration.class), id, typeId), declaration);
     },
-    processDelete: (id, auth) => instanceService(typeId).remove(id),
+    processDelete: (id, auth) => instanceService(typeId).remove(id, { actor: auth?.userId || null, organizationId: auth?.organizationId || null }),
     processCapabilities: {
       create: staticCreateModes.length > 0,
       createModes: staticCreateModes,
@@ -764,6 +826,68 @@ function instanceService(typeId) {
       }
     })
   };
+}
+
+// Relation-ref sweep (SPEC §22.12: deleting a referenced instance
+// removes every ref pointing at it). Both stored id forms match: the
+// query carries the string and ObjectId shapes, the row comparison
+// stringifies.
+function refPointsAt(value, deletedId, deletedTypeId) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    if (value.type && deletedTypeId && value.type !== deletedTypeId) return false;
+    return String(value.id) === deletedId;
+  }
+  return String(value) === deletedId;
+}
+
+function sweptRefSlot(value, deletedId, deletedTypeId) {
+  if (Array.isArray(value)) {
+    const next = value.filter(item => !refPointsAt(item, deletedId, deletedTypeId));
+    return next.length === value.length ? value : next;
+  }
+  return refPointsAt(value, deletedId, deletedTypeId) ? null : value;
+}
+
+async function sweepRelationRefs({ typeId, id, organizationId }, actor = null) {
+  const edges = await relationEdgesFor(typeId, organizationId);
+  if (!edges.length) return;
+  const deletedId = String(id);
+  const idForms = [deletedId];
+  const flexible = toFlexibleId(deletedId);
+  if (String(flexible) !== deletedId) idForms.push(flexible);
+  for (const { ownerTypeId, key } of edges) {
+    const ownerDeclaration = await declarationFor(ownerTypeId, organizationId);
+    const collection = repository.collectionForClass(ownerDeclaration?.class);
+    if (!collection) continue;
+    const filter = {
+      type: ownerTypeId,
+      $or: [
+        { [`relations.${key}.id`]: { $in: idForms } },
+        { [`relations.${key}`]: { $in: idForms } },
+        { [`fields.${key}`]: { $in: idForms } }
+      ],
+      // An org-scoped target is referenced from its own org alone; a
+      // system target (organizationId null) is referenced from any org.
+      ...(organizationId ? { organizationId: toFlexibleId(organizationId) } : {})
+    };
+    for (const referrer of await repository.findInstancesByFilter(collection, filter)) {
+      const set = {};
+      if (referrer.relations && referrer.relations[key] !== undefined) {
+        const next = sweptRefSlot(referrer.relations[key], deletedId, typeId);
+        if (next !== referrer.relations[key]) set[`relations.${key}`] = next;
+      }
+      if (referrer.fields && referrer.fields[key] !== undefined) {
+        const next = sweptRefSlot(referrer.fields[key], deletedId, typeId);
+        if (next !== referrer.fields[key]) set[`fields.${key}`] = next;
+      }
+      if (!Object.keys(set).length) continue;
+      await repository.updateInstanceFields(collection, referrer._id, set);
+      await entityEventService.publishEntityChanged(
+        { userId: actor || 'SYSTEM', organizationId: referrer.organizationId ?? organizationId },
+        { type: ownerTypeId, id: String(referrer._id), change: 'updated', reason: 'ref-sweep' }
+      );
+    }
+  }
 }
 
 const boundServices = new Map();

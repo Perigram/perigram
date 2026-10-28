@@ -2571,11 +2571,34 @@ Ordered steps:
   button renders labeled.
 - [ ] Per-relation unlink policy — compiler vocabulary
   (`detach` default | `delete`), server execution, authoring surface.
-- [ ] Deletion ref-cascade — deleting a referenced instance removes the
-  refs pointing at it (`server/features/instances` remove path sweeps
-  relation refs; today refs dangle).
+- [ ] WAITING — owner verification: deletion ref-cascade — deleting a
+  referenced instance removes the refs pointing at it
+  (`server/features/instances` remove path sweeps relation refs).
 - [ ] Revision selector on revision-scoped details — lists prior payload
   revisions, opens one read-only.
+
+  ### Agent Notes (2026-10-28, ref sweep)
+
+  Session `agent/ref-sweep-20261028-2100` (worktree
+  `.agent-worktrees/ref-sweep`). `remove(id, { actor, organizationId })`
+  sweeps before the delete: relation edges derive per target type over
+  the same per-org view the lineage keys use (explicit `edges.relations`
+  entries and ref fields alike, cached beside the declaration cache and
+  invalidated with it; `*` wildcard ref fields join every target set);
+  the referrer scan covers both storage blocks
+  (`relations.<key>.id` and bare `relations.<key>` / `fields.<key>`,
+  string and ObjectId id forms), a single ref nulls, arrays drop their
+  matching entries, the typed filter keeps other-type refs sharing the
+  id, and each swept referrer publishes the entity event with reason
+  `ref-sweep`. A system target derives its edges from the static view
+  alone (the instances README states the boundary). En route repair:
+  `remove` resolved the declaration with a null organization, so
+  org-authored types deleted from the `files` fallback collection — the
+  transports now pass the organization (`removeForHttp` the doc's own,
+  `processDelete` the run's). Validation: instances suite 79 green
+  (+6 sweep cases); check-arch green; check-docs carries only the
+  pre-existing jagua-rs submodule link; the 17 process-definitions spec
+  failures reproduce at base 11c687e99 (concurrent merges, untouched).
 
   ### Agent Notes (2026-10-28, placement delivery)
 
