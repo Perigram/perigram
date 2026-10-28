@@ -285,6 +285,8 @@ export const LAYOUT = Object.freeze({
   // CSS in main.css); the card slot keeps the fixed previewBand stamp.
   previewHero: 'ck-preview-hero',
   previewHeroBand: 'ck-preview-hero-band',
+  // Document modes' reading band: taller steps (real CSS in main.css).
+  previewHeroBandDocument: 'ck-preview-hero-band-document',
   packRow: 'flex flex-wrap items-start gap-6',
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
@@ -383,7 +385,7 @@ export const LAYOUT_ATOMS = Object.freeze({
   stack: Object.freeze(['stack', 'stackSection', 'stackTight', 'labeledBlock', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
-  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewBand']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandDocument', 'previewBand']),
   well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack', 'well']),
   tabs: Object.freeze([]),
   placement: Object.freeze([]),
@@ -494,6 +496,14 @@ export const PREVIEW_ENTRIES = Object.freeze([
 // restating it.
 export const RENDERABLE_PREVIEW_MODES = Object.freeze([
   'dxf', 'svg', 'sketch', 'image', 'pdf', 'docx', 'table', 'workbook', 'text'
+]);
+
+// Document preview modes render readable content (pages, prose, tables):
+// detail surfaces give them the tall reading band
+// (`LAYOUT.previewHeroBandDocument`), and fixed-height card bands degrade
+// to the file chip — text alone clamps, because prose survives a band.
+export const DOCUMENT_PREVIEW_MODES = Object.freeze([
+  'pdf', 'docx', 'table', 'workbook', 'text'
 ]);
 
 // --- Actions ----------------------------------------------------------------

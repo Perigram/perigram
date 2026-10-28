@@ -22,6 +22,8 @@ import {
   resolveFieldControl,
   resolveSurface,
   resolvePreview,
+  RENDERABLE_PREVIEW_MODES,
+  DOCUMENT_PREVIEW_MODES,
   resolveActionButton,
   resolveListLayout,
   listLayoutOf,
@@ -399,6 +401,13 @@ describe('preview resolution', () => {
     expect(resolvePreview({ payload: { preview: 'image' } })).toMatchObject({ component: 'ImagePreview' });
     expect(resolvePreview({ payload: { mime: ['application/pdf'] } }).component).toBe('AttachmentPreview');
     expect(resolvePreview({}).component).toBeNull();
+  });
+
+  it('renders every document mode and keeps document modes inside the renderable set', () => {
+    for (const mode of DOCUMENT_PREVIEW_MODES) {
+      expect(RENDERABLE_PREVIEW_MODES).toContain(mode);
+    }
+    expect(DOCUMENT_PREVIEW_MODES).toEqual(['pdf', 'docx', 'table', 'workbook', 'text']);
   });
 });
 

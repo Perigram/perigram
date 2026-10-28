@@ -453,4 +453,21 @@ body {
             height: 14rem;
         }
     }
+
+    /* Document payloads (pages, prose, tables) read in a tall band. */
+    .ck-preview-hero-band-document {
+        height: 20rem;
+    }
+
+    @container (min-width: 40rem) {
+        .ck-preview-hero-band-document {
+            height: 28rem;
+        }
+    }
+
+    @container (min-width: 60rem) {
+        .ck-preview-hero-band-document {
+            height: 36rem;
+        }
+    }
 }

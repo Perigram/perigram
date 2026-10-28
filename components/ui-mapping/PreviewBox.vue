@@ -12,7 +12,7 @@
   <FilePayloadViewer
     v-else-if="hasRenderablePayload"
     :source="{ mode: preview.mode, fileUrl, attachment: payload }"
-    :variant="'card'"
+    :variant="fill && documentMode ? 'pane' : 'card'"
     :class="bandClass"
   />
   <DrawingCanvas
@@ -22,9 +22,8 @@
     mode="card"
     :class="bandClass"
   />
-  <div v-else-if="preview.component && payload" :class="[LAYOUT.row, bandClass, LAYOUT.well, 'text-supporting text-muted']">
-    <i class="pi pi-file" />
-    <span>{{ sizeLabel }}</span>
+  <div v-else-if="preview.component && payload" :class="bandClass" class="flex items-center justify-center">
+    <FileChip :file="payload" />
   </div>
   <!-- A payload-less instance has no file facts to state: the band stays
        quiet with the type's own glyph — no MIME strings, no invented
@@ -37,8 +36,9 @@
 
 <script setup>
 import { computed } from 'vue';
-import { LAYOUT, RENDERABLE_PREVIEW_MODES, resolvePreview } from '#shared/ui-mapping/index.js';
+import { LAYOUT, RENDERABLE_PREVIEW_MODES, DOCUMENT_PREVIEW_MODES, resolvePreview } from '#shared/ui-mapping/index.js';
 import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
+import FileChip from '~/components/shared/FileChip.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import RemoteInstancePreview from '~/components/generated/RemoteInstancePreview.vue';
 import { resolvePluginPreview } from '~/components/generated/plugin-preview-bindings.js';
@@ -64,6 +64,7 @@ const props = defineProps({
 const bandClass = computed(() => (props.fill ? 'h-full w-full' : LAYOUT.previewBand));
 
 const preview = computed(() => resolvePreview(props.type || {}));
+const documentMode = computed(() => DOCUMENT_PREVIEW_MODES.includes(preview.value.mode));
 const typeId = computed(() => String(props.type?.id || ''));
 const pluginPreview = computed(() => (props.instance ? resolvePluginPreview(typeId.value) : null));
 const hasDeclaredPreviewSource = computed(() => Boolean(
@@ -78,12 +79,8 @@ const hasRenderablePayload = computed(() => Boolean(
 const fileUrl = computed(() => (props.payload?.fileId
   ? `/api/files/download/${encodeURIComponent(String(props.payload.fileId))}?bucket=files`
   : ''));
-const mime = computed(() => props.payload?.mime || preview.value.mime[0] || preview.value.mode);
 // The quiet blank band's glyph: the type's authored depiction, falling
 // back to the generic file icon — the type's own mark, never a MIME.
 const typeGlyph = computed(() => props.type?.depiction?.glyph || 'pi pi-file');
-const sizeLabel = computed(() => (props.payload?.size
-  ? `${(props.payload.size / 1024).toFixed(0)} KB · ${mime.value}`
-  : mime.value));
 
 </script>
