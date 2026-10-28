@@ -924,23 +924,11 @@ transcription stay in the host composer.
   `TypedSettingsForm` for `instanceId` fields. It prefers workbench/scenario
   entity options and falls back to a manual id input only when no typed options
   are available. Its typed picker delegates to `InstanceSelect`.
-- **`InstanceSelect.vue` / `InstanceMultiSelect.vue`**: Application-wide wrappers
-  around PrimeVue Select/MultiSelect. Ordinary scalar, enum, role, and process
-  record options preserve PrimeVue rendering and caller slots unchanged. When
-  options contain either canonical entity DTOs or
-  `{ label, value, entity }` records and an explicit `type-id`, option rows
-  render through `InstanceInlineRef variant="compact"`. Once a value is selected,
-  the selected entity card or card list renders outside the PrimeVue
-  value/chip area and the PrimeVue control becomes a compact change trigger.
-  That keeps the selected preview, identity, status, and access-filtered facts
-  visible without embedding cards or empty value slots inside an input surface.
-  Multi-select values render as a compact-card list rather than chips.
-  App components import these wrappers under their local `Select` /
-  `MultiSelect` names for entity pickers; plain enum selects are the
-  allowance `instance-select.spec.js` pins, and direct PrimeVue imports
-  are owned by the wrappers and that allowance.
-  Entity type comes from the picker prop or option record and is never inferred
-  from `data.type` or lifecycle state.
+- **`InstanceSelect.vue` / `InstanceMultiSelect.vue`**: The entity
+  dropdown wrappers; the option-row and chip contract lives in the
+  wrappers' own section above. App components import them under local
+  `Select` / `MultiSelect` names for entity pickers; plain enum selects
+  are the allowance `instance-select.spec.js` pins.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
 - **`InstanceCard.vue`**: Shared entity card structure built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`) while the preset owns its border, radius, shadow, spacing, and interaction states. Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `stateActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title.
   Full-card footer actions render inline by default (`footer-display`);

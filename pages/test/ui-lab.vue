@@ -210,7 +210,6 @@
         <Column field="propName" :header="$t('uiLab.contract.prop')" />
         <Column field="status" :header="$t('uiLab.contract.status')" />
         <Column field="trace" :header="$t('uiLab.contract.trace')" />
-        <Column field="docs" :header="$t('uiLab.contract.docs')" />
       </DataTable>
 
       <Message v-if="manifestIssues.length === 0" severity="success">
@@ -303,7 +302,7 @@ const PRIMITIVE_EXAMPLE_KEYS = [
 const primitiveRows = DESIGN_SYSTEM_PRIMITIVES.map((primitive) => ({
   ...primitive,
   hasExample: PRIMITIVE_EXAMPLE_KEYS.includes(primitive.key),
-  docs: primitive.docs.join(', ')
+  docs: primitive.purpose
 }));
 const rows = createDesignSystemDemoRows();
 const manifestIssues = validateDesignSystemManifest();
@@ -367,8 +366,7 @@ const contractRows = computed(() =>
     typeId: row.typeId,
     propName: row.propName,
     status: row.status,
-    trace: row.trace ? 'yes' : 'no',
-    docs: row.docs.join(', ')
+    trace: row.trace ? 'yes' : 'no'
   }))
 );
 
