@@ -203,7 +203,6 @@ import {
   LAYOUT, GAP_BY_LEVEL, toolbarVisibleFor, sortControlRows,
   hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar, incomingChildrenEdges,
   listLayoutOf,
-  resolveListControls,
   createActionControls
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
@@ -414,9 +413,9 @@ const derivedListLayout = computed(() => listLayoutOf(props.node));
 // collection (table) may board, and a derived board may
 // table back. Shape-specialized projections (timeline, stats) never
 // switch — the board would fight their shape.
-// A stored preference for a non-switchable collection is ignored, and a
-// stored table preference obeys the table floor: a board type with no
-// data column beside identity and state stays a board.
+// A stored preference for a non-switchable collection is ignored; a
+// stored table preference is the user's explicit view — the table floor
+// governs the derivation alone.
 const projectionSwitchable = computed(() => hasStateVocabulary(props.node.statePolicy)
   && ['table', 'board'].includes(derivedListLayout.value));
 const projectionScope = computed(() => `list-projection:${props.node.typeId || ''}`);
@@ -429,15 +428,11 @@ const toggleProjection = () => {
   projectionPreference.value = next;
   storeProjectionPreference(projectionScope.value, next);
 };
-const tableFloorHolds = computed(() => {
-  const { sortKeys, relationColumn } = resolveListControls(props.node.type || {}, props.node.instances);
-  return sortKeys.length + (relationColumn ? 1 : 0) > 0;
-});
+// A stored table preference is the user's explicit view: the floor
+// governs the derivation alone, a chosen table renders.
 const listLayout = computed(() => {
   if (projectionPreference.value === 'board' && projectionSwitchable.value) return 'board';
-  if (projectionPreference.value === 'table' && derivedListLayout.value === 'board') {
-    return tableFloorHolds.value ? 'table' : 'board';
-  }
+  if (projectionPreference.value === 'table' && derivedListLayout.value === 'board') return 'table';
   return derivedListLayout.value;
 });
 // Relation keys covered by child regions — filled and stubs alike: a
