@@ -7,7 +7,7 @@
              the tile pin control. -->
         <div class="absolute top-2 right-2 z-10">
           <Button
-            icon="pi pi-window-maximize"
+            icon="pi pi-external-link"
             severity="secondary"
             text
             rounded

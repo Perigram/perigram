@@ -31,22 +31,23 @@
         />
         <span class="absolute bottom-2 left-2 flex min-w-0 max-w-full items-center gap-2 rounded-ui bg-content px-2 py-1">
             <span class="min-w-0 truncate text-supporting">{{ tile.name || tile.identity }}</span>
-            <i v-if="tile.muted" class="pi pi-microphone-slash text-muted" :aria-label="$t('call.muted')" />
+            <i v-if="tile.muted" class="pi pi-microphone text-status-danger" :aria-label="$t('call.muted')" />
             <i v-if="tile.handRaised" class="pi pi-thumbs-up-fill text-status-warning" :aria-label="$t('call.handRaised')" />
             <!-- A healthy connection is the silent default; the quality
                  glyph appears only when it degrades. -->
             <i v-if="degradedQuality" class="pi pi-wifi" :class="qualityClass" :aria-label="$t(`call.quality.${tile.quality}`)" />
         </span>
 
-        <!-- Pin reveals on tile hover (pointer devices) and stays visible on
-             touch widths; a pinned tile keeps it lit as its state. -->
+        <!-- Spotlight control: a star chip over the media, revealed on
+             tile hover on pointer devices, always visible on touch
+             widths; a spotlighted tile keeps it lit as its state. -->
         <Button
-            :icon="tile.pinned ? 'pi pi-bookmark-fill' : 'pi pi-bookmark'"
+            :icon="tile.pinned ? 'pi pi-star-fill text-primary' : 'pi pi-star'"
             severity="secondary"
             text
             rounded
             size="small"
-            class="absolute top-2 right-2 transition-opacity"
+            class="absolute top-2 right-2 bg-content shadow-overlay transition-opacity"
             :class="tile.pinned
                 ? 'opacity-100'
                 : 'opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100'"

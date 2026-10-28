@@ -32,14 +32,14 @@
 
         <div class="flex items-center gap-2">
             <Button
-                :icon="micEnabled ? 'pi pi-microphone' : 'pi pi-microphone-slash'"
+                :icon="micEnabled ? 'pi pi-microphone' : 'pi pi-microphone text-status-danger'"
                 severity="secondary"
                 rounded
                 :aria-label="$t('call.toggleMic')"
                 @click="micEnabled = !micEnabled"
             />
             <Button
-                :icon="cameraEnabled ? 'pi pi-video' : 'pi pi-video-off'"
+                :icon="cameraEnabled ? 'pi pi-video' : 'pi pi-video text-status-danger'"
                 severity="secondary"
                 rounded
                 :aria-label="$t('call.toggleCamera')"

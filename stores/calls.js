@@ -251,9 +251,6 @@ export const useCallsStore = defineStore('calls', () => {
             sharing: false,
             handRaised: false,
             layout: 'speaker',
-            // Speaker-layout theater mode: the film strip hides and the
-            // focus tile fills the stage.
-            focusMaximized: false,
             pinnedKey: '',
             activeSpeakerKey: '',
             participants: [],
@@ -652,11 +649,6 @@ export const useCallsStore = defineStore('calls', () => {
         if (state) state.layout = layout;
     }
 
-    function toggleFocusMaximized() {
-        const state = session.value?.state;
-        if (state) state.focusMaximized = !state.focusMaximized;
-    }
-
     // Surface registry: panels register their room while mounted. The live
     // session with no mounted surface parks into the desktop floating
     // window (SPEC §11); mobile surfaces never set floatingRoom, so the
@@ -724,7 +716,6 @@ export const useCallsStore = defineStore('calls', () => {
         removeReaction,
         togglePin,
         setLayout,
-        toggleFocusMaximized,
         mountSurface,
         unmountSurface,
         closeFloating,

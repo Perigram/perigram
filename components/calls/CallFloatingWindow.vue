@@ -18,7 +18,7 @@
             <i class="pi pi-phone shrink-0 text-primary" aria-hidden="true" />
             <span class="min-w-0 flex-1 truncate text-label">{{ roomLabel }}</span>
             <Button
-                icon="pi pi-window-maximize"
+                icon="pi pi-table"
                 severity="secondary"
                 text
                 rounded

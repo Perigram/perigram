@@ -3,7 +3,7 @@
          (stores/calls.js): the video stage owns every pixel, only the grid
          and the film strip scroll inside their own boxes, and the controls
          float as one pill overlay at the bottom. -->
-    <div class="call-panel relative h-full min-h-0 overflow-hidden">
+    <div ref="panelRoot" class="call-panel relative h-full min-h-0 overflow-hidden">
         <StateBlock v-if="failed" state="error" :message="failureMessage">
             <template #action>
                 <Button :label="$t('call.retry')" severity="secondary" size="small" @click="retry" />
@@ -32,7 +32,7 @@
                             @aspect="ratio => patchAspect(focusTile, ratio)"
                         />
                     </div>
-                    <div v-if="!focusMaximized" class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-24">
+                    <div class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-24">
                         <CallTile
                             v-for="tile in stripTiles"
                             :key="`strip-${tile.identity}-${tile.source}`"
@@ -89,7 +89,7 @@
             <div class="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
                 <div class="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1 rounded-full bg-content p-1.5 shadow-overlay">
                     <Button
-                        :icon="micEnabled ? 'pi pi-microphone' : 'pi pi-microphone-slash'"
+                        :icon="micEnabled ? 'pi pi-microphone' : 'pi pi-microphone text-status-danger'"
                         text
                         rounded
                         :aria-label="$t('call.toggleMic')"
@@ -97,7 +97,7 @@
                         @click="toggleMic"
                     />
                     <Button
-                        :icon="camEnabled ? 'pi pi-video' : 'pi pi-video-off'"
+                        :icon="camEnabled ? 'pi pi-video' : 'pi pi-video text-status-danger'"
                         text
                         rounded
                         :aria-label="$t('call.toggleCamera')"
@@ -138,13 +138,12 @@
                         @click="event => reactionPicker?.toggle(event)"
                     />
                     <Button
-                        v-if="layout === 'speaker'"
-                        :icon="focusMaximized ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+                        :icon="fullscreen ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
                         text
                         rounded
-                        :aria-label="focusMaximized ? $t('call.restore') : $t('call.maximize')"
+                        :aria-label="fullscreen ? $t('call.restore') : $t('call.maximize')"
                         :disabled="!isConnected"
-                        @click="callsStore.toggleFocusMaximized()"
+                        @click="toggleFullscreen"
                     />
                     <Button
                         :icon="layout === 'speaker' ? 'pi pi-th-large' : 'pi pi-id-card'"
@@ -256,6 +255,18 @@ const toast = useToast();
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '🎉', '👏'];
 
 const settingsPopover = ref(null);
+const panelRoot = ref(null);
+const fullscreen = ref(false);
+
+const syncFullscreen = () => {
+    fullscreen.value = document.fullscreenElement === panelRoot.value;
+};
+const toggleFullscreen = () => {
+    const el = panelRoot.value;
+    if (!el) return;
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else el.requestFullscreen?.().catch(() => {});
+};
 const reactionPicker = ref(null);
 const recordPending = ref(false);
 // Stage before/outside the session: prejoin or connecting. The connected
@@ -284,7 +295,6 @@ const camEnabled = computed(() => Boolean(sessionState.value?.camEnabled));
 const sharing = computed(() => Boolean(sessionState.value?.sharing));
 const handRaised = computed(() => Boolean(sessionState.value?.handRaised));
 const layout = computed(() => sessionState.value?.layout || 'speaker');
-const focusMaximized = computed(() => Boolean(sessionState.value?.focusMaximized));
 const devices = computed(() => sessionState.value?.devices || {});
 const audioInputs = computed(() => sessionState.value?.audioInputs || []);
 const videoInputs = computed(() => sessionState.value?.videoInputs || []);
@@ -437,6 +447,7 @@ const leave = async () => {
 };
 
 onMounted(() => {
+    document.addEventListener('fullscreenchange', syncFullscreen);
     callsStore.mountSurface(props.room);
     // The pending tab room is consumed by the surface that actually
     // mounts: until then it keeps the floating-window auto-rule
@@ -445,6 +456,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+    document.removeEventListener('fullscreenchange', syncFullscreen);
+    if (document.fullscreenElement === panelRoot.value) document.exitFullscreen?.().catch?.(() => {});
     callsStore.unmountSurface(props.room);
 });
 </script>
