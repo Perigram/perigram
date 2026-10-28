@@ -2722,3 +2722,25 @@ Ordered steps:
   `payload-revisions.spec.js` drives list → read-only preview → restore
   over the tech-drawing `dxf-source` type, artifact
   `test-results/payload-revisions-live.json`.
+
+  ### Agent Notes (2026-10-28, revision read access repair)
+
+  Session `agent/revision-read-access-20261028` (worktree
+  `.agent-worktrees/revision-read-access-20261028`). Owner report: the
+  picker listed nothing for any record. Two access gates keyed a
+  vocabulary no grant table carries: `canReadRevision` resolved the
+  source feature through `pluralize(typeId)` (a name only the legacy
+  cassette/project features ever had — compiled grants key the class
+  collection), and the routes serialized through the entityRevision
+  field-policy gate (feature `files`), which orgs without file grants
+  never pass — stricter than the records' own reads, which are org-scoped
+  with verbatim DTOs. Repair: revision reads follow the source records'
+  read law (org-scoped, system rows admitted beside org rows, cross-org
+  refused — `canReadRevision` compares the revision's lineage
+  organization to the caller's active organization) and the two revision
+  routes return the service DTOs verbatim. Specs:
+  `instance-revisions/service.spec.js` pins list/getById org-scope
+  behavior (4 cases, red at base). Validation: instance-revisions +
+  instances suites green (50), shared/design-system, module-imports,
+  SSR smoke 23, check-arch, framework:validate green; check-docs
+  carries only the pre-existing jagua-rs link.

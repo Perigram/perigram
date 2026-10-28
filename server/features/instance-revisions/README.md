@@ -54,24 +54,25 @@ payload, so layout edits persist as field patches and no path writes a
 sheet-design revision.
 
 Revisions are immutable after creation; per-source deletion
-(`removeForEntity`) rides the owning feature's cascade. Read access checks
-the source type's feature permission first, with a cassette/project
-lineage-read fallback.
+(`removeForEntity`) rides the owning feature's cascade. Revision reads
+follow their source records' read law: the revision's lineage
+organization admits the caller (an organization-less revision reads
+anywhere, like a system record); anything else refuses.
 
 ## API
 
 | Endpoint | Responsibility |
 |---|---|
-| `GET /api/instance-revisions` | List revisions (filters `typeId`, `instanceId`, `scope`), access-serialized. |
+| `GET /api/instance-revisions` | List revisions (filters `typeId`, `instanceId`, `scope`), org-scoped with system rows admitted. |
 | `GET /api/instance-revisions/:id` | One revision DTO. |
 | `GET /api/instance-revisions/:id/file` | Streams the revision's primary GridFS attachment (404 when it has none). |
 
-The read-level DTO carries `data.source`, `data.scope`, `data.number`,
-`data.reason`, `data.createdAt`, and `attachments.primary` — the frozen
-bytes reference preview surfaces resolve through the shared payload
-download URL. The policy table lives in
-[shared/README.md](../../../shared/README.md). Payload revision restore
-rides the instances transport:
+Revision DTOs serialize like their source records (owner decision
+2026-10-11): the stored document verbatim, org-scoped by the service —
+the §24 picker reads `data.number`, `data.reason`, `data.createdAt`, and
+`attachments.primary` (the frozen bytes reference that resolves through
+the shared payload download URL). Payload revision restore rides the
+instances transport:
 `POST /api/instances/:type/:id/restore-revision`
 ([instances](../instances/README.md)).
 
