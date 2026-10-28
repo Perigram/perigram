@@ -425,7 +425,8 @@ body {
        tokens factsGrid/bodyGrid): content width is the floor and the
        host grants growth — fact groups fill in columns that track the
        body width (track floor 22rem), and body blocks grow into spare
-       row width past their content floor (content cap 46rem). */
+       row width past their content floor (content cap 46rem). The
+       record column centers at the measure when the host is wider. */
     .ck-facts-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
@@ -444,6 +445,8 @@ body {
         align-items: flex-start;
         column-gap: 1.5rem;
         row-gap: 0.75rem;
+        max-width: 46rem;
+        margin-inline: auto;
     }
 
     .ck-body-grid > * {
@@ -481,7 +484,8 @@ body {
        and drawings fit inside, tables and Word documents scroll the
        stepped height. A page-scale preview fills the column's width at
        its own aspect. Record prose flows unframed at the body's content
-       measure. The quiet glyph band stays bare. */
+       measure, centered when the host is wider. The quiet glyph band
+       stays bare. */
     .ck-preview-hero-band-content,
     .ck-preview-hero-band-aspect {
         border: 1px solid var(--p-content-border-color);
@@ -513,5 +517,51 @@ body {
     .ck-preview-hero-band-flow {
         height: auto;
         max-width: 46rem;
+        margin-inline: auto;
     }
+
+    /* Markdown document element styles: every surface that mounts
+       sanitized markdown HTML (the shared/markdown.js pipeline) renders
+       it through this one class. */
+    .ck-markdown > *:first-child { margin-top: 0; }
+    .ck-markdown > *:last-child { margin-bottom: 0; }
+    .ck-markdown p,
+    .ck-markdown ul,
+    .ck-markdown ol,
+    .ck-markdown blockquote,
+    .ck-markdown table,
+    .ck-markdown pre { margin: 0.5rem 0; }
+    .ck-markdown h1,
+    .ck-markdown h2,
+    .ck-markdown h3,
+    .ck-markdown h4,
+    .ck-markdown h5,
+    .ck-markdown h6 { margin: 0.75rem 0 0.375rem; font-weight: 600; }
+    .ck-markdown h1 { font-size: 1.25rem; }
+    .ck-markdown h2 { font-size: 1.125rem; }
+    .ck-markdown ul { list-style: disc; padding-left: 1.25rem; }
+    .ck-markdown ol { list-style: decimal; padding-left: 1.25rem; }
+    .ck-markdown li { margin: 0.125rem 0; }
+    .ck-markdown a { text-decoration: underline; }
+    .ck-markdown img { max-width: 100%; }
+    .ck-markdown hr { margin: 0.75rem 0; border: 0; border-top: 1px solid var(--ck-chrome-border); }
+    .ck-markdown code {
+        font-family: var(--ck-font-mono);
+        font-size: 0.875em;
+        background: var(--ck-subtle-background);
+        border-radius: var(--p-border-radius-sm);
+        padding: 0.125rem 0.25rem;
+    }
+    .ck-markdown pre {
+        padding: 0.75rem;
+        background: var(--ck-subtle-background);
+        border-radius: var(--p-border-radius-md);
+        overflow-x: auto;
+    }
+    .ck-markdown pre code { background: transparent; padding: 0; font-size: inherit; }
+    .ck-markdown blockquote { border-left: 2px solid var(--ck-chrome-border); padding-left: 0.75rem; }
+    .ck-markdown table { width: 100%; border-collapse: collapse; }
+    .ck-markdown th,
+    .ck-markdown td { border: 1px solid var(--ck-chrome-border); padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+    .ck-markdown th { background: var(--ck-subtle-background); }
 }
