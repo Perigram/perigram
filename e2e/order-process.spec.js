@@ -208,7 +208,7 @@ test('the order process runs live: table rows become baked designs, materials, a
     expect(design.provenance?.sources).toContainEqual({
       type: 'cassette-template',
       id: templateId,
-      revision: `revision:cassette:${templateId}:geometry:1`
+      revision: `revision:cassette-template:${templateId}:geometry:1`
     });
     expect((design.data?.geometry?.nestingPolygons || design.fields?.geometry?.nestingPolygons || []).length).toBeGreaterThan(0);
   }
