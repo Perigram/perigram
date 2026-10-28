@@ -104,16 +104,11 @@
                             <i class="pi pi-home" aria-hidden="true" />
                         </Tab>
                         <Tab value="chats" :pt="bottomBarTabPt" :aria-label="$t('support.openChat')">
-                            <span class="relative inline-flex">
+                            <span v-if="supportChatStore.totalUnread" class="inline-flex items-center gap-1">
                                 <i class="pi pi-comments" aria-hidden="true" />
-                                <Badge
-                                    v-if="supportChatStore.totalUnread"
-                                    :value="supportChatStore.totalUnread"
-                                    severity="danger"
-                                    size="small"
-                                    class="absolute -right-2 -top-2"
-                                />
+                                <Badge :value="supportChatStore.totalUnread" severity="danger" size="small" />
                             </span>
+                            <i v-else class="pi pi-comments" aria-hidden="true" />
                         </Tab>
                     </TabList>
                 </Tabs>
