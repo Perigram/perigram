@@ -933,9 +933,7 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
   // the new discriminator.
   invalidateInstanceDeclarations(String(organizationId));
   for (const rename of plan.renamed || []) {
-    if (rename.instances > 0) {
-      await applyTypeRename(rename, organizationId);
-    }
+    await applyTypeRename(rename, organizationId);
   }
   const changedById = new Map(plan.changed.map(change => [change.typeId, change]));
   for (const versioned of versionedTypes) {
