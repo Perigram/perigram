@@ -90,11 +90,15 @@
         />
       </template>
     </Column>
-    <Column v-if="childrenTypes.length" :header="childrenLabel">
+    <Column
+      v-for="edge in childrenEdges"
+      :key="`children:${edge.key}`"
+      :header="edge.label"
+    >
       <template #body="{ data }">
         <div class="flex flex-wrap items-center gap-1">
           <InstanceInlineRef
-            v-for="child in budgetedChildren(data)"
+            v-for="child in budgetedChildren(data, edge.key)"
             :key="`${child.type}:${child.id}`"
             :type="child.type"
             :id="child.id"
@@ -103,8 +107,8 @@
           <!-- The overflow opens the row's record popup — the record
                surface carries every child collection in full. -->
           <Button
-            v-if="hiddenChildCount(data) > 0"
-            :label="$t('uiMapping.showMore', { count: hiddenChildCount(data) })"
+            v-if="hiddenChildCount(data, edge.key) > 0"
+            :label="$t('uiMapping.showMore', { count: hiddenChildCount(data, edge.key) })"
             link
             size="small"
             severity="secondary"
@@ -321,26 +325,23 @@ const summaryField = computed(() => {
   };
 });
 
-// The children column: every children edge's instances whose lineage
-// points at the row (`childrenOfParent`, the one containment matcher)
-// render as chips under the row's own budget — the parent's data beside
-// identity. Presence derives live over the pool (the host overlays
-// child types lazily; the column appears when they land), so the
-// compose-frozen controls never gate it.
-const childTypeIds = [...new Set(Object.values(props.type?.edges?.children || {})
-  .flatMap(edge => edge?.types || []))];
-const childrenOf = instance => childrenOfParent(props.type, props.pool, instance?.id);
-const childrenPresent = computed(() => props.instances.some(instance => childrenOf(instance).length > 0));
-const childrenTypes = computed(() => (childTypeIds.length && childrenPresent.value ? childTypeIds : []));
-const childrenLabel = computed(() => {
-  const edges = Object.entries(props.type?.edges?.children || {});
-  if (edges.length === 1) {
-    return localizedLabel({ te, t }, fieldLabelKey(props.type?.id, edges[0][0]), startCase(edges[0][0]));
-  }
-  return t('uiMapping.childrenColumn');
-});
-const budgetedChildren = instance => applyBudget(childrenOf(instance), ROW_RELATION_BUDGET).visible;
-const hiddenChildCount = instance => applyBudget(childrenOf(instance), ROW_RELATION_BUDGET).hidden;
+// The children columns: one per declared children edge, its key labels
+// the column, and only that edge's instances whose lineage points at
+// the row render as chips under the row's own budget
+// (`childrenOfParent`, the one containment matcher). Presence derives
+// live per edge over the pool (the host overlays child types lazily),
+// so the compose-frozen controls never gate it.
+const childrenOf = (instance, edgeKey) => childrenOfParent(props.type, props.pool, instance?.id, { edgeKey });
+const edgeHasChildren = edgeKey => props.instances.some(instance => childrenOf(instance, edgeKey).length > 0);
+const childrenEdges = computed(() => Object.entries(props.type?.edges?.children || {})
+  .filter(([edgeKey]) => edgeHasChildren(edgeKey))
+  .map(([edgeKey, declaration]) => ({
+    key: edgeKey,
+    types: declaration?.types || [],
+    label: localizedLabel({ te, t }, fieldLabelKey(props.type?.id, edgeKey), startCase(edgeKey))
+  })));
+const budgetedChildren = (instance, edgeKey) => applyBudget(childrenOf(instance, edgeKey), ROW_RELATION_BUDGET).visible;
+const hiddenChildCount = (instance, edgeKey) => applyBudget(childrenOf(instance, edgeKey), ROW_RELATION_BUDGET).hidden;
 // The chip-cell overflows open the row's record popup — the record
 // surface carries the full relation and child sets (the round-18
 // overflow law); the screen's open channel is the fallback.

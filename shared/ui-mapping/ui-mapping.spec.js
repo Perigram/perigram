@@ -1077,20 +1077,32 @@ describe('instance-aware list controls', () => {
     expect(listLayoutOf({ surfaceKind: 'list', type: structural, instances: rows(false) })).toBe('list');
   });
 
-  it('carries the children column when the pool holds any listed row\'s children', () => {
+  it('carries one children column per declared edge, filled edges only', () => {
     const parentType = { class: 'group', identifier: 'name', fields: { name: { base: 'string', identifier: true } }, edges: {
-      children: { kids: { types: ['kid'], onRemove: 'restrict', lineageKey: 'parentId' } }
+      children: {
+        kids: { types: ['kid'], onRemove: 'restrict', lineageKey: 'parentId' },
+        juniors: { types: ['junior'], onRemove: 'restrict', lineageKey: 'parentId' }
+      }
     } };
     const rows = [
       { id: 'p1', fields: { name: 'A' }, relations: {} },
       { id: 'p2', fields: { name: 'B' }, relations: {} }
     ];
-    const poolWithKids = { kid: { k1: { id: 'k1', type: 'kid', fields: { label: 'One' }, lineage: { parentId: { type: 'parent', id: 'p1' } }, relations: {} } } };
-    expect(resolveListControls(parentType, rows, { pool: poolWithKids }).childrenColumn).toEqual({ types: ['kid'] });
-    expect(resolveListControls(parentType, rows, { pool: {} }).childrenColumn).toBeNull();
-    expect(resolveListControls(parentType, rows).childrenColumn).toBeNull();
+    const poolWithKids = {
+      kid: { k1: { id: 'k1', type: 'kid', fields: { label: 'One' }, lineage: { parentId: { type: 'parent', id: 'p1' } }, relations: {} } },
+      junior: { j1: { id: 'j1', type: 'junior', fields: { label: 'Jun' }, lineage: { parentId: 'p2' }, relations: {} } }
+    };
+    const controls = resolveListControls(parentType, rows, { pool: poolWithKids });
+    expect(controls.childrenColumns).toEqual([
+      { key: 'kids', types: ['kid'] },
+      { key: 'juniors', types: ['junior'] }
+    ]);
+    // An edge whose children nothing fills renders no column.
+    const kidOnly = resolveListControls(parentType, rows, { pool: { kid: poolWithKids.kid } });
+    expect(kidOnly.childrenColumns).toEqual([{ key: 'kids', types: ['kid'] }]);
+    expect(resolveListControls(parentType, rows, { pool: {} }).childrenColumns).toEqual([]);
     // Children are data: a loaded child earns the table.
-    expect(listLayoutOf({ surfaceKind: 'list', type: parentType, instances: rows, listControls: resolveListControls(parentType, rows, { pool: poolWithKids }) })).toBe('table');
+    expect(listLayoutOf({ surfaceKind: 'list', type: parentType, instances: rows, listControls: controls })).toBe('table');
   });
 
   it('treats a null-valued quantity as unfilled — it renders the dash', () => {
