@@ -163,6 +163,10 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     items: [
       paletteItem('contextEntity', 'cts.read', { preset: { select: 'current' } }),
       paletteItem('allEntities', 'cts.read', { preset: { select: 'all' } }),
+      // The pinned-entity-ref source (SPEC §24 definition-design piece):
+      // one authored instance reference — the exact record, picked on the
+      // node, wireable into any construct's ref sockets.
+      paletteItem('pinnedEntity', 'source.literalItem', { preset: { type: { base: 'entityRef' }, access: 'item', value: null } }),
       paletteItem('currentUser', 'source.currentUser'),
       paletteItem('currentOrganization', 'source.currentOrganization'),
       paletteItem('extractProjection', 'cts.read', { preset: { select: 'extract' } }),

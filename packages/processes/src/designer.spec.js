@@ -281,11 +281,15 @@ describe('process designer domain contract', () => {
       'cts.emit'
     ]);
     // The retained instance sources are current, typed-reference, and All<T>;
-    // declared-edge traversal remains separate from unfiltered collection
-    // reads.
+    // the pinned entity (one authored exact-instance ref) rides beside
+    // them; declared-edge traversal remains separate from unfiltered
+    // collection reads.
     expect(groups.instances.map(item => item.preset.select)).toEqual([
-      'current', 'all', undefined, undefined, 'extract', 'parent', 'children', 'related', undefined, undefined
+      'current', 'all', undefined, undefined, undefined, 'extract', 'parent', 'children', 'related', undefined, undefined
     ]);
+    const pinned = groups.instances.find(item => item.id === 'pinnedEntity');
+    expect(pinned.kind).toBe('source.literalItem');
+    expect(pinned.preset.type).toEqual({ base: 'entityRef' });
     // The field projection and the per-facet instance elimination live with
     // the entity sources; block composition (cts.compose) stays catalog-only
     // for migrated graphs.
