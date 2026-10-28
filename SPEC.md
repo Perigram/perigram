@@ -1148,7 +1148,11 @@ revision, and opens any revision read-only through its frozen bytes. A
 prior revision restores: its frozen bytes re-enter through the
 revisioned payload channel as a new revision, behind the same write
 grant the replace affordance takes. Restore mints history; it never
-rewrites or deletes a revision — the fabric is append-only.
+rewrites or deletes a revision — the fabric is append-only. Every
+revision carries its minting principal; a restored revision names the
+revision it re-entered. Payload revision writes ride the record's
+status-events audit trail beside transitions and field edits; a record
+without a state keeps the version surface as its history.
 
 The DXF editor surface grows marker-first: open the template payload on
 the CAD canvas, author and rename `{spot:<name>}` anchors, save through

@@ -23,6 +23,11 @@ Revision records are normal v24 entities with immutable revision metadata under
 - `data.reason`: creation reason such as `created`, `payload-replaced`,
   `rederived`, `payload-restored`, or `content-change` (the direct-caller
   default).
+- `data.actor`: the minting principal stamp `{ id, label?,
+  principalType }` (the status-events stamp shape) when the caller
+  supplies one.
+- `data.restoredFrom`: `{ id, number }` naming the prior revision a
+  restore re-entered (restore-minted revisions alone).
 
 The unique content index is `(data.source.type, data.source.id, data.scope,
 data.contentHash)`. Re-saving identical content reuses the existing revision.

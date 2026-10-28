@@ -69,9 +69,13 @@ with what evidence, at which station (see
     principalType: 'user' | 'service' | 'SYSTEM'
   },
   operation: {
-    kind: 'initialize' | 'transition' | 'intent',
+    kind: 'initialize' | 'transition' | 'intent' | 'field_change' | 'payload_revision',
     intent: String,              // invoked or declared intent, when present
-    region: String
+    region: String,
+    changes: Array,              // field_change: changed leaves with from/to
+    reason: String,              // payload_revision: the minting write
+    revision: Object,            // payload_revision: { id, number } of the minted revision
+    restoredFrom: Object         // payload_revision: { id, number } a restore re-entered
   },
   evidence: {
     description: String | null,  // transition note/description
@@ -88,7 +92,12 @@ with what evidence, at which station (see
   `initialize` for `setInitialStateForOrganization` events (which carry
   `fromState: null`), `intent` when the call arrived through
   `applyIntent`/`transitionWithResult({ intent })`, and `transition` for direct
-  target-state calls. Workflow transitions are anonymous — identified by
+  target-state calls. `field_change` records keep the instance's current
+  state on both ends and list changed leaves (`appendFieldChangeEvent`);
+  `payload_revision` records do the same for revision-scoped payload
+  writes, naming the minted revision and a restore's source
+  (`appendPayloadRevisionEvent` — both in
+  [machines](../../core/machines/README.md)). Workflow transitions are anonymous — identified by
   region + from/to + intent — so no separate transition id is recorded.
 - `evidence` carries the normalized transition payload produced by the status
   engine: the description, per-slot attachment refs (with `attachmentKey`,
