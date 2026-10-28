@@ -1278,7 +1278,9 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
     // Construct operator reference inputs: typed pickers over the
     // operator's accepts — single refs pick one (`entity`), list refs pick
     // many (`typeList`). The pickers model `{ type, id }` refs; the
-    // dialog's payload scalarizes them to bare ids.
+    // dialog's payload scalarizes them to bare ids. A `spot-parts` control
+    // pin rewrites the list row into the per-spot assignment widget (the
+    // template row supplies the spot vocabulary).
     if (policy?.type === 'entity' || policy?.type === 'typeList') {
       const accepts = policy.accepts?.length ? [...policy.accepts] : (policy.typeId ? [policy.typeId] : []);
       rows.push({
@@ -1287,6 +1289,7 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
         descriptor: policy.type === 'entity'
           ? { base: 'ref', accepts }
           : { base: 'list', itemType: { base: 'ref' }, accepts },
+        ...(policy.control ? { control: policy.control } : {}),
         span: policy.type === 'entity' ? 'half' : 'full',
         required: policy.required === true
       });

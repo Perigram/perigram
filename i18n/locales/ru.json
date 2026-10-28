@@ -1844,6 +1844,8 @@
         "showLess": "Свернуть",
         "emptyRegion": "Нет записей",
         "loadingRegion": "Загрузка...",
+        "pickPart": "Выбрать деталь",
+        "noSpots": "В шаблоне нет якорей",
         "missingRegion": "Запись не открыта",
         "deniedRegion": "Нет доступа к этим данным",
         "errorRegion": "Не удалось загрузить данные",

@@ -378,6 +378,9 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
           prompt: !suppliedFields.has(path),
           required: !suppliedFields.has(path)
             && promptContract.schemas.find(field => field.path === path)?.required === true,
+          ...(promptContract.schemas.find(field => field.path === path)?.control
+            ? { control: promptContract.schemas.find(field => field.path === path).control }
+            : {}),
           ...(Object.hasOwn(promptContract.defaults, path) ? { default: promptContract.defaults[path] } : {})
         }))
       },

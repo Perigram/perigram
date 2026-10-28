@@ -21,6 +21,7 @@ export const services = {
         if (!part?.payloadBase64) badRequest('place-dxf requires every part to carry a payload');
         return {
           name: part.name || '',
+          ...(part.spot != null ? { spot: part.spot } : {}),
           text: Buffer.from(part.payloadBase64, 'base64').toString('utf8')
         };
       })

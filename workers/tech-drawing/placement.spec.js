@@ -54,6 +54,45 @@ describe('composeDxfPlacement', () => {
     expect(logoLine.pairs).toEqual(expect.arrayContaining([[10, '300'], [20, '400']]));
   });
 
+  it('places explicitly assigned parts regardless of their names', () => {
+    const { dxf } = composeDxfPlacement(TEMPLATE, [
+      { name: 'whatever', spot: 'frame', text: FRAME_PART },
+      { name: 'other-name', spot: 'logo', text: LOGO_PART }
+    ]);
+    const records = linesOf(dxf);
+    expect(dxf).not.toContain('{spot:');
+    expect(records.filter(entry => entry.type === 'LINE').length).toBe(3);
+  });
+
+  it('mixes explicit assignments with name matches', () => {
+    const { dxf } = composeDxfPlacement(TEMPLATE, [
+      { name: 'frame', text: FRAME_PART },
+      { name: 'unrelated', spot: 'logo', text: LOGO_PART }
+    ]);
+    expect(dxf).not.toContain('{spot:');
+  });
+
+  it('refuses a part assigned to a spot the template does not carry, a double assignment, and a name collision', () => {
+    const ghost = composeDxfPlacement(TEMPLATE, [
+      { name: 'frame', spot: 'no-such-spot', text: FRAME_PART }
+    ]);
+    expect(ghost.failures).toEqual([
+      { name: 'no-such-spot', message: 'part frame is assigned to spot no-such-spot, which the template does not carry' },
+      { name: 'frame', message: 'spot frame has no matching part' },
+      { name: 'logo', message: 'spot logo has no matching part' }
+    ]);
+    const doubled = composeDxfPlacement(TEMPLATE, [
+      { name: 'a', spot: 'logo', text: FRAME_PART },
+      { name: 'b', spot: 'logo', text: LOGO_PART }
+    ]);
+    expect(doubled.failures).toContainEqual({ name: 'logo', message: 'spot logo is assigned more than one part' });
+    const collided = composeDxfPlacement(TEMPLATE, [
+      { name: 'x', spot: 'logo', text: FRAME_PART },
+      { name: 'logo', text: LOGO_PART }
+    ]);
+    expect(collided.failures).toContainEqual({ name: 'logo', message: 'part logo has no free spot (its name is already claimed)' });
+  });
+
   it('refuses spots without a part and parts without a spot, naming both', () => {
     const missing = composeDxfPlacement(TEMPLATE, [{ name: 'frame', text: FRAME_PART }]);
     expect(missing.failures).toEqual([{ name: 'logo', message: 'spot logo has no matching part' }]);

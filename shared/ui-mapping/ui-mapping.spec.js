@@ -1243,6 +1243,25 @@ describe('create dialog input resolution', () => {
     });
   });
 
+  it('carries a ref input\'s control pin onto its row (the spot-parts assignment)', () => {
+    const rows = resolveCreateDialogInputs(
+      {
+        construction: { inputs: ['template', 'parts'] },
+        inputPolicy: {
+          fields: [
+            { id: 'template', path: 'template', type: 'entity', prompt: true, typeId: 't-part-1' },
+            { id: 'parts', path: 'parts', type: 'typeList', prompt: true, typeId: 't-part-1', control: 'spot-parts' }
+          ]
+        }
+      },
+      type,
+      bundle
+    );
+    const byId = new Map(rows.map(row => [row.id, row]));
+    expect(byId.get('parts').control).toBe('spot-parts');
+    expect(byId.get('template').control).toBeUndefined();
+  });
+
   it('keeps graph-supplied fields out of the dialog: the policy owns the rows', () => {
     // The compiled shape: fields.width is wired upstream and drops out of
     // the policy while construction.inputs restates the whole contract.

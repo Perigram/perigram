@@ -17,6 +17,10 @@ imported through server modules that Nitro externalizes.
 - `access-control.js`: Shared permission grant evaluator for feature levels,
   UI actions, entity lineage scopes, workflow-transition scopes, and optional
   logical grant rules.
+- `dxf-spots.js`: The `{spot:<name>}` anchor read for fill dialogs (SPEC
+  §24) — the client-side twin of the tech-drawing placement engine's
+  marker parse; the spot-parts assignment row reads a picked template's
+  payload through it.
 - `plugin-surfaces.js`: The plugin-delivered editor surface contract versions
   the platform can mount (SPEC §20). The server
   install/upgrade gates and the client loader read

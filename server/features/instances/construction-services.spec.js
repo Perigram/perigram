@@ -346,6 +346,21 @@ describe('revision pinning (SPEC §24 version fabric)', () => {
     expect(revisionService.getCurrentForEntity).not.toHaveBeenCalled();
   });
 
+  it('passes a spot assignment through to the executor beside the resolved ref', async () => {
+    stubStored();
+    revisionService.getCurrentForEntity.mockResolvedValue({ _id: 'rev-9' });
+    executorOutput({ data: {} });
+
+    const merged = await applyConstructionService('sheetd', 'place', {
+      name: 'Assigned',
+      data: { template: 't1', parts: [{ id: 'p1', spot: 'Marker' }] }
+    }, CONTEXT);
+
+    const [, call] = executeConnectorService.mock.calls[0];
+    expect(call.parameters.refs.parts[0]).toMatchObject({ id: 'p1', spot: 'Marker', revision: 'rev-9' });
+    expect(merged.fields.parts).toEqual([{ type: 'dxftpl', id: 'p1', revision: 'rev-9' }]);
+  });
+
   it('reads a stored pin against the frozen revision bytes', async () => {
     stubStored();
     revisionService.pinnedRevisionFile.mockResolvedValue({ fileId: 'f-rev3', bucket: 'files', mime: 'application/dxf', name: 'old.dxf' });

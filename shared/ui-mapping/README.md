@@ -144,7 +144,12 @@ without a policy. A structured refusal (SPEC §24) keeps the dialog open:
 the run's `failures` render as the offender list under the rows
 (`refusalFailuresOf` in utils/action-failures.js reads the error body),
 and the dialog closes only on success; row-level launches toast the same
-list. The contract's input list is the dialog's complete row
+list. A ref input whose compiled policy carries a `control` pin renders
+that control: `spot-parts` (SPEC §24) turns the parts list into the
+per-spot assignment widget — the picked single-ref row is the template,
+its payload's `{spot:<name>}` anchors each take any accepted part
+(`SpotPartsRow` over `shared/dxf-spots.js`), name-equal parts prefilled,
+and the assignment travels as `{ id, spot }` entries. The contract's input list is the dialog's complete row
 list: an identifier row reaches the dialog only as a contract input (a
 registry-minted identity row authors nothing and stays out of every
 contract). Declared fields match by flat-wire `fields.<name>` path

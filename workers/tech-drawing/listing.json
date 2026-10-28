@@ -2,7 +2,7 @@
   "pluginId": "tech-drawing",
   "name": "Technical drawing",
   "description": "Drawing reference types (pens, layer standards, colors), CAD exchange documents (DXF, SVG) with template placement, and the sketch editor as an installable plugin",
-  "version": "7",
+  "version": "8",
   "requires": [],
   "declarations": {
     "types": [
@@ -214,7 +214,8 @@
                     "accepts": [
                       "dxf-source"
                     ]
-                  }
+                  },
+                  "control": "spot-parts"
                 }
               }
             }

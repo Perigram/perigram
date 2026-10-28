@@ -69,6 +69,15 @@
             :pool="pool"
             :bundle="bundle"
           />
+          <SpotPartsRow
+            v-else-if="row.control === 'spot-parts'"
+            :model-value="dialogDraft[row.id] || []"
+            :template-ref="templateDraftRef"
+            :accepts="row.descriptor?.accepts || []"
+            :pool="pool"
+            :bundle="bundle"
+            @update:model-value="value => (dialogDraft[row.id] = value)"
+          />
           <FieldControl
             v-else
             v-model="dialogDraft[row.id]"
@@ -108,6 +117,7 @@ import { provideDefaultContainerTraits, useHostContainerTraits } from '~/composa
 import { refusalFailuresOf } from '~/utils/action-failures.js';
 import RegionChildren from './RegionChildren.vue';
 import InstancePicker from './InstancePicker.vue';
+import SpotPartsRow from './SpotPartsRow.vue';
 import FieldControl from './FieldControl.vue';
 import StandardDialog from '../shared/StandardDialog.vue';
 
@@ -307,6 +317,14 @@ const visibleDialogRows = computed(() => {
   return dialogRows.value.filter(row => !row.lineage?.accepts?.includes(scoped.type));
 });
 
+// The spot-parts row reads the picked single-ref input as its template
+// source — the action's one `entity` row names the spot vocabulary.
+const templateDraftRef = computed(() => {
+  const row = dialogRows.value.find(candidate => candidate.descriptor?.base === 'ref' && !candidate.lineage);
+  const value = row ? dialogDraft[row.id] : null;
+  return value && typeof value === 'object' && value.id ? value : null;
+});
+
 const submitting = ref(false);
 // Required rows gate the submit (the create never runs with its record
 // unnamed or its required construction inputs empty): a row counts as
@@ -363,13 +381,17 @@ const submitDialog = async () => {
 
 // Lineage and entity pickers model `{ type, id }`; the construction path
 // wants the bare instance id, and a picker list carries one ref per entry.
-// Quantity controls model the SPEC §2 `{ value, unit }`
-// shape; the run parameter channel wants the scalar. File references
-// (`{ fileId, ... }`) already are the payload the construct path validates.
+// A spot assignment keeps its spot beside the id — the explicit pairing
+// travels to the construction seam. Quantity controls model the SPEC §2
+// `{ value, unit }` shape; the run parameter channel wants the scalar.
+// File references (`{ fileId, ... }`) already are the payload the
+// construct path validates.
 const scalarDraftValue = value => {
   if (Array.isArray(value)) return value.map(scalarDraftValue);
   if (!value || typeof value !== 'object' || value.fileId) return value;
-  if (value.id !== undefined) return value.id;
+  if (value.id !== undefined) {
+    return value.spot !== undefined ? { id: value.id, spot: value.spot } : value.id;
+  }
   if (value.unit !== undefined && value.value !== undefined) return value.value;
   return value;
 };
