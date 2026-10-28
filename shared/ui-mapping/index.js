@@ -550,19 +550,22 @@ export function resolveListControls(typeRecord = {}, instances = []) {
     .map(([name, values]) => ({ name, label: fieldLabel(name, descriptors[name]), values }));
   // The relation chip column: the first declared relation — an explicit
   // edge or a declared ref field (SPEC §6: one relation grammar; ref
-  // field values ride `relations.<name>` on the wire exactly like edge
-  // refs) — a column only when any loaded instance carries its refs,
-  // the same filledness law as scalar columns, and the table-floor
-  // signal counts it the same way.
+  // field values store scalarized under `fields.<name>` at the construct
+  // boundary or as ref objects under `relations.<name>` through relation
+  // operations — readers take both) — a column only when any loaded
+  // instance carries its refs, the same filledness law as scalar
+  // columns, and the table-floor signal counts it the same way.
+  const refFieldNames = Object.entries(descriptors)
+    .filter(([, descriptor]) => descriptor?.base === 'ref')
+    .map(([name]) => name);
   const firstRelationKey = [
     ...Object.keys(typeRecord.edges?.relations || {}),
-    ...Object.entries(descriptors)
-      .filter(([, descriptor]) => descriptor?.base === 'ref')
-      .map(([name]) => name)
+    ...refFieldNames
   ][0] || null;
   const relationColumn = firstRelationKey && instances.some(instance => {
     const refs = instance?.relations?.[firstRelationKey];
-    return Array.isArray(refs) ? refs.length > 0 : Boolean(refs);
+    if (Array.isArray(refs) ? refs.length > 0 : Boolean(refs)) return true;
+    return refFieldNames.includes(firstRelationKey) && isFilled(instance?.fields?.[firstRelationKey]);
   })
     ? Object.freeze({ key: firstRelationKey })
     : null;

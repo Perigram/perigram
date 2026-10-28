@@ -110,10 +110,12 @@ const statusTag = computed(() => {
 const fieldEntries = computed(() => Object.entries(props.type.fields || {})
   .filter(([name]) => !isIdentifierField(props.type, name))
   .map(([name, descriptor]) => ({ name, descriptor })));
-// A declared ref field's value rides `relations.<name>` on the wire
-// (SPEC §6 relation grammar); every other field reads `fields`.
+// A declared ref field's value stores in either block (SPEC §6): the
+// bare scalarized id under `fields` from the construct boundary, ref
+// objects under `relations` from relation operations — the row reads
+// both.
 const rowValueOf = field => (field.descriptor?.base === 'ref'
-  ? props.instance?.relations?.[field.name]
+  ? (props.instance?.relations?.[field.name] ?? props.instance?.fields?.[field.name])
   : props.instance?.fields?.[field.name]);
 const fieldBudget = computed(() => surface.value.budgets.fields
   || (props.variant === 'row' || props.variant === 'inline' ? ROW_FIELD_BUDGET : null));
