@@ -182,7 +182,9 @@ parents' edges are the declaration home, the child carries no parent list;
 an edge matches by its declared `lineageKey`, the entry's map key is
 authoring identity). Construct operator reference inputs render as
 instance pickers over the operator's `accepts` — an `entity` single, a
-`typeList` list. Rows carry the compiled input's `required` flag; an
+`typeList` list; every other operator data input renders by its own
+base (`json` a pretty-printed editor, quantities their unit field).
+Rows carry the compiled input's `required` flag; an
 identifier row the contract prompts is required unconditionally (its
 value is the record's title), and the dialog's submit stays disabled
 while a required row is empty. Upload/capture dialogs prompt the file
