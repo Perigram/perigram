@@ -36,18 +36,47 @@ export function composeDxfPlacement(templateText, parts) {
   }
   if (!spots.size) badRequest('the template DXF carries no {spot:name} markers');
 
+  // The assignment: a part carrying `spot` claims that anchor explicitly
+  // (the dialog's per-spot pairing); a part without one matches by name —
+  // the authored default, never a gate.
+  const claimed = new Map();
   const failures = [];
-  for (const name of spots.keys()) {
-    if (!parts.some(part => part.name === name)) failures.push({ name, message: `spot ${name} has no matching part` });
-  }
+  const unassigned = [];
   for (const part of parts) {
-    if (!spots.has(part.name)) failures.push({ name: part.name, message: `part ${part.name} has no matching spot` });
+    const spotName = part.spot != null && String(part.spot).trim() !== '' ? String(part.spot).trim() : null;
+    if (spotName == null) {
+      unassigned.push(part);
+      continue;
+    }
+    if (!spots.has(spotName)) {
+      failures.push({ name: spotName, message: `part ${part.name || part.id || ''} is assigned to spot ${spotName}, which the template does not carry`.trim() });
+      continue;
+    }
+    if (claimed.has(spotName)) {
+      failures.push({ name: spotName, message: `spot ${spotName} is assigned more than one part` });
+      continue;
+    }
+    claimed.set(spotName, part);
+  }
+  for (const part of unassigned) {
+    if (claimed.has(part.name)) {
+      failures.push({ name: part.name, message: `part ${part.name} has no free spot (its name is already claimed)` });
+      continue;
+    }
+    if (!spots.has(part.name)) {
+      failures.push({ name: part.name, message: `part ${part.name} has no matching spot` });
+      continue;
+    }
+    claimed.set(part.name, part);
+  }
+  for (const spotName of spots.keys()) {
+    if (!claimed.has(spotName)) failures.push({ name: spotName, message: `spot ${spotName} has no matching part` });
   }
   if (failures.length) return { failures };
 
   const blocks = keptRecords.map(record => render(record.start, record.end));
   for (const [spotName, anchor] of spots) {
-    blocks.push(placedEntities(parts.find(part => part.name === spotName).text, anchor, newline));
+    blocks.push(placedEntities(claimed.get(spotName).text, anchor, newline));
   }
   return { dxf: [render(0, start), ...blocks, render(end, pairs.length)].join(newline) + newline };
 }

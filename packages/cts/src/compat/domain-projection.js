@@ -577,6 +577,9 @@ function operatorModeInputs(operator = {}) {
       path: name,
       required: descriptor.nullable !== true
     };
+    // The naming facet's control pin rides verbatim (SPEC §4): the
+    // dialog decides how a ref input is picked, the type stays the type.
+    if (descriptor.control) input.control = descriptor.control;
     if (descriptor.base === 'ref') {
       input.type = 'entity';
       if (descriptor.accepts?.length === 1) input.typeId = descriptor.accepts[0];

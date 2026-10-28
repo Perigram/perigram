@@ -46,14 +46,20 @@ nothing here imports platform code.
 ## DXF placement law (SPEC §24)
 
 A DXF template marks each placement anchor with a TEXT/MTEXT entity whose
-whole text is `{spot:<name>}`. The service matches each marker to a part
-ref by instance name, translates the part's ENTITIES so its extents
-minimum lands on the marker's insertion point, removes the marker entity,
-and splices the translated entities into the template's ENTITIES —
+whole text is `{spot:<name>}`. A part ref either carries an explicit
+`spot` assignment (the fill dialog's per-spot pairing — any part into any
+anchor, names irrelevant) or matches by instance name — the zero-config
+default, never a gate. The service translates each part's ENTITIES so its
+extents minimum lands on the marker's insertion point, removes the marker
+entity, and splices the translated entities into the template's ENTITIES —
 everything else in the template (header, tables, blocks) is preserved
-verbatim. Unmatched markers and unplaced parts both answer the
+verbatim. Unmatched markers, unassigned parts, a part assigned to an
+anchor the template does not carry, and double assignments all answer the
 structured refusal — `{ failures: [{ name, message }] }` naming each
-offender — which the create dialog renders as the list.
+offender — which the create dialog renders as the list. The fill
+operator's `parts` input carries the `spot-parts` control pin (SPEC §4
+naming facet): the dialog lists the picked template's anchors and picks a
+part per anchor, name-equal parts prefilled.
 
 Translation covers coordinate pairs 10–18 (x) and 20–28 (y) and rounds
 to six decimals. Header `$EXTMIN`/`$EXTMAX` values stay as authored;

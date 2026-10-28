@@ -1844,6 +1844,8 @@
         "showLess": "Show less",
         "emptyRegion": "No records",
         "loadingRegion": "Loading...",
+        "pickPart": "Pick part",
+        "noSpots": "The template declares no anchors",
         "missingRegion": "No record opened",
         "deniedRegion": "You do not have access to this data",
         "errorRegion": "Failed to load data",

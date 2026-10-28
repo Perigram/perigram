@@ -231,15 +231,20 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
 
 // A ref input travels as a bare id (the dialog's scalarized picker value,
 // the graph's wired id) or as the stored ref shape `{ type, id,
-// revision? }` — a re-derive reads its stored pins (SPEC §24).
+// revision? }` — a re-derive reads its stored pins (SPEC §24). A spot
+// assignment (`spot-parts` control pin) rides beside the id: the explicit
+// anchor pairing reaches the executor.
 function refInputOf(value) {
   if (value == null) return null;
   if (typeof value === 'string') return String(value).trim() ? { id: String(value).trim() } : null;
   if (typeof value === 'object' && !Array.isArray(value)) {
     const id = String(value.id ?? value._id ?? '').trim();
     if (!id) return null;
+    const input = {};
     const revision = value.revision == null ? null : String(value.revision);
-    return revision ? { id, revision } : { id };
+    if (revision) input.revision = revision;
+    if (value.spot != null) input.spot = String(value.spot);
+    return { id, ...input };
   }
   return null;
 }
@@ -278,6 +283,7 @@ async function resolveRefValue(instanceServiceResolver, declarationForType, inpu
   }
   const value = await referencedValue(instance, input.revision || null);
   if (revisionId) value.revision = revisionId;
+  if (input.spot != null) value.spot = input.spot;
   const pin = revisionId ? { type: typeId, id: String(instance._id ?? input.id), revision: revisionId } : null;
   return { value, pin };
 }
