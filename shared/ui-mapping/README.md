@@ -176,7 +176,7 @@ input carrying the `template-values` control pin renders
 `TemplateValuesRow` — one scalar input per token the composition's
 `meta.tokens` names, the model staying the operator's values map. The contract's input list is the dialog's complete row
 list: an identifier row reaches the dialog only as a contract input (a
-registry-minted identity row authors nothing and stays out of every
+non-constructible identity row authors nothing and stays out of every
 contract). Declared fields match by flat-wire `fields.<name>` path
 (the §3 stored shape compiled construction inputs speak) or bare name
 (authored compose inputs) and render through their descriptor; string

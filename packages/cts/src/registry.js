@@ -102,24 +102,6 @@ export function normalizeType(declaration = {}) {
   if (legacyRender.identityField && Object.hasOwn(fields, legacyRender.identityField)) {
     fields = { ...fields, [legacyRender.identityField]: { ...fields[legacyRender.identityField], identifier: true } };
   }
-  // Identifier totality (contract home: SPEC §4, cts README). The
-  // minted row is identity vocabulary only — it renders the unnamed
-  // placeholder and authors nothing, hence writable/constructible false.
-  if (!Object.values(fields).some(descriptor => descriptor?.identifier === true)) {
-    const firstString = Object.entries(fields)
-      .find(([, descriptor]) => descriptor?.base === 'string');
-    if (firstString) {
-      fields = { ...fields, [firstString[0]]: { ...firstString[1], identifier: true } };
-    } else {
-      let minted = ['name', 'title', 'label'].find(candidate => !Object.hasOwn(fields, candidate));
-      if (!minted) {
-        let index = 1;
-        while (Object.hasOwn(fields, `name${index}`)) index += 1;
-        minted = `name${index}`;
-      }
-      fields = { ...fields, [minted]: { base: 'string', nullable: true, identifier: true, writable: false, constructible: false } };
-    }
-  }
   // Authored preview declaration: the first `render.groups` row flagged
   // `previewSource` (the pack authoring vocabulary for "this data field is
   // the card/detail preview") adopts into the normalized record as
@@ -330,19 +312,18 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
     });
   }
 
-  // Display-facet laws (SPEC §4): exactly one `identifier` field (the
-  // field whose value names each record — its null value is the only
-  // thing that renders the unnamed placeholder; total by boundary mint,
-  // so the zero case is unreachable), at most one `depiction` field,
-  // and a name on every type. The name law holds at every write through
-  // the introduced-errors gate (reads never refuse — views stay served).
+  // Display-facet laws (SPEC §4): exactly one authored `identifier`
+  // field, at most one `depiction` field, and a name on every type.
+  // Both identifier deviations and the name law hold at every write
+  // through the introduced-errors gate (reads never refuse — views
+  // stay served).
   function checkDisplayFacet(type) {
     const errors = [];
     const flagged = flag => Object.entries(type.fields)
       .filter(([, descriptor]) => descriptor[flag] === true).map(([name]) => name);
     const identifiers = flagged('identifier');
-    if (identifiers.length > 1) {
-      errors.push(`type ${type.id}: identifier flag on multiple fields (${identifiers.join(', ')}) — exactly one required`);
+    if (identifiers.length !== 1) {
+      errors.push(`type ${type.id}: exactly one field must carry the identifier flag (flagged: ${identifiers.join(', ') || 'none'})`);
     }
     const depictions = flagged('depiction');
     if (depictions.length > 1) {

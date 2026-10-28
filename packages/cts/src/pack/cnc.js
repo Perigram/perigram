@@ -5,8 +5,8 @@
 import { quantity } from '../units.js';
 
 export const partyTypes = [
-  { id: 'organization', class: 'party', name: 'Organization', fields: { name: { base: 'string' }, email: { base: 'string', nullable: true } } },
-  { id: 'user', class: 'party', name: 'User', fields: { email: { base: 'string' }, name: { base: 'string', nullable: true } } }
+  { id: 'organization', class: 'party', name: 'Organization', fields: { name: { base: 'string', identifier: true }, email: { base: 'string', nullable: true } } },
+  { id: 'user', class: 'party', name: 'User', fields: { email: { base: 'string' }, name: { base: 'string', nullable: true, identifier: true } } }
 ];
 
 export const cncTypePack = [
@@ -69,7 +69,7 @@ export const cncTypePack = [
     class: 'item',
     version: 1,
     fields: {
-      serial: { base: 'string' },
+      serial: { base: 'string', identifier: true },
       specs: { base: 'record', fields: {
         width: { base: 'quantity', unit: 'mm' },
         length: { base: 'quantity', unit: 'mm' },
@@ -84,7 +84,7 @@ export const cncTypePack = [
     class: 'item',
     version: 1,
     fields: {
-      serial: { base: 'string' },
+      serial: { base: 'string', identifier: true },
       // Row-carried refs (the association lives in edges.relations
       // 'placed-on'); stored as data, not relation writes.
       design: { base: 'ref', accepts: ['cut-plan'], },
@@ -97,7 +97,7 @@ export const cncTypePack = [
     name: 'Project',
     class: 'group',
     version: 1,
-    fields: { name: { base: 'string' } },
+    fields: { name: { base: 'string', identifier: true } },
     edges: { children: { members: { types: ['queue', 'facade'], onRemove: 'restrict' } } }
   },
   {
@@ -106,7 +106,7 @@ export const cncTypePack = [
     class: 'group',
     version: 1,
     fields: {
-      name: { base: 'string' },
+      name: { base: 'string', identifier: true },
       patterns: { base: 'list', itemType: { base: 'ref', accepts: ['photo'] } }
     },
     edges: { children: { parts: { types: ['part'], onRemove: 'restrict' } } }

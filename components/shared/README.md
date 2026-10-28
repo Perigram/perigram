@@ -536,8 +536,8 @@ reply quote — replacing the generic inline-ref face for users. The
 for the thread's sender gutter. That face is
 wrong for people: `InstanceCard`'s inline variant renders the type glyph
 plus the identifier-flagged field (the served `user` type declares
-`identifier: "email"` and the users glyph) and carries no avatar slot, so
-inline user refs read as "users-icon + email" and other users' avatars
+`identifier: "name"` and the users glyph) and carries no avatar slot, so
+inline user refs read as "users-icon + display name" and other users' avatars
 never render there. The chip resolves its user through the instances
 store's readable-reference seam, whose two legs speak two shapes:
 org-mates resolve through the §3 user wire (`name`, `fields.bot`,

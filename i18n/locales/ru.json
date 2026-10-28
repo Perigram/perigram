@@ -3027,6 +3027,7 @@
         "noneOption": "Нет",
         "filters": "Фильтры",
         "identifier": "Идентификатор",
+        "unset": "Не задано",
         "userId": "ID пользователя",
         "roleIds": "ID ролей",
         "bindingsJson": "JSON привязок",

@@ -537,12 +537,11 @@ function referencedTypeIds(declaration = {}) {
 // Single-holder display-role authoring (SPEC §4): enabling `identifier`
 // or `depiction` on one field node clears the flag from the previous
 // holder among the sibling field nodes of the same declared type — the
-// compile law is exactly-one (identifier) / at-most-one (depiction), and
-// the toggle is the authored deviation (when no identifier is authored,
-// the registry boundary mints the first string field). Mutates the
-// canvas nodes' authoring state in place, like the enrichment pass; the
-// caller owns the sync. An unbound field (no declared type) owns its own
-// flag only — it declares nowhere yet.
+// compile law is exactly-one authored (identifier) / at-most-one
+// (depiction) — an unflagged type carries the compile error until a
+// field is picked. Mutates the canvas nodes' authoring state in place,
+// like the enrichment pass; the caller owns the sync. An unbound field
+// (no declared type) owns its own flag only — it declares nowhere yet.
 export function applyFieldDisplayRole(nodes = [], fieldNodeId = '', flag = '', enabled = true) {
   if (flag !== 'identifier' && flag !== 'depiction') return;
   const target = nodes.find(node => node.id === fieldNodeId && node.type === 'ctsField');

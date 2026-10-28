@@ -46,7 +46,7 @@ export function createPersistedAcceptanceFixture() {
         producerOutputId: 'create_cassette:result',
         nodeId: 'create_cassette',
         outputSocketId: 'result',
-        typeId: 'cassette',
+        typeId: 'cassette-design',
         lifecycle: { mode: 'domainDefault' },
         fields: { read: ['name'], write: [], private: [] },
         allowedRoles: { read: [ids.role], write: [ids.role], admin: [] }
@@ -62,10 +62,10 @@ export function createPersistedAcceptanceFixture() {
       create_cassette: {
         id: 'create_cassette',
         kind: 'cts.construct',
-        typeId: 'cassette',
+        typeId: 'cassette-design',
         producerOutputId: 'create_cassette:result',
         label: 'Create cassette',
-        construction: { mode: 'editor', inputs: [] },
+        construction: { mode: 'upload', inputs: [] },
         inputDefaults: { state: 'ACTIVE' },
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: ids.role, level: 'write' }] }
