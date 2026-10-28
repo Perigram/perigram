@@ -73,6 +73,12 @@ in profile setup; it lives at the execution points.
 }
 ```
 
+A chat profile may carry `maxTokens`, an output budget in tokens. The
+Messages dialect requires `max_tokens` on every request: the profile's
+value rides it, otherwise the default 16384. Reasoning tokens count
+against the budget — a stream whose reasoning exhausts it ends with
+`stop_reason: max_tokens` and no answer.
+
 `resolveLlmConfig(organizationId, capability, { profileId })` walks the
 chain — an explicit profile (a pinned execution-point choice) first, then
 the exact capability route, the `chat` family default, the environment —
@@ -106,7 +112,8 @@ meetings call summaries (`chat.summaries`, falling back to `chat`).
 
 The organization's models screen (`/organization/models`) owns the model
 table: profiles (name,
-kind, provider, base URL, model, optional key) and capability routing
+kind, provider, base URL, model, optional key; chat profiles an optional
+`maxTokens` output budget) and capability routing
 (`chat`, `chat.summaries`), saved through `GET/PUT /api/llm/settings`
 (gated by organization settings access via
 [organizations](../organizations/README.md)
@@ -150,8 +157,10 @@ through `listEndpointModels`.
   plain answer: its closing message reclassifies (content whole, thinking
   empty), and the agent runtime reconciles its live activity sink with
   that message at round end. Same
-  503/502 posture. Takes an optional
-  `signal` (AbortSignal): aborting the caller's controller cancels the
+  503/502 posture. A stream that closes with neither answer nor tool
+  calls throws 502 naming the provider's stop reason when one rode the
+  stream; mid-stream `error` events surface their own message. Takes an
+  optional `signal` (AbortSignal): aborting the caller's controller cancels the
   request and the stream — the seam the agent runtime stops a run with.
 
 ## Consumers
