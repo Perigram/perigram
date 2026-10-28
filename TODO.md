@@ -591,6 +591,10 @@ AttachmentKind row.
       registry.
     - [ ] WAITING — Preview pane in the create dialog over the composed
       payload.
+    - [ ] WAITING — One fill-dialog shell (owner direction 2026-10-28):
+      the form pane and the preview pane compose side by side in one
+      wide dialog for every fill type, the preview rendering through the
+      created type's payload preview mode.
 
     ### Agent Notes (2026-10-28)
 

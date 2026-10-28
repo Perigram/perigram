@@ -1124,4 +1124,8 @@ instance's editor when its type binds one. The dialog previews the
 composed result — the actual template with its parts placed — through
 the created type's payload preview, from the same construction service
 the create runs, with nothing persisted. The rails serve every fill
-type; format-specific pairing rides declared control pins.
+type; format-specific pairing rides declared control pins. The fill
+dialog composes as one shell for every fill type: the form pane carries
+the rows and named offenders, the preview pane carries the live
+composition, each rendering through the created type's payload preview
+mode.
