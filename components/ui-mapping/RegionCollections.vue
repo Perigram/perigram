@@ -1,5 +1,5 @@
 <template>
-  <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
+  <ProgressBar v-if="isReloading" mode="indeterminate" :class="LAYOUT.reloadBar" :aria-label="$t('uiMapping.loadingRegion')" />
   <CollectionTable
     v-if="listLayout === 'table'"
     :instances="filteredInstances"

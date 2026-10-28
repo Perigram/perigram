@@ -297,6 +297,26 @@ as glyph chips inside the control (PrimeVue chip display + the
 chip-surface recipe) and the outside-cards grid retires with its spec
 assertions. SPEC §22.13 restated on the row.
 
+### Region reload strips take no flow slot (SPEC §22.8)
+
+- [ ] WAITING — owner verification: the indeterminate reload bar in
+  `RegionBlock` (detail and nested branches) and `RegionCollections`
+  (list projections — tables, grids, boards) overlays its surface's top
+  edge through `LAYOUT.reloadBar` (`pointer-events-none absolute inset-x-0
+  top-0 z-10 h-1`), anchored by `relative` on the detail region root and
+  the collection stack wrapper, so appearing/vanishing shifts nothing
+  below it.
+
+#### Agent Notes (2026-10-28, reload strip)
+
+Session `agent/reload-strip-20261028` (worktree
+`.agent-worktrees/reload-strip-20261028`). Landed: one
+`LAYOUT.reloadBar` entry in `shared/ui-mapping/tables.js`; the three
+`ProgressBar` sites swap `h-1` flow slots for the overlay classes; the
+detail region root and the list branch's collection wrapper carry
+`relative` anchors. SPEC §22.8 gains the loading-strip law; the
+ui-mapping README's data-state bullet restates the bar as overlay.
+
 ### Owner decisions wanted
 
 - [x] ArtifactViewer artifact/revision branch: delete now, or hold until the

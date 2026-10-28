@@ -89,7 +89,7 @@
       </div>
     </div>
     <RegionDataState v-if="showState" :node="node" />
-    <div v-if="showSurfaces" :class="embeddedStack">
+    <div v-if="showSurfaces" :class="[embeddedStack, 'relative']">
       <RegionCollections
         :node="node"
         :list-layout="listLayout"
@@ -124,10 +124,10 @@
     />
   </div>
 
-  <div v-else :class="[stackFor, 'w-full']">
+  <div v-else :class="[stackFor, 'w-full', 'relative']">
     <RegionDataState v-if="showState" :node="node" />
     <template v-if="depth === 0 && showSurfaces">
-      <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
+      <ProgressBar v-if="isReloading" mode="indeterminate" :class="LAYOUT.reloadBar" :aria-label="$t('uiMapping.loadingRegion')" />
       <SurfaceHeader
         :type="node.type"
         :instance="node.instances[0]"
@@ -175,7 +175,7 @@
       </template>
     </template>
     <template v-else-if="showSurfaces">
-      <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
+      <ProgressBar v-if="isReloading" mode="indeterminate" :class="LAYOUT.reloadBar" :aria-label="$t('uiMapping.loadingRegion')" />
       <SurfaceBody
         v-bind="bodyProps"
         :variant="node.variant"

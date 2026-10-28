@@ -93,7 +93,9 @@ beside the transition history in `StateHistory`.
 - `RegionDataState.vue` — materializes the composed region `dataState`:
   skeleton lines on first load (system stack rhythm), one shared Message
   for empty/missing/denied/error, the stale surface under one
-  indeterminate progress bar on reloads with already-loaded instances, and
+  indeterminate progress bar on reloads with already-loaded instances —
+  the bar overlays its surface's top edge (`LAYOUT.reloadBar`, SPEC
+  §22.8) and takes no flow slot — and
   plain content for ready — the only loading/empty states any component
   renders.
 - The region header's in-place controls: search expands in place — the
