@@ -596,6 +596,24 @@ AttachmentKind row.
       wide dialog for every fill type, the preview rendering through the
       created type's payload preview mode.
 
+    ### Agent Notes (2026-10-28, shell)
+
+    Session `agent/fill-dialog-body-20261028-1840`. `FillDialogBody`
+    widens the create dialog (lg) and splits the form pane from the
+    preview pane when the created type is payload-bearing and the action
+    carries a construction mode; the shell renders transparent
+    otherwise. En route, two rails gaps died: operator data inputs fell
+    through the row resolver (a json `values` map never rendered — the
+    generic branch maps the compiled `object` kind onto the json
+    editor), and the documents fill inputs lacked labels (listing v4,
+    re-seed the catalog for existing stacks). The documents markdown
+    fill rides the same rails as the DXF fill (`documents-fill-dialog`
+    spec: the preview renders in the text mode, the composed markdown
+    round-trips; artifact `.playwright/md-fill-composed.md`). Focused:
+    ui-mapping 107, SSR smoke, arch + docs + framework guards; e2e —
+    both fill dialogs 4/4, md-editor-repair 4/4, plugin-surface 1/1
+    (one cold-rebuild stall after the merge re-ran green warm).
+
     ### Agent Notes (2026-10-28)
 
     Session `agent/dxf-editor-20261028-1525`. Landed: `spotNamesOf`
