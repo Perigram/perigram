@@ -27,7 +27,7 @@
                   :severity="statusOf(instance).severity"
                 />
                 <Button
-                  v-if="cardActionsFor(instance).length"
+                  v-if="cardActionsFor(instance).length || unlinkItemsFor(instance).length"
                   icon="pi pi-ellipsis-v"
                   text
                   rounded
@@ -97,6 +97,7 @@ import PreviewBox from './PreviewBox.vue';
 import ParentRef from './ParentRef.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
+import { generatedActionLabel } from '~/utils/generated-labels.js';
 const spacing = inject('uiMappingSpacing', null);
 
 const props = defineProps({
@@ -111,6 +112,9 @@ const props = defineProps({
   // status transitions, deletion, instance-scoped commands. Rendered as
   // one ellipsis menu per card; empty set renders no control.
   actions: { type: Array, default: () => [] },
+  // SPEC §22.12: `{ parent, actions }` — the section's unlink actions
+  // bound to the parent record (relation-scoped sections only).
+  relationUnlink: { type: Object, default: null },
   // Collection identities render as links when an open handler exists.
   openable: { type: Boolean, default: false },
   // The containment cross-cut composes on this collection (unscoped class
@@ -167,13 +171,34 @@ function openCardMenu(event, instance) {
 const cardActionsFor = instance => props.actions
   .filter(action => actionAppliesToEntity(action, instance, props.type?.id))
   .filter(action => !resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy }).hidden);
-const cardMenuItems = computed(() => cardActionsFor(menuInstance.value || {})
+// SPEC §22.12: a relation-scoped section's linked cards carry the
+// parent's unlink actions — the parent record and the row's relation
+// ref travel as the run context.
+const unlinkItemsFor = instance => (props.relationUnlink?.actions || [])
   .map(action => {
+    const key = action.relationMutation?.key || action.relation?.key || '';
+    const rowId = String(instance?._id || instance?.id || '');
+    if (!key || !rowId) return null;
+    return {
+      label: generatedActionLabel(action, action.id, { t, te }),
+      icon: 'pi pi-times',
+      command: () => emit('run', action, {
+        instance: props.relationUnlink.parent,
+        data: { relations: { [key]: { type: props.type?.id, id: rowId } } }
+      })
+    };
+  })
+  .filter(Boolean);
+const cardMenuItems = computed(() => [
+  ...cardActionsFor(menuInstance.value || {})
+    .map(action => {
   const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
   return {
     label: localizedLabel({ te, t }, actionLabelKey(action.id), resolved.label || action.label || action.id),
     icon: resolved.icon || undefined,
     command: () => emit('run', action, { instance: menuInstance.value })
   };
-}));
+}),
+  ...unlinkItemsFor(menuInstance.value || {})
+]);
 </script>

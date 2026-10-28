@@ -78,6 +78,14 @@
           :label="headerActionLabel(control.action)"
           @run="emitRun"
         />
+        <ActionButton
+          v-for="action in linkControls"
+          :key="`link:${action.id}`"
+          :action="action"
+          :state-policy="node.statePolicy"
+          :label="sectionLinkLabel(action)"
+          @run="emitRun"
+        />
       </div>
     </div>
     <RegionDataState v-if="showState" :node="node" />
@@ -92,6 +100,7 @@
         :openable="openable"
         :parented="parented"
         :instance-actions="instanceActionsForType"
+        :relation-unlink="relationUnlink"
         :patchable="patchable"
         :resolve-transitions="resolveTransitions"
         :is-reloading="isReloading"
@@ -218,7 +227,9 @@ import RegionCollections from './RegionCollections.vue';
 import RegionChildren from './RegionChildren.vue';
 import PlacementBox from './PlacementBox.vue';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
-import { generatedEntityLabel } from '~/utils/generated-labels.js';
+import { generatedEntityLabel, generatedActionLabel } from '~/utils/generated-labels.js';
+import { isRelationLinkAction, isRelationUnlinkAction } from '~/utils/action-visibility.js';
+import ActionButton from './ActionButton.vue';
 const props = defineProps({
   node: { type: Object, required: true },
   pool: { type: Object, default: () => ({}) },
@@ -371,6 +382,14 @@ const headerActionLabel = action => (
     ? t('uiMapping.new')
     : null
 );
+// The section already names its class: a link targeting exactly this
+// section's type collapses to the bare "Link".
+const sectionLinkLabel = action => {
+  const targets = [].concat(action.relationMutation?.targetTypes || action.relation?.targetTypes || []);
+  return targets.length === 1 && targets[0] === props.node.typeId
+    ? t('common.link')
+    : generatedActionLabel(action, action.id, { t, te });
+};
 const instanceActionsForType = computed(() => props.instanceActions?.[props.node.typeId] || []);
 // The collection toolbar renders type-level actions only: creates. Every
 // other action kind addresses a concrete instance (delete, transitions,
@@ -380,6 +399,16 @@ const instanceActionsForType = computed(() => props.instanceActions?.[props.node
 // CreateControl whose mode selection names the siblings; creates for
 // other types keep their own buttons.
 const createControls = computed(() => createActionControls(props.node.actions || []));
+// SPEC §22.12: a relation link action renders in the toolbar of the
+// section its relation targets; its run context binds the parent
+// through the screen scope.
+const linkControls = computed(() => (props.node.actions || []).filter(isRelationLinkAction));
+// Unlink entries for this section's linked rows: the parent record and
+// the per-row relation ref travel as the run context.
+const relationUnlink = computed(() => {
+  const actions = (props.node.actions || []).filter(isRelationUnlinkAction);
+  return actions.length && props.node.relationParent ? { parent: props.node.relationParent, actions } : null;
+});
 // The detail header's action set: the composed node's manifest actions
 // PLUS the per-instance quick actions (runtime state transitions and the
 // construct re-run ride here) — the strip's steps draw from this

@@ -135,9 +135,34 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
   const scoped = Boolean(source.relation || source.lineage
     || (source.filters && Object.keys(source.filters).length));
   const crossCut = surfaceKind === 'list' && !scoped;
+  const ownActions = Object.freeze((region.actions || []).map(actionId => contract.actions?.[actionId]).filter(Boolean));
+  // SPEC §22.12: relation link/unlink are section-scoped. Each injects
+  // into the relation-scoped child region rendering its target type,
+  // carrying the parent instance for the row run context; the parent
+  // detail keeps a link action only when no section consumed it.
+  const relationTargetsOf = action => [].concat(
+    action.relationMutation?.targetTypes || action.relation?.targetTypes || []
+  );
+  const relationKeyOf = action => action.relationMutation?.key || action.relation?.key || '';
+  const isRelationMutationAction = action => action?.actionKind === 'link' || action?.actionKind === 'unlink';
+  const relationActionsFor = child => {
+    if (!single || !child.relationKey || !child.typeId) return [];
+    return ownActions.filter(action => isRelationMutationAction(action)
+      && relationKeyOf(action) === child.relationKey
+      && relationTargetsOf(action).includes(child.typeId));
+  };
   const composedChildren = region.slot === 'children' ? [] : (screen.regions || [])
     .filter(child => child.slot === 'children' && child.id !== region.id)
-    .map(child => composeRegion(child, screen, contract, pool, typesById, depth + 1, providedStates));
+    .map(child => {
+      const composed = composeRegion(child, screen, contract, pool, typesById, depth + 1, providedStates);
+      const injected = relationActionsFor(composed);
+      return injected.length
+        ? Object.freeze({ ...composed, actions: Object.freeze([...composed.actions, ...injected]), relationParent: single })
+        : composed;
+    });
+  const sectionConsumedActionIds = new Set(composedChildren
+    .flatMap(child => child.actions.filter(isRelationMutationAction))
+    .map(action => action.id));
   // Content-aware arrangement (SPEC §Generative UI, 2026-10-22): an
   // empty child collection is layout-inert — arrangement, the side
   // rail, and columns see only filled children; empty ones render as
@@ -176,7 +201,7 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     stateTransitions: contract.stateTransitions?.[source.typeId] || null,
     listControls: surfaceKind === 'list' && type ? resolveListControls(type, instances) : null,
     instances: Object.freeze(instances),
-    actions: Object.freeze((region.actions || []).map(actionId => contract.actions?.[actionId]).filter(Boolean)),
+    actions: Object.freeze(ownActions.filter(action => !sectionConsumedActionIds.has(action.id))),
     childRegions: Object.freeze(childRegions),
     stubRegions: Object.freeze(stubRegions)
   });

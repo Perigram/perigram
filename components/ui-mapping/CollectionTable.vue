@@ -81,10 +81,10 @@
         />
       </template>
     </Column>
-    <Column v-if="actions.length" class="w-10">
+    <Column v-if="actions.length || relationUnlink" class="w-10">
       <template #body="{ data }">
         <Button
-          v-if="rowActionsFor(data).length"
+          v-if="rowActionsFor(data).length || unlinkItemsFor(data).length"
           icon="pi pi-ellipsis-v"
           text
           rounded
@@ -114,6 +114,7 @@ import {
   resolveActionButton, actionLabelKey, localizedLabel, fieldLabelKey
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
+import { generatedActionLabel } from '~/utils/generated-labels.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
@@ -144,6 +145,9 @@ const props = defineProps({
   // Per-instance quick actions (resolveInstanceActions): one ellipsis
   // menu per row, the same run contract the cards carry.
   actions: { type: Array, default: () => [] },
+  // SPEC §22.12: `{ parent, actions }` — the section's unlink actions
+  // bound to the parent record (relation-scoped sections only).
+  relationUnlink: { type: Object, default: null },
   // Cell values edit in place (the per-field pencil law) when the host
   // binds a patch executor.
   patchable: { type: Boolean, default: false }
@@ -296,13 +300,34 @@ function openRowMenu(event, instance) {
 const rowActionsFor = instance => props.actions
   .filter(action => actionAppliesToEntity(action, instance, props.type?.id))
   .filter(action => !resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy }).hidden);
-const rowMenuItems = computed(() => rowActionsFor(menuInstance.value || {})
+// SPEC §22.12: a relation-scoped section's linked rows carry the parent's
+// unlink actions — the run context binds the parent record and the row's
+// relation ref as the mutation payload.
+const unlinkItemsFor = instance => (props.relationUnlink?.actions || [])
   .map(action => {
-    const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
+    const key = action.relationMutation?.key || action.relation?.key || '';
+    const rowId = String(instance?._id || instance?.id || '');
+    if (!key || !rowId) return null;
     return {
-      label: localizedLabel({ te, t }, actionLabelKey(action.id), resolved.label || action.label || action.id),
-      icon: resolved.icon || undefined,
-      command: () => emit('run', action, { instance: menuInstance.value })
+      label: generatedActionLabel(action, action.id, { t, te }),
+      icon: 'pi pi-times',
+      command: () => emit('run', action, {
+        instance: props.relationUnlink.parent,
+        data: { relations: { [key]: { type: props.type?.id, id: rowId } } }
+      })
     };
-  }));
+  })
+  .filter(Boolean);
+const rowMenuItems = computed(() => [
+  ...rowActionsFor(menuInstance.value || {})
+    .map(action => {
+      const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
+      return {
+        label: localizedLabel({ te, t }, actionLabelKey(action.id), resolved.label || action.label || action.id),
+        icon: resolved.icon || undefined,
+        command: () => emit('run', action, { instance: menuInstance.value })
+      };
+    }),
+  ...unlinkItemsFor(menuInstance.value || {})
+]);
 </script>

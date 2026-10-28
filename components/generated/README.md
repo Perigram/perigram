@@ -255,8 +255,11 @@ collection) and checks it through the shared evaluator with the entity
 and type id; the server stays fail-closed behind it.
 
 `ReplacePayloadAction` is the generic replace affordance (SPEC §24):
-every revision-scoped payload type's record header carries it beside the
-editor action — new bytes through `PUT /api/instances/:type/:id/payload`,
+a record whose type declares a payload and revision scope carries it in
+the record header when the payload is the record's own authored content
+— construct-derived payloads (provenance sources non-empty) are
+re-derive's business and stay replace-free. New bytes go through
+`PUT /api/instances/:type/:id/payload`,
 the revisioned channel that bumps the record's revision in place. The
 same write-level grant gates it; the accept list narrows to the type's
 declared MIME set when it carries no wildcards.
