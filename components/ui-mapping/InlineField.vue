@@ -1,7 +1,7 @@
 <template>
   <Inplace v-if="editable" closable>
     <template #display>
-      <div class="flex min-w-0 items-center gap-2 rounded-ui px-1 py-1 transition-colors hover:bg-subtle">
+      <div :class="['flex min-w-0 items-center gap-2 rounded-ui transition-colors hover:bg-subtle', cell ? 'px-1' : 'px-1 py-1']">
         <FieldControl
           :model-value="field.value"
           :descriptor="field.descriptor"
@@ -41,7 +41,7 @@
       </div>
     </template>
   </Inplace>
-  <div v-else class="flex min-w-0 items-center gap-2 rounded-ui px-1 py-1">
+  <div v-else :class="['flex min-w-0 items-center gap-2 rounded-ui', cell ? 'px-1' : 'px-1 py-1']">
     <FieldControl
       :model-value="field.value"
       :descriptor="field.descriptor"
@@ -61,10 +61,13 @@ import FieldControl from './FieldControl.vue';
 // One detail-field value cell: the click-to-edit Inplace (display +
 // pencil, editor + confirm/discard) on patchable surfaces, the plain
 // display otherwise. Hosts own the label placement — this component is
-// only the value half of a fact row.
+// only the value half of a fact row. The `cell` variant drops the
+// vertical padding: preset-padded collection cells (the table) get the
+// hover zone alone.
 const props = defineProps({
   field: { type: Object, required: true },
   editable: { type: Boolean, default: false },
+  cell: { type: Boolean, default: false },
   quantitative: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }

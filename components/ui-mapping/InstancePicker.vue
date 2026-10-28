@@ -85,7 +85,6 @@ const options = computed(() => props.accepts
     label: `${typeLabel(instance.type)}: ${titleFor(instance, typeRecordOf(instance.type), { unnamedLabel: unnamedLabel() })}`,
     value: { type: instance.type, id: instance.id }
   })));
-
 const search = event => {
   const query = String(event.query || '').toLowerCase();
   suggestions.value = options.value.filter(option => option.label.toLowerCase().includes(query));

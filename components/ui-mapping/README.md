@@ -255,8 +255,14 @@ beside the transition history in `StateHistory`.
   header identity line below the trail.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identifier (`InstanceIdentity`), status, budgeted scalar descriptor
-  columns, and the first declared
-  relation as budgeted chips. Rows are surface cards — the
+  columns, and the first declared relation as budgeted chips when any
+  loaded instance carries its refs (the contract's `relationColumn` —
+  an unfilled relation renders no column). Scalar cells are
+  `InlineField` in its cell variant: on patchable surfaces every value
+  (the empty ones included) edits in place through the per-field
+  pencil, patching through the region's `inline-change` channel; rows
+  carry the per-instance ellipsis menu (the same run contract the
+  cards use) when quick actions exist. Rows are surface cards — the
   preset paints every row as the content surface with transparent
   internal dividers, the recipe clips the row corners
   (`[clip-path:inset(0_round_var(--p-border-radius-xl))]`, since a row's

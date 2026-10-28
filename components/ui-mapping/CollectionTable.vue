@@ -44,13 +44,14 @@
       :header="field.label"
     >
       <template #body="{ data }">
-        <FieldControl
-          :model-value="data.fields?.[field.name]"
-          :descriptor="field.descriptor"
-          variant="row"
+        <InlineField
+          :field="{ name: field.name, descriptor: field.descriptor, value: data.fields?.[field.name] }"
+          :editable="patchable"
+          cell
           :quantitative="quantitative"
           :pool="pool"
           :bundle="bundle"
+          @inline-change="change => $emit('inline-change', { instance: data, change })"
         />
       </template>
     </Column>
@@ -68,8 +69,22 @@
         </div>
       </template>
     </Column>
+    <Column v-if="actions.length" class="w-10">
+      <template #body="{ data }">
+        <Button
+          icon="pi pi-ellipsis-v"
+          text
+          rounded
+          severity="secondary"
+          size="small"
+          :aria-label="$t('uiMapping.moreActions')"
+          @click.stop="event => openRowMenu(event, data)"
+        />
+      </template>
+    </Column>
     </DataTable>
   </div>
+  <Menu ref="rowMenu" :model="rowMenuItems" popup />
 </template>
 
 <script setup>
@@ -78,17 +93,20 @@ import { useI18n } from 'vue-i18n';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
+import Button from 'primevue/button';
+import Menu from 'primevue/menu';
 import {
   LAYOUT, fieldLabel, tableColumnCount, ROW_RELATION_BUDGET, applyBudget,
   titleFor, resolveListControls, stateDisplayFor,
-  localizedLabel, fieldLabelKey
+  resolveActionButton, actionLabelKey, localizedLabel, fieldLabelKey
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
+import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
-import FieldControl from './FieldControl.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import ParentRef from './ParentRef.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
+import InlineField from './InlineField.vue';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
@@ -107,12 +125,18 @@ const props = defineProps({
   bundle: { type: Object, default: null },
   // Per-type state policy map: the status column exists exactly when the
   // compiled process authored a state vocabulary for the type.
-  statePolicy: { type: Object, default: null }
+  statePolicy: { type: Object, default: null },
+  // Per-instance quick actions (resolveInstanceActions): one ellipsis
+  // menu per row, the same run contract the cards carry.
+  actions: { type: Array, default: () => [] },
+  // Cell values edit in place (the per-field pencil law) when the host
+  // binds a patch executor.
+  patchable: { type: Boolean, default: false }
 });
 
 const quantitative = computed(() => typeIsQuantitative(props.type));
 
-defineEmits(['open']);
+const emit = defineEmits(['open', 'run', 'inline-change']);
 
 const { te, t } = useI18n();
 
@@ -201,7 +225,9 @@ function onSortChange({ sortField, sortOrder }) {
   const name = nameForSortField(sortField);
   if (name) storeSortPreference(sortScope.value, { name, order: activeSortOrder.value });
 }
-const relationKey = computed(() => Object.keys(props.type?.edges?.relations || {})[0] || null);
+// The relation chip column rides the contract: the first declared
+// relation, a column only when any loaded instance carries its refs.
+const relationKey = computed(() => resolvedControls.value.relationColumn?.key || null);
 const relationLabel = computed(() => (relationKey.value ? startCase(relationKey.value) : ''));
 const budgetedRefs = instance => {
   const refs = instance.relations?.[relationKey.value];
@@ -213,5 +239,25 @@ const hiddenRefCount = instance => {
   const list = Array.isArray(refs) ? refs : refs ? [refs] : [];
   return applyBudget(list, ROW_RELATION_BUDGET).hidden;
 };
-</script>
 
+// One shared row-action menu (the card-grid pattern): the ellipsis
+// remembers its row, commands re-emit through the region run contract
+// with that instance as context.
+const rowMenu = ref(null);
+const menuInstance = ref(null);
+function openRowMenu(event, instance) {
+  menuInstance.value = instance;
+  rowMenu.value?.toggle(event);
+}
+const rowMenuItems = computed(() => props.actions
+  .filter(action => actionAppliesToEntity(action, menuInstance.value, props.type?.id))
+  .filter(action => !resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy }).hidden)
+  .map(action => {
+    const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
+    return {
+      label: localizedLabel({ te, t }, actionLabelKey(action.id), resolved.label || action.label || action.id),
+      icon: resolved.icon || undefined,
+      command: () => emit('run', action, { instance: menuInstance.value })
+    };
+  }));
+</script>

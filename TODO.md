@@ -1977,3 +1977,53 @@ failed review; the collection is the wrong place. The record surface
 already arranges members through the ladder — that is the whole
 membership story.
 Status: WAITING owner verification.
+
+## Display-aware columns, editable tables, picker repair (owner
+direction 2026-10-28)
+
+Law: SPEC §4 (the collection-cell pencil), §22.8 (the table floor).
+Owner findings: identifier+state data still becomes a datatable (field
+or component selection wrong); the list contract should carry generated
+buttons and editable nulls so tables edit; pickers show "[object
+Object]" for selected data; instance picking needs the proper pickers
+everywhere; the identifier icon has a huge gap to its title.
+
+- [x] The column floor is display-aware: `resolveListControls` carries
+  `relationColumn` (the first declared relation, a column only when any
+  loaded instance carries its refs — the table renders it on the same
+  law and the `columns` signal counts it filled-only), and `isFilled`
+  treats a null-valued quantity as unfilled (it renders the fallback
+  dash). A declared-but-unfilled relation or a column of dashes no
+  longer keeps a name pile in the table projection.
+- [x] Tables edit (SPEC §4): scalar cells are `InlineField` in a new
+  cell variant (the hover zone without the padded look — preset cell
+  padding stands), editing in place through the per-field pencil on
+  patchable surfaces — nulls included — and patching through the
+  region's `inline-change` channel (`emitPatchFor(instance, changes)`
+  generalizes the body's patch to the row's instance). Rows carry the
+  per-instance ellipsis menu (the card-grid run contract) when quick
+  actions exist.
+- [x] The instance picker's AutoComplete displays its selection: the
+  model `{ type, id }` ref resolves to the option carrying it, so the
+  input shows the record's label (a bare ref stringified to
+  "[object Object]"). The chat's prompted instance fields already ride
+  the shared `InstanceSelect` wrapper; the audit found no other raw
+  instance pickers.
+- [x] The identifier's icon-to-title gap was the preset's link-button
+  horizontal padding (12px) compounding the identifier's own 8px gap —
+  measured 21px. `InstanceIdentity` strips the link's horizontal
+  padding: the identifier surface owns its spacing.
+
+### Agent Notes (2026-10-28, round 21)
+
+Session `agent/genui-tablefloor-20261028-0110` (worktree
+`.agent-worktrees/genui-tablefloor`). The identity+state table survived
+round 16's floor through two leaks: the relation column counted by
+declaration (an empty column with a header kept the table alive and
+rendered) and null-valued quantities counted as filled (columns of
+dashes). Both now follow the one law the floor already claimed: a
+column renders what displays, or it stays out. Gap measurement and the
+relation/quantity pins live in the spec; `.playwright/genui-identgap.json`
+records the 21px measurement.
+
+Status: WAITING owner verification.
