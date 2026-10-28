@@ -599,6 +599,21 @@ AttachmentKind row.
       a `template-values` pinned values input renders one scalar input
       per template token; the composition's ephemeral `meta` channel
       names the tokens and records never store them.
+    - [ ] WAITING — Bounded shell and in-place editor (owner direction
+      2026-10-28): the dialog never scrolls its body — the form pane
+      owns its scroll and the preview pane stays viewport-bounded — and
+      the reference-row editor opens over the dialog instead of
+      navigating away.
+
+    ### Agent Notes (2026-10-28, bounded)
+
+    Session `agent/fill-dialog-fix-20261028-2110`. The composed dialog
+    rides StandardDialog `fill` (viewport-capped, content owns layout):
+    the form pane scrolls itself, the preview pane stays bounded, and
+    stacked (narrow) layouts scroll within the shell. The reference-row
+    edit pencil renders `GeneratedEditorPageAction` with `preferDialog`
+    — the surface opens full-screen over the dialog and returns to it,
+    replacing the navigate-home drop-out.
 
     ### Agent Notes (2026-10-28, token values)
 
