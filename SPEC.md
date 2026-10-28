@@ -1117,6 +1117,20 @@ empty canvas clears the selection. Opening a placed cassette is host
 navigation: the surface asks through the mount's workspace-open channel
 (surface contract 4), and the workspace owns the tab.
 
+Owner decision (2026-10-28, multi-sheet canvas): each sheet is its own
+sheet-design record, and the sheet-design editor edits several of them
+simultaneously on one canvas. The canvas carries every sheet of the
+working set side by side and treats them uniformly: sheets are added and
+removed — a new sheet is a new sheet-design record created through the
+editor, removing one removes its record — and cassette designs are
+placed by dragging between sheets, a cross-sheet drag re-clamping into
+the target sheet's geometry. The palette adds cassette designs from
+existing records and from the create modes the cassette-design type
+declares. The mount grows two editor-grade transports for this —
+construct (run a type's construction mode) and remove — host-executed
+like sync and upload, landing as the next surface-contract major. Saves
+stay per record: a cross-sheet drag commits both records' patches.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,
@@ -1134,6 +1148,46 @@ creation-protocol law in §4). The read-side preview channel
 under the surface contract: the platform mounts it in its preview slots
 over a read-only data-only mount (`{ record, payload }`), and the card
 chrome stays the platform's InstanceCard.
+
+Owner decision (2026-10-28, facade domain model — template, design,
+instance): the fabrication flow runs over a six-type family, and every
+hop is composed from declared constructs, relations, and the generic
+instance machinery — the plugin declares the family, the organization
+composes the flow in its process definitions, and nothing in the chain
+is a bespoke route or a hardcoded UI action.
+
+- `cassette-template` (file) — the authored parametric template; the
+  record's content is the payload document (the 2026-10-11 law). The
+  `cassette` id renames to it.
+- `cassette-design` (file) — baked geometry. One template produces many
+  designs; a design refers to one or zero templates through a nullable
+  `template` ref (a DXF-imported design carries none; the `source` ref
+  is the import path).
+- `cassette-instance` (item) — the digital twin of a physical cassette.
+  It refers to one or zero cassette designs — a twin may be a bare
+  record — and one design is referred by many twins.
+- `sheet-design` (file) — a set of cassette designs placed on sheet
+  geometry; one design may be placed multiple times in one sheet design,
+  and a sheet design is reusable, applied many times. Placements are a
+  declared relation to cassette-design (`onRemove: detach`, one ref per
+  placement) beside the frozen self-contained geometry snapshot (the
+  §24 app-canon law); provenance rides the refs with revision pins.
+- `sheet-cut-plan` (item) — a sheet design applied to an exact sheet: it
+  refers to one sheet design and to the sheet instance it cuts, and
+  carries no geometry of its own.
+- `sheet-instance` (item) — the digital twin of a physical sheet: a
+  plain record, referred by many.
+
+Nesting produces the sheet designs with quantities: the solve's input
+items are cassette-design geometries keyed by their cassette-design
+refs — a placement without its design ref refuses — and its output
+groups the resulting sheets by identical placement sets, joining sheets
+that cut the same designs the same way into one sheet design carrying
+the group's count.
+
+The family declares no states and no transitions: state vocabularies are
+process-graph authoring (CTS SPEC §7) — an organization authors cassette
+and sheet lifecycles in its process definitions.
 
 Plugin authoring is SDK-first (owner ask, 2026-10-10): a coding agent authors
 a plugin through @perigram/plugin-sdk — the listing contract with its JSON

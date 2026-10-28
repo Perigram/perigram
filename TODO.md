@@ -2241,3 +2241,44 @@ design-system suites (175), SSR smoke 16, check-arch green; check-docs
 reports only the pre-existing jagua-rs submodule link.
 
 Status: WAITING owner verification.
+
+## Facade domain model — template, design, instance (SPEC §20, owner direction 2026-10-28)
+
+The facade flow becomes a six-type family (cassette-template,
+cassette-design, cassette-instance, sheet-design, sheet-cut-plan,
+sheet-instance) composed through declared constructs, relations, and the
+generic machinery; the sheet-design editor becomes a multi-sheet canvas.
+Ordered steps:
+
+- [ ] Listing compliance: delete the dead `states`/`transitions` blocks
+  from cassette and cassette-design — CTS `normalizeType` drops the keys
+  silently, so they are declaration slop; SPEC §7 owns state
+  vocabularies at the process graph.
+- [ ] Type family: rename `cassette` → `cassette-template` (id, glyphs
+  already say it; stored installs + instances migrate), add
+  `cassette-instance`, `sheet-cut-plan`, `sheet-instance` as item types
+  (icons already in the ck-entity font), make `cassette-design.template`
+  nullable (DXF imports carry none), align `sheet-design` identifier to
+  `fields.name` (rename-field migration).
+- [ ] Placements relation: `sheet-design.fields.parts` (flat cassette
+  ref list) becomes a declared relation edge to cassette-design,
+  `onRemove: detach`, one ref per placement, stored under
+  `relations.parts` with the derived index; executor-returned relations
+  merge through the construct boundary.
+- [ ] Nesting provenance: `nesting-polygons` emits beside each part the
+  cassette-design ref it was projected from; solve input items are keyed
+  by cassette-design refs, placements without one refuse; solve output
+  groups identical placement sets into (layout, count) pairs.
+- [ ] `fromLayout` construct: consumes typed cassette-design refs
+  (resolved, revision-pinned, provenance-stamped), validates the layout
+  against them, emits geometry + the parts relation; an empty layout
+  constructs a blank sheet.
+- [ ] Surface contract 5: construct and remove host transports
+  (host-executed like sync/upload), loader + install-gate teaching.
+- [ ] Sheet-design editor: multi-record canvas — sibling sheet designs
+  side by side, sheets added/removed as records, cassette designs
+  dragged between sheets with target-sheet re-clamping, palette from
+  existing designs and the declared create modes, per-record saves.
+- [ ] Demo process, seeds, and e2e recomposed onto the family (design
+  refs threaded through the solve; grouped layouts consumed as sheet
+  designs with counts).
