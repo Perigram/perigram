@@ -87,18 +87,17 @@ and the canvas double round-trip.
 
 ### Declaration graph
 
-The declaration graph uses Class/Field/State/Transition/Operator nodes and
-typed declaration edges; `declarationWireLegality` and
-`declarationNodePorts` are its only connection contracts. A state connected
-to a class is a root state; a state connected to another state declares its
-single parent. A state's authored scope survives only its class wire — a
-state declared against a registry type stays an unscoped value token. A
-state wired into a construct or transition state socket (wire role
-`entry`) authors that operation's state: the construct's initial, the
-transition's target. A transition declaration connects explicit `from` and
-`to` states. The compiler builds recursive state machines through
-`compileTreeDeclarations` — one initial state per machine, cycle/duplicate
-checks, canonical dotted paths — and draft acceptance calls
+The declaration graph uses Class/Field/State/TypeRef nodes and typed
+declaration edges; `declarationWireLegality` and `declarationNodePorts`
+are its only connection contracts. A state node is a flat lifecycle
+value (SPEC §7): an `entry` wire into a construct's or transition's
+state socket authors that operation's state — the construct's initial,
+the transition's target, the wire being the value — and a `nested` wire
+into another state's state input nests under it (the wire's source is
+the parent). Transitions are operation nodes; the from-state is the
+arrival state on the transition's entity wire. `compileTreeDeclarations`
+posts classes with their fields and children edges — state records
+declare no type facet — and draft acceptance calls
 `declarationsFromCtsRecords` with the same declaration graph, so nested
 state and edge semantics match between preview and APPLY.
 

@@ -2830,3 +2830,47 @@ later step or the answer exists (the Fieldset `collapsed` prop seeds
 initial state only, so the v-for key carries the seed). Spec:
 `agent-bots.spec.js` pins the snapshot's lifecycle (mid-run active
 under the assistant identity, org boundary, cleared at run end).
+
+## Class-scoped state authoring is cut (owner direction 2026-10-28)
+
+Owner report: composed graphs wire state declarations into type
+declarations and generally misuse the declaration tree. Root cause: a
+class-scoped state authoring path (state→class `declares` wires,
+`declareState` `ownerClassId`/`typeId` scoping, per-type state
+vocabulary) lived in the legality table, the gesture, and the READMEs
+against CTS SPEC §7 — states wire into create/transition operations
+only, and the bot's authoring guide taught the slop as law.
+
+- [x] WAITING — owner verification: The state wiring grammar is
+  `entry` (state → construct/transition, the wire is the value) and
+  `nested` (parent state → child state) only; the legality table, the
+  `declareState` gesture, wire interpretation, tree diagnostics, and
+  the bot's authoring guide carry that law; `retireStateScopeAuthoring`
+  strips the retired wires and scope fields from persisted drafts at
+  the resolution/save seam.
+- [ ] Owner-named follow-up (same report): the bot's authoring skill
+  must teach field descriptor law (identifier, nullable/required), the
+  glyph palette, effect lanes, and the value/collection algebra
+  (math/text ops, finding and filtering instances).
+
+### Agent Notes (2026-10-28, state wires law)
+
+Session `agent/state-wires-law-20261028` (worktree
+`.agent-worktrees/state-wires-law-20261028`). Diagnosis: CTS SPEC §7
+already stated the owner's law ("States are authored in the process
+graph, never in the type declaration"); the class-scoped path was a
+SPEC violation implemented across `declarationWireLegality`
+(state→class `declares`), `declareState` scoping, wire interpretation
+(state typeId follows the class), per-type diagnostics, and the
+AUTHORING_GUIDE's state bullets. Cut: the legality row, the gesture's
+scope params, interpretation and count writes, the per-type target
+check (now draft-local values, message "not declared in this draft"),
+the class card's `states` count; `nested` and `entry` stay (owner
+ruling). Migration: `retireStateScopeAuthoring` joins
+`rewriteRetiredWirePaths`/`orientChildrenEdgesChildFirst` in the
+save-boundary chain. Specs updated across processes/cts/
+process-definitions; `test-data/persisted-acceptance.js` carries the
+post-migration shape. Pre-existing reds on `local` verified unrelated
+(cassette domain: ui-contract, graph-protocol-construction,
+process-definitions service/runtime specs — 12 failures at base,
+identical after this change).

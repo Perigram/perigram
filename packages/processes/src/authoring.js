@@ -490,10 +490,7 @@ function syncDeclarationRecordFromNode(record, nodeType, data) {
     record.descriptor = { ...(data.descriptor || { base: 'string' }) };
   } else if (nodeType === 'ctsState') {
     record.kind = 'state';
-    record.typeId = data.typeId || null;
     record.value = data.value || '';
-    record.initial = data.initial === true;
-    record.terminal = data.terminal === true;
   } else {
     record.kind = 'type';
     record.typeId = data.typeId || '';
@@ -605,24 +602,15 @@ export function createDefinitionAuthoring(domain, capabilities = null, seedData 
     return declare({ id, nodeType: 'ctsType', data: { typeId, label: typeId } });
   }
 
-  // A state node's scope: ownerClassId (in-tree class) or bare typeId.
-  function declareState({ id, ownerClassId, typeId, value, initial, terminal }) {
+  // A state node is a flat lifecycle value (SPEC §7): its only wiring is
+  // the entry wire into a construct's or transition's state socket and
+  // the nesting wire under a parent state.
+  function declareState({ id, value }) {
     if (!value) throw new Error(`State ${id} has no value`);
-    const owner = ownerClassId ? declarationNodeOf(ownerClassId) : null;
-    if (ownerClassId && (!owner || owner.type !== 'ctsClass')) {
-      throw new Error(`State ${id} declares on unknown class ${ownerClassId}`);
-    }
-    const node = declare({
+    return declare({
       id, nodeType: 'ctsState',
-      data: {
-        typeId: owner ? owner.data.typeId : (typeId || null),
-        value,
-        initial: initial === true,
-        terminal: terminal === true
-      }
+      data: { value }
     });
-    if (owner) wireDeclaration(id, ownerClassId, 'declares');
-    return node;
   }
 
   // The declaration wire gesture: gated by the same legality table the

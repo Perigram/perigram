@@ -275,16 +275,14 @@ describe('headless definition authoring', () => {
     expect(definition.processNodes.order.outputs.map(port => port.id)).toEqual(['completed', 'result']);
   });
 
-  it('authors states and their entry wires: class-scoped root, registry-scoped, construct initial and transition target', () => {
+  it('authors states and their entry and nesting wires (SPEC §7)', () => {
     const context = authoring();
     context.declareClass({ id: 'panelClass', typeId: 'part', class: 'item', name: 'Panel' });
-    context.declareState({ id: 'stNew', ownerClassId: 'panelClass', value: 'NEW', initial: true });
-    context.declareState({ id: 'stLive', ownerClassId: 'panelClass', value: 'LIVE' });
-    context.declareTypeRef({ id: 'sheetRef', typeId: 'sheet' });
-    context.declareState({ id: 'stProduction', typeId: 'sheet', value: 'PRODUCTION', terminal: true });
+    context.declareState({ id: 'stNew', value: 'NEW' });
+    context.declareState({ id: 'stLive', value: 'LIVE' });
+    context.wireDeclaration('stNew', 'stLive', 'nested');
     context.declareTypeRef({ id: 'ref_part', typeId: 'part' });
     context.drop('construct', { id: 'makePanel' });
-    context.wireDeclaration('ref_part', 'makePanel', 'binds');
     context.wireDeclaration('panelClass', 'makePanel', 'binds');
     context.wireDeclaration('stNew', 'makePanel', 'entry');
     context.drop('transition', { id: 'shipPanel' });
@@ -292,12 +290,11 @@ describe('headless definition authoring', () => {
     context.wireDeclaration('stLive', 'shipPanel', 'entry');
 
     const definition = context.definition();
-    expect(definition.ctsTypes.stNew).toMatchObject({ kind: 'state', typeId: 'part', value: 'NEW', initial: true, terminal: false });
-    // Registry-scoped states carry no class wire, so interpretation keeps
-    // them unscoped value tokens (graph-protocol: unscoped records satisfy
-    // any bound type).
-    expect(definition.ctsTypes.stProduction).toMatchObject({ kind: 'state', value: 'PRODUCTION', terminal: true });
-    expect(definition.ctsTypes.stProduction.typeId).toBeNull();
+    // A state record is a flat value token (SPEC §7): the draft's own
+    // vocabulary, draft-local at validation.
+    expect(definition.ctsTypes.stNew).toEqual({ kind: 'state', id: 'stNew', value: 'NEW' });
+    const nestedEdge = definition.graph.edges.find(edge => edge.id === 'decl:nested:stNew-stLive');
+    expect(nestedEdge).toBeTruthy();
     const entryEdge = definition.graph.edges.find(edge => edge.id === 'decl:entry:stNew-makePanel');
     expect(entryEdge).toMatchObject({ sourceHandle: 'data:state', targetHandle: 'data:state' });
     expect(definition.processNodes.makePanel.inputDefaults.state).toBe('NEW');

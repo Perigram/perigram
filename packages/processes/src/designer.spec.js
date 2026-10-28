@@ -427,9 +427,9 @@ describe('process designer domain contract', () => {
 describe('declaration wire legality', () => {
   const legality = args => declarationWireLegality(args);
 
-  it('field and state nodes declare on a class node', () => {
+  it('field nodes declare on a class node', () => {
     expect(legality({ sourceType: 'ctsField', targetType: 'ctsClass' })).toBe('declares');
-    expect(legality({ sourceType: 'ctsState', targetType: 'ctsClass' })).toBe('declares');
+    expect(legality({ sourceType: 'ctsState', targetType: 'ctsClass' })).toBeNull();
   });
 
   it('class and reference nodes bind origin species only; consumers adapt to their entity stream', () => {
@@ -486,8 +486,8 @@ describe('tree declaration compilation', () => {
   const fieldNode = (typeId, name, descriptor) => ({
     id: `field:${typeId}:${name}`, type: 'ctsField', data: { typeId, name, descriptor }
   });
-  const stateNode = (typeId, value, flags = {}) => ({
-    id: `state:${typeId}:${value}`, type: 'ctsState', data: { typeId, value, ...flags }
+  const stateNode = (id, value, extra = {}) => ({
+    id: `state:${id}:${value}`, type: 'ctsState', data: { value, ...extra }
   });
   const declares = (source, target, label) => ({
     id: `d:${source.id}-${target.id}`, source: source.id, target: target.id, role: 'type', label
@@ -504,21 +504,17 @@ describe('tree declaration compilation', () => {
       fieldNode('widget', 'width', { base: 'quantity', unit: 'mm' }),
       stateNode('widget', 'raw'),
       stateNode('widget', 'done'),
-      stateNode('widget', 'archived', { initial: true, terminal: true }),
+      stateNode('widget', 'archived'),
       stateNode('gadget', 'new'),
       construct
     ];
     const edges = [
       declares(nodes[2], widget, 'field'),
       declares(nodes[3], widget, 'field'),
-      declares(nodes[4], widget, 'state'),
-      declares(nodes[5], widget, 'state'),
-      declares(nodes[6], widget, 'state'),
-      declares(nodes[7], gadget, 'state'),
       // entry: the state wired into the construct IS the machine entry
       { id: 'entry1', source: nodes[4].id, target: 'mk', role: 'type', label: 'entry' },
-      // nesting: `archived` compiles under `done.archived` (nested
-      // machines); transitions come from transition nodes only
+      // nesting: `archived` nests under `done` (SPEC §7); transitions
+      // come from transition nodes only
       { id: 'n1', source: nodes[6].id, target: nodes[5].id, role: 'type', label: 'nested' },
       // children: the child's output wires into the parent's declare input
       { id: 'c1', source: gadget.id, target: widget.id, role: 'type', label: 'children', data: { key: 'parts', onRemove: 'cascade' } }
@@ -636,8 +632,8 @@ describe('tree declaration compilation', () => {
 
   it('no state is an initial — initials are construct socket authoring (SPEC §7)', () => {
     const widget = classNode('widget');
-    const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'done')];
-    const edges = [declares(nodes[1], widget, 'state'), declares(nodes[2], widget, 'state')];
+    const nodes = [classNode('widget'), stateNode('widget', 'raw'), stateNode('widget', 'done')];
+    const edges = [];
     const compiled = compileTreeDeclarations(nodes, edges);
     expect(compiled.diagnostics).toEqual([]);
 
@@ -661,7 +657,7 @@ describe('tree declaration compilation', () => {
   it('a sole wired state declares nothing on the type — it is wiring vocabulary', () => {
     const widget = classNode('widget');
     const nodes = [widget, stateNode('widget', 'raw')];
-    const { declarations, diagnostics } = compileTreeDeclarations(nodes, [declares(nodes[1], widget, 'state')]);
+    const { declarations, diagnostics } = compileTreeDeclarations(nodes, []);
     expect(diagnostics).toEqual([]);
     expect(declarations[0].states).toBeUndefined();
   });
@@ -671,12 +667,9 @@ describe('tree declaration compilation', () => {
     const nodes = [
       goo,
       stateNode('t-uth93vgdab', 'GOO'),
-      stateNode('t-uth93vgdab', 'CHANGED', { terminal: true })
+      stateNode('t-uth93vgdab', 'CHANGED')
     ];
-    const edges = [
-      declares(nodes[1], goo, 'state'),
-      declares(nodes[2], goo, 'state')
-    ];
+    const edges = [];
     const records = {
       move: {
         id: 'move',
@@ -694,7 +687,7 @@ describe('tree declaration compilation', () => {
   it('rejects a transition record that targets an undeclared state', () => {
     const widget = classNode('widget');
     const nodes = [widget, stateNode('widget', 'raw')];
-    const edges = [declares(nodes[1], widget, 'state')];
+    const edges = [];
     const records = {
       ship: {
         id: 'ship',
@@ -704,13 +697,13 @@ describe('tree declaration compilation', () => {
       }
     };
     const { diagnostics } = compileTreeDeclarations(nodes, edges, records);
-    expect(diagnostics.some(message => message.includes('state SHIPPED not declared for widget'))).toBe(true);
+    expect(diagnostics.some(message => message.includes('state SHIPPED not declared in this draft'))).toBe(true);
   });
 
   it('an untargeted transition is a declaration diagnostic naming the node; archive transitions are exempt', () => {
     const widget = classNode('widget');
     const nodes = [widget, stateNode('widget', 'raw')];
-    const edges = [declares(nodes[1], widget, 'state')];
+    const edges = [];
     const records = {
       unauthored: { id: 'unauthored', kind: 'cts.transition', typeId: 'widget' },
       archiver: { id: 'archiver', kind: 'cts.transition', typeId: 'widget', archive: true }
@@ -727,12 +720,11 @@ describe('tree declaration compilation', () => {
     expect(diagnostics[0]).toContain('broken');
   });
 
-  it('diagnostics name the authored class name, not only the registry id', () => {
+  it('duplicate state values are draft-global diagnostics', () => {
     const widget = classNode('widget', { name: 'Widget' });
     const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'raw')];
-    const edges = [declares(nodes[1], widget, 'state'), declares(nodes[2], widget, 'state')];
-    const { diagnostics } = compileTreeDeclarations(nodes, edges);
-    expect(diagnostics.some(message => message.startsWith('class Widget:'))).toBe(true);
+    const { diagnostics } = compileTreeDeclarations(nodes, []);
+    expect(diagnostics.some(message => message.includes('duplicate state name raw'))).toBe(true);
   });
 
   it('diagnostics children wires on file classes instead of emitting the edge', () => {
@@ -780,14 +772,17 @@ describe('tree declaration compilation', () => {
     expect(ids.indexOf('t-child-1')).toBeLessThan(ids.indexOf('t-ref-parent-1'));
   });
 
-  it('nesting across types are diagnostics', () => {
+  it('cyclic nesting chains are diagnostics', () => {
     const a = stateNode('widget', 'raw');
-    const b = stateNode('gadget', 'new');
+    const b = stateNode('widget', 'done');
     const { diagnostics } = compileTreeDeclarations(
-      [classNode('widget'), classNode('gadget'), a, b],
-      [{ id: 't', source: a.id, target: b.id, role: 'type', label: 'nested' }]
+      [a, b],
+      [
+        { id: 't1', source: a.id, target: b.id, role: 'type', label: 'nested' },
+        { id: 't2', source: b.id, target: a.id, role: 'type', label: 'nested' }
+      ]
     );
-    expect(diagnostics[0]).toContain('one declared type');
+    expect(diagnostics.some(message => message.includes('cyclic nesting chain'))).toBe(true);
   });
 
   it('compiles declared operators through the registry rules (R5) with named diagnostics', () => {
@@ -873,14 +868,14 @@ describe('declaration node ports', () => {
 describe('live declaration wire interpretation', () => {
   const graph = () => ({
     nodes: [
-      { id: 'cls', type: 'ctsClass', data: { typeId: 'panel', fields: 0, states: 0 } },
+      { id: 'cls', type: 'ctsClass', data: { typeId: 'panel', fields: 0 } },
       { id: 'f1', type: 'ctsField', data: { typeId: null, name: 'width' } },
-      { id: 's1', type: 'ctsState', data: { typeId: null, value: 'raw' } },
+      { id: 's1', type: 'ctsState', data: { value: 'raw' } },
       { id: 'ctor', type: 'processNode', data: { refId: 'ctor' } }
     ],
     edges: [
       { id: 'd1', source: 'f1', target: 'cls', role: 'type', label: 'field' },
-      { id: 'd2', source: 's1', target: 'cls', role: 'type', label: 'state' },
+      { id: 'e1', source: 's1', target: 'ctor', role: 'type', label: 'entry' },
       { id: 'b1', source: 'cls', target: 'ctor', role: 'type', label: 'type' }
     ],
     records: { ctor: { id: 'ctor', kind: 'cts.construct', typeId: '' } }
@@ -889,8 +884,12 @@ describe('live declaration wire interpretation', () => {
     for (const mutation of mutations) {
       if (mutation.scope === 'node') {
         state.nodes.find(node => node.id === mutation.nodeId).data[mutation.key] = mutation.value;
-      } else {
+      } else if (mutation.key === 'typeId') {
         state.records[mutation.recordId].typeId = mutation.value;
+      } else {
+        const [head, tail] = String(mutation.key).split('.');
+        const record = state.records[mutation.recordId];
+        record[head] = { ...(record[head] || {}), [tail]: mutation.value };
       }
     }
   };
@@ -900,9 +899,10 @@ describe('live declaration wire interpretation', () => {
     const first = interpretDeclarationEdges(state.nodes, state.edges, state.records, {});
     apply(state, first.mutations);
     expect(state.nodes.find(node => node.id === 'f1').data.typeId).toBe('panel');
-    expect(state.nodes.find(node => node.id === 's1').data.typeId).toBe('panel');
-    expect(state.nodes.find(node => node.id === 'cls').data).toMatchObject({ fields: 1, states: 1 });
+    expect(state.nodes.find(node => node.id === 'cls').data).toMatchObject({ fields: 1 });
     expect(state.records.ctor.typeId).toBe('panel');
+    // The entry wire authors the construct's initial state (SPEC §7).
+    expect(state.records.ctor.inputDefaults.state).toBe('raw');
 
     // a settled graph interprets to nothing — evaluation is idempotent
     const second = interpretDeclarationEdges(state.nodes, state.edges, state.records, first.bindings);
@@ -929,7 +929,12 @@ describe('live declaration wire interpretation', () => {
     expect(state.records.ctor.typeId).toBe('');
 
     // a record bound by preset (no wire ever) is authored data: untouched
-    const preset = interpretDeclarationEdges(state.nodes, state.edges, { ctor: { id: 'ctor', kind: 'cts.construct', typeId: 'sheet' } }, {});
+    const preset = interpretDeclarationEdges(
+      state.nodes,
+      state.edges.filter(edge => edge.id !== 'e1'),
+      { ctor: { id: 'ctor', kind: 'cts.construct', typeId: 'sheet' } },
+      {}
+    );
     expect(preset.mutations.filter(mutation => mutation.scope === 'record')).toEqual([]);
   });
 

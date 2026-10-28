@@ -119,8 +119,10 @@ modules onto its sections.
   the declaration graph beside records, so nested state and edge
   acceptance match what APPLY posts (children wires land child-first);
   `operationKindOf` answers the record's own kind;
-  `rewriteRetiredWirePaths` and `orientChildrenEdgesChildFirst` are
-  the one-way seam rewrites for persisted drafts (SPEC §14 resolution
+  `rewriteRetiredWirePaths`, `orientChildrenEdgesChildFirst`, and
+  `retireStateScopeAuthoring` (the state-scope strip: state→class
+  `declares` wires and the state `typeId`/`initial`/`terminal` fields)
+  are the one-way seam rewrites for persisted drafts (SPEC §14 resolution
   and migration); `renameLegacyTypeKeys` is the pure key rewriter for
   the one-shot persisted-data migration script.
 - `pack/cnc.js` — the CNC starter type pack: the collapse-table

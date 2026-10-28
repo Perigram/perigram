@@ -387,6 +387,42 @@ export function orientChildrenEdgesChildFirst(data = {}) {
   return changed ? { ...data, graph: { ...data.graph, edges } } : data;
 }
 
+/**
+ * One-way seam rewrite retiring class-scoped state authoring (SPEC §7:
+ * states wire into create/transition operations and parent states only).
+ * Strips state→class `declares` wires, the `typeId`/`initial`/`terminal`
+ * scope fields off state graph nodes and their cts records, and the
+ * class node's `states` count.
+ */
+export function retireStateScopeAuthoring(data = {}) {
+  if (!data || typeof data !== 'object' || !Array.isArray(data.graph?.edges)) return data;
+  const nodeTypes = new Map((data.graph.nodes || []).map(node => [String(node.id), String(node?.type || '')]));
+  const edges = data.graph.edges.filter(edge => !(
+    edge?.role === 'type'
+    && edge.label === 'declares'
+    && nodeTypes.get(String(edge.source)) === 'ctsState'
+  ));
+  const nodes = (data.graph.nodes || []).map(node => {
+    if (node?.type === 'ctsState') {
+      const { typeId, initial, terminal, ...rest } = node.data || {};
+      return (typeId === undefined && initial === undefined && terminal === undefined)
+        ? node
+        : { ...node, data: rest };
+    }
+    if (node?.type === 'ctsClass' && node.data && Object.hasOwn(node.data, 'states')) {
+      const { states, ...rest } = node.data;
+      return { ...node, data: rest };
+    }
+    return node;
+  });
+  const ctsTypes = Object.fromEntries(Object.entries(data.ctsTypes || {}).map(([id, record]) => {
+    if (record?.kind !== 'state') return [id, record];
+    const { typeId, initial, terminal, ...rest } = record;
+    return [id, rest];
+  }));
+  return { ...data, graph: { ...data.graph, nodes, edges }, ctsTypes };
+}
+
 export function rewriteRetiredWirePaths(data = {}) {
   if (!data || typeof data !== 'object') return data;
   const constructs = new Set(Object.entries(data.processNodes || {})
@@ -723,15 +759,13 @@ export function checkCtsGraphBindings(definition = {}, domain = {}) {
         errors.push(`processNodes.${id}: transition declares no target state`);
       }
       if (target) {
-        // The vocabulary is the draft's own state records (SPEC §7). A
-        // state node is a value token: unscoped records satisfy any bound
-        // type (scope is authored data, never a precondition); only a
-        // value scoped exclusively to OTHER types is a mismatch.
+        // The vocabulary is the draft's own state records (SPEC §7): a
+        // state node is a value token, so any record carrying the target
+        // value satisfies the bound type.
         const records = Object.values(data.ctsTypes || {}).filter(record => record?.kind === 'state');
-        const declared = records.some(record => record.value === target
-          && (record.typeId == null || record.typeId === (resolvedTypeId || typeId)));
+        const declared = records.some(record => record.value === target);
         if (!declared) {
-          errors.push(`processNodes.${id}: state ${target} is not declared for ${resolvedTypeId || typeId}`);
+          errors.push(`processNodes.${id}: state ${target} is not declared in this draft`);
         }
       }
     }

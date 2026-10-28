@@ -574,7 +574,11 @@ idempotent re-posts.
 definition-resolution seam and in the save-boundary persisted rewrites:
 retired `name` construction-input entries, `name` socket defaults, and
 edges wired into the retired name handle drop before validation,
-compilation, execution, or storage sees the draft.
+compilation, execution, or storage sees the draft. `retireStateScopeAuthoring`
+runs in the same chain and strips class-scoped state authoring the same
+way: state→class `declares` wires and the state
+`typeId`/`initial`/`terminal` scope fields (SPEC §7 — states wire into
+create/transition operations and parent states only).
 
 `createActiveEmptyProcess()` is the organization-bootstrap path: it
 authors the organization's first definition through the authoring seam —

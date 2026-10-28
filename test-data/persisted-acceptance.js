@@ -27,13 +27,13 @@ export function createPersistedAcceptanceFixture() {
     dataflowVersion: PROCESS_DATAFLOW_VERSION,
     graphProtocol: 5,
     ctsTypes: {
-      st_active: { id: 'st_active', kind: 'state', typeId: 'cassette', value: 'ACTIVE', terminal: false },
-      st_archived: { id: 'st_archived', kind: 'state', typeId: 'cassette', value: 'ARCHIVED', terminal: true }
+      st_active: { id: 'st_active', kind: 'state', value: 'ACTIVE' },
+      st_archived: { id: 'st_archived', kind: 'state', value: 'ARCHIVED' }
     },
     graph: {
       nodes: [
-        { id: 'st_active', type: 'ctsState', position: { x: 0, y: 0 }, data: { refId: 'st_active', typeId: 'cassette', value: 'ACTIVE', terminal: false } },
-        { id: 'st_archived', type: 'ctsState', position: { x: 240, y: 0 }, data: { refId: 'st_archived', typeId: 'cassette', value: 'ARCHIVED', terminal: true } },
+        { id: 'st_active', type: 'ctsState', position: { x: 0, y: 0 }, data: { refId: 'st_active', value: 'ACTIVE' } },
+        { id: 'st_archived', type: 'ctsState', position: { x: 240, y: 0 }, data: { refId: 'st_archived', value: 'ARCHIVED' } },
         { id: 'create_cassette', type: 'processNode', position: { x: 480, y: 120 }, data: { refId: 'create_cassette' } }
       ],
       edges: [],
