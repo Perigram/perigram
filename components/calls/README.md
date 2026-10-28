@@ -114,9 +114,9 @@ reactions and device settings as PrimeVue `Popover`s anchored at their
 buttons, and leave as the single danger button, separated by a hairline
 divider. The pill wraps to a second row on narrow panes — every control
 stays reachable at any width. Tiles carry the speaking state as a
-`ring-status-success` ring, and the spotlight control — a push-pin chip
-over the media (an inline Material `push_pin` SVG; primeicons ships no
-pin glyph) — reveals on tile hover on
+`ring-status-success` ring, and the spotlight control — a `pi-thumbtack` chip
+over the media, primary-colored while spotlighted — reveals on tile
+hover on
 pointer devices (touch widths keep it visible; a spotlighted tile keeps it
 lit). Toggled-off devices keep their glyph and carry the state as the
 danger color: primeicons ships no slash variants for microphone or
