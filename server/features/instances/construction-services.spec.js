@@ -30,7 +30,7 @@ vi.mock('../cts-types/repository.js', () => ({
   listByOrganization: vi.fn(async () => [])
 }));
 
-import { applyConstructionService, serviceBackedConstruction, storedConstructionDraft } from './construction-services.js';
+import { applyConstructionService, previewConstructionService, serviceBackedConstruction, storedConstructionDraft } from './construction-services.js';
 import { executeConnectorService, constructionsForOrganization } from '../plugins/service.js';
 import * as filesService from '../files/service.js';
 import * as pluginInstalls from '../plugins/repository.js';
@@ -242,6 +242,54 @@ describe('service-backed construction executor payloads (SPEC §24)', () => {
       name: 'X',
       data: { template: 't1', parts: ['ghost'] }
     }, CONTEXT)).rejects.toThrow(/Construction input parts references ghost/);
+  });
+});
+
+describe('construction preview (SPEC §24)', () => {
+  it('returns the composed payload as base64 wire beside computed fields, persisting nothing', async () => {
+    stubCollection();
+    executorOutput({ data: { placed: 2 }, payload: { base64: b64('composed dxf'), mime: 'application/dxf', name: 'sheet.dxf' } });
+
+    const preview = await previewConstructionService('drawing', 'place', { name: 'Sheet' }, CONTEXT);
+
+    expect(preview).toEqual({
+      payload: { base64: b64('composed dxf'), mime: 'application/dxf', name: 'sheet.dxf' },
+      fields: { placed: 2 }
+    });
+    expect(filesService.uploadFile).not.toHaveBeenCalled();
+  });
+
+  it('returns a null payload when the executor emits fields only', async () => {
+    stubCollection();
+    executorOutput({ data: { pages: 3 } });
+
+    const preview = await previewConstructionService('report', 'fromTemplate', { name: 'X' }, CONTEXT);
+
+    expect(preview).toEqual({ payload: null, fields: { pages: 3 } });
+  });
+
+  it('refuses 404 when the org binds no service for the mode', async () => {
+    await expect(previewConstructionService('drawing', 'fill', {}, CONTEXT))
+      .rejects.toMatchObject({ statusCode: 404 });
+    await expect(previewConstructionService('drawing', 'place', {}, { userId: 'u1', organizationId: 'org-2' }))
+      .rejects.toMatchObject({ statusCode: 404 });
+    expect(executeConnectorService).not.toHaveBeenCalled();
+  });
+
+  it('refuses 400 without organization context', async () => {
+    await expect(previewConstructionService('report', 'fromTemplate', {}, { userId: 'u1' }))
+      .rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('propagates the structured refusal body the executor names', async () => {
+    executorOutput({ failures: [{ name: 'hinge', message: 'spot hinge has no matching part' }] });
+
+    await expect(previewConstructionService('drawing', 'place', {}, CONTEXT))
+      .rejects.toMatchObject({
+        statusCode: 422,
+        data: { failures: [{ name: 'hinge', message: 'spot hinge has no matching part' }] }
+      });
+    expect(filesService.uploadFile).not.toHaveBeenCalled();
   });
 });
 

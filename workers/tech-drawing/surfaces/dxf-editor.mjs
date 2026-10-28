@@ -1,12 +1,10 @@
 // The tech-drawing plugin's DXF template editor (surface contract 2 —
-// the editor-grade mount). Marker-first (SPEC §24): the template payload
-// opens on the MLightCAD canvas (the declared cad-viewer dependency) and
-// the {spot:name} anchors — the part-matching vocabulary — are authored
-// and renamed right where the drawing is drawn. Every edit re-opens the
-// spliced DXF so the canvas always shows the saved truth; saves ride the
-// revisioned payload channel. The DXF pair operations live in
-// ../dxf-markers.js.
+// the editor-grade mount). Marker law homes in ../dxf-markers.js.
 import { spotMarkersOf, addSpotMarker, renameSpotMarker, removeSpotMarker, defaultMarkerHeight } from '../dxf-markers.js';
+
+// The anchor read host surfaces consume (the fill dialog's spot-parts
+// row): the parse law stays homed with the placement engine.
+export { spotNamesOf } from '../dxf-markers.js';
 
 const OPEN_OPTIONS = { readOnly: true };
 
@@ -28,6 +26,7 @@ export default function createSurface({ vue, components, locale, notify }) {
       const engineError = ref('');
       const templateText = ref('');
       const containerRef = ref(null);
+      const nameRef = ref(null);
       const addName = ref('');
       const addX = ref(0);
       const addY = ref(0);
@@ -96,6 +95,21 @@ export default function createSurface({ vue, components, locale, notify }) {
         }
       }
 
+      const rounded6 = value => Math.round(value * 1e6) / 1e6;
+
+      // A canvas click picks the anchor's insertion point into the add
+      // form — the engine's own view transforms, six-decimal rounding.
+      function pickPoint(event) {
+        const view = manager?.curView;
+        if (!view?.viewportToCanvas || !view?.screenToWorld) return;
+        const world = view.screenToWorld(view.viewportToCanvas({ x: event.clientX, y: event.clientY }));
+        if (world == null || !Number.isFinite(world.x) || !Number.isFinite(world.y)) return;
+        addX.value = rounded6(world.x);
+        addY.value = rounded6(world.y);
+        const el = nameRef.value?.$el || nameRef.value;
+        el?.focus?.();
+      }
+
       async function save() {
         saving.value = true;
         try {
@@ -126,6 +140,7 @@ export default function createSurface({ vue, components, locale, notify }) {
           disableExport: true
         });
         await reopen();
+        containerRef.value?.addEventListener('click', pickPoint);
       }
 
       onMounted(async () => {
@@ -147,6 +162,7 @@ export default function createSurface({ vue, components, locale, notify }) {
 
       onBeforeUnmount(() => {
         disposed = true;
+        containerRef.value?.removeEventListener('click', pickPoint);
         manager = null;
       });
 
@@ -177,7 +193,7 @@ export default function createSurface({ vue, components, locale, notify }) {
         h('div', { class: 'flex flex-wrap items-center gap-2' }, [
           h('span', { class: 'text-supporting' }, editorTitle.value),
           h(Button, {
-            icon: 'pi pi-times-circle',
+            icon: 'pi pi-expand',
             severity: 'secondary',
             text: true,
             rounded: true,
@@ -213,6 +229,7 @@ export default function createSurface({ vue, components, locale, notify }) {
               ...markers.value.map(marker => h('div', { key: marker.name }, [markerRow(marker)])),
               h('div', { class: 'mt-auto flex flex-col gap-2 rounded-panel border border-content-border p-2' }, [
                 h(InputText, {
+                  ref: nameRef,
                   modelValue: addName.value,
                   size: 'small',
                   placeholder: t('dxfEditor.markerName'),

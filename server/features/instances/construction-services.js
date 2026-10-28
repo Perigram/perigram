@@ -51,15 +51,16 @@ export function serviceBackedConstruction(typeId, mode) {
   };
 }
 
-// The pre-step the standard payload-protocol handlers apply: merge the
-// executor's computed fields into the draft before the protocol runs.
-// Types without a binding pass through unchanged.
-export async function applyConstructionService(typeId, mode, draft = {}, context = {}) {
+// The shared executor invocation both construction paths ride: resolve
+// the org's binding, build the values input, run the service. Null when
+// the context carries no organization or the mode is unbound; a
+// structured refusal throws with the offender list (SPEC §24).
+async function invokeConstructionService(typeId, mode, draft = {}, context = {}) {
   const organizationId = context.organizationId || null;
-  if (!organizationId) return draft;
+  if (!organizationId) return null;
   const bindings = await constructionsForOrganization(organizationId).catch(() => ({}));
   const serviceRef = bindings[typeId]?.[mode];
-  if (!serviceRef) return draft;
+  if (!serviceRef) return null;
 
   const parameters = await buildServiceInput(typeId, mode, draft, context, organizationId);
   const output = await executeConnectorService(
@@ -69,9 +70,6 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
   if (!output || typeof output !== 'object' || Array.isArray(output)) {
     throw createError({ statusCode: 502, message: `Construction service ${serviceRef} returned no object output` });
   }
-  // A structured refusal (SPEC §24): the executor answers named
-  // offenders instead of a payload/data result; the refusal carries
-  // through to the create dialog as `failures`.
   if (Array.isArray(output.failures) && output.failures.length) {
     const failures = output.failures
       .map(failure => ({ ...(failure && typeof failure === 'object' ? failure : { message: String(failure) }) }))
@@ -86,6 +84,34 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
     }
   }
   const data = output.data && typeof output.data === 'object' && !Array.isArray(output.data) ? output.data : {};
+  return { serviceRef, parameters, output, data };
+}
+
+// The fill dialog's composed preview (SPEC §24): the same service the
+// create runs, invoked with nothing persisted — the payload returns as
+// base64 wire, the fields as the computed draft.
+export async function previewConstructionService(typeId, mode, draft = {}, context = {}) {
+  if (!context.organizationId) {
+    throw createError({ statusCode: 400, message: 'Organization context is required' });
+  }
+  const run = await invokeConstructionService(typeId, mode, draft, context);
+  if (!run) {
+    throw createError({ statusCode: 404, message: `No construction service bound for ${typeId}.${mode}` });
+  }
+  const file = executorPayload(run.serviceRef, run.output.payload);
+  return {
+    payload: file ? { base64: file.buffer.toString('base64'), mime: file.mime, ...(file.name ? { name: file.name } : {}) } : null,
+    fields: run.data
+  };
+}
+
+// The pre-step the standard payload-protocol handlers apply: merge the
+// executor's computed fields into the draft before the protocol runs.
+// Types without a binding pass through unchanged.
+export async function applyConstructionService(typeId, mode, draft = {}, context = {}) {
+  const run = await invokeConstructionService(typeId, mode, draft, context);
+  if (!run) return draft;
+  const { serviceRef, parameters, output, data } = run;
   const merged = { ...draft, fields: { ...(draft.fields || {}), ...data } };
   // Executor-declared relations (SPEC §6 edges): computed relation values
   // join the draft beside the computed fields and store through the same
@@ -112,7 +138,7 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
   }
   const file = executorPayload(serviceRef, output.payload);
   if (!file) return merged;
-  return { ...merged, payload: await storeExecutorPayload(typeId, draft, file, context, organizationId) };
+  return { ...merged, payload: await storeExecutorPayload(typeId, draft, file, context, context.organizationId) };
 }
 
 async function storeExecutorPayload(typeId, draft, file, context, organizationId) {

@@ -44,7 +44,10 @@ and the uninstall drain gate all refuse loudly.
 
 A surface module default-exports the factory `createSurface(ctx) ->
 component`; the component declares props `{ record, persistence }` (the
-preview `kind`: `{ record, payload }`). The ctx ladder by
+preview `kind`: `{ record, payload }`). A surface module may carry named
+exports of its own domain law; host renderers consume them through the
+served surface URL (the DXF editor exports `spotNamesOf`, the anchor
+read the fill dialog's spot-parts row uses). The ctx ladder by
 `surfaceContract` major:
 
 - **1 (base)** — `{ vue, components, locale }`: the host's Vue runtime

@@ -148,8 +148,23 @@ list. A ref input whose compiled policy carries a `control` pin renders
 that control: `spot-parts` (SPEC §24) turns the parts list into the
 per-spot assignment widget — the picked single-ref row is the template,
 its payload's `{spot:<name>}` anchors each take any accepted part
-(`SpotPartsRow` over `shared/dxf-spots.js`), name-equal parts prefilled,
-and the assignment travels as `{ id, spot }` entries. The contract's input list is the dialog's complete row
+(`SpotPartsRow` reads the anchor names from the template type's served
+editor surface module — the plugin's single parse home), name-equal
+parts prefilled, and the assignment travels as `{ id, spot }` entries.
+Reference rows carry the fill-dialog rails (SPEC §24): beside the
+picker, `RefRowActions` creates through the accepted type's declared
+creation mode — payload types upload inline (the bytes travel the files
+channel, the create lands the record in the pool and selects it into
+the row), the `editor` protocol opens the blank editor page, and
+constructible types open the nested create dialog inside the fill
+dialog — and opens the picked instance's editor when its type binds
+one. A create whose created type declares a payload and whose action
+carries a construction mode renders the composed preview
+(`ConstructionPreview`): the draft debounces into
+`POST /api/instances/:type/construction-preview` and the returned
+payload renders through the created type's preview mode
+([instances feature](../../server/features/instances/README.md) owns
+the route), with the refusal's named offenders shown inline. The contract's input list is the dialog's complete row
 list: an identifier row reaches the dialog only as a contract input (a
 registry-minted identity row authors nothing and stays out of every
 contract). Declared fields match by flat-wire `fields.<name>` path
