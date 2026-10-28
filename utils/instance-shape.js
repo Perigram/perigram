@@ -62,10 +62,10 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
   // so the one title resolver (titleFor) never needs heuristics — the
   // stored name slot is the explicit rename channel.
   const identifier = typeRecord.identifier;
-  if (identifier && fields[identifier] === undefined && dto.name != null) {
+  if (identifier && fields[identifier] == null && dto.name != null) {
     fields[identifier] = dto.name;
   }
-  if (dto.name != null && fields.name === undefined) fields.name = dto.name;
+  if (dto.name != null && fields.name == null) fields.name = dto.name;
   const lineage = {};
   for (const [key, value] of Object.entries(dto.lineage || {})) {
     if (value == null) continue;
