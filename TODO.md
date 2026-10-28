@@ -2593,6 +2593,23 @@ Ordered steps:
   plugins service spec (plan + apply, 60 green), upgrade dialog gains
   the renamed row. `migrate-facade-type-family.js` deletes — the
   upgrade is the migration.
+
+  ### Agent Notes (2026-10-28, chrome round)
+
+  Session `agent/sheet-chrome-20261028` (worktree
+  `.agent-worktrees/sheet-chrome`), owner review of the second-pass
+  canvas. Zoom/pan adopt the DrawingCanvas law (wheel at the cursor
+  x1.1/x0.9, dock x0.8/x1.25, shift-drag pans anywhere, fit-to-set).
+  The inspector panel now owns composition: the working set's sheet
+  rows and add/add-all picker, the cassette-design picker, and the
+  instance behind a selection through `InstanceInlineRef` (added to
+  the surface component pack); the palette keeps margin and layers.
+  Pickers pass `typeId` on options so InstanceSelect renders the
+  §22.13 instance option rows — the earlier flat unnamed list was the
+  missing `typeId`, and the nameless rows were real data:
+  construct-sheet never named its sheets. `constructSheet` now returns
+  `data.name` (the construction boundary merges it into
+  `fields.name`); existing dev rows backfill out-of-band.
 - [ ] WAITING — owner verification: Demo process, seeds, and e2e
   recomposed onto the family (design refs threaded through the solve;
   grouped layouts consumed as sheet designs with counts).
