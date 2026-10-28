@@ -250,7 +250,7 @@
 ### Instance pickers render procedural list items (SPEC §22.13)
 
 - [ ] WAITING — owner verification: every instance-selection control
-  renders its options through the compact instance card and builds
+  renders its options through the one-line instance option row and builds
   options through one shared derivation:
   `InstancePicker`/`InstanceMultiPicker` (generated ref editors),
   `SpotPartsRow` (per-spot part picks — currently a direct
@@ -270,17 +270,32 @@ Session `agent/instance-pickers-20261028` (worktree
 instance dialects; `instancePickerOptions`/`instanceOptionLabel` added as
 the one option derivation (identifier-field label via `titleFor`,
 type-prefixed for multi-type pickers per the SPEC §22.8 mixed-type law);
-`InstancePicker` renders compact cards in the AutoComplete and TreeSelect
+`InstancePicker` renders the option row in the AutoComplete and TreeSelect
 option slots; `InstanceMultiPicker`/`SpotPartsRow`/`TypedValueControl`
 build entity-bearing options through the derivation (SpotPartsRow moves
 onto the shared wrapper — the failing direct-import guard now passes);
 chat create-prompt options carry `entity`+`typeId` at the support-row
 seam; sheet-design design options stamp the type id and drop the raw-id
 label fallback; the cassette profile-dialog library pick rides the host
-pack `InstanceSelect` (dead `entitySelectValue` helper removed). The
-ui-lab select demos now demonstrate the card items (their §3-shaped demo
-records engage entity mode). Person pickers (chat members, calls,
-directory) stay on the UserChip law.
+pack `InstanceSelect` (dead `entitySelectValue` helper removed). Person
+pickers (chat members, calls, directory) stay on the UserChip law.
+
+#### Agent Notes (2026-10-28, picker row)
+
+Session `agent/picker-row-20261028` (worktree
+`.agent-worktrees/picker-row-20261028`), owner feedback: the compact
+micro card is the wrong item for picker lists (76px rows, ragged heights
+between card-worthy and chip fallbacks, a full card inside the select
+trigger, the multi's outside-cards grid beside a `!w-10` pencil sliver).
+Landed: `InstanceInlineRef` gains `variant="option"` — the one-line
+picker row (36px preview thumb with the type glyph fallback, truncating
+identifier title, trailing state tag, type-label meta for mixed lists
+via `showTypeLabel`); the thumb-forcing CSS is shared behind
+`instance-preview-slot`; both wrappers, both `InstancePicker` slots, and
+the tree nodes render it; `InstanceMultiSelect` selected values render
+as glyph chips inside the control (PrimeVue chip display + the
+chip-surface recipe) and the outside-cards grid retires with its spec
+assertions. SPEC §22.13 restated on the row.
 
 ### Owner decisions wanted
 

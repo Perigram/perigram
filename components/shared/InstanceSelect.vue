@@ -16,19 +16,21 @@
           :entity="entityFor(option)"
           :fetch="false"
           :interactive="false"
-          variant="compact"
+          variant="option"
+          :show-type-label="!typeId"
         />
       </div>
       <span v-else>{{ labelFor(option) }}</span>
     </template>
     <template #value="{ placeholder }">
-      <div v-if="hasSelectedEntity" class="pointer-events-none min-w-0">
+      <div v-if="hasSelectedEntity" class="pointer-events-none w-full min-w-0">
         <InstanceInlineRef
           :type="typeFor(selectedOptionRef)"
           :entity="selectedEntityRef"
           :fetch="false"
           :interactive="false"
-          variant="compact"
+          variant="option"
+          :show-type-label="!typeId"
         />
       </div>
       <span v-else>{{ placeholder }}</span>

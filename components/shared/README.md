@@ -420,13 +420,15 @@ consumes these; a second copy of a chip class string is a defect.
 Collection counts render as a `Tag` with `secondary` severity.
 
 ### `InstanceSelect.vue` / `InstanceMultiSelect.vue`
-The entity dropdown wrappers: options carrying an entity render as compact
-instance cards (below) in the option list and the selected area; plain
-options keep PrimeVue's label rendering. An option is entity-bearing when
-it carries an `entity` (or is itself) a record with an id slot plus one of
-the record dialects — an `identity` block or the flat §3 `fields` object —
-and a type id resolves (the `typeId` prop, the option's `typeId`, or the
-entity's). Option lists over an instance pool build through
+The entity dropdown wrappers: options carrying an entity render as
+one-line instance option rows (below) in the option list and the selected
+area; plain options keep PrimeVue's label rendering. An option is
+entity-bearing when it carries an `entity` (or is itself) a record with
+an id slot plus one of the record dialects — an `identity` block or the
+flat §3 `fields` object — and a type id resolves (the `typeId` prop, the
+option's `typeId`, or the entity's). The multi wrapper shows selected
+instances as glyph chips inside the control (PrimeVue chip display, the
+chip-surface recipe). Option lists over an instance pool build through
 `instancePickerOptions`
 ([utils](../../utils/README.md) — the one derivation: identifier-field
 label, type-prefixed for multi-type pickers, value, entity, type id);
@@ -483,6 +485,11 @@ visual fields. That
 compact ref uses the compact surface contract directly: a real preview on the
 left when the entity has one, the same semantic inline chip for identity on the
 right, a read-only status badge under identity, and compact facts below.
+`variant="option"` renders the one-line instance option row
+(SPEC §22.13) pickers consume: a preview thumb (the type glyph when the
+type serves no preview), the truncating identity label, and trailing
+state tag plus type-label meta (`showTypeLabel`, for mixed-type lists);
+every option renders the same row shape whatever the type serves.
 `compactLayout:
 'stacked'` (chat preview cards) swaps the row for a flush preview band over
 a one-line label strip whose small state tag rides beside the truncating

@@ -17,7 +17,7 @@
           :entity="node.instance"
           :fetch="false"
           :interactive="false"
-          variant="compact"
+          variant="option"
         />
       </div>
       <span v-else>{{ node.label }}</span>
@@ -42,7 +42,8 @@
           :entity="option.entity"
           :fetch="false"
           :interactive="false"
-          variant="compact"
+          variant="option"
+          :show-type-label="accepts.length > 1"
         />
       </div>
       <span v-else>{{ option.label }}</span>
