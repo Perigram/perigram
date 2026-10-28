@@ -52,10 +52,13 @@ declared `targetTypes` and models the instance ref `{ type, id }` it
 submits). Relation targets live outside the opened screen's sources: the
 dialog lazy-loads each accepted type through the host's `onLoadType` seam
 when it opens, and the declared target domain (`where`, SPEC §6) filters
-the offered candidates through the one shared evaluator. Inline
-relation-chip operations (a relation's Unlink) execute through the
-`generatedExecuteAction` provide with the entry's relation payload — the
-same launch pipeline as header actions.
+the offered candidates through the one shared evaluator. Relation
+operations address their relation (SPEC §22.12): a section toolbar's
+link runs with the screen scope's parent, and every reference-bound
+entry — the relation chip's Unlink, a relation-scoped section row's
+Unlink — executes through the `generatedExecuteAction` provide carrying
+`{ instance: parent, data: { relations: { key: ref } } }`, the same
+launch pipeline as header actions.
 
 Instance navigation and quick actions follow the same callback seam as
 `onRun`: an `onOpen(instance)` prop turns collection identities (cards,
@@ -66,7 +69,10 @@ identities stay plain text without it. Inline instance references
 through the shared `InstanceInlineRef`, which owns its inspect-and-open
 behavior itself. `onRun` receives a third `context` argument:
 `{ instance }` when an instance-scoped quick action (the per-card ellipsis
-menu) launched the run, so executors target the launching entity.
+menu) launched the run, so executors target the launching entity; a
+reference-bound relation operation additionally carries `data` — the
+relation payload (`{ relations: { key: ref } }`) the run dispatches with,
+bound to the parent record as its instance.
 
 Detail editing follows the record-surface edit law
 ([SPEC §4](../../SPEC.md)): an `onPatch({ instance, patch })` prop
@@ -156,6 +162,12 @@ beside the transition history in `StateHistory`.
   The toolbar and stub line render their create set through
   `createActionControls`: same-type creates collapse to one
   `CreateControl` (see below) whose mode selection names the siblings.
+  A relation-scoped section's toolbar also renders the injected link
+  actions for its relation (SPEC §22.12) beside the create set — the
+  same-type link collapses to the bare "Link" — and its rows (table and
+  card-grid projections) carry the relation's unlink actions in their
+  ellipsis menus, running against the parent record with the row's
+  relation ref as payload.
   Top-level detail regions compose a record page: a full-width
   `SurfaceHeader`, then the record body with the filled child regions
   arranged around it — the wide step's side outcome lays the body beside

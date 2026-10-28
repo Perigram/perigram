@@ -922,6 +922,26 @@ the record ladder (columns, tabs, the side rail) on the record page
 and popup. No tree projection in class collections; hierarchy
 navigation is the workspace explorer's.
 
+### 22.12 Relation link and unlink placement and lifecycle (owner
+direction 2026-10-28)
+
+A link action addresses a parent's relation to one target type, and
+its placement follows that address: it renders in the toolbar of the
+collection section for its target relation, beside the section's
+create affordance, and the record header carries record-level actions
+alone — a link action with no section for its relation on the open
+detail keeps the header as its fallback surface. An unlink action
+addresses one linked instance: it renders on that row's menu in the
+relation-scoped section and on the record body's relation chip menu,
+with the parent record and the relation ref as its run context.
+
+A link is a reference. Deleting the referencing record removes its
+refs; referenced instances survive their referrers. Deleting a
+referenced instance removes every ref pointing at it — a dangling ref
+is a defect. Unlink semantics are per-relation authored policy:
+`detach` (default — the ref goes, the instance stays) or `delete`
+(the ref and the instance go together).
+
 ### 22.9 Spacing ladder (owner direction 2026-10-27)
 
 Generative surfaces space on one 4px-based ladder: steps 4, 8, 12, 16,
@@ -1082,11 +1102,16 @@ its data, each failure naming its offender (a spot, a part, a field),
 and the create dialog renders the named offenders; a refusal never
 collapses into an unnamed error.
 
-Owner decision (2026-10-27): template replacement is generic — every
-revision-scoped file type's detail carries the replace affordance, new
-bytes onto the same instance through the revisioned payload channel.
-Template retirement is a matter of the process definition: the
-definition that stations the type owns the remove construct.
+Owner decision (2026-10-27, refined 2026-10-28): template replacement
+is generic — every revision-scoped file type's detail carries the
+replace affordance, new bytes onto the same instance through the
+revisioned payload channel — on records whose payload is their own
+authored content (editor-created or uploaded). A construct-derived
+payload (provenance sources non-empty) stays replace-free: re-derive
+owns it. The affordance renders labeled, and the detail carries a
+revision selector listing prior payload revisions, each opening
+read-only. Template retirement is a matter of the process definition:
+the definition that stations the type owns the remove construct.
 
 The DXF editor surface grows marker-first: open the template payload on
 the CAD canvas, author and rename `{spot:<name>}` anchors, save through

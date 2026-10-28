@@ -389,7 +389,10 @@ event-triggered actions → hidden. Icon-only is the obvious-action
 channel: the caption stays the tooltip and accessible name, and menus
 keep full labels. An entry with `inline: true` declares reference-bound
 placement: the action renders on the rendered relation reference it
-addresses (the unlink chip menu) and record headers exclude it.
+addresses (the unlink chip menu, a relation-scoped section row's menu)
+and record headers exclude it; a relation link action's placement is
+section-bound — the section toolbar for its target relation renders it
+beside the create affordance (SPEC §22.12).
 Status-transition actions (`state.to`) carry the target
 state's resolved display as their presentation — severity as tone, plus
 the authored icon and label (the label derives from the target value when
@@ -645,7 +648,13 @@ region's data traits (see Arrangement), resolved action records, the
 per-region `dataState` (see Data states), the
 `listControls` contract for list regions (see Instance shape and list
 controls), the per-type `statePolicy` map off the contract (see State
-display), and nested child regions. Region nesting is slot-driven and
+display), and nested child regions. Relation link and unlink actions are
+section-scoped (SPEC §22.12): a detail region's records for those kinds
+inject into each relation-scoped child region whose `relationKey` and
+type match the action's targets, landing on the child node as actions
+beside the parent instance reference (`relationParent`) for the row run
+context; the parent's own action set keeps a link action no section
+consumed. Region nesting is slot-driven and
 matches the compiler's emission: regions with `slot: 'children'` (the
 child collections inferred detail screens carry) nest under every
 top-level region — the detail record page stacks them below the record

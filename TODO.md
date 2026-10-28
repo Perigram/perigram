@@ -2293,3 +2293,34 @@ Ordered steps:
 - [ ] Demo process, seeds, and e2e recomposed onto the family (design
   refs threaded through the solve; grouped layouts consumed as sheet
   designs with counts).
+
+## Relation link lifecycle (owner direction 2026-10-28, SPEC §22.12)
+
+- [x] Link actions render in their target relation's section toolbar
+  (beside the create affordance) on parent details; the record header
+  carries a link action only when no section exists for its relation.
+  Composition injects the detail's link/unlink actions into the
+  matching relation-scoped child regions (`shared/ui-mapping/screen.js`).
+- [x] Unlink renders on the linked rows of relation-scoped sections
+  (row menus of the table and card-grid projections) with the parent
+  record and relation ref as run context, mirroring the record-body
+  relation chip menus.
+- [x] Replace affordance law (SPEC §24 refinement): construct-derived
+  payloads (provenance sources non-empty) carry no replace button; the
+  button renders labeled.
+- [ ] Per-relation unlink policy — compiler vocabulary
+  (`detach` default | `delete`), server execution, authoring surface.
+- [ ] Deletion ref-cascade — deleting a referenced instance removes the
+  refs pointing at it (`server/features/instances` remove path sweeps
+  relation refs; today refs dangle).
+- [ ] Revision selector on revision-scoped details — lists prior payload
+  revisions, opens one read-only.
+
+  ### Agent Notes (2026-10-28, placement delivery)
+
+  SPEC §22.12 + §24 refinement written from owner words this session.
+  Delivered: composition-time injection (link and unlink actions land
+  on the relation-scoped child node with the parent instance attached),
+  `RegionBlock` toolbar link controls, row-menu unlink entries through
+  a `context.data` run-context channel (the chip path's contract
+  generalized), replace gating on `provenance.sources`.
