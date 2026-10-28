@@ -50,10 +50,11 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Select from 'primevue/select';
 import Message from 'primevue/message';
+import Select from '~/components/shared/InstanceSelect.vue';
 import RefRowActions from './RefRowActions.vue';
-import { titleFor } from '#shared/ui-mapping/index.js';
+import { instanceOptionLabel, instancePickerOptions } from '~/utils/instance-select.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useFileTypeView } from '~/composables/useFileTypeView';
 import { instancePayloadFileUrl } from '~/components/generated/file-preview-contract.js';
@@ -89,21 +90,12 @@ async function anchorNamesOf(typeId, text) {
 }
 
 const entries = computed(() => Array.isArray(props.modelValue) ? props.modelValue : []);
-const parts = computed(() => props.accepts
-  .flatMap(typeId => Object.values(props.pool[typeId] || {}))
-  .map(instance => ({
-    instance,
-    label: `${typeLabelOf(instance.type)}: ${titleFor(instance, typeRecordOf(instance.type), { unnamedLabel: t('common.unnamed') })}`
-  })));
-
-function typeRecordOf(typeId) {
-  return (props.bundle?.types || []).find(candidate => candidate.id === typeId) || null;
-}
-function typeLabelOf(typeId) {
-  const record = typeRecordOf(typeId);
-  const key = `entities.${typeId}`;
-  return record?.name || (te(key) ? t(key) : typeId);
-}
+const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
+const parts = computed(() => instancePickerOptions(props.pool, props.accepts, {
+  typeRecordFor: typeId => typesById.value[typeId] || null,
+  typeLabelFor: typeId => generatedEntityLabel(typeId, { t, te }),
+  unnamedLabel: t('common.unnamed')
+}));
 
 const pickedIdFor = spot => entries.value.find(entry => entry.spot === spot)?.id || null;
 const pickedInstanceFor = spot => {
@@ -111,17 +103,16 @@ const pickedInstanceFor = spot => {
   return entry ? { type: entry.type, id: entry.id } : null;
 };
 const optionsFor = spot => parts.value
-  .filter(({ instance }) => {
-    const taken = entries.value.find(entry => entry.id === String(instance.id) && entry.spot !== spot);
+  .filter(option => {
+    const taken = entries.value.find(entry => entry.id === option.value && entry.spot !== spot);
     return !taken;
-  })
-  .map(({ instance, label }) => ({ label, value: String(instance.id), type: instance.type }));
+  });
 
 function assign(spot, id) {
   const next = entries.value.filter(entry => entry.spot !== spot);
   if (id) {
-    const option = parts.value.find(({ instance }) => String(instance.id) === String(id));
-    if (option) next.push({ type: option.instance.type, id: String(id), spot });
+    const option = parts.value.find(candidate => candidate.value === String(id));
+    if (option) next.push({ type: option.typeId, id: String(id), spot });
   }
   emit('update:modelValue', next);
 }
@@ -146,13 +137,13 @@ watch(() => props.templateRef, async ref => {
     const next = [];
     const used = new Set();
     for (const spot of spots.value) {
-      const match = parts.value.find(({ instance: candidate }) => (
-        !used.has(String(candidate.id))
-        && titleFor(candidate, typeRecordOf(candidate.type), { unnamedLabel: '' }) === spot
+      const match = parts.value.find(option => (
+        !used.has(option.value)
+        && instanceOptionLabel(option.entity, typesById.value[option.typeId]) === spot
       ));
       if (match) {
-        used.add(String(match.instance.id));
-        next.push({ type: match.instance.type, id: String(match.instance.id), spot });
+        used.add(match.value);
+        next.push({ type: match.typeId, id: match.value, spot });
       }
     }
     emit('update:modelValue', next);

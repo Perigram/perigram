@@ -2234,7 +2234,9 @@ const openCreatePromptDialog = async (action) => {
                     ...row,
                     label: instanceRecordTitle(row.instance || null, view)
                         || row.label
-                        || generatedEntityLabel(type, { t, te })
+                        || generatedEntityLabel(type, { t, te }),
+                    entity: row.instance || null,
+                    typeId: type
                 }))
             } catch (error) {
                 console.error('Failed to load create prompt options:', error)

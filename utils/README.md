@@ -55,6 +55,14 @@ Parent: [root README](../README.md).
   trace) is class-generic policy derived from the type record (payload
   presence, declared state axes); record titles and glyphs come from
   `titleFor`/`iconFor` in [shared/ui-mapping](../shared/ui-mapping/README.md).
+- `instance-select.js`: The entity-option seam of the entity dropdown
+  wrappers ([shared](../components/shared/README.md)) and every instance
+  picker: option→entity/type resolution over the record dialects (an
+  `identity` block or the flat §3 `fields` object), and
+  `instancePickerOptions` — the one instance-option derivation
+  (SPEC §22.13): identifier-field label through the one title resolver
+  (type-prefixed for multi-type pickers), value, entity, and the per-option
+  type id.
 - `generated-labels.js`: The app binding of the one type-label chain
   (`typeLabelFor`, [shared/ui-mapping](../shared/ui-mapping/README.md)):
   `generatedEntityLabel` feeds it the design-system `entities.*` key

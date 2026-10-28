@@ -247,6 +247,41 @@
   fold its contract into components/process-designer/README.md per owner
   decision below.
 
+### Instance pickers render procedural list items (SPEC §22.13)
+
+- [ ] WAITING — owner verification: every instance-selection control
+  renders its options through the compact instance card and builds
+  options through one shared derivation:
+  `InstancePicker`/`InstanceMultiPicker` (generated ref editors),
+  `SpotPartsRow` (per-spot part picks — currently a direct
+  `primevue/select` import the guard rejects), the chat create-prompt
+  selects, `TypedValueControl` (process designer ref inputs), and the
+  plugin editors' instance selects (sheet-design design pick,
+  cassette-designer profile-library pick). Root defect: entity
+  recognition in `utils/instance-select.js` accepts only
+  `identity`-block DTOs, so §3 wire records and screen instances render
+  plain names.
+
+#### Agent Notes (2026-10-28)
+
+Session `agent/instance-pickers-20261028` (worktree
+`.agent-worktrees/instance-pickers-20261028`). Landed: recognition in
+`utils/instance-select.js` extended to the §3 wire record and the screen
+instance dialects; `instancePickerOptions`/`instanceOptionLabel` added as
+the one option derivation (identifier-field label via `titleFor`,
+type-prefixed for multi-type pickers per the SPEC §22.8 mixed-type law);
+`InstancePicker` renders compact cards in the AutoComplete and TreeSelect
+option slots; `InstanceMultiPicker`/`SpotPartsRow`/`TypedValueControl`
+build entity-bearing options through the derivation (SpotPartsRow moves
+onto the shared wrapper — the failing direct-import guard now passes);
+chat create-prompt options carry `entity`+`typeId` at the support-row
+seam; sheet-design design options stamp the type id and drop the raw-id
+label fallback; the cassette profile-dialog library pick rides the host
+pack `InstanceSelect` (dead `entitySelectValue` helper removed). The
+ui-lab select demos now demonstrate the card items (their §3-shaped demo
+records engage entity mode). Person pickers (chat members, calls,
+directory) stay on the UserChip law.
+
 ### Owner decisions wanted
 
 - [x] ArtifactViewer artifact/revision branch: delete now, or hold until the

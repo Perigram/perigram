@@ -52,7 +52,7 @@ All entity-related components use these patterns:
 | Dialog container | `<StandardDialog>` |
 | Single-field rename/edit | `<NameEditPopover>` |
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
-| Entity dropdowns | `<InstanceSelect>` / `<InstanceMultiSelect>` with explicit `type-id` |
+| Entity dropdowns | `<InstanceSelect>` / `<InstanceMultiSelect>` — entity options render as compact instance cards; option lists over a pool build through `instancePickerOptions` ([shared](./shared/README.md), SPEC §22.13) |
 | Floating designer toolbar | PrimeVue `Toolbar` inside `DesignerWorkspace` (shared shell contract in [components/shared/README.md](./shared/README.md)) |
 
 ## Component Inventory

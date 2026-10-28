@@ -1,3 +1,5 @@
+import { titleFor } from '#shared/ui-mapping/index.js';
+
 export function instanceFromSelectOption(option) {
   if (isCanonicalEntity(option?.entity)) return option.entity;
   return isCanonicalEntity(option) ? option : null;
@@ -48,9 +50,45 @@ function isCanonicalEntity(value) {
     value
     && typeof value === 'object'
     && !Array.isArray(value)
-    && value.identity
     && (value._id !== undefined || value.id !== undefined)
+    && (
+      value.identity
+      || (value.fields !== null && typeof value.fields === 'object')
+    )
   );
+}
+
+// The instance-option derivation pickers share; see utils/README.md
+// (SPEC §22.13).
+export function instanceOptionLabel(instance, typeRecord = null, { typeLabel = '', unnamedLabel = '' } = {}) {
+  const title = titleFor(instance, typeRecord, { unnamedLabel });
+  return typeLabel ? `${typeLabel}: ${title}` : title;
+}
+
+export function instancePickerOptions(pool, accepts = [], {
+  typeRecordFor = () => null,
+  typeLabelFor = null,
+  unnamedLabel = '',
+  refValue = false
+} = {}) {
+  const types = (Array.isArray(accepts) ? accepts : []).filter(Boolean);
+  const prefixed = types.length > 1 && typeof typeLabelFor === 'function';
+  const options = [];
+  for (const typeId of types) {
+    for (const instance of Object.values(pool?.[typeId] || {})) {
+      const id = String(instance?._id ?? instance?.id ?? '');
+      if (!id) continue;
+      options.push({
+        label: instanceOptionLabel(instance, typeRecordFor(typeId), prefixed
+          ? { typeLabel: typeLabelFor(typeId), unnamedLabel }
+          : { unnamedLabel }),
+        value: refValue ? { type: typeId, id } : id,
+        entity: instance,
+        typeId
+      });
+    }
+  }
+  return options;
 }
 
 function selectValuesEqual(left, right) {
