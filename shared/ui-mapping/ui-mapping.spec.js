@@ -150,7 +150,9 @@ describe('field control resolution', () => {
     expect(resolveListLayout(prose)).toBe('timeline');
     expect(resolveListLayout(numeric)).toBe('stats');
     expect(resolveListLayout(media)).toBe('card-grid');
-    expect(resolveListLayout(plain, { size: 'small' })).toBe('list');
+    // A small rich collection renders its data — size alone demotes
+    // nothing; the columns floor owns name piles.
+    expect(resolveListLayout(plain, { columns: 4 })).toBe('table');
     expect(resolveListLayout(plain)).toBe('table');
     const mapping = createUiMapping({
       listLayouts: [{ match: { type: 'probe' }, layout: 'timeline' }]
@@ -164,7 +166,7 @@ describe('field control resolution', () => {
     // FILLED relation column earns the table; a declared relation
     // nothing fills renders no column and counts none.
     const namesOnly = { class: 'item', identifier: 'name', fields: { name: { base: 'string' } } };
-    expect(resolveListLayout(namesOnly, { columns: 0, size: 'large' })).toBe('list');
+    expect(resolveListLayout(namesOnly, { columns: 0 })).toBe('list');
     expect(resolveListLayout(namesOnly, { columns: 0, stateful: true })).toBe('list');
     expect(resolveListLayout(namesOnly, { columns: 1 })).toBe('table');
     expect(resolveListLayout(namesOnly, {})).toBe('table');
@@ -227,7 +229,7 @@ describe('field control resolution', () => {
     // handful of scheduled entries still grids), and a narrow type
     // override still outranks it.
     expect(resolveListLayout(scheduled, {})).toBe('calendar');
-    expect(resolveListLayout(scheduled, { size: 'small' })).toBe('calendar');
+    expect(resolveListLayout(scheduled)).toBe('calendar');
     const mapping = createUiMapping({
       listLayouts: [{ match: { type: 'visit' }, layout: 'table' }]
     });
@@ -296,10 +298,10 @@ describe('field control resolution', () => {
     // Preview-dominant collections render the card grid (SPEC §22.8):
     // the carousel projection is retired, whatever the payload preview.
     const gallery = { class: 'file', payload: { preview: 'image' }, fields: { title: { base: 'string' } } };
-    expect(resolveListLayout(gallery, { size: 'large' })).toBe('card-grid');
+    expect(resolveListLayout(gallery)).toBe('card-grid');
     expect(resolveListLayout(gallery, {})).toBe('card-grid');
     const attachments = { class: 'file', payload: { preview: 'attachment' }, fields: { title: { base: 'string' } } };
-    expect(resolveListLayout(attachments, { size: 'large' })).toBe('card-grid');
+    expect(resolveListLayout(attachments)).toBe('card-grid');
   });
 
   it('edits maps and json as text, records as structured editors', () => {
@@ -872,8 +874,9 @@ describe('weight-driven arrangement', () => {
       instances: Array.from({ length: count }, (_, i) => ({ id: String(i), fields: { a: `v${i}` }, relations: {} }))
     });
     expect(tableTraits(6)).toEqual({ weight: 8, breadth: 'full', volume: 6, shape: 'plain', filledness: 'filled', growth: 'bounded' });
-    expect(tableTraits(2).breadth).toBe('chip');
-    expect(tableTraits(2).growth).toBe('flowing');
+    // A small filled collection keeps the table projection.
+    expect(tableTraits(2).breadth).toBe('full');
+    expect(tableTraits(2).growth).toBe('bounded');
     // No filled non-identifier scalar and no declared relation: the table
     // demotes to the list projection (chip-scale, flowing) — a table with
     // no data column beside identity is a name pile.

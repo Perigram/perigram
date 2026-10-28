@@ -27,7 +27,7 @@
                   :severity="statusOf(instance).severity"
                 />
                 <Button
-                  v-if="actions.length"
+                  v-if="cardActionsFor(instance).length"
                   icon="pi pi-ellipsis-v"
                   text
                   rounded
@@ -151,9 +151,10 @@ const scalarFields = computed(() => Object.entries(props.type?.fields || {})
     label: localizedLabel({ te, t }, fieldLabelKey(props.type?.id, name), fieldLabel(name, descriptor))
   })));
 
-// One shared popup menu: the ellipsis remembers the card it opened for,
-// and menu commands re-emit through the region run contract with that
-// instance as context (confirmation and dispatch stay upstream).
+// One shared popup menu: the ellipsis renders on a card only when that
+// card carries an applicable action, and menu commands re-emit through
+// the region run contract with the instance as context (confirmation
+// and dispatch stay upstream).
 const cardMenu = ref(null);
 const menuInstance = ref(null);
 function openCardMenu(event, instance) {
@@ -163,9 +164,10 @@ function openCardMenu(event, instance) {
 // Action applicability resolves through the canonical seam
 // (`actionAppliesToEntity`: type/parent match, authored state.from equality,
 // no-op suppression).
-const cardMenuItems = computed(() => props.actions
-  .filter(action => actionAppliesToEntity(action, menuInstance.value, props.type?.id))
-  .filter(action => !resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy }).hidden)
+const cardActionsFor = instance => props.actions
+  .filter(action => actionAppliesToEntity(action, instance, props.type?.id))
+  .filter(action => !resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy }).hidden);
+const cardMenuItems = computed(() => cardActionsFor(menuInstance.value || {})
   .map(action => {
   const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
   return {

@@ -171,7 +171,7 @@ describe('showcase-reachable contracts in every world', () => {
       // showcase renders a real DataTable, not only shape-specialized
       // projections.
       const volumeTableType = world.bundle.types.find(type => (world.instances[type.id] || []).length > 50);
-      expect(resolveListLayout(volumeTableType, { size: 'large' }), `seed ${seed} volume table layout`).toBe('table');
+      expect(resolveListLayout(volumeTableType), `seed ${seed} volume table layout`).toBe('table');
       // The prose floor keeps the timeline projection reachable on
       // every seed.
       const proseType = world.bundle.types.find(type => type.class === 'file'

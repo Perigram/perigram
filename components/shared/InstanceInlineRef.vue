@@ -108,7 +108,9 @@ const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.pr
 // plain identity chip, so galleries never lay out grids of empty cards
 // for data without visual fields.
 const compactCardWorthy = computed(() => compactHasPreview.value || compactDataFields.value.length > 0);
-const compactTypeLabel = computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type);
+const compactTypeLabel = computed(() => contract.value?.labelKey
+  ? t(contract.value.labelKey)
+  : generatedEntityLabel(generatedTypeId.value || props.type, { t, te }) || props.type);
 // The compact chip's status resolves through the flat contract: the
 // instance's wire `state` value against the type's policy map.
 const { policyFor } = useStatePolicy();

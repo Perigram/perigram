@@ -16,7 +16,6 @@ import {
   DOMINANT_CHILD_SHARE,
   REGION_COLUMN_EARNED_REM,
   REGION_SIDE_SPANS,
-  SMALL_LIST_AT,
   SPACING_SCALES,
   SPACING_STEPS,
   spacingClasses,
@@ -55,7 +54,6 @@ export {
   BOARD_MIN_COLUMNS,
   SEARCH_AT,
   SURFACE_ROW_BUDGET,
-  SMALL_LIST_AT,
   SPACING_SCALES,
   SPACING_STEPS,
   spacingClasses,
@@ -297,7 +295,6 @@ export function createUiMapping(overrides = {}) {
               : null,
       stateful: stateful ? true : null,
       boardable: typeRecord.class === 'process' && stateful ? true : null,
-      size: options.size === 'small' ? 'small' : options.size === 'large' ? 'large' : null,
       columns: Number.isInteger(options.columns) ? options.columns : null
     });
     return entry.layout;
@@ -991,10 +988,8 @@ function tableDataColumns(node = {}) {
 // the same layout over the same node, so the weighted arrangement is
 // the rendered one.
 export function listLayoutOf(node = {}) {
-  const count = node.instances?.length || 0;
   return resolveListLayout(node.type || {}, {
     stateful: hasStateVocabulary(node.statePolicy),
-    size: count <= SMALL_LIST_AT ? 'small' : count > 12 ? 'large' : null,
     columns: tableDataColumns(node)
   });
 }
