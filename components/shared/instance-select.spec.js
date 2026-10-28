@@ -1,4 +1,5 @@
 import { createSSRApp, h } from 'vue';
+import { createPinia } from 'pinia';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { renderToString } from '@vue/server-renderer';
@@ -28,7 +29,9 @@ vi.mock('primevue/multiselect', async () => {
       props: ['modelValue', 'options'],
       setup(props, { slots, attrs }) {
         return () => render('div', { ...attrs, 'data-prime-multiselect': '' }, [
-          render('div', { 'data-prime-value': '' }, slots.value?.({ value: props.modelValue, placeholder: 'Choose' })),
+          render('div', { 'data-prime-value': '' }, (props.modelValue || []).map(value =>
+            slots.chip?.({ value, removeCallback: () => {} })
+          )),
           ...(props.options || []).map(option => slots.option?.({ option }))
         ]);
       }
@@ -64,7 +67,9 @@ const entities = [
 const options = entities.map(entity => ({ label: entity.identity.name, value: entity._id, entity }));
 
 async function render(component, props, slots = {}) {
-  return await renderToString(createSSRApp({ render: () => h(component, props, slots) }));
+  const app = createSSRApp({ render: () => h(component, props, slots) });
+  app.use(createPinia());
+  return await renderToString(app);
 }
 
 describe('entity Select wrappers', () => {
@@ -100,13 +105,10 @@ describe('entity Select wrappers', () => {
     });
 
     expect(html).toContain('data-entity-id="queue-2"');
-    expect(html.match(/data-variant="compact"/g)).toHaveLength(3);
+    expect(html.match(/data-variant="option"/g)).toHaveLength(3);
     expect(html.match(/data-interactive="false"/g)).toHaveLength(3);
     expect(html).toContain('data-prime-select');
     expect(html).toContain('class="w-full"');
-    expect(html).not.toContain('!w-10');
-    expect(html).not.toContain('pi-pencil');
-    expect(html).not.toContain('data-instance-selection');
   });
 
   it('keeps unselected entity Select controls as ordinary full chooser controls', async () => {
@@ -119,27 +121,25 @@ describe('entity Select wrappers', () => {
     });
 
     expect(html).toMatch(/data-prime-value[^>]*><span>Choose<\/span><\/div>/);
-    expect(html).not.toContain('!w-10');
-    expect(html).not.toContain('data-instance-selection');
   });
 
-  it('renders every selected entity outside MultiSelect as compact cards instead of chips', async () => {
+  it('renders selected entities as chips inside the control and options as rows', async () => {
     const html = await render(InstanceMultiSelect, {
       modelValue: ['queue-1', 'queue-2'],
       options,
       optionLabel: 'label',
       optionValue: 'value',
-      typeId: 'queue',
-      display: 'chip'
+      typeId: 'queue'
     });
 
-    expect(html.match(/data-entity-id="queue-1"/g)).toHaveLength(2);
-    expect(html.match(/data-entity-id="queue-2"/g)).toHaveLength(2);
-    expect(html).toContain('class="!w-10 shrink-0 self-start"');
-    expect(html).toContain('aria-label="Queue 1, Queue 2"');
-    expect(html).toMatch(/data-prime-value[^>]*><span class="pi pi-pencil" aria-hidden="true"><\/span><\/div>/);
-    expect(html).not.toMatch(/data-prime-value[^>]*><span><\/span><\/div>/);
-    expect(html.indexOf('data-instance-selection-list')).toBeLessThan(html.indexOf('data-prime-multiselect'));
+    expect(html.match(/data-variant="option"/g)).toHaveLength(2);
+    expect(html.match(/data-entity-id="queue-1"/g)).toHaveLength(1);
+    expect(html.match(/data-entity-id="queue-2"/g)).toHaveLength(1);
+    // One chip per selected value inside the control's value area: the
+    // glyph + label chip with its remove affordance.
+    expect(html.match(/class="p-chip-label truncate"[^>]*>Queue [12]</g)).toHaveLength(2);
+    expect(html.match(/p-chip-icon pi pi-circle/g)).toHaveLength(2);
+    expect(html.indexOf('data-prime-value')).toBeLessThan(html.indexOf('data-entity-id'));
   });
 
   it('delegates ordinary option slots without entity-card rendering', async () => {
@@ -167,7 +167,7 @@ describe('entity Select wrappers', () => {
 
     expect(html).toContain('data-entity-id="pen-1"');
     expect(html).toContain('data-type-id="pen-template"');
-    expect(html.match(/data-variant="compact"/g)).toHaveLength(2);
+    expect(html.match(/data-variant="option"/g)).toHaveLength(2);
   });
 
   it('derives picker options procedurally from an instance pool', () => {

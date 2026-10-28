@@ -264,8 +264,8 @@ body {
     min-height: 4.75rem;
 }
 
-/* The row layout's thumb box (picker rows): preview renderers are
-   forced into the fixed 64×60 slot. */
+/* The compact card's thumb box (relation galleries): a fixed 64×60
+   slot. */
 .instance-inline-compact:not(.instance-inline-compact--stacked) .instance-inline-compact-preview {
     display: inline-flex;
     align-items: center;
@@ -276,22 +276,44 @@ body {
     overflow: hidden;
 }
 
-.instance-inline-compact:not(.instance-inline-compact--stacked) .instance-inline-compact-preview > *,
-.instance-inline-compact:not(.instance-inline-compact--stacked) .instance-inline-compact-preview :where([data-instance-card-interactive]) {
+/* Preview renderers are forced into their thumb slot (compact galleries
+   and picker rows). */
+.instance-preview-slot > *,
+.instance-preview-slot :where([data-instance-card-interactive]) {
     width: 100%;
     height: 100%;
 }
 
-.instance-inline-compact:not(.instance-inline-compact--stacked) .instance-inline-compact-preview :where(.relative.flex.overflow-hidden) {
+.instance-preview-slot :where(.relative.flex.overflow-hidden) {
     width: 100%;
     height: 100%;
     aspect-ratio: auto;
 }
 
-.instance-inline-compact:not(.instance-inline-compact--stacked) .instance-inline-compact-preview :where(img) {
+.instance-preview-slot :where(img) {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+/* The picker-option row (SPEC §22.13): one line — a 36px preview thumb
+   (the type glyph when the type serves no preview), the identifier
+   title, trailing meta. */
+.instance-option-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.instance-option-row-thumb {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: 0 0 auto;
 }
 
 /* The stacked layout (chat cards): the preview band sits flush inside

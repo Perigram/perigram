@@ -28,6 +28,7 @@ const props = defineProps({
   interactive: { type: Boolean, default: true },
   variant: { type: String, default: 'inline' },
   compactLayout: { type: String, default: 'row' },
+  showTypeLabel: { type: Boolean, default: false },
   contextActionEntries: { type: Array, default: () => [] },
   chipClass: { type: [String, Array, Object], default: '' },
   revision: { type: String, default: null }
@@ -195,7 +196,7 @@ function executeContextualAction(action) {
   <span
     class="inline-flex min-w-0 max-w-full items-center gap-1 align-middle"
     :class="[
-      variant === 'compact' && compactCardWorthy ? 'w-full' : null,
+      (variant === 'compact' && compactCardWorthy) || (variant === 'option' && resolved) ? 'w-full' : null,
       { 'pointer-events-none': !interactive }
     ]"
   >
@@ -216,7 +217,7 @@ function executeContextualAction(action) {
       <span
         v-if="resolved && compactHasPreview"
         class="instance-inline-compact-preview"
-        :class="compactLayout === 'stacked' ? 'bg-subtle' : null"
+        :class="compactLayout === 'stacked' ? 'bg-subtle' : 'instance-preview-slot'"
         data-instance-card-interactive="true"
       >
         <InstancePreview
@@ -273,6 +274,37 @@ function executeContextualAction(action) {
           />
         </span>
       </span>
+    </span>
+
+    <span
+      v-else-if="variant === 'option' && resolved"
+      class="instance-option-row min-w-0 max-w-full flex-1"
+    >
+      <span
+        class="instance-option-row-thumb rounded-ui overflow-hidden"
+        :class="compactHasPreview ? 'instance-preview-slot' : 'text-muted'"
+      >
+        <InstancePreview
+          v-if="compactHasPreview"
+          :entity="resolved"
+          :type-id="generatedTypeId"
+          :mode="compactDisplay.surfaceContract.preview"
+          hide-dimension-layer
+        />
+        <i v-else-if="icon" :class="icon" aria-hidden="true" />
+      </span>
+      <span class="min-w-0 flex-1 truncate" :title="identityLabel">{{ identityLabel }}</span>
+      <span
+        v-if="showTypeLabel && compactTypeLabel"
+        class="max-w-48 shrink-0 truncate text-muted text-supporting"
+        :title="compactTypeLabel"
+      >{{ compactTypeLabel }}</span>
+      <StateTag
+        v-if="compactStatusState"
+        :value="compactStatusState"
+        :policy="compactPolicy"
+        class="max-w-full shrink-0"
+      />
     </span>
 
     <template v-else>
