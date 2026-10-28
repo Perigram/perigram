@@ -562,22 +562,21 @@ export function rotateSheetPlacementQuarterTurn({ items = [], placements = [], i
   return placementHasClearance({ items, placements, placement: rotated, index, clearance }) ? rotated : null;
 }
 
-// Cassette records on the §3 wire: geometry extraction fields beside the
-// identifier name (`fields.polygonParts`, `fields.layerData` — DXF import
-// and designer saves write them; a cassette with none has no placeable
-// geometry).
-function cassetteRecordParts(cassette = {}) {
-  const fields = cassette.fields || {};
+// Cassette-design records on the §3 wire: the baked geometry
+// (`fields.geometry` — bake and DXF extraction write it; a design with
+// none has no placeable geometry).
+function designGeometryParts(design = {}) {
+  const geometry = design.fields?.geometry || {};
   return {
-    polygonParts: Array.isArray(fields.polygonParts) ? fields.polygonParts : [],
-    layerData: Array.isArray(fields.layerData) ? fields.layerData : []
+    polygonParts: Array.isArray(geometry.nestingPolygons) ? geometry.nestingPolygons : [],
+    layerData: Array.isArray(geometry.layerData) ? geometry.layerData : []
   };
 }
 
 // One sheet item per extracted polygon (each sheet workpiece nests as its
 // own part); the item's source layers are the layer rows of its workpiece.
-export function cassetteSheetItems(cassette = {}, idPrefix = 'item') {
-  const { polygonParts, layerData } = cassetteRecordParts(cassette);
+export function designSheetItems(design = {}, idPrefix = 'item') {
+  const { polygonParts, layerData } = designGeometryParts(design);
   return polygonParts
     .map((part, index) => {
       const coordinates = (Array.isArray(part.coordinates) ? part.coordinates : [])
@@ -589,8 +588,8 @@ export function cassetteSheetItems(cassette = {}, idPrefix = 'item') {
       const workpieceId = part.workpieceId || null;
       return {
         id: `${idPrefix}-${index}`,
-        cassette_id: cassette._id,
-        name: polygonParts.length > 1 ? `${cassette.name || cassette._id} ${index + 1}` : (cassette.name || cassette._id),
+        design_id: design._id,
+        name: polygonParts.length > 1 ? `${design.name || design._id} ${index + 1}` : (design.name || design._id),
         shape: { type: 'simple_polygon', data: clone(coordinates) },
         sourceLayers: layerData
           .filter(layer => !workpieceId || !layer.workpieceId || layer.workpieceId === workpieceId)

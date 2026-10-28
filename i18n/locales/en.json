@@ -1894,7 +1894,6 @@
         "opAnyOf": "any of",
         "opNoneOf": "none of",
         "types": {
-            "cassette": "Cassette",
             "cassette-design": "Cassette design",
             "color": "Color",
             "csv-table": "CSV table",
@@ -1908,7 +1907,11 @@
             "sketch": "Sketch",
             "svg-file": "SVG file",
             "text-document": "Text document",
-            "xlsx-workbook": "XLSX workbook"
+            "xlsx-workbook": "XLSX workbook",
+            "cassette-template": "Cassette template",
+            "cassette-instance": "Cassette",
+            "sheet-cut-plan": "Sheet cut plan",
+            "sheet-instance": "Sheet"
         },
         "exportKinds": {
             "dxf": "DXF drawing"
@@ -2471,10 +2474,6 @@
     "sheetDesign": {
         "sheetDesigns": "Sheet designs",
         "editor": "Sheet layout editor",
-        "addCassette": "Add cassette",
-        "selectCassette": "Select a cassette design",
-        "cassettes": "Cassettes",
-        "cassetteNoGeometry": "The cassette has no extracted geometry to place.",
         "margin": "Margin",
         "actions": "Actions",
         "sheet": "Sheet",
@@ -2483,7 +2482,11 @@
         "position": "Position",
         "rotation": "Rotation",
         "layoutSaved": "Sheet layout saved as a geometry revision.",
-        "layoutSaveFailed": "Failed to save the sheet layout."
+        "layoutSaveFailed": "Failed to save the sheet layout.",
+        "addDesign": "Add design",
+        "selectDesign": "Select design",
+        "designs": "Designs",
+        "designNoGeometry": "The design has no placeable geometry"
     },
     "nestingRun": {
         "sheetDesigns": "Sheet designs"

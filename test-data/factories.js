@@ -95,7 +95,7 @@ export function createMockEntityRevision(overrides = {}) {
         cassetteId: MOCK_IDS.cassetteTemplateId
       },
       data: {
-        source: { type: 'cassette', id: MOCK_IDS.cassetteTemplateId },
+        source: { type: 'cassette-template', id: MOCK_IDS.cassetteTemplateId },
         scope: 'geometry',
         number: 1,
         contentHash: 'sha256:demo1234567890',

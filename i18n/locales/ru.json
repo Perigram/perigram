@@ -1894,7 +1894,6 @@
         "opAnyOf": "одно из",
         "opNoneOf": "ни одно из",
         "types": {
-            "cassette": "Кассета",
             "cassette-design": "Дизайн кассеты",
             "color": "Цвет",
             "csv-table": "CSV-таблица",
@@ -1908,7 +1907,11 @@
             "sketch": "Скетч",
             "svg-file": "SVG-файл",
             "text-document": "Текстовый документ",
-            "xlsx-workbook": "Книга XLSX"
+            "xlsx-workbook": "Книга XLSX",
+            "cassette-template": "Шаблон кассеты",
+            "cassette-instance": "Кассета",
+            "sheet-cut-plan": "План раскроя",
+            "sheet-instance": "Лист"
         },
         "exportKinds": {
             "dxf": "DXF-чертёж"
@@ -2471,10 +2474,6 @@
     "sheetDesign": {
         "sheetDesigns": "Дизайны листов",
         "editor": "Редактор раскладки листа",
-        "addCassette": "Добавить кассету",
-        "selectCassette": "Выберите дизайн кассеты",
-        "cassettes": "Кассеты",
-        "cassetteNoGeometry": "У кассеты нет извлечённой геометрии для размещения.",
         "margin": "Отступ",
         "actions": "Действия",
         "sheet": "Лист",
@@ -2483,7 +2482,11 @@
         "position": "Положение",
         "rotation": "Поворот",
         "layoutSaved": "Раскладка листа сохранена как ревизия геометрии.",
-        "layoutSaveFailed": "Не удалось сохранить раскладку листа."
+        "layoutSaveFailed": "Не удалось сохранить раскладку листа.",
+        "addDesign": "Добавить дизайн",
+        "selectDesign": "Выберите дизайн",
+        "designs": "Дизайны",
+        "designNoGeometry": "У дизайна нет геометрии для размещения"
     },
     "nestingRun": {
         "sheetDesigns": "Дизайны листов"

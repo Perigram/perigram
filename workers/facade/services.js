@@ -8,11 +8,11 @@ import { evaluateOccsCassetteTemplate } from './occs/evaluate.js';
 import {
   buildValueWorkerRequest,
   enrichNestingResult,
-  nestingLayouts,
+  groupNestingLayouts,
   nestingPartsProjection,
   summarizeNestingResult
 } from './nesting-projections.js';
-import { cassettePartsList, nestingResultToPreview } from './surfaces/lib/sheetLayout.js';
+import { nestingResultToPreview, sheetDesignParts } from './surfaces/lib/sheetLayout.js';
 
 const IDENTITY_LAYERS = [OCCS_LAYER_CUT_OUTER];
 
@@ -85,6 +85,9 @@ export async function nestingSolve({ items, sheetWidth, sheetHeight, space, shee
     if (!item || !Array.isArray(item.polygonParts) || !item.polygonParts.length) {
       badRequest(`Item ${index} requires polygonParts geometry`);
     }
+    if (!item.designId) {
+      badRequest(`Item ${index} requires a designId — wire the cassette-design it projects from`);
+    }
     item.count = Math.max(1, Math.trunc(Number(item.count) || 1));
   }
   const params = {
@@ -104,7 +107,7 @@ export async function nestingSolve({ items, sheetWidth, sheetHeight, space, shee
     throw error;
   }
   return {
-    layouts: nestingLayouts(result),
+    layouts: groupNestingLayouts(result),
     summary: summarizeNestingResult(result, request.params)
   };
 }
@@ -148,27 +151,45 @@ export async function generateSheetDxf({ fields = {} } = {}) {
   };
 }
 
-// The sheet-design fromLayout construction: a solved layout value in →
-// the stored geometry record and its cassette parts out. The layout is
-// the solve's self-contained output (sourceItems + sheetPolygon); the
-// geometry record and preview are the editor's own save shape, so a
-// constructed sheet opens and re-saves in the sheet-design editor.
-// Input: { mode, draft: { data: { layout } } }. Output:
-// { data: { geometry, parts } }.
-export async function constructSheet({ draft = {} } = {}) {
+// The sheet-design fromLayout construction: a solved layout value (or a
+// blank) in → the stored geometry record and its design parts relation
+// out. The layout is the solve's self-contained output (sourceItems +
+// sheetPolygon); `refs.designs` are the resolved cassette-design values
+// (revision-pinned by the construct boundary) — every placement's
+// design_id must resolve to one, so the stored relation carries real,
+// pinned refs. A missing layout constructs a blank sheet.
+// Input: { mode, refs: { designs: [...] }, draft: { data: { layout } } }.
+// Output: { data: { geometry }, relations: { parts } }.
+export async function constructSheet({ refs = {}, draft = {} } = {}) {
   const layout = draft?.data?.layout;
-  if (!layout || typeof layout !== 'object' || Array.isArray(layout)) {
+  const resolvedDesigns = Array.isArray(refs.designs) ? refs.designs : [];
+  const designPin = new Map(resolvedDesigns.map(design => [
+    String(design.id),
+    design.revision ? { type: 'cassette-design', id: String(design.id), revision: String(design.revision) } : null
+  ]));
+
+  if (layout != null && (typeof layout !== 'object' || Array.isArray(layout))) {
     badRequest('Sheet construction requires a layout value');
   }
-  const placements = layout.placed_items || layout.items || [];
-  if (!Array.isArray(placements) || !placements.length) {
+  const placements = layout ? (layout.placed_items || layout.items || []) : [];
+  if (layout && (!Array.isArray(placements))) {
     badRequest('Sheet construction requires a layout with placed items');
   }
-  const items = Array.isArray(layout.sourceItems) ? layout.sourceItems : [];
-  if (!items.length) {
+  const items = layout && Array.isArray(layout.sourceItems) ? layout.sourceItems : [];
+  if (layout && placements.length && !items.length) {
     badRequest('Sheet construction requires a layout with item sources — re-run the nesting solve');
   }
-  const { sourceItems, sheetPolygon: solvedPolygon, ...storedLayout } = layout;
+  for (const placed of placements) {
+    const designId = designIdOfPlacement(items, placed);
+    if (!designId) {
+      badRequest('Sheet construction refuses a placement without its cassette-design — re-run the nesting solve with designId wired');
+    }
+    if (resolvedDesigns.length && !designPin.has(designId)) {
+      badRequest(`Sheet construction placement names cassette-design ${designId}, which the declared designs do not include`);
+    }
+  }
+
+  const { sourceItems, sheetPolygon: solvedPolygon, ...storedLayout } = layout || {};
   const sheetPolygon = solvedPolygon && Array.isArray(solvedPolygon.outer)
     ? { outer: solvedPolygon.outer, inner: Array.isArray(solvedPolygon.inner) ? solvedPolygon.inner : [] }
     : null;
@@ -179,10 +200,15 @@ export async function constructSheet({ draft = {} } = {}) {
       geometry: {
         data: { ...result, ...(sheetPolygon ? { sheetPolygon } : {}), solveParams: { width, height } },
         preview: nestingResultToPreview(result, { width, height }, { layoutIndex: 0 })
-      },
-      parts: cassettePartsList(result)
-    }
+      }
+    },
+    relations: { parts: sheetDesignParts(result, designPin) }
   };
+}
+
+function designIdOfPlacement(items = [], placed = {}) {
+  const source = items.find(item => String(item.id) === String(placed.item_id ?? placed.itemId ?? placed.id));
+  return String(source?.design_id ?? placed.design_id ?? '') || null;
 }
 
 function sheetPolygonBounds(polygon) {

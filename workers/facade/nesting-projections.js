@@ -3,7 +3,7 @@ import { createError } from 'h3';
 
 export function buildValueWorkerRequest(jobFiles, params = {}) {
   const items = buildNestingItems(jobFiles);
-  if (!items.length) throw createError({ statusCode: 400, message: 'No nestable cassette geometry found' });
+  if (!items.length) throw createError({ statusCode: 400, message: 'No nestable cassette-design geometry found' });
   return {
     items,
     params: {
@@ -43,7 +43,7 @@ export function enrichNestingResult(result = {}, request = {}) {
     return {
       ...item,
       id: requestItem.id,
-      cassette_id: item.cassette_id || requestItem.cassette_id,
+      design_id: item.design_id || requestItem.design_id,
       handles: item.handles?.length ? item.handles : requestItem.handles || [],
       sourceLayers: item.sourceLayers?.length ? item.sourceLayers : requestItem.sourceLayers || [],
       demand: item.demand ?? requestItem.count ?? 1,
@@ -57,7 +57,7 @@ export function enrichNestingResult(result = {}, request = {}) {
   if (!enrichedItems.length) {
     enrichedItems.push(...requestItems.map(item => ({
       id: item.id,
-      cassette_id: item.cassette_id,
+      design_id: item.design_id,
       handles: item.handles || [],
       sourceLayers: item.sourceLayers || [],
       demand: item.count || 1,
@@ -111,6 +111,27 @@ export function nestingLayouts(result = {}) {
   });
 }
 
+// The solve's quantity join (facade SPEC): sheets whose placements cut
+// the same design multiset are one sheet design applied `count` times.
+// The grouping key is the sorted design-id multiset; the group's first
+// layout is the representative geometry.
+export function groupNestingLayouts(result = {}) {
+  const layouts = nestingLayouts(result);
+  const groups = new Map();
+  for (const layout of layouts) {
+    const placements = layout.placed_items || layout.items || [];
+    const key = placements
+      .map(placed => String(placed.design_id ?? ''))
+      .sort()
+      .join('|');
+    if (!key.replace(/\|/g, '')) continue;
+    const group = groups.get(key);
+    if (group) group.count += 1;
+    else groups.set(key, { ...layout, count: 1 });
+  }
+  return [...groups.values()];
+}
+
 export function summarizeNestingResult(result = {}, params = {}) {
   const layouts = nestingLayouts(result);
   const placedCount = layouts.reduce((sum, layout) => sum + (layout.placed_items?.length || layout.items?.length || 0), 0);
@@ -145,7 +166,7 @@ function buildNestingItems(jobFiles = []) {
         if (!isValidPolygonCoordinates(coords)) continue;
         items.push({
           id,
-          cassette_id: String(file.cassetteId ?? ''),
+          design_id: String(file.designId ?? ''),
           coords,
           handles: part.handles || [],
           sourceLayers: part.sourceLayers?.length
@@ -162,7 +183,7 @@ function buildNestingItems(jobFiles = []) {
     if (!rectangle.length) continue;
     items.push({
       id,
-      cassette_id: String(file.cassetteId ?? ''),
+      design_id: String(file.designId ?? ''),
       coords: rectangle,
       handles: [],
       sourceLayers: sourceLayersForPart(layerData, {}),

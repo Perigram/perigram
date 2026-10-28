@@ -199,7 +199,18 @@ function nestingSourceForItem(sourcePointsById, item = {}) {
   };
 }
 
-export function cassettesForNestingResult(result = {}) {
+// The sheet design's typed parts relation (SPEC §6 edge `parts`): one
+// cassette-design ref per placement. `designPins` (construct path)
+// supplies the resolved revision pins; the editor path stores unpinned
+// refs, which follow latest.
+export function sheetDesignParts(result = {}, designPins = new Map()) {
+  const designs = designsForNestingResult(result);
+  return designs.flatMap(({ designId, count }) =>
+    Array.from({ length: count }, () =>
+      designPins.get(designId) || { type: 'cassette-design', id: designId }));
+}
+
+export function designsForNestingResult(result = {}) {
   const itemsById = new Map((result.items || [])
     .map(item => [item.id?.toString(), item])
     .filter(([id]) => id !== undefined));
@@ -210,22 +221,16 @@ export function cassettesForNestingResult(result = {}) {
     const placedItems = layout.placed_items || layout.items || [];
     placedItems.forEach(placedItem => {
       const source = itemsById.get(itemSourceId(placedItem)?.toString()) || placedItem;
-      const cassetteId = source.cassette_id || source.cassetteId || placedItem.cassette_id;
-      if (!cassetteId) return;
-      const key = cassetteId.toString();
-      const current = counts.get(key) || { cassetteId: key, count: 0 };
+      const designId = source.design_id || source.designId || placedItem.design_id;
+      if (!designId) return;
+      const key = designId.toString();
+      const current = counts.get(key) || { designId: key, count: 0 };
       current.count += 1;
       counts.set(key, current);
     });
   });
 
-  return Array.from(counts.values()).sort((left, right) => String(left.cassetteId).localeCompare(String(right.cassetteId)));
-}
-
-// The sheet design's typed parts relation: one cassette ref per placement.
-export function cassettePartsList(result = {}) {
-  return cassettesForNestingResult(result).flatMap(({ cassetteId, count }) =>
-    Array.from({ length: count }, () => ({ type: 'cassette', id: String(cassetteId) })));
+  return Array.from(counts.values()).sort((left, right) => String(left.designId).localeCompare(String(right.designId)));
 }
 
 export function nestingResultToPreview(result = {}, params = {}, options = {}) {
@@ -321,6 +326,6 @@ export function recomputeSheetLayout(design = {}, { items = [], placedItems = []
       data: result,
       preview: nestingResultToPreview(result, params, { layoutIndex: 0 })
     },
-    parts: cassettePartsList(result)
+    relations: { parts: sheetDesignParts(result) }
   };
 }

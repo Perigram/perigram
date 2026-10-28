@@ -1,13 +1,14 @@
 // The facade plugin's sheet-design editor surface (surface contract 4).
 // The mounted module receives the record and the generic persistence
 // callbacks — never stores, routing, or auth; cross-type reads (layer
-// standards, pen templates, cassettes) ride the host's query transport,
-// and opening a placed cassette rides the host's workspace-open channel.
+// standards, pen templates, cassette designs) ride the host's query
+// transport, and opening a placed design rides the host's workspace-open
+// channel.
 // The layout compute is the pure lib beside this file; saving patches
 // the recomputed geometry through the generic update transport.
 import { recomputeSheetLayout } from './lib/sheetLayout.js';
 import {
-  cassetteSheetItems,
+  designSheetItems,
   freeSheetPlacement,
   magneticSheetPlacement,
   placementWithTranslation,
@@ -44,8 +45,8 @@ export default function createSurface({ vue, components, locale, queries, notify
       const selectedIndex = ref(-1);
       const dragState = ref(null);
       const saving = ref(false);
-      const cassettes = ref([]);
-      const selectedCassetteId = ref('');
+      const designs = ref([]);
+      const selectedDesignId = ref('');
       const viewZoom = ref(1);
       const localName = ref('');
       const renameDraft = ref('');
@@ -112,12 +113,12 @@ export default function createSurface({ vue, components, locale, queries, notify
       const selectedSnapPoint = computed(() => selectedIndex.value >= 0
         ? sheetPlacementTransform(placedItems.value[selectedIndex.value])
         : null);
-      const cassetteOptions = computed(() => cassettes.value.map(cassette => ({
-        label: cassette.name || cassette._id,
-        value: cassette._id?.toString(),
-        entity: cassette
+      const designOptions = computed(() => designs.value.map(design => ({
+        label: design.name || design._id,
+        value: design._id?.toString(),
+        entity: design
       })));
-      const displayName = computed(() => localName.value || props.record?.fields?.title || t('sheetDesign.editor'));
+      const displayName = computed(() => localName.value || props.record?.fields?.name || t('sheetDesign.editor'));
       const selectedPlacement = computed(() => selectedIndex.value >= 0
         ? placedItems.value[selectedIndex.value] || null
         : null);
@@ -138,7 +139,7 @@ export default function createSurface({ vue, components, locale, queries, notify
       onMounted(() => {
         queries.list('layer-standard').then(rows => { standards.value = rows || []; }).catch(() => {});
         queries.list('pen-template').then(rows => { pens.value = rows || []; }).catch(() => {});
-        queries.list('cassette').then(rows => { cassettes.value = rows || []; }).catch(() => {});
+        queries.list('cassette-design').then(rows => { designs.value = rows || []; }).catch(() => {});
       });
 
       // Layout history: snapshots are the serialized placements; a record
@@ -368,18 +369,18 @@ export default function createSurface({ vue, components, locale, queries, notify
         }
       }
 
-      function openSelectedCassette() {
-        const cassetteId = selectedSource.value?.cassette_id;
-        if (!cassetteId) return;
-        open.instance({ typeId: 'cassette', instanceId: String(cassetteId) });
+      function openSelectedDesign() {
+        const designId = selectedSource.value?.design_id;
+        if (!designId) return;
+        open.instance({ typeId: 'cassette-design', instanceId: String(designId) });
       }
 
-      function addSelectedCassette() {
-        const cassette = cassettes.value.find(item => String(item._id) === String(selectedCassetteId.value));
-        const prefix = cassette ? `manual-${cassette._id}-${Date.now()}` : '';
-        const added = cassette ? cassetteSheetItems(cassette, prefix) : [];
+      function addSelectedDesign() {
+        const design = designs.value.find(item => String(item._id) === String(selectedDesignId.value));
+        const prefix = design ? `manual-${design._id}-${Date.now()}` : '';
+        const added = design ? designSheetItems(design, prefix) : [];
         if (!added.length) {
-          notify({ severity: 'error', summary: t('common.error'), detail: t('sheetDesign.cassetteNoGeometry') });
+          notify({ severity: 'error', summary: t('common.error'), detail: t('sheetDesign.designNoGeometry') });
           return;
         }
         for (const item of added) {
@@ -406,11 +407,11 @@ export default function createSurface({ vue, components, locale, queries, notify
       async function save() {
         saving.value = true;
         try {
-          const { geometry, parts } = recomputeSheetLayout(props.record, {
+          const { geometry, relations } = recomputeSheetLayout(props.record, {
             items: items.value,
             placedItems: placedItems.value
           });
-          await props.persistence.patch(props.record, { geometry, parts });
+          await props.persistence.patch(props.record, { fields: { geometry }, relations });
           notify({ severity: 'success', summary: t('common.success'), detail: t('sheetDesign.layoutSaved'), life: 2500 });
         } catch (error) {
           notify({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || t('sheetDesign.layoutSaveFailed') });
@@ -503,13 +504,13 @@ export default function createSurface({ vue, components, locale, queries, notify
       })));
 
       const speedDialItems = computed(() => {
-        const cassetteId = selectedSource.value?.cassette_id;
+        const designId = selectedSource.value?.design_id;
         return [
-          cassetteId
+          designId
             ? {
                 icon: 'pi pi-external-link',
                 label: t('common.open'),
-                command: openSelectedCassette
+                command: openSelectedDesign
               }
             : null,
           {
@@ -687,18 +688,18 @@ export default function createSurface({ vue, components, locale, queries, notify
       const renderPalette = () => h('aside', { class: 'flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3' }, [
         h('div', { class: 'flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto' }, [
           h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
-            h('small', { class: 'text-muted text-supporting' }, t('sheetDesign.cassettes')),
+            h('small', { class: 'text-muted text-supporting' }, t('sheetDesign.designs')),
             h('div', { class: 'flex min-w-0 items-start gap-2' }, [
               h(components.InstanceSelect, {
-                modelValue: selectedCassetteId.value,
-                'onUpdate:modelValue': value => { selectedCassetteId.value = value; },
-                options: cassetteOptions.value,
+                modelValue: selectedDesignId.value,
+                'onUpdate:modelValue': value => { selectedDesignId.value = value; },
+                options: designOptions.value,
                 optionLabel: 'label',
                 optionValue: 'value',
-                typeId: 'cassette',
+                typeId: 'cassette-design',
                 filter: true,
                 class: 'min-w-0 flex-1',
-                placeholder: t('sheetDesign.selectCassette')
+                placeholder: t('sheetDesign.selectDesign')
               }),
               h(components.Button, {
                 icon: 'pi pi-plus',
@@ -706,9 +707,9 @@ export default function createSurface({ vue, components, locale, queries, notify
                 outlined: true,
                 rounded: true,
                 size: 'small',
-                'aria-label': t('sheetDesign.addCassette'),
-                disabled: !editable.value || !selectedCassetteId.value,
-                onClick: addSelectedCassette
+                'aria-label': t('sheetDesign.addDesign'),
+                disabled: !editable.value || !selectedDesignId.value,
+                onClick: addSelectedDesign
               })
             ])
           ]),
@@ -781,9 +782,9 @@ export default function createSurface({ vue, components, locale, queries, notify
                   h('small', { class: 'text-muted text-supporting' }, t('sheetDesign.sheet')),
                   factRow(t('sheetDesign.size'), `${rounded(sheetWidth.value)}×${rounded(sheetHeight.value)} mm`),
                   factRow(t('sheetDesign.placements'), placedItems.value.length),
-                  factRow(t('sheetDesign.cassettes'),
+                  factRow(t('sheetDesign.designs'),
                     new Set(placedItems.value
-                      .map(placement => sheetPlacementSource(items.value, placement)?.cassette_id)
+                      .map(placement => sheetPlacementSource(items.value, placement)?.design_id)
                       .filter(Boolean)).size)
                 ])
               ])
