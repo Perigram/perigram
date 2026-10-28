@@ -4,7 +4,7 @@
     <FilePayloadViewer
       v-else-if="blobUrl"
       :source="{ mode: previewMode, fileUrl: blobUrl, attachment }"
-      variant="card"
+      :variant="fill && documentMode ? 'pane' : 'card'"
       :class="fill ? 'h-full min-h-0' : 'h-56 min-h-0'"
     />
     <ul v-if="failures.length" class="m-0 flex list-none flex-col gap-1 p-0">
@@ -20,6 +20,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import ProgressSpinner from 'primevue/progressspinner';
 import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
+import { DOCUMENT_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
 
 // The fill dialog's composed preview (SPEC §24): the create's own
 // construction service over the live draft, persisting nothing. A 404/403
@@ -40,6 +41,7 @@ const failures = ref([]);
 const bound = ref(true);
 const emit = defineEmits(['meta']);
 const previewMode = computed(() => props.type?.payload?.preview || 'attachment');
+const documentMode = computed(() => DOCUMENT_PREVIEW_MODES.includes(previewMode.value));
 
 const draftKey = computed(() => JSON.stringify(props.draft || {}));
 const hasDraft = computed(() => draftKey.value !== '{}');

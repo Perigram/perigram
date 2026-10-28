@@ -436,7 +436,10 @@ beside the transition history in `StateHistory`.
   columns, body blocks grow into spare row width; nested card
   variants keep the hairline spec list. The preview renders in the
   stepped hero band (`LAYOUT.previewHero`: 7rem base, taller past the
-  container width steps) with `PreviewBox fill`. A list region with
+  container width steps) with `PreviewBox fill`; a document payload
+  (`DOCUMENT_PREVIEW_MODES`, plugin-preview types excepted) sizes the
+  taller reading band (`LAYOUT.previewHeroBandDocument`). A list region
+  with
   nothing to show
   renders at content width, and a record's empty child regions pack side
   by side as compact stubs (`RegionChildren pack`). Every scalar and
@@ -457,12 +460,15 @@ beside the transition history in `StateHistory`.
   first. An
   instance payload reference with a renderable declared mode (the pool's
   `instance.payload`, projected from the wire `attachments.primary`)
-  renders through the shared viewer (via `FilePayloadViewer` variant `card` —
-  the non-interactive canvas that fills the card's fixed-height header
-  band with no own border, because the host Card owns the chrome; images
-  and sketch scenes fill the band at uniform scale while vector drawings
-  (dxf/svg/occs) fit inside it, and dimension text renders big — the same
-  contract as generated detail previews, which keep the pane viewer). A
+  renders through the shared viewer (`FilePayloadViewer`): visual modes
+  (image/dxf/svg/sketch) render the card variant everywhere — the
+  non-interactive canvas that fills its band with no own border, because
+  the host card owns the chrome; images and sketch scenes fill the band
+  at uniform scale, vector drawings (dxf/svg/occs) fit inside it, and
+  dimension text renders big. Document modes
+  (`DOCUMENT_PREVIEW_MODES`) render the pane variant in the fill hero —
+  the PDF frame, scrolling prose, scrolling tables — and degrade to the
+  file chip in fixed-height card bands (text clamps). A
   type that declares a `previewSource` field (the authored pack vocabulary
   adopted by the CTS registry, carried on the bundle type record and read
   off the wire DTO by `dtoToScreenInstance` as `instance.previewSource` —
@@ -476,7 +482,8 @@ beside the transition history in `StateHistory`.
   type-glyph band (SPEC §22.8: preview bands render real content or the
   glyph).
   Attachment-class previews carry honest surfaces: an instance with a
-  payload the viewer cannot render states the file's size and MIME, while
+  payload the viewer cannot render centers the shared `FileChip` (the
+  file's name and mime-aware icon), while
   a payload-less instance renders the quiet type-glyph band (the authored
   `depiction.glyph` — blank is the honest surface for a record that never
   saved a source).
