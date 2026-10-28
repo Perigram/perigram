@@ -2848,10 +2848,27 @@ only, and the bot's authoring guide taught the slop as law.
   the bot's authoring guide carry that law; `retireStateScopeAuthoring`
   strips the retired wires and scope fields from persisted drafts at
   the resolution/save seam.
-- [ ] Owner-named follow-up (same report): the bot's authoring skill
-  must teach field descriptor law (identifier, nullable/required), the
-  glyph palette, effect lanes, and the value/collection algebra
-  (math/text ops, finding and filtering instances).
+- [x] WAITING — owner verification: the bot's authoring skill teaches
+  field descriptor law (identifier, nullable/required), the glyph
+  palette, effect lanes, and instance/list work (finding, filtering,
+  navigating, shaping).
+
+### Agent Notes (2026-10-28, authoring-skill completeness)
+
+Session `agent/authoring-skill-20261028` (worktree
+`.agent-worktrees/authoring-skill-20261028`). Delivered: `configure`
+reaches declaration nodes with the inspector's own writes (state
+value/label/severity/icon — a state rename re-authors its entry wires;
+class name/glyph; field name/descriptor with the nullable and
+identifier flags), the compact vocabulary serves `fieldBases`, a
+`detail:'glyphs'` view serves the icon-font palette, and the guide's
+FIELD/CLASS bullets plus composition law 6 teach field properties,
+glyph authoring, and instance/list work (allEntities, edge navigation,
+filterList with a compare/logic condition, sortItems). The 13 KB compact
+budget pin held — the guide additions were trimmed to fit beside the new
+payload fields. Specs: `authoring.spec.js` pins the declaration-node
+configure (including refusals), `tools.spec.js` pins fieldBases in
+compact, glyphs on request, and the guide's instance/list law.
 
 ### Agent Notes (2026-10-28, state wires law)
 

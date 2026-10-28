@@ -94,13 +94,17 @@ Process-definition tools ride the authoring and lifecycle seam of
 
 `get_authoring_vocabulary` serves the authoring skill: the domain model
 (the two layers, the class identity laws, containment and lineage,
-effects and lanes, time and event entries), the gesture grammar with its
+effects and lanes, time and event entries, instance and list work), the
+gesture grammar with its
 removal twins, and the compose→validate→apply→activate loop; the
 organization's role list (the grant vocabulary the designer's
 [lanes](../../../components/process-designer/README.md) author through
-effect `access.grants`, one grant per effect); node families; and the
+effect `access.grants`, one grant per effect); node families; the
+authorable field bases (`fieldBases`, with the `nullable` and
+`identifier` flags the field descriptor carries); and the
 palette's droppable item ids — COMPACT by default. The per-kind socket
-inventory, the node catalog, typed value-operation sockets, and per-type
+inventory, the node catalog, typed value-operation sockets, the class
+glyph palette, and per-type
 construction modes (the [process-definitions](../process-definitions/README.md)
 projection's mode list, with each type's default) arrive on request
 through `detail` filters, each carrying the roles beside its detail (the
