@@ -2562,6 +2562,37 @@ Ordered steps:
   drags; the instance behind a placement or sheet selection in the
   inspector. Surface contract 5 stays retired; the generic
   `DELETE /api/instances/:type/:id` transport and its ref sweep stay.
+- [ ] WAITING — owner verification: Rename coverage on plugin upgrades
+  (owner direction 2026-10-28 evening): a listing type's
+  `renameFrom: <retired id>` makes the upgrade a covered migration —
+  the preview reports the rename, the apply rewrites stored instances,
+  typed refs, and authored type bindings to the new id before the
+  per-type steps run; the drain gate refuses removals alone. The
+  facade's `cassette` → `cassette-template` rides it (listing v26) and
+  the one-shot migration script retires.
+
+  ### Agent Notes (2026-10-28, rename coverage)
+
+  Session `agent/rename-coverage-20261028` (worktree
+  `.agent-worktrees/rename-coverage`). SPEC §20 carries the law.
+  `buildUpgradePlan` maps a retired old id to its `renameFrom`
+  successor: a `renamed` plan entry replaces the removed/blocked
+  outcome (breaking shape gates still block as before; zero-instance
+  successors re-break freely), the successor leaves the `added` list,
+  and the shape diff lands in `changed` keyed by the new id so the
+  existing §11 step loop consumes it. The apply runs
+  `applyTypeRename` (`server/features/plugins/type-rename.js`, the
+  migrations-module placement the arch guard demands) after the pin
+  snapshot write and declaration invalidation, before the step loop —
+  the step scanner matches on the new discriminator. Rewrites: class
+  collections `type` discriminators org-scoped, typed refs
+  (`{type, id}` objects under `relations`/`fields`, probe + deep walk)
+  and authored `typeId` bindings in `process_definitions` drafts;
+  bare-id refs ride the unchanged record id. The persisted pin strips
+  `renameFrom` beside `migrate`. SDK grammar + validation cases,
+  plugins service spec (plan + apply, 60 green), upgrade dialog gains
+  the renamed row. `migrate-facade-type-family.js` deletes — the
+  upgrade is the migration.
 - [ ] WAITING — owner verification: Demo process, seeds, and e2e
   recomposed onto the family (design refs threaded through the solve;
   grouped layouts consumed as sheet designs with counts).

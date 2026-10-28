@@ -807,6 +807,14 @@ calls, never direct API access. They land as the next surface-contract
 major; a listing may still target the earlier majors and mounts without
 them degrade honestly (save/reload, embedded assets).
 
+Owner decision (2026-10-28): a type rename rides the plugin upgrade as a
+covered migration. A listing type may declare `renameFrom: <retired id>`
+beside its `migrate` steps: the upgrade plan reports the rename instead
+of blocking the retired id, and the apply rewrites the org's stored
+instances, stored refs, and authored type bindings to the new id before
+the per-type migration steps run. The drain gate refuses a removed type;
+a renamed type with data migrates.
+
 ## 21. Exports are declarations (owner direction 2026-10-14)
 
 An installed plugin's export bindings (`declarations.exports`: type, kind,
