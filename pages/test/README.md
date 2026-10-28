@@ -63,9 +63,11 @@ The fixture screens demonstrate:
   (transitions, deletion, instance commands), relation link and unlink,
   and a generated create dialog whose
   fields come from the action's declared construction inputs
-- data states (skeletons, empty, missing, denied, error) and the budget
-  thresholds (virtualized >50, paginated >10, toolbar search >8) —
-  guaranteed in every random world, not left to seed luck
+- data states (skeletons, empty, missing, denied, error) — the empty
+  and missing states occur wherever a type rolled no instances; the
+  reported states (loading, denied, error) ride the opt-in `?state=on`
+  matrix. Budget crossings (paginated >10, toolbar search >8) occur
+  wherever the roll counts crossed them
 
 ## Related
 

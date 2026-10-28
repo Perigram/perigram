@@ -48,12 +48,13 @@ non-spec files here.
   the wire's one flat `state` string; the compiled contract carries
   `statePolicy` and `stateTransitions` per type exactly as the live
   derivation produces them. The random world follows the same split
-  with generated vocabularies and a linear edge chain per vocabulary,
-  and its guarantees are structural, not seed luck: every world carries
-  the projection floors (a durational type, a scheduled type, a
-  boardable process class), two peer hosts with claimed columnable and
-  heavy peers (the column and tabs arrangements engage), the volume
-  collection, and a reserved empty type the matrix never errors.
+  with generated vocabularies and a linear edge chain per vocabulary.
+  The world is what the seed rolls: classes, fields, edges, and
+  instance counts all come from the PRNG, and the only post-roll
+  touches are validity floors (an identifier flag somewhere, a control
+  pin somewhere, nullable marking on refs whose targets rolled empty).
+  Projection and arrangement coverage is a property of rerolling
+  seeds, not of stamps.
   Their specs pin the shapes; `shared/design-system.spec.js` and
   `test-tools/ui-mapping-page.ssr-smoke.js` render them.
 

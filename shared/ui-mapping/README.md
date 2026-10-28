@@ -673,22 +673,17 @@ handwritten.
 - Random hydration: [test-data/ui-mapping-random.js](../../test-data/ui-mapping-random.js)
   — a seeded generator producing entire worlds (types, containment DAGs,
   relations, instances, screens, actions) with nothing hand-authored; the
-  showcase rerolls seeds from the URL. Beyond the random shapes, every
-  world guarantees the showcase-reachable contracts by construction: at
-  least one `identifier`-flagged field, an authored `name`/`glyph` per
-  type, and a per-field `control` pin; `runCommand` and `unlink` beside the
-  create/transition/delete/link/hidden kinds; one volume collection over
-  fifty instances (paginated views, toolbar search);
-  one guaranteed-empty type with its own list screen (empty state) and a
-  detail screen over it (missing state); loaded parent records with
-  weight-sized peer collections (concentrated lineage — each parent type
-  has one record holding most of its children, peer collections sized by
-  estimated rendered weight) so sibling arrangements engage over
-  realistic shapes; and a seeded
-  `sourceStatesMatrix` (loading/denied/error, one per screen) the
-  showcase applies on demand. Its spec validates every generated
-  instance against CTS `checkValue`, composes every screen across
-  seeds, and pins each guarantee. Percent quantities roll within their
+  showcase rerolls seeds from the URL. The world is what the seed rolls:
+  nothing overwrites a rolled type, edge, or count after the fact. The
+  only post-roll touches are validity floors — an authored `name`/`glyph`
+  per type, at least one `identifier`-flagged field, at least one
+  `control` pin, and nullable marking on refs whose target types rolled
+  empty — beside a seeded `sourceStatesMatrix` (loading/denied/error, one
+  per screen) the showcase applies on demand through `?state=on`.
+  Projection and arrangement coverage is a property of rerolling seeds,
+  not of stamps. Its spec validates every generated
+  instance against CTS `checkValue` and composes every screen across
+  seeds. Percent quantities roll within their
   scale so meter and knob presentations show distributions instead of
   clamped saturation.
 - Spec: `ui-mapping.spec.js` (table-driven resolver/budget tests),
