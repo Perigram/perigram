@@ -352,7 +352,11 @@ User actors render through `InstanceInlineRef type="user"` and include an
 icon-only chat action that opens the support chat in direct user conversation
 mode for that actor.
 Structured v2 events prefer `toStatePrimary` for the visible badge and keep
-`region` available for grouped status surfaces.
+`region` available for grouped status surfaces. Beside transitions the
+stepper renders the audit trail's other stamps: field edits (the pencil
+step, changed leaves with from → to) and payload revisions (the history
+step, the minting reason with its version and a restore's source
+revision — SPEC §24).
 History panels render lifecycle proof attachment refs as download links and
 snapshot entries as compact count chips from the persisted event snapshot.
 

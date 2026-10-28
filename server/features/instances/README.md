@@ -136,7 +136,12 @@ Parent: [server/features](../README.md).
   type records an immutable revision through `recordPayloadRevision` —
   creation mints revision 1 (`created`), replacement and re-derive bump
   (`payload-replaced`, `rederived`), and restore mints
-  (`payload-restored`). `rederive(id, mode, { provenance })`
+  (`payload-restored`). Every mint stamps the acting principal
+  (`data.actor`, the status-events stamp shape); every write past
+  creation also appends a `payload_revision` record to the source
+  record's `status_events` audit trail (reason, revision ref, restore's
+  source ref) beside transitions and field edits. `rederive(id, mode,
+  { provenance })`
   is the construct re-run: it rebuilds the stored-inputs draft
   (`storedConstructionDraft`), executes the bound construction service
   against the refs' pinned revisions, and patches the same instance's
@@ -145,8 +150,9 @@ Parent: [server/features](../README.md).
 - Revision restore (`restorePayloadRevision`, SPEC §24 restore-as-new):
   a prior revision's frozen bytes re-enter through the payload channel
   as a new revision — the bytes are read from the revision's primary
-  attachment and re-run `replacePayload` with reason `payload-restored`,
-  so trait validation, storage, revisioning, and the write gate are the
+  attachment and re-run `replacePayload` with reason `payload-restored`
+  and `restoredFrom: { id, number }` naming the restored revision, so
+  trait validation, storage, revisioning, and the write gate are the
   replacement path's own. The revision must belong to the target record
   and the type's declared revision scope; anything else refuses 400.
   `POST /api/instances/:type/:id/restore-revision` with

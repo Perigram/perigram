@@ -81,7 +81,9 @@ export async function ensureForEntitySnapshot({
   snapshot,
   attachments = {},
   userId = 'SYSTEM',
-  reason = 'content-change'
+  reason = 'content-change',
+  actor = null,
+  restoredFrom = null
 } = {}) {
   if (!typeId) throw createError({ statusCode: 400, message: 'Revision typeId is required' });
   if (!entity?._id) throw createError({ statusCode: 400, message: 'Revision entity is required' });
@@ -129,7 +131,9 @@ export async function ensureForEntitySnapshot({
         state: entity.state ?? null
       },
       sourceStatus: entity.state ?? null,
-      reason
+      reason,
+      ...(actor ? { actor } : {}),
+      ...(restoredFrom ? { restoredFrom } : {})
     })
   };
 

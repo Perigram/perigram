@@ -706,7 +706,8 @@
         "reasonCreated": "created",
         "reasonReplaced": "replaced",
         "reasonRederived": "re-derived",
-        "reasonRestored": "restored"
+        "reasonRestored": "restored",
+        "restoredFrom": "from v{n}"
     },
     "nesting": {
         "title": "Nesting",

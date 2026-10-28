@@ -79,7 +79,10 @@ graph-derived (SPEC §7): this module resolves them from authored graphs.
   whose records keep the current state on both ends and carry
   `operation: { kind: 'field_change', changes: [{ field, from, to }] }`
   with the acting principal — the history surface renders them beside
-  transitions as who changed what.
+  transitions as who changed what. Revision-scoped payload writes ride
+  it too (SPEC §24): `appendPayloadRevisionEvent` carries
+  `operation: { kind: 'payload_revision', reason, revision,
+  restoredFrom }` — who minted which version, restoring from which.
 
 The reusable workflow API lives in
 [`@perigram/workflows`](../../../packages/workflows/README.md); `service.js`

@@ -267,8 +267,9 @@ declared MIME set when it carries no wildcards.
 `PayloadRevisionPicker` is the record's version surface (SPEC §24): the
 same header mounts it for every revision-scoped payload type. A history
 affordance opens a popover listing the record's payload revisions
-newest-first (version, creation stamp, minting write) with the current
-revision marked; the rows come from
+newest-first (version, creation stamp, minting write, minting
+principal) with the current revision marked; a restore-minted row names
+the revision it re-entered (`data.restoredFrom`); the rows come from
 `GET /api/instance-revisions?typeId&instanceId&scope` through the
 instances store. Every row opens read-only in a dialog: the revision's
 frozen bytes preview through the shared payload download URL
