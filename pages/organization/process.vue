@@ -1641,7 +1641,7 @@ const recordStateFieldPolicyOptions = computed(() => {
 });
 // The class inspector's identifier dropdown (SPEC §4): options are the
 // sibling field nodes of the selected class; '' leaves the flag unowned
-// and the registry boundary mint picks the holder.
+// and the declaration carries the compile error until a field is picked.
 const classIdentifierField = computed(() => {
   const node = selectedNode.value;
   if (node?.type !== 'ctsClass') return { options: [], value: '' };
@@ -1651,7 +1651,7 @@ const classIdentifierField = computed(() => {
   const holder = siblings.find(candidate => candidate.data?.descriptor?.identifier === true);
   return {
     options: [
-      { label: t('processDesigner.auto'), value: '' },
+      { label: t('processDesigner.unset'), value: '' },
       ...siblings.map(candidate => ({ label: candidate.data?.name || candidate.id, value: candidate.id }))
     ],
     value: holder?.id || ''
@@ -2306,7 +2306,7 @@ function updateClassName(node, name) {
 
 // The class dropdown drives the single-holder move (SPEC §4): a
 // field pick flags that field and clears its siblings; the empty pick
-// returns the identifier to the registry boundary mint.
+// leaves the identifier unowned.
 function setClassIdentifierField(classNode, fieldNodeId) {
   if (!classNode || classNode.type !== 'ctsClass') return;
   if (fieldNodeId) {

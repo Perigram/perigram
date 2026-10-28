@@ -21,7 +21,7 @@ const orgPanel = {
   organizationId: 'org-1',
   version: 1,
   fields: {
-    serial: { base: 'string' },
+    serial: { base: 'string', identifier: true },
     width: { base: 'quantity', unit: 'mm' }
   },
   edges: {
@@ -47,7 +47,7 @@ const orgBin = {
   scope: 'org',
   organizationId: 'org-1',
   version: 1,
-  fields: { name: { base: 'string' } },
+  fields: { name: { base: 'string', identifier: true } },
   edges: { children: { panels: { types: ['panel'], onRemove: 'restrict' } } }
 };
 
@@ -59,7 +59,7 @@ const orgDoc = {
   organizationId: 'org-1',
   version: 1,
   payload: { mime: ['text/plain'], accept: ['.txt'], maxSize: 1024, preview: 'text' },
-  fields: { note: { base: 'string', nullable: true } }
+  fields: { note: { base: 'string', nullable: true, identifier: true } }
 };
 
 function orgRegistry() {
@@ -76,7 +76,7 @@ const orgDerivedPlan = {
   organizationId: 'org-1',
   version: 1,
   derived: true,
-  fields: { geometry: { base: 'json', nullable: true } }
+  fields: { name: { base: 'string', nullable: true, identifier: true }, geometry: { base: 'json', nullable: true } }
 };
 
 // The placement-operator shape (SPEC §8 construct species): single and
@@ -203,7 +203,7 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
       .toEqual(['fields', 'lineage', 'relations']);
   });
 
-  it('construction inputs are authored rows only — the minted name row authors nothing', () => {
+  it('construction inputs are authored rows only — a non-constructible identifier row authors nothing', () => {
     const reg = registry();
     reg.defineType({
       id: 'blank',
@@ -212,12 +212,15 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
       scope: 'org',
       organizationId: 'org-1',
       version: 1,
-      fields: { geometry: { base: 'json', nullable: true } }
+      fields: {
+        name: { base: 'string', nullable: true, identifier: true, writable: false, constructible: false },
+        geometry: { base: 'json', nullable: true }
+      }
     });
     const projected = projectDomainFromView(reg, 'org-1');
     const construction = projected.construction.blank;
-    // The identifier-totality mint renders the unnamed placeholder; it is
-    // identity vocabulary, so it constructs and mutates nothing.
+    // The identifier row is identity vocabulary: it renders the record
+    // title and constructs and mutates nothing.
     expect(construction.inputs.map(input => input.id)).toEqual(['fields.geometry']);
     expect(projected.fieldSchemas.blank.find(schema => schema.path === 'fields.name'))
       .toMatchObject({ constructible: false, writable: false });
@@ -255,8 +258,7 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     // lineage keys and declared relation edges are construct-addressable
     // (SPEC §6): the panel's parent bin arrives as lineage.binId, its
     // declared relation as relations.placed-on. No separate Name prompt:
-    // normalization minted the identifier flag on `serial`, so the row
-    // already names the record.
+    // the identifier row already names the record.
     expect(construction.inputs.map(input => input.id)).toEqual(
       ['lineage.binId', 'relations.placed-on', 'fields.serial', 'fields.width']
     );

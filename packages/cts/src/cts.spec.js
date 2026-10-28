@@ -107,7 +107,7 @@ describe('typed edges (R2)', () => {
     const registry = packRegistry();
     registry.defineType({
       id: 'assembly', class: 'item',
-      fields: { name: { base: 'string' } },
+      fields: { name: { base: 'string', identifier: true } },
       edges: { children: { parts: { types: ['assembly', 'material'] } } }
     });
     expect(registry.compile().errors).toEqual([]);
@@ -205,7 +205,7 @@ describe('draft declaration records (SPEC §7/§20)', () => {
   it('declarationsFromCtsRecords projects classes and fields; state records declare no type facet', () => {
     const records = {
       cls: { id: 'cls', kind: 'class', typeId: 't-goo-1', class: 'file' },
-      name: { id: 'name', kind: 'field', typeId: 't-goo-1', name: 'title', descriptor: { base: 'string' } },
+      name: { id: 'name', kind: 'field', typeId: 't-goo-1', name: 'title', descriptor: { base: 'string', identifier: true } },
       goo: { id: 'goo', kind: 'state', typeId: 't-goo-1', value: 'GOO', initial: true, terminal: false },
       changed: { id: 'changed', kind: 'state', typeId: 't-goo-1', value: 'CHANGED', initial: false, terminal: true }
     };
@@ -223,7 +223,7 @@ describe('draft declaration records (SPEC §7/§20)', () => {
     expect(declaration).toEqual({
       id: 't-goo-1',
       class: 'file',
-      fields: { title: { base: 'string' } }
+      fields: { title: { base: 'string', identifier: true } }
     });
     const registry = createTypeRegistry({ id: 'record-projection-check' });
     registry.defineType(declaration);
@@ -445,12 +445,12 @@ describe('evolution (R7, refuse-on-diff)', () => {
     const registry = createTypeRegistry({ id: 'spec-repair', hasInstances: () => 7 });
     registry.defineType({
       id: 'yu', class: 'file', name: 'Yu', scope: 'org', organizationId: 'org-1',
-      fields: { note: { base: 'string' } },
+      fields: { note: { base: 'string', identifier: true } },
       edges: { children: { parts: { types: ['missing-child'] } } }
     });
     const repaired = registry.defineType({
       id: 'yu', class: 'file', name: 'Yu', scope: 'org', organizationId: 'org-1',
-      fields: { note: { base: 'string' } }
+      fields: { note: { base: 'string', identifier: true } }
     });
     expect(repaired.version).toBe(2);
     expect(repaired.edges).toEqual({});
@@ -600,7 +600,7 @@ describe('display policy (SPEC §4/§7)', () => {
     registry.defineType({
       id: 'gadget', class: 'file',
       fields: {
-        title: { base: 'string' },
+        title: { base: 'string', identifier: true },
         widths: { base: 'list', itemType: { base: 'quantity', unit: 'mm' } },
         parts: { base: 'list', itemType: { base: 'ref', accepts: ['user'] } },
         tags: { base: 'list', itemType: { base: 'string' } },
@@ -615,13 +615,13 @@ describe('display policy (SPEC §4/§7)', () => {
       { id: 'media', label: null, fields: ['specs'] },
       { id: 'relations', label: null, fields: ['parts'] }
     ]);
-    // No explicit flag: the first declared string field is minted as the
-    // identifier at the boundary (frozen; explicit flags deviate).
+    // The authored flag names the record; nothing is minted for an
+    // unflagged type.
     expect(record.identifier).toBe('title');
     expect(record.depiction.thumb).toBeNull();
   });
 
-  it('serves a nameless org declaration with its identifier minted, reporting the name law', () => {
+  it('serves an identifier-less declaration with the identifier law reported', () => {
     const registry = createTypeRegistry({ id: 'render-spec-bare' });
     registry.defineType({
       id: 'bare', class: 'item', scope: 'org', organizationId: 'org-1',
@@ -629,11 +629,15 @@ describe('display policy (SPEC §4/§7)', () => {
     });
     const record = compileClientBundle(registry, 'org-1').types[0];
     expect(record.name).toBeNull();
-    // The unnamed placeholder means "identifier value is null" and nothing
-    // else — the identifier itself was adopted (first string field) — but
-    // the missing type name is a compile error, served not silent.
-    expect(record.identifier).toBe('serial');
-    expect(registry.compile('org-1').errors).toEqual(['type bare: name is required']);
+    // Served, not ejected: the unflagged declaration keeps its view, the
+    // bundle carries no identifier (records render the unnamed
+    // placeholder), and both display laws report through the compile
+    // channel (write gate + designer diagnostics).
+    expect(record.identifier).toBeNull();
+    expect(registry.compile('org-1').errors).toEqual([
+      'type bare: exactly one field must carry the identifier flag (flagged: none)',
+      'type bare: name is required'
+    ]);
   });
 
   it('adopts legacy render keys at the boundary and deletes them', () => {
@@ -679,7 +683,7 @@ describe('display policy (SPEC §4/§7)', () => {
       }
     });
     expect(registry.compile().errors).toContainEqual(
-      'type two-ids: identifier flag on multiple fields (name, serial) — exactly one required'
+      'type two-ids: exactly one field must carry the identifier flag (flagged: name, serial)'
     );
     const registry2 = createTypeRegistry({ id: 'render-flag-spec-2' });
     registry2.defineType({
@@ -692,79 +696,68 @@ describe('display policy (SPEC §4/§7)', () => {
     expect(registry2.compile().errors).toContainEqual(
       'type two-pics: depiction flag on multiple fields (front, back) — at most one'
     );
-    // No string field to adopt and no explicit flag: the boundary mints
-    // a nullable `name` row and flags it — unnameable types are
-    // unrepresentable, at every scope. The minted row is identity
-    // vocabulary only: construction and mutation expose authored rows.
+    // Zero flags is the same deviation as two, at every scope: the view
+    // stays served with no identifier and the compile channel reports.
     const registry3 = createTypeRegistry({ id: 'render-flag-spec-3' });
     registry3.defineType({
       id: 'no-name-field', class: 'item', name: 'No name field',
       fields: { area: { base: 'quantity', unit: 'm2' } }
     });
-    expect(registry3.compile().errors).toEqual([]);
-    const minted = compileClientBundle(registry3).types.find(record => record.id === 'no-name-field');
-    expect(minted.identifier).toBe('name');
-    expect(minted.fields.name).toMatchObject({ base: 'string', nullable: true, identifier: true, writable: false, constructible: false });
-    // The mint takes the first free row name and never collides.
-    const registry3b = createTypeRegistry({ id: 'render-flag-spec-3b' });
-    registry3b.defineType({
-      id: 'collider', class: 'item', name: 'Collider',
-      fields: {
-        name: { base: 'quantity', unit: 'm2' },
-        title: { base: 'boolean' },
-        label: { base: 'instant' }
-      }
-    });
-    const collided = compileClientBundle(registry3b).types.find(record => record.id === 'collider');
-    expect(collided.identifier).toBe('name1');
-    // ORG types with nothing to mint from stay compiled and served — and
-    // the missing identifier is gone with the mint, so only the name law
-    // can still report.
+    expect(registry3.compile().errors).toEqual([
+      'type no-name-field: exactly one field must carry the identifier flag (flagged: none)'
+    ]);
+    const unflagged = compileClientBundle(registry3).types.find(record => record.id === 'no-name-field');
+    expect(unflagged.identifier).toBeNull();
+    expect(unflagged.fields.name).toBeUndefined();
     const registry4 = createTypeRegistry({ id: 'render-flag-spec-4' });
     registry4.defineType({
       id: 'org-instant-only', class: 'item', name: 'Instant Only', scope: 'org', organizationId: 'org-1',
       fields: { anythin: { base: 'instant', label: 'Anythin' } }
     });
     const orgView = registry4.compile('org-1');
-    expect(orgView.errors).toEqual([]);
+    expect(orgView.errors).toEqual([
+      'type org-instant-only: exactly one field must carry the identifier flag (flagged: none)'
+    ]);
     const served = compileClientBundle(registry4, 'org-1').types
       .find(record => record.id === 'org-instant-only');
-    expect(served.identifier).toBe('name');
+    expect(served.identifier).toBeNull();
   });
 
   it('requires a name on every type at compile', () => {
     const registry = createTypeRegistry({ id: 'name-law-spec' });
     registry.defineType({
       id: 'nameless', class: 'item', scope: 'org', organizationId: 'org-1',
-      fields: { serial: { base: 'string' } }
+      fields: { serial: { base: 'string', identifier: true } }
     });
     // Served, not ejected — but the missing name reports through the
     // standard compile channel (write gate + designer diagnostics).
     expect(registry.compile('org-1').errors).toEqual(['type nameless: name is required']);
     const named = registry.defineType({
       id: 'nameless', class: 'item', name: 'Nameless', scope: 'org', organizationId: 'org-1',
-      fields: { serial: { base: 'string' } }
+      fields: { serial: { base: 'string', identifier: true } }
     });
     expect(named.name).toBe('Nameless');
     expect(registry.compile('org-1').errors).toEqual([]);
   });
 
-  it('keeps the minted row stable across redefinitions that carry it', () => {
-    // The minted row is a real row: like a minted flag, it persists in
-    // stored docs and round-trips through registry reads — carrying it
-    // while adding a nullable field is minor (SPEC §11), so legacy edits
-    // never 400 on the totality they predate. Dropping it is a breaking
-    // remove-field like any other row.
+  it('compiles stored records that carry a mint-era identifier row', () => {
+    // Stored docs normalized before the authored-identifier law carry a
+    // flagged `name` row (`writable`/`constructible` false); they keep
+    // compiling clean, and carrying the row through a redefinition that
+    // adds a nullable field is minor (SPEC §11).
     const registry = createTypeRegistry({ id: 'mint-redefine-spec', hasInstances: () => 5 });
     registry.defineType({
       id: 'gauge', class: 'item', name: 'Gauge', scope: 'org', organizationId: 'org-1',
       fields: { pressure: { base: 'quantity', unit: 'm2' } }
     });
+    expect(registry.compile('org-1').errors).toEqual([
+      'type gauge: exactly one field must carry the identifier flag (flagged: none)'
+    ]);
     const redefined = registry.defineType({
       id: 'gauge', class: 'item', name: 'Gauge', scope: 'org', organizationId: 'org-1',
       fields: {
         pressure: { base: 'quantity', unit: 'm2' },
-        name: { base: 'string', nullable: true },
+        name: { base: 'string', nullable: true, identifier: true, writable: false, constructible: false },
         note: { base: 'string', nullable: true }
       }
     });

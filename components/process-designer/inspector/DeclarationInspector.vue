@@ -209,8 +209,8 @@ const props = defineProps({
   diagnostics: { type: Array, default: () => [] },
   typeOptions: { type: Array, default: () => [] },
   typeAnchorOptions: { type: Array, default: () => [] },
-  // The class's sibling field nodes as identifier picks; value '' is the
-  // registry boundary mint (SPEC §4).
+  // The class's sibling field nodes as identifier picks; value '' leaves
+  // the identifier unowned (SPEC §4).
   identifierFieldOptions: { type: Array, default: () => [] },
   identifierFieldValue: { type: String, default: '' }
 });

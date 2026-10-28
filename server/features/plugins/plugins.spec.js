@@ -99,7 +99,7 @@ const coatingListing = {
   version: '2',
   declarations: {
     types: [
-      { id: 'coating', class: 'item', name: 'Coating', fields: { code: { base: 'string' } } }
+      { id: 'coating', class: 'item', name: 'Coating', fields: { code: { base: 'string', identifier: true } } }
     ],
     services: [
       {
@@ -174,7 +174,7 @@ describe('plugin installs', () => {
         ...coatingListing.declarations,
         types: [
           ...coatingListing.declarations.types,
-          { id: 'coating-sheet', class: 'file', fields: { code: { base: 'string' } } }
+          { id: 'coating-sheet', class: 'file', fields: { code: { base: 'string', identifier: true } } }
         ],
         editors: [{ type: 'coating-sheet', surface: 'coating-designer', modes: ['edit'] }],
         surfaces: [{ id: 'coating-designer', module: '/surfaces/coating-designer.mjs', surfaceContract: 1 }]
@@ -275,7 +275,7 @@ describe('plugin installs', () => {
   it('refuses a plugin type an org declaration already holds', async () => {
     const { listByOrganization } = await import('../cts-types/repository.js');
     listByOrganization.mockResolvedValue([
-      { id: 'coating', class: 'item', scope: 'org', organizationId: ORG, version: 1, fields: { code: { base: 'string' } } }
+      { id: 'coating', class: 'item', scope: 'org', organizationId: ORG, version: 1, fields: { code: { base: 'string', identifier: true } } }
     ]);
     repository.findCatalogByPluginId.mockResolvedValue(coatingListing);
     await expect(install({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
@@ -394,7 +394,7 @@ describe('plugin installs', () => {
       version: '1',
       requires: ['coatings'],
       declarations: {
-        types: [{ id: 'primer', class: 'item', name: 'Primer', fields: { code: { base: 'string' } } }]
+        types: [{ id: 'primer', class: 'item', name: 'Primer', fields: { code: { base: 'string', identifier: true } } }]
       }
     });
     repository.listInstallsByOrganization.mockResolvedValue([coatingInstall]);
@@ -443,7 +443,7 @@ describe('plugin installs', () => {
             class: 'file',
             name: 'Coating sheet',
             payload: { mime: ['text/csv'], accept: ['.csv'], maxSize: 1024, preview: 'table', creation: ['editor'] },
-            fields: { name: { base: 'string' } }
+            fields: { name: { base: 'string', identifier: true } }
           }
         ],
         starterConstructs: [{ typeId: 'coating-sheet', construction: 'editor' }]
@@ -464,7 +464,7 @@ describe('plugin installs', () => {
       version: '1',
       requires: ['no-such-thing'],
       declarations: {
-        types: [{ id: 'primer', class: 'item', name: 'Primer', fields: { code: { base: 'string' } } }]
+        types: [{ id: 'primer', class: 'item', name: 'Primer', fields: { code: { base: 'string', identifier: true } } }]
       }
     });
     await expect(install({ organizationId: ORG, pluginId: 'primers', auth: AUTH }))
@@ -682,15 +682,15 @@ describe('upgrades', () => {
           class: 'item',
           name: 'Coating',
           fields: {
-            code: { base: 'string' },
+            code: { base: 'string', identifier: true },
             gloss: { base: 'string' }
           },
           migrate: [{ kind: 'add-default-field', field: 'gloss', value: 'matte' }]
         },
         // added
-        { id: 'primer', class: 'item', name: 'Primer', fields: { code: { base: 'string' } } },
+        { id: 'primer', class: 'item', name: 'Primer', fields: { code: { base: 'string', identifier: true } } },
         // added file type with an editor binding
-        { id: 'coating-sheet', class: 'file', fields: { code: { base: 'string' } } }
+        { id: 'coating-sheet', class: 'file', fields: { code: { base: 'string', identifier: true } } }
       ],
       services: [
         ...coatingListing.declarations.services,

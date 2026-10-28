@@ -43,7 +43,7 @@ beforeEach(() => {
 describe('cts type storage', () => {
   it('compiles the org view as system types plus the org overlay', async () => {
     repository.listByOrganization.mockResolvedValue([
-      { id: 'widget', name: 'Widget', class: 'file', scope: 'org', organizationId: ORG, version: 1, fields: { code: { base: 'string' } } }
+      { id: 'widget', name: 'Widget', class: 'file', scope: 'org', organizationId: ORG, version: 1, fields: { code: { base: 'string', identifier: true } } }
     ]);
     const bundle = await describeOrganizationTypes(ORG);
     expect(bundle.bundle.ok).toBe(true);
@@ -56,8 +56,8 @@ describe('cts type storage', () => {
 
   it('composes installed plugin declarations as a resolution source beside the org overlay', async () => {
     const installedTypes = [
-      { id: 'coating', class: 'item', fields: { code: { base: 'string' } } },
-      { id: 'coating-sheet', class: 'file', fields: { code: { base: 'string' } } }
+      { id: 'coating', class: 'item', fields: { code: { base: 'string', identifier: true } } },
+      { id: 'coating-sheet', class: 'file', fields: { code: { base: 'string', identifier: true } } }
     ];
     pluginInstalls.listDeclarationsByOrganization.mockResolvedValue(installedTypes);
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
@@ -79,7 +79,7 @@ describe('cts type storage', () => {
   });
 
   it('serves installed surface declarations with same-origin proxy module URLs', async () => {
-    const installedTypes = [{ id: 'coating-sheet', class: 'file', fields: { code: { base: 'string' } } }];
+    const installedTypes = [{ id: 'coating-sheet', class: 'file', fields: { code: { base: 'string', identifier: true } } }];
     pluginInstalls.listDeclarationsByOrganization.mockResolvedValue(installedTypes);
     pluginInstalls.listInstallsByOrganization.mockResolvedValue([{
       organizationId: ORG,
@@ -161,7 +161,7 @@ describe('cts type storage', () => {
   });
 
   it('stores valid org declarations after full-view compile', async () => {
-    const stored = await defineType({ id: 'gadget', name: 'Gadget', class: 'file', fields: { code: { base: 'string' } } }, { organizationId: ORG });
+    const stored = await defineType({ id: 'gadget', name: 'Gadget', class: 'file', fields: { code: { base: 'string', identifier: true } } }, { organizationId: ORG });
     expect(stored.id).toBe('gadget');
     expect(stored.scope).toBe('org');
     expect(stored.version).toBe(1);
@@ -172,11 +172,11 @@ describe('cts type storage', () => {
     const { countInstancesOfType } = await import('../instances/count.js');
     countInstancesOfType.mockResolvedValueOnce(0);
     const storedGadget = { id: 'gadget', class: 'file', scope: 'org', organizationId: ORG, version: 3,
-      fields: { code: { base: 'string' }, gone: { base: 'string' } } };
+      fields: { code: { base: 'string', identifier: true }, gone: { base: 'string' } } };
     repository.findByTypeId.mockResolvedValue(storedGadget);
     repository.listByOrganization.mockResolvedValue([storedGadget]);
     const stored = await defineType(
-      { id: 'gadget', class: 'file', fields: { code: { base: 'string' } } },
+      { id: 'gadget', class: 'file', fields: { code: { base: 'string', identifier: true } } },
       { organizationId: ORG }
     );
     expect(stored.id).toBe('gadget');
@@ -186,10 +186,10 @@ describe('cts type storage', () => {
   it('refuses breaking redefinition and rolls back new writes on cross-type breakage', async () => {
     repository.listByOrganization.mockResolvedValue([
       { id: 'gadget', class: 'file', scope: 'org', organizationId: ORG, version: 3,
-        fields: { code: { base: 'string' }, gone: { base: 'string' } } }
+        fields: { code: { base: 'string', identifier: true }, gone: { base: 'string' } } }
     ]);
     await expect(defineType(
-      { id: 'gadget', class: 'file', fields: { code: { base: 'string' } } },
+      { id: 'gadget', class: 'file', fields: { code: { base: 'string', identifier: true } } },
       { organizationId: ORG }
     )).rejects.toThrow(/breaking change/);
   });
@@ -197,11 +197,11 @@ describe('cts type storage', () => {
   it('attaches the binding processes to a refused write (edit-path blast radius)', async () => {
     repository.listByOrganization.mockResolvedValue([
       { id: 'gadget', class: 'file', scope: 'org', organizationId: ORG, version: 3,
-        fields: { code: { base: 'string' }, gone: { base: 'string' } } }
+        fields: { code: { base: 'string', identifier: true }, gone: { base: 'string' } } }
     ]);
     findTypeReferences.mockResolvedValueOnce([{ id: 'pd-1', name: 'Production', status: 'ACTIVE' }]);
     const error = await defineType(
-      { id: 'gadget', class: 'file', fields: { code: { base: 'string' } } },
+      { id: 'gadget', class: 'file', fields: { code: { base: 'string', identifier: true } } },
       { organizationId: ORG }
     ).catch(e => e);
     expect(error.statusCode).toBe(400);
@@ -219,14 +219,14 @@ describe('cts type storage', () => {
     });
     const existing = {
       id: 'widget', class: 'item', scope: 'org', organizationId: ORG, version: 3,
-      fields: { code: { base: 'string' } }
+      fields: { code: { base: 'string', identifier: true } }
     };
     repository.findByTypeId.mockResolvedValue(existing);
     repository.listByOrganization.mockResolvedValue([existing]);
     const stored = await defineType(
       {
         id: 'widget', class: 'item',
-        fields: { serial: { base: 'string' } },
+        fields: { serial: { base: 'string', identifier: true } },
         migrate: [{ kind: 'rename-field', from: 'code', to: 'serial' }]
       },
       { organizationId: ORG, actor: 'admin' }
@@ -305,7 +305,7 @@ describe('cts type storage', () => {
   it('refuses a breaking redefinition whose steps do not cover the diff', async () => {
     const existing = {
       id: 'widget', class: 'item', scope: 'org', organizationId: ORG, version: 3,
-      fields: { code: { base: 'string' } }
+      fields: { code: { base: 'string', identifier: true } }
     };
     repository.findByTypeId.mockResolvedValue(existing);
     repository.listByOrganization.mockResolvedValue([existing]);
@@ -366,18 +366,18 @@ describe('cts type storage', () => {
     const { countInstancesOfType } = await import('../instances/count.js');
     countInstancesOfType.mockResolvedValueOnce(0);
     const storedGadget = { id: 'gadget', name: 'Gadget', class: 'file', scope: 'org', organizationId: ORG, version: 2,
-      fields: { code: { base: 'string' } } };
+      fields: { code: { base: 'string', identifier: true } } };
     repository.findByTypeId.mockResolvedValue(storedGadget);
     repository.listByOrganization.mockResolvedValue([storedGadget]);
     await expect(defineType(
       { id: 'gadget', name: 'Gadget', class: 'file', fields: { code: { base: 'string', identifier: true }, serial: { base: 'string', identifier: true } } },
       { organizationId: ORG }
-    )).rejects.toThrow(/identifier flag on multiple fields/);
+    )).rejects.toThrow(/exactly one field must carry the identifier flag/);
     expect(repository.upsertByTypeId).not.toHaveBeenCalled();
 
     countInstancesOfType.mockResolvedValueOnce(0);
     await expect(defineType(
-      { id: 'gadget', name: 'Gadget', class: 'file', fields: { code: { base: 'string' } }, edges: { children: { parts: { types: ['missing-child'] } } } },
+      { id: 'gadget', name: 'Gadget', class: 'file', fields: { code: { base: 'string', identifier: true } }, edges: { children: { parts: { types: ['missing-child'] } } } },
       { organizationId: ORG }
     )).rejects.toThrow(/may not declare lineage children/);
     expect(repository.upsertByTypeId).not.toHaveBeenCalled();
@@ -391,12 +391,12 @@ describe('cts type storage', () => {
     const { countInstancesOfType } = await import('../instances/count.js');
     countInstancesOfType.mockResolvedValue(4);
     const broken = { id: 'yu', class: 'file', scope: 'org', organizationId: ORG, version: 1,
-      fields: { note: { base: 'string' } },
+      fields: { note: { base: 'string', identifier: true } },
       edges: { children: { parts: { types: ['t-missing-child'] } } } };
     repository.findByTypeId.mockResolvedValue(broken);
     repository.listByOrganization.mockResolvedValue([broken]);
     const stored = await defineType(
-      { id: 'yu', class: 'file', fields: { note: { base: 'string' } } },
+      { id: 'yu', class: 'file', fields: { note: { base: 'string', identifier: true } } },
       { organizationId: ORG }
     );
     expect(stored.version).toBe(2);
@@ -410,7 +410,7 @@ describe('cts type storage', () => {
     // not block OTHER valid writes — the write gate refuses only the
     // errors the candidate itself introduces.
     const broken = { id: 'yu', class: 'file', scope: 'org', organizationId: ORG, version: 1,
-      fields: { note: { base: 'string' } },
+      fields: { note: { base: 'string', identifier: true } },
       edges: { children: { parts: { types: ['t-child-1'] } } } };
     repository.listByOrganization.mockResolvedValue([broken]);
     repository.findByTypeId.mockImplementation(async (orgId, typeId) => (
@@ -420,7 +420,7 @@ describe('cts type storage', () => {
     // A valid new type lands even though the stored view carries YU's
     // obligation error.
     const child = await defineType(
-      { id: 't-child-1', name: 'Child', class: 'file', fields: { note: { base: 'string' } } },
+      { id: 't-child-1', name: 'Child', class: 'file', fields: { note: { base: 'string', identifier: true } } },
       { organizationId: ORG }
     );
     expect(child.id).toBe('t-child-1');
@@ -431,7 +431,7 @@ describe('cts type storage', () => {
     await expect(defineType(
       { id: 't-empty-1', name: 'Empty', class: 'file', fields: { code: { base: 'string', identifier: true }, serial: { base: 'string', identifier: true } } },
       { organizationId: ORG }
-    )).rejects.toThrow(/identifier flag on multiple fields/);
+    )).rejects.toThrow(/exactly one field must carry the identifier flag/);
     expect(repository.upsertByTypeId).not.toHaveBeenCalled();
   });
 

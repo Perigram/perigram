@@ -122,7 +122,8 @@
         },
         "fields": {
           "name": {
-            "base": "string"
+            "base": "string",
+            "identifier": true
           },
           "template": {
             "base": "ref",
