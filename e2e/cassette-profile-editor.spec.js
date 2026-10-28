@@ -34,7 +34,7 @@ const expectDrawingScale = (state) => {
 
 test('profile editor draws at millimetre scale and keeps bindings through save', async ({ app }) => {
   test.setTimeout(300_000);
-  await app.installPlugins(['documents', 'tech-drawing', 'facade']);
+  await app.installPlugins(['tech-drawing', 'documents', 'facade']);
   await app.connectPlugin('facade', 'http://facade-executor:8790');
   const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'], via: { 'cassette-template': 'editor' } });
   const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette-template');
