@@ -522,7 +522,7 @@ export function analyzeInstanceShape(typeRecord = {}, instances = []) {
 // and the loaded instances. The authored default-sort override channel is
 // gone (derivation replaced it): the first filled short scalar sorts by
 // default.
-export function resolveListControls(typeRecord = {}, instances = []) {
+export function resolveListControls(typeRecord = {}, instances = [], { pool = null } = {}) {
   const descriptors = typeRecord.fields || {};
   const shape = analyzeInstanceShape(typeRecord, instances);
   const sortKeys = shape.filledScalarNames
@@ -582,12 +582,22 @@ export function resolveListControls(typeRecord = {}, instances = []) {
     .find(([name]) => instances.some(instance => hasStructuralValue(instance)(instance?.fields?.[name])))
     || null;
   const summaryColumn = summaryEntry ? Object.freeze({ key: summaryEntry[0] }) : null;
+  // The children column: a type declaring children edges renders its
+  // loaded children as chips beside identity — the parent's data, the
+  // same filledness law as every other column (a pool carrying no
+  // child of any listed instance renders no column).
+  const childTypeIds = [...new Set(Object.values(typeRecord.edges?.children || {})
+    .flatMap(edge => edge?.types || []))];
+  const childrenColumn = childTypeIds.length && pool && instances.some(instance => childrenOfParent(typeRecord, pool, instance.id).length > 0)
+    ? Object.freeze({ types: Object.freeze(childTypeIds) })
+    : null;
   return Object.freeze({
     searchKeys: Object.freeze(searchKeys),
     sortKeys: Object.freeze(sortKeys.map(key => Object.freeze({ ...key }))),
     defaultSort: sortKeys[0]?.name || null,
     relationColumn,
     summaryColumn,
+    childrenColumn,
     facets: Object.freeze(facets.map(facet => Object.freeze({ ...facet, values: Object.freeze([...facet.values]) }))),
     pagination: Object.freeze({
       paginateAt: TABLE_PAGINATE_AT,
@@ -1000,11 +1010,13 @@ export function shapeFamilyOf(typeRecord = {}, { stateful = false } = {}) {
 
 // The table's data-column signal: filled non-identifier short scalars
 // (the listControls sort keys — a field no instance fills never becomes
-// a column) plus the relation chip column and the structural summary
-// column. Zero means a table would carry names alone.
+// a column) plus the relation chip column, the structural summary
+// column, and the children column. Zero means a table would carry
+// names alone.
 function tableDataColumns(node = {}) {
-  const { sortKeys, relationColumn, summaryColumn } = resolveListControls(node.type || {}, node.instances || []);
-  return sortKeys.length + (relationColumn ? 1 : 0) + (summaryColumn ? 1 : 0);
+  const { sortKeys, relationColumn, summaryColumn, childrenColumn } = node.listControls
+    || resolveListControls(node.type || {}, node.instances || []);
+  return sortKeys.length + (relationColumn ? 1 : 0) + (summaryColumn ? 1 : 0) + (childrenColumn ? 1 : 0);
 }
 
 // listLayoutOf(node): the one list-layout derivation — compose-time

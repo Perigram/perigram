@@ -1856,6 +1856,7 @@
         "dialogCancel": "Отмена",
         "identityColumn": "Запись",
         "statusColumn": "Статус",
+        "childrenColumn": "Дочерние",
         "seedLabel": "Сид",
         "randomize": "Пересоздать мир",
         "edit": "Правка",

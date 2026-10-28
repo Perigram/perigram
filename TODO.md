@@ -2281,6 +2281,38 @@ submodule link. Live spot-check: the probe org's parent table renders
 
 Status: WAITING owner verification.
 
+## Children display in parent collections (owner direction 2026-10-28)
+
+Owner confirmation over the round-26 report: children ARE wanted in the
+top-level parent table, symmetric with the relation column.
+
+- [x] The children column: a type declaring children edges renders its
+  loaded children as chips beside identity in the table projection —
+  every children edge's instances whose lineage points at the row
+  (`childrenOfParent`, the one containment matcher), budgeted like the
+  relation chips (`ROW_RELATION_BUDGET` + `+n`). Presence derives live
+  over the pool: the compose-time `childrenColumn` signal counts toward
+  the table floor, and the materialization derives live so the lazily
+  overlaid child types (the ParentRef overlay seam, generalized to
+  child types) light the column when they land. Label: the single
+  children edge's key label; `uiMapping.childrenColumn` when several.
+- [x] Class lists stay flat in ROWS (no tree projection) — the children
+  column is the parent's data beside identity, the relation column's
+  mirror.
+
+### Agent Notes (2026-10-28)
+
+Session `agent/genui-children-column-20261028-1745` (worktree
+`.agent-worktrees/round27`). The SSR smoke gained the children-column
+pin (the relation-actions world already carried parent + children);
+chip labels resolve against the served type view, so the SSR harness
+asserts structure and the live probe asserts labels. SPEC §22.11's
+"membership renders on the record surface" sentence now reads against
+the children column — owner direction this session overrides; SPEC
+reconciliation is an owner edit (SPEC files are agent-untouchable).
+
+Status: WAITING owner verification.
+
 ## Random world decorruption (owner direction 2026-10-28)
 
 Law: the random UI world generator rolls its world; nothing overwrites

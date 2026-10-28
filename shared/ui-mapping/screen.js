@@ -199,7 +199,7 @@ function composeRegion(region, screen, contract, pool, typesById, depth, provide
     // over the producer workflows): the board projection's legal-move
     // map, carried beside the vocabulary it walks.
     stateTransitions: contract.stateTransitions?.[source.typeId] || null,
-    listControls: surfaceKind === 'list' && type ? resolveListControls(type, instances) : null,
+    listControls: surfaceKind === 'list' && type ? resolveListControls(type, instances, { pool }) : null,
     instances: Object.freeze(instances),
     actions: Object.freeze(ownActions.filter(action => !sectionConsumedActionIds.has(action.id))),
     childRegions: Object.freeze(childRegions),
