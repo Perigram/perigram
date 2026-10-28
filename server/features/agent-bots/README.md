@@ -41,6 +41,7 @@ Parent: [server/features](../README.md).
 | `activate_process_definition` | process-definitions | every surface |
 | `declare_status_mappings` | process-definitions | every surface |
 | `deactivate_process_definition` | process-definitions | every surface |
+| `delete_process_definition` | process-definitions | every surface |
 | `list_types` | [cts-types](../cts-types/README.md) | every surface |
 | `list_instances` / `get_instance` | registry-resolved instance services (party types included, CTS SPEC §13) | every surface |
 | `attach_instances` | [support](../support/README.md) message-write ref seam | chat runs only |
@@ -83,6 +84,11 @@ Process-definition tools ride the authoring and lifecycle seam of
 - `activate_process_definition` and `deactivate_process_definition`
   answer the digest of the changed definition; activation gates return
   as the structured `{ activationBlocked, gate }` result.
+- `delete_process_definition` removes a definition (admin access):
+  exclusively-owned types — types no other stored definition declares —
+  die with their data, announced as the structured `{ deletionBlocked,
+  gate }` type-death manifest, confirmed by a re-call with
+  `confirmTypeDeath: true`.
 - `update_definition_graph` is the graph-level save — nodes, wires, and
   value inputs — with activation gates returned as structured results.
 
@@ -103,6 +109,12 @@ conversation limit beside it); the palette list rides the default view
 only.
 Record-bound kinds resolve live sockets off the digest of the dropped
 node, and a filter naming no entry fails with the valid families.
+
+`list_instances` rides the instance list seam's own narrowing: the
+flat filter map (`primaryState`, `primaryStates`, `states.<key>`,
+declared `lineage.<key>`, `_id`) passes to the service query, and a
+`query` substring matches the row's name, id, and state over the
+fetched page — the same reads the collection toolbar composes.
 
 The action manifest is live per call: the manifest tools re-resolve the
 delegated principal's current assignments, so process vocabulary
