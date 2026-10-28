@@ -1,7 +1,7 @@
 <template>
     <div
-        class="relative flex items-center justify-center overflow-hidden rounded-ui bg-subtle"
-        :class="tileClass"
+        class="group relative flex items-center justify-center overflow-hidden rounded-ui bg-subtle transition-shadow"
+        :class="[tileClass, { 'ring-2 ring-status-success': tile.speaking }]"
         :style="hugAspect ? { aspectRatio: String(tile.aspect) } : null"
         :data-call-tile="tile.identity"
     >
@@ -38,13 +38,18 @@
             <i v-if="degradedQuality" class="pi pi-wifi" :class="qualityClass" :aria-label="$t(`call.quality.${tile.quality}`)" />
         </span>
 
+        <!-- Pin reveals on tile hover (pointer devices) and stays visible on
+             touch widths; a pinned tile keeps it lit as its state. -->
         <Button
             :icon="tile.pinned ? 'pi pi-bookmark-fill' : 'pi pi-bookmark'"
             severity="secondary"
             text
             rounded
             size="small"
-            class="absolute top-2 right-2"
+            class="absolute top-2 right-2 transition-opacity"
+            :class="tile.pinned
+                ? 'opacity-100'
+                : 'opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100'"
             :aria-label="tile.pinned ? $t('call.unpin') : $t('call.pin')"
             @click="$emit('toggle-pin', tile.key)"
         />

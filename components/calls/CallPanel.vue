@@ -1,9 +1,9 @@
 <template>
     <!-- Bounded videocall surface — a view over the shared room session
-         (stores/calls.js): the stage owns every pixel of height, only the
-         grid and the film strip scroll inside their own boxes, and all
-         controls live in one docked bar below the stage. -->
-    <div class="call-panel relative flex h-full min-h-0 flex-col overflow-hidden">
+         (stores/calls.js): the video stage owns every pixel, only the grid
+         and the film strip scroll inside their own boxes, and the controls
+         float as one pill overlay at the bottom. -->
+    <div class="call-panel relative h-full min-h-0 overflow-hidden">
         <StateBlock v-if="failed" state="error" :message="failureMessage">
             <template #action>
                 <Button :label="$t('call.retry')" severity="secondary" size="small" @click="retry" />
@@ -16,7 +16,7 @@
         <StateBlock v-else-if="stage === 'connecting'" state="loading" :message="$t('call.connecting')" />
 
         <template v-else>
-            <div class="relative flex min-h-0 flex-1 flex-col">
+            <div class="absolute inset-0 flex min-h-0 min-w-0 flex-col p-3">
                 <div v-if="layout === 'speaker'" class="call-stage flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
                     <!-- Official focus semantics: pin > screen share >
                          active speaker > first tile. Screen shares hug their
@@ -32,7 +32,7 @@
                             @aspect="ratio => patchAspect(focusTile, ratio)"
                         />
                     </div>
-                    <div class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-1">
+                    <div class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-24">
                         <CallTile
                             v-for="tile in stripTiles"
                             :key="`strip-${tile.identity}-${tile.source}`"
@@ -44,7 +44,7 @@
                         />
                     </div>
                 </div>
-                <div v-else class="call-grid grid min-h-0 flex-1 auto-rows-min content-start gap-3 overflow-y-auto">
+                <div v-else class="call-grid grid min-h-0 flex-1 auto-rows-min content-start gap-3 overflow-y-auto pb-24">
                     <CallTile
                         v-for="tile in tiles"
                         :key="`grid-${tile.identity}-${tile.source}`"
@@ -57,8 +57,8 @@
 
                 <!-- One status pill for transient call state: reconnecting
                      text, or a pulsing red record dot while egress runs. -->
-                <div v-if="reconnecting || recording" class="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center p-2">
-                    <span class="flex items-center gap-1.5 rounded-ui bg-content px-3 py-1 text-supporting">
+                <div v-if="reconnecting || recording" class="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
+                    <span class="flex items-center gap-1.5 rounded-ui bg-content px-3 py-1 text-supporting shadow-overlay">
                         <i
                             v-if="recording"
                             class="pi pi-circle-fill animate-pulse text-status-danger"
@@ -73,27 +73,26 @@
                         v-for="reaction in reactions"
                         :key="reaction.id"
                         :ref="el => registerReactionEl(reaction.id, el)"
-                        class="absolute bottom-6 text-metric"
+                        class="absolute bottom-28 text-metric"
                         :style="{ left: `${reaction.left}%` }"
                         :aria-label="reaction.emoji"
                     >{{ reaction.emoji }}</span>
                 </div>
             </div>
 
-            <!-- Control dock: one structural bar (hairline top border, no
-                 painted background — the flat surface ladder keeps call
-                 chrome structural; bg-content stays on chips over media).
-                 The inner row is w-max with auto margins, so it centers
-                 when it fits and scrolls — never wraps — when the pane is
-                 narrow. -->
-            <div class="flex h-12 shrink-0 items-center overflow-x-auto">
-                <div class="mx-auto flex w-max items-center gap-1 px-2">
+            <!-- Control pill: one floating overlay at the bottom center —
+                 a bg-content chip over media with shadow, icon-only
+                 buttons, the layout toggle as one icon, settings and
+                 reactions as anchored popovers, and leave separated at
+                 the right edge. It wraps to a second row on narrow
+                 panes; every control stays reachable at any width. -->
+            <div class="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
+                <div class="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1 rounded-full bg-content p-1.5 shadow-overlay">
                     <Button
                         :icon="micEnabled ? 'pi pi-microphone' : 'pi pi-microphone-slash'"
                         severity="secondary"
                         text
                         rounded
-                        size="small"
                         :aria-label="$t('call.toggleMic')"
                         :disabled="!isConnected"
                         @click="toggleMic"
@@ -103,7 +102,6 @@
                         severity="secondary"
                         text
                         rounded
-                        size="small"
                         :aria-label="$t('call.toggleCamera')"
                         :disabled="!isConnected"
                         @click="toggleCamera"
@@ -113,7 +111,6 @@
                         severity="secondary"
                         text
                         rounded
-                        size="small"
                         :aria-label="sharing ? $t('call.shareStop') : $t('call.share')"
                         :disabled="!isConnected"
                         @click="callsStore.toggleShare()"
@@ -124,7 +121,6 @@
                         severity="secondary"
                         text
                         rounded
-                        size="small"
                         :aria-label="recording ? $t('call.recordStop') : $t('call.record')"
                         :disabled="!isConnected || recordPending"
                         @click="toggleRecording"
@@ -134,114 +130,103 @@
                         severity="secondary"
                         text
                         rounded
-                        size="small"
                         :aria-label="$t('call.hand')"
                         :disabled="!isConnected"
                         @click="callsStore.toggleHand()"
                     />
-                    <span class="inline-flex shrink-0">
-                        <Button
-                            icon="pi pi-face-smile"
-                            severity="secondary"
-                            text
-                            rounded
-                            size="small"
-                            :aria-label="$t('call.reactions')"
-                            :disabled="!isConnected"
-                            @click="event => reactionPicker?.toggle(event)"
-                        />
-                        <Popover ref="reactionPicker">
-                            <div class="flex items-center gap-1" @click="reactionPicker?.hide()">
-                                <Button
-                                    v-for="emoji in REACTION_EMOJIS"
-                                    :key="emoji"
-                                    :label="emoji"
-                                    text
-                                    rounded
-                                    size="small"
-                                    :aria-label="$t('call.react', { emoji })"
-                                    @click="callsStore.sendReaction(emoji)"
-                                />
-                            </div>
-                        </Popover>
-                    </span>
-                    <SelectButton
-                        :model-value="layout"
-                        :options="layoutOptions"
-                        option-value="value"
-                        option-label="label"
-                        size="small"
-                        :allow-empty="false"
-                        :aria-label="$t('call.layout')"
-                        @update:model-value="value => callsStore.setLayout(value)"
+                    <Button
+                        icon="pi pi-face-smile"
+                        severity="secondary"
+                        text
+                        rounded
+                        :aria-label="$t('call.reactions')"
+                        :disabled="!isConnected"
+                        @click="event => reactionPicker?.toggle(event)"
+                    />
+                    <Button
+                        :icon="layout === 'speaker' ? 'pi pi-th-large' : 'pi pi-id-card'"
+                        severity="secondary"
+                        text
+                        rounded
+                        :aria-label="layout === 'speaker' ? $t('call.layoutGrid') : $t('call.layoutSpeaker')"
+                        :disabled="!isConnected"
+                        @click="callsStore.setLayout(layout === 'speaker' ? 'grid' : 'speaker')"
                     />
                     <Button
                         icon="pi pi-cog"
                         severity="secondary"
                         text
                         rounded
-                        size="small"
                         :aria-label="$t('call.settings')"
-                        @click="settingsVisible = true"
+                        @click="event => settingsPopover?.toggle(event)"
                     />
+                    <span class="mx-0.5 h-6 w-px bg-chrome-border" aria-hidden="true"></span>
                     <Button
                         icon="pi pi-phone"
                         severity="danger"
                         rounded
-                        size="small"
                         :aria-label="$t('call.leave')"
                         :disabled="!isConnected"
                         @click="leave"
                     />
                 </div>
             </div>
-        </template>
 
-        <StandardDialog
-            v-model:visible="settingsVisible"
-            :header="$t('call.settings')"
-            size="sm"
-            :show-default-footer="false"
-        >
-            <div class="flex flex-col gap-3">
-                <label class="flex flex-col gap-1">
-                    <span class="text-muted text-supporting">{{ $t('call.devices.microphone') }}</span>
-                    <Select
-                        :model-value="devices.audioinput"
-                        :options="audioInputs"
-                        option-label="label"
-                        option-value="deviceId"
-                        size="small"
-                        class="w-full"
-                        @update:model-value="value => callsStore.switchDevice('audioinput', value)"
+            <Popover ref="reactionPicker">
+                <div class="flex items-center gap-1" @click="reactionPicker?.hide()">
+                    <Button
+                        v-for="emoji in REACTION_EMOJIS"
+                        :key="emoji"
+                        :label="emoji"
+                        text
+                        rounded
+                        :aria-label="$t('call.react', { emoji })"
+                        @click="callsStore.sendReaction(emoji)"
                     />
-                </label>
-                <label class="flex flex-col gap-1">
-                    <span class="text-muted text-supporting">{{ $t('call.devices.camera') }}</span>
-                    <Select
-                        :model-value="devices.videoinput"
-                        :options="videoInputs"
-                        option-label="label"
-                        option-value="deviceId"
-                        size="small"
-                        class="w-full"
-                        @update:model-value="value => callsStore.switchDevice('videoinput', value)"
-                    />
-                </label>
-                <label class="flex flex-col gap-1">
-                    <span class="text-muted text-supporting">{{ $t('call.devices.speaker') }}</span>
-                    <Select
-                        :model-value="devices.audiooutput"
-                        :options="audioOutputs"
-                        option-label="label"
-                        option-value="deviceId"
-                        size="small"
-                        class="w-full"
-                        @update:model-value="value => callsStore.switchDevice('audiooutput', value)"
-                    />
-                </label>
-            </div>
-        </StandardDialog>
+                </div>
+            </Popover>
+
+            <Popover ref="settingsPopover">
+                <div class="flex w-64 flex-col gap-3">
+                    <label class="flex flex-col gap-1">
+                        <span class="text-muted text-supporting">{{ $t('call.devices.microphone') }}</span>
+                        <Select
+                            :model-value="devices.audioinput"
+                            :options="audioInputs"
+                            option-label="label"
+                            option-value="deviceId"
+                            size="small"
+                            class="w-full"
+                            @update:model-value="value => callsStore.switchDevice('audioinput', value)"
+                        />
+                    </label>
+                    <label class="flex flex-col gap-1">
+                        <span class="text-muted text-supporting">{{ $t('call.devices.camera') }}</span>
+                        <Select
+                            :model-value="devices.videoinput"
+                            :options="videoInputs"
+                            option-label="label"
+                            option-value="deviceId"
+                            size="small"
+                            class="w-full"
+                            @update:model-value="value => callsStore.switchDevice('videoinput', value)"
+                        />
+                    </label>
+                    <label class="flex flex-col gap-1">
+                        <span class="text-muted text-supporting">{{ $t('call.devices.speaker') }}</span>
+                        <Select
+                            :model-value="devices.audiooutput"
+                            :options="audioOutputs"
+                            option-label="label"
+                            option-value="deviceId"
+                            size="small"
+                            class="w-full"
+                            @update:model-value="value => callsStore.switchDevice('audiooutput', value)"
+                        />
+                    </label>
+                </div>
+            </Popover>
+        </template>
     </div>
 </template>
 
@@ -250,9 +235,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 import Select from '~/components/shared/InstanceSelect.vue';
-import SelectButton from 'primevue/selectbutton';
 import { useI18n } from 'vue-i18n';
-import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import CallPrejoin from '~/components/calls/CallPrejoin.vue';
 import CallTile from '~/components/calls/CallTile.vue';
@@ -271,7 +254,7 @@ const toast = useToast();
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '🎉', '👏'];
 
-const settingsVisible = ref(false);
+const settingsPopover = ref(null);
 const reactionPicker = ref(null);
 const recordPending = ref(false);
 // Stage before/outside the session: prejoin or connecting. The connected
@@ -308,11 +291,6 @@ const reactions = computed(() => sessionState.value?.reactions || []);
 
 const recording = computed(() => Boolean(callsStore.roomRecording(props.room)));
 const canRecord = computed(() => Boolean(conversationKeyForRoom(props.room)));
-
-const layoutOptions = computed(() => [
-    { value: 'speaker', label: t('call.layoutSpeaker') },
-    { value: 'grid', label: t('call.layoutGrid') }
-]);
 
 // One tile per participant camera plus one per live screen share, the
 // demo's participant-tile shape. `source` keys pinning ('camera'/'screen').
@@ -489,7 +467,7 @@ onBeforeUnmount(() => {
 
   .call-panel .call-strip {
     flex-direction: column;
-    overflow: visible auto;
+    overflow: hidden auto;
     width: 16rem;
   }
 
