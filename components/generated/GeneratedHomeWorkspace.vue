@@ -928,6 +928,12 @@ function applyPersistedWorkspaceState(key) {
 onMounted(() => {
   isWorkspaceMounted = true;
   applyPersistedWorkspaceState(workspaceStorageKey.value);
+  // A pending call tab opened during setup landed on the default pane,
+  // which the persisted tree just replaced; re-open it now that the tree
+  // is final (the mounting panel consumes the pending room).
+  if (callsStore.pendingTabRoom) {
+    openCallTab(callsStore.pendingTabRoom, { conversationKey: conversationKeyForRoom(callsStore.pendingTabRoom) });
+  }
 });
 
 watch(workspaceStorageKey, key => {
