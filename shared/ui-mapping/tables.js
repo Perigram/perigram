@@ -96,14 +96,13 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
   // collections lay out as the month grid; temporal shape beats size the
   // way chronology already does.
   { match: { shape: 'scheduled' }, layout: 'calendar' },
-  { match: { size: 'small' }, layout: 'list' },
   // A table with no data column beside identity (and status) is a name
-  // pile — the stacked rows of the list projection carry it.
+  // pile — the stacked rows of the list projection carry it. The
+  // display-aware signal subsumes the old handful-size rule: a small
+  // rich collection renders its data.
   { match: { columns: 0 }, layout: 'list' },
   { match: {}, layout: 'table' }
 ]);
-
-export const SMALL_LIST_AT = 3;
 
 // A board with one column is a list, not a board: the state vocabulary
 // must span at least this many values before a collection earns the

@@ -61,9 +61,9 @@
           <InstanceInlineRef
             v-for="ref in budgetedRefs(data)"
             :key="ref.id"
-            :type="String(ref?.type || '')"
+            :type="String(ref?.typeId || '')"
             :id="ref?.id"
-            :entity="pool?.[ref?.type]?.[ref?.id] || null"
+            :entity="pool?.[ref?.typeId]?.[ref?.id] || ref?.entity || null"
           />
           <Tag v-if="hiddenRefCount(data) > 0" :value="`+${hiddenRefCount(data)}`" severity="contrast" />
         </div>
@@ -72,6 +72,7 @@
     <Column v-if="actions.length" class="w-10">
       <template #body="{ data }">
         <Button
+          v-if="rowActionsFor(data).length"
           icon="pi pi-ellipsis-v"
           text
           rounded
@@ -102,6 +103,7 @@ import {
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
+import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import ParentRef from './ParentRef.vue';
@@ -229,29 +231,34 @@ function onSortChange({ sortField, sortOrder }) {
 // relation, a column only when any loaded instance carries its refs.
 const relationKey = computed(() => resolvedControls.value.relationColumn?.key || null);
 const relationLabel = computed(() => (relationKey.value ? startCase(relationKey.value) : ''));
-const budgetedRefs = instance => {
-  const refs = instance.relations?.[relationKey.value];
-  const list = Array.isArray(refs) ? refs : refs ? [refs] : [];
-  return applyBudget(list, ROW_RELATION_BUDGET).visible;
-};
-const hiddenRefCount = instance => {
-  const refs = instance.relations?.[relationKey.value];
-  const list = Array.isArray(refs) ? refs : refs ? [refs] : [];
-  return applyBudget(list, ROW_RELATION_BUDGET).hidden;
-};
+// Relation refs normalize through the one app resolver: stored shapes
+// without a type adopt the relation's single declared target, so a chip
+// always knows what it references.
+const relationTargetType = computed(() => {
+  const types = props.type?.edges?.relations?.[relationKey.value]?.types || [];
+  return types.length === 1 ? types[0] : null;
+});
+const relationRefsOf = instance => resolveInstanceRelationRefs(
+  instance?.relations?.[relationKey.value],
+  { typeId: relationTargetType.value }
+);
+const budgetedRefs = instance => applyBudget(relationRefsOf(instance), ROW_RELATION_BUDGET).visible;
+const hiddenRefCount = instance => applyBudget(relationRefsOf(instance), ROW_RELATION_BUDGET).hidden;
 
 // One shared row-action menu (the card-grid pattern): the ellipsis
-// remembers its row, commands re-emit through the region run contract
-// with that instance as context.
+// renders on a row only when that row carries an applicable action, and
+// commands re-emit through the region run contract with the instance as
+// context.
 const rowMenu = ref(null);
 const menuInstance = ref(null);
 function openRowMenu(event, instance) {
   menuInstance.value = instance;
   rowMenu.value?.toggle(event);
 }
-const rowMenuItems = computed(() => props.actions
-  .filter(action => actionAppliesToEntity(action, menuInstance.value, props.type?.id))
-  .filter(action => !resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy }).hidden)
+const rowActionsFor = instance => props.actions
+  .filter(action => actionAppliesToEntity(action, instance, props.type?.id))
+  .filter(action => !resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy }).hidden);
+const rowMenuItems = computed(() => rowActionsFor(menuInstance.value || {})
   .map(action => {
     const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
     return {

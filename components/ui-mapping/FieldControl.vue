@@ -47,10 +47,10 @@
   </div>
   <InstanceInlineRef
     v-else-if="outcome.component === 'InstanceInlineRef'"
-    :type="String(model?.type || '')"
-    :id="model?.id ?? null"
-    :revision="model?.revision ?? null"
-    :entity="pool?.[model?.type]?.[model?.id] || null"
+    :type="String(refValue?.type || '')"
+    :id="refValue?.id ?? null"
+    :revision="refValue?.revision ?? null"
+    :entity="pool?.[refValue?.type]?.[refValue?.id] || null"
   />
   <FileChip v-else-if="outcome.component === 'FileChip'" :file="model" @open="openPayload" />
   <div v-else-if="outcome.component === 'ObjectSummary'" :class="LAYOUT.row">
@@ -243,6 +243,14 @@ const densityScale = computed(() => ({ factValue: 'text-body', knob: spacing ? s
 const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));
 
 const outcome = computed(() => resolveFieldControl(props.descriptor, { variant: props.variant, quantitative: props.quantitative }));
+// A ref value stored without its type adopts the descriptor's first
+// accepted type — the chip always knows what it references.
+const refValue = computed(() => {
+  const value = props.modelValue;
+  if (!value || typeof value !== 'object' || value.type) return value;
+  const fallback = props.descriptor?.accepts?.[0] || null;
+  return fallback ? { ...value, type: fallback } : value;
+});
 const displayValue = computed(() => formatValue({ base: 'string' }, props.modelValue));
 // Plain number fields land on ValueText too: the numeric face applies to
 // them, string fields keep the UI face.

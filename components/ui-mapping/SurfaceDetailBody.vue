@@ -95,9 +95,9 @@
           <InstanceInlineRef
             v-for="ref in relation.shown"
             :key="ref.id"
-            :type="String(ref?.type || '')"
+            :type="String(ref?.typeId || '')"
             :id="ref?.id"
-            :entity="pool?.[ref?.type]?.[ref?.id] || null"
+            :entity="pool?.[ref?.typeId]?.[ref?.id] || ref?.entity || null"
             :context-action-entries="inlineRefEntries(relation.key, ref)"
           />
           <Tag v-if="relation.overflow === 'count' && relation.hidden > 0" :value="`+${relation.hidden}`" severity="contrast" />
@@ -123,6 +123,7 @@ import { LAYOUT, resolveSurface, resolveActionButton, applyBudget, SCALAR_BASES,
 import InlineField from './InlineField.vue';
 import StructuralFieldPanel from './StructuralFieldPanel.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
+import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import PreviewBox from './PreviewBox.vue';
 
 const props = defineProps({
@@ -246,7 +247,10 @@ const relationViews = computed(() => {
   return Object.entries(props.instance.relations || {})
     .filter(([key]) => !props.coveredRelations.includes(key))
     .map(([key, refs]) => {
-    const list = Array.isArray(refs) ? refs : refs ? [refs] : [];
+    // Stored relation shapes normalize through the one app resolver: a
+    // typeless ref adopts the relation's single declared target.
+    const edgeTypes = props.type?.edges?.relations?.[key]?.types || [];
+    const list = resolveInstanceRelationRefs(refs, { typeId: edgeTypes.length === 1 ? edgeTypes[0] : null });
     const outcome = applyBudget(list, budget);
     const isOpen = budget?.overflow === 'more' && props.expanded[key];
     return {

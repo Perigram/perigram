@@ -107,9 +107,10 @@ beside the transition history in `StateHistory`.
   derived layout is a structural collection (table) may switch to the
   board, and a derived board may switch back — one icon toggle in the
   header cluster; a stored preference for a non-switchable collection is
-  ignored, so the derivation stays the default and the switch stays clear
-  of shape-specialized projections (timeline, stats, the handful
-  list).
+  ignored, and a stored table preference obeys the table floor — a
+  board type with no data column beside identity and state stays a
+  board. The switch stays clear of shape-specialized projections
+  (timeline, stats, the handful list).
 
 ## Components
 
@@ -262,7 +263,10 @@ beside the transition history in `StateHistory`.
   (the empty ones included) edits in place through the per-field
   pencil, patching through the region's `inline-change` channel; rows
   carry the per-instance ellipsis menu (the same run contract the
-  cards use) when quick actions exist. Rows are surface cards — the
+  cards use) exactly where that row has an applicable action, and
+  relation refs normalize through the one app resolver
+  (`resolveInstanceRelationRefs`, the relation's single declared target
+  as the typeless-ref fallback). Rows are surface cards — the
   preset paints every row as the content surface with transparent
   internal dividers, the recipe clips the row corners
   (`[clip-path:inset(0_round_var(--p-border-radius-xl))]`, since a row's
@@ -313,7 +317,10 @@ beside the transition history in `StateHistory`.
   instance-scoped commands — status transitions are per-instance machine
   facts served by the state service) render as one shared ellipsis menu
   per card that re-emits through the region run contract with that card as
-  instance context — confirmation and dispatch stay upstream.
+  instance context — confirmation and dispatch stay upstream. The
+  ellipsis renders only on rows carrying an applicable action
+  (`actionAppliesToEntity` per instance): a type-level action set never
+  opens an empty menu.
 - `StatGrid.vue` — the stats projection for percent/quantity-dominant
   types (the shape matcher is
   [shared/ui-mapping](../../shared/ui-mapping/README.md)'s): a dense

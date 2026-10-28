@@ -203,6 +203,7 @@ import {
   LAYOUT, GAP_BY_LEVEL, toolbarVisibleFor, sortControlRows,
   hasStateVocabulary, localizedLabel, typeLabelKey, instanceMatchesToolbar, incomingChildrenEdges,
   listLayoutOf,
+  resolveListControls,
   createActionControls
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
@@ -402,7 +403,7 @@ const stubLine = computed(() => props.stub && props.node.surfaceKind === 'list'
 const embeddedStack = computed(() => (spacing ? spacing.stackTight : LAYOUT.stackTight));
 const regionLabel = computed(() => localizedLabel({ te, t }, typeLabelKey(props.node.typeId), props.node.type ? generatedEntityLabel(props.node.type, { t, te }) : props.node.id));
 // The derived list layout — the resolver's contract decision over shape,
-// class, size, the served state vocabulary, and the value-aware table
+// class, the served state vocabulary, and the value-aware table
 // column signal (listLayoutOf is the one derivation compose-time weights
 // read too). The projection switch below is the user's view-state
 // override inside a bounded pair, never a second derivation.
@@ -411,9 +412,11 @@ const derivedListLayout = computed(() => listLayoutOf(props.node));
 // and filters: a stateful collection (a served vocabulary spanning at
 // least BOARD_MIN_COLUMNS values) whose derived layout is a structural
 // collection (table) may board, and a derived board may
-// table back. Shape-specialized projections (timeline, stats, the
-// handful list) never switch — the board would fight their shape.
-// A stored preference for a non-switchable collection is ignored.
+// table back. Shape-specialized projections (timeline, stats) never
+// switch — the board would fight their shape.
+// A stored preference for a non-switchable collection is ignored, and a
+// stored table preference obeys the table floor: a board type with no
+// data column beside identity and state stays a board.
 const projectionSwitchable = computed(() => hasStateVocabulary(props.node.statePolicy)
   && ['table', 'board'].includes(derivedListLayout.value));
 const projectionScope = computed(() => `list-projection:${props.node.typeId || ''}`);
@@ -426,9 +429,15 @@ const toggleProjection = () => {
   projectionPreference.value = next;
   storeProjectionPreference(projectionScope.value, next);
 };
+const tableFloorHolds = computed(() => {
+  const { sortKeys, relationColumn } = resolveListControls(props.node.type || {}, props.node.instances);
+  return sortKeys.length + (relationColumn ? 1 : 0) > 0;
+});
 const listLayout = computed(() => {
   if (projectionPreference.value === 'board' && projectionSwitchable.value) return 'board';
-  if (projectionPreference.value === 'table' && derivedListLayout.value === 'board') return 'table';
+  if (projectionPreference.value === 'table' && derivedListLayout.value === 'board') {
+    return tableFloorHolds.value ? 'table' : 'board';
+  }
   return derivedListLayout.value;
 });
 // Relation keys covered by child regions — filled and stubs alike: a

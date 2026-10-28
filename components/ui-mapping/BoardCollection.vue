@@ -45,7 +45,7 @@
                 @open="target => $emit('open', target)"
               />
               <Button
-                v-if="actions.length"
+                v-if="cardActionsFor(instance).length"
                 icon="pi pi-ellipsis-v"
                 text
                 rounded
@@ -101,6 +101,7 @@ import {
   resolveActionButton, actionLabelKey, stateDisplayFor
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
+import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { useEntityPopup } from '~/composables/useEntityPopup';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
@@ -230,17 +231,20 @@ const columns = computed(() => {
   }));
 });
 
-// One shared popup menu: the ellipsis remembers the card it opened for,
-// and menu commands re-emit through the region run contract with that
-// instance as context (confirmation and dispatch stay upstream).
+// One shared popup menu: the ellipsis renders on a card only when that
+// card carries an applicable action, and menu commands re-emit through
+// the region run contract with that instance as context (confirmation
+// and dispatch stay upstream).
 const cardMenu = ref(null);
 const menuInstance = ref(null);
 function openCardMenu(event, instance) {
   menuInstance.value = instance;
   cardMenu.value?.toggle(event);
 }
-const cardMenuItems = computed(() => props.actions
-  .filter(action => !resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy }).hidden)
+const cardActionsFor = instance => props.actions
+  .filter(action => actionAppliesToEntity(action, instance, props.type?.id))
+  .filter(action => !resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy }).hidden);
+const cardMenuItems = computed(() => cardActionsFor(menuInstance.value || {})
   .map(action => {
   const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
   return {

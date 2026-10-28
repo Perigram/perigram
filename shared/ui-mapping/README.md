@@ -174,13 +174,12 @@ nothing stay hidden, so typed constructor inputs keep their editor
 surfaces. Construction-input labels are authored vocabulary resolved at the
 domain projection (parent type name, start-cased row name).
 
-**List layouts.** `resolveListLayout(type, { size, stateful, columns })` →
+**List layouts.** `resolveListLayout(type, { stateful, columns })` →
 one of `table`, `card-grid`, `timeline`, `stats`, `list`, `board`,
 `gantt`, `calendar`, from one matcher table over `analyzeTypeShape(type)`
-plus two caller-derived signals — `size` (the collection's size class)
-and `columns` (the value-aware count of data columns a table would show
-beside identity and status: filled non-identifier short scalars plus the
-filled first declared relation):
+plus the caller-derived `columns` signal — the value-aware count of data
+columns a table would show beside identity and status (filled
+non-identifier short scalars plus the filled first declared relation):
 
 | Signal | Layout |
 |---|---|
@@ -190,8 +189,7 @@ filled first declared relation):
 | two declared instants | `gantt` (an interval outranks chronology — the stronger structure) |
 | lone instant | `calendar` (`temporalFieldsFor` derives the fields in declaration order) |
 | process class whose state vocabulary spans ≥ `BOARD_MIN_COLUMNS` | `board` |
-| handful-sized set | `list` (bare stacked) |
-| `columns` = 0 | `list` (a table with no data column beside identity is a name pile) |
+| `columns` = 0 | `list` (bare stacked — a table with no data column beside identity is a name pile, whatever the collection's size) |
 | default | `table` (generated columnar) |
 
 `listLayoutOf(node)` is the one region-level derivation: compose-time
