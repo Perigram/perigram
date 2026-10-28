@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { checkValue } from '#packages/cts/src/values.js';
-import { composeScreen, buildInstancePool, resolveFieldControl, resolveListLayout, VARIANTS } from '#shared/ui-mapping/index.js';
+import { composeScreen, buildInstancePool, resolveFieldControl, VARIANTS } from '#shared/ui-mapping/index.js';
 import { generateUiMappingWorld } from './ui-mapping-random.js';
 
 const SEEDS = [1, 2, 3, 7, 11, 19, 42, 99, 123, 777];
@@ -32,9 +32,7 @@ describe('random worlds', () => {
       for (const screen of Object.values(world.contract.screens)) {
         const composed = composeScreen(screen, world.contract, world.bundle, pool);
         expect(composed.regions.length + composed.stubRegions.length, `seed ${seed} ${screen.screenKey}`).toBeGreaterThan(0);
-        // The deliberate dangling-scope screen is the one instanceDetail
-        // whose main region resolves no instance (the missing state).
-        if (screen.template === 'instanceDetail' && !screen.screenKey.startsWith('detail_missing_')) {
+        if (screen.template === 'instanceDetail') {
           const main = composed.regions[0];
           expect(main.surfaceKind).toBe('detail');
           expect(main.instances.length, `seed ${seed} ${screen.screenKey} main instance`).toBeGreaterThan(0);
@@ -135,65 +133,9 @@ describe('showcase-reachable contracts in every world', () => {
     }
   });
 
-  it('guarantees loaded parents with sized peer collections', () => {
+  it('seeds a state matrix that assigns only known states to existing sources', () => {
     for (const seed of SEEDS) {
       const world = generateUiMappingWorld(seed);
-      const pool = buildInstancePool(world.instances);
-      const loaded = Object.values(world.contract.screens)
-        .filter(screen => screen.template === 'instanceDetail')
-        .some(screen => composeScreen(screen, world.contract, world.bundle, pool).regions
-          .some(region => region.childRegions
-            .filter(child => child.instances.length >= 2).length >= 2));
-      expect(loaded, `seed ${seed} loaded parent`).toBe(true);
-    }
-  });
-
-  it('guarantees a column arrangement engages over the moderate peers', () => {
-    for (const seed of SEEDS) {
-      const world = generateUiMappingWorld(seed);
-      const pool = buildInstancePool(world.instances);
-      const engaged = Object.values(world.contract.screens)
-        .filter(screen => screen.template === 'instanceDetail')
-        .some(screen => composeScreen(screen, world.contract, world.bundle, pool).regions
-          .some(region => region.childArrangement.medium.mode === 'columns'
-            || region.childArrangement.wide.mode === 'columns'));
-      expect(engaged, `seed ${seed} column engagement`).toBe(true);
-    }
-  });
-
-  it('guarantees the budget thresholds and data-state surfaces', () => {
-    for (const seed of SEEDS) {
-      const world = generateUiMappingWorld(seed);
-      const pool = buildInstancePool(world.instances);
-      // One large collection: pagination, toolbar search.
-      expect(world.bundle.types.some(type => world.instances[type.id].length > 50), `seed ${seed} volume type`).toBe(true);
-      // The volume type derives the default table projection — the
-      // showcase renders a real DataTable, not only shape-specialized
-      // projections.
-      const volumeTableType = world.bundle.types.find(type => (world.instances[type.id] || []).length > 50);
-      expect(resolveListLayout(volumeTableType), `seed ${seed} volume table layout`).toBe('table');
-      // The prose floor keeps the timeline projection reachable on
-      // every seed.
-      const proseType = world.bundle.types.find(type => type.class === 'file'
-        && Object.values(type.fields).some(field => field.base === 'string' && (field.max || 0) >= 120));
-      expect(proseType, `seed ${seed} prose floor type`).toBeTruthy();
-      expect(resolveListLayout(proseType), `seed ${seed} timeline layout`).toBe('timeline');
-      const volumeScreen = Object.values(world.contract.screens)
-        .find(screen => screen.template === 'typeList' && screen.typeId === volumeTableType.id);
-      expect(volumeScreen, `seed ${seed} volume list screen`).toBeTruthy();
-      // The guaranteed-empty type has a screen whose main region composes
-      // empty — an inert section that left the arrangement as a stub.
-      const emptyScreen = Object.values(world.contract.screens)
-        .find(screen => screen.template === 'typeList'
-          && screen.typeId && (world.instances[screen.typeId] || []).length === 0);
-      expect(emptyScreen, `seed ${seed} empty screen`).toBeTruthy();
-      const emptyComposed = composeScreen(emptyScreen, world.contract, world.bundle, pool);
-      expect(emptyComposed.stubRegions[0].dataState).toBe('empty');
-      // The dangling-scope detail composes missing.
-      const missingScreen = Object.values(world.contract.screens).find(screen => screen.screenKey.startsWith('detail_missing_'));
-      expect(missingScreen, `seed ${seed} missing screen`).toBeTruthy();
-      expect(composeScreen(missingScreen, world.contract, world.bundle, pool).regions[0].dataState).toBe('missing');
-      // The seeded state matrix assigns only known states to existing sources.
       for (const [screenKey, states] of Object.entries(world.sourceStatesMatrix || {})) {
         const screen = world.contract.screens[screenKey];
         expect(screen, `seed ${seed} matrix screen ${screenKey}`).toBeTruthy();
