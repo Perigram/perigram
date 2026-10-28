@@ -20,9 +20,31 @@
           class="min-w-0 flex-1"
           @update:model-value="value => assign(spot, value)"
         />
+        <RefRowActions
+          :value="pickedInstanceFor(spot)"
+          :editor-actions="editorActions"
+          :bundle="bundle"
+        />
       </div>
+      <RefRowActions
+        class="self-start"
+        :type-ids="accepts"
+        :bundle="bundle"
+        :editor-actions="editorActions"
+        :constructible-type-ids="constructibleTypeIds"
+        @construct="typeId => emit('construct', typeId)"
+      />
     </template>
-    <span v-else-if="templateRef" class="text-supporting text-muted">{{ t('uiMapping.noSpots') }}</span>
+    <div v-else-if="templateRef" class="flex items-center gap-2">
+      <span class="text-supporting text-muted">{{ t('uiMapping.noSpots') }}</span>
+      <RefRowActions
+        :type-ids="accepts"
+        :bundle="bundle"
+        :editor-actions="editorActions"
+        :constructible-type-ids="constructibleTypeIds"
+        @construct="typeId => emit('construct', typeId)"
+      />
+    </div>
   </div>
 </template>
 
@@ -31,9 +53,10 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Select from 'primevue/select';
 import Message from 'primevue/message';
-import { spotNamesOf } from '#shared/dxf-spots.js';
+import RefRowActions from './RefRowActions.vue';
 import { titleFor } from '#shared/ui-mapping/index.js';
 import { useInstancesStore } from '~/stores/instances';
+import { useFileTypeView } from '~/composables/useFileTypeView';
 import { instancePayloadFileUrl } from '~/components/generated/file-preview-contract.js';
 
 // The spot-parts assignment row (SPEC §24): the picked template names the
@@ -44,14 +67,27 @@ const props = defineProps({
   templateRef: { type: Object, default: null },
   accepts: { type: Array, default: () => [] },
   pool: { type: Object, default: () => ({}) },
-  bundle: { type: Object, default: null }
+  bundle: { type: Object, default: null },
+  editorActions: { type: Object, default: null },
+  constructibleTypeIds: { type: Array, default: () => [] }
 });
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'construct']);
 const { t, te } = useI18n();
 const instances = useInstancesStore();
+const view = useFileTypeView();
 const spots = ref([]);
 const loading = ref(false);
 const error = ref('');
+
+// The anchor names come from the plugin's own parse law (dxf-markers.js)
+// through the served editor surface module — the one home SPEC §24 gives
+// the `{spot:}` vocabulary.
+async function anchorNamesOf(typeId, text) {
+  const binding = (view.editors.value || []).find(candidate => candidate?.type === typeId);
+  const declared = binding ? (view.surfaces.value || []).find(surface => surface?.id === binding.surface) : null;
+  const spotNames = declared?.url ? await import(declared.url).then(mod => mod.spotNamesOf) : null;
+  return typeof spotNames === 'function' ? spotNames(text) : [];
+}
 
 const entries = computed(() => Array.isArray(props.modelValue) ? props.modelValue : []);
 const parts = computed(() => props.accepts
@@ -71,6 +107,10 @@ function typeLabelOf(typeId) {
 }
 
 const pickedIdFor = spot => entries.value.find(entry => entry.spot === spot)?.id || null;
+const pickedInstanceFor = spot => {
+  const entry = entries.value.find(candidate => candidate.spot === spot);
+  return entry ? { type: entry.type, id: entry.id } : null;
+};
 const optionsFor = spot => parts.value
   .filter(({ instance }) => {
     const taken = entries.value.find(entry => entry.id === String(instance.id) && entry.spot !== spot);
@@ -101,7 +141,7 @@ watch(() => props.templateRef, async ref => {
     const instance = await instances.fetchInstance(typeId, String(ref.id), { force: true });
     const url = instancePayloadFileUrl(instance?.payload || instance);
     const text = url ? await (await fetch(url)).text() : '';
-    spots.value = spotNamesOf(text);
+    spots.value = await anchorNamesOf(typeId, text);
     // Name equality is the zero-config default, an assignment suggestion:
     // same-named parts prefill, everything else stays a free pick.
     const next = [];

@@ -108,6 +108,9 @@ export function defaultMarkerHeight(text) {
   return 5;
 }
 
+// The anchor names a fill dialog pairs parts against.
+export const spotNamesOf = text => spotMarkersOf(text).map(marker => marker.name);
+
 function markerEntityPairs({ name, x, y, height, layer }) {
   return [
     { code: 0, value: 'TEXT' },
