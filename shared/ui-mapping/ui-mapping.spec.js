@@ -24,6 +24,7 @@ import {
   resolvePreview,
   resolveActionButton,
   resolveListLayout,
+  listLayoutOf,
   tableColumnCount,
   cardFactCount,
   cardVariantFor,
@@ -160,12 +161,23 @@ describe('field control resolution', () => {
   it('demotes a table with no data column to the list projection', () => {
     // Only the identifier field (plus a state vocabulary at most): a
     // table would carry names alone. A filled non-identifier scalar or a
-    // declared relation column earns the table.
+    // FILLED relation column earns the table; a declared relation
+    // nothing fills renders no column and counts none.
     const namesOnly = { class: 'item', identifier: 'name', fields: { name: { base: 'string' } } };
     expect(resolveListLayout(namesOnly, { columns: 0, size: 'large' })).toBe('list');
     expect(resolveListLayout(namesOnly, { columns: 0, stateful: true })).toBe('list');
     expect(resolveListLayout(namesOnly, { columns: 1 })).toBe('table');
     expect(resolveListLayout(namesOnly, {})).toBe('table');
+  });
+
+  it('derives the columns signal display-aware: unfilled relations count nothing', () => {
+    const relational = { class: 'item', identifier: 'name', fields: { name: { base: 'string' } }, edges: { relations: { docs: { types: ['x'] } } } };
+    const bare = Array.from({ length: 4 }, (_, i) => ({ id: String(i), fields: { name: `A${i}` }, relations: {} }));
+    const filled = bare.map((instance, i) => (i === 0
+      ? { ...instance, relations: { docs: [{ type: 'x', id: '9' }] } }
+      : instance));
+    expect(listLayoutOf({ surfaceKind: 'list', type: relational, instances: bare })).toBe('list');
+    expect(listLayoutOf({ surfaceKind: 'list', type: relational, instances: filled })).toBe('table');
   });
 
   it('boards process-class collections over a served state vocabulary', () => {
@@ -1009,6 +1021,25 @@ describe('instance-aware list controls', () => {
     expect(controls.defaultSort).toBe('size');
     expect(controls.facets).toEqual([{ name: 'grade', label: 'Grade', values: ['a', 'b'] }]);
     expect(controls.pagination).toEqual({ paginateAt: 10, rows: 10 });
+    // No declared relation: no relation column.
+    expect(controls.relationColumn).toBeNull();
+  });
+
+  it('carries the relation column only when a loaded instance fills it', () => {
+    const relational = { ...type, edges: { relations: { docs: { types: ['x'] } } } };
+    expect(resolveListControls(relational, instances).relationColumn).toBeNull();
+    expect(resolveListControls(relational, [
+      ...instances,
+      { id: '4', fields: { name: 'D' }, relations: { docs: [{ type: 'x', id: '9' }] } }
+    ]).relationColumn).toEqual({ key: 'docs' });
+  });
+
+  it('treats a null-valued quantity as unfilled — it renders the dash', () => {
+    const withNull = analyzeInstanceShape(
+      { fields: { size: { base: 'quantity', unit: 'mm' }, grade: { base: 'enum', values: ['a'] } } },
+      [{ fields: { size: { value: null, unit: 'mm' }, grade: 'a' } }]
+    );
+    expect(withNull.filledScalarNames).toEqual(['grade']);
   });
 
   it('drops unfilled sort keys entirely on empty collections', () => {

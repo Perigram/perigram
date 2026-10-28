@@ -10,7 +10,11 @@
     :pool="effectivePool"
     :bundle="bundle"
     :state-policy="node.statePolicy"
+    :actions="instanceActions"
+    :patchable="patchable"
     @open="instance => emit('open', instance)"
+    @run="(action, context) => emit('run', action, context)"
+    @inline-change="payload => emit('inline-change', payload)"
   />
   <CardGrid
     v-else-if="listLayout === 'card-grid'"
@@ -121,10 +125,12 @@ defineProps({
   // list): rows carry their parent context token.
   parented: { type: Boolean, default: false },
   instanceActions: { type: Array, default: () => [] },
+  // Cell values edit in place when the host binds a patch executor.
+  patchable: { type: Boolean, default: false },
   resolveTransitions: { type: Function, default: null },
   isReloading: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['open', 'run', 'transition']);
+const emit = defineEmits(['open', 'run', 'transition', 'inline-change']);
 const { t } = useI18n();
 </script>

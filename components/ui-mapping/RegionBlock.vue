@@ -92,11 +92,13 @@
         :openable="openable"
         :parented="parented"
         :instance-actions="instanceActionsForType"
+        :patchable="patchable"
         :resolve-transitions="resolveTransitions"
         :is-reloading="isReloading"
         @open="emitOpen"
         @run="emitRun"
         @transition="payload => emit('transition', payload)"
+        @inline-change="({ instance, change }) => emitPatchFor(instance, change)"
       />
     </div>
     <RegionChildren
@@ -347,11 +349,11 @@ const wirePatchFor = changes => {
   }
   return Object.keys(patch).length ? patch : null;
 };
-const emitPatch = changes => {
-  const instance = props.node.instances[0];
+const emitPatchFor = (instance, changes) => {
   const patch = wirePatchFor(changes);
   if (instance && patch) emit('patch', { instance, patch });
 };
+const emitPatch = changes => emitPatchFor(props.node.instances[0], changes);
 const inlineChange = ({ name, value } = {}) => emitPatch({ [name]: value });
 const emitRun = (action, context) => emit('run', action, context);
 const bodyEvents = {

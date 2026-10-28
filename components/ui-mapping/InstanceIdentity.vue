@@ -6,7 +6,7 @@
       link
       :size="size"
       :label="identity"
-      :class="LAYOUT.linkClamp"
+      :class="[LAYOUT.linkClamp, 'px-0']"
       @click="$emit('open', instance)"
     />
     <span v-else :class="['truncate', textClass]">{{ identity }}</span>
@@ -22,7 +22,10 @@ import { LAYOUT, titleFor, iconFor } from '#shared/ui-mapping/index.js';
 // The instance identifier (SPEC §22.8): a record's identity line carries
 // its icon — the authored glyph, a record's declared thumb winning — and
 // opens the record under the screen's onOpen contract. Every projection
-// renders collection identities through this one surface.
+// renders collection identities through this one surface. The link's
+// horizontal padding dies here: the identifier owns its spacing (the
+// wrapper gap), and the preset's padding is a standalone-target
+// affordance.
 const props = defineProps({
   instance: { type: Object, required: true },
   type: { type: Object, required: true },

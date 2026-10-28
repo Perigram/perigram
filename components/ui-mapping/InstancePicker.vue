@@ -11,7 +11,7 @@
     @update:model-value="keys => selectTreeKey(keys)"
   />
   <AutoComplete v-else
-    :model-value="model"
+    :model-value="displayModel"
     :suggestions="suggestions"
     option-label="label"
     force-selection
@@ -85,6 +85,14 @@ const options = computed(() => props.accepts
     label: `${typeLabel(instance.type)}: ${titleFor(instance, typeRecordOf(instance.type), { unnamedLabel: unnamedLabel() })}`,
     value: { type: instance.type, id: instance.id }
   })));
+// The AutoComplete displays its model through option-label: the selected
+// instance ref resolves to the option carrying it, so the input shows
+// the record's label (a bare ref object would stringify).
+const displayModel = computed(() => {
+  const ref = props.model;
+  if (!ref?.id) return null;
+  return options.value.find(option => option.value.type === ref.type && option.value.id === ref.id) || null;
+});
 
 const search = event => {
   const query = String(event.query || '').toLowerCase();

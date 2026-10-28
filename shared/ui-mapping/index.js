@@ -481,7 +481,11 @@ export function iconFor(typeView = null, record = null) {
 }
 
 const isFilled = value => !(value === null || value === undefined || value === ''
-  || (Array.isArray(value) && !value.length));
+  || (Array.isArray(value) && !value.length)
+  // A quantity carrying a null value renders the fallback dash — the
+  // value-aware pass treats it as unfilled, the same law as strings.
+  || (value && typeof value === 'object' && !Array.isArray(value)
+    && 'value' in value && (value.value === null || value.value === undefined)));
 
 // analyzeInstanceShape(type, instances): the value-aware second pass over
 // the loaded instances — pure over the pool. Reports which fields actually
@@ -547,10 +551,22 @@ export function resolveListControls(typeRecord = {}, instances = []) {
   const facets = Object.entries(shape.enumValues)
     .filter(([, values]) => values.length > 0)
     .map(([name, values]) => ({ name, label: fieldLabel(name, descriptors[name]), values }));
+  // The relation chip column: the first declared relation, a column only
+  // when any loaded instance carries its refs — the same filledness law
+  // as scalar columns, and the table-floor signal counts it the same
+  // way.
+  const firstRelationKey = Object.keys(typeRecord.edges?.relations || {})[0] || null;
+  const relationColumn = firstRelationKey && instances.some(instance => {
+    const refs = instance?.relations?.[firstRelationKey];
+    return Array.isArray(refs) ? refs.length > 0 : Boolean(refs);
+  })
+    ? Object.freeze({ key: firstRelationKey })
+    : null;
   return Object.freeze({
     searchKeys: Object.freeze(searchKeys),
     sortKeys: Object.freeze(sortKeys.map(key => Object.freeze({ ...key }))),
     defaultSort: sortKeys[0]?.name || null,
+    relationColumn,
     facets: Object.freeze(facets.map(facet => Object.freeze({ ...facet, values: Object.freeze([...facet.values]) }))),
     pagination: Object.freeze({
       paginateAt: TABLE_PAGINATE_AT,
@@ -966,9 +982,8 @@ export function shapeFamilyOf(typeRecord = {}, { stateful = false } = {}) {
 // a column) plus the first declared relation's chip column. Zero means
 // a table would carry names alone.
 function tableDataColumns(node = {}) {
-  const { sortKeys } = resolveListControls(node.type || {}, node.instances || []);
-  const relations = Object.keys(node.type?.edges?.relations || {});
-  return sortKeys.length + (relations.length ? 1 : 0);
+  const { sortKeys, relationColumn } = resolveListControls(node.type || {}, node.instances || []);
+  return sortKeys.length + (relationColumn ? 1 : 0);
 }
 
 // listLayoutOf(node): the one list-layout derivation — compose-time
