@@ -582,22 +582,29 @@ export function resolveListControls(typeRecord = {}, instances = [], { pool = nu
     .find(([name]) => instances.some(instance => hasStructuralValue(instance)(instance?.fields?.[name])))
     || null;
   const summaryColumn = summaryEntry ? Object.freeze({ key: summaryEntry[0] }) : null;
-  // The children column: a type declaring children edges renders its
-  // loaded children as chips beside identity — the parent's data, the
-  // same filledness law as every other column (a pool carrying no
-  // child of any listed instance renders no column).
-  const childTypeIds = [...new Set(Object.values(typeRecord.edges?.children || {})
-    .flatMap(edge => edge?.types || []))];
-  const childrenColumn = childTypeIds.length && pool && instances.some(instance => childrenOfParent(typeRecord, pool, instance.id).length > 0)
-    ? Object.freeze({ types: Object.freeze(childTypeIds) })
-    : null;
+  // The children columns: one per declared children edge — every edge
+  // is the parent's own facet (its key labels the column), each showing
+  // only that edge's child instances as chips. The same filledness law
+  // as every other column: an edge whose children no listed row carries
+  // renders no column.
+  const childrenColumns = pool
+    ? Object.entries(typeRecord.edges?.children || {})
+      .map(([edgeKey, declaration]) => ({
+        edgeKey,
+        types: Object.freeze([...(declaration?.types || [])]),
+        filled: instances.some(instance => childrenOfParent(typeRecord, pool, instance.id, { edgeKey }).length > 0)
+      }))
+      .filter(entry => entry.types.length && entry.filled)
+      .map(entry => Object.freeze({ key: entry.edgeKey, types: entry.types }))
+    : [];
+  const childrenColumnsFrozen = Object.freeze(childrenColumns);
   return Object.freeze({
     searchKeys: Object.freeze(searchKeys),
     sortKeys: Object.freeze(sortKeys.map(key => Object.freeze({ ...key }))),
     defaultSort: sortKeys[0]?.name || null,
     relationColumn,
     summaryColumn,
-    childrenColumn,
+    childrenColumns: childrenColumnsFrozen,
     facets: Object.freeze(facets.map(facet => Object.freeze({ ...facet, values: Object.freeze([...facet.values]) }))),
     pagination: Object.freeze({
       paginateAt: TABLE_PAGINATE_AT,
@@ -1014,9 +1021,9 @@ export function shapeFamilyOf(typeRecord = {}, { stateful = false } = {}) {
 // column, and the children column. Zero means a table would carry
 // names alone.
 function tableDataColumns(node = {}) {
-  const { sortKeys, relationColumn, summaryColumn, childrenColumn } = node.listControls
+  const { sortKeys, relationColumn, summaryColumn, childrenColumns } = node.listControls
     || resolveListControls(node.type || {}, node.instances || []);
-  return sortKeys.length + (relationColumn ? 1 : 0) + (summaryColumn ? 1 : 0) + (childrenColumn ? 1 : 0);
+  return sortKeys.length + (relationColumn ? 1 : 0) + (summaryColumn ? 1 : 0) + childrenColumns.length;
 }
 
 // listLayoutOf(node): the one list-layout derivation — compose-time
@@ -1403,11 +1410,12 @@ export function parentRefOf(instance = {}, edges = []) {
 // bundle type record and pool — InstancePicker's hierarchical mode and
 // the workspace explorer consume this one matcher so pickers and
 // navigation trees never disagree.
-export function childrenOfParent(type = null, pool = {}, parentId = null) {
+export function childrenOfParent(type = null, pool = {}, parentId = null, { edgeKey = null } = {}) {
   const children = [];
   const parentKey = parentId === null || parentId === undefined ? '' : String(parentId);
   if (!parentKey) return children;
   for (const [mapKey, declaration] of Object.entries(type?.edges?.children || {})) {
+    if (edgeKey !== null && mapKey !== edgeKey) continue;
     for (const childTypeId of declaration?.types || []) {
       for (const instance of Object.values(pool[childTypeId] || {})) {
         const ref = instance.lineage?.[lineageKeyOfEdge(declaration, mapKey)];

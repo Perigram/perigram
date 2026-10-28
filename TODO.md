@@ -2366,6 +2366,26 @@ Session `agent/genui-overflow-20261028-1815` (worktree
 
 Status: WAITING owner verification.
 
+## One children column per edge (owner direction 2026-10-28)
+
+Owner verdict on the single children column: one flat dump of every
+child type is slop.
+
+- [x] `childrenColumns` — one column per declared children edge: the
+  edge's key labels its column, only that edge's instances ride it,
+  per-edge filledness (an unfilled edge renders no column), each with
+  its own chips budget and record-popup overflow. The generic
+  `uiMapping.childrenColumn` locale key dies with the dump. The floor
+  signal counts every filled children column.
+
+### Agent Notes (2026-10-28)
+
+Session `agent/genui-children-peredge-20261028-1850` (worktree
+`.agent-worktrees/round29`). `childrenOfParent` gains the per-edge
+filter option (still the one containment matcher).
+
+Status: WAITING owner verification.
+
 ## Random world decorruption (owner direction 2026-10-28)
 
 Law: the random UI world generator rolls its world; nothing overwrites

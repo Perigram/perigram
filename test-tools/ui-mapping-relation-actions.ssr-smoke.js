@@ -41,9 +41,15 @@ const bundle = {
         name: { base: 'string', identifier: true, label: 'Name' },
         libraries: { base: 'ref', accepts: ['library'], label: 'Libraries' }
       },
-      edges: { children: { kids: { types: ['child'], onRemove: 'restrict', lineageKey: 'parentId' } } }
+      edges: {
+        children: {
+          kids: { types: ['child'], onRemove: 'restrict', lineageKey: 'parentId' },
+          wards: { types: ['ward'], onRemove: 'restrict', lineageKey: 'parentId' }
+        }
+      }
     },
-    { id: 'child', class: 'item', version: 1, name: 'Child', glyph: 'pi pi-tag', identifier: 'label', fields: { label: { base: 'string', identifier: true, label: 'Label' } }, edges: {} }
+    { id: 'child', class: 'item', version: 1, name: 'Child', glyph: 'pi pi-tag', identifier: 'label', fields: { label: { base: 'string', identifier: true, label: 'Label' } }, edges: {} },
+    { id: 'ward', class: 'item', version: 1, name: 'Ward', glyph: 'pi pi-box', identifier: 'label', fields: { label: { base: 'string', identifier: true, label: 'Label' } }, edges: {} }
   ]
 };
 const instances = {
@@ -55,7 +61,8 @@ const instances = {
   child: [
     { id: 'k-1', type: 'child', fields: { label: 'Kid one' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } },
     { id: 'k-2', type: 'child', fields: { label: 'Kid two' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } }
-  ]
+  ],
+  ward: [{ id: 'w-1', type: 'ward', fields: { label: 'Ward one' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } }]
 };
 const actions = {
   a_create_parent: { id: 'a_create_parent', label: 'New Parent', actionKind: 'createInstance', typeId: 'parent', trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }, construction: { mode: 'generic', inputs: [] } },
@@ -114,13 +121,14 @@ describe('relation action placement (SPEC §22.12, SSR)', () => {
     expect(html).not.toContain('Link Library');
   });
 
-  it('renders the children column in the parent table', async () => {
+  it('renders one children column per edge in the parent table', async () => {
     const html = await render('list');
     expect(html).toContain('Kids');
+    expect(html).toContain('Wards');
     // The rows' children render as chips (labels resolve against the
     // served type view — the live probe's assertion; the SSR harness
     // has none).
-    expect((html.match(/p-chip/g) || []).length).toBeGreaterThanOrEqual(2);
+    expect((html.match(/p-chip/g) || []).length).toBeGreaterThanOrEqual(3);
   });
 
   it('renders the link in the relation section toolbar and unlink on its rows', async () => {
