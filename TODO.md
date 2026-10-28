@@ -2206,6 +2206,16 @@ filledness, the table relation cell, and the row fact now read both
 blocks through the one resolver; the instances README states the
 two-block storage law beside the §3 shape.
 
+Live verification (after `docker compose -f docker-compose.dev.yml
+restart app` cleared a stale `#shared` transform — the documented
+dev-server trap): the probe org's project list renders the
+`Record | Libraries` table with resolved chips (both stored shapes),
+the attempt list renders `Record | Result`, identifier-only types stay
+the bare list, and the N/A census is zero across every screen
+(`e2e/zz-round25-probe.spec.js` → `.playwright/genui-round25.json`).
+The card footer measured clean on the live card grid: 0px below every
+card's last child, 20px body padding, no grid stretch.
+
 ## Random world decorruption (owner direction 2026-10-28)
 
 Law: the random UI world generator rolls its world; nothing overwrites
