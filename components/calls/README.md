@@ -22,11 +22,12 @@ on mobile the media dock's call lane entry takes it. A pending tab room
 suspends the auto-rule while the home workspace mounts the adopting tab.
 
 - `CallPanel.vue` renders the session: pre-join → connecting → connected
-  or failed stages, speaker/grid stages, the docked control bar, and the
-  mid-call device settings. It is a **bounded videocall surface**: the
-  stage owns every pixel of height, the root never page-scrolls (only the
-  grid and the film strip scroll inside their own boxes), and all controls
-  live in one docked bar below the stage. Device failures are per-track:
+  or failed stages, speaker/grid stages, the floating control pill, and
+  the mid-call device settings popover. It is a **bounded videocall
+  surface**: the video stage owns every pixel, the root never page-scrolls
+  (only the grid and the film strip scroll inside their own boxes, with
+  bottom clearance for the control pill), and the controls float as one
+  overlay pill at the bottom center. Device failures are per-track:
   a missing or unplugged mic/camera toasts the failed device and the call
   continues with that track off; only a failed connection fails the
   session, and the failed session clears on retry. Toggle state always
@@ -64,8 +65,9 @@ suspends the auto-rule while the home workspace mounts the adopting tab.
   (`ChatSupport` embedded and pinned through its `conversation-key` prop,
   meet-style stage + chat), with a pop-out control that seats the session
   in the shell's floating window and closes the tab. The stage mounts
-  full-bleed (no wrapper padding) so the panel's dock hairline spans the
-  pane and the video keeps maximum area; the pop-out floats over the stage
+  full-bleed (no wrapper padding) so the panel's control pill floats over
+  the pane edge-to-edge stage and the video keeps maximum area; the
+  pop-out floats over the stage
   top-right like the tile pin control. It is responsive to
   the pane width through a
   container query: wide panes render the chat as a fixed side rail; narrow
@@ -99,19 +101,20 @@ suspends the auto-rule while the home workspace mounts the adopting tab.
 
 ## Panel chrome
 
-The control dock is one structural bar: a `border-chrome-border` hairline
-on top, no painted background, icon-only PrimeVue buttons (rounded, text,
-secondary; leave is the single danger button). This follows the flat
-surface ladder owned by
-[assets/tokens](../../assets/tokens/README.md): call surfaces are
-structural chrome and paint nothing; `bg-content` stays on chips over
-media (tile identity chips, the reconnecting pill). The dock's inner row
-is `w-max` with auto margins inside an `overflow-x-auto` bar, so it
-centers when it fits and scrolls — never wraps — when the pane is narrow.
-Reactions open from a dock button through a PrimeVue `Popover`; floating
-reaction badges ride the `riseAndFade` motion pattern over the stage.
-Status is shown only where it changes behavior: a reconnecting pill while
-the room re-connects, degraded-quality glyphs on tiles.
+The controls are one floating pill overlay at the bottom center of the
+stage: a `bg-content` chip over media with `shadow-overlay`, icon-only
+PrimeVue buttons (rounded, text, secondary), the layout switch as one
+icon button (its icon and aria-label name the layout it switches to),
+reactions and device settings as PrimeVue `Popover`s anchored at their
+buttons, and leave as the single danger button, separated by a hairline
+divider. The pill wraps to a second row on narrow panes — every control
+stays reachable at any width. Tiles carry the speaking state as a
+`ring-status-success` ring, and the pin control reveals on tile hover on
+pointer devices (touch widths keep it visible; a pinned tile keeps it
+lit). Floating reaction badges ride the `riseAndFade` motion pattern over
+the stage, above the pill. Status is shown only where it changes
+behavior: a reconnecting pill while the room re-connects,
+degraded-quality glyphs on tile chips.
 
 ## Call line state machine
 
