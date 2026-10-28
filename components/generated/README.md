@@ -267,15 +267,18 @@ declared MIME set when it carries no wildcards.
 `PayloadRevisionPicker` is the record's version surface (SPEC §24): the
 same header mounts it for every revision-scoped payload type. A history
 affordance opens a popover listing the record's payload revisions
-newest-first (version, creation stamp, minting write, minting
-principal) with the current revision marked; a restore-minted row names
-the revision it re-entered (`data.restoredFrom`); the rows come from
+newest-first with the current revision marked; the rows come from
 `GET /api/instance-revisions?typeId&instanceId&scope` through the
-instances store. Every row opens read-only in a dialog: the revision's
-frozen bytes preview through the shared payload download URL
-(`attachments.primary`, the same contract the record's own payload
-preview resolves), degrading to a download action for preview modes the
-viewer cannot render. A prior row restores through
+instances store. Each row renders through the shared preview contract:
+the frozen payload reference (`data.snapshot.payload` — the wire
+payload block the revision minted) names the row and previews its bytes
+through `InstancePreviewMedia` in the standard band, the row's meta
+line carries the creation stamp, the minting principal, and a restore
+mint's source (`data.restoredFrom`). Every row opens read-only in a
+dialog: the revision's frozen bytes preview through the shared payload
+download URL (`attachments.primary`, the same contract the record's own
+payload preview resolves), degrading to a download action for preview
+modes the viewer cannot render. A prior row restores through
 `POST /api/instances/:type/:id/restore-revision`: the frozen bytes
 re-enter as a new revision, the popover reloads, and the write-level
 grant plus the authored-content law gate the affordance exactly as the

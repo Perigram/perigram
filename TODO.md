@@ -2805,6 +2805,21 @@ Ordered steps:
   SSR smoke 23, check-arch, framework:validate green; check-docs
   carries only the pre-existing jagua-rs link.
 
+  ### Agent Notes (2026-10-29, picker rows render the contract)
+
+  Session `agent/picker-row-render-20261029` (worktree
+  `.agent-worktrees/picker-row-render-20261029`). Owner report: rows
+  carried mint-reason wordings as labels with no previews. Rows now
+  render through the shared preview contract: the frozen payload
+  reference (`data.snapshot.payload`, the wire payload block the mint
+  stored) names the row and previews its bytes through
+  `InstancePreviewMedia` in the standard band (renderable modes only —
+  bands render real content); the meta line keeps the creation stamp,
+  the minting principal, and a restore's source (`restoredFrom`). The
+  picker stops reading the audit vocabulary's reason keys (StateHistory
+  keeps them — the status trail is their surface). E2E asserts the
+  name, the row preview band, and the restored-from line.
+
 ## Chat heals after a stream gap (owner report 2026-10-28)
 
 The owner's session saw the chat agent stop answering after switching
