@@ -470,11 +470,14 @@ beside the transition history in `StateHistory`.
   the host card owns the chrome; images and sketch scenes fill the band
   at uniform scale, vector drawings (dxf/svg/occs) fit inside it, and
   dimension text renders big. The fill hero passes the pane variant:
-  prose flows at the body's measure (markdown through the shared
-  pipeline, plain text keeps breaks), the PDF renders at page scale
+  prose flows at the body's measure — centered when the record column is
+  wider — with markdown through the shared pipeline in the shared
+  `ck-markdown` element styles (plain text keeps breaks), the PDF renders at page scale
   (the column's width, MediaBox aspect with A4 fallback, viewer chrome
   hidden), and bounded media fill the framed region — contained rasters,
-  fitting drawings, scrolling tables and Word documents. Fetch-backed
+  fitting drawings, scrolling tables and Word documents. The record body
+  grid (`LAYOUT.bodyGrid`) centers on the same measure, so prose and fact
+  blocks share one column. Fetch-backed
   modes state their load (spinner) and surface a failed download. A
   type that declares a `previewSource` field (the authored pack vocabulary
   adopted by the CTS registry, carried on the bundle type record and read

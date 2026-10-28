@@ -69,7 +69,10 @@ imported through server modules that Nitro externalizes.
   viewer. Parsed as GFM with line breaks: a single newline is a hard
   break, the way GitHub-flavored documents and model answers read.
   Mermaid fences render as inline pele SVG diagrams; a fence that
-  fails to parse stays a plain code block.
+  fails to parse stays a plain code block. The output HTML carries no
+  element styles of its own: every mounting surface applies the shared
+  `ck-markdown` class (`assets/css/main.css`) for document element
+  styles — headings, lists, tables, code, quotes.
   Import-safe in Node; the render dependencies only run behind the
   window guard.
 - `call-rooms.js`: The call-room name grammar and room↔conversation
