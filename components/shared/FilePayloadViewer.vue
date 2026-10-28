@@ -4,42 +4,43 @@
          a failed download states the error; pdf/image keep their element
          on the download URL when the blob swap fails. -->
     <StateBlock v-if="hasFile && asyncMode && error" state="error" :message="error" />
-    <!-- The canvas keeps its aspect-driven frame in panes (the drawing
-         owns the height) and fills the fixed card band. -->
+    <!-- The canvas fills its host: the fixed media region or the card
+         stamp. -->
     <DrawingCanvas
       v-else-if="hasFile && ['dxf', 'svg'].includes(mode)"
       :source="fileUrl"
       :source-type="`${mode}-url`"
       mode="card"
-      :fill="variant === 'card'"
+      fill
     />
     <DrawingCanvas
       v-else-if="hasFile && mode === 'sketch'"
       :source="fileUrl"
       source-type="sketch"
       mode="card"
-      :fill="variant === 'card'"
+      fill
     />
-    <!-- Panes show the raster at natural size, contained by the band and
-         the viewport; card bands crop-fill the stamp. -->
+    <!-- The media region contains the raster on its ground; card bands
+         crop-fill the stamp. -->
     <img
       v-else-if="hasFile && mode === 'image'"
       :src="blobUrl || fileUrl"
-      :class="variant === 'card' ? 'block h-full w-full object-cover' : 'mx-auto block h-auto w-auto max-h-[80vh] max-w-full object-contain'"
+      :class="variant === 'card' ? 'block h-full w-full object-cover' : 'mx-auto block h-full w-full object-contain'"
       :alt="fileName"
     >
-    <!-- The PDF renders its page shape in panes (MediaBox aspect, A4
-     fallback); viewer chrome stays hidden in both variants — the frame
-     owns the chrome and the payload download is the escape hatch. -->
+    <!-- The PDF renders at its page scale: the record column's full
+         width, height from the page's own MediaBox (A4 fallback). Viewer
+         chrome stays hidden — the frame owns the chrome and the payload
+         download is the escape hatch. -->
     <iframe
       v-else-if="hasFile && mode === 'pdf'"
       :src="pdfSrc"
       :style="variant === 'card' ? undefined : pdfPaneStyle"
-      :class="variant === 'card' ? 'h-full w-full border-0' : 'mx-auto block h-auto border-0'"
+      :class="variant === 'card' ? 'h-full w-full border-0' : 'block w-full border-0'"
       :title="fileName || 'PDF'"
     />
     <!-- The Word document keeps its own document-native scrolling surface
-         (like the reading prose and table panes). -->
+         (like the table panes). -->
     <div v-else-if="hasFile && mode === 'docx' && ready" ref="docxHost" class="h-full overflow-y-auto bg-white p-6 text-black" />
     <TableFrame v-else-if="hasFile && ['table', 'workbook'].includes(mode) && rows.length" class="h-full">
       <DataTable
@@ -53,10 +54,10 @@
         <Column v-for="column in columns" :key="column" :field="column" :header="column" />
       </DataTable>
     </TableFrame>
-    <!-- Text previews read in prose; markdown renders through the shared
-         pipeline (shared/markdown.js), plain text keeps breaks.
-         Card bands clamp; sized panes scroll. -->
-    <div v-else-if="hasFile && mode === 'text' && ready" :class="variant === 'card' ? 'h-full overflow-hidden p-4 text-prose' : 'h-full overflow-y-auto p-4 text-prose'">
+    <!-- Text is record prose: it flows at the body's measure — markdown
+         through the shared pipeline (shared/markdown.js), plain text
+         keeps breaks. Card bands clamp. -->
+    <div v-else-if="hasFile && mode === 'text' && ready" :class="variant === 'card' ? 'h-full overflow-hidden p-4 text-prose' : 'text-prose'">
       <!-- eslint-disable-next-line vue/no-v-html -- sanitized below -->
       <div v-if="renderedMarkdown" :class="variant === 'card' ? 'line-clamp-[12] break-words' : 'break-words'" v-html="renderedMarkdown" />
       <p v-else :class="variant === 'card' ? 'line-clamp-[12] m-0 whitespace-pre-wrap break-words' : 'm-0 whitespace-pre-wrap break-words'">{{ text }}</p>
@@ -82,14 +83,14 @@ import { isMarkdownDocument, renderMarkdown } from '#shared/markdown.js';
 // The file-instance payload viewer: `source` is `{ mode, fileUrl,
 // attachment }` resolved from the type's payload preview policy
 // (file-preview-contract). `variant` names the presentation surface:
-// `pane` (default) renders inside the framed media surface with
-// content-sized geometry — the aspect-owning drawing frame, the raster
-// at natural size, the page-shaped PDF, scrolling prose and paginated
-// tables under the reading band; `card` fills its caller's fixed-height
-// band with no own border (the host card owns the chrome): images and
-// sketch scenes fill at uniform scale (cropped), vector drawings fit
-// inside, the PDF page hides viewer chrome, tables clip their rows, and
-// prose clamps.
+// `pane` (default) renders the detail treatment — prose flows at the
+// body's measure, the PDF renders at page scale (the column's width,
+// MediaBox aspect), bounded media (rasters, drawings, tables, Word
+// documents) fill the framed media region; `card` fills its caller's
+// fixed-height band with no own border (the host card owns the chrome):
+// images and sketch scenes fill at uniform scale (cropped), vector
+// drawings fit inside, the PDF page hides viewer chrome, tables clip
+// their rows, and prose clamps.
 const props = defineProps({
   source: { type: Object, required: true },
   variant: { type: String, default: 'pane' }
@@ -132,10 +133,7 @@ function pageAspect(buffer) {
     return A4_ASPECT;
   }
 }
-const pdfPaneStyle = computed(() => ({
-  width: `min(100%, calc(80vh * ${pdfAspect.value.toFixed(4)}))`,
-  aspectRatio: String(pdfAspect.value.toFixed(4))
-}));
+const pdfPaneStyle = computed(() => ({ aspectRatio: pdfAspect.value.toFixed(4) }));
 const pdfSrc = computed(() => {
   const url = blobUrl.value || fileUrl.value;
   return url ? `${url}#toolbar=0&navpanes=0` : url;

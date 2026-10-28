@@ -476,12 +476,12 @@ body {
         }
     }
 
-    /* A rendered preview renders in a framed media surface (rounded,
-       hairline border, subtle ground — the app owns the chrome).
-       Reading modes (prose, tables, Word documents) scroll a stepped
-       height; aspect modes (rasters, pages, drawings) yield height to
-       the content under the record body's content column cap. The quiet
-       glyph band stays bare. */
+    /* Bounded previews render in one framed media region (rounded,
+       hairline border, subtle ground — the app owns the chrome): rasters
+       and drawings fit inside, tables and Word documents scroll the
+       stepped height. A page-scale preview fills the column's width at
+       its own aspect. Record prose flows unframed at the body's content
+       measure. The quiet glyph band stays bare. */
     .ck-preview-hero-band-content,
     .ck-preview-hero-band-aspect {
         border: 1px solid var(--p-content-border-color);
@@ -507,6 +507,10 @@ body {
     }
 
     .ck-preview-hero-band-aspect {
+        height: auto;
+    }
+
+    .ck-preview-hero-band-flow {
         height: auto;
         max-width: 46rem;
     }

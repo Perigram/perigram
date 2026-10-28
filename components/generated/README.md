@@ -317,10 +317,10 @@ renders payload previews on generated details and cards, and
 `InstancePreview` renders the same contract on entity-card surfaces. The
 viewer (`components/shared/FilePayloadViewer.vue`) sizes by surface:
 fixed-height card bands carry content thumbnails (cover-cropped
-rasters, cropped sketch scenes, clipped rows, clamped prose), while the
-fill hero's framed media surface follows the content — the drawing
-frame, the raster at natural size, the page-shaped PDF, scrolling prose
-and paginated tables. The payload download stays the escape hatch. The type records come from
+rasters, cropped sketch scenes, clipped rows, clamped prose), while
+detail treatments follow the content — prose flows at the body's
+measure, the PDF renders at page scale, and bounded media fill the
+framed region. The payload download stays the escape hatch. The type records come from
 `useFileTypeView()` ([composables/README.md](../../composables/README.md)),
 the organization-scoped cached read of the served type view. Editor-bound
 types keep this read preview in their details — the editors themselves

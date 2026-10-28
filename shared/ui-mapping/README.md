@@ -390,13 +390,13 @@ data. `RENDERABLE_PREVIEW_MODES`
 (`dxf`, `svg`, `sketch`, `image`, `pdf`, `docx`, `table`,
 `workbook`, `text`); app-side materializations import it instead of
 restating the list, and every other mode degrades to a payload download.
-`DOCUMENT_PREVIEW_MODES` (`pdf`, `docx`, `table`, `workbook`, `text`)
-marks the reading modes: sized panes render the readers (scrolling
-prose, paginated tables) and fixed-height card bands carry content
-thumbnails — clipped rows, clamped prose. `ASPECT_PREVIEW_MODES`
-(`image`, `pdf`, `dxf`, `svg`, `sketch`) marks the modes with intrinsic
-geometry: the detail band yields height to the content
-(`LAYOUT.previewHeroBandAspect`).
+`ASPECT_PREVIEW_MODES` (`pdf`) marks the page-scale modes: the page
+fills the record column's width at its own MediaBox aspect
+(`LAYOUT.previewHeroBandAspect`); prose flows unframed at the body's
+content measure (`LAYOUT.previewHeroBandFlow`); every other renderable
+mode fills the framed media region (`LAYOUT.previewHeroBandContent`,
+stepped 16/24/32rem), and fixed-height card bands carry content
+thumbnails — cover-cropped rasters, clipped rows, clamped prose.
 
 ### Filterable fields
 
@@ -637,17 +637,17 @@ full-span rows opt in with `.ck-span-full`), the record body's fill grids
 host grants growth — fact groups fill in 22rem-floor tracking columns,
 body blocks grow into spare row width under a 46rem content cap, and
 `LAYOUT.packRow` packs content-width stubs side by side), and the record
-preview hero (`LAYOUT.previewHero`/`LAYOUT.previewHeroBand`: the detail
-body's band steps up with its container — 7rem base, 11rem past the
+preview hero (`LAYOUT.previewHero`/`LAYOUT.previewHeroBand`: the quiet
+glyph band keeps the small stepped ladder — 7rem base, 11rem past the
 medium step, 14rem past the wide step — while the card slot keeps the
-fixed `LAYOUT.previewBand` stamp). A rendered preview — a renderable
-payload, a declared previewSource, or a plugin preview — sits in the
-framed media surface: `LAYOUT.previewHeroBandAspect` yields height to
-content with intrinsic geometry (the raster's natural size, the PDF
-page shape, the drawing frame) under the record body's 46rem content
-cap, and `LAYOUT.previewHeroBandContent` gives reading content (prose,
-tables, Word documents, plugin modules) the stepped 16/24/32rem scroll
-height. Every other container-relative
+fixed `LAYOUT.previewBand` stamp). A rendered preview takes the
+treatment its content earns: `LAYOUT.previewHeroBandFlow` flows record
+prose unframed at the body's 46rem content measure,
+`LAYOUT.previewHeroBandAspect` renders a page at the column's full
+width and its own aspect, and `LAYOUT.previewHeroBandContent` is the
+framed media region (rounded, hairline border, subtle ground) bounded
+media fill at the stepped 16/24/32rem height. Every other
+container-relative
 mechanism — the record split and the peer columns — engages through the
 container seam alone: `RegionChildren` renders the weight-derived
 zero-floored track list (`minmax(0, Nfr)`, so wide content scrolls inside
