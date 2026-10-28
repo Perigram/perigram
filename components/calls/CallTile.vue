@@ -9,7 +9,7 @@
              semantics): mount attaches, track change re-attaches, unmount
              detaches — the element pool follows the tile. -->
         <video
-            :ref="videoRef"
+            ref="videoEl"
             class="h-full w-full"
             :class="[tile.isScreen ? 'object-contain' : 'object-cover', { 'opacity-0': !tile.hasVideo, 'scale-x-[-1]': mirrored && !tile.isScreen }]"
             autoplay

@@ -2160,6 +2160,8 @@
         "activeRoom": "Ongoing call",
         "decline": "Decline",
         "ongoing": "Call in progress",
+        "maximize": "Maximize speaker",
+        "restore": "Restore film strip",
         "popOut": "Move call to floating window",
         "dock": "Return call to workspace",
         "groupCall": "Group call",

@@ -32,7 +32,7 @@
                             @aspect="ratio => patchAspect(focusTile, ratio)"
                         />
                     </div>
-                    <div class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-24">
+                    <div v-if="!focusMaximized" class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-24">
                         <CallTile
                             v-for="tile in stripTiles"
                             :key="`strip-${tile.identity}-${tile.source}`"
@@ -90,7 +90,6 @@
                 <div class="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1 rounded-full bg-content p-1.5 shadow-overlay">
                     <Button
                         :icon="micEnabled ? 'pi pi-microphone' : 'pi pi-microphone-slash'"
-                        severity="secondary"
                         text
                         rounded
                         :aria-label="$t('call.toggleMic')"
@@ -99,7 +98,6 @@
                     />
                     <Button
                         :icon="camEnabled ? 'pi pi-video' : 'pi pi-video-off'"
-                        severity="secondary"
                         text
                         rounded
                         :aria-label="$t('call.toggleCamera')"
@@ -108,7 +106,6 @@
                     />
                     <Button
                         :icon="sharing ? 'pi pi-stop-circle text-status-danger' : 'pi pi-desktop'"
-                        severity="secondary"
                         text
                         rounded
                         :aria-label="sharing ? $t('call.shareStop') : $t('call.share')"
@@ -118,7 +115,6 @@
                     <Button
                         v-if="canRecord"
                         :icon="recording ? 'pi pi-circle-fill text-status-danger' : 'pi pi-circle'"
-                        severity="secondary"
                         text
                         rounded
                         :aria-label="recording ? $t('call.recordStop') : $t('call.record')"
@@ -127,7 +123,6 @@
                     />
                     <Button
                         :icon="handRaised ? 'pi pi-thumbs-up-fill text-status-warning' : 'pi pi-thumbs-up'"
-                        severity="secondary"
                         text
                         rounded
                         :aria-label="$t('call.hand')"
@@ -136,7 +131,6 @@
                     />
                     <Button
                         icon="pi pi-face-smile"
-                        severity="secondary"
                         text
                         rounded
                         :aria-label="$t('call.reactions')"
@@ -144,8 +138,16 @@
                         @click="event => reactionPicker?.toggle(event)"
                     />
                     <Button
+                        v-if="layout === 'speaker'"
+                        :icon="focusMaximized ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+                        text
+                        rounded
+                        :aria-label="focusMaximized ? $t('call.restore') : $t('call.maximize')"
+                        :disabled="!isConnected"
+                        @click="callsStore.toggleFocusMaximized()"
+                    />
+                    <Button
                         :icon="layout === 'speaker' ? 'pi pi-th-large' : 'pi pi-id-card'"
-                        severity="secondary"
                         text
                         rounded
                         :aria-label="layout === 'speaker' ? $t('call.layoutGrid') : $t('call.layoutSpeaker')"
@@ -154,7 +156,6 @@
                     />
                     <Button
                         icon="pi pi-cog"
-                        severity="secondary"
                         text
                         rounded
                         :aria-label="$t('call.settings')"
@@ -283,6 +284,7 @@ const camEnabled = computed(() => Boolean(sessionState.value?.camEnabled));
 const sharing = computed(() => Boolean(sessionState.value?.sharing));
 const handRaised = computed(() => Boolean(sessionState.value?.handRaised));
 const layout = computed(() => sessionState.value?.layout || 'speaker');
+const focusMaximized = computed(() => Boolean(sessionState.value?.focusMaximized));
 const devices = computed(() => sessionState.value?.devices || {});
 const audioInputs = computed(() => sessionState.value?.audioInputs || []);
 const videoInputs = computed(() => sessionState.value?.videoInputs || []);
@@ -436,6 +438,10 @@ const leave = async () => {
 
 onMounted(() => {
     callsStore.mountSurface(props.room);
+    // The pending tab room is consumed by the surface that actually
+    // mounts: until then it keeps the floating-window auto-rule
+    // suspended, so docking can never race the tab into existence.
+    if (callsStore.pendingTabRoom === props.room) callsStore.consumePendingTabRoom();
 });
 
 onBeforeUnmount(() => {

@@ -994,11 +994,12 @@ watch(() => [
 
 // Accepted invites and docked floating calls open here as workspace tabs:
 // the call machine parks a pending tab room and any surface routing to the
-// home workspace navigates here to consume it.
+// home workspace navigates here to open the tab; the mounted panel consumes
+// the pending room, so the floating-window auto-rule stays suspended until
+// a surface truly exists.
 watch(() => callsStore.pendingTabRoom, room => {
   if (!room) return;
   openCallTab(room, { conversationKey: conversationKeyForRoom(room) });
-  callsStore.consumePendingTabRoom();
 }, { immediate: true });
 
 // Desktop instance links open as compiled detail-screen tabs: live events
