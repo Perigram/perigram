@@ -1853,6 +1853,7 @@
         "intro": "Screens generated from synthetic compiler output: the composed tree comes from the compiled screen contract, CTS client bundle, and instance graph; every surface, control, budget, and button is resolver output. The page and components own no per-type logic.",
         "add": "Add",
         "remove": "Remove",
+        "mapKey": "Key",
         "showMore": "Show {count} more",
         "showLess": "Show less",
         "emptyRegion": "No records",

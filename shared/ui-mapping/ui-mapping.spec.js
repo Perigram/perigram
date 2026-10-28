@@ -306,12 +306,12 @@ describe('field control resolution', () => {
     expect(resolveListLayout(attachments)).toBe('card-grid');
   });
 
-  it('edits maps and json as text, records as structured editors', () => {
+  it('edits maps as key-value rows and renders schemaless json read-only', () => {
     expect(resolveFieldControl({ base: 'map', itemType: { base: 'string' } }, { variant: 'detail' })).toMatchObject({
-      component: 'JsonEditor', span: 'full'
+      component: 'MapEditor', span: 'full'
     });
     expect(resolveFieldControl({ base: 'json' }, { variant: 'detail' })).toMatchObject({
-      component: 'JsonEditor'
+      component: 'ObjectSummary'
     });
     expect(resolveFieldControl({ base: 'record', fields: { a: { base: 'string' } } }, { variant: 'detail' })).toMatchObject({
       component: 'ObjectEditor'
