@@ -73,7 +73,7 @@ derived composition per the components motion policy.
 ## useConnections — realtime connections layer
 
 ```js
-const { status, onlineUserIds, subscribe } = useConnections();
+const { status, epoch, onlineUserIds, subscribe } = useConnections();
 const unsubscribe = subscribe('conversation:support:123', (payload) => { ... });
 ```
 
@@ -83,8 +83,10 @@ feature topics such as `conversation:<key>`. The server enforces topic
 admission; `subscribe` returns an unsubscribe function and drops the server
 subscription when the last handler goes away. After every (re)connect the
 composable resynchronizes the active topic set, so consumers are free of
-reconnect handling. `status` is `idle | connecting | open | reconnecting |
-error`;
+reconnect handling. `epoch` advances on every `ready` event — each
+(re)connect — so consumers that can miss topic events during a gap refetch
+their state on change (the chat thread reconciles this way). `status` is
+`idle | connecting | open | reconnecting | error`;
 `onlineUserIds` is a reactive Set of user ids with a live connection in the
 active organization. Contract details live in
 [the connections feature](../server/features/connections/README.md).

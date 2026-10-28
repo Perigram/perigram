@@ -112,6 +112,21 @@ export function stopConversationRuns(organizationId, conversationKey) {
 }
 
 /**
+ * The room's in-flight run snapshot — the same absolute state the sink
+ * publishes — for a thread resynchronizing after a stream gap.
+ */
+export function liveConversationRun(organizationId, conversationKey) {
+    for (const entry of inFlight.values()) {
+        const keys = entry.stopKeys || [entry.conversationKey];
+        if (!keys.includes(String(conversationKey))) continue;
+        if (entry.organizationId && organizationId && String(entry.organizationId) !== String(organizationId)) continue;
+        if (!entry.live) continue;
+        return { active: true, ...entry.live };
+    }
+    return { active: false };
+}
+
+/**
  * Room presence for the AI's run as it is produced: the runtime owns no
  * delivery channel, so the run's activity rides the conversation topics —
  * every key the trigger message fans out to, so the subscribed ancestor
@@ -122,8 +137,17 @@ export function stopConversationRuns(organizationId, conversationKey) {
  * `bot_stream_end` clears the run once the persisted message supersedes
  * it.
  */
-function botActivitySink(assistantAuth, conversationKeys) {
+function botActivitySink(assistantAuth, conversationKeys, entry = null) {
     const keys = [...new Set((conversationKeys || []).map(key => String(key || '')).filter(Boolean))];
+    // The run's last published snapshot, kept on the in-flight entry for
+    // the live-state read a reconnecting thread performs.
+    const live = entry ? (entry.live = {
+        userId: assistantAuth.userId,
+        name: assistantAuth.name || '',
+        steps: [],
+        answer: '',
+        question: null
+    }) : null;
     const publish = (type, fields = {}) => {
         for (const key of keys) {
             connectionsService.publish(`conversation:${key}`, {
@@ -142,17 +166,21 @@ function botActivitySink(assistantAuth, conversationKeys) {
         // plain answer can reclassify without the client accumulating
         // garbage.
         activity(steps) {
+            if (live) live.steps = steps || [];
             publish('bot_activity', { steps });
         },
         answer(text) {
+            if (live) live.answer = text || '';
             publish('bot_stream', { text });
         },
         // The suspended question (ask_user): rendered at the composer
         // until answered, stopped, or timed out.
         question(question, options = []) {
+            if (live) live.question = { question: String(question || ''), options: options.map(String) };
             publish('bot_question', { question, options });
         },
         questionEnd() {
+            if (live) live.question = null;
             publish('bot_question_end');
         },
         end() {
@@ -570,7 +598,7 @@ export async function runAssistantReply(target, context, message) {
         if (target.organizationId && String(execAuth.organizationId || '') !== target.organizationId) return;
         const assistantAuth = await buildPrincipalAuth(target.assistantId);
         inFlight.get(lockKey).organizationId = target.organizationId || assistantAuth.organizationId || execAuth.organizationId;
-        stream = botActivitySink(assistantAuth, fanoutKeys);
+        stream = botActivitySink(assistantAuth, fanoutKeys, inFlight.get(lockKey));
         stream.activity([]);
         const organizationId = target.organizationId || execAuth.organizationId;
         // Execution-point precedence: the conversation's pin, then the org
@@ -695,7 +723,7 @@ export async function runAssistantWake(subscription, event, rule = {}) {
         if (!assistant) return;
         const assistantAuth = await buildPrincipalAuth(assistant.id);
         inFlight.get(lockKey).organizationId = subscription.organizationId?.toString?.() || null;
-        stream = botActivitySink(assistantAuth, [subscription.conversationKey]);
+        stream = botActivitySink(assistantAuth, [subscription.conversationKey], inFlight.get(lockKey));
         stream.activity([]);
         // Execution-point precedence: the wake rule's model, then this
         // conversation's, then the org chat route.

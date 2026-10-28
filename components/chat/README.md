@@ -27,7 +27,7 @@ refs bind through the bag in whichever SFC hosts the element.
 | Seen by | the message context menu lists every other participant whose cursor covers the message, each row with name and locale time |
 | Search | server-scanned by text, sender, and attachment kind; a result jumps in place — an unmatched older hit loads its surrounding page through one timestamp-anchored request |
 | Scroll to end | the floating control shows while scrolled away from the live end and counts messages waiting below; new messages scroll only when the reader is at the end |
-| Live state | every `conversation:<key>` event reconciles — message, read cursor, typing, bot activity; cursors arrive on history load (`readCursors`) and stay live |
+| Live state | every `conversation:<key>` event reconciles — message, read cursor, typing, bot activity; a stream reconnect refetches the tail and the live run snapshot; cursors arrive on history load (`readCursors`) and stay live |
 | Rhythm | day dividers split day boundaries; the unread divider marks the first unread after the viewer's pre-open cursor; sender runs group within three minutes |
 | Avatars | wide panes close every sender run with the avatar-only gutter mark; group/instance threads anchor others' runs in the same gutter at every pane width; 1:1 threads carry no sender stamp in the two-sided variant. |
 | Long messages | a body taller than 18rem clamps (`max-h-72`) behind the show-more control; expansion is in place through the bag's per-message set; the jump-to-message highlight reveals a clamped target. |
