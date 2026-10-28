@@ -71,7 +71,7 @@ import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Select from '~/components/shared/InstanceSelect.vue';
 import ToggleSwitch from 'primevue/toggleswitch';
-import { titleFor } from '#shared/ui-mapping/index.js';
+import { instancePickerOptions } from '~/utils/instance-select.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useRegistryStore } from '~/stores/registry';
 
@@ -147,14 +147,10 @@ async function loadRefOptions() {
 }
 
 function refOptionsFor(typeKey) {
-  const typeView = registry.typeRecord(typeKey);
-  const pool = instances.dtoRegistry[typeKey] || {};
-  return Object.entries(pool).map(([id, dto]) => ({
-    label: titleFor(instances.instanceFor(typeKey, id), typeView, { unnamedLabel: t('common.unnamed') }),
-    value: id,
-    typeId: props.typeId,
-    entity: dto
-  }));
+  return instancePickerOptions(instances.dtoRegistry, [typeKey], {
+    typeRecordFor: key => registry.typeRecord(key),
+    unnamedLabel: t('common.unnamed')
+  });
 }
 
 onMounted(loadRefOptions);

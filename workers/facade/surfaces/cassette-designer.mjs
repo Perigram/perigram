@@ -66,7 +66,6 @@ const entitySelectLabel = (entity, fallback = '') => entitySelectText(
   entity?.name, entity?.label, entity?.title,
   entity?.code, entity?._id, entity?.id, fallback
 );
-const entitySelectValue = (entity) => String(entity?._id || entity?.id || '');
 
 // Snapshot undo/redo history, module-local (the editor owns its stack).
 // The gate flags are real refs from the injected runtime — a plain getter
@@ -137,7 +136,7 @@ export default function createSurface({ vue, components, locale, queries, record
   const parameterNameDraft = createFieldDraft({ vue });
   const CassetteFoldedPreview = createFoldedPreview({ vue, components, locale });
   const ProfileSketchEditor = createSketchEditor({ vue, components, locale });
-  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, InputNumber, Message, ScrollPanel, Select, Tag } = components;
+  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, InputNumber, Message, ScrollPanel, Select, Tag, InstanceSelect } = components;
 
   return defineComponent({
     name: 'CassetteDesignerV2',
@@ -280,6 +279,12 @@ export default function createSurface({ vue, components, locale, queries, record
       });
       const profileLibraryRecords = ref([]);
       const profileLibraryAvailable = ref(true);
+      const profileLibraryOptions = computed(() => profileLibraryRecords.value.map(record => ({
+        label: record?.name || t('common.unnamed'),
+        value: record?._id?.toString(),
+        entity: record,
+        typeId: 'profile'
+      })));
       const profilePicker = ref(null);
       const hardwareLibraryRecords = ref([]);
       const hardwareLibraryAvailable = ref(true);
@@ -3085,16 +3090,18 @@ export default function createSurface({ vue, components, locale, queries, record
                 'onUpdate:modelValue': value => { profileDraft.value.process = value; }
               }),
               profileLibraryAvailable.value
-                ? h(Select, {
+                ? h('div', { class: 'w-44' }, [h(InstanceSelect, {
                   modelValue: null,
-                  options: profileLibraryRecords.value,
-                  optionLabel: 'name',
+                  options: profileLibraryOptions.value,
+                  optionLabel: 'label',
+                  optionValue: 'value',
                   placeholder: t('cassette.v2.profileEditor.library'),
                   appendTo: 'self',
                   size: 'small',
-                  class: 'w-44',
-                  'onUpdate:modelValue': value => { applyProfileLibraryRecord(value); }
-                })
+                  'onUpdate:modelValue': value => {
+                    applyProfileLibraryRecord(profileLibraryRecords.value.find(record => record?._id?.toString() === value));
+                  }
+                })])
                 : null,
               h(Button, {
                 icon: 'pi pi-save',

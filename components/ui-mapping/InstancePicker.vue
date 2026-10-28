@@ -9,7 +9,20 @@
     placeholder="—"
     class="w-full"
     @update:model-value="keys => selectTreeKey(keys)"
-  />
+  >
+    <template #option="{ node }">
+      <div v-if="node.instance" class="pointer-events-none w-full min-w-0">
+        <InstanceInlineRef
+          :type="node.typeId"
+          :entity="node.instance"
+          :fetch="false"
+          :interactive="false"
+          variant="compact"
+        />
+      </div>
+      <span v-else>{{ node.label }}</span>
+    </template>
+  </TreeSelect>
   <AutoComplete v-else
     :model-value="selectedOption"
     :suggestions="suggestions"
@@ -21,7 +34,20 @@
     class="w-full"
     @complete="search"
     @update:model-value="option => (model = option?.value ?? null)"
-  />
+  >
+    <template #option="{ option }">
+      <div v-if="option.entity" class="pointer-events-none w-full min-w-0">
+        <InstanceInlineRef
+          :type="option.typeId"
+          :entity="option.entity"
+          :fetch="false"
+          :interactive="false"
+          variant="compact"
+        />
+      </div>
+      <span v-else>{{ option.label }}</span>
+    </template>
+  </AutoComplete>
 </template>
 
 <script setup>
@@ -29,7 +55,9 @@ import { computed, ref } from 'vue';
 import AutoComplete from 'primevue/autocomplete';
 import TreeSelect from 'primevue/treeselect';
 import { useI18n } from 'vue-i18n';
-import { titleFor, childrenOfParent } from '#shared/ui-mapping/index.js';
+import { childrenOfParent } from '#shared/ui-mapping/index.js';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
+import { instanceOptionLabel, instancePickerOptions } from '~/utils/instance-select.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 
 const props = defineProps({
@@ -41,10 +69,8 @@ const props = defineProps({
 const model = defineModel();
 const suggestions = ref([]);
 const { t, te } = useI18n();
-const unnamedLabel = () => t('common.unnamed');
-
-const typeLabel = typeId => generatedEntityLabel(typeId, { t, te });
-const typeRecordOf = typeId => (props.bundle?.types || []).find(candidate => candidate.id === typeId) || null;
+const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
+const typeRecordOf = typeId => typesById.value[typeId] || null;
 
 const acceptedType = computed(() => typeRecordOf(props.accepts[0]));
 const hierarchical = computed(() => Boolean(Object.keys(acceptedType.value?.edges?.children || {}).length));
@@ -59,7 +85,9 @@ const buildNode = (instance, seen = new Set()) => {
     .filter(child => !nextSeen.has(child.id));
   return {
     key: instance.id,
-    label: titleFor(instance, type, { unnamedLabel: unnamedLabel() }),
+    label: instanceOptionLabel(instance, type, { unnamedLabel: t('common.unnamed') }),
+    typeId: instance.type,
+    instance,
     children: children.map(child => buildNode(child, nextSeen)).filter(Boolean)
   };
 };
@@ -79,12 +107,12 @@ function selectTreeKey(keys) {
   model.value = id ? { type: props.accepts[0], id } : null;
 }
 const treeSelection = computed(() => (props.model?.id ? { [props.model.id]: true } : null));
-const options = computed(() => props.accepts
-  .flatMap(typeId => Object.values(props.pool[typeId] || {}))
-  .map(instance => ({
-    label: `${typeLabel(instance.type)}: ${titleFor(instance, typeRecordOf(instance.type), { unnamedLabel: unnamedLabel() })}`,
-    value: { type: instance.type, id: instance.id }
-  })));
+const options = computed(() => instancePickerOptions(props.pool, props.accepts, {
+  typeRecordFor: typeRecordOf,
+  typeLabelFor: typeId => generatedEntityLabel(typeId, { t, te }),
+  unnamedLabel: t('common.unnamed'),
+  refValue: true
+}));
 const search = event => {
   const query = String(event.query || '').toLowerCase();
   suggestions.value = options.value.filter(option => option.label.toLowerCase().includes(query));

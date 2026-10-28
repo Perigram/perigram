@@ -55,6 +55,7 @@ vi.mock('~/components/shared/InstanceInlineRef.vue', async () => {
 
 import InstanceSelect from './InstanceSelect.vue';
 import InstanceMultiSelect from './InstanceMultiSelect.vue';
+import { instancePickerOptions } from '~/utils/instance-select.js';
 
 const entities = [
   { _id: 'queue-1', identity: { uid: 'queue-1', name: 'Queue 1' }, data: {} },
@@ -153,6 +154,48 @@ describe('entity Select wrappers', () => {
 
     expect(html).toContain('<strong>Draft</strong>');
     expect(html).not.toContain('data-entity-id');
+  });
+
+  it('recognizes §3 wire records as entity options', async () => {
+    const wire = { _id: 'pen-1', name: 'Pen one', fields: { code: 'P1' }, state: 'active' };
+    const html = await render(InstanceSelect, {
+      modelValue: 'pen-1',
+      options: [{ label: 'Pen one', value: 'pen-1', entity: wire, typeId: 'pen-template' }],
+      optionLabel: 'label',
+      optionValue: 'value'
+    });
+
+    expect(html).toContain('data-entity-id="pen-1"');
+    expect(html).toContain('data-type-id="pen-template"');
+    expect(html.match(/data-variant="compact"/g)).toHaveLength(2);
+  });
+
+  it('derives picker options procedurally from an instance pool', () => {
+    const types = [
+      { id: 'cassette', identifier: 'name' },
+      { id: 'pen', identifier: 'code' }
+    ];
+    const typeRecordFor = id => types.find(type => type.id === id);
+    const pool = {
+      cassette: { c1: { id: 'c1', type: 'cassette', fields: { name: 'Alpha' } } },
+      pen: { p1: { id: 'p1', type: 'pen', fields: { code: 'P-1' } } }
+    };
+
+    const multi = instancePickerOptions(pool, ['cassette', 'pen'], {
+      typeRecordFor,
+      typeLabelFor: id => id.toUpperCase(),
+      unnamedLabel: '?',
+      refValue: true
+    });
+    expect(multi).toEqual([
+      { label: 'CASSETTE: Alpha', value: { type: 'cassette', id: 'c1' }, entity: pool.cassette.c1, typeId: 'cassette' },
+      { label: 'PEN: P-1', value: { type: 'pen', id: 'p1' }, entity: pool.pen.p1, typeId: 'pen' }
+    ]);
+
+    const single = instancePickerOptions(pool, ['pen'], { typeRecordFor, unnamedLabel: '?' });
+    expect(single).toEqual([
+      { label: 'P-1', value: 'p1', entity: pool.pen.p1, typeId: 'pen' }
+    ]);
   });
 });
 

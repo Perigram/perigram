@@ -114,9 +114,10 @@ export default function createSurface({ vue, components, locale, queries, notify
         ? sheetPlacementTransform(placedItems.value[selectedIndex.value])
         : null);
       const designOptions = computed(() => designs.value.map(design => ({
-        label: design.name || design._id,
+        label: design.name || t('common.unnamed'),
         value: design._id?.toString(),
-        entity: design
+        entity: design,
+        typeId: 'cassette-design'
       })));
       const displayName = computed(() => localName.value || props.record?.fields?.name || t('sheetDesign.editor'));
       const selectedPlacement = computed(() => selectedIndex.value >= 0
