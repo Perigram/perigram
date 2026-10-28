@@ -1140,4 +1140,6 @@ type; format-specific pairing rides declared control pins. The fill
 dialog composes as one shell for every fill type: the form pane carries
 the rows and named offenders, the preview pane carries the live
 composition, each rendering through the created type's payload preview
-mode.
+mode. A values input pinned `template-values` renders one scalar input
+per template token — the composition's meta channel names the tokens,
+and records never store them.

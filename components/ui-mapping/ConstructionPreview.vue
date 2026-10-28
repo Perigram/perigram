@@ -38,6 +38,7 @@ const blobUrl = ref('');
 const attachment = ref(null);
 const failures = ref([]);
 const bound = ref(true);
+const emit = defineEmits(['meta']);
 const previewMode = computed(() => props.type?.payload?.preview || 'attachment');
 
 const draftKey = computed(() => JSON.stringify(props.draft || {}));
@@ -86,6 +87,7 @@ async function run() {
       return;
     }
     bound.value = true;
+    emit('meta', result.meta || null);
     releaseBlob();
     const payload = result?.payload || null;
     if (payload?.base64) {

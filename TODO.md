@@ -595,6 +595,21 @@ AttachmentKind row.
       the form pane and the preview pane compose side by side in one
       wide dialog for every fill type, the preview rendering through the
       created type's payload preview mode.
+    - [ ] WAITING — Per-token values form (owner direction 2026-10-28):
+      a `template-values` pinned values input renders one scalar input
+      per template token; the composition's ephemeral `meta` channel
+      names the tokens and records never store them.
+
+    ### Agent Notes (2026-10-28, token values)
+
+    Session `agent/template-values-20261028-2000`. The documents fills
+    harvest their template's token keys (per engine, homed in fill.js)
+    and answer them beside the payload through the executor `meta`
+    channel; the preview passes `meta` verbatim and the create merge
+    never sees it (documents listing v5 pins the values inputs
+    `template-values` — re-seed the catalog for existing stacks).
+    `TemplateValuesRow` renders the per-token inputs inside the shell;
+    the json editor stays only for unpinned free-form maps.
 
     ### Agent Notes (2026-10-28, shell)
 

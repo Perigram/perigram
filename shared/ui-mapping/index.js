@@ -1340,12 +1340,14 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
     }
     // Operator data inputs (free-form maps, quantities, booleans): plain
     // rows over the policy's own base — a free-form object is the json
-    // editor.
+    // editor, a `template-values` pin renders the composition's token
+    // form instead.
     if (policy?.type) {
       rows.push({
         id,
         label: policy.label || fieldLabel(id),
         descriptor: { base: policy.type === 'object' ? 'json' : policy.type },
+        ...(policy.control ? { control: policy.control } : {}),
         span: 'full',
         required: policy.required === true
       });

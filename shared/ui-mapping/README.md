@@ -166,7 +166,10 @@ offenders, the preview pane debounces the draft into
 `POST /api/instances/:type/construction-preview` and renders the
 returned payload through the created type's preview mode
 ([instances feature](../../server/features/instances/README.md) owns
-the route), with the refusal's named offenders shown inline. The contract's input list is the dialog's complete row
+the route), with the refusal's named offenders shown inline. A values
+input carrying the `template-values` control pin renders
+`TemplateValuesRow` — one scalar input per token the composition's
+`meta.tokens` names, the model staying the operator's values map. The contract's input list is the dialog's complete row
 list: an identifier row reaches the dialog only as a contract input (a
 registry-minted identity row authors nothing and stays out of every
 contract). Declared fields match by flat-wire `fields.<name>` path

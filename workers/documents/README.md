@@ -73,6 +73,10 @@ Token law:
 | `{#key}` / `{/key}` | xlsx, one cell each, on their own rows | the rows between repeat once per element of `values[key]`; element fields shadow outer values; a scalar element binds to `{item}`; one nesting level |
 | `{spot:name}` | DXF templates | the [tech-drawing](../tech-drawing/README.md) placement contract |
 
+The `fill` service answers the template's token keys beside the payload
+(`meta.tokens`, the ephemeral channel the preview passes verbatim) — the
+fill dialog renders one scalar input per token.
+
 Behavior and traps:
 
 - xlsx fills rewrite values in place and rebuild rows for repeated

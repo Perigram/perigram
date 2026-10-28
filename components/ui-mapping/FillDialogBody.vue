@@ -10,6 +10,7 @@
         :mode="mode"
         :type="type"
         :draft="draft"
+        @meta="value => emit('meta', value)"
       />
     </div>
   </div>
@@ -20,8 +21,9 @@
 import ConstructionPreview from './ConstructionPreview.vue';
 
 // The fill dialog's composed body (SPEC §24): the form pane carries the
-// rows and named offenders, the preview pane the live composition. The
-// shell renders transparent when the create carries nothing to compose.
+// rows and named offenders, the preview pane the live composition (its
+// meta channel bubbles to the host). The shell renders transparent when
+// the create carries nothing to compose.
 defineProps({
   active: { type: Boolean, default: false },
   typeId: { type: String, default: '' },
@@ -29,4 +31,6 @@ defineProps({
   type: { type: Object, default: null },
   draft: { type: Object, default: () => ({}) }
 });
+
+const emit = defineEmits(['meta']);
 </script>

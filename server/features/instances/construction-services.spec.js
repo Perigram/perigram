@@ -268,6 +268,19 @@ describe('construction preview (SPEC §24)', () => {
     expect(preview).toEqual({ payload: null, fields: { pages: 3 } });
   });
 
+  it('passes the executor meta through the preview and never into the created fields', async () => {
+    stubCollection();
+    executorOutput({ data: { pages: 2 }, meta: { tokens: ['client', 'date'] }, payload: { base64: b64('%PDF'), mime: 'application/pdf' } });
+
+    const preview = await previewConstructionService('report', 'fromTemplate', { name: 'X' }, CONTEXT);
+    expect(preview.meta).toEqual({ tokens: ['client', 'date'] });
+
+    executorOutput({ data: { pages: 2 }, meta: { tokens: ['client', 'date'] }, payload: { base64: b64('%PDF'), mime: 'application/pdf' } });
+    const dto = await serviceBackedConstruction('report', 'fromTemplate')({ name: 'X' }, CONTEXT);
+    expect(dto.fields).toEqual({ pages: 2 });
+    expect(dto.meta).toBeUndefined();
+  });
+
   it('answers null when the org binds no service for the mode', async () => {
     await expect(previewConstructionService('drawing', 'fill', {}, CONTEXT)).resolves.toBe(null);
     await expect(previewConstructionService('drawing', 'place', {}, { userId: 'u1', organizationId: 'org-2' })).resolves.toBe(null);
