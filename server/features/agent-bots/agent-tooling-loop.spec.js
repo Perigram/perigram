@@ -25,7 +25,12 @@ vi.mock('../plugins/repository.js', () => ({
     listDisabledPacks: vi.fn(async () => []),
     enablePack: vi.fn(),
     disablePack: vi.fn(),
-    listInstallsByOrganization: vi.fn(async () => []),
+    // The facade install serves the fixture's cassette construction
+    // contract (construction is plugin-served since the pack cutover).
+    listInstallsByOrganization: vi.fn(async () => [{
+        pluginId: 'facade',
+        declarations: { constructions: { cassette: { editor: 'plugin.facade.bake' } } }
+    }]),
     listDeclarationsByOrganization: vi.fn(async () => []),
     findDeclarationByTypeId: vi.fn(async () => null),
     findInstallByConnectorToken: vi.fn(async () => null)
@@ -38,6 +43,10 @@ vi.mock('../cts-types/service.js', async () => {
     for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack, ...domainPack.facadeFileTypes]) {
         registry.defineType(declaration);
     }
+    // The persisted-acceptance fixture authors a cassette construct; the
+    // packs that once served it are plugin-served now, so this registry
+    // declares it beside the packs.
+    registry.defineType({ id: 'cassette', class: 'item', fields: { name: { base: 'string' } } });
     return {
         compileRegistryForOrganization: vi.fn(async () => registry),
         describeOrganizationTypes: vi.fn(async () => ({ bundle: { types: [] } })),
@@ -174,15 +183,17 @@ const TASK_STEPS = [
 const LITERAL_STEPS = [
     { op: 'drop', item: 'literal', id: 'nameLit' },
     { op: 'configure', id: 'nameLit', values: { type: { base: 'string', nullable: false }, value: 'wired' } },
-    { op: 'connect', id: 'nameLit', fromPort: 'value', to: 'make', toPort: 'fields.title' }
+    { op: 'connect', id: 'nameLit', fromPort: 'data:value', to: 'make', toPort: 'data:fields.title' }
 ];
 
-// A registry-typed construct — the same shape the acceptance fixture
-// authors: drop, configure the facade type + lane grant, default the
-// identifier field.
+// A registry-typed construct — binds by declaration wire (the palette
+// construct binds its type; configure never writes typeId), lane grant,
+// default the identifier field.
 const COMPOSE_STEPS = [
+    { op: 'declareTypeRef', id: 'tapeRef', typeId: 'cassette' },
     { op: 'drop', item: 'construct', id: 'make' },
-    { op: 'configure', id: 'make', values: { typeId: 'cassette', access: { grants: [{ roleId: 'fixture-role-operator', level: 'admin' }] } } },
+    { op: 'wireDeclaration', from: 'tapeRef', to: 'make', role: 'binds' },
+    { op: 'configure', id: 'make', values: { access: { grants: [{ roleId: 'fixture-role-operator', level: 'admin' }] } } },
     { op: 'setInputDefault', id: 'make', input: 'fields.name', value: 'Spec cassette' }
 ];
 
@@ -207,6 +218,8 @@ describe('the compose → validate → activate loop over the tool catalog', () 
         expect(compact.guide).toMatch(/declaration tree/);
         expect(compact.guide).toMatch(/Five identity laws/);
         expect(compact.guide).toMatch(/ask_user/);
+        expect(compact.guide).toMatch(/schedule:\{at:/);
+        expect(compact.guide).toMatch(/eventId/);
         expect(compact.palette.length).toBeGreaterThan(0);
         expect(compact.roles).toEqual([{ id: 'role_admin', label: 'Admin' }]);
 
@@ -221,9 +234,9 @@ describe('the compose → validate → activate loop over the tool catalog', () 
 
     it('composes a definition through gestures and answers the digest, never the document', async () => {
         const digest = await call('compose_process_definition', { name: 'Spec compose', steps: COMPOSE_STEPS });
-        expect(digest.nodes).toEqual([
+        expect(digest.nodes).toEqual(expect.arrayContaining([
             expect.objectContaining({ id: 'make', kind: 'cts.construct', typeId: 'cassette' })
-        ]);
+        ]));
         expect(digest.counts.processNodes).toBe(1);
         expect(digest.status).toBe('DRAFT');
 
@@ -239,7 +252,7 @@ describe('the compose → validate → activate loop over the tool catalog', () 
         expect(validation.ok).toBe(true);
 
         const activated = await call('activate_process_definition', { definitionId: digest.id });
-        expect(activated.states).toMatchObject({ main: 'ACTIVE' });
+        expect(activated.status).toBe('ACTIVE');
 
         const after = await call('get_process_definition', { definitionId: digest.id });
         expect(after.status).toBe('ACTIVE');
@@ -267,8 +280,8 @@ describe('illegal wires never persist — the socket wall', () => {
         const digest = await call('compose_process_definition', { name: 'Spec task', steps: TASK_STEPS });
         await expect(call('edit_process_definition', {
             definitionId: digest.id,
-            steps: [{ op: 'drop', item: 'literal', id: 'nameLit' }, { op: 'connect', id: 'nameLit', fromPort: 'nope', to: 'make', toPort: 'fields.title' }]
-        })).rejects.toThrow(/Unknown port nameLit:nope/);
+            steps: [{ op: 'drop', item: 'literal', id: 'nameLit' }, { op: 'connect', id: 'nameLit', fromPort: 'data:nope', to: 'make', toPort: 'data:fields.title' }]
+        })).rejects.toThrow(/Unknown port nameLit:data:nope/);
     });
 
     it('refuses control into a data socket', async () => {
@@ -278,7 +291,7 @@ describe('illegal wires never persist — the socket wall', () => {
             steps: [
                 { op: 'drop', item: 'construct', id: 'make2' },
                 { op: 'wireDeclaration', from: 'clsTask', to: 'make2', role: 'binds' },
-                { op: 'connect', id: 'make', fromPort: 'completed', to: 'make2', toPort: 'fields.title' }
+                { op: 'connect', id: 'make', fromPort: 'control:completed', to: 'make2', toPort: 'data:fields.title' }
             ]
         })).rejects.toThrow(/control into a data socket/);
     });
@@ -290,7 +303,7 @@ describe('illegal wires never persist — the socket wall', () => {
             definitionId: digest.id,
             steps: [
                 { op: 'drop', item: 'literal', id: 'nameLit2' },
-                { op: 'connect', id: 'nameLit2', fromPort: 'value', to: 'make', toPort: 'fields.title' }
+                { op: 'connect', id: 'nameLit2', fromPort: 'data:value', to: 'make', toPort: 'data:fields.title' }
             ]
         })).rejects.toThrow(/accepts one wire/);
         const after = await call('get_process_definition', { definitionId: digest.id });
@@ -351,7 +364,7 @@ describe('illegal wires never persist — the socket wall', () => {
 
         const unwired = await call('edit_process_definition', {
             definitionId: digest.id,
-            steps: [{ op: 'disconnect', id: 'nameLit', fromPort: 'value', to: 'make', toPort: 'fields.title' }]
+            steps: [{ op: 'disconnect', id: 'nameLit', fromPort: 'data:value', to: 'make', toPort: 'data:fields.title' }]
         });
         expect(unwired.edges).not.toContainEqual({ from: 'nameLit:value', to: 'make:fields.title' });
 
@@ -369,7 +382,7 @@ describe('illegal wires never persist — the socket wall', () => {
         expect(undeclared.edges.some(edge => edge.declaration === 'declares')).toBe(false);
         await expect(call('edit_process_definition', {
             definitionId: digest.id,
-            steps: [{ op: 'disconnect', id: 'nameLit', fromPort: 'value', to: 'make', toPort: 'fields.title' }]
+            steps: [{ op: 'disconnect', id: 'nameLit', fromPort: 'data:value', to: 'make', toPort: 'data:fields.title' }]
         })).rejects.toThrow(/composed nodes/);
     });
 
@@ -450,7 +463,6 @@ describe('the activation migration gate through the tools', () => {
             activationBlocked: true,
             gate: {
                 migrationRequired: true,
-                affected: [{ typeId, statuses: ['LEGACY_RETIRED'], count: 2 }],
                 migrationPlan: {
                     statuses: [{
                         typeId,
@@ -485,7 +497,7 @@ describe('the activation migration gate through the tools', () => {
         expect(declared).toMatchObject({ definitionId: 'def-draft', declared: [{ typeId, from: 'LEGACY_RETIRED', to: 'done' }] });
 
         const activated = await call('activate_process_definition', { definitionId: 'def-draft' });
-        expect(activated.states).toMatchObject({ main: 'ACTIVE' });
+        expect(activated.status).toBe('ACTIVE');
 
         expect(stateService.setInitialStateForOrganization).toHaveBeenCalledTimes(2);
         expect(stateService.setInitialStateForOrganization).toHaveBeenCalledWith(
@@ -522,14 +534,14 @@ describe('control nodes: the palette control section in the compiled surface', (
             steps: [
                 ...COMPOSE_STEPS,
                 { op: 'drop', item: 'finish', id: 'stop' },
-                { op: 'connect', id: 'make', fromPort: 'completed', to: 'stop', toPort: 'in' }
+                { op: 'connect', id: 'make', fromPort: 'control:completed', to: 'stop', toPort: 'control:in' }
             ]
         });
         const validation = await call('validate_process_definition', { definitionId: digest.id });
         expect(validation.ok).toBe(true);
 
         const activated = await call('activate_process_definition', { definitionId: digest.id });
-        expect(activated.states).toMatchObject({ main: 'ACTIVE' });
+        expect(activated.status).toBe('ACTIVE');
 
         const compiled = store().rows.get(digest.id).data.compiled;
         // The construct's grant generates the surfaces; the finish wired

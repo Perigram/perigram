@@ -92,8 +92,9 @@ const AUTHORING_GUIDE = [
     "- A STATE declares lifecycle vocabulary — root when wired to its class, nested when wired to a parent state; initial and terminal are state facts. Transitions are OPERATION nodes (cts.transition) selecting a declared state as target.",
     "- A TYPE REFERENCE ({op:'declareTypeRef', typeId}) binds an existing registry type (ids from list_types) into the tree; it wires as child, target, or binding exactly like a class.",
     '## The operation graph — behavior',
-    "- EFFECTS (construct, mutate, transition, remove, registered services) are the one population carrying access: ONE grant per effect — its lane. An effect runs automatically iff its event input 'in' is wired.",
+    "- EFFECTS (construct, mutate, transition, remove, emit, registered services) are the one population carrying access: ONE grant per effect — its lane. A wired event input runs the effect automatically; an unwired effect is an entry — manual, or started by its authored time or event (next bullet).",
     '- Everything else is dataflow: sources (literal, context, all<T>), values, collections, reads, control. Ports derive from declarations: a construct bound to a class exposes fields.<name> per declared field; a consumer takes its type from its entity input.',
+    "- Time and events: configure {trigger:{mode:'schedule',schedule:{at:'<ISO>'}}} or {interval:'PT5M'} starts an unwired entry at its time; {eventId:'<type>'} starts it on that emitted event (a wired event input wins). emitEvent persists one event (inputs: type — required, payload) and dispatches it to subscriber entries; waitUntil parks until its dateTime input; eventPayload reads the delivered event (path event.payload).",
     "- Sockets: {detail:'sockets'} serves the catalog-static kinds (families: sources, values, collections, records, reads, effects, control). Record-bound kinds (construct, mutate, transition) resolve their live sockets from the bound record — read them off the digest row of the dropped node.",
     '## The gestures',
     'Palette item ids are bare: literal, construct, calculate, finish, ... (this payload lists them all). Declaration roles: declares, targets, children, binds.',
@@ -189,7 +190,18 @@ function definitionDigest(row) {
                 sockets: [
                     ...(record.inputs || []).map(port => `${port.role === 'data' ? 'data' : 'control'}:${port.id}`),
                     ...(record.outputs || []).map(port => `${port.role === 'data' ? 'data' : 'control'}:${port.id}`)
-                ]
+                ],
+                // Authored entry facts (schedule, event subscription) are
+                // invisible in edges — the digest is the compact view an
+                // editing agent composes against.
+                ...(record.trigger?.schedule || record.eventId
+                  ? {
+                      entry: {
+                        ...(record.trigger?.schedule ? { schedule: record.trigger.schedule } : {}),
+                        ...(record.eventId ? { eventId: record.eventId } : {})
+                      }
+                    }
+                  : {})
             };
         }
         const declaration = (data.ctsTypes || {})[node?.data?.refId] || {};
@@ -343,10 +355,10 @@ export const TOOL_SPECS = [
                     items: (group.items || []).map(item => ({ id: item.id, kind: item.kind || item.type || null }))
                 }))
             });
-            // Detail views re-serve the skill but never the palette list —
-            // one oversized response evicts the tools from context.
+            // Detail views carry the detail and roles; the guide rides the
+            // compact view alone — re-serving it on every detail pushed
+            // the socket inventory past the conversation limit.
             const base = () => ({
-                guide: AUTHORING_GUIDE,
                 families: [...PROCESS_NODE_FAMILIES],
                 declarationNodeTypes: [...DECLARATION_NODE_TYPES]
             });
@@ -561,11 +573,13 @@ export const TOOL_SPECS = [
         },
         execute: async (args, auth) => {
             try {
-                return await processDefinitionsService.activate(
+                // The digest, never the activated document (see compose) —
+                // the entity echo crossed the conversation limit.
+                return definitionDigest(await processDefinitionsService.activate(
                     requireString(args.definitionId, 'definitionId'),
                     auth,
                     { confirmTypeDeath: Boolean(args.confirmTypeDeath) }
-                );
+                ));
             } catch (error) {
                 if (error?.statusCode === 409) {
                     return {
@@ -619,7 +633,7 @@ export const TOOL_SPECS = [
             additionalProperties: false
         },
         execute: async (args, auth) => {
-            return await processDefinitionsService.deactivate(requireString(args.definitionId, 'definitionId'), auth);
+            return definitionDigest(await processDefinitionsService.deactivate(requireString(args.definitionId, 'definitionId'), auth));
         }
     },
     {
