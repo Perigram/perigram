@@ -180,14 +180,15 @@ describe('pdf template fill', () => {
 });
 
 describe('services dispatch', () => {
-  it('fill returns a markdown payload with a derived name', async () => {
+  it('fill returns a markdown payload with a derived name and the template tokens', async () => {
     const output = await services.fill({
-      refs: { template: { name: 'spec.md', payloadMime: 'text/markdown', payloadBase64: b64('# {a}') } },
+      refs: { template: { name: 'spec.md', payloadMime: 'text/markdown', payloadBase64: b64('# {a}\n{b} and {a}') } },
       draft: { name: 'Out', data: { values: { a: 1 } } }
     });
     expect(output.payload.mime).toBe('text/markdown');
     expect(output.payload.name).toBe('Out.md');
-    expect(Buffer.from(output.payload.base64, 'base64').toString()).toBe('# 1');
+    expect(Buffer.from(output.payload.base64, 'base64').toString()).toBe('# 1\n{b} and 1');
+    expect(output.meta.tokens).toEqual(['a', 'b']);
   });
 
   it('fill returns a filled workbook payload', async () => {

@@ -74,7 +74,12 @@ test.describe('documents fill dialog', () => {
     await templateInput.fill('offer-tpl');
     await app.page.locator('.p-autocomplete-item, [role="option"]', { hasText: 'offer-tpl' }).first().click();
 
-    await dialog.locator('textarea').first().fill(JSON.stringify({ client: 'Perigram', date: '2026-10-28' }));
+    // The composition's meta names the template's tokens; each takes a
+    // scalar input — the values map is never typed as json.
+    const clientInput = dialog.getByLabel('client', { exact: true });
+    await expect(clientInput).toBeVisible({ timeout: 30_000 });
+    await clientInput.fill('Perigram');
+    await dialog.getByLabel('date', { exact: true }).fill('2026-10-28');
 
     // The composed preview renders in the created type's own mode: the
     // filled markdown as prose, before the create runs.

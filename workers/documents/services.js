@@ -12,11 +12,14 @@ import {
   fillMarkdown,
   fillPdfTemplate,
   fillWorkbook,
+  markdownTemplateTokens,
+  pdfTemplateTokens,
   renderPdfFromCsv,
   renderPdfFromDxf,
   renderPdfFromImage,
   renderPdfFromMarkdown,
-  renderPdfFromWorkbook
+  renderPdfFromWorkbook,
+  workbookTemplateTokens
 } from './fill.js';
 
 function badRequest(message) {
@@ -126,15 +129,23 @@ export const services = {
     );
   },
   // Template fill (SPEC §24): the template ref's payload plus the wired
-  // values in, the filled file out as the created record's payload.
+  // values in, the filled file out as the created record's payload. The
+  // template's token keys ride the ephemeral meta channel — the fill
+  // dialog's per-token form reads them, records never store them.
   fill: async (input = {}) => {
     const template = requireRef(input, 'template', 'fill');
     const values = input.draft?.data?.values ?? {};
     const name = baseName(input.draft?.name || input.draft?.identity?.name || template.name);
     const kind = fileKindOf(input?.refs?.template);
-    if (kind === 'markdown') return toPayload(fillMarkdown(template.text(), values), 'text/markdown', `${name}.md`);
-    if (kind === 'workbook') return toPayload(fillWorkbook(template.buffer, values), XLSX_MIME, `${name}.xlsx`);
-    if (kind === 'pdf') return toPayload(await fillPdfTemplate(template.buffer, values), 'application/pdf', `${name}.pdf`);
+    if (kind === 'markdown') {
+      return { ...toPayload(fillMarkdown(template.text(), values), 'text/markdown', `${name}.md`), meta: { tokens: markdownTemplateTokens(template.text()) } };
+    }
+    if (kind === 'workbook') {
+      return { ...toPayload(fillWorkbook(template.buffer, values), XLSX_MIME, `${name}.xlsx`), meta: { tokens: workbookTemplateTokens(template.buffer) } };
+    }
+    if (kind === 'pdf') {
+      return { ...toPayload(await fillPdfTemplate(template.buffer, values), 'application/pdf', `${name}.pdf`), meta: { tokens: await pdfTemplateTokens(template.buffer) } };
+    }
     badRequest('fill accepts markdown, xlsx, or pdf templates');
   },
   // PDF rendering from other file types (SPEC §24): the source ref in,

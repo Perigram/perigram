@@ -26,6 +26,36 @@ export function substitute(text, scope = {}) {
   ));
 }
 
+// The template's token keys (SPEC §24): the fill dialog's per-token value
+// form reads them through the composition's meta channel.
+export function tokenKeysOf(...texts) {
+  const keys = new Set();
+  for (const text of texts) {
+    const source = String(text ?? '');
+    TOKEN.lastIndex = 0;
+    for (const match of source.matchAll(TOKEN)) keys.add(match[1]);
+  }
+  return [...keys];
+}
+
+export const markdownTemplateTokens = text => tokenKeysOf(text);
+
+export function workbookTemplateTokens(buffer) {
+  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  const cells = [];
+  for (const sheetName of workbook.SheetNames) {
+    for (const row of XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, raw: true, defval: '' })) {
+      for (const cell of row) cells.push(cell);
+    }
+  }
+  return tokenKeysOf(...cells);
+}
+
+export async function pdfTemplateTokens(buffer) {
+  const pages = await pdfTextRuns(buffer);
+  return tokenKeysOf(...pages.flatMap(runs => runs.map(run => run.text)));
+}
+
 export function fillMarkdown(templateText, values = {}) {
   return substitute(String(templateText ?? ''), values);
 }

@@ -60,6 +60,7 @@
         :mode="dialogAction?.construction?.mode || ''"
         :type="dialogType"
         :draft="draftPayload()"
+        @meta="value => (previewMeta = value)"
       >
         <div :class="LAYOUT.formGrid">
         <div
@@ -109,13 +110,19 @@
             />
           </div>
           <FieldControl
-            v-else
+            v-else-if="row.control !== 'template-values'"
             v-model="dialogDraft[row.id]"
             :descriptor="row.descriptor"
             variant="detail"
             :pool="pool"
             :bundle="bundle"
             :payload="dialogType?.payload"
+          />
+          <TemplateValuesRow
+            v-else
+            :model-value="dialogDraft[row.id] || {}"
+            :tokens="previewTokens"
+            @update:model-value="value => (dialogDraft[row.id] = value)"
           />
         </div>
       </div>
@@ -190,6 +197,7 @@ import InstancePicker from './InstancePicker.vue';
 import SpotPartsRow from './SpotPartsRow.vue';
 import RefRowActions from './RefRowActions.vue';
 import FillDialogBody from './FillDialogBody.vue';
+import TemplateValuesRow from './TemplateValuesRow.vue';
 import FieldControl from './FieldControl.vue';
 import StandardDialog from '../shared/StandardDialog.vue';
 import { isCreateAction } from '~/utils/action-visibility.js';
@@ -380,6 +388,13 @@ const dialogRows = computed(() => (
 // The fill-dialog shell composes a live preview beside the form when the
 // create targets a payload-bearing type through a construction mode.
 const fillDialogActive = computed(() => Boolean(dialogType.value?.payload && dialogAction.value?.construction?.mode));
+// The composition's meta channel: the template's token keys for the
+// per-token values form (the executor names them, records never store them).
+const previewMeta = ref(null);
+const previewTokens = computed(() => {
+  const tokens = previewMeta.value?.tokens;
+  return Array.isArray(tokens) ? tokens.map(String) : [];
+});
 
 // The opened record on a scoped detail surface — the launch context's
 // parent binding for creates (SPEC §UI): lineage rows accepting that type
@@ -631,6 +646,7 @@ function closeDialog() {
   dialogVisible.value = false;
   dialogAction.value = null;
   dialogFailures.value = null;
+  previewMeta.value = null;
   dialogContext.value = {};
 }
 
