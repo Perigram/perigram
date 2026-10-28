@@ -2098,3 +2098,28 @@ Session `agent/genui-switch-hotfix-20261028-1115` (worktree
 `.agent-worktrees/genui-hotfix`).
 
 Status: WAITING owner verification.
+
+## Ref chips recognize every stored shape (owner direction 2026-10-28)
+
+Law: the one relation-ref resolver owns ref recognition. Owner finding:
+Н/Д badges persist — the generative UI fails to recognize stored data
+shapes.
+
+- [x] FieldControl's ref dispatch and ObjectSummary subfield refs
+  normalize through `resolveInstanceRelationRefs`: alternate id keys
+  (`instanceId`, `_id`, `value`), bare ids, and typeless refs resolve
+  (the descriptor's first accepted type as the fallback), with the
+  revision channel passing through. The Н/Д badge stays the last
+  resort for genuinely empty values.
+
+### Agent Notes (2026-10-28, round 24)
+
+Session `agent/genui-refshapes-20261028-1140` (worktree
+`.agent-worktrees/genui-refshapes`). The audit of every
+`InstanceInlineRef` call site: the table relation column and detail
+relation sections normalized in round 22; the ref FIELD dispatch read
+`.type/.id` alone — stored shapes the app's own resolver knows
+(`instanceId`, `_id`, bare ids) fell to the Н/Д badge. All generative
+ref consumption now rides the one resolver.
+
+Status: WAITING owner verification.
