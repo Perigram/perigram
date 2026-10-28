@@ -119,7 +119,7 @@ test.describe('tech-drawing fill dialog', () => {
     // The parts row is the per-spot assignment (SPEC §24): the template's
     // anchors list, name-equal parts prefilled — spot `bracket` takes the
     // same-named part without a click.
-    await expect(dialog.getByText('bracket', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(dialog.getByText('bracket', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
 
     await dialog.locator('.p-dialog-footer').getByRole('button').last().click();
 
