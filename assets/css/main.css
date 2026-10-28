@@ -454,20 +454,22 @@ body {
         }
     }
 
-    /* Document payloads (pages, prose, tables) read in a tall band. */
-    .ck-preview-hero-band-document {
-        height: 20rem;
+    /* A rendered preview (payload viewer, declared source, plugin
+       module) reads in the tall band; the quiet glyph band keeps the
+       small ladder. */
+    .ck-preview-hero-band-content {
+        height: 16rem;
     }
 
     @container (min-width: 40rem) {
-        .ck-preview-hero-band-document {
-            height: 28rem;
+        .ck-preview-hero-band-content {
+            height: 24rem;
         }
     }
 
     @container (min-width: 60rem) {
-        .ck-preview-hero-band-document {
-            height: 36rem;
+        .ck-preview-hero-band-content {
+            height: 32rem;
         }
     }
 }
