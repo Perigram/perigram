@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  cassetteSheetItems,
+  designSheetItems,
   clampSheetPlacement,
   freeSheetPlacement,
   magneticSheetPlacement,
@@ -149,30 +149,32 @@ describe('sheet layout editor helpers', () => {
     expect(placements[0].transformation.rotation).toBeCloseTo(0);
   });
 
-  it('creates sheet items from a cassette record with extracted geometry', () => {
-    const items = cassetteSheetItems({
-      _id: 'cassette-1',
+  it('creates sheet items from a cassette-design record with baked geometry', () => {
+    const items = designSheetItems({
+      _id: 'design-1',
       name: 'Panel',
       fields: {
-        polygonParts: [
-          { layer: 'cut.outer', workpieceId: 'wp-a', coordinates: [[0, 0], [20, 0], [20, 10], [0, 10], [0, 0]] },
-          { layer: 'cut.outer', workpieceId: 'wp-b', coordinates: [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]] }
-        ],
-        layerData: [
-          { layer: 'fold.route', workpieceId: 'wp-a', coordinates: [[0, 5], [20, 5]] },
-          { layer: 'fold.route', workpieceId: 'wp-b', coordinates: [[0, 5], [10, 5]] }
-        ]
+        geometry: {
+          nestingPolygons: [
+            { layer: 'cut.outer', workpieceId: 'wp-a', coordinates: [[0, 0], [20, 0], [20, 10], [0, 10], [0, 0]] },
+            { layer: 'cut.outer', workpieceId: 'wp-b', coordinates: [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]] }
+          ],
+          layerData: [
+            { layer: 'fold.route', workpieceId: 'wp-a', coordinates: [[0, 5], [20, 5]] },
+            { layer: 'fold.route', workpieceId: 'wp-b', coordinates: [[0, 5], [10, 5]] }
+          ]
+        }
       }
     }, 'manual-1');
     expect(items).toHaveLength(2);
-    expect(items[0]).toMatchObject({ id: 'manual-1-0', cassette_id: 'cassette-1', name: 'Panel 1' });
+    expect(items[0]).toMatchObject({ id: 'manual-1-0', design_id: 'design-1', name: 'Panel 1' });
     expect(items[0].sourceLayers).toHaveLength(1);
     expect(items[0].sourceLayers[0].layer).toBe('fold.route');
     expect(items[1].sourceLayers[0].coordinates).toEqual([[0, 5], [10, 5]]);
   });
 
-  it('refuses a cassette record without extracted polygon geometry', () => {
-    expect(cassetteSheetItems({ _id: 'cassette-2', name: 'Authored', fields: {} }, 'manual-2')).toEqual([]);
+  it('refuses a cassette-design record without baked geometry', () => {
+    expect(designSheetItems({ _id: 'design-2', name: 'Authored', fields: {} }, 'manual-2')).toEqual([]);
   });
 
   it('places a new item at the first free sweep position', () => {

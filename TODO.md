@@ -2271,29 +2271,47 @@ sheet-instance) composed through declared constructs, relations, and the
 generic machinery; the sheet-design editor becomes a multi-sheet canvas.
 Ordered steps:
 
-- [ ] Listing compliance: delete the dead `states`/`transitions` blocks
-  from cassette and cassette-design — CTS `normalizeType` drops the keys
-  silently, so they are declaration slop; SPEC §7 owns state
-  vocabularies at the process graph.
-- [ ] Type family: rename `cassette` → `cassette-template` (id, glyphs
-  already say it; stored installs + instances migrate), add
-  `cassette-instance`, `sheet-cut-plan`, `sheet-instance` as item types
-  (icons already in the ck-entity font), make `cassette-design.template`
-  nullable (DXF imports carry none), align `sheet-design` identifier to
-  `fields.name` (rename-field migration).
-- [ ] Placements relation: `sheet-design.fields.parts` (flat cassette
-  ref list) becomes a declared relation edge to cassette-design,
-  `onRemove: detach`, one ref per placement, stored under
-  `relations.parts` with the derived index; executor-returned relations
-  merge through the construct boundary.
-- [ ] Nesting provenance: `nesting-polygons` emits beside each part the
-  cassette-design ref it was projected from; solve input items are keyed
-  by cassette-design refs, placements without one refuse; solve output
-  groups identical placement sets into (layout, count) pairs.
-- [ ] `fromLayout` construct: consumes typed cassette-design refs
-  (resolved, revision-pinned, provenance-stamped), validates the layout
-  against them, emits geometry + the parts relation; an empty layout
-  constructs a blank sheet.
+- [ ] WAITING — owner verification: Listing compliance: delete the dead
+  `states`/`transitions` blocks from cassette and cassette-design — CTS
+  `normalizeType` drops the keys silently, so they are declaration slop;
+  SPEC §7 owns state vocabularies at the process graph.
+- [ ] WAITING — owner verification: Type family: rename `cassette` →
+  `cassette-template` (id, glyphs already say it; stored installs +
+  instances migrate), add `cassette-instance`, `sheet-cut-plan`,
+  `sheet-instance` as item types (icons already in the ck-entity font),
+  make `cassette-design.template` nullable (DXF imports carry none),
+  align `sheet-design` identifier to `fields.name` (rename-field
+  migration).
+- [ ] WAITING — owner verification: Placements relation:
+  `sheet-design.fields.parts` (flat cassette ref list) becomes a
+  declared relation edge to cassette-design, `onRemove: detach`, one ref
+  per placement, stored under `relations.parts` with the derived index;
+  executor-returned relations merge through the construct boundary.
+- [ ] WAITING — owner verification: Nesting provenance: solve input
+  items are keyed by `designId`, placements without one refuse; solve
+  output groups identical design multisets into (layout, count) pairs.
+- [ ] WAITING — owner verification: `fromLayout` construct: consumes
+  typed cassette-design refs (resolved, revision-pinned,
+  provenance-stamped), validates the layout against them, emits geometry
+  + the parts relation; an empty layout constructs a blank sheet.
+
+  ### Agent Notes (2026-10-28, family slice)
+
+  Session `agent/facade-family-20261028` (worktree
+  `.agent-worktrees/facade-family`). Listing v22 carries the six-type
+  family with the `parts` relation edge and the design-keyed solve
+  signature; `construct-sheet` validates placements against the resolved
+  `designs` refs, copies their revision pins into `relations.parts`,
+  and constructs blank sheets from an empty draft;
+  `construction-services.js` merges executor-returned `relations`
+  beside computed fields; `groupNestingLayouts` joins same-design
+  layouts with counts; the editor palette patches geometry and the
+  relation together over `queries.list('cassette-design')`;
+  `migrate-facade-type-family.js` renames stored cassettes/refs/authored
+  type ids before the v22 upgrade (the gate refuses removed types with
+  live instances). The nesting-polygons projection output itself is
+  unchanged — the design key enters at composition (the demo process
+  wires `getField('_id')` from the bake result into `designId`).
 - [ ] Surface contract 5: construct and remove host transports
   (host-executed like sync/upload), loader + install-gate teaching.
 - [ ] Sheet-design editor: multi-record canvas — sibling sheet designs

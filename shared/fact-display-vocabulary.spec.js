@@ -58,11 +58,11 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
   const { registry, bundle } = servedBundle();
 
   it('derives the served display policy (no render facet, sections by base)', () => {
-    const cassette = typeRecordFor(bundle, 'cassette');
+    const cassette = typeRecordFor(bundle, 'cassette-template');
     expect('render' in cassette).toBe(false);
     // Authored name/glyph on the declaration (the facade types carry the
     // hand-drawn ck-entity-icons font classes as their glyphs).
-    expect(cassette.name).toBe('Cassette');
+    expect(cassette.name).toBe('Cassette template');
     expect(cassette.glyph).toBe('ck-entity-icon ck-entity-icon-cassette-template');
     // The declared identifier flag wins at the boundary.
     expect(cassette.identifier).toBe('name');
@@ -74,8 +74,7 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     expect(sheetDesign.name).toBe('Sheet design');
     // json -> summary; list of refs -> relations (item-base assignment).
     expect(sheetDesign.sections).toEqual([
-      { id: 'summary', label: null, fields: ['title', 'geometry'] },
-      { id: 'relations', label: null, fields: ['parts'] }
+      { id: 'summary', label: null, fields: ['name', 'geometry'] }
     ]);
 
     const penTemplate = typeRecordFor(bundle, 'pen-template');
@@ -100,25 +99,25 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
       typeRecord: typeRecordFor(bundle, 'sheet-design')
     });
     expect(card.bundleResolved).toBe(true);
-    expect(card.fields.map(field => field.path)).toEqual(['fields.title', 'fields.geometry', 'fields.parts']);
+    expect(card.fields.map(field => field.path)).toEqual(['fields.geometry']);
     const detail = resolveInstanceDisplayContract({
       typeId: 'sheet-design', surface: 'detail',
       typeRecord: typeRecordFor(bundle, 'sheet-design')
     });
-    expect([...new Set(detail.fields.map(field => field.group))]).toEqual(['summary', 'relations']);
+    expect([...new Set(detail.fields.map(field => field.group))]).toEqual(['summary']);
     const compact = resolveInstanceDisplayContract({
-      typeId: 'cassette', surface: 'compact',
-      typeRecord: typeRecordFor(bundle, 'cassette')
+      typeId: 'cassette-template', surface: 'compact',
+      typeRecord: typeRecordFor(bundle, 'cassette-template')
     });
     expect(compact.surfaceContract.fieldLimit).toBe(3);
   });
 
   it('exposes factsFor as the one bundle-only fact-row resolver', () => {
     const sheetDesign = typeRecordFor(bundle, 'sheet-design');
-    expect(factsFor(sheetDesign, 'card').map(field => field.path)).toEqual(['fields.title', 'fields.geometry', 'fields.parts']);
-    expect(factsFor(sheetDesign, 'detail').map(field => field.path)).toEqual(['fields.title', 'fields.geometry', 'fields.parts']);
+    expect(factsFor(sheetDesign, 'card').map(field => field.path)).toEqual(['fields.geometry']);
+    expect(factsFor(sheetDesign, 'detail').map(field => field.path)).toEqual(['fields.geometry']);
     // Compact surfaces bound to the leading summary facts only.
-    expect(factsFor(sheetDesign, 'compact').map(field => field.path)).toEqual(['fields.title', 'fields.geometry']);
+    expect(factsFor(sheetDesign, 'compact').map(field => field.path)).toEqual(['fields.geometry']);
     // No type view, no rows: undeclared types resolve nothing.
     expect(factsFor(null, 'card')).toEqual([]);
   });
@@ -134,7 +133,7 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     expect(overridden.fields.map(field => field.path)).toEqual(['fields.picked']);
     // With no authored list, synthesis runs over the merged map.
     const plain = resolveInstanceDisplayContract({ typeId: 'widget', surface: 'card', typeRecord: widget });
-    expect(plain.fields.map(field => field.path)).toEqual(['fields.name', 'fields.parts']);
+    expect(plain.fields.map(field => field.path)).toEqual(['fields.parts']);
   });
 
   it('resolves record titles through the one title resolver (identifier or unnamed)', () => {
@@ -222,7 +221,7 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
       permissions: {},
       typeId: 'widget'
     });
-    expect(allowed.map(field => field.path)).toEqual(['fields.name', 'fields.parts']);
+    expect(allowed.map(field => field.path)).toEqual(['fields.parts']);
     expect(denied).toEqual([]);
     registerDeclarationFieldAccess({});
   });

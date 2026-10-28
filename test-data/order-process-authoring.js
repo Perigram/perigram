@@ -21,7 +21,7 @@ export function composeOrderTree(authoring) {
   authoring.declareField({ id: 'attemptResultField', ownerClassId: 'attemptClass', name: 'result', descriptor: { base: 'json' } });
   authoring.declareTypeRef({ id: 'xlsxRef', typeId: 'xlsx-workbook' });
   authoring.declareTypeRef({ id: 'csvRef', typeId: 'csv-table' });
-  authoring.declareTypeRef({ id: 'cassetteRef', typeId: 'cassette' });
+  authoring.declareTypeRef({ id: 'cassetteRef', typeId: 'cassette-template' });
   authoring.declareTypeRef({ id: 'designRef', typeId: 'cassette-design' });
   authoring.declareClass({ id: 'materialClass', typeId: 'sheet-material', class: 'file', name: 'Sheet material' });
   authoring.declareField({ id: 'materialCode', ownerClassId: 'materialClass', name: 'code', descriptor: { base: 'string', identifier: true } });
@@ -53,7 +53,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('rows', { typeId: tableType, projection: 'rows' });
 
   authoring.drop('recordField', { id: 'rowTemplate' });
-  authoring.configure('rowTemplate', { path: 'right', type: { base: 'entityRef', typeId: 'cassette', nullable: true } });
+  authoring.configure('rowTemplate', { path: 'right', type: { base: 'entityRef', typeId: 'cassette-template', nullable: true } });
   authoring.drop('recordField', { id: 'paramA' });
   authoring.configure('paramA', { path: 'A', type: { base: 'string', nullable: true } });
   authoring.drop('recordField', { id: 'paramB' });
@@ -85,9 +85,12 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('extractProjection', { id: 'polygons' });
   authoring.configure('polygons', { typeId: 'cassette-design', projection: 'nesting-polygons' });
   authoring.drop('constructRecord', { id: 'jobItems' });
-  authoring.configure('jobItems', { fields: ['polygonParts', 'count'] });
+  authoring.configure('jobItems', { fields: ['designId', 'polygonParts', 'count'] });
   authoring.drop('literal', { id: 'one' });
   authoring.configure('one', { type: { base: 'number', nullable: false, unit: 'count' }, value: 1 });
+  authoring.drop('getField', { id: 'designId' });
+  authoring.configure('designId', { typeId: 'cassette-design' });
+  authoring.setInputDefault('designId', 'field', '_id');
 
   authoring.drop('forEachEntity', { id: 'loop' });
   authoring.configure('loop', { type: { base: 'entityRef', typeId: 'sheet-material' } });
@@ -141,6 +144,8 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('materials', 'data:result', 'loop', 'data:items');
   authoring.connect('loop', 'data:item', 'matWidth', 'data:entity');
   authoring.connect('loop', 'data:item', 'matHeight', 'data:entity');
+  authoring.connect('bake', 'data:result', 'designId', 'data:entity');
+  authoring.connect('designId', 'data:value', 'jobItems', 'data:designId');
   authoring.connect('jobItems', 'data:record', 'solve', 'data:items');
   authoring.connect('matWidth', 'data:value', 'solve', 'data:sheetWidth');
   authoring.connect('matHeight', 'data:value', 'solve', 'data:sheetHeight');

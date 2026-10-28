@@ -27,7 +27,7 @@ const workerResult = {
 };
 
 const request = {
-  items: [{ id: 0, cassette_id: 'c1', coords: [[0, 0], [400, 0], [400, 300], [0, 300]], handles: [], sourceLayers: [], count: 2 }],
+  items: [{ id: 0, design_id: 'c1', coords: [[0, 0], [400, 0], [400, 300], [0, 300]], handles: [], sourceLayers: [], count: 2 }],
   params: { width: 1000, height: 1000, space: 3, sheetCount: 1 }
 };
 
@@ -43,7 +43,7 @@ describe('nesting projections', () => {
   it('ships each layout self-contained for sheet construction', () => {
     const layouts = nestingLayouts(enrichNestingResult(workerResult, request));
     expect(layouts[0].sourceItems).toHaveLength(1);
-    expect(layouts[0].sourceItems[0]).toMatchObject({ id: 0, cassette_id: 'c1' });
+    expect(layouts[0].sourceItems[0]).toMatchObject({ id: 0, design_id: 'c1' });
     expect(layouts[0].sheetPolygon).toEqual(workerResult.bins[0].shape.data);
   });
 });

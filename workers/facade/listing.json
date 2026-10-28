@@ -1,18 +1,18 @@
 {
   "pluginId": "facade",
   "name": "Facade fabrication",
-  "description": "Cassettes, cassette designs, sheet designs, and the nesting solver as an installable plugin with an external executor",
-  "version": "21",
+  "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, sheet instances, and the nesting solver as an installable plugin with an external executor",
+  "version": "22",
   "requires": [
     "tech-drawing"
   ],
   "declarations": {
     "types": [
       {
-        "id": "cassette",
+        "id": "cassette-template",
         "class": "file",
         "scope": "system",
-        "version": 2,
+        "version": 1,
         "payload": {
           "mime": "application/perigram+occs",
           "accept": [
@@ -41,25 +41,6 @@
             "constructible": false
           }
         },
-        "states": {
-          "main": {
-            "initial": "ACTIVE",
-            "states": {
-              "ACTIVE": {},
-              "ARCHIVED": {
-                "terminal": true
-              }
-            }
-          }
-        },
-        "transitions": [
-          {
-            "axis": "main",
-            "from": "ACTIVE",
-            "to": "ARCHIVED",
-            "intent": "archiveCassette"
-          }
-        ],
         "revisions": "geometry",
         "render": {
           "groups": [
@@ -92,29 +73,19 @@
             "input": {
               "base": "ref",
               "accepts": [
-                "cassette"
+                "cassette-template"
               ]
             }
           }
         },
-        "migrate": [
-          {
-            "kind": "remove-field",
-            "field": "templateType"
-          },
-          {
-            "kind": "remove-field",
-            "field": "parameters"
-          }
-        ],
-        "name": "Cassette",
+        "name": "Cassette template",
         "glyph": "ck-entity-icon ck-entity-icon-cassette-template"
       },
       {
         "id": "cassette-design",
         "class": "file",
         "scope": "system",
-        "version": 1,
+        "version": 2,
         "payload": {
           "mime": [
             "application/dxf",
@@ -155,16 +126,18 @@
           "template": {
             "base": "ref",
             "accepts": [
-              "cassette"
+              "cassette-template"
             ],
-            "slot": "data"
+            "slot": "data",
+            "nullable": true
           },
           "source": {
             "base": "ref",
             "accepts": [
               "dxf-source"
             ],
-            "slot": "data"
+            "slot": "data",
+            "nullable": true
           },
           "parameters": {
             "base": "json"
@@ -174,25 +147,6 @@
             "constructible": false
           }
         },
-        "states": {
-          "main": {
-            "initial": "ACTIVE",
-            "states": {
-              "ACTIVE": {},
-              "ARCHIVED": {
-                "terminal": true
-              }
-            }
-          }
-        },
-        "transitions": [
-          {
-            "axis": "main",
-            "from": "ACTIVE",
-            "to": "ARCHIVED",
-            "intent": "archiveCassetteDesign"
-          }
-        ],
         "name": "Cassette design",
         "glyph": "ck-entity-icon ck-entity-icon-cassette-design",
         "snapshot": [
@@ -213,7 +167,7 @@
                 "template": {
                   "base": "ref",
                   "accepts": [
-                    "cassette"
+                    "cassette-template"
                   ]
                 },
                 "parameters": {
@@ -286,31 +240,64 @@
         ]
       },
       {
-        "id": "sheet-design",
-        "class": "file",
+        "id": "cassette-instance",
+        "class": "item",
         "scope": "system",
         "version": 1,
         "fields": {
-          "title": {
+          "name": {
             "base": "string",
             "identifier": true,
-            "nullable": true,
-            "label": "Title"
+            "nullable": true
           },
-          "geometry": {
-            "base": "json"
-          },
-          "parts": {
-            "base": "list",
-            "itemType": {
-              "base": "ref",
-              "accepts": [
-                "cassette"
-              ]
-            },
+          "design": {
+            "base": "ref",
+            "accepts": [
+              "cassette-design"
+            ],
             "nullable": true
           }
         },
+        "name": "Cassette",
+        "glyph": "ck-entity-icon ck-entity-icon-cassette-instance"
+      },
+      {
+        "id": "sheet-design",
+        "class": "file",
+        "scope": "system",
+        "version": 2,
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true,
+            "nullable": true
+          },
+          "geometry": {
+            "base": "json"
+          }
+        },
+        "edges": {
+          "relations": {
+            "parts": {
+              "types": [
+                "cassette-design"
+              ],
+              "onRemove": "detach",
+              "cardinality": "many"
+            }
+          }
+        },
+        "migrate": [
+          {
+            "kind": "rename-field",
+            "from": "title",
+            "to": "name"
+          },
+          {
+            "kind": "remove-field",
+            "field": "parts"
+          }
+        ],
         "revisions": "geometry",
         "render": {
           "groups": [
@@ -340,7 +327,18 @@
                   "nullable": true
                 },
                 "layout": {
-                  "base": "json"
+                  "base": "json",
+                  "nullable": true
+                },
+                "designs": {
+                  "base": "list",
+                  "itemType": {
+                    "base": "ref",
+                    "accepts": [
+                      "cassette-design"
+                    ]
+                  },
+                  "nullable": true
                 }
               }
             }
@@ -348,6 +346,49 @@
         },
         "name": "Sheet design",
         "glyph": "ck-entity-icon ck-entity-icon-sheet-design"
+      },
+      {
+        "id": "sheet-cut-plan",
+        "class": "item",
+        "scope": "system",
+        "version": 1,
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true,
+            "nullable": true
+          },
+          "design": {
+            "base": "ref",
+            "accepts": [
+              "sheet-design"
+            ]
+          },
+          "sheet": {
+            "base": "ref",
+            "accepts": [
+              "sheet-instance"
+            ],
+            "nullable": true
+          }
+        },
+        "name": "Sheet cut plan",
+        "glyph": "pi pi-file-export"
+      },
+      {
+        "id": "sheet-instance",
+        "class": "item",
+        "scope": "system",
+        "version": 1,
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true,
+            "nullable": true
+          }
+        },
+        "name": "Sheet",
+        "glyph": "ck-entity-icon ck-entity-icon-sheet-instance"
       },
       {
         "id": "profile",
@@ -371,7 +412,7 @@
           }
         },
         "access": {
-          "inherits": "cassette"
+          "inherits": "cassette-template"
         },
         "name": "Profile",
         "glyph": "pi pi-wave-pulse"
@@ -398,7 +439,7 @@
           }
         },
         "access": {
-          "inherits": "cassette"
+          "inherits": "cassette-template"
         },
         "name": "Hardware",
         "glyph": "ck-entity-icon ck-entity-icon-bolt"
@@ -423,9 +464,8 @@
                 "itemType": {
                   "base": "record",
                   "fields": {
-                    "cassetteId": {
-                      "base": "id",
-                      "nullable": true
+                    "designId": {
+                      "base": "id"
                     },
                     "polygonParts": {
                       "base": "list",
@@ -560,7 +600,7 @@
     ],
     "editors": [
       {
-        "type": "cassette",
+        "type": "cassette-template",
         "surface": "cassette-designer",
         "modes": [
           "create",
@@ -618,7 +658,7 @@
     ],
     "previews": [
       {
-        "type": "cassette",
+        "type": "cassette-template",
         "surface": "cassette-preview"
       },
       {

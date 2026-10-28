@@ -87,6 +87,12 @@ export async function applyConstructionService(typeId, mode, draft = {}, context
   }
   const data = output.data && typeof output.data === 'object' && !Array.isArray(output.data) ? output.data : {};
   const merged = { ...draft, fields: { ...(draft.fields || {}), ...data } };
+  // Executor-declared relations (SPEC §6 edges): computed relation values
+  // join the draft beside the computed fields and store through the same
+  // §3 relations slot wire patches use.
+  if (output.relations && typeof output.relations === 'object' && !Array.isArray(output.relations)) {
+    merged.relations = { ...(draft.relations || {}), ...output.relations };
+  }
   // Revision stamps (SPEC §24): the resolved pin rides the stored ref —
   // a declared ref field stores `{ type, id, revision }`, and every
   // resolved ref pins in provenance.sources, where the causal refs live.
