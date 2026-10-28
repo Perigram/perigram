@@ -35,9 +35,9 @@ gets). Each module targets a surface mount contract
 
 | Surface | Kind | Contract | Serves |
 |---|---|---|---|
-| `sheet-design-editor` | editor | 4 | The sheet-design type's editor: lanes palette and inspector, placement grab/add/rotate/drag gated on sheet containment and non-overlap, OCCS pen-base layer styling, saves through the mount's patch transport (geometry and the typed parts relation commit together); layout compute in `surfaces/lib/`. |
-| `cassette-designer` | editor | 2 | The cassette type's designer: parametric face graph, workpieces/attachments, profile sketch, folded 3D preview; saves also evaluate the document into the record's declared geometry fields (`fields.polygonParts`, `fields.layerData` — the DXF import's contract). Engine and render family in [`occs/`](./occs/README.md) and `surfaces/lib/`; the surface graph imports vendored modules only (`perigram-plugin surfaces` refuses npm imports). |
-| `cassette-preview` | preview | 1 | Read-only cassette/cassette-design preview: baked geometry rows when the record carries them, else the payload OCCS document through the plugin renderer; the preview layer set follows the OCCS README's [preview layer law](./occs/README.md). |
+| `sheet-design-editor` | editor | 4 | The sheet-design type's editor: lanes palette and inspector, placement grab/add/rotate/drag gated on sheet containment and non-overlap, OCCS pen-base layer styling, saves through the mount's patch transport (geometry and the typed `parts` relation — one cassette-design ref per placement — commit together); layout compute in `surfaces/lib/`. |
+| `cassette-designer` | editor | 2 | The cassette-template type's designer: parametric face graph, workpieces/attachments, profile sketch, folded 3D preview; saves also evaluate the document into the record's declared geometry fields (`fields.polygonParts`, `fields.layerData` — the DXF import's contract). Engine and render family in [`occs/`](./occs/README.md) and `surfaces/lib/`; the surface graph imports vendored modules only (`perigram-plugin surfaces` refuses npm imports). |
+| `cassette-preview` | preview | 1 | Read-only cassette-template/cassette-design preview: baked geometry rows when the record carries them, else the payload OCCS document through the plugin renderer; the preview layer set follows the OCCS README's [preview layer law](./occs/README.md). |
 | `profile-preview` | preview | 1 | The profile library type's preview: the stored sketch through the boolean fold (`resolveOccsProfileSketchLayerData`) and the shared drawing-preview normalizer; blank when the sketch does not resolve. |
 
 ## Services
@@ -49,10 +49,10 @@ values and files out, free of service imports, persistence, and auth.
 |---|---|---|
 | `extract-geometry` | cassette-design `upload`/`convertDxf` | DXF payload (base64) in → `{ data: { geometry } }` out |
 | `bake` | cassette-design `render` | template ref (payload = OCCS document, base64) + parameters in → evaluated geometry out |
-| `nesting-solve` | the `plugin.facade.nesting-solve` value service | SPEC §8 signature (`sheetWidth`/`sheetHeight` default 1220×2440 mm — the prompted run parameters); calls the nesting worker at `NESTING_WORKER_URL` ([full `/nest` endpoint](../nesting/README.md)); every output layout ships self-contained (`sourceItems` resolve its placements, each carrying its workpiece layers, and `sheetPolygon` carries its bin shape) |
+| `nesting-solve` | the `plugin.facade.nesting-solve` value service | SPEC §8 signature (`sheetWidth`/`sheetHeight` default 1220×2440 mm — the prompted run parameters; each item carries its `designId` — the cassette-design it projects from — as a required key); calls the nesting worker at `NESTING_WORKER_URL` ([full `/nest` endpoint](../nesting/README.md)); every output layout ships self-contained (`sourceItems` resolve its placements, each carrying its workpiece layers and `design_id` provenance, and `sheetPolygon` carries its bin shape), and layouts cutting the same design multiset join into one entry carrying the group's `count` |
 | `nesting-parts` | the cassette-design `nesting-polygons` projection | the instance's stored geometry in → nesting polygon parts out, each riding its workpiece layers (joined by `workpieceId`) so solved layouts compose sheet layers under the placement transform |
 | `generate-sheet-dxf` | the sheet-design `dxf` export binding | the record's stored values (`fields`) in → DXF `payload` out (executor payload contract) |
-| `construct-sheet` | sheet-design `fromLayout` | one solved layout value in → `{ data: { geometry, parts } }` out (the editor's stored geometry shape; one cassette ref per placement) |
+| `construct-sheet` | sheet-design `fromLayout` | a solved layout value (or a blank) plus the resolved `designs` refs in → `{ data: { geometry }, relations: { parts } }` out (one pinned cassette-design ref per placement; the parts edge is the sheet-design type's declared relation) |
 
 ## Vendored engines
 
