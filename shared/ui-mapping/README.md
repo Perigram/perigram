@@ -591,7 +591,8 @@ REGION_COLUMN_EARNED_REM`), shedding to the stack when it cannot.
 
 Arrangement is content-aware (SPEC §22, 2026-10-22): a child
 collection with zero loaded instances is layout-inert — it joins the node's
-`stubRegions`, renders its create affordance alone (see RegionBlock in
+`stubRegions`, renders its section label beside its create affordance (see
+RegionBlock in
 [components/ui-mapping](../../components/ui-mapping/README.md)) below the
 arranged content, and every arrangement decision (weights, columns, tabs,
 the side rail) sees filled children only; its relation key still covers the

@@ -157,8 +157,9 @@ beside the transition history in `StateHistory`.
   the stepped outcomes and budgets canonical in
   [shared/ui-mapping](../../shared/ui-mapping/README.md). A region
   rendering in the stub slot (`stub` prop, the pack strip under a record
-  body) renders its create affordance alone — while
-  loading/denied/error states keep the shared `RegionDataState` surface. A create action for the region's own type
+  body) renders its section label beside its create affordance; a stub
+  with no create affordance renders nothing.
+  Loading/denied/error states keep the shared `RegionDataState` surface. A create action for the region's own type
   collapses its caption to the bare localized `uiMapping.new` ("New")
   through ActionButton's context label: the header already names the class
   (creates for other types and every other action keep the full label).

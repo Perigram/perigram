@@ -967,8 +967,8 @@ nothing below it.
 
 Arrangement serves readability. A page host keeps its neutral rhythm at
 any composed weight; rhythm tightening belongs to bounded hosts. An
-inert child collection renders its create affordance alone — packed at
-the foot of its surface, with no icon-label-count strip. The record side
+inert child collection renders its section label beside its create
+affordance, packed at the foot of its surface. The record side
 rail is a minor column: a quarter of the record grid when its weight
 earns no explicit span. A collection row carries identity, status, and
 one fact; relations render on detail surfaces. A record body with a
