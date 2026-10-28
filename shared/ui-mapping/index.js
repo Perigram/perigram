@@ -1338,13 +1338,14 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
       });
       continue;
     }
-    // Operator data inputs (json maps, quantities, booleans): plain rows
-    // over the policy's own base.
+    // Operator data inputs (free-form maps, quantities, booleans): plain
+    // rows over the policy's own base — a free-form object is the json
+    // editor.
     if (policy?.type) {
       rows.push({
         id,
         label: policy.label || fieldLabel(id),
-        descriptor: { base: policy.type },
+        descriptor: { base: policy.type === 'object' ? 'json' : policy.type },
         span: 'full',
         required: policy.required === true
       });
