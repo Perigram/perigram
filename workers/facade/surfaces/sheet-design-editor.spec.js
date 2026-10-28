@@ -15,7 +15,7 @@ function mountContext() {
     components: {
       Button: stub, Checkbox: stub, InputNumber: stub, InputText: stub,
       Popover: stub, SpeedDial: stub, InstanceSelect: stub,
-      DesignerSurface: stub, DesignerWorkspace: stub
+      InstanceInlineRef: stub, DesignerSurface: stub, DesignerWorkspace: stub
     },
     locale: { t: key => key, te: () => true, locale: ref('en') },
     queries: { list: async () => [] },
