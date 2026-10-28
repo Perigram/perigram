@@ -1338,6 +1338,18 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
       });
       continue;
     }
+    // Operator data inputs (json maps, quantities, booleans): plain rows
+    // over the policy's own base.
+    if (policy?.type) {
+      rows.push({
+        id,
+        label: policy.label || fieldLabel(id),
+        descriptor: { base: policy.type },
+        span: 'full',
+        required: policy.required === true
+      });
+      continue;
+    }
   }
   return Object.freeze(rows.map(row => Object.freeze(row)));
 }
