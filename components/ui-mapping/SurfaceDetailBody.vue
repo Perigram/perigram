@@ -229,12 +229,12 @@ function inlineRefEntries(key, ref = {}) {
   return (inlineActionsByKey.value.get(key) || [])
     .filter((action) => {
       const targetTypes = action.relation?.targetTypes || [];
-      return ref.type ? targetTypes.includes(ref.type) : targetTypes.length === 1;
+      return ref.typeId ? targetTypes.includes(ref.typeId) : targetTypes.length === 1;
     })
     .map(action => ({
       action,
       entity: props.instance,
-      context: { data: { relations: { [key]: { type: ref.type, id: ref.id } } } }
+      context: { data: { relations: { [key]: { type: ref.typeId, id: ref.id } } } }
     }));
 }
 

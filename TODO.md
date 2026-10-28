@@ -2235,6 +2235,52 @@ the bare list, and the N/A census is zero across every screen
 The card footer measured clean on the live card grid: 0px below every
 card's last child, 20px body padding, no grid stretch.
 
+## Relation action placement repair (owner direction 2026-10-28, SPEC §22.12)
+
+Owner findings: the "Link {type}" button renders in the top-level list
+page header (assigned before, seemingly ignored); no Unlink option
+anywhere; linked instances display in the parent table while children
+do not.
+
+- [x] The class-list link button dies: `RegionBlock`'s section link
+  control now requires the §22.12 relation-section binding
+  (`relationParent`) — the delivered gate existed for unlink alone, and
+  the compiler legitimately carries the link action on typeList regions
+  (every role action targeting the type), so the materialization owns
+  the scoping. Link renders in the relation section toolbar on the
+  record detail; a class list renders none.
+- [x] Unlink reaches the bare-list projection: relation-scoped sections
+  whose target type derives the `list` projection (identity-only
+  records — the common linked-library shape) render their unlink
+  actions in the row's ellipsis menu (`SurfaceBody` row carries the
+  `{ parent, actions }` contract like the table and card rows; the run
+  context binds the parent record and the row's relation ref).
+- [x] Record-body chip menu repair: `inlineRefEntries` read `ref.type`
+  off the normalized refs (they carry `typeId`), so multi-target
+  relations never bound their chip menus and the run context carried no
+  type — now reads `typeId` in both the filter and the payload.
+- [x] Children placement verified, not changed: children render on the
+  record surface (the detail's children-slot sections — pinned by the
+  new SSR smoke) and in the workspace explorer; a class list stays
+  flat (SPEC §22.11, the rounds 17/19/20 owner verdicts). A children
+  column in the parent table is an explicit owner decision away.
+
+### Agent Notes (2026-10-28)
+
+Session `agent/genui-round26-20261028-1700` (worktree
+`.agent-worktrees/round26`). New
+`test-tools/ui-mapping-relation-actions.ssr-smoke.js` mounts the real
+engine over a parent/child world with a declared relation and pins all
+three laws: no link on the class list, link in the relation section
+toolbar + unlink row menus, children sections on the record detail.
+Validation: 22 SSR green (16 prior + the new 3 + the refcolumns 3),
+178 unit green (ui-mapping, design-system, module-imports, test-data),
+check-arch green, check-docs green except the pre-existing jagua-rs
+submodule link. Live spot-check: the probe org's parent table renders
+`Record | Libraries` with resolved chips.
+
+Status: WAITING owner verification.
+
 ## Random world decorruption (owner direction 2026-10-28)
 
 Law: the random UI world generator rolls its world; nothing overwrites

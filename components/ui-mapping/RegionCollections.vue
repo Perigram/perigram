@@ -93,7 +93,9 @@
       :openable="openable"
       :pool="effectivePool"
       :bundle="bundle"
+      :relation-unlink="relationUnlink"
       @open="instance => emit('open', instance)"
+      @run="(action, context) => emit('run', action, context)"
     />
   </div>
 </template>
