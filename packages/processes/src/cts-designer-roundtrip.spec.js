@@ -36,8 +36,10 @@ describe('graph protocol v5 designer round trip', () => {
     }
     const readPresets = groups.instances.filter(item => item.kind === 'cts.read').map(item => item.preset.select);
     expect(readPresets).toEqual(['current', 'all', 'extract', 'parent', 'children', 'related']);
+    // The pinned entity rides the literal source (an authored entityRef
+    // value); the run-context principals stay the only bound-free sources.
     expect(groups.instances.filter(item => String(item.kind).startsWith('source.')).map(item => item.kind))
-      .toEqual(['source.currentUser', 'source.currentOrganization']);
+      .toEqual(['source.literalItem', 'source.currentUser', 'source.currentOrganization']);
   });
 
   it('catalog ports resolve native species records without legacy sockets', () => {
