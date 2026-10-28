@@ -94,8 +94,11 @@ test.describe('payload revision picker', () => {
     // Newest first, the record's current revision marked.
     await expect(row(2).locator('.p-tag', { hasText: 'current' })).toBeVisible({ timeout: 15_000 });
     await expect(row(1)).toBeVisible();
-    await expect(row(2).getByText('replaced')).toBeVisible();
-    await expect(row(1).getByText('created')).toBeVisible();
+    // Rows render the frozen payload's name and its preview band (the
+    // shared preview media contract over the revision's frozen bytes).
+    await expect(row(2).getByText('probe.dxf')).toBeVisible();
+    await expect(row(1).locator('[data-revision-preview]')).toBeVisible({ timeout: 30_000 });
+    await expect(row(1).locator('[data-file-payload-viewer][data-viewer-mode="dxf"]')).toBeVisible({ timeout: 30_000 });
     // The current revision carries no restore affordance.
     await expect(row(2).locator('[data-revision-view]')).toBeVisible();
     await expect(row(2).locator('[data-revision-restore]')).toHaveCount(0);
@@ -122,7 +125,8 @@ test.describe('payload revision picker', () => {
     await row(1).locator('[data-revision-restore]').click();
     await expect(list.locator('[data-revision-number="3"]').locator('.p-tag', { hasText: 'current' }))
       .toBeVisible({ timeout: 30_000 });
-    await expect(list.locator('[data-revision-number="3"]').getByText('restored')).toBeVisible();
+    await expect(list.locator('[data-revision-number="3"] small', { hasText: 'from v1' })).toBeVisible();
+    await expect(list.locator('[data-revision-number="3"]').locator('[data-revision-preview]')).toBeVisible({ timeout: 30_000 });
     await testInfo.attach('revision-picker-after-restore', {
       body: await list.screenshot(),
       contentType: 'image/png'

@@ -10,49 +10,57 @@
     @click="event => revisionsPopover?.toggle(event)"
   />
   <Popover ref="revisionsPopover" @show="load">
-    <div class="flex w-72 flex-col gap-1" data-revision-list>
+    <div class="flex w-80 flex-col gap-1" data-revision-list>
       <ProgressSpinner v-if="loading" style="width: 1.5rem; height: 1.5rem" class="mx-auto my-2" />
       <small v-else-if="!revisions.length" class="m-0 py-2 text-center text-muted">{{ $t('revision.none') }}</small>
       <div
         v-for="(revision, index) in revisions"
         :key="String(revision._id)"
-        class="flex min-w-0 items-center gap-2 py-2"
+        class="flex flex-col gap-2 py-2"
         :class="index > 0 ? 'border-t border-solid border-[var(--p-content-border-color)]' : ''"
         :data-revision-number="revision.data?.number"
       >
-        <Tag :value="`v${revision.data?.number ?? '?'}`" />
-        <div class="flex min-w-0 flex-1 flex-col">
-          <div class="flex min-w-0 items-center gap-2">
-            <span class="truncate text-body">{{ revisionLabel(revision) }}</span>
-            <Tag v-if="index === 0" :value="$t('revision.current')" severity="info" />
-          </div>
-          <small class="text-muted">
-            <time v-if="revisionTime(revision)" :datetime="revision.data?.createdAt">{{ revisionTime(revision) }}</time>
-            <span v-if="revisionActor(revision)"> · {{ revisionActor(revision) }}</span>
-          </small>
+        <div
+          v-if="previewable(revision)"
+          class="instance-preview-slot h-32 w-full overflow-hidden rounded-ui bg-subtle"
+          data-revision-preview
+        >
+          <InstancePreviewMedia :entity="{ payload: frozenPayloadOf(revision) }" :type-id="type.id" />
         </div>
-        <Button
-          icon="pi pi-eye"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="$t('revision.view')"
-          :data-revision-view="revision.data?.number"
-          @click="view(revision)"
-        />
-        <Button
-          v-if="index > 0 && canRestore"
-          icon="pi pi-undo"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :loading="restoring === String(revision._id)"
-          :aria-label="$t('revision.restore')"
-          :data-revision-restore="revision.data?.number"
-          @click="restore(revision)"
-        />
+        <div class="flex min-w-0 items-center gap-2">
+          <Tag :value="`v${revision.data?.number ?? '?'}`" class="shrink-0" />
+          <div class="flex min-w-0 flex-1 flex-col">
+            <span class="truncate text-body" :title="nameOf(revision)">{{ nameOf(revision) }}</span>
+            <small class="truncate text-muted">
+              <time v-if="revisionTime(revision)" :datetime="revision.data?.createdAt">{{ revisionTime(revision) }}</time>
+              <span v-if="revisionActor(revision)"> · {{ revisionActor(revision) }}</span>
+              <span v-if="restoredFromOf(revision) != null"> · {{ $t('revision.restoredFrom', { n: restoredFromOf(revision) }) }}</span>
+            </small>
+          </div>
+          <Tag v-if="index === 0" :value="$t('revision.current')" severity="info" class="shrink-0" />
+          <Button
+            icon="pi pi-eye"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('revision.view')"
+            :data-revision-view="revision.data?.number"
+            @click="view(revision)"
+          />
+          <Button
+            v-if="index > 0 && canRestore"
+            icon="pi pi-undo"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :loading="restoring === String(revision._id)"
+            :aria-label="$t('revision.restore')"
+            :data-revision-restore="revision.data?.number"
+            @click="restore(revision)"
+          />
+        </div>
       </div>
     </div>
   </Popover>
@@ -61,7 +69,8 @@
     size="full"
     fill
     :show-default-footer="false"
-    :title="viewedLabel"
+    :title="nameOf(viewed)"
+    :subtitle="viewed ? `v${viewed.data?.number ?? ''}` : ''"
     data-revision-dialog
     @update:visible="value => { viewing = value; if (!value) viewed = null; }"
   >
@@ -86,6 +95,7 @@ import ProgressSpinner from 'primevue/progressspinner';
 import Tag from 'primevue/tag';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
+import InstancePreviewMedia from '~/components/shared/InstancePreviewMedia.vue';
 import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
 import { instancePayloadFileUrl } from './file-preview-contract.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
@@ -123,21 +133,26 @@ const viewed = ref(null);
 const instanceId = computed(() => String(props.entity?._id || props.entity?.id || ''));
 const shown = computed(() => Boolean(props.type?.id && props.type?.payload && props.type?.revisions && instanceId.value));
 
-const KNOWN_REASONS = new Set(['created', 'payload-replaced', 'rederived', 'payload-restored']);
-const REASON_KEYS = {
-  'created': 'revision.reasonCreated',
-  'payload-replaced': 'revision.reasonReplaced',
-  'rederived': 'revision.reasonRederived',
-  'payload-restored': 'revision.reasonRestored'
-};
+// The frozen payload reference (the wire payload block the revision
+// minted) — the row's preview band and name resolve through it.
+function frozenPayloadOf(revision) {
+  return revision?.data?.snapshot?.payload || null;
+}
 
-function revisionLabel(revision) {
-  const reason = revision.data?.reason;
-  if (reason === 'payload-restored' && revision.data?.restoredFrom?.number != null) {
-    return `${t('revision.reasonRestored')} · ${t('revision.restoredFrom', { n: revision.data.restoredFrom.number })}`;
-  }
-  if (KNOWN_REASONS.has(reason)) return t(REASON_KEYS[reason]);
-  return revision.identity?.name || `v${revision.data?.number ?? ''}`;
+function nameOf(revision) {
+  return frozenPayloadOf(revision)?.name
+    || revision?.identity?.name
+    || `v${revision?.data?.number ?? ''}`;
+}
+
+function restoredFromOf(revision) {
+  return revision?.data?.restoredFrom?.number ?? null;
+}
+
+function previewable(revision) {
+  const payload = frozenPayloadOf(revision);
+  const mode = props.type?.payload?.preview || 'attachment';
+  return Boolean(payload?.fileId) && RENDERABLE_PREVIEW_MODES.includes(mode);
 }
 
 // The mint's acting principal (SPEC §24 stamp); the system principal
@@ -150,7 +165,7 @@ function revisionActor(revision) {
 }
 
 function revisionTime(revision) {
-  const date = new Date(revision.data?.createdAt || '');
+  const date = new Date(revision?.data?.createdAt || '');
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
 }
@@ -181,8 +196,6 @@ async function load() {
   }
 }
 
-const viewedLabel = computed(() => (viewed.value ? `v${viewed.value.data?.number ?? ''}` : ''));
-
 // The frozen bytes preview through the same URL contract the record's
 // own payload preview uses (the revision's primary attachment).
 const viewSource = computed(() => {
@@ -194,8 +207,8 @@ const viewSource = computed(() => {
     mode,
     fileUrl: attachment?.fileId ? instancePayloadFileUrl(attachment) : '',
     attachment: {
-      name: attachment?.name || viewedLabel.value,
-      mime: attachment?.metadata?.mimeType || ''
+      name: nameOf(revision),
+      mime: attachment?.metadata?.mimeType || frozenPayloadOf(revision)?.mime || ''
     },
     renderable: Boolean(attachment?.fileId) && RENDERABLE_PREVIEW_MODES.includes(mode)
   };
