@@ -253,7 +253,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
 export const DECLARATION_NODE_TYPES = Object.freeze(['ctsClass', 'ctsType', 'ctsField', 'ctsState']);
 
 export function declarationWireLegality({ sourceType = '', targetType = '', targetRecord = null, targetRecordKind = '' } = {}) {
-  if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
+  if (sourceType === 'ctsField' && targetType === 'ctsClass') return 'declares';
   // Children edges land child-first: the source is the child (an in-tree
   // class or a type-reference card naming a registry type — SPEC §6, the
   // child edge's type list is not restricted to in-tree declarations),
@@ -333,21 +333,12 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
     const target = nodeById.get(edge.target);
     if (source?.type === 'ctsState' && target?.type === 'ctsState') stateParent.set(source.id, target.id);
   }
-  // The state vocabulary is flat (SPEC §7): each state node contributes its
-  // own value; nesting wires structure nodes but derive no paths. Unscoped
-  // value tokens satisfy any bound type — scope is authored data, never a
-  // precondition.
-  const unscopedStateValues = new Set();
-  const valuesByType = new Map();
+  // The state vocabulary is flat and draft-local (SPEC §7): each state
+  // node contributes its own value to the definition; operations take
+  // their state from entry wires.
+  const stateValues = new Set();
   for (const node of nodes) {
-    if (node.type !== 'ctsState' || !node.data?.value) continue;
-    if (node.data.typeId == null) {
-      unscopedStateValues.add(String(node.data.value));
-      continue;
-    }
-    const values = valuesByType.get(node.data.typeId) || new Set();
-    values.add(String(node.data.value));
-    valuesByType.set(node.data.typeId, values);
+    if (node.type === 'ctsState' && node.data?.value) stateValues.add(String(node.data.value));
   }
   for (const node of nodes) {
     if (node.type !== 'ctsClass' && node.type !== 'ctsField') continue;
@@ -385,9 +376,6 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
     const target = nodeById.get(edge.target);
     if (!source || !target) continue;
     if (edge.label === 'nested' && source.type === 'ctsState' && target.type === 'ctsState') {
-      if (source.data?.typeId !== target.data?.typeId) {
-        diagnostics.push(`nesting ${labelOf(source)} under ${labelOf(target)}: states of one declared type only`);
-      }
       if (source.id === target.id) diagnostics.push(`state ${labelOf(source)} cannot nest under itself`);
     }
     if (edge.label === 'children' && source.type === 'ctsClass' && target.type === 'ctsClass'
@@ -416,36 +404,34 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
       continue;
     }
     if (!record.typeId) continue;
-    const values = valuesByType.get(record.typeId);
-    if (values && !values.has(target) && !unscopedStateValues.has(target)) {
-      diagnostics.push(`${record.kind === 'cts.transition' ? 'transition' : 'construct'} ${record.id || '(unnamed)'}: state ${target} not declared for ${record.typeId}`);
+    if (!stateValues.has(target)) {
+      diagnostics.push(`${record.kind === 'cts.transition' ? 'transition' : 'construct'} ${record.id || '(unnamed)'}: state ${target} not declared in this draft`);
     }
   }
 
-  const classes = nodes.filter(node => node.type === 'ctsClass' && node.data?.typeId);
-  for (const classNode of classes) {
-    const seenAncestors = new Set();
-    for (const state of nodes.filter(node => node.type === 'ctsState' && node.data?.typeId === classNode.data.typeId)) {
-      seenAncestors.clear();
-      let cursor = state;
-      while (cursor && stateParent.has(cursor.id)) {
-        if (seenAncestors.has(cursor.id)) {
-          diagnostics.push(`state ${labelOf(cursor)} has a cyclic nesting chain`);
-          break;
-        }
-        seenAncestors.add(cursor.id);
-        cursor = nodeById.get(stateParent.get(cursor.id));
+  // Nesting chains must be acyclic; values are unique across the draft.
+  const stateNodes = nodes.filter(node => node.type === 'ctsState' && node.data?.value);
+  const seenAncestors = new Set();
+  for (const state of stateNodes) {
+    seenAncestors.clear();
+    let cursor = state;
+    while (cursor && stateParent.has(cursor.id)) {
+      if (seenAncestors.has(cursor.id)) {
+        diagnostics.push(`state ${labelOf(cursor)} has a cyclic nesting chain`);
+        break;
       }
+      seenAncestors.add(cursor.id);
+      cursor = nodeById.get(stateParent.get(cursor.id));
     }
+  }
 
-    const seenValues = new Set();
-    for (const state of nodes.filter(node => node.type === 'ctsState' && node.data?.typeId === classNode.data.typeId)) {
-      const value = String(state.data?.value || '');
-      if (seenValues.has(value)) {
-        diagnostics.push(`class ${labelOf(classNode)}: duplicate state name ${value}`);
-      }
-      seenValues.add(value);
+  const seenValues = new Set();
+  for (const state of stateNodes) {
+    const value = String(state.data?.value || '');
+    if (seenValues.has(value)) {
+      diagnostics.push(`duplicate state name ${value}`);
     }
+    seenValues.add(value);
   }
   return diagnostics;
 }
@@ -489,7 +475,6 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
     ctsRecords[recordId] = {
       id: recordId,
       kind: 'state',
-      typeId: data.typeId,
       value: data.value,
       ...(data.label ? { label: data.label } : {}),
       ...(data.severity ? { severity: data.severity } : {}),
@@ -588,7 +573,7 @@ export function applyFieldDisplayRole(nodes = [], fieldNodeId = '', flag = '', e
 export function declarationNodePorts(node = {}, types = []) {
   if (node.type === 'ctsClass') {
     return {
-      inputSpecs: [{ id: 'declare', label: 'fields · states', role: 'data', type: processType('json'), access: 'item', plane: 'declaration' }],
+      inputSpecs: [{ id: 'declare', label: 'fields', role: 'data', type: processType('json'), access: 'item', plane: 'declaration' }],
       outputSpecs: node.data?.typeId
         ? [{ id: 'type', label: node.data.typeId, role: 'data', type: processType('entityRef', { typeId: node.data.typeId }), access: 'item', plane: 'declaration' }]
         : []
@@ -649,7 +634,6 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
   const mutations = [];
   const bindings = {};
   const fieldCounts = new Map();
-  const stateCounts = new Map();
   const declaredBy = new Map();
   const nodeById = new Map(nodes.map(node => [node.id, node]));
   const bindEdges = [];
@@ -662,10 +646,9 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
     const source = nodeById.get(edge.source);
     const target = nodeById.get(edge.target);
     if (!source || !target) continue;
-    if ((source.type === 'ctsField' || source.type === 'ctsState') && target.type === 'ctsClass') {
+    if (source.type === 'ctsField' && target.type === 'ctsClass') {
       declaredBy.set(source.id, target.id);
-      if (source.type === 'ctsField') fieldCounts.set(target.id, (fieldCounts.get(target.id) || 0) + 1);
-      else stateCounts.set(target.id, (stateCounts.get(target.id) || 0) + 1);
+      fieldCounts.set(target.id, (fieldCounts.get(target.id) || 0) + 1);
     } else if (source.type === 'ctsClass' || source.type === 'ctsType') {
       if (target.type === 'processNode') {
         bindEdges.push([source, target]);
@@ -711,7 +694,7 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
   }
 
   for (const node of nodes) {
-    if (node.type === 'ctsField' || node.type === 'ctsState') {
+    if (node.type === 'ctsField') {
       const classNode = declaredBy.has(node.id) ? nodeById.get(declaredBy.get(node.id)) : null;
       const value = classNode?.data?.typeId || null;
       if ((node.data?.typeId ?? null) !== value) {
@@ -738,9 +721,7 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
     }
     if (node.type === 'ctsClass') {
       const fields = fieldCounts.get(node.id) || 0;
-      const states = stateCounts.get(node.id) || 0;
       if (node.data?.fields !== fields) mutations.push({ scope: 'node', nodeId: node.id, key: 'fields', value: fields });
-      if (node.data?.states !== states) mutations.push({ scope: 'node', nodeId: node.id, key: 'states', value: states });
     }
   }
 

@@ -54,14 +54,14 @@ describe('transition target binding checks', () => {
     expect(errors).toEqual([]);
   });
 
-  it('keeps refusing a target the draft does not declare for the type', () => {
+  it('keeps refusing a target the draft does not declare', () => {
     const errors = checkCtsGraphBindings(definition({
       t1: { id: 't1', kind: 'cts.transition', typeId: 'panel', state: { axis: 'main', to: 'MYSTERY' } }
     }, {
-      s1: { id: 's1', kind: 'state', typeId: 'panel', value: 'DONE' }
+      s1: { id: 's1', kind: 'state', value: 'DONE' }
     }), domain);
 
-    expect(errors).toContain('processNodes.t1: state MYSTERY is not declared for panel');
+    expect(errors).toContain('processNodes.t1: state MYSTERY is not declared in this draft');
   });
 });
 

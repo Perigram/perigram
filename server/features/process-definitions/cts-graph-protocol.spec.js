@@ -176,7 +176,7 @@ describe('graph protocol v5 (SPEC §20)', () => {
     badState.processNodes.update.typeId = 'facade';
     badState.processNodes.update.state = { axis: 'main', to: 'FLYING' };
     expect(checkCtsGraphBindings(badState, domain))
-      .toContainEqual(expect.stringMatching(/state FLYING is not declared for facade/));
+      .toContainEqual(expect.stringMatching(/state FLYING is not declared in this draft/));
 
     const badField = structuredClone(base);
     badField.processNodes.present = { id: 'present', kind: 'cts.field', typeId: 'material', inputDefaults: { field: 'rogue' } };

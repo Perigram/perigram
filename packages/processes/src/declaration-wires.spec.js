@@ -21,7 +21,6 @@ describe('declaration wire vocabulary (legality + interpretation agree)', () => 
   it('every legal wire is known and every unknown pair is refused', () => {
     const legal = [
       ['ctsField', 'ctsClass', null, 'declares'],
-      ['ctsState', 'ctsClass', null, 'declares'],
       ['ctsClass', 'ctsClass', null, 'children'],
       ['ctsState', 'ctsState', null, 'nested'],
       ['ctsState', 'processNode', { kind: 'cts.construct' }, 'entry'],
@@ -37,11 +36,15 @@ describe('declaration wire vocabulary (legality + interpretation agree)', () => 
       expect(declarationWireLegality({ sourceType, targetType, targetRecord }), `${sourceType} -> ${targetType}`).toBe(expected);
     }
     // Unknown pairs refuse: a field into an operation that is not getField,
-    // a state into a non-status operation, a field into a state.
+    // a state into a non-status operation, a field into a state, and a
+    // state into a class or a type declaration (SPEC §7: states wire into
+    // create/transition operations and parent states only).
     expect(declarationWireLegality({ sourceType: 'ctsField', targetType: 'processNode', targetRecord: { kind: 'cts.mutate' } })).toBeNull();
     expect(declarationWireLegality({ sourceType: 'ctsState', targetType: 'processNode', targetRecord: { kind: 'cts.mutate' } })).toBeNull();
     expect(declarationWireLegality({ sourceType: 'ctsField', targetType: 'ctsState', targetRecord: null })).toBeNull();
     expect(declarationWireLegality({ sourceType: 'ctsState', targetType: 'ctsField', targetRecord: null })).toBeNull();
+    expect(declarationWireLegality({ sourceType: 'ctsState', targetType: 'ctsClass', targetRecord: null })).toBeNull();
+    expect(declarationWireLegality({ sourceType: 'ctsState', targetType: 'ctsType', targetRecord: null })).toBeNull();
   });
 
   it('the state wire authors the operation state; the field wire authors the field path', () => {

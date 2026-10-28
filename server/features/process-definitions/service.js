@@ -48,7 +48,7 @@ import { compileActiveProcessRuntime, getActiveMergedDataForOrganization } from 
 import { compileRegistryForOrganization, defineType } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
-import { operationKindOf, projectDomainFromView, orientChildrenEdgesChildFirst, rewriteRetiredWirePaths } from '~/packages/cts/src/index.js';
+import { operationKindOf, projectDomainFromView, orientChildrenEdgesChildFirst, rewriteRetiredWirePaths, retireStateScopeAuthoring } from '~/packages/cts/src/index.js';
 import { withinRelationDomain } from '#shared/relation-domain.js';
 import { projectedDomainsForOrganization, projectedServicesForOrganization, starterConstructsForOrganization, resolveProjectionValue } from '~/server/features/plugins/service.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
@@ -2625,7 +2625,7 @@ function persistedRewrites(data, domain) {
   // own the report, so a draft with access rules on a still-unbound node
   // remains savable.
   tryAcceptGraphProtocol(migration.data, domain);
-  return rewriteRetiredWirePaths(orientChildrenEdgesChildFirst(collapseEffectAccessGrants(migration.data)));
+  return retireStateScopeAuthoring(rewriteRetiredWirePaths(orientChildrenEdgesChildFirst(collapseEffectAccessGrants(migration.data))));
 }
 
 // One compile path: protocol acceptance (v5 lowering) through

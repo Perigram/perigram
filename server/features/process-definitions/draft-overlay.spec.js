@@ -70,9 +70,9 @@ describe('draft declaration overlay at acceptance', () => {
       matching: 'item', fields: [], inputs: [], outputs: []
     };
     expect(() => validateActivatableProcess(structuredClone(data), rawDomain, {}))
-      .toThrow(/state SHIPPED is not declared for/);
+      .toThrow(/state SHIPPED is not declared in this draft/);
 
-    data.ctsTypes.st2 = { id: 'st2', kind: 'state', typeId, value: 'SHIPPED', initial: false, terminal: true };
+    data.ctsTypes.st2 = { id: 'st2', kind: 'state', value: 'SHIPPED' };
     const accepted = validateActivatableProcess(data, rawDomain, {});
     expect(accepted.errors || []).toEqual([]);
   });
