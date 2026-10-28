@@ -2437,6 +2437,20 @@ reports only the pre-existing jagua-rs submodule link.
 
 Status: WAITING owner verification.
 
+## Plugins upgrade affordance defect (owner report 2026-10-28)
+
+The owner's session saw the installed-plugins table (facade v17) and the
+catalog list (facade v24) with install buttons on catalog rows, and no
+upgrade tag or button on the installed row — while the same page through
+the same app rendered both for a headless probe with an identical
+install. The upgrade went through the console transport, so the
+consent-diff surface was bypassed once. Unreproduced; re-probe with the
+next catalog version bump.
+
+- [ ] Reproduce the owner's client state when a version delta exists
+  again (next facade listing release): installed row, actions column,
+  bundle identity of the failing client versus a fresh load.
+
 ## Facade domain model — template, design, instance (facade SPEC, owner direction 2026-10-28)
 
 The facade flow becomes a six-type family (cassette-template,
