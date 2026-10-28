@@ -2331,15 +2331,36 @@ Ordered steps:
   live instances). The nesting-polygons projection output itself is
   unchanged — the design key enters at composition (the demo process
   wires `getField('_id')` from the bake result into `designId`).
-- [ ] Surface contract 5: construct and remove host transports
-  (host-executed like sync/upload), loader + install-gate teaching.
-- [ ] Sheet-design editor: multi-record canvas — sibling sheet designs
-  side by side, sheets added/removed as records, cassette designs
-  dragged between sheets with target-sheet re-clamping, palette from
-  existing designs and the declared create modes, per-record saves.
-- [ ] Demo process, seeds, and e2e recomposed onto the family (design
-  refs threaded through the solve; grouped layouts consumed as sheet
-  designs with counts).
+- [ ] WAITING — owner verification: Surface contract 5: construct and
+  remove host transports (host-executed like sync/upload), loader +
+  install-gate teaching.
+- [ ] WAITING — owner verification: Sheet-design editor: multi-record
+  canvas — sibling sheet designs side by side, sheets added/removed as
+  records, cassette designs dragged between sheets with target-sheet
+  re-clamping, palette from existing designs and the declared create
+  modes, per-record saves.
+- [ ] WAITING — owner verification: Demo process, seeds, and e2e
+  recomposed onto the family (design refs threaded through the solve;
+  grouped layouts consumed as sheet designs with counts).
+
+  ### Agent Notes (2026-10-28, canvas slice)
+
+  Session `agent/facade-canvas-20261028` (worktree
+  `.agent-worktrees/facade-canvas`). Contract 5 mounts `construct.run`
+  and `remove.record` over two new gated transports
+  (`POST /api/instances/:type/construct`, `DELETE
+  /api/instances/:type/:id` — the remove gate loads the entity and
+  checks the compiled grant, fail-closed like patch); the instances
+  store carries `constructInstance` through the outbox. The editor
+  surface (listing v23, contract 5) renders one panel per sheet-design
+  record, drags placements within a sheet magnetically, moves them
+  between records on cross-panel drops (the source item travels, the
+  target's free sweep re-clamps, both records commit on save),
+  constructs blank sheets and deletes records through the transports,
+  and keeps one canvas-wide undo stack. E2E corpus renamed onto
+  cassette-template (the pairs-join table column stays `cassette` —
+  it keys by template name, the join's leftKey); live E2E needs the
+  running stack.
 
 ## Relation link lifecycle (owner direction 2026-10-28, SPEC §22.12)
 
