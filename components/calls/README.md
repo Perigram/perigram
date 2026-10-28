@@ -102,9 +102,12 @@ suspends the auto-rule while the home workspace mounts the adopting tab.
 ## Panel chrome
 
 The controls are one floating pill overlay at the bottom center of the
-stage: a `bg-content` chip over media with `shadow-overlay`, icon-only
-PrimeVue buttons (rounded, text, secondary), the layout switch as one
-icon button (its icon and aria-label name the layout it switches to),
+stage: a `bg-content` chip over media with `shadow-overlay`, rounded
+text icon buttons (default severity — ink on the content surface), the
+layout switch as one
+icon button (its icon and aria-label name the layout it switches to), a
+speaker-layout maximize toggle that hides the film strip so the focus
+tile fills the stage,
 reactions and device settings as PrimeVue `Popover`s anchored at their
 buttons, and leave as the single danger button, separated by a hairline
 divider. The pill wraps to a second row on narrow panes — every control
@@ -155,9 +158,11 @@ another room tears the previous one down first.
 workspace tab is the default (navigating home when the caller lives on
 another route); organizations without a generated home workspace fall back
 to the floating window, and mobile keeps the full-screen dialog. Accepted
-invites and docked calls are parked as `pendingTabRoom` and consumed by
-the home workspace's watcher (the pending tab also suspends the
-floating-window auto-rule until the tab mounts). The mobile and
+invites and docked calls are parked as `pendingTabRoom`; the home
+workspace's watcher opens the tab, and the mounted `CallPanel` consumes
+the pending room — the floating-window auto-rule stays suspended until a
+surface truly exists, so docking can never race the tab into existence.
+The mobile and
 chat-hosted full-screen call dialogs are the one `CallDialog` host: the
 dialog root is capped to the viewport (full-bleed on mobile,
 viewport-minus-margins on desktop) and the content area is a non-scrolling
