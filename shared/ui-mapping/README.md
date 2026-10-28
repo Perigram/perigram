@@ -215,7 +215,7 @@ The `columns` signal counts every column the table would show beside
 identity and status: filled non-identifier short scalars, the filled
 first declared relation (explicit edge or ref field — SPEC §6 relation
 grammar), the filled first structural field (json/record/map, the
-summary column), and the loaded children column.
+summary column), and the loaded children columns.
 
 `listLayoutOf(node)` is the one region-level derivation: compose-time
 traits, weight estimation, and the RegionBlock materialization pass the
@@ -269,10 +269,11 @@ field, `{ key }`, a column only when any loaded instance carries its
 refs — the same filledness law as scalar columns, and the table-floor
 signal counts it the same way), `summaryColumn` (the first declared
 json/record/map field any instance fills, `{ key }` — the compact
-structural summary column, same law), `childrenColumn` (`{ types }` —
-the declared children-edge target types, a column when the pool holds
-any listed row's child, derived over the pool the composition and the
-host overlay provide), `facets` (enum
+structural summary column, same law), `childrenColumns` (one
+`{ key, types }` per declared children edge — the edge's key labels its
+column and only its instances ride it; an edge whose children no listed
+row carries renders no column, derived over the pool the composition
+and the host overlay provide), `facets` (enum
 fields over the values actually present), and `pagination` from the
 shared table budgets. Filledness is display-aware: a quantity carrying
 a null value renders the fallback dash and counts as unfilled. The
