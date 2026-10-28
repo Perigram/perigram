@@ -277,7 +277,10 @@ beside the transition history in `StateHistory`.
   type; an unfilled relation renders no column), and the first filled
   structural field
   (json/record/map, the contract's `summaryColumn`) as a bounded inline
-  summary cell — a narrow host sheds it with the compact column scale. Scalar cells are
+  summary cell — a narrow host sheds it with the compact column scale —
+  and the loaded children as budgeted chips (`childrenOfParent` over
+  the host-overlaid pool; the single children edge's key labels the
+  column, several edges take `uiMapping.childrenColumn`). Scalar cells are
   `InlineField` in its cell variant: on patchable surfaces every value
   (the empty ones included) edits in place through the per-field
   pencil, patching through the region's `inline-change` channel; rows
