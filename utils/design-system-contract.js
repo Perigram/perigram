@@ -84,8 +84,8 @@ export const DESIGN_SYSTEM_GROUPS = [
 
 export const DESIGN_SYSTEM_PRIMITIVES = [
   { key: 'InstanceCard', kind: 'entity-chrome', componentPath: 'components/shared/InstanceCard.vue', purpose: 'Standard entity card chrome with identity, optional trace, optional status, content, and footer slots.' },
-  { key: 'InstanceSelect', kind: 'entity-input', componentPath: 'components/shared/InstanceSelect.vue', purpose: 'PrimeVue Select wrapper that renders canonical entity options as compact cards and selected entities outside the value area with a compact change trigger.' },
-  { key: 'InstanceMultiSelect', kind: 'entity-input', componentPath: 'components/shared/InstanceMultiSelect.vue', purpose: 'PrimeVue MultiSelect wrapper that renders canonical entity options as compact cards and selected chip area with a compact change trigger.' },
+  { key: 'InstanceSelect', kind: 'entity-input', componentPath: 'components/shared/InstanceSelect.vue', purpose: 'PrimeVue Select wrapper rendering entity options and the selected value as one-line instance option rows (preview thumb, identifier title, state and type meta).' },
+  { key: 'InstanceMultiSelect', kind: 'entity-input', componentPath: 'components/shared/InstanceMultiSelect.vue', purpose: 'PrimeVue MultiSelect wrapper rendering entity options as instance option rows and selected entities as glyph chips inside the control.' },
   { key: 'DataBlock', kind: 'block', componentPath: 'components/shared/blocks/DataBlock.vue', purpose: 'Canonical label/value rows for fact surfaces; descriptors resolve from the compiled type view (render.groups), rendered with the declared display policies.' },
   { key: 'InstanceState', kind: 'status', componentPath: 'components/shared/state/InstanceState.vue', purpose: 'Interactive status display and workflow-derived transition actions.' },
   { key: 'StateHistory', kind: 'status', componentPath: 'components/shared/state/StateHistory.vue', purpose: 'Status audit timeline for entity lifecycle events.' },
