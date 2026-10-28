@@ -280,6 +280,7 @@ const toast = useToast();
 const dialogVisible = ref(false);
 const dialogAction = ref(null);
 const dialogFailures = ref(null);
+const dialogContext = ref({});
 const dialogDraft = reactive({});
 const dialogType = computed(() => (props.bundle.types || []).find(type => type.id === dialogAction.value?.typeId) || null);
 // Dialog rows come from the shared resolver: authored fields (matched by
@@ -356,7 +357,7 @@ const submitDialog = async () => {
   const action = dialogAction.value;
   const payload = draftPayload();
   if (!action) return;
-  await runAction(action, payload);
+  await runAction(action, payload, dialogContext.value);
   if (!dialogFailures.value) closeDialog();
 };
 
@@ -383,6 +384,7 @@ const draftPayload = () => {
 
 const linkDialogVisible = ref(false);
 const linkAction = ref(null);
+const linkContext = ref({});
 // The picker models the instance ref (`{ type, id }`) — the exact shape
 // the relation payload carries.
 const linkTarget = ref(null);
@@ -418,7 +420,7 @@ const submitLink = () => {
   if (!action?.relation?.key || !target?.id) return;
   runAction(action, {
     relations: { [action.relation.key]: { type: target.type, id: target.id } }
-  });
+  }, linkContext.value);
 };
 
 // `context` carries the instance an instance-scoped quick action was
@@ -433,6 +435,7 @@ const openAction = (action, context = {}) => {
   const launch = planActionLaunch(action);
   if (launch === 'link') {
     linkAction.value = action;
+    linkContext.value = context || {};
     linkTarget.value = null;
     linkDialogVisible.value = true;
     loadLinkTargets(action);
@@ -440,6 +443,7 @@ const openAction = (action, context = {}) => {
   }
   if (launch === 'dialog') {
     dialogAction.value = action;
+    dialogContext.value = context || {};
     dialogFailures.value = null;
     seedDialogDraft();
     if (!visibleDialogRows.value.length) {
@@ -467,6 +471,7 @@ function closeDialog() {
   dialogVisible.value = false;
   dialogAction.value = null;
   dialogFailures.value = null;
+  dialogContext.value = {};
 }
 
 // Prefill the draft: authored defaults, then the scoped detail instance's
