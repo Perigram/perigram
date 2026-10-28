@@ -101,6 +101,8 @@
         "notAvailable": "Н/Д",
         "pinnedRevision": "Закреплённая ревизия",
         "replaceFile": "Заменить файл",
+        "link": "Связать",
+        "unlink": "Отвязать",
         "noResults": "Нет результатов",
         "componentError": "Ошибка компонента",
         "tryAgain": "Повторить",

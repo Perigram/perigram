@@ -1,7 +1,7 @@
 import { labelKeyForType } from '~/utils/design-system-contract.js';
 import { typeLabelFor } from '#shared/ui-mapping/index.js';
 import { useRegistryStore } from '~/stores/registry';
-import { isCreateAction, isRelationLinkAction, isUpdateAction } from '~/utils/action-visibility.js';
+import { isCreateAction, isRelationLinkAction, isRelationUnlinkAction, isUpdateAction } from '~/utils/action-visibility.js';
 
 // The app binding of the one type-label chain (`typeLabelFor`,
 // shared/ui-mapping; canonical contract in its README). The registry
@@ -63,6 +63,7 @@ export function generatedActionLabel(action = {}, fallback = '', { t, te } = {})
   if (explicit && !isGenericActionLabel(explicit, action)) return explicit;
 
   if (isUpdateAction(action)) return action.state?.to ? t('generatedScreen.actions.change') : t('common.edit');
+  if (isRelationUnlinkAction(action)) return t('common.unlink');
   if (action.actionKind === 'runCommand') return meaningfulLabel(action.commandId) || t('generatedScreen.actions.run');
   if (action.actionKind === 'sendToOrganization') return t('generatedScreen.actions.send');
   return fallback || t('common.confirm');

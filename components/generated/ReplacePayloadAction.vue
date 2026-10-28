@@ -2,12 +2,10 @@
   <Button
     v-if="replaceable"
     icon="pi pi-file-import"
+    :label="actionLabel"
     size="small"
     severity="secondary"
-    :rounded="true"
     :text="true"
-    :aria-label="actionLabel"
-    :title="actionLabel"
     :loading="uploading"
     @click="fileInput?.click()"
   />
@@ -31,9 +29,11 @@ import { useRegistryStore } from '~/stores/registry';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { resolveTypeFeature } from '#shared/field-access-policies.js';
 
-// The generic replace affordance (SPEC §24): every revision-scoped
-// payload type's detail swaps its bytes in place through the revisioned
-// payload channel — the record keeps its identity, pins, and history.
+// The generic replace affordance (SPEC §24): a record whose payload is
+// its own authored content swaps its bytes in place through the
+// revisioned payload channel — the record keeps its identity, pins, and
+// history. Construct-derived payloads (provenance sources non-empty)
+// are re-derive's business and carry no replace affordance.
 const props = defineProps({
   entity: { type: Object, default: null },
   type: { type: Object, default: null }
@@ -66,6 +66,7 @@ const canWrite = computed(() => hasPermissionGrant({
 
 const replaceable = computed(() => Boolean(
   props.type?.id && props.type?.payload && props.type?.revisions && instanceId.value && canWrite.value
+  && !(props.entity?.provenance?.sources || []).length
 ));
 
 async function onFileChosen(event) {

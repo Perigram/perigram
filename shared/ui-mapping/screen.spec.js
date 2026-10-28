@@ -90,6 +90,36 @@ describe('screen composition', () => {
     expect(lineageScoped.regions[0].instances.map(instance => instance.id)).toEqual(['w2']);
   });
 
+  it('injects relation link and unlink actions into their relation-scoped sections', () => {
+    const relationContract = {
+      actions: {
+        ...contract.actions,
+        sheets_link: { id: 'sheets_link', label: 'Link sheet', actionKind: 'link', typeId: 'widget', relation: { key: 'sheets', targetTypes: ['sheet_file'] }, trigger: { mode: 'manual' } },
+        sheets_unlink: { id: 'sheets_unlink', label: 'Unlink sheet', actionKind: 'unlink', typeId: 'widget', relationMutation: { key: 'sheets', operation: 'unlink', targetTypes: ['sheet_file'] }, trigger: { mode: 'manual' } },
+        ghost_link: { id: 'ghost_link', label: 'Link ghost', actionKind: 'link', typeId: 'widget', relation: { key: 'ghosts', targetTypes: ['widget'] }, trigger: { mode: 'manual' } }
+      }
+    };
+    const screen = composeScreen(
+      { screenKey: 'r2', template: 'instanceDetail', label: 'R2', scope: { instanceId: 'w1' },
+        sources: [
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'sheets', typeId: 'sheet_file', mode: 'list', relation: { sourceId: 'widget', key: 'sheets' } }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail', actions: ['sheets_link', 'sheets_unlink', 'ghost_link', 'widget_create'] },
+          { id: 'sheets', slot: 'children', sourceId: 'sheets', surface: 'list', actions: [] }
+        ] },
+      relationContract, bundle, pool
+    );
+    const detail = screen.regions[0];
+    const section = detail.childRegions[0];
+    expect(section.actions.map(action => action.id)).toEqual(['sheets_link', 'sheets_unlink']);
+    expect(section.relationParent.id).toBe('w1');
+    // A link with no section for its relation keeps the header as its
+    // fallback surface; every non-relation action stays.
+    expect(detail.actions.map(action => action.id)).toEqual(['ghost_link', 'widget_create']);
+  });
+
   it('scopes list sources by compiled filter placeholders against the screen scope', () => {
     // The compiler-emitted child-region shape: bare declared lineage key
     // filtered by $screen.scope.instanceId — the org-authored hierarchy

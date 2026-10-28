@@ -101,6 +101,8 @@
         "notAvailable": "N/A",
         "pinnedRevision": "Pinned revision",
         "replaceFile": "Replace file",
+        "link": "Link",
+        "unlink": "Unlink",
         "noResults": "No results",
         "componentError": "Component Error",
         "tryAgain": "Try Again",

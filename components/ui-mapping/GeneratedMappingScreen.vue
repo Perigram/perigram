@@ -202,7 +202,7 @@ provide('uiMappingSpacing', spacing);
 // same launch pipeline as header actions; the entry carries the relation
 // payload the run dispatches with.
 provide('generatedExecuteAction', (action, entity, context = {}) => {
-  openAction(action, context.data || {}, { instance: entity });
+  openAction(action, { instance: entity, data: context.data || null });
 });
 
 const { t } = useI18n();
@@ -482,11 +482,11 @@ const openAction = (action, context = {}) => {
     confirm.require({
       header: action.label,
       message: typeLabel || action.label,
-      accept: () => runAction(action, {}, context)
+      accept: () => runAction(action, context.data || {}, context)
     });
     return;
   }
-  runAction(action, {}, context);
+  runAction(action, context.data || {}, context);
 };
 
 function closeDialog() {

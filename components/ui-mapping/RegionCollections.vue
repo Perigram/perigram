@@ -11,6 +11,7 @@
     :bundle="bundle"
     :state-policy="node.statePolicy"
     :actions="instanceActions"
+    :relation-unlink="relationUnlink"
     :patchable="patchable"
     @open="instance => emit('open', instance)"
     @run="(action, context) => emit('run', action, context)"
@@ -22,6 +23,7 @@
     :type="node.type"
     :controls="node.listControls"
     :actions="instanceActions"
+    :relation-unlink="relationUnlink"
     :openable="openable"
     :parented="parented"
     :pool="effectivePool"
@@ -125,6 +127,9 @@ defineProps({
   // list): rows carry their parent context token.
   parented: { type: Boolean, default: false },
   instanceActions: { type: Array, default: () => [] },
+  // SPEC §22.12: `{ parent, actions }` — the relation-scoped section's
+  // unlink actions with the parent record their rows are linked through.
+  relationUnlink: { type: Object, default: null },
   // Cell values edit in place when the host binds a patch executor.
   patchable: { type: Boolean, default: false },
   resolveTransitions: { type: Function, default: null },
