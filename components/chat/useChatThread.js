@@ -203,10 +203,20 @@ const callHeaderLabel = computed(() => {
 // The call line machine owns ringing: invites for the open conversation come
 // from the shared calls store, so accepting or declining anywhere clears the
 // ring in every surface (the old local banner kept ringing after an accept
-// elsewhere). The ongoing-room banner also survives joining and leaving.
+// elsewhere). The ongoing-room banner is the entry point before joining
+// and after leaving the call; the user's own live or joining session for
+// the room hides it (components/calls README).
 const callsStore = useCallsStore()
 const { isMobileViewport, openCallInWorkspaceTab } = useCallRouting()
-const ongoingCallRoom = computed(() => callsStore.activeRoomForConversation(activeConversationKey.value || ''))
+const ongoingCallRoom = computed(() => {
+    const ongoing = callsStore.activeRoomForConversation(activeConversationKey.value || '')
+    if (!ongoing) return null
+    const sessionState = callsStore.session?.state
+    const ownSessionLive = sessionState
+        && sessionState.name === ongoing.room
+        && (sessionState.state === 'connected' || sessionState.state === 'connecting')
+    return ownSessionLive ? null : ongoing
+})
 const conversationInvite = computed(() => callsStore.incoming.find(invite => (
     invite.conversationKey && invite.conversationKey === activeConversationKey.value
 )) || null)
