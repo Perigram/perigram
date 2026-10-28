@@ -60,6 +60,20 @@ const STORED = {
     }
 };
 
+// Entry facts live on the record, invisible in edges — the digest surfaces
+// them for the editing agent.
+const STORED_WITH_ENTRY = structuredClone(STORED);
+STORED_WITH_ENTRY.data.graph.nodes.push({ id: 'n2', type: 'processNode', data: { refId: 'n2' } });
+STORED_WITH_ENTRY.data.processNodes.n2 = {
+    id: 'n2',
+    kind: 'cts.emit',
+    typeId: '',
+    inputs: [],
+    outputs: [],
+    eventId: 'org1.test.requested',
+    trigger: { mode: 'event', eventId: 'org1.test.requested' }
+};
+
 beforeEach(() => {
     vi.clearAllMocks();
     mockedWebSearch.isWebSearchAvailable.mockResolvedValue(true);
@@ -104,6 +118,13 @@ describe('definition tool authoring surface', () => {
         expect(full.data.activated).toBeUndefined();
         expect(full.data.graph).toEqual(STORED.data.graph);
         expect(full.data.valueInputs).toEqual(STORED.data.valueInputs);
+    });
+
+    it('digest rows surface authored entry facts (schedule, event subscription)', async () => {
+        mockedProcessDefinitions.getById.mockResolvedValue(structuredClone(STORED_WITH_ENTRY));
+        const digest = await executeTool('get_process_definition', { definitionId: 'd1' }, AUTH);
+        expect(digest.nodes.find(node => node.id === 'n2').entry).toEqual({ eventId: 'org1.test.requested' });
+        expect(digest.nodes.find(node => node.id === 'n1').entry).toBeUndefined();
     });
 
     it('update keeps the stored activation records and drops client-injected ones', async () => {
@@ -159,7 +180,9 @@ describe('definition tool authoring surface', () => {
         const vocabulary = await executeTool('get_authoring_vocabulary', {}, AUTH);
         // Compact by default: no catalog or socket tables, palette items
         // are id/kind pairs — one oversized vocabulary response must never
-        // evict the tools from a small context window.
+        // evict the tools from a small context window. The guide and
+        // palette grow with the shipped vocabulary; the 16 KB truncation
+        // limit is the eviction guard, this pin the compact budget.
         expect(vocabulary.nodeCatalog).toBeUndefined();
         expect(vocabulary.valueOperations).toBeUndefined();
         expect(vocabulary.construction).toBeUndefined();
@@ -175,7 +198,7 @@ describe('definition tool authoring surface', () => {
             { id: 'role_admin', label: 'Admin' },
             { id: 'role_ops', label: 'Operations' }
         ]);
-        expect(JSON.stringify(vocabulary).length).toBeLessThan(12 * 1024);
+        expect(JSON.stringify(vocabulary).length).toBeLessThan(13 * 1024);
 
         const catalog = await executeTool('get_authoring_vocabulary', { detail: 'nodeCatalog', family: 'values' }, AUTH);
         expect(catalog.nodeCatalog.length).toBeGreaterThan(0);
@@ -202,7 +225,9 @@ describe('definition tool authoring surface', () => {
         const construction = await executeTool('get_authoring_vocabulary', { detail: 'construction' }, AUTH);
         expect(mockedProcessDefinitions.listConstructionModes).toHaveBeenCalledWith(AUTH.organizationId);
         expect(construction.construction['text-document']).toEqual({ modes: ['content'], defaultMode: 'content' });
-        expect(construction.guide).toContain("detail:'construction'");
+        // Detail views carry the detail and roles; the guide rides the
+        // compact view alone (the socket inventory rides beside it).
+        expect(construction.guide).toBeUndefined();
     });
 
     it('composes definitions through the headless seam with the caller\'s auth', async () => {
