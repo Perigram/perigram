@@ -262,7 +262,7 @@ const relationTargetType = computed(() => {
   return accepts.length === 1 ? accepts[0] : null;
 });
 const relationRefsOf = instance => resolveInstanceRelationRefs(
-  instance?.relations?.[relationKey.value],
+  instance?.relations?.[relationKey.value] ?? instance?.fields?.[relationKey.value],
   { typeId: relationTargetType.value }
 );
 const budgetedRefs = instance => applyBudget(relationRefsOf(instance), ROW_RELATION_BUDGET).visible;

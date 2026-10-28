@@ -17,9 +17,10 @@ Parent: [server/features](../README.md).
   `lineage` (pure tree edges), `relations`, the top-level
   `organizationId` tenancy slot, `payload` (iff the type declares payload
   traits), and `provenance` (set by the construct boundary, never
-  patched). Declared ref fields store their values under
-  `relations.<fieldName>` — SPEC §6's one relation grammar (explicit
-  edges and ref fields share the block). **The wire DTO is this stored document verbatim** (owner
+  patched). Declared ref fields follow SPEC §6's one relation grammar
+  and store in either block: the construct boundary scalarizes a ref
+  draft to its bare id under `fields.<name>`, relation operations write
+  ref objects under `relations.<name>`; readers accept both shapes. **The wire DTO is this stored document verbatim** (owner
   decision 2026-10-11: ids JSON-safe). `organizationId: null` marks a
   system instance
   (pack-seeded reference catalogs): read-admitted beside org rows in

@@ -60,7 +60,7 @@ const instances = {
   ],
   project: [
     { id: 'prj-1', type: 'project', fields: { name: 'Alpha' }, relations: { libraries: [{ type: 'library', id: 'lib-1' }] }, lineage: {} },
-    { id: 'prj-2', type: 'project', fields: { name: 'Beta' }, relations: { libraries: [{ type: 'library', id: 'lib-1' }] }, lineage: {} },
+    { id: 'prj-2', type: 'project', fields: { name: 'Beta', libraries: 'lib-1' }, relations: {}, lineage: {} },
     { id: 'prj-3', type: 'project', fields: { name: 'Gamma' }, relations: {}, lineage: {} }
   ],
   queue: [
@@ -124,7 +124,8 @@ describe('relation-grammar collection columns (SSR)', () => {
   it('renders the ref-field column as a table with resolved chips', async () => {
     const html = await render('project');
     expect(html).toContain('Libraries');
-    // The ref cell renders a chip; the N/A badge is gone.
+    // Both stored shapes chip: the relations object and the scalarized
+    // bare id under fields. The N/A badge is gone.
     expect(html).toContain('p-chip');
     expect(html).not.toContain('N/A');
     expect(html).not.toContain('Н/Д');
