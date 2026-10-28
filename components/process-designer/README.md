@@ -271,7 +271,7 @@ folds into one semantic signature; any change — a wire, a rename, an
 inspector edit — re-runs wire interpretation and the sync pass in the
 same tick, and the compile is gated on the authoring signature, so drags
 and selection churn re-evaluate nothing. Declaration wires are live
-binding channels: a field/state node's type id follows the class it
+binding channels: a field node's type id follows the class it
 declares on, and a species record's binding resolves by precedence — its
 Type wire (origin species) or entity-input source type (consumers), else
 the stored preset. Renaming a class re-binds every wired descendant
@@ -295,11 +295,13 @@ type wires, process records).
 
 Declaration wires (`declarationWireLegality` in
 `packages/processes/src/designer.js`) connect declaration partners:
-field/state/operator nodes declare on a class or its state machine;
-class/type-reference nodes target a ref field's accepted targets;
-class/reference nodes bind an origin species Type pin; state→state wires
-declare one parent relationship (`nested`). A state connected to a class
-is a root state. Children wires accept type-reference targets beside
+field nodes declare on a class; class/type-reference nodes target a ref
+field's accepted targets; class/reference nodes bind an origin species
+Type pin; state→state wires declare one parent relationship (`nested`);
+state→operation wires (`entry`) author a construct's initial state and a
+transition's target — the wire is the value (SPEC §7: states wire into
+create/transition operations and parent states only). Children wires
+accept type-reference targets beside
 in-tree classes — an org type's containment may name pack, other registry
 types, and itself (recursive containment, SPEC §6, rendered as a hoop
 over the card) — and land child-first (`childrenWireLegality`): the edge
