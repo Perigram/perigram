@@ -116,9 +116,10 @@ test.describe('tech-drawing fill dialog', () => {
     // instance ref, the input never shows the raw object.
     await expect(templateInput).toHaveValue(/frame/);
 
-    await dialog.locator('.p-multiselect').click();
-    await app.page.getByRole('option', { hasText: 'bracket' }).first().click();
-    await app.page.keyboard.press('Escape');
+    // The parts row is the per-spot assignment (SPEC §24): the template's
+    // anchors list, name-equal parts prefilled — spot `bracket` takes the
+    // same-named part without a click.
+    await expect(dialog.getByText('bracket', { exact: true })).toBeVisible({ timeout: 15_000 });
 
     await dialog.locator('.p-dialog-footer').getByRole('button').last().click();
 
@@ -213,8 +214,8 @@ test.describe('tech-drawing fill dialog', () => {
       });
       return (run.created || run.instance || run)._id;
     };
-    await runUpload(twoSpots, 'two-spots');
-    await runUpload(onePart, 'gamma');
+    const templateId = await runUpload(twoSpots, 'two-spots');
+    const partId = await runUpload(onePart, 'gamma');
 
     await app.gotoClient('/screens/auto_dxf-source');
     const main = app.page.locator('main');
@@ -232,15 +233,23 @@ test.describe('tech-drawing fill dialog', () => {
     await templateInput.fill('two-spots');
     await app.page.locator('.p-autocomplete-item, [role="option"]', { hasText: 'two-spots' }).first().click();
 
-    await dialog.locator('.p-multiselect').click();
-    await app.page.getByRole('option', { hasText: 'gamma' }).first().click();
-    await app.page.keyboard.press('Escape');
+    // The template's anchors list with no name match: nothing prefills.
+    await expect(dialog.getByText('alpha', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(dialog.getByText('beta', { exact: true })).toBeVisible();
     await dialog.locator('.p-dialog-footer').getByRole('button').last().click();
 
-    // The refusal renders in the open dialog, naming every offender.
-    await expect(dialog.getByText(/spot alpha has no matching part/)).toBeVisible({ timeout: 30_000 });
-    await expect(dialog.getByText(/spot beta has no matching part/)).toBeVisible();
-    await expect(dialog.getByText(/part gamma has no matching spot/)).toBeVisible();
+    // The widget gates incomplete assignments before submit (Create stays
+    // disabled while a spot has no part); the refusal contract is the
+    // API's — an incomplete explicit assignment refuses naming the open
+    // anchor.
+    await expect(dialog.locator('.p-dialog-footer').getByRole('button').last()).toBeDisabled();
+    const refusal = await app.request.post('/api/process-definitions/active/actions/fill/execute', {
+      data: { data: { template: templateId, parts: [{ id: partId, spot: 'alpha' }] } },
+      failOnStatusCode: false
+    });
+    expect(refusal.status()).toBe(422);
+    const body = await refusal.json();
+    expect(body.data.failures).toContainEqual({ name: 'beta', message: 'spot beta has no matching part' });
 
     // The refusal created nothing: the dialog's record never landed, the
     // two uploads stay.
