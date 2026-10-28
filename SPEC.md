@@ -987,6 +987,18 @@ surface: the type glyph beside the title is its type identity, and no
 host heading, subtitle, or dialog title repeats the record's name or
 type.
 
+### 22.13 Instance pickers render procedural list items (owner direction 2026-10-28)
+
+Every control that selects instances — generated ref editors and create
+dialogs, the process designer's reference inputs, plugin editor surfaces —
+renders its option list through the one procedural instance item: the
+compact instance card, which derives preview, identifier-field title,
+state, and facts from the served type view. A picker lists plain option
+text only for non-instance options (enums, profiles, providers). Option
+lists are built through one shared derivation (entity, type id, value,
+and the identifier-field label), so no picker hand-rolls its own label
+or renders a raw record id.
+
 ## 23. Deslopification (owner direction 2026-10-23)
 
 The current architecture carries the whole platform idea and its important

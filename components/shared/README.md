@@ -419,6 +419,20 @@ app renders — file chips, instance chips, card identity chips —
 consumes these; a second copy of a chip class string is a defect.
 Collection counts render as a `Tag` with `secondary` severity.
 
+### `InstanceSelect.vue` / `InstanceMultiSelect.vue`
+The entity dropdown wrappers: options carrying an entity render as compact
+instance cards (below) in the option list and the selected area; plain
+options keep PrimeVue's label rendering. An option is entity-bearing when
+it carries an `entity` (or is itself) a record with an id slot plus one of
+the record dialects — an `identity` block or the flat §3 `fields` object —
+and a type id resolves (the `typeId` prop, the option's `typeId`, or the
+entity's). Option lists over an instance pool build through
+`instancePickerOptions`
+([utils](../../utils/README.md) — the one derivation: identifier-field
+label, type-prefixed for multi-type pickers, value, entity, type id);
+`instance-select.spec.js` owns the direct-import guard (plain enum
+selects are the allowance).
+
 ### `InstanceInlineRef.vue`
 Compact embedded entity reference for relation rows inside cards and details.
 When only an id is provided, it resolves the DTO through the entity store's
