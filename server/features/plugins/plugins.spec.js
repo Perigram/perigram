@@ -2,6 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
 vi.mock('../instances/count.js', () => ({ countInstancesOfType: vi.fn(async () => 0) }));
+vi.mock('~/server/db/mongo', () => ({
+  connectDB: vi.fn(async () => ({
+    collection: vi.fn(() => ({
+      updateMany: vi.fn(async () => ({ modifiedCount: 0 })),
+      find: () => ({ [Symbol.asyncIterator]: async function* () {} })
+    }))
+  }))
+}));
 vi.mock('../instances/migrations.js', () => ({
   applyTypeMigrationSteps: vi.fn(async () => ({ appliedAt: '2026-10-08T00:00:00.000Z', actor: 'user-1', counts: {}, failures: [] }))
 }));
@@ -714,6 +722,32 @@ describe('upgrades', () => {
     await expect(applyUpgrade({ organizationId: ORG, pluginId: 'coatings', auth: AUTH }))
       .rejects.toMatchObject({ statusCode: 409 });
     expect(repository.updateInstallSnapshot).not.toHaveBeenCalled();
+    countInstancesOfType.mockResolvedValue(0);
+  });
+
+  it('covers a renamed type with live instances instead of blocking', async () => {
+    const renamedListing = {
+      ...listingV3,
+      declarations: {
+        ...listingV3.declarations,
+        types: listingV3.declarations.types.map(type => (
+          type.id === 'coating' ? { ...type, id: 'enamel', name: 'Enamel', renameFrom: 'coating' } : type
+        ))
+      }
+    };
+    repository.findCatalogByPluginId.mockImplementation(async () => renamedListing);
+    repository.listInstallsByOrganization.mockResolvedValue([installedV2, primersInstall]);
+    countInstancesOfType.mockImplementation(async typeId => (typeId === 'coating' ? 5 : 0));
+    const plan = await upgradePreview({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(plan.renamed).toEqual([{ from: 'coating', to: 'enamel', instances: 5 }]);
+    expect(plan.added.map(type => type.id)).toEqual(['primer', 'coating-sheet']);
+    expect(plan.blocked).toEqual([]);
+    expect(plan.changed.map(change => change.typeId)).toEqual(['enamel']);
+    const result = await applyUpgrade({ organizationId: ORG, pluginId: 'coatings', auth: AUTH });
+    expect(result).toMatchObject({ pluginId: 'coatings', version: '3' });
+    const persisted = repository.updateInstallSnapshot.mock.calls[0][2];
+    expect(persisted.declarations.types.map(type => type.id)).toContain('enamel');
+    expect(persisted.declarations.types.every(type => type.renameFrom === undefined)).toBe(true);
     countInstancesOfType.mockResolvedValue(0);
   });
 

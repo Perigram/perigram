@@ -97,6 +97,17 @@ export function parseListing(listing = {}) {
   }
   const typeById = new Map(types.map(type => [type.id, type]));
   for (const type of types) {
+    if (type.renameFrom !== undefined) {
+      if (typeof type.renameFrom !== 'string' || !type.renameFrom) {
+        throw listingError(`type ${type.id}: renameFrom must be the retired type id string`);
+      }
+      if (type.renameFrom === type.id) {
+        throw listingError(`type ${type.id}: renameFrom may not name the type itself`);
+      }
+      if (typeById.has(type.renameFrom)) {
+        throw listingError(`type ${type.id}: renameFrom names ${type.renameFrom}, which the listing also declares`);
+      }
+    }
     if (type.access?.inherits !== undefined) {
       const parent = typeById.get(type.access.inherits);
       if (!type.access.inherits || typeof type.access.inherits !== 'string' || !parent) {

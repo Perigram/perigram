@@ -87,7 +87,9 @@ organizations its `organizations` ids name, scoped by the operator at
 publish (the catalog stays platform-published). `requires` lists the pack or plugin ids
 the types resolve against, satisfied by an install (never the plugin
 itself); the platform-side gates enforce it. `declarations` carries `types` (CTS grammar,
-non-empty), `services` (SPEC §8 signatures, `mode` endpoint/claim),
+non-empty; a type may carry the transient `migrate` steps and
+`renameFrom: <retired id>` — the rename channel upgrades consume,
+never stored on the install pin), `services` (SPEC §8 signatures, `mode` endpoint/claim),
 `editors` (file-type editor bindings — the bound type must be declared by
 the same plugin with class `file`, one binding per type),
 `surfaces` (plugin-delivered surface modules:

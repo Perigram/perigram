@@ -3304,6 +3304,7 @@
         "added": "Added",
         "removed": "Removed",
         "changed": "Changed",
+        "renamed": "Renamed",
         "upgradedToast": "Plugin upgraded",
         "settings": "Connection",
         "workerHeader": "header: x-worker-token",

@@ -64,6 +64,37 @@ describe('parseListing', () => {
     })).toThrow(/slug/);
   });
 
+  it('accepts a renameFrom channel and refuses its degenerate forms', () => {
+    const renamed = parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        types: fullListing.declarations.types.map(type => (
+          type.id === 'coating' ? { ...type, renameFrom: 'lacquer' } : type
+        ))
+      }
+    });
+    expect(renamed.types.find(type => type.id === 'coating').renameFrom).toBe('lacquer');
+    expect(() => parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        types: fullListing.declarations.types.map(type => (
+          type.id === 'coating' ? { ...type, renameFrom: 'coating' } : type
+        ))
+      }
+    })).toThrow(/renameFrom may not name the type itself/);
+    expect(() => parseListing({
+      ...fullListing,
+      declarations: {
+        ...fullListing.declarations,
+        types: fullListing.declarations.types.map(type => (
+          type.id === 'coating' ? { ...type, renameFrom: 'coating-sheet' } : type
+        ))
+      }
+    })).toThrow(/which the listing also declares/);
+  });
+
   it('normalizes the catalog document shape', () => {
     const normalized = normalizeListing(fullListing);
     expect(normalized).toMatchObject({

@@ -224,7 +224,12 @@ uninstall, uncovered breaking changes on types with live instances
 block the apply (zero-instance types re-break freely, mirroring org
 authoring relief), and covered steps — declared on the new
 declaration's transient `migrate` — execute against instances on
-apply. The apply re-checks the install-gate laws against the world as
+apply. A type rename is a covered migration: the new declaration's
+transient `renameFrom: <retired id>` reports the rename in the preview
+and the apply rewrites the org's stored instances, typed refs, and
+authored type bindings to the new id before the per-type steps run — a
+renamed type with data migrates where a removed type would drain-gate.
+The apply re-checks the install-gate laws against the world as
 it is (required packs still enabled, attachment kinds still claimable),
 trial-composes the org view without the plugin's old layer
 (`compileRegistryForOrganization`'s `excludePluginId`) so a refused

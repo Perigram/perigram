@@ -206,6 +206,12 @@
           <div class="text-muted text-label">{{ $t('plugins.removed') }}</div>
           <div class="text-body">{{ upgradePlan.removed.map(type => typeDisplayName(type)).join(', ') }}</div>
         </div>
+        <div v-if="upgradePlan.renamed?.length" class="flex flex-col gap-1">
+          <div class="text-muted text-label">{{ $t('plugins.renamed') }}</div>
+          <div class="text-body">
+            {{ upgradePlan.renamed.map(entry => `${entry.from} → ${entry.to}`).join(', ') }}
+          </div>
+        </div>
         <div v-if="upgradePlan.changed.length" class="flex flex-col gap-1">
           <div class="text-muted text-label">{{ $t('plugins.changed') }}</div>
           <ul class="m-0 flex list-none flex-col gap-1 pl-0">

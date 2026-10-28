@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, sheet instances, and the nesting solver as an installable plugin with an external executor",
-  "version": "25",
+  "version": "26",
   "requires": [
     "tech-drawing"
   ],
@@ -13,6 +13,7 @@
         "class": "file",
         "scope": "system",
         "version": 1,
+        "renameFrom": "cassette",
         "payload": {
           "mime": "application/perigram+occs",
           "accept": [

@@ -3304,6 +3304,7 @@
         "added": "Добавлено",
         "removed": "Удалено",
         "changed": "Изменено",
+        "renamed": "Переименовано",
         "upgradedToast": "Плагин обновлён",
         "settings": "Подключение",
         "workerHeader": "заголовок: x-worker-token",
