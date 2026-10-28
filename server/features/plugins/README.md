@@ -103,7 +103,9 @@ Installed services compose into the projected domain's service list
 compiler, and admin domain route resolve), as species records whose id
 and command are the same plugin-qualified id
 `plugin.<pluginId>.<serviceId>`; they obey the same active-process
-service gating. The same services compose into the projected command
+service gating. A service's palette section is its declared listing
+`group`, falling back to the install name. The same services compose
+into the projected command
 table (`projectedDomainsForOrganization`): a service's scalar signature
 fields ride as the command's `input.parameters` — the inputs a run
 dialog prompts, prefilled by an authored field `default`, and the
