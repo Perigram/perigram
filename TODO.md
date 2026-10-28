@@ -2465,9 +2465,15 @@ install. The upgrade went through the console transport, so the
 consent-diff surface was bypassed once. Unreproduced; re-probe with the
 next catalog version bump.
 
-- [ ] Reproduce the owner's client state when a version delta exists
-  again (next facade listing release): installed row, actions column,
-  bundle identity of the failing client versus a fresh load.
+- [x] Root cause (2026-10-28, same day): an inert bare `<template>`
+  wrapper inside the installed-row actions cell — hidden by UA style,
+  it zero-sized every action button (upgrade, connector, settings,
+  uninstall) since it landed; the catalog rows' install buttons sit
+  outside it, which is why those rendered. The wrapper is deleted and
+  `e2e/plugins-upgrade.spec.js` pins the whole consent workflow
+  (affordance renders → diff dialog → confirm → version lands); the
+  upgrade gate now also refuses removed types still bound by authored
+  definitions, so a rename can never again strand an org's compile.
 
 ## Facade domain model — template, design, instance (facade SPEC, owner direction 2026-10-28)
 
