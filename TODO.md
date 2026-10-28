@@ -569,19 +569,45 @@ AttachmentKind row.
     the dialog previews the composed result through the created type's
     payload preview over the same construction service, persisting
     nothing. Ordered steps:
-    - [ ] Anchor read single-homing: the `{spot:}` parse law lives in
-      the plugin's `dxf-markers.js`; the app-side pin renderer reads it
-      through the served editor surface module.
-    - [ ] Construction preview seam: a non-persisting service invocation
-      (`{ mode, draft }` → `{ payload, fields, failures }`).
-    - [ ] Rich part rows: create affordances dispatch by creation
-      protocol (upload inline, editor as the blank tab, construct as the
-      nested dialog); edit affordance rides the file-surface registry.
-    - [ ] Preview pane in the create dialog over the composed payload.
+    - [ ] WAITING — Anchor read single-homing: the `{spot:}` parse law
+      lives in the plugin's `dxf-markers.js`; the app-side pin renderer
+      reads it through the served editor surface module.
+    - [ ] WAITING — Construction preview seam: a non-persisting service
+      invocation (`{ mode, draft }` → `{ payload, fields, failures }`).
+    - [ ] WAITING — Rich part rows: create affordances dispatch by
+      creation protocol (the compiled upload create runs inline, the
+      editor protocol opens the blank tab, every other compiled create
+      opens the nested dialog); edit affordance rides the file-surface
+      registry.
+    - [ ] WAITING — Preview pane in the create dialog over the composed
+      payload.
 
     ### Agent Notes (2026-10-28)
 
-    In progress (session `agent/dxf-editor-20261028-1525`).
+    Session `agent/dxf-editor-20261028-1525`. Landed: `spotNamesOf`
+    homes in `workers/tech-drawing/dxf-markers.js`, re-exported by the
+    dxf-editor surface module — `SpotPartsRow` imports the served module
+    URL and `shared/dxf-spots.js` is deleted. The DXF editor picks
+    anchor coordinates by canvas click (the engine's view transforms,
+    six decimals) and the reset-view button wears a fit icon.
+    `POST /api/instances/:type/construction-preview` (write-gated, 204
+    unbound) answers `{ payload, fields }` beside the structured
+    refusal; `ConstructionPreview` debounces the dialog draft into it
+    and renders the payload through the created type's preview mode.
+    `RefRowActions` renders beside reference rows: the compiled
+    upload-mode create runs inline over the files channel (the bare
+    create transport refuses construction-declaring types), the editor
+    protocol opens the blank page, other compiled creates open the
+    nested dialog in `GeneratedMappingScreen`, and the picked
+    instance's editor opens through the served registry. Focused:
+    construction-services spec 23/23 (five preview cases), module
+    imports, ui-mapping 107, SSR smoke 19, arch + docs + framework
+    guards green; e2e — the fill-dialog file 3/3 incl. the rails test
+    (preview pane renders the composed DXF, inline upload create,
+    assignment, editor click-to-place, revisioned save round-trip;
+    artifacts `.playwright/rails-preview-composed.dxf`,
+    `.playwright/rails-template-reauthored.dxf`), md-editor-repair 4/4,
+    plugin-surface 1/1.
   - [ ] WAITING — Create-dialog refusal surfacing: a construction service
     answers `{ failures: [...] }` (each failure naming its offender) and
     the dialog renders the named offenders (SPEC §24 law).
