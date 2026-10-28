@@ -299,13 +299,13 @@ assertions. SPEC §22.13 restated on the row.
 
 ### Region reload strips take no flow slot (SPEC §22.8)
 
-- [ ] WAITING — owner verification: the indeterminate reload bar in
-  `RegionBlock` (detail and nested branches) and `RegionCollections`
-  (list projections — tables, grids, boards) overlays its surface's top
-  edge through `LAYOUT.reloadBar` (`pointer-events-none absolute inset-x-0
-  top-0 z-10 h-1`), anchored by `relative` on the detail region root and
-  the collection stack wrapper, so appearing/vanishing shifts nothing
-  below it.
+- [ ] WAITING — owner verification: the indeterminate reload bar takes no
+  flow slot (SPEC §22.8): `LAYOUT.reloadBar` overlays the collection
+  surface's top edge in `RegionCollections` (tables, grids, boards) and
+  the nested detail card in `RegionBlock`; `LAYOUT.reloadBarUnder`
+  underlines the record header on depth-0 detail pages (anchored under
+  the `SurfaceHeader` wrapper), so appearing/vanishing shifts nothing
+  below it and the header's avatar stays clear.
 
 #### Agent Notes (2026-10-28, reload strip)
 
@@ -316,6 +316,16 @@ Session `agent/reload-strip-20261028` (worktree
 detail region root and the list branch's collection wrapper carry
 `relative` anchors. SPEC §22.8 gains the loading-strip law; the
 ui-mapping README's data-state bullet restates the bar as overlay.
+
+#### Agent Notes (2026-10-28, reload strip placement)
+
+Session `agent/reload-strip-placement-20261028` (worktree
+`.agent-worktrees/reload-strip-2-20261028`), owner feedback: the
+top-edge overlay cuts through the depth-0 record header's avatar.
+Landed: `LAYOUT.reloadBarUnder` — the depth-0 detail bar moves under
+the `SurfaceHeader` wrapper (`bottom-0` underline, riding the gap above
+the body); collections and nested cards keep the surface-top overlay.
+SPEC §22.8 restated on both placements.
 
 ### Owner decisions wanted
 
