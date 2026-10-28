@@ -27,7 +27,6 @@
         />
       </div>
       <RefRowActions
-        class="self-start"
         :type-ids="accepts"
         :bundle="bundle"
         :editor-actions="editorActions"
