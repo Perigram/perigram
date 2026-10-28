@@ -106,13 +106,13 @@
         "componentPath": "components/shared/InstanceSelect.vue",
         "key": "InstanceSelect",
         "kind": "entity-input",
-        "purpose": "PrimeVue Select wrapper that renders canonical entity options as compact cards and selected entities outside the value area with a compact change trigger."
+        "purpose": "PrimeVue Select wrapper rendering entity options and the selected value as one-line instance option rows (preview thumb, identifier title, state and type meta)."
       },
       {
         "componentPath": "components/shared/InstanceMultiSelect.vue",
         "key": "InstanceMultiSelect",
         "kind": "entity-input",
-        "purpose": "PrimeVue MultiSelect wrapper that renders canonical entity options as compact cards and selected chip area with a compact change trigger."
+        "purpose": "PrimeVue MultiSelect wrapper rendering entity options as instance option rows and selected entities as glyph chips inside the control."
       },
       {
         "componentPath": "components/shared/blocks/DataBlock.vue",

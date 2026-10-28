@@ -17,6 +17,7 @@ import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
 import { planTypeMigration } from '~/packages/cts/src/index.js';
 import { findTypeReferences } from '../process-definitions/service.js';
+import { applyTypeRename } from './type-rename.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 import { hasPermission } from '../../utils/auth-helpers.js';
 import { enqueueTask } from '../../core/tasks/service.js';
@@ -927,7 +928,15 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
 
   // Covered breaking changes execute against live instances (SPEC §11
   // machinery, same as an org type edit): steps come from the new
-  // declaration's transient `migrate` key.
+  // declaration's transient `migrate` key. A covered rename rewrites the
+  // org's stored world to the new id first — the step scanner matches on
+  // the new discriminator.
+  invalidateInstanceDeclarations(String(organizationId));
+  for (const rename of plan.renamed || []) {
+    if (rename.instances > 0) {
+      await applyTypeRename(rename, organizationId);
+    }
+  }
   const changedById = new Map(plan.changed.map(change => [change.typeId, change]));
   for (const versioned of versionedTypes) {
     const change = changedById.get(versioned.id);
@@ -942,7 +951,6 @@ export async function applyUpgrade({ organizationId, pluginId, auth = {} }) {
     }
   }
 
-  invalidateInstanceDeclarations(String(organizationId));
   await ensureInstanceIndexes(registry.resolveView(organizationId));
   publishOrgContractChanged(String(organizationId), 'registry', {
     pluginId: String(pluginId),
@@ -989,15 +997,51 @@ function upgradedEndpointsFor(install, services = []) {
 async function buildUpgradePlan(install, listing, organizationId) {
   const oldTypes = new Map((install.declarations?.types || []).map(type => [type.id, type]));
   const newTypes = new Map((listing.declarations?.types || []).map(type => [type.id, type]));
+  const renameSuccessors = new Map(
+    [...newTypes.values()].filter(type => type.renameFrom).map(type => [type.renameFrom, type])
+  );
+  const successorIds = new Set([...renameSuccessors.values()].map(type => type.id));
 
-  const added = [...newTypes.keys()].filter(id => !oldTypes.has(id)).map(id => typeSummary(newTypes.get(id)));
+  const added = [...newTypes.keys()]
+    .filter(id => !oldTypes.has(id) && !successorIds.has(id))
+    .map(id => typeSummary(newTypes.get(id)));
   const removed = [];
   const changed = [];
   const blocked = [];
+  const renamed = [];
 
   for (const [id, oldType] of oldTypes) {
     const instances = await countInstancesOfType(id, organizationId);
     if (!newTypes.has(id)) {
+      const successor = renameSuccessors.get(id);
+      if (successor) {
+        renamed.push({ from: id, to: successor.id, instances });
+        const successorInstances = await countInstancesOfType(successor.id, organizationId);
+        const plan = planTypeMigration(oldType, successor);
+        const total = instances + successorInstances;
+        if (plan.breaking.length && total === 0) {
+          changed.push({ typeId: successor.id, name: successor.name || null, instances: 0, changes: plan.diff.changes, breaking: plan.breaking, covered: true, steps: [] });
+          continue;
+        }
+        if (plan.breaking.length && !plan.covered) {
+          blocked.push({
+            typeId: id,
+            instances,
+            reason: plan.errors.join('; ') || 'breaking change without a covering migration step'
+          });
+          continue;
+        }
+        changed.push({
+          typeId: successor.id,
+          name: (successor.name || oldType.name || null),
+          instances: total,
+          changes: plan.diff.changes,
+          breaking: plan.breaking,
+          covered: plan.covered,
+          steps: plan.steps.map(step => ({ ...step }))
+        });
+        continue;
+      }
       const boundBy = await findTypeReferences(organizationId, id);
       if (instances > 0) {
         blocked.push({ typeId: id, instances, reason: 'removed with live instances — delete or migrate them first' });
@@ -1035,13 +1079,15 @@ async function buildUpgradePlan(install, listing, organizationId) {
     });
   }
 
-  return { pluginId: install.pluginId, from: install.version, to: listing.version, added, removed, changed, blocked };
+  return { pluginId: install.pluginId, from: install.version, to: listing.version, added, removed, changed, renamed, blocked };
 }
 
-// Steps are one-time (SPEC §11): the persisted pin never carries `migrate`.
+// Steps are one-time (SPEC §11): the persisted pin never carries `migrate`
+// or `renameFrom`.
 function withoutMigrateSteps(declaration = {}) {
   const next = { ...declaration };
   delete next.migrate;
+  delete next.renameFrom;
   return next;
 }
 

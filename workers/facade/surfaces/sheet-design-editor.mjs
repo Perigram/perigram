@@ -1062,15 +1062,15 @@ export default function createSurface({ vue, components, locale, queries, notify
               'vector-effect': 'non-scaling-stroke',
               'pointer-events': 'none'
             }) : null,
-            dragHere && selectedPlacementDragPoint.value ? h('g', { 'pointer-events': 'none' }, [
+            dragHere && selectedSnapPoint.value ? h('g', { 'pointer-events': 'none' }, [
               h('line', {
-                x1: selectedPlacementDragPoint.value.x, y1: 0,
-                x2: selectedPlacementDragPoint.value.x, y2: entry.height,
+                x1: selectedSnapPoint.value.x, y1: 0,
+                x2: selectedSnapPoint.value.x, y2: entry.height,
                 stroke: 'var(--p-primary-color)', 'stroke-dasharray': '4 4', 'vector-effect': 'non-scaling-stroke'
               }),
               h('line', {
-                x1: 0, y1: selectedPlacementDragPoint.value.y,
-                x2: entry.width, y2: selectedPlacementDragPoint.value.y,
+                x1: 0, y1: selectedSnapPoint.value.y,
+                x2: entry.width, y2: selectedSnapPoint.value.y,
                 stroke: 'var(--p-primary-color)', 'stroke-dasharray': '4 4', 'vector-effect': 'non-scaling-stroke'
               })
             ]) : null,
@@ -1081,7 +1081,7 @@ export default function createSurface({ vue, components, locale, queries, notify
 
       // Snap guides follow the dragged placement while it stays inside its
       // origin sheet.
-      const selectedPlacementDragPoint = computed(() => {
+      const selectedSnapPoint = computed(() => {
         const drag = dragState.value;
         if (!drag) return null;
         const entry = entryOf(drag.sheetId);
