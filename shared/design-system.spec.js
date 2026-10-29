@@ -314,10 +314,11 @@ describe('Design system manifest', () => {
     expect(primeSemanticTokens.colorScheme.light.text).toEqual({ color: '{surface.800}', hoverColor: '{surface.900}' });
     expect(primeSemanticTokens.formField).toEqual({ sm: { fontSize: '0.9375rem' } });
     expect(cssVariableTokens['--ck-primary-ink']).toBe('#27272a');
-    // Fact rows: small muted label beside the larger ink value; popups and
-    // dialogs render the page rhythm (compact belongs to panes alone).
+    // Fact rows: small muted label beside the larger ink value; bounded
+    // hosts (panes, popups) ride the compact rhythm, dialogs the page
+    // rhythm.
     expect(LAYOUT.labelCell).toBe('shrink-0 text-label text-muted');
-    expect(HOST_PROFILES.popup.density).toBe(1);
+    expect(HOST_PROFILES.popup.density).toBe(0.75);
     expect(HOST_PROFILES.dialog.density).toBe(1);
     expect(HOST_PROFILES.pane.density).toBe(0.75);
     // Chips ride the bordered recipe (SPEC §22.8): the classes carry the

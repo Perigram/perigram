@@ -1,4 +1,4 @@
-import { computed, inject, onBeforeUnmount, onMounted, provide, ref, unref } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, provide, ref, unref, watch } from 'vue';
 import { resolveContainerTraits } from '#shared/ui-mapping/index.js';
 
 const CONTAINER_KEY = 'uiMappingContainer';
@@ -15,12 +15,19 @@ function useMeasuredWidthRem(elRef) {
     const el = unref(elRef);
     widthRem.value = el ? el.clientWidth / remPx() : null;
   };
-  onMounted(() => {
-    measure();
-    observer = new ResizeObserver(measure);
+  const observeCurrent = () => {
+    observer?.disconnect();
     const el = unref(elRef);
     if (el) observer.observe(el);
+    measure();
+  };
+  onMounted(() => {
+    observer = new ResizeObserver(measure);
+    observeCurrent();
   });
+  // Dialog-hosted boxes mount when their overlay opens, after this
+  // composable's host mounted: attach when the element appears.
+  watch(elRef, () => observer && observeCurrent());
   onBeforeUnmount(() => observer?.disconnect());
   return widthRem;
 }
@@ -30,10 +37,10 @@ export function useContainerTraits(elRef, { hostKind = 'page', density = null } 
   return computed(() => resolveContainerTraits({ widthRem: widthRem.value, hostKind, density }));
 }
 
-// A host declares its profile: measuring hosts (the pane, the page) observe
-// their own box; fixed-shape hosts (the popup) provide the profile alone.
-// Density stays unset so the profile's tier derives; a placement box
-// passes its host's resolved density through.
+// A host declares its profile: measuring hosts (the pane, the page, the
+// record popup) observe their own box; fixed-shape hosts provide the
+// profile alone. Density stays unset so the profile's tier derives; a
+// placement box passes its host's resolved density through.
 export function provideContainerTraits({ hostKind, elRef = null, density = null } = {}) {
   const measured = elRef ? useContainerTraits(elRef, { hostKind, density }) : null;
   const traits = measured || computed(() => resolveContainerTraits({ hostKind, density }));

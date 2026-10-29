@@ -191,7 +191,7 @@ export const HOST_PROFILES = Object.freeze({
   page: { height: 'flow', scroll: 'page', width: 'wide', density: 1 },
   pane: { height: 'bounded', scroll: 'surface', width: 'medium', density: 0.75 },
   dialog: { height: 'bounded', scroll: 'surface', width: 'medium', density: 1 },
-  popup: { height: 'bounded', scroll: 'surface', width: 'narrow', density: 1 },
+  popup: { height: 'bounded', scroll: 'surface', width: 'narrow', density: 0.75 },
   'mobile-tab': { height: 'flow', scroll: 'page', width: 'narrow', density: 0.75 }
 });
 

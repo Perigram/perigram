@@ -7,6 +7,7 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import StateTag from '~/components/ui-mapping/StateTag.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
+import HoverPeek from '~/components/shared/HoverPeek.vue';
 import ActionButton from '~/components/ui-mapping/ActionButton.vue';
 import { useInstancesStore } from '~/stores/instances';
 import { normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
@@ -315,19 +316,55 @@ function executeContextualAction(action) {
         class="min-w-0 max-w-full"
         data-instance-card-interactive="true"
       />
-      <Chip
-        v-else-if="resolved"
-        :label="identityLabel"
-        :icon="icon || undefined"
-        :pt="CHIP_LABEL_PT"
-        :class="[INSTANCE_CHIP_CLASS, chipClass, { 'cursor-pointer': refOpenable }, refOpenable ? chipInteractiveClass : null]"
-        :role="refOpenable ? 'button' : undefined"
-        :tabindex="refOpenable ? 0 : undefined"
-        :title="chipTitle"
-        data-instance-card-interactive="true"
-        @click="openRefPopup($event)"
-        @keydown="onRefKeydown($event)"
-      />
+      <!-- The identity chip is the popup trigger and the peek trigger:
+           hover raises the record peek (SPEC §22.14), click opens the
+           record popup. -->
+      <HoverPeek v-else-if="resolved" :enabled="interactive">
+        <template #default="{ peekEvents }">
+          <Chip
+            v-on="peekEvents"
+            :label="identityLabel"
+            :icon="icon || undefined"
+            :pt="CHIP_LABEL_PT"
+            :class="[INSTANCE_CHIP_CLASS, chipClass, { 'cursor-pointer': refOpenable }, refOpenable ? chipInteractiveClass : null]"
+            :role="refOpenable ? 'button' : undefined"
+            :tabindex="refOpenable ? 0 : undefined"
+            :title="chipTitle"
+            data-instance-card-interactive="true"
+            @click="openRefPopup($event)"
+            @keydown="onRefKeydown($event)"
+          />
+        </template>
+        <template #preview>
+          <span v-if="compactHasPreview" class="instance-preview-slot block h-28 w-full overflow-hidden">
+            <InstancePreview
+              :entity="resolved"
+              :type-id="generatedTypeId"
+              :mode="compactDisplay.surfaceContract.preview"
+              hide-dimension-layer
+            />
+          </span>
+          <span class="flex flex-col gap-1.5 p-3">
+            <span class="flex min-w-0 items-center gap-2">
+              <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true" />
+              <span class="min-w-0 flex-1 truncate text-label" :title="identityLabel">{{ identityLabel }}</span>
+              <StateTag
+                v-if="compactStatusState"
+                :value="compactStatusState"
+                :policy="compactPolicy"
+                class="max-w-full shrink-0"
+              />
+            </span>
+            <DataBlock
+              v-if="compactDataFields.length"
+              :type-id="generatedTypeId"
+              :entity="resolved"
+              :fields="compactDataFields"
+              variant="compact"
+            />
+          </span>
+        </template>
+      </HoverPeek>
       <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted" data-instance-card-interactive="true">
         <i :class="icon" class="shrink-0"></i>
         <span class="truncate">{{ resolvedId ? unresolvedLabel : $t('common.notAvailable') }}</span>
