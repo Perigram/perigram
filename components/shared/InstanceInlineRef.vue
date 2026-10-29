@@ -104,6 +104,20 @@ const compactDataFields = computed(() => compactDisplay.value.fields.filter(fiel
   && field.role !== 'previewSource'
 ));
 const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.preview !== 'none');
+// The peek speaks the detail surface, the same field vocabulary the
+// record surface renders — the compact card budget stays on cards.
+const peekDisplay = computed(() => resolveInstanceDisplayContract({
+  typeId: generatedTypeId.value,
+  surface: 'detail',
+  typeRecord: typeById(generatedTypeId.value)
+}));
+const peekHasPreview = computed(() => peekDisplay.value.surfaceContract.preview !== 'none');
+const peekDataFields = computed(() => peekDisplay.value.fields.filter(field =>
+  field.display !== 'entityRef'
+  && field.display !== 'entityRefList'
+  && field.role !== 'previewSource'
+));
+const PEEK_FACT_LIMIT = 8;
 // The micro card earns its box: it renders only when the type's compact
 // surface carries something to show beside identity — a preview band or
 // compact fact rows. Preview-less, fact-less relations render as the
@@ -336,15 +350,19 @@ function executeContextualAction(action) {
           />
         </template>
         <template #preview>
-          <span v-if="compactHasPreview" class="instance-preview-slot block h-28 w-full overflow-hidden">
+          <span
+            v-if="peekHasPreview"
+            class="instance-preview-slot block h-28 w-full overflow-hidden rounded-ui border border-content-border bg-subtle"
+          >
             <InstancePreview
               :entity="resolved"
               :type-id="generatedTypeId"
-              :mode="compactDisplay.surfaceContract.preview"
+              :mode="peekDisplay.surfaceContract.preview"
+              fill
               hide-dimension-layer
             />
           </span>
-          <span class="flex flex-col gap-1.5 p-3">
+          <span class="flex min-w-0 flex-col gap-1.5">
             <span class="flex min-w-0 items-center gap-2">
               <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true" />
               <span class="min-w-0 flex-1 truncate text-label" :title="identityLabel">{{ identityLabel }}</span>
@@ -356,10 +374,11 @@ function executeContextualAction(action) {
               />
             </span>
             <DataBlock
-              v-if="compactDataFields.length"
+              v-if="peekDataFields.length"
               :type-id="generatedTypeId"
               :entity="resolved"
-              :fields="compactDataFields"
+              :fields="peekDataFields"
+              :field-limit="PEEK_FACT_LIMIT"
               variant="compact"
             />
           </span>

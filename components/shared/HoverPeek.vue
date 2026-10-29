@@ -1,9 +1,9 @@
 <template>
   <slot :peek-events="triggerEvents" />
-  <Popover ref="popover" :pt="PEEK_PT" @show="shown = true" @hide="shown = false">
+  <Popover ref="popover" @show="shown = true" @hide="shown = false">
     <div
       v-if="shown"
-      class="flex w-72 max-w-[calc(100vw-2rem)] flex-col"
+      class="flex max-h-[min(28rem,calc(100dvh-4rem))] w-72 max-w-[calc(100vw-2rem)] flex-col overflow-y-auto"
       @mouseenter="holdPeek"
       @mouseleave="scheduleHide"
     >
@@ -18,6 +18,9 @@
 // the peek dismisses it after a grace period that lets the pointer cross
 // into the panel. Clicks keep the trigger's own open behavior — the peek
 // is dismissed by the same click through the popover's outside listener.
+// The panel rides Aura's own chrome: content sits on the preset's
+// popover padding, media bands frame themselves (the framed media
+// region), and the body scrolls past its height bound.
 import { onBeforeUnmount, ref } from 'vue';
 import Popover from 'primevue/popover';
 
@@ -27,9 +30,6 @@ const props = defineProps({
 
 const SHOW_DELAY_MS = 300;
 const HIDE_GRACE_MS = 250;
-// The peek content rides the panel flush: preview bands reach the rounded
-// edges and the content strips own their padding.
-const PEEK_PT = { content: { class: 'p-0' } };
 
 const popover = ref(null);
 const shown = ref(false);
