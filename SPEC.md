@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-09-26
-updated: 2026-10-27
+updated: 2026-10-29
 ```
 
 This spec is human-write only. 
@@ -970,8 +970,7 @@ any composed weight; rhythm tightening belongs to bounded hosts. An
 inert child collection renders its create affordance alone — packed at
 the foot of its surface, with no icon-label-count strip. The record side
 rail is a minor column: a quarter of the record grid when its weight
-earns no explicit span. A collection row carries identity, status, and
-one fact; relations render on detail surfaces. A record body with a
+earns no explicit span. Relations render on detail surfaces. A record body with a
 single field group renders the group's fields with no group titles.
 Dashboard presentations — dials, meter groups, charts, ratings — render
 for quantitative-dominant types alone; every other type renders plain
@@ -1019,6 +1018,19 @@ label or renders a raw record id. A multi-picker shows selected
 instances as chips inside the control. A single picker's closed control
 renders the selected instance's identity chip, and its filter matches
 the identifier-field label.
+
+### 22.14 Collection headers and the table floor (owner direction
+2026-10-29)
+
+A collection's header row stays one line while the row has room: the
+section label yields first through ellipsis, the controls cluster never
+wraps internally, and the controls wrap below the label only when the
+label is at its floor and the cluster still overflows the row. A
+collection's identity column is headed by the type's identifier field
+label; a type that declares no identifier field heads the column with
+the type label. The table is the floor of the layout derivation: a
+collection whose loaded pool fills no data column beside identity keeps
+the table — the stacked identifier-only list projection is retired.
 
 ## 23. Deslopification (owner direction 2026-10-23)
 

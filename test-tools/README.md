@@ -11,7 +11,7 @@ The page SSR smoke harness: real page SFCs mounted through
   `ui-mapping-page` — each boots an assembled surface),
   `ui-mapping-refcolumns.ssr-smoke.js` for the generated collection
   columns over the SPEC §6 relation grammar (ref-field chip column,
-  structural summary column, the bare list floor),
+  structural summary column, the table floor for identifier-only types),
   `ui-mapping-relation-actions.ssr-smoke.js` for the SPEC §22.12
   placement law (no link on class lists, section link toolbar, row
   unlink menus, children sections on the record detail), and
