@@ -126,7 +126,7 @@ describe('place-dxf service', () => {
           { name: 'logo', payloadBase64: b64(LOGO_PART) }
         ]
       },
-      draft: { name: 'Site plan' }
+      draft: { data: { name: 'Site plan' } }
     });
     expect(output.payload.mime).toBe('application/dxf');
     expect(output.payload.name).toBe('Site plan.dxf');

@@ -180,10 +180,10 @@ describe('pdf template fill', () => {
 });
 
 describe('services dispatch', () => {
-  it('fill returns a markdown payload with a derived name and the template tokens', async () => {
+  it('fill names the composed file for the operator\'s typed name and returns the template tokens', async () => {
     const output = await services.fill({
       refs: { template: { name: 'spec.md', payloadMime: 'text/markdown', payloadBase64: b64('# {a}\n{b} and {a}') } },
-      draft: { name: 'Out', data: { values: { a: 1 } } }
+      draft: { data: { name: 'Out', values: { a: 1 } } }
     });
     expect(output.payload.mime).toBe('text/markdown');
     expect(output.payload.name).toBe('Out.md');
@@ -191,19 +191,20 @@ describe('services dispatch', () => {
     expect(output.meta.tokens).toEqual(['a', 'b']);
   });
 
-  it('fill returns a filled workbook payload', async () => {
+  it('fill returns a filled workbook payload named for the template when no name is typed', async () => {
     const output = await services.fill({
       refs: { template: { name: 'spec.xlsx', payloadMime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', payloadBase64: workbookBuffer([['{x}']]).toString('base64') } },
       draft: { data: { values: { x: 'ok' } } }
     });
     expect(output.payload.mime).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    expect(output.payload.name).toBe('spec.xlsx');
     expect(rowsOf(Buffer.from(output.payload.base64, 'base64'))).toEqual([['ok']]);
   });
 
   it('render-pdf dispatches on the source kind', async () => {
     const output = await services['render-pdf']({
       refs: { source: { name: 'spec.md', payloadMime: 'text/markdown', payloadBase64: b64('# {t}') } },
-      draft: { name: 'Out', data: { values: { t: 'v' } } }
+      draft: { data: { name: 'Out', values: { t: 'v' } } }
     });
     expect(output.payload.mime).toBe('application/pdf');
     expect(output.payload.name).toBe('Out.pdf');

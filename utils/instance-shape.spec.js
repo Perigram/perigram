@@ -73,6 +73,13 @@ describe('dtoToScreenInstance', () => {
     expect(instance.fields.name).toBe('Legacy part');
   });
 
+  it('carries construction provenance verbatim for the replace gate and re-run row', () => {
+    const provenance = { op: 'cts.construct:fill:fill', sources: [{ type: 'text-document', id: 't-1' }] };
+    const instance = dtoToScreenInstance({ _id: 'ent-6', provenance }, typeRecord);
+    expect(instance.provenance).toEqual(provenance);
+    expect(dtoToScreenInstance({ _id: 'ent-7', fields: {} }, typeRecord).provenance).toBeNull();
+  });
+
   it('reads the declared previewSource path off the wire DTO', () => {
     const geometry = { preview: { polygons: [[0, 0], [1, 1]] } };
     const instance = dtoToScreenInstance({

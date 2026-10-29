@@ -27,7 +27,7 @@ export const services = {
       })
     );
     if (failures?.length) return { failures };
-    const name = String(input.draft?.name || input.draft?.identity?.name || template.name || 'drawing').replace(/\.[^.]+$/, '');
+    const name = String(input.draft?.data?.name || input.draft?.name || input.draft?.identity?.name || template.name || 'drawing').replace(/\.[^.]+$/, '');
     return {
       payload: {
         base64: Buffer.from(dxf, 'utf8').toString('base64'),

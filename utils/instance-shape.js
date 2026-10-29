@@ -85,6 +85,9 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
     // File payload reference: kept verbatim so preview surfaces resolve
     // the payload download URL.
     payload: dto.payload || null,
+    // Construction provenance, verbatim: the replace affordance's
+    // derived-payload gate and the construct re-run row both read it.
+    provenance: dto.provenance || null,
     previewSource: previewSourceValue(dto, typeRecord)
   };
 }

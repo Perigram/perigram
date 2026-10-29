@@ -42,7 +42,10 @@ const { te, t } = useI18n();
 const resolved = computed(() => resolveActionButton(props.action, { render: props.render, statePolicy: props.statePolicy }));
 const label = computed(() => localizedLabel(
   { te, t },
-  actionLabelKey(props.action.id),
+  // A synthesized action may pin its own key (the construct re-run's
+  // `uiMapping.rederive`); authored actions resolve their stable
+  // per-action key.
+  props.action.labelKey || actionLabelKey(props.action.id),
   props.label ?? (resolved.value.label || props.action.label)
 ));
 // The resolver's obvious-action channel: create and delete render

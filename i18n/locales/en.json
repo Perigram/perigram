@@ -1888,6 +1888,7 @@
         "new": "New",
         "creationMode": "Creation mode",
         "stateHistory": "State history",
+        "rederive": "Re-derive",
         "filters": "Filters",
         "matchAll": "Match all",
         "matchAny": "Match any",
