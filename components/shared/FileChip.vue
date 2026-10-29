@@ -22,7 +22,7 @@
       <span class="instance-preview-slot block h-40 w-full overflow-hidden rounded-ui border border-content-border bg-subtle">
         <FilePayloadViewer :source="peek" variant="card" />
       </span>
-      <span class="flex min-w-0 flex-col gap-0.5">
+      <span class="flex min-w-0 flex-col gap-1">
         <span class="min-w-0 truncate text-label" :title="label">{{ label }}</span>
         <span v-if="metaLine" class="text-muted text-supporting">{{ metaLine }}</span>
       </span>

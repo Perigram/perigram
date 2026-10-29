@@ -386,7 +386,7 @@ function executeContextualAction(action) {
               hide-dimension-layer
             />
           </span>
-          <span class="flex min-w-0 flex-col gap-1.5">
+          <span class="flex min-w-0 flex-col gap-2">
             <span class="flex min-w-0 items-center gap-2">
               <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true" />
               <span class="min-w-0 flex-1 truncate text-label" :title="identityLabel">{{ identityLabel }}</span>
