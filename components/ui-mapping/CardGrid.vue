@@ -37,17 +37,15 @@
                   @click="event => openCardMenu(event, instance)"
                 />
               </div>
-              <div :class="LAYOUT.mediaTileScrim">
-                <span :class="LAYOUT.mediaTileBadge">
-                  <InstanceIdentity
-                    :instance="instance"
-                    :type="type"
-                    :openable="openable"
-                    text-class="text-body"
-                    @open="target => $emit('open', target)"
-                  />
-                </span>
-              </div>
+              <span :class="LAYOUT.mediaTileBadge">
+                <InstanceIdentity
+                  :instance="instance"
+                  :type="type"
+                  :openable="openable"
+                  text-class="text-body"
+                  @open="target => $emit('open', target)"
+                />
+              </span>
             </div>
           </template>
           <!-- Side-preview card: a visual preview with facts — the preview
