@@ -3012,3 +3012,23 @@ picker rework, and the sheet editor rework ride the shared contracts
 above. E2E `sheet-editor-panel.spec.js` pins the panel (tiles,
 pick-to-add, pen strokes `#DC2626`/`#D97706` on the option-row
 preview) with the `.playwright/sheet-editor-panel.png` artifact.
+
+## Card-grid media tile and markdown text preview (owner direction 2026-10-29)
+
+Owner report: the identifier-plus-preview card shape lost its full-size
+preview to the panel instance tile, and the text preview mode renders
+plain text where every other markdown surface (the text editor, agent
+answers) renders markdown.
+
+- [x] WAITING — owner verification: a card whose type shape is
+  identifier plus preview (visual preview, no card facts) renders the
+  overlay media tile — the preview fills the card at full width, the
+  identifier chip rides over the media, status and the row menu float
+  on top (SPEC §22.8 restored); a visual preview with facts renders the
+  side-preview card; the §22.13 instance tile stays the panel/picker
+  face.
+- [x] WAITING — owner verification: the `text` preview mode renders
+  through the one markdown pipeline under the one element recipe on
+  every surface — record preview, card band, fill-dialog pane, and the
+  attachment peek — like the text editor and agent answers; mime
+  sniffing no longer gates the text render.
