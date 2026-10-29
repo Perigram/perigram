@@ -236,8 +236,10 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
 
   // A removed family member is the picker's only offer; add-all brings
   // the family back.
-  const removeButtons = page.locator('.instance-inline-tile button[aria-label="Remove sheet"]');
-  await removeButtons.nth(2).click();
+  const removeSheet3 = page.locator('.instance-inline-tile')
+    .filter({ hasText: `Family sheet 3 ${run}` })
+    .locator('button[aria-label="Remove sheet"]');
+  await removeSheet3.click();
   await page.waitForTimeout(800);
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toHaveCount(0);
   await page.getByRole('button', { name: 'Select sheet' }).click();
