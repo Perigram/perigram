@@ -90,6 +90,10 @@ const compactDisplay = computed(() => resolveInstanceDisplayContract({
   typeRecord: typeById(generatedTypeId.value)
 }));
 const typeView = computed(() => typeById(generatedTypeId.value));
+// The served type record's id is the pool key and the policy vocabulary —
+// refs may carry alias spellings (useEntityPopup's open follows the same
+// law), and the declaration-derived field-access registration keys by it.
+const servedTypeId = computed(() => typeView.value?.id || generatedTypeId.value);
 const identityLabel = computed(() =>
   instanceRecordTitle(resolved.value, typeView.value) || t('common.unnamed'));
 // The version pin (SPEC §24): a locked revision rides the chip as its
@@ -127,27 +131,16 @@ const PEEK_FACT_LIMIT = 8;
 // readable-reference resolution) stands in for the snapshot.
 const peekHydrated = ref(null);
 const peekEntity = computed(() => {
-  const cached = instances.dtoFor(generatedTypeId.value, resolvedId.value);
+  const cached = instances.dtoFor(servedTypeId.value, resolvedId.value);
   return [peekHydrated.value, cached].find(dto => dto?.fields && Object.keys(dto.fields).length) || resolved.value;
 });
 async function onPeekShow() {
   if (!props.fetch || !resolvedId.value) return;
-  const cached = instances.dtoFor(generatedTypeId.value, resolvedId.value);
+  const cached = instances.dtoFor(servedTypeId.value, resolvedId.value);
   if (cached?.fields && Object.keys(cached.fields).length) return;
   peekHydrated.value = await instances
     .resolveReadableReference(instances.canonicalTypeKey(props.type), resolvedId.value, { silent: true })
     .catch(() => null);
-  if (import.meta.env?.DEV) {
-    console.warn('[peek-debug]', JSON.stringify({
-      typeId: generatedTypeId.value,
-      id: resolvedId.value,
-      fieldsCount: peekDataFields.value.length,
-      paths: peekDataFields.value.map(f => f.path),
-      hydratedFields: peekHydrated.value?.fields || null,
-      snapshotFields: resolved.value?.fields || null,
-      dtoForFields: instances.dtoFor(generatedTypeId.value, resolvedId.value)?.fields || null
-    }));
-  }
 }
 // The micro card earns its box: it renders only when the type's compact
 // surface carries something to show beside identity — a preview band or
@@ -313,7 +306,7 @@ function executeContextualAction(action) {
         <span class="instance-inline-compact-facts">
           <DataBlock
             v-if="resolved && compactDataFields.length"
-            :type-id="generatedTypeId"
+            :type-id="servedTypeId"
             :entity="resolved"
             :fields="compactDataFields"
             variant="compact"
@@ -406,7 +399,7 @@ function executeContextualAction(action) {
             </span>
             <DataBlock
               v-if="peekDataFields.length"
-              :type-id="generatedTypeId"
+              :type-id="servedTypeId"
               :entity="peekEntity"
               :fields="peekDataFields"
               :field-limit="PEEK_FACT_LIMIT"
