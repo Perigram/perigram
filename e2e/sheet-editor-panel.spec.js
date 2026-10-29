@@ -203,14 +203,12 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   await openSheetEditor(app, `Family sheet 1 ${run}`);
 
   // The family joined the canvas: three sheets on the rack, the active
-  // record and three working-set rows as tiles, the parent's name on
-  // the lineage breadcrumb.
+  // record and three working-set rows as tiles. Tiles carry no lineage
+  // breadcrumb (the trace chain owns lineage) and no raw id renders.
   const canvas = page.locator('svg[role="application"]');
   await expect(canvas.getByText(`Family sheet 2 ${run}`)).toBeVisible({ timeout: 150000 });
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toBeVisible();
   await expect(page.locator('.instance-inline-tile')).toHaveCount(4, { timeout: 150000 });
-  await expect(page.locator('.instance-inline-tile').filter({ hasText: `Job ${run}` }).first())
-    .toBeVisible({ timeout: 150000 });
   await expectNoRawIds(page);
 
   // All family members sit on the canvas: the sheet picker stays away
@@ -235,11 +233,10 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
     .toContain(ORG_PEN_COLOR);
 
   // A removed family member is the picker's only offer; add-all brings
-  // the family back.
-  const removeSheet3 = page.locator('.instance-inline-tile')
-    .filter({ hasText: `Family sheet 3 ${run}` })
-    .locator('button[aria-label="Remove sheet"]');
-  await removeSheet3.click();
+  // the family back. Removal rides the row menu (§22.12).
+  const sheet3Row = page.locator('.instance-inline-tile').filter({ hasText: `Family sheet 3 ${run}` });
+  await sheet3Row.locator('button[aria-label="More"]').click();
+  await page.getByRole('button', { name: 'Remove sheet' }).click();
   await page.waitForTimeout(800);
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toHaveCount(0);
   await page.getByRole('button', { name: 'Select sheet' }).click();
@@ -252,29 +249,36 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toBeVisible({ timeout: 150000 });
 
   // Sheets move by their label band and rotate by their action dial.
+  const canvasBox = await canvas.boundingBox();
+  const clampInto = (x, y) => ({
+    x: Math.min(Math.max(x, canvasBox.x + 8), canvasBox.x + canvasBox.width - 8),
+    y: Math.min(Math.max(y, canvasBox.y + 8), canvasBox.y + canvasBox.height - 8)
+  });
   const movingGroup = canvas.locator('g', { hasText: `Family sheet 2 ${run}` }).first();
   const before = await movingGroup.getAttribute('transform');
   const labelBox = await canvas.getByText(`Family sheet 2 ${run}`).boundingBox();
-  await page.mouse.move(labelBox.x + labelBox.width / 2, labelBox.y + labelBox.height / 2);
+  const labelPoint = clampInto(labelBox.x + labelBox.width / 2, labelBox.y + labelBox.height / 2);
+  await page.mouse.move(labelPoint.x, labelPoint.y);
   await page.mouse.down();
-  await page.mouse.move(labelBox.x + labelBox.width / 2 + 250, labelBox.y + labelBox.height / 2 + 150, { steps: 8 });
+  await page.mouse.move(labelPoint.x + 250, labelPoint.y + 150, { steps: 8 });
   await page.mouse.up();
+  await page.waitForTimeout(400);
   const after = await movingGroup.getAttribute('transform');
   expect(after, `sheet moved: ${before} -> ${after}`).not.toBe(before);
 
-  await canvas.locator('g', { hasText: `Family sheet 3 ${run}` }).first().boundingBox()
-    .then(box => page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.7));
+  const sheet3Box = await canvas.locator('g', { hasText: `Family sheet 3 ${run}` }).first().boundingBox();
+  const sheet3Point = clampInto(sheet3Box.x + sheet3Box.width * 0.5, sheet3Box.y + sheet3Box.height * 0.7);
+  await page.mouse.click(sheet3Point.x, sheet3Point.y);
   await page.waitForTimeout(600);
-  const dial = page.locator('.p-speeddial').first();
-  await dial.hover();
+  await page.locator('button[aria-label="Actions"]').first().hover();
   await page.locator('.p-speeddial-action', { has: page.locator('.pi-refresh') }).first().click();
   await page.waitForTimeout(800);
   const rotated = await canvas.locator('g', { hasText: `Family sheet 3 ${run}` }).first()
     .getAttribute('transform');
   expect(rotated, `sheet rotated: ${rotated}`).toContain('rotate(90');
 
-  // A deleted parent leaves the breadcrumb on the entity type label —
-  // the raw id never renders.
+  // A deleted parent leaves every tile on resolved names — the raw id
+  // never renders.
   const deleted = await app.request.delete(`/api/instances/probe-family/${parent._id}`);
   expect(deleted.ok(), await deleted.text()).toBeTruthy();
   await openSheetEditor(app, `Family sheet 1 ${run}`);

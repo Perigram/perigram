@@ -1451,16 +1451,17 @@ export default function createSurface({ vue, components, locale, queries, notify
         selectable: true,
         onSelect: () => { selectSheet(entry.id); }
       }, {
-        trailing: () => [h(components.Button, {
-          icon: 'pi pi-times',
-          severity: 'secondary',
-          text: true,
-          rounded: true,
-          size: 'small',
-          'aria-label': t('sheetDesign.removeSheet'),
-          disabled: entry.dirty || sheets.value.length <= 1,
-          onClick: () => { removeSheetFromCanvas(entry); }
-        })]
+        trailing: () => [h(components.InstanceActionsPopover, () => [
+          h(components.Button, {
+            icon: 'pi pi-times',
+            label: t('sheetDesign.removeSheet'),
+            severity: 'secondary',
+            text: true,
+            size: 'small',
+            disabled: entry.dirty || sheets.value.length <= 1,
+            onClick: () => { removeSheetFromCanvas(entry); }
+          })
+        ])]
       });
 
       const renderSheetsSection = () => h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
