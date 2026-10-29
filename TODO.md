@@ -3032,3 +3032,30 @@ answers) renders markdown.
   every surface — record preview, card band, fill-dialog pane, and the
   attachment peek — like the text editor and agent answers; mime
   sniffing no longer gates the text render.
+
+### Agent Notes (2026-10-29, cardfix2 round)
+
+Session `agent/cardfix2-20261029` (worktree `.agent-worktrees/cardfix2-20261029`).
+The identifier+preview card is the overlay media tile again (preview at
+full card width, identifier chip riding the corner under the instance
+chip recipe `CHIP_LABEL_PT` + `INSTANCE_CHIP_CLASS`, status and row
+menu floating on top); preview+facts keeps the side-preview card; the
+§22.13 instance tile stays the panel/picker face. The text preview
+mode renders through the one markdown pipeline on every surface, and
+the one element recipe is now `ck-markdown-body` (assets/css/main.css)
+— the markdown editor's reading typography (serif headings at crepe's
+2.625/2.25/2/1.75em scale, paragraph rhythm, code, quote, rule, table)
+on the app tokens, so file previews and agent answers read like the
+editor; the retired Tailwind recipe string and the mime-gated
+`isMarkdownDocument` detection are gone. En route: the generated-screen
+spec rides the renamed `cassette` type and flags its seed identifiers
+(the v26 rename and the identifier-flag law landed without migrating
+it — all 11 tests were red at base; 9 pass now, the home-screen panel
+locator and the create-form settled wait stay pre-existing drift).
+Focused: markdown 2, ui-mapping 110+16, design-system 34,
+module-imports, framework-packages, SSR smoke 23, arch + framework +
+docs guards at parity with base (the jagua-rs link break is
+pre-existing). E2E: documents-fill-dialog green (the composed markdown
+previews in the text mode); live probe pins the tile (h-40 media, chip
+badge) and the preview h1 at 42px IBM Plex Serif — the editor's own
+h1 metrics.
