@@ -702,16 +702,17 @@ describe('value formatting and layout vocabulary', () => {
     expect(LAYOUT.cardGrid).toBeUndefined();
   });
 
-  it('keeps the record header contract static-token plus scoped CSS', () => {
+  it('keeps the record header on the named container recipe', () => {
     // No Tailwind container-query variants: the build has no
     // container-queries plugin, so any @container/@[w]: class compiles to
-    // nothing. The responsive switch lives in SurfaceHeader scoped CSS;
-    // tokens carry only the static stacked layout and the shrink contract
-    // (min-w-0 keeps long names truncating instead of overflowing). The
-    // header paints no box — retired with the boxed headerBar token.
+    // nothing. The responsive switch lives in the global stylesheet's
+    // .ck-record-header recipe (main.css, beside the form/body grids);
+    // the tokens name it and the header paints no box — the boxed
+    // headerBar token stays retired.
     expect(LAYOUT.headerBar).toBeUndefined();
-    expect(LAYOUT.headerRow).toBe('flex flex-col items-start gap-2');
-    expect(LAYOUT.headerIdentity).toBe('min-w-0 flex-1');
+    expect(LAYOUT.header).toBe('ck-record-header');
+    expect(LAYOUT.headerRow).toBe('ck-record-header-row');
+    expect(LAYOUT.headerIdentity).toBe('ck-record-header-identity');
     expect(HEADER_ACTIONS_INLINE).toBe(2);
   });
 });
