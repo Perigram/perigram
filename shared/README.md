@@ -65,11 +65,12 @@ imported through server modules that Nitro externalizes.
   [instance-filters/README.md](./instance-filters/README.md).
 - `markdown.js`: The markdown document contract — `renderMarkdown`
   (source to sanitized HTML, empty server-side) shared by the source
-  editor and the read viewer, plus `MARKDOWN_ELEMENT_CLASSES` (the one
-  element-styles recipe every HTML host of pipeline output wears —
-  agent chat answers and file payload previews mount the same recipe; a
-  surface composing its own element styles over pipeline output is a
-  defect). The `text` preview mode is markdown prose: its payload
+  editor and the read viewer, plus `MARKDOWN_ELEMENT_CLASSES`
+  (`ck-markdown-body`, the named recipe in
+  [assets/css/main.css](../assets/css/main.css) carrying the markdown
+  editor's reading typography; every HTML host of pipeline output wears
+  it — agent chat answers and file payload previews read like the
+  editor). The `text` preview mode is markdown prose: its payload
   renders through this pipeline like the text editor and agent answers.
   Parsed as GFM with
   line breaks: a single newline is a hard

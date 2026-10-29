@@ -765,10 +765,12 @@ through the shared sanitized markdown pipeline
 text on SSR, formatting on hydration. Markdown mode also lays the root out as
 a full-width block column in the prose reading voice (`text-prose` — an agent
 answer is a room document; human chat text keeps the UI voice), with the
-HTML host wearing `MARKDOWN_ELEMENT_CLASSES` — the pipeline's one
-element-styles recipe (margins, list markers and indent, rules, table
-borders; headings step up through the `editor` role and code reads in
-the `technical` role). File payload previews wear the same recipe, so
+HTML host wearing `MARKDOWN_ELEMENT_CLASSES` — `ck-markdown-body`, the
+pipeline's one element-styles recipe in
+[assets/css/main.css](../../assets/css/main.css): the markdown editor's
+reading typography (serif document headings at the editor's scale,
+paragraph rhythm, code, quotes, rules, table borders). File payload
+previews wear the same recipe, so
 markdown reads identically wherever the pipeline's HTML mounts. Text
 parts wrap with
 `overflow-wrap: anywhere` and the `min-w-0`/`max-w-full` chain keeps unbroken
