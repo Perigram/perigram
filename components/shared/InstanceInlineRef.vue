@@ -137,6 +137,17 @@ async function onPeekShow() {
   peekHydrated.value = await instances
     .resolveReadableReference(instances.canonicalTypeKey(props.type), resolvedId.value, { silent: true })
     .catch(() => null);
+  if (import.meta.env?.DEV) {
+    console.warn('[peek-debug]', JSON.stringify({
+      typeId: generatedTypeId.value,
+      id: resolvedId.value,
+      fieldsCount: peekDataFields.value.length,
+      paths: peekDataFields.value.map(f => f.path),
+      hydratedFields: peekHydrated.value?.fields || null,
+      snapshotFields: resolved.value?.fields || null,
+      dtoForFields: instances.dtoFor(generatedTypeId.value, resolvedId.value)?.fields || null
+    }));
+  }
 }
 // The micro card earns its box: it renders only when the type's compact
 // surface carries something to show beside identity — a preview band or
