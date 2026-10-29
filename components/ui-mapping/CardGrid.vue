@@ -37,7 +37,7 @@
                   @click="event => openCardMenu(event, instance)"
                 />
               </div>
-              <span :class="LAYOUT.mediaTileBadge">
+              <span :class="[LAYOUT.mediaTileBadge, FILE_CHIP_CLASS]">
                 <InstanceIdentity
                   :instance="instance"
                   :type="type"
@@ -201,6 +201,7 @@ import PreviewBox from './PreviewBox.vue';
 import ParentRef from './ParentRef.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
 import FileChip from '~/components/shared/FileChip.vue';
+import { FILE_CHIP_CLASS } from '~/components/shared/chip-surface.js';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { generatedActionLabel } from '~/utils/generated-labels.js';
 const spacing = inject('uiMappingSpacing', null);
