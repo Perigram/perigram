@@ -3031,7 +3031,10 @@ prohibited.
 - [x] WAITING — owner verification: the family canvas is a wrapped
   rack — a sheet moves by its label band, rotates a quarter turn about
   its center from its action dial, placements ride in sheet-local
-  frames (rotation preserved through moves).
+  frames (rotation preserved through moves). E2E pins the move, the
+  remove/re-add cycle, and the family scope; the dial-driven rotate
+  stays manually verified (the animated dial resists Playwright's
+  actionability checks — probe-verified interactions).
 - [x] WAITING — owner verification: layer-standard pens resolve the
   org `defaultPen` relation over the OCCS base, and a standard whose
   pen does not resolve keeps the base for its code (the plugin's

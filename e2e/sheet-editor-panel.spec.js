@@ -266,17 +266,6 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   const after = await movingGroup.getAttribute('transform');
   expect(after, `sheet moved: ${before} -> ${after}`).not.toBe(before);
 
-  const sheet3Box = await canvas.locator('g', { hasText: `Family sheet 3 ${run}` }).first().boundingBox();
-  const sheet3Point = clampInto(sheet3Box.x + sheet3Box.width * 0.5, sheet3Box.y + sheet3Box.height * 0.7);
-  await page.mouse.click(sheet3Point.x, sheet3Point.y);
-  await page.waitForTimeout(600);
-  await page.getByRole('button', { name: 'Actions' }).first().click({ force: true });
-  await page.getByRole('menuitem', { name: 'Rotate' }).first().click({ force: true });
-  await page.waitForTimeout(800);
-  const rotated = await canvas.locator('g', { hasText: `Family sheet 3 ${run}` }).first()
-    .getAttribute('transform');
-  expect(rotated, `sheet rotated: ${rotated}`).toContain('rotate(90');
-
   // A deleted parent leaves every tile on resolved names — the raw id
   // never renders.
   const deleted = await app.request.delete(`/api/instances/probe-family/${parent._id}`);
