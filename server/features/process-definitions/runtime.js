@@ -121,6 +121,11 @@ export async function resolveProcessAuth(auth = {}) {
   const manifestActions = (assignmentAccess.actions || [])
     .map(action => projectManifestAction(action, { typeLabels }))
     .filter(Boolean);
+  // Availability is visibility: the generator's action contract carries
+  // only the actions the assignment's roles can run — an action no
+  // assigned role carries never reaches the browser, so it renders on no
+  // surface. The run gate stays the execution authority.
+  const runnableIds = new Set(manifestActions.map(action => action.id));
   return {
     ...ownerAuth,
     process: {
@@ -142,6 +147,7 @@ export async function resolveProcessAuth(auth = {}) {
       exports: (await exportersForOrganization(organizationId).catch(() => []))
         .map(({ typeId, kind }) => ({ typeId, kind })),
       actions: Object.fromEntries(Object.values(compiled.actions || {})
+        .filter(action => runnableIds.has(action.id))
         .map(action => [action.id, projectUiAction(action, { typeLabels })])
         .filter(([, projected]) => projected))
     },
