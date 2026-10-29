@@ -6,7 +6,10 @@ const props = defineProps({
   // The resolved drawing value (a pre-built { viewBox, layers } drawing,
   // or a raw geometry/layer-data value the canvas normalizer accepts).
   source: { type: [Object, Array], default: null },
-  hideDimensionLayer: { type: Boolean, default: false }
+  hideDimensionLayer: { type: Boolean, default: false },
+  // Host-owned band opt-in (DrawingCanvas `fill`): the canvas paints no
+  // own chrome and fills the fixed-height band.
+  fill: { type: Boolean, default: false }
 });
 
 const visibleLayerNames = ref(null);
@@ -39,6 +42,7 @@ function isDimensionLayerName(name = '') {
       :source="source"
       source-type="geometry-preview"
       mode="card"
+      :fill="fill"
       :visible-layer-names="previewVisibleLayerNames"
       @ready="handleDrawingReady"
     />

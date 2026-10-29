@@ -9,6 +9,7 @@
     v-else-if="declaredPreview"
     :source="declaredPreview"
     :hide-dimension-layer="hideDimensionLayer"
+    :fill="fill"
   />
 </template>
 
@@ -28,7 +29,10 @@ import { useFileTypeView } from '~/composables/useFileTypeView.js';
 const props = defineProps({
   entity: { type: Object, required: true },
   typeId: { type: String, required: true },
-  hideDimensionLayer: { type: Boolean, default: false }
+  hideDimensionLayer: { type: Boolean, default: false },
+  // Host-owned band opt-in: renderers fill the fixed-height band with no
+  // chrome of their own.
+  fill: { type: Boolean, default: false }
 });
 
 const { typeById } = useFileTypeView();

@@ -5,13 +5,14 @@
     :type-id="typeId"
     :preview="pluginPreview"
   >
-    <InstancePreviewMedia :entity="entity" :type-id="typeId" :hide-dimension-layer="hideDimensionLayer" />
+    <InstancePreviewMedia :entity="entity" :type-id="typeId" :hide-dimension-layer="hideDimensionLayer" :fill="fill" />
   </RemoteInstancePreview>
   <InstancePreviewMedia
     v-else-if="mode !== 'none'"
     :entity="entity"
     :type-id="typeId"
     :hide-dimension-layer="hideDimensionLayer"
+    :fill="fill"
   />
 </template>
 
@@ -29,7 +30,10 @@ const props = defineProps({
   entity: { type: Object, required: true },
   typeId: { type: String, required: true },
   mode: { type: String, default: 'none' },
-  hideDimensionLayer: { type: Boolean, default: false }
+  hideDimensionLayer: { type: Boolean, default: false },
+  // Host-owned band opt-in: the generic media fills the fixed-height band
+  // with no chrome of its own.
+  fill: { type: Boolean, default: false }
 });
 
 const pluginPreview = computed(() => resolvePluginPreview(props.typeId));
