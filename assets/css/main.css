@@ -626,3 +626,166 @@ body {
         max-width: 46rem;
     }
 }
+
+/* The markdown read recipe: the markdown editor's reading typography
+   (crepe's document metrics on the app tokens), worn by every host of
+   the pipeline's sanitized HTML — chat answers and file previews read
+   like the editor. */
+.ck-markdown-body {
+    font-family: var(--ck-font-serif);
+}
+
+.ck-markdown-body > *:first-child {
+    margin-top: 0;
+}
+
+.ck-markdown-body > *:last-child {
+    margin-bottom: 0;
+}
+
+.ck-markdown-body h1,
+.ck-markdown-body h2,
+.ck-markdown-body h3,
+.ck-markdown-body h4,
+.ck-markdown-body h5,
+.ck-markdown-body h6 {
+    font-family: var(--ck-font-serif);
+    font-weight: 400;
+    padding: 2px 0;
+}
+
+.ck-markdown-body h1 {
+    font-size: 2.625em;
+    line-height: 1.1905;
+    margin-top: 32px;
+}
+
+.ck-markdown-body h2 {
+    font-size: 2.25em;
+    line-height: 1.2222;
+    margin-top: 28px;
+}
+
+.ck-markdown-body h3 {
+    font-size: 2em;
+    line-height: 1.25;
+    margin-top: 24px;
+}
+
+.ck-markdown-body h4 {
+    font-size: 1.75em;
+    line-height: 1.2857;
+    margin-top: 20px;
+}
+
+.ck-markdown-body h5 {
+    font-size: 1.5em;
+    line-height: 1.3333;
+    margin-top: 16px;
+}
+
+.ck-markdown-body h6 {
+    font-size: 1.125em;
+    font-weight: 700;
+    line-height: 1.5556;
+    margin-top: 16px;
+}
+
+.ck-markdown-body p {
+    line-height: 1.5;
+    padding: 4px 0;
+}
+
+.ck-markdown-body a {
+    color: var(--p-primary-color);
+    text-decoration: underline;
+}
+
+.ck-markdown-body code {
+    color: var(--ck-chrome-foreground);
+    background: var(--ck-chrome-subtle);
+    font-family: var(--ck-font-mono);
+    font-size: 0.875em;
+    line-height: 1.4286;
+    padding: 0 0.25em;
+    border-radius: var(--p-border-radius-sm);
+}
+
+.ck-markdown-body pre {
+    background: var(--ck-chrome-subtle);
+    padding: 10px;
+    border-radius: var(--p-border-radius-sm);
+    overflow-x: auto;
+}
+
+.ck-markdown-body pre code {
+    padding: 0;
+    background: transparent;
+}
+
+.ck-markdown-body blockquote {
+    position: relative;
+    margin: 4px 0;
+    padding-left: 40px;
+}
+
+.ck-markdown-body blockquote::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 4px;
+    background: var(--ck-selection-background);
+    border-radius: 100px;
+}
+
+.ck-markdown-body hr {
+    border: none;
+    height: 13px;
+    box-sizing: content-box;
+    padding: 6px 0;
+    background-color: color-mix(in srgb, var(--ck-chrome-border), transparent 80%);
+    background-clip: content-box;
+}
+
+.ck-markdown-body ul,
+.ck-markdown-body ol {
+    margin: 4px 0;
+    padding: 0 0 0 1.25em;
+}
+
+.ck-markdown-body ul {
+    list-style: disc;
+}
+
+.ck-markdown-body ol {
+    list-style: decimal;
+}
+
+.ck-markdown-body li {
+    padding: 2px 0;
+}
+
+.ck-markdown-body table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.ck-markdown-body th,
+.ck-markdown-body td {
+    vertical-align: top;
+    border: 1px solid var(--ck-chrome-border);
+    padding: 2px 8px;
+    text-align: left;
+}
+
+.ck-markdown-body th {
+    background: var(--ck-chrome-subtle);
+}
+
+.ck-markdown-body img {
+    max-width: 100%;
+    vertical-align: bottom;
+}
