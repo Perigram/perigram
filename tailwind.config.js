@@ -17,6 +17,9 @@ export default {
     './nuxt.config.{js,ts}',
     './assets/css/**/*.css',
     './shared/ui-mapping/*.js',
+    // Shared root modules carry utility class recipes (the markdown
+    // element recipe); unscanned, those classes never compile.
+    './shared/*.js',
     './utils/*.js',
     // In-repo plugin surface modules compose with the host's utility
     // classes; without this scan those classes never compile and the
