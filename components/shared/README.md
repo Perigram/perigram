@@ -529,15 +529,17 @@ state tag plus type-label meta (`showTypeLabel`, for mixed-type lists);
 every option renders the same row shape whatever the type serves.
 `variant="tile"` renders the instance tile (SPEC §22.13, owner
 direction 2026-10-29) — the one small-card face for an instance
-reference on a panel: a bordered row carrying the preview thumb,
-identity with type glyph and state tag, the lineage breadcrumb
-(`TraceChain` compact), and compact facts. The tile owns its row
-chrome: `active` marks the selected member of a working set with the
-primary border, the `trailing` slot carries row-local actions (a remove
-control), and `selectable` turns the row into a list option whose
-activation emits `select` instead of opening the record popup. Panels
-that surface records as small cards compose this tile; panel-invented
-card chrome is a defect.
+reference on a panel: the §22.8 side-preview anatomy at row scale,
+composed from the shared layout recipes (`LAYOUT.previewSideRow`,
+`LAYOUT.rowBetween`, `LAYOUT.labeledBlock`) on the §22.9 spacing ladder —
+the framed preview thumb, identity with type glyph and state tag, the
+lineage breadcrumb (`TraceChain` compact), and compact facts. The tile
+owns its row chrome: `active` marks the selected member of a working
+set with the primary border, the `trailing` slot carries row-local
+actions (a remove control), and `selectable` turns the row into a list
+option whose activation emits `select` instead of opening the record
+popup. Panels that surface records as small cards compose this tile;
+panel-invented card chrome is a defect.
 `compactLayout:
 'stacked'` (chat preview cards) swaps the row for a flush preview band over
 a one-line label strip whose small state tag rides beside the truncating
