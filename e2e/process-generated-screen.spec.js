@@ -13,7 +13,6 @@ const CHILD_TYPE = 'e2e-mnote';
 const PARENT_TYPE = 'e2e-mfolder';
 
 const TYPE_NAMES = {
-  cassette: 'Cassette',
   sketch: 'Sketch',
   'text-document': 'Text document',
   'csv-table': 'CSV table',
@@ -24,7 +23,7 @@ const TYPE_NAMES = {
 test.describe('process generated screens', () => {
   test('instance transport serves the generated-screen collection endpoint', async ({ app }) => {
     await app.installPlugins(['tech-drawing', 'facade']);
-    const list = await app.request.get('/api/instances/cassette', { failOnStatusCode: false });
+    const list = await app.request.get('/api/instances/cassette-template', { failOnStatusCode: false });
     expect(list.ok(), await list.text()).toBeTruthy();
 
     const legacyQueueList = await app.request.get('/api/queues', { failOnStatusCode: false });
@@ -290,14 +289,14 @@ async function seedMatrixTypes(app) {
     id: CHILD_TYPE,
     name: TYPE_NAMES[CHILD_TYPE],
     class: 'item',
-    fields: { name: { base: 'string' } },
+    fields: { name: { base: 'string', identifier: true } },
     states: { main: { initial: 'new', values: ['new'], terminal: ['new'] } }
   });
   await app.declareType({
     id: PARENT_TYPE,
     name: TYPE_NAMES[PARENT_TYPE],
     class: 'group',
-    fields: { name: { base: 'string' }, note: { base: 'string' } },
+    fields: { name: { base: 'string', identifier: true }, note: { base: 'string' } },
     edges: { children: { notes: { types: [CHILD_TYPE], onRemove: 'restrict' } } }
   });
 }
