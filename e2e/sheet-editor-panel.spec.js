@@ -252,23 +252,23 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toBeVisible({ timeout: 150000 });
 
   // Sheets move by their label band and rotate by their action dial.
-  const movingLabel = canvas.locator('text=Family sheet 2').first();
-  const before = await canvas.locator('g', { has: movingLabel }).first().getAttribute('transform');
-  const labelBox = await movingLabel.boundingBox();
+  const movingGroup = canvas.locator('g', { hasText: `Family sheet 2 ${run}` }).first();
+  const before = await movingGroup.getAttribute('transform');
+  const labelBox = await canvas.getByText(`Family sheet 2 ${run}`).boundingBox();
   await page.mouse.move(labelBox.x + labelBox.width / 2, labelBox.y + labelBox.height / 2);
   await page.mouse.down();
   await page.mouse.move(labelBox.x + labelBox.width / 2 + 250, labelBox.y + labelBox.height / 2 + 150, { steps: 8 });
   await page.mouse.up();
-  const after = await canvas.locator('g', { has: movingLabel }).first().getAttribute('transform');
+  const after = await movingGroup.getAttribute('transform');
   expect(after, `sheet moved: ${before} -> ${after}`).not.toBe(before);
 
-  await canvas.locator('text=Family sheet 3').first().click();
+  await canvas.getByText(`Family sheet 3 ${run}`).click();
   await page.waitForTimeout(600);
   const dial = page.locator('.p-speeddial').first();
   await dial.hover();
   await page.locator('.p-speeddial-action', { has: page.locator('.pi-refresh') }).first().click();
   await page.waitForTimeout(800);
-  const rotated = await canvas.locator('g', { has: canvas.locator('text=Family sheet 3') }).first()
+  const rotated = await canvas.locator('g', { hasText: `Family sheet 3 ${run}` }).first()
     .getAttribute('transform');
   expect(rotated, `sheet rotated: ${rotated}`).toContain('rotate(90');
 
