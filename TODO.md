@@ -545,7 +545,14 @@ AttachmentKind row.
   template's filename; documents listing v6 labels the render `source`
   input ("Source", matching "Template"/"Values"). Verified live: fill
   dialogs (md/xlsx/pdf/dxf), spot prefill, preview, DXF editor anchor
-  authoring, revisioned save. Clean findings left as-is: dialog captions
+  authoring, revisioned save. Second round (post-merge): the re-run row
+  gates on provenance sources (upload/editor records are replace's
+  business — a refresh button on every uploaded file was noise); the
+  composed-file name and Re-derive verified against the live stack;
+  `payload-revisions.spec.js` learned that `request.post` ships POST
+  whatever its `method` option says (fetch carries the replace PUT),
+  beside the header-teardown race tracked under Revisioned references.
+  Clean findings left as-is: dialog captions
   derive from the mode vocabulary ("New X from Fill", compiler label
   law, locale-overridable); spot-assignment submit gating delegates to
   the executor's structured refusal (client-side duplication of anchor
@@ -774,6 +781,14 @@ AttachmentKind row.
     updates the record's pins and derived fields/payload — one mechanism
     for "re-render when the template changed", "re-fill with new values",
     "re-derive the sheet when cassettes changed".
+  - [ ] Record-header teardown race: a payload restore (and at times any
+    local mutation reconciling through the screen) intermittently swaps
+    the detail header subtree to a data-state surface for ~150ms and
+    back, destroying open popovers (the revision picker closes after a
+    restore). The pool never drops the record; the swap's trigger is
+    unidentified (observed live 2026-10-29, `.surface-header` leaves the
+    DOM between samples with a skeleton present).
+    `payload-revisions.spec.js` reopens the popover around it.
 
     ### Agent Notes (2026-10-27, stack round)
 
