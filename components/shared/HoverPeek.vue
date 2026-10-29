@@ -1,6 +1,6 @@
 <template>
   <slot :peek-events="triggerEvents" />
-  <Popover ref="popover" @show="shown = true" @hide="shown = false">
+  <Popover ref="popover" @show="onShow" @hide="shown = false">
     <div
       v-if="shown"
       class="flex max-h-[min(28rem,calc(100dvh-4rem))] w-72 max-w-[calc(100vw-2rem)] flex-col overflow-y-auto"
@@ -27,6 +27,7 @@ import Popover from 'primevue/popover';
 const props = defineProps({
   enabled: { type: Boolean, default: true }
 });
+const emit = defineEmits(['show']);
 
 const SHOW_DELAY_MS = 300;
 const HIDE_GRACE_MS = 250;
@@ -67,6 +68,11 @@ function scheduleHide() {
 
 function holdPeek() {
   clearHide();
+}
+
+function onShow() {
+  shown.value = true;
+  emit('show');
 }
 
 onBeforeUnmount(() => {
