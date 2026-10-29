@@ -10,7 +10,7 @@ import { createDefinitionAuthoring } from '#packages/processes/src/authoring.js'
 // Organization types keep genericCreate (payload-less) unless the caller
 // overrides the mode explicitly.
 const DEFAULT_VIA = {
-  cassette: 'editor',
+  'cassette-template': 'editor',
   sketch: 'editor',
   'text-document': 'editor',
   'csv-table': 'editor',
