@@ -235,7 +235,7 @@ export const GAP_BY_LEVEL = Object.freeze({
 });
 
 export const TYPE_BY_LEVEL = Object.freeze({
-  0: 'text-page-title',
+  0: 'text-record-title',
   1: 'text-section-heading',
   2: 'text-label'
 });
@@ -296,12 +296,12 @@ export const LAYOUT = Object.freeze({
   // in main.css).
   previewHeroBandFlow: 'ck-preview-hero-band-flow',
   packRow: 'flex flex-wrap items-start gap-6',
-  // The reload strip takes no flow slot — appearing and vanishing shift
-  // nothing below it. `reloadBar` overlays a collection surface's top
-  // edge; `reloadBarUnder` underlines the record header (depth-0
-  // details), riding the gap above the body.
+  // The reload strip takes no flow slot on collections — appearing and
+  // vanishing shift nothing below it. `reloadBar` overlays a collection
+  // surface's top edge; depth-0 record headers own a permanent `reloadLane`
+  // under the header instead, a bounded 4px track the strip appears inside.
   reloadBar: 'pointer-events-none absolute inset-x-0 top-0 z-10 h-1',
-  reloadBarUnder: 'pointer-events-none absolute inset-x-0 bottom-0 z-10 h-1',
+  reloadLane: 'h-1 shrink-0',
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
   // Row-surface recipe (the table row IS the card): a row's own
@@ -323,6 +323,11 @@ export const LAYOUT = Object.freeze({
   header: 'ck-record-header',
   headerRow: 'ck-record-header-row',
   headerIdentity: 'ck-record-header-identity',
+  // The header's action cluster groups by control kind (record
+  // utilities, generated actions, machine transitions) — one tight
+  // group per kind, hairline dividers between groups.
+  actionGroup: 'flex items-center gap-1',
+  actionDivider: 'h-5 w-px shrink-0 bg-content-border',
   cellText: 'line-clamp-2 max-w-96 break-words text-left',
   chipRow: 'flex flex-wrap items-center gap-2 pt-2',
   panelBody: 'py-2',
@@ -409,7 +414,7 @@ export const LAYOUT_ATOMS = Object.freeze({
 export const LAYOUT_AMBIENT = Object.freeze({
   cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText']),
   clamps: Object.freeze(['nameClamp', 'chipClamp', 'linkClamp']),
-  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'header', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar', 'reloadBarUnder']),
+  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'header', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar', 'reloadLane', 'actionGroup', 'actionDivider']),
   geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
 });
 

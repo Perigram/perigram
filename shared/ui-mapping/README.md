@@ -637,8 +637,12 @@ record headers (`LAYOUT.header`/`headerRow`/`headerIdentity` name
 `.ck-record-header*`: the header declares its own `container-type`;
 wide headers lay identity and actions on one wrapping row with a 16rem
 identity floor — long names still truncate through the `min-w-0` chain —
-narrow headers stack, with at most `HEADER_ACTIONS_INLINE` generated
-buttons inline before the ellipsis overflow menu), the form grid
+narrow headers stack, the record title steps with the same width
+(`text-record-title`: 1.5rem narrow, 1.75rem from the 34rem step), and
+the header's action cluster groups by control kind over
+`LAYOUT.actionGroup`/`actionDivider`, with at most
+`HEADER_ACTIONS_INLINE` generated buttons inline before the ellipsis
+overflow menu), the form grid
 (`LAYOUT.formGrid` names
 `.ck-form-grid`: one column under 40rem of container width, two above;
 full-span rows opt in with `.ck-span-full`), the record body's fill grids
