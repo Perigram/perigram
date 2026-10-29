@@ -8,26 +8,131 @@
   >
     <template #grid="slotProps">
       <ResponsiveGrid variant="dense" responsive-context="container">
-        <Card v-for="instance in slotProps.items" :key="instance.id" :class="[LAYOUT.clip, 'w-full']">
-          <template #header>
-            <PreviewBox :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
-          </template>
-          <template #title>
-            <div :class="LAYOUT.rowBetween">
-              <InstanceIdentity
-                :instance="instance"
-                :type="type"
-                :openable="openable"
-                @open="target => $emit('open', target)"
-              />
-              <div :class="LAYOUT.row">
+        <Card
+          v-for="instance in slotProps.items"
+          :key="instance.id"
+          :class="[LAYOUT.clip, 'w-full']"
+          :pt="anatomy === 'tile' ? TILE_PT : undefined"
+        >
+          <!-- Overlay tile: a visual preview with no fact fields — the
+               preview is the card, the identifier rides it in a badge,
+               status and the row menu float on top. -->
+          <template v-if="anatomy === 'tile'" #header>
+            <div :class="LAYOUT.mediaTile">
+              <PreviewBox variant="stamp" :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
+              <div v-if="statusOf(instance) || rowMenuTarget(instance)" :class="LAYOUT.mediaTileControls">
                 <Tag
                   v-if="statusOf(instance)"
+                  size="small"
                   :value="statusOf(instance).label"
                   :severity="statusOf(instance).severity"
                 />
                 <Button
-                  v-if="cardActionsFor(instance).length || unlinkItemsFor(instance).length"
+                  v-if="rowMenuTarget(instance)"
+                  icon="pi pi-ellipsis-v"
+                  severity="secondary"
+                  size="small"
+                  rounded
+                  :aria-label="$t('uiMapping.moreActions')"
+                  @click="event => openCardMenu(event, instance)"
+                />
+              </div>
+              <div :class="LAYOUT.mediaTileScrim">
+                <span :class="LAYOUT.mediaTileBadge">
+                  <InstanceIdentity
+                    :instance="instance"
+                    :type="type"
+                    :openable="openable"
+                    text-class="text-body"
+                    @open="target => $emit('open', target)"
+                  />
+                </span>
+              </div>
+            </div>
+          </template>
+          <!-- Side-preview card: a visual preview with facts — the preview
+               is a bounded left column, identity and facts sit beside it. -->
+          <template v-else-if="anatomy === 'side'" #content>
+            <div class="flex items-stretch gap-3">
+              <div :class="LAYOUT.previewSide">
+                <PreviewBox variant="stamp" :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
+              </div>
+              <div class="flex min-w-0 flex-1 flex-col gap-2">
+                <span v-if="parented" class="inline-flex min-w-0 items-center gap-2">
+                  <ParentRef
+                    :instance="instance"
+                    :bundle="bundle"
+                    :pool="pool"
+                    class="min-w-0"
+                  />
+                </span>
+                <div :class="LAYOUT.rowBetween">
+                  <InstanceIdentity
+                    :instance="instance"
+                    :type="type"
+                    :openable="openable"
+                    @open="target => $emit('open', target)"
+                  />
+                  <div :class="LAYOUT.row">
+                    <Tag
+                      v-if="statusOf(instance)"
+                      size="small"
+                      :value="statusOf(instance).label"
+                      :severity="statusOf(instance).severity"
+                    />
+                    <Button
+                      v-if="rowMenuTarget(instance)"
+                      icon="pi pi-ellipsis-v"
+                      text
+                      rounded
+                      severity="secondary"
+                      :aria-label="$t('uiMapping.moreActions')"
+                      @click="event => openCardMenu(event, instance)"
+                    />
+                  </div>
+                </div>
+                <div :class="spacing ? spacing.stackTight : 'flex flex-col gap-3'">
+                  <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
+                    <span class="text-supporting text-muted">{{ field.label }}</span>
+                    <FieldControl
+                      :model-value="instance.fields?.[field.name]"
+                      :descriptor="field.descriptor"
+                      variant="inline"
+                      :quantitative="quantitative"
+                      :pool="pool"
+                      :bundle="bundle"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+          <!-- Plain stack: a non-visual payload rides the chip beside the
+               identity; the labeled budgeted facts follow. -->
+          <template v-else #title>
+            <div :class="LAYOUT.rowBetween">
+              <span class="inline-flex min-w-0 items-center gap-2">
+                <FileChip
+                  v-if="instance.payload?.fileId"
+                  :file="instance.payload"
+                  @open="downloadPayload(instance)"
+                />
+                <InstanceIdentity
+                  :instance="instance"
+                  :type="type"
+                  :openable="openable"
+                  @open="target => $emit('open', target)"
+                />
+              </span>
+              <div :class="LAYOUT.row">
+                <Tag
+                  v-if="statusOf(instance)"
+                  size="small"
+                  :value="statusOf(instance).label"
+                  :severity="statusOf(instance).severity"
+                />
+                <Button
+                  v-if="rowMenuTarget(instance)"
                   icon="pi pi-ellipsis-v"
                   text
                   rounded
@@ -41,7 +146,7 @@
           <!-- SPEC §22.8: a homogeneous collection never repeats the
                type name per card — the collection's own header names it.
                Only containment context (ParentRef) earns the line. -->
-          <template v-if="parented" #subtitle>
+          <template v-if="anatomy === 'plain' && parented" #subtitle>
             <span class="inline-flex min-w-0 items-center gap-2">
               <ParentRef
                 :instance="instance"
@@ -51,7 +156,7 @@
               />
             </span>
           </template>
-          <template #content>
+          <template v-if="anatomy === 'plain'" #content>
             <div :class="spacing ? spacing.stackTight : 'flex flex-col gap-3'">
               <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
                 <span class="text-supporting text-muted">{{ field.label }}</span>
@@ -77,7 +182,7 @@
 </template>
 
 <script setup>
-import { computed, inject, ref, watch } from 'vue';
+import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DataView from 'primevue/dataview';
 import Card from 'primevue/card';
@@ -88,23 +193,27 @@ import Menu from 'primevue/menu';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import {
-  LAYOUT, SCALAR_BASES, cardFactCount, isIdentifierField,
+  LAYOUT, SCALAR_BASES, cardAnatomyFor, cardFactCount, isIdentifierField,
   fieldLabel, fieldLabelKey, localizedLabel, resolveListControls,
   resolveActionButton, actionLabelKey, stateDisplayFor
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
+import { instancePayloadFileUrl } from '~/components/generated/file-preview-contract.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import ParentRef from './ParentRef.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
+import FileChip from '~/components/shared/FileChip.vue';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { generatedActionLabel } from '~/utils/generated-labels.js';
 const spacing = inject('uiMappingSpacing', null);
 
+// The tile anatomy carries its whole card in the header slot; the body
+// slot stays hidden so no empty padded box trails the media.
+const TILE_PT = { body: { class: 'hidden' } };
+
 const props = defineProps({
   instances: { type: Array, default: () => [] },
   type: { type: Object, default: null },
-  // SPEC §22.8: the type's quantitative dominance earns the dashboard
-  // field presentations.
   // Composed list-controls contract from the region tree; recomputed from
   // the type and loaded instances when absent (direct grid usage).
   controls: { type: Object, default: null },
@@ -133,6 +242,11 @@ const emit = defineEmits(['open', 'run']);
 
 const { te, t } = useI18n();
 
+// The card anatomy follows the type's data shape (cardAnatomyFor): a
+// visual preview with no facts renders the overlay tile, a visual preview
+// with facts the side-preview card, everything else the plain stack.
+const anatomy = computed(() => cardAnatomyFor(props.type || {}));
+
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
 const pagination = computed(() => resolvedControls.value.pagination);
 
@@ -154,6 +268,13 @@ const scalarFields = computed(() => Object.entries(props.type?.fields || {})
     descriptor,
     label: localizedLabel({ te, t }, fieldLabelKey(props.type?.id, name), fieldLabel(name, descriptor))
   })));
+
+// A plain-stack card's payload chip opens the payload download — the
+// preview contract's escape hatch for modes the viewer cannot render.
+function downloadPayload(instance) {
+  const url = instancePayloadFileUrl(instance?.payload);
+  if (url) window.open(`${url}&download=1`, '_blank', 'noopener');
+}
 
 // One shared popup menu: the ellipsis renders on a card only when that
 // card carries an applicable action, and menu commands re-emit through
@@ -189,6 +310,7 @@ const unlinkItemsFor = instance => (props.relationUnlink?.actions || [])
     };
   })
   .filter(Boolean);
+const rowMenuTarget = instance => Boolean(cardActionsFor(instance).length || unlinkItemsFor(instance).length);
 const cardMenuItems = computed(() => [
   ...cardActionsFor(menuInstance.value || {})
     .map(action => {

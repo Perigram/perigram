@@ -2,7 +2,7 @@
   <div v-if="d" :class="d.stack">
     <div v-if="hasPreview" :class="LAYOUT.previewHero">
       <div :class="heroBand">
-        <PreviewBox fill :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
+        <PreviewBox variant="pane" :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
       </div>
     </div>
 

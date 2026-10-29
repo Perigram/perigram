@@ -309,6 +309,27 @@ export function createUiMapping(overrides = {}) {
     return 'text';
   }
 
+  // cardAnatomyFor(typeRecord): the card-grid anatomy from the type's own
+  // data shape — a visual preview (a renderable payload mode or a declared
+  // preview source) with no fact fields renders the overlay `tile` (the
+  // preview is the card, the identifier rides it in a badge); a visual
+  // preview with facts renders `side` (the preview is a bounded left
+  // column beside identity and facts); everything else renders `plain`
+  // (identity row with the payload chip, then facts).
+  function cardAnatomyFor(typeRecord = {}) {
+    const preview = resolvePreview(typeRecord);
+    const visual = RENDERABLE_PREVIEW_MODES.includes(preview.mode)
+      || typeRecord.previewSource?.display === 'geometry';
+    if (!visual) return 'plain';
+    const identifier = typeRecord.identifier || null;
+    const facts = Object.entries(typeRecord.fields || {})
+      .filter(([name, descriptor]) => name !== identifier
+        && SCALAR_BASES.includes(descriptor.base)
+        && !isLongText(descriptor))
+      .length;
+    return facts ? 'side' : 'tile';
+  }
+
   function scaledBudget(scale, available, compact = false) {
     const cap = compact ? Math.max(2, scale[0].columns - 1) : Infinity;
     for (const step of scale) {
@@ -338,6 +359,7 @@ export function createUiMapping(overrides = {}) {
     resolveListLayout,
     analyzeTypeShape,
     cardVariantFor,
+    cardAnatomyFor,
     tableColumnCount,
     cardFactCount
   };
@@ -1465,6 +1487,7 @@ export const resolveActionButton = defaultMapping.resolveActionButton;
 export const resolveListLayout = defaultMapping.resolveListLayout;
 export const analyzeTypeShape = defaultMapping.analyzeTypeShape;
 export const cardVariantFor = defaultMapping.cardVariantFor;
+export const cardAnatomyFor = defaultMapping.cardAnatomyFor;
 export const tableColumnCount = defaultMapping.tableColumnCount;
 export const cardFactCount = defaultMapping.cardFactCount;
 export { composeScreen, buildInstancePool, screenWeight } from './screen.js';

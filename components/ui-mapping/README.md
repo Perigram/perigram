@@ -332,11 +332,21 @@ beside the transition history in `StateHistory`.
   (DataView, paginated): cards lay out in the shared `ResponsiveGrid`
   primitive with container
   queries and bounded item tokens (viewport breakpoints lie inside
-  panels), each Card clipped (`overflow-hidden`) on the stock anatomy —
-  preview as `#header`, identity + status in `#title`, the row's
-  `ParentRef` parent context when the collection composes the
-  cross-cut
-  in `#subtitle`, and the labeled budgeted facts in `#content`. Card ordering
+  panels), each Card clipped (`overflow-hidden`). The card anatomy
+  follows the type's data shape through `cardAnatomyFor`
+  ([shared/ui-mapping](../../shared/ui-mapping/README.md)):
+  the `tile` (visual preview, no card facts) carries the preview as the
+  whole card in `#header` with the identifier in a badge over the scrim
+  (`LAYOUT.mediaTile*`) and status plus the row menu floating on the
+  media — the body slot stays hidden so no padded box trails it, and
+  the tile carries no parent-context line; the `side` anatomy (visual
+  preview with facts) lays the preview in one bounded framed column
+  (`LAYOUT.previewSide`) beside identity, status, the `ParentRef`
+  parent context, and the labeled budgeted facts; the `plain` stack
+  (every other type) renders the payload chip beside identity in
+  `#title` (opening the payload download — the escape hatch for modes
+  the viewer cannot render), the `ParentRef` context in `#subtitle`,
+  and the facts in `#content`. Card ordering
   lives in the region header's sort control (RegionBlock applies the
   `sortKeys` contract through the shared comparator before the grid
   mounts; the DataView itself renders no header). The card identity is a
@@ -464,25 +474,28 @@ beside the transition history in `StateHistory`.
   time over a local draft with confirm/discard. Display renders only
   fields that carry values.
 - `PreviewBox.vue` — preview materialization keyed on the declared
-  payload; the card slot renders one fixed-height band
-  (`LAYOUT.previewBand`), while the record body's hero band sizes the
-  slot and PreviewBox fills it (`fill` prop). A
+  payload; the `variant` prop names the slot this box fills: `band`
+  (default) renders one fixed-height stamp (`LAYOUT.previewBand` —
+  bounded card hosts like the board), `stamp` fills a caller-sized box
+  with the card treatment (the card grid's tile and side-preview
+  columns), `pane` fills the record body's hero band with the detail
+  treatment. A
   registered plugin preview binding
   (`components/generated/plugin-preview-bindings.js`) takes the band
   first. An
   instance payload reference with a renderable declared mode (the pool's
   `instance.payload`, projected from the wire `attachments.primary`)
-  renders through the shared viewer (`FilePayloadViewer`): visual modes
-  (image/dxf/svg/sketch) render the card variant everywhere — the
-  non-interactive canvas that fills its band with no own border, because
-  the host card owns the chrome; images and sketch scenes fill the band
-  at uniform scale, vector drawings (dxf/svg/occs) fit inside it, and
-  dimension text renders big. The fill hero passes the pane variant:
-  prose flows at the body's measure (markdown through the shared
-  pipeline, plain text keeps breaks), the PDF renders at page scale
-  (the column's width, MediaBox aspect with A4 fallback, viewer chrome
-  hidden), and bounded media fill the framed region — contained rasters,
-  fitting drawings, scrolling tables and Word documents. Fetch-backed
+  renders through the shared viewer (`FilePayloadViewer`): the card
+  treatment fills its band with no own border, because the host owns the
+  chrome — images and sketch scenes fill the band at uniform scale,
+  vector drawings (dxf/svg/occs) fit inside it, tables clip their rows,
+  prose clamps, and dimension text renders big. The pane treatment
+  follows the content: prose flows at the body's measure (markdown
+  through the shared pipeline under its one element recipe, plain text
+  keeps breaks), the PDF renders at page scale (the column's width,
+  MediaBox aspect with A4 fallback, viewer chrome hidden), and bounded
+  media fill the framed region — contained rasters, fitting drawings,
+  scrolling tables and Word documents. Fetch-backed
   modes state their load (spinner) and surface a failed download. A
   type that declares a `previewSource` field (the authored pack vocabulary
   adopted by the CTS registry, carried on the bundle type record and read
@@ -493,9 +506,6 @@ beside the transition history in `StateHistory`.
   the declared preview channel (cassette geometry, raw layer/polygon
   parts, and the OCCS template document, which renders through the
   canvas's `occs-cassette` source) independent of an uploaded payload.
-  A payload-less instance without a declared preview renders the quiet
-  type-glyph band (SPEC §22.8: preview bands render real content or the
-  glyph).
   Attachment-class previews carry honest surfaces: an instance with a
   payload the viewer cannot render centers the shared `FileChip` (the
   file's name and mime-aware icon), while

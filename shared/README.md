@@ -66,7 +66,11 @@ imported through server modules that Nitro externalizes.
 - `markdown.js`: The markdown document contract — `isMarkdownDocument`
   (mime-or-filename detection) and `renderMarkdown` (source to sanitized
   HTML, empty server-side) shared by the source editor and the read
-  viewer. Parsed as GFM with line breaks: a single newline is a hard
+  viewer, plus `MARKDOWN_ELEMENT_CLASSES` (the one element-styles recipe
+  every HTML host of pipeline output wears — agent chat answers and file
+  payload previews mount the same recipe; a surface composing its own
+  element styles over pipeline output is a defect). Parsed as GFM with
+  line breaks: a single newline is a hard
   break, the way GitHub-flavored documents and model answers read.
   Mermaid fences render as inline pele SVG diagrams; a fence that
   fails to parse stays a plain code block.

@@ -19,7 +19,7 @@ describe('ui-mapping component module imports', () => {
       }
       const SHARED_HELPERS = ['formatValue', 'formatQuantity', 'titleFor', 'fieldLabel',
         'applyBudget', 'resolveListLayout', 'resolveSurface', 'resolveFieldControl',
-        'tableColumnCount', 'cardFactCount', 'cardVariantFor', 'analyzeTypeShape', 'composeScreen'];
+        'tableColumnCount', 'cardFactCount', 'cardVariantFor', 'cardAnatomyFor', 'analyzeTypeShape', 'composeScreen'];
       const scriptBody = source.slice(source.indexOf('<script'));
       for (const helper of SHARED_HELPERS) {
         const called = new RegExp(`\\b${helper}\\s*\\(`).test(scriptBody);

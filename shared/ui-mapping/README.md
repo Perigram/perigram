@@ -402,6 +402,14 @@ content measure (`LAYOUT.previewHeroBandFlow`); every other renderable
 mode fills the framed media region (`LAYOUT.previewHeroBandContent`,
 stepped 16/24/32rem), and fixed-height card bands carry content
 thumbnails — cover-cropped rasters, clipped rows, clamped prose.
+`cardAnatomyFor(typeRecord)` derives a card grid's card layout from the
+type's own data shape: a visual preview (renderable payload mode or
+declared geometry source) with no fact fields (short non-identifier
+scalars) resolves `tile`, a visual preview with fact fields resolves
+`side`, everything else resolves `plain`. The card materialization
+(`CardGrid`) renders the three anatomies through `LAYOUT.mediaTile*`
+and `LAYOUT.previewSide`; bounded card hosts (the board) keep the
+fixed `LAYOUT.previewBand` thumbnail.
 
 ### Filterable fields
 

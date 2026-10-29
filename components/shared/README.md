@@ -742,11 +742,13 @@ through the shared sanitized markdown pipeline
 ([shared/markdown.js](../../shared/markdown.js)) — plain
 text on SSR, formatting on hydration. Markdown mode also lays the root out as
 a full-width block column in the prose reading voice (`text-prose` — an agent
-answer is a room document; human chat text keeps the UI voice), with document
-typography as role-and-token arbitrary variants on that host: preflight
-zeroes element margins, so the chain restores block spacing, list markers and
-indent, rules, and table borders; headings step up through the `editor` role
-and code reads in the `technical` role. Text parts wrap with
+answer is a room document; human chat text keeps the UI voice), with the
+HTML host wearing `MARKDOWN_ELEMENT_CLASSES` — the pipeline's one
+element-styles recipe (margins, list markers and indent, rules, table
+borders; headings step up through the `editor` role and code reads in
+the `technical` role). File payload previews wear the same recipe, so
+markdown reads identically wherever the pipeline's HTML mounts. Text
+parts wrap with
 `overflow-wrap: anywhere` and the `min-w-0`/`max-w-full` chain keeps unbroken
 strings (urls, serials) inside the chat bounds instead of overflowing it.
 Messages carrying `attachment.kind === 'audio'` render a leading voice-message
