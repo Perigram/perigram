@@ -460,3 +460,10 @@ sniffs bare-descriptor peek modes. `HOST_PROFILES.popup` density 1 →
 `provideContainerTraits({ hostKind: 'popup', elRef })` —
 `useMeasuredWidthRem` now attaches when a late-mounting dialog box
 appears. ui-mapping SPEC/README density lines follow the new law.
+Validation: ui-mapping 109/109, design-system 34/34, SSR smoke 23/23,
+check-arch clean, docs guard unchanged (one pre-existing broken link in
+workers/nesting at HEAD); live probe `e2e/zz-chippeek-probe.spec.js`
+against the dev stack: instance chip peek + record popup and file chip
+peek + viewer all pass, artifacts under `test-results/chip-peek-*`.
+Pre-existing at HEAD: `framework.manifest.json` stale (framework spec
+red at clean HEAD too).
