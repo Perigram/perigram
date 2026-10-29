@@ -125,8 +125,12 @@ test.describe('payload revision picker', () => {
 
     // Restore v1: the frozen bytes re-enter as a new revision. The
     // restore's reconciliation can rebuild the header subtree (tracked
-    // defect), which closes the popover — reopen and read the list.
+    // defect), which closes the popover — settle the response, reopen,
+    // and read the list.
+    const restoreDone = app.page.waitForResponse(response => /\/restore-revision$/.test(response.url()));
     await row(1).locator('[data-revision-restore]').click();
+    await restoreDone;
+    await app.page.waitForTimeout(500);
     if (!(await list.isVisible().catch(() => false))) {
       await header.getByRole('button', { name: 'Revisions' }).click();
       await expect(list).toBeVisible({ timeout: 15_000 });
