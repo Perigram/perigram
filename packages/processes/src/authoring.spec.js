@@ -615,17 +615,18 @@ describe('headless layout and graph integrity', () => {
       .toThrow(/Unknown port cast:data:nowhere — lit outputs: data:value; cast inputs: .*data:value/);
   });
 
-  it('warns when a manual effect has no lane grant — its action is invisible', () => {
+  it('warns when a manual action is exposed to no role — its action is invisible', () => {
     const seam = authoring();
     seam.declareTypeRef({ id: 'ref_sheet', typeId: 'sheet' });
     seam.drop('construct', { id: 'lone' });
     seam.wireDeclaration('ref_sheet', 'lone', 'binds');
-    const ungated = validateProcessDefinition(seam.definition(), projectedDomain());
-    expect(ungated.warnings.some(message => message.includes('lone') && message.includes('no role grant'))).toBe(true);
+    const roles = { role_admin: { id: 'role_admin', label: 'Admin' } };
+    const ungated = validateProcessDefinition(seam.definition(), projectedDomain(), { roles });
+    expect(ungated.warnings.some(message => message.includes('lone') && message.includes('exposed to no role'))).toBe(true);
 
     seam.configure('lone', { access: { grants: [{ roleId: 'role_admin', level: 'write' }] } });
-    const gated = validateProcessDefinition(seam.definition(), projectedDomain());
-    expect(gated.warnings.some(message => message.includes('lone') && message.includes('no role grant'))).toBe(false);
+    const gated = validateProcessDefinition(seam.definition(), projectedDomain(), { roles });
+    expect(gated.warnings.some(message => message.includes('lone') && message.includes('exposed to no role'))).toBe(false);
   });
 
   it('refuses authored record values — value inputs author typed scalars', () => {

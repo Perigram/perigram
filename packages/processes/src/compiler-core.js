@@ -966,32 +966,24 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
   }
 
   warnings.push(...unreachableNodeDiagnostics(process));
-  warnings.push(...unlanedManualEffectDiagnostics(process));
+  warnings.push(...unexposedManualActionDiagnostics(process, compiledRoles));
 
   return { ok: errors.length === 0, errors, warnings, diagnostics, definition: process };
 }
 
-// A manual effect with no lane grant compiles an action no role can see
-// or run; the event-triggered effects execute through the orchestration
-// and carry no surface to lose. Surfaced as a warning — a draft may hold
-// an effect the org has deliberately offered to no one yet.
-function unlanedManualEffectDiagnostics(process = {}) {
-  const recordsByGraphId = new Map((process.graph?.nodes || [])
-    .filter(node => node.type === 'processNode')
-    .map(node => [String(node.id), process.processNodes?.[String(node.data?.refId || node.id)]]));
-  const eventTriggered = new Set();
-  for (const edge of process.graph?.edges || []) {
-    const handle = String(edge.targetHandle || '');
-    if (handle.endsWith(':in') && recordsByGraphId.has(String(edge.target))) {
-      eventTriggered.add(String(edge.target));
-    }
-  }
+// A manual action no compiled role carries runs for nobody — the run
+// gate refuses every assignment. Surfaced as a warning over the
+// compiled roles (the resolved truth: authored grants, lane wiring, and
+// the current role catalog together); event/schedule triggers execute
+// through the orchestration and expose no surface.
+function unexposedManualActionDiagnostics(process = {}, compiledRoles = {}) {
+  const exposed = new Set(Object.values(compiledRoles)
+    .flatMap(role => (role.actions || []).map(action => action.actionId || action.id)));
   const warnings = [];
-  for (const [nodeId, record] of recordsByGraphId) {
-    if (getProcessNodeDefinition(String(record?.kind || ''))?.family !== 'effects') continue;
-    if (eventTriggered.has(nodeId)) continue;
-    if ((normalizeDesignerAccess(record.access).grants || []).length) continue;
-    warnings.push(`Process node ${nodeId} (${humanizedKindLabel(record?.kind)}) has no role grant — no role can see or run its action`);
+  for (const [actionId, action] of Object.entries(process.actions || {})) {
+    if ((action.trigger?.mode || 'manual') !== 'manual') continue;
+    if (exposed.has(actionId)) continue;
+    warnings.push(`Action ${actionId} is exposed to no role — author its grant (lane) or retire the node`);
   }
   return warnings;
 }
