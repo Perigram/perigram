@@ -93,6 +93,13 @@ badge and the mobile chats-tab badge now ride beside the icon
 (`inline-flex` row); the wrapped rail keeps its corner overlay on the
 2rem rail button.
 - WAITING — owner verification.
+### Agent Notes (2026-10-29, badge at row end)
+Owner rejected the icon-adjacent placement too: the expanded menu's
+badge now rides the header row's trailing edge past the label (a
+`headericon` fragment: the `<i>` plus the badge with
+`ml-auto order-last` — the header link is a flex row). The wrapped
+rail keeps its corner overlay; the mobile bottom-bar tab is untouched.
+- WAITING — owner verification.
 
 ## Long-message clamp (owner direction, 2026-10-27)
 - [x] Very long message bodies clamp behind a show-more control;

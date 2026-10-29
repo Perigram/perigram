@@ -98,10 +98,10 @@
             @click.capture="onMenuClickCapture"
           >
             <template #headericon="{ item, class: iconClass }">
-              <span v-if="item.key === 'communication:chats' && supportChatStore.totalUnread" class="inline-flex items-center gap-1">
+              <template v-if="item.key === 'communication:chats' && supportChatStore.totalUnread">
                 <i :class="iconClass" aria-hidden="true" />
-                <Badge :value="supportChatStore.totalUnread" severity="danger" size="small" />
-              </span>
+                <Badge :value="supportChatStore.totalUnread" severity="danger" size="small" class="ml-auto order-last" />
+              </template>
               <i v-else :class="iconClass" aria-hidden="true" />
             </template>
           </PanelMenu>
