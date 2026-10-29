@@ -301,7 +301,12 @@ file-surface contract) is the pure decision helper: given a file instance's
 wire `attachments.primary` and its served type record, it returns the
 preview mode from the type's compiled render policy (`render.preview`,
 derived from payload traits) plus the payload download URL (instance
-payload blobs live in the `files` GridFS bucket). Modes that the shared
+payload blobs live in the `files` GridFS bucket). `resolveAttachmentPeek`
+is the bare-descriptor twin for stored file references without a served
+type (chat attachments, generator blobs): it sniffs the renderable peek
+mode (`image`, `svg`, `pdf`, `text`, `dxf` — mime-first, extension
+fallbacks) and returns `{ mode, fileUrl }` honoring the descriptor's
+bucket, or null for files without a bounded preview. Modes that the shared
 viewer modules render (`dxf`, `svg`, `sketch`, `image`, `pdf`,
 `docx`, `table`, `workbook`, `text` — single-homed as
 `RENDERABLE_PREVIEW_MODES` in the pure ui-mapping contract) are delegated

@@ -96,16 +96,16 @@ homes, the `ResponsiveGrid` container queries, the measured track
 engagement — materializes the same step vocabulary the seam resolves. A
 surface declaring its own breakpoint set is a defect.
 
-Hosts declare their profile through the seam: the pane host measures
-itself and provides the resolved record, fixed-shape hosts (the popup)
+Hosts declare their profile through the seam: the pane and popup hosts
+measure themselves and provide the resolved record, fixed-shape hosts
 provide their profile, and the page profile is the default a surface
 resolves with no provider. Fragments measure where they render (the
 peer-column engagement). Budgets consume the provided record: a `narrow`
 or `medium` host sheds table columns and card facts through the compact
 budgets — a surface sized for its host, every host.
 
-Density derives from the host record: data-dense panes ride the
-compact rhythm; pages, dialogs, and popups ride the neutral page rhythm.
+Density derives from the host record: bounded hosts — panes, popups —
+ride the compact rhythm; pages and dialogs ride the neutral page rhythm.
 A screen whose composed weight passes the density budget tightens
 one step, floored at the tightest — the rhythm is data-aware. An
 explicit host coefficient (the design-lab slider) overrides the

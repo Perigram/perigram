@@ -412,9 +412,22 @@ readable.
 
 ### `FileChip.vue`
 The app's one file chip (SPEC §22.8): the file's name, a mime-aware
-icon, the bordered subtle chip, `name · size` on hover. Accepts either
-wire shape (generator blobs and chat attachments); consumers own the
-open behavior through the `open` event.
+icon, the bordered subtle chip, `name · size` on hover. A file whose
+descriptor resolves a renderable peek mode (image, svg, pdf, text, dxf
+through `resolveAttachmentPeek` in
+[file-preview-contract](../generated/README.md)) raises its payload peek
+on hover (SPEC §22.14); the click stays the consumer's `open` event.
+Accepts either wire shape (generator blobs and chat attachments).
+
+### `HoverPeek.vue`
+The hover peek host (SPEC §22.14): the one delayed-hover preview surface.
+The default scoped slot receives `peekEvents` (`mouseenter`/`mouseleave`)
+to spread onto the trigger element; `#preview` carries the peek body.
+A deliberate hover delay (300 ms) raises the anchored `Popover`, leaving
+the trigger or the panel dismisses after a grace period that lets the
+pointer cross into the panel, and hovering-capable pointers alone engage
+it — touch hosts keep the click path. The whole peek body opens the
+record: its click behavior stays the trigger's own.
 
 ### `chip-surface.js`
 The chip recipe home: `CHIP_LABEL_PT` (the truncating label
@@ -484,7 +497,11 @@ the model) — no tone declaration exists, so none is synthesized. The
 Chip is the popup trigger everywhere the ref renders — chat
 message refs read as chips, not inline text — keeping the one-line,
 no-line-height-inflation behavior inside prose and dense surfaces
-(tables, field controls, relation rows) alike.
+(tables, field controls, relation rows) alike. The chip is also the peek
+trigger (SPEC §22.14): a deliberate hover raises the record's peek —
+preview band, identity with glyph and state tag, compact facts, the same
+compact-surface derivation the micro card uses — through
+[`HoverPeek.vue`](#hoverpeekvue); the click opens the record popup.
 `variant="compact"` renders a horizontal micro card instead of a chip —
 but only when the type's compact surface earns the card: a preview band
 or compact fact rows beside identity. Preview-less, fact-less relations
@@ -682,8 +699,9 @@ profile for `user`/`organization`
 ([components/directory](../directory/README.md)), and the compiled detail
 screen through the generator host
 ([components/generated](../generated/README.md)) for instance types. It
-provides the `popup` container profile, so hosted surfaces take the
-narrow-host budgets.
+provides the measured `popup` container profile: the dialog body's real
+width drives arrangement budgets and the profile's compact density tier
+rides the hosted rhythm (SPEC §22.14).
 Inline refs, compact micro cards, and inline entity-card chips open it
 (see [`InstanceInlineRef.vue`](#instanceinlinerefvue)); its expand action
 steps the record up to its page, so a ref discovered inside a workspace

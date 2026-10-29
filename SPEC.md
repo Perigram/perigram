@@ -1020,6 +1020,18 @@ instances as chips inside the control. A single picker's closed control
 renders the selected instance's identity chip, and its filter matches
 the identifier-field label.
 
+### 22.14 Record peeks and popup rhythm (owner direction 2026-10-29)
+
+Instance and file chips preview on hover and open on click. Hovering a
+chip with a previewable record raises its peek after a short deliberate
+delay: a compact data-aware card over the record's own preview, identity,
+state, and leading facts — a file chip's peek over its payload preview
+and name facts. A click opens the full record popup or the file viewer.
+The peek is a preview surface: hovering-capable pointers raise it, and
+its whole body opens the record. The record popup rides the compact
+rhythm (bounded hosts compact) and arrangement decisions see its measured
+width, so a wide popup composes at its real width.
+
 ## 23. Deslopification (owner direction 2026-10-23)
 
 The current architecture carries the whole platform idea and its important

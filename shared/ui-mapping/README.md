@@ -548,13 +548,15 @@ maps to the `CONTAINER_WIDTH_STEPS` steps (narrow / medium 40rem / wide
 per host
 kind — the measured box wins over the profile, and a placement box
 overrides height/scroll with the host record's values while measuring its
-own width. Density derives from the host profile alone (data-dense panes
-compact; pages, dialogs, and popups ride the page rhythm); an explicit
+own width. Density derives from the host profile alone (bounded hosts —
+panes, popups — ride the compact rhythm; pages and dialogs ride the page
+rhythm); an explicit
 value (a placement box inheriting its host's density) wins over the
 profile. The app-side measurement seam is `useContainerTraits`
 ([composables](../../composables/README.md)): hosts declare their profile
-through `provideContainerTraits` (the pane measures itself, fixed-shape
-hosts provide the profile, the routed screen provides the measured page
+through `provideContainerTraits` (the pane and the record popup measure
+themselves, fixed-shape hosts provide the profile, the routed screen
+provides the measured page
 record when no host declared one), placement boxes measure where they
 render, and surfaces resolve the nearest record through
 `useHostContainerTraits` (the page profile is the providerless default).
