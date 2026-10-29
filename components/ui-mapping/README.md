@@ -340,11 +340,13 @@ beside the transition history in `StateHistory`.
   follows the type's data shape through `cardAnatomyFor`
   ([shared/ui-mapping](../../shared/ui-mapping/README.md)):
   the `tile` (visual preview, no card facts) carries the preview as the
-  whole card in `#header` with the identifier in the instance chip
-  recipe (`CHIP_LABEL_PT` + `INSTANCE_CHIP_CLASS` from
-  `chip-surface.js`, opening the record when the screen carries an open
-  handler) riding the media's corner on a subtle ground
-  (`LAYOUT.mediaTileBadge` positioning and ground) and status plus the row menu
+  whole card in `#header` with the identifier in the grounded chip
+  recipe (`CHIP_LABEL_PT` + `FILE_CHIP_CLASS` from `chip-surface.js` —
+  a chip over media carries its own ground; the transparent instance
+  chip is the content-surface variant, and the two background
+  utilities never compose), opening the record when the screen carries
+  an open handler, riding the media's corner
+  (`LAYOUT.mediaTileBadge` positioning) and status plus the row menu
   floating on the media — the body slot stays hidden so no padded box
   trails it, and the tile carries no parent-context line; the `side`
   anatomy (visual
