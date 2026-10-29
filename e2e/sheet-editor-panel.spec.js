@@ -270,8 +270,8 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   const sheet3Point = clampInto(sheet3Box.x + sheet3Box.width * 0.5, sheet3Box.y + sheet3Box.height * 0.7);
   await page.mouse.click(sheet3Point.x, sheet3Point.y);
   await page.waitForTimeout(600);
-  await page.locator('button[aria-label="Actions"]').first().hover();
-  await page.locator('.p-speeddial-action', { has: page.locator('.pi-refresh') }).first().click();
+  await page.getByRole('button', { name: 'Actions' }).first().hover();
+  await page.getByRole('menuitem', { name: 'Rotate' }).first().click();
   await page.waitForTimeout(800);
   const rotated = await canvas.locator('g', { hasText: `Family sheet 3 ${run}` }).first()
     .getAttribute('transform');
