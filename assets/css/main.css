@@ -400,9 +400,8 @@ body {
        generated create dialogs and structural editors render inside
        dialogs and workspace panes, so "wide" must mean the container,
        never the viewport — the tailwindcss build has no
-       container-queries plugin, so this lives in real CSS like
-       SurfaceHeader's scoped block. Full-span rows opt in via
-       .ck-span-full. */
+       container-queries plugin, so this lives in real CSS. Full-span
+       rows opt in via .ck-span-full. */
     .ck-form-grid {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -418,6 +417,44 @@ body {
     @container (min-width: 40rem) {
         .ck-form-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    /* Container-relative record header (the ui-mapping LAYOUT tokens
+       header/headerRow/headerIdentity): the header renders inside
+       panels, panes, and routed pages, so the identity/action row
+       engages from the header's own width. Narrow headers stack the
+       action cluster below the identity; from 34rem the row lays out
+       as one wrapping line with the identity floored at 16rem, so a
+       large action cluster wraps below the identity while long names
+       keep truncating through the min-width chain. The root establishes
+       the layout container alone — the stack rhythm rides the spacing
+       token the component binds (the density-keyed channel). */
+    .ck-record-header {
+        container-type: inline-size;
+    }
+
+    .ck-record-header-row {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .ck-record-header-identity {
+        min-width: 0;
+        flex: 1 1 0%;
+    }
+
+    @container (min-width: 34rem) {
+        .ck-record-header-row {
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .ck-record-header-identity {
+            min-width: 16rem;
         }
     }
 

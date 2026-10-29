@@ -315,15 +315,14 @@ export const LAYOUT = Object.freeze({
   rowSurfaceTable: 'border-separate border-spacing-x-0 border-spacing-y-1',
   bounded: 'w-full max-w-[var(--ck-bounded-grid-item-max-width)]',
   sectionTitle: 'text-label text-muted',
-  // The record-header row is container-relative, never viewport-relative —
-  // but through scoped CSS in SurfaceHeader (the ResponsiveGrid pattern),
-  // not Tailwind variants: the tailwindcss build here has no
-  // container-queries plugin, so any @container/@[w]: class silently
-  // compiles to nothing. These tokens carry only the static stacked
-  // layout; the row direction and the 16rem identity floor live in the
-  // component scoped block.
-  headerRow: 'flex flex-col items-start gap-2',
-  headerIdentity: 'min-w-0 flex-1',
+  // The record-header container recipe (real CSS in main.css beside the
+  // form grid): the root establishes the layout container, the row
+  // stacks and engages one wrapping identity/action line from 34rem of
+  // header width, and the identity floors at 16rem so a large action
+  // cluster wraps below it while long names keep truncating.
+  header: 'ck-record-header',
+  headerRow: 'ck-record-header-row',
+  headerIdentity: 'ck-record-header-identity',
   cellText: 'line-clamp-2 max-w-96 break-words text-left',
   chipRow: 'flex flex-wrap items-center gap-2 pt-2',
   panelBody: 'py-2',
@@ -410,7 +409,7 @@ export const LAYOUT_ATOMS = Object.freeze({
 export const LAYOUT_AMBIENT = Object.freeze({
   cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText']),
   clamps: Object.freeze(['nameClamp', 'chipClamp', 'linkClamp']),
-  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar', 'reloadBarUnder']),
+  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'header', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar', 'reloadBarUnder']),
   geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
 });
 
