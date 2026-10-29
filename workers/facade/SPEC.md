@@ -452,6 +452,25 @@ the sheet-design record behind a sheet beside its summary. Record
 creation and deletion stay in the workspace's record machinery; the
 construct and remove mount transports stay retired.
 
+Owner decision (2026-10-29, the working set is the lineage family): the
+multi-sheet working set derives from data, never a pool: the opened
+record's family is the sheets sharing its lineage parents under the
+declared containment's keys, and that family joins the canvas beside the
+opened record. The sheet-design picker and the add-all button offer
+family members only; a record with no lineage edits alone, and no
+surface of the editor lists the org-wide sheet pool. The parent is
+whatever entity type the organization's declarations compose — the
+generic containment contract decides, the plugin hardcodes none. The
+canvas arranges the family as a wrapped rack; a sheet moves by its
+label band and rotates a quarter turn about its center, placements ride
+in sheet-local frames.
+
+Owner decision (2026-10-29, layer-standard pens): a layer standard's
+org pen rides its `defaultPen` relation on the wire; a standard whose
+pen does not resolve keeps the OCCS base pen for its code, and the OCCS
+base itself styles every registry-covered code — an org shadow never
+silences the base.
+
 Owner decision (2026-10-29, the inspector runs on instance tiles): the
 editor's record surfaces are the platform's instance tile — the
 working-set sheets and the record behind a selection render as tiles

@@ -54,7 +54,7 @@ import { hardwareDefaultParameters, hardwareLabel } from '../occs/hardware.js';
 const OCCS_MIME = 'application/perigram+occs';
 
 // §3 wire: records carry `name` — the label helper takes the plain
-// candidates and falls back to the record id.
+// candidates; an unnamed record reads as unnamed, its id never renders.
 const entitySelectText = (...values) => {
   for (const value of values) {
     if (typeof value === 'string' && value.trim().length > 0) return value;
@@ -64,7 +64,7 @@ const entitySelectText = (...values) => {
 };
 const entitySelectLabel = (entity, fallback = '') => entitySelectText(
   entity?.name, entity?.label, entity?.title,
-  entity?.code, entity?._id, entity?.id, fallback
+  entity?.code, fallback
 );
 
 // Snapshot undo/redo history, module-local (the editor owns its stack).
@@ -1039,7 +1039,7 @@ export default function createSurface({ vue, components, locale, queries, record
       // every time the picker opens (saves bake new previews into
       // fields the list DTOs carry).
       const loadTemplateRecords = () => {
-        queries.list('cassette').then(rows => {
+        queries.list('cassette-template').then(rows => {
           templateRecords.value = rows || [];
           hydrateTemplateThumbnails();
         }).catch(() => {});
@@ -2852,7 +2852,7 @@ export default function createSurface({ vue, components, locale, queries, record
                               visibleLayerNames: thumbnail.visibleLayerNames
                             })
                           : h('i', { class: 'pi pi-box text-muted' })),
-                      h('span', { class: 'truncate' }, record?.name || record?._id)
+                      h('span', { class: 'truncate' }, record?.name || t('common.unnamed'))
                     ]);
                   }))
               : null,

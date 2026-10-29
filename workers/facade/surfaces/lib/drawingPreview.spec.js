@@ -192,7 +192,38 @@ describe('drawing preview contract', () => {
     expect(drawing.layers[0].penId).toBe('fold-pen');
   });
 
-  it('preserves explicit layer styling when a standard pen is missing', () => {
+  it("resolves the standard's pen from the wire defaultPen relation", () => {
+    const drawing = applyLayerPens({
+      viewBox: '0 0 10 10',
+      layers: [{ name: 'cut.outer', standardCode: 'cut.outer', paths: ['M 0 0 L 10 0'] }]
+    }, {
+      standards: [
+        { _id: 'cut-standard', fields: { code: 'cut.outer' }, relations: { defaultPen: { type: 'pen-template', id: 'org-pen' } } }
+      ],
+      pens: [
+        { _id: 'org-pen', fields: { stroke: { color: '#00ffcc', weight: 2, pattern: 'DOTTED' } } }
+      ]
+    });
+
+    expect(drawing.layers[0]).toMatchObject({ color: '#00ffcc', weight: 2, dasharray: '1,3', penId: 'org-pen' });
+  });
+
+  it('keeps the OCCS base under a standard whose pen does not resolve', () => {
+    const drawing = applyLayerPens({
+      viewBox: '0 0 10 10',
+      layers: [{ name: 'cut.outer', standardCode: 'cut.outer', paths: ['M 0 0 L 10 0'] }]
+    }, {
+      standards: [
+        { _id: 'cut-standard', fields: { code: 'cut.outer' }, relations: { defaultPen: { type: 'pen-template', id: 'missing-pen' } } }
+      ],
+      pens: []
+    });
+
+    expect(drawing.layers[0].color).toBe('#DC2626');
+    expect(drawing.layers[0].penId).toBeNull();
+  });
+
+  it('preserves the OCCS base under a standard whose pen does not resolve', () => {
     const drawing = applyLayerPens({
       viewBox: '0 0 10 10',
       layers: [{
@@ -209,8 +240,7 @@ describe('drawing preview contract', () => {
       pens: []
     });
 
-    expect(drawing.layers[0].color).toBe('#2563eb');
-    expect(drawing.layers[0].weight).toBe(2);
+    expect(drawing.layers[0].color).toBe('#2563EB');
     expect(drawing.layers[0].standardId).toBe('face-standard');
     expect(drawing.layers[0].penId).toBeNull();
   });

@@ -1,12 +1,14 @@
 // The facade plugin's sheet-design editor surface (surface contract 4).
 // The mounted module receives the opened record and the generic
 // persistence callbacks — never stores, routing, or auth; cross-type
-// reads (layer standards, pen templates, cassette designs, sibling
-// sheet designs) ride the host's query transport, opening a placed
-// design rides the host's workspace-open channel.
-// One canvas carries the working set: the opened record beside sheets
-// the user adds from the picker or as all siblings (the facade SPEC's
-// multi-sheet law). Every edited record commits its own patch on save.
+// reads (layer standards, pen templates, cassette designs, lineage
+// siblings) ride the host's query transport, opening a placed design
+// rides the host's workspace-open channel.
+// One canvas carries the working set: the opened record beside its
+// lineage family — sheets sharing the opened record's parents, scoped
+// by the declared containment's lineage keys (the facade SPEC's family
+// law). Sheets sit on a wrapped rack and stay movable and rotatable;
+// every edited record commits its own patch on save.
 import { recomputeSheetLayout } from './lib/sheetLayout.js';
 import {
   designSheetItems,
@@ -28,6 +30,32 @@ const LABEL_HEIGHT = 70;
 const VIEW_PADDING = 0.08;
 const ZOOM_MIN = 0.02;
 const ZOOM_MAX = 4;
+const QUARTER_TURN = 90;
+
+const degToRad = degrees => degrees * Math.PI / 180;
+const lineagValueId = value => (
+  value == null ? '' : String(typeof value === 'object' ? (value.id ?? '') : value)
+);
+
+// The opened record's family filter: every lineage entry it carries,
+// handed to the list transport (declared keys filter server-side;
+// undeclared keys drop as transport noise) and re-verified on the rows.
+function familyFiltersOf(record) {
+  const filters = {};
+  for (const [key, value] of Object.entries(record?.lineage || {})) {
+    const id = lineagValueId(value);
+    if (id) filters[`lineage.${key}`] = id;
+  }
+  return filters;
+}
+
+// A row joins the family when it matches every lineage entry of the
+// opened record — same parents, same family.
+function sameFamily(row, record) {
+  const lineage = record?.lineage || {};
+  return Object.entries(lineage).every(([key, value]) =>
+    lineagValueId(row?.lineage?.[key]) === lineagValueId(value));
+}
 
 export default function createSurface({ vue, components, locale, queries, notify, access, open }) {
   const { h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent } = vue;
@@ -49,10 +77,11 @@ export default function createSurface({ vue, components, locale, queries, notify
       const activeSheetId = ref('');
       const selection = ref(null);
       const dragState = ref(null);
+      const sheetDragState = ref(null);
       const panState = ref(null);
       const saving = ref(false);
       const designs = ref([]);
-      const sheetDesigns = ref([]);
+      const familyRows = ref([]);
       const view = ref({ cx: 610, cy: 1220, k: 0.25 });
       const svgSize = ref({ w: 800, h: 600 });
       const localNames = ref({});
@@ -62,8 +91,9 @@ export default function createSurface({ vue, components, locale, queries, notify
       const margin = ref(0);
       const visibleLayerCodes = ref([]);
       const dockMenu = ref(null);
+      const frameState = ref({});
 
-      const sheetOptions = computed(() => sheetDesigns.value
+      const sheetOptions = computed(() => familyRows.value
         .filter(row => !sheets.value.some(entry => entry.id === String(row._id)))
         .map(row => ({
           value: String(row._id),
@@ -121,7 +151,6 @@ export default function createSurface({ vue, components, locale, queries, notify
         queries.list('layer-standard').then(rows => { standards.value = rows || []; }).catch(() => {});
         queries.list('pen-template').then(rows => { pens.value = rows || []; }).catch(() => {});
         queries.list('cassette-design').then(rows => { designs.value = rows || []; }).catch(() => {});
-        queries.list('sheet-design').then(rows => { sheetDesigns.value = rows || []; }).catch(() => {});
         const svg = svgRef.value;
         if (svg && typeof ResizeObserver !== 'undefined') {
           let viewInitialized = false;
@@ -178,27 +207,136 @@ export default function createSurface({ vue, components, locale, queries, notify
         selection.value = null;
         activeSheetId.value = props.record?._id ? String(props.record._id) : '';
         sheets.value = props.record?._id ? [sheetEntry(props.record)] : [];
+        frameState.value = {};
+        familyRows.value = [];
+        loadFamily(props.record);
         history.reset();
+        reflowSheets();
         fitView();
+      }
+
+      // The family joins the canvas beside the opened record: same
+      // lineage parents, already on the rack. A record with no lineage
+      // edits alone — the working set never falls back to the org pool.
+      function loadFamily(record) {
+        const filters = familyFiltersOf(record);
+        if (!Object.keys(filters).length) return;
+        queries.list('sheet-design', filters)
+          .then(rows => {
+            familyRows.value = (rows || []).filter(row =>
+              String(row._id) !== String(record?._id || '') && sameFamily(row, record));
+            for (const row of familyRows.value) {
+              if (!sheets.value.some(entry => entry.id === String(row._id))) {
+                sheets.value.push(sheetEntry(row));
+              }
+            }
+            reflowSheets();
+            fitView();
+          })
+          .catch(() => {});
       }
 
       // ---- canvas geometry -------------------------------------------------
 
-      const sheetFrames = computed(() => {
-        let x = 0;
-        return sheets.value.map(entry => {
-          const frame = { entry, x, y: 0, width: entry.width, height: entry.height };
-          x += entry.width + SHEET_GAP;
-          return frame;
+      // The wrapped rack: sheets flow into a near-square grid; a sheet
+      // the user moved or rotated keeps its frame, new sheets take the
+      // next default slot. Frame coordinates are canvas space; rotation
+      // is degrees about the sheet content's center.
+      function reflowSheets() {
+        const entries = sheets.value;
+        const columns = Math.max(1, Math.ceil(Math.sqrt(entries.length)));
+        const columnWidths = Array.from({ length: columns }, () => 0);
+        const rowHeights = Array.from({ length: Math.ceil(entries.length / columns) || 1 }, () => 0);
+        entries.forEach((entry, index) => {
+          const column = index % columns;
+          const row = Math.floor(index / columns);
+          columnWidths[column] = Math.max(columnWidths[column], entry.width);
+          rowHeights[row] = Math.max(rowHeights[row], entry.height);
         });
-      });
+        const offsetsX = [0];
+        for (let column = 1; column < columns; column++) {
+          offsetsX[column] = offsetsX[column - 1] + columnWidths[column - 1] + SHEET_GAP;
+        }
+        const offsetsY = [0];
+        for (let row = 1; row < rowHeights.length; row++) {
+          offsetsY[row] = offsetsY[row - 1] + rowHeights[row - 1] + SHEET_GAP;
+        }
+        const next = {};
+        entries.forEach((entry, index) => {
+          next[entry.id] = frameState.value[entry.id] || {
+            x: offsetsX[index % columns],
+            y: offsetsY[Math.floor(index / columns)],
+            rotation: 0
+          };
+        });
+        frameState.value = next;
+      }
+
+      const sheetFrames = computed(() => sheets.value.map(entry => ({
+        entry,
+        width: entry.width,
+        height: entry.height,
+        ...(frameState.value[entry.id] || { x: 0, y: 0, rotation: 0 })
+      })));
+
+      // The frame's rotation pivot: the content rect's center in canvas
+      // space (label band included in the frame, content below it).
+      function frameCenter(frame) {
+        return {
+          x: frame.x + frame.width / 2,
+          y: frame.y + LABEL_HEIGHT + frame.height / 2
+        };
+      }
+
+      function rotatePoint(point, radians) {
+        const cos = Math.cos(radians);
+        const sin = Math.sin(radians);
+        return { x: point.x * cos - point.y * sin, y: point.x * sin + point.y * cos };
+      }
+
+      // Frame-local coordinates (label band at the top, content under
+      // it) of a canvas point, through the frame's inverse rotation.
+      function frameLocalPoint(frame, point) {
+        const center = frameCenter(frame);
+        const rotated = rotatePoint(
+          { x: point.x - center.x, y: point.y - center.y },
+          -degToRad(frame.rotation || 0)
+        );
+        return { x: center.x + rotated.x - frame.x, y: center.y + rotated.y - frame.y };
+      }
+
+      // Canvas coordinates of a frame-local point, through the frame's
+      // rotation — the render transform's forward direction.
+      function frameCanvasPoint(frame, point) {
+        const center = frameCenter(frame);
+        const rotated = rotatePoint(
+          { x: frame.x + point.x - center.x, y: frame.y + point.y - center.y },
+          degToRad(frame.rotation || 0)
+        );
+        return { x: center.x + rotated.x, y: center.y + rotated.y };
+      }
+
+      function frameCorners(frame) {
+        const width = frame.width;
+        const height = LABEL_HEIGHT + frame.height;
+        return [
+          frameCanvasPoint(frame, { x: 0, y: 0 }),
+          frameCanvasPoint(frame, { x: width, y: 0 }),
+          frameCanvasPoint(frame, { x: width, y: height }),
+          frameCanvasPoint(frame, { x: 0, y: height })
+        ];
+      }
 
       const canvasBounds = computed(() => {
         const frames = sheetFrames.value;
         if (!frames.length) return { minX: 0, minY: 0, maxX: 2440, maxY: 1220 };
-        const maxX = Math.max(...frames.map(frame => frame.x + frame.width));
-        const maxY = LABEL_HEIGHT + Math.max(...frames.map(frame => frame.height));
-        return { minX: 0, minY: 0, maxX, maxY };
+        const corners = frames.flatMap(frameCorners);
+        return {
+          minX: Math.min(...corners.map(point => point.x)),
+          minY: Math.min(...corners.map(point => point.y)),
+          maxX: Math.max(...corners.map(point => point.x)),
+          maxY: Math.max(...corners.map(point => point.y))
+        };
       });
 
       const viewBox = computed(() => {
@@ -269,10 +407,11 @@ export default function createSurface({ vue, components, locale, queries, notify
       }
 
       function frameAt(point) {
-        return sheetFrames.value.find(frame => (
-          point.x >= frame.x && point.x <= frame.x + frame.width &&
-          point.y >= frame.y && point.y <= frame.y + frame.height
-        )) || null;
+        return sheetFrames.value.find(frame => {
+          const local = frameLocalPoint(frame, point);
+          return local.x >= 0 && local.x <= frame.width &&
+            local.y >= 0 && local.y <= LABEL_HEIGHT + frame.height;
+        }) || null;
       }
 
       function entryOf(id) {
@@ -287,18 +426,19 @@ export default function createSurface({ vue, components, locale, queries, notify
         sheets.value.push(sheetEntry(record));
         activeSheetId.value = id;
         selection.value = { type: 'sheet', sheet: id };
+        reflowSheets();
         fitView();
         return true;
       }
 
       function addSheetById(id) {
-        const record = sheetDesigns.value.find(row => String(row._id) === String(id));
+        const record = familyRows.value.find(row => String(row._id) === String(id));
         if (record) addSheetRecord(record);
       }
 
-      function addAllSheets() {
+      function addAllFamilySheets() {
         let added = false;
-        for (const row of sheetDesigns.value) added = addSheetRecord(row) || added;
+        for (const row of familyRows.value) added = addSheetRecord(row) || added;
         if (added) selection.value = null;
       }
 
@@ -312,6 +452,7 @@ export default function createSurface({ vue, components, locale, queries, notify
           activeSheetId.value = next ? next.id : '';
         }
         if (selection.value?.sheet === entry.id) selection.value = null;
+        reflowSheets();
         fitView();
       }
 
@@ -468,8 +609,9 @@ export default function createSurface({ vue, components, locale, queries, notify
       }
 
       function localPoint(frame, event) {
-        const point = canvasPoint(event);
-        return { x: point.x - frame.x, y: point.y - frame.y };
+        const local = frameLocalPoint(frame, canvasPoint(event));
+        // Placement coordinates sit under the label band.
+        return { x: local.x, y: local.y - LABEL_HEIGHT };
       }
 
       function selectPlacement(sheetId, index) {
@@ -565,6 +707,58 @@ export default function createSurface({ vue, components, locale, queries, notify
       let dragFrame = 0;
       let pendingEvent = null;
 
+      // A sheet's frame moves by its label band — arrangement, not a
+      // record mutation; read-only sheets stay movable.
+      function startSheetDrag(event, entry) {
+        event.stopPropagation();
+        selectSheet(entry.id);
+        const frame = sheetFrames.value.find(row => row.entry.id === entry.id);
+        if (!frame) return;
+        sheetDragState.value = {
+          id: entry.id,
+          pointerId: event.pointerId,
+          origin: canvasPoint(event),
+          frame: { ...frame }
+        };
+        svgRef.value?.setPointerCapture?.(event.pointerId);
+      }
+
+      function dragSheet(event) {
+        const drag = sheetDragState.value;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        const point = canvasPoint(event);
+        frameState.value = {
+          ...frameState.value,
+          [drag.id]: {
+            ...frameState.value[drag.id],
+            x: drag.frame.x + point.x - drag.origin.x,
+            y: drag.frame.y + point.y - drag.origin.y
+          }
+        };
+      }
+
+      function finishSheetDrag(event) {
+        const drag = sheetDragState.value;
+        if (drag?.pointerId !== event.pointerId) return false;
+        sheetDragState.value = null;
+        fitView();
+        return true;
+      }
+
+      // A selected sheet rotates a quarter turn about its content center.
+      function rotateSheet() {
+        const selectionValue = selection.value;
+        const entry = selectionValue?.type === 'sheet' ? entryOf(selectionValue.sheet) : null;
+        if (!entry) return;
+        const frame = frameState.value[entry.id];
+        if (!frame) return;
+        frameState.value = {
+          ...frameState.value,
+          [entry.id]: { ...frame, rotation: ((frame.rotation || 0) + QUARTER_TURN) % 360 }
+        };
+        fitView();
+      }
+
       function startDrag(event, sheetId, index) {
         const entry = entryOf(sheetId);
         if (!entry?.writable) return;
@@ -602,6 +796,7 @@ export default function createSurface({ vue, components, locale, queries, notify
         const frame = sheetFrames.value.find(row => row.entry.id === drag.sheetId);
         if (!entry || !frame) return;
         const point = canvasPoint(event);
+        const pointer = localPoint(frame, event);
         const target = frameAt(point);
         if (target && target.entry.id === drag.sheetId) {
           // Magnetic sweep inside the origin sheet.
@@ -609,8 +804,8 @@ export default function createSurface({ vue, components, locale, queries, notify
             items: entry.items,
             placements: entry.placedItems,
             index: drag.index,
-            x: point.x - frame.x - drag.dx,
-            y: point.y - frame.y - drag.dy,
+            x: pointer.x - drag.dx,
+            y: pointer.y - drag.dy,
             sheetWidth: entry.width,
             sheetHeight: entry.height,
             sheetPolygon: entry.polygon,
@@ -625,8 +820,8 @@ export default function createSurface({ vue, components, locale, queries, notify
           // the pointer; the drop decides its record.
           entry.placedItems[drag.index] = placementWithTranslation(
             entry.placedItems[drag.index],
-            point.x - frame.x - drag.dx,
-            point.y - frame.y - drag.dy
+            pointer.x - drag.dx,
+            pointer.y - drag.dy
           );
         }
       }
@@ -811,6 +1006,13 @@ export default function createSurface({ vue, components, locale, queries, notify
       })));
 
       const speedDialItems = computed(() => {
+        if (selection.value?.type === 'sheet') {
+          return [{
+            icon: 'pi pi-refresh',
+            label: t('common.rotate'),
+            command: rotateSheet
+          }];
+        }
         const designId = selectedSource.value?.design_id;
         return [
           designId
@@ -836,19 +1038,27 @@ export default function createSurface({ vue, components, locale, queries, notify
       });
 
       // The selection's action dial anchors at the placement's top-right
-      // corner in screen space; SVG geometry changes (drag, zoom) recompute
-      // it through the render pass.
+      // corner (the sheet's, for a sheet selection) in screen space; SVG
+      // geometry changes (drag, zoom, rotation) recompute it through the
+      // render pass.
       function speedDialAnchor() {
         const svg = svgRef.value;
         const matrix = svg?.getScreenCTM?.();
         const selectionValue = selection.value;
         const frame = selectionValue ? sheetFrames.value.find(row => row.entry.id === selectionValue.sheet) : null;
-        if (!matrix || !svg || !frame || !selectedTransform.value || !selectedBounds.value) return null;
+        if (!matrix || !svg || !frame) return null;
+        let corner;
+        if (selectionValue.type === 'sheet') {
+          corner = frameCanvasPoint(frame, { x: frame.width, y: 0 });
+        } else {
+          if (!selectedTransform.value || !selectedBounds.value) return null;
+          corner = frameCanvasPoint(frame, {
+            x: selectedTransform.value.x + selectedBounds.value.maxX,
+            y: LABEL_HEIGHT + selectedTransform.value.y + selectedBounds.value.minY
+          });
+        }
         const canvas = svg.getBoundingClientRect();
-        const point = new DOMPoint(
-          frame.x + selectedTransform.value.x + selectedBounds.value.maxX,
-          frame.y + LABEL_HEIGHT + selectedTransform.value.y + selectedBounds.value.minY
-        ).matrixTransform(matrix);
+        const point = new DOMPoint(corner.x, corner.y).matrixTransform(matrix);
         return {
           left: Math.min(Math.max(point.x - canvas.left, 48), Math.max(canvas.width - 48, 48)),
           top: Math.min(Math.max(point.y - canvas.top, 8), Math.max(canvas.height - 8, 8)),
@@ -857,7 +1067,8 @@ export default function createSurface({ vue, components, locale, queries, notify
       }
 
       function renderSpeedDial() {
-        const anchor = selectedPlacement.value ? speedDialAnchor() : null;
+        const anchored = selectedPlacement.value || selection.value?.type === 'sheet';
+        const anchor = anchored ? speedDialAnchor() : null;
         if (!anchor) return null;
         return h('div', {
           style: {
@@ -1021,11 +1232,22 @@ export default function createSurface({ vue, components, locale, queries, notify
         const labelColor = active ? 'var(--p-primary-color)' : 'var(--p-text-muted-color)';
         const drag = dragState.value;
         const dragHere = drag?.sheetId === entry.id;
+        const center = frameCenter(frame);
         return h('g', {
           key: entry.id,
-          transform: `translate(${frame.x} ${frame.y})`,
+          transform: `translate(${center.x} ${center.y}) rotate(${frame.rotation || 0}) translate(${-center.x} ${-center.y}) translate(${frame.x} ${frame.y})`,
           class: 'touch-none'
         }, [
+          // The label band is the sheet's move handle.
+          h('rect', {
+            x: 0,
+            y: 0,
+            width: entry.width,
+            height: LABEL_HEIGHT,
+            fill: 'transparent',
+            class: 'cursor-move',
+            onPointerdown: event => startSheetDrag(event, entry)
+          }),
           h('text', {
             x: 0,
             y: LABEL_HEIGHT * 0.55,
@@ -1110,14 +1332,17 @@ export default function createSurface({ vue, components, locale, queries, notify
           },
           onPointermove: event => {
             dragPlacement(event);
+            dragSheet(event);
             movePan(event);
           },
           onPointerup: event => {
             finishDrag(event);
+            finishSheetDrag(event);
             finishPan(event);
           },
           onPointercancel: event => {
             finishDrag(event);
+            finishSheetDrag(event);
             finishPan(event);
           },
           onKeydown: event => {
@@ -1125,6 +1350,7 @@ export default function createSurface({ vue, components, locale, queries, notify
               event.stopPropagation();
               event.preventDefault();
               dragState.value = null;
+              sheetDragState.value = null;
               clearSelection();
             }
             if (event.key === 'Delete' || event.key === 'Backspace') {
@@ -1255,7 +1481,7 @@ export default function createSurface({ vue, components, locale, queries, notify
               outlined: true,
               size: 'small',
               class: 'w-full',
-              onClick: addAllSheets
+              onClick: addAllFamilySheets
             })
           : null
       ]);

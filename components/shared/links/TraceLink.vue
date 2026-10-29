@@ -8,7 +8,7 @@
     >
         <i :class="config.icon" class="shrink-0"></i>
         <span class="truncate">
-            {{ label || fallbackLabel || id }}
+            {{ text }}
         </span>
     </NuxtLink>
     <span
@@ -18,14 +18,16 @@
     >
         <i :class="config.icon" class="shrink-0"></i>
         <span class="truncate">
-            {{ label || fallbackLabel || id }}
+            {{ text }}
         </span>
     </span>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRegistryStore } from '~/stores/registry';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const props = defineProps({
@@ -60,7 +62,13 @@ const props = defineProps({
 });
 
 const registry = useRegistryStore();
+const { t, te } = useI18n();
 const config = computed(() => ({ icon: registry.iconFor(props.type) }));
+// An ancestor whose name never resolves (deleted parent, unreadable ref)
+// reads as its entity type label — record ids never render in the UI.
+const typeLabel = computed(() => generatedEntityLabel(props.type, { t, te }));
+const text = computed(() => props.label || props.fallbackLabel || typeLabel.value);
+
 
 const route = computed(() => {
     if (props.to) return props.to;
