@@ -75,7 +75,9 @@ test.describe('payload revision picker', () => {
     expect(instanceId).toBeTruthy();
 
     // v2: new bytes through the revisioned payload channel (payload-replaced).
-    const replaced = await app.request.post(`/api/instances/${TYPE}/${instanceId}/payload`, {
+    // fetch() ships the method it is given; post() would send POST and
+    // the route answers 404.
+    const replaced = await app.request.fetch(`/api/instances/${TYPE}/${instanceId}/payload`, {
       method: 'PUT',
       multipart: { file: { name: 'probe.dxf', mimeType: 'application/dxf', buffer: Buffer.from(REV2) } }
     });
