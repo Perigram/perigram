@@ -221,7 +221,7 @@ one of `table`, `card-grid`, `timeline`, `stats`, `board`,
 | two declared instants | `gantt` (an interval outranks chronology — the stronger structure) |
 | lone instant | `calendar` (`temporalFieldsFor` derives the fields in declaration order) |
 | process class whose state vocabulary spans ≥ `BOARD_MIN_COLUMNS` | `board` |
-| default | `table` (generated columnar — the floor for every plain collection, whatever the loaded pool fills; SPEC §22.14) |
+| default | `table` (generated columnar — the floor for every plain collection, whatever the loaded pool fills; SPEC §22.15) |
 
 `listLayoutOf(node)` is the one region-level derivation: compose-time
 traits, weight estimation, and the RegionBlock materialization pass the

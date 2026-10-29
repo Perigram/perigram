@@ -109,7 +109,7 @@ beside the transition history in `StateHistory`.
   region-owned model; the composed tree is persisted view state per type
   (`utils/ui-view-state.js`) and is evaluated with the one matcher
   (`instanceMatchesFilter`) against the region's pool. The region header
-  stays one line while the row has room (SPEC §22.14): the label yields
+  stays one line while the row has room (SPEC §22.15): the label yields
   first through ellipsis, the controls cluster never wraps internally, and
   the controls wrap below only when the label is at its floor and the
   cluster still overflows the row. The projection switch
@@ -152,7 +152,7 @@ beside the transition history in `StateHistory`.
   `timeline` | `stats` | `board` | `gantt` | `calendar`; the
   matcher is [shared/ui-mapping](../../shared/ui-mapping/README.md)'s).
   The list header stays one line while the row has room — label, count,
-  in-place controls, actions (SPEC §22.14, see above). List regions stack the header row and the
+  in-place controls, actions (SPEC §22.15, see above). List regions stack the header row and the
   collection surface (`RegionCollections.vue`, the one materialization of
   the layout switch embedded and standalone lists share) on the section
   rhythm; nested child regions arrange through `RegionChildren.vue` over
@@ -274,7 +274,7 @@ beside the transition history in `StateHistory`.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identifier (`InstanceIdentity`) under the identifier field's label (a
   type without an identifier field heads the column with the type label;
-  SPEC §22.14), status, budgeted scalar descriptor
+  SPEC §22.15), status, budgeted scalar descriptor
   columns, the first declared relation as budgeted chips when any
   loaded instance carries its refs (the contract's `relationColumn` —
   an explicit edge or a declared ref field, whose stored value is the

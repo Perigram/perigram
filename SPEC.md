@@ -1019,7 +1019,7 @@ instances as chips inside the control. A single picker's closed control
 renders the selected instance's identity chip, and its filter matches
 the identifier-field label.
 
-### 22.14 Collection headers and the table floor (owner direction
+### 22.15 Collection headers and the table floor (owner direction
 2026-10-29)
 
 A collection's header row stays one line while the row has room: the
