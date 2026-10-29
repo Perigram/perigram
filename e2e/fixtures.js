@@ -246,7 +246,9 @@ export const test = base.extend({
           for (const [mapKey, edge] of Object.entries(declaration.edges?.children || {})) {
             for (const childType of edge.types || []) {
               const childIndex = declaredIds.indexOf(childType);
-              if (childIndex < 0) continue;
+              // Children wiring composes two declared org classes; a
+              // system or pack child stays declaration-declared only.
+              if (childIndex < 0 || declaredById.get(childType)?.scope !== 'org') continue;
               authoring.wireDeclaration(`e2e-class-${childIndex}`, `e2e-class-${index}`, 'children', { key: mapKey });
             }
           }

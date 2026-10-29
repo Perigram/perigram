@@ -60,7 +60,7 @@ function sheetBody(name, designId) {
 
 async function openSheetEditor(app, name) {
   const page = app.page;
-  const list = (app.manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'sheet-design');
+  const list = (app.seedManifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'sheet-design');
   await app.gotoClient(list.route);
   await page.getByText(name, { exact: true }).first().click();
   const editorAction = page.locator('.surface-header button .pi-file-edit').first();
@@ -90,10 +90,10 @@ test('a lineage-less sheet edits alone: tiles, pick-to-add designs, OCCS pens', 
   test.setTimeout(300_000);
   await app.installPlugins(['tech-drawing', 'documents', 'facade']);
   await app.connectPlugin('facade', FACADE_URL);
-  app.manifest = await app.seedSpeciesProcess({
+  app.seedManifest = (await app.seedSpeciesProcess({
     types: ['cassette-template', 'cassette-design', 'sheet-design'],
     via: { 'cassette-template': 'editor' }
-  });
+  })).manifest;
   const page = app.page;
   await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
 
@@ -164,9 +164,9 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
     fields: { name: { base: 'string', identifier: true } },
     edges: { children: { sheets: { types: ['sheet-design'], lineageKey: 'familyId' } } }
   });
-  app.manifest = await app.seedSpeciesProcess({
+  app.seedManifest = (await app.seedSpeciesProcess({
     types: ['probe-family', 'cassette-design', 'sheet-design', 'layer-standard', 'pen-template']
-  });
+  })).manifest;
   const page = app.page;
   await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
   const run = Date.now();
