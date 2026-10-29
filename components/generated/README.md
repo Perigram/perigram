@@ -381,8 +381,9 @@ from the compiled manifest.
   Communication is two entries in the menu: Chats is a plain entry
   opening the general chats pane tab in the active pane and carrying
   the total unread badge in both sidebar shapes (the wrapped rail's
-  icon-corner overlay; the expanded menu's `headericon` badge rides
-  beside the icon), and
+  icon-corner overlay; the expanded menu's badge rides the row's
+  trailing edge past the label — `ml-auto order-last` inside the
+  `headericon` fragment), and
   Calls toggles the shared `CommunicationMenu` flyout (see
   [components/shared/README.md](../../components/shared/README.md)) —
   it lists every direct/group conversation with a ring action and
