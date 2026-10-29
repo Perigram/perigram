@@ -990,8 +990,9 @@ chip beside the identifier, then the facts. A bounded card host keeps
 the fixed-height band with a content thumbnail. The text preview mode
 is markdown prose: it renders through the one markdown pipeline like
 the text editor and agent answers. Rendered markdown wears
-the one element recipe on every surface that mounts the pipeline's
-HTML: chat answers and file previews read identically.
+the one element recipe — the markdown editor's reading typography
+(`ck-markdown-body`) — on every surface that mounts the pipeline's
+HTML: the editor, chat answers, and file previews read identically.
 Preview-dominant collections render the card grid; the carousel
 projection is retired. Section labels render in natural case, and no app
 surface — generated, editor, or plugin-delivered — applies an uppercase
