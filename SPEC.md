@@ -982,7 +982,7 @@ at its own aspect, and bounded media (rasters, drawings, tables,
 documents) fit one framed media region. A card's layout follows its
 type's data shape: a visual preview with no card facts renders the
 overlay tile — the preview is the card, the identifier rides it in a
-badge over the scrim, status and the row menu float on the media; a
+chip badge, status and the row menu float on the media; a
 visual preview with facts renders the side-preview card — the preview
 a bounded framed column on the left, identity, status, and budgeted
 facts beside it; any other type renders the plain stack — the payload
