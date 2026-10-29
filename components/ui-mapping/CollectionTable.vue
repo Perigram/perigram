@@ -227,7 +227,7 @@ const statusOf = instance => {
   return display ? { label: display.label, severity: display.severity } : null;
 };
 const sortByIdentity = item => titleFor(item, props.type, { unnamedLabel: t('common.unnamed') }).toLowerCase();
-// SPEC §22.14: the identity column header names the type's identifier
+// SPEC §22.15: the identity column header names the type's identifier
 // field; a type that declares none falls back to the type label.
 const identityColumnLabel = computed(() => {
   const identifierName = props.type?.identifier || null;

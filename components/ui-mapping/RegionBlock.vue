@@ -11,7 +11,7 @@
     />
   </div>
   <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
-    <!-- SPEC §22.14: the header stays one line while the row has room —
+    <!-- SPEC §22.15: the header stays one line while the row has room —
          the label yields first (ellipsis), the controls cluster never
          wraps internally, and wrapping happens only when the label is at
          its floor and the controls still overflow the row. -->

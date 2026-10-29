@@ -161,7 +161,7 @@ describe('field control resolution', () => {
   });
 
   it('keeps the table for identifier-only collections', () => {
-    // SPEC §22.14: a collection with no data column beside identity keeps
+    // SPEC §22.15: a collection with no data column beside identity keeps
     // the table — no projection degrades on unfilled data.
     const namesOnly = { class: 'item', identifier: 'name', fields: { name: { base: 'string' } } };
     expect(resolveListLayout(namesOnly)).toBe('table');
@@ -897,7 +897,7 @@ describe('weight-driven arrangement', () => {
     expect(tableTraits(2).breadth).toBe('full');
     expect(tableTraits(2).growth).toBe('bounded');
     // No filled non-identifier scalar: the table stays the table (SPEC
-    // §22.14) — no projection degrades on unfilled data.
+    // §22.15) — no projection degrades on unfilled data.
     expect(regionDataTraits({
       surfaceKind: 'list',
       type: { fields: { a: { base: 'string' } } },
@@ -1076,7 +1076,7 @@ describe('instance-aware list controls', () => {
     expect(resolveListControls(refField, asRefs.map(row => ({ ...row, relations: {} }))).relationColumn).toBeNull();
     expect(listLayoutOf({ surfaceKind: 'list', type: refField, instances: asRefs })).toBe('table');
     expect(listLayoutOf({ surfaceKind: 'list', type: refField, instances: bare })).toBe('table');
-    // SPEC §22.14: an unfilled pool keeps the table — no projection
+    // SPEC §22.15: an unfilled pool keeps the table — no projection
     // degrades on empty data.
     expect(listLayoutOf({ surfaceKind: 'list', type: refField, instances: asRefs.map(row => ({ ...row, relations: {} })) })).toBe('table');
   });

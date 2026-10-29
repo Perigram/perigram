@@ -518,7 +518,7 @@ describe('screen composition', () => {
     );
     // One filled, one empty: the filled child derives the table — a
     // full-breadth layout that claims the row below the body at every
-    // step (SPEC §22.14) — while the empty one is a stub claiming no
+    // step (SPEC §22.15) — while the empty one is a stub claiming no
     // layout.
     const mixed = relationScreen(buildInstancePool({ widgets: [host, filled] }));
     expect(mixed.regions[0].childRegions.map(region => region.relationKey)).toEqual(['reviews']);
