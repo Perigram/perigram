@@ -106,7 +106,7 @@
         "componentPath": "components/shared/InstanceSelect.vue",
         "key": "InstanceSelect",
         "kind": "entity-input",
-        "purpose": "PrimeVue Select wrapper rendering entity options and the selected value as one-line instance option rows (preview thumb, identifier title, state and type meta)."
+        "purpose": "Entity picker: a trigger opening a filtered list of one-line instance option rows (preview thumb, identifier title, state and type meta); the selected instance renders as the instance tile beside the control."
       },
       {
         "componentPath": "components/shared/InstanceMultiSelect.vue",
@@ -452,6 +452,12 @@
               "fontSize": "1rem",
               "fontWeight": "400",
               "lineHeight": "1.625"
+            },
+            "record-title": {
+              "fontFamily": "ui",
+              "fontSize": "1.5rem",
+              "fontWeight": "700",
+              "lineHeight": "1.75rem"
             },
             "section-heading": {
               "fontFamily": "ui",

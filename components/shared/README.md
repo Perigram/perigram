@@ -447,12 +447,13 @@ Collection counts render as a `Tag` with `secondary` severity.
 ### `InstanceSelect.vue` / `InstanceMultiSelect.vue`
 The entity dropdown wrappers: options carrying an entity render as
 one-line instance option rows (below) in the option list; plain options
-keep PrimeVue's label rendering. The single select's closed control
-renders the selected instance's identity chip (the chip-surface recipe
-with the type glyph); the chip label and the filter's match text
-resolve through the one derivation — `instanceRecordTitle` over the
-served type view, with the wire name, the option's label, and the
-unnamed fallback standing in until the title resolves. An option is
+keep PrimeVue's label rendering. The single picker's closed control is a
+trigger (SPEC §22.13): a button opening a popover hosting a filtered
+`Listbox` of option rows, with the selected instance rendered as the
+instance tile beside the control — never inside it. The filter matches
+the identifier label through the one derivation, `instanceRecordTitle`
+over the served type view, with the wire name, the option's label, and
+the unnamed fallback standing in until the title resolves. An option is
 entity-bearing when it carries an `entity` (or is itself) a record with
 an id slot plus one of the record dialects — an `identity` block or the
 flat §3 `fields` object — and a type id resolves (the `typeId` prop, the
@@ -526,6 +527,17 @@ right, a read-only status badge under identity, and compact facts below.
 type serves no preview), the truncating identity label, and trailing
 state tag plus type-label meta (`showTypeLabel`, for mixed-type lists);
 every option renders the same row shape whatever the type serves.
+`variant="tile"` renders the instance tile (SPEC §22.13, owner
+direction 2026-10-29) — the one small-card face for an instance
+reference on a panel: a bordered row carrying the preview thumb,
+identity with type glyph and state tag, the lineage breadcrumb
+(`TraceChain` compact), and compact facts. The tile owns its row
+chrome: `active` marks the selected member of a working set with the
+primary border, the `trailing` slot carries row-local actions (a remove
+control), and `selectable` turns the row into a list option whose
+activation emits `select` instead of opening the record popup. Panels
+that surface records as small cards compose this tile; panel-invented
+card chrome is a defect.
 `compactLayout:
 'stacked'` (chat preview cards) swaps the row for a flush preview band over
 a one-line label strip whose small state tag rides beside the truncating

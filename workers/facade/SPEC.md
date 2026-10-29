@@ -452,6 +452,17 @@ the sheet-design record behind a sheet beside its summary. Record
 creation and deletion stay in the workspace's record machinery; the
 construct and remove mount transports stay retired.
 
+Owner decision (2026-10-29, the inspector runs on instance tiles): the
+editor's record surfaces are the platform's instance tile — the
+working-set sheets and the record behind a selection render as tiles
+(preview, identity, lineage breadcrumb, compact facts), the working-set
+tile selectable (click activates the sheet on canvas) with its active
+marking and remove control carried by the tile itself. Pickers
+pick-to-add: choosing a sheet from the sheet picker joins the working
+set, choosing a cassette design places it on the active sheet. Editor
+facts (size, position, rotation, counts) render beside the tile;
+section labels carry no count badges.
+
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components
 are deleted, the read-side cassette previews follow the same delivery path,

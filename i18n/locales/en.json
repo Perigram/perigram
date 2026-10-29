@@ -12,6 +12,7 @@
         "success": "Success",
         "cancel": "Cancel",
         "save": "Save",
+        "select": "Select",
         "apply": "Apply",
         "rotate": "Rotate",
         "settings": "Settings",
@@ -2488,8 +2489,6 @@
     "sheetDesign": {
         "actions": "Actions",
         "addAllSheets": "Add all sheets",
-        "addDesign": "Add design",
-        "addSheet": "Add sheet",
         "design": "Design",
         "designNoGeometry": "The design has no placeable geometry",
         "designs": "Designs",
