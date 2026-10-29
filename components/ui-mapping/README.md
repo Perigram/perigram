@@ -340,7 +340,7 @@ beside the transition history in `StateHistory`.
   follows the type's data shape through `cardAnatomyFor`
   ([shared/ui-mapping](../../shared/ui-mapping/README.md)):
   the `tile` (visual preview, no card facts) carries the preview as the
-  whole card in `#header` with the identifier in a badge over the scrim
+  whole card in `#header` with the identifier in a bordered chip badge
   (`LAYOUT.mediaTile*`) and status plus the row menu floating on the
   media — the body slot stays hidden so no padded box trails it, and
   the tile carries no parent-context line; the `side` anatomy (visual
