@@ -438,3 +438,25 @@ RegionBlock's depth-0 branch renders the lane with the strip inside.
 Design-system spec's role manifest and the ui-mapping header contract
 test updated. ui-mapping + design-system 143/143 and 166/166 with
 neighbors; SSR smoke 23/23.
+
+### Record peeks and popup rhythm (owner direction 2026-10-29)
+
+- [ ] WAITING — owner verification: instance and file chips raise a
+  compact data-aware peek on hover (preview band, identity + state,
+  compact facts; a file chip's payload preview and name facts) and open
+  the full record popup / file viewer on click; the record popup rides
+  the compact rhythm and arrangement sees its measured width (SPEC
+  §22.14).
+
+#### Agent Notes (2026-10-29)
+
+Session `agent/chippeek-20261029` (worktree
+`.agent-wt-chippeek-20261029`). New shared `HoverPeek.vue` (delayed
+hover popover, grace dismissal, hover-capable pointers only);
+`InstanceInlineRef`'s identity chip and `FileChip` carry it.
+`resolveAttachmentPeek` in `components/generated/file-preview-contract.js`
+sniffs bare-descriptor peek modes. `HOST_PROFILES.popup` density 1 →
+0.75; `EntityPopup` measures the dialog body through
+`provideContainerTraits({ hostKind: 'popup', elRef })` —
+`useMeasuredWidthRem` now attaches when a late-mounting dialog box
+appears. ui-mapping SPEC/README density lines follow the new law.

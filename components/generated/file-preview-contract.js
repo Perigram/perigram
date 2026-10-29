@@ -37,3 +37,38 @@ export function resolveFilePreview(entity = {}, type = null) {
     hasPayload
   };
 }
+
+// The peek sniffers are mime-first with extension fallbacks for the
+// octet-stream uploads browsers label loosely; office containers stay
+// downloads (mime-exact matching, the chat viewer's rule).
+const IMAGE_EXT = /\.(png|jpe?g|gif|webp|avif)$/i;
+const TEXT_EXT = /\.(md|txt|csv|json|ya?ml|log)$/i;
+
+function sniffedPeekMode(mime = '', name = '') {
+  if (mime === 'image/svg+xml' || /\.svg$/i.test(name)) return 'svg';
+  if (mime.startsWith('image/') || IMAGE_EXT.test(name)) return 'image';
+  if (mime.includes('pdf') || /\.pdf$/i.test(name)) return 'pdf';
+  if (mime.startsWith('text/') || /^application\/(json|xml|yaml|x-yaml)(;|$)/i.test(mime)) return 'text';
+  if (/\.dxf$/i.test(name)) return 'dxf';
+  if (mime === 'application/octet-stream' && TEXT_EXT.test(name)) return 'text';
+  return null;
+}
+
+/**
+ * Pure hover-peek decision for a bare file descriptor (chat attachments,
+ * generator blobs): `{ mode, fileUrl }` for the shared payload viewer, or
+ * null when the file has no renderable peek mode. The URL honors the
+ * legacy `uploads` bucket marker like every stored-attachment consumer.
+ */
+export function resolveAttachmentPeek(attachment = {}) {
+  if (!attachment?.fileId) return null;
+  const mime = String(attachment.mime || attachment.mimeType || '');
+  const name = String(attachment.name || '');
+  const mode = sniffedPeekMode(mime, name);
+  if (!mode) return null;
+  const bucket = attachment.bucket === 'uploads' ? 'uploads' : PAYLOAD_BUCKET;
+  return {
+    mode,
+    fileUrl: `/api/files/download/${encodeURIComponent(String(attachment.fileId))}?bucket=${bucket}`
+  };
+}

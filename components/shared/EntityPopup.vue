@@ -22,7 +22,7 @@
         @click="expand"
       />
     </template>
-    <div class="max-h-dvh overflow-y-auto">
+    <div ref="popupBody" class="max-h-dvh overflow-y-auto">
       <DirectoryDetailSurface
         v-if="visible && isDirectoryType"
         :key="`${request.typeId}:${request.instanceId}`"
@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
@@ -62,9 +62,11 @@ const instances = useInstancesStore();
 const authStore = useAuthStore();
 const { t, te } = useI18n();
 
-// The record popup is a fixed-shape container host: hosted surfaces
-// resolve the narrow profile for their budgets.
-provideContainerTraits({ hostKind: 'popup' });
+// The record popup is a measuring container host: the dialog body's real
+// width drives arrangement, the popup profile carries height/scroll and
+// the compact density tier.
+const popupBody = ref(null);
+provideContainerTraits({ hostKind: 'popup', elRef: popupBody });
 
 const visible = computed({
   // The composable's open() already refuses unopenable types; the guard

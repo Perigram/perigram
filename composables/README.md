@@ -129,8 +129,8 @@ placement-box inheritance channel), re-resolving on
 host resize; arrangement fragments (the peer-column engagement in
 [components/ui-mapping](../components/ui-mapping/README.md)) measure where
 they render. `provideContainerTraits({ hostKind, elRef? })` is the host
-side: measuring hosts (the workspace pane) observe their own box,
-fixed-shape hosts (the record popup) provide the profile alone.
+side: measuring hosts (the workspace pane, the record popup) observe
+their own box, fixed-shape hosts provide the profile alone.
 `provideDefaultContainerTraits(...)` is the routed surface's declaration:
 it provides the measured page record only when no host declared its own,
 so a pane or popup host stays authoritative.
