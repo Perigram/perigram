@@ -3047,6 +3047,12 @@ prohibited.
   `rowBetween`, `labeledBlock`, ladder gaps only; the invented tile
   stylesheet block (10/6/2px gaps, bespoke 64×60 thumb) is deleted and
   the compact gallery face rides ladder gaps (SPEC §22.13 amendment).
+- [x] WAITING — owner verification: the tile carries no lineage
+  breadcrumb (the trace chain owns lineage; card bodies do not
+  duplicate it), and row-local actions render as the §22.12 row menu —
+  the sheet editor's working-set removal moved from a trailing × to
+  the ellipsis popover (SPEC §22.13 amendment; InstanceActionsPopover
+  joins the surface pack).
 - [x] WAITING — owner verification: the cassette designer's load picker
   lists templates again (the surface queried the retired `cassette`
   type id; the picker was empty and

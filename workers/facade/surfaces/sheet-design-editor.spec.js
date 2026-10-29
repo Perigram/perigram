@@ -28,6 +28,8 @@ const ButtonStub = (props, { slots }) => h('button', {
   'data-button-icon': props.icon || '',
   'aria-label': props['aria-label'] || ''
 }, slots?.default ? slots.default() : null);
+const ActionsPopoverStub = (props, { slots }) => h('span', { 'data-actions-popover': 'true' },
+  slots?.default ? slots.default() : null);
 
 function mountContext({ queries } = {}) {
   return {
@@ -35,7 +37,8 @@ function mountContext({ queries } = {}) {
     components: {
       Button: ButtonStub, Checkbox: stub, InputNumber: stub, InputText: stub,
       Popover: stub, SpeedDial: stub, Tag: stub, InstanceSelect: InstanceSelectStub,
-      InstanceInlineRef: InstanceInlineRefStub, DesignerSurface: stub, DesignerWorkspace: renderAllSlots
+      InstanceInlineRef: InstanceInlineRefStub, InstanceActionsPopover: ActionsPopoverStub,
+      DesignerSurface: stub, DesignerWorkspace: renderAllSlots
     },
     locale: { t: key => key, te: () => true, locale: ref('en') },
     queries: queries || { list: async () => [] },
@@ -73,11 +76,12 @@ describe('sheet-design-editor surface mount', () => {
     const html = await renderToString(app);
 
     // The active sheet's record and the working-set row are tiles; the
-    // working-set row is selectable with its trailing remove control.
+    // working-set row is selectable with its trailing row menu.
     expect(html.match(/data-ref-variant="tile"/g)).toHaveLength(2);
     expect(html).toContain('data-ref-type="sheet-design"');
     expect(html).toContain('data-ref-active="true"');
     expect(html).toContain('data-ref-selectable="true"');
+    expect(html).toContain('data-actions-popover="true"');
     expect(html).toContain('data-button-icon="pi pi-times"');
     // Pickers carry no lingering selection: picking adds and the control
     // resets.
