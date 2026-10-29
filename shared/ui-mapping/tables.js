@@ -331,7 +331,7 @@ export const LAYOUT = Object.freeze({
   // its corner; a visual preview with facts renders the side-preview
   // card — the preview is a bounded framed column.
   mediaTile: 'relative h-40 w-full',
-  mediaTileBadge: 'absolute bottom-2 left-2 min-w-0 max-w-[calc(100%-1rem)]',
+  mediaTileBadge: 'absolute bottom-2 left-2 min-w-0 max-w-[calc(100%-1rem)] bg-subtle',
   mediaTileControls: 'absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2',
   previewSide: 'min-h-28 w-28 shrink-0 self-stretch overflow-hidden rounded-ui border border-chrome-border bg-subtle',
   // Board projection: the horizontal column rail and the column bodies.
