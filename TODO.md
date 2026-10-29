@@ -2974,3 +2974,41 @@ post-migration shape. Pre-existing reds on `local` verified unrelated
 (cassette domain: ui-contract, graph-protocol-construction,
 process-definitions service/runtime specs — 12 failures at base,
 identical after this change).
+
+## Instance tiles and picker closed controls (owner direction 2026-10-29)
+
+Owner report: the sheet editor panel carried flat serialized facts and
+panel-invented "cards" for sheets and cassettes; the single picker
+rendered the selected instance inside a text input; cassette previews
+in embedded refs drew without the layer standards.
+
+- [x] WAITING — owner verification: the instance tile is the one
+  small-card face for an instance reference on a panel (`InstanceInlineRef`
+  `variant="tile"`: preview, identity, state, lineage breadcrumb, compact
+  facts; `active`/`selectable`/`trailing` carry working-set row
+  semantics) — SPEC §22.13 amendment.
+- [x] WAITING — owner verification: the single entity picker's closed
+  control is a trigger (button + popover Listbox of §22.13 option rows,
+  filter in the overlay); the selected instance renders as the tile
+  beside the control.
+- [x] WAITING — owner verification: the sheet editor inspector runs on
+  instance tiles with pick-to-add pickers and no count badges (facade
+  SPEC, owner decision 2026-10-29); the panel-local card chrome and
+  fact-row identity displays are gone.
+- [x] WAITING — owner verification: embedded refs mount plugin preview
+  modules — `resolvePluginPreview` normalizes the requested type id to
+  the kebab CTS id, so option rows, compact cards, and tiles render
+  cassette previews with the OCCS layer-standard pens.
+
+### Agent Notes (2026-10-29, instance tiles round)
+
+Session `agent/instance-tile-20261029` (worktree
+`.agent-wt-tile-20261029`). Root cause of the unstyled cassette
+previews: `InstanceInlineRef` normalizes type ids to snake case before
+passing them down, while `resolvePluginPreview` compared the raw string
+against the kebab binding id — plugin previews never mounted inside any
+embedded ref, and the fallback channel carried no pens. The tile, the
+picker rework, and the sheet editor rework ride the shared contracts
+above. E2E `sheet-editor-panel.spec.js` pins the panel (tiles,
+pick-to-add, pen strokes `#DC2626`/`#D97706` on the option-row
+preview) with the `.playwright/sheet-editor-panel.png` artifact.

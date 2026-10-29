@@ -1004,7 +1004,7 @@ surface: the type glyph beside the title is its type identity, and no
 host heading, subtitle, or dialog title repeats the record's name or
 type.
 
-### 22.13 Instance pickers render procedural list items (owner direction 2026-10-28)
+### 22.13 Instance pickers render procedural list items (owner direction 2026-10-28; closed-control amendment 2026-10-29)
 
 Every control that selects instances — generated ref editors and create
 dialogs, the process designer's reference inputs, plugin editor surfaces —
@@ -1017,8 +1017,16 @@ Option lists are built through one shared derivation (entity, type id,
 value, and the identifier-field label), so no picker hand-rolls its own
 label or renders a raw record id. A multi-picker shows selected
 instances as chips inside the control. A single picker's closed control
-renders the selected instance's identity chip, and its filter matches
-the identifier-field label.
+is a trigger: the filter text lives in the option overlay, and the
+selected instance renders as the instance tile beside the control,
+never inside it.
+
+The instance tile (owner direction 2026-10-29) is the one small-card
+face for an instance reference on a panel: preview thumb, identity,
+state, the lineage breadcrumb, and compact facts in one contracted row.
+Surfaces that list records as cards — a designer's working set, a
+selected record beside its facts, a picker's selected value — render the
+tile; panels invent no card chrome of their own.
 
 ## 23. Deslopification (owner direction 2026-10-23)
 
