@@ -48,6 +48,44 @@ vi.mock('primevue/multiselect', async () => {
   };
 });
 
+vi.mock('primevue/popover', async () => {
+  const { defineComponent, h: render } = await import('vue');
+  return {
+    default: defineComponent({
+      setup(_, { slots }) {
+        return () => render('div', { 'data-prime-popover': '' }, slots.default?.());
+      }
+    })
+  };
+});
+
+vi.mock('primevue/button', async () => {
+  const { defineComponent, h: render } = await import('vue');
+  return {
+    default: defineComponent({
+      inheritAttrs: false,
+      props: ['label', 'icon', 'iconPos', 'severity', 'outlined'],
+      setup(_, { attrs }) {
+        return () => render('button', { ...attrs, 'data-prime-button': '', type: 'button' }, [attrs.label || '']);
+      }
+    })
+  };
+});
+
+vi.mock('primevue/listbox', async () => {
+  const { defineComponent, h: render } = await import('vue');
+  return {
+    default: defineComponent({
+      inheritAttrs: false,
+      props: ['modelValue', 'options', 'optionLabel', 'optionValue', 'filter', 'scrollHeight'],
+      setup(props, { slots, attrs }) {
+        return () => render('div', { ...attrs, 'data-prime-listbox': '' },
+          (props.options || []).map(option => slots.option?.({ option })));
+      }
+    })
+  };
+});
+
 vi.mock('~/components/shared/InstanceInlineRef.vue', async () => {
   const { defineComponent, h: render } = await import('vue');
   return {
@@ -106,33 +144,41 @@ describe('entity Select wrappers', () => {
     expect(violations).toEqual([]);
   });
 
-  it('renders the selected entity as the control chip and options as instance rows', async () => {
+  it('renders the trigger with the selected instance tile outside the control and options as rows', async () => {
     const html = await render(InstanceSelect, {
       modelValue: 'queue-2',
       options,
       optionLabel: 'label',
       optionValue: 'value',
-      typeId: 'queue'
+      typeId: 'queue',
+      placeholder: 'Pick a queue'
     });
 
-    expect(html).toContain('data-entity-id="queue-2"');
     expect(html.match(/data-variant="option"/g)).toHaveLength(2);
-    expect(html).toMatch(/p-chip-label[^>]*>Queue 2</);
-    expect(html).toContain('data-prime-value');
-    expect(html).toContain('data-prime-select');
-    expect(html).toContain('class="w-full"');
+    // The selected instance renders as the tile beside the trigger, and
+    // no chip rides inside the control.
+    expect(html).toMatch(/data-variant="tile"[^>]*data-entity-id="queue-2"|data-entity-id="queue-2"[^>]*data-variant="tile"/);
+    expect(html).not.toContain('p-chip-label');
+    expect(html).toContain('data-prime-button');
+    expect(html).toContain('data-prime-listbox');
+    expect(html).toContain('Pick a queue');
+    expect(html).toContain('data-entity-id="queue-2"');
   });
 
-  it('keeps unselected entity Select controls as ordinary full chooser controls', async () => {
+  it('keeps unselected entity pickers as a plain trigger', async () => {
     const html = await render(InstanceSelect, {
       modelValue: null,
       options,
       optionLabel: 'label',
       optionValue: 'value',
-      typeId: 'queue'
+      typeId: 'queue',
+      placeholder: 'Pick a queue'
     });
 
-    expect(html).toMatch(/data-prime-value[^>]*>(?:<!--\[-->)?<span>Choose<\/span>/);
+    expect(html).toContain('data-prime-button');
+    expect(html).toContain('Pick a queue');
+    expect(html).not.toContain('data-variant="tile"');
+    expect(html).not.toContain('data-prime-select');
   });
 
   it('renders selected entities as chips inside the control and options as rows', async () => {
@@ -180,9 +226,7 @@ describe('entity Select wrappers', () => {
     expect(html).toContain('data-entity-id="pen-1"');
     expect(html).toContain('data-type-id="pen-template"');
     expect(html.match(/data-variant="option"/g)).toHaveLength(1);
-    // No type view resolves in specs: the wire name stands in so the
-    // chip never renders empty.
-    expect(html).toMatch(/p-chip-label[^>]*>Pen one</);
+    expect(html).toContain('data-variant="tile"');
   });
 
   it('derives picker options procedurally from an instance pool', () => {

@@ -5,6 +5,7 @@ import Chip from 'primevue/chip';
 import { CHIP_LABEL_PT, INSTANCE_CHIP_CLASS } from './chip-surface.js';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import StateTag from '~/components/ui-mapping/StateTag.vue';
+import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
 import ActionButton from '~/components/ui-mapping/ActionButton.vue';
@@ -31,8 +32,12 @@ const props = defineProps({
   showTypeLabel: { type: Boolean, default: false },
   contextActionEntries: { type: Array, default: () => [] },
   chipClass: { type: [String, Array, Object], default: '' },
-  revision: { type: String, default: null }
+  revision: { type: String, default: null },
+  active: { type: Boolean, default: false },
+  selectable: { type: Boolean, default: false }
 });
+
+const emit = defineEmits(['select']);
 
 const loaded = ref(null);
 const instances = useInstancesStore();
@@ -184,6 +189,24 @@ function onRefKeydown(event) {
   openRefPopup(event);
 }
 
+// The tile's one activation path: a selectable tile is a list row (the
+// click emits `select`); every other tile keeps the ref law and opens
+// the record popup.
+function onTileActivate(event) {
+  if (isInteractiveEventTarget(event)) return;
+  if (props.selectable) {
+    emit('select', { entity: resolved.value, id: resolvedId.value });
+    return;
+  }
+  openRefPopup(event);
+}
+
+function onTileKeydown(event) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  onTileActivate(event);
+}
+
 function executeContextualAction(action) {
   const executor = contextualExecutor.value;
   if (!executor || !resolved.value) return;
@@ -196,10 +219,70 @@ function executeContextualAction(action) {
   <span
     class="inline-flex min-w-0 max-w-full items-center gap-1 align-middle"
     :class="[
-      (variant === 'compact' && compactCardWorthy) || (variant === 'option' && resolved) ? 'w-full' : null,
+      (variant === 'tile' && resolved)
+        || (variant === 'compact' && compactCardWorthy)
+        || (variant === 'option' && resolved) ? 'w-full' : null,
       { 'pointer-events-none': !interactive }
     ]"
   >
+    <span
+      v-if="variant === 'tile' && resolved"
+      class="instance-inline-tile min-w-0 max-w-full"
+      :class="[
+        { 'instance-inline-tile--active': active },
+        (selectable && interactive) || refOpenable ? 'instance-inline-tile--interactive' : null
+      ]"
+      :role="selectable ? 'option' : (refOpenable ? 'button' : undefined)"
+      :tabindex="(selectable && interactive) || refOpenable ? 0 : undefined"
+      :aria-selected="selectable ? active : undefined"
+      :data-instance-card-interactive="interactive ? 'true' : undefined"
+      @click="onTileActivate($event)"
+      @keydown="onTileKeydown($event)"
+    >
+      <span
+        v-if="compactHasPreview"
+        class="instance-inline-tile-preview"
+        :class="compactHasPreview ? 'instance-preview-slot' : null"
+      >
+        <InstancePreview
+          :entity="resolved"
+          :type-id="generatedTypeId"
+          :mode="compactDisplay.surfaceContract.preview"
+          hide-dimension-layer
+        />
+      </span>
+      <span class="instance-inline-tile-main">
+        <span class="instance-inline-tile-header">
+          <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true" />
+          <span class="min-w-0 flex-1 truncate text-label" :title="identityLabel">{{ identityLabel }}</span>
+          <StateTag
+            v-if="compactStatusState"
+            :value="compactStatusState"
+            :policy="compactPolicy"
+            class="max-w-full shrink-0"
+          />
+        </span>
+        <TraceChain
+          :entity="resolved"
+          :type-id="generatedTypeId"
+          variant="compact"
+          expandable
+          class="min-w-0"
+        />
+        <span v-if="compactDataFields.length" class="instance-inline-tile-facts">
+          <DataBlock
+            :type-id="generatedTypeId"
+            :entity="resolved"
+            :fields="compactDataFields"
+            variant="compact"
+          />
+        </span>
+      </span>
+      <span v-if="$slots.trailing" class="instance-inline-tile-trailing" @click.stop>
+        <slot name="trailing" />
+      </span>
+    </span>
+
     <span
       v-if="variant === 'compact' && compactCardWorthy"
       class="instance-inline-compact min-w-0 max-w-full flex-1"

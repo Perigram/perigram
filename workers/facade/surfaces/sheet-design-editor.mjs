@@ -53,8 +53,6 @@ export default function createSurface({ vue, components, locale, queries, notify
       const saving = ref(false);
       const designs = ref([]);
       const sheetDesigns = ref([]);
-      const selectedDesignId = ref('');
-      const selectedSheetId = ref('');
       const view = ref({ cx: 610, cy: 1220, k: 0.25 });
       const svgSize = ref({ w: 800, h: 600 });
       const localNames = ref({});
@@ -293,9 +291,9 @@ export default function createSurface({ vue, components, locale, queries, notify
         return true;
       }
 
-      function addSelectedSheet() {
-        const record = sheetDesigns.value.find(row => String(row._id) === String(selectedSheetId.value));
-        if (record && addSheetRecord(record)) selectedSheetId.value = '';
+      function addSheetById(id) {
+        const record = sheetDesigns.value.find(row => String(row._id) === String(id));
+        if (record) addSheetRecord(record);
       }
 
       function addAllSheets() {
@@ -530,9 +528,9 @@ export default function createSurface({ vue, components, locale, queries, notify
         open.instance({ typeId: 'cassette-design', instanceId: String(designId) });
       }
 
-      function addSelectedDesign() {
+      function addDesignById(id) {
         const entry = activeSheetEntry.value;
-        const design = designs.value.find(item => String(item._id) === String(selectedDesignId.value));
+        const design = designs.value.find(item => String(item._id) === String(id));
         if (!entry?.writable || !design) return;
         const prefix = `manual-${design._id}-${Date.now()}`;
         const added = designSheetItems(design, prefix);
@@ -1212,139 +1210,106 @@ export default function createSurface({ vue, components, locale, queries, notify
         ])
       ]);
 
-      const instanceRow = (typeId, entity, id, { active = false, onClick = null, onRemove = null, removeDisabled = false } = {}) =>
-        h('div', {
-          class: 'flex min-w-0 items-center gap-1 rounded-panel border p-1'
-            + (active ? ' border-primary' : ' border-transparent')
-            + (onClick ? ' hover:bg-subtle' : '')
-        }, [
-          h('button', {
-            type: 'button',
-            class: 'min-w-0 flex-1 text-left',
-            onClick: onClick || (() => {})
-          }, [
-            h(components.InstanceInlineRef, {
-              type: typeId,
-              entity,
-              id: id ?? entity?._id,
-              fetch: !entity,
-              interactive: false,
-              variant: 'compact'
-            })
-          ]),
-          onRemove ? h(components.Button, {
-            icon: 'pi pi-times',
-            severity: 'secondary',
-            text: true,
-            rounded: true,
-            size: 'small',
-            'aria-label': t('sheetDesign.removeSheet'),
-            disabled: removeDisabled,
-            onClick: onRemove
-          }) : null
-        ]);
+      const sectionLabel = label => h('small', { class: 'text-muted text-supporting' }, label);
 
-      const sectionLabel = (label, count = null) => h('div', { class: 'flex items-center gap-2' }, [
-        h('small', { class: 'text-muted text-supporting' }, label),
-        count === null ? null : h(components.Tag, { value: count, severity: 'secondary' })
-      ]);
+      const renderSheetTile = entry => h(components.InstanceInlineRef, {
+        key: entry.id,
+        type: 'sheet-design',
+        entity: entry.record,
+        id: entry.id,
+        variant: 'tile',
+        active: activeSheetId.value === entry.id,
+        selectable: true,
+        onSelect: () => { selectSheet(entry.id); }
+      }, {
+        trailing: () => [h(components.Button, {
+          icon: 'pi pi-times',
+          severity: 'secondary',
+          text: true,
+          rounded: true,
+          size: 'small',
+          'aria-label': t('sheetDesign.removeSheet'),
+          disabled: entry.dirty || sheets.value.length <= 1,
+          onClick: () => { removeSheetFromCanvas(entry); }
+        })]
+      });
 
       const renderSheetsSection = () => h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
-        sectionLabel(t('sheetDesign.sheetDesigns'), sheets.value.length),
-        ...sheets.value.map(entry => instanceRow('sheet-design', entry.record, entry.id, {
-          active: activeSheetId.value === entry.id,
-          onClick: () => { selectSheet(entry.id); },
-          onRemove: () => { removeSheetFromCanvas(entry); },
-          removeDisabled: entry.dirty || sheets.value.length <= 1
-        })),
-        h('div', { class: 'flex min-w-0 items-center gap-2' }, [
-          h(components.InstanceSelect, {
-            modelValue: selectedSheetId.value,
-            'onUpdate:modelValue': value => { selectedSheetId.value = value; },
-            options: sheetOptions.value,
-            optionValue: 'value',
-            typeId: 'sheet-design',
-            filter: true,
-            class: 'min-w-0 flex-1',
-            placeholder: t('sheetDesign.selectSheet')
-          }),
-          h(components.Button, {
-            icon: 'pi pi-plus',
-            severity: 'secondary',
-            outlined: true,
-            rounded: true,
-            size: 'small',
-            'aria-label': t('sheetDesign.addSheet'),
-            disabled: !selectedSheetId.value,
-            onClick: addSelectedSheet
-          })
-        ]),
+        sectionLabel(t('sheetDesign.sheetDesigns')),
+        ...sheets.value.map(renderSheetTile),
+        sheetOptions.value.length
+          ? h(components.InstanceSelect, {
+              modelValue: null,
+              options: sheetOptions.value,
+              optionValue: 'value',
+              typeId: 'sheet-design',
+              placeholder: t('sheetDesign.selectSheet'),
+              'onUpdate:modelValue': addSheetById
+            })
+          : null,
         sheetOptions.value.length
           ? h(components.Button, {
-            label: t('sheetDesign.addAllSheets'),
-            icon: 'pi pi-clone',
-            severity: 'secondary',
-            outlined: true,
-            size: 'small',
-            class: 'w-full',
-            onClick: addAllSheets
-          })
+              label: t('sheetDesign.addAllSheets'),
+              icon: 'pi pi-clone',
+              severity: 'secondary',
+              outlined: true,
+              size: 'small',
+              class: 'w-full',
+              onClick: addAllSheets
+            })
           : null
       ]);
 
       const renderDesignsSection = () => h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
-        sectionLabel(t('sheetDesign.designs'), designOptions.value.length),
-        h('div', { class: 'flex min-w-0 items-center gap-2' }, [
-          h(components.InstanceSelect, {
-            modelValue: selectedDesignId.value,
-            'onUpdate:modelValue': value => { selectedDesignId.value = value; },
-            options: designOptions.value,
-            optionValue: 'value',
-            typeId: 'cassette-design',
-            filter: true,
-            class: 'min-w-0 flex-1',
-            placeholder: t('sheetDesign.selectDesign')
-          }),
-          h(components.Button, {
-            icon: 'pi pi-plus',
-            severity: 'secondary',
-            outlined: true,
-            rounded: true,
-            size: 'small',
-            'aria-label': t('sheetDesign.addDesign'),
-            disabled: !activeSheetEntry.value?.writable || !selectedDesignId.value,
-            onClick: addSelectedDesign
-          })
-        ])
+        sectionLabel(t('sheetDesign.designs')),
+        h(components.InstanceSelect, {
+          modelValue: null,
+          options: designOptions.value,
+          optionValue: 'value',
+          typeId: 'cassette-design',
+          placeholder: t('sheetDesign.selectDesign'),
+          disabled: !activeSheetEntry.value?.writable,
+          'onUpdate:modelValue': addDesignById
+        })
       ]);
 
       const renderInspector = () => h('aside', { class: 'flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3' }, [
         h('div', { class: 'flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto' }, [
           selectedPlacement.value && selectedEntry.value
             ? h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
-              h('small', { class: 'text-muted text-supporting' }, t('sheetDesign.design')),
-              instanceRow('cassette-design', selectedDesignRecord.value, selectedSource.value?.design_id, {
-                onClick: selectedDesignRecord.value ? openSelectedDesign : null
-              }),
-              ...selectedBounds.value ? [
-                factRow(t('sheetDesign.size'), `${rounded(selectedBounds.value.width)}×${rounded(selectedBounds.value.height)} mm`)
-              ] : [],
-              ...selectedTransform.value ? [
-                factRow(t('sheetDesign.position'), `${rounded(selectedTransform.value.x)}, ${rounded(selectedTransform.value.y)} mm`),
-                factRow(t('sheetDesign.rotation'), `${Math.round(((selectedTransform.value.rotation % 360) + 360) % 360)}°`)
-              ] : [],
-              factRow(t('sheetDesign.sheet'), sheetNameOf(selectedEntry.value))
-            ])
+                sectionLabel(t('sheetDesign.design')),
+                h(components.InstanceInlineRef, {
+                  type: 'cassette-design',
+                  entity: selectedDesignRecord.value,
+                  id: selectedSource.value?.design_id,
+                  fetch: !selectedDesignRecord.value,
+                  variant: 'tile'
+                }),
+                ...selectedBounds.value ? [
+                  factRow(t('sheetDesign.size'), `${rounded(selectedBounds.value.width)}×${rounded(selectedBounds.value.height)} mm`)
+                ] : [],
+                ...selectedTransform.value ? [
+                  factRow(t('sheetDesign.position'), `${rounded(selectedTransform.value.x)}, ${rounded(selectedTransform.value.y)} mm`),
+                  factRow(t('sheetDesign.rotation'), `${Math.round(((selectedTransform.value.rotation % 360) + 360) % 360)}°`)
+                ] : [],
+                factRow(t('sheetDesign.sheet'), sheetNameOf(selectedEntry.value))
+              ])
             : activeSheetEntry.value
               ? h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
-                h('small', { class: 'text-muted text-supporting' }, t('sheetDesign.sheet')),
-                factRow(t('sheetDesign.size'), `${rounded(activeSheetEntry.value.width)}×${rounded(activeSheetEntry.value.height)} mm`),
-                factRow(t('sheetDesign.placements'), activeSheetEntry.value.placedItems.length),
-                factRow(t('sheetDesign.designs'),
-                  new Set(activeSheetEntry.value.placedItems
-                    .map(placement => sheetPlacementSource(activeSheetEntry.value.items, placement)?.design_id)
-                    .filter(Boolean)).size)
-              ])
+                  sectionLabel(t('sheetDesign.sheet')),
+                  h(components.InstanceInlineRef, {
+                    type: 'sheet-design',
+                    entity: activeSheetEntry.value.record,
+                    id: activeSheetEntry.value.id,
+                    variant: 'tile'
+                  }),
+                  factRow(t('sheetDesign.size'), `${rounded(activeSheetEntry.value.width)}×${rounded(activeSheetEntry.value.height)} mm`),
+                  factRow(t('sheetDesign.placements'), activeSheetEntry.value.placedItems.length),
+                  factRow(t('sheetDesign.designs'),
+                    new Set(activeSheetEntry.value.placedItems
+                      .map(placement => sheetPlacementSource(activeSheetEntry.value.items, placement)?.design_id)
+                      .filter(Boolean)).size)
+                ])
               : null,
           renderDesignsSection(),
           renderSheetsSection()
