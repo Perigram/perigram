@@ -3042,6 +3042,11 @@ prohibited.
   name never resolves (the shared README's trace law), the cassette
   designer's load rows read as unnamed (e2e sweeps the editor for
   24-hex text with a deleted parent dangling the lineage).
+- [x] WAITING — owner verification: the instance tile is the §22.8
+  side-preview anatomy at row scale — `LAYOUT.previewSideRow`,
+  `rowBetween`, `labeledBlock`, ladder gaps only; the invented tile
+  stylesheet block (10/6/2px gaps, bespoke 64×60 thumb) is deleted and
+  the compact gallery face rides ladder gaps (SPEC §22.13 amendment).
 - [x] WAITING — owner verification: the cassette designer's load picker
   lists templates again (the surface queried the retired `cassette`
   type id; the picker was empty and
