@@ -343,8 +343,8 @@ beside the transition history in `StateHistory`.
   whole card in `#header` with the identifier in the instance chip
   recipe (`CHIP_LABEL_PT` + `INSTANCE_CHIP_CLASS` from
   `chip-surface.js`, opening the record when the screen carries an open
-  handler) riding the media's corner
-  (`LAYOUT.mediaTileBadge` positioning) and status plus the row menu
+  handler) riding the media's corner on a subtle ground
+  (`LAYOUT.mediaTileBadge` positioning and ground) and status plus the row menu
   floating on the media — the body slot stays hidden so no padded box
   trails it, and the tile carries no parent-context line; the `side`
   anatomy (visual
