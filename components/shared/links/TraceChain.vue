@@ -52,6 +52,8 @@ import { detailRouteForInstance } from '~/components/generated/instance-detail-r
 import { useLineage } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { instanceRecordTitle } from '~/utils/instance-shape.js';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { containmentAncestors, normalizeHierarchyType, traceContextExclusions, visibleTraceAncestors } from '~/utils/instance-hierarchy.js';
 
@@ -66,6 +68,7 @@ const props = defineProps({
 
 const instances = useInstancesStore();
 const authStore = useAuthStore();
+const { typeById } = useFileTypeView();
 const effectiveContainment = useEffectiveContainment();
 const entityContext = inject('entityContext', null);
 const isExpanded = ref(!props.expandable);
@@ -109,12 +112,17 @@ const labelKey = (item) => `${item.type}:${item.id}`;
 
 const fallbackLabel = (item) => item?.label || FALLBACK_LABELS[item?.type] || '';
 
-const entityLabel = (entity) => {
+// Wire DTOs carry the title in `fields` (the identifier row); screen
+// instances keep the legacy name slots.
+const entityLabel = (entity, typeId = '') => {
+    if (!entity) return '';
+    const title = instanceRecordTitle(entity, typeById(normalizeHierarchyType(typeId)));
+    if (title) return title;
     return entity?.name
-        || entity?.name
         || entity?.title
         || entity?.data?.name
         || entity?.data?.title
+        || entity?.fields?.name
         || '';
 };
 
@@ -144,7 +152,7 @@ watchEffect(async () => {
         if (labels.value[key]) continue;
         const contextEntity = findContextEntity(item.type, item.id);
         const entity = contextEntity || await instances.resolveReadableReference(instances.canonicalTypeKey(item.type), item.id, { silent: true });
-        const label = entityLabel(entity);
+        const label = entityLabel(entity, item.type);
         if (entity) {
             resolvedEntities.value[key] = entity;
         }

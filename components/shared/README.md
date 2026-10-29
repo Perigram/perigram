@@ -829,7 +829,7 @@ transcription stay in the host composer.
   location rows where direct route navigation is intended. Do not use it for
   entity relation summaries inside cards/details; use `InstanceInlineRef` so the
   relation resolves through `useEntity` and the registered entity card.
-- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` and an explicit canonical entity type—never pass raw ancestry arrays or infer types from lineage key spelling. Resolves names async via `useEntityStore`; cached per session. Its `exclude` refs remove explicit ancestry. Generated detail routes also exclude an ancestor only when the route carries that compiled Lineage key with the same entity id, preventing the app breadcrumb and entity trace from repeating the same context. In process mode the chain follows the effective compiled Lineage bindings only.
+- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` and an explicit canonical entity type—never pass raw ancestry arrays or infer types from lineage key spelling. Resolves names async through the instances store over the §3 wire title (the `fields` identifier row); cached per session. Its `exclude` refs remove explicit ancestry. Generated detail routes also exclude an ancestor only when the route carries that compiled Lineage key with the same entity id, preventing the app breadcrumb and entity trace from repeating the same context. In process mode the chain follows the effective compiled Lineage bindings only.
   Card title chrome uses compact trace mode: it shows the nearest parent
   lineage item and an ellipsis expander when more ancestry exists. Expanded
   popovers and detail pages render the full lineage breadcrumb chain. Supported
