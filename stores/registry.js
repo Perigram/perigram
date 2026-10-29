@@ -76,9 +76,16 @@ export const useRegistryStore = defineStore('registry', () => {
   // a malformed declaration is skipped, not thrown.
   const projectedDomain = computed(() => {
     const registry = createTypeRegistry({ id: 'client-view' });
+    // The bundle serialization carries the organization once at its root;
+    // org-scoped types re-take it here so the client registry keys them
+    // exactly like the server's own org declarations (`id@org` — a bare
+    // type never enters the tenancy view and projects nothing).
+    const bundleOrgId = bundle.value.organizationId || null;
     for (const type of bundle.value.types || []) {
       try {
-        registry.defineType(type);
+        registry.defineType(type.scope === 'org' && bundleOrgId && !type.organizationId
+          ? { ...type, organizationId: bundleOrgId }
+          : type);
       } catch {
         continue;
       }
