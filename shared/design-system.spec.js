@@ -334,9 +334,7 @@ describe('Design system manifest', () => {
       'metric',
       'technical',
       'prose',
-      'editor',
-      'document-heading',
-      'document-subheading'
+      'editor'
     ]);
     for (const role of Object.values(designTokens.typography.roles)) {
       expect(role).toEqual(expect.objectContaining({

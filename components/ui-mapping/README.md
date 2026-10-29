@@ -157,9 +157,8 @@ beside the transition history in `StateHistory`.
   the stepped outcomes and budgets canonical in
   [shared/ui-mapping](../../shared/ui-mapping/README.md). A region
   rendering in the stub slot (`stub` prop, the pack strip under a record
-  body) renders its section label beside its create affordance; a stub
-  with no create affordance renders nothing.
-  Loading/denied/error states keep the shared `RegionDataState` surface. A create action for the region's own type
+  body) renders its create affordance alone — while
+  loading/denied/error states keep the shared `RegionDataState` surface. A create action for the region's own type
   collapses its caption to the bare localized `uiMapping.new` ("New")
   through ActionButton's context label: the header already names the class
   (creates for other types and every other action keep the full label).
@@ -479,14 +478,11 @@ beside the transition history in `StateHistory`.
   the host card owns the chrome; images and sketch scenes fill the band
   at uniform scale, vector drawings (dxf/svg/occs) fit inside it, and
   dimension text renders big. The fill hero passes the pane variant:
-  prose flows at the body's measure — centered when the record column is
-  wider — with markdown through the shared pipeline in the shared
-  `ck-markdown` element styles (plain text keeps breaks), the PDF renders at page scale
+  prose flows at the body's measure (markdown through the shared
+  pipeline, plain text keeps breaks), the PDF renders at page scale
   (the column's width, MediaBox aspect with A4 fallback, viewer chrome
   hidden), and bounded media fill the framed region — contained rasters,
-  fitting drawings, scrolling tables and Word documents. The record body
-  grid (`LAYOUT.bodyGrid`) centers on the same measure, so prose and fact
-  blocks share one column. Fetch-backed
+  fitting drawings, scrolling tables and Word documents. Fetch-backed
   modes state their load (spinner) and surface a failed download. A
   type that declares a `previewSource` field (the authored pack vocabulary
   adopted by the CTS registry, carried on the bundle type record and read

@@ -36,12 +36,7 @@ types ride the generic instance machinery from the install snapshot.
   class identity across the subpath bundles; rebuild with
   `perigram-plugin vendor --listing listing.json`. The crepe theme and
   the editor voice css are static assets under `assets/`, injected as
-  links relative to the module URL. The voice css bridges crepe onto the
-  app tokens: colors and fonts map to the `--ck-*` vars, and the
-  rendered heading ladder binds the document roles
-  (`--ck-type-document-*`, `--ck-type-technical-size`) with the column
-  at `--ck-record-measure`, so the editing surface and the markdown
-  read view render one document voice. The theme css is built by the fence
+  links relative to the module URL. The theme css is built by the fence
   below — crepe's own theme files @import bare npm paths
   (`@milkdown/kit/...`) that no browser can resolve, so the served css
   is one esbuild bundle over the enabled features (Latex/AI/toolbar

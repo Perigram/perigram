@@ -1,17 +1,14 @@
 <template>
   <div v-if="stubLine" :class="[LAYOUT.row, 'w-fit']">
-    <template v-if="createControls.length">
-      <span class="text-label text-muted">{{ regionLabel }}</span>
-      <CreateControl
-        v-for="control in createControls"
-        :key="control.action.id"
-        :action="control.action"
-        :group="control.group"
-        :state-policy="node.statePolicy"
-        :label="headerActionLabel(control.action)"
-        @run="emitRun"
-      />
-    </template>
+    <CreateControl
+      v-for="control in createControls"
+      :key="control.action.id"
+      :action="control.action"
+      :group="control.group"
+      :state-policy="node.statePolicy"
+      :label="headerActionLabel(control.action)"
+      @run="emitRun"
+    />
   </div>
   <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
     <div class="flex flex-wrap items-center justify-between gap-2">
@@ -268,7 +265,7 @@ const props = defineProps({
   // file-surface registry; the header renders what it is given).
   editorActions: { type: Object, default: null },
   // The stub slot (SPEC → Placement-aware composition): an inert child
-  // renders one compact line — its section label and create action.
+  // renders one compact line — label, count, its own create action.
   stub: { type: Boolean, default: false }
 });
 

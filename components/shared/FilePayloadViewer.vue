@@ -55,12 +55,11 @@
       </DataTable>
     </TableFrame>
     <!-- Text is record prose: it flows at the body's measure — markdown
-         through the shared pipeline (shared/markdown.js) in the shared
-         ck-markdown element styles, plain text keeps breaks. Card bands
-         clamp. -->
+         through the shared pipeline (shared/markdown.js), plain text
+         keeps breaks. Card bands clamp. -->
     <div v-else-if="hasFile && mode === 'text' && ready" :class="variant === 'card' ? 'h-full overflow-hidden p-4 text-prose' : 'text-prose'">
       <!-- eslint-disable-next-line vue/no-v-html -- sanitized below -->
-      <div v-if="renderedMarkdown" :class="variant === 'card' ? 'ck-markdown line-clamp-[12] break-words' : 'ck-markdown break-words'" v-html="renderedMarkdown" />
+      <div v-if="renderedMarkdown" :class="variant === 'card' ? 'line-clamp-[12] break-words' : 'break-words'" v-html="renderedMarkdown" />
       <p v-else :class="variant === 'card' ? 'line-clamp-[12] m-0 whitespace-pre-wrap break-words' : 'm-0 whitespace-pre-wrap break-words'">{{ text }}</p>
     </div>
     <StateBlock v-else-if="hasFile && asyncMode && pending" state="loading" />

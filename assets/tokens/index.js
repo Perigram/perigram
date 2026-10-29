@@ -67,7 +67,6 @@ export const designTokens = {
     },
     layout: {
         pageMaxWidth: '1600px',
-        recordMeasure: '46rem',
         gridGap: '1.25rem',
         boundedGridItemMinWidth: '24rem',
         boundedGridItemMaxWidth: '32rem',
@@ -112,11 +111,7 @@ export const designTokens = {
             prose: { fontFamily: 'serif', fontSize: '1rem', lineHeight: '1.625', fontWeight: '400' },
             // The document editing voice: serif like prose, one step larger
             // so authored content reads at a comfortable document size.
-            editor: { fontFamily: 'serif', fontSize: '1.125rem', lineHeight: '1.625', fontWeight: '400' },
-            // The rendered-markdown document voice's heading scale: the
-            // section-heading size step in serif, the editor step under it.
-            'document-heading': { fontFamily: 'serif', fontSize: '1.25rem', lineHeight: '1.5rem', fontWeight: '700' },
-            'document-subheading': { fontFamily: 'serif', fontSize: '1.125rem', lineHeight: '1.625', fontWeight: '600' }
+            editor: { fontFamily: 'serif', fontSize: '1.125rem', lineHeight: '1.625', fontWeight: '400' }
         }
     },
     status: {
@@ -150,16 +145,7 @@ export const designTokens = {
     }
 };
 
-// A typography role as a CSS `font` shorthand for cross-boundary
-// consumers (the documents editor's crepe bridge).
-const roleFont = role => `${role.fontWeight} ${role.fontSize}/${role.lineHeight} ${designTokens.typography[role.fontFamily]}`;
-
 export const cssVariableTokens = {
-    // The editor's rendered headings bind the same roles the markdown
-    // read view rides, so edit and read are one document voice.
-    '--ck-type-document-heading': roleFont(designTokens.typography.roles['document-heading']),
-    '--ck-type-document-subheading': roleFont(designTokens.typography.roles['document-subheading']),
-    '--ck-type-technical-size': designTokens.typography.roles.technical.fontSize,
     // The gray page (zinc 100 light / zinc 950 dark) is the single canvas;
     // structural containers are transparent over it and PrimeVue
     // controls/overlays carry the lighter content surface. Structure reads
@@ -218,7 +204,6 @@ export const cssVariableTokens = {
     '--ck-signal-effect': 'var(--ck-entity-tone-fabrication)',
     '--ck-signal-temporal': 'var(--ck-entity-tone-output)',
     '--ck-page-max-width': designTokens.layout.pageMaxWidth,
-    '--ck-record-measure': designTokens.layout.recordMeasure,
     '--ck-grid-gap': designTokens.layout.gridGap,
     '--ck-bounded-grid-item-min-width': designTokens.layout.boundedGridItemMinWidth,
     '--ck-bounded-grid-item-max-width': designTokens.layout.boundedGridItemMaxWidth,

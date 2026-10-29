@@ -24,8 +24,7 @@ Parent: [assets](../README.md).
   `--ck-process-canvas-background` provides a dedicated graph-work surface.
   `typography.roles` is the complete application
   type contract: page title, section heading, body, label, supporting, metric,
-  technical, prose, editor, document heading, and document subheading. The
-  roles select IBM Plex Sans, Mono, or Serif and own
+  technical, and prose. The roles select IBM Plex Sans, Mono, or Serif and own
   their full treatment; Tailwind generates one `text-*` alias per role directly
   from this object. The ladder: the label and technical roles ride the 15px
   small tier with PrimeVue's small controls and tags (`formField.sm`,

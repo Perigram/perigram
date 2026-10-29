@@ -596,8 +596,7 @@ REGION_COLUMN_EARNED_REM`), shedding to the stack when it cannot.
 
 Arrangement is content-aware (SPEC §22, 2026-10-22): a child
 collection with zero loaded instances is layout-inert — it joins the node's
-`stubRegions`, renders its section label beside its create affordance (see
-RegionBlock in
+`stubRegions`, renders its create affordance alone (see RegionBlock in
 [components/ui-mapping](../../components/ui-mapping/README.md)) below the
 arranged content, and every arrangement decision (weights, columns, tabs,
 the side rail) sees filled children only; its relation key still covers the
@@ -648,15 +647,14 @@ overflow menu), the form grid
 full-span rows opt in with `.ck-span-full`), the record body's fill grids
 (`LAYOUT.factsGrid`/`LAYOUT.bodyGrid`: content width is the floor and the
 host grants growth — fact groups fill in 22rem-floor tracking columns,
-body blocks grow into spare row width under the record measure
-(`--ck-record-measure`, shared with the documents editor's column), and
+body blocks grow into spare row width under a 46rem content cap, and
 `LAYOUT.packRow` packs content-width stubs side by side), and the record
 preview hero (`LAYOUT.previewHero`/`LAYOUT.previewHeroBand`: the quiet
 glyph band keeps the small stepped ladder — 7rem base, 11rem past the
 medium step, 14rem past the wide step — while the card slot keeps the
 fixed `LAYOUT.previewBand` stamp). A rendered preview takes the
 treatment its content earns: `LAYOUT.previewHeroBandFlow` flows record
-prose unframed at the record measure,
+prose unframed at the body's 46rem content measure,
 `LAYOUT.previewHeroBandAspect` renders a page at the column's full
 width and its own aspect, and `LAYOUT.previewHeroBandContent` is the
 framed media region (rounded, hairline border, subtle ground) bounded
