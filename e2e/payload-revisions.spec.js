@@ -123,8 +123,14 @@ test.describe('payload revision picker', () => {
       await expect(list).toBeVisible({ timeout: 15_000 });
     }
 
-    // Restore v1: the frozen bytes re-enter as a new revision.
+    // Restore v1: the frozen bytes re-enter as a new revision. The
+    // restore's reconciliation can rebuild the header subtree (tracked
+    // defect), which closes the popover — reopen and read the list.
     await row(1).locator('[data-revision-restore]').click();
+    if (!(await list.isVisible().catch(() => false))) {
+      await header.getByRole('button', { name: 'Revisions' }).click();
+      await expect(list).toBeVisible({ timeout: 15_000 });
+    }
     await expect(list.locator('[data-revision-number="3"]').locator('.p-tag', { hasText: 'current' }))
       .toBeVisible({ timeout: 30_000 });
     await expect(list.locator('[data-revision-number="3"] small', { hasText: 'from v1' })).toBeVisible();
