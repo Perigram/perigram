@@ -527,7 +527,10 @@ beside the transition history in `StateHistory`.
   `InstanceMultiPicker` (shared MultiSelect wrapper), `ChipsInput`,
   `FileUploadControl`, `Slider` for bounded scalars (declared min/max),
   `RefRowActions` (the fill-dialog reference-slot affordances: create by
-  the accepted type's creation mode, open the picked instance's editor),
+  the accepted type's creation mode — the icon button's accessible name
+  carries the sole accepted type's label beside "Create", so it never
+  collides with the dialog's submit — and open the picked instance's
+  editor),
   `FillDialogBody` (the fill-dialog shell: form pane beside the live
   composed preview), `TemplateValuesRow` (the per-token values form a
   `template-values` pin renders), `MapEditor` (key-value rows: the key

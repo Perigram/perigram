@@ -105,6 +105,16 @@ Parent: [root README](../README.md).
   its created entity in the pool ([stores](../stores/README.md)) — and by
   the created-open contract
   ([components/generated](../components/generated/README.md)).
+- `instance-shape.js`: The wire-DTO → generator-instance projection the
+  instances store maps every entity collection through
+  ([shared/ui-mapping](../shared/ui-mapping/README.md) consumes the
+  result): `dtoToScreenInstance` carries `fields` (quantity-wrapped,
+  record trees nested), normalized `lineage` refs, `relations`, the flat
+  `state` string, `payload`, and `provenance` verbatim — `provenance`
+  feeds the record header's replace gate and the construct re-run row
+  ([components/generated](../components/generated/README.md)); a DTO
+  without one projects `null`. `previewSourceValue` reads the type's
+  declared preview path (plus fallbacks) off the wire.
 
 ## Utility Protocol
 

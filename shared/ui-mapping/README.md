@@ -168,7 +168,10 @@ offenders, the preview pane debounces the draft into
 `POST /api/instances/:type/construction-preview` and renders the
 returned payload through the created type's preview mode
 ([instances feature](../../server/features/instances/README.md) owns
-the route), with the refusal's named offenders shown inline. The dialog
+the route); the pane renders the refusal's named offenders inline, and
+a preview failure beyond the quiet 404/403 (no binding, no grant)
+surfaces as the same offender list over the transport's message. The
+dialog
 stays viewport-bounded: the form pane owns its scroll, the preview pane
 stays bounded, and the picked instance's editor opens in place over the
 dialog instead of navigating away. A values
@@ -464,7 +467,9 @@ to their own surfaces.
 (SPEC §24): a record whose `provenance.op` names a construct
 (`cts.construct:<action>:<mode>`) carries a `rerunInstance` row for that
 compiled action — icon-only refresh, `rerunOf` naming the action id it
-launches with `rerun: true`. The stored inputs are the run's inputs: the
+launches with `rerun: true`, caption keyed `uiMapping.rederive` (the
+`labelKey` channel `ActionButton` resolves ahead of the per-action key).
+The stored inputs are the run's inputs: the
 row prompts nothing (`planActionLaunch` → `run`).
 
 `createActionControls(actions)` collapses the collection toolbar's create

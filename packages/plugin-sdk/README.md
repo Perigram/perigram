@@ -101,7 +101,9 @@ contract 1; `checkSurfaceModule` below validates the module
 author-side), `previews` (`[{ type, surface }]` — the plugin's types
 whose preview slots mount the bound preview surface, one per type),
 `constructions` (the plugin's types' construction modes bound to plugin
-services — the platform resolves ref inputs and payloads as base64
+services — the dispatch sends
+`{ mode, typeId, refs, pins, draft: { identity, data, lineage } }` with
+ref inputs and payloads resolved as base64
 values; the executor returns `data` fields and may return `payload:
 { base64, mime, name? }`, which becomes the created record's
 payload, or answer a refusal as `{ failures: [{ name?, message }] }`
