@@ -93,7 +93,9 @@ small localized `entityGroups.*` headings, so detail pages read as separate
 concerns instead of one flat grid. `DataBlock` renders
 `display: 'swatch'` fields as a color dot beside the value for declared
 hex-color facts. `InstancePreview` resolves the unified payload preview
-first: a file instance with a stored payload renders through the type's
+first (a `fill` prop opts a host-owned fixed-height band in: the generic
+media renders chromeless and fills it, so the host frames the preview):
+a file instance with a stored payload renders through the type's
 declared preview policy (`file-preview-contract.js` → `FilePayloadViewer`, the same
 contract generated detail bodies use); a type with a served plugin preview
 binding mounts the plugin's preview module (read-only, over the record and
@@ -408,7 +410,9 @@ Use this for DXF-derived layer previews and polygon remnants instead of displayi
 When callers pass `hideDimensionLayer`, geometry previews keep production
 layers such as sheet/stock, cut, fold, and bend layers in compact cards while
 suppressing dimension annotation layers so in-card sheet-design previews stay
-readable.
+readable. `fill` opts a host-owned fixed-height band in (DrawingCanvas
+`fill`): the canvas drops its own frame and fills the band, so exactly one
+surface — the host's — frames the preview.
 
 ### `FileChip.vue`
 The app's one file chip (SPEC §22.8): the file's name, a mime-aware
@@ -416,7 +420,8 @@ icon, the bordered subtle chip, `name · size` on hover. A file whose
 descriptor resolves a renderable peek mode (image, svg, pdf, text, dxf
 through `resolveAttachmentPeek` in
 [file-preview-contract](../generated/README.md)) raises its payload peek
-on hover (SPEC §22.14); the click stays the consumer's `open` event.
+on hover (SPEC §22.14) — the framed media band plus the name and
+`mime · size` strip; the click stays the consumer's `open` event.
 Accepts either wire shape (generator blobs and chat attachments).
 
 ### `HoverPeek.vue`
@@ -427,7 +432,10 @@ A deliberate hover delay (300 ms) raises the anchored `Popover`, leaving
 the trigger or the panel dismisses after a grace period that lets the
 pointer cross into the panel, and hovering-capable pointers alone engage
 it — touch hosts keep the click path. The whole peek body opens the
-record: its click behavior stays the trigger's own.
+record: its click behavior stays the trigger's own. The panel rides
+Aura's own chrome — the preset's popover padding spaces the body from
+the panel border, media bands frame themselves as the framed media
+region, and the body scrolls past its height bound.
 
 ### `chip-surface.js`
 The chip recipe home: `CHIP_LABEL_PT` (the truncating label
@@ -499,9 +507,11 @@ message refs read as chips, not inline text — keeping the one-line,
 no-line-height-inflation behavior inside prose and dense surfaces
 (tables, field controls, relation rows) alike. The chip is also the peek
 trigger (SPEC §22.14): a deliberate hover raises the record's peek —
-preview band, identity with glyph and state tag, compact facts, the same
-compact-surface derivation the micro card uses — through
-[`HoverPeek.vue`](#hoverpeekvue); the click opens the record popup.
+the framed preview band (host-owned fill), identity with glyph and state
+tag, and the detail surface's fact rows (the record surface's own field
+vocabulary, capped at eight rows; the compact card budget stays on
+cards) — through [`HoverPeek.vue`](#hoverpeekvue); the click opens the
+record popup.
 `variant="compact"` renders a horizontal micro card instead of a chip —
 but only when the type's compact surface earns the card: a preview band
 or compact fact rows beside identity. Preview-less, fact-less relations

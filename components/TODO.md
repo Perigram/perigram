@@ -467,3 +467,13 @@ against the dev stack: instance chip peek + record popup and file chip
 peek + viewer all pass, artifacts under `test-results/chip-peek-*`.
 Pre-existing at HEAD: `framework.manifest.json` stale (framework spec
 red at clean HEAD too).
+
+Session `agent/chippeek2-20261029` (worktree `.agent-wt-chippeek2-20261029`),
+owner review round 2: the peek now rides the popover's own preset padding
+(the `p-0` content override is gone), media bands frame themselves as the
+framed media region (`rounded-ui` + hairline + subtle ground) with the new
+`fill` passthrough (InstancePreview → InstancePreviewMedia →
+GeometryPreview → DrawingCanvas fill) so exactly one surface frames the
+preview, and the instance peek speaks the detail surface — the record's
+full fact vocabulary capped at eight rows — beside identity, state, and
+the preview band.
