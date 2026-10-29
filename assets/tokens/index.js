@@ -107,7 +107,11 @@ export const designTokens = {
             prose: { fontFamily: 'serif', fontSize: '1rem', lineHeight: '1.625', fontWeight: '400' },
             // The document editing voice: serif like prose, one step larger
             // so authored content reads at a comfortable document size.
-            editor: { fontFamily: 'serif', fontSize: '1.125rem', lineHeight: '1.625', fontWeight: '400' }
+            editor: { fontFamily: 'serif', fontSize: '1.125rem', lineHeight: '1.625', fontWeight: '400' },
+            // The rendered-markdown document voice's heading scale: the
+            // section-heading size step in serif, the editor step under it.
+            'document-heading': { fontFamily: 'serif', fontSize: '1.25rem', lineHeight: '1.5rem', fontWeight: '700' },
+            'document-subheading': { fontFamily: 'serif', fontSize: '1.125rem', lineHeight: '1.625', fontWeight: '600' }
         }
     },
     status: {
