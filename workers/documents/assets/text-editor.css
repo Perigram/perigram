@@ -43,15 +43,39 @@
 }
 
 /* The editor is the document: it reads in the prose voice with a
-   readable measure — the column caps at ~72 characters and centers in
-   the pane. Host-prefixed so the rule outranks crepe's reset (its
-   stylesheet loads dynamically, always after this file — its own
-   .editor rule ships a 120px side padding that otherwise wins). */
+   readable measure — the column rides the app's record measure token
+   and centers in the pane. Host-prefixed so the rule outranks crepe's
+   reset (its stylesheet loads dynamically, always after this file — its
+   own .editor rule ships a 120px side padding that otherwise wins). */
 .crepe-host .milkdown .editor {
-  max-width: min(100%, 72ch);
+  max-width: min(100%, var(--ck-record-measure, 72ch));
   margin-inline: auto;
   padding: 0.75rem 0.25rem 30vh;
   outline: none;
+}
+
+/* The heading ladder binds the app's document roles through the
+   startup token vars — the same roles the markdown read view rides
+   (typography.roles: document-heading, document-subheading; h3-h6 keep
+   the prose size at the label weight), so edit and read render one
+   document. Host-prefixed to outrank crepe's dynamically loaded theme. */
+.crepe-host .milkdown .ProseMirror h1 {
+  font: var(--ck-type-document-heading, 700 1.25rem/1.5rem serif);
+  margin: 0.75rem 0 0.25rem;
+}
+
+.crepe-host .milkdown .ProseMirror h2 {
+  font: var(--ck-type-document-subheading, 600 1.125rem/1.625 serif);
+  margin: 0.75rem 0 0.25rem;
+}
+
+.crepe-host .milkdown .ProseMirror h3,
+.crepe-host .milkdown .ProseMirror h4,
+.crepe-host .milkdown .ProseMirror h5,
+.crepe-host .milkdown .ProseMirror h6 {
+  font-size: inherit;
+  font-weight: 600;
+  margin: 0.75rem 0 0.25rem;
 }
 
 /* Inline code speaks the app's technical role (mono voice, normal
@@ -61,7 +85,7 @@
   color: var(--crepe-color-on-background);
   background: var(--crepe-color-surface-low);
   font-family: var(--crepe-font-code);
-  font-size: 0.875em;
+  font-size: var(--ck-type-technical-size, 0.9375rem);
   padding: 0 0.25em;
   border-radius: var(--p-border-radius-sm);
 }

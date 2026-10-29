@@ -462,8 +462,8 @@ body {
        tokens factsGrid/bodyGrid): content width is the floor and the
        host grants growth — fact groups fill in columns that track the
        body width (track floor 22rem), and body blocks grow into spare
-       row width past their content floor (content cap 46rem). The
-       record column centers at the measure when the host is wider. */
+       row width past their content floor (the record measure token).
+       The record column centers at the measure when the host is wider. */
     .ck-facts-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
@@ -482,13 +482,13 @@ body {
         align-items: flex-start;
         column-gap: 1.5rem;
         row-gap: 0.75rem;
-        max-width: 46rem;
+        max-width: var(--ck-record-measure);
         margin-inline: auto;
     }
 
     .ck-body-grid > * {
         flex: 1 1 auto;
-        width: fit-content(46rem);
+        width: fit-content(var(--ck-record-measure));
         min-width: 0;
         max-width: 100%;
     }
@@ -553,7 +553,7 @@ body {
 
     .ck-preview-hero-band-flow {
         height: auto;
-        max-width: 46rem;
+        max-width: var(--ck-record-measure);
         margin-inline: auto;
     }
 
