@@ -336,19 +336,14 @@ beside the transition history in `StateHistory`.
   (DataView, paginated): cards lay out in the shared `ResponsiveGrid`
   primitive with container
   queries and bounded item tokens (viewport breakpoints lie inside
-  panels), each Card clipped (`overflow-hidden`). The card anatomy
+  panels). The card anatomy
   follows the type's data shape through `cardAnatomyFor`
   ([shared/ui-mapping](../../shared/ui-mapping/README.md)):
-  the `tile` (visual preview, no card facts) carries the preview as the
-  whole card in `#header` with the identifier in the chip surface
-  (`chip-surface.js`'s `FILE_CHIP_CLASS` chrome under
-  `LAYOUT.mediaTileBadge` positioning)
-  (`LAYOUT.mediaTile*`) and status plus the row menu floating on the
-  media — the body slot stays hidden so no padded box trails it, and
-  the tile carries no parent-context line; the `side` anatomy (visual
-  preview with facts) lays the preview in one bounded framed column
-  (`LAYOUT.previewSide`) beside identity, status, the `ParentRef`
-  parent context, and the labeled budgeted facts; the `plain` stack
+  the `tile` anatomy (a visual preview) renders the §22.13 instance
+  tile — `InstanceInlineRef` `variant="tile"` over the row's instance,
+  selectable when the screen carries an `onOpen` handler (the select
+  emission routes through the region's open contract), with the row's
+  ellipsis menu in the tile's trailing slot; the `plain` stack
   (every other type) renders the payload chip beside identity in
   `#title` (opening the payload download — the escape hatch for modes
   the viewer cannot render), the `ParentRef` context in `#subtitle`,

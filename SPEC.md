@@ -980,14 +980,11 @@ surfaces the treatment follows the content: prose flows as record
 content at the body's measure, a page fills the record column's width
 at its own aspect, and bounded media (rasters, drawings, tables,
 documents) fit one framed media region. A card's layout follows its
-type's data shape: a visual preview with no card facts renders the
-overlay tile — the preview is the card, the identifier rides it in a
-chip badge, status and the row menu float on the media; a
-visual preview with facts renders the side-preview card — the preview
-a bounded framed column on the left, identity, status, and budgeted
-facts beside it; any other type renders the plain stack — the payload
-chip beside the identifier, then the facts. A bounded card host keeps
-the fixed-height band with a content thumbnail. Rendered markdown wears
+type's data shape: a visual preview renders the instance tile (§22.13 —
+the one small-card face of preview thumb, identity, state, lineage, and
+compact facts) as the card; any other type renders the plain stack —
+the payload chip beside the identifier, then the facts. A bounded card
+host keeps the fixed-height band with a content thumbnail. Rendered markdown wears
 the one element recipe on every surface that mounts the pipeline's
 HTML: chat answers and file previews read identically.
 Preview-dominant collections render the card grid; the carousel
