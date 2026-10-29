@@ -94,9 +94,9 @@ beside the transition history in `StateHistory`.
   skeleton lines on first load (system stack rhythm), one shared Message
   for empty/missing/denied/error, the stale surface under one
   indeterminate progress bar on reloads with already-loaded instances —
-  the bar takes no flow slot (SPEC §22.8): `LAYOUT.reloadBar` overlays a
-  collection surface's top edge, `LAYOUT.reloadBarUnder` underlines the
-  record header on depth-0 details — and
+  `LAYOUT.reloadBar` overlays a collection surface's top edge, and a
+  depth-0 record header owns a permanent `LAYOUT.reloadLane` under the
+  header the strip appears inside (SPEC §22.9) — and
   plain content for ready — the only loading/empty states any component
   renders.
 - The region header's in-place controls: search expands in place — the
@@ -381,7 +381,8 @@ beside the transition history in `StateHistory`.
   back affordance ahead of the identity block), then one identity line,
   rendered in every host (the pane tab names the record beside it, and
   the header stays the record page's own title surface): Avatar carrying
-  the type glyph, and the title (the one title resolver —
+  the type glyph, and the title in the container-stepped
+  `text-record-title` role (the one title resolver —
   [shared/ui-mapping](../../shared/ui-mapping/README.md); instance ids
   are private display vocabulary) — and exactly one
   state surface riding the title line. A state axis is a tree, so stateful
@@ -392,12 +393,16 @@ beside the transition history in `StateHistory`.
   the shared `StateHistory` popover (the `status_events` audit trail over
   `/api/state/history`, a vertical stepper); instances without a state
   render nothing (no state is information). The action cluster sits right
-  (the identity's flex-1 is the push): the composed instance-chat entry,
+  (the identity's flex-1 is the push) and groups by control kind with
+  hairline dividers between non-empty groups
+  (`LAYOUT.actionGroup`/`actionDivider`): record utilities — the
+  composed instance-chat entry,
   the host-resolved editor action component (`editorActions` channel: the
   app host resolves the file-surface registry per type and the engine
-  renders what it receives), at most `HEADER_ACTIONS_INLINE` generated
+  renders what it receives), payload revisions, payload replacement —
+  then at most `HEADER_ACTIONS_INLINE` generated
   buttons inline — a third and every further action join one popup
-  ellipsis menu with the same localized labels — and every available
+  ellipsis menu with the same localized labels — then every available
   runtime transition renders as a dedicated transition button after the
   inline budget, dispatching through the dedicated `transition` channel —
   machine transitions arrive as `{ __runtime, state: { to }, intent,
@@ -405,9 +410,12 @@ beside the transition history in `StateHistory`.
   labels/severity/icons resolve from the same policy map. The header is
   its own layout container through the named `.ck-record-header` recipe
   (the global stylesheet, referenced from LAYOUT — headers render
-  inside panels and detail child stacks); long names truncate through
-  the `min-w-0` chain and wide headers floor the identity at 16rem so a
-  large action cluster wraps below the identity.
+  inside panels and detail child stacks): long names truncate through
+  the `min-w-0` chain, wide headers floor the identity at 16rem so a
+  large action cluster wraps below the identity, and the record title
+  steps with the same width (1.5rem narrow, 1.75rem from the 34rem
+  step). Under the header rides the record's permanent reload lane
+  (SPEC §22.9).
 - `StateTag.vue` — the segmented state tag: one materialization of the
   mapping contract's `stateDisplayFor`. Flat values render as a single Tag
   styled by the authored severity/icon; dotted values render as a path —

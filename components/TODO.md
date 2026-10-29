@@ -416,3 +416,25 @@ spec deleted (survivor: `components/shared/FilePayloadViewer.vue`,
 (card, contract row, factories, residual field-group map emptied).
 Parent README inventory row for `artifacts/` dropped; `components/SPEC.md`
 still links the folder — filed in the root TODO for the owner.
+
+### Record header look (owner direction 2026-10-29)
+
+- [ ] WAITING — owner verification: the record title renders
+  container-stepped (1.5rem, 1.75rem from the header's 34rem width
+  step — the viewport-clamped page-title stays on real pages); the
+  header action cluster groups by control kind (record utilities /
+  generated actions / machine transitions) over hairline dividers; the
+  depth-0 reload strip rides a permanent 4px lane under the header
+  (SPEC §22.9 amended).
+
+#### Agent Notes (2026-10-29)
+
+Session `agent/header-look-20261029` (worktree `.agent-wt-look-20261029`),
+on top of the recipe rehoming (`agent/header-system-20261029`). New
+typography role `record-title`; `.ck-record-header` steps it at its
+existing width step; `TYPE_BY_LEVEL[0]` names it. `LAYOUT` gains
+`actionGroup`/`actionDivider`/`reloadLane`; `reloadBarUnder` dies —
+RegionBlock's depth-0 branch renders the lane with the strip inside.
+Design-system spec's role manifest and the ui-mapping header contract
+test updated. ui-mapping + design-system 143/143 and 166/166 with
+neighbors; SSR smoke 23/23.
