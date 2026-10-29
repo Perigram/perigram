@@ -273,17 +273,15 @@ export function createUiMapping(overrides = {}) {
     });
   }
 
-  // resolveListLayout(typeRecord, { size, stateful, columns }): the
-  // authored list-layout override channel is gone (display derivation
-  // replaced it); the matcher table over `analyzeTypeShape` decides.
-  // `stateful` is the caller's derived signal that the region's served
-  // state vocabulary spans enough values to board (hasStateVocabulary);
-  // it composes with the process class and flat collections into the
-  // `boardable` candidate signal. `columns` is the caller's value-aware
-  // count of data columns a table would show beside identity and status
-  // (zero demotes the name pile to the list projection). A class's list
-  // surface is always flat — containment is navigation (the workspace
-  // explorer), never a class-screen projection.
+  // resolveListLayout(typeRecord, { stateful }): the authored list-layout
+  // override channel is gone (display derivation replaced it); the
+  // matcher table over `analyzeTypeShape` decides. `stateful` is the
+  // caller's derived signal that the region's served state vocabulary
+  // spans enough values to board (hasStateVocabulary); it composes with
+  // the process class and flat collections into the `boardable`
+  // candidate signal. A class's list surface is always flat —
+  // containment is navigation (the workspace explorer), never a
+  // class-screen projection.
   function resolveListLayout(typeRecord = {}, options = {}) {
     const shape = analyzeTypeShape(typeRecord);
     const stateful = options.stateful === true;
@@ -296,8 +294,7 @@ export function createUiMapping(overrides = {}) {
             : shape.scheduled ? 'scheduled'
               : null,
       stateful: stateful ? true : null,
-      boardable: typeRecord.class === 'process' && stateful ? true : null,
-      columns: Number.isInteger(options.columns) ? options.columns : null
+      boardable: typeRecord.class === 'process' && stateful ? true : null
     });
     return entry.layout;
   }
@@ -578,7 +575,7 @@ export function resolveListControls(typeRecord = {}, instances = [], { pool = nu
   // boundary or as ref objects under `relations.<name>` through relation
   // operations — readers take both) — a column only when any loaded
   // instance carries its refs, the same filledness law as scalar
-  // columns, and the table-floor signal counts it the same way.
+  // columns.
   const refFieldNames = Object.entries(descriptors)
     .filter(([, descriptor]) => descriptor?.base === 'ref')
     .map(([name]) => name);
@@ -1044,25 +1041,13 @@ export function shapeFamilyOf(typeRecord = {}, { stateful = false } = {}) {
   return 'plain';
 }
 
-// The table's data-column signal: filled non-identifier short scalars
-// (the listControls sort keys — a field no instance fills never becomes
-// a column) plus the relation chip column, the structural summary
-// column, and the children column. Zero means a table would carry
-// names alone.
-function tableDataColumns(node = {}) {
-  const { sortKeys, relationColumn, summaryColumn, childrenColumns } = node.listControls
-    || resolveListControls(node.type || {}, node.instances || []);
-  return sortKeys.length + (relationColumn ? 1 : 0) + (summaryColumn ? 1 : 0) + childrenColumns.length;
-}
-
 // listLayoutOf(node): the one list-layout derivation — compose-time
 // traits, weight estimation, and the RegionBlock materialization resolve
 // the same layout over the same node, so the weighted arrangement is
 // the rendered one.
 export function listLayoutOf(node = {}) {
   return resolveListLayout(node.type || {}, {
-    stateful: hasStateVocabulary(node.statePolicy),
-    columns: tableDataColumns(node)
+    stateful: hasStateVocabulary(node.statePolicy)
   });
 }
 
@@ -1081,8 +1066,7 @@ export function regionDataTraits(node = {}) {
     });
   }
   const layout = listLayoutOf(node);
-  const breadth = FULL_BREADTH_LAYOUTS.includes(layout) ? 'full'
-    : layout === 'list' ? 'chip' : 'content';
+  const breadth = FULL_BREADTH_LAYOUTS.includes(layout) ? 'full' : 'content';
   const growth = BOUNDED_GROWTH_LAYOUTS.includes(layout)
     || (PAGINATED_GROWTH_LAYOUTS.includes(layout) && volume > TABLE_PAGINATE_AT)
     ? 'bounded'

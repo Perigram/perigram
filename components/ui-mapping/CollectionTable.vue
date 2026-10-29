@@ -17,7 +17,7 @@
       <template #empty>
         <span class="text-supporting text-muted">{{ $t('uiMapping.emptyRegion') }}</span>
       </template>
-    <Column sortable :sort-field="sortByIdentity" :header="$t('uiMapping.identityColumn')">
+    <Column sortable :sort-field="sortByIdentity" :header="identityColumnLabel">
       <template #body="{ data }">
         <div class="flex min-w-0 items-center gap-2">
           <InstanceIdentity
@@ -147,10 +147,11 @@ import Menu from 'primevue/menu';
 import {
   LAYOUT, fieldLabel, tableColumnCount, ROW_RELATION_BUDGET, applyBudget,
   titleFor, resolveListControls, stateDisplayFor, childrenOfParent,
-  resolveActionButton, actionLabelKey, localizedLabel, fieldLabelKey
-, typeIsQuantitative } from '#shared/ui-mapping/index.js';
+  resolveActionButton, actionLabelKey, localizedLabel, fieldLabelKey,
+  typeIsQuantitative, typeLabelKey
+} from '#shared/ui-mapping/index.js';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
-import { generatedActionLabel } from '~/utils/generated-labels.js';
+import { generatedActionLabel, generatedEntityLabel } from '~/utils/generated-labels.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-view-state.js';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
@@ -226,6 +227,20 @@ const statusOf = instance => {
   return display ? { label: display.label, severity: display.severity } : null;
 };
 const sortByIdentity = item => titleFor(item, props.type, { unnamedLabel: t('common.unnamed') }).toLowerCase();
+// SPEC §22.15: the identity column header names the type's identifier
+// field; a type that declares none falls back to the type label.
+const identityColumnLabel = computed(() => {
+  const identifierName = props.type?.identifier || null;
+  const descriptor = identifierName ? props.type?.fields?.[identifierName] : null;
+  if (identifierName && descriptor) {
+    return localizedLabel({ te, t }, fieldLabelKey(props.type.id, identifierName), fieldLabel(identifierName, descriptor));
+  }
+  return localizedLabel(
+    { te, t },
+    typeLabelKey(props.type?.id),
+    props.type ? generatedEntityLabel(props.type, { t, te }) : ''
+  );
+});
 const sortByStatus = item => String(item?.state || '');
 // Value-aware sortable columns: the filled short-scalar fields from the
 // controls contract (fields no instance fills never become columns),

@@ -83,32 +83,16 @@
     :state-policy="node.statePolicy"
     @open="instance => emit('open', instance)"
   />
-  <div v-else :class="LAYOUT.stackTight">
-    <SurfaceBody
-      v-for="instance in filteredInstances"
-      :key="instance.id"
-      :instance="instance"
-      :type="node.type"
-      variant="row"
-      :openable="openable"
-      :pool="effectivePool"
-      :bundle="bundle"
-      :relation-unlink="relationUnlink"
-      @open="instance => emit('open', instance)"
-      @run="(action, context) => emit('run', action, context)"
-    />
-  </div>
 </template>
 
 <script setup>
 // The collection materialization: the derived (or user-switched) list
 // layout picks the one projection this region renders. Extracted from
 // RegionBlock so the embedded and standalone list surfaces share the
-// exact same switch — the fallback ('list' rows) included.
+// exact same switch.
 import ProgressBar from 'primevue/progressbar';
 import { useI18n } from 'vue-i18n';
 import { LAYOUT } from '#shared/ui-mapping/index.js';
-import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
 import CardGrid from './CardGrid.vue';
 import BoardCollection from './BoardCollection.vue';

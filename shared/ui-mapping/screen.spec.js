@@ -516,19 +516,18 @@ describe('screen composition', () => {
         ] },
       contract, bundle, pool
     );
-    // One filled, one empty: the light filled set rides beside the body
-    // at wide (the side outcome, span earned by weight) when the body
-    // carries at least the rail's weight; the empty one is a stub
-    // claiming no layout.
+    // One filled, one empty: the filled child derives the table — a
+    // full-breadth layout that claims the row below the body at every
+    // step (SPEC §22.15) — while the empty one is a stub claiming no
+    // layout.
     const mixed = relationScreen(buildInstancePool({ widgets: [host, filled] }));
     expect(mixed.regions[0].childRegions.map(region => region.relationKey)).toEqual(['reviews']);
     expect(mixed.regions[0].stubRegions.map(region => region.relationKey)).toEqual(['audits']);
     expect(mixed.regions[0].childArrangement.narrow).toEqual({ mode: 'stack' });
-    expect(mixed.regions[0].childArrangement.wide).toEqual({ mode: 'side', span: 3 });
-    expect(mixed.regions[0].sideRail).toEqual({ mode: 'side', span: 3 });
-    // A thin body never hosts a hanging side column: the children flow
-    // below at full width (the rail engages only when the body outweighs
-    // the rail content).
+    expect(mixed.regions[0].childArrangement.wide).toEqual({ mode: 'stack' });
+    expect(mixed.regions[0].sideRail).toBe(null);
+    // More rows change nothing about the breadth: the table stays below
+    // the body at full width.
     const thinHost = { ...host, relations: { reviews: ['rw0', 'rw1', 'rw2'].map(id => ({ type: 'widget', id })), audits: [] } };
     const thinPool = buildInstancePool({
       widgets: [thinHost,

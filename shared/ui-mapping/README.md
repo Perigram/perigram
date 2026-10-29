@@ -209,12 +209,9 @@ nothing stay hidden, so typed constructor inputs keep their editor
 surfaces. Construction-input labels are authored vocabulary resolved at the
 domain projection (parent type name, start-cased row name).
 
-**List layouts.** `resolveListLayout(type, { stateful, columns })` →
-one of `table`, `card-grid`, `timeline`, `stats`, `list`, `board`,
-`gantt`, `calendar`, from one matcher table over `analyzeTypeShape(type)`
-plus the caller-derived `columns` signal — the value-aware count of data
-columns a table would show beside identity and status (filled
-non-identifier short scalars plus the filled first declared relation):
+**List layouts.** `resolveListLayout(type, { stateful })` →
+one of `table`, `card-grid`, `timeline`, `stats`, `board`,
+`gantt`, `calendar`, from one matcher table over `analyzeTypeShape(type)`:
 
 | Signal | Layout |
 |---|---|
@@ -224,14 +221,7 @@ non-identifier short scalars plus the filled first declared relation):
 | two declared instants | `gantt` (an interval outranks chronology — the stronger structure) |
 | lone instant | `calendar` (`temporalFieldsFor` derives the fields in declaration order) |
 | process class whose state vocabulary spans ≥ `BOARD_MIN_COLUMNS` | `board` |
-| `columns` = 0 | `list` (bare stacked — a table with no data column beside identity is a name pile, whatever the collection's size) |
-| default | `table` (generated columnar) |
-
-The `columns` signal counts every column the table would show beside
-identity and status: filled non-identifier short scalars, the filled
-first declared relation (explicit edge or ref field — SPEC §6 relation
-grammar), the filled first structural field (json/record/map, the
-summary column), and the loaded children columns.
+| default | `table` (generated columnar — the floor for every plain collection, whatever the loaded pool fills; SPEC §22.15) |
 
 `listLayoutOf(node)` is the one region-level derivation: compose-time
 traits, weight estimation, and the RegionBlock materialization pass the
@@ -282,8 +272,7 @@ the
 first filled short scalar is the natural default), `relationColumn`
 (the first declared relation — an explicit edge or a declared ref
 field, `{ key }`, a column only when any loaded instance carries its
-refs — the same filledness law as scalar columns, and the table-floor
-signal counts it the same way), `summaryColumn` (the first declared
+refs — the same filledness law as scalar columns), `summaryColumn` (the first declared
 json/record/map field any instance fills, `{ key }` — the compact
 structural summary column, same law), `childrenColumns` (one
 `{ key, types }` per declared children edge — the edge's key labels its
@@ -515,7 +504,7 @@ materialization reads the same numbers:
 | `CHIP_BUDGET`, `ROW_RELATION_BUDGET`, `SUMMARY_BUDGET`, `DETAIL_FACT_BUDGET` | chip, relation-chip, structural-summary, detail-fact counts |
 | `CHILDREN_TABS_AT`, `HEADER_ACTIONS_INLINE` | child regions per tab, inline header actions before the overflow menu |
 | `ROW_FIELD_BUDGET`, `SCALAR_BASES` | dense-row field count, scalar base set |
-| `SMALL_LIST_AT`, `BOARD_MIN_COLUMNS` | bare-list size, board column floor |
+| `BOARD_MIN_COLUMNS` | board column floor |
 | `CONTAINER_WIDTH_STEPS`, `HOST_PROFILES` | container width steps (`medium` 40rem, `wide` 60rem — the form grid and record split materialize them), host fallback traits (page, pane, dialog, popup, mobile tab) incl. the density tier per host |
 | `SPACING_WEIGHT_AT` | composed screen weight that tightens the rhythm one step |
 | `FULL_BREADTH_LAYOUTS`, `BOUNDED_GROWTH_LAYOUTS`, `PAGINATED_GROWTH_LAYOUTS` | data-trait derivations: full-row layouts, scroll-owning layouts, layouts that page past `TABLE_PAGINATE_AT` |
@@ -541,7 +530,7 @@ position in the hierarchy.
 
 Every composed node carries its **data traits** (`regionDataTraits`, pure
 over the type record and pool, frozen at compose): `weight`
-(`estimateRegionWeight`), `breadth` (`chip` bare lists · `content` most
+(`estimateRegionWeight`), `breadth` (`content` most
 collections and detail bodies · `full` table/board/gantt/calendar —
 layouts that demand the row), `volume`, `shape` (`shapeFamilyOf`), 
 `filledness` (zero instances is `inert`), and `growth` (`bounded` for

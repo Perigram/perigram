@@ -3,7 +3,7 @@
 // renders one inferred typeList screen to string. Reproduces the renderer
 // choice and the class-level create-button resolution end to end.
 import { describe, expect, it, vi } from 'vitest';
-import { createSSRApp, h, watch } from 'vue';
+import { createSSRApp, h, ref, watch } from 'vue';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import { renderToString } from 'vue/server-renderer';
 import { createI18n } from 'vue-i18n';
@@ -18,6 +18,7 @@ import { useInstancesStore } from '~/stores/instances';
 
 globalThis.h = h;
 globalThis.watch = watch;
+globalThis.useState = (_key, init) => ref(typeof init === 'function' ? init() : init || {});
 globalThis.$fetch = vi.fn(async (url) => {
   if (String(url).startsWith('/api/auth/me')) return hydrationUser();
   // One real list row: the store's keyed pool must reach the generator as

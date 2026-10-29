@@ -4,7 +4,7 @@
 // shapes — a group with name + a ref field whose value rides
 // `relations.<name>` (SPEC §6), an item with label + json — and asserts
 // the rendered markup: the ref and summary columns exist, chips resolve
-// (no N/A badge), and the identifier-only type stays the bare list.
+// (no N/A badge), and the identifier-only type keeps the table.
 import { describe, expect, it, vi } from 'vitest';
 import { createSSRApp, h, ref, computed, watch, nextTick } from 'vue';
 import { createI18n, useI18n } from 'vue-i18n';
@@ -138,10 +138,10 @@ describe('relation-grammar collection columns (SSR)', () => {
     expect(html).toContain('Layouts');
   });
 
-  it('keeps the identifier-only type the bare list', async () => {
+  it('keeps the identifier-only type the table', async () => {
     const html = await render('queue');
     expect(html).toContain('Cutting');
-    expect(html).not.toContain('p-datatable-thead');
+    expect(html).toContain('p-datatable-thead');
     expect(html).not.toContain('N/A');
   });
 });

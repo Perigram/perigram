@@ -42,7 +42,7 @@ describe('random worlds', () => {
   });
 
   it('carry valid data traits and a resolved arrangement at every width step on every composed node', () => {
-    const BREADTHS = ['chip', 'content', 'full'];
+    const BREADTHS = ['content', 'full'];
     const GROWTH = ['flowing', 'bounded'];
     const SHAPES = ['plain', 'media', 'temporal', 'prose', 'measure', 'stateful'];
     const MODES = ['stack', 'columns', 'mixed', 'tabs', 'side'];

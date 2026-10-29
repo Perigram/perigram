@@ -72,8 +72,7 @@ export const FIELD_DISPLAY_ENTRIES = Object.freeze([
 
 // List-region layout entries: the presentation of a collection is a
 // resolver decision over the TYPE'S SHAPE, not a component branch or a
-// hand-picked type id. Shape keys come from analyzeTypeShape; `size` is
-// the caller's collection size class ('small' for handful-sized sets).
+// hand-picked type id. Shape keys come from analyzeTypeShape.
 // `boardable` is a derived signal like `shape`: the resolver composes it
 // from the process class, the caller's stateful option (a served state
 // vocabulary spanning at least BOARD_MIN_COLUMNS values), and flat
@@ -96,11 +95,6 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
   // collections lay out as the month grid; temporal shape beats size the
   // way chronology already does.
   { match: { shape: 'scheduled' }, layout: 'calendar' },
-  // A table with no data column beside identity (and status) is a name
-  // pile — the stacked rows of the list projection carry it. The
-  // display-aware signal subsumes the old handful-size rule: a small
-  // rich collection renders its data.
-  { match: { columns: 0 }, layout: 'list' },
   { match: {}, layout: 'table' }
 ]);
 
@@ -111,7 +105,7 @@ export const BOARD_MIN_COLUMNS = 2;
 
 // Known list-layout values: validates authored `render.listLayout` and
 // bounds the resolver vocabulary.
-export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'card-grid', 'timeline', 'stats', 'list', 'board', 'gantt', 'calendar']);
+export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'card-grid', 'timeline', 'stats', 'board', 'gantt', 'calendar']);
 
 // Collection thresholds live with the other design-system budgets so
 // materializations carry no magic numbers: tables paginate past
@@ -197,7 +191,7 @@ export const HOST_PROFILES = Object.freeze({
 
 // Data-trait derivations (SPEC → Data traits): layouts whose surfaces
 // demand the full row to stay readable; layouts whose surfaces own a
-// scroll or page bound past a budget; the bare stacked list is chip-scale.
+// scroll or page bound past a budget.
 export const FULL_BREADTH_LAYOUTS = Object.freeze(['table', 'board', 'gantt', 'calendar']);
 export const BOUNDED_GROWTH_LAYOUTS = Object.freeze(['table', 'board', 'gantt', 'calendar']);
 export const PAGINATED_GROWTH_LAYOUTS = Object.freeze(['card-grid', 'timeline']);

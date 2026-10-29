@@ -109,8 +109,10 @@ beside the transition history in `StateHistory`.
   region-owned model; the composed tree is persisted view state per type
   (`utils/ui-view-state.js`) and is evaluated with the one matcher
   (`instanceMatchesFilter`) against the region's pool. The region header
-  stays one line (label, count, controls, actions), wrapping only when
-  opened controls or the action cluster demand it. The projection switch
+  stays one line while the row has room (SPEC §22.15): the label yields
+  first through ellipsis, the controls cluster never wraps internally, and
+  the controls wrap below only when the label is at its floor and the
+  cluster still overflows the row. The projection switch
   is the one layout-shaped user view state, persisted per type beside sort
   and filters: a collection whose type serves a state vocabulary and whose
   derived layout is a structural collection (table) may switch to the
@@ -118,7 +120,7 @@ beside the transition history in `StateHistory`.
   header cluster; a stored preference for a non-switchable collection is
   ignored. A stored preference is the user's explicit view — the table
   floor governs the derivation alone. The switch stays clear of
-  shape-specialized projections (timeline, stats, the handful list).
+  shape-specialized projections (timeline, stats).
 
 ## Components
 
@@ -147,10 +149,10 @@ beside the transition history in `StateHistory`.
   share one host.
 - `RegionBlock.vue` — one composed region with data-driven layout: the
   list layout comes from `resolveListLayout` (`table` | `card-grid` |
-  `timeline` | `stats` | `list` | `board` | `gantt` | `calendar`; the
+  `timeline` | `stats` | `board` | `gantt` | `calendar`; the
   matcher is [shared/ui-mapping](../../shared/ui-mapping/README.md)'s).
-  The list header is one wrapping line — label, count, in-place controls,
-  actions (see above). List regions stack the header row and the
+  The list header stays one line while the row has room — label, count,
+  in-place controls, actions (SPEC §22.15, see above). List regions stack the header row and the
   collection surface (`RegionCollections.vue`, the one materialization of
   the layout switch embedded and standalone lists share) on the section
   rhythm; nested child regions arrange through `RegionChildren.vue` over
@@ -168,7 +170,7 @@ beside the transition history in `StateHistory`.
   A relation-scoped section's toolbar also renders the injected link
   actions for its relation (SPEC §22.12) beside the create set — the
   same-type link collapses to the bare "Link" — and its rows (every
-  projection, the bare list included) carry the relation's unlink
+  projection) carry the relation's unlink
   actions in their ellipsis menus, running against the parent record
   with the row's relation ref as payload. A class list region renders
   no link — the action addresses a concrete parent instance.
@@ -270,7 +272,9 @@ beside the transition history in `StateHistory`.
   screen's identity-open channel; the opened record's title is the
   header identity line below the trail.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
-  identifier (`InstanceIdentity`), status, budgeted scalar descriptor
+  identifier (`InstanceIdentity`) under the identifier field's label (a
+  type without an identifier field heads the column with the type label;
+  SPEC §22.15), status, budgeted scalar descriptor
   columns, the first declared relation as budgeted chips when any
   loaded instance carries its refs (the contract's `relationColumn` —
   an explicit edge or a declared ref field, whose stored value is the
@@ -432,15 +436,8 @@ beside the transition history in `StateHistory`.
   nested/nested-legacy state values stay readable. The raw value rides in
   the title attribute as the debugging channel.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
-  bare content column of a record page, `detail` → Card, `row` /
-  `inline` → dense flex row with the identifier, status, and one
-  budgeted fact (SPEC §22.8); the row fact of a declared ref field
-  reads either stored block (§6 law) and renders a chip; the row
-  identity is a link button
-  under the screen's `onOpen` contract, like every collection identity.
-  On a relation-scoped section the row carries the section's unlink
-  actions in its ellipsis menu (SPEC §22.12, the same run context the
-  table and card rows use).
+  bare content column of a record page, `detail` → Card. Both variants
+  render through `SurfaceDetailBody` under the identity line.
 - `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
   scalar facts strip (`DETAIL_FACT_BUDGET`, identifier-excluded — the
   title owns that value; collapsed behind one show-more control per
