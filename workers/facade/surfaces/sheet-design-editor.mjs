@@ -720,11 +720,17 @@ export default function createSurface({ vue, components, locale, queries, notify
           origin: canvasPoint(event),
           frame: { ...frame }
         };
+        if (typeof window !== 'undefined' && window.__sheetDragDebug) {
+          console.log('startSheetDrag', JSON.stringify(sheetDragState.value));
+        }
         svgRef.value?.setPointerCapture?.(event.pointerId);
       }
 
       function dragSheet(event) {
         const drag = sheetDragState.value;
+        if (typeof window !== 'undefined' && window.__sheetDragDebug) {
+          console.log('dragSheet tick', JSON.stringify({ has: Boolean(drag), id: drag?.id, pointer: drag?.pointerId, eventPointer: event.pointerId }));
+        }
         if (!drag || drag.pointerId !== event.pointerId) return;
         const point = canvasPoint(event);
         frameState.value = {
@@ -735,6 +741,9 @@ export default function createSurface({ vue, components, locale, queries, notify
             y: drag.frame.y + point.y - drag.origin.y
           }
         };
+        if (typeof window !== 'undefined' && window.__sheetDragDebug) {
+          console.log('dragSheet frame', JSON.stringify(frameState.value[drag.id]));
+        }
       }
 
       function finishSheetDrag(event) {
