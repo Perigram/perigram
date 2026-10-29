@@ -336,14 +336,19 @@ beside the transition history in `StateHistory`.
   (DataView, paginated): cards lay out in the shared `ResponsiveGrid`
   primitive with container
   queries and bounded item tokens (viewport breakpoints lie inside
-  panels). The card anatomy
+  panels), each Card clipped (`overflow-hidden`). The card anatomy
   follows the type's data shape through `cardAnatomyFor`
   ([shared/ui-mapping](../../shared/ui-mapping/README.md)):
-  the `tile` anatomy (a visual preview) renders the §22.13 instance
-  tile — `InstanceInlineRef` `variant="tile"` over the row's instance,
-  selectable when the screen carries an `onOpen` handler (the select
-  emission routes through the region's open contract), with the row's
-  ellipsis menu in the tile's trailing slot; the `plain` stack
+  the `tile` (visual preview, no card facts) carries the preview as the
+  whole card in `#header` with the identifier in a chip badge over the
+  media (`LAYOUT.mediaTileBadge` positioning over the chip surface's
+  `FILE_CHIP_CLASS` chrome) and status plus the row menu floating on
+  the media — the body slot stays hidden so no padded box trails it,
+  and the tile carries no parent-context line; the `side` anatomy
+  (visual preview with facts) lays the preview in one bounded framed
+  column (`LAYOUT.previewSide`) beside identity, status, the
+  `ParentRef` parent context, and the labeled budgeted facts; the
+  `plain` stack
   (every other type) renders the payload chip beside identity in
   `#title` (opening the payload download — the escape hatch for modes
   the viewer cannot render), the `ParentRef` context in `#subtitle`,
@@ -484,9 +489,10 @@ beside the transition history in `StateHistory`.
   chrome — images and sketch scenes fill the band at uniform scale,
   vector drawings (dxf/svg/occs) fit inside it, tables clip their rows,
   prose clamps, and dimension text renders big. The pane treatment
-  follows the content: prose flows at the body's measure (markdown
-  through the shared pipeline under its one element recipe, plain text
-  keeps breaks), the PDF renders at page scale (the column's width,
+  follows the content: prose renders as markdown at the body's measure
+  (the shared pipeline under its one element recipe — the text preview
+  mode is markdown like the text editor and agent answers), the PDF
+  renders at page scale (the column's width,
   MediaBox aspect with A4 fallback, viewer chrome hidden), and bounded
   media fill the framed region — contained rasters, fitting drawings,
   scrolling tables and Word documents. Fetch-backed

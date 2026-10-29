@@ -63,13 +63,15 @@ imported through server modules that Nitro externalizes.
   sources emit is its projection. Pure data and functions; the canonical
   contract lives in
   [instance-filters/README.md](./instance-filters/README.md).
-- `markdown.js`: The markdown document contract — `isMarkdownDocument`
-  (mime-or-filename detection) and `renderMarkdown` (source to sanitized
-  HTML, empty server-side) shared by the source editor and the read
-  viewer, plus `MARKDOWN_ELEMENT_CLASSES` (the one element-styles recipe
-  every HTML host of pipeline output wears — agent chat answers and file
-  payload previews mount the same recipe; a surface composing its own
-  element styles over pipeline output is a defect). Parsed as GFM with
+- `markdown.js`: The markdown document contract — `renderMarkdown`
+  (source to sanitized HTML, empty server-side) shared by the source
+  editor and the read viewer, plus `MARKDOWN_ELEMENT_CLASSES` (the one
+  element-styles recipe every HTML host of pipeline output wears —
+  agent chat answers and file payload previews mount the same recipe; a
+  surface composing its own element styles over pipeline output is a
+  defect). The `text` preview mode is markdown prose: its payload
+  renders through this pipeline like the text editor and agent answers.
+  Parsed as GFM with
   line breaks: a single newline is a hard
   break, the way GitHub-flavored documents and model answers read.
   Mermaid fences render as inline pele SVG diagrams; a fence that
