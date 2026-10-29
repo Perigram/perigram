@@ -1051,7 +1051,6 @@ label; a type that declares no identifier field heads the column with
 the type label. The table is the floor of the layout derivation: a
 collection whose loaded pool fills no data column beside identity keeps
 the table — the stacked identifier-only list projection is retired.
->>>>>>> agent/genui-fix-20261029
 
 
 ## 23. Deslopification (owner direction 2026-10-23)
