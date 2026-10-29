@@ -12,9 +12,12 @@ export const strokeDasharray = (pattern = 'SOLID') => {
 
 const sameId = (left, right) => left?.toString?.() === right?.toString?.();
 const standardCode = (standard) => standard?.fields?.code || null;
+// The standard's pen travels on the wire as the `defaultPen` relation;
+// projected rows (the platform store's shape) carry it in fields.
 const standardPenId = (standard) => (
   standard?.fields?.orgPenId ||
   standard?.fields?.defaultPenId ||
+  standard?.relations?.defaultPen?.id ||
   null
 );
 
@@ -50,7 +53,8 @@ const penStroke = (pen) => pen?.fields?.stroke || {};
 
 // Plugin pen base (owner law, occs/README): the shipped OCCS pen styles
 // every layer its registry covers; a resolved org standard/pen overrides
-// it, and unknown layers keep the layer's own style.
+// it — a standard whose pen does not resolve keeps the OCCS base — and
+// unknown layers keep the layer's own style.
 export const applyLayerPens = (drawing, options = {}) => {
   if (!drawing?.layers) return drawing;
   return {
@@ -58,7 +62,7 @@ export const applyLayerPens = (drawing, options = {}) => {
     layers: drawing.layers.map(layer => {
       const standard = resolveLayerStandard({ layerName: layer.name, standardCode: layer.standardCode, ...options });
       const pen = standard ? resolveStandardPen(standard, options.pens, null) : null;
-      const occsCode = !standard && (layer.standardCode || layer.name);
+      const occsCode = layer.standardCode || layer.name;
       const occsPen = occsCode && occsLayerStandard(occsCode) ? penForLayer(occsCode) : null;
       const fallbackStroke = penStroke(options.defaultPen || DEFAULT_DRAWING_PEN);
       const stroke = penStroke(pen);

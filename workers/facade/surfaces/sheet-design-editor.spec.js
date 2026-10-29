@@ -21,6 +21,7 @@ const InstanceInlineRefStub = (props, { slots }) => h('article', {
 const InstanceSelectStub = (props, { attrs }) => h('div', {
   'data-picker-type': props.typeId,
   'data-picker-value': props.modelValue === null || props.modelValue === undefined ? '' : String(props.modelValue),
+  'data-picker-options': (props.options || []).map(option => option.value).join(','),
   ...(attrs || {})
 });
 const ButtonStub = (props, { slots }) => h('button', {
@@ -28,7 +29,7 @@ const ButtonStub = (props, { slots }) => h('button', {
   'aria-label': props['aria-label'] || ''
 }, slots?.default ? slots.default() : null);
 
-function mountContext() {
+function mountContext({ queries } = {}) {
   return {
     vue: { h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent },
     components: {
@@ -37,7 +38,7 @@ function mountContext() {
       InstanceInlineRef: InstanceInlineRefStub, DesignerSurface: stub, DesignerWorkspace: renderAllSlots
     },
     locale: { t: key => key, te: () => true, locale: ref('en') },
-    queries: { list: async () => [] },
+    queries: queries || { list: async () => [] },
     notify: () => {},
     access: { canWrite: () => true },
     open: { instance: () => {} }
@@ -82,5 +83,46 @@ describe('sheet-design-editor surface mount', () => {
     // resets.
     expect(html).not.toContain('data-picker-value="null"');
     expect(html).toContain('data-picker-type="cassette-design"');
+  });
+
+  it('scopes the working set to the lineage family and lists no org pool', async () => {
+    const sheetQueryCalls = [];
+    const family = ['sibling-2', 'sibling-3'].map(id => ({
+      _id: id,
+      fields: { name: `Sibling ${id}` },
+      lineage: { familyId: 'parent-1' }
+    }));
+    const queries = {
+      list: async (typeId, params = {}) => {
+        if (typeId === 'sheet-design') sheetQueryCalls.push(params);
+        if (typeId === 'cassette-design') return [];
+        return family;
+      }
+    };
+    const opened = { ...record, lineage: { familyId: 'parent-1' } };
+    const surface = createSurface(mountContext({ queries }));
+    const app = createSSRApp(surface, { record: opened, persistence: { patch: async () => {}, rename: async () => {} } });
+    await renderToString(app);
+    // The family query rides the record's lineage keys — the only
+    // sheet-design read the editor ever issues.
+    await Promise.resolve();
+    expect(sheetQueryCalls).toEqual([{ 'lineage.familyId': 'parent-1' }]);
+  });
+
+  it('never queries a lineage-less record and edits it alone', async () => {
+    const sheetQueryCalls = [];
+    const queries = {
+      list: async typeId => {
+        if (typeId === 'sheet-design') sheetQueryCalls.push(typeId);
+        return [];
+      }
+    };
+    const surface = createSurface(mountContext({ queries }));
+    const app = createSSRApp(surface, { record, persistence: { patch: async () => {}, rename: async () => {} } });
+    const html = await renderToString(app);
+    await Promise.resolve();
+
+    expect(sheetQueryCalls).toEqual([]);
+    expect(html.match(/data-ref-variant="tile"/g)).toHaveLength(2);
   });
 });
