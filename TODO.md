@@ -3013,6 +3013,66 @@ above. E2E `sheet-editor-panel.spec.js` pins the panel (tiles,
 pick-to-add, pen strokes `#DC2626`/`#D97706` on the option-row
 preview) with the `.playwright/sheet-editor-panel.png` artifact.
 
+## Sheet editor family scope, rack, pens, and the id ban (owner direction 2026-10-29)
+
+Owner report: the sheet cards on the multi-sheet canvas are slop (one
+centralized procedural row); the editor offers "add all sheets" from
+the whole org pool; it should edit the child sheets of entities
+instead. Cassette previews in the sheet editor's design picker still
+miss layer standards. Raw record ids leaked onto cards — strictly
+prohibited.
+
+- [x] WAITING — owner verification: the working set is the opened
+  record's lineage family (declared containment keys scope the list
+  transport's lineage filters; the family joins beside the opened
+  record; a lineage-less record edits alone) — the sheet-design picker
+  and add-all offer family members only; the org-wide pool query is
+  gone (facade SPEC, owner decision 2026-10-29).
+- [x] WAITING — owner verification: the family canvas is a wrapped
+  rack — a sheet moves by its label band, rotates a quarter turn about
+  its center from its action dial, placements ride in sheet-local
+  frames (rotation preserved through moves).
+- [x] WAITING — owner verification: layer-standard pens resolve the
+  org `defaultPen` relation over the OCCS base, and a standard whose
+  pen does not resolve keeps the base for its code (the plugin's
+  `applyLayerPens`; pins in `surfaces/lib/drawingPreview.spec.js`, e2e
+  pins the org pen on the picker preview and the placed geometry).
+- [x] WAITING — owner verification: no surface renders raw record ids
+  — `TraceLink` falls back to the entity type label when an ancestor's
+  name never resolves (the shared README's trace law), the cassette
+  designer's load rows read as unnamed (e2e sweeps the editor for
+  24-hex text with a deleted parent dangling the lineage).
+- [x] WAITING — owner verification: the cassette designer's load picker
+  lists templates again (the surface queried the retired `cassette`
+  type id; the picker was empty and
+  `e2e/cassette-load-previews.spec.js` red).
+- [ ] The demo order process composes sheet-design children under its
+  nesting attempt and constructs them from the solve output
+  (lineage-keyed family; the editor scope above rides it) — flow
+  authoring follow-up in `test-data/order-process-authoring.js`.
+
+### Agent Notes (2026-10-29, family round)
+
+Session `agent/sheet-family-20261029` (worktree
+`.agent-worktrees/sheet-family-20261029`). The id leak's carrier:
+`TraceLink` rendered `label || fallbackLabel || id`, so any lineage
+ancestor whose name failed to resolve (the owner org's sheets carry
+`nestingAttemptId` parents that are deleted) printed the raw 24-hex id
+on every tile — the shared README already banned it. The pens gap: the
+plugin's `applyLayerPens` read the standard's pen from `fields`
+(`orgPenId`/`defaultPenId`) while the wire row carries
+`relations.defaultPen`, and a standard row that resolved without a pen
+skipped the OCCS base — the covered code rendered `currentColor`
+(probed: canvas placement `currentColor` while fold kept `#D97706`).
+The rack replaces the single accumulating row; `frameState` holds
+per-sheet `{x, y, rotation}`, `reflowSheets()` wraps new sheets into a
+near-square grid, hit tests invert the frame rotation. E2E
+`sheet-editor-panel.spec.js` rewritten: lineage-less editing, family
+join with an org-declared `probe-family` parent (children edge
+`lineageKey: familyId`), stranger sheet never offered, remove/re-add
+through the picker, move by label band, rotate via dial, deleted
+parent leaves the type label.
+
 ## Card-grid media tile and markdown text preview (owner direction 2026-10-29)
 
 Owner report: the identifier-plus-preview card shape lost its full-size

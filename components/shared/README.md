@@ -837,6 +837,8 @@ transcription stay in the host composer.
   declare; non-process routes may use canonical domain containment.
   Trace labels must resolve to entity display names from context or the entity
   store; raw lineage ids are link targets only and must not be shown as labels.
+  An ancestor whose name never resolves (a deleted or unreadable parent)
+  renders its entity type label in the slot.
   Trace links must route through the represented entity surface. In active
   process mode they resolve through the user's effective generated screen
   manifest and use the same `/screens/:screenKey?instanceId=...` detail contract
