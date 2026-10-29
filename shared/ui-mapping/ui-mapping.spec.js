@@ -139,7 +139,7 @@ describe('field control resolution', () => {
     });
   });
 
-  it('resolves list layouts from type shape, size, and overrides', () => {
+  it('resolves list layouts from type shape and overrides', () => {
     const prose = { class: 'file', fields: { body: { base: 'string', max: 400 } } };
     const numeric = { class: 'item', fields: {
       load: { base: 'quantity', unit: 'percent' },
@@ -153,9 +153,6 @@ describe('field control resolution', () => {
     expect(resolveListLayout(prose)).toBe('timeline');
     expect(resolveListLayout(numeric)).toBe('stats');
     expect(resolveListLayout(media)).toBe('card-grid');
-    // A small rich collection renders its data — size alone demotes
-    // nothing; the columns floor owns name piles.
-    expect(resolveListLayout(plain, { columns: 4 })).toBe('table');
     expect(resolveListLayout(plain)).toBe('table');
     const mapping = createUiMapping({
       listLayouts: [{ match: { type: 'probe' }, layout: 'timeline' }]
@@ -163,25 +160,23 @@ describe('field control resolution', () => {
     expect(mapping.resolveListLayout({ id: 'probe', class: 'item', fields: plain.fields })).toBe('timeline');
   });
 
-  it('demotes a table with no data column to the list projection', () => {
-    // Only the identifier field (plus a state vocabulary at most): a
-    // table would carry names alone. A filled non-identifier scalar or a
-    // FILLED relation column earns the table; a declared relation
-    // nothing fills renders no column and counts none.
+  it('keeps the table for identifier-only collections', () => {
+    // SPEC §22.14: a collection with no data column beside identity keeps
+    // the table — no projection degrades on unfilled data.
     const namesOnly = { class: 'item', identifier: 'name', fields: { name: { base: 'string' } } };
-    expect(resolveListLayout(namesOnly, { columns: 0 })).toBe('list');
-    expect(resolveListLayout(namesOnly, { columns: 0, stateful: true })).toBe('list');
-    expect(resolveListLayout(namesOnly, { columns: 1 })).toBe('table');
-    expect(resolveListLayout(namesOnly, {})).toBe('table');
+    expect(resolveListLayout(namesOnly)).toBe('table');
+    expect(resolveListLayout(namesOnly, { stateful: true })).toBe('table');
   });
 
-  it('derives the columns signal display-aware: unfilled relations count nothing', () => {
+  it('derives relation columns display-aware: unfilled relations render no column', () => {
     const relational = { class: 'item', identifier: 'name', fields: { name: { base: 'string' } }, edges: { relations: { docs: { types: ['x'] } } } };
     const bare = Array.from({ length: 4 }, (_, i) => ({ id: String(i), fields: { name: `A${i}` }, relations: {} }));
     const filled = bare.map((instance, i) => (i === 0
       ? { ...instance, relations: { docs: [{ type: 'x', id: '9' }] } }
       : instance));
-    expect(listLayoutOf({ surfaceKind: 'list', type: relational, instances: bare })).toBe('list');
+    expect(resolveListControls(relational, bare).relationColumn).toBe(null);
+    expect(resolveListControls(relational, filled).relationColumn).toEqual({ key: 'docs' });
+    expect(listLayoutOf({ surfaceKind: 'list', type: relational, instances: bare })).toBe('table');
     expect(listLayoutOf({ surfaceKind: 'list', type: relational, instances: filled })).toBe('table');
   });
 
@@ -890,8 +885,8 @@ describe('weight-driven arrangement', () => {
     });
     expect(detail).toEqual({ weight: 2, breadth: 'content', volume: 1, shape: 'plain', filledness: 'filled', growth: 'flowing' });
     // The default list projection is the full-breadth, bounded-growth
-    // table; the handful list is chip-scale and flowing. The instances
-    // fill the scalar field — a table derives over a shown data column.
+    // table. The instances fill the scalar field — a table derives over a
+    // shown data column.
     const tableTraits = count => regionDataTraits({
       surfaceKind: 'list',
       type: { fields: { a: { base: 'string' } } },
@@ -901,14 +896,13 @@ describe('weight-driven arrangement', () => {
     // A small filled collection keeps the table projection.
     expect(tableTraits(2).breadth).toBe('full');
     expect(tableTraits(2).growth).toBe('bounded');
-    // No filled non-identifier scalar and no declared relation: the table
-    // demotes to the list projection (chip-scale, flowing) — a table with
-    // no data column beside identity is a name pile.
+    // No filled non-identifier scalar: the table stays the table (SPEC
+    // §22.14) — no projection degrades on unfilled data.
     expect(regionDataTraits({
       surfaceKind: 'list',
       type: { fields: { a: { base: 'string' } } },
       instances: Array.from({ length: 6 }, (_, i) => ({ id: String(i), relations: {} }))
-    })).toMatchObject({ breadth: 'chip', growth: 'flowing' });
+    })).toMatchObject({ breadth: 'full', growth: 'bounded' });
     expect(regionDataTraits({ surfaceKind: 'list', type: { fields: { a: { base: 'string' } } }, instances: [] }).filledness).toBe('inert');
     const mediaTraits = count => regionDataTraits({
       surfaceKind: 'list',
@@ -1080,11 +1074,11 @@ describe('instance-aware list controls', () => {
     expect(resolveListControls(refField, asRefs).relationColumn).toEqual({ key: 'table' });
     expect(resolveListControls(refField, bare).relationColumn).toEqual({ key: 'table' });
     expect(resolveListControls(refField, asRefs.map(row => ({ ...row, relations: {} }))).relationColumn).toBeNull();
-    // A filled ref field alone earns the table: the collection is not a
-    // name pile.
     expect(listLayoutOf({ surfaceKind: 'list', type: refField, instances: asRefs })).toBe('table');
     expect(listLayoutOf({ surfaceKind: 'list', type: refField, instances: bare })).toBe('table');
-    expect(listLayoutOf({ surfaceKind: 'list', type: refField, instances: asRefs.map(row => ({ ...row, relations: {} })) })).toBe('list');
+    // SPEC §22.14: an unfilled pool keeps the table — no projection
+    // degrades on empty data.
+    expect(listLayoutOf({ surfaceKind: 'list', type: refField, instances: asRefs.map(row => ({ ...row, relations: {} })) })).toBe('table');
   });
 
   it('carries the structural summary column for a filled json/record/map field', () => {
@@ -1096,9 +1090,8 @@ describe('instance-aware list controls', () => {
     expect(resolveListControls(structural, rows(true)).summaryColumn).toEqual({ key: 'result' });
     expect(resolveListControls(structural, rows(false)).summaryColumn).toBeNull();
     expect(resolveListControls(structural, [{ id: '1', fields: { label: 'A', result: {} }, relations: {} }]).summaryColumn).toBeNull();
-    // Structural data is data: a filled summary field earns the table.
     expect(listLayoutOf({ surfaceKind: 'list', type: structural, instances: rows(true) })).toBe('table');
-    expect(listLayoutOf({ surfaceKind: 'list', type: structural, instances: rows(false) })).toBe('list');
+    expect(listLayoutOf({ surfaceKind: 'list', type: structural, instances: rows(false) })).toBe('table');
   });
 
   it('carries one children column per declared edge, filled edges only', () => {

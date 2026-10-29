@@ -11,15 +11,19 @@
     />
   </div>
   <div v-else-if="node.surfaceKind === 'list'" :class="[listStack, listWidth]">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <div class="flex min-w-0 flex-wrap items-center gap-2">
-        <span :class="embedded ? 'text-label min-w-0 truncate' : 'text-section-heading'">{{ regionLabel }}</span>
+    <!-- SPEC §22.14: the header stays one line while the row has room —
+         the label yields first (ellipsis), the controls cluster never
+         wraps internally, and wrapping happens only when the label is at
+         its floor and the controls still overflow the row. -->
+    <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
+      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        <span :class="['min-w-0 truncate', embedded ? 'text-label' : 'text-section-heading']">{{ regionLabel }}</span>
         <!-- SPEC §22.8: the count renders only for loaded, accessible,
              non-empty collections — a denied or failed source has no
              count, and an empty one states itself through its message. -->
-        <Tag v-if="showSurfaces && hasInstances" :value="String(node.instances.length)" severity="secondary" />
+        <Tag v-if="showSurfaces && hasInstances" class="shrink-0" :value="String(node.instances.length)" severity="secondary" />
       </div>
-      <div v-if="createControls.length || searchToggleAvailable || facetsToggleAvailable" class="flex min-w-0 flex-wrap items-center justify-end gap-2">
+      <div v-if="createControls.length || searchToggleAvailable || facetsToggleAvailable" class="flex shrink-0 flex-wrap items-center justify-end gap-2">
         <!-- Search expands IN PLACE: the icon button becomes an icon field
              at the same position; the icon or Esc collapses it back (an
              empty blur collapses too). -->

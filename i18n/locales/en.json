@@ -1866,7 +1866,6 @@
         "searchPlaceholder": "Search",
         "dialogSubmit": "Create",
         "dialogCancel": "Cancel",
-        "identityColumn": "Record",
         "statusColumn": "Status",
         "seedLabel": "Seed",
         "randomize": "Reroll world",
