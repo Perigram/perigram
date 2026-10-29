@@ -41,7 +41,7 @@
                 :label="identityOf(instance)"
                 :icon="iconFor(type, instance) || undefined"
                 :pt="CHIP_LABEL_PT"
-                :class="[LAYOUT.mediaTileBadge, { 'cursor-pointer': openable }]"
+                :class="[LAYOUT.mediaTileBadge, INSTANCE_CHIP_CLASS, { 'cursor-pointer': openable }]"
                 :title="identityOf(instance)"
                 :role="openable ? 'button' : undefined"
                 :tabindex="openable ? 0 : undefined"
@@ -204,7 +204,7 @@ import PreviewBox from './PreviewBox.vue';
 import ParentRef from './ParentRef.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
 import FileChip from '~/components/shared/FileChip.vue';
-import { CHIP_LABEL_PT } from '~/components/shared/chip-surface.js';
+import { CHIP_LABEL_PT, INSTANCE_CHIP_CLASS } from '~/components/shared/chip-surface.js';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { generatedActionLabel } from '~/utils/generated-labels.js';
 const spacing = inject('uiMappingSpacing', null);
