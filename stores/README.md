@@ -69,7 +69,11 @@ Three cells; every surface derives from them, nothing else caches:
   store, never the edge's authoring map key), and
   `projectedDomain` — the compiler-domain projection over the bundle (the
   same projection the server compiles with) consumed by client access
-  previews so the resolver behaves exactly like auth hydration. The store
+  previews so the resolver behaves exactly like auth hydration; the
+  registry re-stamps org-scoped types with the bundle root's
+  `organizationId` (the serialization carries it once, and an org type
+  without its org never enters the tenancy view, so it would project
+  nothing). The store
   also registers the declaration-derived field-access policies
   (`registerDeclarationFieldAccess`) into the shared display-access
   resolver: bundle types outside the hardcoded domain table get their fact-row
