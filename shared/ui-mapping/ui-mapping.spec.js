@@ -31,6 +31,7 @@ import {
   tableColumnCount,
   cardFactCount,
   cardVariantFor,
+  cardAnatomyFor,
   applyBudget,
   SEVERITY_MAP,
   ROW_FIELD_BUDGET,
@@ -345,6 +346,24 @@ describe('field control resolution', () => {
     expect(cardFactCount(wide)).toBe(5);
     expect(cardFactCount(narrow)).toBe(2);
     expect(cardVariantFor({ class: 'file', payload: { preview: 'image' }, fields: {} })).toBe('media');
+  });
+
+  it('derives the card anatomy from the type data shape', () => {
+    const identifierOnly = { id: 'shot', identifier: 'name', fields: { name: { base: 'string', identifier: true } }, payload: { preview: 'image' } };
+    expect(cardAnatomyFor(identifierOnly)).toBe('tile');
+    const factful = {
+      ...identifierOnly,
+      fields: { name: { base: 'string', identifier: true }, pages: { base: 'number' } }
+    };
+    expect(cardAnatomyFor(factful)).toBe('side');
+    expect(cardAnatomyFor({ ...identifierOnly, payload: { preview: 'download' } })).toBe('plain');
+    expect(cardAnatomyFor({ id: 'part', identifier: 'name', fields: { name: { base: 'string', identifier: true }, width: { base: 'number' } } })).toBe('plain');
+    const declared = { id: 'design', identifier: 'name', fields: { name: { base: 'string', identifier: true } }, previewSource: { display: 'geometry' } };
+    expect(cardAnatomyFor(declared)).toBe('tile');
+    // Long text is prose, never a card fact: a preview type whose only
+    // other field is long text stays the overlay tile.
+    const prose = { ...identifierOnly, fields: { name: { base: 'string', identifier: true }, body: { base: 'string', multiline: true } } };
+    expect(cardAnatomyFor(prose)).toBe('tile');
   });
 
   it('lets app overrides with narrow matchers win by specificity', () => {

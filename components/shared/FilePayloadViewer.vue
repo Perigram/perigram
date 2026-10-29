@@ -55,11 +55,15 @@
       </DataTable>
     </TableFrame>
     <!-- Text is record prose: it flows at the body's measure — markdown
-         through the shared pipeline (shared/markdown.js), plain text
-         keeps breaks. Card bands clamp. -->
+         through the shared pipeline (shared/markdown.js) under the one
+         element recipe, plain text keeps breaks. Card bands clamp. -->
     <div v-else-if="hasFile && mode === 'text' && ready" :class="variant === 'card' ? 'h-full overflow-hidden p-4 text-prose' : 'text-prose'">
       <!-- eslint-disable-next-line vue/no-v-html -- sanitized below -->
-      <div v-if="renderedMarkdown" :class="variant === 'card' ? 'line-clamp-[12] break-words' : 'break-words'" v-html="renderedMarkdown" />
+      <div
+        v-if="renderedMarkdown"
+        :class="[MARKDOWN_ELEMENT_CLASSES, 'break-words', variant === 'card' ? 'line-clamp-[12]' : '']"
+        v-html="renderedMarkdown"
+      />
       <p v-else :class="variant === 'card' ? 'line-clamp-[12] m-0 whitespace-pre-wrap break-words' : 'm-0 whitespace-pre-wrap break-words'">{{ text }}</p>
     </div>
     <StateBlock v-else-if="hasFile && asyncMode && pending" state="loading" />
@@ -78,7 +82,7 @@ import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { TABLE_PAGE_ROWS } from '#shared/ui-mapping/index.js';
-import { isMarkdownDocument, renderMarkdown } from '#shared/markdown.js';
+import { MARKDOWN_ELEMENT_CLASSES, isMarkdownDocument, renderMarkdown } from '#shared/markdown.js';
 
 // The file-instance payload viewer: `source` is `{ mode, fileUrl,
 // attachment }` resolved from the type's payload preview policy

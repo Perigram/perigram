@@ -12,7 +12,7 @@
   <FilePayloadViewer
     v-else-if="hasRenderablePayload"
     :source="{ mode: preview.mode, fileUrl, attachment: payload }"
-    :variant="fill ? 'pane' : 'card'"
+    :variant="viewerVariant"
     :class="bandClass"
   />
   <DrawingCanvas
@@ -56,12 +56,14 @@ const props = defineProps({
   // accepts the stored shapes (layer/polygon part lists, pre-built
   // drawings).
   previewSource: { type: null, default: null },
-  // Fill the host band instead of the fixed-height stamp: the record
-  // body's stepped hero band (LAYOUT.previewHeroBand) sizes the slot.
-  fill: { type: Boolean, default: false }
+  // The slot this box fills: `band` sizes its own fixed-height stamp,
+  // `stamp` fills a caller-sized box with the card treatment, `pane`
+  // fills the record body's framed hero band with the detail treatment.
+  variant: { type: String, default: 'band' }
 });
 
-const bandClass = computed(() => (props.fill ? 'h-full w-full' : LAYOUT.previewBand));
+const bandClass = computed(() => (props.variant === 'band' ? LAYOUT.previewBand : 'h-full w-full'));
+const viewerVariant = computed(() => (props.variant === 'pane' ? 'pane' : 'card'));
 
 const preview = computed(() => resolvePreview(props.type || {}));
 const typeId = computed(() => String(props.type?.id || ''));
