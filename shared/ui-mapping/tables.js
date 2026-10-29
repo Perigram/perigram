@@ -327,11 +327,11 @@ export const LAYOUT = Object.freeze({
   panelBody: 'py-2',
   previewBand: 'h-28 w-full',
   // File-card anatomies: a visual preview with no card facts renders the
-  // overlay tile — the preview is the card and the identifier rides it in
-  // chip badge on the media; a visual preview with facts renders the
-  // side-preview card — the preview is a bounded framed column.
+  // overlay tile — the preview is the card and the identifier chip rides
+  // its corner; a visual preview with facts renders the side-preview
+  // card — the preview is a bounded framed column.
   mediaTile: 'relative h-40 w-full',
-  mediaTileBadge: 'absolute bottom-2 left-2 inline-flex items-center gap-2 rounded-ui px-2 py-1',
+  mediaTileBadge: 'absolute bottom-2 left-2 min-w-0 max-w-[calc(100%-1rem)]',
   mediaTileControls: 'absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2',
   previewSide: 'min-h-28 w-28 shrink-0 self-stretch overflow-hidden rounded-ui border border-chrome-border bg-subtle',
   // Board projection: the horizontal column rail and the column bodies.
