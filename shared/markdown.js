@@ -59,3 +59,7 @@ export function renderMarkdown(source = '') {
 // that mounts the pipeline's sanitized HTML (agent answers, file
 // payload previews) wears it and reads like the editor.
 export const MARKDOWN_ELEMENT_CLASSES = 'ck-markdown-body';
+
+// The card-band modifier: bounded card media (tiles, thumbs, peeks)
+// read the pipeline's HTML at compact scale.
+export const MARKDOWN_COMPACT_CLASS = 'ck-markdown-body--compact';

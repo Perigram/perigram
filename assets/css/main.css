@@ -789,3 +789,55 @@ body {
     max-width: 100%;
     vertical-align: bottom;
 }
+
+/* The card-band scale: bounded card media (tiles, thumbs, peeks) read
+   the pipeline's HTML at compact scale; reading surfaces keep the
+   document scale. */
+.ck-markdown-body--compact {
+    font-size: 0.875rem;
+}
+
+.ck-markdown-body--compact h1,
+.ck-markdown-body--compact h2,
+.ck-markdown-body--compact h3,
+.ck-markdown-body--compact h4,
+.ck-markdown-body--compact h5,
+.ck-markdown-body--compact h6 {
+    margin-top: 8px;
+}
+
+.ck-markdown-body--compact h1,
+.ck-markdown-body--compact h2 {
+    font-size: 1.25em;
+    line-height: 1.3;
+}
+
+.ck-markdown-body--compact h3,
+.ck-markdown-body--compact h4 {
+    font-size: 1.125em;
+    line-height: 1.35;
+}
+
+.ck-markdown-body--compact h5,
+.ck-markdown-body--compact h6 {
+    font-size: 1em;
+    line-height: 1.4;
+}
+
+.ck-markdown-body--compact p {
+    padding: 1px 0;
+}
+
+.ck-markdown-body--compact blockquote {
+    margin: 2px 0;
+    padding-left: 12px;
+}
+
+.ck-markdown-body--compact hr {
+    padding: 3px 0;
+    height: 7px;
+}
+
+.ck-markdown-body--compact li {
+    padding: 1px 0;
+}

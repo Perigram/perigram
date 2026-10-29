@@ -490,7 +490,7 @@ beside the transition history in `StateHistory`.
   treatment fills its band with no own border, because the host owns the
   chrome — images and sketch scenes fill the band at uniform scale,
   vector drawings (dxf/svg/occs) fit inside it, tables clip their rows,
-  prose clamps, and dimension text renders big. The pane treatment
+  prose rides the card-band compact scale and clamps, and dimension text renders big. The pane treatment
   follows the content: prose renders as markdown at the body's measure
   (the shared pipeline under its one element recipe — the text preview
   mode is markdown like the text editor and agent answers), the PDF

@@ -62,7 +62,7 @@
       <!-- eslint-disable-next-line vue/no-v-html -- sanitized below -->
       <div
         v-if="renderedMarkdown"
-        :class="[MARKDOWN_ELEMENT_CLASSES, 'break-words', variant === 'card' ? 'line-clamp-[12]' : '']"
+        :class="[MARKDOWN_ELEMENT_CLASSES, 'break-words', variant === 'card' ? [MARKDOWN_COMPACT_CLASS, 'line-clamp-[12]'] : '']"
         v-html="renderedMarkdown"
       />
       <p v-else :class="variant === 'card' ? 'line-clamp-[12] m-0 whitespace-pre-wrap break-words' : 'm-0 whitespace-pre-wrap break-words'">{{ text }}</p>
@@ -83,7 +83,7 @@ import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { TABLE_PAGE_ROWS } from '#shared/ui-mapping/index.js';
-import { MARKDOWN_ELEMENT_CLASSES, renderMarkdown } from '#shared/markdown.js';
+import { MARKDOWN_ELEMENT_CLASSES, MARKDOWN_COMPACT_CLASS, renderMarkdown } from '#shared/markdown.js';
 
 // The file-instance payload viewer: `source` is `{ mode, fileUrl,
 // attachment }` resolved from the type's payload preview policy

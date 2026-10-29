@@ -70,8 +70,11 @@ imported through server modules that Nitro externalizes.
   [assets/css/main.css](../assets/css/main.css) carrying the markdown
   editor's reading typography; every HTML host of pipeline output wears
   it — agent chat answers and file payload previews read like the
-  editor). The `text` preview mode is markdown prose: its payload
-  renders through this pipeline like the text editor and agent answers.
+  editor) and `MARKDOWN_COMPACT_CLASS` (the card-band modifier:
+  bounded card media — tiles, thumbs, peeks — read the same HTML at
+  compact scale). The `text` preview mode is markdown prose: its
+  payload renders through this pipeline like the text editor and agent
+  answers.
   Parsed as GFM with
   line breaks: a single newline is a hard
   break, the way GitHub-flavored documents and model answers read.
