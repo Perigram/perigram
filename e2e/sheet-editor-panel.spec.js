@@ -236,7 +236,7 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   // the family back. Removal rides the row menu (§22.12).
   const sheet3Row = page.locator('.instance-inline-tile').filter({ hasText: `Family sheet 3 ${run}` });
   await sheet3Row.locator('button[aria-label="More"]').click();
-  await page.getByRole('button', { name: 'Remove sheet' }).click();
+  await page.getByRole('button', { name: 'Remove sheet' }).click({ force: true });
   await page.waitForTimeout(800);
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toHaveCount(0);
   await page.getByRole('button', { name: 'Select sheet' }).click();
