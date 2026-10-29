@@ -10,6 +10,7 @@ import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.v
 import HoverPeek from '~/components/shared/HoverPeek.vue';
 import ActionButton from '~/components/ui-mapping/ActionButton.vue';
 import { useInstancesStore } from '~/stores/instances';
+import { useRegistryStore } from '~/stores/registry';
 import { normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
@@ -37,6 +38,9 @@ const props = defineProps({
 
 const loaded = ref(null);
 const instances = useInstancesStore();
+// The registry touch keeps the declaration-derived display-access
+// registration alive for the peek's and micro card's fact rows.
+useRegistryStore();
 const { t, te } = useI18n();
 const entityContext = inject('entityContext', null);
 const generatedExecuteAction = inject('generatedExecuteAction', null);
