@@ -353,7 +353,9 @@ test.describe('fill dialog rails (SPEC §24, owner direction 2026-10-28)', () =>
       '0', 'ENDSEC', '0', 'EOF'
     ].join('\n');
     const fileChooser = app.page.waitForEvent('filechooser');
-    await dialog.locator('.p-dialog-content').getByRole('button', { name: 'Create', exact: true }).last().click();
+    // The reference-slot create names the created type (a11y disambiguation
+    // from the footer's Create); the parts row's is the last one.
+    await dialog.locator('.p-dialog-content').getByRole('button', { name: 'Create DXF source', exact: true }).last().click();
     await app.page.getByRole('menuitem', { name: /Upload/ }).click();
     const chooser = await fileChooser;
     await chooser.setFiles({ name: 'alpha.dxf', mimeType: 'application/dxf', buffer: Buffer.from(partText) });
