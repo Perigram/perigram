@@ -122,6 +122,22 @@ const peekDataFields = computed(() => peekDisplay.value.fields.filter(field =>
   && field.role !== 'previewSource'
 ));
 const PEEK_FACT_LIMIT = 8;
+// The peek speaks the live record: a ref may carry a slim message
+// snapshot, so the pool's cached field-bearing DTO (or its on-show
+// readable-reference resolution) stands in for the snapshot.
+const peekHydrated = ref(null);
+const peekEntity = computed(() => {
+  const cached = instances.dtoFor(generatedTypeId.value, resolvedId.value);
+  return [peekHydrated.value, cached].find(dto => dto?.fields && Object.keys(dto.fields).length) || resolved.value;
+});
+async function onPeekShow() {
+  if (!props.fetch || !resolvedId.value) return;
+  const cached = instances.dtoFor(generatedTypeId.value, resolvedId.value);
+  if (cached?.fields && Object.keys(cached.fields).length) return;
+  peekHydrated.value = await instances
+    .resolveReadableReference(instances.canonicalTypeKey(props.type), resolvedId.value, { silent: true })
+    .catch(() => null);
+}
 // The micro card earns its box: it renders only when the type's compact
 // surface carries something to show beside identity — a preview band or
 // compact fact rows. Preview-less, fact-less relations render as the
@@ -337,7 +353,7 @@ function executeContextualAction(action) {
       <!-- The identity chip is the popup trigger and the peek trigger:
            hover raises the record peek (SPEC §22.14), click opens the
            record popup. -->
-      <HoverPeek v-else-if="resolved" :enabled="interactive">
+      <HoverPeek v-else-if="resolved" :enabled="interactive" @show="onPeekShow">
         <template #default="{ peekEvents }">
           <Chip
             v-on="peekEvents"
@@ -359,7 +375,7 @@ function executeContextualAction(action) {
             class="instance-preview-slot block h-28 w-full overflow-hidden rounded-ui border border-content-border bg-subtle"
           >
             <InstancePreview
-              :entity="resolved"
+              :entity="peekEntity"
               :type-id="generatedTypeId"
               :mode="peekDisplay.surfaceContract.preview"
               fill
@@ -380,7 +396,7 @@ function executeContextualAction(action) {
             <DataBlock
               v-if="peekDataFields.length"
               :type-id="generatedTypeId"
-              :entity="resolved"
+              :entity="peekEntity"
               :fields="peekDataFields"
               :field-limit="PEEK_FACT_LIMIT"
               variant="compact"
