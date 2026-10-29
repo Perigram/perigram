@@ -721,7 +721,11 @@ export default function createSurface({ vue, components, locale, queries, notify
           frame: { ...frame }
         };
         if (typeof window !== 'undefined' && window.__sheetDragDebug) {
-          console.log('startSheetDrag', JSON.stringify(sheetDragState.value));
+          console.log('startSheetDrag', JSON.stringify({
+            id: sheetDragState.value.id,
+            name: sheetDragState.value.frame && entry.record?.fields?.name,
+            frame: sheetDragState.value.frame
+          }));
         }
         svgRef.value?.setPointerCapture?.(event.pointerId);
       }
