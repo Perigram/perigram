@@ -403,11 +403,11 @@ beside the transition history in `StateHistory`.
   machine transitions arrive as `{ __runtime, state: { to }, intent,
   region }` from the page's state-service fetch and their
   labels/severity/icons resolve from the same policy map. The header is
-  its own layout container: the identity/action row engages from the
-  header container width through the scoped CSS block (headers render
-  inside panels and detail child stacks); long names truncate through the
-  `min-w-0` chain and wide headers floor the title at 16rem so a large
-  action cluster wraps below the identity.
+  its own layout container through the named `.ck-record-header` recipe
+  (the global stylesheet, referenced from LAYOUT — headers render
+  inside panels and detail child stacks); long names truncate through
+  the `min-w-0` chain and wide headers floor the identity at 16rem so a
+  large action cluster wraps below the identity.
 - `StateTag.vue` — the segmented state tag: one materialization of the
   mapping contract's `stateDisplayFor`. Flat values render as a single Tag
   styled by the authored severity/icon; dotted values render as a path —

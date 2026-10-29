@@ -626,14 +626,15 @@ tokens) and card grids run through the shared `ResponsiveGrid` primitive
 (container queries).
 Container-relative layout that Tailwind variants cannot express (the
 build ships no container-queries plugin, so `@container`/`@[w]:` classes
-silently compile to nothing) lives in real CSS through two sanctioned
-homes: record headers (scoped CSS in `SurfaceHeader`, which declares its
-own `container-type`; wide headers lay identity and actions on one
-wrapping row with a 16rem title floor — long names still truncate
-through the `min-w-0` chain — narrow headers stack, with at most
-`HEADER_ACTIONS_INLINE` generated buttons inline before the ellipsis
-overflow menu) and the global stylesheet utilities in
-`assets/css/main.css`: the form grid (`LAYOUT.formGrid` names
+silently compile to nothing) lives as named recipes in the global
+stylesheet, `assets/css/main.css`, referenced through LAYOUT tokens:
+record headers (`LAYOUT.header`/`headerRow`/`headerIdentity` name
+`.ck-record-header*`: the header declares its own `container-type`;
+wide headers lay identity and actions on one wrapping row with a 16rem
+identity floor — long names still truncate through the `min-w-0` chain —
+narrow headers stack, with at most `HEADER_ACTIONS_INLINE` generated
+buttons inline before the ellipsis overflow menu), the form grid
+(`LAYOUT.formGrid` names
 `.ck-form-grid`: one column under 40rem of container width, two above;
 full-span rows opt in with `.ck-span-full`), the record body's fill grids
 (`LAYOUT.factsGrid`/`LAYOUT.bodyGrid`: content width is the floor and the
