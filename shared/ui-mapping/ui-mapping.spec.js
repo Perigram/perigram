@@ -554,14 +554,14 @@ describe('action launch plan', () => {
     expect(planActionLaunch({ actionKind: 'runCommand' })).toBe('run');
   });
 
-  it('derives the construct re-run from a constructed record\'s provenance (SPEC §24)', () => {
+  it('derives the construct re-run from a derived record\'s provenance (SPEC §24)', () => {
     const actions = {
       fill: { id: 'fill', actionKind: 'createInstance', typeId: 'pdf-document', label: 'New Report from Fill', access: { level: 'write' } },
       other: { id: 'other', actionKind: 'deleteInstance', typeId: 'pdf-document' }
     };
     const rerun = constructRerunAction(actions, {
       type: 'pdf-document',
-      provenance: { op: 'cts.construct:fill:fill', sources: [] }
+      provenance: { op: 'cts.construct:fill:fill', sources: [{ type: 'pdf-document', id: 't-1' }] }
     });
     expect(rerun).toMatchObject({
       id: 'fill:rerun',
@@ -580,7 +580,13 @@ describe('action launch plan', () => {
     // The named construct must be a create of the record's own type.
     expect(constructRerunAction(actions, {
       type: 'text-document',
-      provenance: { op: 'cts.construct:fill:fill' }
+      provenance: { op: 'cts.construct:fill:fill', sources: [{ type: 'text-document', id: 't-1' }] }
+    })).toBeNull();
+    // Authored-content constructs (upload) carry no sources: replace owns
+    // those records and the re-run row stays away.
+    expect(constructRerunAction(actions, {
+      type: 'pdf-document',
+      provenance: { op: 'cts.construct:up:upload', sources: [] }
     })).toBeNull();
   });
 

@@ -850,12 +850,16 @@ export function resolveInstanceActions(actions = {}, typeId = null) {
 }
 
 // The compiled construct action's re-run (SPEC §24, owner decision
-// 2026-10-27): a record whose provenance names a construct carries the
-// action that built it; the synthesized row launches that action with
-// `rerun`, and the effect re-derives over the stored inputs. The row
-// prompts nothing — the stored inputs are the run's inputs.
+// 2026-10-27): a record whose provenance names a construct and derives
+// from pinned sources (sources non-empty) carries the action that built
+// it; the synthesized row launches that action with `rerun`, and the
+// effect re-derives over the stored inputs. The row prompts nothing —
+// the stored inputs are the run's inputs. Authored-content records
+// (upload/editor constructs) are the replace affordance's business.
 export function constructRerunAction(actions = {}, record = null) {
-  const op = record?.provenance?.op;
+  const provenance = record?.provenance;
+  if (!provenance?.sources?.length) return null;
+  const op = provenance.op;
   const match = typeof op === 'string' ? op.match(/^cts\.construct:([^:]+)(?::([^:]+))?$/) : null;
   if (!match) return null;
   const action = actions[match[1]];
