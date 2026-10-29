@@ -522,7 +522,10 @@ body {
 
     /* Markdown document element styles: every surface that mounts
        sanitized markdown HTML (the shared/markdown.js pipeline) renders
-       it through this one class. */
+       it through this one class. Size and weight derive from the
+       typography roles (editor 1.125, technical 0.9375, weights 600/700;
+       h3-h6 keep the host prose size), spacing from the SPEC §22.9
+       ladder. */
     .ck-markdown > *:first-child { margin-top: 0; }
     .ck-markdown > *:last-child { margin-bottom: 0; }
     .ck-markdown p,
@@ -536,23 +539,25 @@ body {
     .ck-markdown h3,
     .ck-markdown h4,
     .ck-markdown h5,
-    .ck-markdown h6 { margin: 0.75rem 0 0.375rem; font-weight: 600; }
-    .ck-markdown h1 { font-size: 1.25rem; }
+    .ck-markdown h6 { margin: 0.75rem 0 0.25rem; font-weight: 600; }
+    .ck-markdown h1 { font-size: 1.125rem; font-weight: 700; }
     .ck-markdown h2 { font-size: 1.125rem; }
-    .ck-markdown ul { list-style: disc; padding-left: 1.25rem; }
-    .ck-markdown ol { list-style: decimal; padding-left: 1.25rem; }
-    .ck-markdown li { margin: 0.125rem 0; }
+    .ck-markdown ul { list-style: disc; padding-left: 1.5rem; }
+    .ck-markdown ol { list-style: decimal; padding-left: 1.5rem; }
+    .ck-markdown li { margin: 0.25rem 0; }
     .ck-markdown a { text-decoration: underline; }
     .ck-markdown img { max-width: 100%; }
     .ck-markdown hr { margin: 0.75rem 0; border: 0; border-top: 1px solid var(--ck-chrome-border); }
     .ck-markdown code {
         font-family: var(--ck-font-mono);
-        font-size: 0.875em;
+        font-size: 0.9375rem;
         background: var(--ck-subtle-background);
         border-radius: var(--p-border-radius-sm);
-        padding: 0.125rem 0.25rem;
+        padding: 0.25rem;
     }
     .ck-markdown pre {
+        font-family: var(--ck-font-mono);
+        font-size: 0.9375rem;
         padding: 0.75rem;
         background: var(--ck-subtle-background);
         border-radius: var(--p-border-radius-md);
