@@ -95,6 +95,9 @@ test('the sheet editor inspector runs on instance tiles and pick-to-add pickers'
   const tiles = page.locator('.instance-inline-tile');
   await expect(tiles).toHaveCount(2, { timeout: 15_000 });
   await expect(tiles.filter({ hasText: `Probe sheet ${run}` })).toHaveCount(2);
+  // One face per ref: the tile renders alone — a broken variant chain
+  // once rendered the fallback identity chip beside it, halving the row.
+  await expect(page.locator('.instance-inline-tile ~ .p-chip')).toHaveCount(0);
 
   // The cassette picker is a trigger; its option rows carry the
   // layer-standard pens (concrete stroke colors, never currentColor).

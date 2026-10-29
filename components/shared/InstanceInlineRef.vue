@@ -323,7 +323,7 @@ function executeContextualAction(action) {
     </span>
 
     <span
-      v-if="variant === 'compact' && compactCardWorthy"
+      v-else-if="variant === 'compact' && compactCardWorthy"
       class="instance-inline-compact min-w-0 max-w-full flex-1"
       :class="[
         { 'cursor-pointer': refOpenable },
