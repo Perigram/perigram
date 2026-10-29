@@ -49,46 +49,66 @@
         </div>
       </div>
       <div :class="LAYOUT.row" class="header-actions">
-        <!-- The composed instance-chat entry, the same route every instance
-             surface uses (InstanceCard footers, pane strips): the record
-             header owns the conversation affordance. -->
-        <InstanceChatEntry :type-id="type?.id" :instance="instance" :name="identity" />
-        <component
-          :is="editorAction"
-          v-if="editorAction"
-          :entity="instance"
-          :type-id="type?.id"
-          @refresh="$emit('refresh')"
+        <!-- The cluster groups by control kind — record utilities (the
+             conversation affordance, the editor, revisions, payload
+             replacement), generated actions, machine transitions — one
+             tight group per kind with hairline dividers between
+             non-empty groups. -->
+        <div :class="LAYOUT.actionGroup">
+          <InstanceChatEntry :type-id="type?.id" :instance="instance" :name="identity" />
+          <component
+            :is="editorAction"
+            v-if="editorAction"
+            :entity="instance"
+            :type-id="type?.id"
+            @refresh="$emit('refresh')"
+          />
+          <PayloadRevisionPicker
+            v-if="instance && type?.payload && type?.revisions"
+            :entity="instance"
+            :type="type"
+            @refresh="$emit('refresh')"
+          />
+          <ReplacePayloadAction
+            v-if="instance && type?.payload && type?.revisions"
+            :entity="instance"
+            :type="type"
+            @refresh="$emit('refresh')"
+          />
+        </div>
+        <span
+          v-if="inlineActions.length || transitionActions.length || overflowActions.length"
+          :class="LAYOUT.actionDivider"
         />
-        <PayloadRevisionPicker
-          v-if="instance && type?.payload && type?.revisions"
-          :entity="instance"
-          :type="type"
-          @refresh="$emit('refresh')"
-        />
-        <ReplacePayloadAction
-          v-if="instance && type?.payload && type?.revisions"
-          :entity="instance"
-          :type="type"
-          @refresh="$emit('refresh')"
-        />
-        <ActionButton
-          v-for="action in inlineActions"
-          :key="action.id"
-          :action="action"
-          :state-policy="statePolicy"
-          @run="$emit('run', action)"
+        <div v-if="inlineActions.length" :class="LAYOUT.actionGroup">
+          <ActionButton
+            v-for="action in inlineActions"
+            :key="action.id"
+            :action="action"
+            :state-policy="statePolicy"
+            @run="$emit('run', action)"
+          />
+        </div>
+        <span
+          v-if="inlineActions.length && (transitionActions.length || overflowActions.length)"
+          :class="LAYOUT.actionDivider"
         />
         <!-- Available state-machine transitions render as header actions:
              the state axis is a tree, never a linear strip, so the machine
              surface IS its runnable edges. Runtime transitions dispatch
              through the dedicated transition channel. -->
-        <ActionButton
-          v-for="action in transitionActions"
-          :key="action.id || action.state?.to"
-          :action="action"
-          :state-policy="statePolicy"
-          @run="$emit('transition', { to: action.state.to, intent: action.intent || null, region: action.region || null })"
+        <div v-if="transitionActions.length" :class="LAYOUT.actionGroup">
+          <ActionButton
+            v-for="action in transitionActions"
+            :key="action.id || action.state?.to"
+            :action="action"
+            :state-policy="statePolicy"
+            @run="$emit('transition', { to: action.state.to, intent: action.intent || null, region: action.region || null })"
+          />
+        </div>
+        <span
+          v-if="transitionActions.length && overflowActions.length"
+          :class="LAYOUT.actionDivider"
         />
         <Button
           v-if="overflowActions.length"

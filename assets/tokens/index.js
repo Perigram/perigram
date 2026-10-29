@@ -99,6 +99,10 @@ export const designTokens = {
         serif: "'IBM Plex Serif', serif",
         roles: {
             'page-title': { fontFamily: 'ui', fontSize: 'clamp(1.75rem, 1.5rem + 1vw, 2.25rem)', lineHeight: '1.15', fontWeight: '700' },
+            // Record titles are container-relative: the role carries the
+            // narrow state; the record-header recipe steps it up at its
+            // 34rem width step.
+            'record-title': { fontFamily: 'ui', fontSize: '1.5rem', lineHeight: '1.75rem', fontWeight: '700' },
             'section-heading': { fontFamily: 'ui', fontSize: '1.25rem', lineHeight: '1.5rem', fontWeight: '700' },
             body: { fontFamily: 'ui', fontSize: '1rem', lineHeight: '1.5rem', fontWeight: '400' },
             label: { fontFamily: 'ui', fontSize: '0.9375rem', lineHeight: '1.375rem', fontWeight: '600', letterSpacing: '0.02em' },

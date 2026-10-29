@@ -326,6 +326,7 @@ describe('Design system manifest', () => {
     expect(INSTANCE_CHIP_CLASS).toBe('min-w-0 max-w-full border border-content-border bg-transparent text-supporting');
     expect(Object.keys(designTokens.typography.roles)).toEqual([
       'page-title',
+      'record-title',
       'section-heading',
       'body',
       'label',

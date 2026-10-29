@@ -6,6 +6,7 @@ import {
   LAYOUT,
   LAYOUT_ATOMS,
   LAYOUT_AMBIENT,
+  TYPE_BY_LEVEL,
   titleFor,
   iconFor,
   resolveFieldGroups,
@@ -708,11 +709,17 @@ describe('value formatting and layout vocabulary', () => {
     // nothing. The responsive switch lives in the global stylesheet's
     // .ck-record-header recipe (main.css, beside the form/body grids);
     // the tokens name it and the header paints no box — the boxed
-    // headerBar token stays retired.
+    // headerBar token stays retired. The level-0 title is the
+    // container-stepped record-title role (1.5rem, stepped to 1.75rem
+    // by the recipe's 34rem width step); the viewport-clamped
+    // page-title belongs to real pages.
     expect(LAYOUT.headerBar).toBeUndefined();
     expect(LAYOUT.header).toBe('ck-record-header');
     expect(LAYOUT.headerRow).toBe('ck-record-header-row');
     expect(LAYOUT.headerIdentity).toBe('ck-record-header-identity');
+    expect(TYPE_BY_LEVEL[0]).toBe('text-record-title');
+    expect(LAYOUT.reloadBarUnder).toBeUndefined();
+    expect(LAYOUT.reloadLane).toBe('h-1 shrink-0');
     expect(HEADER_ACTIONS_INLINE).toBe(2);
   });
 });

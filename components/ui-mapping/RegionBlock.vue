@@ -146,7 +146,12 @@
           @refresh="emit('refresh')"
           @open-instance="emitOpen"
         />
-        <ProgressBar v-if="isReloading" mode="indeterminate" :class="LAYOUT.reloadBarUnder" :aria-label="$t('uiMapping.loadingRegion')" />
+        <!-- The record's reload lane: a permanent 4px track under the
+             header the strip appears inside — bounded, touching no
+             content, and its appearance shifts nothing below. -->
+        <div :class="LAYOUT.reloadLane">
+          <ProgressBar v-if="isReloading" mode="indeterminate" class="h-full" :aria-label="$t('uiMapping.loadingRegion')" />
+        </div>
       </div>
       <div v-if="splitSide" class="region-split grid w-full grid-cols-1 gap-6" :style="splitTracks">
         <div class="min-w-0 flex flex-col gap-6">

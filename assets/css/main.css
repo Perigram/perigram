@@ -427,9 +427,11 @@ body {
        action cluster below the identity; from 34rem the row lays out
        as one wrapping line with the identity floored at 16rem, so a
        large action cluster wraps below the identity while long names
-       keep truncating through the min-width chain. The root establishes
-       the layout container alone — the stack rhythm rides the spacing
-       token the component binds (the density-keyed channel). */
+       keep truncating through the min-width chain. The record title
+       steps with the same width (text-record-title: 1.5rem narrow,
+       1.75rem wide). The root establishes the layout container alone —
+       the stack rhythm rides the spacing token the component binds
+       (the density-keyed channel). */
     .ck-record-header {
         container-type: inline-size;
     }
@@ -455,6 +457,11 @@ body {
 
         .ck-record-header-identity {
             min-width: 16rem;
+        }
+
+        .ck-record-header .text-record-title {
+            font-size: 1.75rem;
+            line-height: 2rem;
         }
     }
 
