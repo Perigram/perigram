@@ -262,7 +262,8 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   const after = await movingGroup.getAttribute('transform');
   expect(after, `sheet moved: ${before} -> ${after}`).not.toBe(before);
 
-  await canvas.getByText(`Family sheet 3 ${run}`).click();
+  await canvas.locator('g', { hasText: `Family sheet 3 ${run}` }).first().boundingBox()
+    .then(box => page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.7));
   await page.waitForTimeout(600);
   const dial = page.locator('.p-speeddial').first();
   await dial.hover();
