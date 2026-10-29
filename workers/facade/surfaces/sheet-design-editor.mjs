@@ -238,38 +238,41 @@ export default function createSurface({ vue, components, locale, queries, notify
 
       // ---- canvas geometry -------------------------------------------------
 
-      // The wrapped rack: sheets flow into a near-square grid; a sheet
-      // the user moved or rotated keeps its frame, new sheets take the
-      // next default slot. Frame coordinates are canvas space; rotation
-      // is degrees about the sheet content's center.
+      // The wrapped rack: sheets flow into a near-square grid of uniform
+      // cells; a sheet the user moved or rotated keeps its frame, and a
+      // sheet joining the set takes the first cell no kept frame
+      // occupies. Frame coordinates are canvas space; rotation is
+      // degrees about the sheet content's center.
       function reflowSheets() {
         const entries = sheets.value;
-        const columns = Math.max(1, Math.ceil(Math.sqrt(entries.length)));
-        const columnWidths = Array.from({ length: columns }, () => 0);
-        const rowHeights = Array.from({ length: Math.ceil(entries.length / columns) || 1 }, () => 0);
-        entries.forEach((entry, index) => {
-          const column = index % columns;
-          const row = Math.floor(index / columns);
-          columnWidths[column] = Math.max(columnWidths[column], entry.width);
-          rowHeights[row] = Math.max(rowHeights[row], entry.height);
-        });
-        const offsetsX = [0];
-        for (let column = 1; column < columns; column++) {
-          offsetsX[column] = offsetsX[column - 1] + columnWidths[column - 1] + SHEET_GAP;
+        const columns = Math.max(1, Math.ceil(Math.sqrt(Math.max(entries.length, 1))));
+        const occupied = [];
+        const framesById = {};
+        const mark = (frame, entry) => {
+          framesById[entry.id] = frame;
+          occupied.push({ x: frame.x, y: frame.y, w: entry.width, h: LABEL_HEIGHT + entry.height });
+        };
+        for (const entry of entries) {
+          const frame = frameState.value[entry.id];
+          if (frame) mark({ ...frame }, entry);
         }
-        const offsetsY = [0];
-        for (let row = 1; row < rowHeights.length; row++) {
-          offsetsY[row] = offsetsY[row - 1] + rowHeights[row - 1] + SHEET_GAP;
+        const cellWidth = Math.max(...entries.map(entry => entry.width), 1) + SHEET_GAP;
+        const cellHeight = Math.max(...entries.map(entry => LABEL_HEIGHT + entry.height), 1) + SHEET_GAP;
+        for (const entry of entries) {
+          if (framesById[entry.id]) continue;
+          for (let slot = 0; ; slot++) {
+            const x = (slot % columns) * cellWidth;
+            const y = Math.floor(slot / columns) * cellHeight;
+            const free = !occupied.some(area =>
+              x < area.x + area.w && x + entry.width > area.x &&
+              y < area.y + area.h && y + LABEL_HEIGHT + entry.height > area.y);
+            if (free) {
+              mark({ x, y, rotation: 0 }, entry);
+              break;
+            }
+          }
         }
-        const next = {};
-        entries.forEach((entry, index) => {
-          next[entry.id] = frameState.value[entry.id] || {
-            x: offsetsX[index % columns],
-            y: offsetsY[Math.floor(index / columns)],
-            rotation: 0
-          };
-        });
-        frameState.value = next;
+        frameState.value = framesById;
       }
 
       const sheetFrames = computed(() => sheets.value.map(entry => ({
@@ -720,21 +723,11 @@ export default function createSurface({ vue, components, locale, queries, notify
           origin: canvasPoint(event),
           frame: { ...frame }
         };
-        if (typeof window !== 'undefined' && window.__sheetDragDebug) {
-          console.log('startSheetDrag', JSON.stringify({
-            id: sheetDragState.value.id,
-            name: sheetDragState.value.frame && entry.record?.fields?.name,
-            frame: sheetDragState.value.frame
-          }));
-        }
         svgRef.value?.setPointerCapture?.(event.pointerId);
       }
 
       function dragSheet(event) {
         const drag = sheetDragState.value;
-        if (typeof window !== 'undefined' && window.__sheetDragDebug) {
-          console.log('dragSheet tick', JSON.stringify({ has: Boolean(drag), id: drag?.id, pointer: drag?.pointerId, eventPointer: event.pointerId }));
-        }
         if (!drag || drag.pointerId !== event.pointerId) return;
         const point = canvasPoint(event);
         frameState.value = {
@@ -745,9 +738,6 @@ export default function createSurface({ vue, components, locale, queries, notify
             y: drag.frame.y + point.y - drag.origin.y
           }
         };
-        if (typeof window !== 'undefined' && window.__sheetDragDebug) {
-          console.log('dragSheet frame', JSON.stringify(frameState.value[drag.id]));
-        }
       }
 
       function finishSheetDrag(event) {
