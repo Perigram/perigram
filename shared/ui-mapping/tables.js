@@ -329,11 +329,13 @@ export const LAYOUT = Object.freeze({
   // File-card anatomies: a visual preview with no card facts renders the
   // overlay tile — the preview is the card and the identifier chip rides
   // its corner; a visual preview with facts renders the side-preview
-  // card — the preview is a bounded framed column.
+  // card — the preview is a bounded framed column. The row-scale column
+  // serves the instance tile (§22.13).
   mediaTile: 'relative h-40 w-full',
   mediaTileBadge: 'absolute bottom-2 left-2 min-w-0 max-w-[calc(100%-1rem)]',
   mediaTileControls: 'absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2',
   previewSide: 'min-h-28 w-28 shrink-0 self-stretch overflow-hidden rounded-ui border border-chrome-border bg-subtle',
+  previewSideRow: 'w-16 shrink-0 self-stretch overflow-hidden rounded-ui border border-chrome-border bg-subtle',
   // Board projection: the horizontal column rail and the column bodies.
   // Lanes STRETCH to the rail height (equal lanes; in a bounded host the
   // rail fills and each lane scrolls internally), and the body carries
@@ -398,7 +400,7 @@ export const LAYOUT_ATOMS = Object.freeze({
   stack: Object.freeze(['stack', 'stackSection', 'stackTight', 'labeledBlock', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
-  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewHeroBandFlow', 'previewBand', 'mediaTile', 'previewSide']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewHeroBandFlow', 'previewBand', 'mediaTile', 'previewSide', 'previewSideRow']),
   well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack', 'well']),
   tabs: Object.freeze([]),
   placement: Object.freeze([]),

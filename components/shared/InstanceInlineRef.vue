@@ -16,6 +16,7 @@ import { normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
 import { DESIGN_SYSTEM_CARD_COMPONENTS } from '~/utils/design-system-cards.js';
+import { LAYOUT } from '#shared/ui-mapping/index.js';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
 import { instanceRecordTitle } from '~/utils/instance-shape.js';
 import { generatedEntityLabel, generatedActionLabel } from '~/utils/generated-labels.js';
@@ -266,10 +267,10 @@ function executeContextualAction(action) {
   >
     <span
       v-if="variant === 'tile' && resolved"
-      class="instance-inline-tile min-w-0 max-w-full"
+      class="instance-inline-tile flex min-w-0 max-w-full w-full items-stretch gap-3 rounded-ui border border-content-border bg-content p-2 transition-colors"
       :class="[
-        { 'instance-inline-tile--active': active },
-        (selectable && interactive) || refOpenable ? 'instance-inline-tile--interactive' : null
+        { 'border-primary': active },
+        (selectable && interactive) || refOpenable ? 'cursor-pointer hover:bg-subtle' : null
       ]"
       :role="selectable ? 'option' : (refOpenable ? 'button' : undefined)"
       :tabindex="(selectable && interactive) || refOpenable ? 0 : undefined"
@@ -280,8 +281,8 @@ function executeContextualAction(action) {
     >
       <span
         v-if="compactHasPreview"
-        class="instance-inline-tile-preview"
-        :class="compactHasPreview ? 'instance-preview-slot' : null"
+        :class="LAYOUT.previewSideRow"
+        class="instance-preview-slot"
       >
         <InstancePreview
           :entity="resolved"
@@ -290,10 +291,12 @@ function executeContextualAction(action) {
           hide-dimension-layer
         />
       </span>
-      <span class="instance-inline-tile-main">
-        <span class="instance-inline-tile-header">
-          <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true" />
-          <span class="min-w-0 flex-1 truncate text-label" :title="identityLabel">{{ identityLabel }}</span>
+      <span class="flex min-w-0 flex-1 flex-col gap-2">
+        <span :class="LAYOUT.rowBetween">
+          <span class="flex min-w-0 items-center gap-2">
+            <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate text-label" :title="identityLabel">{{ identityLabel }}</span>
+          </span>
           <StateTag
             v-if="compactStatusState"
             :value="compactStatusState"
@@ -308,7 +311,7 @@ function executeContextualAction(action) {
           expandable
           class="min-w-0"
         />
-        <span v-if="compactDataFields.length" class="instance-inline-tile-facts">
+        <span v-if="compactDataFields.length" :class="LAYOUT.labeledBlock">
           <DataBlock
             :type-id="generatedTypeId"
             :entity="resolved"
@@ -317,7 +320,7 @@ function executeContextualAction(action) {
           />
         </span>
       </span>
-      <span v-if="$slots.trailing" class="instance-inline-tile-trailing" @click.stop>
+      <span v-if="$slots.trailing" class="inline-flex flex-none items-center" @click.stop>
         <slot name="trailing" />
       </span>
     </span>
