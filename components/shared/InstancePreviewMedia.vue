@@ -1,7 +1,7 @@
 <template>
   <FilePayloadViewer
     v-if="payloadPreview.hasPayload && payloadPreview.renderable"
-    :source="{ mode: payloadPreview.mode, fileUrl: payloadPreview.fileUrl, attachment: entity.payload }"
+    :source="viewerSource"
     :variant="'card'"
     class="h-32 w-full"
   />
@@ -37,6 +37,12 @@ const props = defineProps({
 
 const { typeById } = useFileTypeView();
 const payloadPreview = computed(() => resolveFilePreview(props.entity, typeById(props.typeId)));
+const viewerSource = computed(() => ({
+  mode: payloadPreview.value.mode,
+  fileUrl: payloadPreview.value.fileUrl,
+  attachment: props.entity.payload,
+  declaredMime: typeById(props.typeId)?.payload?.mime || null
+}));
 const declaredPreview = computed(() => {
   const type = typeById(props.typeId);
   if (type?.previewSource?.display !== 'geometry') return null;

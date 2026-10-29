@@ -350,13 +350,11 @@ describe('field control resolution', () => {
       ...identifierOnly,
       fields: { name: { base: 'string', identifier: true }, pages: { base: 'number' } }
     };
-    expect(cardAnatomyFor(factful)).toBe('side');
+    expect(cardAnatomyFor(factful)).toBe('tile');
     expect(cardAnatomyFor({ ...identifierOnly, payload: { preview: 'download' } })).toBe('plain');
     expect(cardAnatomyFor({ id: 'part', identifier: 'name', fields: { name: { base: 'string', identifier: true }, width: { base: 'number' } } })).toBe('plain');
     const declared = { id: 'design', identifier: 'name', fields: { name: { base: 'string', identifier: true } }, previewSource: { display: 'geometry' } };
     expect(cardAnatomyFor(declared)).toBe('tile');
-    // Long text is prose, never a card fact: a preview type whose only
-    // other field is long text stays the overlay tile.
     const prose = { ...identifierOnly, fields: { name: { base: 'string', identifier: true }, body: { base: 'string', multiline: true } } };
     expect(cardAnatomyFor(prose)).toBe('tile');
   });

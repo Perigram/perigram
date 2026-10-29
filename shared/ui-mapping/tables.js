@@ -326,14 +326,6 @@ export const LAYOUT = Object.freeze({
   chipRow: 'flex flex-wrap items-center gap-2 pt-2',
   panelBody: 'py-2',
   previewBand: 'h-28 w-full',
-  // File-card anatomies: a visual preview with no card facts renders the
-  // overlay tile — the preview is the card and the identifier rides it in
-  // chip badge on the media; a visual preview with facts renders the
-  // side-preview card — the preview is a bounded framed column.
-  mediaTile: 'relative h-40 w-full',
-  mediaTileBadge: 'absolute bottom-2 left-2 inline-flex items-center gap-2 rounded-ui px-2 py-1',
-  mediaTileControls: 'absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2',
-  previewSide: 'min-h-28 w-28 shrink-0 self-stretch overflow-hidden rounded-ui border border-chrome-border bg-subtle',
   // Board projection: the horizontal column rail (columns are in-surface
   // wells one step above the canvas — the surface ladder's `subtle` inset
   // level — while the cards inside sit on the content surface) and the
@@ -405,7 +397,7 @@ export const LAYOUT_ATOMS = Object.freeze({
   stack: Object.freeze(['stack', 'stackSection', 'stackTight', 'labeledBlock', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
-  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewHeroBandFlow', 'previewBand', 'mediaTile', 'previewSide']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewHeroBandFlow', 'previewBand']),
   well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack', 'well']),
   tabs: Object.freeze([]),
   placement: Object.freeze([]),
@@ -416,7 +408,7 @@ export const LAYOUT_ATOMS = Object.freeze({
 export const LAYOUT_AMBIENT = Object.freeze({
   cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText']),
   clamps: Object.freeze(['nameClamp', 'chipClamp', 'linkClamp']),
-  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'header', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar', 'reloadLane', 'actionGroup', 'actionDivider', 'mediaTileBadge', 'mediaTileControls']),
+  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'header', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar', 'reloadLane', 'actionGroup', 'actionDivider']),
   geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
 });
 

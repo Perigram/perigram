@@ -11,7 +11,7 @@
   </RemoteInstancePreview>
   <FilePayloadViewer
     v-else-if="hasRenderablePayload"
-    :source="{ mode: preview.mode, fileUrl, attachment: payload }"
+    :source="{ mode: preview.mode, fileUrl, attachment: payload, declaredMime: preview.mime }"
     :variant="viewerVariant"
     :class="bandClass"
   />
