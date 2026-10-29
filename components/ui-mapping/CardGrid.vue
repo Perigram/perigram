@@ -15,7 +15,7 @@
           :pt="anatomy === 'tile' ? TILE_PT : undefined"
         >
           <!-- Overlay tile: a visual preview with no fact fields — the
-               preview is the card, the identifier rides it in a badge,
+               preview is the card, the identifier chip rides it,
                status and the row menu float on top. -->
           <template v-if="anatomy === 'tile'" #header>
             <div :class="LAYOUT.mediaTile">
@@ -37,15 +37,17 @@
                   @click="event => openCardMenu(event, instance)"
                 />
               </div>
-              <span :class="[LAYOUT.mediaTileBadge, FILE_CHIP_CLASS]">
-                <InstanceIdentity
-                  :instance="instance"
-                  :type="type"
-                  :openable="openable"
-                  text-class="text-body"
-                  @open="target => $emit('open', target)"
-                />
-              </span>
+              <Chip
+                :label="identityOf(instance)"
+                :icon="iconFor(type, instance) || undefined"
+                :pt="CHIP_LABEL_PT"
+                :class="[LAYOUT.mediaTileBadge, { 'cursor-pointer': openable }]"
+                :title="identityOf(instance)"
+                :role="openable ? 'button' : undefined"
+                :tabindex="openable ? 0 : undefined"
+                @click="openable && $emit('open', instance)"
+                @keydown.enter.prevent="openable && $emit('open', instance)"
+              />
             </div>
           </template>
           <!-- Side-preview card: a visual preview with facts — the preview
@@ -184,6 +186,7 @@ import { computed, inject, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DataView from 'primevue/dataview';
 import Card from 'primevue/card';
+import Chip from 'primevue/chip';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
@@ -193,7 +196,7 @@ import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import {
   LAYOUT, SCALAR_BASES, cardAnatomyFor, cardFactCount, isIdentifierField,
   fieldLabel, fieldLabelKey, localizedLabel, resolveListControls,
-  resolveActionButton, actionLabelKey, stateDisplayFor
+  resolveActionButton, actionLabelKey, stateDisplayFor, titleFor, iconFor
 , typeIsQuantitative } from '#shared/ui-mapping/index.js';
 import { instancePayloadFileUrl } from '~/components/generated/file-preview-contract.js';
 import FieldControl from './FieldControl.vue';
@@ -201,7 +204,7 @@ import PreviewBox from './PreviewBox.vue';
 import ParentRef from './ParentRef.vue';
 import InstanceIdentity from './InstanceIdentity.vue';
 import FileChip from '~/components/shared/FileChip.vue';
-import { FILE_CHIP_CLASS } from '~/components/shared/chip-surface.js';
+import { CHIP_LABEL_PT } from '~/components/shared/chip-surface.js';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { generatedActionLabel } from '~/utils/generated-labels.js';
 const spacing = inject('uiMappingSpacing', null);
@@ -253,6 +256,8 @@ const statusOf = instance => {
   const display = stateDisplayFor(props.statePolicy, instance?.state);
   return display ? { label: display.label, severity: display.severity } : null;
 };
+// The tile's identifier chip label: the one title resolver over the row.
+const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 // Card facts exclude the identifier field — the card title IS the
 // identifier value (titleFor); a fact row would repeat it. A narrow
 // host takes the compact fact budget (the container seam).
