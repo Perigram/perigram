@@ -308,15 +308,23 @@ export function createUiMapping(overrides = {}) {
 
   // cardAnatomyFor(typeRecord): the card-grid anatomy from the type's own
   // data shape — a visual preview (a renderable payload mode or a declared
-  // preview source) renders `tile` (the §22.13 instance tile element: one
-  // contracted row of preview thumb, identity, state, lineage, and compact
-  // facts); everything else renders `plain` (identity row with the payload
-  // chip, then facts).
+  // preview source) with no fact fields renders the overlay `tile` (the
+  // preview is the card, the identifier rides it in a badge); a visual
+  // preview with facts renders `side` (the preview is a bounded left
+  // column beside identity and facts); everything else renders `plain`
+  // (identity row with the payload chip, then facts).
   function cardAnatomyFor(typeRecord = {}) {
     const preview = resolvePreview(typeRecord);
     const visual = RENDERABLE_PREVIEW_MODES.includes(preview.mode)
       || typeRecord.previewSource?.display === 'geometry';
-    return visual ? 'tile' : 'plain';
+    if (!visual) return 'plain';
+    const identifier = typeRecord.identifier || null;
+    const facts = Object.entries(typeRecord.fields || {})
+      .filter(([name, descriptor]) => name !== identifier
+        && SCALAR_BASES.includes(descriptor.base)
+        && !isLongText(descriptor))
+      .length;
+    return facts ? 'side' : 'tile';
   }
 
   function scaledBudget(scale, available, compact = false) {

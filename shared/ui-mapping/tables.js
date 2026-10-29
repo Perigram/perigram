@@ -326,24 +326,25 @@ export const LAYOUT = Object.freeze({
   chipRow: 'flex flex-wrap items-center gap-2 pt-2',
   panelBody: 'py-2',
   previewBand: 'h-28 w-full',
-  // Board projection: the horizontal column rail (columns are in-surface
-  // wells one step above the canvas — the surface ladder's `subtle` inset
-  // level — while the cards inside sit on the content surface) and the
-  // column bodies. Column width is a layout dimension token — one board
-  // column never depends on its content's width — and column bodies are
-  // bounded (`max-h-board-column`) with their own vertical scroll, so the
-  // board never grows the page and each lane scrolls independently; the
-  // `flex-1 min-h-0` pair lets the same body fill bounded hosts (workspace
-  // panes) instead.
+  // File-card anatomies: a visual preview with no card facts renders the
+  // overlay tile — the preview is the card and the identifier rides it in
+  // chip badge on the media; a visual preview with facts renders the
+  // side-preview card — the preview is a bounded framed column.
+  mediaTile: 'relative h-40 w-full',
+  mediaTileBadge: 'absolute bottom-2 left-2 inline-flex items-center gap-2 rounded-ui px-2 py-1',
+  mediaTileControls: 'absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2',
+  previewSide: 'min-h-28 w-28 shrink-0 self-stretch overflow-hidden rounded-ui border border-chrome-border bg-subtle',
   // Board projection: the horizontal column rail and the column bodies.
-  // Lanes STRETCH to the rail height (equal Notion-style lanes; in a
-  // bounded host the rail fills and each lane scrolls internally), and
-  // the body carries the hard bounds: `min-h-0 flex-1` lets it fill a
-  // bounded lane, `max-h-[var(--ck-board-column-max-height)]` caps it in
-  // unbounded (page-scrolling) hosts. Cards inside are `shrink-0` — a
-  // shrinking flex child would cramp instead of overflowing, and the
-  // body would never scroll. Column width is a layout dimension token —
-  // one board column never depends on its content's width.
+  // Lanes STRETCH to the rail height (equal lanes; in a bounded host the
+  // rail fills and each lane scrolls internally), and the body carries
+  // the hard bounds: `min-h-0 flex-1` lets it fill a bounded lane,
+  // `max-h-[var(--ck-board-column-max-height)]` caps it in unbounded
+  // (page-scrolling) hosts. Cards inside are `shrink-0` — a shrinking
+  // flex child would cramp instead of overflowing, and the body would
+  // never scroll. Column width is a layout dimension token — one board
+  // column never depends on its content's width. Columns are in-surface
+  // wells one step above the canvas; the cards inside sit on the content
+  // surface.
   boardRow: 'flex w-full items-stretch gap-4 overflow-x-auto pb-1',
   boardColumn: 'flex w-72 shrink-0 flex-col gap-2 rounded-panel bg-subtle p-3',
   boardColumnScroll: 'flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1 max-h-[var(--ck-board-column-max-height)]',
@@ -397,7 +398,7 @@ export const LAYOUT_ATOMS = Object.freeze({
   stack: Object.freeze(['stack', 'stackSection', 'stackTight', 'labeledBlock', 'panelBody', 'ganttStack', 'calendarStack']),
   row: Object.freeze(['row', 'rowBetween', 'chipRow', 'ganttAxisRow', 'calendarHead', 'boardRow']),
   grid: Object.freeze(['formGrid', 'factsGrid', 'bodyGrid', 'calendarGrid']),
-  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewHeroBandFlow', 'previewBand']),
+  band: Object.freeze(['previewHero', 'previewHeroBand', 'previewHeroBandContent', 'previewHeroBandAspect', 'previewHeroBandFlow', 'previewBand', 'mediaTile', 'previewSide']),
   well: Object.freeze(['boardColumn', 'boardColumnScroll', 'boardColumnTarget', 'calendarCell', 'calendarCellToday', 'ganttTrack', 'well']),
   tabs: Object.freeze([]),
   placement: Object.freeze([]),
@@ -408,7 +409,7 @@ export const LAYOUT_ATOMS = Object.freeze({
 export const LAYOUT_AMBIENT = Object.freeze({
   cells: Object.freeze(['labelCell', 'factCell', 'specRow', 'specList', 'sectionTitle', 'cellText']),
   clamps: Object.freeze(['nameClamp', 'chipClamp', 'linkClamp']),
-  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'header', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar', 'reloadLane', 'actionGroup', 'actionDivider']),
+  chrome: Object.freeze(['clip', 'rowSurface', 'rowSurfaceTable', 'bounded', 'scrollX', 'dialog', 'header', 'headerRow', 'headerIdentity', 'ganttIdentity', 'reloadBar', 'reloadLane', 'actionGroup', 'actionDivider', 'mediaTileBadge', 'mediaTileControls']),
   geometry: Object.freeze(['ganttBar', 'ganttAxisSpacer'])
 });
 

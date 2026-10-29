@@ -54,9 +54,10 @@
         <Column v-for="column in columns" :key="column" :field="column" :header="column" />
       </DataTable>
     </TableFrame>
-    <!-- Text is record prose: it flows at the body's measure — markdown
-         through the shared pipeline (shared/markdown.js) under the one
-         element recipe, plain text keeps breaks. Card bands clamp. -->
+    <!-- Text is record prose: it renders as markdown through the shared
+         pipeline (shared/markdown.js) under the one element recipe — the
+         text preview mode is markdown like the text editor and agent
+         answers. Card bands clamp. -->
     <div v-else-if="hasFile && mode === 'text' && ready" :class="variant === 'card' ? 'h-full overflow-hidden p-4 text-prose' : 'text-prose'">
       <!-- eslint-disable-next-line vue/no-v-html -- sanitized below -->
       <div
@@ -82,11 +83,10 @@ import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { TABLE_PAGE_ROWS } from '#shared/ui-mapping/index.js';
-import { MARKDOWN_ELEMENT_CLASSES, isMarkdownDocument, renderMarkdown } from '#shared/markdown.js';
+import { MARKDOWN_ELEMENT_CLASSES, renderMarkdown } from '#shared/markdown.js';
 
 // The file-instance payload viewer: `source` is `{ mode, fileUrl,
-// attachment, declaredMime? }` resolved from the type's payload preview
-// policy — `declaredMime` carries the type's declared mime list
+// attachment }` resolved from the type's payload preview policy
 // (file-preview-contract). `variant` names the presentation surface:
 // `pane` (default) renders the detail treatment — prose flows at the
 // body's measure, the PDF renders at page scale (the column's width,
@@ -111,25 +111,15 @@ const mode = computed(() => props.source.mode || 'download');
 const hasFile = computed(() => Boolean(props.source.fileUrl));
 const fileUrl = computed(() => props.source.fileUrl || '');
 const fileName = computed(() => props.source?.attachment?.name || '');
-const mimeType = computed(() => props.source?.attachment?.mime
-  || (Array.isArray(props.source?.declaredMime) ? props.source.declaredMime[0] : props.source?.declaredMime)
-  || 'application/octet-stream');
+const mimeType = computed(() => props.source?.attachment?.mime || 'application/octet-stream');
 // Modes whose whole render depends on the payload fetch: they state
 // loading and surface a failed download.
 const asyncMode = computed(() => ['docx', 'table', 'workbook', 'text'].includes(mode.value));
 const ready = computed(() => fetchState.value === 'ready');
 const pending = computed(() => ['idle', 'loading'].includes(fetchState.value));
-// The declaration outranks the stored reference: a type whose preview
-// mode is `text` and that declares a markdown mime renders its payloads
-// as markdown even when a stored reference carries a bare or missing
-// mime string.
-const isMarkdown = computed(() => isMarkdownDocument({
-  mimeType: Array.isArray(props.source?.declaredMime)
-    ? String(props.source.declaredMime[0] || '')
-    : String(props.source?.declaredMime || mimeType.value),
-  name: fileName.value
-}));
-const renderedMarkdown = computed(() => (isMarkdown.value ? renderMarkdown(text.value) : ''));
+// The text preview mode is markdown prose: it renders through the shared
+// pipeline like the text editor and agent answers.
+const renderedMarkdown = computed(() => (mode.value === 'text' ? renderMarkdown(text.value) : ''));
 // Modes that need the payload bytes client-side: the readers and the
 // blob-backed image/pdf swaps.
 const FETCHED_MODES = ['pdf', 'docx', 'table', 'workbook', 'text', 'image'];

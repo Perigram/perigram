@@ -2,16 +2,9 @@ import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { render as renderMermaidDiagram } from 'pele';
 
-// The markdown document contract: detection and rendering live here and
-// nowhere else. The payload IS the text, so the source editor and the
-// read viewer share one pipeline — source in, sanitized HTML out —
-// instead of each carrying its own marked+DOMPurify copy.
-
-// A stored file is a markdown document by its declared mime or its
-// filename; the read viewer and both editor hosts decide through this.
-export function isMarkdownDocument({ mimeType = '', name = '' } = {}) {
-  return mimeType === 'text/markdown' || /\.md$/i.test(name || '');
-}
+// The markdown document contract: rendering lives here and nowhere else.
+// The `text` preview mode is markdown prose, so the source editor and the
+// read viewer share one pipeline — source in, sanitized HTML out.
 
 // Mermaid fences render as diagrams (owner direction 2026-10-17): pele
 // turns the fence source into an inline SVG inside the pipeline output,

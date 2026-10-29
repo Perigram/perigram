@@ -40,8 +40,7 @@ const payloadPreview = computed(() => resolveFilePreview(props.entity, typeById(
 const viewerSource = computed(() => ({
   mode: payloadPreview.value.mode,
   fileUrl: payloadPreview.value.fileUrl,
-  attachment: props.entity.payload,
-  declaredMime: typeById(props.typeId)?.payload?.mime || null
+  attachment: props.entity.payload
 }));
 const declaredPreview = computed(() => {
   const type = typeById(props.typeId);
