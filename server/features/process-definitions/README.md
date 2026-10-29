@@ -456,7 +456,11 @@ reject missing role references. The compiled contract contains role
 capabilities; per-user access resolves at hydration, which reads the
 active organization assignment against that contract on every request —
 assignment edits take effect on the next request and leave the active
-process untouched.
+process untouched. Availability is visibility: hydration's generator
+action contract (`process.actions`) carries only the actions the
+assignment's roles can run, so an action no assigned role carries
+renders on no surface; the run gate (`assertCompiledActionAvailable`)
+stays the execution authority.
 
 The same save-boundary rewrites that enforce the structural floor
 collapse an effect's access to its primary grant — one grant per

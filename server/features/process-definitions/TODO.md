@@ -118,3 +118,29 @@ template processUpdate family vs the §3 patch. Validation: both feature
 directories 123/123, packages/processes 512/512, check-arch green;
 check-docs has one pre-existing blocking broken link
 (workers/nesting/README.md → ./jagua-rs/README.md, present at base).
+
+### Action availability is visibility (owner direction 2026-10-31)
+
+- [ ] WAITING — owner verification: hydration's generator action
+  contract carries only the actions the assignment's roles can run
+  (`process.actions` filtered to the manifest), so an unrunnable action
+  renders on no surface; validate warns when a manual action resolves
+  to no role (`Action <id> is exposed to no role`).
+
+#### Agent Notes (2026-10-31)
+
+Session `agent/action-visibility-20261031` (worktree
+`.agent-wt-actions-20261031`).
+Live report: owner saw "Action mkSheets is not available to the current
+process role" on an admin account. Root cause: `resolveProcessAuth` sent
+the client EVERY compiled action (`process.actions` unfiltered) while
+`assertCompiledActionAvailable` gates on the assignment-filtered
+manifest — screens list actions verbatim, so any action no assigned role
+carries rendered and 403'd on click. The old `unlanedManualEffectDiagnostics`
+covered only authored-grant-empty manual effects; the resolved-truth
+warning (`unexposedManualActionDiagnostics` over the compiled roles)
+covers missing grants, stale grant roles, and non-effect manual actions.
+`npx vitest run packages/processes` 551/551; server spec family: 5
+pre-existing cassette-rename drift failures on baseline, zero new
+(the role-contract hydration spec is among the drifted — its repair is
+the open process-definitions drift task).
