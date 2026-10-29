@@ -64,11 +64,14 @@ revision pinning for every file the plugin serves.
 
 The `fill` and `render-pdf` services are bound by the listing's
 `constructions`: `text-document`/`xlsx-workbook`/`pdf-document` gain a
-`fill` mode, `pdf-document` gains a `render` mode. The construction
-dispatch sends `{ refs, draft: { data: { values } } }`; the service
-returns `payload: { base64, mime, name }` (the executor payload
+`fill` mode, `pdf-document` gains a `render` mode (its `source` input
+carries the authored `Source` label). The construction dispatch sends
+`{ refs, draft: { data } }`; the service returns
+`payload: { base64, mime, name }` (the executor payload
 contract, [plugin-sdk](../../packages/plugin-sdk/README.md)) and the
-platform stores it as the created instance's payload.
+platform stores it as the created instance's payload. The composed
+file's name is the operator's typed create name (`draft.data.name`, a
+declared input) over the source file's own name.
 
 Token law:
 

@@ -46,6 +46,13 @@ function baseName(value) {
   return String(value || 'document').replace(/\.[^.]+$/, '');
 }
 
+// The composed file's name: the operator's typed create name (the declared
+// `name` input, data-qualified on the construction wire) over the source
+// file's name.
+function draftName(input, fallbackName) {
+  return baseName(input.draft?.data?.name || input.draft?.name || input.draft?.identity?.name || fallbackName);
+}
+
 function toPayload(buffer, mime, name) {
   return { payload: { base64: Buffer.from(buffer).toString('base64'), mime, name } };
 }
@@ -130,12 +137,14 @@ export const services = {
   },
   // Template fill (SPEC §24): the template ref's payload plus the wired
   // values in, the filled file out as the created record's payload. The
+  // operator's typed name (a declared input, data-qualified on the wire)
+  // names the composed file; the template's name is the fallback. The
   // template's token keys ride the ephemeral meta channel — the fill
   // dialog's per-token form reads them, records never store them.
   fill: async (input = {}) => {
     const template = requireRef(input, 'template', 'fill');
     const values = input.draft?.data?.values ?? {};
-    const name = baseName(input.draft?.name || input.draft?.identity?.name || template.name);
+    const name = draftName(input, template.name);
     const kind = fileKindOf(input?.refs?.template);
     if (kind === 'markdown') {
       return { ...toPayload(fillMarkdown(template.text(), values), 'text/markdown', `${name}.md`), meta: { tokens: markdownTemplateTokens(template.text()) } };
@@ -152,7 +161,7 @@ export const services = {
   // a rendered PDF payload out.
   'render-pdf': async (input = {}) => {
     const source = requireRef(input, 'source', 'render-pdf');
-    const name = baseName(input.draft?.name || input.draft?.identity?.name || source.name);
+    const name = draftName(input, source.name);
     const kind = fileKindOf(input?.refs?.source);
     if (kind === 'markdown') {
       const values = input.draft?.data?.values ?? {};

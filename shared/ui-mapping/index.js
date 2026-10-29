@@ -866,6 +866,7 @@ export function constructRerunAction(actions = {}, record = null) {
     rerunOf: match[1],
     rerun: true,
     typeId: action.typeId,
+    labelKey: 'uiMapping.rederive',
     label: action.label || match[1],
     icon: 'pi pi-refresh',
     trigger: { mode: 'manual' },

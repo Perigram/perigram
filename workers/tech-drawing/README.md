@@ -14,7 +14,9 @@ same-origin. Orgs connect the executor through the install's
 - Service: `place-dxf` (`services.js`, endpoint mode, construction
   `fill` on `dxf-source`). Input `{ refs: { template, parts }, draft }`
   — template and part refs arrive with `payloadBase64`; output
-  `payload: { base64, mime: 'application/dxf', name }`, or
+  `payload: { base64, mime: 'application/dxf', name }` (the composed
+  file named for the operator's typed create name, `draft.data.name`,
+  over the template's own name), or
   `{ failures: [{ name, message }] }` on refusal.
 - Editor surface: `surfaces/sketch-editor.mjs` (surface contract 3 — the
   capability mount; background images upload through the host file

@@ -107,7 +107,12 @@ async function run() {
     }
     releaseBlob();
     attachment.value = null;
-    failures.value = Array.isArray(error?.data?.failures) ? error.data.failures : [];
+    // A structured refusal names its offenders; any other failure carries
+    // the transport's message — the pane stays honest about what it could
+    // not compose.
+    failures.value = Array.isArray(error?.data?.failures)
+      ? error.data.failures
+      : [{ message: error?.data?.message || error?.message || String(error) }];
   } finally {
     if (ticket === sequence) loading.value = false;
   }

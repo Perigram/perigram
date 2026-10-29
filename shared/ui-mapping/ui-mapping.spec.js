@@ -568,7 +568,8 @@ describe('action launch plan', () => {
       actionKind: 'rerunInstance',
       rerunOf: 'fill',
       rerun: true,
-      typeId: 'pdf-document'
+      typeId: 'pdf-document',
+      labelKey: 'uiMapping.rederive'
     });
     // The stored inputs are the run's inputs: the re-run prompts nothing.
     expect(planActionLaunch(rerun)).toBe('run');

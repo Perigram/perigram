@@ -527,6 +527,31 @@ AttachmentKind row.
   every template type rides the same three pieces — an editor binding in
   the listing, a revision scope on the type, and the revisioned payload
   channel for saves and replacement. Ordered steps:
+
+  ### Agent Notes (2026-10-29, UX review pass)
+
+  Product/UX review of the whole template surface (fill dialogs, DXF
+  marker editor, record lifecycle) against the live stack. Fixed:
+  `dtoToScreenInstance` dropped `provenance`, so derived records showed
+  "Replace file" (SPEC §24 replace-free law) and the construct re-run
+  row never rendered — provenance now rides the screen instance, the
+  re-run button carries its own `uiMapping.rederive` caption; the
+  preview pane surfaces hard failures (executor down, 5xx) as the
+  offender list instead of a silent blank; the fill dialog's
+  reference-slot create button names the created type beside "Create"
+  (three same-named "Create" buttons broke voice/SR disambiguation);
+  composed files are named for the operator's typed name
+  (`draft.data.name`) in both executors — they silently kept the
+  template's filename; documents listing v6 labels the render `source`
+  input ("Source", matching "Template"/"Values"). Verified live: fill
+  dialogs (md/xlsx/pdf/dxf), spot prefill, preview, DXF editor anchor
+  authoring, revisioned save. Clean findings left as-is: dialog captions
+  derive from the mode vocabulary ("New X from Fill", compiler label
+  law, locale-overridable); spot-assignment submit gating delegates to
+  the executor's structured refusal (client-side duplication of anchor
+  law would drift); canvas-click point picking in the DXF editor is
+  cue-less but focuses the name field on pick.
+
   - [ ] WAITING — Revision scope on template types: dxf-source declares
     `revisions: "geometry"` (tech-drawing v5); the revisioned payload
     channel then serves replace-in-place — new bytes onto the same

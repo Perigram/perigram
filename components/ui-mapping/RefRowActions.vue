@@ -7,8 +7,8 @@
       severity="secondary"
       text
       rounded
-      :aria-label="t('common.create')"
-      :title="t('common.create')"
+      :aria-label="createLabel"
+      :title="createLabel"
       :loading="creating"
       @click="runCreate(entries[0])"
     />
@@ -19,8 +19,8 @@
       severity="secondary"
       text
       rounded
-      :aria-label="t('common.create')"
-      :title="t('common.create')"
+      :aria-label="createLabel"
+      :title="createLabel"
       :loading="creating"
       @click="event => menuRef?.toggle(event)"
     />
@@ -92,6 +92,14 @@ const entries = computed(() => props.typeIds.flatMap(typeId => {
 
 const hasAffordances = computed(() => entries.value.length > 0 || Boolean(props.value?.id && props.editorActions?.[String(props.value.type)]));
 const editorAction = computed(() => (props.value?.id ? props.editorActions?.[String(props.value.type)] || null : null));
+
+// The dialog's submit shares the word "Create": the reference-slot create
+// names the thing it creates when its accepted set is a single type.
+const createLabel = computed(() => {
+  const sole = props.typeIds.length === 1 ? typeRecordOf(props.typeIds[0]) : null;
+  const typeLabel = sole?.name || sole?.id || '';
+  return typeLabel ? `${t('common.create')} ${typeLabel}` : t('common.create');
+});
 
 const menuModel = computed(() => entries.value.map((entry, index) => ({
   label: entry.label,
