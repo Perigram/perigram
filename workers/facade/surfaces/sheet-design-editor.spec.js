@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { createSSRApp, h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent } from 'vue';
 import { renderToString } from 'vue/server-renderer';
-import createSurface from './sheet-design-editor.mjs';
+import createSurface, { sameLineage } from './sheet-design-editor.mjs';
 
 const stub = (props, { slots }) => (slots?.default ? slots.default() : null);
 const renderAllSlots = (props, { slots }) => h('div', {},
@@ -137,5 +137,16 @@ describe('sheet-design-editor surface mount', () => {
     const app = createSSRApp(surface, { record: opened, persistence: { patch: async () => {}, rename: async () => {} } });
     const html = await renderToString(app);
     expect(html.match(/data-trace-chain="sheet-design"/g)).toHaveLength(1);
+  });
+
+  it('flags lineage deviation exactly', () => {
+    const baseline = { familyId: 'parent-1' };
+    expect(sameLineage(baseline, { familyId: 'parent-1' })).toBe(true);
+    expect(sameLineage(baseline, { familyId: 'parent-1', orderId: 'order-9' })).toBe(false);
+    expect(sameLineage(baseline, { familyId: 'parent-2' })).toBe(false);
+    expect(sameLineage(baseline, {})).toBe(false);
+    expect(sameLineage({}, {})).toBe(true);
+    // Stored shapes — the { id } object and the bare id — are one value.
+    expect(sameLineage({ familyId: { id: 'parent-1' } }, baseline)).toBe(true);
   });
 });
