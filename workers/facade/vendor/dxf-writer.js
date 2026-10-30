@@ -141,20 +141,23 @@ function layerDataToEntities(layerData = [], entities = []) {
 
 function drawingLayersToEntities(layers = [], entities = []) {
   for (const layer of layers || []) {
+    // The display name is the DXF layer name; the standard code stays
+    // the semantic key for closure semantics.
     const code = layerName(layer.standardCode || layer.name || DEFAULT_LAYER);
+    const name = layerName(layer.name || layer.standardCode || DEFAULT_LAYER);
     for (const path of layer.paths || []) {
       if (typeof path === 'string') {
         const polyline = svgPathToPolyline(path);
-        pushPolyline(entities, code, polyline.points, { closed: polyline.closed || closeableLayer(code) });
+        pushPolyline(entities, name, polyline.points, { closed: polyline.closed || closeableLayer(code) });
         continue;
       }
       if (path?.kind === 'text') {
-        pushText(entities, code, path.text, [path.x, path.y], path);
+        pushText(entities, name, path.text, [path.x, path.y], path);
         continue;
       }
       if (path?.d) {
         const polyline = svgPathToPolyline(path.d);
-        pushPolyline(entities, code, polyline.points, { closed: polyline.closed || closeableLayer(code) });
+        pushPolyline(entities, name, polyline.points, { closed: polyline.closed || closeableLayer(code) });
       }
     }
   }

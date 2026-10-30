@@ -131,7 +131,10 @@ export async function nestingParts({ fields = {} } = {}) {
 export async function generateSheetDxf({ fields = {} } = {}) {
   const toExportLayer = (layer) => (layer && occsLayerStandard(layer) ? occsLayerExportName(layer) : layer);
   const dxf = generateLayeredDxf({
-    layers: fields.geometry?.preview?.layers || [],
+    layers: (fields.geometry?.preview?.layers || []).map(layer => {
+      const code = layer?.standardCode || layer?.name;
+      return occsLayerStandard(code) ? { ...layer, name: occsLayerExportName(code) } : layer;
+    }),
     layerData: (fields.geometry?.data?.layerData || []).map(item => ({
       ...item,
       layer: toExportLayer(item.layer || item.standardCode || item.name)

@@ -5,7 +5,13 @@
 // patch persists them. Construction-time compute lives in the facade
 // plugin's executor (workers/facade); this is the editor surface's copy.
 
-import { penForLayer, strokeDasharray } from '../../occs/layerStandards.js';
+import { occsLayerExportName, occsLayerStandard, penForLayer, strokeDasharray } from '../../occs/layerStandards.js';
+
+// Standard layers display their registry production export name — bare
+// codes never surface in a drawing or the DXF export.
+function displayLayerName(code) {
+  return occsLayerStandard(code) ? occsLayerExportName(code) : code;
+}
 
 // Preview layers carry the layer standards' pens verbatim (color, weight,
 // dash); stroke-width scaling to screen pixels is the renderer's concern.
@@ -118,10 +124,10 @@ function layerPathShouldClose(layer = {}) {
 
 function pushLayerPath(layers, code, path) {
   if (!path) return;
-  let layer = layers.find(item => item.name === code);
+  let layer = layers.find(item => (item.standardCode || item.name) === code);
   if (!layer) {
     layer = {
-      name: code,
+      name: displayLayerName(code),
       standardCode: code,
       ...layerStyle(code),
       paths: []
@@ -284,14 +290,14 @@ export function nestingResultToPreview(result = {}, params = {}, options = {}) {
     viewBox: `0 0 ${width} ${sheetPaths.length * height + Math.max(sheetPaths.length - 1, 0) * gap}`,
     layers: [
       {
-        name: 'contour.material_sheet',
+        name: displayLayerName('contour.material_sheet'),
         standardCode: 'contour.material_sheet',
         ...layerStyle('contour.material_sheet'),
         paths: sheetPaths
       },
       ...placedLayers,
       {
-        name: 'contour.cassette_face',
+        name: displayLayerName('contour.cassette_face'),
         standardCode: 'contour.cassette_face',
         ...layerStyle('contour.cassette_face'),
         paths: fallbackFacePaths
