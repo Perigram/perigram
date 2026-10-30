@@ -877,7 +877,7 @@ export default function createSurface({ vue, components, locale, queries, record
         const key = id?.toString?.() || id;
         if (!key) return;
         const known = templateRecords.value.find(item => item._id?.toString() === key);
-        const dto = known || await queries.get('cassette', key).catch(() => null);
+        const dto = known || await queries.get('cassette-template', key).catch(() => null);
         if (!dto) return;
         const hydrated = await hydrateDefinition(dto);
         persistedTemplateIdOverride.value = hydrated._id?.toString() || '';
