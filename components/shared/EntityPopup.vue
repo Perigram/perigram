@@ -168,9 +168,12 @@ function isActiveOrganization(instanceId = '') {
 function openInstance({ screenKey: detailKey, typeId, instanceId } = {}) {
   if (!typeId || !instanceId) return;
   // The popup stays put: an identity open from the generator swaps the
-  // popup subject to that instance's detail screen.
-  const base = screenByKey(authStore.screenManifest || [], detailKey);
+  // popup subject in place — any type the popup itself can host resolves
+  // (compiled screen, synthesizable detail, record floor).
+  const base = (detailKey && screenByKey(authStore.screenManifest || [], detailKey))
+    || resolveDetailScreen({ screens: authStore.screenManifest || [], typeId })
+    || recordFloorScreen(typeId);
   if (!base) return;
-  request.value = { typeId, instanceId: String(instanceId), screenKey: detailKey };
+  request.value = { typeId, instanceId: String(instanceId), ...(detailKey ? { screenKey: detailKey } : {}) };
 }
 </script>
