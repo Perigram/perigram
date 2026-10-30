@@ -384,9 +384,10 @@ data. `RENDERABLE_PREVIEW_MODES`
 (`dxf`, `svg`, `sketch`, `image`, `pdf`, `docx`, `table`,
 `workbook`, `text`); app-side materializations import it instead of
 restating the list, and every other mode degrades to a payload download.
-`ASPECT_PREVIEW_MODES` (`pdf`) marks the page-scale modes: the page
-fills the record column's width at its own MediaBox aspect
-(`LAYOUT.previewHeroBandAspect`); prose flows unframed at the body's
+`ASPECT_PREVIEW_MODES` (`pdf`) marks the page modes: the page renders
+in the framed region at the stepped heights
+(`LAYOUT.previewHeroBandAspect`), the viewer fitting the frame's width;
+prose flows unframed at the body's
 content measure (`LAYOUT.previewHeroBandFlow`); every other renderable
 mode fills the framed media region (`LAYOUT.previewHeroBandContent`,
 stepped 16/24/32rem), and fixed-height card bands carry content
@@ -654,8 +655,9 @@ medium step, 14rem past the wide step — while the card slot keeps the
 fixed `LAYOUT.previewBand` stamp). A rendered preview takes the
 treatment its content earns: `LAYOUT.previewHeroBandFlow` flows record
 prose unframed at the body's 46rem content measure,
-`LAYOUT.previewHeroBandAspect` renders a page at the column's full
-width and its own aspect, and `LAYOUT.previewHeroBandContent` is the
+`LAYOUT.previewHeroBandAspect` frames a page at the same stepped
+heights with the viewer fitting the frame's width, and
+`LAYOUT.previewHeroBandContent` is the
 framed media region (rounded, hairline border, subtle ground) bounded
 media fill at the stepped 16/24/32rem height. Every other
 container-relative

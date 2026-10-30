@@ -460,8 +460,9 @@ beside the transition history in `StateHistory`.
   columns, body blocks grow into spare row width; nested card
   variants keep the hairline spec list. The preview treatment follows
   the content with `PreviewBox fill`: prose flows
-  (`LAYOUT.previewHeroBandFlow`), a page renders at page scale
-  (`LAYOUT.previewHeroBandAspect`), bounded media and declared
+  (`LAYOUT.previewHeroBandFlow`), a page renders in the framed region
+  at the stepped heights (`LAYOUT.previewHeroBandAspect`), bounded
+  media and declared
   previewSource fill the framed region
   (`LAYOUT.previewHeroBandContent`), and the quiet glyph keeps the bare
   small ladder. A list region with
@@ -498,8 +499,8 @@ beside the transition history in `StateHistory`.
   follows the content: prose renders as markdown at the body's measure
   (the shared pipeline under its one element recipe — the text preview
   mode is markdown like the text editor and agent answers), the PDF
-  renders at page scale (the column's width,
-  MediaBox aspect with A4 fallback, viewer chrome hidden), and bounded
+  fills the framed region (viewer chrome hidden, the page fits the
+  frame's width and scrolls inside), and bounded
   media fill the framed region — contained rasters, fitting drawings,
   scrolling tables and Word documents. Fetch-backed
   modes state their load (spinner) and surface a failed download. A
