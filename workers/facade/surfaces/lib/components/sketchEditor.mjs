@@ -1738,11 +1738,6 @@ export default function createSketchEditor({ vue, components, locale }) {
           if (disposed) return;
           manager.events.documentActivated.addEventListener(() => bindDatabase({ schedule: false }));
           manager.events.documentCreated.addEventListener(() => bindDatabase({ schedule: false }));
-          if (pendingCommand) {
-            const command = pendingCommand;
-            pendingCommand = null;
-            manager.sendStringToExecute?.(command);
-          }
           bindCommandEvents();
           bindSelectionEvents();
           window.addEventListener('keydown', handleWindowKeydown, true);
@@ -1758,6 +1753,13 @@ export default function createSketchEditor({ vue, components, locale }) {
           emitSketch();
           if (!normalizeOccsProfileSketch(props.modelValue || {}).shapes.length) {
             zoomToBlankWindow();
+          }
+          // The flush queues behind the mount's scripted commands — a
+          // command ahead of them would eat their prompt tokens.
+          if (pendingCommand) {
+            const command = pendingCommand;
+            pendingCommand = null;
+            manager.sendStringToExecute?.(command);
           }
           // A dialog mount can race the container's real size (open
           // animation, late flex layout); the first time the canvas
