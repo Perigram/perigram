@@ -2496,15 +2496,11 @@
         "layoutSaveFailed": "Failed to save the sheet layout.",
         "layoutSaved": "Sheet layout saved as a geometry revision.",
         "margin": "Margin",
-        "placements": "Placements",
-        "position": "Position",
         "removeSheet": "Remove sheet",
-        "rotation": "Rotation",
         "selectDesign": "Select design",
         "selectSheet": "Select sheet",
         "sheet": "Sheet",
-        "sheetDesigns": "Sheet designs",
-        "size": "Size"
+        "sheetDesigns": "Sheet designs"
     },
     "nestingRun": {
         "sheetDesigns": "Sheet designs"

@@ -106,17 +106,17 @@ describe('sheet-design-editor surface mount', () => {
     const surface = createSurface(mountContext({ queries }));
     const app = createSSRApp(surface, { record: opened, persistence: { patch: async () => {}, rename: async () => {} } });
     await renderToString(app);
-    // The family query rides the record's lineage keys — the only
-    // sheet-design read the editor ever issues.
+    // The family query rides the record's lineage keys; the pool query
+    // feeds the explicit picker.
     await Promise.resolve();
-    expect(sheetQueryCalls).toEqual([{ 'lineage.familyId': 'parent-1' }]);
+    expect(sheetQueryCalls).toEqual([{ 'lineage.familyId': 'parent-1' }, {}]);
   });
 
-  it('never queries a lineage-less record and edits it alone', async () => {
+  it('never queries lineage for a lineage-less record', async () => {
     const sheetQueryCalls = [];
     const queries = {
-      list: async typeId => {
-        if (typeId === 'sheet-design') sheetQueryCalls.push(typeId);
+      list: async (typeId, params = {}) => {
+        if (typeId === 'sheet-design') sheetQueryCalls.push(params);
         return [];
       }
     };
@@ -125,7 +125,7 @@ describe('sheet-design-editor surface mount', () => {
     const html = await renderToString(app);
     await Promise.resolve();
 
-    expect(sheetQueryCalls).toEqual([]);
+    expect(sheetQueryCalls).toEqual([{}]);
     expect(html.match(/data-ref-variant="tile"/g)).toHaveLength(2);
     // No lineage, no section chain.
     expect(html).not.toContain('data-trace-chain');

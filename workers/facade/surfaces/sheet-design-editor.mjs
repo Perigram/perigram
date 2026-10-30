@@ -81,6 +81,7 @@ export default function createSurface({ vue, components, locale, queries, notify
       const panState = ref(null);
       const saving = ref(false);
       const designs = ref([]);
+      const sheetPool = ref([]);
       const familyRows = ref([]);
       const view = ref({ cx: 610, cy: 1220, k: 0.25 });
       const svgSize = ref({ w: 800, h: 600 });
@@ -93,13 +94,22 @@ export default function createSurface({ vue, components, locale, queries, notify
       const dockMenu = ref(null);
       const frameState = ref({});
 
-      const sheetOptions = computed(() => familyRows.value
-        .filter(row => !sheets.value.some(entry => entry.id === String(row._id)))
-        .map(row => ({
-          value: String(row._id),
-          entity: row,
-          typeId: 'sheet-design'
-        })));
+      // The picker's options: unplaced family members first, then the
+      // org's sheets — picking is the explicit add channel, one at a
+      // time.
+      const sheetOptions = computed(() => {
+        const onCanvas = new Set(sheets.value.map(entry => entry.id));
+        const familyIds = new Set(familyRows.value.map(row => String(row._id)));
+        const optionOf = row => ({ value: String(row._id), entity: row, typeId: 'sheet-design' });
+        return [
+          ...familyRows.value.filter(row => !onCanvas.has(String(row._id))).map(optionOf),
+          ...sheetPool.value
+            .filter(row => !onCanvas.has(String(row._id)) && !familyIds.has(String(row._id)))
+            .map(optionOf)
+        ];
+      });
+      const pendingFamilySheets = computed(() => familyRows.value
+        .filter(row => !sheets.value.some(entry => entry.id === String(row._id))));
       const activeSheetEntry = computed(() =>
         sheets.value.find(entry => entry.id === activeSheetId.value) || sheets.value[0] || null);
       const selectedEntry = computed(() => {
@@ -210,9 +220,16 @@ export default function createSurface({ vue, components, locale, queries, notify
         frameState.value = {};
         familyRows.value = [];
         loadFamily(props.record);
+        loadSheetPool();
         history.reset();
         reflowSheets();
         fitView();
+      }
+
+      // The picker's pool: the org's sheets, offered beside unplaced
+      // family members — picking is the explicit add channel.
+      function loadSheetPool() {
+        queries.list('sheet-design').then(rows => { sheetPool.value = rows || []; }).catch(() => {});
       }
 
       // The family joins the canvas beside the opened record: same
@@ -435,13 +452,14 @@ export default function createSurface({ vue, components, locale, queries, notify
       }
 
       function addSheetById(id) {
-        const record = familyRows.value.find(row => String(row._id) === String(id));
+        const record = [...familyRows.value, ...sheetPool.value]
+          .find(row => String(row._id) === String(id));
         if (record) addSheetRecord(record);
       }
 
       function addAllFamilySheets() {
         let added = false;
-        for (const row of familyRows.value) added = addSheetRecord(row) || added;
+        for (const row of pendingFamilySheets.value) added = addSheetRecord(row) || added;
         if (added) selection.value = null;
       }
 
@@ -1386,11 +1404,6 @@ export default function createSurface({ vue, components, locale, queries, notify
 
       // ---- panels ------------------------------------------------------------------
 
-      const factRow = (label, value) => h('div', { class: 'flex items-baseline justify-between gap-3' }, [
-        h('span', { class: 'shrink-0 text-muted' }, label),
-        h('span', { class: 'min-w-0 truncate font-medium', title: String(value) }, String(value))
-      ]);
-      const rounded = value => Math.round(Number(value) * 10) / 10;
 
       const renderPalette = () => h('aside', { class: 'flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3' }, [
         h('div', { class: 'flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-y-auto' }, [
@@ -1440,6 +1453,20 @@ export default function createSurface({ vue, components, locale, queries, notify
       ]);
 
       const sectionLabel = label => h('small', { class: 'text-muted text-supporting' }, label);
+
+      // The active sheet's distinct placed designs — the actual records
+      // behind its placements.
+      const activeSheetDesignIds = computed(() => {
+        const entry = activeSheetEntry.value;
+        if (!entry) return [];
+        const ids = [];
+        for (const placement of entry.placedItems) {
+          const designId = sheetPlacementSource(entry.items, placement)?.design_id;
+          const id = designId ? String(designId) : '';
+          if (id && !ids.includes(id)) ids.push(id);
+        }
+        return ids;
+      });
 
       const renderSheetTile = entry => h(components.InstanceInlineRef, {
         key: entry.id,
@@ -1491,7 +1518,7 @@ export default function createSurface({ vue, components, locale, queries, notify
               'onUpdate:modelValue': addSheetById
             })
           : null,
-        sheetOptions.value.length
+        pendingFamilySheets.value.length
           ? h(components.Button, {
               label: t('sheetDesign.addAllSheets'),
               icon: 'pi pi-clone',
@@ -1528,15 +1555,7 @@ export default function createSurface({ vue, components, locale, queries, notify
                   id: selectedSource.value?.design_id,
                   fetch: !selectedDesignRecord.value,
                   variant: 'tile'
-                }),
-                ...selectedBounds.value ? [
-                  factRow(t('sheetDesign.size'), `${rounded(selectedBounds.value.width)}×${rounded(selectedBounds.value.height)} mm`)
-                ] : [],
-                ...selectedTransform.value ? [
-                  factRow(t('sheetDesign.position'), `${rounded(selectedTransform.value.x)}, ${rounded(selectedTransform.value.y)} mm`),
-                  factRow(t('sheetDesign.rotation'), `${Math.round(((selectedTransform.value.rotation % 360) + 360) % 360)}°`)
-                ] : [],
-                factRow(t('sheetDesign.sheet'), sheetNameOf(selectedEntry.value))
+                })
               ])
             : activeSheetEntry.value
               ? h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
@@ -1547,12 +1566,16 @@ export default function createSurface({ vue, components, locale, queries, notify
                     id: activeSheetEntry.value.id,
                     variant: 'tile'
                   }),
-                  factRow(t('sheetDesign.size'), `${rounded(activeSheetEntry.value.width)}×${rounded(activeSheetEntry.value.height)} mm`),
-                  factRow(t('sheetDesign.placements'), activeSheetEntry.value.placedItems.length),
-                  factRow(t('sheetDesign.designs'),
-                    new Set(activeSheetEntry.value.placedItems
-                      .map(placement => sheetPlacementSource(activeSheetEntry.value.items, placement)?.design_id)
-                      .filter(Boolean)).size)
+                  // The sheet's placed designs — the actual instances,
+                  // one tile per distinct record.
+                  ...activeSheetDesignIds.value.map(designId => h(components.InstanceInlineRef, {
+                    key: designId,
+                    type: 'cassette-design',
+                    id: designId,
+                    entity: designs.value.find(row => String(row._id) === designId) || null,
+                    fetch: !designs.value.some(row => String(row._id) === designId),
+                    variant: 'tile'
+                  }))
                 ])
               : null,
           renderDesignsSection(),
