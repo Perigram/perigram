@@ -148,8 +148,8 @@ export default function createSketchEditor({ vue, components, locale }) {
       // (occs/README.md owns the law). Script inputs are newline-tokenized
       // (AutoCAD .scr semantics).
       const BLANK_WINDOW_COMMAND = 'zoom\nw\n-50,-75\n150,75';
-      const zoomToBlankWindow = () => {
-        manager?.sendStringToExecute?.(BLANK_WINDOW_COMMAND);
+      const zoomToBlankWindow = (extra = []) => {
+        manager?.sendStringToExecute?.([BLANK_WINDOW_COMMAND, ...extra].join('\n'));
       };
 
       // The material half of the zero axis is the boolean body — the
@@ -1751,15 +1751,14 @@ export default function createSketchEditor({ vue, components, locale }) {
           lastEmitted = '';
           reseedFromModel();
           emitSketch();
+          // Scripted commands ride one script: separate sends execute
+          // concurrently and eat each other's prompt tokens.
+          const queued = pendingCommand ? [pendingCommand] : [];
+          pendingCommand = null;
           if (!normalizeOccsProfileSketch(props.modelValue || {}).shapes.length) {
-            zoomToBlankWindow();
-          }
-          // The flush queues behind the mount's scripted commands — a
-          // command ahead of them would eat their prompt tokens.
-          if (pendingCommand) {
-            const command = pendingCommand;
-            pendingCommand = null;
-            manager.sendStringToExecute?.(command);
+            zoomToBlankWindow(queued);
+          } else if (queued.length) {
+            manager.sendStringToExecute?.(queued.join('\n'));
           }
           // A dialog mount can race the container's real size (open
           // animation, late flex layout); the first time the canvas
