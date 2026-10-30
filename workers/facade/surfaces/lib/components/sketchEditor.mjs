@@ -653,7 +653,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         selectedCorner.value = null;
         const bounds = overlayRef.value?.getBoundingClientRect();
         const hits = shapesAt(event.clientX, event.clientY);
-        if (!hits.length || !bounds) {
+        if (!hits?.length || !bounds) {
           pickCycle = null;
           selectedShape.value = null;
           return;
