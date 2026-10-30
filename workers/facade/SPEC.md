@@ -456,9 +456,10 @@ Owner decision (2026-10-29, the working set is the lineage family): the
 multi-sheet working set derives from data, never a pool: the opened
 record's family is the sheets sharing its lineage parents under the
 declared containment's keys, and that family joins the canvas beside the
-opened record. The sheet-design picker and the add-all button offer
-family members only; a record with no lineage edits alone, and no
-surface of the editor lists the org-wide sheet pool. The parent is
+opened record. The sheet-design picker is the explicit add channel —
+any org sheet, picked one at a time, family members offered first —
+and the add-all button covers the family alone; nothing mass-adds the
+org pool. The parent is
 whatever entity type the organization's declarations compose — the
 generic containment contract decides, the plugin hardcodes none. The
 canvas arranges the family as a wrapped rack; a sheet moves by its
@@ -473,17 +474,19 @@ silences the base.
 
 Owner decision (2026-10-29, the inspector runs on instance tiles): the
 editor's record surfaces are the platform's instance tile — the
-working-set sheets and the record behind a selection render as tiles
-(preview, identity, state, compact facts), the working-set tile
+working-set sheets and the record behind a selection render as tiles,
+the working-set tile
 selectable (click activates the sheet on canvas) with its active
 marking; the working-set remove rides the row's trailing end (the
 chip-removable convention). The panel's lineage context renders as one
 trace chain at the working-set section (owner direction 2026-10-30);
-tile rows carry no breadcrumb. Pickers
+tile rows carry no breadcrumb. The active sheet's placed cassette
+designs render as the actual instance tiles beside the sheet tile
+(owner direction 2026-10-30) — placement geometry (position, rotation)
+reads on the canvas, and the inspector carries no hand-rolled fact
+rows. Pickers
 pick-to-add: choosing a sheet from the sheet picker joins the working
-set, choosing a cassette design places it on the active sheet. Editor
-facts (size, position, rotation, counts) render beside the tile;
-section labels carry no count badges.
+set, choosing a cassette design places it on the active sheet.
 
 End state for the facade plugin: the cassette designer and the sheet-design
 editor mount from the plugin, their app-side registrations and components

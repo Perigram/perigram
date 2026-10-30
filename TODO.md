@@ -3025,9 +3025,15 @@ prohibited.
 - [x] WAITING — owner verification: the working set is the opened
   record's lineage family (declared containment keys scope the list
   transport's lineage filters; the family joins beside the opened
-  record; a lineage-less record edits alone) — the sheet-design picker
-  and add-all offer family members only; the org-wide pool query is
-  gone (facade SPEC, owner decision 2026-10-29).
+  record) and the sheet picker is the explicit add channel — any org
+  sheet, family members first — with add-all covering the family alone;
+  the org-wide mass add stays gone (facade SPEC, owner decision
+  2026-10-29 amended 2026-10-30).
+- [x] WAITING — owner verification: the inspector carries the placed
+  cassette-designs as the actual instance tiles beside the sheet tile;
+  the hand-rolled fact rows (size, position, rotation, placement and
+  design counts) are deleted — placement geometry reads on the canvas
+  (facade SPEC, owner direction 2026-10-30).
 - [x] WAITING — owner verification: the family canvas is a wrapped
   rack — a sheet moves by its label band, rotates a quarter turn about
   its center from its action dial, placements ride in sheet-local
@@ -3083,6 +3089,22 @@ breadcrumb, and the remove × returns to the row's trailing end (the
 chip-removable convention). `TraceChain` joins the surface pack. E2E
 pins the section chain's parent name and the deleted-parent type-label
 fallback.
+
+### Agent Notes (2026-10-30, explicit adds and the tiles-only inspector)
+
+Session `agent/sheet-add-20261030` (worktree
+`.agent-worktrees/sheet-add-20261030`). Two owner reports closed. The
+family-only picker left no add path in orgs without declared
+containment: the sheet picker returns as the explicit add channel (any
+org sheet, family members offered first, one at a time) while add-all
+covers the family alone. The inspector's serialized fact rows (size,
+position, rotation, placement and design counts) are deleted — the
+active sheet's placed cassette-designs render as the actual instance
+tiles beside the sheet tile; "CAS <id> WP 1" is the cassette mark
+text (the OCCS mark template carries the template id), drawn production
+content on the canvas. The four dead sheetDesign locale keys ride
+along. E2E pins: the stranger offered and pickable, add-all taking the
+family alone, and the placed design's instance tile.
 - [x] WAITING — owner verification: the cassette designer's load picker
   lists templates again (the surface queried the retired `cassette`
   type id; the picker was empty and
