@@ -3050,11 +3050,12 @@ prohibited.
   `rowBetween`, `labeledBlock`, ladder gaps only; the invented tile
   stylesheet block (10/6/2px gaps, bespoke 64×60 thumb) is deleted and
   the compact gallery face rides ladder gaps (SPEC §22.13 amendment).
-- [x] WAITING — owner verification: the tile's lineage breadcrumb is
-  `TraceChain`'s own compact variant riding the tile's ladder stacks
-  (the owner-ordered §22.13 content list, resolved names after the §3
-  wire-title fix), and the working-set remove is the chip-removable ×
-  on the identity line beside the state tag (SPEC §22.13 amendment).
+- [x] WAITING — owner verification: the panel's lineage context renders
+  as one `TraceChain` at the working-set section (the trace law: card
+  bodies carry no lineage; §22.8: a homogeneous panel carries its
+  context once), tile rows carry no breadcrumb, and the working-set
+  remove is the chip-removable × at the row's trailing end (SPEC
+  §22.13 amendment).
 
 ### Agent Notes (2026-10-30, breadcrumb restoration)
 
@@ -3068,6 +3069,20 @@ directly and the remove returns as the chip-removable × on the
 identity line; `InstanceActionsPopover` leaves the surface pack. E2E
 re-pins the parent name on the tile breadcrumb and the type-label
 fallback under a deleted parent.
+
+### Agent Notes (2026-10-30, family chain)
+
+Session `agent/family-chain-20261030` (worktree
+`.agent-worktrees/family-chain-20261030`). The tile-crumb round
+re-shipped the previous agent's per-row TraceChain verbatim — the exact
+design the owner rejected. The compliant shape per the trace law and
+§22.8: card bodies carry no lineage, a homogeneous panel renders its
+shared context once — the working-set section now renders one
+`TraceChain` (compact, expandable) under its label, tile rows carry no
+breadcrumb, and the remove × returns to the row's trailing end (the
+chip-removable convention). `TraceChain` joins the surface pack. E2E
+pins the section chain's parent name and the deleted-parent type-label
+fallback.
 - [x] WAITING — owner verification: the cassette designer's load picker
   lists templates again (the surface queried the retired `cassette`
   type id; the picker was empty and
