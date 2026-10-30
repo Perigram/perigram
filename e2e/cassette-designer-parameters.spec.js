@@ -73,6 +73,9 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   // A profile authored through the dialog opens on the parametric hanger;
   // an open chain edge-embeds when placed by array.
   await page.getByRole('button', { name: 'Add profile' }).click();
+  const pickerEntry = page.getByRole('button', { name: /Create new|New profile/ }).first();
+  await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
+  if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const fxW = dialog.locator('input[aria-label="W"]').first();
@@ -210,6 +213,9 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
 
   await page.getByRole('button', { name: 'Add profile' }).click();
+  const pickerEntry = page.getByRole('button', { name: /Create new|New profile/ }).first();
+  await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
+  if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const canvas = dialog.locator('div[role="application"]');
@@ -309,6 +315,7 @@ test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   // New profile entry opens the sketch editor.
   await page.getByRole('button', { name: 'Add profile' }).click();
   const pickerEntry = page.getByRole('button', { name: /Create new|New profile/ }).first();
+  await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
