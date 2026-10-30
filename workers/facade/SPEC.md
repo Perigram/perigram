@@ -474,10 +474,11 @@ silences the base.
 Owner decision (2026-10-29, the inspector runs on instance tiles): the
 editor's record surfaces are the platform's instance tile — the
 working-set sheets and the record behind a selection render as tiles
-(preview, identity, state, compact facts), the working-set tile
+(preview, identity, state, the trace chain's compact lineage breadcrumb,
+compact facts), the working-set tile
 selectable (click activates the sheet on canvas) with its active
-marking; row-local actions ride the §22.12 row menu (the ellipsis
-popover) in the tile's trailing slot. Pickers
+marking; the working-set remove rides the tile's identity line beside
+the state tag (the chip-removable convention). Pickers
 pick-to-add: choosing a sheet from the sheet picker joins the working
 set, choosing a cassette design places it on the active sheet. Editor
 facts (size, position, rotation, counts) render beside the tile;

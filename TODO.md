@@ -3050,12 +3050,24 @@ prohibited.
   `rowBetween`, `labeledBlock`, ladder gaps only; the invented tile
   stylesheet block (10/6/2px gaps, bespoke 64×60 thumb) is deleted and
   the compact gallery face rides ladder gaps (SPEC §22.13 amendment).
-- [x] WAITING — owner verification: the tile carries no lineage
-  breadcrumb (the trace chain owns lineage; card bodies do not
-  duplicate it), and row-local actions render as the §22.12 row menu —
-  the sheet editor's working-set removal moved from a trailing × to
-  the ellipsis popover (SPEC §22.13 amendment; InstanceActionsPopover
-  joins the surface pack).
+- [x] WAITING — owner verification: the tile's lineage breadcrumb is
+  `TraceChain`'s own compact variant riding the tile's ladder stacks
+  (the owner-ordered §22.13 content list, resolved names after the §3
+  wire-title fix), and the working-set remove is the chip-removable ×
+  on the identity line beside the state tag (SPEC §22.13 amendment).
+
+### Agent Notes (2026-10-30, breadcrumb restoration)
+
+Session `agent/tile-crumb-20261030` (worktree
+`.agent-worktrees/tile-crumb-20261030`). Correction round: the 10-29
+"row menu" answer degenerated into an ellipsis menu carrying one
+action, and the breadcrumb deletion mis-read the owner's "make it
+compliant" (the breadcrumb is owner-ordered §22.13 content — the fix
+is its design). The tile now carries `TraceChain`'s compact variant
+directly and the remove returns as the chip-removable × on the
+identity line; `InstanceActionsPopover` leaves the surface pack. E2E
+re-pins the parent name on the tile breadcrumb and the type-label
+fallback under a deleted parent.
 - [x] WAITING — owner verification: the cassette designer's load picker
   lists templates again (the surface queried the retired `cassette`
   type id; the picker was empty and
