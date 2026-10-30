@@ -532,14 +532,15 @@ direction 2026-10-29) — the one small-card face for an instance
 reference on a panel: the §22.8 side-preview anatomy at row scale,
 composed from the shared layout recipes (`LAYOUT.previewSideRow`,
 `LAYOUT.rowBetween`, `LAYOUT.labeledBlock`) on the §22.9 spacing ladder —
-the framed preview thumb, identity with type glyph and state tag, and
-compact facts. The tile carries no lineage breadcrumb: the trace chain
-owns lineage parents and card bodies do not duplicate it. The tile
+the framed preview thumb, identity with type glyph and state tag, the
+lineage breadcrumb as `TraceChain`'s own compact variant, and compact
+facts. The tile
 owns its row chrome: `active` marks the selected member of a working
 set with the primary border, `selectable` turns the row into a list
 option whose activation emits `select` instead of opening the record
-popup, and the `trailing` slot carries row-local actions as the §22.12
-row menu (the ellipsis popover). Panels that surface records as small
+popup, and the `trailing` slot rides the identity line's trailing end
+beside the state tag (the chip-removable convention for a working
+set's remove). Panels that surface records as small
 cards compose this tile; panel-invented card chrome is a defect.
 `compactLayout:
 'stacked'` (chat preview cards) swaps the row for a flush preview band over

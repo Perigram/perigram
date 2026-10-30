@@ -1034,18 +1034,18 @@ never inside it.
 
 The instance tile (owner direction 2026-10-29) is the one small-card
 face for an instance reference on a panel: preview thumb, identity,
-state, and compact facts in one contracted row.
+state, the lineage breadcrumb, and compact facts in one contracted row.
 Surfaces that list records as cards — a designer's working set, a
 selected record beside its facts, a picker's selected value — render the
-tile; panels invent no card chrome of their own. The tile carries no
-lineage breadcrumb: card bodies do not duplicate the lineage parents
-the trace chain owns (owner direction 2026-10-29). The tile is the §22.8
-side-preview anatomy at row scale (owner direction 2026-10-29): the
-framed preview column from the shared layout recipes, identity and
-state on the between-row, budgeted facts in the tight stacks, every gap
-a §22.9 ladder step — no face-specific stylesheet block. Row-local
-actions render as the §22.12 row menu (the ellipsis popover) through
-the tile's trailing slot.
+tile; panels invent no card chrome of their own. The breadcrumb is the
+trace chain's own compact variant — the one lineage component, riding
+the tile's stacks — never a face-specific breadcrumb design. The tile
+is the §22.8 side-preview anatomy at row scale (owner direction
+2026-10-29): the framed preview column from the shared layout recipes,
+identity and state on the between-row, the breadcrumb and budgeted
+facts in the tight stacks, every gap a §22.9 ladder step — no
+face-specific stylesheet block. Row-local controls ride the identity
+line's trailing end beside the state tag.
 
 ### 22.14 Record peeks and popup rhythm (owner direction 2026-10-29)
 
