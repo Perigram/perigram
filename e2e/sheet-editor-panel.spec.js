@@ -115,16 +115,23 @@ test('a lineage-less sheet edits alone: tiles, pick-to-add designs, OCCS pens', 
   await openSheetEditor(app, `Probe sheet ${run}`);
 
   // The inspector carries the active record and the working-set row as
-  // instance tiles; one face per ref.
+  // instance tiles, and the sheet's placed design as its own tile; one
+  // face per ref.
   const tiles = page.locator('.instance-inline-tile');
-  await expect(tiles).toHaveCount(2, { timeout: 15000 });
-  await expect(tiles.filter({ hasText: `Probe sheet ${run}` })).toHaveCount(2);
+  await expect(tiles.filter({ hasText: `Probe sheet ${run}` })).toHaveCount(2, { timeout: 15000 });
+  await expect(tiles.filter({ hasText: `Probe design ${run}` }).first()).toBeVisible({ timeout: 15000 });
   await expect(page.locator('.instance-inline-tile ~ .p-chip')).toHaveCount(0);
 
-  // No family, no sheet picker and no add-all: the lonely sibling from
-  // the org pool is never offered.
-  await expect(page.getByRole('button', { name: 'Select sheet' })).toHaveCount(0);
+  // No family, no add-all — but the picker stays the explicit channel:
+  // the org's lonely sheet is offered, picking it joins the canvas.
   await expect(page.getByRole('button', { name: /add all sheets/i })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Select sheet' }).click();
+  const sheetOptions1 = page.locator('.instance-option-row');
+  await expect(sheetOptions1).toHaveCount(1, { timeout: 150000 });
+  await expect(sheetOptions1.first()).toContainText(`Lonely sheet ${run}`);
+  await page.getByRole('option', { name: `Lonely sheet ${run}` }).click();
+  await expect(page.locator('.instance-inline-tile')
+    .filter({ hasText: `Lonely sheet ${run}` })).toHaveCount(1, { timeout: 150000 });
 
   // The cassette picker is a trigger; its option rows carry the
   // layer-standard pens (concrete stroke colors, never currentColor).
@@ -209,14 +216,20 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   const canvas = page.locator('svg[role="application"]');
   await expect(canvas.getByText(`Family sheet 2 ${run}`)).toBeVisible({ timeout: 150000 });
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toBeVisible();
-  await expect(page.locator('.instance-inline-tile')).toHaveCount(4, { timeout: 150000 });
+  await expect(page.locator('.instance-inline-tile')
+    .filter({ hasText: `Family sheet 1 ${run}` })).toHaveCount(2, { timeout: 150000 });
   await expect(page.locator('.designer-workspace nav[aria-label="Traceability"]')
     .filter({ hasText: `Job ${run}` })).toBeVisible({ timeout: 150000 });
   await expectNoRawIds(page);
 
-  // All family members sit on the canvas: the sheet picker stays away
-  // and the stranger is never listed.
-  await expect(page.getByRole('button', { name: 'Select sheet' })).toHaveCount(0);
+  // All family members sit on the canvas: the picker offers the
+  // stranger — the explicit channel — and nothing else.
+  await page.getByRole('button', { name: 'Select sheet' }).click();
+  const strangerRow = page.locator('.instance-option-row');
+  await expect(strangerRow).toHaveCount(1, { timeout: 150000 });
+  await expect(strangerRow.first()).toContainText(`Stranger sheet ${run}`);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(400);
 
   // Previews and placements follow the org standard's pen.
   await page.getByRole('button', { name: 'Select design' }).click();
@@ -235,20 +248,35 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   expect(canvasStrokes, `org pen on the placed cut.outer: ${JSON.stringify(canvasStrokes)}`)
     .toContain(ORG_PEN_COLOR);
 
-  // A removed family member is the picker's only offer; add-all brings
-  // the family back.
+  // The placed design renders as the actual instance tile beside the
+  // sheet tile — count rows are gone.
+  await expect(page.locator('.instance-inline-tile')
+    .filter({ hasText: `Family design ${run}` }).first()).toBeVisible({ timeout: 100000 });
+
+  // A removed family member returns through the picker; add-all covers
+  // the family alone.
   const sheet3Row = page.locator('.instance-inline-tile').filter({ hasText: `Family sheet 3 ${run}` });
   await sheet3Row.locator('button[aria-label="Remove sheet"]').click();
   await page.waitForTimeout(800);
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toHaveCount(0);
   await page.getByRole('button', { name: 'Select sheet' }).click();
   const sheetRows = page.locator('.instance-option-row');
-  await expect(sheetRows).toHaveCount(1, { timeout: 150000 });
+  await expect(sheetRows).toHaveCount(2, { timeout: 150000 });
   await expect(sheetRows.first()).toContainText(`Family sheet 3 ${run}`);
   await page.keyboard.press('Escape');
   await page.waitForTimeout(400);
   await page.getByRole('button', { name: /add all sheets/i }).click();
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toBeVisible({ timeout: 150000 });
+  // Add-all took the family alone: the stranger never joined.
+  await expect(canvas.getByText(`Stranger sheet ${run}`)).toHaveCount(0);
+
+  // The explicit channel brings the stranger in and its row removes it.
+  await page.getByRole('button', { name: 'Select sheet' }).click();
+  await page.getByRole('option', { name: `Stranger sheet ${run}` }).click();
+  await expect(canvas.getByText(`Stranger sheet ${run}`)).toBeVisible({ timeout: 150000 });
+  const strangerTile = page.locator('.instance-inline-tile').filter({ hasText: `Stranger sheet ${run}` });
+  await strangerTile.locator('button[aria-label="Remove sheet"]').click();
+  await expect(canvas.getByText(`Stranger sheet ${run}`)).toHaveCount(0);
 
   // Sheets move by their label band and rotate by their action dial.
   const canvasBox = await canvas.boundingBox();
@@ -273,7 +301,8 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   const deleted = await app.request.delete(`/api/instances/probe-family/${parent._id}`);
   expect(deleted.ok(), await deleted.text()).toBeTruthy();
   await openSheetEditor(app, `Family sheet 1 ${run}`);
-  await expect(page.locator('.instance-inline-tile')).toHaveCount(4, { timeout: 150000 });
+  await expect(page.locator('.instance-inline-tile')
+    .filter({ hasText: `Family sheet 2 ${run}` })).toHaveCount(1, { timeout: 150000 });
   await expectNoRawIds(page);
 
   await page.screenshot({ path: '.playwright/sheet-editor-family.png', fullPage: false });

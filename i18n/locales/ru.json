@@ -2496,15 +2496,11 @@
         "layoutSaveFailed": "Не удалось сохранить раскладку листа.",
         "layoutSaved": "Раскладка листа сохранена как ревизия геометрии.",
         "margin": "Отступ",
-        "placements": "Размещения",
-        "position": "Положение",
         "removeSheet": "Убрать лист",
-        "rotation": "Поворот",
         "selectDesign": "Выберите дизайн",
         "selectSheet": "Выберите лист",
         "sheet": "Лист",
-        "sheetDesigns": "Дизайны листов",
-        "size": "Размер"
+        "sheetDesigns": "Дизайны листов"
     },
     "nestingRun": {
         "sheetDesigns": "Дизайны листов"
