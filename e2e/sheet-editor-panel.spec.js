@@ -203,12 +203,14 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   await openSheetEditor(app, `Family sheet 1 ${run}`);
 
   // The family joined the canvas: three sheets on the rack, the active
-  // record and three working-set rows as tiles. Tiles carry no lineage
-  // breadcrumb (the trace chain owns lineage) and no raw id renders.
+  // record and three working-set rows as tiles, the parent resolved by
+  // name on the tile breadcrumbs.
   const canvas = page.locator('svg[role="application"]');
   await expect(canvas.getByText(`Family sheet 2 ${run}`)).toBeVisible({ timeout: 150000 });
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toBeVisible();
   await expect(page.locator('.instance-inline-tile')).toHaveCount(4, { timeout: 150000 });
+  await expect(page.locator('.instance-inline-tile').filter({ hasText: `Job ${run}` }).first())
+    .toBeVisible({ timeout: 150000 });
   await expectNoRawIds(page);
 
   // All family members sit on the canvas: the sheet picker stays away
@@ -233,10 +235,9 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
     .toContain(ORG_PEN_COLOR);
 
   // A removed family member is the picker's only offer; add-all brings
-  // the family back. Removal rides the row menu (§22.12).
+  // the family back.
   const sheet3Row = page.locator('.instance-inline-tile').filter({ hasText: `Family sheet 3 ${run}` });
-  await sheet3Row.locator('button[aria-label="More"]').click();
-  await page.getByRole('button', { name: 'Remove sheet' }).click({ force: true });
+  await sheet3Row.locator('button[aria-label="Remove sheet"]').click();
   await page.waitForTimeout(800);
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toHaveCount(0);
   await page.getByRole('button', { name: 'Select sheet' }).click();
@@ -266,8 +267,8 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   const after = await movingGroup.getAttribute('transform');
   expect(after, `sheet moved: ${before} -> ${after}`).not.toBe(before);
 
-  // A deleted parent leaves every tile on resolved names — the raw id
-  // never renders.
+  // A deleted parent leaves the breadcrumb on the entity type label —
+  // the raw id never renders.
   const deleted = await app.request.delete(`/api/instances/probe-family/${parent._id}`);
   expect(deleted.ok(), await deleted.text()).toBeTruthy();
   await openSheetEditor(app, `Family sheet 1 ${run}`);

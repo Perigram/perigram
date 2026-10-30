@@ -19,7 +19,6 @@ import Toolbar from 'primevue/toolbar';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
-import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
@@ -61,7 +60,7 @@ let surfacePack = null;
 function surfaceComponentPack() {
   surfacePack ||= Object.freeze({
     Button, Checkbox, ColorPicker, Column, DataTable, Dialog, InputText, InputNumber, Message, Popover, ScrollPanel, Select, SelectButton, SpeedDial, Tag, Textarea, Toolbar,
-    DesignerSurface, DesignerWorkspace, DrawingCanvas, InstanceActionsPopover, InstanceInlineRef, InstanceSelect, StandardDialog
+    DesignerSurface, DesignerWorkspace, DrawingCanvas, InstanceInlineRef, InstanceSelect, StandardDialog
   });
   return surfacePack;
 }
