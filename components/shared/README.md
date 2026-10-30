@@ -765,7 +765,9 @@ is the org overview system screen, `/organization`); a record-floor
 record opens this dialog as
 the bounded terminal surface (the item-popup header pattern — the
 dialog's own close affordance dismisses; there is no footer). Identity
-opens from the generator swap the popup subject in place. Mounted once by
+opens from the generator swap the popup subject in place: any type the
+popup itself can host resolves — the emitter's compiled screen key, the
+synthesizable detail, or the record floor. Mounted once by
 the app layout so floating chrome (chat thread headers) can inspect a
 record from any route; the composable state is the single
 `open`/`close` channel.

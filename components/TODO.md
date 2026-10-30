@@ -503,3 +503,17 @@ check-arch clean, docs guard clean. Known open finding: an authored
 record with neither payload nor fields renders its compiled detail as a
 header-only body inside the xl popup (empty modal canvas — data-side,
 not the popup host).
+
+#### Agent Notes (2026-10-30, round 2)
+
+Session `agent/popup-swap-20261030` (worktree
+`.agent-worktrees/popup-swap-20261030`). Owner follow-up: clicking an
+instance inside the record popup did nothing — the generator's identity
+opens emit `open-instance` without a screen key, and `EntityPopup`'s
+swap handler accepted only manifest screen keys, so types with no
+compiled detail screen (nested `cassette-template` inside a library
+floor) died silently. The swap now resolves the same chain the popup
+host uses: the emitter's screen key, the synthesizable detail, the
+record floor. Validation: design-system 34/34, SSR smoke 23/23,
+check-arch clean; live probe: the library popup's cassette chip swaps
+the popup subject to the cassette record floor.
