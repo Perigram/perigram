@@ -526,35 +526,17 @@ body {
 
     /* Bounded previews render in one framed media region (rounded,
        hairline border, subtle ground — the app owns the chrome): rasters
-       and drawings fit inside, tables and Word documents scroll the
-       stepped height. Pages render in the same region: the viewer fits
-       the frame's width and scrolls inside. Record prose flows unframed
-       at the body's content measure. The quiet glyph band stays bare. */
+       and drawings fit inside, tables and Word documents scroll inside,
+       and the region fills the page's free space (floored at 24rem,
+       viewport-derived above it). Record prose flows unframed at the
+       body's content measure. The quiet glyph band stays bare. */
     .ck-preview-hero-band-content,
     .ck-preview-hero-band-aspect {
         border: 1px solid var(--p-content-border-color);
         border-radius: var(--p-border-radius-lg);
         background: var(--ck-subtle-background);
         overflow: hidden;
-    }
-
-    .ck-preview-hero-band-content,
-    .ck-preview-hero-band-aspect {
-        height: 16rem;
-    }
-
-    @container (min-width: 40rem) {
-        .ck-preview-hero-band-content,
-        .ck-preview-hero-band-aspect {
-            height: 24rem;
-        }
-    }
-
-    @container (min-width: 60rem) {
-        .ck-preview-hero-band-content,
-        .ck-preview-hero-band-aspect {
-            height: 32rem;
-        }
+        height: max(24rem, calc(100dvh - 18rem));
     }
 
     .ck-preview-hero-band-flow {

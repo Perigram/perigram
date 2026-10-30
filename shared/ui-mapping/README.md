@@ -385,13 +385,15 @@ data. `RENDERABLE_PREVIEW_MODES`
 `workbook`, `text`); app-side materializations import it instead of
 restating the list, and every other mode degrades to a payload download.
 `ASPECT_PREVIEW_MODES` (`pdf`) marks the page modes: the page renders
-in the framed region at the stepped heights
-(`LAYOUT.previewHeroBandAspect`), the viewer fitting the frame's width;
+in the framed region (`LAYOUT.previewHeroBandAspect`), the viewer
+fitting the frame's width;
 prose flows unframed at the body's
 content measure (`LAYOUT.previewHeroBandFlow`); every other renderable
-mode fills the framed media region (`LAYOUT.previewHeroBandContent`,
-stepped 16/24/32rem), and fixed-height card bands carry content
-thumbnails — cover-cropped rasters, clipped rows, clamped prose.
+mode fills the framed media region (`LAYOUT.previewHeroBandContent`).
+The framed region fills the page's free space — viewport-derived
+height floored at 24rem — and fixed-height card bands carry content
+thumbnails — cover-cropped rasters, clipped rows, clamped prose,
+the PDF's painted first page.
 `cardAnatomyFor(typeRecord)` derives a card grid's card layout from the
 type's own data shape: a visual preview (renderable payload mode or
 declared geometry source) with no fact fields (short non-identifier
@@ -654,12 +656,12 @@ glyph band keeps the small stepped ladder — 7rem base, 11rem past the
 medium step, 14rem past the wide step — while the card slot keeps the
 fixed `LAYOUT.previewBand` stamp). A rendered preview takes the
 treatment its content earns: `LAYOUT.previewHeroBandFlow` flows record
-prose unframed at the body's 46rem content measure,
-`LAYOUT.previewHeroBandAspect` frames a page at the same stepped
-heights with the viewer fitting the frame's width, and
-`LAYOUT.previewHeroBandContent` is the
-framed media region (rounded, hairline border, subtle ground) bounded
-media fill at the stepped 16/24/32rem height. Every other
+prose unframed at the body's 46rem content measure, and
+`LAYOUT.previewHeroBandAspect` and `LAYOUT.previewHeroBandContent`
+are the framed media region (rounded, hairline border, subtle ground)
+that fills the page's free space — viewport-derived height floored at
+24rem; a page's viewer fits the frame's width and scrolls inside.
+Every other
 container-relative
 mechanism — the record split and the peer columns — engages through the
 container seam alone: `RegionChildren` renders the weight-derived

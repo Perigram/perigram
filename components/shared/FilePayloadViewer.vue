@@ -28,8 +28,16 @@
       :class="variant === 'card' ? 'block h-full w-full object-cover' : 'mx-auto block h-full w-full object-contain'"
       :alt="fileName"
     >
-    <!-- The PDF fills its frame: viewer chrome hidden, the page fits the
-         frame's width. -->
+    <!-- The card band renders the PDF's first page as a picture (pdf.js
+         canvas) — a thumbnail carries no viewer chrome in any browser.
+         The pane keeps the viewer: the page fits the frame's width and
+         scrolls inside. -->
+    <canvas
+      v-else-if="hasFile && mode === 'pdf' && variant === 'card' && ready"
+      ref="pdfCanvas"
+      class="block h-full w-full object-contain"
+      :aria-label="fileName || 'PDF'"
+    />
     <iframe
       v-else-if="hasFile && mode === 'pdf'"
       :src="pdfSrc"
@@ -95,7 +103,8 @@ import { MARKDOWN_ELEMENT_CLASSES, MARKDOWN_COMPACT_CLASS, renderMarkdown } from
 // drawings, tables, Word documents) fill the framed media region; `card` fills its caller's
 // fixed-height band with no own border (the host card owns the chrome):
 // images and sketch scenes fill at uniform scale (cropped), vector
-// drawings fit inside, the PDF page hides viewer chrome, tables clip
+// drawings fit inside, the PDF renders its first page as a canvas
+// thumbnail, tables clip
 // their rows, and prose clamps.
 const props = defineProps({
   source: { type: Object, required: true },
@@ -115,20 +124,21 @@ const fileName = computed(() => props.source?.attachment?.name || '');
 const mimeType = computed(() => props.source?.attachment?.mime || 'application/octet-stream');
 // Modes whose whole render depends on the payload fetch: they state
 // loading and surface a failed download.
-const asyncMode = computed(() => ['docx', 'table', 'workbook', 'text'].includes(mode.value));
+const asyncMode = computed(() => ['docx', 'table', 'workbook', 'text'].includes(mode.value)
+  || (mode.value === 'pdf' && props.variant === 'card'));
 const ready = computed(() => fetchState.value === 'ready');
 const pending = computed(() => ['idle', 'loading'].includes(fetchState.value));
 // The text preview mode is markdown prose: it renders through the shared
 // pipeline like the text editor and agent answers.
 const renderedMarkdown = computed(() => (mode.value === 'text' ? renderMarkdown(text.value) : ''));
-// Modes that need the payload bytes client-side: the readers and the
-// blob-backed image swap.
-const FETCHED_MODES = ['docx', 'table', 'workbook', 'text', 'image'];
-// The PDF iframe targets the file URL itself: the viewer params ride the
-// URL fragment, and blob URLs ignore fragments. Card bands are
-// thumbnails — the page fits the band's width with viewer chrome and
-// scrollbars hidden; the pane fits its frame's width and scrolls
-// inside.
+// Modes that need the payload bytes client-side: the readers, the
+// blob-backed image swap, and the card's pdf thumbnail.
+function needsFetch() {
+  if (['docx', 'table', 'workbook', 'text', 'image'].includes(mode.value)) return true;
+  return mode.value === 'pdf' && props.variant === 'card';
+}
+// The pane's PDF iframe targets the file URL itself: the viewer params
+// ride the URL fragment, and blob URLs ignore fragments.
 const pdfSrc = computed(() => {
   if (!fileUrl.value) return '';
   const params = props.variant === 'card'
@@ -136,6 +146,35 @@ const pdfSrc = computed(() => {
     : 'toolbar=0&navpanes=0&view=FitH';
   return `${fileUrl.value}#${params}`;
 });
+
+const pdfCanvas = ref(null);
+let pdfWorkerPort = null;
+
+// The card's PDF thumbnail: pdf.js paints page one onto the canvas —
+// a picture carries no viewer chrome in any browser. A render that
+// fails falls back to the param'd iframe below it.
+async function renderPdfThumbnail(buffer) {
+  const pdfjs = await import('pdfjs-dist/build/pdf.mjs');
+  if (!pdfWorkerPort) {
+    const { default: PdfWorker } = await import('pdfjs-dist/build/pdf.worker.min.mjs?worker');
+    pdfWorkerPort = new PdfWorker();
+    pdfjs.GlobalWorkerOptions.workerPort = pdfWorkerPort;
+  }
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(buffer) }).promise;
+  const page = await doc.getPage(1);
+  const base = page.getViewport({ scale: 1 });
+  const scale = Math.min(2, 720 / base.width);
+  const viewport = page.getViewport({ scale });
+  await nextTick();
+  const canvas = pdfCanvas.value;
+  if (!canvas) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.floor(viewport.width * dpr);
+  canvas.height = Math.floor(viewport.height * dpr);
+  const context = canvas.getContext('2d');
+  context.scale(dpr, dpr);
+  await page.render({ canvasContext: context, viewport }).promise;
+}
 
 function releaseBlob() {
   if (blobUrl.value) URL.revokeObjectURL(blobUrl.value);
@@ -149,7 +188,7 @@ async function load() {
   if (!hasFile.value || ['dxf', 'svg', 'sketch'].includes(mode.value)) return;
     // The payload fetch is relative and client-owned: the server paints
     // the loading state, hydration matches it, the client fetches.
-    if (typeof window === 'undefined' || !FETCHED_MODES.includes(mode.value)) return;
+    if (typeof window === 'undefined' || !needsFetch()) return;
     if (asyncMode.value) fetchState.value = 'loading';
   try {
     const response = await fetch(fileUrl.value);
@@ -160,6 +199,11 @@ async function load() {
       return;
     }
     const buffer = await response.arrayBuffer();
+    if (mode.value === 'pdf') {
+      fetchState.value = 'ready';
+      await renderPdfThumbnail(buffer);
+      return;
+    }
     if (mode.value === 'table' || mode.value === 'workbook') {
       const workbook = XLSX.read(buffer, { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
