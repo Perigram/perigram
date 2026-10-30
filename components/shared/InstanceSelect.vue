@@ -147,12 +147,11 @@ function entityOptionLabel(option) {
 }
 
 function toggleOverlay(event) {
-  // Reveal the trigger and let the browser's focus-driven scroll settle
-  // before opening: PrimeVue's popover closes on ancestor scroll, and a
-  // trigger near a scrollport edge fires that scroll one frame after the
-  // click focus lands.
+  // Reveal the trigger before opening: the overlay closes on ancestor
+  // scroll (PrimeVue's ConnectedOverlayScrollHandler), and a focus-driven
+  // scroll after open would dismiss it instantly.
   event?.currentTarget?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
-  requestAnimationFrame(() => requestAnimationFrame(() => overlayRef.value?.toggle(event)));
+  overlayRef.value?.toggle(event);
 }
 
 function onPick(value) {
