@@ -51,6 +51,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   test.setTimeout(240_000);
   await app.installPlugins(['tech-drawing', 'facade']);
   await app.connectPlugin('facade', 'http://facade-executor:8790');
+  await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
   const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'], via: { 'cassette-template': 'editor' } });
   const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette-template');
   expect(list?.route, 'Expected a compiled cassette list screen').toBeTruthy();
@@ -198,6 +199,7 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   test.setTimeout(240_000);
   await app.installPlugins(['tech-drawing', 'facade']);
   await app.connectPlugin('facade', 'http://facade-executor:8790');
+  await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
   const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'], via: { 'cassette-template': 'editor' } });
   const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette-template');
   const page = app.page;
@@ -284,6 +286,7 @@ test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   test.setTimeout(240_000);
   await app.installPlugins(['tech-drawing', 'facade']);
   await app.connectPlugin('facade', 'http://facade-executor:8790');
+  await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
   const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'], via: { 'cassette-template': 'editor' } });
   const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette-template');
   const page = app.page;
