@@ -6,20 +6,20 @@ import { test, expect } from './fixtures.js';
 // token panel's first button (a phantom parameter token), and a falsy
 // read replaced empty or zero array values with the defaults — and a
 // selected profile previews the assembly it is placed in, never a blank
-// workpiece pane). The chips are the shared expression editor over the
-// cassette's variables: a value naming a global reads it live (the tree
-// carries A=500), and naming one never mints a new chip. Parameter names
-// rename in place — a global's rename rebinds every tree reference, a
-// profile parameter's rename moves its key and bindings — and a
-// profile-local parameter shadows a same-named global. Artifacts:
-// .playwright/cassette-designer-parameters.png
+// workpiece pane). The dialog drafts blank and parameters are authored:
+// a drawn shape's field binds to a parameter by name, and the chips are
+// the shared expression editor over the cassette's variables: a value
+// naming a global reads it live (the tree carries A=500), and naming one
+// never mints a new chip. Parameter names rename in place — a global's
+// rename rebinds every tree reference, a profile parameter's rename
+// moves its key and bindings — and a profile-local parameter shadows a
+// same-named global. Artifacts: .playwright/cassette-designer-parameters.png
 //
 // A fillet bound on a DRAWN corner must drive the placed profile too: the
 // drawn sketch's point ids are identity, not position, so the fillet
 // resolves by its vertex slot (an id parsed as an index dropped it and
-// the chip changed nothing). Clearing the canvas starts the blank
-// authoring session — the parameter table empties with the canvas, so
-// the template's W/H/R/D/L never ride a hand-drawn profile. Artifacts:
+// the chip changed nothing). The blank session carries no parameter
+// rows. Artifacts:
 // .playwright/cassette-designer-parameters-fillet.png,
 // .playwright/cassette-designer-parameters-edges.png (the profile edge
 // chooser offers only arrangeable edges — a fold never carries a
@@ -70,19 +70,40 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await newButton.click();
   await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
 
-  // A profile authored through the dialog opens on the parametric hanger;
-  // an open chain edge-embeds when placed by array.
+  // The dialog drafts blank: no parameter rows until the author adds one.
   await page.getByRole('button', { name: 'Add profile' }).click();
   const pickerEntry = page.getByRole('button', { name: /Create new|New profile/ }).first();
   await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
-  const fxW = dialog.locator('input[aria-label="W"]').first();
-  await expect(fxW).toBeVisible({ timeout: 60_000 });
+  await expect(dialog.locator('input[aria-label^="Parameter name"]')).toHaveCount(0);
 
-  // While focused, the field is the draft: partial numbers keep their
-  // shape instead of being normalized under the caret.
+  // Author one rectangle through the CAD engine's command lifecycle.
+  const drawButton = dialog.locator('button[aria-label="Rectangle"]').first();
+  await drawButton.click();
+  await expect(drawButton, 'Rectangle command started').toHaveClass(/p-button-primary/, { timeout: 15_000 });
+  await page.waitForTimeout(150);
+  const sketchBox = await dialog.locator('[role="application"]').first().boundingBox();
+  await page.mouse.click(sketchBox.x + sketchBox.width * 0.3, sketchBox.y + sketchBox.height * 0.3);
+  await page.waitForTimeout(250);
+  await page.mouse.click(sketchBox.x + sketchBox.width * 0.6, sketchBox.y + sketchBox.height * 0.6);
+  await expect(drawButton, 'Rectangle command ended').not.toHaveClass(/p-button-primary/, { timeout: 15_000 });
+  await page.waitForTimeout(600);
+
+  // The authored parameter renames to W; while focused, its value field is
+  // the draft: partial numbers keep their shape instead of being
+  // normalized under the caret.
+  await dialog.getByRole('button', { name: 'Add parameter' }).click();
+  await page.waitForTimeout(400);
+  const paramName = dialog.locator('input[aria-label^="Parameter name"]').last();
+  await paramName.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('W', { delay: 40 });
+  await paramName.press('Enter');
+  await page.waitForTimeout(400);
+  const fxW = dialog.locator('input[aria-label="W"]').last();
+  await expect(fxW).toBeVisible({ timeout: 5000 });
   await fxW.click();
   await page.keyboard.press('ControlOrMeta+a');
   await fxW.pressSequentially('1', { delay: 80 });
@@ -95,7 +116,19 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await fxW.pressSequentially('42', { delay: 60 });
   await fxW.press('Enter');
 
-  await dialog.getByRole('button', { name: 'Closed shape', exact: true }).first().click();
+  // The rect's width binds to W by name — the field keeps the expression.
+  const rectRow = dialog.locator('button[aria-label^="Rectangle s"]').first();
+  await rectRow.click();
+  await page.waitForTimeout(400);
+  const widthField = dialog.locator('input[aria-label^="w s"]').first();
+  await expect(widthField).toBeVisible({ timeout: 10_000 });
+  await widthField.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await widthField.pressSequentially('W', { delay: 60 });
+  await widthField.press('Enter');
+  await page.waitForTimeout(600);
+  await expect(widthField).toHaveValue('W');
+
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
@@ -105,11 +138,9 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   const chipW = chipField(page, 'W');
   await expect(chipW).toBeVisible({ timeout: 20_000 });
   await expect.poll(() => chipText(chipW)).toBe('42');
-  for (const [key, value] of [['H', '28'], ['R', '3'], ['D', '6']]) {
-    await expect.poll(() => chipText(chipField(page, key))).toBe(value);
-  }
   await page.waitForTimeout(1200);
   expect(await assemblyGeometry(page), 'Expected the placed profile pane to show geometry').not.toBe('');
+
 
   // Array position settings: the fields are the author's text.
   await page.locator('aside button').filter({ hasText: /→|<-/ }).first().click();
@@ -178,7 +209,10 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   // expression, exactly as the rename rewrote it.
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
-  await expect(dialog.locator('input[aria-label="W"]').first()).toHaveValue('LENGTH');
+  await dialog.locator('button[aria-label^="Rectangle s"]').first().click();
+  const reopenedWidth = dialog.locator('input[aria-label^="w s"]').first();
+  await expect(reopenedWidth).toBeVisible({ timeout: 10_000 });
+  await expect(reopenedWidth).toHaveValue('W');
 
   // Renaming a profile parameter in place moves the key and its
   // bindings: the row's field follows the new name.
@@ -188,6 +222,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await page.keyboard.type('WIDTH', { delay: 40 });
   await nameW.press('Enter');
   await page.waitForTimeout(600);
+  await expect(reopenedWidth).toHaveValue('WIDTH');
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await expect.poll(() => chipText(chipField(page, 'WIDTH'))).toBe('LENGTH');
@@ -221,34 +256,26 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   const canvas = dialog.locator('div[role="application"]');
   await expect(canvas).toBeVisible({ timeout: 60_000 });
   await page.waitForTimeout(2000);
+  // The blank session carries no parameter rows — nothing pre-seeds a
+  // drawn profile.
+  await expect(dialog.locator('input[aria-label^="Parameter name"]')).toHaveCount(0);
 
-  // A hand-drawn closed quad: four corners, closed on the first.
-  await dialog.getByRole('button', { name: 'Clear canvas', exact: true }).click();
-  await page.waitForTimeout(500);
-  // Clearing starts the blank session: the previous session's parameter
-  // rows die with the canvas — nothing pre-seeds the next drawn profile.
-  await expect(dialog.locator('input[aria-label="W"]')).toHaveCount(0);
-  await dialog.getByRole('button', { name: 'Line', exact: true }).click();
-  await page.waitForTimeout(300);
+  // Author one rectangle through the engine's command lifecycle.
+  const drawButton = dialog.locator('button[aria-label="Rectangle"]').first();
+  await drawButton.click();
+  await expect(drawButton, 'Rectangle command started').toHaveClass(/p-button-primary/, { timeout: 15_000 });
+  await page.waitForTimeout(150);
   const box = await canvas.boundingBox();
-  const at = (fx, fy) => ({ x: box.x + box.width * fx, y: box.y + box.height * fy });
-  const corners = [[0.4, 0.4], [0.62, 0.42], [0.6, 0.64], [0.38, 0.62]];
-  for (const [fx, fy] of corners) {
-    const point = at(fx, fy);
-    await page.mouse.click(point.x, point.y);
-    await page.waitForTimeout(250);
-  }
-  const first = at(corners[0][0], corners[0][1]);
-  await page.mouse.click(first.x, first.y);
+  await page.mouse.click(box.x + box.width * 0.3, box.y + box.height * 0.3);
   await page.waitForTimeout(250);
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(400);
-  await dialog.getByRole('button', { name: 'Select', exact: true }).click();
-  await page.waitForTimeout(500);
+  await page.mouse.click(box.x + box.width * 0.6, box.y + box.height * 0.6);
+  await expect(drawButton, 'Rectangle command ended').not.toHaveClass(/p-button-primary/, { timeout: 15_000 });
+  await page.waitForTimeout(600);
 
-  // Bind the first corner's fillet to a fresh parameter.
-  await page.mouse.click(first.x, first.y);
-  const fillet = dialog.locator('input[aria-label^="Fillet radius"]').first();
+  // Bind the first corner's fillet radius to a fresh parameter: typing a
+  // free identifier into the row's field adopts it (adopt-on-bind).
+  await dialog.locator('button[aria-label^="Rectangle s"]').first().click();
+  const fillet = dialog.locator('input[aria-label^="r0 s"]').first();
   await expect(fillet).toBeVisible({ timeout: 10_000 });
   await fillet.click();
   await page.keyboard.press('ControlOrMeta+a');
