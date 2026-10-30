@@ -147,6 +147,10 @@ function entityOptionLabel(option) {
 }
 
 function toggleOverlay(event) {
+  // Reveal the trigger before opening: the overlay closes on ancestor
+  // scroll (PrimeVue's ConnectedOverlayScrollHandler), and a focus-driven
+  // scroll after open would dismiss it instantly.
+  event?.currentTarget?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   overlayRef.value?.toggle(event);
 }
 
