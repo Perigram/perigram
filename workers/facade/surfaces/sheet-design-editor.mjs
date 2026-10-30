@@ -37,6 +37,15 @@ const lineagValueId = value => (
   value == null ? '' : String(typeof value === 'object' ? (value.id ?? '') : value)
 );
 
+// Exact lineage equality: two records share their whole parent map.
+export function sameLineage(a = {}, b = {}) {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if (lineagValueId(a[key]) !== lineagValueId(b[key])) return false;
+  }
+  return true;
+}
+
 // The opened record's family filter: every lineage entry it carries,
 // handed to the list transport (declared keys filter server-side;
 // undeclared keys drop as transport noise) and re-verified on the rows.
@@ -1468,35 +1477,51 @@ export default function createSurface({ vue, components, locale, queries, notify
         return ids;
       });
 
-      const renderSheetTile = entry => h(components.InstanceInlineRef, {
-        key: entry.id,
-        type: 'sheet-design',
-        entity: entry.record,
-        id: entry.id,
-        variant: 'tile',
-        active: activeSheetId.value === entry.id,
-        selectable: true,
-        onSelect: () => { selectSheet(entry.id); }
-      }, {
-        trailing: () => [h(components.Button, {
-          icon: 'pi pi-times',
-          severity: 'secondary',
-          text: true,
-          rounded: true,
-          size: 'small',
-          'aria-label': t('sheetDesign.removeSheet'),
-          disabled: entry.dirty || sheets.value.length <= 1,
-          onClick: () => { removeSheetFromCanvas(entry); }
-        })]
-      });
+      // A row deviates when its record's lineage differs from the
+      // opened record's — the explicitly added sheets, and family
+      // members with extra parents. Its own context reads on its row.
+      const sheetDeviates = entry => !sameLineage(entry.record?.lineage || {}, props.record?.lineage || {});
 
-      // The panel's one breadcrumb: the working set's shared parent
-      // chain, rendered at the section — tile rows carry no lineage.
+      const renderSheetTile = entry => h('div', { class: 'flex min-w-0 flex-col gap-1' }, [
+        h(components.InstanceInlineRef, {
+          key: entry.id,
+          type: 'sheet-design',
+          entity: entry.record,
+          id: entry.id,
+          variant: 'tile',
+          active: activeSheetId.value === entry.id,
+          selectable: true,
+          onSelect: () => { selectSheet(entry.id); }
+        }, {
+          trailing: () => [h(components.Button, {
+            icon: 'pi pi-times',
+            severity: 'secondary',
+            text: true,
+            rounded: true,
+            size: 'small',
+            'aria-label': t('sheetDesign.removeSheet'),
+            disabled: entry.dirty || sheets.value.length <= 1,
+            onClick: () => { removeSheetFromCanvas(entry); }
+          })]
+        }),
+        sheetDeviates(entry)
+          ? h(components.TraceChain, {
+            entity: entry.record,
+            typeId: 'sheet-design',
+            variant: 'compact',
+            expandable: true,
+            class: 'min-w-0'
+          })
+          : null
+      ]);
+
+      // The section's shared chain: the OPENED record's lineage — the
+      // family scope the canvas opened on. It stays fixed; a row that
+      // deviates carries its own.
       const renderFamilyChain = () => {
-        const record = activeSheetEntry.value?.record || props.record;
-        if (!Object.keys(record?.lineage || {}).length) return null;
+        if (!Object.keys(props.record?.lineage || {}).length) return null;
         return h(components.TraceChain, {
-          entity: record,
+          entity: props.record,
           typeId: 'sheet-design',
           variant: 'compact',
           expandable: true,

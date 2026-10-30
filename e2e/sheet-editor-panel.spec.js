@@ -199,12 +199,17 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
     }
   });
   const parent = await createInstance(app, 'probe-family', { fields: { name: `Job ${run}` } });
+  const otherParent = await createInstance(app, 'probe-family', { fields: { name: `Other job ${run}` } });
   const withFamily = body => ({ ...body, lineage: { familyId: String(parent._id) } });
   await createInstance(app, 'sheet-design', withFamily(sheetBody(`Family sheet 2 ${run}`, design._id, run)));
   await createInstance(app, 'sheet-design', withFamily(sheetBody(`Family sheet 3 ${run}`, design._id, run)));
   const opened = await createInstance(app, 'sheet-design', withFamily(sheetBody(`Family sheet 1 ${run}`, design._id)));
-  // An org sheet outside the family: never offered.
-  await createInstance(app, 'sheet-design', sheetBody(`Stranger sheet ${run}`, design._id));
+  // An org sheet outside the family, under its own parent: offered by
+  // the explicit channel, and its lineage reads on its row.
+  await createInstance(app, 'sheet-design', {
+    ...sheetBody(`Stranger sheet ${run}`, design._id),
+    lineage: { familyId: String(otherParent._id) }
+  });
   expect(String((opened.lineage || {}).familyId || '')).toContain(String(parent._id));
 
   await openSheetEditor(app, `Family sheet 1 ${run}`);
@@ -270,20 +275,31 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   // Add-all took the family alone: the stranger never joined.
   await expect(canvas.getByText(`Stranger sheet ${run}`)).toHaveCount(0);
 
-  // The explicit channel brings the stranger in and its row removes it.
-  await page.getByRole('button', { name: 'Select sheet' }).click();
-  await page.getByRole('option', { name: `Stranger sheet ${run}` }).click();
-  await expect(canvas.getByText(`Stranger sheet ${run}`)).toBeVisible({ timeout: 150000 });
-  const strangerTile = page.locator('.instance-inline-tile').filter({ hasText: `Stranger sheet ${run}` });
-  await strangerTile.locator('button[aria-label="Remove sheet"]').click();
-  await expect(canvas.getByText(`Stranger sheet ${run}`)).toHaveCount(0);
-
-  // Sheets move by their label band and rotate by their action dial.
+  // The clamp keeps interaction points inside the visible canvas.
   const canvasBox = await canvas.boundingBox();
   const clampInto = (x, y) => ({
     x: Math.min(Math.max(x, canvasBox.x + 8), canvasBox.x + canvasBox.width - 8),
     y: Math.min(Math.max(y, canvasBox.y + 8), canvasBox.y + canvasBox.height - 8)
   });
+
+  // The explicit channel brings the stranger in: its own lineage reads
+  // on its row while the section chain stays the opened record's.
+  await page.getByRole('button', { name: 'Select sheet' }).click();
+  await page.getByRole('option', { name: `Stranger sheet ${run}` }).click();
+  await expect(canvas.getByText(`Stranger sheet ${run}`)).toBeVisible({ timeout: 150000 });
+  await expect(page.locator('.designer-workspace nav[aria-label="Traceability"]')
+    .filter({ hasText: `Other job ${run}` })).toBeVisible({ timeout: 150000 });
+  const strangerBox = await canvas.locator('g', { hasText: `Stranger sheet ${run}` }).first().boundingBox();
+  const strangerPoint = clampInto(strangerBox.x + strangerBox.width * 0.5, strangerBox.y + 8);
+  await page.mouse.click(strangerPoint.x, strangerPoint.y);
+  await page.waitForTimeout(600);
+  await expect(page.locator('.designer-workspace nav[aria-label="Traceability"]')
+    .filter({ hasText: `Job ${run}` })).toBeVisible({ timeout: 150000 });
+  const strangerTile = page.locator('.instance-inline-tile').filter({ hasText: `Stranger sheet ${run}` });
+  await strangerTile.locator('button[aria-label="Remove sheet"]').click();
+  await expect(canvas.getByText(`Stranger sheet ${run}`)).toHaveCount(0);
+
+  // Sheets move by their label band.
   const movingGroup = canvas.locator('g', { hasText: `Family sheet 2 ${run}` }).first();
   const before = await movingGroup.getAttribute('transform');
   const labelBox = await canvas.getByText(`Family sheet 2 ${run}`).boundingBox();
