@@ -33,7 +33,7 @@ including `/nest` (the facade executor's default
   "items": [
     {
       "id": 1,
-      "cassette_id": "...",
+      "design_id": "...",
       "coords": [[x,y], ...],
       "handles": ["..."],
       "count": 5
