@@ -3109,6 +3109,22 @@ family alone, and the placed design's instance tile.
   lists templates again (the surface queried the retired `cassette`
   type id; the picker was empty and
   `e2e/cassette-load-previews.spec.js` red).
+- [ ] Centralize payload-document migrations at the load boundary (owner
+  direction 2026-10-30): one version normalizer every stored OCCS
+  document passes through before any surface renders it — the cassette
+  designer's `hydrateDefinition`, the cassette preview's payload read,
+  and the sheet editor's item sources all feed documents through it;
+  engines and renderers see only the current document shape, and the
+  scattered legacy read paths inside the renderer retire. Evidence: a
+  cassette from an older plugin version opens through the designer and
+  the CAD engine dies in its worker (`document is not defined` — the
+  vendored bundle's `CSS2DObject` default constructs DOM in a worker
+  context on a legacy-shape render branch); the oldest templates carry
+  no payload reference at all (pre-plugin records, type ids preserved
+  by the migration script). The record-level `migrate` steps in the
+  listing stay the transport for instance fields; this pipeline owns
+  payload documents. En route: the designer's open-template path
+  queried the retired `cassette` type id and could not hydrate.
 - [ ] The demo order process composes sheet-design children under its
   nesting attempt and constructs them from the solve output
   (lineage-keyed family; the editor scope above rides it) — flow
