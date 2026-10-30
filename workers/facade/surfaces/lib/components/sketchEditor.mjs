@@ -83,6 +83,10 @@ export default function createSketchEditor({ vue, components, locale }) {
       let lastEmitted = '';
       let disposed = false;
       let zoomObserver = null;
+      // A toolbar command clicked before the engine finishes mounting
+      // waits for the mount instead of dropping — the toolbar renders
+      // with the dialog, the engine arrives asynchronously.
+      let pendingCommand = null;
       // Authored shapes dropped by a merge (an erase): offered back as
       // adoption candidates so an engine undo/redo that restores canvas
       // geometry revives their expressions. Session state — never
@@ -1015,6 +1019,10 @@ export default function createSketchEditor({ vue, components, locale }) {
           if (activeTool.value !== 'select') {
             manager?.commandManager?.cancelActive?.();
           }
+          if (!manager) {
+            pendingCommand = tool.command;
+            return;
+          }
           manager?.sendStringToExecute?.(tool.command);
         }
         tool.onActivate?.();
@@ -1730,6 +1738,11 @@ export default function createSketchEditor({ vue, components, locale }) {
           if (disposed) return;
           manager.events.documentActivated.addEventListener(() => bindDatabase({ schedule: false }));
           manager.events.documentCreated.addEventListener(() => bindDatabase({ schedule: false }));
+          if (pendingCommand) {
+            const command = pendingCommand;
+            pendingCommand = null;
+            manager.sendStringToExecute?.(command);
+          }
           bindCommandEvents();
           bindSelectionEvents();
           window.addEventListener('keydown', handleWindowKeydown, true);
