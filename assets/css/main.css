@@ -536,7 +536,7 @@ body {
         border-radius: var(--p-border-radius-lg);
         background: var(--ck-subtle-background);
         overflow: hidden;
-        height: max(24rem, calc(100dvh - 18rem));
+        height: max(24rem, calc(100dvh - 12rem));
     }
 
     .ck-preview-hero-band-flow {
