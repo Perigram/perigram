@@ -720,11 +720,12 @@ describe('tree declaration compilation', () => {
     expect(diagnostics[0]).toContain('broken');
   });
 
-  it('duplicate state values are draft-global diagnostics', () => {
+  it('state values may repeat across the draft (SPEC 7 per-type vocabularies)', () => {
     const widget = classNode('widget', { name: 'Widget' });
-    const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'raw')];
+    const gadget = classNode('gadget', { name: 'Gadget' });
+    const nodes = [widget, gadget, stateNode('widget', 'raw'), stateNode('widget', 'raw'), stateNode('gadget', 'raw')];
     const { diagnostics } = compileTreeDeclarations(nodes, []);
-    expect(diagnostics.some(message => message.includes('duplicate state name raw'))).toBe(true);
+    expect(diagnostics.some(message => message.includes('duplicate state name'))).toBe(false);
   });
 
   it('diagnostics children wires on file classes instead of emitting the edge', () => {
