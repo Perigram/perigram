@@ -409,7 +409,7 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
     }
   }
 
-  // Nesting chains must be acyclic; values are unique across the draft.
+  // Nesting chains must be acyclic.
   const stateNodes = nodes.filter(node => node.type === 'ctsState' && node.data?.value);
   const seenAncestors = new Set();
   for (const state of stateNodes) {
@@ -423,15 +423,6 @@ function declarationDiagnostics(nodes = [], edges = [], records = {}) {
       seenAncestors.add(cursor.id);
       cursor = nodeById.get(stateParent.get(cursor.id));
     }
-  }
-
-  const seenValues = new Set();
-  for (const state of stateNodes) {
-    const value = String(state.data?.value || '');
-    if (seenValues.has(value)) {
-      diagnostics.push(`duplicate state name ${value}`);
-    }
-    seenValues.add(value);
   }
   return diagnostics;
 }
