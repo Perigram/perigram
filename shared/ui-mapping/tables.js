@@ -513,9 +513,9 @@ export const RENDERABLE_PREVIEW_MODES = Object.freeze([
   'dxf', 'svg', 'sketch', 'image', 'pdf', 'docx', 'table', 'workbook', 'text'
 ]);
 
-// Page-scale preview modes render the content's own geometry: the page
-// fills the record column's width at its MediaBox aspect
-// (`LAYOUT.previewHeroBandAspect`).
+// Page-scale preview modes render in the framed region at the stepped
+// heights (`LAYOUT.previewHeroBandAspect`), the viewer fitting the
+// frame's width.
 export const ASPECT_PREVIEW_MODES = Object.freeze(['pdf']);
 
 // --- Actions ----------------------------------------------------------------

@@ -28,15 +28,12 @@
       :class="variant === 'card' ? 'block h-full w-full object-cover' : 'mx-auto block h-full w-full object-contain'"
       :alt="fileName"
     >
-    <!-- The PDF renders at its page scale: the record column's full
-         width, height from the page's own MediaBox (A4 fallback). Viewer
-         chrome stays hidden — the frame owns the chrome and the payload
-         download is the escape hatch. -->
+    <!-- The PDF fills its frame: viewer chrome hidden, the page fits the
+         frame's width. -->
     <iframe
       v-else-if="hasFile && mode === 'pdf'"
       :src="pdfSrc"
-      :style="variant === 'card' ? undefined : pdfPaneStyle"
-      :class="variant === 'card' ? 'h-full w-full border-0' : 'block w-full border-0'"
+      class="h-full w-full border-0"
       :title="fileName || 'PDF'"
     />
     <!-- The Word document keeps its own document-native scrolling surface
@@ -93,9 +90,9 @@ import { MARKDOWN_ELEMENT_CLASSES, MARKDOWN_COMPACT_CLASS, renderMarkdown } from
 // attachment }` resolved from the type's payload preview policy
 // (file-preview-contract). `variant` names the presentation surface:
 // `pane` (default) renders the detail treatment — prose flows at the
-// body's measure, the PDF renders at page scale (the column's width,
-// MediaBox aspect), bounded media (rasters, drawings, tables, Word
-// documents) fill the framed media region; `card` fills its caller's
+// body's measure, the PDF fills the framed region (viewer chrome
+// hidden, the page fits the frame's width), bounded media (rasters,
+// drawings, tables, Word documents) fill the framed media region; `card` fills its caller's
 // fixed-height band with no own border (the host card owns the chrome):
 // images and sketch scenes fill at uniform scale (cropped), vector
 // drawings fit inside, the PDF page hides viewer chrome, tables clip
@@ -125,34 +122,19 @@ const pending = computed(() => ['idle', 'loading'].includes(fetchState.value));
 // pipeline like the text editor and agent answers.
 const renderedMarkdown = computed(() => (mode.value === 'text' ? renderMarkdown(text.value) : ''));
 // Modes that need the payload bytes client-side: the readers and the
-// blob-backed image/pdf swaps.
-const FETCHED_MODES = ['pdf', 'docx', 'table', 'workbook', 'text', 'image'];
-// A4 portrait stands in until the fetched bytes yield the page's own
-// MediaBox ratio.
-const A4_ASPECT = 1 / 1.414;
-const pdfAspect = ref(A4_ASPECT);
-function pageAspect(buffer) {
-  try {
-    const head = new TextDecoder('iso-8859-1').decode(new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 4 * 1024 * 1024)));
-    const match = head.match(/MediaBox\s*\[\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
-    const width = match ? Math.abs(Number(match[3]) - Number(match[1])) : 0;
-    const height = match ? Math.abs(Number(match[4]) - Number(match[2])) : 0;
-    const ratio = width > 0 && height > 0 ? width / height : A4_ASPECT;
-    return ratio >= 0.2 && ratio <= 5 ? ratio : A4_ASPECT;
-  } catch {
-    return A4_ASPECT;
-  }
-}
-const pdfPaneStyle = computed(() => ({ aspectRatio: pdfAspect.value.toFixed(4) }));
-// Card bands are thumbnails: the page fits the band's width with viewer
-// chrome and scrollbars hidden; the pane keeps its reading scroll.
+// blob-backed image swap.
+const FETCHED_MODES = ['docx', 'table', 'workbook', 'text', 'image'];
+// The PDF iframe targets the file URL itself: the viewer params ride the
+// URL fragment, and blob URLs ignore fragments. Card bands are
+// thumbnails — the page fits the band's width with viewer chrome and
+// scrollbars hidden; the pane fits its frame's width and scrolls
+// inside.
 const pdfSrc = computed(() => {
-  const url = blobUrl.value || fileUrl.value;
-  if (!url) return url;
+  if (!fileUrl.value) return '';
   const params = props.variant === 'card'
     ? 'toolbar=0&navpanes=0&scrollbar=0&view=FitH'
-    : 'toolbar=0&navpanes=0';
-  return `${url}#${params}`;
+    : 'toolbar=0&navpanes=0&view=FitH';
+  return `${fileUrl.value}#${params}`;
 });
 
 function releaseBlob() {
@@ -189,7 +171,6 @@ async function load() {
       return;
     }
     blobUrl.value = URL.createObjectURL(new Blob([buffer], { type: mimeType.value }));
-    if (mode.value === 'pdf') pdfAspect.value = pageAspect(buffer);
     if (mode.value === 'docx') {
       fetchState.value = 'ready';
       await nextTick();

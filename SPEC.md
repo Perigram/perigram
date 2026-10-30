@@ -977,9 +977,9 @@ for quantitative-dominant types alone; every other type renders plain
 values. Preview bands render real content: payload viewers, declared
 preview sources, plugin previews, or the quiet type glyph. On detail
 surfaces the treatment follows the content: prose flows as record
-content at the body's measure, a page fills the record column's width
-at its own aspect, and bounded media (rasters, drawings, tables,
-documents) fit one framed media region. A card's layout follows its
+content at the body's measure, and bounded media (rasters, drawings,
+tables, documents, pages) fit one framed media region — a page's
+viewer fits the frame's width and scrolls inside. A card's layout follows its
 type's data shape: a visual preview with no card facts renders the
 overlay tile — the preview fills the card and the identifier chip
 rides its corner, status and the row menu float on the media; a
