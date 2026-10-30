@@ -1,6 +1,7 @@
 <template>
   <RemoteInstancePreview
     v-if="pluginPreview"
+    :class="bandClass"
     :record="instance"
     :type-id="typeId"
     :preview="pluginPreview"

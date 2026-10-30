@@ -32,7 +32,7 @@ export default function createSurface({ vue, components }) {
       watch(renderKey, resolveDrawing, { immediate: true });
 
       return () => h('div', {
-        class: 'relative h-32 w-full overflow-hidden rounded-ui',
+        class: 'relative h-full w-full overflow-hidden rounded-ui',
         'data-instance-card-interactive': 'true',
         onClick: event => event.stopPropagation()
       }, [
