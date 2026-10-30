@@ -1477,62 +1477,86 @@ export default function createSurface({ vue, components, locale, queries, notify
         return ids;
       });
 
-      // A row deviates when its record's lineage differs from the
-      // opened record's — the explicitly added sheets, and family
-      // members with extra parents. Its own context reads on its row.
-      const sheetDeviates = entry => !sameLineage(entry.record?.lineage || {}, props.record?.lineage || {});
+      const renderSheetTile = entry => h(components.InstanceInlineRef, {
+        key: entry.id,
+        type: 'sheet-design',
+        entity: entry.record,
+        id: entry.id,
+        variant: 'tile',
+        active: activeSheetId.value === entry.id,
+        selectable: true,
+        onSelect: () => { selectSheet(entry.id); }
+      }, {
+        trailing: () => [h(components.Button, {
+          icon: 'pi pi-times',
+          severity: 'secondary',
+          text: true,
+          rounded: true,
+          size: 'small',
+          'aria-label': t('sheetDesign.removeSheet'),
+          disabled: entry.dirty || sheets.value.length <= 1,
+          onClick: () => { removeSheetFromCanvas(entry); }
+        })]
+      });
 
-      const renderSheetTile = entry => h('div', { class: 'flex min-w-0 flex-col gap-1' }, [
-        h(components.InstanceInlineRef, {
-          key: entry.id,
-          type: 'sheet-design',
-          entity: entry.record,
-          id: entry.id,
-          variant: 'tile',
-          active: activeSheetId.value === entry.id,
-          selectable: true,
-          onSelect: () => { selectSheet(entry.id); }
-        }, {
-          trailing: () => [h(components.Button, {
-            icon: 'pi pi-times',
-            severity: 'secondary',
-            text: true,
-            rounded: true,
-            size: 'small',
-            'aria-label': t('sheetDesign.removeSheet'),
-            disabled: entry.dirty || sheets.value.length <= 1,
-            onClick: () => { removeSheetFromCanvas(entry); }
-          })]
-        }),
-        sheetDeviates(entry)
+      // The working set groups by parent map: each distinct lineage is a
+      // group and its chain heads its sheets. The opened record's group
+      // leads; lineage-less sheets form an unchained group.
+      const lineageKeyOf = record => {
+        const lineage = record?.lineage || {};
+        const keys = Object.keys(lineage).filter(key => lineagValueId(lineage[key]));
+        if (!keys.length) return '';
+        return keys.sort().map(key => `${key}:${lineagValueId(lineage[key])}`).join('|');
+      };
+
+      const sheetGroups = computed(() => {
+        const groups = [];
+        const byKey = new Map();
+        const groupFor = (key, record) => {
+          let group = byKey.get(key);
+          if (!group) {
+            group = { key, record: record || null, sheets: [] };
+            byKey.set(key, group);
+            groups.push(group);
+          }
+          return group;
+        };
+        for (const entry of sheets.value) {
+          const key = lineageKeyOf(entry.record);
+          groupFor(key, key ? entry.record : null).sheets.push(entry);
+        }
+        if (!sheets.value.length) return groups;
+        // The opened record's group leads the section.
+        const openedKey = lineageKeyOf(props.record);
+        if (openedKey && byKey.has(openedKey)) {
+          const openedGroup = byKey.get(openedKey);
+          groups.splice(groups.indexOf(openedGroup), 1);
+          groups.unshift(openedGroup);
+        }
+        return groups;
+      });
+
+      const renderGroupChain = group => (
+        group.record && group.key
           ? h(components.TraceChain, {
-            entity: entry.record,
+            entity: group.record,
             typeId: 'sheet-design',
             variant: 'compact',
             expandable: true,
             class: 'min-w-0'
           })
           : null
-      ]);
+      );
 
-      // The section's shared chain: the OPENED record's lineage — the
-      // family scope the canvas opened on. It stays fixed; a row that
-      // deviates carries its own.
-      const renderFamilyChain = () => {
-        if (!Object.keys(props.record?.lineage || {}).length) return null;
-        return h(components.TraceChain, {
-          entity: props.record,
-          typeId: 'sheet-design',
-          variant: 'compact',
-          expandable: true,
-          class: 'min-w-0'
-        });
-      };
-
-      const renderSheetsSection = () => h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
+      const renderSheetsSection = () => h('section', { class: 'flex min-w-0 flex-col gap-3' }, [
         sectionLabel(t('sheetDesign.sheetDesigns')),
-        renderFamilyChain(),
-        ...sheets.value.map(renderSheetTile),
+        ...sheetGroups.value.map(group => h('div', {
+          key: group.key || 'ungrouped',
+          class: 'flex min-w-0 flex-col gap-2'
+        }, [
+          renderGroupChain(group),
+          ...group.sheets.map(renderSheetTile)
+        ])),
         sheetOptions.value.length
           ? h(components.InstanceSelect, {
               modelValue: null,

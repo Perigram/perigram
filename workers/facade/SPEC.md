@@ -479,11 +479,10 @@ the working-set tile
 selectable (click activates the sheet on canvas) with its active
 marking; the working-set remove rides the row's trailing end (the
 chip-removable convention). Lineage renders per record (owner
-direction 2026-10-30): the working-set section carries the opened
-record's chain — the family scope the canvas opened on, fixed — and a
-working-set row whose lineage deviates from it (an explicitly added
-sheet, a member with extra parents) carries its own compact chain on
-its row. The active sheet's placed cassette
+direction 2026-10-30): the working set groups by parent map — each
+distinct lineage is a group, its chain heading its sheets, the opened
+record's group first; lineage-less sheets form an unchained group. The
+active sheet's placed cassette
 designs render as the actual instance tiles beside the sheet tile
 (owner direction 2026-10-30) — placement geometry (position, rotation)
 reads on the canvas, and the inspector carries no hand-rolled fact
