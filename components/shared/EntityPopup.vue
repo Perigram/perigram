@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
@@ -48,7 +48,9 @@ import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurfac
 import { resolveDetailScreen, recordFloorScreen } from '~/components/generated/detail-screen-actions.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { useCallRouting } from '~/composables/useCallRouting.js';
-import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
+import { openInstanceInWorkspace, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
+import { workspacePageOpenEvent } from '~/utils/workspace-page-open.js';
+import { useSupportDialog } from '~/composables/useModalState';
 import { screenByKey } from '~/utils/process-navigation.js';
 import { useEntityPopup } from '~/composables/useEntityPopup';
 import { useInstancesStore } from '~/stores/instances';
@@ -67,6 +69,23 @@ const { t, te } = useI18n();
 // the compact density tier.
 const popupBody = ref(null);
 provideContainerTraits({ hostKind: 'popup', elRef: popupBody });
+
+// An action the hosted surface runs that opens another surface — an
+// editor workspace page, a workspace tab, the chat drawer — takes the
+// stage: the popup closes instead of floating over what it opened.
+function onOutsideSurfaceOpened() {
+  if (request.value) close();
+}
+const supportDialog = useSupportDialog();
+watch(supportDialog, open => { if (open) onOutsideSurfaceOpened(); });
+onMounted(() => {
+  window.addEventListener(workspaceInstanceOpenEvent, onOutsideSurfaceOpened);
+  window.addEventListener(workspacePageOpenEvent, onOutsideSurfaceOpened);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener(workspaceInstanceOpenEvent, onOutsideSurfaceOpened);
+  window.removeEventListener(workspacePageOpenEvent, onOutsideSurfaceOpened);
+});
 
 const visible = computed({
   // The composable's open() already refuses unopenable types; the guard

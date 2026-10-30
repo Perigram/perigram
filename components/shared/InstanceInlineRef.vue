@@ -131,6 +131,12 @@ const peekDataFields = computed(() => peekDisplay.value.fields.filter(field =>
   && field.role !== 'previewSource'
 ));
 const PEEK_FACT_LIMIT = 8;
+// The peek fires only where it carries a fact beyond identity (the
+// FileChip law): a preview band, a state tag, or a fact row.
+const peekHasContent = computed(() =>
+  peekHasPreview.value
+  || peekDataFields.value.length > 0
+  || Boolean(compactStatusState.value));
 // The peek speaks the live record: a ref may carry a slim message
 // snapshot, so the pool's cached field-bearing DTO (or its on-show
 // readable-reference resolution) stands in for the snapshot.
@@ -287,6 +293,7 @@ function executeContextualAction(action) {
           :entity="resolved"
           :type-id="generatedTypeId"
           :mode="compactDisplay.surfaceContract.preview"
+          :interactive="false"
           hide-dimension-layer
         />
       </span>
@@ -335,12 +342,12 @@ function executeContextualAction(action) {
         v-if="resolved && compactHasPreview"
         class="instance-inline-compact-preview"
         :class="compactLayout === 'stacked' ? 'bg-subtle' : 'instance-preview-slot'"
-        data-instance-card-interactive="true"
       >
         <InstancePreview
           :entity="resolved"
           :type-id="generatedTypeId"
           :mode="compactDisplay.surfaceContract.preview"
+          :interactive="false"
           hide-dimension-layer
         />
       </span>
@@ -433,9 +440,14 @@ function executeContextualAction(action) {
         data-instance-card-interactive="true"
       />
       <!-- The identity chip is the popup trigger and the peek trigger:
-           hover raises the record peek (SPEC §22.14), click opens the
-           record popup. -->
-      <HoverPeek v-else-if="resolved" :enabled="interactive" @show="onPeekShow">
+           hover raises the record peek (SPEC §22.14), click — the chip or
+           the peek body — opens the record popup. -->
+      <HoverPeek
+        v-else-if="resolved"
+        :enabled="interactive && peekHasContent"
+        @show="onPeekShow"
+        @open="openRefPopup"
+      >
         <template #default="{ peekEvents }">
           <Chip
             v-on="peekEvents"
@@ -460,6 +472,7 @@ function executeContextualAction(action) {
               :entity="peekEntity"
               :type-id="generatedTypeId"
               :mode="peekDisplay.surfaceContract.preview"
+              :interactive="false"
               fill
               hide-dimension-layer
             />

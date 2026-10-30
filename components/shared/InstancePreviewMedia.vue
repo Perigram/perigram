@@ -10,6 +10,7 @@
     :source="declaredPreview"
     :hide-dimension-layer="hideDimensionLayer"
     :fill="fill"
+    :interactive="interactive"
   />
 </template>
 
@@ -32,7 +33,10 @@ const props = defineProps({
   hideDimensionLayer: { type: Boolean, default: false },
   // Host-owned band opt-in: renderers fill the fixed-height band with no
   // chrome of their own.
-  fill: { type: Boolean, default: false }
+  fill: { type: Boolean, default: false },
+  // `false` inside a trigger surface: the preview yields its clicks to
+  // the trigger's own open.
+  interactive: { type: Boolean, default: true }
 });
 
 const { typeById } = useFileTypeView();

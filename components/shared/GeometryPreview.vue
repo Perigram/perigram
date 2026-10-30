@@ -9,7 +9,10 @@ const props = defineProps({
   hideDimensionLayer: { type: Boolean, default: false },
   // Host-owned band opt-in (DrawingCanvas `fill`): the canvas paints no
   // own chrome and fills the fixed-height band.
-  fill: { type: Boolean, default: false }
+  fill: { type: Boolean, default: false },
+  // `false` inside a trigger surface (an inline ref card, a peek band):
+  // the preview claim on the click yields to the trigger's own open.
+  interactive: { type: Boolean, default: true }
 });
 
 const visibleLayerNames = ref(null);
@@ -37,7 +40,11 @@ function isDimensionLayerName(name = '') {
 </script>
 
 <template>
-  <div v-if="source" data-instance-card-interactive="true" @click.stop>
+  <div
+    v-if="source"
+    :data-instance-card-interactive="interactive || undefined"
+    @click="interactive && $event.stopPropagation()"
+  >
     <DrawingCanvas
       :source="source"
       source-type="geometry-preview"

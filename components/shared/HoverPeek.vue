@@ -6,6 +6,7 @@
       class="flex max-h-[min(28rem,calc(100dvh-4rem))] w-72 max-w-[calc(100vw-2rem)] flex-col overflow-y-auto"
       @mouseenter="holdPeek"
       @mouseleave="scheduleHide"
+      @click="onBodyClick"
     >
       <slot name="preview" />
     </div>
@@ -23,11 +24,12 @@
 // region), and the body scrolls past its height bound.
 import { onBeforeUnmount, ref } from 'vue';
 import Popover from 'primevue/popover';
+import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const props = defineProps({
   enabled: { type: Boolean, default: true }
 });
-const emit = defineEmits(['show']);
+const emit = defineEmits(['show', 'open']);
 
 const SHOW_DELAY_MS = 300;
 const HIDE_GRACE_MS = 250;
@@ -73,6 +75,13 @@ function holdPeek() {
 function onShow() {
   shown.value = true;
   emit('show');
+}
+
+// The peek body is one open target: a click on it opens the record
+// (nested controls keep their own clicks).
+function onBodyClick(event) {
+  if (isInteractiveEventTarget(event)) return;
+  emit('open', event);
 }
 
 onBeforeUnmount(() => {

@@ -5,7 +5,7 @@
     :type-id="typeId"
     :preview="pluginPreview"
   >
-    <InstancePreviewMedia :entity="entity" :type-id="typeId" :hide-dimension-layer="hideDimensionLayer" :fill="fill" />
+    <InstancePreviewMedia :entity="entity" :type-id="typeId" :hide-dimension-layer="hideDimensionLayer" :fill="fill" :interactive="interactive" />
   </RemoteInstancePreview>
   <InstancePreviewMedia
     v-else-if="mode !== 'none'"
@@ -13,6 +13,7 @@
     :type-id="typeId"
     :hide-dimension-layer="hideDimensionLayer"
     :fill="fill"
+    :interactive="interactive"
   />
 </template>
 
@@ -33,7 +34,10 @@ const props = defineProps({
   hideDimensionLayer: { type: Boolean, default: false },
   // Host-owned band opt-in: the generic media fills the fixed-height band
   // with no chrome of its own.
-  fill: { type: Boolean, default: false }
+  fill: { type: Boolean, default: false },
+  // `false` inside a trigger surface: the preview yields its clicks to
+  // the trigger's own open.
+  interactive: { type: Boolean, default: true }
 });
 
 const pluginPreview = computed(() => resolvePluginPreview(props.typeId));

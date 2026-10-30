@@ -8,11 +8,11 @@
         <template #header v-if="$slots.header || hasHeader">
             <slot name="header">
                 <div class="flex min-w-0 flex-1 items-center gap-2">
-                    <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <span class="min-w-0 truncate text-label">{{ title }}</span>
+                    <div v-if="title || subtitle" class="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span v-if="title" class="min-w-0 truncate text-label">{{ title }}</span>
                         <small v-if="subtitle" class="min-w-0 truncate text-muted text-supporting">{{ subtitle }}</small>
                     </div>
-                    <div v-if="$slots['header-actions']" class="flex shrink-0 items-center gap-1">
+                    <div v-if="$slots['header-actions']" class="ml-auto flex shrink-0 items-center gap-1">
                         <slot name="header-actions" />
                     </div>
                 </div>
