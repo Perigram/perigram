@@ -461,10 +461,12 @@ beside the transition history in `StateHistory`.
   variants keep the hairline spec list. The preview treatment follows
   the content with `PreviewBox fill`: prose flows
   (`LAYOUT.previewHeroBandFlow`), a page renders in the framed region
-  at the stepped heights (`LAYOUT.previewHeroBandAspect`), bounded
+  (`LAYOUT.previewHeroBandAspect`), bounded
   media and declared
   previewSource fill the framed region
-  (`LAYOUT.previewHeroBandContent`), and the quiet glyph keeps the bare
+  (`LAYOUT.previewHeroBandContent`) — the framed region fills the
+  page's free space (viewport-derived height floored at 24rem) — and
+  the quiet glyph keeps the bare
   small ladder. A list region with
   nothing to show
   renders at content width, and a record's empty child regions pack side
@@ -493,8 +495,9 @@ beside the transition history in `StateHistory`.
   treatment fills its band with no own border, because the host owns the
   chrome — images and sketch scenes fill the band at uniform scale,
   vector drawings (dxf/svg/occs) fit inside it, tables clip their rows,
-  the PDF page fits the band's width with viewer chrome and scrollbars
-  hidden, Word documents clip, prose rides the card-band compact scale
+  the PDF renders its first page as a painted canvas thumbnail (pdf.js;
+  the param'd iframe stands in when the paint cannot run), Word
+  documents clip, prose rides the card-band compact scale
   and clamps, and dimension text renders big. The pane treatment
   follows the content: prose renders as markdown at the body's measure
   (the shared pipeline under its one element recipe — the text preview
