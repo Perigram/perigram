@@ -3182,3 +3182,25 @@ pre-existing). E2E: documents-fill-dialog green (the composed markdown
 previews in the text mode); live probe pins the tile (h-40 media, chip
 badge) and the preview h1 at 42px IBM Plex Serif — the editor's own
 h1 metrics.
+
+## State values may repeat across types (owner direction 2026-10-30)
+
+Owner report: the process designer refuses "duplicate state name DRAFT"
+when two classes in one draft each carry the value — ordinary domains
+(queue DRAFT, design DRAFT) were unauthorable. SPEC §7 defines the state
+vocabulary per type; the designer's draft-global uniqueness check
+contradicted it, while the server binding check and machine compilation
+resolve values per wiring.
+
+- [ ] WAITING — owner verification: a state value token may repeat across
+  a draft; each type's vocabulary is the set of values wired into its
+  operations, and the designer raises no duplicate-value diagnostic.
+
+### Agent Notes (2026-10-30, state value repeats)
+
+Session `agent/state-dup-20261030` (worktree
+`.agent-worktrees/state-dup-20261030`). Cut the draft-global `duplicate
+state name` diagnostic in `declarationDiagnostics` — the rule's one
+home; the server binding check (`graph-protocol.js`) and machine
+compilation resolve state values per wiring. SPEC §7 states the repeat
+law; `designer.spec.js` pins repeats legal within and across classes.

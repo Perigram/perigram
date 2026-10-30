@@ -356,7 +356,8 @@ States are authored in the process graph, never in the type declaration.
 A type carries no state vocabulary: it declares identity, class, fields,
 edges, and operators only. The state vocabulary of a type is the set of
 state nodes authored in a process definition and wired into that type's
-create and transition operations.
+create and transition operations. The same value may appear in several
+types' vocabularies.
 
 ```
 StateNode ::= { value: string, policy?: { label?, icon?, severity? } }
