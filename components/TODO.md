@@ -477,3 +477,29 @@ GeometryPreview → DrawingCanvas fill) so exactly one surface frames the
 preview, and the instance peek speaks the detail surface — the record's
 full fact vocabulary capped at eight rows — beside identity, state, and
 the preview band.
+
+#### Agent Notes (2026-10-30)
+
+Session `agent/popup-fixes-20261030` (worktree
+`.agent-worktrees/popup-fixes-20261030`), live-audit round over the demo
+org (agent-browser + isolated Playwright probes, report
+`/tmp/opencode/popup-audit-report.json`): the record popup stayed open
+over surfaces its actions opened — the editor action navigated home and
+opened the editor pane behind the modal, the conversation action stacked
+the chat drawer under it. `EntityPopup` now closes on the
+workspace-entity/workspace-page open events and on the support dialog
+opening. The compact ref's preview band killed its own card's open (the
+band carried the interactive-child marker and `GeometryPreview` claimed
+the click): refs/tiles/peeks mount previews with the new
+`InstancePreview :interactive="false"` passthrough and the compact band
+marker is gone — the whole card opens the record. The peek body click
+now opens the record (`HoverPeek` `open` event), and a peek that would
+carry nothing beyond identity stays away (the FileChip `enabled` law).
+The popup dialog header carried a dead empty title span; SPEC §22.8
+outlaws a dialog title repeating the record name, so the header keeps
+only the expand action — the shared-README EntityPopup paragraph now
+states that law. Validation: design-system 34/34, SSR smoke 23/23,
+check-arch clean, docs guard clean. Known open finding: an authored
+record with neither payload nor fields renders its compiled detail as a
+header-only body inside the xl popup (empty modal canvas — data-side,
+not the popup host).

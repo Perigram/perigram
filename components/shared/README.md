@@ -403,8 +403,11 @@ New drawing previews should add a source normalizer for `DrawingCanvas`, not a f
 Entity-card wrapper around `DrawingCanvas` for design and remnant geometry.
 Reads `entity.data.geometry.preview` first and falls back to
 `entity.data.geometry.data`, `entity.data.geometry.points`, or polygon data such
-as `entity.data.geometry.data.polygon`. It marks the preview as an interactive
-card child so parent card click handlers do not steal pan/preview clicks.
+as `entity.data.geometry.data.polygon`. The canvas root marks itself an
+interactive card child and claims its clicks so parent card opens never
+steal pan/preview clicks; trigger surfaces (inline refs, tiles, peek
+bands) pass `:interactive="false"` and the trigger's own click behavior
+owns the click.
 
 Use this for DXF-derived layer previews and polygon remnants instead of displaying file ids, queue ids, or static filename fields in entity cards.
 When callers pass `hideDimensionLayer`, geometry previews keep production
@@ -431,8 +434,10 @@ to spread onto the trigger element; `#preview` carries the peek body.
 A deliberate hover delay (300 ms) raises the anchored `Popover`, leaving
 the trigger or the panel dismisses after a grace period that lets the
 pointer cross into the panel, and hovering-capable pointers alone engage
-it — touch hosts keep the click path. The whole peek body opens the
-record: its click behavior stays the trigger's own. The panel rides
+it — touch hosts keep the click path. A click on the peek body emits
+`open` (nested interactive controls keep their own clicks), and the host
+gates `enabled` on the body carrying a fact beyond identity — a peek
+with nothing to say stays away. The panel rides
 Aura's own chrome — the preset's popover padding spaces the body from
 the panel border, media bands frame themselves as the framed media
 region, and the body scrolls past its height bound.
@@ -511,8 +516,9 @@ trigger (SPEC §22.14): a deliberate hover raises the record's peek —
 the framed preview band (host-owned fill), identity with glyph and state
 tag, and the detail surface's fact rows (the record surface's own field
 vocabulary, capped at eight rows; the compact card budget stays on
-cards) — through [`HoverPeek.vue`](#hoverpeekvue); the click opens the
-record popup.
+cards) — through [`HoverPeek.vue`](#hoverpeekvue); the click — on the
+chip or on the peek body — opens the record popup, and a record whose
+peek would carry nothing beyond identity raises no peek at all.
 `variant="compact"` renders a horizontal micro card instead of a chip —
 but only when the type's compact surface earns the card: a preview band
 or compact fact rows beside identity. Preview-less, fact-less relations
@@ -522,6 +528,10 @@ visual fields. That
 compact ref uses the compact surface contract directly: a real preview on the
 left when the entity has one, the same semantic inline chip for identity on the
 right, a read-only status badge under identity, and compact facts below.
+The whole card — the preview band included — is the open trigger:
+previews inside ref, tile, and peek bands mount with
+`InstancePreview :interactive="false"`, so the drawing canvas claims no
+click of its own there.
 `variant="option"` renders the one-line instance option row
 (SPEC §22.13) pickers consume: a preview thumb (the type glyph when the
 type serves no preview), the truncating identity label, and trailing
@@ -733,10 +743,12 @@ Inline refs, compact micro cards, and inline entity-card chips open it
 (see [`InstanceInlineRef.vue`](#instanceinlinerefvue)); its expand action
 steps the record up to its page, so a ref discovered inside a workspace
 still lands in the pane.
-The header carries the record's display name (never an id; resolved from
-the instances store cache, falling back to its readable-reference
-resolution) with exactly one expansion affordance beside it: the
-icon-only expand action that steps the record up to its page. The
+The dialog header carries only the icon-only expand action beside the
+dialog's own close — the record header inside the dialog is the record's
+one identity surface (SPEC §22.8). An action the hosted surface runs
+that opens another surface — an editor workspace page, a workspace tab,
+the chat drawer — closes the popup: the popup never floats over a
+surface it opened. The
 composable's `openable(typeId)` is the guard: a type with a
 directory profile, a compiled/synthesizable detail screen, or a served
 type record opens; a type absent from the served view has no record
