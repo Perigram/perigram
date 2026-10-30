@@ -135,7 +135,9 @@ that drive executor-backed surfaces or services wire them through
 - `cassette-profile-editor.spec.js`: the profile sketch editor's
   authored-truth round-trip through the real CAD dialog — draw shapes,
   bind a dimension to a parameter, save, reopen: the binding survives
-  and authored numerics stay at drawing scale.
+  and authored numerics stay at drawing scale. Specs that embed the CAD
+  engine connect both executors (`facade` and `tech-drawing`) — the
+  runtime is facade's declared cross-plugin dependency.
 - `pane-navigation-history.spec.js`: the home workspace's pane
   navigation contract — an in-place tab replacement surfaces the pane
   header's Back control and Back restores the replaced content; a new
