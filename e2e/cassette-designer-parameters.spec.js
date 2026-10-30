@@ -143,7 +143,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
 
 
   // Array position settings: the fields are the author's text.
-  await page.locator('aside button').filter({ hasText: /→|<-/ }).first().click();
+  await page.locator('aside').getByRole('button', { name: 'Positioning' }).first().click();
   const popup = page.locator('div.z-\\[120\\]').first();
   await expect(popup).toBeVisible({ timeout: 15_000 });
   await popup.locator('[aria-label="Placement"]').click();
@@ -175,6 +175,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await chipW.click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('84', { delay: 60 });
+  await page.keyboard.press('Enter');
   await page.waitForTimeout(1500);
   const after = await assemblyGeometry(page);
   expect(after, 'Expected the chip edit to change the drawn profile').not.toEqual(before);
@@ -187,6 +188,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await chipW.click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('A', { delay: 60 });
+  await page.keyboard.press('Enter');
   await page.waitForTimeout(1500);
   expect(await assemblyGeometry(page), 'Expected the global-named chip value to re-derive the profile')
     .not.toEqual(after);
@@ -304,6 +306,7 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await chipK.click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('2.5', { delay: 60 });
+  await page.keyboard.press('Enter');
   await page.waitForTimeout(1500);
   const after = await assemblyGeometry(page);
   expect(after, 'Expected the fillet chip to re-round the drawn profile').not.toBe(before);
