@@ -1463,8 +1463,23 @@ export default function createSurface({ vue, components, locale, queries, notify
         })]
       });
 
+      // The panel's one breadcrumb: the working set's shared parent
+      // chain, rendered at the section — tile rows carry no lineage.
+      const renderFamilyChain = () => {
+        const record = activeSheetEntry.value?.record || props.record;
+        if (!Object.keys(record?.lineage || {}).length) return null;
+        return h(components.TraceChain, {
+          entity: record,
+          typeId: 'sheet-design',
+          variant: 'compact',
+          expandable: true,
+          class: 'min-w-0'
+        });
+      };
+
       const renderSheetsSection = () => h('section', { class: 'flex min-w-0 flex-col gap-2' }, [
         sectionLabel(t('sheetDesign.sheetDesigns')),
+        renderFamilyChain(),
         ...sheets.value.map(renderSheetTile),
         sheetOptions.value.length
           ? h(components.InstanceSelect, {

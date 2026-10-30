@@ -5,7 +5,6 @@ import Chip from 'primevue/chip';
 import { CHIP_LABEL_PT, INSTANCE_CHIP_CLASS } from './chip-surface.js';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import StateTag from '~/components/ui-mapping/StateTag.vue';
-import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
 import HoverPeek from '~/components/shared/HoverPeek.vue';
@@ -297,25 +296,13 @@ function executeContextualAction(action) {
             <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true" />
             <span class="min-w-0 flex-1 truncate text-label" :title="identityLabel">{{ identityLabel }}</span>
           </span>
-          <span class="flex shrink-0 items-center gap-2">
-            <StateTag
-              v-if="compactStatusState"
-              :value="compactStatusState"
-              :policy="compactPolicy"
-              class="max-w-full"
-            />
-            <span v-if="$slots.trailing" class="inline-flex shrink-0 items-center" @click.stop>
-              <slot name="trailing" />
-            </span>
-          </span>
+          <StateTag
+            v-if="compactStatusState"
+            :value="compactStatusState"
+            :policy="compactPolicy"
+            class="max-w-full shrink-0"
+          />
         </span>
-        <TraceChain
-          :entity="resolved"
-          :type-id="generatedTypeId"
-          variant="compact"
-          expandable
-          class="min-w-0"
-        />
         <span v-if="compactDataFields.length" :class="LAYOUT.labeledBlock">
           <DataBlock
             :type-id="generatedTypeId"
@@ -324,6 +311,9 @@ function executeContextualAction(action) {
             variant="compact"
           />
         </span>
+      </span>
+      <span v-if="$slots.trailing" class="inline-flex shrink-0 items-center self-center" @click.stop>
+        <slot name="trailing" />
       </span>
     </span>
 

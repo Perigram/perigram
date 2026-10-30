@@ -204,13 +204,14 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
 
   // The family joined the canvas: three sheets on the rack, the active
   // record and three working-set rows as tiles, the parent resolved by
-  // name on the tile breadcrumbs.
+  // name on the section's one trace chain — tile rows carry no
+  // breadcrumb.
   const canvas = page.locator('svg[role="application"]');
   await expect(canvas.getByText(`Family sheet 2 ${run}`)).toBeVisible({ timeout: 150000 });
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toBeVisible();
   await expect(page.locator('.instance-inline-tile')).toHaveCount(4, { timeout: 150000 });
-  await expect(page.locator('.instance-inline-tile').filter({ hasText: `Job ${run}` }).first())
-    .toBeVisible({ timeout: 150000 });
+  await expect(page.locator('.designer-workspace nav[aria-label="Traceability"]')
+    .filter({ hasText: `Job ${run}` })).toBeVisible({ timeout: 150000 });
   await expectNoRawIds(page);
 
   // All family members sit on the canvas: the sheet picker stays away
@@ -267,8 +268,8 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   const after = await movingGroup.getAttribute('transform');
   expect(after, `sheet moved: ${before} -> ${after}`).not.toBe(before);
 
-  // A deleted parent leaves the breadcrumb on the entity type label —
-  // the raw id never renders.
+  // A deleted parent leaves the section chain on the entity type label
+  // — the raw id never renders.
   const deleted = await app.request.delete(`/api/instances/probe-family/${parent._id}`);
   expect(deleted.ok(), await deleted.text()).toBeTruthy();
   await openSheetEditor(app, `Family sheet 1 ${run}`);
