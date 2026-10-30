@@ -117,11 +117,13 @@ export function nestingLayouts(result = {}) {
 // layout is the representative geometry.
 export function groupNestingLayouts(result = {}) {
   const layouts = nestingLayouts(result);
+  const designByItemId = new Map((result.items || [])
+    .map(item => [item.id?.toString(), String(item.design_id ?? '')]));
   const groups = new Map();
   for (const layout of layouts) {
     const placements = layout.placed_items || layout.items || [];
     const key = placements
-      .map(placed => String(placed.design_id ?? ''))
+      .map(placed => designByItemId.get(String(placed.item_id ?? placed.itemId ?? placed.id ?? '')) ?? '')
       .sort()
       .join('|');
     if (!key.replace(/\|/g, '')) continue;

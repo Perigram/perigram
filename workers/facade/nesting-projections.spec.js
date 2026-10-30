@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildValueWorkerRequest,
   enrichNestingResult,
+  groupNestingLayouts,
   nestingLayouts,
   nestingPartsProjection,
   summarizeNestingResult
@@ -45,6 +46,58 @@ describe('nesting projections', () => {
     expect(layouts[0].sourceItems).toHaveLength(1);
     expect(layouts[0].sourceItems[0]).toMatchObject({ id: 0, design_id: 'c1' });
     expect(layouts[0].sheetPolygon).toEqual(workerResult.bins[0].shape.data);
+  });
+});
+
+describe('quantity join over solved layouts', () => {
+  const layoutOver = (containerId, placements) => ({
+    container_id: containerId,
+    density: 0.25,
+    placed_items: placements
+  });
+
+  it('resolves each placement design through its item and joins same-multiset layouts', () => {
+    const enriched = enrichNestingResult({
+      ...workerResult,
+      solution: {
+        ...workerResult.solution,
+        layouts: [
+          layoutOver(0, [
+            { item_id: 0, transformation: { rotation: 0, translation: [0, 0] } },
+            { item_id: 0, transformation: { rotation: 0, translation: [400, 0] } }
+          ]),
+          layoutOver(0, [
+            { item_id: 0, transformation: { rotation: 90, translation: [0, 0] } },
+            { item_id: 0, transformation: { rotation: 90, translation: [400, 0] } }
+          ])
+        ]
+      }
+    }, request);
+    const grouped = groupNestingLayouts(enriched);
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0].count).toBe(2);
+    expect(grouped[0].placed_items).toHaveLength(2);
+  });
+
+  it('keeps layouts cutting different design multisets apart', () => {
+    const enriched = enrichNestingResult({
+      items: [
+        ...workerResult.items,
+        { id: 1, design_id: 'c2', shape: { type: 'simple_polygon', data: [[0, 0], [100, 0], [100, 100], [0, 100]] } }
+      ],
+      bins: workerResult.bins,
+      solution: {
+        cost: 2,
+        density: 0.25,
+        layouts: [
+          layoutOver(0, [{ item_id: 0, transformation: { rotation: 0, translation: [0, 0] } }]),
+          layoutOver(0, [{ item_id: 1, transformation: { rotation: 0, translation: [0, 0] } }])
+        ]
+      }
+    }, request);
+    const grouped = groupNestingLayouts(enriched);
+    expect(grouped).toHaveLength(2);
+    expect(grouped.every(layout => layout.count === 1)).toBe(true);
   });
 });
 
