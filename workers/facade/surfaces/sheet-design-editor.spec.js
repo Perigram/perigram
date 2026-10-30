@@ -29,13 +29,15 @@ const ButtonStub = (props, { slots }) => h('button', {
   'aria-label': props['aria-label'] || ''
 }, slots?.default ? slots.default() : null);
 
-function mountContext({ queries } = {}) {
+const ActionsChainStub = (props) => h('nav', { 'data-trace-chain': String(props.typeId || ''), 'aria-label': 'Traceability' });
+const mountContext = ({ queries } = {}) => {
   return {
     vue: { h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent },
     components: {
       Button: ButtonStub, Checkbox: stub, InputNumber: stub, InputText: stub,
       Popover: stub, SpeedDial: stub, Tag: stub, InstanceSelect: InstanceSelectStub,
-      InstanceInlineRef: InstanceInlineRefStub, DesignerSurface: stub, DesignerWorkspace: renderAllSlots
+      InstanceInlineRef: InstanceInlineRefStub, TraceChain: ActionsChainStub,
+      DesignerSurface: stub, DesignerWorkspace: renderAllSlots
     },
     locale: { t: key => key, te: () => true, locale: ref('en') },
     queries: queries || { list: async () => [] },
@@ -125,5 +127,15 @@ describe('sheet-design-editor surface mount', () => {
 
     expect(sheetQueryCalls).toEqual([]);
     expect(html.match(/data-ref-variant="tile"/g)).toHaveLength(2);
+    // No lineage, no section chain.
+    expect(html).not.toContain('data-trace-chain');
+  });
+
+  it('renders the family context as one section chain, off the tiles', async () => {
+    const opened = { ...record, lineage: { familyId: 'parent-1' } };
+    const surface = createSurface(mountContext());
+    const app = createSSRApp(surface, { record: opened, persistence: { patch: async () => {}, rename: async () => {} } });
+    const html = await renderToString(app);
+    expect(html.match(/data-trace-chain="sheet-design"/g)).toHaveLength(1);
   });
 });
