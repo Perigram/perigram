@@ -342,7 +342,9 @@ preview module in every `InstancePreview` slot — the card preview band
 and the detail previewSource group — through
 `RemoteInstancePreview.vue` over the read-only preview contract
 (`{ record, payload }`; the host resolves and parses the payload
-document). While the module loads, and whenever it cannot (unconnected
+document). The host grants the band and the module fills it — a preview
+module never sizes its own box. While
+the module loads, and whenever it cannot (unconnected
 executor, refused contract, offline), the generic preview media
 (`InstancePreviewMedia.vue`: payload attachment viewer or declared
 `previewSource` geometry through `GeometryPreview`) keeps rendering — a

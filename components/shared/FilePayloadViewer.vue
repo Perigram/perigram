@@ -40,8 +40,12 @@
       :title="fileName || 'PDF'"
     />
     <!-- The Word document keeps its own document-native scrolling surface
-         (like the table panes). -->
-    <div v-else-if="hasFile && mode === 'docx' && ready" ref="docxHost" class="h-full overflow-y-auto bg-white p-6 text-black" />
+         (like the table panes); card bands clip it. -->
+    <div
+      v-else-if="hasFile && mode === 'docx' && ready"
+      ref="docxHost"
+      :class="variant === 'card' ? 'h-full overflow-hidden bg-white p-4 text-black' : 'h-full overflow-y-auto bg-white p-6 text-black'"
+    />
     <TableFrame v-else-if="hasFile && ['table', 'workbook'].includes(mode) && rows.length" class="h-full">
       <DataTable
         :value="rows"
@@ -140,9 +144,15 @@ function pageAspect(buffer) {
   }
 }
 const pdfPaneStyle = computed(() => ({ aspectRatio: pdfAspect.value.toFixed(4) }));
+// Card bands are thumbnails: the page fits the band's width with viewer
+// chrome and scrollbars hidden; the pane keeps its reading scroll.
 const pdfSrc = computed(() => {
   const url = blobUrl.value || fileUrl.value;
-  return url ? `${url}#toolbar=0&navpanes=0` : url;
+  if (!url) return url;
+  const params = props.variant === 'card'
+    ? 'toolbar=0&navpanes=0&scrollbar=0&view=FitH'
+    : 'toolbar=0&navpanes=0';
+  return `${url}#${params}`;
 });
 
 function releaseBlob() {
