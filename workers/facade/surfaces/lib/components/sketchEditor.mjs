@@ -146,10 +146,19 @@ export default function createSketchEditor({ vue, components, locale }) {
       // A blank canvas opens at drawing scale — a 200×150 mm window with
       // the zero axis in view — so freehand drawing lands in millimetres
       // (occs/README.md owns the law). Script inputs are newline-tokenized
-      // (AutoCAD .scr semantics).
+      // (AutoCAD .scr semantics); sendStringToExecute runs one command and
+      // clears the input queue, so multi-command scripts ride runScript.
       const BLANK_WINDOW_COMMAND = 'zoom\nw\n-50,-75\n150,75';
+      const runEngineScript = (script) => {
+        const commands = script.split('\n');
+        if (commands.length > 1 && manager?.runScript) {
+          manager.runScript(commands.join('\n'));
+          return;
+        }
+        manager?.sendStringToExecute?.(commands[commands.length - 1]);
+      };
       const zoomToBlankWindow = (extra = []) => {
-        manager?.sendStringToExecute?.([BLANK_WINDOW_COMMAND, ...extra].join('\n'));
+        runEngineScript([BLANK_WINDOW_COMMAND, ...extra].join('\n'));
       };
 
       // The material half of the zero axis is the boolean body — the
@@ -1758,7 +1767,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           if (!normalizeOccsProfileSketch(props.modelValue || {}).shapes.length) {
             zoomToBlankWindow(queued);
           } else if (queued.length) {
-            manager.sendStringToExecute?.(queued.join('\n'));
+            runEngineScript(queued.join('\n'));
           }
           // A dialog mount can race the container's real size (open
           // animation, late flex layout); the first time the canvas
