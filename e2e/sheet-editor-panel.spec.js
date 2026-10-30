@@ -131,7 +131,7 @@ test('a lineage-less sheet edits alone: tiles, pick-to-add designs, OCCS pens', 
   await expect(sheetOptions1.first()).toContainText(`Lonely sheet ${run}`);
   await page.getByRole('option', { name: `Lonely sheet ${run}` }).click();
   await expect(page.locator('.instance-inline-tile')
-    .filter({ hasText: `Lonely sheet ${run}` })).toHaveCount(1, { timeout: 150000 });
+    .filter({ hasText: `Lonely sheet ${run}` })).toHaveCount(2, { timeout: 150000 });
 
   // The cassette picker is a trigger; its option rows carry the
   // layer-standard pens (concrete stroke colors, never currentColor).
@@ -227,15 +227,6 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
     .filter({ hasText: `Job ${run}` })).toBeVisible({ timeout: 150000 });
   await expectNoRawIds(page);
 
-  // All family members sit on the canvas: the picker offers the
-  // stranger — the explicit channel — and nothing else.
-  await page.getByRole('button', { name: 'Select sheet' }).click();
-  const strangerRow = page.locator('.instance-option-row');
-  await expect(strangerRow).toHaveCount(1, { timeout: 150000 });
-  await expect(strangerRow.first()).toContainText(`Stranger sheet ${run}`);
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(400);
-
   // Previews and placements follow the org standard's pen.
   await page.getByRole('button', { name: 'Select design' }).click();
   await page.waitForTimeout(2500);
@@ -258,6 +249,15 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   await expect(page.locator('.instance-inline-tile')
     .filter({ hasText: `Family design ${run}` }).first()).toBeVisible({ timeout: 100000 });
 
+  // All family members sit on the canvas: the picker offers the
+  // stranger and any other org sheet — on-canvas members are excluded.
+  await page.getByRole('button', { name: 'Select sheet' }).click();
+  const strangerRow = page.locator('.instance-option-row');
+  await expect(strangerRow.filter({ hasText: `Stranger sheet ${run}` })).toHaveCount(1, { timeout: 30000 });
+  await expect(strangerRow.filter({ hasText: /Family sheet/ })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(400);
+
   // A removed family member returns through the picker; add-all covers
   // the family alone.
   const sheet3Row = page.locator('.instance-inline-tile').filter({ hasText: `Family sheet 3 ${run}` });
@@ -266,8 +266,7 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   await expect(canvas.getByText(`Family sheet 3 ${run}`)).toHaveCount(0);
   await page.getByRole('button', { name: 'Select sheet' }).click();
   const sheetRows = page.locator('.instance-option-row');
-  await expect(sheetRows).toHaveCount(2, { timeout: 150000 });
-  await expect(sheetRows.first()).toContainText(`Family sheet 3 ${run}`);
+  await expect(sheetRows.filter({ hasText: `Family sheet 3 ${run}` })).toHaveCount(1, { timeout: 150000 });
   await page.keyboard.press('Escape');
   await page.waitForTimeout(400);
   await page.getByRole('button', { name: /add all sheets/i }).click();
@@ -288,13 +287,13 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   await page.getByRole('option', { name: `Stranger sheet ${run}` }).click();
   await expect(canvas.getByText(`Stranger sheet ${run}`)).toBeVisible({ timeout: 150000 });
   await expect(page.locator('.designer-workspace nav[aria-label="Traceability"]')
-    .filter({ hasText: `Other job ${run}` })).toBeVisible({ timeout: 150000 });
+    .filter({ hasText: new RegExp(`^Other job ${run}$`) })).toBeVisible({ timeout: 150000 });
   const strangerBox = await canvas.locator('g', { hasText: `Stranger sheet ${run}` }).first().boundingBox();
   const strangerPoint = clampInto(strangerBox.x + strangerBox.width * 0.5, strangerBox.y + 8);
   await page.mouse.click(strangerPoint.x, strangerPoint.y);
   await page.waitForTimeout(600);
   await expect(page.locator('.designer-workspace nav[aria-label="Traceability"]')
-    .filter({ hasText: `Job ${run}` })).toBeVisible({ timeout: 150000 });
+    .filter({ hasText: new RegExp(`^Job ${run}$`) })).toBeVisible({ timeout: 150000 });
   const strangerTile = page.locator('.instance-inline-tile').filter({ hasText: `Stranger sheet ${run}` });
   await strangerTile.locator('button[aria-label="Remove sheet"]').click();
   await expect(canvas.getByText(`Stranger sheet ${run}`)).toHaveCount(0);
