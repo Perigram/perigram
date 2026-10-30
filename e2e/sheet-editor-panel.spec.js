@@ -282,12 +282,13 @@ test('the working set is the lineage family on a movable wrapped rack', async ({
   });
 
   // The explicit channel brings the stranger in: its own lineage heads
-  // its group while the opened record's group keeps its chain.
+  // its group while the opened record's group keeps its chain. The
+  // option node re-renders under the preview churn, so the pick goes
+  // through the node's own click.
   await page.getByRole('button', { name: 'Select sheet' }).click();
   const strangerOption = page.getByRole('option', { name: `Stranger sheet ${run}` });
   await strangerOption.waitFor({ state: 'visible', timeout: 30000 });
-  await page.waitForTimeout(2000);
-  await strangerOption.click({ force: true });
+  await strangerOption.evaluate(node => node.click());
   await expect(canvas.getByText(`Stranger sheet ${run}`)).toBeVisible({ timeout: 150000 });
   await expect(page.locator('.designer-workspace nav[aria-label="Traceability"]')
     .filter({ hasText: new RegExp(`^Other job ${run}$`) })).toBeVisible({ timeout: 150000 });
