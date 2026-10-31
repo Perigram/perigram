@@ -41,7 +41,7 @@ export function composeOrderTree(authoring) {
   authoring.wireDeclaration('xlsxRef', 'tableField', 'targets');
   authoring.wireDeclaration('csvRef', 'tableField', 'targets');
   authoring.wireDeclaration('entryClass', 'orderClass', 'children', { key: 'contents' });
-  authoring.wireDeclaration('cassetteInstanceRef', 'entryClass', 'children', { key: 'contents' });
+  authoring.wireDeclaration('cassetteInstanceRef', 'orderClass', 'children', { key: 'contents' });
   authoring.wireDeclaration('designRef', 'orderClass', 'children', { key: 'contents' });
   authoring.wireDeclaration('materialClass', 'orderClass', 'children', { key: 'contents' });
   authoring.wireDeclaration('attemptClass', 'orderClass', 'children', { key: 'contents' });
@@ -255,7 +255,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('markerList', 'data:value', 'cassetteName', 'data:value');
   authoring.connect('cassetteName', 'data:value', 'mkCassette', 'data:fields.name');
   authoring.connect('entryDesign', 'data:value', 'mkCassette', 'data:fields.design');
-  authoring.connect('entryLoop', 'data:item', 'mkCassette', 'data:lineage.nestingEntryId');
+  authoring.connect('order', 'data:result', 'mkCassette', `data:lineage.${ORDER_LINEAGE_KEY}`);
 
   authoring.connect('rowTemplate', 'data:value', 'bake', 'data:template');
   authoring.connect('params', 'data:record', 'bake', 'data:parameters');
