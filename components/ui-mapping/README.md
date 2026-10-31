@@ -360,7 +360,10 @@ beside the transition history in `StateHistory`.
   an open handler, riding the media's corner
   (`LAYOUT.mediaTileBadge` positioning) and status plus the row menu
   floating on the media — the body slot stays hidden so no padded box
-  trails it, and the tile carries no parent-context line; the `side`
+  trails it, and the tile carries no parent-context line. The tile's
+  identifier chip is a record-peek trigger (SPEC §22.14 —
+  `HoverPeek` + [`InstancePeek`](../shared/README.md#instancepeekvue),
+  gated by `instancePeekHasContent`); the `side`
   anatomy (visual
   preview with facts) lays the preview in one bounded framed
   column (`LAYOUT.previewSide`) beside identity, status, the `ParentRef`

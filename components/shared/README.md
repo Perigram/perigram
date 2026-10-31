@@ -403,6 +403,17 @@ on hover (SPEC §22.14) — the framed media band plus the name and
 `mime · size` strip; the click stays the consumer's `open` event.
 Accepts either wire shape (generator blobs and chat attachments).
 
+### `InstancePeek.vue`
+The record peek body (SPEC §22.14): the framed preview band, identity
+with glyph and state tag, the generated field vocabulary's scalar rows
+(`instanceFactRows`, capped at eight), and the payload block's name
+facts (`payloadFactLine`). Rendered inside
+[`HoverPeek.vue`](#hoverpeekvue) by every instance-chip trigger; hosts
+pass the resolved record (`InstanceInlineRef` feeds its hydrated record,
+generated card chips the pool instance). Triggers gate the peek through
+`instancePeekHasContent`
+([utils](../../utils/README.md) → `fact-rows.js`).
+
 ### `HoverPeek.vue`
 The hover peek host (SPEC §22.14): the one delayed-hover preview surface.
 The default scoped slot receives `peekEvents` (`mouseenter`/`mouseleave`)
@@ -489,13 +500,12 @@ message refs read as chips, not inline text — keeping the one-line,
 no-line-height-inflation behavior inside prose and dense surfaces
 (tables, field controls, relation rows) alike. The chip is also the peek
 trigger (SPEC §22.14): a deliberate hover raises the record's peek —
-the framed preview band (host-owned fill), identity with glyph and state
-tag, the generated field vocabulary's scalar rows (`instanceFactRows`,
-capped at eight rows), and the payload block's name facts
-(`payloadFactLine`: payload name · mime · size) — through
-[`HoverPeek.vue`](#hoverpeekvue); the click — on the
-chip or on the peek body — opens the record popup, and a record whose
-peek would carry nothing beyond identity raises no peek at all.
+[`InstancePeek.vue`](#instancepeekvue) over the hydrated record — and
+the click — on the chip or on the peek body — opens the record popup; a
+record whose peek would carry nothing beyond identity raises no peek at
+all (`instancePeekHasContent`). Generated card identity chips (the
+preview-dominant tile's overlay badge) are peek triggers too, opening
+under the collection's onOpen contract.
 `variant="compact"` renders a horizontal micro card instead of a chip —
 but only when the type's compact surface earns the card: a preview band
 or compact fact rows beside identity. Preview-less, fact-less relations

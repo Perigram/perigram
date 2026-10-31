@@ -543,3 +543,14 @@ regenerated. Validation: design-system 34/34, fact-vocabulary 9/9,
 localization + framework-packages 52/52 total, SSR smoke 23/23,
 check-arch clean, docs guard clean (the workers/nesting broken link is
 pre-existing at HEAD).
+
+Session `agent/peekchip-20261031` (worktree
+`.agent-wt-peekchip-20261031`): the generated card tile's identity chip
+(§22.16 handful collections render records — the primary hoverable chip
+on preview-dominant cards) is now a peek trigger. New shared
+`InstancePeek.vue` — the one record peek body (band, identity + state,
+capped fact rows, payload name facts) — consumed by both the card chip
+and `InstanceInlineRef`'s chip; `instancePeekHasContent`
+(utils/fact-rows.js) is the pure trigger gate. Validation:
+design-system 34/34, fact-vocabulary 10/10, localization clean, SSR
+smoke 24/24, check-arch clean.
