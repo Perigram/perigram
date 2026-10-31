@@ -27,6 +27,21 @@
     :editor-actions="editorActionsByType"
     @instance-mounted="loadRuntimeTransitions"
   />
+  <Dialog
+    :visible="actionResult !== null"
+    modal
+    :draggable="false"
+    :header="actionResultLabel"
+    :style="{ width: 'min(92vw, 28rem)' }"
+    @update:visible="closeActionResult"
+  >
+    <div class="flex flex-col gap-2">
+      <div v-for="row in actionResultRows" :key="row.label" class="flex items-baseline justify-between gap-4">
+        <span class="min-w-0 truncate text-sm text-color-secondary">{{ row.label }}</span>
+        <span class="shrink-0 text-sm font-semibold">{{ row.value }}</span>
+      </div>
+    </div>
+  </Dialog>
 </template>
 
 <script setup>
@@ -39,6 +54,7 @@
 // created instances resolve through the shared created-open contract
 // (utils/created-instance-open).
 import { computed, ref, watch } from 'vue';
+import Dialog from 'primevue/dialog';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
@@ -252,6 +268,42 @@ function notifyFailure(error, summary) {
   toast.add({ severity: 'error', summary, detail: error?.data?.message || error?.message || '', life: 5000 });
 }
 
+// A service action's value is its result (SPEC §8): the run surface
+// shows it — scalars and counts read at a glance, deeper structure stays
+// in the run record.
+const actionResult = ref(null);
+const actionResultLabel = ref('');
+const actionResultRows = computed(() => {
+  const value = actionResult.value;
+  if (value === null || typeof value !== 'object') return [];
+  const rows = [];
+  const walk = (node, prefix, depth) => {
+    for (const [key, entry] of Object.entries(node)) {
+      if (entry === null || entry === undefined || entry === '') continue;
+      const label = prefix ? `${prefix} · ${key}` : key;
+      if (Array.isArray(entry)) rows.push({ label, value: String(entry.length) });
+      else if (typeof entry === 'object') {
+        if (depth < 2) walk(entry, label, depth + 1);
+      } else rows.push({ label, value: String(entry) });
+    }
+  };
+  walk(value, '', 0);
+  return rows;
+});
+
+function closeActionResult(visible) {
+  if (!visible) actionResult.value = null;
+}
+
+function showActionValueResult(action, result) {
+  if (action.kind !== 'cts.service') return;
+  if (result === null || result === undefined || typeof result !== 'object') return;
+  const empty = Array.isArray(result) ? result.length === 0 : Object.keys(result).length === 0;
+  if (empty) return;
+  actionResultLabel.value = action.label || action.id || '';
+  actionResult.value = result;
+}
+
 async function runRuntimeTransition(payload = {}) {
   const instance = payload.instance || {};
   const typeId = instance.type || props.screen?.typeId;
@@ -313,6 +365,7 @@ async function runGeneratedAction(action, data = {}, context = {}) {
       }
     }
     toast.add({ severity: 'success', summary: action.label || action.id, detail: t('generatedScreen.actionCompleted'), life: 2000 });
+    showActionValueResult(action, result);
     await reload();
     emit('refresh');
   } catch (error) {
