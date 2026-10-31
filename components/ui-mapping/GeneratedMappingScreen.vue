@@ -187,7 +187,7 @@
 </template>
 
 <script setup>
-import { computed, inject, provide, reactive, ref, watch } from 'vue';
+import { computed, provide, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Toast from 'primevue/toast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -247,11 +247,6 @@ const props = defineProps({
   // Editor action components by type (the host resolves the file-surface
   // registry; the engine renders what it is given): `{ [typeId]: Component }`.
   editorActions: { type: Object, default: null },
-  // The records projection's host surface (SPEC §22.16): a component the
-  // app host provides that renders one instance's own record page in
-  // place (`{ instance }` prop); the engine renders its detail card floor
-  // when absent.
-  recordPage: { type: [Object, Function], default: null },
   // Machine-authority transition resolver for board drags:
   // `async (instance) => [{ to, intent, region }]` over the host's state
   // service — the same machine the transition buttons dispatch through.
@@ -280,10 +275,7 @@ const composed = computed(() => composeScreen(props.screen, props.contract, prop
 // coefficient overrides the derivation. Consumers read the object's keys,
 // so a step change re-rhythms every mounted surface without a remount.
 const root = ref(null);
-// An embedded record (SPEC §22.16) rides the bounded-host profile: the
-// compact density tier and its rhythm set apply to the whole embed.
-const embedded = inject('uiMappingEmbedded', false);
-provideDefaultContainerTraits({ hostKind: embedded ? 'popup' : 'page', elRef: root });
+provideDefaultContainerTraits({ hostKind: 'page', elRef: root });
 const hostContainer = useHostContainerTraits();
 const coefficient = computed(() => (props.spacingScale == null
   ? spacingCoefficientFor(hostContainer.value, screenWeight(composed.value))
@@ -365,8 +357,7 @@ const regionBlockProps = computed(() => ({
   resolveTransitions: props.onFetchTransitions,
   loadType: props.onLoadType,
   navigation: props.navigation,
-  editorActions: props.editorActions,
-  recordHost: props.recordPage
+  editorActions: props.editorActions
 }));
 const submitPatch = async ({ instance, patch } = {}) => {
   if (!patchable.value || !instance) return;

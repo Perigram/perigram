@@ -149,7 +149,7 @@ beside the transition history in `StateHistory`.
   default-group `ConfirmDialog` host, so concurrently mounted screens
   share one host.
 - `RegionBlock.vue` — one composed region with data-driven layout: the
-  list layout comes from `resolveListLayout` (`records` | `table` |
+  list layout comes from `resolveListLayout` (`table` |
   `card-grid` | `timeline` | `stats` | `board` | `gantt` | `calendar`;
   the
   matcher is [shared/ui-mapping](../../shared/ui-mapping/README.md)'s).
@@ -188,26 +188,11 @@ beside the transition history in `StateHistory`.
   `mixed` with the remainder's own stepped arrangement, `columns` with the
   full-row claim, weight-ordered `tabs`) without recomposition; the
   columns outcome engages its tracks only when the measured box grants
-  every track its earned minimum, stacking otherwise. The `recordHost`
-  seam threads through every nested level, so a handful child
-  collection renders hosted record pages at any tree depth. Each column track
+  every track its earned minimum, stacking otherwise. Each column track
   and the record side column is a PlacementBox — a placement slot that
   measures its own box and provides the container record everything inside
   renders against, so a table or card grid inside a rail or track sheds
   columns and facts for the width it actually has.
-- `RegionCollections.vue` is embedded by `RegionBlock` (see above) and
-  standalone list surfaces: it materializes the layout switch, the
-  `records` projection included — a handful collection (root SPEC
-  §22.16) renders each instance through the host-provided record page
-  (`recordPage` prop on `GeneratedMappingScreen`, the seam
-  `editorActions` rides: the app host resolves the component, the
-  engine renders what it is given), falling back to one detail-card
-  `SurfaceBody` per instance when no host provides one (the showcase
-  and SSR fixtures). The embedded page rides the shared pool (its host
-  skips source fetches, loading states, and event sync) and the
-  bounded-host density tier; its children render through the ordinary
-  projections and arrangement ladder, their types lazy-loading through
-  the host's loader.
 - `SortControl.vue` — the collection sort control for the card-grid and
   board projections (tables sort natively by column; board lanes carry one
   per column — see `BoardCollection`): a self-contained popover over the
@@ -407,10 +392,7 @@ beside the transition history in `StateHistory`.
   unbreakable content from eating half the row, pushing the separator, and
   drifting items' left borders out of alignment. Past the shared page
   budget the entries page through a standalone Paginator over `pageSlice`.
-- `SurfaceHeader.vue` — the record header. An embedded record page
-  (SPEC §22.16) carries the expand step-up (the record popup's expand
-  metaphor) opening its standalone page through the `uiMappingEmbedded`
-  provide. It paints nothing — the record
+- `SurfaceHeader.vue` — the record header. It paints nothing — the record
   page's stack rhythm separates it from the body, and pane boxes / route
   shells own the frames around it. Inline-resolved actions (relation
   unlink — the mapping contract's `inline` flag) render on the relation
@@ -468,7 +450,7 @@ beside the transition history in `StateHistory`.
   bare content column of a record page, `detail` → Card. Both variants
   render through `SurfaceDetailBody` under the identity line.
 - `SurfaceDetailBody.vue` — shared detail/full body: preview (the
-  Card variant and embedded records rendering in the bounded
+  Card variant and narrow hosts rendering in the bounded
   `LAYOUT.previewEmbedBand`), a bounded
   scalar facts strip (`DETAIL_FACT_BUDGET`, identifier-excluded — the
   title owns that value; collapsed behind one show-more control per

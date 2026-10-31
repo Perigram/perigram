@@ -19,7 +19,7 @@ import { useToast } from 'primevue/usetoast';
 import Re_L from '~/assets/presets/re_l';
 import ShowcasePage from '~/pages/test/ui-mapping.vue';
 
-const SEED = 10;
+const SEED = 37;
 
 globalThis.h = h;
 globalThis.ref = ref;

@@ -106,7 +106,6 @@
         :instance-actions="instanceActionsForType"
         :relation-unlink="relationUnlink"
         :patchable="patchable"
-        :record-host="recordHost"
         :resolve-transitions="resolveTransitions"
         :is-reloading="isReloading"
         @open="emitOpen"
@@ -124,7 +123,6 @@
       :bundle="bundle"
       :openable="openable"
       :instance-actions="instanceActions"
-      :record-host="recordHost"
       @run="emitRun"
       @open="emitOpen"
     />
@@ -156,22 +154,7 @@
           <ProgressBar v-if="isReloading" mode="indeterminate" class="h-full" :aria-label="$t('uiMapping.loadingRegion')" />
         </div>
       </div>
-      <template v-if="embeddedRecord">
-        <SurfaceBody
-          v-bind="bodyProps"
-          variant="full"
-          :editable="patchable"
-          v-on="bodyEvents"
-        />
-        <RegionChildren
-          v-if="node.childRegions.length || node.stubRegions?.length"
-          v-bind="childrenProps"
-          v-on="childrenEvents"
-          :regions="[...node.childRegions, ...(node.stubRegions || [])]"
-          :arrangement="node.childArrangement"
-        />
-      </template>
-      <div v-else-if="splitSide" class="region-split grid w-full grid-cols-1 gap-6" :style="splitTracks">
+      <div v-if="splitSide" class="region-split grid w-full grid-cols-1 gap-6" :style="splitTracks">
         <div class="min-w-0 flex flex-col gap-6">
           <SurfaceBody
             v-bind="bodyProps"
@@ -256,7 +239,6 @@ import RegionChildren from './RegionChildren.vue';
 import PlacementBox from './PlacementBox.vue';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import { generatedEntityLabel, generatedActionLabel } from '~/utils/generated-labels.js';
-
 import { isRelationLinkAction, isRelationUnlinkAction } from '~/utils/action-visibility.js';
 import ActionButton from './ActionButton.vue';
 const props = defineProps({
@@ -288,10 +270,7 @@ const props = defineProps({
   editorActions: { type: Object, default: null },
   // The stub slot (SPEC → Placement-aware composition): an inert child
   // renders one compact line — label, count, its own create action.
-  stub: { type: Boolean, default: false },
-  // The records projection's host surface, threaded from the screen host
-  // (see RegionCollections).
-  recordHost: { type: [Object, Function], default: null }
+  stub: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh']);
@@ -313,8 +292,7 @@ const childrenProps = computed(() => ({
   pool: props.pool,
   bundle: props.bundle,
   openable: props.openable,
-  instanceActions: props.instanceActions,
-  recordHost: props.recordHost
+  instanceActions: props.instanceActions
 }));
 // The record page's weight-proportional split: the side-rail outcome the
 // host's width step engages (wide hosts only), the side column's grid
@@ -329,11 +307,6 @@ const splitTracks = computed(() => ({
 }));
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
-const embeddedRecord = inject('uiMappingEmbedded', false);
-// The embed's child summaries: filled child collections as label +
-// loaded count; the type lazy-loads through the host's loader so the
-// count fills without hosting the collection itself.
-
 
 // The standalone list region sits on the section rhythm; embedded ones
 // (side columns, tabs) stack tight.
@@ -362,10 +335,6 @@ const overlayTypeIds = computed(() => [...new Set([
     : []),
   ...(props.node.surfaceKind === 'list'
     ? Object.values(props.node.type?.edges?.children || {}).flatMap(edge => edge?.types || [])
-    : []),
-  ...(embeddedRecord
-    ? [...props.node.childRegions, ...(props.node.stubRegions || [])]
-        .map(child => child.typeId).filter(Boolean)
     : [])
 ])]);
 const loadedTypes = ref({});
