@@ -3,15 +3,17 @@
     <GeneratedScreenHost
       v-if="screen"
       :screen="screen"
+      presentation="peek"
       @open-instance="onOpenInstance"
     />
   </div>
 </template>
 
 <script setup>
-// The record peek body (SPEC §22.14): the same procedural record surface
-// the instance popup hosts — the compiled detail screen scoped to the
-// record — rendered inside [`HoverPeek.vue`](./HoverPeek.vue).
+// The record peek body (SPEC §22.14): the compiled detail screen scoped
+// to the record in its peek presentation — compact identity line, state,
+// preview, and leading facts — rendered inside
+// [`HoverPeek.vue`](./HoverPeek.vue).
 import { computed, ref, watch } from 'vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import { useAuthStore } from '~/stores/auth';

@@ -268,6 +268,9 @@ const props = defineProps({
   // header (`{ icon, label, command }` — SurfaceHeader's navigation
   // channel, threaded through RegionBlock to the depth-0 header).
   navigation: { type: Object, default: null },
+  // The depth-0 detail treatment: `record` renders the full record
+  // header, `peek` the compact identity-and-state line over the body.
+  presentation: { type: String, default: 'record' },
   // The host surface names this screen (the pane tab, the routed page's
   // title bar); the list header label stays with the host.
   // Explicit rhythm coefficient (the design-lab slider); null rides the
@@ -366,7 +369,8 @@ const regionBlockProps = computed(() => ({
   resolveTransitions: props.onFetchTransitions,
   loadType: props.onLoadType,
   navigation: props.navigation,
-  editorActions: props.editorActions
+  editorActions: props.editorActions,
+  presentation: props.presentation
 }));
 const submitPatch = async ({ instance, patch } = {}) => {
   if (!patchable.value || !instance) return;
