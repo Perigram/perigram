@@ -409,12 +409,13 @@ peek presentation. `scopedDetailScreen`
 ([generated surfaces](../generated/README.md)) binds the compiled
 detail screen (or the synthesized pair, or the record floor) to the
 record; `GeneratedScreenHost presentation="peek"` renders the record
-preview, the compact identity line with its state tag, and the body's
-leading facts, and the popover body provides the measured `popup`
-container profile. Rendered inside [`HoverPeek.vue`](#hoverpeekvue) by
-every instance-chip trigger; the trigger gates the peek on the record
-being openable. Identity opens from the generator swap the peek subject
-in place.
+preview, the compact identity line with its state tag, the record's
+action cluster, and the body's leading facts, and the popover body
+provides the measured `popup` container profile. Rendered inside
+[`HoverPeek.vue`](#hoverpeekvue) by every instance-chip trigger; the
+trigger gates the peek on the record being openable. Identity opens from
+the generator swap the peek subject in place; the header's step-up
+affordance opens the record as its own workspace page.
 
 ### `HoverPeek.vue`
 The hover peek host (SPEC §22.14): the one delayed-hover preview surface.
@@ -423,7 +424,9 @@ to spread onto the trigger element; `#preview` carries the peek body.
 A deliberate hover delay (300 ms) raises the anchored `Popover`, leaving
 the trigger or the panel dismisses after a grace period that lets the
 pointer cross into the panel, and hovering-capable pointers alone engage
-it — touch hosts keep the click path. A click on the peek body emits
+it — touch hosts keep the click path. Opening another surface (a
+workspace page or instance tab) dismisses the panel. A click on the peek
+body emits
 `open` (nested interactive controls keep their own clicks). The panel is
 a 20rem column riding Aura's own chrome — the preset's popover padding
 spaces the body from the panel border, media bands frame themselves as

@@ -22,7 +22,9 @@ back affordance for the record header (SurfaceHeader's navigation
 channel): the routed screens page feeds it so a detail deep link can
 return to where the user came from. Its `presentation` prop selects the
 depth-0 record treatment — `record` (the default) or `peek` — owned by
-the [ui-mapping materialization](../ui-mapping/README.md). Instance opens emit
+the [ui-mapping materialization](../ui-mapping/README.md). Its
+`expandable` prop adds the depth-0 header's step-up button; the host
+receives `expand` and pages the record. Instance opens emit
 `{ typeId, instanceId }` to the host consumer — the routed page
 navigates to the compiler-paired detail screen, panes and mobile map it
 to their own open seams. `EntityPopup` (the record preview popup) also
