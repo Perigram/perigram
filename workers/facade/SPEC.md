@@ -541,9 +541,8 @@ count. Composition is the sheet shape and the multiset of placement
 design keys; placement order, rotation, and translation are the
 solver's arrangement. A supplied `designKey` names the cassette-design
 composition; absent one, the design reference is the key. An
-organization's queue entry holds one design beside its count; the
-solve produces that many physical cassette placements, and the
-organization's flow materializes one cassette-instance per placement.
+organization's queue entry holds one design beside its count, and the
+queue materializes one entry per physical cassette before nesting.
 
 Owner decision (2026-10-31, composition is sheet-design identity): a
 flow matches a solved layout against stored sheet designs by

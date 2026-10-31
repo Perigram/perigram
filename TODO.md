@@ -2604,22 +2604,22 @@ Ordered steps:
   stored design. The sheet editor's tile carries the split action when
   more than one cut plan references it. E2E
   `e2e/order-process.spec.js` pins the family and the reuse.
-- [ ] WAITING — owner verification: Queue entries carry design and count
-  (owner direction 2026-10-31): `nesting-entry` is an org child type
-  holding `design` and `count`; one entry per queue line, and the count
-  is the physical cassette quantity the solve nests. Each solved
-  placement constructs its `cassette-instance`. No repeat node, facade,
-  or platform code carries the queue vocabulary.
+- [ ] WAITING — owner verification: Queue entries are the physical
+  cassette lines (owner direction 2026-10-31): `nesting-entry` is an org
+  child type holding `design` and `count`; the queue creates one entry
+  per physical cassette, and nesting reads those entries. The entry
+  constructs its `cassette-instance` child. No repeat node, facade, or
+  platform code carries the queue vocabulary.
 
   ### Agent Notes (2026-10-31, queue entries)
 
-  Session `agent/queue-placement-cassettes-20261031` (worktree
-  `.agent-worktrees/queue-placement-cassettes-20261031`). The order
-  process declares `nesting-entry` under the order with `label`,
-  `design`, and `count`, constructs one entry per table line, and
-  materializes one cassette-instance per solved placement. E2E
-  `e2e/order-process.spec.js` pins two entries with counts 2 and 1,
-  three physical cassettes, and the same on replay.
+  Session `agent/queue-entry-clean-20261031` (worktree
+  `.agent-worktrees/queue-entry-clean-20261031`). The order process
+  declares `nesting-entry` under the order with `label`, `design`, and
+  `count`, constructs one entry per table line, and constructs one
+  cassette-instance per entry under the order. E2E
+  `e2e/order-process.spec.js` pins three entries and three physical
+  cassettes for three table lines, and the same on replay.
 
   ### Agent Notes (2026-10-28, family slice)
 

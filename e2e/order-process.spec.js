@@ -134,9 +134,10 @@ test('the order process runs live: table rows become baked designs, materials, a
 
   const { utils, write } = await import('xlsx');
   const sheet = utils.aoa_to_sheet([
-    ['name', 'cassette', 'A', 'B', 'count'],
-    ['Tray A left', templateName, 600, 450, 2],
-    ['Tray B small', templateName, 300, 300, 1]
+    ['name', 'cassette', 'A', 'B'],
+    ['Tray A left 1', templateName, 600, 450],
+    ['Tray A left 2', templateName, 600, 450],
+    ['Tray B small', templateName, 300, 300]
   ]);
   const workbook = utils.book_new();
   utils.book_append_sheet(workbook, sheet, 'Order');
@@ -199,7 +200,7 @@ test('the order process runs live: table rows become baked designs, materials, a
     const ys = ring.map(point => Number(point[1]) || 0);
     return `${Math.max(...xs)}x${Math.max(...ys)}`;
   };
-  expect(designs.map(boundsOf).sort()).toEqual(['300x300', '600x450']);
+  expect(designs.map(boundsOf).sort()).toEqual(['300x300', '600x450', '600x450']);
   // The template ref rides the §3 provenance (the effect boundary's
   // causal record: sources collect the construct's typed entity inputs),
   // pinned to the revision the render consumed (SPEC §24 version fabric:
@@ -217,10 +218,10 @@ test('the order process runs live: table rows become baked designs, materials, a
   expect(materials.map(material => material.data?.code ?? material.fields?.code).sort()).toEqual(['ACM-1250x2500-04', 'ACM-1500x3000-06']);
 
   const entries = (await instancesOf('nesting-entry')).filter(entry => orderIdOf(entry) === orderId);
-  expect(entries, 'each table line becomes a queue entry').toHaveLength(2);
-  expect(entries.map(entry => Number(entry.fields?.count ?? 0)).sort()).toEqual([1, 2]);
+  expect(entries, 'one queue entry per physical cassette').toHaveLength(3);
+  expect(entries.every(entry => Number(entry.fields?.count ?? 0) === 1)).toBe(true);
   const cassettes = (await instancesOf('cassette-instance')).filter(instance => orderIdOf(instance) === orderId);
-  expect(cassettes, 'each solved placement becomes a physical cassette').toHaveLength(3);
+  expect(cassettes, 'one physical cassette per entry').toHaveLength(3);
   for (const cassette of cassettes) expect(cassette.fields?.design).toBeTruthy();
 
   const attempts = (await instancesOf('nesting-attempt')).filter(attempt => orderIdOf(attempt) === orderId);
@@ -271,7 +272,7 @@ test('the order process runs live: table rows become baked designs, materials, a
   const replayOrderId = String(replayOrder._id);
   expect(replayOrderId).not.toBe(orderId);
   const replayEntries = (await instancesOf('nesting-entry')).filter(entry => orderIdOf(entry) === replayOrderId);
-  expect(replayEntries).toHaveLength(2);
+  expect(replayEntries).toHaveLength(3);
   const replayCassettes = (await instancesOf('cassette-instance')).filter(instance => orderIdOf(instance) === replayOrderId);
   expect(replayCassettes).toHaveLength(3);
   const replayAttempts = (await instancesOf('nesting-attempt')).filter(attempt => orderIdOf(attempt) === replayOrderId);

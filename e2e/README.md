@@ -81,9 +81,8 @@ that drive executor-backed surfaces or services wire them through
   (`test-data/order-process-authoring.js`), activated, and executed: a
   PARAMETRIC template, a real xlsx table upload, and the order action,
   asserting the produced container, the baked cassette-design children,
-  the nesting entries and the physical cassettes their placements
-  produce, the declared materials, one nesting run per material, and the
-  nesting attempt's
+  the nesting entries and their physical cassette instances, the declared
+  materials, one nesting run per material, and the nesting attempt's
   sheet designs, sheet instances, and cut plans. A replay proves stored
   sheet designs are matched by composition and reused across orders. Writes the durable artifact
   `test-results/order-process-live.json`.
