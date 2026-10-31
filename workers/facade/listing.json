@@ -151,7 +151,8 @@
               "cassette-template"
             ],
             "slot": "data",
-            "nullable": true
+            "nullable": true,
+            "constructible": false
           },
           "source": {
             "base": "ref",
@@ -159,7 +160,8 @@
               "dxf-source"
             ],
             "slot": "data",
-            "nullable": true
+            "nullable": true,
+            "constructible": false
           },
           "parameters": {
             "base": "json"

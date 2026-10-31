@@ -263,7 +263,7 @@ export function constructionInputsForContract(contract = {}, mode = '') {
   const modeInputs = modeDeclared ? contract.modeInputs[mode] : null;
   const edgeInputs = (contract.inputs || []).filter(input => {
     const path = String(input?.path || input?.id || '');
-    return path.startsWith('lineage.') || path.startsWith('relations.');
+    return (path.startsWith('lineage.') || path.startsWith('relations.')) && input?.constructible !== false;
   });
   if (modeInputs == null) return [...(contract.inputs || [])];
   const seen = new Set(modeInputs.map(input => input?.id || input?.path));

@@ -113,18 +113,24 @@ function withAccessFlags(schema, policy) {
 function relationEntriesFor(type, view) {
   const entries = [];
   const seen = new Set();
-  const push = (key, target, where = null, unlink = null) => {
+  const push = (key, target, where = null, unlink = null, constructible = true) => {
     const dedupe = `${key}:${target}`;
     if (seen.has(dedupe) || !view.has(target)) return;
     seen.add(dedupe);
-    entries.push({ key, target, ...(where ? { where } : {}), ...(unlink ? { unlink } : {}) });
+    entries.push({
+      key,
+      target,
+      ...(where ? { where } : {}),
+      ...(unlink ? { unlink } : {}),
+      ...(constructible === false ? { constructible: false } : {})
+    });
   };
   for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
     for (const target of declaration.types || []) push(key, target, declaration.where || null, declaration.unlink || null);
   }
   for (const [name, descriptor] of Object.entries(type.fields || {})) {
     if (descriptor?.base !== 'ref') continue;
-    for (const target of descriptor.accepts || []) push(name, target, descriptor.where || null, descriptor.unlink || null);
+    for (const target of descriptor.accepts || []) push(name, target, descriptor.where || null, descriptor.unlink || null, descriptor.constructible);
   }
   return entries;
 }
@@ -347,17 +353,18 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     // One field per relation key: a multi-target relation is one edge
     // (ref fields and edges.relations both declare them).
     const relationsByKey = new Map();
-    for (const { key, target } of relationEntriesFor(type, view)) {
-      const targets = relationsByKey.get(key) || [];
-      targets.push(target);
-      relationsByKey.set(key, targets);
+    for (const { key, target, constructible } of relationEntriesFor(type, view)) {
+      const entry = relationsByKey.get(key) || { targets: [], constructible: true };
+      entry.targets.push(target);
+      if (constructible === false) entry.constructible = false;
+      relationsByKey.set(key, entry);
     }
-    for (const [key, targets] of relationsByKey) {
+    for (const [key, { targets, constructible }] of relationsByKey) {
       relations.push({
         path: `relations.${key}`,
         label: `relations.${key}`,
         type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', ...(targets.length === 1 ? { typeId: targets[0] } : { accepts: targets }) } },
-        constructible: true
+        constructible
       });
     }
     return { lineage, relations };
