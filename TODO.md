@@ -2617,11 +2617,12 @@ Ordered steps:
   `.agent-worktrees/queue-entry-expand-20261031`). The order process
   declares `nesting-entry` as an order child with `label`, `design`,
   and `count`; each baked design and row count constructs one entry.
-  The graph repeats each design ref by its count through the new
-  `collection.repeat` data node and constructs one `cassette-instance`
-  per repeated ref under the order. E2E `e2e/order-process.spec.js`
-  pins two entries and three physical cassettes for counts 2 and 1,
-  and the same expansion on replay.
+  An entry loop expands the count through the string repeat/split
+  dataflow into a marker list, and one cassette-instance construct
+  creates one physical cassette per marker under the entry
+  (`nestingEntryId` lineage). E2E `e2e/order-process.spec.js` pins two
+  entries and three physical cassettes for counts 2 and 1, and the
+  same expansion on replay.
 
   ### Agent Notes (2026-10-28, family slice)
 
