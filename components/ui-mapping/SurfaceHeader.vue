@@ -53,10 +53,10 @@
       </div>
       <div :class="LAYOUT.row" class="header-actions">
         <!-- The cluster groups by control kind — record utilities (the
-             conversation affordance, the editor, revisions, payload
-             replacement), generated actions, machine transitions — one
-             tight group per kind with hairline dividers between
-             non-empty groups. -->
+             conversation affordance, the editor, revisions, construct
+             re-derive, payload replacement), generated actions, machine
+             transitions — one tight group per kind with hairline
+             dividers between non-empty groups. -->
         <div :class="LAYOUT.actionGroup">
           <InstanceChatEntry :type-id="type?.id" :instance="instance" :name="identity" />
           <component
@@ -71,6 +71,13 @@
             :entity="instance"
             :type="type"
             @refresh="$emit('refresh')"
+          />
+          <ActionButton
+            v-for="action in rerunActions"
+            :key="action.id"
+            :action="action"
+            :state-policy="statePolicy"
+            @run="$emit('run', action)"
           />
           <ReplacePayloadAction
             v-if="instance && type?.payload && type?.revisions"
@@ -215,8 +222,12 @@ const glyph = computed(() => iconFor(props.type, props.instance));
 // state-carrying ones are the machine buttons.
 const transitionActions = computed(() => props.actions
   .filter(action => action?.__runtime && action?.state?.to));
+// The construct re-derive is a revision utility: it re-runs the record's
+// construction over the stored inputs and mints its next revision, beside
+// the revision picker and payload replacement.
+const rerunActions = computed(() => props.actions.filter(action => action?.__rerun));
 const manualActions = computed(() => props.actions
-  .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime)
+  .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime && !action?.__rerun)
   .filter(action => action?.actionKind !== 'updateInstance')
   // Inline-resolved actions (relation unlink) render on the reference
   // they address — the mapping contract's placement decision.
