@@ -7,6 +7,13 @@
       :variant="fill ? 'pane' : 'card'"
       :class="fill ? 'h-full min-h-0' : 'h-56 min-h-0'"
     />
+    <DrawingCanvas
+      v-else-if="fieldsPreview"
+      :source="{ data: fieldsPreview }"
+      source-type="geometry-preview"
+      mode="card"
+      :class="fill ? 'h-full min-h-0' : 'h-56 min-h-0'"
+    />
     <ul v-if="failures.length" class="m-0 flex list-none flex-col gap-1 p-0">
       <li v-for="(failure, index) in failures" :key="index" class="flex items-center gap-2 text-supporting text-status-danger">
         <i class="pi pi-exclamation-circle" />
@@ -20,6 +27,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import ProgressSpinner from 'primevue/progressspinner';
 import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
+import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 
 // The fill dialog's composed preview (SPEC §24): the create's own
 // construction service over the live draft, persisting nothing. A 404/403
@@ -38,6 +46,7 @@ const props = defineProps({
 
 const loading = ref(false);
 const blobUrl = ref('');
+const fieldsPreview = ref(null);
 const attachment = ref(null);
 const failures = ref([]);
 const bound = ref(true);
@@ -47,7 +56,9 @@ const previewMode = computed(() => props.type?.payload?.preview || 'attachment')
 const draftKey = computed(() => JSON.stringify(props.draft || {}));
 const hasDraft = computed(() => draftKey.value !== '{}');
 
-const shown = computed(() => props.ready && bound.value && (hasDraft.value || Boolean(blobUrl.value) || loading.value));
+const shown = computed(() => props.ready && bound.value && (
+  hasDraft.value || Boolean(blobUrl.value) || Boolean(fieldsPreview.value) || loading.value
+));
 
 function releaseBlob() {
   if (blobUrl.value) URL.revokeObjectURL(blobUrl.value);
@@ -71,6 +82,7 @@ async function run() {
   if (!props.ready || !hasDraft.value) {
     sequence += 1;
     releaseBlob();
+    fieldsPreview.value = null;
     attachment.value = null;
     failures.value = [];
     loading.value = false;
@@ -85,9 +97,10 @@ async function run() {
       body: { mode: props.mode, draft: props.draft }
     });
     if (ticket !== sequence) return;
-    if (result == null || result.payload === undefined) {
+    if (result == null) {
       bound.value = false;
       releaseBlob();
+      fieldsPreview.value = null;
       attachment.value = null;
       return;
     }
@@ -95,6 +108,7 @@ async function run() {
     emit('meta', result.meta || null);
     releaseBlob();
     const payload = result?.payload || null;
+    fieldsPreview.value = payload?.base64 ? null : (result?.fields || null);
     if (payload?.base64) {
       const bytes = Uint8Array.from(atob(payload.base64), char => char.charCodeAt(0));
       blobUrl.value = URL.createObjectURL(new Blob([bytes], { type: payload.mime || 'application/octet-stream' }));
@@ -107,10 +121,12 @@ async function run() {
     if (error?.statusCode === 404 || error?.statusCode === 403) {
       bound.value = false;
       releaseBlob();
+      fieldsPreview.value = null;
       attachment.value = null;
       return;
     }
     releaseBlob();
+    fieldsPreview.value = null;
     attachment.value = null;
     // A structured refusal names its offenders; any other failure carries
     // the transport's message — the pane stays honest about what it could
