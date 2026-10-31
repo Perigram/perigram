@@ -11,6 +11,7 @@
   <GeneratedMappingScreen
     v-else
     :screen="screen"
+    :presentation="presentation"
     :contract="{ actions: processActions, statePolicy, stateTransitions }"
     :bundle="processBundle"
     :instances="instanceGroups"
@@ -86,7 +87,10 @@ const props = defineProps({
   // (`{ icon, label, command }` — SurfaceHeader's navigation channel):
   // hosts that opened this record inside another surface feed it so a
   // detail deep link can return to where the user came from.
-  navigation: { type: Object, default: null }
+  navigation: { type: Object, default: null },
+  // The depth-0 record treatment: `record` renders the full record
+  // header, `peek` the compact identity-and-state line over the body.
+  presentation: { type: String, default: 'record' }
 });
 
 const emit = defineEmits(['open-instance', 'refresh']);

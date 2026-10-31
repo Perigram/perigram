@@ -20,7 +20,9 @@ render compiled screens through it — the surface is never wired twice.
 Its optional `navigation` prop is the host-injected
 back affordance for the record header (SurfaceHeader's navigation
 channel): the routed screens page feeds it so a detail deep link can
-return to where the user came from. Instance opens emit
+return to where the user came from. Its `presentation` prop selects the
+depth-0 record treatment — `record` (the default) or `peek` — owned by
+the [ui-mapping materialization](../ui-mapping/README.md). Instance opens emit
 `{ typeId, instanceId }` to the host consumer — the routed page
 navigates to the compiler-paired detail screen, panes and mobile map it
 to their own open seams. `EntityPopup` (the record preview popup) also

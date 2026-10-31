@@ -404,15 +404,17 @@ on hover (SPEC §22.14) — the framed media band plus the name and
 Accepts either wire shape (generator blobs and chat attachments).
 
 ### `InstancePeek.vue`
-The record peek body (SPEC §22.14): the same procedural record surface
-the instance popup hosts — `scopedDetailScreen`
+The record peek body (SPEC §22.14): the compiled record surface in its
+peek presentation. `scopedDetailScreen`
 ([generated surfaces](../generated/README.md)) binds the compiled
 detail screen (or the synthesized pair, or the record floor) to the
-record, `GeneratedScreenHost` renders it, and the popover body provides
-the measured `popup` container profile. Rendered inside
-[`HoverPeek.vue`](#hoverpeekvue) by every instance-chip trigger; the
-trigger gates the peek on the record being openable. Identity opens from
-the generator swap the peek subject in place.
+record; `GeneratedScreenHost presentation="peek"` renders the record
+preview, the compact identity line with its state tag, and the body's
+leading facts, and the popover body provides the measured `popup`
+container profile. Rendered inside [`HoverPeek.vue`](#hoverpeekvue) by
+every instance-chip trigger; the trigger gates the peek on the record
+being openable. Identity opens from the generator swap the peek subject
+in place.
 
 ### `HoverPeek.vue`
 The hover peek host (SPEC §22.14): the one delayed-hover preview surface.
@@ -422,10 +424,11 @@ A deliberate hover delay (300 ms) raises the anchored `Popover`, leaving
 the trigger or the panel dismisses after a grace period that lets the
 pointer cross into the panel, and hovering-capable pointers alone engage
 it — touch hosts keep the click path. A click on the peek body emits
-`open` (nested interactive controls keep their own clicks). The panel rides
-Aura's own chrome — the preset's popover padding spaces the body from
-the panel border, media bands frame themselves as the framed media
-region, and the body scrolls past its height bound.
+`open` (nested interactive controls keep their own clicks). The panel is
+a 20rem column riding Aura's own chrome — the preset's popover padding
+spaces the body from the panel border, media bands frame themselves as
+the framed media region, and the body scrolls past its 22rem height
+bound.
 
 ### `chip-surface.js`
 The chip recipe home: `CHIP_LABEL_PT` (the truncating label

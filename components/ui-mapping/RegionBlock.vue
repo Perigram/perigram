@@ -131,7 +131,20 @@
   <div v-else :class="[stackFor, 'w-full', 'relative']">
     <RegionDataState v-if="showState" :node="node" />
     <template v-if="depth === 0 && showSurfaces">
-      <div class="relative">
+      <div v-if="presentation === 'peek'" :class="[LAYOUT.row, 'min-w-0 items-center gap-2']">
+        <InstanceIdentity
+          :instance="node.instances[0]"
+          :type="node.type"
+          text-class="text-label"
+        />
+        <StateTag
+          v-if="node.instances[0]?.state"
+          :value="node.instances[0].state"
+          :policy="node.statePolicy"
+          class="shrink-0"
+        />
+      </div>
+      <div v-else class="relative">
         <SurfaceHeader
           :type="node.type"
           :instance="node.instances[0]"
@@ -231,6 +244,8 @@ import SurfaceBody from './SurfaceBody.vue';
 import SortControl from './SortControl.vue';
 import CreateControl from './CreateControl.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
+import InstanceIdentity from './InstanceIdentity.vue';
+import StateTag from './StateTag.vue';
 import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
 import RegionCollections from './RegionCollections.vue';
@@ -267,6 +282,9 @@ const props = defineProps({
   // Editor action components by type (the host resolves them over the
   // file-surface registry; the header renders what it is given).
   editorActions: { type: Object, default: null },
+  // The depth-0 detail treatment: `record` renders the full record
+  // header, `peek` the compact identity-and-state line over the body.
+  presentation: { type: String, default: 'record' },
   // The stub slot (SPEC → Placement-aware composition): an inert child
   // renders one compact line — label, count, its own create action.
   stub: { type: Boolean, default: false }
