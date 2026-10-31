@@ -45,13 +45,12 @@ import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
-import { resolveDetailScreen, recordFloorScreen } from '~/components/generated/detail-screen-actions.js';
+import { scopedDetailScreen } from '~/components/generated/detail-screen-actions.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { useCallRouting } from '~/composables/useCallRouting.js';
 import { openInstanceInWorkspace, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
 import { workspacePageOpenEvent } from '~/utils/workspace-page-open.js';
 import { useSupportDialog } from '~/composables/useModalState';
-import { screenByKey } from '~/utils/process-navigation.js';
 import { useEntityPopup } from '~/composables/useEntityPopup';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
@@ -111,22 +110,12 @@ watch(request, async (current) => {
 const detailScreen = computed(() => {
   const current = request.value;
   if (!current || isDirectoryType.value) return null;
-  const base = (current.screenKey
-    && screenByKey(authStore.screenManifest || [], current.screenKey))
-    || resolveDetailScreen({
-      screens: authStore.screenManifest || [],
-      typeId: current.typeId
-    })
-    || recordFloorScreen(current.typeId);
-  if (!base) return null;
-  return {
-    ...base,
-    scope: {
-      ...(base.scope || {}),
-      instanceId: current.instanceId,
-      [`${current.typeId}Id`]: current.instanceId
-    }
-  };
+  return scopedDetailScreen({
+    typeId: current.typeId,
+    instanceId: current.instanceId,
+    screenKey: current.screenKey || '',
+    screens: authStore.screenManifest || []
+  });
 });
 
 function expand() {
@@ -170,10 +159,7 @@ function openInstance({ screenKey: detailKey, typeId, instanceId } = {}) {
   // The popup stays put: an identity open from the generator swaps the
   // popup subject in place — any type the popup itself can host resolves
   // (compiled screen, synthesizable detail, record floor).
-  const base = (detailKey && screenByKey(authStore.screenManifest || [], detailKey))
-    || resolveDetailScreen({ screens: authStore.screenManifest || [], typeId })
-    || recordFloorScreen(typeId);
-  if (!base) return;
+  if (!scopedDetailScreen({ typeId, instanceId, screenKey: detailKey || '', screens: authStore.screenManifest || [] })) return;
   request.value = { typeId, instanceId: String(instanceId), ...(detailKey ? { screenKey: detailKey } : {}) };
 }
 </script>

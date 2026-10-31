@@ -86,16 +86,6 @@ export function formatFileSize(bytes = 0) {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// The payload block's fact strip (SPEC §22.14 name facts): the stored
-// payload's name, mime, and size joined with middle dots, empties
-// dropped.
-export function payloadFactLine(payload = {}) {
-  return [
-    String(payload?.name || '').trim(),
-    String(payload?.mime || payload?.mimeType || '').trim(),
-    formatFileSize(payload?.size)
-  ].filter(Boolean).join(' · ');
-}
 
 function isScalar(value) {
   return ['string', 'number', 'bigint', 'boolean'].includes(typeof value);

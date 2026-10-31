@@ -364,7 +364,7 @@ beside the transition history in `StateHistory`.
   trails it, and the tile carries no parent-context line. The tile's
   identifier chip is a record-peek trigger (SPEC §22.14 —
   `HoverPeek` + [`InstancePeek`](../shared/README.md#instancepeekvue),
-  gated by `instancePeekHasContent`); the `side`
+  the compiled record surface in the peek rhythm); the `side`
   anatomy (visual
   preview with facts) lays the preview in one bounded framed
   column (`LAYOUT.previewSide`) beside identity, status, the `ParentRef`

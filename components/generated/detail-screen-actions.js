@@ -74,6 +74,34 @@ export function resolveDetailScreen({ screens = [], typeId = '' } = {}) {
     || synthesizeDetailScreen(typeListScreenForTypeId({ screens, typeId }));
 }
 
+/**
+ * The scoped record surface the instance popup and the record peek
+ * host: the compiled detail screen — by screen key, the synthesized
+ * list-pair, or the record floor — with the instance bound into its
+ * scope. Null when the type resolves no record surface.
+ */
+export function scopedDetailScreen({ typeId = '', instanceId = '', screenKey = '', screens = [] } = {}) {
+  if (!typeId || !instanceId) return null;
+  const byKey = screenKey
+    ? (Array.isArray(screens) ? screens : []).find(screen => (
+        screen?.screenKey === screenKey || screen?.id === screenKey
+      )) || null
+    : null;
+  const base = byKey
+    || resolveDetailScreen({ screens, typeId })
+    || recordFloorScreen(typeId);
+  if (!base) return null;
+  const id = String(instanceId);
+  return {
+    ...base,
+    scope: {
+      ...(base.scope || {}),
+      instanceId: id,
+      [`${typeId}Id`]: id
+    }
+  };
+}
+
 // The record floor: a minimal single-source detail screen for a type
 // with no compiled screen — the record popup's inspect surface over the
 // served type view.

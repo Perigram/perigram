@@ -13,7 +13,7 @@ import ActionButton from '~/components/ui-mapping/ActionButton.vue';
 import { useInstancesStore } from '~/stores/instances';
 import { useRegistryStore } from '~/stores/registry';
 import { useAuthStore } from '~/stores/auth';
-import { instanceFactRows, instancePeekHasContent } from '~/utils/fact-rows.js';
+import { instanceFactRows } from '~/utils/fact-rows.js';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
 import { normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
@@ -131,29 +131,6 @@ const compactDataFields = computed(() => instanceFactRows({
   translator: { t, te }
 }));
 const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.preview !== 'none');
-// The peek fires only where the record carries a fact beyond identity
-// (the FileChip law): a preview band, a state tag, a fact row, or
-// payload name facts.
-const peekHasContent = computed(() => instancePeekHasContent({
-  typeRecord: typeView.value,
-  entity: peekEntity.value
-}));
-// The peek speaks the live record: a ref may carry a slim message
-// snapshot, so the pool's cached field- or payload-bearing DTO (or its
-// on-show readable-reference resolution) stands in for the snapshot.
-const peekHydrated = ref(null);
-const peekEntity = computed(() => {
-  const cached = instances.dtoFor(servedTypeId.value, resolvedId.value);
-  return [peekHydrated.value, cached].find(dto => (dto?.fields && Object.keys(dto.fields).length) || dto?.payload) || resolved.value;
-});
-async function onPeekShow() {
-  if (!props.fetch || !resolvedId.value) return;
-  const cached = instances.dtoFor(servedTypeId.value, resolvedId.value);
-  if ((cached?.fields && Object.keys(cached.fields).length) || cached?.payload) return;
-  peekHydrated.value = await instances
-    .resolveReadableReference(instances.canonicalTypeKey(props.type), resolvedId.value, { silent: true })
-    .catch(() => null);
-}
 // The micro card earns its box: it renders only when the type's compact
 // surface carries something to show beside identity — a preview band or
 // compact fact rows. Preview-less, fact-less relations render as the
@@ -441,8 +418,7 @@ function executeContextualAction(action) {
            the peek body — opens the record popup. -->
       <HoverPeek
         v-else-if="resolved"
-        :enabled="interactive && peekHasContent"
-        @show="onPeekShow"
+        :enabled="refOpenable"
         @open="openRefPopup"
       >
         <template #default="{ peekEvents }">
@@ -461,7 +437,7 @@ function executeContextualAction(action) {
           />
         </template>
         <template #preview>
-          <InstancePeek :type-id="generatedTypeId" :entity="peekEntity" :type-record="typeView" />
+          <InstancePeek :type-id="generatedTypeId" :instance-id="resolvedId" />
         </template>
       </HoverPeek>
       <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted" data-instance-card-interactive="true">
