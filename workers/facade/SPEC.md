@@ -507,6 +507,12 @@ through the plugin's export binding (owner decision 2026-10-10).
   designs; a design refers to one or zero templates through a nullable
   `template` ref (a DXF-imported design carries none; the `source` ref
   is the import path).
+- Owner decision (2026-10-31, DXF import): the upload create takes the
+  DXF file and immediately maps its source layers to the OCCS layer
+  vocabulary; the mapping is the create form's declared `mapping` input,
+  the record stores it beside the extracted geometry, and `cut.outer`
+  is the one required target. Template and source stay off the upload
+  form. Template-based creation is the separate `render` construct.
 - `cassette-instance` (item) — the digital twin of a physical cassette.
   It refers to one or zero cassette designs — a twin may be a bare
   record — and one design is referred by many twins.

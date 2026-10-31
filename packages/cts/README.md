@@ -62,7 +62,9 @@ modules onto its sections.
   types refused as children targets; relation `where` domains
   row-checked against every declared target), instance validation with
   `typeVersion` ill-typing, payload normalization to the canonical
-  trait shape, and the SPEC §4 display-flag laws (exactly one authored
+  trait shape (including `payload.inputs`, the extra construction inputs
+  an upload-backed type prompts beside its file), and the SPEC §4
+  display-flag laws (exactly one authored
   `identifier` field, at most one `depiction`, a name on every
   type). `defineType` gates redefinition per SPEC §11; the free paths
   are zero live instances (synchronous `hasInstances` probe) and repair
@@ -86,8 +88,9 @@ modules onto its sections.
   read-model vocabulary for filters and access facts), `fieldAccess`,
   `containment`, `construction` (`genericCreate` plus declared
   construct operators as `via` modes with signature-derived mode
-  inputs; construction lineage inputs address immediate parent axes —
-  the ancestor chain derives at the instance construct seam),
+  inputs; payload protocols add the file input plus the type's declared
+  `payload.inputs`; construction lineage inputs address immediate parent
+  axes — the ancestor chain derives at the instance construct seam),
   `relations`, and `attachmentKinds`. Party types project as readable
   principals
   (SPEC §13). The base domain contributes operator contracts, the

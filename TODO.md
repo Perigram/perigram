@@ -2595,6 +2595,27 @@ Ordered steps:
   live instances). The nesting-polygons projection output itself is
   unchanged — the design key enters at composition (the demo process
   wires `getField('_id')` from the bake result into `designId`).
+- [ ] WAITING — owner verification: Cassette-design DXF import (owner
+  direction 2026-10-31): the upload create prompts the file plus one
+  layer-mapping control; the mapping assigns every DXF source layer to an
+  OCCS target and requires `cut.outer`; the record stores the mapping
+  beside extracted geometry. Template and source stay off the upload
+  form; template-based creation is the `render` construct.
+
+  ### Agent Notes (2026-10-31, cassette-upload)
+
+  Session `agent/cassette-upload-20261031` (worktree
+  `.agent-worktrees/cassette-upload-20261031`). `payload.inputs` is the
+  type-level declaration for extra upload construction inputs; facade
+  v29 declares `mapping` with the `layer-mapping` control pin and the
+  OCCS target list. `LayerMappingRow` reads the uploaded DXF's layers
+  and assigns them; `extract-geometry` consumes
+  `draft.data.mapping`, extracts every mapped target layer, stores the
+  mapping on the record, and names the available layers when no source
+  polygon maps to `cut.outer`. Org1's active definition needs the
+  upload construct recompiled and its `bake` construct switched to
+  `render`; the facade install upgrades to v29.
+
 - [ ] WAITING — owner verification: Multi-sheet canvas, second pass
   (owner direction 2026-10-28 evening): explicit working set — sheets
   added from the sheet-design picker or as all siblings, one canvas

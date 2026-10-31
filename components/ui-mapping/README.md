@@ -589,7 +589,10 @@ beside the transition history in `StateHistory`.
   dialog's created record) resolves its label through the entity store.
   `SpotPartsRow` picks each anchor's part through the shared entity
   Select wrapper, whose popover create lands the created part on that
-  spot at once. Which presentation an editor family resolves to
+  spot at once. `LayerMappingRow` renders a `layer-mapping` pin: it
+  reads the uploaded file's source layers and assigns each to a target
+  code from the pin's `controlOptions.targets`, marking the declared
+  `requiredTarget` until one source maps to it. Which presentation an editor family resolves to
   (Knob, MeterGroup, Chart, Rating, OrderList, Inplace) is the mapping
   contract's data-shape derivation (see
   [shared/ui-mapping](../../shared/ui-mapping/README.md)); spec-row values
