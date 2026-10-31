@@ -1241,7 +1241,9 @@ matched branch, and Tree access receives the complete structure. Every
 polymorphic operation is list-aware through the packet tree, including
 string `split` (each item's segments land as a sub-branch) and `join` (one
 string per branch). Safe integer-to-number, date-to-date-time,
-entity-to-entity-reference, and JSON transport coercions are implicit wire
+entity-to-entity-reference, single-value-to-array (a value satisfying the
+array's item type wraps into a one-item array), and JSON transport
+coercions are implicit wire
 semantics and create no graph nodes; entity item sources broadcast into
 entity collection sockets (`entity` → `entity_list`) with the element type
 checked. Nullable-to-required, unit-changing, narrowing, and restructuring
