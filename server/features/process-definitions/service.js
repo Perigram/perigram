@@ -1661,11 +1661,14 @@ function declaredRelationValues(value, contracts = []) {
 }
 
 async function normalizeProcessPatchRelations(typeId, patch = {}, contracts = [], auth = {}) {
-  const relations = Object.fromEntries(contracts.flatMap(contract => (
-    Object.hasOwn(patch, `relations.${contract.key}`)
-      ? [[contract.key, patch[`relations.${contract.key}`]]]
-      : []
-  )));
+  // The mutate patch carries its relation writes nested; the declared
+  // contracts select which of them the write may normalize.
+  const values = patch.relations && typeof patch.relations === 'object' && !Array.isArray(patch.relations)
+    ? patch.relations
+    : {};
+  const relations = Object.fromEntries(contracts
+    .filter(contract => Object.hasOwn(values, contract.key))
+    .map(contract => [contract.key, values[contract.key]]));
   if (!Object.keys(relations).length) return patch;
   const normalized = await normalizeProcessMutation(typeId, { relations }, contracts, auth);
   return {
