@@ -170,7 +170,8 @@ carries a construction mode composes through the fill-dialog shell
 (`FillDialogBody` widens the dialog and splits the form pane from the
 preview pane; the shell renders transparent when there is nothing to
 compose): the form pane keeps the rows and the refusal's named
-offenders, the preview pane debounces the draft into
+offenders, the preview pane waits until the create's required rows are
+filled, then debounces the draft into
 `POST /api/instances/:type/construction-preview` and renders the
 returned payload through the created type's preview mode
 ([instances feature](../../server/features/instances/README.md) owns
