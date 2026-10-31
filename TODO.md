@@ -2634,14 +2634,17 @@ Ordered steps:
   Session `agent/cassette-upload-20261031` (worktree
   `.agent-worktrees/cassette-upload-20261031`). `payload.inputs` is the
   type-level declaration for extra upload construction inputs; facade
-  v29 declares `mapping` with the `layer-mapping` control pin and the
+  v32 declares `mapping` with the `layer-mapping` control pin and the
   OCCS target list. `LayerMappingRow` reads the uploaded DXF's layers
-  and assigns them; `extract-geometry` consumes
-  `draft.data.mapping`, extracts every mapped target layer, stores the
-  mapping on the record, and names the available layers when no source
-  polygon maps to `cut.outer`. Org1's active definition needs the
-  upload construct recompiled and its `bake` construct switched to
-  `render`; the facade install upgrades to v29.
+  and assigns them; `extract-geometry` consumes `draft.data.mapping`,
+  extracts every mapped target layer, stores the mapping on the record,
+  and names the available layers when no source polygon maps to
+  `cut.outer`. Constructible-false refs stay out of every create form
+  (`constructible` rides the construction-input projection), so
+  cassette-design `template`/`source` prompt only on their operator
+  modes. Org1 is upgraded to facade v32; its active upload action
+  resolves `payload` + `mapping` alone and its `bake` action renders
+  from a template.
 
 - [ ] WAITING — owner verification: Multi-sheet canvas, second pass
   (owner direction 2026-10-28 evening): explicit working set — sheets
