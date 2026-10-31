@@ -91,8 +91,8 @@ test('a handful collection renders its records in place', async ({ app }) => {
   expect(handful.tables).toBe(0);
   await app.page.screenshot({ path: '.playwright/rich-records-handful.png', fullPage: false });
 
-  // The control record page: three children keep the derived projection
-  // (the table for this plain type) — the count bound holds at three.
+  // The control record page: five children keep the derived projection
+  // (the table for this plain type) — the count bound holds at five.
   await openRecord(`Rich control ${runTag}`);
   await app.page.waitForTimeout(4000);
   const control = await collectionSurfaces();
@@ -100,7 +100,7 @@ test('a handful collection renders its records in place', async ({ app }) => {
     [...document.querySelectorAll('.p-datatable tbody tr')]
       .filter(el => el.getClientRects().length > 0)
       .map(el => el.textContent.trim()).filter(label => label.includes('Control task')));
-  expect(controlRows.length).toBe(3);
+  expect(controlRows.length).toBe(5);
   expect(control.tables).toBeGreaterThanOrEqual(1);
   await app.page.screenshot({ path: '.playwright/rich-records-control.png', fullPage: false });
   const fs = await import('node:fs');

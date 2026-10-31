@@ -109,8 +109,9 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
 export const BOARD_MIN_COLUMNS = 2;
 
 // A collection carrying at least one and fewer than this many loaded
-// instances renders its records in place (SPEC §22.16).
-export const RICH_RECORDS_BELOW = 3;
+// instances renders its records in place (SPEC §22.16). The owner's
+// tunable: this one number sets the handful bound.
+export const RICH_RECORDS_BELOW = 5;
 
 // Known list-layout values: validates authored `render.listLayout` and
 // bounds the resolver vocabulary.
