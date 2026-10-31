@@ -3303,6 +3303,17 @@ breadcrumbs.
   ancestors renders the ancestor trail above its identity line, each
   crumb opens its resolved instance through the surface's instance-open
   channel, and the trail resolves labels through the instances store.
+- [ ] WAITING — owner verification: the breadcrumb trail is compact with
+  a transparent background, and the identity line carries a subtle type
+  label.
+
+### Agent Notes (2026-10-31, compact header trail)
+
+Session `agent/instance-header-compact-20261031` (worktree
+`.agent-worktrees/instance-header-compact-20261031`). The Breadcrumb root
+carries zero background and padding with a tight list gap; crumb links
+ride the supporting text step. The record identity line carries the
+subtle type label through `generatedEntityLabel`.
 
 ### Agent Notes (2026-10-31, instance header crumbs)
 

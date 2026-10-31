@@ -1,5 +1,5 @@
 <template>
-  <Breadcrumb v-if="ancestors.length" :model="ancestors" class="w-full">
+  <Breadcrumb v-if="ancestors.length" :model="ancestors" :pt="pt" class="max-w-full">
     <template #item="{ item, props: breadcrumbProps }">
       <!-- Ancestors are navigation: each crumb opens its instance through
            the screen's identity-open channel. The opened record's own
@@ -8,6 +8,7 @@
         v-bind="breadcrumbProps.action"
         link
         size="small"
+        class="!px-1 !py-0 text-supporting"
         :class="LAYOUT.linkClamp"
         @click="$emit('open', item.instance)"
       >
@@ -37,6 +38,12 @@ const props = defineProps({
 });
 
 defineEmits(['open']);
+
+const pt = {
+  root: { style: { background: 'transparent', padding: '0' } },
+  list: { style: { gap: '0.25rem' } },
+  separatorIcon: { style: { width: '0.75rem', height: '0.75rem' } }
+};
 
 const { t } = useI18n();
 const authStore = useAuthStore();

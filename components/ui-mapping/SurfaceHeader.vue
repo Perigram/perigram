@@ -25,6 +25,7 @@
         <Avatar :icon="glyph" shape="circle" size="large" class="shrink-0" />
         <div :class="LAYOUT.row" class="min-w-0 flex-1">
           <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
+          <span v-if="typeLabel" class="shrink-0 text-muted text-supporting">{{ typeLabel }}</span>
           <!-- One state surface per header: an instance carrying a flat
                state renders the segmented current-state tag with its
                history popover (the status_events audit trail) riding
@@ -137,6 +138,7 @@ import {
   resolveActionButton, actionLabelKey, localizedLabel
 } from '#shared/ui-mapping/index.js';
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
+import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import ActionButton from './ActionButton.vue';
 import ReplacePayloadAction from '~/components/generated/ReplacePayloadAction.vue';
 import PayloadRevisionPicker from '~/components/generated/PayloadRevisionPicker.vue';
@@ -168,6 +170,7 @@ const props = defineProps({
 
 const emit = defineEmits(['run', 'transition', 'refresh', 'open-instance']);
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
+const typeLabel = computed(() => (props.type ? generatedEntityLabel(props.type, { t, te }) : ''));
 
 const glyph = computed(() => iconFor(props.type, props.instance));
 // Action placement budget: at most HEADER_ACTIONS_INLINE generated
