@@ -44,6 +44,7 @@
         <span class="shrink-0 text-sm font-semibold">{{ row.value }}</span>
       </div>
     </div>
+  </Dialog>
   <Dialog
     :visible="exportedFile !== null"
     modal
