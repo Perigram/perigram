@@ -3311,4 +3311,5 @@ Session `agent/instance-crumbs-20261031` (worktree
 ancestry from `containmentAncestors` over the effective containment
 contract and resolves each ancestor through `resolveReadableReference`;
 the tree is reactive to both loaded records and the served type view.
-The header's unused pool prop is cut.
+The header's unused pool prop is cut. `process-generated-screen.spec.js`
+pins the parent crumb on a child detail surface.
