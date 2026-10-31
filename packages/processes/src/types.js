@@ -195,6 +195,16 @@ export function processTypesCompatible(sourceType, targetType) {
   if (target.base === 'json') {
     return { ok: true, implicit: true, source, target, coercion: 'toJson' };
   }
+  // A single value wraps into the array its socket carries (item → list):
+  // a relation ref, a mapped item, one produced record — the consumer
+  // reads a list of one.
+  if (target.base === 'array' && source.base !== 'array') {
+    const itemType = target.itemType || null;
+    if (!itemType || processTypesCompatible(source, itemType).ok) {
+      return { ok: true, implicit: true, source, target, coercion: 'wrapsArray' };
+    }
+    return incompatible(`Expected array of ${formatProcessType(itemType)}, received ${formatProcessType(source)}`, source, target);
+  }
   return incompatible(`Expected ${formatProcessType(target)}, received ${formatProcessType(source)}`, source, target);
 }
 

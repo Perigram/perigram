@@ -52,6 +52,9 @@ export function composeNestingAttemptGraph(authoring, { adminAccess = null } = {
   authoring.wireDeclaration('dxfRef', 'mkDxf', 'binds');
   authoring.configure('mkDxf', { construction: { mode: 'fromSheet' }, ...(adminAccess ? { access: adminAccess } : {}) });
 
+  authoring.drop('mutate', { id: 'attachDxf' });
+  if (adminAccess) authoring.configure('attachDxf', { access: adminAccess });
+
   authoring.connect('designs', 'data:result', 'polygons', 'data:entity');
   authoring.connect('polygons', 'data:result', 'jobItems', 'data:polygonParts');
   authoring.connect('one', 'data:value', 'jobItems', 'data:count');
@@ -70,6 +73,11 @@ export function composeNestingAttemptGraph(authoring, { adminAccess = null } = {
 
   authoring.connect('mkSheets', 'control:completed', 'mkDxf', 'control:in');
   authoring.connect('mkSheets', 'data:result', 'mkDxf', 'data:sheet');
+
+  // The sheet carries its cut file as the declared `dxf` relation.
+  authoring.connect('mkSheets', 'data:result', 'attachDxf', 'data:entity');
+  authoring.connect('mkDxf', 'control:completed', 'attachDxf', 'control:in');
+  authoring.connect('mkDxf', 'data:result', 'attachDxf', 'data:relations.dxf');
 
   return authoring.definition();
 }

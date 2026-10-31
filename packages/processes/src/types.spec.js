@@ -51,4 +51,12 @@ describe('process v4 type algebra', () => {
     expect(array).toMatchObject({ base: 'array', itemType: { base: 'entityRef' } });
     expect(processTypesCompatible(array, processType('array', { itemType: processType('entityRef', { typeId: 'project' }) })).ok).toBe(false);
   });
+
+  it('wraps a single value into the array its socket carries', () => {
+    const entity = processType('entityRef', { typeId: 'queue' });
+    const array = processType('array', { itemType: processType('entityRef', { typeId: 'queue' }) });
+    expect(processTypesCompatible(entity, array)).toMatchObject({ ok: true, coercion: 'wrapsArray' });
+    const otherArray = processType('array', { itemType: processType('entityRef', { typeId: 'project' }) });
+    expect(processTypesCompatible(entity, otherArray).ok).toBe(false);
+  });
 });
