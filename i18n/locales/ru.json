@@ -3330,13 +3330,11 @@
         "apiKeyZai": "API-ключ coding-плана",
         "providerOpenAiShaped": "OpenAI-совместимый (локальный)",
         "baseUrl": "Базовый URL сервера",
-        "model": "Модель",
         "apiKey": "API-ключ (необязательно)",
         "apiKeySet": "Ключ сохранён — введите новый для замены",
         "maxTokens": "Макс. токенов вывода",
         "maxTokensPlaceholder": "По умолчанию 16384",
         "test": "Проверить",
-        "testOk": "Подключено",
         "unconfigured": "Не настроено",
         "models": "Модели",
         "profile": "Профиль модели",
@@ -3349,8 +3347,6 @@
         "chatRoute": "Чат",
         "summariesRoute": "Сводки звонков",
         "envDefault": "Из окружения",
-        "chatRouteDefault": "Маршрут чата",
-        "loadModels": "Модели сервера",
         "auto": "Авто"
     },
     "webSearch": {
