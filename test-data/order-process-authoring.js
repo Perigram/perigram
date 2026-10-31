@@ -117,10 +117,19 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.wireDeclaration('entryClass', 'mkEntry', 'binds');
   authoring.configure('mkEntry', { access: adminAccess });
   authoring.setInputDefault('mkEntry', 'fields.label', 'Nesting entry');
-  authoring.setInputDefault('mkEntry', 'fields.count', 1);
-  authoring.drop('getField', { id: 'entryDesign' });
-  authoring.configure('entryDesign', { typeId: 'nesting-entry' });
-  authoring.setInputDefault('entryDesign', 'field', 'fields.design');
+
+  authoring.drop('recordField', { id: 'layoutPlacements' });
+  authoring.configure('layoutPlacements', { path: 'placed_items', type: { base: 'record', nullable: true } });
+  authoring.drop('flattenTree', { id: 'placements' });
+  authoring.configure('placements', { type: { base: 'record', nullable: true } });
+  authoring.drop('recordField', { id: 'layoutSources' });
+  authoring.configure('layoutSources', { path: 'sourceItems', type: { base: 'record', nullable: true } });
+  authoring.drop('flattenTree', { id: 'sources' });
+  authoring.configure('sources', { type: { base: 'record', nullable: true } });
+  authoring.drop('joinByKey', { id: 'placementSources' });
+  authoring.configure('placementSources', { leftKey: 'item_id', rightKey: 'id' });
+  authoring.drop('recordField', { id: 'placedDesign' });
+  authoring.configure('placedDesign', { path: 'right.design_id', type: { base: 'entityRef', typeId: 'cassette-design', nullable: true } });
   authoring.drop('construct', { id: 'mkCassette' });
   authoring.wireDeclaration('cassetteInstanceRef', 'mkCassette', 'binds');
   authoring.configure('mkCassette', { access: adminAccess });
@@ -140,7 +149,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('castValue', { id: 'solveRecord' });
   authoring.configure('solveRecord', { outputType: { base: 'record' } });
   authoring.drop('recordField', { id: 'solveLayouts' });
-  authoring.configure('solveLayouts', { path: 'layouts', type: { base: 'json', nullable: true } });
+  authoring.configure('solveLayouts', { path: 'layouts', type: { base: 'record', nullable: true } });
 
   authoring.drop('construct', { id: 'attempt' });
   authoring.wireDeclaration('attemptClass', 'attempt', 'binds');
@@ -188,12 +197,12 @@ export function composeOrderGraph(authoring, tableType) {
 
   authoring.connect('order', 'control:completed', 'bake', 'control:in');
   authoring.connect('bake', 'control:completed', 'mkEntry', 'control:in');
-  authoring.connect('mkEntry', 'control:completed', 'mkCassette', 'control:in');
-  authoring.connect('mkCassette', 'control:completed', 'materials', 'control:in');
+  authoring.connect('mkEntry', 'control:completed', 'materials', 'control:in');
   authoring.connect('materials', 'control:completed', 'loop', 'control:in');
   authoring.connect('loop', 'control:each', 'solve', 'control:in');
   authoring.connect('solve', 'control:completed', 'attempt', 'control:in');
-  authoring.connect('attempt', 'control:completed', 'layoutLoop', 'control:in');
+  authoring.connect('attempt', 'control:completed', 'mkCassette', 'control:in');
+  authoring.connect('mkCassette', 'control:completed', 'layoutLoop', 'control:in');
   authoring.connect('layoutLoop', 'control:done', 'loopEnd', 'control:in');
   authoring.connect('layoutLoop', 'control:each', 'mkSheetInstance', 'control:in');
   authoring.connect('mkSheetInstance', 'control:completed', 'matchStored', 'control:in');
@@ -224,9 +233,16 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('rowCount', 'data:value', 'countValue', 'data:value');
   authoring.connect('one', 'data:value', 'countValue', 'data:fallback');
   authoring.connect('bake', 'data:result', 'mkEntry', 'data:fields.design');
+  authoring.connect('countValue', 'data:value', 'mkEntry', 'data:fields.count');
   authoring.connect('order', 'data:result', 'mkEntry', `data:lineage.${ORDER_LINEAGE_KEY}`);
-  authoring.connect('mkEntry', 'data:result', 'entryDesign', 'data:entity');
-  authoring.connect('entryDesign', 'data:value', 'mkCassette', 'data:fields.design');
+  authoring.connect('solveLayouts', 'data:value', 'layoutPlacements', 'data:value');
+  authoring.connect('layoutPlacements', 'data:value', 'placements', 'data:value');
+  authoring.connect('solveLayouts', 'data:value', 'layoutSources', 'data:value');
+  authoring.connect('layoutSources', 'data:value', 'sources', 'data:value');
+  authoring.connect('placements', 'data:value', 'placementSources', 'data:left');
+  authoring.connect('sources', 'data:value', 'placementSources', 'data:right');
+  authoring.connect('placementSources', 'data:pairs', 'placedDesign', 'data:value');
+  authoring.connect('placedDesign', 'data:value', 'mkCassette', 'data:fields.design');
   authoring.connect('order', 'data:result', 'mkCassette', `data:lineage.${ORDER_LINEAGE_KEY}`);
 
   authoring.connect('rowTemplate', 'data:value', 'bake', 'data:template');
