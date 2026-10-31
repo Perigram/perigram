@@ -130,7 +130,10 @@ beside the transition history in `StateHistory`.
   composed `regionsArrangement` (screen sections arrange through the same
   stepped ladder as record children — columns, tabs, full-row claim), with
   the screen-level RegionBlock props and event channels passed through the
-  `regionProps`/`regionEvents` passthrough. The root measures itself and
+  `regionProps`/`regionEvents` passthrough. `presentation` selects the
+  depth-0 record treatment: `record` (the default) renders the full
+  `SurfaceHeader`; `peek` renders the compact identity line with its state
+  tag over the record body. The root measures itself and
   provides the page container record when no host declared one, so step
   engagement and budgets resolve against the real box (a designer preview
   box or narrow viewport arranges narrow). The root also provides the

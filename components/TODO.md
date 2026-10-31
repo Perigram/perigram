@@ -570,3 +570,23 @@ mime·size line is gone (owner rejection — `payloadFactLine` deleted).
 Validation: design-system 34/34, fact-vocabulary 9/9, localization
 clean, SSR smoke 24/24, check-arch clean, docs guard clean
 (workers/nesting link pre-exists).
+
+### Record peek compact presentation (owner direction 2026-10-31)
+
+- [ ] WAITING — owner verification: instance hover peeks render the
+  compiled record surface in the peek presentation — record preview,
+  compact identity line with state, leading facts — inside the 20rem peek
+  panel, and open the full record on click.
+
+#### Agent Notes (2026-10-31)
+
+Session `agent/peekcompact-20261031` (worktree
+`.agent-worktrees/peekcompact-20261031`). `GeneratedScreenHost` and
+`GeneratedMappingScreen` carry `presentation` into the depth-0 detail
+region; `RegionBlock` renders the compact identity/state line for `peek`
+in place of `SurfaceHeader`. `InstancePeek` passes `peek`; `HoverPeek` is
+a 20rem column with a 22rem height cap. Validation: ui-mapping 110/110,
+framework packages 5/5, SSR smoke 23/23, check-arch clean. Pre-existing
+at HEAD: design-system three `GeneratedScreenHost.vue` findings (raw
+`Dialog`, `text-color-secondary`, raw typography); docs guard broken
+`workers/nesting/README.md` link.
