@@ -44,6 +44,7 @@ export function enrichNestingResult(result = {}, request = {}) {
       ...item,
       id: requestItem.id,
       design_id: item.design_id || requestItem.design_id,
+      design_key: item.design_key || requestItem.design_key,
       handles: item.handles?.length ? item.handles : requestItem.handles || [],
       sourceLayers: item.sourceLayers?.length ? item.sourceLayers : requestItem.sourceLayers || [],
       demand: item.demand ?? requestItem.count ?? 1,
@@ -58,6 +59,7 @@ export function enrichNestingResult(result = {}, request = {}) {
     enrichedItems.push(...requestItems.map(item => ({
       id: item.id,
       design_id: item.design_id,
+      design_key: item.design_key,
       handles: item.handles || [],
       sourceLayers: item.sourceLayers || [],
       demand: item.count || 1,
@@ -118,21 +120,39 @@ export function nestingLayouts(result = {}) {
 export function groupNestingLayouts(result = {}) {
   const layouts = nestingLayouts(result);
   const designByItemId = new Map((result.items || [])
-    .map(item => [item.id?.toString(), String(item.design_id ?? '')]));
+    .map(item => [item.id?.toString(), String(item.design_key ?? item.design_id ?? '')]));
   const groups = new Map();
   for (const layout of layouts) {
     const placements = layout.placed_items || layout.items || [];
-    // The sorted design-id multiset is the grouping key; an id-less solve
-    // groups its layouts under the anonymous key.
-    const key = placements
-      .map(placed => designByItemId.get(String(placed.item_id ?? placed.itemId ?? placed.id ?? '')) ?? '')
-      .sort()
-      .join('|');
+    // Equal sheet designs cut the same design composition the same way:
+    // the key pairs each placement's design key with its transform and
+    // the sheet shape. Placement order is not composition.
+    const key = JSON.stringify({
+      sheet: normalizeCompositionPolygon(layout.sheetPolygon),
+      placements: placements
+        .map(placed => ({
+          design: designByItemId.get(String(placed.item_id ?? placed.itemId ?? placed.id ?? '')) ?? '',
+          rotation: Number(placed.transformation?.rotation ?? placed.rotation ?? 0),
+          translation: normalizeCompositionPoint(placed.transformation?.translation ?? placed.translation)
+        }))
+        .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)))
+    });
     const group = groups.get(key);
     if (group) group.count += 1;
-    else groups.set(key, { ...layout, count: 1 });
+    else groups.set(key, { ...layout, count: 1, compositionKey: key });
   }
   return [...groups.values()];
+}
+
+function normalizeCompositionPoint(point) {
+  const values = Array.isArray(point) ? point : [point?.x, point?.y];
+  return values.map(value => Number(value) || 0);
+}
+
+function normalizeCompositionPolygon(polygon) {
+  if (!polygon || typeof polygon !== 'object') return null;
+  const ring = value => (Array.isArray(value) ? value.map(normalizeCompositionPoint) : []);
+  return { outer: ring(polygon.outer), inner: Array.isArray(polygon.inner) ? polygon.inner.map(ring) : [] };
 }
 
 export function summarizeNestingResult(result = {}, params = {}) {
@@ -165,6 +185,7 @@ function buildNestingItems(jobFiles = []) {
     // own design id (the projection stamps it), or the element's own
     // identity when the item is a record that carries one.
     const itemDesignId = String(file.designId ?? file.design_id ?? file._id ?? file.id ?? '');
+    const itemDesignKey = String(file.designKey ?? file.design_key ?? '');
     // Parts arrive as a list or — after a tree flatten over a
     // single-element list — as one part object.
     const polygonParts = Array.isArray(file.polygonParts)
@@ -179,6 +200,7 @@ function buildNestingItems(jobFiles = []) {
         items.push({
           id,
           design_id: String(part.designId ?? itemDesignId),
+          design_key: itemDesignKey || String(part.designId ?? itemDesignId),
           coords,
           handles: part.handles || [],
           sourceLayers: part.sourceLayers?.length
@@ -196,6 +218,7 @@ function buildNestingItems(jobFiles = []) {
     items.push({
       id,
       design_id: itemDesignId,
+      design_key: itemDesignKey || itemDesignId,
       coords: rectangle,
       handles: [],
       sourceLayers: sourceLayersForPart(file.layerData || [], {}),

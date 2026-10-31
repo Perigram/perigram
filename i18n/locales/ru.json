@@ -2500,7 +2500,10 @@
         "selectDesign": "Выберите дизайн",
         "selectSheet": "Выберите лист",
         "sheet": "Лист",
-        "sheetDesigns": "Дизайны листов"
+        "sheetDesigns": "Дизайны листов",
+        "splitStack": "Разделить стопку",
+        "splitStacked": "Стопка разделена на ещё один дизайн листа.",
+        "splitStackFailed": "Не удалось разделить стопку."
     },
     "nestingRun": {
         "sheetDesigns": "Дизайны листов"

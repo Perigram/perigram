@@ -202,6 +202,7 @@ export async function constructSheet({ refs = {}, draft = {} } = {}) {
   return {
     data: {
       name: `Sheet ${created.getFullYear()}-${pad(created.getMonth() + 1)}-${pad(created.getDate())} ${pad(created.getHours())}:${pad(created.getMinutes())}`,
+      ...(layout?.compositionKey ? { compositionKey: String(layout.compositionKey) } : {}),
       geometry: {
         data: { ...result, ...(sheetPolygon ? { sheetPolygon } : {}), solveParams: { width, height } },
         preview: nestingResultToPreview(result, { width, height }, { layoutIndex: 0 })

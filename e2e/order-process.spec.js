@@ -134,9 +134,9 @@ test('the order process runs live: table rows become baked designs, materials, a
 
   const { utils, write } = await import('xlsx');
   const sheet = utils.aoa_to_sheet([
-    ['name', 'cassette', 'A', 'B'],
-    ['Tray A left', templateName, 600, 450],
-    ['Tray B small', templateName, 300, 300]
+    ['name', 'cassette', 'A', 'B', 'count'],
+    ['Tray A left', templateName, 600, 450, 2],
+    ['Tray B small', templateName, 300, 300, 1]
   ]);
   const workbook = utils.book_new();
   utils.book_append_sheet(workbook, sheet, 'Order');
@@ -222,6 +222,60 @@ test('the order process runs live: table rows become baked designs, materials, a
     const result = attempt.data?.result ?? attempt.fields?.result;
     expect(result?.summary?.sheetCount).toBeGreaterThan(0);
   }
+
+  const familyOf = async attemptIds => {
+    const inAttempt = instance => attemptIds.has(String(instance.lineage?.nestingAttemptId ?? ''));
+    const [sheetDesigns, sheetInstances, cutPlans] = await Promise.all(
+      ['sheet-design', 'sheet-instance', 'sheet-cut-plan'].map(async typeId =>
+        (await instancesOf(typeId)).filter(inAttempt))
+    );
+    return { sheetDesigns, sheetInstances, cutPlans };
+  };
+  const family = await familyOf(new Set(attempts.map(attempt => String(attempt._id))));
+  expect(family.sheetDesigns.length, 'each attempt produces its sheet designs').toBeGreaterThan(0);
+  expect(family.sheetInstances.length, 'one sheet per grouped design').toBe(family.sheetDesigns.length);
+  expect(family.cutPlans.length, 'one cut plan per grouped design').toBe(family.sheetDesigns.length);
+  for (const design of family.sheetDesigns) {
+    expect(design.fields?.compositionKey, 'the sheet design carries its composition key').toBeTruthy();
+    expect(design.fields?.geometry?.data?.solution?.layouts?.[0]?.count).toBeGreaterThanOrEqual(1);
+    expect((design.relations?.parts || []).length).toBeGreaterThan(0);
+  }
+  for (const cutPlan of family.cutPlans) {
+    expect(cutPlan.fields?.design, 'the cut plan names its sheet design').toBeTruthy();
+    expect(cutPlan.fields?.sheet, 'the cut plan names its physical sheet').toBeTruthy();
+  }
+
+  // A second identical order reuses the stored sheet designs: the solve
+  // produces the same composition, so no new sheet design is constructed
+  // and one design now stands behind cut plans from both runs.
+  const sheetDesignsBeforeReplay = (await instancesOf('sheet-design')).length;
+  const replay = await app.request.post(`/api/process-definitions/active/actions/${orderAction.id}/execute`, {
+    data: {
+      data: {
+        'fields.name': 'Facade order 42',
+        'relations.table': { type: TABLE_TYPE, id: String(table._id?.toString?.() || table._id || table.id) }
+      }
+    }
+  });
+  expect(replay.ok(), await replay.text()).toBeTruthy();
+  const replayOrder = (await instancesOf('facade-order'))
+    .filter(order => (order.fields?.name || order.name) === 'Facade order 42')
+    .sort((left, right) => String(right.createdAt ?? '').localeCompare(String(left.createdAt ?? '')))[0];
+  const replayOrderId = String(replayOrder._id);
+  expect(replayOrderId).not.toBe(orderId);
+  const replayAttempts = (await instancesOf('nesting-attempt')).filter(attempt => orderIdOf(attempt) === replayOrderId);
+  expect(replayAttempts).toHaveLength(2);
+  const sheetDesignsAfterReplay = (await instancesOf('sheet-design')).length;
+  expect(sheetDesignsAfterReplay, 'stored sheet designs are reused, not duplicated').toBe(sheetDesignsBeforeReplay);
+  const replayFamily = await familyOf(new Set(replayAttempts.map(attempt => String(attempt._id))));
+  expect(replayFamily.sheetDesigns).toHaveLength(0);
+  expect(replayFamily.cutPlans.length, 'the replay still cuts sheets').toBeGreaterThan(0);
+  const cutPlansByDesign = new Map();
+  for (const cutPlan of [...family.cutPlans, ...replayFamily.cutPlans]) {
+    const designId = String(cutPlan.fields?.design?.id ?? cutPlan.fields?.design ?? '');
+    cutPlansByDesign.set(designId, (cutPlansByDesign.get(designId) || 0) + 1);
+  }
+  expect([...cutPlansByDesign.values()].some(count => count > 1), 'one sheet design stands behind many cuts').toBe(true);
 
   const report = {
     process: PROCESS_NAME,
