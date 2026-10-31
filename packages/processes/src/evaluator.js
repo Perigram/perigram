@@ -143,6 +143,13 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     }, { outputAccess: 'list', matching: record.matching });
   }
   if (kind === 'collection.count') return solveDataTrees([{ tree: required(packets, 'value', record), access: 'list' }], ([items]) => items.length);
+  if (kind === 'collection.repeat') return solveDataTrees([
+    { tree: required(packets, 'value', record), access: 'item' },
+    { tree: required(packets, 'count', record), access: 'item' }
+  ], ([value, count]) => Array.from({ length: Math.max(0, Math.trunc(Number(count) || 0)) }, () => structuredClone(value)), {
+    outputAccess: 'list',
+    matching: record.matching
+  });
   if (kind === 'collection.distinct') return distinctPackets(required(packets, 'items', record), packets.keys);
   if (kind === 'collection.sort') return sortPackets(required(packets, 'items', record), required(packets, 'keys', record), record.direction);
   if (kind === 'collection.reverse') return solveDataTrees([{ tree: required(packets, 'value', record), access: 'list' }], ([items]) => [...items].reverse(), { outputAccess: 'list' });
