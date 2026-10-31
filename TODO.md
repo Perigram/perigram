@@ -3224,15 +3224,15 @@ law; `designer.spec.js` pins repeats legal within and across classes.
 ## Handful collections render their records (owner direction 2026-10-31)
 
 Owner direction: the retired <3-items list rule's successor — a
-collection carrying fewer than three loaded instances renders each
-instance as its rich record page in place (its detail screen, children
-collections included) through every projection, embedded and standalone
-alike. Under evaluation: the owner judges the rule live before it
+collection carrying fewer than RICH_RECORDS_BELOW (5, the owner's
+tunable in the budget table) loaded instances renders each instance as
+its rich record page in place (its detail screen, children collections
+included) through every projection, embedded and standalone alike. Under evaluation: the owner judges the rule live before it
 settles into SPEC §22.16 as standing law.
 
 - [ ] WAITING — owner verification: a collection of one or two loaded
   instances renders each item as its record page (hosted detail screen
-  with children) on real screens and the showcase floor; three keep the
+  with children) on real screens and the showcase floor; five keep the
   derived projection; the probe artifacts land under `.playwright/`.
 
 ### Agent Notes (2026-10-31, handful records round)
@@ -3301,3 +3301,14 @@ design-system 34, framework-packages 5, SSR smoke 24, arch, framework
 and docs guards green; e2e — tech-drawing fill dialog 3/3 (rails test
 green through popover create, tile, preview, editor),
 documents fill dialog 1/1, plugin-surface 1/1.
+
+### Agent Notes (2026-10-31, bound round)
+
+Session `agent/rich-records-bound-20261031` (worktree
+`.agent-worktrees/rich-records-bound-20261031`). Owner verdict: the
+bound of three left real handfuls on the table — `RICH_RECORDS_BELOW`
+is 5, the one number in the budget table that sets the handful bound.
+Specs pin the 4/5 boundary, the smoke worlds grew past the bound, the
+showcase smoke pins seed 10 (37's calendar slid into an inactive tab
+when records weights re-ranked the arrangement), and the probe's
+control world carries five.

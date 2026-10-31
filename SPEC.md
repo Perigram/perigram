@@ -1086,8 +1086,9 @@ the table — the stacked identifier-only list projection is retired.
 ### 22.16 Handful collections render their records (owner direction
 2026-10-31, under evaluation)
 
-A collection whose loaded pool resolves fewer than three instances
-renders each instance as its record page in place: the same detail
+A collection whose loaded pool resolves fewer than five instances
+(RICH_RECORDS_BELOW, the owner's tunable) renders each instance as its
+record page in place: the same detail
 screen the record popup hosts — compiled instanceDetail, the
 synthesized detail, or the record floor — scoped to the instance, its
 children collections included. The count outranks every shape signal
