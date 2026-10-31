@@ -144,6 +144,7 @@ test.describe('process generated screens', () => {
 
     const trail = app.page.locator('.p-breadcrumb').filter({ hasText: 'Crumb Folder' });
     await expect(trail.getByRole('button', { name: 'Crumb Folder' })).toBeVisible({ timeout: 20000 });
+    await app.page.screenshot({ path: '.playwright/instance-header-breadcrumbs.png' });
     await app.expectCleanRuntime();
   });
 
