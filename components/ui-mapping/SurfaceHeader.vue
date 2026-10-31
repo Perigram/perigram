@@ -24,7 +24,7 @@
       <div :class="[LAYOUT.row, LAYOUT.headerIdentity]">
         <Avatar :icon="glyph" shape="circle" size="large" class="shrink-0" />
         <div :class="LAYOUT.row" class="min-w-0 flex-1">
-          <span :class="[TYPE_BY_LEVEL[headerLevel] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
+          <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
           <!-- One state surface per header: an instance carrying a flat
                state renders the segmented current-state tag with its
                history popover (the status_events audit trail) riding
@@ -49,6 +49,20 @@
         </div>
       </div>
       <div :class="LAYOUT.row" class="header-actions">
+        <!-- An embedded record steps up to its standalone page through
+             the expand affordance (the record popup's step-up metaphor):
+             it opens the record where the full page treatment lives. -->
+        <Button
+          v-if="embedded"
+          icon="pi pi-external-link"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="$t('common.expand')"
+          :title="$t('common.expand')"
+          @click="emit('open-instance', instance)"
+        />
         <!-- The cluster groups by control kind — record utilities (the
              conversation affordance, the editor, revisions, payload
              replacement), generated actions, machine transitions — one
@@ -168,10 +182,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['run', 'transition', 'refresh', 'open-instance']);
-// An embedded record page (SPEC §22.16) floors its title at level 1 —
-// the page-title scale belongs to the standalone page.
 const embedded = inject('uiMappingEmbedded', false);
-const headerLevel = computed(() => (embedded ? Math.max(Number(props.level) || 0, 1) : Number(props.level) || 0));
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
 
 const glyph = computed(() => iconFor(props.type, props.instance));

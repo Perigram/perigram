@@ -187,7 +187,7 @@
 </template>
 
 <script setup>
-import { computed, provide, reactive, ref, watch } from 'vue';
+import { computed, inject, provide, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Toast from 'primevue/toast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -280,7 +280,10 @@ const composed = computed(() => composeScreen(props.screen, props.contract, prop
 // coefficient overrides the derivation. Consumers read the object's keys,
 // so a step change re-rhythms every mounted surface without a remount.
 const root = ref(null);
-provideDefaultContainerTraits({ hostKind: 'page', elRef: root });
+// An embedded record (SPEC §22.16) rides the bounded-host profile: the
+// compact density tier and its rhythm set apply to the whole embed.
+const embedded = inject('uiMappingEmbedded', false);
+provideDefaultContainerTraits({ hostKind: embedded ? 'popup' : 'page', elRef: root });
 const hostContainer = useHostContainerTraits();
 const coefficient = computed(() => (props.spacingScale == null
   ? spacingCoefficientFor(hostContainer.value, screenWeight(composed.value))
