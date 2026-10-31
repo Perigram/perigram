@@ -471,7 +471,9 @@ entity card, and renders that card with
 `variant="inline"`. An id-only ref resolves once per record identity:
 pool re-renders hand it a fresh entity object for the same record and the
 chip keeps its instance (an open peek stays open), while the store's
-record cache serves the repeated lookups. A ref carrying a `revision` pin renders the lock glyph
+record cache serves the repeated lookups. The peek hosts the served type
+id — the pool key and the screen vocabulary — while ref spellings may
+alias (`entity_revision` → `entity-revision`). A ref carrying a `revision` pin renders the lock glyph
 beside the chip (SPEC §24: the ref consumes that revision whatever the
 source's current payload holds). The record preview popup is the shared entity popup
 ([`EntityPopup.vue`](#entitypopupvue-with-useentitypopup): the referenced

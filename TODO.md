@@ -3324,3 +3324,29 @@ contract and resolves each ancestor through `resolveReadableReference`;
 the tree is reactive to both loaded records and the served type view.
 The header's unused pool prop is cut. `process-generated-screen.spec.js`
 pins the parent crumb on a child detail surface.
+
+## Ref type aliases resolve to the registry id; peeks host the served id (owner report 2026-10-31)
+
+Owner report: a relation chip's hover panel opens but writes that no record
+is opened. The peek composed its screen with the ref's display alias
+(snake `cassette_design`), while the record cache, pool, and screen
+vocabulary key the registry's kebab id — the scoped instance resolved no
+pool entry, and `canonicalTypeKey` kept snake aliases as dead cache keys.
+
+- [ ] WAITING — owner verification: relation chips' hover panels render
+  the record (identity, facts, preview) in the owner's organization, and
+  alias spellings resolve through the registry id everywhere.
+
+### Agent Notes (2026-10-31, ref aliases)
+
+Session `agent/peek-type-key-20261031-1200` (worktree
+`.agent-worktrees/peek-type-key-20261031`). `canonicalTypeKey` maps snake
+and camel aliases onto the kebab registry id (registry-known ids win);
+`InstanceInlineRef` hosts the peek with the served type id (the pool key
+and screen vocabulary, the same law `useEntityPopup.open` follows) and
+reads its state policy through the same id; `instanceOf` derives a
+record's instance lazily, so a record cached before the registry
+hydrated joins the pool when the declaration arrives instead of staying
+unopenable. Focused: instances store 16, SSR smoke 23. The
+`shared/design-system.spec.js` three `GeneratedScreenHost.vue` findings
+predate this round on `local`.

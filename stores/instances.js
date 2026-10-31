@@ -110,6 +110,11 @@ export const useInstancesStore = defineStore('instances', () => {
     const raw = String(key || '');
     if (!raw) return '';
     if (registry.typesById.has(raw)) return raw;
+    // The kebab registry id behind a snake/camel spelling: refs may carry
+    // either alias, and the registry ids are the cache keys the pool and
+    // the screens resolve against.
+    const kebab = raw.replace(/_/g, '-').replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+    if (registry.typesById.has(kebab)) return kebab;
     // Kebab registry ids (`t-uth93vgdab`, `text-document`) ARE the
     // canonical server form — snake-ifying them poisons the record cache
     // against later registry-aware lookups (empty-registry first loads
@@ -141,6 +146,14 @@ export const useInstancesStore = defineStore('instances', () => {
     return typeRecord ? dtoToScreenInstance(dto, typeRecord) : null;
   }
 
+  // The record's derived instance, derived lazily: a record cached before
+  // the registry hydrated derives as soon as the declaration arrives
+  // (the pool is a reactive consumer, so the refresh re-renders surfaces).
+  function instanceOf(typeKey = '', entry = null) {
+    if (!entry?.dto) return null;
+    return entry.instance || deriveInstance(typeKey, entry.dto);
+  }
+
   function upsertRecord(typeKey = '', dto = {}) {
     const ids = dtoIds(dto);
     if (!ids.length) return null;
@@ -167,7 +180,7 @@ export const useInstancesStore = defineStore('instances', () => {
   }
 
   function instanceFor(typeKey = '', id = '') {
-    return recordFor(typeKey, id)?.instance || null;
+    return instanceOf(typeKey, recordFor(typeKey, id));
   }
 
   // The generator's data layer: { [typeKey]: { [id]: instance } }.
@@ -176,7 +189,8 @@ export const useInstancesStore = defineStore('instances', () => {
     for (const [typeKey, bucket] of Object.entries(records)) {
       const instances = {};
       for (const [id, entry] of Object.entries(bucket)) {
-        if (entry.instance) instances[id] = entry.instance;
+        const instance = instanceOf(typeKey, entry);
+        if (instance) instances[id] = instance;
       }
       if (Object.keys(instances).length) pool[typeKey] = instances;
     }
