@@ -575,8 +575,9 @@ clean, SSR smoke 24/24, check-arch clean, docs guard clean
 
 - [ ] WAITING — owner verification: instance hover peeks render the
   compiled record surface in the peek presentation — record preview,
-  compact identity line with state, leading facts — inside the 20rem peek
-  panel, and open the full record on click.
+  compact identity line with state, the record's action cluster and
+  step-up expand — inside the 20rem peek panel, open the full record on
+  click, and page the record through expand.
 
 #### Agent Notes (2026-10-31)
 
@@ -590,3 +591,15 @@ framework packages 5/5, SSR smoke 23/23, check-arch clean. Pre-existing
 at HEAD: design-system three `GeneratedScreenHost.vue` findings (raw
 `Dialog`, `text-color-secondary`, raw typography); docs guard broken
 `workers/nesting/README.md` link.
+
+#### Agent Notes (2026-10-31, round 2)
+
+Session `agent/peekcompact2-20261031` (worktree
+`.agent-worktrees/peekcompact2-20261031`), owner direction: the peek
+keeps the record's buttons and gains a step-up. `SurfaceHeader` carries
+`compact` (identity line, state surface, action cluster) and
+`expandable` (step-up button, `expand` event); `RegionBlock` renders it
+for `peek` over the body. `expandable`/`expand` thread through
+`GeneratedMappingScreen` and `GeneratedScreenHost`; `InstancePeek` turns
+`expand` into `openInstanceInWorkspace`, and `HoverPeek` dismisses on the
+workspace instance/page open events.

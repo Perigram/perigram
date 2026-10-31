@@ -132,8 +132,11 @@ beside the transition history in `StateHistory`.
   the screen-level RegionBlock props and event channels passed through the
   `regionProps`/`regionEvents` passthrough. `presentation` selects the
   depth-0 record treatment: `record` (the default) renders the full
-  `SurfaceHeader`; `peek` renders the compact identity line with its state
-  tag over the record body. The root measures itself and
+  `SurfaceHeader` page chrome — lineage trail, type byline, action
+  cluster, lifecycle history; `peek` keeps the identity line, state
+  surface, and action cluster over the record body. A host passing
+  `expandable` gets the header's step-up button, whose `expand` event the
+  host turns into the record's own page. The root measures itself and
   provides the page container record when no host declared one, so step
   engagement and budgets resolve against the real box (a designer preview
   box or narrow viewport arranges narrow). The root also provides the
@@ -445,8 +448,11 @@ beside the transition history in `StateHistory`.
   the `min-w-0` chain, wide headers floor the identity at 16rem so a
   large action cluster wraps below the identity, and the record title
   steps with the same width (1.5rem narrow, 1.75rem from the 34rem
-  step). Under the header rides the record's permanent reload lane
-  (SPEC §22.9).
+  step). `compact` renders the label-size identity line with the state
+  surface and action cluster over the body; lineage and byline stay on
+  the record page. `expandable` adds the step-up button at the end of the
+  cluster and emits `expand`. Under the header rides the record's
+  permanent reload lane (SPEC §22.9).
 - `StateTag.vue` — the segmented state tag: one materialization of the
   mapping contract's `stateDisplayFor`. Flat values render as a single Tag
   styled by the authored severity/icon; dotted values render as a path —

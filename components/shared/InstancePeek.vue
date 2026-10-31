@@ -4,7 +4,9 @@
       v-if="screen"
       :screen="screen"
       presentation="peek"
+      expandable
       @open-instance="onOpenInstance"
+      @expand="expand"
     />
   </div>
 </template>
@@ -12,12 +14,14 @@
 <script setup>
 // The record peek body (SPEC §22.14): the compiled detail screen scoped
 // to the record in its peek presentation — compact identity line, state,
-// preview, and leading facts — rendered inside
-// [`HoverPeek.vue`](./HoverPeek.vue).
+// action cluster, preview, and leading facts — rendered inside
+// [`HoverPeek.vue`](./HoverPeek.vue). The expand affordance steps the
+// record up to its own workspace page.
 import { computed, ref, watch } from 'vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import { useAuthStore } from '~/stores/auth';
 import { scopedDetailScreen } from '~/components/generated/detail-screen-actions.js';
+import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { provideContainerTraits } from '~/composables/useContainerTraits.js';
 
 const props = defineProps({
@@ -45,5 +49,11 @@ const screen = computed(() => scopedDetailScreen({
 function onOpenInstance({ typeId, instanceId, screenKey } = {}) {
   if (!typeId || !instanceId) return;
   subject.value = { typeId, instanceId, screenKey: screenKey || '' };
+}
+
+function expand() {
+  const { typeId, instanceId } = subject.value;
+  if (!typeId || !instanceId) return;
+  openInstanceInWorkspace({ typeId, instanceId: String(instanceId) });
 }
 </script>

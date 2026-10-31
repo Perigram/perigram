@@ -22,9 +22,11 @@
 // The panel rides Aura's own chrome: content sits on the preset's
 // popover padding, media bands frame themselves (the framed media
 // region), and the body scrolls past its height bound.
-import { onBeforeUnmount, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import Popover from 'primevue/popover';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
+import { workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
+import { workspacePageOpenEvent } from '~/utils/workspace-page-open.js';
 
 const props = defineProps({
   enabled: { type: Boolean, default: true }
@@ -72,6 +74,12 @@ function holdPeek() {
   clearHide();
 }
 
+function hidePeek() {
+  clearShow();
+  clearHide();
+  popover.value?.hide();
+}
+
 function onShow() {
   shown.value = true;
   emit('show');
@@ -84,9 +92,16 @@ function onBodyClick(event) {
   emit('open', event);
 }
 
+onMounted(() => {
+  window.addEventListener(workspaceInstanceOpenEvent, hidePeek);
+  window.addEventListener(workspacePageOpenEvent, hidePeek);
+});
+
 onBeforeUnmount(() => {
   clearShow();
   clearHide();
+  window.removeEventListener(workspaceInstanceOpenEvent, hidePeek);
+  window.removeEventListener(workspacePageOpenEvent, hidePeek);
 });
 
 const triggerEvents = { mouseenter: scheduleShow, mouseleave: scheduleHide };
