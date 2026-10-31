@@ -118,6 +118,10 @@ Parent: [root README](../README.md).
   ([components/generated](../components/generated/README.md)); a DTO
   without one projects `null`. `previewSourceValue` reads the type's
   declared preview path (plus fallbacks) off the wire.
+- `dxfParser.js`: the DXF preview parser — entities into the drawing
+  layer contract, each layer styled from the file's own LAYER table
+  (truecolor, linetype, lineweight); a supplied org pen mapping wins
+  where it names the layer.
 
 ## Utility Protocol
 
