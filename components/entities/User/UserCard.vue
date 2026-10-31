@@ -11,7 +11,7 @@
         </div>
       </template>
       <Divider />
-      <DataBlock type-id="user" :entity="user" :fields="USER_FIELDS" />
+      <FactRows :rows="userRows" />
       <template #footer>
         <Divider />
         <div class="flex justify-center gap-2" @click.stop>
@@ -23,19 +23,17 @@
 </template>
 
 <script setup>
-/**
- * User View Component - v24 Standardized
- */
 import Divider from 'primevue/divider';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import { computed } from 'vue';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import FactRows from '~/components/shared/FactRows.vue';
 import { useAuthStore } from '~/stores/auth';
-import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { instanceFactRows } from '~/utils/fact-rows.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -43,6 +41,7 @@ const props = defineProps({
 });
 
 const authStore = useAuthStore();
+const { t, te } = useI18n();
 
 const avatarUrl = computed(() => props.user.data?.avatarUrl || null);
 const avatarLabel = computed(() => (props.user.identity?.name || '?').charAt(0));
@@ -53,7 +52,16 @@ const avatarSize = computed(() => props.variant === 'inline' ? 'normal' : 'xlarg
 const { typeById } = useFileTypeView();
 // The email field never reaches display surfaces: it is login data, not a
 // display fact (SPEC §Chat thread).
-const USER_FIELDS = computed(() => resolveInstanceDisplayFields({ typeId: 'user', surface: 'card', typeRecord: typeById('user') })
-    .filter(field => !field.path.endsWith('.email')));
-
+const userRows = computed(() => instanceFactRows({
+  typeId: 'user',
+  typeRecord: typeById('user'),
+  entity: props.user,
+  auth: {
+    permissions: authStore.activePermissions,
+    fieldPolicies: authStore.fieldPolicies,
+    stateFieldPolicies: authStore.stateFieldPolicies
+  },
+  translator: { t, te },
+  skip: ['email']
+}));
 </script>

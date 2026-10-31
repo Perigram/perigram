@@ -10,7 +10,7 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'pages/organization/users.vue': 'layout',
   'pages/organization/partners.vue': 'layout',
   'pages/organization/plugins.vue': 'layout',
-  'components/shared/blocks/DataBlock.vue': 'layout'
+  'components/shared/FactRows.vue': 'layout'
 });
 
 export const SCOPED_LAYOUT_PROPERTIES = new Set([
@@ -60,7 +60,7 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   'components/chat/ChatInboxRail.vue': ['data-driven', [':style="fullPage ? railWidthStyle : undefined"', ':style="rowContentStyle(option)"']],
 'components/chat/ChatMessageBubble.vue': ['data-driven', [':style="swipeStyle(messageItem)"']],
 'components/chat/ChatMessageList.vue': ['data-driven', [':style="{ opacity: swipeIconOpacity(messageItem) }"']],
-  'components/shared/blocks/DataBlock.vue': ['data-driven', [':style="{ backgroundColor: row.swatch }"']],
+  'components/shared/FactRows.vue': ['data-driven', [':style="{ backgroundColor: row.swatch }"']],
   'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', [':style="lineStyle"']],
   'components/shared/DesignerSocketHandle.vue': ['data-driven', [':style="processSocketHandleStyle(socket)"']],
   'components/ui-mapping/GanttCollection.vue': ['data-driven', [

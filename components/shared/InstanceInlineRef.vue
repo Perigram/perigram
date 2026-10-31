@@ -3,7 +3,7 @@ import { computed, inject, unref, watch, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Chip from 'primevue/chip';
 import { CHIP_LABEL_PT, INSTANCE_CHIP_CLASS } from './chip-surface.js';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import FactRows from '~/components/shared/FactRows.vue';
 import StateTag from '~/components/ui-mapping/StateTag.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
@@ -11,6 +11,9 @@ import HoverPeek from '~/components/shared/HoverPeek.vue';
 import ActionButton from '~/components/ui-mapping/ActionButton.vue';
 import { useInstancesStore } from '~/stores/instances';
 import { useRegistryStore } from '~/stores/registry';
+import { useAuthStore } from '~/stores/auth';
+import { instanceFactRows } from '~/utils/fact-rows.js';
+import { payloadFactLine } from '~/utils/data-display.js';
 import { normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
@@ -43,9 +46,18 @@ const emit = defineEmits(['select']);
 
 const loaded = ref(null);
 const instances = useInstancesStore();
+const authStore = useAuthStore();
 // The registry touch keeps the declaration-derived display-access
 // registration alive for the peek's and micro card's fact rows.
 useRegistryStore();
+// The fact-access gate input (FactRows derivation law).
+function factGateAuth() {
+  return {
+    permissions: authStore.activePermissions,
+    fieldPolicies: authStore.fieldPolicies,
+    stateFieldPolicies: authStore.stateFieldPolicies
+  };
+}
 const { t, te } = useI18n();
 const entityContext = inject('entityContext', null);
 const generatedExecuteAction = inject('generatedExecuteAction', null);
@@ -111,44 +123,51 @@ const unresolvedLabel = computed(() => generatedEntityLabel(
   generatedTypeId.value || props.type,
   { t, te }
 ));
-const compactDataFields = computed(() => compactDisplay.value.fields.filter(field =>
-  field.display !== 'entityRef'
-  && field.display !== 'entityRefList'
-  && field.role !== 'previewSource'
-));
+const compactDataFields = computed(() => instanceFactRows({
+  typeId: servedTypeId.value,
+  typeRecord: typeView.value,
+  entity: resolved.value,
+  auth: factGateAuth(),
+  translator: { t, te }
+}));
 const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.preview !== 'none');
-// The peek speaks the detail surface, the same field vocabulary the
-// record surface renders — the compact card budget stays on cards.
+// The peek band speaks the detail surface's preview treatment.
 const peekDisplay = computed(() => resolveInstanceDisplayContract({
   typeId: generatedTypeId.value,
   surface: 'detail',
   typeRecord: typeById(generatedTypeId.value)
 }));
 const peekHasPreview = computed(() => peekDisplay.value.surfaceContract.preview !== 'none');
-const peekDataFields = computed(() => peekDisplay.value.fields.filter(field =>
-  field.display !== 'entityRef'
-  && field.display !== 'entityRefList'
-  && field.role !== 'previewSource'
-));
 const PEEK_FACT_LIMIT = 8;
+const peekRows = computed(() => instanceFactRows({
+  typeId: servedTypeId.value,
+  typeRecord: typeView.value,
+  entity: peekEntity.value,
+  auth: factGateAuth(),
+  translator: { t, te },
+  cap: PEEK_FACT_LIMIT
+}));
+const peekPayloadLine = computed(() => payloadFactLine(peekEntity.value?.payload || null));
 // The peek fires only where it carries a fact beyond identity (the
-// FileChip law): a preview band, a state tag, or a fact row.
+// FileChip law): a preview band, a state tag, a fact row, or payload
+// name facts.
 const peekHasContent = computed(() =>
   peekHasPreview.value
-  || peekDataFields.value.length > 0
+  || peekRows.value.length > 0
+  || Boolean(peekPayloadLine.value)
   || Boolean(compactStatusState.value));
 // The peek speaks the live record: a ref may carry a slim message
-// snapshot, so the pool's cached field-bearing DTO (or its on-show
-// readable-reference resolution) stands in for the snapshot.
+// snapshot, so the pool's cached field- or payload-bearing DTO (or its
+// on-show readable-reference resolution) stands in for the snapshot.
 const peekHydrated = ref(null);
 const peekEntity = computed(() => {
   const cached = instances.dtoFor(servedTypeId.value, resolvedId.value);
-  return [peekHydrated.value, cached].find(dto => dto?.fields && Object.keys(dto.fields).length) || resolved.value;
+  return [peekHydrated.value, cached].find(dto => (dto?.fields && Object.keys(dto.fields).length) || dto?.payload) || resolved.value;
 });
 async function onPeekShow() {
   if (!props.fetch || !resolvedId.value) return;
   const cached = instances.dtoFor(servedTypeId.value, resolvedId.value);
-  if (cached?.fields && Object.keys(cached.fields).length) return;
+  if ((cached?.fields && Object.keys(cached.fields).length) || cached?.payload) return;
   peekHydrated.value = await instances
     .resolveReadableReference(instances.canonicalTypeKey(props.type), resolvedId.value, { silent: true })
     .catch(() => null);
@@ -311,10 +330,8 @@ function executeContextualAction(action) {
           />
         </span>
         <span v-if="compactDataFields.length" :class="LAYOUT.labeledBlock">
-          <DataBlock
-            :type-id="generatedTypeId"
-            :entity="resolved"
-            :fields="compactDataFields"
+          <FactRows
+            :rows="compactDataFields"
             variant="compact"
           />
         </span>
@@ -389,11 +406,9 @@ function executeContextualAction(action) {
           />
         </span>
         <span class="instance-inline-compact-facts">
-          <DataBlock
+          <FactRows
             v-if="resolved && compactDataFields.length"
-            :type-id="servedTypeId"
-            :entity="resolved"
-            :fields="compactDataFields"
+            :rows="compactDataFields"
             variant="compact"
           />
         </span>
@@ -488,14 +503,12 @@ function executeContextualAction(action) {
                 class="max-w-full shrink-0"
               />
             </span>
-            <DataBlock
-              v-if="peekDataFields.length"
-              :type-id="servedTypeId"
-              :entity="peekEntity"
-              :fields="peekDataFields"
-              :field-limit="PEEK_FACT_LIMIT"
+            <FactRows
+              v-if="peekRows.length"
+              :rows="peekRows"
               variant="compact"
             />
+            <span v-if="peekPayloadLine" class="text-muted text-supporting">{{ peekPayloadLine }}</span>
           </span>
         </template>
       </HoverPeek>

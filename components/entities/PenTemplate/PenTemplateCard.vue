@@ -14,7 +14,7 @@
         </div>
       </template>
       <Divider />
-      <DataBlock type-id="penTemplate" :entity="pen" :fields="FIELDS" />
+      <FactRows :rows="penRows" />
       <template #footer>
         <slot name="footer" />
       </template>
@@ -30,17 +30,32 @@ import { computed } from 'vue';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { useAuthStore } from '~/stores/auth';
+import { useI18n } from 'vue-i18n';
+import FactRows from '~/components/shared/FactRows.vue';
+import { instanceFactRows } from '~/utils/fact-rows.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 
+const { t, te } = useI18n();
 const { typeById } = useFileTypeView();
-const FIELDS = computed(() => resolveInstanceDisplayFields({ typeId: 'penTemplate', surface: 'card', typeRecord: typeById('pen-template') }));
+const penRows = computed(() => instanceFactRows({
+  typeId: 'pen-template',
+  typeRecord: typeById('pen-template'),
+  entity: props.pen,
+  auth: {
+    permissions: authStore.activePermissions,
+    fieldPolicies: authStore.fieldPolicies,
+    stateFieldPolicies: authStore.stateFieldPolicies
+  },
+  translator: { t, te }
+}));
 
 const props = defineProps({
   pen: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
+
+const authStore = useAuthStore();
 
 const strokeColor = computed(() => props.pen.data?.stroke?.color || props.pen.stroke?.color || 'var(--p-content-border-color)');
 const strokeWeight = computed(() => props.pen.data?.stroke?.weight || props.pen.stroke?.weight || null);

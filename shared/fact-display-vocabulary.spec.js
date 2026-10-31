@@ -1,14 +1,13 @@
 // One fact vocabulary — the end-to-end contract over the bundle-resolved
 // fact feed: declarations carry the naming vocabulary (name, glyph, field
-// labels, identifier/depiction flags, per-state display on the states
-// facet), the CTS client bundle derives the display policy (sections,
-// resolved state display — no render facet anywhere),
-// `utils/instance-display-contract.js` resolves fact rows by surface
-// through `factsFor` (bundle-only; per-call overrides winning), display policies render units/dimensions,
-// record titles and glyphs resolve through the one resolvers
-// (`titleFor`/`iconFor`), fact rows gate through field access
-// (legacy-first, declaration-derived for org-authored types), and the
-// legacy residual fact channel is gone.
+// labels, identifier/depiction flags), the CTS client bundle derives the
+// display policy (sections, no render facet anywhere), read-only surfaces
+// resolve scalar fact rows through `utils/fact-rows.js`
+// (`instanceFactRows` — the generated field vocabulary with the
+// field-access gate and the value display policy), surface chrome derives
+// from the type record through `resolveInstanceDisplayContract`, record
+// titles and glyphs resolve through the one resolvers
+// (`titleFor`/`iconFor`), and the legacy residual fact channel is gone.
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, compileClientBundle, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
 import { facadeFileTypes } from '../test-tools/facade-plugin.js';
@@ -16,10 +15,9 @@ import { DESIGN_SYSTEM_FIELD_GROUPS } from '../utils/design-system-contract.js';
 import techDrawingListing from '../workers/tech-drawing/listing.json';
 const techDrawingTypes = techDrawingListing.declarations.types;
 import {
-  resolveInstanceDisplayContract,
-  resolveInstanceDisplayFields,
-  factsFor
+  resolveInstanceDisplayContract
 } from '../utils/instance-display-contract.js';
+import { instanceFactRows } from '../utils/fact-rows.js';
 import { registerDeclarationFieldAccess, filterEntityFields } from './instance-field-access.js';
 import { decorateDataValue } from '../utils/data-display.js';
 import { titleFor, iconFor, fieldLabel } from '../shared/ui-mapping/index.js';
@@ -38,7 +36,9 @@ function servedBundle() {
     id: 'widget', class: 'item', name: 'Widget',
     fields: {
       name: { base: 'string', identifier: true },
-      parts: { base: 'list', itemType: { base: 'string' }, nullable: true }
+      parts: { base: 'list', itemType: { base: 'string' }, nullable: true },
+      mass: { base: 'number', label: 'Mass kg' },
+      code: { base: 'string', label: 'Code' }
     },
     states: {
       main: {
@@ -93,47 +93,32 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     expect(widget.states).toBeUndefined();
   });
 
-  it('resolves card/detail fact rows from the derived sections keyed by surface', () => {
-    const card = resolveInstanceDisplayContract({
-      typeId: 'sheet-design', surface: 'card',
-      typeRecord: typeRecordFor(bundle, 'sheet-design')
-    });
-    expect(card.bundleResolved).toBe(true);
-    expect(card.fields.map(field => field.path)).toEqual(['fields.geometry']);
-    const detail = resolveInstanceDisplayContract({
-      typeId: 'sheet-design', surface: 'detail',
-      typeRecord: typeRecordFor(bundle, 'sheet-design')
-    });
-    expect([...new Set(detail.fields.map(field => field.group))]).toEqual(['summary']);
+  it('resolves surface chrome from the type record', () => {
     const compact = resolveInstanceDisplayContract({
       typeId: 'cassette-template', surface: 'compact',
       typeRecord: typeRecordFor(bundle, 'cassette-template')
     });
     expect(compact.surfaceContract.fieldLimit).toBe(3);
-  });
-
-  it('exposes factsFor as the one bundle-only fact-row resolver', () => {
-    const sheetDesign = typeRecordFor(bundle, 'sheet-design');
-    expect(factsFor(sheetDesign, 'card').map(field => field.path)).toEqual(['fields.geometry']);
-    expect(factsFor(sheetDesign, 'detail').map(field => field.path)).toEqual(['fields.geometry']);
-    // Compact surfaces bound to the leading summary facts only.
-    expect(factsFor(sheetDesign, 'compact').map(field => field.path)).toEqual(['fields.geometry']);
-    // No type view, no rows: undeclared types resolve nothing.
-    expect(factsFor(null, 'card')).toEqual([]);
-  });
-
-  it('composes per-call groups and surface patches over the bundle rows', () => {
-    const widget = typeRecordFor(bundle, 'widget');
-    const picked = { picked: [{ path: 'fields.picked', label: 'widget.picked', display: 'text', priority: 1 }] };
-    const overridden = resolveInstanceDisplayContract({
-      typeId: 'widget', surface: 'card', typeRecord: widget,
-      fieldGroups: picked,
-      surfaces: { card: { fieldGroups: ['picked'] } }
+    expect(compact.surfaceContract.preview).toBe('attachment');
+    const patched = resolveInstanceDisplayContract({
+      typeId: 'widget', surface: 'card', typeRecord: typeRecordFor(bundle, 'widget'),
+      surfaces: { card: { preview: 'canvas' } }
     });
-    expect(overridden.fields.map(field => field.path)).toEqual(['fields.picked']);
-    // With no authored list, synthesis runs over the merged map.
-    const plain = resolveInstanceDisplayContract({ typeId: 'widget', surface: 'card', typeRecord: widget });
-    expect(plain.fields.map(field => field.path)).toEqual(['fields.parts']);
+    expect(patched.surfaceContract.preview).toBe('canvas');
+  });
+
+  it('exposes instanceFactRows as the one read-only fact-row derivation', () => {
+    const widget = typeRecordFor(bundle, 'widget');
+    const entity = { fields: { name: 'W', mass: 12, code: 'PC-9' } };
+    // The identifier is the title; geometry blobs and prose stay with
+    // their own surfaces — scalar rows carry the record's facts.
+    const rows = instanceFactRows({ typeId: 'widget', typeRecord: widget, entity });
+    expect(rows.map(row => [row.label, row.display])).toEqual([['Mass kg', '12'], ['Code', 'PC-9']]);
+    expect(instanceFactRows({ typeId: 'widget', typeRecord: widget, entity, cap: 1 }).length).toBe(1);
+    expect(instanceFactRows({ typeId: 'widget', typeRecord: widget, entity, skip: ['mass'] }).map(row => row.label)).toEqual(['Code']);
+    // Empty values and absent type views resolve no rows.
+    expect(instanceFactRows({ typeId: 'widget', typeRecord: widget, entity: { fields: {} } })).toEqual([]);
+    expect(instanceFactRows({ typeId: 'widget', typeRecord: null, entity })).toEqual([]);
   });
 
   it('resolves record titles through the one title resolver (identifier or unnamed)', () => {
@@ -172,28 +157,20 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     // `cncEntities` (project, queue, sheet, remnant, catalog, …) or
     // master data whose legacy surfaces are gone.
     expect(Object.keys(DESIGN_SYSTEM_FIELD_GROUPS)).toEqual([]);
-    // An undeclared type resolves no fact rows and no legacy fallback.
+    // An undeclared type resolves no legacy fallback.
     const undeclared = resolveInstanceDisplayContract({ typeId: 'queue', surface: 'card' });
-    expect(undeclared.bundleResolved).toBe(false);
-    expect(undeclared.fields).toEqual([]);
+    expect(undeclared.surfaceContract.preview).toBe('none');
+    expect(instanceFactRows({ typeId: 'queue', typeRecord: null, entity: {} })).toEqual([]);
   });
 
-  it('filters bundle-derived rows through field access', () => {
+  it('gates derived fact rows through field access', () => {
     // The legacy facade access policy still owns this type's read paths
-    // (feature 'facades'): its read list covered the authored group paths
-    // that died with the render facet, so the derived `data.name` row is
-    // denied — legacy policy gates derived fact rows exactly as it gated
-    // authored ones. Declaration access covers types with no legacy
-    // entry (below).
-    const visible = filterEntityFields({
-      fields: resolveInstanceDisplayFields({
-        typeId: 'facade-design', surface: 'card',
-        typeRecord: typeRecordFor(bundle, 'facade-design')
-      }),
+    // (feature 'facades'): the path is denied under a read grant.
+    expect(filterEntityFields({
+      fields: [{ path: 'fields.name' }],
       permissions: { facades: 'read' },
       typeId: 'facade-design'
-    });
-    expect(visible).toEqual([]);
+    })).toEqual([]);
 
     // An org-authored type (no legacy policy anywhere) derives its fact
     // rows; declaration-derived access gates them by the class
@@ -211,17 +188,16 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     }
     registerDeclarationFieldAccess(entries);
     const widgetRecord = typeRecordFor(bundle, 'widget');
-    const allowed = filterEntityFields({
-      fields: resolveInstanceDisplayFields({ typeId: 'widget', surface: 'card', typeRecord: widgetRecord }),
-      permissions: { items: 'read' },
-      typeId: 'widget'
+    const entity = { fields: { name: 'W', mass: 12 } };
+    const allowed = instanceFactRows({
+      typeId: 'widget', typeRecord: widgetRecord, entity,
+      auth: { permissions: { items: 'read' } }
     });
-    const denied = filterEntityFields({
-      fields: resolveInstanceDisplayFields({ typeId: 'widget', surface: 'card', typeRecord: widgetRecord }),
-      permissions: {},
-      typeId: 'widget'
+    const denied = instanceFactRows({
+      typeId: 'widget', typeRecord: widgetRecord, entity,
+      auth: { permissions: {} }
     });
-    expect(allowed.map(field => field.path)).toEqual(['fields.parts']);
+    expect(allowed.map(row => row.display)).toEqual(['12']);
     expect(denied).toEqual([]);
     registerDeclarationFieldAccess({});
   });

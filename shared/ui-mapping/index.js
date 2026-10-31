@@ -112,7 +112,7 @@ const LONG_STRING_AT = 120;
 
 // The long-string rule in one home: multiline flags and max-length caps
 // past LONG_STRING_AT make a string field prose.
-const isLongText = descriptor => descriptor?.base === 'string'
+export const isLongText = descriptor => descriptor?.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= LONG_STRING_AT);
 
 // The quantitative-dominance signal (SPEC §22.8): the statlike shape —

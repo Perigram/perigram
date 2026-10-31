@@ -19,11 +19,7 @@
       />
     </template>
 
-    <DataBlock
-      type-id="organization"
-      :entity="organization"
-      :fields="organizationFields"
-    />
+    <FactRows :rows="organizationRows" />
   </StandardPage>
 </template>
 
@@ -33,9 +29,9 @@ import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import InstanceChatEntry from '~/components/shared/InstanceChatEntry.vue';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import FactRows from '~/components/shared/FactRows.vue';
 import { useAuthStore } from '~/stores/auth';
-import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { instanceFactRows } from '~/utils/fact-rows.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { workspacePageIdForRoute } from '~/components/generated/workspace-pages.js';
 import { openWorkspacePageFromChrome } from '~/utils/workspace-page-open.js';
@@ -54,7 +50,17 @@ const organizationName = computed(() => organization.value?.identity?.name || ''
 
 const systemScreens = computed(() => (props.screen.systemScreens || []).filter(item => item.route));
 const { typeById } = useFileTypeView();
-const organizationFields = computed(() => resolveInstanceDisplayFields({ typeId: 'organization', surface: 'detail', typeRecord: typeById('organization') }));
+const organizationRows = computed(() => instanceFactRows({
+  typeId: 'organization',
+  typeRecord: typeById('organization'),
+  entity: organization.value,
+  auth: {
+    permissions: authStore.activePermissions,
+    fieldPolicies: authStore.fieldPolicies,
+    stateFieldPolicies: authStore.stateFieldPolicies
+  },
+  translator: { t, te }
+}));
 
 function systemLabel(key = '', fallback = '') {
   return key && te(key) ? t(key) : fallback || key;

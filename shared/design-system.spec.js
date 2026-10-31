@@ -386,7 +386,7 @@ describe('Design system manifest', () => {
 
   it('assigns typography roles on their owning surfaces', () => {
     const fontsCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/fonts.css'), 'utf8');
-    const dataBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/DataBlock.vue'), 'utf8');
+    const factRows = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/FactRows.vue'), 'utf8');
     const actionToolbar = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/ActionToolbar.vue'), 'utf8');
     const filePayloadViewer = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/FilePayloadViewer.vue'), 'utf8');
     const textDocumentEditor = fs.readFileSync(path.join(REPO_ROOT, 'workers/documents/surfaces/text-editor.mjs'), 'utf8');
@@ -395,14 +395,14 @@ describe('Design system manifest', () => {
     expect(fontsCss).toContain(':where(input, button, select, textarea)');
     expect(fontsCss).not.toMatch(/:where\((?:p|blockquote|h[1-6]|code|pre)/);
     expect(fontsCss).not.toContain('.ck-prose');
-    expect(dataBlock).toContain('text-technical');
+    expect(factRows).toContain('text-technical');
     expect(actionToolbar).toContain("props.level <= 1 ? 'text-page-title' : 'text-section-heading'");
     // Document surfaces read in the app's prose voice (serif), not the
     // technical mono role: file payload previews, the single-surface live
     // markdown editor, and agent chat answers — an agent answer is a
     // markdown room document (human chat text stays in the UI voice; the
     // technical mono role stays with data surfaces like the csv table
-    // and DataBlock).
+    // and FactRows).
     expect(filePayloadViewer).toContain('text-prose');
     expect(filePayloadViewer).not.toContain('text-technical');
     expect(textDocumentEditor).toContain('text-prose');
@@ -603,7 +603,7 @@ describe('Design system manifest', () => {
     expect(Object.keys(DESIGN_SYSTEM_FIELD_GROUPS)).toEqual([]);
   });
 
-  it('keeps standard entity DataBlock fields out of component-local arrays', () => {
+  it('keeps entity card fields on the generated derivation, out of component-local path arrays', () => {
     const offenders = walkFiles(
       path.join(REPO_ROOT, 'components/entities'),
       (file) => file.endsWith('.vue') && !file.endsWith('.old.vue') && !file.endsWith('.v23.vue')
@@ -753,7 +753,7 @@ describe('Design system manifest', () => {
     expect(relationsBlock).toContain('overflowItems');
     expect(relationsBlock).toContain('itemVariant');
     expect(relationsBlock).toContain("field.display === 'entityRefList'");
-    expect(surfaceContent).toContain("props.suppressChildSummaries && (field.role === 'childCount' || field.replacesCountPath)");
+    expect(surfaceContent).toContain('instanceFactRows');
     expect(surfaceContent).toContain('relationVariant');
     expect(inlineRef).toContain("variant === 'compact'");
     expect(inlineRef).toContain("'w-full' : null");
@@ -836,7 +836,7 @@ describe('Design system manifest', () => {
     }
   });
 
-  it('formats generated DataBlock values without artificial object strings', () => {
+  it('formats generated fact values without artificial object strings', () => {
     const entity = {
       data: {
         count: 3,
