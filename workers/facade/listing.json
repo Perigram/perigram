@@ -166,6 +166,7 @@
           },
           "mapping": {
             "base": "json",
+            "nullable": true,
             "constructible": false
           },
           "geometry": {
