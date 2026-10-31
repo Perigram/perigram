@@ -74,10 +74,10 @@ menu) launched the run, so executors target the launching entity; a
 reference-bound relation operation additionally carries `data` — the
 relation payload (`{ relations: { key: ref } }`) the run dispatches with,
 bound to the parent record as its instance. The record header seats the
-opened record's scoped quick actions — machine transitions, a construct's
-re-run, and the record's derived export affordances — beside the region's
-manifest actions; collection surfaces offer the same set through their
-ellipsis menus.
+opened record's scoped quick actions — machine transitions and the
+record's derived export affordances — beside the region's manifest
+actions; the construct's re-run rides the record-utilities group. A
+collection surface offers the same set through its ellipsis menus.
 
 Detail editing follows the record-surface edit law
 ([SPEC §4](../../SPEC.md)): an `onPatch({ instance, patch })` prop
@@ -437,7 +437,8 @@ beside the transition history in `StateHistory`.
   composed instance-chat entry,
   the host-resolved editor action component (`editorActions` channel: the
   app host resolves the file-surface registry per type and the engine
-  renders what it receives), payload revisions, payload replacement —
+  renders what it receives), payload revisions, the construct re-derive,
+  payload replacement —
   then at most `HEADER_ACTIONS_INLINE` generated
   buttons inline — a third and every further action join one popup
   ellipsis menu with the same localized labels — then every available

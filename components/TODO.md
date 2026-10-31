@@ -602,4 +602,6 @@ keeps the record's buttons and gains a step-up. `SurfaceHeader` carries
 for `peek` over the body. `expandable`/`expand` thread through
 `GeneratedMappingScreen` and `GeneratedScreenHost`; `InstancePeek` turns
 `expand` into `openInstanceInWorkspace`, and `HoverPeek` dismisses on the
-workspace instance/page open events.
+workspace instance/page open events. Owner follow-up: the construct
+re-derive seats in the record-utilities group beside payload revisions
+and replacement.
