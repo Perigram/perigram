@@ -3305,7 +3305,14 @@ breadcrumbs.
   channel, and the trail resolves labels through the instances store.
 - [ ] WAITING — owner verification: the breadcrumb trail is compact with
   a transparent background, and the identity line carries a subtle type
-  label.
+  label under the title.
+
+### Agent Notes (2026-10-31, type label under title)
+
+Session `agent/instance-type-under-title-20261031` (worktree
+`.agent-worktrees/instance-type-under-title-20261031`). The identity
+block stacks the title row and its type label; state and history remain
+on the title line.
 
 ### Agent Notes (2026-10-31, compact header trail)
 

@@ -411,8 +411,8 @@ beside the transition history in `StateHistory`.
   the type glyph, the title in the container-stepped
   `text-record-title` role (the one title resolver —
   [shared/ui-mapping](../../shared/ui-mapping/README.md); instance ids
-  are private display vocabulary), a subtle type label through the same
-  type-label chain, and exactly one
+  are private display vocabulary), a subtle type label under the title
+  through the same type-label chain, and exactly one
   state surface riding the title line. A state axis is a tree, so stateful
   records carry no lifecycle strip: an instance with a flat `state`
   renders the segmented current-state tag (`StateTag`, resolved against
