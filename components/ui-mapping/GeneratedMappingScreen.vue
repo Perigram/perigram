@@ -98,8 +98,8 @@
             v-else-if="row.control === 'layer-mapping'"
             :model-value="dialogDraft[row.id] || {}"
             :file-ref="dialogFileRef"
-            :targets="row.descriptor?.controlOptions?.targets || []"
-            :required-target="row.descriptor?.controlOptions?.requiredTarget || ''"
+            :targets="row.controlOptions?.targets || []"
+            :required-target="row.controlOptions?.requiredTarget || ''"
             @update:model-value="value => (dialogDraft[row.id] = value)"
           />
           <div v-else-if="row.descriptor?.base === 'ref'" class="flex items-center gap-2">
@@ -268,9 +268,11 @@ const props = defineProps({
   // header (`{ icon, label, command }` — SurfaceHeader's navigation
   // channel, threaded through RegionBlock to the depth-0 header).
   navigation: { type: Object, default: null },
-  // The depth-0 detail treatment: `record` renders the full record
-  // header, `peek` the compact identity-and-state line over the body.
+  // The depth-0 detail treatment: `record` renders the record header's
+  // page chrome; `peek` renders its compact identity line over the body.
   presentation: { type: String, default: 'record' },
+  // Host-selected step-up affordance on the depth-0 record header.
+  expandable: { type: Boolean, default: false },
   // The host surface names this screen (the pane tab, the routed page's
   // title bar); the list header label stays with the host.
   // Explicit rhythm coefficient (the design-lab slider); null rides the
@@ -328,7 +330,7 @@ async function executeTransition(payload = {}) {
   if (typeof props.onTransition !== 'function') return;
   await props.onTransition(payload);
 }
-const emit = defineEmits(['instance-mounted']);
+const emit = defineEmits(['instance-mounted', 'expand']);
 // The routed detail instance (org-authored CTS detail routes have no legacy
 // overload): the conversation rail and the transition watcher resolve the
 // same composed non-list region.
@@ -370,7 +372,8 @@ const regionBlockProps = computed(() => ({
   loadType: props.onLoadType,
   navigation: props.navigation,
   editorActions: props.editorActions,
-  presentation: props.presentation
+  presentation: props.presentation,
+  expandable: props.expandable
 }));
 const submitPatch = async ({ instance, patch } = {}) => {
   if (!patchable.value || !instance) return;
@@ -698,6 +701,7 @@ const regionBlockEvents = {
   run: openAction,
   transition: executeTransition,
   open: openInstance,
-  patch: submitPatch
+  patch: submitPatch,
+  expand: () => emit('expand')
 };
 </script>

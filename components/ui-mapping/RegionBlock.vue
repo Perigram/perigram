@@ -131,20 +131,7 @@
   <div v-else :class="[stackFor, 'w-full', 'relative']">
     <RegionDataState v-if="showState" :node="node" />
     <template v-if="depth === 0 && showSurfaces">
-      <div v-if="presentation === 'peek'" :class="[LAYOUT.row, 'min-w-0 items-center gap-2']">
-        <InstanceIdentity
-          :instance="node.instances[0]"
-          :type="node.type"
-          text-class="text-label"
-        />
-        <StateTag
-          v-if="node.instances[0]?.state"
-          :value="node.instances[0].state"
-          :policy="node.statePolicy"
-          class="shrink-0"
-        />
-      </div>
-      <div v-else class="relative">
+      <div class="relative">
         <SurfaceHeader
           :type="node.type"
           :instance="node.instances[0]"
@@ -154,10 +141,13 @@
           :state-policy="node.statePolicy"
           :navigation="depth === 0 ? navigation : null"
           :editor-action="editorActions?.[node.type?.id] || null"
+          :compact="presentation === 'peek'"
+          :expandable="expandable"
           @run="emitRun"
           @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
           @refresh="emit('refresh')"
           @open-instance="emitOpen"
+          @expand="emit('expand')"
         />
         <!-- The record's reload lane: a permanent 4px track under the
              header the strip appears inside — bounded, touching no
@@ -244,8 +234,6 @@ import SurfaceBody from './SurfaceBody.vue';
 import SortControl from './SortControl.vue';
 import CreateControl from './CreateControl.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
-import InstanceIdentity from './InstanceIdentity.vue';
-import StateTag from './StateTag.vue';
 import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
 import RegionCollections from './RegionCollections.vue';
@@ -282,15 +270,17 @@ const props = defineProps({
   // Editor action components by type (the host resolves them over the
   // file-surface registry; the header renders what it is given).
   editorActions: { type: Object, default: null },
-  // The depth-0 detail treatment: `record` renders the full record
-  // header, `peek` the compact identity-and-state line over the body.
+  // The depth-0 detail treatment: `record` renders the record header's
+  // page chrome; `peek` renders its compact identity line over the body.
   presentation: { type: String, default: 'record' },
+  // Host-selected step-up affordance on the depth-0 header.
+  expandable: { type: Boolean, default: false },
   // The stub slot (SPEC → Placement-aware composition): an inert child
   // renders one compact line — label, count, its own create action.
   stub: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh']);
+const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh', 'expand']);
 const emitOpen = instance => emit('open', instance);
 // One binding set for the record body and its child regions across the
 // split, stack, and nested branches.

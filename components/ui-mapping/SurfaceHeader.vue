@@ -7,7 +7,7 @@
        identity's flex-1 is the push) and wraps below on narrow
        containers (the LAYOUT header recipe, container-relative). -->
   <div :class="[spacing ? spacing.stackTight : LAYOUT.stackTight, 'surface-header', LAYOUT.header]">
-    <BreadcrumbTrail :instance="instance" :bundle="bundle" @open="target => emit('open-instance', target)" />
+    <BreadcrumbTrail v-if="!compact" :instance="instance" :bundle="bundle" @open="target => emit('open-instance', target)" />
     <div :class="LAYOUT.headerRow">
       <!-- Contextual navigation slot: a host that opened this record
            inside another surface (a workspace tab reached from another
@@ -22,10 +22,10 @@
       />
       <slot name="navigation" />
       <div :class="[LAYOUT.row, LAYOUT.headerIdentity]">
-        <Avatar :icon="glyph" shape="circle" size="large" class="shrink-0" />
+        <Avatar :icon="glyph" shape="circle" :size="compact ? undefined : 'large'" class="shrink-0" />
         <div class="flex min-w-0 flex-1 flex-col">
           <div :class="LAYOUT.row" class="min-w-0">
-            <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
+            <span :class="[compact ? 'text-label' : (TYPE_BY_LEVEL[props.level] || 'text-section-heading'), LAYOUT.nameClamp]">{{ identity }}</span>
             <!-- One state surface per header: an instance carrying a flat
                  state renders the segmented current-state tag with its
                  history popover (the status_events audit trail) riding
@@ -48,7 +48,7 @@
               <StateHistory :instance="instance" :type-id="type.id" :target-id="instance.id" compact />
             </Popover>
           </div>
-          <span v-if="typeLabel" class="truncate text-muted text-supporting">{{ typeLabel }}</span>
+          <span v-if="!compact && typeLabel" class="truncate text-muted text-supporting">{{ typeLabel }}</span>
         </div>
       </div>
       <div :class="LAYOUT.row" class="header-actions">
@@ -123,6 +123,22 @@
           @click="event => overflowMenu?.toggle(event)"
         />
         <Menu ref="overflowMenu" :model="overflowMenuItems" popup />
+        <span
+          v-if="expandable && (inlineActions.length || transitionActions.length || overflowActions.length)"
+          :class="LAYOUT.actionDivider"
+        />
+        <div v-if="expandable" :class="LAYOUT.actionGroup">
+          <Button
+            icon="pi pi-external-link"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('common.expand')"
+            :title="$t('common.expand')"
+            @click="emit('expand')"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -167,10 +183,16 @@ const props = defineProps({
   navigation: { type: Object, default: null },
   // Editor action component for this record's type, resolved by the host
   // over the file-surface registry (null when the type has no editor).
-  editorAction: { type: [Object, Function], default: null }
+  editorAction: { type: [Object, Function], default: null },
+  // The compact treatment: the identity line alone, with every action
+  // control and the state surface, over the body (the peek presentation).
+  compact: { type: Boolean, default: false },
+  // Host-selected step-up affordance: the record opens as its own page
+  // instead of the current bounded surface.
+  expandable: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['run', 'transition', 'refresh', 'open-instance']);
+const emit = defineEmits(['run', 'transition', 'refresh', 'open-instance', 'expand']);
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
 const typeLabel = computed(() => (props.type ? generatedEntityLabel(props.type, { t, te }) : ''));
 

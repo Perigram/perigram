@@ -24,9 +24,11 @@
     :on-patch="runGeneratedPatch"
     :on-open="openInstance"
     :navigation="navigation"
+    :expandable="expandable"
     :export-actions="exportActionsByType"
     :editor-actions="editorActionsByType"
     @instance-mounted="loadRuntimeTransitions"
+    @expand="emit('expand')"
   />
   <Dialog
     :visible="actionResult !== null"
@@ -88,12 +90,14 @@ const props = defineProps({
   // hosts that opened this record inside another surface feed it so a
   // detail deep link can return to where the user came from.
   navigation: { type: Object, default: null },
-  // The depth-0 record treatment: `record` renders the full record
-  // header, `peek` the compact identity-and-state line over the body.
-  presentation: { type: String, default: 'record' }
+  // The depth-0 record treatment: `record` renders the record header's
+  // page chrome, `peek` its compact identity line over the body.
+  presentation: { type: String, default: 'record' },
+  // Host-selected step-up affordance on the depth-0 record header.
+  expandable: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['open-instance', 'refresh']);
+const emit = defineEmits(['open-instance', 'refresh', 'expand']);
 
 const toast = useToast();
 const { te, t } = useI18n();
