@@ -15,7 +15,11 @@ export function emptyAuthoringDomain() {
 
 export function composeOrderTree(authoring) {
   authoring.declareClass({ id: 'orderClass', typeId: 'facade-order', class: 'group', name: 'Facade order' });
+  authoring.declareClass({ id: 'entryClass', typeId: 'nesting-entry', class: 'item', name: 'Nesting entry' });
   authoring.declareClass({ id: 'attemptClass', typeId: 'nesting-attempt', class: 'item', name: 'Nesting attempt' });
+  authoring.declareField({ id: 'entryLabelField', ownerClassId: 'entryClass', name: 'label', descriptor: { base: 'string', identifier: true } });
+  authoring.declareField({ id: 'entryDesignField', ownerClassId: 'entryClass', name: 'design', descriptor: { base: 'ref' } });
+  authoring.declareField({ id: 'entryCountField', ownerClassId: 'entryClass', name: 'count', descriptor: { base: 'quantity', unit: 'count' } });
   authoring.declareField({ id: 'orderNameField', ownerClassId: 'orderClass', name: 'name', descriptor: { base: 'string', identifier: true } });
   authoring.declareField({ id: 'attemptLabelField', ownerClassId: 'attemptClass', name: 'label', descriptor: { base: 'string', identifier: true } });
   authoring.declareField({ id: 'attemptResultField', ownerClassId: 'attemptClass', name: 'result', descriptor: { base: 'json' } });
@@ -23,9 +27,11 @@ export function composeOrderTree(authoring) {
   authoring.declareTypeRef({ id: 'csvRef', typeId: 'csv-table' });
   authoring.declareTypeRef({ id: 'cassetteRef', typeId: 'cassette-template' });
   authoring.declareTypeRef({ id: 'designRef', typeId: 'cassette-design' });
+  authoring.declareTypeRef({ id: 'cassetteInstanceRef', typeId: 'cassette-instance' });
   authoring.declareTypeRef({ id: 'sheetRef', typeId: 'sheet-design' });
   authoring.declareTypeRef({ id: 'sheetInstanceRef', typeId: 'sheet-instance' });
   authoring.declareTypeRef({ id: 'cutPlanRef', typeId: 'sheet-cut-plan' });
+  authoring.wireDeclaration('designRef', 'entryDesignField', 'targets');
   authoring.declareClass({ id: 'materialClass', typeId: 'sheet-material', class: 'file', name: 'Sheet material' });
   authoring.declareField({ id: 'materialCode', ownerClassId: 'materialClass', name: 'code', descriptor: { base: 'string', identifier: true } });
   authoring.declareField({ id: 'materialWidth', ownerClassId: 'materialClass', name: 'width', descriptor: { base: 'quantity', unit: 'mm' } });
@@ -34,6 +40,8 @@ export function composeOrderTree(authoring) {
   authoring.declareField({ id: 'tableField', ownerClassId: 'orderClass', name: 'table', descriptor: { base: 'ref' } });
   authoring.wireDeclaration('xlsxRef', 'tableField', 'targets');
   authoring.wireDeclaration('csvRef', 'tableField', 'targets');
+  authoring.wireDeclaration('entryClass', 'orderClass', 'children', { key: 'contents' });
+  authoring.wireDeclaration('cassetteInstanceRef', 'entryClass', 'children', { key: 'contents' });
   authoring.wireDeclaration('designRef', 'orderClass', 'children', { key: 'contents' });
   authoring.wireDeclaration('materialClass', 'orderClass', 'children', { key: 'contents' });
   authoring.wireDeclaration('attemptClass', 'orderClass', 'children', { key: 'contents' });
@@ -105,6 +113,35 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('formatValue', { id: 'designKey' });
   authoring.configure('designKey', { type: { base: 'string', nullable: false }, template: '{cassette}|{A}|{B}' });
 
+  authoring.drop('construct', { id: 'mkEntry' });
+  authoring.wireDeclaration('entryClass', 'mkEntry', 'binds');
+  authoring.configure('mkEntry', { access: adminAccess });
+  authoring.setInputDefault('mkEntry', 'fields.label', 'Nesting entry');
+
+  authoring.drop('forEachEntity', { id: 'entryLoop' });
+  authoring.configure('entryLoop', { type: { base: 'entityRef', typeId: 'nesting-entry' } });
+  authoring.drop('getField', { id: 'entryCount' });
+  authoring.configure('entryCount', { typeId: 'nesting-entry' });
+  authoring.setInputDefault('entryCount', 'field', 'fields.count');
+  authoring.drop('getField', { id: 'entryDesign' });
+  authoring.configure('entryDesign', { typeId: 'nesting-entry' });
+  authoring.setInputDefault('entryDesign', 'field', 'fields.design');
+  authoring.drop('castValue', { id: 'entryCountInt' });
+  authoring.configure('entryCountInt', { outputType: { base: 'integer' } });
+  authoring.drop('text', { id: 'markerText' });
+  authoring.configure('markerText', { operation: 'repeat', type: { base: 'string', nullable: false } });
+  authoring.drop('text', { id: 'markerList' });
+  authoring.configure('markerList', { operation: 'split', type: { base: 'string', nullable: false } });
+  authoring.drop('literal', { id: 'marker' });
+  authoring.configure('marker', { type: { base: 'string', nullable: false }, value: 'x' });
+  authoring.drop('literal', { id: 'empty' });
+  authoring.configure('empty', { type: { base: 'string', nullable: false }, value: '' });
+  authoring.drop('formatValue', { id: 'cassetteName' });
+  authoring.configure('cassetteName', { type: { base: 'string', nullable: false }, template: 'Cassette {value}' });
+  authoring.drop('construct', { id: 'mkCassette' });
+  authoring.wireDeclaration('cassetteInstanceRef', 'mkCassette', 'binds');
+  authoring.configure('mkCassette', { access: adminAccess });
+
   authoring.drop('forEachEntity', { id: 'loop' });
   authoring.configure('loop', { type: { base: 'entityRef', typeId: 'sheet-material' } });
 
@@ -166,7 +203,11 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.setInputDefault('mkCutPlanNew', 'fields.name', 'Cut plan');
 
   authoring.connect('order', 'control:completed', 'bake', 'control:in');
-  authoring.connect('bake', 'control:completed', 'materials', 'control:in');
+  authoring.connect('bake', 'control:completed', 'mkEntry', 'control:in');
+  authoring.connect('mkEntry', 'control:completed', 'entryLoop', 'control:in');
+  authoring.connect('entryLoop', 'control:each', 'mkCassette', 'control:in');
+  authoring.connect('mkCassette', 'control:completed', 'entryLoopEnd', 'control:in');
+  authoring.connect('entryLoop', 'control:done', 'materials', 'control:in');
   authoring.connect('materials', 'control:completed', 'loop', 'control:in');
   authoring.connect('loop', 'control:each', 'solve', 'control:in');
   authoring.connect('solve', 'control:completed', 'attempt', 'control:in');
@@ -200,6 +241,21 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('designKeyRecord', 'data:record', 'designKey', 'data:record');
   authoring.connect('rowCount', 'data:value', 'countValue', 'data:value');
   authoring.connect('one', 'data:value', 'countValue', 'data:fallback');
+  authoring.connect('bake', 'data:result', 'mkEntry', 'data:fields.design');
+  authoring.connect('countValue', 'data:value', 'mkEntry', 'data:fields.count');
+  authoring.connect('order', 'data:result', 'mkEntry', `data:lineage.${ORDER_LINEAGE_KEY}`);
+  authoring.connect('mkEntry', 'data:result', 'entryLoop', 'data:items');
+  authoring.connect('entryLoop', 'data:item', 'entryCount', 'data:entity');
+  authoring.connect('entryLoop', 'data:item', 'entryDesign', 'data:entity');
+  authoring.connect('marker', 'data:value', 'markerText', 'data:text');
+  authoring.connect('entryCount', 'data:value', 'entryCountInt', 'data:value');
+  authoring.connect('entryCountInt', 'data:value', 'markerText', 'data:count');
+  authoring.connect('markerText', 'data:value', 'markerList', 'data:text');
+  authoring.connect('empty', 'data:value', 'markerList', 'data:separator');
+  authoring.connect('markerList', 'data:value', 'cassetteName', 'data:value');
+  authoring.connect('cassetteName', 'data:value', 'mkCassette', 'data:fields.name');
+  authoring.connect('entryDesign', 'data:value', 'mkCassette', 'data:fields.design');
+  authoring.connect('entryLoop', 'data:item', 'mkCassette', 'data:lineage.nestingEntryId');
 
   authoring.connect('rowTemplate', 'data:value', 'bake', 'data:template');
   authoring.connect('params', 'data:record', 'bake', 'data:parameters');
