@@ -323,7 +323,9 @@ async function resolveRefValue(instanceServiceResolver, declarationForType, inpu
   const value = await referencedValue(instance, input.revision || null);
   if (revisionId) value.revision = revisionId;
   if (input.spot != null) value.spot = input.spot;
-  const pin = revisionId ? { type: typeId, id: String(instance._id ?? input.id), revision: revisionId } : null;
+  // The stored ref shape: `{ type, id }` with the revision when the
+  // source type scopes one — a revisionless reference still stores.
+  const pin = { type: typeId, id: String(instance._id ?? input.id), ...(revisionId ? { revision: revisionId } : {}) };
   return { value, pin };
 }
 
