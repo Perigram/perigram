@@ -115,10 +115,10 @@
         "purpose": "PrimeVue MultiSelect wrapper rendering entity options as instance option rows and selected entities as glyph chips inside the control."
       },
       {
-        "componentPath": "components/shared/blocks/DataBlock.vue",
-        "key": "DataBlock",
+        "componentPath": "components/shared/FactRows.vue",
+        "key": "FactRows",
         "kind": "block",
-        "purpose": "Canonical label/value rows for fact surfaces; descriptors resolve from the compiled type view (render.groups), rendered with the declared display policies."
+        "purpose": "Read-only label/value rows over pre-resolved fact rows; the one derivation (utils/fact-rows.js) speaks the generated field vocabulary with the field-access gate and value display policy."
       },
       {
         "componentPath": "components/shared/state/InstanceState.vue",

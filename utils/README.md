@@ -41,20 +41,23 @@ Parent: [root README](../README.md).
   [components/process-designer](../components/process-designer/README.md);
   the step language and the 400 plan payload are the
   [cts-types](../server/features/cts-types/README.md) contract.
-- `instance-display-contract.js`: Pure resolver for the UI constructor and the
-  one fact vocabulary seam — one resolver per display fact, bundle-only.
-  `factsFor(typeView, surface)` projects the served CTS client bundle's
-  derived `sections` plus the field descriptors into ordered slot-qualified
-  fact rows for a surface (class-generic group policy, shared field limits:
-  inline 1, compact 3); the identifier field drops at the projection —
-  the title owns that value, a fact row would repeat it.
-  `resolveInstanceDisplayContract` composes on top:
-  bundle rows first, per-call `fieldGroups`/`surfaces`/`overrides` last
-  (they always win). Undeclared types resolve no
-  fact rows. Surface chrome (preview/dataDisplay/relations/actions/status/
-  trace) is class-generic policy derived from the type record (payload
-  presence, declared state axes); record titles and glyphs come from
+- `instance-display-contract.js`: Pure surface-chrome resolver for the
+  shared instance primitives. `resolveInstanceDisplayContract` derives
+  preview/dataDisplay/relations/actions/status/trace per surface from the
+  type record (payload presence, declared state axes), with per-call
+  `surfaces`/`overrides` patches winning. Fact rows live in
+  `fact-rows.js`; record titles and glyphs come from
   `titleFor`/`iconFor` in [shared/ui-mapping](../shared/ui-mapping/README.md).
+- `fact-rows.js`: The one fact-row derivation for read-only record
+  surfaces (peeks, tiles, compact refs, cards, directory profiles):
+  `instanceFactRows({ typeId, typeRecord, entity, accessEntity, auth,
+  translator, cap, skip })` projects the generated field vocabulary
+  (`resolveFieldGroups` — every declared field) with the record's values,
+  dropping the identifier (the title owns it), ref fields (relation
+  surfaces own them), prose, and structures; every row gates through
+  `shared/instance-field-access.js` via the `auth` input, labels resolve
+  the generated keys first (`fieldLabelKey`), and values render through
+  `decorateDataValue`. Rows carry their `group` for sectioned surfaces.
 - `instance-select.js`: The entity-option seam of the entity dropdown
   wrappers ([shared](../components/shared/README.md)) and every instance
   picker: option→entity/type resolution over the record dialects (an
@@ -70,7 +73,7 @@ Parent: [root README](../README.md).
   without an active Pinia), and the generated screen/region/action
   label resolvers on top translate compiled manifest labels through the
   same chain.
-- `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`. Declared `unit`s render as value suffixes through the closed unit-symbol table (`mm`, `m`, `m2`→`m²`, `percent`, `min`, `deg`); `display: 'dimensions'` renders the width × length span of a resolved specs object.
+- `data-display.js`: Shared path resolution and value formatting for fact rows (`decorateDataValue`), plus the byte-size and payload-fact labels (`formatFileSize`, `payloadFactLine`). It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`. Declared `unit`s render as value suffixes through the closed unit-symbol table (`mm`, `m`, `m2`→`m²`, `percent`, `min`, `deg`); `display: 'dimensions'` renders the width × length span of a resolved specs object.
 - `chat-file-targets.js`: Pure resolver for the chat composer's instance-chat
   upload window: over the served CTS type view it collects a composer
   target's declared `file`-class children whose payload traits and `upload`

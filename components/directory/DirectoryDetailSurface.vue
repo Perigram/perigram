@@ -35,8 +35,8 @@
       <!-- Sections are owned by PrimeVue: Panel carries the section
            chrome, Menu the organization entries. -->
       <template v-if="entry.type === 'user'">
-        <Panel v-if="detailedFields.length" :header="$t('common.details')">
-          <DataBlock type-id="user" :entity="detailed" :fields="detailedFields" />
+        <Panel v-if="detailRows.length" :header="$t('common.details')">
+          <FactRows :rows="detailRows" />
         </Panel>
         <Panel v-if="membershipOptions.length" :header="$t('profile.organizations')">
           <Menu :model="membershipMenuItems" class="w-full" :pt="flatMenu" />
@@ -55,12 +55,8 @@
           :screen="overviewScreen"
         />
         <template v-else>
-          <Panel v-if="detailedFields.length || hasOrganizationFacts" :header="$t('common.details')">
-            <DataBlock
-              type-id="organization"
-              :entity="factSource"
-              :fields="detailedFields.length ? detailedFields : ORGANIZATION_FACTS"
-            />
+          <Panel v-if="detailRows.length" :header="$t('common.details')">
+            <FactRows :rows="detailRows" />
           </Panel>
           <Panel v-if="partnership" :header="$t('partnerships.title')">
             <div class="flex items-center gap-2">
@@ -185,9 +181,9 @@ import Menu from 'primevue/menu';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import FactRows from '~/components/shared/FactRows.vue';
 import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrganizationOverview.vue';
-import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { instanceFactRows } from '~/utils/fact-rows.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { openInstanceChat } from '~/utils/instance-chat.js';
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
@@ -212,7 +208,7 @@ const props = defineProps({
 const authStore = useAuthStore();
 const toast = useToast();
 const confirm = useConfirm();
-const { t } = useI18n();
+const { t, te } = useI18n();
 const { onlineUserIds } = useConnections();
 
 // Menu rows sit inside a Panel body — the Panel owns the padding.
@@ -225,11 +221,22 @@ const partnerships = ref([]);
 const loading = ref(true);
 
 const { typeById } = useFileTypeView();
-const detailedFields = computed(() => (detailed.value?._id
-  ? resolveInstanceDisplayFields({ typeId: props.typeId, surface: 'card', typeRecord: typeById(props.typeId) })
-      // The user email is login data, never a display fact (SPEC §Chat
-      // thread / no-technical-ids rule).
-      .filter(field => !(props.typeId === 'user' && field.path.endsWith('.email')))
+// The grant-redacted detail DTO speaks the generated field vocabulary;
+// the user email is login data, never a display fact (SPEC §Chat
+// thread / no-technical-ids rule).
+const detailRows = computed(() => (detailed.value?._id
+  ? instanceFactRows({
+      typeId: props.typeId,
+      typeRecord: typeById(props.typeId),
+      entity: detailed.value,
+      auth: {
+        permissions: authStore.activePermissions,
+        fieldPolicies: authStore.fieldPolicies,
+        stateFieldPolicies: authStore.stateFieldPolicies
+      },
+      translator: { t, te },
+      skip: props.typeId === 'user' ? ['email'] : []
+    })
   : []));
 const avatarUrl = computed(() => (props.typeId === 'user' ? entry.value?.data?.avatarUrl || null : null));
 const userOnline = computed(() => props.typeId === 'user'
@@ -267,23 +274,7 @@ const partnership = computed(() => {
     String(item.partnerOrganization?._id) === String(entry.value?._id)
   ) || null;
 });
-// The organization fact source prefers the grant-redacted DTO and falls
-// back to the directory card so non-member orgs still show their
-// read-level facts.
-const factSource = computed(() => (detailed.value?._id ? detailed.value : entry.value));
-// Labels resolve through i18n so locale switches follow; the field paths
-// are read-level organization facts (field-access filters each row).
-const ORGANIZATION_FACTS = computed(() => [
-  { path: 'data.type', label: t('organization.type') },
-  { path: 'data.email', label: t('profile.email') },
-  { path: 'data.phone', label: t('profile.phone') },
-  { path: 'lineage.createdAt', label: t('common.created') }
-]);
-const hasOrganizationFacts = computed(() => props.typeId === 'organization'
-  && ORGANIZATION_FACTS.value.some(field => {
-    const value = field.path.split('.').reduce((source, key) => source?.[key], factSource.value);
-    return value !== undefined && value !== null && value !== '';
-  }));
+
 const partnershipSeverity = computed(() => ({
   pending: 'warn',
   active: 'success',

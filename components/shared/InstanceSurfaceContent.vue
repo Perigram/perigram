@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="renderableFields.length || showPreview"
+    v-if="factRows.length || relationFields.length || showPreview"
     :class="['entity-surface', detailSplit ? 'entity-surface--detail flex flex-col gap-4' : 'flex flex-col gap-3']"
   >
     <InstancePreview
@@ -18,20 +18,11 @@
         <small v-if="detailSections.length > 1" class="text-muted text-supporting">
           {{ sectionLabel(section.name) }}
         </small>
-        <DataBlock
-          :type-id="display.typeId"
-          :entity="entity"
-          :access-entity="accessEntity"
-          :fields="section.fields"
-          :variant="dataVariant"
-        />
+        <FactRows :rows="section.rows" :variant="dataVariant" />
       </section>
-      <DataBlock
-        v-if="!sectioned && dataFields.length"
-        :type-id="display.typeId"
-        :entity="entity"
-        :access-entity="accessEntity"
-        :fields="dataFields"
+      <FactRows
+        v-if="!sectioned && factRows.length"
+        :rows="factRows"
         :variant="dataVariant"
       />
       <InstanceRelationsBlock
@@ -47,12 +38,15 @@
 
 <script setup>
 import { computed } from 'vue';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import FactRows from '~/components/shared/FactRows.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
 import InstanceRelationsBlock from '~/components/shared/InstanceRelationsBlock.vue';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { instanceFactRows } from '~/utils/fact-rows.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useRegistryStore } from '~/stores/registry';
+import { useAuthStore } from '~/stores/auth';
+import { resolveFieldGroups, isIdentifierField } from '#shared/ui-mapping/index.js';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
@@ -60,7 +54,6 @@ const props = defineProps({
   typeId: { type: String, default: '' },
   surface: { type: String, default: 'card' },
   accessEntity: { type: Object, default: null },
-  suppressChildSummaries: { type: Boolean, default: false },
   relationVariant: { type: String, default: 'inline' },
   displayOverrides: { type: Object, default: null }
 });
@@ -72,6 +65,7 @@ const { t, te } = useI18n();
 // wherever fact rows render.
 const { typeById } = useFileTypeView();
 useRegistryStore();
+const authStore = useAuthStore();
 
 const display = computed(() => resolveInstanceDisplayContract({
   typeId: props.typeId,
@@ -80,17 +74,30 @@ const display = computed(() => resolveInstanceDisplayContract({
   overrides: props.displayOverrides
 }));
 
-const renderableFields = computed(() => display.value.fields.filter(field => (
-  field.role !== 'previewSource'
-  && !(props.suppressChildSummaries && (field.role === 'childCount' || field.replacesCountPath))
-)));
-const dataFields = computed(() => renderableFields.value.filter(field =>
-  field.display !== 'entityRef'
-  && field.display !== 'entityRefList'
-));
-const relationFields = computed(() => renderableFields.value.filter(field =>
-  field.display === 'entityRef' || field.display === 'entityRefList'
-));
+const typeRecord = computed(() => typeById(props.typeId));
+const factGateAuth = () => ({
+  permissions: authStore.activePermissions,
+  fieldPolicies: authStore.fieldPolicies,
+  stateFieldPolicies: authStore.stateFieldPolicies
+});
+// The generated field derivation serves every read-only surface here:
+// scalar rows through FactRows, declared ref fields through the
+// relations block.
+const factRows = computed(() => instanceFactRows({
+  typeId: props.typeId,
+  typeRecord: typeRecord.value,
+  entity: props.entity,
+  accessEntity: props.accessEntity,
+  auth: factGateAuth(),
+  translator: { t, te }
+}));
+const relationFields = computed(() => {
+  if (!typeRecord.value) return [];
+  return resolveFieldGroups(typeRecord.value)
+    .flatMap(group => group.fields)
+    .filter(field => field.descriptor?.base === 'ref' && !isIdentifierField(typeRecord.value, field.name))
+    .map(field => ({ path: `fields.${field.name}`, label: field.label || field.name, display: 'entityRef' }));
+});
 const showPreview = computed(() => display.value.surfaceContract.preview !== 'none');
 // The detail surface composes a real page body, not a tall card: geometry or
 // thumbnail media sits beside the fact column on wide containers and stacks
@@ -102,14 +109,14 @@ const detailSplit = computed(() => props.surface === 'detail' && showPreview.val
 const detailSections = computed(() => {
   if (!sectioned.value) return [];
   const byGroup = new Map();
-  for (const field of dataFields.value) {
-    const group = field.group || 'summary';
+  for (const row of factRows.value) {
+    const group = row.group || 'summary';
     if (!byGroup.has(group)) byGroup.set(group, []);
-    byGroup.get(group).push(field);
+    byGroup.get(group).push(row);
   }
   return [...byGroup.entries()]
-    .map(([name, fields]) => ({ name, fields }))
-    .filter(section => section.fields.length);
+    .map(([name, rows]) => ({ name, rows }))
+    .filter(section => section.rows.length);
 });
 function sectionLabel(name) {
   const key = `entityGroups.${name}`;

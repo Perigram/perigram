@@ -18,7 +18,7 @@
       </div>
       <Divider />
       <div class="flex flex-col gap-2">
-        <DataBlock type-id="organization" :entity="organization" :fields="ORGANIZATION_FIELDS" />
+        <FactRows :rows="organizationRows" />
         <div v-if="createdAt" class="flex justify-between items-center">
           <small>{{ $t('common.created') }}</small>
           <span>{{ createdAt }}</span>
@@ -41,8 +41,10 @@ import Divider from 'primevue/divider';
 import Avatar from 'primevue/avatar';
 import Tag from 'primevue/tag';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { useAuthStore } from '~/stores/auth';
+import { useI18n } from 'vue-i18n';
+import FactRows from '~/components/shared/FactRows.vue';
+import { instanceFactRows } from '~/utils/fact-rows.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 
 const props = defineProps({
@@ -50,10 +52,23 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
+const authStore = useAuthStore();
+
 const avatarLabel = computed(() => (props.organization.identity?.name || '?').charAt(0));
 
+const { t, te } = useI18n();
 const { typeById } = useFileTypeView();
-const ORGANIZATION_FIELDS = computed(() => resolveInstanceDisplayFields({ typeId: 'organization', surface: 'card', typeRecord: typeById('organization') }));
+const organizationRows = computed(() => instanceFactRows({
+  typeId: 'organization',
+  typeRecord: typeById('organization'),
+  entity: props.organization,
+  auth: {
+    permissions: authStore.activePermissions,
+    fieldPolicies: authStore.fieldPolicies,
+    stateFieldPolicies: authStore.stateFieldPolicies
+  },
+  translator: { t, te }
+}));
 
 const createdAt = computed(() => {
     const ts = props.organization.lineage?.createdAt || props.organization.origin?.timestamp;

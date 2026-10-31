@@ -6,7 +6,7 @@
       </template>
       <Divider />
       <div class="grid grid-cols-1 gap-4">
-        <DataBlock type-id="entityRevision" :entity="revisionForDisplay" :fields="FIELDS" />
+        <FactRows :rows="revisionRows" />
         <div v-if="sourceType && sourceId" class="flex items-center justify-between gap-4">
           <small class="text-muted">{{ $t('revision.source') }}</small>
           <InstanceInlineRef :type="sourceType" :id="sourceId" />
@@ -20,14 +20,11 @@
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import FactRows from '~/components/shared/FactRows.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
-import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
-import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { useI18n } from 'vue-i18n';
 
-const { typeById } = useFileTypeView();
-const FIELDS = computed(() => resolveInstanceDisplayFields({ typeId: 'entityRevision', surface: 'card', typeRecord: typeById('entity-revision') })
-  .filter(field => field.display !== 'entityRef'));
+const { t } = useI18n();
 
 const ENTITY_TYPE_TO_UI_TYPE = {
   cassette: 'cassetteTemplate'
@@ -40,13 +37,16 @@ const props = defineProps({
 
 const sourceType = computed(() => ENTITY_TYPE_TO_UI_TYPE[props.revision.data?.typeId] || null);
 const sourceId = computed(() => props.revision.data?.instanceId || null);
-const revisionForDisplay = computed(() => ({
-  ...props.revision,
-  data: {
-    ...(props.revision.data || {}),
-    shortHash: props.revision.data?.contentHash
-      ? props.revision.data.contentHash.replace(/^sha256:/, '').slice(0, 12)
-      : ''
-  }
-}));
+
+// The revision DTO's own facts (SPEC §24 stamp): scope, number, and the
+// content hash's short form.
+const revisionRows = computed(() => {
+  const data = props.revision?.data || {};
+  const hash = data.contentHash ? String(data.contentHash).replace(/^sha256:/, '').slice(0, 12) : '';
+  return [
+    data.scope ? { label: t('revision.scope'), display: String(data.scope) } : null,
+    data.number != null ? { label: t('revision.number'), display: `v${data.number}` } : null,
+    hash ? { label: t('revision.hash'), display: hash } : null
+  ].filter(Boolean);
+});
 </script>

@@ -26,71 +26,47 @@ through `entity.data.*`; do not read flat compatibility fields such as
 
 ---
 
-## Atomic Blocks (`components/shared/blocks/`)
+## Fact Rows
 
-### `DataBlock.vue`
-The one fact-row control. Dimensional facts (width × length spans, thickness,
-area) are declared descriptor rows with units — the former `SpecsBlock`
-content — not a separate block. One-off local facts may still define a small
-field array inline in the component's `<script setup>`; every reusable fact
-vocabulary lives on type declarations (see below).
+### `FactRows.vue`
+The one read-only fact-row renderer. Rows arrive pre-resolved from
+`instanceFactRows`
+([utils](../../utils/README.md) → `fact-rows.js`): the generated field
+vocabulary over the served type record, the field-access gate applied at
+derivation, values formatted through `utils/data-display.js`.
 
 **Usage:**
 ```vue
-const FIELDS = [
-    { path: 'data.diameter', i18n: 'toolProfile.diameter', suffix: ' mm' },
-]
-<DataBlock type-id="toolProfile" :entity="tool" :fields="FIELDS" />
+const rows = computed(() => instanceFactRows({
+  typeId, typeRecord: typeById(typeId), entity, auth: factGateAuth(), translator: { t, te }
+}));
+<FactRows :rows="rows" />
 ```
 
-Props: `type-id` (required), `:entity` (required), `:access-entity` (optional parent entity for scoped permission checks), `:fields` (required — inline array of field descriptors), `variant` (`default` definition grid or `compact` inline facts).
-
-**Field schema:** `{ path, label?, display?, unit?, suffix?, prefix?, priority?, fallbackPaths? }` —
-`path` is dot-notation into the entity object. `label` is authored render
-data: a value that is a translatable key localizes, anything else renders as
-the authored string. `unit` renders the declared unit symbol as a value suffix
-(`mm`, `m`, `m2` → `m²`, `percent`, `min`, `deg`); explicit `suffix`/`prefix`
-strings remain the escape hatch for non-unit decoration. `display:
-'dimensions'` renders a width × length span from the resolved specs object
-(the former `SpecsBlock` shape) with the declared unit. Rows with
-null/undefined values are hidden automatically.
-Values are formatted through `utils/data-display.js`: scalar arrays render as comma-separated text, arrays of objects render as counts, objects render only when they expose a stable identifier (`name`, `label`, `code`, `serial`, `reference`, `uid`, or `_id`), and non-displayable nested objects are hidden. Fields with `display: 'parameterMap'` render scalar object entries as exact named parameters such as `A=1200, B=400`; use this for materialized parameter values, not symbolic template parameter lists.
-Default layout renders a semantic `<dl>` grid for card bodies; compact layout renders inline facts for popovers, relation rows, and tight embedded surfaces.
-The default `DataBlock` layout uses its own inline-size container, so columns
-follow the width assigned by a page or split pane rather than the browser
-viewport. Pass `variant="compact"` wherever a dense surface needs inline
-facts.
-The reusable descriptor vocabulary is the compiled type view: fact groups are
-authored `render.groups` on type declarations, normalized into the served CTS
-client bundle by `@perigram/cts` `renderPolicyFor`, and resolved by
-`utils/instance-display-contract.js` (see below) — component-local constants
-are only for genuinely one-off facts. Bundle descriptors carry `fallbackPaths`
-and `priority`; `DataBlock` uses the first non-empty allowed path and hides
-rows that resolve to empty values.
-Rows are filtered through `shared/instance-field-access.js`. A descriptor path
-must match an access policy for `type-id` — the legacy domain field policy, or
-the declaration-derived policy the registry store registers from the served
-bundle (feature = the class-collection grant the server's own instance reads
-check) — and the current auth grant must satisfy that policy level. When the
-active organization process provides field policies, `DataBlock` applies those
-process policies before the domain defaults. Do not render sensitive or
-entity-specific facts beside `DataBlock` unless the API DTO has already been
+Props: `:rows` (required — `instanceFactRows` output; `{ group, label,
+display, swatch }` rows), `variant` (`default` definition grid or `compact`
+inline facts). The default layout uses its own inline-size container, so
+columns follow the width assigned by a page or split pane; pass
+`variant="compact"` wherever a dense surface needs inline facts. Rows carry
+their `group` for sectioned surfaces (detail bodies chunk by group).
+Row gating and value decoration are the derivation's
+(`shared/instance-field-access.js` over the `auth` input): do not render
+sensitive facts beside `FactRows` unless the API DTO has already been
 redacted for that same field policy.
 
 ### `InstanceSurfaceContent.vue`, `InstancePreview.vue`, `InstanceRelationsBlock.vue`
 Contract-driven body primitives for app constructors. `InstanceSurfaceContent`
 resolves an entity type plus `surface` through `utils/instance-display-contract.js`
-— fact-row descriptors from the served org type view (`useFileTypeView` cache,
-the compiled CTS client bundle), surface chrome from the design-system surface
-contracts — and renders preview, data facts, and relation rows with the shared
-primitives.
+(surface chrome) and `utils/fact-rows.js` (scalar fact rows over the served
+org type view, `useFileTypeView` cache) and renders preview, data facts, and
+relation rows with the shared primitives.
 On the `detail` surface with a visible preview it composes a real page body:
 media and the fact column sit side by side from 48rem of the surface's own
 width and stack above it on narrower containers; card surfaces keep the
 simple preview-first stack. With `dataDisplay: 'sectioned'` the fact column
 chunks by field group (identity, overview, specs, stock, production) under
 small localized `entityGroups.*` headings, so detail pages read as separate
-concerns instead of one flat grid. `DataBlock` renders
+concerns instead of one flat grid. `FactRows` renders
 `display: 'swatch'` fields as a color dot beside the value for declared
 hex-color facts. `InstancePreview` resolves the unified payload preview
 first (a `fill` prop opts a host-owned fixed-height band in: the generic
@@ -514,9 +490,10 @@ no-line-height-inflation behavior inside prose and dense surfaces
 (tables, field controls, relation rows) alike. The chip is also the peek
 trigger (SPEC §22.14): a deliberate hover raises the record's peek —
 the framed preview band (host-owned fill), identity with glyph and state
-tag, and the detail surface's fact rows (the record surface's own field
-vocabulary, capped at eight rows; the compact card budget stays on
-cards) — through [`HoverPeek.vue`](#hoverpeekvue); the click — on the
+tag, the generated field vocabulary's scalar rows (`instanceFactRows`,
+capped at eight rows), and the payload block's name facts
+(`payloadFactLine`: payload name · mime · size) — through
+[`HoverPeek.vue`](#hoverpeekvue); the click — on the
 chip or on the peek body — opens the record popup, and a record whose
 peek would carry nothing beyond identity raises no peek at all.
 `variant="compact"` renders a horizontal micro card instead of a chip —
@@ -880,7 +857,7 @@ transcription stay in the host composer.
   workflow facts. Pages pass translated metric descriptors
   `{ key, label, value }` and may use the default slot for route actions. Use it
   beside reusable entity cards, hub tabs, or workflow tables; do not use it as a
-  replacement for entity-specific `DataBlock`, or
+  replacement for entity-specific fact rows or
   `InstanceSurfaceContent`. Vertical metric panels collapse to a two-column
   compact grid below the normal desktop breakpoint and become a stacked rail at
   `lg` and wider. It delegates container chrome to PrimeVue `Panel`; callers own only metric data and layout orientation.

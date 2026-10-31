@@ -367,7 +367,7 @@ declarations instead of hardcoded entity tables (see
 and fact-row surfaces (`InstanceSurfaceContent`, entity cards, generated
 collections) resolve their display descriptors from the same view: the
 bundle's derived display policy is the one fact vocabulary
-([utils/README.md](../utils/README.md) → `instance-display-contract.js`).
+([utils/README.md](../utils/README.md) → `fact-rows.js`).
 The cache never serves another organization's view after an org switch,
 and a failed fetch is dropped from the cache (consumers keep their
 declaration-less fallbacks for that mount; the next consumer retries

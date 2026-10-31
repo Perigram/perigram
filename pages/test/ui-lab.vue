@@ -61,7 +61,7 @@
 
             <template v-if="primitive.key === 'InstanceCard'">
               <InstanceCard :instance="primitiveEntity" type-id="cassette">
-                <DataBlock type-id="cassette" :entity="primitiveEntity" :fields="demoFields" />
+                <FactRows :rows="demoRows" />
                 <template #footer>
                   <Button :label="$t('common.open')" icon="pi pi-external-link" text size="small" />
                 </template>
@@ -90,8 +90,8 @@
               />
             </template>
 
-            <template v-else-if="primitive.key === 'DataBlock'">
-              <DataBlock type-id="sheet_design" :entity="primitiveEntity" :fields="demoFields" />
+            <template v-else-if="primitive.key === 'FactRows'">
+              <FactRows :rows="demoRows" />
             </template>
 
 
@@ -174,7 +174,7 @@
                 @cancel="dialogVisible = false"
                 @save="dialogVisible = false"
               >
-                <DataBlock type-id="sheet_design" :entity="primitiveEntity" :fields="demoFields" />
+                <FactRows :rows="demoRows" />
               </StandardDialog>
             </template>
 
@@ -243,7 +243,7 @@ import InstanceState from '~/components/shared/state/InstanceState.vue';
 import StateHistory from '~/components/shared/state/StateHistory.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
-import DataBlock from '~/components/shared/blocks/DataBlock.vue';
+import FactRows from '~/components/shared/FactRows.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import DesignerDialog from '~/components/shared/DesignerDialog.vue';
@@ -282,7 +282,7 @@ const PRIMITIVE_EXAMPLE_KEYS = [
   'InstanceCard',
   'InstanceSelect',
   'InstanceMultiSelect',
-  'DataBlock',
+  'FactRows',
   'InstanceState',
   'StateHistory',
   'DrawingCanvas',
@@ -353,9 +353,8 @@ const mockHistory = createMockHistory(['DRAFT', 'NESTING', 'READY']);
 
 seedDemoTraceEntities();
 
-const demoFields = [
-  { path: 'name', i18n: 'uiLab.contract.source' },
-  { path: 'fields.name', i18n: 'uiLab.contract.source' }
+const demoRows = [
+  { label: t('uiLab.contract.source'), display: String(primitiveEntity?.fields?.name ?? '—') }
 ];
 
 

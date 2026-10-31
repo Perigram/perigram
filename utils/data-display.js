@@ -76,6 +76,27 @@ export function decorateDataValue(raw, field = {}) {
   return `${field.prefix ?? ''}${formatted}${suffix}`;
 }
 
+// The one byte-size label (file chips, payload fact strips, revision
+// meta).
+export function formatFileSize(bytes = 0) {
+  const value = Number(bytes) || 0;
+  if (value <= 0) return '';
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// The payload block's fact strip (SPEC §22.14 name facts): the stored
+// payload's name, mime, and size joined with middle dots, empties
+// dropped.
+export function payloadFactLine(payload = {}) {
+  return [
+    String(payload?.name || '').trim(),
+    String(payload?.mime || payload?.mimeType || '').trim(),
+    formatFileSize(payload?.size)
+  ].filter(Boolean).join(' · ');
+}
+
 function isScalar(value) {
   return ['string', 'number', 'bigint', 'boolean'].includes(typeof value);
 }

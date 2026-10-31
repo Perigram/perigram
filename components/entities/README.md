@@ -33,10 +33,10 @@ overrides need their DTO paths declared in the field-access policy.
   footer — `#title` belongs to the standard identity/status row. Subtitle
   slots guard `v-if="variant !== 'card'"`; `compact-content` and
   `inline-extra` carry short, stable cues only.
-- Facts resolve from the domain display field groups; a card declares no
-  local `DataBlock` path arrays — extend a field group and keep the path
-  inside the field-access policy (`shared/instance-field-access.js`
-  filters every path; undeclared paths stay hidden).
+- Facts resolve through the generated field derivation
+  (`instanceFactRows` over the served type record); a card declares no
+  local path arrays (`shared/instance-field-access.js` gates every row;
+  undeclared paths stay hidden).
 - Card bodies speak the entity's contract as an operational summary —
   identity/status in the title, concise facts in the body, actions in the
   footer: production entities emphasize flow and generated outputs,
