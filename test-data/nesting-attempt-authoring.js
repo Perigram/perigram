@@ -51,7 +51,6 @@ export function composeNestingAttemptGraph(authoring, { adminAccess = null } = {
   authoring.drop('construct', { id: 'mkDxf' });
   authoring.wireDeclaration('dxfRef', 'mkDxf', 'binds');
   authoring.configure('mkDxf', { construction: { mode: 'fromSheet' }, ...(adminAccess ? { access: adminAccess } : {}) });
-  authoring.setInputDefault('mkDxf', 'name', 'Sheet DXF');
 
   authoring.connect('designs', 'data:result', 'polygons', 'data:entity');
   authoring.connect('polygons', 'data:result', 'jobItems', 'data:polygonParts');
