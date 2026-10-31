@@ -209,7 +209,7 @@ The value and list/tree groups are exhaustive over the catalog's
 author-facing basics (SPEC §8): every
 tree-algebra kind (flatten, graft, simplify, branch, zip, unzip, cross,
 transpose, clean, stats), the list reshapes (reverse, shift, partition,
-reduce), the value utilities (cast, select, convertUnit, coalesce,
+reduce, repeat — one value per count), the value utilities (cast, select, convertUnit, coalesce,
 format, required, validate), and the current-time source are palette
 items. `value.string` owns parsing (`toNumber`, `toDateTime` — string in,
 typed value out; `value.cast` asserts shape and converts nothing). The
