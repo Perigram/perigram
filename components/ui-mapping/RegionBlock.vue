@@ -438,12 +438,13 @@ const relationUnlink = computed(() => {
   return actions.length && props.node.relationParent ? { parent: props.node.relationParent, actions } : null;
 });
 // The detail header's action set: the composed node's manifest actions
-// PLUS the per-instance quick actions (runtime state transitions and the
-// construct re-run ride here) — the strip's steps draw from this
-// combined list.
+// PLUS the per-instance quick actions — runtime state transitions, the
+// construct re-run, and the derived export affordances the record
+// carries (a verb the record supports belongs on its own page, same as
+// on its card menu).
 const headerActions = computed(() => [
   ...(props.node.actions || []),
-  ...instanceActionsForType.value.filter(action => action?.__runtime || action?.__rerun)
+  ...instanceActionsForType.value.filter(action => action?.__runtime || action?.__rerun || action?.__command)
 ]);
 // Surface visibility derives from the composed dataState: ready regions
 // render; a loading region with already-loaded instances keeps its stale
