@@ -187,7 +187,9 @@ beside the transition history in `StateHistory`.
   `mixed` with the remainder's own stepped arrangement, `columns` with the
   full-row claim, weight-ordered `tabs`) without recomposition; the
   columns outcome engages its tracks only when the measured box grants
-  every track its earned minimum, stacking otherwise. Each column track
+  every track its earned minimum, stacking otherwise. The `recordHost`
+  seam threads through every nested level, so a handful child
+  collection renders hosted record pages at any tree depth. Each column track
   and the record side column is a PlacementBox — a placement slot that
   measures its own box and provides the container record everything inside
   renders against, so a table or card grid inside a rail or track sheds
