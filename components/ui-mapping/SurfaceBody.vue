@@ -10,7 +10,9 @@
           <InstanceIdentity
             :instance="instance"
             :type="type"
+            :openable="openable"
             text-class="text-section-heading"
+            @open="target => emit('open-instance', target)"
           />
           <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
         </div>
@@ -35,6 +37,9 @@ const props = defineProps({
   actions: { type: Array, default: () => [] },
   coveredRelations: { type: Array, default: () => [] },
   editable: { type: Boolean, default: false },
+  // The card identity opens the record's standalone page when the host
+  // binds an instance-open channel.
+  openable: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   // Per-type state policy map from the compiled process contract.

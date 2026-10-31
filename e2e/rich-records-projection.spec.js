@@ -2,8 +2,8 @@ import { test, expect } from './fixtures.js';
 
 // SPEC §22.16 real-path probe: a collection carrying fewer than
 // RICH_RECORDS_BELOW loaded instances renders each instance as its
-// record page in place (hosted detail screen, children collections
-// included) through every projection. Seeds an org process with a group
+// record card in place (identity, state, preview band, facts) through
+// every projection. Seeds an org process with a group
 // type and child collections, creates a two-record world plus a
 // three-record control, and screenshots both record pages.
 // Artifacts: .playwright/rich-records-*
@@ -78,16 +78,17 @@ test('a handful collection renders its records in place', async ({ app }) => {
     const visible = el => el.getClientRects().length > 0;
     return {
       tables: [...document.querySelectorAll('.p-datatable')].filter(visible).length,
-      recordHeaders: [...document.querySelectorAll('.ck-record-header')].filter(visible).map(el => el.textContent.trim())
+      recordHeaders: [...document.querySelectorAll('.ck-record-header')].filter(visible).map(el => el.textContent.trim()),
+      recordCards: [...document.querySelectorAll('[data-pc-name="card"]')].filter(visible).map(el => el.textContent.trim())
     };
   });
 
   // The handful record page: its two-child collection renders each task
-  // as its record page — a table never mounts, and each hosted task
-  // carries its own record header.
+  // as its record card — a table never mounts, each card carrying the
+  // task identity, state, and facts.
   await openRecord(`Rich handful ${runTag}`);
   const handful = await collectionSurfaces();
-  expect(handful.recordHeaders.some(label => label.includes('Handful task'))).toBe(true);
+  expect(handful.recordCards.filter(label => label.includes('Handful task')).length).toBe(2);
   expect(handful.tables).toBe(0);
   await app.page.screenshot({ path: '.playwright/rich-records-handful.png', fullPage: false });
 
@@ -105,7 +106,7 @@ test('a handful collection renders its records in place', async ({ app }) => {
   await app.page.screenshot({ path: '.playwright/rich-records-control.png', fullPage: false });
   const fs = await import('node:fs');
   fs.writeFileSync('.playwright/rich-records-surfaces.json', `${JSON.stringify({
-    handful: { tables: handful.tables, headers: handful.recordHeaders },
+    handful: { tables: handful.tables, cards: handful.recordCards },
     control: { tables: control.tables, rows: controlRows }
   }, null, 2)}\n`);
 });

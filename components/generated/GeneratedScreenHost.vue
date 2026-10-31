@@ -25,7 +25,6 @@
     :navigation="navigation"
     :export-actions="exportActionsByType"
     :editor-actions="editorActionsByType"
-    :record-page="EmbeddedRecordPage"
     @instance-mounted="loadRuntimeTransitions"
   />
 </template>
@@ -43,7 +42,6 @@ import { computed, ref, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
-import EmbeddedRecordPage from './EmbeddedRecordPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
 import { useAuthStore } from '~/stores/auth';
