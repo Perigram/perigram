@@ -30,13 +30,27 @@ Single sources hydrate through the readable-reference seam
 list (chat-materialized files) still opens. A cold screen writes its
 per-source `loading` states on the server too, so the first server and
 client renders paint the same skeletons; pool fetches are client-owned
-and loaded content swaps in through normal reactivity.
+and loaded content swaps in through normal reactivity. The host also
+hands the engine its records-projection surface (`EmbeddedRecordPage`
+below).
 
 Organization system screens render their fixed components on their own
 routes: the overview at `/organization`
 (`GeneratedOrganizationOverview.vue`), billing at
 `/organization/billing` (`GeneratedOrganizationAccount.vue`). The
 screens route replaces a system-screen key with the screen's own route.
+
+`EmbeddedRecordPage.vue` is the records projection's host surface (root
+SPEC §22.16): given one instance, it resolves the same detail screen
+the record popup mounts — compiled `instanceDetail`, the synthesized
+detail, or the record floor (`detail-screen-actions.js`) — scopes it to
+the instance, and renders it in place through `GeneratedScreenHost`
+(children collections included); `GeneratedScreenHost` passes it to the
+engine as the `recordPage` prop a handful collection renders per item.
+The host runs pool-only (source loading stays with the owning screen)
+and the `uiMappingEmbedded` provide steps the page chrome down:
+section-scale title, bounded preview band. The host import is async,
+keeping the engine↔host module graph acyclic.
 
 Every organization management surface — team, bots, partners, billing, the
 plugin marketplace, and the process designer canvas — is a registered
