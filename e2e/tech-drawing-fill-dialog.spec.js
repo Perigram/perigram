@@ -343,35 +343,30 @@ test.describe('fill dialog rails (SPEC §24, owner direction 2026-10-28)', () =>
     // served surface module (the single parse home).
     await expect(dialog.getByText('alpha', { exact: true })).toBeVisible({ timeout: 15_000 });
 
-    // The parts affordance creates inline by the compiled upload create
-    // — the bytes travel the files channel, the created part lands in the
-    // pool, the assignment row offers it, and the explicit pick selects
-    // it.
+    // The parts picker carries creation inside itself (SPEC §22.13): the
+    // popover's create affordance runs the compiled upload create inline
+    // over the files channel and the created part selects into the spot
+    // — the tile renders beside the trigger.
     const partText = [
       '0', 'SECTION', '2', 'ENTITIES',
       '0', 'CIRCLE', '8', 'HOLES', '10', '10.0', '20', '10.0', '40', '3.0',
       '0', 'ENDSEC', '0', 'EOF'
     ].join('\n');
     const fileChooser = app.page.waitForEvent('filechooser');
-    // The reference-slot create names the created type (a11y disambiguation
-    // from the footer's Create); the parts row's is the last one.
-    await dialog.locator('.p-dialog-content').getByRole('button', { name: 'Create DXF source', exact: true }).last().click();
-    await app.page.getByRole('menuitem', { name: /Upload/ }).click();
+    const partTrigger = dialog.getByRole('button', { name: 'Pick part', exact: true }).first();
+    await expect(async () => {
+      await partTrigger.click();
+      await app.page.waitForTimeout(400);
+      // The create affordance names the created type (a11y disambiguation
+      // from the footer's Create).
+      const popoverCreate = app.page.locator('.p-popover').getByRole('button', { name: 'Create DXF source', exact: true });
+      await expect(popoverCreate).toBeVisible({ timeout: 15_000 });
+      await popoverCreate.click();
+      await app.page.getByRole('menuitem', { name: /Upload/ }).click();
+    }).toPass({ timeout: 40_000 });
     const chooser = await fileChooser;
     await chooser.setFiles({ name: 'alpha.dxf', mimeType: 'application/dxf', buffer: Buffer.from(partText) });
-
-    const alphaSelect = dialog.locator('.p-select').first();
-    // The opening panel animates: an immediate option click lands on the
-    // first row's coordinates. The settle wait plus the retrying block
-    // rides out both the animation and the pool re-render.
-    await expect(async () => {
-      await alphaSelect.click();
-      await app.page.waitForTimeout(400);
-      const alphaOption = app.page.locator('.p-select-list-container li', { hasText: 'alpha' }).first();
-      await expect(alphaOption).toBeVisible({ timeout: 15_000 });
-      await alphaOption.click();
-      await expect(alphaSelect).toContainText('alpha');
-    }).toPass({ timeout: 40_000 });
+    await expect(dialog.locator('.instance-inline-tile', { hasText: 'alpha' })).toBeVisible({ timeout: 15_000 });
     const poolRows = await (await app.request.get('/api/instances/dxf-source')).json();
     const alphaPartId = (Array.isArray(poolRows) ? poolRows : []).find(row => row.name === 'alpha')?._id;
     expect(alphaPartId, 'the inline upload created the part').toBeTruthy();
