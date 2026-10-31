@@ -39,6 +39,8 @@
           :accepts="linkAction?.relation?.targetTypes || []"
           :pool="linkPool"
           :bundle="bundle"
+          :create-actions="createActionsByType"
+          @construct-create="action => openNestedCreate(null, action, 'link')"
         />
       </div>
     </StandardDialog>
@@ -77,6 +79,8 @@
             :accepts="row.lineage.accepts"
             :pool="pool"
             :bundle="bundle"
+            :create-actions="createActionsByType"
+            @construct-create="action => openNestedCreate(row.id, action)"
           />
           <SpotPartsRow
             v-else-if="row.control === 'spot-parts'"
@@ -102,7 +106,6 @@
             />
             <RefRowActions
               :type-ids="row.descriptor.accepts || []"
-              :bundle="bundle"
               :value="dialogDraft[row.id]"
               :editor-actions="editorActions"
               :create-actions="createActionsByType"
@@ -530,10 +533,10 @@ const nestedRows = computed(() => (
   nestedCreate.value?.action ? resolveCreateDialogInputs(nestedCreate.value.action, nestedType.value, props.bundle) : []
 ));
 
-function openNestedCreate(rowId, action) {
+function openNestedCreate(rowId, action, apply = 'row') {
   if (!action) return;
   for (const key of Object.keys(nestedDraft)) delete nestedDraft[key];
-  nestedCreate.value = { rowId, typeId: action.typeId, action };
+  nestedCreate.value = { rowId, typeId: action.typeId, action, apply };
 }
 
 async function submitNestedCreate() {
@@ -545,7 +548,11 @@ async function submitNestedCreate() {
     const result = await instancesStore.runAction({ action: state.action, actionId: state.action.id, entities: {}, data, parameters: {} });
     const entity = createdEntity(state.action, result);
     const id = entity?._id ?? entity?.id;
-    if (state.rowId && id) dialogDraft[state.rowId] = { type: state.typeId, id: String(id) };
+    if (state.apply === 'link') {
+      if (id) linkTarget.value = { type: state.typeId, id: String(id) };
+    } else if (state.rowId && id) {
+      dialogDraft[state.rowId] = { type: state.typeId, id: String(id) };
+    }
     nestedCreate.value = null;
   } catch (error) {
     const failures = refusalFailuresOf(error);

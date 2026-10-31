@@ -1,74 +1,92 @@
 <template>
-  <TreeSelect
-    v-if="hierarchical"
-    :model-value="treeSelection"
-    :options="treeOptions"
-    option-label="label"
-    option-value="key"
-    selection-mode="single"
-    placeholder="—"
-    class="w-full"
-    @update:model-value="keys => selectTreeKey(keys)"
-  >
-    <template #option="{ node }">
-      <div v-if="node.instance" class="pointer-events-none w-full min-w-0">
-        <InstanceInlineRef
-          :type="node.typeId"
-          :entity="node.instance"
-          :fetch="false"
-          :interactive="false"
-          variant="option"
-        />
-      </div>
-      <span v-else>{{ node.label }}</span>
-    </template>
-  </TreeSelect>
-  <AutoComplete v-else
-    :model-value="selectedOption"
-    :suggestions="suggestions"
-    option-label="label"
-    force-selection
-    dropdown
-    fluid
-    :complete-on-focus="true"
-    class="w-full"
-    @complete="search"
-    @update:model-value="option => (model = option?.value ?? null)"
-  >
-    <template #option="{ option }">
-      <div v-if="option.entity" class="pointer-events-none w-full min-w-0">
-        <InstanceInlineRef
-          :type="option.typeId"
-          :entity="option.entity"
-          :fetch="false"
-          :interactive="false"
-          variant="option"
-          :show-type-label="accepts.length > 1"
-        />
-      </div>
-      <span v-else>{{ option.label }}</span>
-    </template>
-  </AutoComplete>
+  <div class="flex w-full min-w-0 items-center gap-2">
+    <TreeSelect
+      v-if="hierarchical"
+      :model-value="treeSelection"
+      :options="treeOptions"
+      option-label="label"
+      option-value="key"
+      selection-mode="single"
+      placeholder="—"
+      filter
+      filter-mode="lenient"
+      :filter-placeholder="t('common.search')"
+      class="min-w-0 flex-1"
+      @update:model-value="keys => selectTreeKey(keys)"
+    >
+      <template #option="{ node }">
+        <div v-if="node.instance" class="pointer-events-none w-full min-w-0">
+          <InstanceInlineRef
+            :type="node.typeId"
+            :entity="node.instance"
+            :fetch="false"
+            :interactive="false"
+            variant="option"
+          />
+        </div>
+        <span v-else>{{ node.label }}</span>
+      </template>
+    </TreeSelect>
+    <AutoComplete v-else
+      :model-value="selectedOption"
+      :suggestions="suggestions"
+      option-label="label"
+      force-selection
+      dropdown
+      fluid
+      class="min-w-0 flex-1"
+      :complete-on-focus="true"
+      @complete="search"
+      @update:model-value="option => (model = option?.value ?? null)"
+    >
+      <template #option="{ option }">
+        <div v-if="option.entity" class="pointer-events-none w-full min-w-0">
+          <InstanceInlineRef
+            :type="option.typeId"
+            :entity="option.entity"
+            :fetch="false"
+            :interactive="false"
+            variant="option"
+            :show-type-label="accepts.length > 1"
+          />
+        </div>
+        <span v-else>{{ option.label }}</span>
+      </template>
+    </AutoComplete>
+    <RefRowActions
+      :type-ids="accepts"
+      :create-actions="createActions"
+      @select="applyCreated"
+      @construct-create="action => emit('construct-create', action)"
+    />
+  </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AutoComplete from 'primevue/autocomplete';
 import TreeSelect from 'primevue/treeselect';
 import { useI18n } from 'vue-i18n';
 import { childrenOfParent } from '#shared/ui-mapping/index.js';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
+import RefRowActions from './RefRowActions.vue';
 import { instanceOptionLabel, instancePickerOptions } from '~/utils/instance-select.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
+import { useInstancesStore } from '~/stores/instances';
 
 const props = defineProps({
   accepts: { type: Array, default: () => [] },
   pool: { type: Object, default: () => ({}) },
-  bundle: { type: Object, default: null }
+  bundle: { type: Object, default: null },
+  // Compiled create actions by type id (SPEC §22.13): entries for the
+  // accepted types render the picker's create affordance.
+  createActions: { type: Object, default: () => ({}) }
 });
 
+const emit = defineEmits(['construct-create']);
 const model = defineModel();
 const suggestions = ref([]);
+const instances = useInstancesStore();
 const { t, te } = useI18n();
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
 const typeRecordOf = typeId => typesById.value[typeId] || null;
@@ -92,8 +110,26 @@ const buildNode = (instance, seen = new Set()) => {
     children: children.map(child => buildNode(child, nextSeen)).filter(Boolean)
   };
 };
+// Records the model references beyond the pool — a picker create's
+// record, a host-applied construct result — supplement the derived
+// options so the closed control resolves their labels.
+const supplemented = ref([]);
+const supplementFor = (typeId, id, entity) => {
+  if (!entity || supplemented.value.some(entry => entry.value.id === String(id))) return;
+  supplemented.value.push({
+    label: instanceOptionLabel(entity, typeRecordOf(typeId), { unnamedLabel: t('common.unnamed') }),
+    value: { type: typeId, id: String(id) },
+    entity,
+    typeId
+  });
+};
 const treeOptions = computed(() => hierarchical.value
-  ? Object.values(props.pool[props.accepts[0]] || {}).map(instance => buildNode(instance)).filter(Boolean)
+  ? [
+      ...Object.values(props.pool[props.accepts[0]] || {}).map(instance => buildNode(instance)).filter(Boolean),
+      ...supplemented.value
+        .filter(entry => entry.typeId === props.accepts[0])
+        .map(entry => ({ key: entry.value.id, label: entry.label, typeId: entry.typeId, instance: entry.entity, children: [] }))
+    ]
   : []);
 // PrimeVue 4 TreeSelect models the selection as a checked-keys map
 // (`{ [key]: true }`) in every mode; the model stays the `{ type, id }`
@@ -108,12 +144,16 @@ function selectTreeKey(keys) {
   model.value = id ? { type: props.accepts[0], id } : null;
 }
 const treeSelection = computed(() => (props.model?.id ? { [props.model.id]: true } : null));
-const options = computed(() => instancePickerOptions(props.pool, props.accepts, {
-  typeRecordFor: typeRecordOf,
-  typeLabelFor: typeId => generatedEntityLabel(typeId, { t, te }),
-  unnamedLabel: t('common.unnamed'),
-  refValue: true
-}));
+const options = computed(() => {
+  const derived = instancePickerOptions(props.pool, props.accepts, {
+    typeRecordFor: typeRecordOf,
+    typeLabelFor: typeId => generatedEntityLabel(typeId, { t, te }),
+    unnamedLabel: t('common.unnamed'),
+    refValue: true
+  });
+  const known = new Set(derived.map(option => option.value?.id));
+  return [...derived, ...supplemented.value.filter(option => !known.has(option.value?.id))];
+});
 const search = event => {
   const query = String(event.query || '').toLowerCase();
   suggestions.value = options.value.filter(option => option.label.toLowerCase().includes(query));
@@ -124,4 +164,23 @@ const search = event => {
 const selectedOption = computed(() => options.value.find(option => (
   option.value?.type === props.model?.type && option.value?.id === props.model?.id
 )) || null);
+
+function applyCreated(option) {
+  if (!option?.id) return;
+  supplementFor(option.type, option.id, option.entity);
+  model.value = { type: option.type, id: String(option.id) };
+}
+
+// A model ref the pool never carried (the host applied a construct
+// dialog's created record) resolves through the entity store for its
+// label.
+watch(() => props.model, async ref => {
+  if (!ref?.id || !ref.type) return;
+  if (options.value.some(option => option.value?.id === String(ref.id))) return;
+  const typeKey = instances.canonicalTypeKey(ref.type);
+  if (!typeKey) return;
+  const entity = instances.instanceFor(typeKey, String(ref.id))
+    || await instances.resolveReadableReference(typeKey, String(ref.id), { silent: true }).catch(() => null);
+  if (entity && model.value?.id === ref.id) supplementFor(ref.type, String(ref.id), entity);
+}, { immediate: true });
 </script>

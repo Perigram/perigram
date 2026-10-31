@@ -1016,7 +1016,7 @@ surface: the type glyph beside the title is its type identity, and no
 host heading, subtitle, or dialog title repeats the record's name or
 type.
 
-### 22.13 Instance pickers render procedural list items (owner direction 2026-10-28; closed-control amendment 2026-10-29)
+### 22.13 Instance pickers render procedural list items (owner direction 2026-10-28; closed-control amendment 2026-10-29; create amendment 2026-10-31)
 
 Every control that selects instances — generated ref editors and create
 dialogs, the process designer's reference inputs, plugin editor surfaces —
@@ -1049,6 +1049,15 @@ stacks, every gap a §22.9 ladder step — no face-specific stylesheet
 block. Row-local controls ride the row's trailing end (the
 chip-removable convention: a selected value's remove × beside the
 facts, at the row edge).
+
+An instance picker offers creation inside itself when the compiled
+contract carries create actions for the accepted types (create
+amendment, owner direction 2026-10-31): the create affordance dispatches
+by the type's declared creation protocol — an upload create runs inline,
+the editor protocol opens the blank editor page, every other create
+opens the construct dialog the host owns — and the created record
+selects into the picker. Every picker searches its options, hierarchical
+pools included.
 
 ### 22.14 Record peeks and popup rhythm (owner direction 2026-10-29)
 

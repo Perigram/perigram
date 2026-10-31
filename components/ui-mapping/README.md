@@ -49,7 +49,8 @@ row the context supplies runs with no form at all
 target through `InstancePicker` over the pool before dispatch (`onRun`
 receives `{ relations: { key: ref } }`; the picker accepts the relation's
 declared `targetTypes` and models the instance ref `{ type, id }` it
-submits). Relation targets live outside the opened screen's sources: the
+submits; its create affordance runs the host's nested dialog and lands
+the created record as the link target). Relation targets live outside the opened screen's sources: the
 dialog lazy-loads each accepted type through the host's `onLoadType` seam
 when it opens, and the declared target domain (`where`, SPEC §6) filters
 the offered candidates through the one shared evaluator. Relation
@@ -562,27 +563,35 @@ beside the transition history in `StateHistory`.
   (filtered, via the shared Select wrapper), `InstancePicker` —
   AutoComplete with typeahead over the instance pool, or TreeSelect when
   the accepted type declares lineage children (TreeSelect's checked-keys
-  map selection resolves to the `{ type, id }` instance ref) —
+  map selection resolves to the `{ type, id }` instance ref; both
+  branches filter, `common.search`) —
   `InstanceMultiPicker` (shared MultiSelect wrapper), `ChipsInput`,
   `FileUploadControl`, `Slider` for bounded scalars (declared min/max),
-  `RefRowActions` (the fill-dialog reference-slot affordances: create by
-  the accepted type's creation mode — the icon button's accessible name
-  carries the sole accepted type's label beside "Create", so it never
-  collides with the dialog's submit — and open the picked instance's
-  editor),
-  `FillDialogBody` (the fill-dialog shell: form pane beside the live
-  composed preview), `TemplateValuesRow` (the per-token values form a
-  `template-values` pin renders), `MapEditor` (key-value rows: the key
+  `RefRowActions` (the create affordance itself: compiled create actions
+  for the accepted types dispatch by creation protocol — the icon
+  button's accessible name carries the sole accepted type's label beside
+  "Create", so it never collides with the dialog's submit — and open the
+  picked instance's editor when a value rides the row; type records
+  resolve through the served type view, so pickers compose it without a
+  bundle), `FillDialogBody` (the fill-dialog shell: form pane beside the
+  live composed preview), `TemplateValuesRow` (the per-token values form
+  a `template-values` pin renders), `MapEditor` (key-value rows: the key
   an input, each value cell the resolver's control for the declared
   itemType or the value's own type — a nested value renders its
-  read-only summary), and the recursive `ObjectEditor` / `ListEditor` / `VariantEditor`
-  (compact density shrinks editors through PrimeVue sizes); schemaless
-  json renders read-only (the ObjectSummary presentation — machine
-  data, the shared SPEC's Field I/O law). The instance pickers render every suggestion, tree
+  read-only summary), and the recursive `ObjectEditor` / `ListEditor` /
+  `VariantEditor` (compact density shrinks editors through PrimeVue
+  sizes); schemaless json renders read-only (the ObjectSummary
+  presentation — machine data, the shared SPEC's Field I/O law). The instance pickers render every suggestion, tree
   node, and option as the one-line instance option row and build their
   options through the shared instance-option derivation
-  ([shared](../shared/README.md) — SPEC §22.13); `SpotPartsRow` picks each
-  anchor's part through the shared entity Select wrapper. Which presentation an editor family resolves to
+  ([shared](../shared/README.md) — SPEC §22.13). Pickers carry the
+  create affordance (SPEC §22.13 create amendment) when their host
+  passes the compiled create actions: the created record selects into
+  the picker, and a model ref the pool never carried (a construct
+  dialog's created record) resolves its label through the entity store.
+  `SpotPartsRow` picks each anchor's part through the shared entity
+  Select wrapper, whose popover create lands the created part on that
+  spot at once. Which presentation an editor family resolves to
   (Knob, MeterGroup, Chart, Rating, OrderList, Inplace) is the mapping
   contract's data-shape derivation (see
   [shared/ui-mapping](../../shared/ui-mapping/README.md)); spec-row values

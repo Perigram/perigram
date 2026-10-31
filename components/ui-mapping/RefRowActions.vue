@@ -45,16 +45,18 @@ import Menu from 'primevue/menu';
 import { creationModeLabel } from '~/packages/processes/src/ui-contract-projection.js';
 import { createdEntity } from '~/utils/instance-run-results.js';
 import { useInstancesStore } from '~/stores/instances';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { openBlankFileEditor } from '~/components/generated/file-surfaces.js';
 
 // The fill dialog's reference-slot affordances (SPEC §24 rails): create
 // through the accepted type's declared creation mode — the editor
 // protocol opens the blank page, an upload-mode create runs inline over
 // the files channel, every other create opens the host's nested dialog —
-// and open the picked instance's editor when its type binds one.
+// and open the picked instance's editor when its type binds one. Pickers
+// compose the same component picker-local (SPEC §22.13); type records
+// resolve through the served type view, so no bundle travels.
 const props = defineProps({
   typeIds: { type: Array, default: () => [] },
-  bundle: { type: Object, default: null },
   value: { type: Object, default: null },
   editorActions: { type: Object, default: null },
   // Compiled create actions by accepted type id: `{ [typeId]: action[] }`.
@@ -65,12 +67,13 @@ const emit = defineEmits(['select', 'construct-create']);
 const { t } = useI18n();
 const toast = useToast();
 const instances = useInstancesStore();
+const view = useFileTypeView();
 const menuRef = ref(null);
 const fileRef = ref(null);
 const creating = ref(false);
 const pendingUpload = ref(null);
 
-const typeRecordOf = typeId => (props.bundle?.types || []).find(candidate => candidate.id === typeId) || null;
+const typeRecordOf = typeId => view.typeById(typeId) || null;
 
 // The editor protocol is the declared `payload.creation` vocabulary; the
 // create actions are what the org can actually run.
@@ -144,7 +147,7 @@ async function onFilePicked(event = {}) {
     });
     const entity = createdEntity(entry.action, result);
     const id = entity?._id ?? entity?.id;
-    if (id) emit('select', { type: entry.typeId, id: String(id) });
+    if (id) emit('select', { type: entry.typeId, id: String(id), entity });
   } catch (error) {
     toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 5000 });
   } finally {

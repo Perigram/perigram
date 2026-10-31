@@ -18,6 +18,7 @@
         :option-label="entityOptionLabel"
         :option-value="optionValue"
         :filter="filter !== false"
+        :filter-placeholder="t('common.search')"
         scroll-height="16rem"
         class="w-72"
         :aria-label="triggerLabel"
@@ -37,6 +38,14 @@
           <span v-else>{{ labelFor(option) }}</span>
         </template>
       </Listbox>
+      <RefRowActions
+        v-if="typeId"
+        class="mt-1"
+        :type-ids="[typeId]"
+        :create-actions="createActions"
+        @select="onCreateSelect"
+        @construct-create="action => emit('construct-create', action)"
+      />
     </Popover>
     <InstanceInlineRef
       v-if="hasSelectedEntity"
@@ -72,6 +81,7 @@ import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 import Listbox from 'primevue/listbox';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
+import RefRowActions from '~/components/ui-mapping/RefRowActions.vue';
 import { useInstancesStore } from '~/stores/instances';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { instanceRecordTitle } from '~/utils/instance-shape.js';
@@ -97,9 +107,12 @@ const props = defineProps({
   typeId: { type: String, default: '' },
   placeholder: { type: String, default: '' },
   filter: { type: Boolean, default: null },
-  appendTo: { type: String, default: 'body' }
+  appendTo: { type: String, default: 'body' },
+  // Compiled create actions by type id (SPEC §22.13): entries for
+  // `typeId` render the popover's create affordance.
+  createActions: { type: Object, default: () => ({}) }
 });
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'create-select', 'construct-create']);
 const slots = useSlots();
 const attrs = useAttrs();
 const instances = useInstancesStore();
@@ -152,6 +165,13 @@ function toggleOverlay(event) {
 
 function onPick(value) {
   emit('update:modelValue', value);
+  overlayRef.value?.hide();
+}
+
+// The create affordance hands the created record ref to its host — hosts
+// own the model shape — and closes the overlay.
+function onCreateSelect(option) {
+  emit('create-select', option);
   overlayRef.value?.hide();
 }
 </script>
