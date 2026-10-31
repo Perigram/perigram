@@ -360,17 +360,19 @@ test.describe('fill dialog rails (SPEC §24, owner direction 2026-10-28)', () =>
     const chooser = await fileChooser;
     await chooser.setFiles({ name: 'alpha.dxf', mimeType: 'application/dxf', buffer: Buffer.from(partText) });
 
-    const alphaSelect = dialog.locator('.p-select').first();
-    // The opening panel animates: an immediate option click lands on the
-    // first row's coordinates. The settle wait plus the retrying block
-    // rides out both the animation and the pool re-render.
+    // The single picker's closed control is a trigger (SPEC §22.13): the
+    // options open in a body-appended popover Listbox, and the picked
+    // instance renders as the tile beside the control. The settle wait
+    // plus the retrying block rides out the panel animation and the
+    // pool re-render.
+    const partTrigger = dialog.getByRole('button', { name: 'Pick part', exact: true }).first();
     await expect(async () => {
-      await alphaSelect.click();
+      await partTrigger.click();
       await app.page.waitForTimeout(400);
-      const alphaOption = app.page.locator('.p-select-list-container li', { hasText: 'alpha' }).first();
+      const alphaOption = app.page.locator('.p-listbox-option', { hasText: 'alpha' }).first();
       await expect(alphaOption).toBeVisible({ timeout: 15_000 });
       await alphaOption.click();
-      await expect(alphaSelect).toContainText('alpha');
+      await expect(dialog.locator('.instance-inline-tile', { hasText: 'alpha' })).toBeVisible();
     }).toPass({ timeout: 40_000 });
     const poolRows = await (await app.request.get('/api/instances/dxf-source')).json();
     const alphaPartId = (Array.isArray(poolRows) ? poolRows : []).find(row => row.name === 'alpha')?._id;
