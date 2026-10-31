@@ -3234,3 +3234,25 @@ settles into SPEC §22.16 as standing law.
   instances renders each item as its record page (hosted detail screen
   with children) on real screens and the showcase floor; three keep the
   derived projection; the probe artifacts land under `.playwright/`.
+
+### Agent Notes (2026-10-31, handful records round)
+
+Session `agent/rich-records-20261031` (worktree
+`.agent-worktrees/rich-records-20261031`). The `few` signal (loaded
+count 1–2) resolves the `records` layout ahead of every shape entry;
+`RICH_RECORDS_BELOW = 3` and the records row weight 6 live in the
+budget table. RegionCollections renders the projection through the
+`recordPage` host seam (EmbeddedRecordPage — the popup's detail-screen
+resolution scoped per instance, hosted in place), the engine floor
+rendering one detail-card SurfaceBody per instance; the seam threads
+through nested RegionChildren so record children engage at any depth.
+En route: CollectionTable cell edits map their `{name, value}` change
+onto the wire patch map. Specs pin the derivation (few outranks
+boardable/media/temporal, override still wins, 0 keeps the projection),
+the SSR smokes pin both surfaces, and `e2e/rich-records-projection`
+pins the real path with artifacts under `.playwright/rich-records-*` —
+the handful page renders two hosted record pages (0 tables), the
+three-child control keeps its table. ui-mapping 149, module-imports,
+design-system, framework-packages, SSR smoke 24, arch, framework and
+docs guards green (the docs guard's one finding is the uninitialized
+jagua-rs submodule in the fresh worktree).
