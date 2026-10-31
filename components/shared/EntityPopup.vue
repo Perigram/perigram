@@ -22,7 +22,8 @@
         @click="expand"
       />
     </template>
-    <div ref="popupBody" class="max-h-dvh overflow-y-auto">
+    <!-- Width-measure host: the dialog content owns the scroll surface. -->
+    <div ref="popupBody">
       <DirectoryDetailSurface
         v-if="visible && isDirectoryType"
         :key="`${request.typeId}:${request.instanceId}`"
