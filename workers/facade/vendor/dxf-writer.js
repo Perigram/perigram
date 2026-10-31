@@ -1,5 +1,39 @@
 const DEFAULT_LAYER = 'geometry';
 
+// Layer drafting attributes (the OCCS layer standards' pens): hex color,
+// pen weight in mm, and the dash pattern ride the drawing layers; the
+// layer table carries them so a CAM reader sees the standard's styling.
+const LINE_TYPE_PATTERNS = {
+  Continuous: { description: 'Solid line', elements: [] },
+  DASHED: { description: 'Dashed __ __', elements: [5, -5] },
+  DOT: { description: 'Dot . . .', elements: [1, -3] }
+};
+
+// DXF lineweights are a fixed 1/100 mm ladder; a pen weight snaps to it.
+const LINE_WEIGHT_LADDER = [0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106, 120, 140, 158, 200, 211];
+
+const lineTypeForDashArray = (dasharray = '') => {
+  const pattern = String(dasharray || '').trim();
+  if (pattern === '5,5') return 'DASHED';
+  if (pattern === '1,3') return 'DOT';
+  return 'Continuous';
+};
+
+const lineWeightFor = (weight) => {
+  const value = Number(weight);
+  if (!Number.isFinite(value) || value <= 0) return -3;
+  const target = Math.round(value * 100);
+  return LINE_WEIGHT_LADDER.reduce((best, step) => (
+    Math.abs(step - target) < Math.abs(best - target) ? step : best
+  ), LINE_WEIGHT_LADDER[0]);
+};
+
+const trueColorFor = (color) => {
+  const match = /^#?([0-9a-f]{6})$/i.exec(String(color || '').trim());
+  return match ? parseInt(match[1], 16) : null;
+};
+
+
 const validPoint = (point) => (
   Array.isArray(point) &&
   point.length >= 2 &&
@@ -180,10 +214,51 @@ export function collectDxfEntities({ layers = [], layerData = [], polygonParts =
   return entities;
 }
 
+// The layer table's drafting attributes: each layer takes its pen from
+// the drawing layer that produced it (the OCCS standard's color, weight,
+// and dash pattern), defaulted to the neutral pen.
+function layerDefinitionsOf(layers = [], entities = []) {
+  const defs = new Map();
+  const define = (name, pen = {}) => {
+    const key = layerName(name);
+    const current = defs.get(key) || { name: key, lineType: 'Continuous', lineWeight: -3, trueColor: null };
+    if (pen.dasharray) current.lineType = lineTypeForDashArray(pen.dasharray);
+    if (pen.weight !== undefined) current.lineWeight = lineWeightFor(pen.weight);
+    const trueColor = trueColorFor(pen.color);
+    if (trueColor !== null) current.trueColor = trueColor;
+    defs.set(key, current);
+  };
+  for (const layer of layers || []) define(layer.name || layer.standardCode, layer);
+  for (const entity of entities || []) if (!defs.has(layerName(entity.layer))) define(entity.layer);
+  return [...defs.values()];
+}
+
+function entitiesBounds(entities = []) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  const extend = ([x, y]) => {
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+  };
+  for (const entity of entities) {
+    for (const point of entity.points || []) extend(point);
+    if (entity.from) extend(entity.from);
+    if (entity.to) extend(entity.to);
+    if (entity.point) extend(entity.point);
+  }
+  return Number.isFinite(minX) ? { minX, minY, maxX, maxY } : { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+}
+
 export function generateLayeredDxf({ layers = [], layerData = [], polygonParts = [] } = {}) {
   const entities = collectDxfEntities({ layers, layerData, polygonParts });
   if (!entities.length) return '';
-  const layerNames = Array.from(new Set(entities.map(entity => layerName(entity.layer))));
+  const layerDefinitions = layerDefinitionsOf(layers, entities);
+  const lineTypes = ['Continuous', ...new Set(layerDefinitions.map(definition => definition.lineType))];
+  const bounds = entitiesBounds(entities);
   const lines = [];
   let handleCount = 256;
 
@@ -197,35 +272,77 @@ export function generateLayeredDxf({ layers = [], layerData = [], polygonParts =
   add(2, 'HEADER');
   add(9, '$ACADVER');
   add(1, 'AC1015');
+  add(9, '$INSUNITS');
+  add(70, 4);
+  add(9, '$MEASUREMENT');
+  add(70, 1);
+  add(9, '$EXTMIN');
+  add(10, bounds.minX);
+  add(20, bounds.minY);
+  add(30, 0);
+  add(9, '$EXTMAX');
+  add(10, bounds.maxX);
+  add(20, bounds.maxY);
+  add(30, 0);
   add(0, 'ENDSEC');
 
   add(0, 'SECTION');
   add(2, 'TABLES');
   add(0, 'TABLE');
   add(2, 'LTYPE');
-  add(70, 1);
-  add(0, 'LTYPE');
-  add(2, 'Continuous');
-  add(70, 0);
-  add(3, 'Solid line');
-  add(72, 65);
-  add(73, 0);
-  add(40, 0.0);
+  add(70, lineTypes.length);
+  for (const lineType of lineTypes) {
+    const definition = LINE_TYPE_PATTERNS[lineType] || LINE_TYPE_PATTERNS.Continuous;
+    add(0, 'LTYPE');
+    add(5, nextHandle());
+    add(100, 'AcDbSymbolTableRecord');
+    add(100, 'AcDbLinetypeTableRecord');
+    add(2, lineType);
+    add(70, 0);
+    add(3, definition.description);
+    add(72, 65);
+    add(73, definition.elements.length);
+    add(40, definition.elements.reduce((total, element) => total + Math.abs(element), 0));
+    for (const element of definition.elements) {
+      add(49, element);
+      add(74, 0);
+    }
+  }
   add(0, 'ENDTAB');
 
   add(0, 'TABLE');
   add(2, 'LAYER');
-  add(70, layerNames.length);
-  for (const [index, name] of layerNames.entries()) {
+  add(70, layerDefinitions.length);
+  for (const definition of layerDefinitions) {
     add(0, 'LAYER');
     add(5, nextHandle());
     add(100, 'AcDbSymbolTableRecord');
     add(100, 'AcDbLayerTableRecord');
-    add(2, name);
+    add(2, definition.name);
     add(70, 0);
-    add(62, index === 0 ? 7 : ((index % 7) + 1));
-    add(6, 'Continuous');
+    add(62, 7);
+    add(6, definition.lineType);
+    add(370, definition.lineWeight);
+    if (definition.trueColor !== null) add(420, definition.trueColor);
   }
+  add(0, 'ENDTAB');
+
+  add(0, 'TABLE');
+  add(2, 'STYLE');
+  add(70, 1);
+  add(0, 'STYLE');
+  add(5, nextHandle());
+  add(100, 'AcDbSymbolTableRecord');
+  add(100, 'AcDbTextStyleTableRecord');
+  add(2, 'Standard');
+  add(70, 0);
+  add(40, 0);
+  add(41, 1);
+  add(50, 0);
+  add(71, 0);
+  add(42, 2.5);
+  add(3, 'txt');
+  add(4, '');
   add(0, 'ENDTAB');
   add(0, 'ENDSEC');
 
@@ -264,11 +381,13 @@ export function generateLayeredDxf({ layers = [], layerData = [], polygonParts =
       add(5, nextHandle());
       add(100, 'AcDbEntity');
       add(8, entity.layer);
+      add(100, 'AcDbText');
       add(10, entity.point[0]);
       add(20, entity.point[1]);
       add(30, 0);
       add(40, entity.height);
       add(1, entity.text);
+      add(7, 'Standard');
     }
   }
   add(0, 'ENDSEC');
