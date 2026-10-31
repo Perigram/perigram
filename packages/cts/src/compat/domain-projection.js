@@ -418,7 +418,8 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
           path: schema.path,
           ...constructionInputKind(schema.type),
           required: false,
-          prompt: true
+          prompt: true,
+          ...(schema.constructible === false ? { constructible: false } : {})
         })),
         ...(rowEntriesByType.get(type.id) || [])
           .filter(schema => schema.constructible !== false)
