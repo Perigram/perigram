@@ -601,7 +601,10 @@ beside the transition history in `StateHistory`.
   spot at once. `LayerMappingRow` renders a `layer-mapping` pin: it
   reads the uploaded file's source layers and assigns each to a target
   code from the pin's `controlOptions.targets`, marking the declared
-  `requiredTarget` until one source maps to it. Which presentation an editor family resolves to
+  `requiredTarget` until one source maps to it. `CassetteParametersRow`
+  renders a `cassette-parameters` pin: the picked template's OCCS
+  parameter table becomes one input per parameter, read through the
+  template type's served editor surface module. Which presentation an editor family resolves to
   (Knob, MeterGroup, Chart, Rating, OrderList, Inplace) is the mapping
   contract's data-shape derivation (see
   [shared/ui-mapping](../../shared/ui-mapping/README.md)); spec-row values

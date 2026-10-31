@@ -154,8 +154,11 @@ its payload's `{spot:<name>}` anchors each take any accepted part
 editor surface module — the plugin's single parse home), name-equal
 parts prefilled, and the assignment travels as `{ id, spot }` entries.
 A `layer-mapping` pin renders the uploaded file's source layers against
-the pin's `controlOptions.targets`; `controlOptions` rides the resolved
-row descriptor so the control owns no target vocabulary.
+the pin's `controlOptions.targets`; a `cassette-parameters` pin renders
+the picked template's parameter table as one input per parameter.
+`controlOptions` rides the resolved row so the control owns no target
+vocabulary, and a control pin wins over the row's declared field
+descriptor.
 Reference rows carry the fill-dialog rails (SPEC §24): beside the
 picker, `RefRowActions` creates through the accepted type's declared
 creation mode — the `editor` protocol opens the blank editor page, a
