@@ -129,6 +129,10 @@ test('the solve action patches its attempt and constructs sheet designs from the
   expect(dxfItems.length, 'the DXF file records the flow created').toBeGreaterThan(0);
   const dxf = dxfItems[0];
   expect(String(dxf?.fields?.sheet?.id || '')).toContain(String(flowSheets[0]._id));
+  const sheetAfter = await (await app.request.get(`/api/instances/sheet-design/${flowSheets[0]._id}`)).json();
+  const attachedDxf = [].concat(sheetAfter?.relations?.dxf || []);
+  expect(attachedDxf.map(ref => String(ref.id)), 'the sheet carries its DXF relation')
+    .toContain(String(dxf._id));
   const payload = dxf?.payload || null;
   expect(payload?.fileId, 'the DXF record carries its stored payload').toBeTruthy();
   expect(payload?.mime).toBe('application/dxf');
