@@ -124,6 +124,7 @@
       :bundle="bundle"
       :openable="openable"
       :instance-actions="instanceActions"
+      :record-host="recordHost"
       @run="emitRun"
       @open="emitOpen"
     />
@@ -296,7 +297,8 @@ const childrenProps = computed(() => ({
   pool: props.pool,
   bundle: props.bundle,
   openable: props.openable,
-  instanceActions: props.instanceActions
+  instanceActions: props.instanceActions,
+  recordHost: props.recordHost
 }));
 // The record page's weight-proportional split: the side-rail outcome the
 // host's width step engages (wide hosts only), the side column's grid
