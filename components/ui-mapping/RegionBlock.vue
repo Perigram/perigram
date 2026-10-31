@@ -143,7 +143,7 @@
           :editor-action="editorActions?.[node.type?.id] || null"
           :compact="presentation === 'peek'"
           :expandable="expandable"
-          @run="emitRun"
+          @run="action => emitRun(action, { instance: node.instances[0] || null })"
           @transition="payload => emit('transition', { ...payload, instance: node.instances[0] })"
           @refresh="emit('refresh')"
           @open-instance="emitOpen"
