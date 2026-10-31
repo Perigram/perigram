@@ -45,7 +45,7 @@ import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import GeneratedScreenHost from '~/components/generated/GeneratedScreenHost.vue';
 import DirectoryDetailSurface from '~/components/directory/DirectoryDetailSurface.vue';
-import { scopedDetailScreen } from '~/components/generated/detail-screen-actions.js';
+import { scopedDetailScreen, resolveDetailScreen } from '~/components/generated/detail-screen-actions.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { useCallRouting } from '~/composables/useCallRouting.js';
 import { openInstanceInWorkspace, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
