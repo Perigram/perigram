@@ -3255,22 +3255,27 @@ Session `agent/picker-create-search-20261031-094030` (worktree
 `.agent-worktrees/picker-create-20261031`). `RefRowActions` is the one
 create affordance: type records resolve through the served type view
 (the `bundle` prop is gone), its `select` carries the created record,
-and both pickers compose it — `InstanceSelect` renders it under the
-popover's option list (`createActions` prop; `create-select` /
-`construct-create` events), `InstancePicker` trails it beside either
-branch and filters the TreeSelect branch. Created and pool-external
-model refs supplement the picker options so the closed control resolves
-labels (the entity store backs the construct path).
+its protocol menu mounts in the affordance root (a popover-hosted
+create keeps its subtree alive through the async run — the menuitem
+click stays inside the popover), and both pickers compose it —
+`InstanceSelect` renders it under the popover's option list
+(`createActions` prop; `create-select` / `construct-create` events; the
+type set derives from the `typeId` prop or the entity options' own
+types), `InstancePicker` trails it beside either branch and filters the
+TreeSelect branch. Created and pool-external model refs supplement the
+picker options so the closed control resolves labels (the entity store
+backs the construct path).
 `GeneratedMappingScreen` wires create into the fill dialog's lineage
 rows and the link dialog (a construct create opened from the link dialog
 applies its record as the link target; `openNestedCreate` gained an
 `apply` target). `SpotPartsRow`'s per-spot picker carries create — the
 created part lands on that spot — and the standalone create row below
-loaded spots is gone (the no-spots branch keeps its create). Focused:
-instance-select 8, utils instance-select 4, design-system 34,
-framework-packages 5, SSR smoke 24, arch + framework guards green; e2e
-against the running stack (primary code): documents fill dialog 1/1,
-tech-drawing fill dialog 3/4 — the failing pick step reproduces on the
-pre-merge tree in the picker-overlay timing area under active owner
-debug (the reverted overlay-timing fixes), ahead of this session's
-changes.
+loaded spots is gone (the no-spots branch keeps its create). The rails
+e2e rides the new flow: the part create runs from the picker's popover
+and the composed-preview pin skips the transient spinner svg (the
+stale `.p-select` pick pin had been broken since the closed-control
+rework). Focused: instance-select 8, utils instance-select 4,
+design-system 34, framework-packages 5, SSR smoke 24, arch, framework
+and docs guards green; e2e — tech-drawing fill dialog 3/3 (rails test
+green through popover create, tile, preview, editor),
+documents fill dialog 1/1, plugin-surface 1/1.

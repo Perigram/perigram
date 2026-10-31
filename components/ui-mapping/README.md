@@ -570,7 +570,8 @@ beside the transition history in `StateHistory`.
   "Create", so it never collides with the dialog's submit — and open the
   picked instance's editor when a value rides the row; type records
   resolve through the served type view, so pickers compose it without a
-  bundle), `FillDialogBody` (the fill-dialog shell: form pane beside the
+  bundle; the protocol menu mounts in the affordance root, so a
+  popover-hosted create keeps its subtree alive through the async run), `FillDialogBody` (the fill-dialog shell: form pane beside the
   live composed preview), `TemplateValuesRow` (the per-token values form
   a `template-values` pin renders), `MapEditor` (key-value rows: the key
   an input, each value cell the resolver's control for the declared
