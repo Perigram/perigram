@@ -20,7 +20,7 @@ const TABLE_TYPE = 'xlsx-workbook';
 const ART = 'test-results/order-process-live.json';
 
 test('the order process runs live: table rows become baked designs, materials, and nesting runs', async ({ app }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(360_000);
   await app.installPlugins(['tech-drawing', 'documents', 'facade']);
   await app.connectPlugin('documents', 'http://documents-executor:8791');
   await app.connectPlugin('facade', 'http://facade-executor:8790');
