@@ -39,9 +39,9 @@
         </template>
       </Listbox>
       <RefRowActions
-        v-if="typeId"
+        v-if="createTypeIds.length"
         class="mt-1"
-        :type-ids="[typeId]"
+        :type-ids="createTypeIds"
         :create-actions="createActions"
         @select="onCreateSelect"
         @construct-create="action => emit('construct-create', action)"
@@ -119,6 +119,12 @@ const instances = useInstancesStore();
 const { t } = useI18n();
 const { typeById } = useFileTypeView();
 const entityMode = computed(() => instanceSelectOptions(props.options, props.typeId).length > 0);
+// The create affordance targets the picked type — the prop, else the
+// entity options' own type set.
+const createTypeIds = computed(() => {
+  if (props.typeId) return [props.typeId];
+  return [...new Set(instanceSelectOptions(props.options, props.typeId).map(item => item.typeId))];
+});
 const slotNames = computed(() => Object.keys(slots));
 const overlayRef = ref(null);
 const selectedOptionRef = computed(() => selectedOption(props.modelValue));
