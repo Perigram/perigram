@@ -19,7 +19,10 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   purpose, production, pen) with each layer's production export name from
   the spec registry (parametric where the registry names them so: the cut
   layers' `{diameter}`, the fold route's `{angle}`); `occsLayerExportName(code, overrides)`
-  resolves it — the sheet-DXF export names every layer through it. Every
+  resolves it — the sheet-DXF export names every layer through it and
+  bakes each layer's pen into the layer table (truecolor, lineweight, and
+  the dash pattern as a DASHED/DOT linetype definition), alongside mm
+  units, extents, and a Standard text style. Every
   renderer, editor, and preview bakes these pens through the
   layerStandards entry points (`applyOccsLayerPens` for whole drawings,
   `penForLayer` for single layers). The spec registry
