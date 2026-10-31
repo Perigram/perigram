@@ -492,7 +492,9 @@ beside the transition history in `StateHistory`.
   (`LAYOUT.previewHeroBandContent`) — the framed region fills the
   page's free space (viewport-derived height floored at 24rem) — and
   the quiet glyph keeps the bare
-  small ladder. A list region with
+  small ladder. Narrow hosts (the record peek) render the bounded
+  embed band (`LAYOUT.previewEmbedBand`, 9rem below 40rem of container
+  width, 14rem above) whatever the content. A list region with
   nothing to show
   renders at content width, and a record's empty child regions pack side
   by side as compact stubs (`RegionChildren pack`). Every scalar and
