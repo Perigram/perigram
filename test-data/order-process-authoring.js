@@ -94,8 +94,6 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('jobItems', { fields: ['designKey', 'polygonParts', 'count'] });
   authoring.drop('literal', { id: 'one' });
   authoring.configure('one', { type: { base: 'number', nullable: false, unit: 'count' }, value: 1 });
-  authoring.drop('literal', { id: 'zero' });
-  authoring.configure('zero', { type: { base: 'number', nullable: false, unit: 'count' }, value: 0 });
   authoring.drop('recordField', { id: 'rowCassette' });
   authoring.configure('rowCassette', { path: 'cassette', type: { base: 'string', nullable: true } });
   authoring.drop('recordField', { id: 'rowCount' });
@@ -130,9 +128,6 @@ export function composeOrderGraph(authoring, tableType) {
 
   authoring.drop('allEntities', { id: 'storedSheets' });
   authoring.wireDeclaration('sheetRef', 'storedSheets', 'binds');
-  authoring.drop('getField', { id: 'storedSheetKeys' });
-  authoring.configure('storedSheetKeys', { typeId: 'sheet-design' });
-  authoring.setInputDefault('storedSheetKeys', 'field', 'fields.compositionKey');
 
   authoring.drop('forEachEntity', { id: 'layoutLoop' });
   authoring.configure('layoutLoop', { type: { base: 'json', nullable: true } });
@@ -140,17 +135,13 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('layoutRecord', { outputType: { base: 'record' } });
   authoring.drop('recordField', { id: 'layoutKey' });
   authoring.configure('layoutKey', { path: 'compositionKey', type: { base: 'string', nullable: true } });
-  authoring.drop('compareValues', { id: 'sheetMask' });
-  authoring.configure('sheetMask', { type: { base: 'string', nullable: true }, operation: 'eq' });
-  authoring.drop('filterList', { id: 'matchedSheets' });
-  authoring.configure('matchedSheets', { type: { base: 'entityRef', typeId: 'sheet-design' } });
-  authoring.drop('listCount', { id: 'matchedCount' });
-  authoring.configure('matchedCount', { type: { base: 'entityRef', typeId: 'sheet-design' } });
-  authoring.drop('compareValues', { id: 'hasStored' });
-  authoring.configure('hasStored', { type: { base: 'number', nullable: false }, operation: 'gt' });
-  authoring.drop('itemAtPosition', { id: 'firstMatch' });
-  authoring.configure('firstMatch', { type: { base: 'entityRef', typeId: 'sheet-design', nullable: true } });
-  authoring.setInputDefault('firstMatch', 'index', 0);
+  authoring.drop('service:plugin.facade.match-sheet', { id: 'matchStored' });
+  authoring.drop('castValue', { id: 'matchRecord' });
+  authoring.configure('matchRecord', { outputType: { base: 'record' } });
+  authoring.drop('recordField', { id: 'matchFound' });
+  authoring.configure('matchFound', { path: 'found', type: { base: 'boolean', nullable: false } });
+  authoring.drop('recordField', { id: 'matchDesign' });
+  authoring.configure('matchDesign', { path: 'design', type: { base: 'entityRef', typeId: 'sheet-design', nullable: true } });
 
   authoring.drop('construct', { id: 'mkSheetInstance' });
   authoring.wireDeclaration('sheetInstanceRef', 'mkSheetInstance', 'binds');
@@ -182,7 +173,8 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('attempt', 'control:completed', 'layoutLoop', 'control:in');
   authoring.connect('layoutLoop', 'control:done', 'loopEnd', 'control:in');
   authoring.connect('layoutLoop', 'control:each', 'mkSheetInstance', 'control:in');
-  authoring.connect('mkSheetInstance', 'control:completed', 'hasStoredBranch', 'control:in');
+  authoring.connect('mkSheetInstance', 'control:completed', 'matchStored', 'control:in');
+  authoring.connect('matchStored', 'control:completed', 'hasStoredBranch', 'control:in');
   authoring.connect('hasStoredBranch', 'control:true', 'mkCutPlanExisting', 'control:in');
   authoring.connect('hasStoredBranch', 'control:false', 'mkSheet', 'control:in');
   authoring.connect('mkSheet', 'control:completed', 'mkCutPlanNew', 'control:in');
@@ -234,19 +226,15 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('solveRecord', 'data:value', 'solveLayouts', 'data:value');
   authoring.connect('order', 'data:result', 'attempt', `data:lineage.${ORDER_LINEAGE_KEY}`);
 
-  authoring.connect('storedSheets', 'data:result', 'storedSheetKeys', 'data:entity');
   authoring.connect('solveLayouts', 'data:value', 'layoutLoop', 'data:items');
   authoring.connect('layoutLoop', 'data:item', 'layoutRecord', 'data:value');
   authoring.connect('layoutRecord', 'data:value', 'layoutKey', 'data:value');
-  authoring.connect('storedSheetKeys', 'data:value', 'sheetMask', 'data:left');
-  authoring.connect('layoutKey', 'data:value', 'sheetMask', 'data:right');
-  authoring.connect('storedSheets', 'data:result', 'matchedSheets', 'data:items');
-  authoring.connect('sheetMask', 'data:result', 'matchedSheets', 'data:mask');
-  authoring.connect('matchedSheets', 'data:items', 'matchedCount', 'data:value');
-  authoring.connect('matchedCount', 'data:value', 'hasStored', 'data:left');
-  authoring.connect('zero', 'data:value', 'hasStored', 'data:right');
-  authoring.connect('hasStored', 'data:result', 'hasStoredBranch', 'data:condition');
-  authoring.connect('matchedSheets', 'data:items', 'firstMatch', 'data:items');
+  authoring.connect('layoutKey', 'data:value', 'matchStored', 'data:layoutKey');
+  authoring.connect('storedSheets', 'data:result', 'matchStored', 'data:sheets');
+  authoring.connect('matchStored', 'data:result', 'matchRecord', 'data:value');
+  authoring.connect('matchRecord', 'data:value', 'matchFound', 'data:value');
+  authoring.connect('matchRecord', 'data:value', 'matchDesign', 'data:value');
+  authoring.connect('matchFound', 'data:value', 'hasStoredBranch', 'data:condition');
 
   authoring.connect('attempt', 'data:result', 'mkSheetInstance', 'data:lineage.nestingAttemptId');
   authoring.connect('attempt', 'data:result', 'mkSheet', 'data:lineage.nestingAttemptId');
@@ -256,7 +244,7 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('layoutRecord', 'data:value', 'mkSheet', 'data:layout');
   authoring.connect('bake', 'data:result', 'mkSheet', 'data:designs');
 
-  authoring.connect('firstMatch', 'data:item', 'mkCutPlanExisting', 'data:fields.design');
+  authoring.connect('matchDesign', 'data:value', 'mkCutPlanExisting', 'data:fields.design');
   authoring.connect('mkSheetInstance', 'data:result', 'mkCutPlanExisting', 'data:fields.sheet');
   authoring.connect('mkSheet', 'data:result', 'mkCutPlanNew', 'data:fields.design');
   authoring.connect('mkSheetInstance', 'data:result', 'mkCutPlanNew', 'data:fields.sheet');

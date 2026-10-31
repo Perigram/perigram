@@ -122,6 +122,17 @@ export async function nestingParts({ typeId, instanceId, fields = {} } = {}) {
     : parts;
 }
 
+// The stored sheet-design match: a solved layout's composition key and the
+// org's sheet designs in → the design whose composition key matches, out.
+// The flow composes the reuse branch; construction runs only on no match.
+export function matchSheet({ layoutKey, sheets } = {}) {
+  const key = String(layoutKey || '');
+  const design = key && Array.isArray(sheets)
+    ? sheets.find(sheet => String(sheet?.fields?.compositionKey || '') === key) || null
+    : null;
+  return { found: Boolean(design), design };
+}
+
 // The sheet-design DXF export: the stored geometry preview and layer data
 // as a layered DXF — layers carry their production names from the layer
 // standards (never bare codes). Input: the record's values ({ fields:
@@ -245,6 +256,7 @@ export const services = {
   'nesting-parts': nestingParts,
   'extract-geometry': extractGeometry,
   bake,
+  'match-sheet': matchSheet,
   'generate-sheet-dxf': generateSheetDxf,
   'construct-sheet': constructSheet
 };
