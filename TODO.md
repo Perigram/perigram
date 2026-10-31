@@ -3266,3 +3266,30 @@ and docs guards green; e2e — tech-drawing fill dialog 3/3 (rails test
 green through popover create, tile, preview, editor),
 documents fill dialog 1/1, plugin-surface 1/1.
 
+
+## Ref resolves once and the hover peek survives its fetch (owner report 2026-10-31)
+
+Owner report: hovering a chip raises the peek, the peek's fetch completes
+and the panel closes; the next hover refetches — and chip-bearing lists
+re-render continuously. Cause: the optional-reference lookup refetched
+every completed resolve, the ref's watch keyed on the entity object
+identity, and its refresh blanked the resolved record — so every store
+upsert re-triggered the fetch and unmounted the open peek.
+
+- [ ] WAITING — owner verification: a chip resolves its record once, an
+  open hover peek survives the record's fetch, and chip-bearing tables,
+  dataviews, and relation lists hold still (no continuous refetch or
+  reload strips).
+
+### Agent Notes (2026-10-31, ref resolve once)
+
+Session `agent/peek-refetch-loop-20261031-1100` (worktree
+`.agent-worktrees/peek-loop-20261031`). `resolveReadableReference` serves
+a cached readable match before fetching (misses stay uncached);
+`InstanceInlineRef` keys its resolve watch on the record id and type
+(pool re-renders pass fresh entity objects for the same record), so a
+store write no longer re-resolves or blanks the chip; the dead
+`hydrated` cell is gone. Focused: instances store 15, SSR smoke 23,
+instance-select 8. The `shared/design-system.spec.js` three
+`GeneratedScreenHost.vue` findings predate this round on `local`
+(another round's frame).
