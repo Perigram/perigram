@@ -386,6 +386,10 @@ data. `RENDERABLE_PREVIEW_MODES`
 (`dxf`, `svg`, `sketch`, `image`, `pdf`, `docx`, `table`,
 `workbook`, `text`); app-side materializations import it instead of
 restating the list, and every other mode degrades to a payload download.
+The page-fill band (`LAYOUT.previewHeroBandContent`/`Aspect`) belongs
+to the standalone record page: an embedded record (SPEC §22.16) and
+every Card-variant detail surface render their framed preview in the
+bounded `LAYOUT.previewEmbedBand` (the wide quiet-band step).
 `ASPECT_PREVIEW_MODES` (`pdf`) marks the page modes: the page renders
 in the framed region (`LAYOUT.previewHeroBandAspect`), the viewer
 fitting the frame's width;
