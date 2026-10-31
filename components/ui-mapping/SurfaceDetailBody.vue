@@ -124,6 +124,7 @@ import InlineField from './InlineField.vue';
 import StructuralFieldPanel from './StructuralFieldPanel.vue';
 import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
+import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import PreviewBox from './PreviewBox.vue';
 import { resolvePluginPreview } from '~/components/generated/plugin-preview-bindings.js';
 
@@ -141,6 +142,7 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle', 'inline-change', 'run', 'open-instance']);
 const d = inject('uiMappingSpacing');
+const hostTraits = useHostContainerTraits();
 const embedded = inject('uiMappingEmbedded', false);
 
 // One structural panel edits at a time (SPEC UI): the parent owns the
@@ -159,9 +161,10 @@ const quantitative = computed(() => typeIsQuantitative(props.type));
 // payload, declared source, quiet.
 const heroBand = computed(() => {
   // The page-fill band belongs to the standalone record page: an
-  // embedded record (SPEC §22.16) and every Card variant render the
-  // bounded band.
-  const bounded = embedded || props.variant === 'detail';
+  // embedded record (SPEC §22.16), every Card variant, and a narrow
+  // host (the record peek — arrangement sees the measured width) render
+  // the bounded band.
+  const bounded = embedded || props.variant === 'detail' || hostTraits.value?.width === 'narrow';
   const band = heroBandOfPage();
   return bounded && band !== LAYOUT.previewHeroBand ? LAYOUT.previewEmbedBand : band;
 });

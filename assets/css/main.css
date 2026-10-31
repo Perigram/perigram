@@ -540,13 +540,20 @@ body {
     }
 
     /* The bounded band: embedded records and Card variants frame their
-       preview at the wide quiet-band step. */
+       preview at the wide quiet-band step; narrow hosts (the record
+       peek) step it down. */
     .ck-preview-embed-band {
         border: 1px solid var(--p-content-border-color);
         border-radius: var(--p-border-radius-lg);
         background: var(--ck-subtle-background);
         overflow: hidden;
-        height: 14rem;
+        height: 9rem;
+    }
+
+    @container (min-width: 40rem) {
+        .ck-preview-embed-band {
+            height: 14rem;
+        }
     }
 
     .ck-preview-hero-band-flow {
