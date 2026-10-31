@@ -1,10 +1,9 @@
 <template>
   <Button
     v-if="shown"
-    icon="pi pi-history"
+    :label="versionLabel"
     size="small"
-    severity="secondary"
-    text
+    severity="contrast"
     rounded
     :aria-label="$t('revision.pickerLabel')"
     @click="event => revisionsPopover?.toggle(event)"
@@ -62,6 +61,12 @@
           />
         </div>
       </div>
+      <ReplacePayloadAction
+        class="mt-1"
+        :entity="entity"
+        :type="type"
+        @refresh="onReplaced"
+      />
     </div>
   </Popover>
   <StandardDialog
@@ -86,7 +91,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
@@ -96,6 +101,7 @@ import Tag from 'primevue/tag';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
 import InstancePreviewMedia from '~/components/shared/InstancePreviewMedia.vue';
+import ReplacePayloadAction from './ReplacePayloadAction.vue';
 import { RENDERABLE_PREVIEW_MODES } from '#shared/ui-mapping/index.js';
 import { instancePayloadFileUrl } from './file-preview-contract.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
@@ -109,7 +115,9 @@ import { useRegistryStore } from '~/stores/registry';
 // its frozen bytes, and restores a prior revision — the frozen bytes
 // re-enter through the revisioned payload channel as a new revision,
 // behind the same write grant and authored-content law the replace
-// affordance takes.
+// affordance takes. The trigger states the current version and rides the
+// payload preview corner; the popover carries the replace affordance for
+// authored payloads.
 const props = defineProps({
   entity: { type: Object, default: null },
   type: { type: Object, default: null }
@@ -132,6 +140,11 @@ const viewed = ref(null);
 
 const instanceId = computed(() => String(props.entity?._id || props.entity?.id || ''));
 const shown = computed(() => Boolean(props.type?.id && props.type?.payload && props.type?.revisions && instanceId.value));
+// The trigger states the record's current version; the revision list
+// loads at mount so the stamp is live before the popover opens.
+const currentNumber = computed(() => revisions.value[0]?.data?.number ?? null);
+const versionLabel = computed(() => (currentNumber.value != null ? `v${currentNumber.value}` : 'v…'));
+onMounted(() => { if (shown.value) load(); });
 
 // The frozen payload reference (the wire payload block the revision
 // minted) — the row's preview band and name resolve through it.
@@ -219,6 +232,13 @@ const viewDownloadUrl = computed(() => (viewSource.value?.fileUrl ? `${viewSourc
 function view(revision) {
   viewed.value = revision;
   viewing.value = true;
+}
+
+// A replacement mints the next revision; the trigger and the list both
+// refresh against the record's new version.
+function onReplaced() {
+  emit('refresh');
+  load();
 }
 
 async function restore(revision) {

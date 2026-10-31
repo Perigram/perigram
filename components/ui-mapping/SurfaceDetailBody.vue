@@ -1,8 +1,16 @@
 <template>
   <div v-if="d" :class="d.stack">
     <div v-if="hasPreview" :class="LAYOUT.previewHero">
-      <div :class="heroBand">
+      <div :class="[heroBand, 'relative']">
         <PreviewBox variant="pane" :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
+        <!-- The version surface rides the content it versions: its
+             trigger overlays the payload preview corner. -->
+        <div v-if="variant === 'full'" class="absolute bottom-2 right-2 z-10">
+          <PayloadRevisionPicker
+            :entity="instance"
+            :type="type"
+          />
+        </div>
       </div>
     </div>
 
@@ -126,6 +134,7 @@ import InstanceInlineRef from '../shared/InstanceInlineRef.vue';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import PreviewBox from './PreviewBox.vue';
+import PayloadRevisionPicker from '~/components/generated/PayloadRevisionPicker.vue';
 import { resolvePluginPreview } from '~/components/generated/plugin-preview-bindings.js';
 
 const props = defineProps({

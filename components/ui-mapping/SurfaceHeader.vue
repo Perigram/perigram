@@ -53,10 +53,9 @@
       </div>
       <div :class="LAYOUT.row" class="header-actions">
         <!-- The cluster groups by control kind — record utilities (the
-             conversation affordance, the editor, revisions, construct
-             re-derive, payload replacement), generated actions, machine
-             transitions — one tight group per kind with hairline
-             dividers between non-empty groups. -->
+             conversation affordance, the editor, construct re-derive),
+             generated actions, machine transitions — one tight group per
+             kind with hairline dividers between non-empty groups. -->
         <div :class="LAYOUT.actionGroup">
           <InstanceChatEntry :type-id="type?.id" :instance="instance" :name="identity" />
           <component
@@ -66,24 +65,12 @@
             :type-id="type?.id"
             @refresh="$emit('refresh')"
           />
-          <PayloadRevisionPicker
-            v-if="instance && type?.payload && type?.revisions"
-            :entity="instance"
-            :type="type"
-            @refresh="$emit('refresh')"
-          />
           <ActionButton
             v-for="action in rerunActions"
             :key="action.id"
             :action="action"
             :state-policy="statePolicy"
             @run="$emit('run', action)"
-          />
-          <ReplacePayloadAction
-            v-if="instance && type?.payload && type?.revisions"
-            :entity="instance"
-            :type="type"
-            @refresh="$emit('refresh')"
           />
         </div>
         <span
@@ -165,8 +152,6 @@ import {
 import { actionAppliesToEntity } from '~/utils/action-visibility.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import ActionButton from './ActionButton.vue';
-import ReplacePayloadAction from '~/components/generated/ReplacePayloadAction.vue';
-import PayloadRevisionPicker from '~/components/generated/PayloadRevisionPicker.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import BackControl from '../shared/BackControl.vue';
 import StateTag from './StateTag.vue';
@@ -223,8 +208,8 @@ const glyph = computed(() => iconFor(props.type, props.instance));
 const transitionActions = computed(() => props.actions
   .filter(action => action?.__runtime && action?.state?.to));
 // The construct re-derive is a revision utility: it re-runs the record's
-// construction over the stored inputs and mints its next revision, beside
-// the revision picker and payload replacement.
+// construction over the stored inputs and mints its next revision; the
+// version surface itself rides the payload preview.
 const rerunActions = computed(() => props.actions.filter(action => action?.__rerun));
 const manualActions = computed(() => props.actions
   .filter(action => action?.trigger?.mode !== 'event' && !action?.__runtime && !action?.__rerun)
