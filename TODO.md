@@ -2608,7 +2608,7 @@ Ordered steps:
   (owner direction 2026-10-31): `nesting-entry` is an org child type
   holding a `design` ref and `count` quantity. At nesting, the entry
   count expands into that many `cassette-instance` children of the
-  queue, and the solve nests the same count per design. No facade or
+  entry, and the solve nests the same count per design. No facade or
   platform code carries the queue vocabulary.
 
   ### Agent Notes (2026-10-31, queue entry expansion)
