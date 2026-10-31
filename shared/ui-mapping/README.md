@@ -215,7 +215,7 @@ one of `records`, `table`, `card-grid`, `timeline`, `stats`, `board`,
 
 | Signal | Layout |
 |---|---|
-| `few` (one to `RICH_RECORDS_BELOW − 1` loaded instances) | `records` — each instance renders its record card in place (root SPEC §22.16); the count outranks every shape signal |
+| `few` (one to `RICH_RECORDS_BELOW − 1` loaded instances) | `records` — each instance renders its record page in place (root SPEC §22.16); the count outranks every shape signal |
 | prose-dominant | `timeline` (chronological) |
 | percent/quantity-dominant | `stats` (StatGrid cards with the `text-metric` role) |
 | media | `card-grid` |

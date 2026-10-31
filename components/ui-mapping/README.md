@@ -188,7 +188,9 @@ beside the transition history in `StateHistory`.
   `mixed` with the remainder's own stepped arrangement, `columns` with the
   full-row claim, weight-ordered `tabs`) without recomposition; the
   columns outcome engages its tracks only when the measured box grants
-  every track its earned minimum, stacking otherwise. Each column track
+  every track its earned minimum, stacking otherwise. The `recordHost`
+  seam threads through every nested level, so a handful child
+  collection renders hosted record pages at any tree depth. Each column track
   and the record side column is a PlacementBox — a placement slot that
   measures its own box and provides the container record everything inside
   renders against, so a table or card grid inside a rail or track sheds
@@ -196,10 +198,12 @@ beside the transition history in `StateHistory`.
 - `RegionCollections.vue` is embedded by `RegionBlock` (see above) and
   standalone list surfaces: it materializes the layout switch, the
   `records` projection included — a handful collection (root SPEC
-  §22.16) renders one detail-card `SurfaceBody` per instance (identity,
-  state, preview band, facts, relation sections); the card identity
-  opens the record's standalone page when the host binds the open
-  channel.
+  §22.16) renders each instance through the host-provided record page
+  (`recordPage` prop on `GeneratedMappingScreen`, the seam
+  `editorActions` rides: the app host resolves the component, the
+  engine renders what it is given), falling back to one detail-card
+  `SurfaceBody` per instance when no host provides one (the showcase
+  and SSR fixtures).
 - `SortControl.vue` — the collection sort control for the card-grid and
   board projections (tables sort natively by column; board lanes carry one
   per column — see `BoardCollection`): a self-contained popover over the
