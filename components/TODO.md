@@ -554,3 +554,19 @@ and `InstanceInlineRef`'s chip; `instancePeekHasContent`
 (utils/fact-rows.js) is the pure trigger gate. Validation:
 design-system 34/34, fact-vocabulary 10/10, localization clean, SSR
 smoke 24/24, check-arch clean.
+
+Session `agent/peekfix-20261031` (worktree `.agent-wt-peekfix-20261031`),
+owner direction: the record peek hosts the procedural data contract —
+the same compiled record surface the instance popup hosts. New
+`scopedDetailScreen` (detail-screen-actions.js) is the one scoped-screen
+resolution (screen key → synthesized pair → record floor, instance bound
+into scope); `EntityPopup` consumes it (its inline chain and swap guard
+dedupe onto it) and `InstancePeek.vue` renders `GeneratedScreenHost`
+over it with the measured `popup` container profile (peek popover 24rem,
+32rem height cap). Peek triggers gate on openability (a record surface
+exists), the hand-composed peek content (band/identity/rows/payload
+line) and `instancePeekHasContent` die, and the invented payload
+mime·size line is gone (owner rejection — `payloadFactLine` deleted).
+Validation: design-system 34/34, fact-vocabulary 9/9, localization
+clean, SSR smoke 24/24, check-arch clean, docs guard clean
+(workers/nesting link pre-exists).

@@ -38,7 +38,7 @@
                 />
               </div>
               <HoverPeek
-                :enabled="openable && instancePeekHasContent({ typeRecord: type, entity: instance })"
+                :enabled="openable"
                 @open="$emit('open', instance)"
               >
                 <template #default="{ peekEvents }">
@@ -56,7 +56,7 @@
                   />
                 </template>
                 <template #preview>
-                  <InstancePeek :type-id="String(type?.id || '')" :entity="instance" />
+                  <InstancePeek :type-id="String(type?.id || '')" :instance-id="instanceIdOf(instance)" />
                 </template>
               </HoverPeek>
             </div>
@@ -200,7 +200,6 @@ import Card from 'primevue/card';
 import Chip from 'primevue/chip';
 import HoverPeek from '~/components/shared/HoverPeek.vue';
 import InstancePeek from '~/components/shared/InstancePeek.vue';
-import { instancePeekHasContent } from '~/utils/fact-rows.js';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
@@ -272,6 +271,7 @@ const statusOf = instance => {
 };
 // The tile's identifier chip label: the one title resolver over the row.
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
+const instanceIdOf = instance => String(instance?._id || instance?.id || '');
 // Card facts exclude the identifier field — the card title IS the
 // identifier value (titleFor); a fact row would repeat it. A narrow
 // host takes the compact fact budget (the container seam).

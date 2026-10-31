@@ -404,15 +404,15 @@ on hover (SPEC §22.14) — the framed media band plus the name and
 Accepts either wire shape (generator blobs and chat attachments).
 
 ### `InstancePeek.vue`
-The record peek body (SPEC §22.14): the framed preview band, identity
-with glyph and state tag, the generated field vocabulary's scalar rows
-(`instanceFactRows`, capped at eight), and the payload block's name
-facts (`payloadFactLine`). Rendered inside
-[`HoverPeek.vue`](#hoverpeekvue) by every instance-chip trigger; hosts
-pass the resolved record (`InstanceInlineRef` feeds its hydrated record,
-generated card chips the pool instance). Triggers gate the peek through
-`instancePeekHasContent`
-([utils](../../utils/README.md) → `fact-rows.js`).
+The record peek body (SPEC §22.14): the same procedural record surface
+the instance popup hosts — `scopedDetailScreen`
+([generated surfaces](../generated/README.md)) binds the compiled
+detail screen (or the synthesized pair, or the record floor) to the
+record, `GeneratedScreenHost` renders it, and the popover body provides
+the measured `popup` container profile. Rendered inside
+[`HoverPeek.vue`](#hoverpeekvue) by every instance-chip trigger; the
+trigger gates the peek on the record being openable. Identity opens from
+the generator swap the peek subject in place.
 
 ### `HoverPeek.vue`
 The hover peek host (SPEC §22.14): the one delayed-hover preview surface.
@@ -422,9 +422,7 @@ A deliberate hover delay (300 ms) raises the anchored `Popover`, leaving
 the trigger or the panel dismisses after a grace period that lets the
 pointer cross into the panel, and hovering-capable pointers alone engage
 it — touch hosts keep the click path. A click on the peek body emits
-`open` (nested interactive controls keep their own clicks), and the host
-gates `enabled` on the body carrying a fact beyond identity — a peek
-with nothing to say stays away. The panel rides
+`open` (nested interactive controls keep their own clicks). The panel rides
 Aura's own chrome — the preset's popover padding spaces the body from
 the panel border, media bands frame themselves as the framed media
 region, and the body scrolls past its height bound.
@@ -505,10 +503,9 @@ message refs read as chips, not inline text — keeping the one-line,
 no-line-height-inflation behavior inside prose and dense surfaces
 (tables, field controls, relation rows) alike. The chip is also the peek
 trigger (SPEC §22.14): a deliberate hover raises the record's peek —
-[`InstancePeek.vue`](#instancepeekvue) over the hydrated record — and
-the click — on the chip or on the peek body — opens the record popup; a
-record whose peek would carry nothing beyond identity raises no peek at
-all (`instancePeekHasContent`). Generated card identity chips (the
+[`InstancePeek.vue`](#instancepeekvue), the compiled record surface in
+the peek rhythm — and the click — on the chip or on the peek body —
+opens the record popup. Generated card identity chips (the
 preview-dominant tile's overlay badge) are peek triggers too, opening
 under the collection's onOpen contract.
 `variant="compact"` renders a horizontal micro card instead of a chip —
