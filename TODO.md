@@ -3293,3 +3293,22 @@ store write no longer re-resolves or blanks the chip; the dead
 instance-select 8. The `shared/design-system.spec.js` three
 `GeneratedScreenHost.vue` findings predate this round on `local`
 (another round's frame).
+
+## Instance page header breadcrumbs (owner direction 2026-10-31)
+
+Owner direction: the instance page header carries the record's
+breadcrumbs.
+
+- [ ] WAITING — owner verification: a record with declared containment
+  ancestors renders the ancestor trail above its identity line, each
+  crumb opens its resolved instance through the surface's instance-open
+  channel, and the trail resolves labels through the instances store.
+
+### Agent Notes (2026-10-31, instance header crumbs)
+
+Session `agent/instance-crumbs-20261031` (worktree
+`.agent-worktrees/instance-crumbs-20261031`). `BreadcrumbTrail` derives
+ancestry from `containmentAncestors` over the effective containment
+contract and resolves each ancestor through `resolveReadableReference`;
+the tree is reactive to both loaded records and the served type view.
+The header's unused pool prop is cut.

@@ -137,7 +137,6 @@
           :instance="node.instances[0]"
           :actions="headerActions"
           :level="node.level"
-          :pool="pool"
           :bundle="bundle"
           :state-policy="node.statePolicy"
           :navigation="depth === 0 ? navigation : null"
