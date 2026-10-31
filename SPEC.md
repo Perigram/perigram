@@ -1012,7 +1012,7 @@ type identity. A card's beyond-budget overflow opens
 the record's popup — the record surface carries the full set; a type
 with no record surface counts. A collection's count renders only for loaded, accessible,
 non-empty collections. The record header is the record's one identity
-surface: the type glyph and the subtle type label beside the title name
+surface: the type glyph and the subtle type label under the title name
 its type, and no host heading, subtitle, or dialog title repeats the
 record's name or type. The record header carries the record's declared
 containment ancestors as a compact, background-free breadcrumb trail
