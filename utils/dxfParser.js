@@ -1,5 +1,56 @@
 import DxfParser from 'dxf-parser';
 
+// Basic ACI palette for layers styled by index alone (no truecolor).
+const ACI_COLORS = {
+  1: '#FF0000', 2: '#FFFF00', 3: '#00FF00', 4: '#00FFFF', 5: '#0000FF',
+  6: '#FF00FF', 7: '#FFFFFF', 8: '#808080', 9: '#C0C0C0'
+};
+
+const hexOfTrueColor = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  const hex = Math.max(0, Math.min(0xFFFFFF, Math.trunc(numeric))).toString(16).padStart(6, '0');
+  return `#${hex.toUpperCase()}`;
+};
+
+// The LAYER table's drafting attributes, read off the raw text: the
+// drawing displays as the file declares it (truecolor, linetype,
+// lineweight), independent of any org pen registry.
+export function parseDxfLayerStyles(dxfText = '') {
+  const lines = String(dxfText || '').split(/\r?\n/);
+  const entries = [];
+  let current = null;
+  for (let index = 0; index + 1 < lines.length; index += 2) {
+    const code = lines[index].trim();
+    const value = lines[index + 1].trim();
+    if (code === '0') {
+      if (current) entries.push(current);
+      current = value === 'LAYER'
+        ? { name: '', color: null, trueColor: null, lineType: 'Continuous', lineWeight: null }
+        : null;
+      continue;
+    }
+    if (!current) continue;
+    if (code === '2' && !current.name) current.name = value;
+    else if (code === '62') current.color = Number(value);
+    else if (code === '420') current.trueColor = Number(value);
+    else if (code === '6') current.lineType = value;
+    else if (code === '370') current.lineWeight = Number(value);
+  }
+  if (current) entries.push(current);
+  const byName = new Map();
+  for (const entry of entries) {
+    if (!entry.name) continue;
+    byName.set(entry.name, {
+      color: hexOfTrueColor(entry.trueColor) || ACI_COLORS[Math.abs(entry.color || 7)] || null,
+      dasharray: entry.lineType === 'DASHED' ? '5,5' : entry.lineType === 'DOT' ? '1,3' : 'none',
+      weight: Number.isFinite(entry.lineWeight) && entry.lineWeight > 0 ? entry.lineWeight / 100 : null
+    });
+  }
+  return byName;
+}
+
+
 /**
  * Build a layer-to-pen map for use with generateSvgData.
  * Uses org override pen if available, falls back to default pen.
@@ -102,6 +153,7 @@ export async function generateSvgData(source, layerMapping = {}, defaultPen = nu
     if (!dxf || !dxf.entities) {
       throw new Error('Invalid DXF file');
     }
+    const layerStyles = parseDxfLayerStyles(dxfText);
     
     const defaultPenSettings = defaultPen || {
       stroke: { color: 'currentColor', weight: 0.5, pattern: 'SOLID' }
@@ -163,13 +215,18 @@ export async function generateSvgData(source, layerMapping = {}, defaultPen = nu
 
     dxf.entities.forEach(entity => {
       if (!layers[entity.layer]) {
+        const declared = layerStyles.get(entity.layer) || null;
         const pen = layerMapping[entity.layer] || defaultPenSettings;
         const stroke = penStroke(pen);
         layers[entity.layer] = {
           name: entity.layer,
-          color: stroke.color || 'currentColor',
-          weight: stroke.weight || 0.5,
-          dasharray: getStrokeDasharray(stroke.pattern || 'SOLID'),
+          color: stroke.color && stroke.color !== 'currentColor'
+            ? stroke.color
+            : (declared?.color || stroke.color || 'currentColor'),
+          weight: stroke.weight || declared?.weight || 0.5,
+          dasharray: getStrokeDasharray(stroke.pattern || 'SOLID') !== 'none'
+            ? getStrokeDasharray(stroke.pattern)
+            : (declared?.dasharray || 'none'),
           paths: []
         };
       }

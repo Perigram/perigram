@@ -56,6 +56,15 @@
     <div class="h-[70vh] min-h-0">
       <FilePayloadViewer v-if="exportedFile" :source="exportedFile" />
     </div>
+    <template #footer>
+      <Button
+        v-if="exportedFile?.attachment?.fileId"
+        :label="$t('common.download')"
+        icon="pi pi-download"
+        text
+        @click="downloadExportedFile"
+      />
+    </template>
   </Dialog>
 </template>
 
@@ -70,6 +79,7 @@
 // (utils/created-instance-open).
 import { computed, ref, watch } from 'vue';
 import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
@@ -296,6 +306,12 @@ function notifyFailure(error, summary) {
 const actionResult = ref(null);
 const actionResultLabel = ref('');
 const exportedFile = ref(null);
+
+function downloadExportedFile() {
+  const fileId = exportedFile.value?.attachment?.fileId;
+  if (!fileId || typeof window === 'undefined') return;
+  window.open(`/api/files/download/${encodeURIComponent(String(fileId))}?bucket=files&download=1`, '_blank');
+}
 const actionResultRows = computed(() => {
   const value = actionResult.value;
   if (value === null || typeof value !== 'object') return [];
