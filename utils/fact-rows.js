@@ -86,3 +86,23 @@ function boolLabels(translator) {
   const no = translator?.te?.('common.no') ? translator.t('common.no') : null;
   return { ...(yes ? { trueLabel: yes } : {}), ...(no ? { falseLabel: no } : {}) };
 }
+
+/**
+ * Whether a record carries a peek fact beyond identity: a preview band
+ * (payload or declared previewSource), a wire state, a filled scalar, or
+ * payload name facts. Trigger surfaces gate `HoverPeek.enabled` through
+ * this — a peek with nothing to say stays away (the FileChip law).
+ */
+export function instancePeekHasContent({ typeRecord = null, entity = null } = {}) {
+  if (!typeRecord || !entity) return false;
+  if (payloadFactLine(entity.payload || null)) return true;
+  if (entity.payload?.fileId || typeRecord.payload || typeRecord.previewSource) return true;
+  if (entity.state) return true;
+  const fields = entity.fields || {};
+  return Object.entries(typeRecord.fields || {}).some(([name, descriptor]) =>
+    SCALAR_BASES.includes(descriptor.base)
+    && !isLongText(descriptor)
+    && fields[name] !== null
+    && fields[name] !== undefined
+    && fields[name] !== '');
+}

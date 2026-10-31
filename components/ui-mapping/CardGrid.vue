@@ -37,17 +37,28 @@
                   @click="event => openCardMenu(event, instance)"
                 />
               </div>
-              <Chip
-                :label="identityOf(instance)"
-                :icon="iconFor(type, instance) || undefined"
-                :pt="CHIP_LABEL_PT"
-                :class="[LAYOUT.mediaTileBadge, FILE_CHIP_CLASS, { 'cursor-pointer': openable }]"
-                :title="identityOf(instance)"
-                :role="openable ? 'button' : undefined"
-                :tabindex="openable ? 0 : undefined"
-                @click="openable && $emit('open', instance)"
-                @keydown.enter.prevent="openable && $emit('open', instance)"
-              />
+              <HoverPeek
+                :enabled="openable && instancePeekHasContent({ typeRecord: type, entity: instance })"
+                @open="$emit('open', instance)"
+              >
+                <template #default="{ peekEvents }">
+                  <Chip
+                    v-on="peekEvents"
+                    :label="identityOf(instance)"
+                    :icon="iconFor(type, instance) || undefined"
+                    :pt="CHIP_LABEL_PT"
+                    :class="[LAYOUT.mediaTileBadge, FILE_CHIP_CLASS, { 'cursor-pointer': openable }]"
+                    :title="identityOf(instance)"
+                    :role="openable ? 'button' : undefined"
+                    :tabindex="openable ? 0 : undefined"
+                    @click="openable && $emit('open', instance)"
+                    @keydown.enter.prevent="openable && $emit('open', instance)"
+                  />
+                </template>
+                <template #preview>
+                  <InstancePeek :type-id="String(type?.id || '')" :entity="instance" />
+                </template>
+              </HoverPeek>
             </div>
           </template>
           <!-- Side-preview card: a visual preview with facts — the preview
@@ -187,6 +198,9 @@ import { useI18n } from 'vue-i18n';
 import DataView from 'primevue/dataview';
 import Card from 'primevue/card';
 import Chip from 'primevue/chip';
+import HoverPeek from '~/components/shared/HoverPeek.vue';
+import InstancePeek from '~/components/shared/InstancePeek.vue';
+import { instancePeekHasContent } from '~/utils/fact-rows.js';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Message from 'primevue/message';

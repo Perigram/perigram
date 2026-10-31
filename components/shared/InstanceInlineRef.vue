@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import Chip from 'primevue/chip';
 import { CHIP_LABEL_PT, INSTANCE_CHIP_CLASS } from './chip-surface.js';
 import FactRows from '~/components/shared/FactRows.vue';
+import InstancePeek from '~/components/shared/InstancePeek.vue';
 import StateTag from '~/components/ui-mapping/StateTag.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
@@ -12,14 +13,13 @@ import ActionButton from '~/components/ui-mapping/ActionButton.vue';
 import { useInstancesStore } from '~/stores/instances';
 import { useRegistryStore } from '~/stores/registry';
 import { useAuthStore } from '~/stores/auth';
-import { instanceFactRows } from '~/utils/fact-rows.js';
-import { payloadFactLine } from '~/utils/data-display.js';
+import { instanceFactRows, instancePeekHasContent } from '~/utils/fact-rows.js';
+import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
 import { normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
 import { DESIGN_SYSTEM_CARD_COMPONENTS } from '~/utils/design-system-cards.js';
 import { LAYOUT } from '#shared/ui-mapping/index.js';
-import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
 import { instanceRecordTitle } from '~/utils/instance-shape.js';
 import { generatedEntityLabel, generatedActionLabel } from '~/utils/generated-labels.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
@@ -131,31 +131,13 @@ const compactDataFields = computed(() => instanceFactRows({
   translator: { t, te }
 }));
 const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.preview !== 'none');
-// The peek band speaks the detail surface's preview treatment.
-const peekDisplay = computed(() => resolveInstanceDisplayContract({
-  typeId: generatedTypeId.value,
-  surface: 'detail',
-  typeRecord: typeById(generatedTypeId.value)
-}));
-const peekHasPreview = computed(() => peekDisplay.value.surfaceContract.preview !== 'none');
-const PEEK_FACT_LIMIT = 8;
-const peekRows = computed(() => instanceFactRows({
-  typeId: servedTypeId.value,
+// The peek fires only where the record carries a fact beyond identity
+// (the FileChip law): a preview band, a state tag, a fact row, or
+// payload name facts.
+const peekHasContent = computed(() => instancePeekHasContent({
   typeRecord: typeView.value,
-  entity: peekEntity.value,
-  auth: factGateAuth(),
-  translator: { t, te },
-  cap: PEEK_FACT_LIMIT
+  entity: peekEntity.value
 }));
-const peekPayloadLine = computed(() => payloadFactLine(peekEntity.value?.payload || null));
-// The peek fires only where it carries a fact beyond identity (the
-// FileChip law): a preview band, a state tag, a fact row, or payload
-// name facts.
-const peekHasContent = computed(() =>
-  peekHasPreview.value
-  || peekRows.value.length > 0
-  || Boolean(peekPayloadLine.value)
-  || Boolean(compactStatusState.value));
 // The peek speaks the live record: a ref may carry a slim message
 // snapshot, so the pool's cached field- or payload-bearing DTO (or its
 // on-show readable-reference resolution) stands in for the snapshot.
@@ -479,37 +461,7 @@ function executeContextualAction(action) {
           />
         </template>
         <template #preview>
-          <span
-            v-if="peekHasPreview"
-            class="instance-preview-slot block h-28 w-full overflow-hidden rounded-ui border border-content-border bg-subtle"
-          >
-            <InstancePreview
-              :entity="peekEntity"
-              :type-id="generatedTypeId"
-              :mode="peekDisplay.surfaceContract.preview"
-              :interactive="false"
-              fill
-              hide-dimension-layer
-            />
-          </span>
-          <span class="flex min-w-0 flex-col gap-2">
-            <span class="flex min-w-0 items-center gap-2">
-              <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true" />
-              <span class="min-w-0 flex-1 truncate text-label" :title="identityLabel">{{ identityLabel }}</span>
-              <StateTag
-                v-if="compactStatusState"
-                :value="compactStatusState"
-                :policy="compactPolicy"
-                class="max-w-full shrink-0"
-              />
-            </span>
-            <FactRows
-              v-if="peekRows.length"
-              :rows="peekRows"
-              variant="compact"
-            />
-            <span v-if="peekPayloadLine" class="text-muted text-supporting">{{ peekPayloadLine }}</span>
-          </span>
+          <InstancePeek :type-id="generatedTypeId" :entity="peekEntity" :type-record="typeView" />
         </template>
       </HoverPeek>
       <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted" data-instance-card-interactive="true">
