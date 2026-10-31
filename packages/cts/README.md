@@ -89,7 +89,8 @@ modules onto its sections.
   `containment`, `construction` (`genericCreate` plus declared
   construct operators as `via` modes with signature-derived mode
   inputs; payload protocols add the file input plus the type's declared
-  `payload.inputs`; construction lineage inputs address immediate parent
+  `payload.inputs`; ref fields marked `constructible: false` stay out of
+  every create form; construction lineage inputs address immediate parent
   axes — the ancestor chain derives at the instance construct seam),
   `relations`, and `attachmentKinds`. Party types project as readable
   principals
