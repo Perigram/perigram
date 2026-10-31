@@ -572,7 +572,9 @@ beside the transition history in `StateHistory`.
   bars).
 - Editors: `QuantityInput` (InputGroup + unit addon), `EnumSelect`
   (filtered, via the shared Select wrapper), `InstancePicker` —
-  AutoComplete with typeahead over the instance pool, or TreeSelect when
+  AutoComplete with typeahead over the instance pool, loading an
+  accepted type's instances on demand when the screen does not source
+  it, or TreeSelect when
   the accepted type declares lineage children (TreeSelect's checked-keys
   map selection resolves to the `{ type, id }` instance ref; both
   branches filter, `common.search`) —

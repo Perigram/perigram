@@ -2665,9 +2665,13 @@ Ordered steps:
   cassette-design `template`/`source` prompt only on their operator
   modes. Org1 runs facade v34; its upload action resolves `payload` +
   `mapping`, and its `bake` action renders from a template with the
-  parameter table. The Playwright probe drove the live upload dialog
-  through file pick, layer assignment, and submit; the request carried
-  `{ payload, mapping }` and the record stored both.
+  parameter table. The render dialog's template row loads
+  cassette-template instances on demand when the screen does not source
+  them; Org1's stale `templates → bake` data wire is removed so the
+  template prompts instead of arriving from the graph. The Playwright
+  probe drove the live upload dialog through file pick, layer
+  assignment, and submit; the request carried `{ payload, mapping }`
+  and the record stored both.
 
 - [ ] WAITING — owner verification: Multi-sheet canvas, second pass
   (owner direction 2026-10-28 evening): explicit working set — sheets

@@ -91,6 +91,43 @@ const { t, te } = useI18n();
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
 const typeRecordOf = typeId => typesById.value[typeId] || null;
 
+// Ref rows in create dialogs name types the surrounding screen may not
+// source; load each accepted type's instances on demand and merge them
+// over the host pool.
+const fetchedTypes = ref({});
+async function ensureType(typeId) {
+  const key = instances.canonicalTypeKey(typeId);
+  if (!key || fetchedTypes.value[key]) return;
+  fetchedTypes.value[key] = true;
+  try {
+    await instances.listInstances(key, {}, { silent: true });
+  } catch {
+    fetchedTypes.value[key] = false;
+  }
+}
+watch(() => props.accepts, ids => {
+  for (const typeId of ids || []) ensureType(typeId);
+}, { immediate: true, deep: true });
+
+const mergedPool = computed(() => {
+  const pool = { ...(props.pool || {}) };
+  for (const typeId of props.accepts || []) {
+    const key = instances.canonicalTypeKey(typeId);
+    const bucket = key ? instances.records[key] : null;
+    if (!bucket) continue;
+    const entries = Object.values(bucket)
+      .map(entry => entry?.instance || entry?.dto)
+      .filter(Boolean)
+      .map(instance => ({ ...instance, id: String(instance.id ?? instance._id ?? '') }))
+      .filter(instance => instance.id);
+    if (!entries.length) continue;
+    const byId = { ...(pool[typeId] || {}) };
+    for (const instance of entries) byId[instance.id] = instance;
+    pool[typeId] = byId;
+  }
+  return pool;
+});
+
 const acceptedType = computed(() => typeRecordOf(props.accepts[0]));
 const hierarchical = computed(() => Boolean(Object.keys(acceptedType.value?.edges?.children || {}).length));
 const buildNode = (instance, seen = new Set()) => {
@@ -100,7 +137,7 @@ const buildNode = (instance, seen = new Set()) => {
   // Children resolve through the shared hierarchy matcher (declared
   // lineageKey, never the edge's map key) — the same matcher the
   // workspace explorer nests through.
-  const children = childrenOfParent(type, props.pool, instance.id)
+  const children = childrenOfParent(type, mergedPool.value, instance.id)
     .filter(child => !nextSeen.has(child.id));
   return {
     key: instance.id,
@@ -125,7 +162,7 @@ const supplementFor = (typeId, id, entity) => {
 };
 const treeOptions = computed(() => hierarchical.value
   ? [
-      ...Object.values(props.pool[props.accepts[0]] || {}).map(instance => buildNode(instance)).filter(Boolean),
+      ...Object.values(mergedPool.value[props.accepts[0]] || {}).map(instance => buildNode(instance)).filter(Boolean),
       ...supplemented.value
         .filter(entry => entry.typeId === props.accepts[0])
         .map(entry => ({ key: entry.value.id, label: entry.label, typeId: entry.typeId, instance: entry.entity, children: [] }))
@@ -145,7 +182,7 @@ function selectTreeKey(keys) {
 }
 const treeSelection = computed(() => (props.model?.id ? { [props.model.id]: true } : null));
 const options = computed(() => {
-  const derived = instancePickerOptions(props.pool, props.accepts, {
+  const derived = instancePickerOptions(mergedPool.value, props.accepts, {
     typeRecordFor: typeRecordOf,
     typeLabelFor: typeId => generatedEntityLabel(typeId, { t, te }),
     unnamedLabel: t('common.unnamed'),
