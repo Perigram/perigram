@@ -44,7 +44,12 @@ const REPORT_TYPE = {
   id: 'report',
   class: 'file',
   version: 1,
-  payload: { mime: ['application/pdf'], accept: ['.pdf'], maxSize: 64 },
+  payload: {
+    mime: ['application/pdf'],
+    accept: ['.pdf'],
+    maxSize: 64,
+    inputs: { mapping: { base: 'json' } }
+  },
   fields: { name: { base: 'string', identifier: true } }
 };
 const PLAIN_TYPE = { id: 'plain', class: 'item', version: 1, fields: { name: { base: 'string' } } };
@@ -151,6 +156,19 @@ describe('service-backed construction executor payloads (SPEC §24)', () => {
 
     expect(merged.payload.fileId).toBe('stored-U.pdf');
     expect(merged.payload.size).toBe(19);
+  });
+
+  it('passes payload-declared construction inputs into the executor draft', async () => {
+    executorOutput({ data: { geometry: { ok: true } } });
+
+    await applyConstructionService('report', 'upload', {
+      payload: { fileId: 'uploaded-1', mime: 'application/pdf', size: 4 },
+      mapping: { SOURCE: 'cut.outer' }
+    }, CONTEXT);
+
+    const [, call] = executeConnectorService.mock.calls[0];
+    expect(call.parameters.mode).toBe('upload');
+    expect(call.parameters.draft.data).toEqual({ mapping: { SOURCE: 'cut.outer' } });
   });
 
   it('refuses an executor mime the declared traits reject and deletes the stored blob', async () => {

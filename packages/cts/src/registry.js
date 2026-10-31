@@ -4,6 +4,7 @@ import { normalizeRow, checkFields, rowToSchema } from './rows.js';
 import { normalizeEdges, checkLineageAcyclic, UNLINK_POLICIES } from './edges.js';
 import { checkClassObligations } from './classes.js';
 import { normalizeOperator, OPERATOR_SPECIES_BY_LETTER } from './operators.js';
+import { describeType } from './values.js';
 import { requireCompatible, normalizeMigrateSteps } from './diff.js';
 import { checkBooleanExpression } from './expressions.js';
 
@@ -51,11 +52,15 @@ function normalizePayload(payload) {  if (!payload) return null;
       throw new Error(`payload creation protocol ${protocol} is not one of ${CREATION_PROTOCOLS.join(' | ')}`);
     }
   }
+  const inputs = payload.inputs && typeof payload.inputs === 'object' && !Array.isArray(payload.inputs)
+    ? Object.fromEntries(Object.entries(payload.inputs).map(([id, descriptor]) => [id, describeType(descriptor || {})]))
+    : null;
   return Object.freeze({
     mime: Object.freeze(mime),
     ...(payload.accept?.length ? { accept: Object.freeze([...payload.accept]) } : {}),
     ...(Number.isFinite(maxSize) ? { maxSize } : {}),
     ...(payload.preview ? { preview: String(payload.preview) } : {}),
+    ...(inputs && Object.keys(inputs).length ? { inputs: Object.freeze(inputs) } : {}),
     creation: Object.freeze(creation)
   });
 }

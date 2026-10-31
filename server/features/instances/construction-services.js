@@ -184,7 +184,12 @@ async function buildServiceInput(typeId, mode, draft, context, organizationId) {
   // handlers always accepted both spellings, and the executor contract
   // reads the data-qualified form — normalize once, here.
   const draftData = { ...(draft?.data || {}) };
-  for (const field of Object.keys(operator?.input?.fields || {})) {
+  // Payload protocols declare extra construction inputs on the payload
+  // traits; operator modes declare theirs on the operator signature.
+  const modeFields = mode === 'upload' || mode === 'capture'
+    ? Object.keys(declaration?.payload?.inputs || {})
+    : Object.keys(operator?.input?.fields || {});
+  for (const field of modeFields) {
     if (draftData[field] === undefined && draft?.[field] !== undefined) {
       draftData[field] = draft[field];
     }

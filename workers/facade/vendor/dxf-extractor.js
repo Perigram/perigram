@@ -31,6 +31,25 @@ function isValidPolygonCoordinates(points = []) {
 }
 
 /**
+ * List the layer names a DXF declares, including layers with no entities.
+ * @param {Buffer} dxfBuffer - DXF file buffer
+ * @returns {string[]} Sorted layer names
+ */
+export function listDxfLayers(dxfBuffer) {
+  try {
+    const dxf = new DxfParser().parseSync(dxfBuffer.toString('utf-8'));
+    const names = new Set();
+    for (const entity of dxf?.entities || []) {
+      if (entity?.layer) names.add(String(entity.layer));
+    }
+    for (const key of Object.keys(dxf?.tables?.layer?.layers || {})) names.add(String(key));
+    return [...names].sort((left, right) => left.localeCompare(right));
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Extract polygons from a DXF buffer for a specific layer
  * @param {Buffer} dxfBuffer - DXF file buffer
  * @param {string} layerName - Layer to extract polygons from

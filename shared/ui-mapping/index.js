@@ -1325,7 +1325,11 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
       rows.push({
         id,
         label: policy.label || fieldLabel(id),
-        descriptor: { base: 'string', ...(policy.control ? { control: policy.control } : {}) },
+        descriptor: {
+          base: 'string',
+          ...(policy.control ? { control: policy.control } : {}),
+          ...(policy.controlOptions ? { controlOptions: policy.controlOptions } : {})
+        },
         span: 'full',
         required: policy.required === true || id === identifier
       });
@@ -1359,8 +1363,11 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
       rows.push({
         id,
         label: policy.label || fieldLabel(id),
-        descriptor: { base: policy.type === 'object' ? 'json' : policy.type },
-        ...(policy.control ? { control: policy.control } : {}),
+        descriptor: {
+          base: policy.type === 'object' ? 'json' : policy.type,
+          ...(policy.control ? { control: policy.control } : {}),
+          ...(policy.controlOptions ? { controlOptions: policy.controlOptions } : {})
+        },
         span: 'full',
         required: policy.required === true
       });

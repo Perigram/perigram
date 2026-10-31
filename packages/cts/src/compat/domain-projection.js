@@ -322,6 +322,8 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         prompt: true,
         ...(protocol === 'capture' ? { capture: 'environment' } : {})
       });
+      inputs.push(...operatorModeInputs({ input: { base: 'record', fields: type.payload?.inputs || {} } })
+        .map(input => ({ ...input, prompt: true })));
     }
     if (protocol === 'content') {
       // The wired or prompted text becomes the payload at construct (SPEC
@@ -582,6 +584,7 @@ function operatorModeInputs(operator = {}) {
     // The naming facet's control pin rides verbatim (SPEC §4): the
     // dialog decides how a ref input is picked, the type stays the type.
     if (descriptor.control) input.control = descriptor.control;
+    if (descriptor.controlOptions) input.controlOptions = descriptor.controlOptions;
     if (descriptor.base === 'ref') {
       input.type = 'entity';
       if (descriptor.accepts?.length === 1) input.typeId = descriptor.accepts[0];
@@ -595,6 +598,8 @@ function operatorModeInputs(operator = {}) {
       input.type = 'number';
     } else if (descriptor.base === 'instant') {
       input.type = 'date';
+    } else if (descriptor.base === 'blob') {
+      input.type = 'file';
     } else if (['string', 'number', 'boolean'].includes(descriptor.base)) {
       input.type = descriptor.base;
     } else {

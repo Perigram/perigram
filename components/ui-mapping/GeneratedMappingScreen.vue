@@ -94,6 +94,14 @@
             @construct-create="openNestedCreate(null, $event)"
             @update:model-value="value => (dialogDraft[row.id] = value)"
           />
+          <LayerMappingRow
+            v-else-if="row.control === 'layer-mapping'"
+            :model-value="dialogDraft[row.id] || {}"
+            :file-ref="dialogFileRef"
+            :targets="row.descriptor?.controlOptions?.targets || []"
+            :required-target="row.descriptor?.controlOptions?.requiredTarget || ''"
+            @update:model-value="value => (dialogDraft[row.id] = value)"
+          />
           <div v-else-if="row.descriptor?.base === 'ref'" class="flex items-center gap-2">
             <FieldControl
               v-model="dialogDraft[row.id]"
@@ -199,6 +207,7 @@ import { refusalFailuresOf } from '~/utils/action-failures.js';
 import RegionChildren from './RegionChildren.vue';
 import InstancePicker from './InstancePicker.vue';
 import SpotPartsRow from './SpotPartsRow.vue';
+import LayerMappingRow from './LayerMappingRow.vue';
 import RefRowActions from './RefRowActions.vue';
 import FillDialogBody from './FillDialogBody.vue';
 import TemplateValuesRow from './TemplateValuesRow.vue';
@@ -389,6 +398,12 @@ const dialogRows = computed(() => (
     ? resolveRunDialogInputs(dialogAction.value)
     : resolveCreateDialogInputs(dialogAction.value || {}, dialogType.value, props.bundle)
 ));
+// The create's uploaded file feeds the mapping control beside it.
+const dialogFileRef = computed(() => {
+  const row = dialogRows.value.find(candidate => candidate.descriptor?.base === 'blob');
+  const value = row ? dialogDraft[row.id] : null;
+  return value && typeof value === 'object' && value.fileId ? value : null;
+});
 // The fill-dialog shell composes a live preview beside the form when the
 // create targets a payload-bearing type through a construction mode.
 const fillDialogActive = computed(() => Boolean(dialogType.value?.payload && dialogAction.value?.construction?.mode));

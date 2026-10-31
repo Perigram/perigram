@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, sheet instances, and the nesting solver as an installable plugin with an external executor",
-  "version": "28",
+  "version": "29",
   "requires": [
     "tech-drawing"
   ],
@@ -101,7 +101,27 @@
           "preview": "dxf",
           "creation": [
             "upload"
-          ]
+          ],
+          "inputs": {
+            "mapping": {
+              "base": "json",
+              "label": "Layer mapping",
+              "control": "layer-mapping",
+              "controlOptions": {
+                "requiredTarget": "cut.outer",
+                "targets": [
+                  "cut.outer",
+                  "cut.inner",
+                  "cut.hole",
+                  "fold.route",
+                  "fold.engrave",
+                  "contour.cassette_face",
+                  "code.cassette_mark",
+                  "dimension.cassette"
+                ]
+              }
+            }
+          }
         },
         "revisions": "geometry",
         "render": {
@@ -143,6 +163,10 @@
           },
           "parameters": {
             "base": "json"
+          },
+          "mapping": {
+            "base": "json",
+            "constructible": false
           },
           "geometry": {
             "base": "json",
