@@ -103,6 +103,20 @@ vi.mock('~/components/shared/InstanceInlineRef.vue', async () => {
   };
 });
 
+vi.mock('~/components/ui-mapping/RefRowActions.vue', async () => {
+  const { defineComponent, h: render } = await import('vue');
+  return {
+    default: defineComponent({
+      props: ['typeIds', 'createActions', 'value', 'editorActions'],
+      setup(props) {
+        return () => Object.values(props.createActions || {}).flat().length
+          ? render('div', { 'data-create-affordance': String(props.typeIds || []) })
+          : null;
+      }
+    })
+  };
+});
+
 import InstanceSelect from './InstanceSelect.vue';
 import InstanceMultiSelect from './InstanceMultiSelect.vue';
 import { instancePickerOptions } from '~/utils/instance-select.js';
@@ -179,6 +193,21 @@ describe('entity Select wrappers', () => {
     expect(html).toContain('Pick a queue');
     expect(html).not.toContain('data-variant="tile"');
     expect(html).not.toContain('data-prime-select');
+    expect(html).not.toContain('data-create-affordance');
+  });
+
+  it('renders the popover create affordance for compiled create actions of the picked type', async () => {
+    const html = await render(InstanceSelect, {
+      modelValue: null,
+      options,
+      optionLabel: 'label',
+      optionValue: 'value',
+      typeId: 'queue',
+      placeholder: 'Pick a queue',
+      createActions: { queue: [{ id: 'create-queue', actionKind: 'createInstance' }] }
+    });
+
+    expect(html).toContain('data-create-affordance="queue"');
   });
 
   it('renders selected entities as chips inside the control and options as rows', async () => {

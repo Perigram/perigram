@@ -18,28 +18,21 @@
           filter
           size="small"
           class="min-w-0 flex-1"
+          :create-actions="createActions"
           @update:model-value="value => assign(spot, value)"
+          @create-select="option => assignCreated(spot, option)"
+          @construct-create="action => emit('construct-create', action)"
         />
         <RefRowActions
           :value="pickedInstanceFor(spot)"
           :editor-actions="editorActions"
-          :bundle="bundle"
         />
       </div>
-      <RefRowActions
-        :type-ids="accepts"
-        :bundle="bundle"
-        :editor-actions="editorActions"
-        :create-actions="createActions"
-        @construct-create="action => emit('construct-create', action)"
-      />
     </template>
     <div v-else-if="templateRef" class="flex items-center gap-2">
       <span class="text-supporting text-muted">{{ t('uiMapping.noSpots') }}</span>
       <RefRowActions
         :type-ids="accepts"
-        :bundle="bundle"
-        :editor-actions="editorActions"
         :create-actions="createActions"
         @construct-create="action => emit('construct-create', action)"
       />
@@ -91,11 +84,18 @@ async function anchorNamesOf(typeId, text) {
 
 const entries = computed(() => Array.isArray(props.modelValue) ? props.modelValue : []);
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
-const parts = computed(() => instancePickerOptions(props.pool, props.accepts, {
-  typeRecordFor: typeId => typesById.value[typeId] || null,
-  typeLabelFor: typeId => generatedEntityLabel(typeId, { t, te }),
-  unnamedLabel: t('common.unnamed')
-}));
+// A per-spot create lands its record in the options at once — the pool
+// catches up on the next load.
+const createdParts = ref([]);
+const parts = computed(() => {
+  const derived = instancePickerOptions(props.pool, props.accepts, {
+    typeRecordFor: typeId => typesById.value[typeId] || null,
+    typeLabelFor: typeId => generatedEntityLabel(typeId, { t, te }),
+    unnamedLabel: t('common.unnamed')
+  });
+  const known = new Set(derived.map(option => option.value));
+  return [...derived, ...createdParts.value.filter(option => !known.has(option.value))];
+});
 
 const pickedIdFor = spot => entries.value.find(entry => entry.spot === spot)?.id || null;
 const pickedInstanceFor = spot => {
@@ -114,6 +114,19 @@ function assign(spot, id) {
     const option = parts.value.find(candidate => candidate.value === String(id));
     if (option) next.push({ type: option.typeId, id: String(id), spot });
   }
+  emit('update:modelValue', next);
+}
+
+function assignCreated(spot, option) {
+  if (!option?.id) return;
+  createdParts.value.push({
+    label: instanceOptionLabel(option.entity, typesById.value[option.type] || null, { unnamedLabel: t('common.unnamed') }),
+    value: String(option.id),
+    entity: option.entity,
+    typeId: option.type
+  });
+  const next = entries.value.filter(entry => entry.spot !== spot);
+  next.push({ type: option.type, id: String(option.id), spot });
   emit('update:modelValue', next);
 }
 
