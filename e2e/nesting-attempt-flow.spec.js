@@ -86,7 +86,7 @@ test('the solve action patches its attempt and constructs sheet designs from the
   expect(activated.ok(), await activated.text()).toBeTruthy();
 
   // The species seed grants the org's write access over the domain types.
-  await app.seedSpeciesProcess({ types: ['cassette-design', 'sheet-design', 'nesting-attempt'] });
+  await app.seedSpeciesProcess({ types: ['cassette-design', 'sheet-design', 'sheet-dxf', 'nesting-attempt'] });
 
   // One design with nestable geometry and the attempt that will own the run.
   const designResponse = await app.request.post('/api/instances/cassette-design', {
@@ -123,12 +123,28 @@ test('the solve action patches its attempt and constructs sheet designs from the
   const flowSheets = sheetItems.filter(sheet => sheet?.fields?.geometry?.data?.items?.length);
   expect(flowSheets.length, 'sheet designs constructed from the layouts').toBeGreaterThan(0);
 
+  // Each sheet's DXF was created as a file record with its stored payload.
+  const dxfResponse = await (await app.request.get('/api/instances/sheet-dxf')).json();
+  const dxfItems = Array.isArray(dxfResponse) ? dxfResponse : dxfResponse?.items || [];
+  expect(dxfItems.length, 'the DXF file records the flow created').toBeGreaterThan(0);
+  const dxf = dxfItems[0];
+  expect(String(dxf?.fields?.sheet?.id || '')).toContain(String(flowSheets[0]._id));
+  const payload = dxf?.payload || null;
+  expect(payload?.fileId, 'the DXF record carries its stored payload').toBeTruthy();
+  expect(payload?.mime).toBe('application/dxf');
+  const fileResponse = await app.request.get(`/api/files/download/${payload.fileId}?bucket=files`);
+  expect(fileResponse.ok(), await fileResponse.text()).toBeTruthy();
+  const dxfText = await fileResponse.text();
+  expect(dxfText).toContain('AC1015');
+  expect(dxfText).toContain('EOF');
+
   writeFileSync(ART, JSON.stringify({
     definitionId,
     attemptId: String(attempt._id),
     outcome,
     summary: result?.summary,
-    sheets: flowSheets.map(sheet => ({ id: String(sheet._id), placements: sheet.fields?.geometry?.data?.items?.length }))
+    sheets: flowSheets.map(sheet => ({ id: String(sheet._id), placements: sheet.fields?.geometry?.data?.items?.length })),
+    dxf: { id: String(dxf._id), fileId: payload.fileId, bytes: dxfText.length }
   }, null, 2));
   await app.expectCleanRuntime();
 });

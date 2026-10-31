@@ -10,6 +10,7 @@ export function composeNestingAttemptTree(authoring) {
   authoring.declareField({ id: 'attemptResultField', ownerClassId: 'attemptClass', name: 'result', descriptor: { base: 'json' } });
   authoring.declareTypeRef({ id: 'designRef', typeId: 'cassette-design' });
   authoring.declareTypeRef({ id: 'sheetRef', typeId: 'sheet-design' });
+  authoring.declareTypeRef({ id: 'dxfRef', typeId: 'sheet-dxf' });
   return authoring;
 }
 
@@ -47,6 +48,11 @@ export function composeNestingAttemptGraph(authoring, { adminAccess = null } = {
   authoring.wireDeclaration('sheetRef', 'mkSheets', 'binds');
   authoring.configure('mkSheets', { construction: { mode: 'fromLayout' }, ...(adminAccess ? { access: adminAccess } : {}) });
 
+  authoring.drop('construct', { id: 'mkDxf' });
+  authoring.wireDeclaration('dxfRef', 'mkDxf', 'binds');
+  authoring.configure('mkDxf', { construction: { mode: 'fromSheet' }, ...(adminAccess ? { access: adminAccess } : {}) });
+  authoring.setInputDefault('mkDxf', 'name', 'Sheet DXF');
+
   authoring.connect('designs', 'data:result', 'polygons', 'data:entity');
   authoring.connect('polygons', 'data:result', 'jobItems', 'data:polygonParts');
   authoring.connect('one', 'data:value', 'jobItems', 'data:count');
@@ -62,6 +68,9 @@ export function composeNestingAttemptGraph(authoring, { adminAccess = null } = {
 
   authoring.connect('patchAttempt', 'control:completed', 'mkSheets', 'control:in');
   authoring.connect('solveLayouts', 'data:value', 'mkSheets', 'data:layout');
+
+  authoring.connect('mkSheets', 'control:completed', 'mkDxf', 'control:in');
+  authoring.connect('mkSheets', 'data:result', 'mkDxf', 'data:sheet');
 
   return authoring.definition();
 }

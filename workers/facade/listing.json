@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, sheet instances, and the nesting solver as an installable plugin with an external executor",
-  "version": "32",
+  "version": "33",
   "requires": [
     "tech-drawing"
   ],
@@ -396,6 +396,58 @@
         "glyph": "ck-entity-icon ck-entity-icon-sheet-design"
       },
       {
+        "id": "sheet-dxf",
+        "class": "file",
+        "scope": "system",
+        "version": 1,
+        "payload": {
+          "mime": "application/dxf",
+          "accept": [
+            ".dxf"
+          ],
+          "maxSize": 26214400,
+          "preview": "dxf"
+        },
+        "fields": {
+          "name": {
+            "base": "string",
+            "identifier": true,
+            "nullable": true
+          },
+          "sheet": {
+            "base": "ref",
+            "accepts": [
+              "sheet-design"
+            ],
+            "slot": "data",
+            "nullable": true
+          }
+        },
+        "operators": {
+          "fromSheet": {
+            "id": "fromSheet",
+            "species": "construct",
+            "input": {
+              "base": "record",
+              "fields": {
+                "name": {
+                  "base": "string",
+                  "nullable": true
+                },
+                "sheet": {
+                  "base": "ref",
+                  "accepts": [
+                    "sheet-design"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "name": "Sheet DXF",
+        "glyph": "pi pi-file-export"
+      },
+      {
         "id": "sheet-cut-plan",
         "class": "item",
         "scope": "system",
@@ -730,6 +782,9 @@
       },
       "sheet-design": {
         "fromLayout": "plugin.facade.construct-sheet"
+      },
+      "sheet-dxf": {
+        "fromSheet": "plugin.facade.generate-sheet-dxf"
       }
     },
     "exports": [

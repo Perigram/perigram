@@ -154,23 +154,26 @@ export function matchSheet({ layoutKey, sheets } = {}) {
   return { found: Boolean(design), design };
 }
 
-// The sheet-design DXF export: the stored geometry preview and layer data
-// as a layered DXF — layers carry their production names from the layer
-// standards (never bare codes). Input: the record's values ({ fields:
-// { geometry } }) in → the DXF file through the executor payload
-// contract (SPEC §24) out.
-export async function generateSheetDxf({ fields = {} } = {}) {
+// The sheet-design DXF: the sheet's stored geometry and layer data as a
+// layered DXF — layers carry their production names from the layer
+// standards. The sheet's values arrive resolved for the export binding
+// (`fields`) or as the construction's sheet ref (`refs.sheet.fields`).
+// Input: the record's values in → the DXF file through the executor
+// payload contract (SPEC §24) out.
+export async function generateSheetDxf({ fields, refs = {}, draft = {} } = {}) {
+  const sheetFields = refs?.sheet?.fields || fields || {};
+  const sheetName = refs?.sheet?.name || sheetFields.name || draft?.data?.name || null;
   const toExportLayer = (layer) => (layer && occsLayerStandard(layer) ? occsLayerExportName(layer) : layer);
   const dxf = generateLayeredDxf({
-    layers: (fields.geometry?.preview?.layers || []).map(layer => {
+    layers: (sheetFields.geometry?.preview?.layers || []).map(layer => {
       const code = layer?.standardCode || layer?.name;
       return occsLayerStandard(code) ? { ...layer, name: occsLayerExportName(code) } : layer;
     }),
-    layerData: (fields.geometry?.data?.layerData || []).map(item => ({
+    layerData: (sheetFields.geometry?.data?.layerData || []).map(item => ({
       ...item,
       layer: toExportLayer(item.layer || item.standardCode || item.name)
     })),
-    polygonParts: fields.geometry?.data?.polygonParts || []
+    polygonParts: sheetFields.geometry?.data?.polygonParts || []
   });
   if (!dxf) {
     const error = new Error('Sheet design has no exportable geometry');
@@ -180,7 +183,8 @@ export async function generateSheetDxf({ fields = {} } = {}) {
   return {
     payload: {
       base64: Buffer.from(dxf, 'utf8').toString('base64'),
-      mime: 'application/dxf'
+      mime: 'application/dxf',
+      ...(sheetName ? { name: `${sheetName}.dxf` } : {})
     }
   };
 }
