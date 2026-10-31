@@ -1867,6 +1867,8 @@
         "mapRequiredLayer": "Map a layer to {target}",
         "skipLayer": "Skip",
         "noLayers": "The DXF carries no layers",
+        "parametersRequireTemplate": "Pick a template to set its parameters",
+        "noParameters": "The template declares no parameters",
         "missingRegion": "No record opened",
         "deniedRegion": "You do not have access to this data",
         "errorRegion": "Failed to load data",

@@ -31,6 +31,7 @@ import {
   updateCassetteV2Workpiece,
   updateCassetteV2WorkpieceRelation
 } from './lib/cassetteV2Renderer.js';
+import { occsParameterSource } from '../occs/parameters.js';
 import {
   OCCS_PROFILE_KINDS,
   OCCS_PROFILE_PROCESSES,
@@ -122,6 +123,16 @@ function snapshotHistory({ ref, snapshot, apply, limit = 50 } = {}) {
       gate();
     }
   };
+}
+
+// Parameter table of an OCCS template payload, read by the host's
+// cassettes-parameters create control through the served surface module.
+export function parametersOf(text = '') {
+  try {
+    return occsParameterSource(JSON.parse(String(text)));
+  } catch {
+    return {};
+  }
 }
 
 export default function createSurface({ vue, components, locale, queries, records, notify, access }) {

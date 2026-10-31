@@ -512,7 +512,9 @@ through the plugin's export binding (owner decision 2026-10-10).
   vocabulary; the mapping is the create form's declared `mapping` input,
   the record stores it beside the extracted geometry, and `cut.outer`
   is the one required target. Template and source stay off the upload
-  form. Template-based creation is the separate `render` construct.
+  form. Template-based creation is the separate `render` construct,
+  whose create form opens the picked template's OCCS parameter table as
+  one input per parameter.
 - `cassette-instance` (item) — the digital twin of a physical cassette.
   It refers to one or zero cassette designs — a twin may be a bare
   record — and one design is referred by many twins.

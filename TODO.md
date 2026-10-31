@@ -2631,20 +2631,27 @@ Ordered steps:
 
   ### Agent Notes (2026-10-31, cassette-upload)
 
-  Session `agent/cassette-upload-20261031` (worktree
-  `.agent-worktrees/cassette-upload-20261031`). `payload.inputs` is the
+  Sessions `agent/cassette-upload-20261031` and
+  `agent/cassette-upload-fix-20261031`. `payload.inputs` is the
   type-level declaration for extra upload construction inputs; facade
-  v32 declares `mapping` with the `layer-mapping` control pin and the
-  OCCS target list. `LayerMappingRow` reads the uploaded DXF's layers
-  and assigns them; `extract-geometry` consumes `draft.data.mapping`,
+  v34 declares `mapping` with the `layer-mapping` control pin and the
+  OCCS target list, and the render operator's `parameters` input carries
+  `cassette-parameters`. `LayerMappingRow` reads the uploaded DXF's
+  layers and assigns them; `CassetteParametersRow` reads the picked
+  template's OCCS parameter table through the served designer module and
+  renders one input per parameter. A control pin on a declared field row
+  now wins over the plain field descriptor (the earlier resolver branch
+  dropped it). `extract-geometry` consumes `draft.data.mapping`,
   extracts every mapped target layer, stores the mapping on the record,
   and names the available layers when no source polygon maps to
   `cut.outer`. Constructible-false refs stay out of every create form
   (`constructible` rides the construction-input projection), so
   cassette-design `template`/`source` prompt only on their operator
-  modes. Org1 is upgraded to facade v32; its active upload action
-  resolves `payload` + `mapping` alone and its `bake` action renders
-  from a template.
+  modes. Org1 runs facade v34; its upload action resolves `payload` +
+  `mapping`, and its `bake` action renders from a template with the
+  parameter table. The Playwright probe drove the live upload dialog
+  through file pick, layer assignment, and submit; the request carried
+  `{ payload, mapping }` and the record stored both.
 
 - [ ] WAITING — owner verification: Multi-sheet canvas, second pass
   (owner direction 2026-10-28 evening): explicit working set — sheets

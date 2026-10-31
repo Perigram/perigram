@@ -1867,6 +1867,8 @@
         "mapRequiredLayer": "Сопоставьте слой с {target}",
         "skipLayer": "Пропустить",
         "noLayers": "В DXF нет слоёв",
+        "parametersRequireTemplate": "Выберите шаблон, чтобы задать его параметры",
+        "noParameters": "В шаблоне нет параметров",
         "missingRegion": "Запись не открыта",
         "deniedRegion": "Нет доступа к этим данным",
         "errorRegion": "Не удалось загрузить данные",

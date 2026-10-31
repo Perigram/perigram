@@ -1290,8 +1290,10 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
     if (fieldName) {
       rows.push({
         id,
-        label: fieldLabel(fieldName, fields[fieldName]),
+        label: policy?.label || fieldLabel(fieldName, fields[fieldName]),
         descriptor: fields[fieldName],
+        ...(policy?.control ? { control: policy.control } : {}),
+        ...(policy?.controlOptions ? { controlOptions: policy.controlOptions } : {}),
         span: 'half',
         required: policy?.required === true || fieldName === identifier
       });
@@ -1363,11 +1365,9 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
       rows.push({
         id,
         label: policy.label || fieldLabel(id),
-        descriptor: {
-          base: policy.type === 'object' ? 'json' : policy.type,
-          ...(policy.control ? { control: policy.control } : {}),
-          ...(policy.controlOptions ? { controlOptions: policy.controlOptions } : {})
-        },
+        descriptor: { base: policy.type === 'object' ? 'json' : policy.type },
+        ...(policy.control ? { control: policy.control } : {}),
+        ...(policy.controlOptions ? { controlOptions: policy.controlOptions } : {}),
         span: 'full',
         required: policy.required === true
       });
