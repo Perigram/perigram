@@ -11,7 +11,11 @@ Three cells; every surface derives from them, nothing else caches:
 - `instances.js` — the single instance cache and transport boundary. Records
   are keyed by type key, then id: `{ [typeKey]: { [id]: { dto, instance } } }`
   where `dto` is the raw wire document and `instance` is the derived CTS §3
-  shape (derived iff the registry knows the type's declaration). List results
+  shape (derived iff the registry knows the type's declaration; a record
+  cached before the registry hydrated derives as soon as the declaration
+  arrives — the pool is a reactive consumer). `canonicalTypeKey` maps every
+  alias spelling (snake, camel) onto the registry's kebab id, the record-cache
+  key the pool and the screens resolve against. List results
   are cached observations (`{ ids, stale }` per query key), concurrent
   lookups coalesce, and one `onInstanceChanged` subscriber reconciles every
   open surface. All reads flow through it: `fetchInstance` (single endpoint
