@@ -19,7 +19,7 @@ export function composeOrderTree(authoring) {
   authoring.declareClass({ id: 'attemptClass', typeId: 'nesting-attempt', class: 'item', name: 'Nesting attempt' });
   authoring.declareField({ id: 'entryLabelField', ownerClassId: 'entryClass', name: 'label', descriptor: { base: 'string', identifier: true } });
   authoring.declareField({ id: 'entryDesignField', ownerClassId: 'entryClass', name: 'design', descriptor: { base: 'ref' } });
-  authoring.declareField({ id: 'entryCountField', ownerClassId: 'entryClass', name: 'count', descriptor: { base: 'quantity', unit: 'count' } });
+  authoring.declareField({ id: 'entryCountField', ownerClassId: 'entryClass', name: 'count', descriptor: { base: 'number' } });
   authoring.declareField({ id: 'orderNameField', ownerClassId: 'orderClass', name: 'name', descriptor: { base: 'string', identifier: true } });
   authoring.declareField({ id: 'attemptLabelField', ownerClassId: 'attemptClass', name: 'label', descriptor: { base: 'string', identifier: true } });
   authoring.declareField({ id: 'attemptResultField', ownerClassId: 'attemptClass', name: 'result', descriptor: { base: 'json' } });
