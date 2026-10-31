@@ -5,7 +5,7 @@
            the screen's identity-open channel. The opened record's own
            title is the header identity line below the trail. -->
       <Button
-        v-bind="breadcrumbProps"
+        v-bind="breadcrumbProps.action"
         link
         size="small"
         :class="LAYOUT.linkClamp"
