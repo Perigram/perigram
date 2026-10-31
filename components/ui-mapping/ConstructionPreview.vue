@@ -29,6 +29,9 @@ const props = defineProps({
   mode: { type: String, required: true },
   type: { type: Object, default: null },
   draft: { type: Object, default: () => ({}) },
+  // The create's required rows are filled; an incomplete draft never
+  // reaches the service.
+  ready: { type: Boolean, default: true },
   // Fill the composed pane instead of the fixed-height band.
   fill: { type: Boolean, default: false }
 });
@@ -44,7 +47,7 @@ const previewMode = computed(() => props.type?.payload?.preview || 'attachment')
 const draftKey = computed(() => JSON.stringify(props.draft || {}));
 const hasDraft = computed(() => draftKey.value !== '{}');
 
-const shown = computed(() => bound.value && (hasDraft.value || Boolean(blobUrl.value) || loading.value));
+const shown = computed(() => props.ready && bound.value && (hasDraft.value || Boolean(blobUrl.value) || loading.value));
 
 function releaseBlob() {
   if (blobUrl.value) URL.revokeObjectURL(blobUrl.value);
@@ -59,16 +62,18 @@ onBeforeUnmount(() => {
   releaseBlob();
 });
 
-watch(draftKey, () => {
+watch([draftKey, () => props.ready], () => {
   if (timer) clearTimeout(timer);
   timer = setTimeout(run, 350);
 }, { immediate: true });
 
 async function run() {
-  if (!hasDraft.value) {
+  if (!props.ready || !hasDraft.value) {
+    sequence += 1;
     releaseBlob();
     attachment.value = null;
     failures.value = [];
+    loading.value = false;
     return;
   }
   const ticket = ++sequence;

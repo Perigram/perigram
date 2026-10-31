@@ -10,6 +10,7 @@
         :mode="mode"
         :type="type"
         :draft="draft"
+        :ready="ready"
         @meta="value => emit('meta', value)"
       />
     </div>
@@ -30,7 +31,8 @@ defineProps({
   typeId: { type: String, default: '' },
   mode: { type: String, default: '' },
   type: { type: Object, default: null },
-  draft: { type: Object, default: () => ({}) }
+  draft: { type: Object, default: () => ({}) },
+  ready: { type: Boolean, default: true }
 });
 
 const emit = defineEmits(['meta']);

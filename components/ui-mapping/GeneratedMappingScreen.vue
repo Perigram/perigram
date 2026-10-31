@@ -63,6 +63,7 @@
         :mode="dialogAction?.construction?.mode || ''"
         :type="dialogType"
         :draft="draftPayload()"
+        :ready="!dialogIncomplete"
         @meta="value => (previewMeta = value)"
       >
         <div :class="LAYOUT.formGrid">
@@ -460,6 +461,10 @@ const submitting = ref(false);
 const rowUnfilled = (row, draft = dialogDraft) => {
   if (!row.required) return false;
   const value = draft[row.id];
+  if (row.control === 'layer-mapping' && row.controlOptions?.requiredTarget) {
+    const mapping = value && typeof value === 'object' && !Array.isArray(value) ? Object.values(value) : [];
+    return !mapping.includes(row.controlOptions.requiredTarget);
+  }
   return value == null || value === '' || (Array.isArray(value) && !value.length)
     || (value && typeof value === 'object' && value.unit !== undefined && (value.value == null || value.value === ''));
 };
