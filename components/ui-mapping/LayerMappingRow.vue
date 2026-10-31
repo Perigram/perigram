@@ -1,36 +1,25 @@
 <template>
-  <div class="flex min-w-0 flex-col gap-2">
-    <div v-if="!fileRef?.fileId" class="text-supporting text-muted">{{ t('uiMapping.uploadForLayerMapping') }}</div>
-    <div v-else-if="loading" class="text-supporting text-muted">{{ t('uiMapping.loadingRegion') }}</div>
+  <div v-if="fileRef?.fileId" class="flex min-w-0 flex-col gap-2">
+    <div v-if="loading" class="text-supporting text-muted">{{ t('uiMapping.loadingRegion') }}</div>
     <Message v-else-if="error" severity="error" :closable="false">{{ error }}</Message>
-    <template v-else-if="layers.length">
-      <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-2 text-label">
-        <span>{{ t('uiMapping.sourceLayer') }}</span>
-        <span>{{ t('uiMapping.targetLayer') }}</span>
-      </div>
-      <div
-        v-for="layer in layers"
-        :key="layer"
-        class="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-center gap-2"
-      >
-        <span class="min-w-0 truncate text-supporting" :title="layer">{{ layer }}</span>
-        <Select
-          :model-value="mapping[layer] || null"
-          :options="targetOptions"
-          option-label="label"
-          option-value="value"
-          :placeholder="t('uiMapping.skipLayer')"
-          show-clear
-          size="small"
-          class="min-w-0"
-          @update:model-value="value => assign(layer, value)"
-        />
-      </div>
-      <p v-if="requiredTarget && !requiredTargetMapped" class="m-0 text-supporting text-status-danger">
-        {{ t('uiMapping.mapRequiredLayer', { target: requiredTarget }) }}
-      </p>
-    </template>
-    <div v-else class="text-supporting text-muted">{{ t('uiMapping.noLayers') }}</div>
+    <div
+      v-for="layer in layers"
+      v-else
+      :key="layer"
+      class="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-center gap-2"
+    >
+      <span class="min-w-0 truncate text-supporting" :title="layer">{{ layer }}</span>
+      <Select
+        :model-value="mapping[layer] || null"
+        :options="targetOptions"
+        option-label="label"
+        option-value="value"
+        show-clear
+        size="small"
+        class="min-w-0"
+        @update:model-value="value => assign(layer, value)"
+      />
+    </div>
   </div>
 </template>
 
@@ -48,8 +37,7 @@ import { instancePayloadFileUrl } from '~/components/generated/file-preview-cont
 const props = defineProps({
   modelValue: { type: Object, default: () => ({}) },
   fileRef: { type: Object, default: null },
-  targets: { type: Array, default: () => [] },
-  requiredTarget: { type: String, default: '' }
+  targets: { type: Array, default: () => [] }
 });
 const emit = defineEmits(['update:modelValue']);
 const { t } = useI18n();
@@ -67,9 +55,7 @@ const targetOptions = computed(() => props.targets.map(target => (
     ? { label: target, value: target }
     : { label: target?.label || target?.code || '', value: target?.code || '' }
 )).filter(option => option.value));
-const requiredTargetMapped = computed(() => (
-  Object.values(mapping.value).includes(props.requiredTarget)
-));
+
 
 function layerNamesOf(dxf) {
   const names = new Set();

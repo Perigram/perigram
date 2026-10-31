@@ -1,24 +1,21 @@
 <template>
-  <div class="flex min-w-0 flex-col gap-2">
-    <div v-if="!templateRef?.id" class="text-supporting text-muted">{{ t('uiMapping.parametersRequireTemplate') }}</div>
-    <div v-else-if="loading" class="text-supporting text-muted">{{ t('uiMapping.loadingRegion') }}</div>
+  <div v-if="templateRef?.id" class="flex min-w-0 flex-col gap-2">
+    <div v-if="loading" class="text-supporting text-muted">{{ t('uiMapping.loadingRegion') }}</div>
     <Message v-else-if="error" severity="error" :closable="false">{{ error }}</Message>
-    <template v-else-if="names.length">
-      <div
-        v-for="name in names"
-        :key="name"
-        class="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-center gap-2"
-      >
-        <span class="min-w-0 truncate text-supporting" :title="name">{{ name }}</span>
-        <InputText
-          :model-value="values[name] ?? ''"
-          size="small"
-          class="min-w-0"
-          @update:model-value="value => assign(name, value)"
-        />
-      </div>
-    </template>
-    <div v-else class="text-supporting text-muted">{{ t('uiMapping.noParameters') }}</div>
+    <div
+      v-for="name in names"
+      v-else
+      :key="name"
+      class="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-center gap-2"
+    >
+      <span class="min-w-0 truncate text-supporting" :title="name">{{ name }}</span>
+      <InputText
+        :model-value="values[name] ?? ''"
+        size="small"
+        class="min-w-0"
+        @update:model-value="value => assign(name, value)"
+      />
+    </div>
   </div>
 </template>
 

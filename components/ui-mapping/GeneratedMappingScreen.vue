@@ -100,7 +100,6 @@
             :model-value="dialogDraft[row.id] || {}"
             :file-ref="dialogFileRef"
             :targets="row.controlOptions?.targets || []"
-            :required-target="row.controlOptions?.requiredTarget || ''"
             @update:model-value="value => (dialogDraft[row.id] = value)"
           />
           <CassetteParametersRow
