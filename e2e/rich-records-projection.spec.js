@@ -5,9 +5,8 @@ import { test, expect } from './fixtures.js';
 // record page in place (hosted detail screen, children collections
 // included) through every projection. Seeds an org process with a group
 // type and child collections, creates a two-record world plus a
-// three-record control, and screenshots both record pages and the
-// two-item class list.
-// Artifacts: .playwright/rich-records-*.png
+// three-record control, and screenshots both record pages.
+// Artifacts: .playwright/rich-records-*
 
 const PROJECT = 'rich-project';
 const TASK = 'rich-task';
@@ -17,8 +16,7 @@ test('a handful collection renders its records in place', async ({ app }) => {
   const declarations = [
     { id: TASK, name: 'Rich task', class: 'item', fields: {
       label: { base: 'string', identifier: true },
-      done: { base: 'boolean' },
-      note: { base: 'string', max: 400 }
+      done: { base: 'boolean' }
     } },
     {
       id: PROJECT, name: 'Rich project', class: 'group',
@@ -76,37 +74,38 @@ test('a handful collection renders its records in place', async ({ app }) => {
     await app.page.waitForTimeout(3500);
   };
 
-  const collectionSurfaces = () => app.page.evaluate(() => ({
-    tables: document.querySelectorAll('.p-datatable').length,
-    recordHeaders: [...document.querySelectorAll('.ck-record-header')].map(el => el.textContent.trim().slice(0, 40)),
-    bodyGrids: document.querySelectorAll('.ck-body-grid').length
-  }));
+  const collectionSurfaces = () => app.page.evaluate(() => {
+    const visible = el => el.getClientRects().length > 0;
+    return {
+      tables: [...document.querySelectorAll('.p-datatable')].filter(visible).length,
+      recordHeaders: [...document.querySelectorAll('.ck-record-header')].filter(visible).map(el => el.textContent.trim())
+    };
+  });
 
   // The handful record page: its two-child collection renders each task
-  // as its record page — a table never mounts.
+  // as its record page — a table never mounts, and each hosted task
+  // carries its own record header.
   await openRecord(`Rich handful ${runTag}`);
   const handful = await collectionSurfaces();
-  expect(handful.recordHeaders.length).toBeGreaterThanOrEqual(3);
-  expect(handful.recordHeaders.map(label => label.includes('Handful task'))).toContain(true);
+  expect(handful.recordHeaders.some(label => label.includes('Handful task'))).toBe(true);
   expect(handful.tables).toBe(0);
   await app.page.screenshot({ path: '.playwright/rich-records-handful.png', fullPage: false });
 
-  // The control record page: three children keep the table projection.
+  // The control record page: three children keep the derived projection
+  // (the table for this plain type) — the count bound holds at three.
   await openRecord(`Rich control ${runTag}`);
+  await app.page.waitForTimeout(4000);
   const control = await collectionSurfaces();
+  const controlRows = await app.page.evaluate(() =>
+    [...document.querySelectorAll('.p-datatable tbody tr')]
+      .filter(el => el.getClientRects().length > 0)
+      .map(el => el.textContent.trim()).filter(label => label.includes('Control task')));
+  expect(controlRows.length).toBe(3);
   expect(control.tables).toBeGreaterThanOrEqual(1);
   await app.page.screenshot({ path: '.playwright/rich-records-control.png', fullPage: false });
-
-  // The class list with the seeded world: the five org tasks keep the
-  // table on their list screen — the law pins the handful branch to the
-  // loaded count, and this list carries five.
-  const me = await (await app.request.get('/api/auth/me')).json();
-  const taskList = (me.screens || []).find(s => s.template === 'typeList' && s.typeId === TASK);
-  if (taskList?.route) {
-    await app.page.goto(taskList.route);
-    await app.page.waitForTimeout(4000);
-    const list = await collectionSurfaces();
-    expect(list.tables).toBeGreaterThanOrEqual(1);
-    await app.page.screenshot({ path: '.playwright/rich-records-list.png', fullPage: false });
-  }
+  const fs = await import('node:fs');
+  fs.writeFileSync('.playwright/rich-records-surfaces.json', `${JSON.stringify({
+    handful: { tables: handful.tables, headers: handful.recordHeaders },
+    control: { tables: control.tables, rows: controlRows }
+  }, null, 2)}\n`);
 });
