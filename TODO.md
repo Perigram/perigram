@@ -2604,25 +2604,6 @@ Ordered steps:
   stored design. The sheet editor's tile carries the split action when
   more than one cut plan references it. E2E
   `e2e/order-process.spec.js` pins the family and the reuse.
-- [ ] WAITING — owner verification: Queue entries carry design and count
-  (owner direction 2026-10-31): `nesting-entry` is an org child type
-  holding a `design` ref and `count` quantity. At nesting, the entry
-  count expands into that many `cassette-instance` children of the
-  entry, and the solve nests the same count per design. No facade or
-  platform code carries the queue vocabulary.
-
-  ### Agent Notes (2026-10-31, queue entry expansion)
-
-  Session `agent/queue-entry-expand-20261031` (worktree
-  `.agent-worktrees/queue-entry-expand-20261031`). The order process
-  declares `nesting-entry` as an order child with `label`, `design`,
-  and `count`; each baked design and row count constructs one entry.
-  An entry loop expands the count through the string repeat/split
-  dataflow into a marker list, and one cassette-instance construct
-  creates one physical cassette per marker under the entry
-  (`nestingEntryId` lineage). E2E `e2e/order-process.spec.js` pins two
-  entries and three physical cassettes for counts 2 and 1, and the
-  same expansion on replay.
 
   ### Agent Notes (2026-10-28, family slice)
 
