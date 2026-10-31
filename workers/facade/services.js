@@ -109,13 +109,17 @@ export async function nestingSolve({ items, sheetWidth, sheetHeight, space, shee
 
 // The cassette-design nesting-parts projection (SPEC §8 p): the instance's
 // stored geometry in → nesting polygon parts, each with its workpiece's
-// layers, out. Input: { fields }. Output: the parts list.
-export async function nestingParts({ fields = {} } = {}) {
+// layers and the design's own identity, out. Input: { typeId, instanceId,
+// fields }. Output: the parts list.
+export async function nestingParts({ typeId, instanceId, fields = {} } = {}) {
   const geometry = fields.geometry || null;
   if (!geometry || !Array.isArray(geometry.nestingPolygons)) {
     badRequest('Nesting parts projection requires stored cassette-design geometry');
   }
-  return nestingPartsProjection(geometry);
+  const parts = nestingPartsProjection(geometry);
+  return String(instanceId || '')
+    ? parts.map(part => ({ ...part, designId: String(instanceId) }))
+    : parts;
 }
 
 // The sheet-design DXF export: the stored geometry preview and layer data

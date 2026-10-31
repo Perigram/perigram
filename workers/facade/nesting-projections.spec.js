@@ -139,6 +139,17 @@ describe('nesting parts projection', () => {
     expect(request.items.map(item => item.design_id)).toEqual(['design-7', 'design-7']);
   });
 
+  it('keys each part by the design id the projection stamped on it', () => {
+    const request = buildValueWorkerRequest([{
+      polygonParts: [
+        { coordinates: [[0, 0], [100, 0], [100, 50], [0, 50]], designId: 'design-a' },
+        { coordinates: [[0, 0], [50, 0], [50, 20], [0, 20]], designId: 'design-b' }
+      ],
+      count: 1
+    }], { width: 1000, height: 1000, space: 3, sheetCount: 1 });
+    expect(request.items.map(item => item.design_id)).toEqual(['design-a', 'design-b']);
+  });
+
   it('nests id-less geometry under the anonymous design key', () => {
     const request = buildValueWorkerRequest([
       { polygonParts: [{ coordinates: [[0, 0], [100, 0], [100, 50], [0, 50]] }], count: 2 }

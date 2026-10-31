@@ -161,9 +161,10 @@ function buildNestingItems(jobFiles = []) {
   const items = [];
   for (const file of jobFiles) {
     const count = Number(file.count || file.quantity || 1);
-    // The design key rides the element: an explicit designId, or the
-    // element's own identity when the item is a record that carries one.
-    const designId = String(file.designId ?? file.design_id ?? file._id ?? file.id ?? '');
+    // The design key rides the element: an explicit designId, the part's
+    // own design id (the projection stamps it), or the element's own
+    // identity when the item is a record that carries one.
+    const itemDesignId = String(file.designId ?? file.design_id ?? file._id ?? file.id ?? '');
     // Parts arrive as a list or — after a tree flatten over a
     // single-element list — as one part object.
     const polygonParts = Array.isArray(file.polygonParts)
@@ -177,7 +178,7 @@ function buildNestingItems(jobFiles = []) {
         if (!isValidPolygonCoordinates(coords)) continue;
         items.push({
           id,
-          design_id: designId,
+          design_id: String(part.designId ?? itemDesignId),
           coords,
           handles: part.handles || [],
           sourceLayers: part.sourceLayers?.length
@@ -194,7 +195,7 @@ function buildNestingItems(jobFiles = []) {
     if (!rectangle.length) continue;
     items.push({
       id,
-      design_id: designId,
+      design_id: itemDesignId,
       coords: rectangle,
       handles: [],
       sourceLayers: sourceLayersForPart(file.layerData || [], {}),
