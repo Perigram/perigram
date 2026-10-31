@@ -148,8 +148,9 @@ beside the transition history in `StateHistory`.
   default-group `ConfirmDialog` host, so concurrently mounted screens
   share one host.
 - `RegionBlock.vue` — one composed region with data-driven layout: the
-  list layout comes from `resolveListLayout` (`table` | `card-grid` |
-  `timeline` | `stats` | `board` | `gantt` | `calendar`; the
+  list layout comes from `resolveListLayout` (`records` | `table` |
+  `card-grid` | `timeline` | `stats` | `board` | `gantt` | `calendar`;
+  the
   matcher is [shared/ui-mapping](../../shared/ui-mapping/README.md)'s).
   The list header stays one line while the row has room — label, count,
   in-place controls, actions (SPEC §22.15, see above). List regions stack the header row and the
@@ -191,6 +192,15 @@ beside the transition history in `StateHistory`.
   measures its own box and provides the container record everything inside
   renders against, so a table or card grid inside a rail or track sheds
   columns and facts for the width it actually has.
+- `RegionCollections.vue` is embedded by `RegionBlock` (see above) and
+  standalone list surfaces: it materializes the layout switch, the
+  `records` projection included — a handful collection (root SPEC
+  §22.16) renders each instance through the host-provided record page
+  (`recordPage` prop on `GeneratedMappingScreen`, the seam
+  `editorActions` rides: the app host resolves the component, the
+  engine renders what it is given), falling back to one detail-card
+  `SurfaceBody` per instance when no host provides one (the showcase
+  and SSR fixtures).
 - `SortControl.vue` — the collection sort control for the card-grid and
   board projections (tables sort natively by column; board lanes carry one
   per column — see `BoardCollection`): a self-contained popover over the

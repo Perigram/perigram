@@ -245,9 +245,11 @@ Composition recursion terminates at the reference: a class reference
 inside another component's surface renders as an instance chip — the
 shared inline ref with inspect-and-open behavior — for ref field values,
 relation references, and table relation cells alike. A record surface
-renders only at its own page, pane, dialog, or popup level; opening a chip
-is navigation to that surface, and a full record composes inside another
-record's surface at no placement.
+renders at its own page, pane, dialog, or popup level, and opening a
+chip is navigation to that surface; the one in-place composition of a
+full record inside another surface is the handful collection (root SPEC
+§22.16): a collection of fewer than three loaded instances renders
+each item as its record page.
 
 ## Surface context laws (owner direction 2026-10-26)
 
