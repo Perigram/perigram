@@ -1099,12 +1099,16 @@ hostless floor renders each instance's detail card. This placement is
 the exception the surface-context law grants: a full record composes
 inside another surface only as a handful collection's item.
 
-The embedded record page steps its chrome down: it projects the shared
-instance pool (source loading and its strips stay with the owning
-screen), its title rides the section scale, and its preview renders in
-the bounded band — the page-fill band and the page title belong to the
-standalone page. Card-variant detail surfaces share the bounded
-band.
+The embedded record page rides the bounded-host tier: the compact
+density rhythm applies to the whole embed, its title keeps the
+record-title step above its section headings, its preview renders in
+the bounded band, and it projects the shared instance pool (source
+loading and its strips stay with the owning screen). Its children
+crop to summaries — label and loaded count per child collection, the
+type lazy-loading through the host's loader — and each embed carries
+the expand step-up that opens the record's standalone page, where the
+full collections and the arrangement ladder live. Card-variant detail
+surfaces share the bounded band.
 
 
 ## 23. Deslopification (owner direction 2026-10-23)

@@ -203,8 +203,11 @@ beside the transition history in `StateHistory`.
   `editorActions` rides: the app host resolves the component, the
   engine renders what it is given), falling back to one detail-card
   `SurfaceBody` per instance when no host provides one (the showcase
-  and SSR fixtures). The embedded page rides the shared pool — its
-  host skips source fetches, loading states, and event sync.
+  and SSR fixtures). The embedded page rides the shared pool (its host
+  skips source fetches, loading states, and event sync), the
+  bounded-host density tier, and crops its children to label+count
+  summaries whose types lazy-load through the host's loader — the
+  summary opens the record where every collection renders in full.
 - `SortControl.vue` — the collection sort control for the card-grid and
   board projections (tables sort natively by column; board lanes carry one
   per column — see `BoardCollection`): a self-contained popover over the
@@ -405,8 +408,9 @@ beside the transition history in `StateHistory`.
   drifting items' left borders out of alignment. Past the shared page
   budget the entries page through a standalone Paginator over `pageSlice`.
 - `SurfaceHeader.vue` — the record header. An embedded record page
-  (SPEC §22.16) floors its title at level 1 through the
-  `uiMappingEmbedded` provide. It paints nothing — the record
+  (SPEC §22.16) carries the expand step-up (the record popup's expand
+  metaphor) opening its standalone page through the `uiMappingEmbedded`
+  provide. It paints nothing — the record
   page's stack rhythm separates it from the body, and pane boxes / route
   shells own the frames around it. Inline-resolved actions (relation
   unlink — the mapping contract's `inline` flag) render on the relation

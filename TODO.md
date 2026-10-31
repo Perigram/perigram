@@ -3312,3 +3312,19 @@ Specs pin the 4/5 boundary, the smoke worlds grew past the bound, the
 showcase smoke pins seed 10 (37's calendar slid into an inactive tab
 when records weights re-ranked the arrangement), and the probe's
 control world carries five.
+
+### Agent Notes (2026-10-31, chrome round)
+
+Sessions `agent/rich-records-hierarchy-20261031`,
+`agent/rich-records-strip-20261031`, `agent/rich-records-final-20261031`.
+Owner verdicts landed as one chrome law: embeds ride the popup host
+profile (compact density, the rhythm set the pages derive), the title
+keeps the record-title step (the section-scale floor flattened every
+heading), SurfaceHeader carries the expand step-up (the popup's expand
+metaphor) opening the standalone page, and children crop to
+label+count summaries (stub partition included — the inert partition
+held the unloaded grandchildren) with lazy type loads through the
+loader seam. A name collision between the record-embed inject and the
+tabs' `embedded` prop shadowed the tab treatment — the inject is
+`embeddedRecord` now. The probe pins the summaries and the expand
+buttons; the audit artifacts sit under `/tmp/opencode/audit-embed.png`.
