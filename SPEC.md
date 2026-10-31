@@ -1014,7 +1014,9 @@ with no record surface counts. A collection's count renders only for loaded, acc
 non-empty collections. The record header is the record's one identity
 surface: the type glyph beside the title is its type identity, and no
 host heading, subtitle, or dialog title repeats the record's name or
-type.
+type. The record header carries the record's declared containment
+ancestors as a breadcrumb trail above the identity line; each ancestor
+opens its record through the surface's instance-open channel.
 
 ### 22.13 Instance pickers render procedural list items (owner direction 2026-10-28; closed-control amendment 2026-10-29; create amendment 2026-10-31)
 

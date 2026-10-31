@@ -269,10 +269,12 @@ beside the transition history in `StateHistory`.
   loaded instance's month. Labels and weekday headers format through the
   active locale.
 - `BreadcrumbTrail.vue` — the lineage trail: a Breadcrumb of ancestor
-  identities walked from the instance's lineage through the pool.
-  Ancestors are navigation: each crumb opens its instance through the
-  screen's identity-open channel; the opened record's title is the
-  header identity line below the trail.
+  identities derived from the record's declared containment ancestry
+  (`containmentAncestors` over the effective containment contract) and
+  resolved through the instances store's readable-reference seam.
+  Ancestors are navigation: each crumb opens its resolved instance
+  through the screen's identity-open channel; the opened record's title
+  is the header identity line below the trail.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identifier (`InstanceIdentity`) under the identifier field's label (a
   type without an identifier field heads the column with the type label;
@@ -397,7 +399,8 @@ beside the transition history in `StateHistory`.
   shells own the frames around it. Inline-resolved actions (relation
   unlink — the mapping contract's `inline` flag) render on the relation
   reference they address, so the header's action cluster and overflow menu
-  carry only record actions. Lineage Breadcrumb (when nested), a
+  carry only record actions. Lineage Breadcrumb above the identity line
+  (when the record has declared containment ancestors), a
   contextual `navigation` channel (the `#navigation` slot for direct
   template hosts plus the `navigation` prop — `{ icon, label, command }`
   threaded through GeneratedMappingScreen → RegionBlock to the depth-0
