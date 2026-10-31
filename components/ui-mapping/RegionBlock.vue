@@ -156,7 +156,31 @@
           <ProgressBar v-if="isReloading" mode="indeterminate" class="h-full" :aria-label="$t('uiMapping.loadingRegion')" />
         </div>
       </div>
-      <div v-if="splitSide" class="region-split grid w-full grid-cols-1 gap-6" :style="splitTracks">
+      <!-- The embedded record crops its children to summaries (SPEC
+           §22.16): label and loaded count per child collection, the
+           affordance opening the record where every collection renders
+           in full. The arrangement ladder stays with the standalone
+           page. -->
+      <template v-if="embedded">
+        <SurfaceBody
+          v-bind="bodyProps"
+          variant="full"
+          :editable="patchable"
+          v-on="bodyEvents"
+        />
+        <div v-if="childSummaries.length" :class="LAYOUT.packRow">
+          <Button
+            v-for="child in childSummaries"
+            :key="child.id"
+            :label="`${child.label} · ${child.count}`"
+            link
+            size="small"
+            severity="secondary"
+            @click="openEmbeddedRecord()"
+          />
+        </div>
+      </template>
+      <div v-else-if="splitSide" class="region-split grid w-full grid-cols-1 gap-6" :style="splitTracks">
         <div class="min-w-0 flex flex-col gap-6">
           <SurfaceBody
             v-bind="bodyProps"
@@ -202,7 +226,7 @@
       />
     </template>
     <RegionChildren
-      v-if="showSurfaces && node.stubRegions?.length"
+      v-if="showSurfaces && !embedded && node.stubRegions?.length"
       v-bind="childrenProps"
       v-on="childrenEvents"
       :regions="node.stubRegions"
@@ -241,6 +265,7 @@ import RegionChildren from './RegionChildren.vue';
 import PlacementBox from './PlacementBox.vue';
 import { useHostContainerTraits } from '~/composables/useContainerTraits.js';
 import { generatedEntityLabel, generatedActionLabel } from '~/utils/generated-labels.js';
+import { useEntityPopup } from '~/composables/useEntityPopup';
 import { isRelationLinkAction, isRelationUnlinkAction } from '~/utils/action-visibility.js';
 import ActionButton from './ActionButton.vue';
 const props = defineProps({
@@ -313,6 +338,27 @@ const splitTracks = computed(() => ({
 }));
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
+const embedded = inject('uiMappingEmbedded', false);
+const { open: openEntityPopup, openable: popupOpenable } = useEntityPopup();
+// The embed's child summaries: filled child collections as label +
+// loaded count; the type lazy-loads through the host's loader so the
+// count fills without hosting the collection itself.
+const labelForRegion = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? generatedEntityLabel(region.type, { t, te }) : region.id);
+const childSummaries = computed(() => (embedded.value
+  ? props.node.childRegions
+      .filter(child => child.instances.length > 0)
+      .map(child => ({ id: child.id, label: labelForRegion(child), count: child.instances.length }))
+  : []));
+function openEmbeddedRecord() {
+  const instance = props.node.instances[0];
+  if (!instance) return;
+  const typeId = String(props.node.typeId || instance.type || '');
+  if (typeId && popupOpenable(typeId)) {
+    openEntityPopup({ typeId, instanceId: String(instance.id) });
+    return;
+  }
+  emitOpen(instance);
+}
 
 // The standalone list region sits on the section rhythm; embedded ones
 // (side columns, tabs) stack tight.
@@ -341,6 +387,9 @@ const overlayTypeIds = computed(() => [...new Set([
     : []),
   ...(props.node.surfaceKind === 'list'
     ? Object.values(props.node.type?.edges?.children || {}).flatMap(edge => edge?.types || [])
+    : []),
+  ...(embedded.value
+    ? props.node.childRegions.map(child => child.typeId).filter(Boolean)
     : [])
 ])]);
 const loadedTypes = ref({});
