@@ -38,6 +38,16 @@ describe('instances store type keys and endpoints', () => {
     expect(instances.canonicalTypeKey('cassetteDesign')).toBe('cassette_design');
   });
 
+  it('maps snake and camel aliases onto the kebab registry id the pool keys', () => {
+    setActivePinia(createPinia());
+    seedBundle([queueType, { id: 'entity-revision', class: 'file', fields: { name: { base: 'string' } } }]);
+    const instances = useInstancesStore();
+    // Ref spellings arrive snake/camel while the registry id is kebab; the
+    // registry id is the record-cache key the pool and screens resolve.
+    expect(instances.canonicalTypeKey('entity_revision')).toBe('entity-revision');
+    expect(instances.canonicalTypeKey('entityRevision')).toBe('entity-revision');
+  });
+
   it('resolves endpoints like the server resolver: §3 transport reads, feature-route mutations, else the generic transport', () => {
     const instances = useInstancesStore();
     expect(instances.endpointsFor('queue').list()).toBe('/api/instances/queue');

@@ -142,7 +142,7 @@ const compactTypeLabel = computed(() => contract.value?.labelKey
 // The compact chip's status resolves through the flat contract: the
 // instance's wire `state` value against the type's policy map.
 const { policyFor } = useStatePolicy();
-const compactPolicy = policyFor(() => generatedTypeId.value);
+const compactPolicy = policyFor(() => servedTypeId.value);
 const compactStatusState = computed(() => {
   const value = resolved.value?.state;
   return typeof value === 'string' && value ? value : '';
@@ -438,7 +438,7 @@ function executeContextualAction(action) {
           />
         </template>
         <template #preview>
-          <InstancePeek :type-id="generatedTypeId" :instance-id="resolvedId" />
+          <InstancePeek :type-id="servedTypeId" :instance-id="resolvedId" />
         </template>
       </HoverPeek>
       <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted" data-instance-card-interactive="true">
