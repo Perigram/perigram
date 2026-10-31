@@ -1,5 +1,5 @@
 <template>
-  <div v-if="hasAffordances" class="flex shrink-0 items-center gap-1">
+  <div ref="rootEl" v-if="hasAffordances" class="flex shrink-0 items-center gap-1">
     <Button
       v-if="entries.length === 1"
       icon="pi pi-plus"
@@ -24,7 +24,7 @@
       :loading="creating"
       @click="event => menuRef?.toggle(event)"
     />
-    <Menu ref="menuRef" :model="menuModel" popup />
+    <Menu ref="menuRef" :model="menuModel" :append-to="rootEl" popup />
     <input ref="fileRef" type="file" class="hidden" :accept="fileAccept" @change="onFilePicked" />
     <component
       :is="editorAction"
@@ -68,6 +68,10 @@ const { t } = useI18n();
 const toast = useToast();
 const instances = useInstancesStore();
 const view = useFileTypeView();
+// The protocol menu mounts inside the component root: a popover-hosted
+// create (the pickers') keeps its subtree alive through the async run,
+// so the created record's select still lands.
+const rootEl = ref(null);
 const menuRef = ref(null);
 const fileRef = ref(null);
 const creating = ref(false);
