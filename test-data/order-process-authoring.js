@@ -85,12 +85,9 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('extractProjection', { id: 'polygons' });
   authoring.configure('polygons', { typeId: 'cassette-design', projection: 'nesting-polygons' });
   authoring.drop('constructRecord', { id: 'jobItems' });
-  authoring.configure('jobItems', { fields: ['designId', 'polygonParts', 'count'] });
+  authoring.configure('jobItems', { fields: ['polygonParts', 'count'] });
   authoring.drop('literal', { id: 'one' });
   authoring.configure('one', { type: { base: 'number', nullable: false, unit: 'count' }, value: 1 });
-  authoring.drop('getField', { id: 'designId' });
-  authoring.configure('designId', { typeId: 'cassette-design' });
-  authoring.setInputDefault('designId', 'field', '_id');
 
   authoring.drop('forEachEntity', { id: 'loop' });
   authoring.configure('loop', { type: { base: 'entityRef', typeId: 'sheet-material' } });
@@ -144,8 +141,6 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('materials', 'data:result', 'loop', 'data:items');
   authoring.connect('loop', 'data:item', 'matWidth', 'data:entity');
   authoring.connect('loop', 'data:item', 'matHeight', 'data:entity');
-  authoring.connect('bake', 'data:result', 'designId', 'data:entity');
-  authoring.connect('designId', 'data:value', 'jobItems', 'data:designId');
   authoring.connect('jobItems', 'data:record', 'solve', 'data:items');
   authoring.connect('matWidth', 'data:value', 'solve', 'data:sheetWidth');
   authoring.connect('matHeight', 'data:value', 'solve', 'data:sheetHeight');

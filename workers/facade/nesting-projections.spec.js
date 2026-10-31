@@ -128,4 +128,43 @@ describe('nesting parts projection', () => {
     expect(request.items[0].sourceLayers.map(layer => layer.layer)).toEqual(['cut.outer', 'code.cassette_mark']);
     expect(request.items[1].sourceLayers.map(layer => layer.layer)).toEqual(['fold.route', 'code.cassette_mark']);
   });
+
+  it('reads the design key and geometry off an element item', () => {
+    const element = {
+      _id: 'design-7',
+      fields: { geometry: { nestingPolygons: geometry.nestingPolygons, layerData: geometry.layerData } }
+    };
+    const request = buildValueWorkerRequest([element], { width: 1000, height: 1000, space: 3, sheetCount: 1 });
+    expect(request.items).toHaveLength(2);
+    expect(request.items.map(item => item.design_id)).toEqual(['design-7', 'design-7']);
+  });
+
+  it('nests id-less geometry under the anonymous design key', () => {
+    const request = buildValueWorkerRequest([
+      { polygonParts: [{ coordinates: [[0, 0], [100, 0], [100, 50], [0, 50]] }], count: 2 }
+    ], { width: 1000, height: 1000, space: 3, sheetCount: 1 });
+    expect(request.items).toHaveLength(1);
+    expect(request.items[0].design_id).toBe('');
+    expect(request.items[0].count).toBe(2);
+  });
+});
+
+describe('quantity join keeps anonymous solves', () => {
+  it('groups id-less layouts instead of dropping them', () => {
+    const enriched = enrichNestingResult({
+      items: [{ id: 0, design_id: '', shape: { type: 'simple_polygon', data: [[0, 0], [100, 0], [100, 100], [0, 100]] } }],
+      bins: [{ id: 0, shape: { type: 'polygon', data: { outer: [[0, 0], [1000, 0], [1000, 1000], [0, 1000], [0, 0]], inner: [] } } }],
+      solution: {
+        cost: 1,
+        layouts: [{ container_id: 0, placed_items: [{ item_id: 0, transformation: { rotation: 0, translation: [0, 0] } }] }]
+      }
+    }, {
+      items: [{ id: 0, design_id: '', coords: [[0, 0], [100, 0], [100, 100], [0, 100]], handles: [], sourceLayers: [], count: 1 }],
+      params: { width: 1000, height: 1000, space: 3, sheetCount: 1 }
+    });
+    const grouped = groupNestingLayouts(enriched);
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0].count).toBe(1);
+    expect(grouped[0].placed_items).toHaveLength(1);
+  });
 });

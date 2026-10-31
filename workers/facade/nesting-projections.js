@@ -122,11 +122,12 @@ export function groupNestingLayouts(result = {}) {
   const groups = new Map();
   for (const layout of layouts) {
     const placements = layout.placed_items || layout.items || [];
+    // The sorted design-id multiset is the grouping key; an id-less solve
+    // groups its layouts under the anonymous key.
     const key = placements
       .map(placed => designByItemId.get(String(placed.item_id ?? placed.itemId ?? placed.id ?? '')) ?? '')
       .sort()
       .join('|');
-    if (!key.replace(/\|/g, '')) continue;
     const group = groups.get(key);
     if (group) group.count += 1;
     else groups.set(key, { ...layout, count: 1 });
@@ -160,20 +161,24 @@ function buildNestingItems(jobFiles = []) {
   const items = [];
   for (const file of jobFiles) {
     const count = Number(file.count || file.quantity || 1);
-    const polygonParts = file.polygonParts || [];
-    const layerData = file.layerData || [];
+    // The design key rides the element: an explicit designId, or the
+    // element's own identity when the item is a record that carries one.
+    const designId = String(file.designId ?? file.design_id ?? file._id ?? file.id ?? '');
+    const polygonParts = Array.isArray(file.polygonParts)
+      ? file.polygonParts
+      : partsOfElement(file);
     if (polygonParts.length) {
       for (const part of polygonParts) {
         const coords = normalizeCoordinates(part.coordinates);
         if (!isValidPolygonCoordinates(coords)) continue;
         items.push({
           id,
-          design_id: String(file.designId ?? ''),
+          design_id: designId,
           coords,
           handles: part.handles || [],
           sourceLayers: part.sourceLayers?.length
             ? part.sourceLayers
-            : sourceLayersForPart(layerData, part),
+            : sourceLayersForPart(part.layerData || file.layerData || [], part),
           count
         });
         id += 1;
@@ -185,15 +190,23 @@ function buildNestingItems(jobFiles = []) {
     if (!rectangle.length) continue;
     items.push({
       id,
-      design_id: String(file.designId ?? ''),
+      design_id: designId,
       coords: rectangle,
       handles: [],
-      sourceLayers: sourceLayersForPart(layerData, {}),
+      sourceLayers: sourceLayersForPart(file.layerData || [], {}),
       count
     });
     id += 1;
   }
   return items;
+}
+
+// An element (an entity wire record) carries its geometry under
+// fields.geometry — the same nesting polygons the projection would emit.
+function partsOfElement(file = {}) {
+  const geometry = file.fields?.geometry ?? file.geometry;
+  if (!geometry || !Array.isArray(geometry.nestingPolygons)) return [];
+  return nestingPartsProjection(geometry);
 }
 
 function sourceLayersForPart(layerData = [], part = {}) {

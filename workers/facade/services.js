@@ -80,14 +80,9 @@ export async function bake({ refs = {}, draft = {} } = {}) {
 // nesting worker (NESTING_WORKER_URL) — this executor validates, maps,
 // and summarizes.
 export async function nestingSolve({ items, sheetWidth, sheetHeight, space, sheetCount } = {}) {
-  if (!Array.isArray(items) || !items.length) badRequest('Nesting input requires items (job geometry)');
+  if (!Array.isArray(items) || !items.length) badRequest('The nesting run has no parts to place');
   for (const [index, item] of items.entries()) {
-    if (!item || !Array.isArray(item.polygonParts) || !item.polygonParts.length) {
-      badRequest(`Item ${index} requires polygonParts geometry`);
-    }
-    if (!item.designId) {
-      badRequest(`Item ${index} requires a designId — wire the cassette-design it projects from`);
-    }
+    if (!item || typeof item !== 'object') badRequest(`Item ${index} is not a part`);
     item.count = Math.max(1, Math.trunc(Number(item.count) || 1));
   }
   const params = {
@@ -185,7 +180,7 @@ export async function constructSheet({ refs = {}, draft = {} } = {}) {
   for (const placed of placements) {
     const designId = designIdOfPlacement(items, placed);
     if (!designId) {
-      badRequest('Sheet construction refuses a placement without its cassette-design — re-run the nesting solve with designId wired');
+      badRequest('Sheet construction needs the cassette-design behind every placement — re-run the nesting solve with the designs connected');
     }
     if (resolvedDesigns.length && !designPin.has(designId)) {
       badRequest(`Sheet construction placement names cassette-design ${designId}, which the declared designs do not include`);
