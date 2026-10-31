@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, sheet instances, and the nesting solver as an installable plugin with an external executor",
-  "version": "29",
+  "version": "31",
   "requires": [
     "tech-drawing"
   ],
@@ -304,11 +304,15 @@
         "id": "sheet-design",
         "class": "file",
         "scope": "system",
-        "version": 2,
+        "version": 3,
         "fields": {
           "name": {
             "base": "string",
             "identifier": true,
+            "nullable": true
+          },
+          "compositionKey": {
+            "base": "string",
             "nullable": true
           },
           "geometry": {
@@ -507,6 +511,10 @@
                       "base": "id",
                       "nullable": true
                     },
+                    "designKey": {
+                      "base": "string",
+                      "nullable": true
+                    },
                     "polygonParts": {
                       "base": "list",
                       "itemType": {
@@ -618,6 +626,36 @@
         "signature": {
           "input": {
             "base": "json"
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
+        "id": "match-sheet",
+        "label": "Match sheet design",
+        "mode": "endpoint",
+        "group": "facade",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "layoutKey": {
+                "base": "string",
+                "nullable": true
+              },
+              "sheets": {
+                "base": "list",
+                "nullable": true,
+                "itemType": {
+                  "base": "ref",
+                  "accepts": [
+                    "sheet-design"
+                  ]
+                }
+              }
+            }
           },
           "output": {
             "base": "json"

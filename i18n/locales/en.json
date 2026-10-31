@@ -2506,7 +2506,10 @@
         "selectDesign": "Select design",
         "selectSheet": "Select sheet",
         "sheet": "Sheet",
-        "sheetDesigns": "Sheet designs"
+        "sheetDesigns": "Sheet designs",
+        "splitStack": "Split stack",
+        "splitStacked": "The stack was split into another sheet design.",
+        "splitStackFailed": "Failed to split the stack."
     },
     "nestingRun": {
         "sheetDesigns": "Sheet designs"

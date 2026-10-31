@@ -37,8 +37,11 @@ non-spec files here.
   records and credentials stay out of this fixture.
 - `order-process-authoring.js` — the e2e seam that composes the order
   process (`createOrderProcessAuthoring` and the compose helpers) over a
-  mounted domain; `e2e/order-process.spec.js` drives it through the real
-  authoring API.
+  mounted domain. The graph nests the order's physical cassette count per
+  material, constructs one sheet design per solved composition under the
+  nesting attempt, reuses a stored sheet design whose `compositionKey`
+  matches, and cuts each new sheet through a sheet instance and cut plan.
+  `e2e/order-process.spec.js` drives it through the real authoring API.
 - `ui-mapping-fixtures.js` / `ui-mapping-random.js` — synthetic compiler
   output for the UI mapping contract. The fixed world is a
   self-recursive filesystem-like graph: a forest of three top folders

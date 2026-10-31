@@ -56,7 +56,7 @@ describe('quantity join over solved layouts', () => {
     placed_items: placements
   });
 
-  it('resolves each placement design through its item and joins same-multiset layouts', () => {
+  it('joins layouts with the same design composition on the same sheet', () => {
     const enriched = enrichNestingResult({
       ...workerResult,
       solution: {
@@ -67,8 +67,8 @@ describe('quantity join over solved layouts', () => {
             { item_id: 0, transformation: { rotation: 0, translation: [400, 0] } }
           ]),
           layoutOver(0, [
-            { item_id: 0, transformation: { rotation: 90, translation: [0, 0] } },
-            { item_id: 0, transformation: { rotation: 90, translation: [400, 0] } }
+            { item_id: 0, transformation: { rotation: 90, translation: [20, 5] } },
+            { item_id: 0, transformation: { rotation: 90, translation: [420, 5] } }
           ])
         ]
       }
@@ -77,6 +77,48 @@ describe('quantity join over solved layouts', () => {
     expect(grouped).toHaveLength(1);
     expect(grouped[0].count).toBe(2);
     expect(grouped[0].placed_items).toHaveLength(2);
+    expect(grouped[0].compositionKey).toBeTruthy();
+  });
+
+  it('keeps the same design composition on a different sheet apart', () => {
+    const enriched = enrichNestingResult({
+      ...workerResult,
+      bins: [
+        workerResult.bins[0],
+        { id: 1, shape: { type: 'polygon', data: { outer: [[0, 0], [500, 0], [500, 500], [0, 500], [0, 0]], inner: [] } } }
+      ],
+      solution: {
+        ...workerResult.solution,
+        layouts: [
+          layoutOver(0, [{ item_id: 0, transformation: { rotation: 0, translation: [0, 0] } }]),
+          layoutOver(1, [{ item_id: 0, transformation: { rotation: 0, translation: [0, 0] } }])
+        ]
+      }
+    }, request);
+    const grouped = groupNestingLayouts(enriched);
+    expect(grouped).toHaveLength(2);
+    expect(grouped.every(layout => layout.count === 1)).toBe(true);
+  });
+
+  it('groups equivalent design compositions by their design key', () => {
+    const enriched = enrichNestingResult({
+      items: [
+        { id: 0, design_id: 'design-a', design_key: 'tray|600|450', shape: { type: 'simple_polygon', data: [[0, 0], [400, 0], [400, 300], [0, 300]] } },
+        { id: 1, design_id: 'design-b', design_key: 'tray|600|450', shape: { type: 'simple_polygon', data: [[0, 0], [400, 0], [400, 300], [0, 300]] } }
+      ],
+      bins: workerResult.bins,
+      solution: {
+        cost: 2,
+        density: 0.25,
+        layouts: [
+          layoutOver(0, [{ item_id: 0, transformation: { rotation: 0, translation: [0, 0] } }]),
+          layoutOver(0, [{ item_id: 1, transformation: { rotation: 0, translation: [0, 0] } }])
+        ]
+      }
+    }, request);
+    const grouped = groupNestingLayouts(enriched);
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0].count).toBe(2);
   });
 
   it('keeps layouts cutting different design multisets apart', () => {
