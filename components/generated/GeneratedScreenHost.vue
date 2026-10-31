@@ -44,6 +44,17 @@
         <span class="shrink-0 text-sm font-semibold">{{ row.value }}</span>
       </div>
     </div>
+  <Dialog
+    :visible="exportedFile !== null"
+    modal
+    :draggable="false"
+    :header="exportedFile?.attachment?.name || ''"
+    :style="{ width: 'min(94vw, 68rem)' }"
+    @update:visible="visible => { if (!visible) exportedFile = null; }"
+  >
+    <div class="h-[70vh] min-h-0">
+      <FilePayloadViewer v-if="exportedFile" :source="exportedFile" />
+    </div>
   </Dialog>
 </template>
 
@@ -62,6 +73,8 @@ import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import FilePayloadViewer from '~/components/shared/FilePayloadViewer.vue';
+import { resolveAttachmentPeek } from '~/components/generated/file-preview-contract.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
@@ -281,6 +294,7 @@ function notifyFailure(error, summary) {
 // in the run record.
 const actionResult = ref(null);
 const actionResultLabel = ref('');
+const exportedFile = ref(null);
 const actionResultRows = computed(() => {
   const value = actionResult.value;
   if (value === null || typeof value !== 'object') return [];
@@ -396,7 +410,7 @@ async function runDerivedCommand(action = {}, instance = null) {
   if (!instance?._id && !instance?.id) return;
   const outbox = useOutboxStore();
   try {
-    await outbox.mutate({
+    const result = await outbox.mutate({
       url: '/api/process-definitions/active/exports/run',
       method: 'POST',
       body: {
@@ -406,6 +420,10 @@ async function runDerivedCommand(action = {}, instance = null) {
       },
       meta: { kind: 'action', instanceId: String(instance._id || instance.id), change: 'updated', reason: 'derived-export' }
     });
+    // The export lands in the files bucket; the viewer shows it.
+    const attachment = result?.attachments?.[0] || result?.data || null;
+    const peek = attachment?.fileId ? resolveAttachmentPeek(attachment) : null;
+    if (peek) exportedFile.value = { ...peek, attachment };
     toast.add({ severity: 'success', summary: action.label || action.commandId, detail: t('generatedScreen.actionCompleted'), life: 2000 });
     await reload();
     emit('refresh');
