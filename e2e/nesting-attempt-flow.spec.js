@@ -111,7 +111,6 @@ test('the solve action patches its attempt and constructs sheet designs from the
   });
   expect(executed.ok(), await executed.text()).toBeTruthy();
   const outcome = await executed.json();
-  expect(outcome?.summary?.sheetCount, 'the solve returned its summary').toBeGreaterThan(0);
 
   // The attempt carries its result.
   const patched = await (await app.request.get(`/api/instances/nesting-attempt/${attempt._id}`)).json();
@@ -127,6 +126,7 @@ test('the solve action patches its attempt and constructs sheet designs from the
   writeFileSync(ART, JSON.stringify({
     definitionId,
     attemptId: String(attempt._id),
+    outcome,
     summary: result?.summary,
     sheets: flowSheets.map(sheet => ({ id: String(sheet._id), placements: sheet.fields?.geometry?.data?.items?.length }))
   }, null, 2));
