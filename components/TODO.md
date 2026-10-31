@@ -517,3 +517,29 @@ host uses: the emitter's screen key, the synthesizable detail, the
 record floor. Validation: design-system 34/34, SSR smoke 23/23,
 check-arch clean; live probe: the library popup's cassette chip swaps
 the popup subject to the cassette record floor.
+
+#### Agent Notes (2026-10-31)
+
+Session `agent/datablock-cut-20261031` (worktree
+`.agent-worktrees/datablock-cut-20261031`), owner direction: DataBlock is
+entity-era and dies. New `utils/fact-rows.js` (`instanceFactRows`) — the
+one fact-row derivation for read-only surfaces over the generated field
+vocabulary (`resolveFieldGroups`: every declared field, sections as
+grouping) with the field-access gate, generated-key labels, and
+`decorateDataValue`; rows carry `group`, `cap`/`skip` serve surface
+budgets. New `components/shared/FactRows.vue` renders the resolved rows
+(DataBlock's markup, variants, and container query). Consumers migrated:
+InstanceInlineRef (peek/tile/compact), InstanceSurfaceContent, User/
+Organization/PenTemplate/EntityRevision cards, DirectoryDetailSurface,
+GeneratedOrganizationOverview, ui-lab. `instance-display-contract.js`
+shrinks to surface chrome; `DataBlock.vue` deleted;
+`data-display.js` gains `formatFileSize`/`payloadFactLine`. The instance
+peek now also renders the payload block's name facts (SPEC §22.14 file
+peek law) — the content the facade file types actually carry (their
+declared scalars are the identifier plus geometry blobs). Specs:
+fact-display-vocabulary rewritten over the new derivation (widget gains
+mass/code scalars), design-system manifest + framework manifest
+regenerated. Validation: design-system 34/34, fact-vocabulary 9/9,
+localization + framework-packages 52/52 total, SSR smoke 23/23,
+check-arch clean, docs guard clean (the workers/nesting broken link is
+pre-existing at HEAD).

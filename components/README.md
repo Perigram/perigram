@@ -36,7 +36,7 @@ All entity-related components use these patterns:
 | Status display + transitions/actions | `<InstanceState :instance="..." type-id="..." :actions="..." />` |
 | Read-only status display | `<StateTag :value="stateValue" :policy="policyByType[typeId]" />` — policy map from `useStatePolicy()` |
 | Drawing and geometry preview | `<DrawingCanvas ... />` for layer-aware DXF/SVG canvas work; `<GeometryPreview :source="..." />` over the resolved previewSource value |
-| Structured key/value data (specs, parameters, tool dims) | `<DataBlock type-id="..." :entity="..." :fields="resolveInstanceDisplayFields({ typeId, surface, typeRecord })" />`; field groups come from the design-system contract, and `shared/instance-field-access.js` filters every path — undeclared paths stay hidden |
+| Structured key/value data (specs, parameters, tool dims) | `<FactRows :rows="instanceFactRows({ typeId, typeRecord, entity, auth, translator })" variant="compact|default" />` — the one derivation over the generated field vocabulary; `shared/instance-field-access.js` gates every row through the `auth` input |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StateHistory :entity="..." type-id="..." />` |
 | Detail page header | Generated record pages: the ui-mapping record header (`SurfaceHeader`) |
