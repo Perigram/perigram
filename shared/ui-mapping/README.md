@@ -173,8 +173,9 @@ compose): the form pane keeps the rows and the refusal's named
 offenders, the preview pane waits until the create's required rows are
 filled, then debounces the draft into
 `POST /api/instances/:type/construction-preview` and renders the
-returned payload through the created type's preview mode
-([instances feature](../../server/features/instances/README.md) owns
+returned payload through the created type's preview mode, or its
+computed geometry fields through the drawing canvas when the service
+returns no payload ([instances feature](../../server/features/instances/README.md) owns
 the route); the pane renders the refusal's named offenders inline, and
 a preview failure beyond the quiet 404/403 (no binding, no grant)
 surfaces as the same offender list over the transport's message. The
