@@ -3,7 +3,7 @@
     <div class="flex min-h-0 min-w-0 flex-col gap-3 lg:overflow-y-auto">
       <slot />
     </div>
-    <div class="flex min-h-[18rem] min-w-0 flex-col rounded-panel border border-content-border bg-subtle p-2 lg:min-h-0">
+    <div data-fill-preview class="flex min-h-[18rem] min-w-0 flex-col rounded-panel border border-content-border bg-subtle p-2 lg:min-h-0">
       <ConstructionPreview
         fill
         :type-id="typeId"
