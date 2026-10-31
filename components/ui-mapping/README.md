@@ -427,12 +427,13 @@ beside the transition history in `StateHistory`.
   records carry no lifecycle strip: an instance with a flat `state`
   renders the segmented current-state tag (`StateTag`, resolved against
   the region's `statePolicy` — the header shows the data's state even when
-  the served vocabulary has none for it) with a clock affordance opening
-  the shared `StateHistory` popover (the `status_events` audit trail over
-  `/api/state/history`, a vertical stepper); instances without a state
-  render nothing (no state is information). The action cluster sits right
-  (the identity's flex-1 is the push) and groups by control kind with
-  hairline dividers between non-empty groups
+  the served vocabulary has none for it). The tag is the state surface's
+  trigger: it opens the state popover, which carries the machine's legal
+  transitions on top and the shared `StateHistory` audit trail
+  (`/api/state/history`, a state-stepped vertical feed) below. Instances
+  without a state render nothing (no state is information). The action
+  cluster sits right (the identity's flex-1 is the push) and groups by
+  control kind with hairline dividers between non-empty groups
   (`LAYOUT.actionGroup`/`actionDivider`): record utilities — the
   composed instance-chat entry,
   the host-resolved editor action component (`editorActions` channel: the
@@ -440,12 +441,11 @@ beside the transition history in `StateHistory`.
   renders what it receives), the construct re-derive —
   then at most `HEADER_ACTIONS_INLINE` generated
   buttons inline — a third and every further action join one popup
-  ellipsis menu with the same localized labels — then every available
-  runtime transition renders as a dedicated transition button after the
-  inline budget, dispatching through the dedicated `transition` channel —
-  machine transitions arrive as `{ __runtime, state: { to }, intent,
-  region }` from the page's state-service fetch and their
-  labels/severity/icons resolve from the same policy map. The header is
+  ellipsis menu with the same localized labels. Runtime transitions
+  arrive as `{ __runtime, state: { to }, intent, region }` from the
+  page's state-service fetch, dispatch through the dedicated
+  `transition` channel, and their labels/severity/icons resolve from the
+  same policy map. The header is
   its own layout container through the named `.ck-record-header` recipe
   (the global stylesheet, referenced from LAYOUT — headers render
   inside panels and detail child stacks): long names truncate through
@@ -464,7 +464,10 @@ beside the transition history in `StateHistory`.
   styled by the authored severity/icon; dotted values render as a path —
   muted ancestor Tags with angle separators and the styled leaf — so
   nested/nested-legacy state values stay readable. The raw value rides in
-  the title attribute as the debugging channel.
+  the title attribute as the debugging channel. `actionable` makes the tag
+  the state surface's trigger: it carries the dropdown caret, the button
+  role, and emits `select` with the DOM event for the host's popover
+  anchor.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card. Both variants
   render through `SurfaceDetailBody` under the identity line.
@@ -496,8 +499,9 @@ beside the transition history in `StateHistory`.
   small ladder. Narrow hosts (the record peek) render the bounded
   embed band (`LAYOUT.previewEmbedBand`, 9rem below 40rem of container
   width, 14rem above) whatever the content. The `full` variant overlays
-  the version trigger (`PayloadRevisionPicker`) on the preview's corner;
-  its popover carries the revision list and the replace affordance
+  the version trigger (`PayloadRevisionPicker`) on the preview's top
+  corner, outside the band's clip; its popover carries the revision list
+  and the replace affordance
   ([generated](../generated/README.md)). A list region with
   nothing to show
   renders at content width, and a record's empty child regions pack side

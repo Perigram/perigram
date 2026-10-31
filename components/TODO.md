@@ -627,3 +627,22 @@ actor rows carry the persisted name and the chat action, and a missing
 user renders the unknown-user label. Validation: ui-mapping + module
 imports 130/130, design-system 161/164 with the three pre-existing
 `GeneratedScreenHost.vue` findings, check-arch clean.
+
+### One state surface (owner direction 2026-10-31)
+
+- [ ] WAITING — owner verification: the state tag opens the state
+  popover carrying legal transitions and history; the header carries no
+  clock trigger and no transition buttons; the version stamp sits
+  legible on the preview's top corner.
+
+#### Agent Notes (2026-10-31)
+
+Session `agent/state-noise-20261031` (worktree
+`.agent-worktrees/state-noise-20261031`). `StateTag` gains `actionable`
+(caret, button role, `select` event); `SurfaceHeader` renders it as the
+state popover trigger with the runtime transitions on top and
+`StateHistory` below, and drops the clock trigger and the transition
+buttons. `PayloadRevisionPicker` uses the default primary button (ink
+contrast in both schemes) and rides the preview hero's top corner outside
+the band's clip. `StateHistory` actor rows render the name alone with the
+chat action.
