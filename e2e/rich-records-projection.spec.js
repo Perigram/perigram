@@ -55,7 +55,7 @@ test('a handful collection renders its records in place', async ({ app }) => {
     await createFor(TASK, { 'fields.label': `Handful task ${i}`, 'fields.done': i % 2 === 0, [lineageKey]: handfulProjectId });
   }
   const controlProjectId = await createFor(PROJECT, { 'fields.name': `Rich control ${runTag}` });
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 5; i++) {
     await createFor(TASK, { 'fields.label': `Control task ${i}`, 'fields.done': false, [lineageKey]: controlProjectId });
   }
   app.trackCleanup(async () => {
