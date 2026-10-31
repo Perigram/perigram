@@ -102,6 +102,12 @@
             :required-target="row.controlOptions?.requiredTarget || ''"
             @update:model-value="value => (dialogDraft[row.id] = value)"
           />
+          <CassetteParametersRow
+            v-else-if="row.control === 'cassette-parameters'"
+            :model-value="dialogDraft[row.id] || {}"
+            :template-ref="templateDraftRef"
+            @update:model-value="value => (dialogDraft[row.id] = value)"
+          />
           <div v-else-if="row.descriptor?.base === 'ref'" class="flex items-center gap-2">
             <FieldControl
               v-model="dialogDraft[row.id]"
@@ -208,6 +214,7 @@ import RegionChildren from './RegionChildren.vue';
 import InstancePicker from './InstancePicker.vue';
 import SpotPartsRow from './SpotPartsRow.vue';
 import LayerMappingRow from './LayerMappingRow.vue';
+import CassetteParametersRow from './CassetteParametersRow.vue';
 import RefRowActions from './RefRowActions.vue';
 import FillDialogBody from './FillDialogBody.vue';
 import TemplateValuesRow from './TemplateValuesRow.vue';
