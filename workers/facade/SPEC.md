@@ -538,7 +538,10 @@ same designs the same way into one sheet design carrying the group's
 count. Composition is the sheet shape and the multiset of placement
 design keys; placement order, rotation, and translation are the
 solver's arrangement. A supplied `designKey` names the cassette-design
-composition; absent one, the design reference is the key.
+composition; absent one, the design reference is the key. An item's
+count is its physical cassette quantity: an organization's queue entry
+holds one design beside that count, and its process expands the count
+into cassette-instance children before nesting.
 
 Owner decision (2026-10-31, composition is sheet-design identity): a
 flow matches a solved layout against stored sheet designs by
