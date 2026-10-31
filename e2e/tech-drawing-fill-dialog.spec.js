@@ -374,7 +374,7 @@ test.describe('fill dialog rails (SPEC §24, owner direction 2026-10-28)', () =>
     // The composed preview renders before the create runs — the actual
     // template with the part placed (DrawingCanvas draws SVG geometry;
     // the transient load spinner svg is chrome).
-    await expect(dialog.locator('[data-file-payload-viewer][data-viewer-mode="dxf"] svg:not(.p-progressspinner-spin)')).toBeVisible({ timeout: 30_000 });
+    await expect(dialog.locator('[data-fill-preview] [data-file-payload-viewer][data-viewer-mode="dxf"] svg:not(.p-progressspinner-spin)')).toBeVisible({ timeout: 30_000 });
     const preview = await app.request.post('/api/instances/dxf-source/construction-preview', {
       data: { mode: 'fill', draft: { name: 'rails-composed', template: templateId, parts: [{ id: alphaPartId, spot: 'alpha' }] } },
       failOnStatusCode: false
