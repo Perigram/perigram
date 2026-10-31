@@ -609,6 +609,36 @@
         }
       },
       {
+        "id": "match-sheet",
+        "label": "Match sheet design",
+        "mode": "endpoint",
+        "group": "facade",
+        "signature": {
+          "input": {
+            "base": "record",
+            "fields": {
+              "layoutKey": {
+                "base": "string",
+                "nullable": true
+              },
+              "sheets": {
+                "base": "list",
+                "nullable": true,
+                "itemType": {
+                  "base": "ref",
+                  "accepts": [
+                    "sheet-design"
+                  ]
+                }
+              }
+            }
+          },
+          "output": {
+            "base": "json"
+          }
+        }
+      },
+      {
         "id": "nesting-parts",
         "label": "Nesting parts projection",
         "mode": "endpoint",

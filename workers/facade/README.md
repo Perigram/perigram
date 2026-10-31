@@ -53,6 +53,7 @@ values and files out, free of service imports, persistence, and auth.
 | `nesting-parts` | the cassette-design `nesting-polygons` projection | the instance's stored geometry in → nesting polygon parts out, each riding its workpiece layers (joined by `workpieceId`) so solved layouts compose sheet layers under the placement transform, and its source design's `designId` (the projection call carries the instance id) so sheet construction pins the placement's cassette-design ref |
 | `generate-sheet-dxf` | the sheet-design `dxf` export binding | the record's stored values (`fields`) in → DXF `payload` out (executor payload contract) |
 | `construct-sheet` | sheet-design `fromLayout` | a solved layout value (or a blank) plus the resolved `designs` refs in → `{ data: { compositionKey, geometry }, relations: { parts } }` out (one pinned cassette-design ref per placement; the parts edge is the sheet-design type's declared relation) |
+| `match-sheet` | the `plugin.facade.match-sheet` value service | a layout's composition key plus the org's sheet designs in → `{ found, design }` out; the flow reuses the matched design and constructs only when `found` is false |
 
 ## Vendored engines
 
