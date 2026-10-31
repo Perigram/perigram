@@ -204,10 +204,10 @@ beside the transition history in `StateHistory`.
   engine renders what it is given), falling back to one detail-card
   `SurfaceBody` per instance when no host provides one (the showcase
   and SSR fixtures). The embedded page rides the shared pool (its host
-  skips source fetches, loading states, and event sync), the
-  bounded-host density tier, and crops its children to label+count
-  summaries whose types lazy-load through the host's loader — the
-  summary opens the record where every collection renders in full.
+  skips source fetches, loading states, and event sync) and the
+  bounded-host density tier; its children render through the ordinary
+  projections and arrangement ladder, their types lazy-loading through
+  the host's loader.
 - `SortControl.vue` — the collection sort control for the card-grid and
   board projections (tables sort natively by column; board lanes carry one
   per column — see `BoardCollection`): a self-contained popover over the

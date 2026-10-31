@@ -97,19 +97,22 @@ test('a handful collection renders its records in place', async ({ app }) => {
   await openRecord(`Rich handful ${runTag}`);
   const handful = await collectionSurfaces();
   expect(handful.recordHeaders.some(label => label.includes('Handful task'))).toBe(true);
-  expect(handful.tables).toBe(0);
-  // The embedded records crop their children to summaries: the notes
-  // count fills through the lazy type load, and each embed carries the
+  // The embedded records render their children through the real
+  // projections: each task's six notes compose their table inside the
+  // embed (the lazy type load fills them), and each embed carries the
   // expand step-up to its standalone page.
   const embedChrome = await app.page.evaluate(() => {
     const visible = el => el.getClientRects().length > 0;
     return {
-      summaries: [...document.querySelectorAll('button')].filter(visible)
-        .map(b => b.textContent.trim()).filter(text => text.includes('Rich note ·')),
+      noteTables: [...document.querySelectorAll('.p-datatable')].filter(visible).length,
+      noteRows: [...document.querySelectorAll('.p-datatable tbody tr')]
+        .filter(visible).map(el => el.textContent.trim())
+        .filter(text => text.includes('Note ')).length,
       expand: [...document.querySelectorAll('button .pi-external-link')].filter(visible).length
     };
   });
-  expect(embedChrome.summaries).toEqual(['Rich note · 6', 'Rich note · 6']);
+  expect(embedChrome.noteTables).toBe(2);
+  expect(embedChrome.noteRows).toBe(12);
   expect(embedChrome.expand).toBe(2);
   await app.page.screenshot({ path: '.playwright/rich-records-handful.png', fullPage: false });
 
