@@ -56,15 +56,22 @@ const instances = {
   library: [
     { id: 'lib-1', type: 'library', fields: { name: 'Main library' }, relations: {}, lineage: {} },
     { id: 'lib-2', type: 'library', fields: { name: 'East annex' }, relations: {}, lineage: {} },
-    { id: 'lib-3', type: 'library', fields: { name: 'West annex' }, relations: {}, lineage: {} }
+    { id: 'lib-3', type: 'library', fields: { name: 'West annex' }, relations: {}, lineage: {} },
+    { id: 'lib-4', type: 'library', fields: { name: 'North annex' }, relations: {}, lineage: {} },
+    { id: 'lib-5', type: 'library', fields: { name: 'South annex' }, relations: {}, lineage: {} }
   ],
   parent: [
     {
       id: 'prj-1', type: 'parent', fields: { name: 'Alpha' },
-      relations: { libraries: [{ type: 'library', id: 'lib-1' }, { type: 'library', id: 'lib-2' }, { type: 'library', id: 'lib-3' }] }, lineage: {}
+      relations: { libraries: [
+        { type: 'library', id: 'lib-1' }, { type: 'library', id: 'lib-2' }, { type: 'library', id: 'lib-3' },
+        { type: 'library', id: 'lib-4' }, { type: 'library', id: 'lib-5' }
+      ] }, lineage: {}
     },
     { id: 'prj-2', type: 'parent', fields: { name: 'Beta' }, relations: {}, lineage: {} },
-    { id: 'prj-3', type: 'parent', fields: { name: 'Gamma' }, relations: {}, lineage: {} }
+    { id: 'prj-3', type: 'parent', fields: { name: 'Gamma' }, relations: {}, lineage: {} },
+    { id: 'prj-4', type: 'parent', fields: { name: 'Delta' }, relations: {}, lineage: {} },
+    { id: 'prj-5', type: 'parent', fields: { name: 'Epsilon' }, relations: {}, lineage: {} }
   ],
   child: [
     { id: 'k-1', type: 'child', fields: { label: 'Kid one' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } },

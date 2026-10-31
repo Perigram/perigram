@@ -61,17 +61,23 @@ const instances = {
   project: [
     { id: 'prj-1', type: 'project', fields: { name: 'Alpha' }, relations: { libraries: [{ type: 'library', id: 'lib-1' }] }, lineage: {} },
     { id: 'prj-2', type: 'project', fields: { name: 'Beta', libraries: 'lib-1' }, relations: {}, lineage: {} },
-    { id: 'prj-3', type: 'project', fields: { name: 'Gamma' }, relations: {}, lineage: {} }
+    { id: 'prj-3', type: 'project', fields: { name: 'Gamma' }, relations: {}, lineage: {} },
+    { id: 'prj-4', type: 'project', fields: { name: 'Delta' }, relations: {}, lineage: {} },
+    { id: 'prj-5', type: 'project', fields: { name: 'Epsilon' }, relations: {}, lineage: {} }
   ],
   queue: [
     { id: 'q-1', type: 'queue', fields: { name: 'Cutting' }, relations: {}, lineage: { projectId: { type: 'project', id: 'prj-1' } } },
     { id: 'q-2', type: 'queue', fields: { name: 'Bending' }, relations: {}, lineage: { projectId: { type: 'project', id: 'prj-1' } } },
-    { id: 'q-3', type: 'queue', fields: { name: 'Welding' }, relations: {}, lineage: { projectId: { type: 'project', id: 'prj-2' } } }
+    { id: 'q-3', type: 'queue', fields: { name: 'Welding' }, relations: {}, lineage: { projectId: { type: 'project', id: 'prj-2' } } },
+    { id: 'q-4', type: 'queue', fields: { name: 'Milling' }, relations: {}, lineage: { projectId: { type: 'project', id: 'prj-2' } } },
+    { id: 'q-5', type: 'queue', fields: { name: 'Assembly' }, relations: {}, lineage: { projectId: { type: 'project', id: 'prj-3' } } }
   ],
   attempt: [
     { id: 'a-1', type: 'attempt', fields: { label: 'Run 1', result: { layouts: [{ container: 0 }] } }, relations: {}, lineage: {} },
     { id: 'a-2', type: 'attempt', fields: { label: 'Run 2', result: { layouts: [{ container: 1 }] } }, relations: {}, lineage: {} },
-    { id: 'a-3', type: 'attempt', fields: { label: 'Run 3', result: { layouts: [{ container: 2 }] } }, relations: {}, lineage: {} }
+    { id: 'a-3', type: 'attempt', fields: { label: 'Run 3', result: { layouts: [{ container: 2 }] } }, relations: {}, lineage: {} },
+    { id: 'a-4', type: 'attempt', fields: { label: 'Run 4', result: { layouts: [{ container: 3 }] } }, relations: {}, lineage: {} },
+    { id: 'a-5', type: 'attempt', fields: { label: 'Run 5', result: { layouts: [{ container: 4 }] } }, relations: {}, lineage: {} }
   ]
 };
 const screens = {

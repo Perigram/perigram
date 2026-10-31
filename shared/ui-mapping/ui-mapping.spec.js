@@ -173,13 +173,17 @@ describe('field control resolution', () => {
     const plain = { class: 'item', fields: { name: { base: 'string' }, size: { base: 'number' } } };
     const one = [{ id: 'a', fields: { name: 'A', size: 1 }, relations: {} }];
     const two = [...one, { id: 'b', fields: { name: 'B', size: 2 }, relations: {} }];
-    const three = [...two, { id: 'c', fields: { name: 'C', size: 3 }, relations: {} }];
+    const four = [...two,
+      { id: 'c', fields: { name: 'C', size: 3 }, relations: {} },
+      { id: 'd', fields: { name: 'D', size: 4 }, relations: {} }];
+    const five = [...four, { id: 'e', fields: { name: 'E', size: 5 }, relations: {} }];
     // The loaded count outranks every shape signal through every
     // projection: plain, media, and boardable collections all render
     // their records at one to two instances.
     expect(listLayoutOf({ surfaceKind: 'list', type: plain, instances: one })).toBe('records');
     expect(listLayoutOf({ surfaceKind: 'list', type: plain, instances: two })).toBe('records');
-    expect(listLayoutOf({ surfaceKind: 'list', type: plain, instances: three })).toBe('table');
+    expect(listLayoutOf({ surfaceKind: 'list', type: plain, instances: four })).toBe('records');
+    expect(listLayoutOf({ surfaceKind: 'list', type: plain, instances: five })).toBe('table');
     // An empty collection keeps its shape projection — the stub owns
     // emptiness.
     expect(listLayoutOf({ surfaceKind: 'list', type: plain, instances: [] })).toBe('table');
@@ -197,7 +201,7 @@ describe('field control resolution', () => {
 
   it('derives relation columns display-aware: unfilled relations render no column', () => {
     const relational = { class: 'item', identifier: 'name', fields: { name: { base: 'string' } }, edges: { relations: { docs: { types: ['x'] } } } };
-    const bare = Array.from({ length: 4 }, (_, i) => ({ id: String(i), fields: { name: `A${i}` }, relations: {} }));
+    const bare = Array.from({ length: 5 }, (_, i) => ({ id: String(i), fields: { name: `A${i}` }, relations: {} }));
     const filled = bare.map((instance, i) => (i === 0
       ? { ...instance, relations: { docs: [{ type: 'x', id: '9' }] } }
       : instance));
@@ -822,7 +826,7 @@ describe('weight-driven arrangement', () => {
 
   it('estimates the full rendered height, not a sample', () => {
     expect(estimateRegionWeight(listNode(20))).toBe(22);
-    expect(estimateRegionWeight(listNode(3))).toBe(5);
+    expect(estimateRegionWeight(listNode(5))).toBe(7);
     expect(estimateRegionWeight(detailNode(12))).toBe(12);
     const cardList = { surfaceKind: 'list', type: { id: 'o', class: 'file' }, instances: Array.from({ length: 10 }) };
     expect(estimateRegionWeight(cardList)).toBe(42);
@@ -956,7 +960,7 @@ describe('weight-driven arrangement', () => {
       type: { id: 'o', class: 'file', payload: { mime: ['image/png'], preview: 'image' }, fields: {} },
       instances: Array.from({ length: count }, (_, i) => ({ id: String(i), relations: {} }))
     });
-    expect(mediaTraits(4)).toEqual({ weight: 18, breadth: 'content', volume: 4, shape: 'media', filledness: 'filled', growth: 'flowing' });
+    expect(mediaTraits(6)).toEqual({ weight: 26, breadth: 'content', volume: 6, shape: 'media', filledness: 'filled', growth: 'flowing' });
     expect(mediaTraits(11).growth).toBe('bounded');
   });
 
@@ -1114,12 +1118,16 @@ describe('instance-aware list controls', () => {
     const bare = [
       { id: '1', fields: { name: 'A', table: 'wb-9' }, relations: {} },
       { id: '2', fields: { name: 'B', table: null }, relations: {} },
-      { id: '3', fields: { name: 'C', table: null }, relations: {} }
+      { id: '3', fields: { name: 'C', table: null }, relations: {} },
+      { id: '4', fields: { name: 'D', table: null }, relations: {} },
+      { id: '5', fields: { name: 'E', table: null }, relations: {} }
     ];
     const asRefs = [
       { id: '1', fields: { name: 'A' }, relations: { table: [{ type: 'workbook', id: '9' }] } },
       { id: '2', fields: { name: 'B' }, relations: {} },
-      { id: '3', fields: { name: 'C' }, relations: {} }
+      { id: '3', fields: { name: 'C' }, relations: {} },
+      { id: '4', fields: { name: 'D' }, relations: {} },
+      { id: '5', fields: { name: 'E' }, relations: {} }
     ];
     expect(resolveListControls(refField, asRefs).relationColumn).toEqual({ key: 'table' });
     expect(resolveListControls(refField, bare).relationColumn).toEqual({ key: 'table' });
@@ -1139,7 +1147,9 @@ describe('instance-aware list controls', () => {
     const rows = instance => [
       { id: '1', fields: { label: 'A', ...(instance ? { result: { layouts: [1] } } : { result: null }) }, relations: {} },
       { id: '2', fields: { label: 'B', result: null }, relations: {} },
-      { id: '3', fields: { label: 'C', result: null }, relations: {} }
+      { id: '3', fields: { label: 'C', result: null }, relations: {} },
+      { id: '4', fields: { label: 'D', result: null }, relations: {} },
+      { id: '5', fields: { label: 'E', result: null }, relations: {} }
     ];
     expect(resolveListControls(structural, rows(true)).summaryColumn).toEqual({ key: 'result' });
     expect(resolveListControls(structural, rows(false)).summaryColumn).toBeNull();
@@ -1158,7 +1168,9 @@ describe('instance-aware list controls', () => {
     const rows = [
       { id: 'p1', fields: { name: 'A' }, relations: {} },
       { id: 'p2', fields: { name: 'B' }, relations: {} },
-      { id: 'p3', fields: { name: 'C' }, relations: {} }
+      { id: 'p3', fields: { name: 'C' }, relations: {} },
+      { id: 'p4', fields: { name: 'D' }, relations: {} },
+      { id: 'p5', fields: { name: 'E' }, relations: {} }
     ];
     const poolWithKids = {
       kid: { k1: { id: 'k1', type: 'kid', fields: { label: 'One' }, lineage: { parentId: { type: 'parent', id: 'p1' } }, relations: {} } },
@@ -1199,10 +1211,12 @@ describe('instance-aware list controls', () => {
       instances: [
         { relations: { docs: [{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }, { id: '5' }] } },
         { relations: {} },
+        { relations: {} },
+        { relations: {} },
         { relations: {} }
       ]
     };
-    expect(estimateRegionWeight(related)).toBe(2 + 3 + Math.ceil(5 / 4));
+    expect(estimateRegionWeight(related)).toBe(2 + 5 + Math.ceil(5 / 4));
   });
 });
 
