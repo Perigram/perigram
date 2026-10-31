@@ -82,7 +82,6 @@ const definitions = [
   data('collection.slice', 'slice'),
   data('collection.count', 'count'),
   data('collection.distinct', 'distinct'),
-  data('collection.repeat', 'repeat'),
   data('collection.sort', 'sort'),
   data('collection.reverse', 'reverse'),
   data('collection.shift', 'shift'),
@@ -742,10 +741,6 @@ function catalogPorts(record = {}, context = {}) {
   };
   if (kind === 'collection.distinct') return {
     inputs: [socket('items', configured, DATA, true, 'list'), socket('keys', processType('json'), DATA, false, 'list')],
-    outputs: [socket('items', configured, DATA, false, 'list')]
-  };
-  if (kind === 'collection.repeat') return {
-    inputs: [socket('value', configured, DATA, true), socket('count', processType('integer'), DATA, true)],
     outputs: [socket('items', configured, DATA, false, 'list')]
   };
   if (kind === 'collection.reverse') return { inputs: [socket('value', configured, DATA, true, 'list')], outputs: [socket('value', configured, DATA, false, 'list')] };

@@ -19,7 +19,7 @@ export function composeOrderTree(authoring) {
   authoring.declareClass({ id: 'attemptClass', typeId: 'nesting-attempt', class: 'item', name: 'Nesting attempt' });
   authoring.declareField({ id: 'entryLabelField', ownerClassId: 'entryClass', name: 'label', descriptor: { base: 'string', identifier: true } });
   authoring.declareField({ id: 'entryDesignField', ownerClassId: 'entryClass', name: 'design', descriptor: { base: 'ref' } });
-  authoring.declareField({ id: 'entryCountField', ownerClassId: 'entryClass', name: 'count', descriptor: { base: 'quantity', unit: 'count' } });
+  authoring.declareField({ id: 'entryCountField', ownerClassId: 'entryClass', name: 'count', descriptor: { base: 'number' } });
   authoring.declareField({ id: 'orderNameField', ownerClassId: 'orderClass', name: 'name', descriptor: { base: 'string', identifier: true } });
   authoring.declareField({ id: 'attemptLabelField', ownerClassId: 'attemptClass', name: 'label', descriptor: { base: 'string', identifier: true } });
   authoring.declareField({ id: 'attemptResultField', ownerClassId: 'attemptClass', name: 'result', descriptor: { base: 'json' } });
@@ -119,13 +119,27 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.configure('oneInt', { type: { base: 'integer', nullable: false }, value: 1 });
   authoring.drop('coalesceValue', { id: 'countInt' });
   authoring.configure('countInt', { type: { base: 'integer', nullable: false } });
+  authoring.drop('literal', { id: 'marker' });
+  authoring.configure('marker', { type: { base: 'string', nullable: false }, value: 'x' });
+  authoring.drop('literal', { id: 'empty' });
+  authoring.configure('empty', { type: { base: 'string', nullable: false }, value: '' });
+  authoring.drop('literal', { id: 'entryLabelText' });
+  authoring.configure('entryLabelText', { type: { base: 'string', nullable: false }, value: 'Cassette' });
+  authoring.drop('text', { id: 'markerText' });
+  authoring.configure('markerText', { operation: 'repeat', type: { base: 'string', nullable: false } });
+  authoring.drop('text', { id: 'markerList' });
+  authoring.configure('markerList', { operation: 'split', type: { base: 'string', nullable: false } });
+  authoring.drop('text', { id: 'entryLabel' });
+  authoring.configure('entryLabel', { operation: 'replace', type: { base: 'string', nullable: false } });
+
   authoring.drop('construct', { id: 'mkEntry' });
   authoring.wireDeclaration('entryClass', 'mkEntry', 'binds');
   authoring.configure('mkEntry', { access: adminAccess });
-  authoring.setInputDefault('mkEntry', 'fields.label', 'Nesting entry');
+  authoring.setInputDefault('mkEntry', 'fields.count', 1);
 
-  authoring.drop('repeatValues', { id: 'repeatDesigns' });
-  authoring.configure('repeatDesigns', { type: { base: 'entityRef', typeId: 'cassette-design' } });
+  authoring.drop('getField', { id: 'entryDesign' });
+  authoring.configure('entryDesign', { typeId: 'nesting-entry' });
+  authoring.setInputDefault('entryDesign', 'field', 'fields.design');
   authoring.drop('construct', { id: 'mkCassette' });
   authoring.wireDeclaration('cassetteInstanceRef', 'mkCassette', 'binds');
   authoring.configure('mkCassette', { access: adminAccess });
@@ -229,14 +243,20 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('rowCount', 'data:value', 'countValue', 'data:value');
   authoring.connect('one', 'data:value', 'countValue', 'data:fallback');
   authoring.connect('bake', 'data:result', 'mkEntry', 'data:fields.design');
-  authoring.connect('countValue', 'data:value', 'mkEntry', 'data:fields.count');
   authoring.connect('order', 'data:result', 'mkEntry', `data:lineage.${ORDER_LINEAGE_KEY}`);
   authoring.connect('rows', 'data:result', 'rowCountInt', 'data:value');
   authoring.connect('rowCountInt', 'data:value', 'countInt', 'data:value');
   authoring.connect('oneInt', 'data:value', 'countInt', 'data:fallback');
-  authoring.connect('bake', 'data:result', 'repeatDesigns', 'data:value');
-  authoring.connect('countInt', 'data:value', 'repeatDesigns', 'data:count');
-  authoring.connect('repeatDesigns', 'data:items', 'mkCassette', 'data:fields.design');
+  authoring.connect('marker', 'data:value', 'markerText', 'data:text');
+  authoring.connect('countInt', 'data:value', 'markerText', 'data:count');
+  authoring.connect('markerText', 'data:value', 'markerList', 'data:text');
+  authoring.connect('empty', 'data:value', 'markerList', 'data:separator');
+  authoring.connect('markerList', 'data:value', 'entryLabel', 'data:text');
+  authoring.connect('marker', 'data:value', 'entryLabel', 'data:search');
+  authoring.connect('entryLabelText', 'data:value', 'entryLabel', 'data:replacement');
+  authoring.connect('entryLabel', 'data:value', 'mkEntry', 'data:fields.label');
+  authoring.connect('mkEntry', 'data:result', 'entryDesign', 'data:entity');
+  authoring.connect('entryDesign', 'data:value', 'mkCassette', 'data:fields.design');
   authoring.connect('order', 'data:result', 'mkCassette', `data:lineage.${ORDER_LINEAGE_KEY}`);
 
   authoring.connect('rowTemplate', 'data:value', 'bake', 'data:template');
