@@ -2579,8 +2579,8 @@ Ordered steps:
   + the parts relation; an empty layout constructs a blank sheet.
 - [ ] WAITING — owner verification: Nesting composition, cuts, and the
   sheet stack (owner direction 2026-10-31): the solve groups layouts by
-  the full composition — sheet shape, each placement's design key, and
-  its transform — and stamps `compositionKey` on both the group and the
+  the full composition — sheet shape and the placement design-key
+  multiset — and stamps `compositionKey` on both the group and the
   constructed sheet design. The org process nests the row's physical
   cassette count, constructs one sheet design per composition under the
   nesting attempt, reuses a stored design matching the composition key,
