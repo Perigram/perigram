@@ -392,7 +392,7 @@ async function runDerivedCommand(action = {}, instance = null) {
   if (!instance?._id && !instance?.id) return;
   const outbox = useOutboxStore();
   try {
-    const result = await outbox.mutate({
+    await outbox.mutate({
       url: '/api/process-definitions/active/exports/run',
       method: 'POST',
       body: {
@@ -402,11 +402,6 @@ async function runDerivedCommand(action = {}, instance = null) {
       },
       meta: { kind: 'action', instanceId: String(instance._id || instance.id), change: 'updated', reason: 'derived-export' }
     });
-    // The export lands in the files bucket; the caller presents it.
-    const attachment = result?.attachments?.[0] || result?.data || null;
-    if (attachment?.fileId && typeof window !== 'undefined') {
-      window.open(`/api/files/download/${encodeURIComponent(String(attachment.fileId))}?bucket=files&download=1`, '_blank');
-    }
     toast.add({ severity: 'success', summary: action.label || action.commandId, detail: t('generatedScreen.actionCompleted'), life: 2000 });
     await reload();
     emit('refresh');
