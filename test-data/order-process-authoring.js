@@ -113,34 +113,33 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('formatValue', { id: 'designKey' });
   authoring.configure('designKey', { type: { base: 'string', nullable: false }, template: '{cassette}|{A}|{B}' });
 
-  authoring.drop('construct', { id: 'mkEntry' });
-  authoring.wireDeclaration('entryClass', 'mkEntry', 'binds');
-  authoring.configure('mkEntry', { access: adminAccess });
-  authoring.setInputDefault('mkEntry', 'fields.label', 'Nesting entry');
-
-  authoring.drop('forEachEntity', { id: 'entryLoop' });
-  authoring.configure('entryLoop', { type: { base: 'entityRef', typeId: 'nesting-entry' } });
-  authoring.drop('getField', { id: 'entryCount' });
-  authoring.configure('entryCount', { typeId: 'nesting-entry' });
-  authoring.setInputDefault('entryCount', 'field', 'fields.count');
-  authoring.drop('getField', { id: 'entryDesign' });
-  authoring.configure('entryDesign', { typeId: 'nesting-entry' });
-  authoring.setInputDefault('entryDesign', 'field', 'fields.design');
-  authoring.drop('castValue', { id: 'entryCountInt' });
-  authoring.configure('entryCountInt', { outputType: { base: 'integer' } });
-  authoring.drop('text', { id: 'markerText' });
-  authoring.configure('markerText', { operation: 'repeat', type: { base: 'string', nullable: false } });
-  authoring.drop('text', { id: 'markerList' });
-  authoring.configure('markerList', { operation: 'split', type: { base: 'string', nullable: false } });
+  authoring.drop('castValue', { id: 'countValueInt' });
+  authoring.configure('countValueInt', { outputType: { base: 'integer' } });
   authoring.drop('literal', { id: 'marker' });
   authoring.configure('marker', { type: { base: 'string', nullable: false }, value: 'x' });
   authoring.drop('literal', { id: 'empty' });
   authoring.configure('empty', { type: { base: 'string', nullable: false }, value: '' });
-  authoring.drop('formatValue', { id: 'cassetteName' });
-  authoring.configure('cassetteName', { type: { base: 'string', nullable: false }, template: 'Cassette {value}' });
+  authoring.drop('literal', { id: 'entryLabelText' });
+  authoring.configure('entryLabelText', { type: { base: 'string', nullable: false }, value: 'Cassette' });
+  authoring.drop('text', { id: 'markerText' });
+  authoring.configure('markerText', { operation: 'repeat', type: { base: 'string', nullable: false } });
+  authoring.drop('text', { id: 'markerList' });
+  authoring.configure('markerList', { operation: 'split', type: { base: 'string', nullable: false } });
+  authoring.drop('text', { id: 'entryLabel' });
+  authoring.configure('entryLabel', { operation: 'replace', type: { base: 'string', nullable: false } });
+
+  authoring.drop('construct', { id: 'mkEntry' });
+  authoring.wireDeclaration('entryClass', 'mkEntry', 'binds');
+  authoring.configure('mkEntry', { access: adminAccess });
+  authoring.setInputDefault('mkEntry', 'fields.count', 1);
+
+  authoring.drop('getField', { id: 'entryDesign' });
+  authoring.configure('entryDesign', { typeId: 'nesting-entry' });
+  authoring.setInputDefault('entryDesign', 'field', 'fields.design');
   authoring.drop('construct', { id: 'mkCassette' });
   authoring.wireDeclaration('cassetteInstanceRef', 'mkCassette', 'binds');
   authoring.configure('mkCassette', { access: adminAccess });
+  authoring.setInputDefault('mkCassette', 'fields.name', 'Cassette');
 
   authoring.drop('forEachEntity', { id: 'loop' });
   authoring.configure('loop', { type: { base: 'entityRef', typeId: 'sheet-material' } });
@@ -204,10 +203,8 @@ export function composeOrderGraph(authoring, tableType) {
 
   authoring.connect('order', 'control:completed', 'bake', 'control:in');
   authoring.connect('bake', 'control:completed', 'mkEntry', 'control:in');
-  authoring.connect('mkEntry', 'control:completed', 'entryLoop', 'control:in');
-  authoring.connect('entryLoop', 'control:each', 'mkCassette', 'control:in');
-  authoring.connect('mkCassette', 'control:completed', 'entryLoopEnd', 'control:in');
-  authoring.connect('entryLoop', 'control:done', 'materials', 'control:in');
+  authoring.connect('mkEntry', 'control:completed', 'mkCassette', 'control:in');
+  authoring.connect('mkCassette', 'control:completed', 'materials', 'control:in');
   authoring.connect('materials', 'control:completed', 'loop', 'control:in');
   authoring.connect('loop', 'control:each', 'solve', 'control:in');
   authoring.connect('solve', 'control:completed', 'attempt', 'control:in');
@@ -242,18 +239,17 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('rowCount', 'data:value', 'countValue', 'data:value');
   authoring.connect('one', 'data:value', 'countValue', 'data:fallback');
   authoring.connect('bake', 'data:result', 'mkEntry', 'data:fields.design');
-  authoring.connect('countValue', 'data:value', 'mkEntry', 'data:fields.count');
   authoring.connect('order', 'data:result', 'mkEntry', `data:lineage.${ORDER_LINEAGE_KEY}`);
-  authoring.connect('mkEntry', 'data:result', 'entryLoop', 'data:items');
-  authoring.connect('entryLoop', 'data:item', 'entryCount', 'data:entity');
-  authoring.connect('entryLoop', 'data:item', 'entryDesign', 'data:entity');
+  authoring.connect('countValue', 'data:value', 'countValueInt', 'data:value');
   authoring.connect('marker', 'data:value', 'markerText', 'data:text');
-  authoring.connect('entryCount', 'data:value', 'entryCountInt', 'data:value');
-  authoring.connect('entryCountInt', 'data:value', 'markerText', 'data:count');
+  authoring.connect('countValueInt', 'data:value', 'markerText', 'data:count');
   authoring.connect('markerText', 'data:value', 'markerList', 'data:text');
   authoring.connect('empty', 'data:value', 'markerList', 'data:separator');
-  authoring.connect('markerList', 'data:value', 'cassetteName', 'data:value');
-  authoring.connect('cassetteName', 'data:value', 'mkCassette', 'data:fields.name');
+  authoring.connect('markerList', 'data:value', 'entryLabel', 'data:text');
+  authoring.connect('marker', 'data:value', 'entryLabel', 'data:search');
+  authoring.connect('entryLabelText', 'data:value', 'entryLabel', 'data:replacement');
+  authoring.connect('entryLabel', 'data:value', 'mkEntry', 'data:fields.label');
+  authoring.connect('mkEntry', 'data:result', 'entryDesign', 'data:entity');
   authoring.connect('entryDesign', 'data:value', 'mkCassette', 'data:fields.design');
   authoring.connect('order', 'data:result', 'mkCassette', `data:lineage.${ORDER_LINEAGE_KEY}`);
 

@@ -217,8 +217,8 @@ test('the order process runs live: table rows become baked designs, materials, a
   expect(materials.map(material => material.data?.code ?? material.fields?.code).sort()).toEqual(['ACM-1250x2500-04', 'ACM-1500x3000-06']);
 
   const entries = (await instancesOf('nesting-entry')).filter(entry => orderIdOf(entry) === orderId);
-  expect(entries, 'each table line becomes a nesting entry').toHaveLength(2);
-  expect(entries.map(entry => Number(entry.fields?.count ?? 0)).sort()).toEqual([1, 2]);
+  expect(entries, 'each table line count becomes that many nesting entries').toHaveLength(3);
+  expect(entries.every(entry => Number(entry.fields?.count ?? 0) === 1)).toBe(true);
   const cassettes = (await instancesOf('cassette-instance')).filter(instance => orderIdOf(instance) === orderId);
   expect(cassettes, 'entry count expands to one physical cassette per unit').toHaveLength(3);
   for (const cassette of cassettes) {
@@ -273,7 +273,7 @@ test('the order process runs live: table rows become baked designs, materials, a
   const replayOrderId = String(replayOrder._id);
   expect(replayOrderId).not.toBe(orderId);
   const replayEntries = (await instancesOf('nesting-entry')).filter(entry => orderIdOf(entry) === replayOrderId);
-  expect(replayEntries).toHaveLength(2);
+  expect(replayEntries).toHaveLength(3);
   const replayCassettes = (await instancesOf('cassette-instance')).filter(instance => orderIdOf(instance) === replayOrderId);
   expect(replayCassettes).toHaveLength(3);
   const replayAttempts = (await instancesOf('nesting-attempt')).filter(attempt => orderIdOf(attempt) === replayOrderId);
