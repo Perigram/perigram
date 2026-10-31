@@ -117,6 +117,36 @@ test.describe('process generated screens', () => {
     await app.expectCleanRuntime();
   });
 
+  test('record header renders the declared containment ancestors as breadcrumbs', async ({ app }) => {
+    test.setTimeout(120_000);
+    await seedMatrixTypes(app);
+    const { manifest } = await app.seedSpeciesProcess({
+      types: [PARENT_TYPE, CHILD_TYPE],
+      via: { [PARENT_TYPE]: 'genericCreate', [CHILD_TYPE]: 'genericCreate' }
+    });
+    const detail = (manifest.screens || []).find(screen => screen.screenKey === `auto_${CHILD_TYPE}_detail`);
+    expect(detail, 'Expected a compiled child detail screen').toBeTruthy();
+
+    const folder = instanceDto('folder-crumb', PARENT_TYPE, 'Crumb Folder');
+    const note = instanceDto('note-crumb', CHILD_TYPE, 'Crumb Note', {
+      lineage: { organizationId: 'org', e2eMfolderId: 'folder-crumb' }
+    });
+    const parentHandler = route => route.fulfill({ json: [folder] });
+    const childHandler = route => route.fulfill({ json: [note] });
+    await app.page.route(`**/api/instances/${PARENT_TYPE}`, parentHandler);
+    await app.page.route(`**/api/instances/${PARENT_TYPE}?**`, parentHandler);
+    await app.page.route(`**/api/instances/${CHILD_TYPE}`, childHandler);
+    await app.page.route(`**/api/instances/${CHILD_TYPE}?**`, childHandler);
+    await mockStatusActions(app.page);
+
+    await app.page.goto(`/screens/auto_${CHILD_TYPE}_detail?instanceId=note-crumb`);
+    await expect(app.page.getByText('Crumb Note').first()).toBeVisible({ timeout: 20000 });
+
+    const trail = app.page.locator('.p-breadcrumb').filter({ hasText: 'Crumb Folder' });
+    await expect(trail.getByRole('button', { name: 'Crumb Folder' })).toBeVisible({ timeout: 20000 });
+    await app.expectCleanRuntime();
+  });
+
   test('detail screen with an unresolvable scope renders the missing state', async ({ app }) => {
     test.setTimeout(120_000);
     await seedMatrixTypes(app);

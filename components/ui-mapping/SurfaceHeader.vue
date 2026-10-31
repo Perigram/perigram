@@ -7,7 +7,7 @@
        identity's flex-1 is the push) and wraps below on narrow
        containers (the LAYOUT header recipe, container-relative). -->
   <div :class="[spacing ? spacing.stackTight : LAYOUT.stackTight, 'surface-header', LAYOUT.header]">
-    <BreadcrumbTrail :instance="instance" :bundle="bundle" :pool="pool" @open="target => emit('open-instance', target)" />
+    <BreadcrumbTrail :instance="instance" :bundle="bundle" @open="target => emit('open-instance', target)" />
     <div :class="LAYOUT.headerRow">
       <!-- Contextual navigation slot: a host that opened this record
            inside another surface (a workspace tab reached from another
@@ -154,7 +154,6 @@ const props = defineProps({
   instance: { type: Object, required: true },
   actions: { type: Array, default: () => [] },
   level: { type: Number, default: 0 },
-  pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   // The region's per-type state policy map (contract.statePolicy[typeId]).
   statePolicy: { type: Object, default: null },
