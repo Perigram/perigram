@@ -73,7 +73,11 @@ behavior itself. `onRun` receives a third `context` argument:
 menu) launched the run, so executors target the launching entity; a
 reference-bound relation operation additionally carries `data` — the
 relation payload (`{ relations: { key: ref } }`) the run dispatches with,
-bound to the parent record as its instance.
+bound to the parent record as its instance. The record header seats the
+opened record's scoped quick actions — machine transitions, a construct's
+re-run, and the record's derived export affordances — beside the region's
+manifest actions; collection surfaces offer the same set through their
+ellipsis menus.
 
 Detail editing follows the record-surface edit law
 ([SPEC §4](../../SPEC.md)): an `onPatch({ instance, patch })` prop
