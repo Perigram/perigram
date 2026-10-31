@@ -124,18 +124,14 @@ export function groupNestingLayouts(result = {}) {
   const groups = new Map();
   for (const layout of layouts) {
     const placements = layout.placed_items || layout.items || [];
-    // Equal sheet designs cut the same design composition the same way:
-    // the key pairs each placement's design key with its transform and
-    // the sheet shape. Placement order is not composition.
+    // Equal sheet designs carry the same design composition on the same
+    // sheet shape. Placement order, rotation, and translation are the
+    // solver's arrangement; they do not change the design.
     const key = JSON.stringify({
       sheet: normalizeCompositionPolygon(layout.sheetPolygon),
-      placements: placements
-        .map(placed => ({
-          design: designByItemId.get(String(placed.item_id ?? placed.itemId ?? placed.id ?? '')) ?? '',
-          rotation: Number(placed.transformation?.rotation ?? placed.rotation ?? 0),
-          translation: normalizeCompositionPoint(placed.transformation?.translation ?? placed.translation)
-        }))
-        .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)))
+      designs: placements
+        .map(placed => designByItemId.get(String(placed.item_id ?? placed.itemId ?? placed.id ?? '')) ?? '')
+        .sort()
     });
     const group = groups.get(key);
     if (group) group.count += 1;
@@ -144,14 +140,12 @@ export function groupNestingLayouts(result = {}) {
   return [...groups.values()];
 }
 
-function normalizeCompositionPoint(point) {
-  const values = Array.isArray(point) ? point : [point?.x, point?.y];
-  return values.map(value => Number(value) || 0);
-}
-
 function normalizeCompositionPolygon(polygon) {
   if (!polygon || typeof polygon !== 'object') return null;
-  const ring = value => (Array.isArray(value) ? value.map(normalizeCompositionPoint) : []);
+  const ring = value => (Array.isArray(value) ? value.map(point => {
+    const values = Array.isArray(point) ? point : [point?.x, point?.y];
+    return values.map(value => Number(value) || 0);
+  }) : []);
   return { outer: ring(polygon.outer), inner: Array.isArray(polygon.inner) ? polygon.inner.map(ring) : [] };
 }
 

@@ -516,8 +516,8 @@ through the plugin's export binding (owner decision 2026-10-10).
   declared relation to cassette-design (`onRemove: detach`, one ref per
   placement) beside the frozen self-contained geometry snapshot (the
   §24 app-canon law); provenance rides the refs with revision pins. The
-  record carries its `compositionKey`: the sheet shape, every placement
-  design key, and every placement transform.
+  record carries its `compositionKey`: the sheet shape and the
+  placement design-key multiset.
 - `sheet-cut-plan` (item) — a sheet design applied to an exact sheet: it
   refers to one sheet design and to the sheet instance it cuts, and
   carries no geometry of its own.
@@ -529,10 +529,10 @@ items are cassette-design geometries keyed by their cassette-design
 refs — a placement without its design ref refuses — and its output
 groups the resulting sheets by composition, joining sheets that cut the
 same designs the same way into one sheet design carrying the group's
-count. Composition is the sheet shape, each placement's design key, and
-its transform; placement order is not composition. A supplied
-`designKey` names the cassette-design composition; absent one, the
-design reference is the key.
+count. Composition is the sheet shape and the multiset of placement
+design keys; placement order, rotation, and translation are the
+solver's arrangement. A supplied `designKey` names the cassette-design
+composition; absent one, the design reference is the key.
 
 Owner decision (2026-10-31, composition is sheet-design identity): a
 flow matches a solved layout against stored sheet designs by
