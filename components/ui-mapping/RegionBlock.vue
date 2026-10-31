@@ -161,7 +161,7 @@
            affordance opening the record where every collection renders
            in full. The arrangement ladder stays with the standalone
            page. -->
-      <template v-if="embedded">
+      <template v-if="embeddedRecord">
         <SurfaceBody
           v-bind="bodyProps"
           variant="full"
@@ -226,7 +226,7 @@
       />
     </template>
     <RegionChildren
-      v-if="showSurfaces && !embedded && node.stubRegions?.length"
+      v-if="showSurfaces && !embeddedRecord && node.stubRegions?.length"
       v-bind="childrenProps"
       v-on="childrenEvents"
       :regions="node.stubRegions"
@@ -338,13 +338,13 @@ const splitTracks = computed(() => ({
 }));
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
-const embedded = inject('uiMappingEmbedded', false);
+const embeddedRecord = inject('uiMappingEmbedded', false);
 const { open: openEntityPopup, openable: popupOpenable } = useEntityPopup();
 // The embed's child summaries: filled child collections as label +
 // loaded count; the type lazy-loads through the host's loader so the
 // count fills without hosting the collection itself.
 const labelForRegion = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? generatedEntityLabel(region.type, { t, te }) : region.id);
-const childSummaries = computed(() => (embedded.value
+const childSummaries = computed(() => (embeddedRecord
   ? props.node.childRegions
       .filter(child => child.instances.length > 0)
       .map(child => ({ id: child.id, label: labelForRegion(child), count: child.instances.length }))
@@ -388,7 +388,7 @@ const overlayTypeIds = computed(() => [...new Set([
   ...(props.node.surfaceKind === 'list'
     ? Object.values(props.node.type?.edges?.children || {}).flatMap(edge => edge?.types || [])
     : []),
-  ...(embedded.value
+  ...(embeddedRecord
     ? [...props.node.childRegions, ...(props.node.stubRegions || [])]
         .map(child => child.typeId).filter(Boolean)
     : [])
