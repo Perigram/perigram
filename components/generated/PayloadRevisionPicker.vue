@@ -3,7 +3,6 @@
     v-if="shown"
     :label="versionLabel"
     size="small"
-    severity="contrast"
     rounded
     :aria-label="$t('revision.pickerLabel')"
     @click="event => revisionsPopover?.toggle(event)"

@@ -244,7 +244,6 @@ watch(activeStep, value => { activeStepRef.value = value; }, { immediate: true }
                 <i v-if="isFieldChange(entry.event)" class="pi pi-pencil text-muted text-[0.75rem]" aria-hidden="true"></i>
                 <i v-else-if="isPayloadRevision(entry.event)" class="pi pi-history text-muted text-[0.75rem]" aria-hidden="true"></i>
                 <span v-if="actorDisplayName(entry.event)" class="inline-flex min-w-0 items-center gap-1" :title="actorTitle(entry.event)">
-                  <i class="pi pi-user text-muted text-[0.75rem]" aria-hidden="true"></i>
                   <span class="truncate text-muted">{{ actorDisplayName(entry.event) }}</span>
                   <Button
                     v-if="actorUserId(entry.event)"

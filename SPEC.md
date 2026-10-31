@@ -1091,6 +1091,14 @@ the type label. The table is the floor of the layout derivation: a
 collection whose loaded pool fills no data column beside identity keeps
 the table — the stacked identifier-only list projection is retired.
 
+### 22.16 The state surface is one control (owner direction 2026-10-31)
+
+A record's state management is one surface: the state tag itself opens
+the state popover, which carries the record's legal transitions and its
+history. The header renders no separate history trigger and no
+transition buttons in the action cluster; the machine's runnable edges
+sit at the top of the state popover, the audit trail below them.
+
 ## 23. Deslopification (owner direction 2026-10-23)
 
 The current architecture carries the whole platform idea and its important

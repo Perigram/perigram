@@ -1,8 +1,13 @@
 <template>
   <span
     v-if="display"
-    class="inline-flex min-w-0 max-w-full items-center gap-1"
+    :class="['inline-flex min-w-0 max-w-full items-center gap-1', actionable ? 'cursor-pointer' : '']"
     :title="value"
+    :role="actionable ? 'button' : undefined"
+    :tabindex="actionable ? 0 : undefined"
+    @click="actionable && emit('select', $event)"
+    @keydown.enter.prevent="actionable && emit('select', $event)"
+    @keydown.space.prevent="actionable && emit('select', $event)"
   >
     <template v-for="(segment, index) in display.segments" :key="`${segment}-${index}`">
       <i
@@ -26,6 +31,7 @@
     >
       <span class="min-w-0 truncate">{{ display.label }}</span>
     </Tag>
+    <i v-if="actionable" class="pi pi-angle-down shrink-0 text-muted text-[0.75rem]" aria-hidden="true"></i>
   </span>
 </template>
 
@@ -45,8 +51,13 @@ import { stateDisplayFor, stateSegmentsOf } from '#shared/ui-mapping/index.js';
 const props = defineProps({
   value: { type: String, default: '' },
   // The region's per-type state policy map (contract.statePolicy[typeId]).
-  policy: { type: Object, default: null }
+  policy: { type: Object, default: null },
+  // The tag is the record's state surface trigger: click/Enter/Space emit
+  // `select` with the DOM event for the host's popover anchor.
+  actionable: { type: Boolean, default: false }
 });
+
+const emit = defineEmits(['select']);
 
 const startCase = segment => String(segment).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const labelOf = segment => startCase(segment);
