@@ -161,7 +161,7 @@ const quantitative = computed(() => typeIsQuantitative(props.type));
 // payload, declared source, quiet.
 const heroBand = computed(() => {
   // The page-fill band belongs to the standalone record page: an
-  // embedded record (SPEC §22.16), every Card variant, and a narrow
+  // every Card variant and a narrow
   // host (the record peek — arrangement sees the measured width) render
   // the bounded band.
   const bounded = embedded || props.variant === 'detail' || hostTraits.value?.width === 'narrow';

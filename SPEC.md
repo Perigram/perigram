@@ -1083,33 +1083,6 @@ the type label. The table is the floor of the layout derivation: a
 collection whose loaded pool fills no data column beside identity keeps
 the table — the stacked identifier-only list projection is retired.
 
-### 22.16 Handful collections render their records (owner direction
-2026-10-31, under evaluation)
-
-A collection whose loaded pool resolves fewer than five instances
-(RICH_RECORDS_BELOW, the owner's tunable) renders each instance as its
-record page in place: the same detail
-screen the record popup hosts — compiled instanceDetail, the
-synthesized detail, or the record floor — scoped to the instance, its
-children collections included. The count outranks every shape signal
-through every projection (board, media, temporal alike) and reads the
-loaded pool; a filtered view recomposes nothing. An empty collection
-keeps its projection and states itself through the stub. The engine's
-hostless floor renders each instance's detail card. This placement is
-the exception the surface-context law grants: a full record composes
-inside another surface only as a handful collection's item.
-
-The embedded record page rides the bounded-host tier: the compact
-density rhythm applies to the whole embed, its title keeps the
-record-title step above its section headings, its preview renders in
-the bounded band, and it projects the shared instance pool (source
-loading and its strips stay with the owning screen). Its children render
-through the ordinary projections and the arrangement ladder under the
-same tier, their types lazy-loading through the host's loader; each
-embed carries the expand step-up that opens the record's standalone
-page. Card-variant detail surfaces share the bounded band.
-
-
 ## 23. Deslopification (owner direction 2026-10-23)
 
 The current architecture carries the whole platform idea and its important

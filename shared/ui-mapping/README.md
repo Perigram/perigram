@@ -209,13 +209,12 @@ nothing stay hidden, so typed constructor inputs keep their editor
 surfaces. Construction-input labels are authored vocabulary resolved at the
 domain projection (parent type name, start-cased row name).
 
-**List layouts.** `resolveListLayout(type, { stateful, few })` →
-one of `records`, `table`, `card-grid`, `timeline`, `stats`, `board`,
+**List layouts.** `resolveListLayout(type, { stateful })` →
+one of `table`, `card-grid`, `timeline`, `stats`, `board`,
 `gantt`, `calendar`, from one matcher table over `analyzeTypeShape(type)`:
 
 | Signal | Layout |
 |---|---|
-| `few` (one to `RICH_RECORDS_BELOW − 1` loaded instances) | `records` — each instance renders its record page in place (root SPEC §22.16); the count outranks every shape signal |
 | prose-dominant | `timeline` (chronological) |
 | percent/quantity-dominant | `stats` (StatGrid cards with the `text-metric` role) |
 | media | `card-grid` |
@@ -227,8 +226,7 @@ one of `records`, `table`, `card-grid`, `timeline`, `stats`, `board`,
 `listLayoutOf(node)` is the one region-level derivation: compose-time
 traits, weight estimation, and the RegionBlock materialization pass the
 same node through it, so the weighted arrangement is the rendered
-layout. Its `few` signal reads the region's loaded instances, so a
-filtered view recomposes nothing.
+layout.
 
 Temporal shape beats size the way chronology already does. The board is the
 one class+vocabulary decision: a process-class type whose served state
@@ -386,10 +384,6 @@ data. `RENDERABLE_PREVIEW_MODES`
 (`dxf`, `svg`, `sketch`, `image`, `pdf`, `docx`, `table`,
 `workbook`, `text`); app-side materializations import it instead of
 restating the list, and every other mode degrades to a payload download.
-The page-fill band (`LAYOUT.previewHeroBandContent`/`Aspect`) belongs
-to the standalone record page: an embedded record (SPEC §22.16) and
-every Card-variant detail surface render their framed preview in the
-bounded `LAYOUT.previewEmbedBand` (the wide quiet-band step).
 `ASPECT_PREVIEW_MODES` (`pdf`) marks the page modes: the page renders
 in the framed region (`LAYOUT.previewHeroBandAspect`), the viewer
 fitting the frame's width;
@@ -510,7 +504,6 @@ materialization reads the same numbers:
 |---|---|
 | `TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE` | columns and facts per type richness |
 | `TABLE_PAGINATE_AT`, `TABLE_PAGE_ROWS`, `SEARCH_AT` | collection thresholds: pagination, page size, toolbar search |
-| `RICH_RECORDS_BELOW` | loaded-instance bound of the records layout (root SPEC §22.16) |
 | `CHIP_BUDGET`, `ROW_RELATION_BUDGET`, `SUMMARY_BUDGET`, `DETAIL_FACT_BUDGET` | chip, relation-chip, structural-summary, detail-fact counts |
 | `CHILDREN_TABS_AT`, `HEADER_ACTIONS_INLINE` | child regions per tab, inline header actions before the overflow menu |
 | `ROW_FIELD_BUDGET`, `SCALAR_BASES` | dense-row field count, scalar base set |
@@ -576,8 +569,7 @@ Sibling arrangement is weight-driven, compose-time, and step-carried.
 `estimateRegionWeight` estimates each region's full rendered height from
 its own data — facts, structural fields, and relation refs for detail
 regions; per-layout row factors (`ROW_WEIGHT_BY_LAYOUT`: a preview card ≈ 4
-table rows, a board card ≈ 4, a timeline entry ≈ 2, a composed record
-page ≈ 6)
+table rows, a board card ≈ 4, a timeline entry ≈ 2)
 times actual instance counts for lists (with the same size classes the
 materialization derives, so the weighted layout is the rendered layout),
 plus the wrapped relation-chip rows the first declared relation adds.

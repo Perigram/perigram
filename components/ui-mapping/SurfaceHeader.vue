@@ -49,20 +49,6 @@
         </div>
       </div>
       <div :class="LAYOUT.row" class="header-actions">
-        <!-- An embedded record steps up to its standalone page through
-             the expand affordance (the record popup's step-up metaphor):
-             it opens the record where the full page treatment lives. -->
-        <Button
-          v-if="embedded"
-          icon="pi pi-external-link"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="$t('common.expand')"
-          :title="$t('common.expand')"
-          @click="emit('open-instance', instance)"
-        />
         <!-- The cluster groups by control kind — record utilities (the
              conversation affordance, the editor, revisions, payload
              replacement), generated actions, machine transitions — one
@@ -182,7 +168,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['run', 'transition', 'refresh', 'open-instance']);
-const embedded = inject('uiMappingEmbedded', false);
 const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
 
 const glyph = computed(() => iconFor(props.type, props.instance));

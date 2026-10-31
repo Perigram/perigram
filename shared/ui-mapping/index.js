@@ -8,7 +8,6 @@ import {
   CHILDREN_TABS_AT,
   HEADER_ACTIONS_INLINE,
   BOARD_MIN_COLUMNS,
-  RICH_RECORDS_BELOW,
   LIST_LAYOUT_VALUES,
   SEARCH_AT,
   SURFACE_ROW_BUDGET,
@@ -55,7 +54,6 @@ export {
   LAYOUT_AMBIENT,
   LIST_LAYOUT_VALUES,
   BOARD_MIN_COLUMNS,
-  RICH_RECORDS_BELOW,
   SEARCH_AT,
   SURFACE_ROW_BUDGET,
   SPACING_SCALES,
@@ -290,7 +288,6 @@ export function createUiMapping(overrides = {}) {
     const entry = pickEntry(listLayoutEntries, {
       type: typeRecord.id || null,
       class: typeRecord.class || null,
-      few: options.few === true ? true : null,
       shape: shape.durational ? 'durational'
         : shape.chronological ? 'chronological'
           : shape.statlike ? 'statlike'
@@ -1047,13 +1044,10 @@ export function shapeFamilyOf(typeRecord = {}, { stateful = false } = {}) {
 // listLayoutOf(node): the one list-layout derivation — compose-time
 // traits, weight estimation, and the RegionBlock materialization resolve
 // the same layout over the same node, so the weighted arrangement is
-// the rendered one. The few signal reads the loaded pool (SPEC §22.16):
-// filtering a collection never recomposes its layout.
+// the rendered one.
 export function listLayoutOf(node = {}) {
-  const count = node.instances?.length || 0;
   return resolveListLayout(node.type || {}, {
-    stateful: hasStateVocabulary(node.statePolicy),
-    few: count > 0 && count < RICH_RECORDS_BELOW
+    stateful: hasStateVocabulary(node.statePolicy)
   });
 }
 

@@ -3221,42 +3221,6 @@ home; the server binding check (`graph-protocol.js`) and machine
 compilation resolve state values per wiring. SPEC §7 states the repeat
 law; `designer.spec.js` pins repeats legal within and across classes.
 
-## Handful collections render their records (owner direction 2026-10-31)
-
-Owner direction: the retired <3-items list rule's successor — a
-collection carrying fewer than RICH_RECORDS_BELOW (5, the owner's
-tunable in the budget table) loaded instances renders each instance as
-its rich record page in place (its detail screen, children collections
-included) through every projection, embedded and standalone alike. Under evaluation: the owner judges the rule live before it
-settles into SPEC §22.16 as standing law.
-
-- [ ] WAITING — owner verification: a collection of one or two loaded
-  instances renders each item as its record page (hosted detail screen
-  with children) on real screens and the showcase floor; five keep the
-  derived projection; the probe artifacts land under `.playwright/`.
-
-### Agent Notes (2026-10-31, handful records round)
-
-Session `agent/rich-records-20261031` (worktree
-`.agent-worktrees/rich-records-20261031`). The `few` signal (loaded
-count 1–2) resolves the `records` layout ahead of every shape entry;
-`RICH_RECORDS_BELOW = 3` and the records row weight 6 live in the
-budget table. RegionCollections renders the projection through the
-`recordPage` host seam (EmbeddedRecordPage — the popup's detail-screen
-resolution scoped per instance, hosted in place), the engine floor
-rendering one detail-card SurfaceBody per instance; the seam threads
-through nested RegionChildren so record children engage at any depth.
-En route: CollectionTable cell edits map their `{name, value}` change
-onto the wire patch map. Specs pin the derivation (few outranks
-boardable/media/temporal, override still wins, 0 keeps the projection),
-the SSR smokes pin both surfaces, and `e2e/rich-records-projection`
-pins the real path with artifacts under `.playwright/rich-records-*` —
-the handful page renders two hosted record pages (0 tables), the
-three-child control keeps its table. ui-mapping 149, module-imports,
-design-system, framework-packages, SSR smoke 24, arch, framework and
-docs guards green (the docs guard's one finding is the uninitialized
-jagua-rs submodule in the fresh worktree).
-
 ## Instance picker create and search (owner direction 2026-10-31)
 
 Owner direction: instance pickers offer creation inside themselves when
@@ -3302,29 +3266,3 @@ and docs guards green; e2e — tech-drawing fill dialog 3/3 (rails test
 green through popover create, tile, preview, editor),
 documents fill dialog 1/1, plugin-surface 1/1.
 
-### Agent Notes (2026-10-31, bound round)
-
-Session `agent/rich-records-bound-20261031` (worktree
-`.agent-worktrees/rich-records-bound-20261031`). Owner verdict: the
-bound of three left real handfuls on the table — `RICH_RECORDS_BELOW`
-is 5, the one number in the budget table that sets the handful bound.
-Specs pin the 4/5 boundary, the smoke worlds grew past the bound, the
-showcase smoke pins seed 10 (37's calendar slid into an inactive tab
-when records weights re-ranked the arrangement), and the probe's
-control world carries five.
-
-### Agent Notes (2026-10-31, chrome round)
-
-Sessions `agent/rich-records-hierarchy-20261031`,
-`agent/rich-records-strip-20261031`, `agent/rich-records-final-20261031`.
-Owner verdicts landed as one chrome law: embeds ride the popup host
-profile (compact density, the rhythm set the pages derive), the title
-keeps the record-title step (the section-scale floor flattened every
-heading), SurfaceHeader carries the expand step-up (the popup's expand
-metaphor) opening the standalone page, and children crop to
-label+count summaries (stub partition included — the inert partition
-held the unloaded grandchildren) with lazy type loads through the
-loader seam. A name collision between the record-embed inject and the
-tabs' `embedded` prop shadowed the tab treatment — the inject is
-`embeddedRecord` now. The probe pins the summaries and the expand
-buttons; the audit artifacts sit under `/tmp/opencode/audit-embed.png`.
