@@ -51,7 +51,7 @@
           :quantitative="quantitative"
           :pool="pool"
           :bundle="bundle"
-          @inline-change="change => $emit('inline-change', { instance: data, change })"
+          @inline-change="change => $emit('inline-change', { instance: data, change: { [change.name]: change.value } })"
         />
       </template>
     </Column>

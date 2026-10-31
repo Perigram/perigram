@@ -53,16 +53,28 @@ const bundle = {
   ]
 };
 const instances = {
-  library: [{ id: 'lib-1', type: 'library', fields: { name: 'Main library' }, relations: {}, lineage: {} }],
-  parent: [{
-    id: 'prj-1', type: 'parent', fields: { name: 'Alpha' },
-    relations: { libraries: [{ type: 'library', id: 'lib-1' }] }, lineage: {}
-  }],
+  library: [
+    { id: 'lib-1', type: 'library', fields: { name: 'Main library' }, relations: {}, lineage: {} },
+    { id: 'lib-2', type: 'library', fields: { name: 'East annex' }, relations: {}, lineage: {} },
+    { id: 'lib-3', type: 'library', fields: { name: 'West annex' }, relations: {}, lineage: {} }
+  ],
+  parent: [
+    {
+      id: 'prj-1', type: 'parent', fields: { name: 'Alpha' },
+      relations: { libraries: [{ type: 'library', id: 'lib-1' }, { type: 'library', id: 'lib-2' }, { type: 'library', id: 'lib-3' }] }, lineage: {}
+    },
+    { id: 'prj-2', type: 'parent', fields: { name: 'Beta' }, relations: {}, lineage: {} },
+    { id: 'prj-3', type: 'parent', fields: { name: 'Gamma' }, relations: {}, lineage: {} }
+  ],
   child: [
     { id: 'k-1', type: 'child', fields: { label: 'Kid one' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } },
-    { id: 'k-2', type: 'child', fields: { label: 'Kid two' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } }
+    { id: 'k-2', type: 'child', fields: { label: 'Kid two' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } },
+    { id: 'k-3', type: 'child', fields: { label: 'Kid three' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-2' } } }
   ],
-  ward: [{ id: 'w-1', type: 'ward', fields: { label: 'Ward one' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } }]
+  ward: [
+    { id: 'w-1', type: 'ward', fields: { label: 'Ward one' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-1' } } },
+    { id: 'w-2', type: 'ward', fields: { label: 'Ward two' }, relations: {}, lineage: { parentId: { type: 'parent', id: 'prj-2' } } }
+  ]
 };
 const actions = {
   a_create_parent: { id: 'a_create_parent', label: 'New Parent', actionKind: 'createInstance', typeId: 'parent', trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }, construction: { mode: 'generic', inputs: [] } },

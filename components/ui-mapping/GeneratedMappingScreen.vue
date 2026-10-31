@@ -244,6 +244,11 @@ const props = defineProps({
   // Editor action components by type (the host resolves the file-surface
   // registry; the engine renders what it is given): `{ [typeId]: Component }`.
   editorActions: { type: Object, default: null },
+  // The records projection's host surface (SPEC §22.16): a component the
+  // app host provides that renders one instance's own record page in
+  // place (`{ instance }` prop); the engine renders its detail card floor
+  // when absent.
+  recordPage: { type: [Object, Function], default: null },
   // Machine-authority transition resolver for board drags:
   // `async (instance) => [{ to, intent, region }]` over the host's state
   // service — the same machine the transition buttons dispatch through.
@@ -354,7 +359,8 @@ const regionBlockProps = computed(() => ({
   resolveTransitions: props.onFetchTransitions,
   loadType: props.onLoadType,
   navigation: props.navigation,
-  editorActions: props.editorActions
+  editorActions: props.editorActions,
+  recordHost: props.recordPage
 }));
 const submitPatch = async ({ instance, patch } = {}) => {
   if (!patchable.value || !instance) return;

@@ -106,6 +106,7 @@
         :instance-actions="instanceActionsForType"
         :relation-unlink="relationUnlink"
         :patchable="patchable"
+        :record-host="recordHost"
         :resolve-transitions="resolveTransitions"
         :is-reloading="isReloading"
         @open="emitOpen"
@@ -270,7 +271,10 @@ const props = defineProps({
   editorActions: { type: Object, default: null },
   // The stub slot (SPEC → Placement-aware composition): an inert child
   // renders one compact line — label, count, its own create action.
-  stub: { type: Boolean, default: false }
+  stub: { type: Boolean, default: false },
+  // The records projection's host surface, threaded from the screen host
+  // (see RegionCollections).
+  recordHost: { type: [Object, Function], default: null }
 });
 
 const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh']);

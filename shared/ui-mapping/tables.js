@@ -83,6 +83,11 @@ export const FIELD_DISPLAY_ENTRIES = Object.freeze([
 // other shape entries, so a narrow type override still outranks it
 // through the override splice — the extension mechanism stays intact.
 export const LIST_LAYOUT_ENTRIES = Object.freeze([
+  // A handful collection renders its records in place (SPEC §22.16): the
+  // loaded count outranks every shape signal — one entry, first in table
+  // order, so ties resolve to it and a narrow type override still wins
+  // through the override splice.
+  { match: { few: true }, layout: 'records' },
   { match: { boardable: true }, layout: 'board' },
   // Durational beats chronological: two declared instants form an
   // interval, the stronger temporal structure — prose shape on top of
@@ -103,9 +108,13 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
 // board projection.
 export const BOARD_MIN_COLUMNS = 2;
 
+// A collection carrying at least one and fewer than this many loaded
+// instances renders its records in place (SPEC §22.16).
+export const RICH_RECORDS_BELOW = 3;
+
 // Known list-layout values: validates authored `render.listLayout` and
 // bounds the resolver vocabulary.
-export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'card-grid', 'timeline', 'stats', 'board', 'gantt', 'calendar']);
+export const LIST_LAYOUT_VALUES = Object.freeze(['records', 'table', 'card-grid', 'timeline', 'stats', 'board', 'gantt', 'calendar']);
 
 // Collection thresholds live with the other design-system budgets so
 // materializations carry no magic numbers: tables paginate past
@@ -205,7 +214,8 @@ export const ROW_WEIGHT_BY_LAYOUT = Object.freeze({
   'card-grid': 4,
   board: 4,
   gantt: 2,
-  calendar: 3
+  calendar: 3,
+  records: 6
 });
 
 // Card anatomy variants, selected by type shape: media cards for payloads,
