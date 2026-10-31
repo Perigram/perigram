@@ -10,14 +10,18 @@ import { test, expect } from './fixtures.js';
 
 const PROJECT = 'rich-project';
 const TASK = 'rich-task';
+const NOTE = 'rich-note';
 
 test('a handful collection renders its records in place', async ({ app }) => {
   test.setTimeout(240_000);
   const declarations = [
+    { id: NOTE, name: 'Rich note', class: 'item', fields: {
+      title: { base: 'string', identifier: true }
+    } },
     { id: TASK, name: 'Rich task', class: 'item', fields: {
       label: { base: 'string', identifier: true },
       done: { base: 'boolean' }
-    } },
+    }, edges: { children: { notes: { types: [NOTE] } } } },
     {
       id: PROJECT, name: 'Rich project', class: 'group',
       fields: { name: { base: 'string', identifier: true } },
@@ -34,7 +38,7 @@ test('a handful collection renders its records in place', async ({ app }) => {
     }
   });
 
-  await app.seedSpeciesProcess({ types: [PROJECT, TASK] });
+  await app.seedSpeciesProcess({ types: [PROJECT, TASK, NOTE] });
 
   const createFor = async (typeId, data) => {
     const action = (await app.activeActions()).find(a => a.actionKind === 'createEntity' && a.typeId === typeId);
@@ -50,9 +54,14 @@ test('a handful collection renders its records in place', async ({ app }) => {
   const lineageKey = `lineage.${Object.values(projectDecl?.edges?.children || {})[0]?.lineageKey || 'richProjectId'}`;
 
   const runTag = Date.now().toString(36);
+  const orgTypesNow = await (await app.request.get('/api/admin/cts/types')).json();
+  const noteLineageKey = `lineage.${Object.values(orgTypesNow.types.find(t => t.id === TASK)?.edges?.children || {})[0]?.lineageKey || 'richTaskId'}`;
   const handfulProjectId = await createFor(PROJECT, { 'fields.name': `Rich handful ${runTag}` });
   for (let i = 0; i < 2; i++) {
-    await createFor(TASK, { 'fields.label': `Handful task ${i}`, 'fields.done': i % 2 === 0, [lineageKey]: handfulProjectId });
+    const taskId = await createFor(TASK, { 'fields.label': `Handful task ${i}`, 'fields.done': i % 2 === 0, [lineageKey]: handfulProjectId });
+    for (let n = 0; n < 6; n++) {
+      await createFor(NOTE, { 'fields.title': `Note ${i}-${n}`, [noteLineageKey]: taskId });
+    }
   }
   const controlProjectId = await createFor(PROJECT, { 'fields.name': `Rich control ${runTag}` });
   for (let i = 0; i < 5; i++) {
@@ -89,6 +98,19 @@ test('a handful collection renders its records in place', async ({ app }) => {
   const handful = await collectionSurfaces();
   expect(handful.recordHeaders.some(label => label.includes('Handful task'))).toBe(true);
   expect(handful.tables).toBe(0);
+  // The embedded records crop their children to summaries: the notes
+  // count fills through the lazy type load, and each embed carries the
+  // expand step-up to its standalone page.
+  const embedChrome = await app.page.evaluate(() => {
+    const visible = el => el.getClientRects().length > 0;
+    return {
+      summaries: [...document.querySelectorAll('button')].filter(visible)
+        .map(b => b.textContent.trim()).filter(text => text.includes('Rich note ·')),
+      expand: [...document.querySelectorAll('button .pi-external-link')].filter(visible).length
+    };
+  });
+  expect(embedChrome.summaries).toEqual(['Rich note · 6', 'Rich note · 6']);
+  expect(embedChrome.expand).toBe(2);
   await app.page.screenshot({ path: '.playwright/rich-records-handful.png', fullPage: false });
 
   // The control record page: five children keep the derived projection
