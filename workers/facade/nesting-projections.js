@@ -164,9 +164,13 @@ function buildNestingItems(jobFiles = []) {
     // The design key rides the element: an explicit designId, or the
     // element's own identity when the item is a record that carries one.
     const designId = String(file.designId ?? file.design_id ?? file._id ?? file.id ?? '');
+    // Parts arrive as a list or — after a tree flatten over a
+    // single-element list — as one part object.
     const polygonParts = Array.isArray(file.polygonParts)
       ? file.polygonParts
-      : partsOfElement(file);
+      : file.polygonParts && typeof file.polygonParts === 'object'
+        ? [file.polygonParts]
+        : partsOfElement(file);
     if (polygonParts.length) {
       for (const part of polygonParts) {
         const coords = normalizeCoordinates(part.coordinates);

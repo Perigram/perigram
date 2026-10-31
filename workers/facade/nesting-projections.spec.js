@@ -147,6 +147,14 @@ describe('nesting parts projection', () => {
     expect(request.items[0].design_id).toBe('');
     expect(request.items[0].count).toBe(2);
   });
+
+  it('nests a single part object — the shape a flatten over one part produces', () => {
+    const request = buildValueWorkerRequest([
+      { polygonParts: { coordinates: [[0, 0], [100, 0], [100, 50], [0, 50]], sourceLayers: [] }, count: 1 }
+    ], { width: 1000, height: 1000, space: 3, sheetCount: 1 });
+    expect(request.items).toHaveLength(1);
+    expect(request.items[0].coords).toEqual([[0, 0], [100, 0], [100, 50], [0, 50]]);
+  });
 });
 
 describe('quantity join keeps anonymous solves', () => {
