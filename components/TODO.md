@@ -605,3 +605,25 @@ for `peek` over the body. `expandable`/`expand` thread through
 workspace instance/page open events. Owner follow-up: the construct
 re-derive seats in the record-utilities group beside payload revisions
 and replacement.
+
+### Record version surface and state-step history (owner direction 2026-10-31)
+
+- [ ] WAITING — owner verification: the version trigger rides the payload
+  preview corner showing `vN`; the revisions popover carries the replace
+  affordance for authored payloads; state history steps by state with
+  field and revision events inside; event actors render by name with the
+  chat affordance.
+
+#### Agent Notes (2026-10-31)
+
+Session `agent/version-surface-20261031` (worktree
+`.agent-worktrees/version-surface-20261031`). `PayloadRevisionPicker`
+renders the `vN` version stamp on the payload preview corner (full record
+bodies, `SurfaceDetailBody`), loads the revision list at mount, and
+carries `ReplacePayloadAction` in its popover; `SurfaceHeader` keeps
+chat, editor, and the construct re-derive. `StateHistory` steps by state:
+field and revision events render inside the state step they occurred in,
+actor rows carry the persisted name and the chat action, and a missing
+user renders the unknown-user label. Validation: ui-mapping + module
+imports 130/130, design-system 161/164 with the three pre-existing
+`GeneratedScreenHost.vue` findings, check-arch clean.

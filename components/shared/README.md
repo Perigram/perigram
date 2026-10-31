@@ -306,37 +306,35 @@ status surface.
 Fetches and displays the audit log (`status_events`) for any instance.
 
 Props: `:instance`, `type-id`, `target-id`, `mock-events`, `compact`.
-Events render as a vertical PrimeVue Stepper feed: each event is one
-`StepItem`, ordered newest → oldest (the latest event leads), whose `Step`
-header contains the
-status badge, actor display name, and timestamp in a wrapping row (the
-stepper's number bubble stays hidden — the badge is the marker); the
-newest event's `StepPanel` opens by default and clicking a step header
-expands that event's evidence (note, attachments, snapshots) — one panel
-open at a time, the stepper's own accordion. Timestamps must not be
-rendered in a separate fixed-width side column.
+Steps are states: events group under the state they occurred in, newest
+state first (the latest state leads). A `StepItem`'s `Step` header carries
+the state badge alone (the stepper's number bubble stays hidden — the badge
+is the marker); its `StepPanel` lists the events recorded under that state,
+newest first, with the newest state's panel open by default — one panel
+open at a time, the stepper's own accordion.
 Step badges resolve through the flat state contract: the type's policy map
 (`statePolicyByType` over the hydration payload's compiled producer
 workflows) drives each historical value's label, severity, and icon through
 `stateDisplayFor`, with the raw `toStatePrimary` remaining the state
 identifier, not the display contract.
+Each event row carries its actor display name, timestamp, and evidence:
+notes, lifecycle proof attachment refs as download links, snapshot count
+chips, field edits (the changed leaves with from → to), and payload
+revisions (the minting reason with its version and a restore's source
+revision — SPEC §24). Timestamps render inside the event row, never in a
+separate fixed-width side column.
 Persisted events may include response-only `actor` data from the status API.
 `StateHistory` prefers the event's first-class stamp actor — the persisted
-`label`/`name` for display and `id`/`userId` for the user ref — and falls
+`label`/`name` for display and `id`/`userId` for the chat action — and falls
 back to `status.userId`-derived display only when the event predates the
 stamp. Service/system principals render the localized system actor label
-and get no user chat action.
-User actors render through `InstanceInlineRef type="user"` and include an
-icon-only chat action that opens the support chat in direct user conversation
-mode for that actor.
+and get no chat action.
+User actors render as their display name with an icon-only chat action that
+opens the support chat in direct user conversation mode for that actor. An
+event whose user record is gone renders the localized unknown-user label
+rather than a raw id.
 Structured v2 events prefer `toStatePrimary` for the visible badge and keep
-`region` available for grouped status surfaces. Beside transitions the
-stepper renders the audit trail's other stamps: field edits (the pencil
-step, changed leaves with from → to) and payload revisions (the history
-step, the minting reason with its version and a restore's source
-revision — SPEC §24).
-History panels render lifecycle proof attachment refs as download links and
-snapshot entries as compact count chips from the persisted event snapshot.
+`region` available for grouped status surfaces.
 
 ### `DrawingCanvas.vue`
 Shared SVG canvas for layer-aware drawing surfaces. It accepts normalized geometry previews, baked cassette `layerData` / `polygonParts`, DXF text/URLs, SVG URLs, legacy parametric cassette graphs, and OCCS cassette definitions with Perigram graph-tree extensions; owns layer visibility by default, viewer pan/zoom, cassette designer edge actions, shared viewer grid/stroke presentation, and layer-to-pen resolution through `utils/drawingPreview.js`. Viewport navigation is pointer-class aware: mouse wheel zooms at the cursor and drag pans (Shift in designer mode), while touch input pans with one finger in viewer modes and pinch-zoomes/pans with two fingers in every viewer/designer mode; designer mode reserves single-finger taps for face/edge interaction. The canvas root declares `touch-action: none` in viewer modes so the browser never claims a canvas gesture for page scrolling or zooming.

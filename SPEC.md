@@ -229,7 +229,7 @@ pencil — and nothing else toggles them. Collection cells ride the same
 pencil: a table cell (the empty ones included) edits in place on
 patchable surfaces, patching one field like every other inline change. Every field change drops into
 the state record (`status_events`) attributed: who changed which field,
-from what value to what value, beside the transition history.
+from what value to what value, inside the state step it occurred in.
 
 Client state feels synchronous (owner direction 2026-10-14): record
 updates and deletes apply optimistically the moment they are made — the
@@ -1229,6 +1229,16 @@ revision carries its minting principal; a restored revision names the
 revision it re-entered. Payload revision writes ride the record's
 status-events audit trail beside transitions and field edits; a record
 without a state keeps the version surface as its history.
+
+Owner direction (2026-10-31): the version surface lives on the content
+it versions. Its trigger rides the payload preview's corner and states
+the current version (`vN`). The revisions popover carries the replace
+affordance for authored payloads — the write that swaps the preview's
+bytes — and the per-revision preview, restore, and current mark. The
+state stepper's steps are states: transitions, field edits, payload
+revisions, notes, and attachments render inside the step of the state
+they occurred in. An event's actor renders by its persisted display name
+with the chat affordance.
 
 The DXF editor surface grows marker-first: open the template payload on
 the CAD canvas, author and rename `{spot:<name>}` anchors, save through

@@ -437,8 +437,7 @@ beside the transition history in `StateHistory`.
   composed instance-chat entry,
   the host-resolved editor action component (`editorActions` channel: the
   app host resolves the file-surface registry per type and the engine
-  renders what it receives), payload revisions, the construct re-derive,
-  payload replacement —
+  renders what it receives), the construct re-derive —
   then at most `HEADER_ACTIONS_INLINE` generated
   buttons inline — a third and every further action join one popup
   ellipsis menu with the same localized labels — then every available
@@ -456,8 +455,10 @@ beside the transition history in `StateHistory`.
   step). `compact` renders the label-size identity line with the state
   surface and action cluster over the body; lineage and byline stay on
   the record page. `expandable` adds the step-up button at the end of the
-  cluster and emits `expand`. Under the header rides the record's
-  permanent reload lane (SPEC §22.9).
+  cluster and emits `expand`. The version surface and its replace
+  affordance ride the payload preview
+  ([generated](../generated/README.md)). Under the header rides the
+  record's permanent reload lane (SPEC §22.9).
 - `StateTag.vue` — the segmented state tag: one materialization of the
   mapping contract's `stateDisplayFor`. Flat values render as a single Tag
   styled by the authored severity/icon; dotted values render as a path —
@@ -494,7 +495,10 @@ beside the transition history in `StateHistory`.
   the quiet glyph keeps the bare
   small ladder. Narrow hosts (the record peek) render the bounded
   embed band (`LAYOUT.previewEmbedBand`, 9rem below 40rem of container
-  width, 14rem above) whatever the content. A list region with
+  width, 14rem above) whatever the content. The `full` variant overlays
+  the version trigger (`PayloadRevisionPicker`) on the preview's corner;
+  its popover carries the revision list and the replace affordance
+  ([generated](../generated/README.md)). A list region with
   nothing to show
   renders at content width, and a record's empty child regions pack side
   by side as compact stubs (`RegionChildren pack`). Every scalar and

@@ -263,23 +263,24 @@ and type id; the server stays fail-closed behind it.
 
 `ReplacePayloadAction` is the generic replace affordance (SPEC §24):
 a record whose type declares a payload and revision scope carries it in
-the record header when the payload is the record's own authored content
-— construct-derived payloads (provenance sources non-empty) are
+the revisions popover when the payload is the record's own authored
+content — construct-derived payloads (provenance sources non-empty) are
 re-derive's business and stay replace-free. New bytes go through
 `PUT /api/instances/:type/:id/payload`,
 the revisioned channel that bumps the record's revision in place. The
 same write-level grant gates it; the accept list narrows to the type's
 declared MIME set when it carries no wildcards.
 
-`PayloadRevisionPicker` is the record's version surface (SPEC §24): the
-same header mounts it for every revision-scoped payload type. A history
-affordance opens a popover listing the record's payload revisions
-newest-first with the current revision marked; the rows come from
-`GET /api/instance-revisions?typeId&instanceId&scope` through the
-instances store. Each row renders through the shared preview contract:
-the frozen payload reference (`data.snapshot.payload` — the wire
-payload block the revision minted) names the row and previews its bytes
-through `InstancePreviewMedia` in the standard band, the row's meta
+`PayloadRevisionPicker` is the record's version surface (SPEC §24):
+the full record body mounts it on the payload preview corner for every
+revision-scoped payload type. The trigger states the current version
+(`vN`; the revision list loads at mount) and opens a popover listing the
+record's payload revisions newest-first with the current revision marked;
+the rows come from `GET /api/instance-revisions?typeId&instanceId&scope`
+through the instances store. Each row renders through the shared preview
+contract: the frozen payload reference (`data.snapshot.payload` — the
+wire payload block the revision minted) names the row and previews its
+bytes through `InstancePreviewMedia` in the standard band, the row's meta
 line carries the creation stamp, the minting principal, and a restore
 mint's source (`data.restoredFrom`). Every row opens read-only in a
 dialog: the revision's frozen bytes preview through the shared payload
@@ -289,8 +290,9 @@ modes the viewer cannot render. A prior row restores through
 `POST /api/instances/:type/:id/restore-revision`: the frozen bytes
 re-enter as a new revision, the popover reloads, and the write-level
 grant plus the authored-content law gate the affordance exactly as the
-replace button's. Restore rides a direct fetch — the payload transport
-is online-only (PWA law).
+replace button's. The popover also carries the replace affordance for
+authored payloads. Restore and replace ride a direct fetch — the payload
+transport is online-only (PWA law).
 
 The `sketch-editor` surface is the tech-drawing pack's surface module
 (`workers/tech-drawing/surfaces/`) and the `text-editor`/`csv-editor`
