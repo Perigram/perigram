@@ -113,12 +113,8 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.drop('formatValue', { id: 'designKey' });
   authoring.configure('designKey', { type: { base: 'string', nullable: false }, template: '{cassette}|{A}|{B}' });
 
-  authoring.drop('recordField', { id: 'rowCountInt' });
-  authoring.configure('rowCountInt', { path: 'count', type: { base: 'integer', nullable: true } });
-  authoring.drop('literal', { id: 'oneInt' });
-  authoring.configure('oneInt', { type: { base: 'integer', nullable: false }, value: 1 });
-  authoring.drop('coalesceValue', { id: 'countInt' });
-  authoring.configure('countInt', { type: { base: 'integer', nullable: false } });
+  authoring.drop('castValue', { id: 'countValueInt' });
+  authoring.configure('countValueInt', { outputType: { base: 'integer' } });
   authoring.drop('literal', { id: 'marker' });
   authoring.configure('marker', { type: { base: 'string', nullable: false }, value: 'x' });
   authoring.drop('literal', { id: 'empty' });
@@ -244,11 +240,9 @@ export function composeOrderGraph(authoring, tableType) {
   authoring.connect('one', 'data:value', 'countValue', 'data:fallback');
   authoring.connect('bake', 'data:result', 'mkEntry', 'data:fields.design');
   authoring.connect('order', 'data:result', 'mkEntry', `data:lineage.${ORDER_LINEAGE_KEY}`);
-  authoring.connect('rows', 'data:result', 'rowCountInt', 'data:value');
-  authoring.connect('rowCountInt', 'data:value', 'countInt', 'data:value');
-  authoring.connect('oneInt', 'data:value', 'countInt', 'data:fallback');
+  authoring.connect('countValue', 'data:value', 'countValueInt', 'data:value');
   authoring.connect('marker', 'data:value', 'markerText', 'data:text');
-  authoring.connect('countInt', 'data:value', 'markerText', 'data:count');
+  authoring.connect('countValueInt', 'data:value', 'markerText', 'data:count');
   authoring.connect('markerText', 'data:value', 'markerList', 'data:text');
   authoring.connect('empty', 'data:value', 'markerList', 'data:separator');
   authoring.connect('markerList', 'data:value', 'entryLabel', 'data:text');
