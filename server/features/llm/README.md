@@ -112,7 +112,7 @@ meetings call summaries (`chat.summaries`, falling back to `chat`).
 
 The organization's models screen (`/organization/models`) owns the model
 table: profiles (name,
-kind, provider, base URL, model, optional key; chat profiles an optional
+kind, provider, base URL, optional key; chat profiles an optional
 `maxTokens` output budget) and capability routing
 (`chat`, `chat.summaries`), saved through `GET/PUT /api/llm/settings`
 (gated by organization settings access via
