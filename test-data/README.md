@@ -37,7 +37,9 @@ non-spec files here.
   records and credentials stay out of this fixture.
 - `order-process-authoring.js` — the e2e seam that composes the order
   process (`createOrderProcessAuthoring` and the compose helpers) over a
-  mounted domain. The graph nests the order's physical cassette count per
+  mounted domain. Each table line constructs a `nesting-entry` child with
+  its `design` ref and `count`, and each entry constructs the physical
+  `cassette-instance` it stands for. The graph nests the entries per
   material, constructs one sheet design per solved composition under the
   nesting attempt, reuses a stored sheet design whose `compositionKey`
   matches, and cuts each new sheet through a sheet instance and cut plan.
