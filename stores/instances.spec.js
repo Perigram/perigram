@@ -115,6 +115,17 @@ describe('instances store cache', () => {
     expect(instances.dtoFor('queue', 'q-denied')).toBeNull();
   });
 
+  it('serves a resolved reference from the cache on later lookups', async () => {
+    const request = vi.fn().mockResolvedValue([{ _id: 'q-1', name: 'Queue one' }]);
+    vi.stubGlobal('$fetch', request);
+    const instances = useInstancesStore();
+
+    const first = await instances.resolveReadableReference('queue', 'q-1', { silent: true });
+    const second = await instances.resolveReadableReference('queue', 'q-1', { silent: true });
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(second).toEqual(first);
+  });
+
   it('reconciles shared entity events into the cache by canonical type key', async () => {
     const instances = useInstancesStore();
 

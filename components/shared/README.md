@@ -468,7 +468,10 @@ access-filtered optional-reference lookup (with a directory-card fallback for
 the framework party types, so cross-tenant users and organizations still
 resolve to their name-level card), resolves the matching design-system
 entity card, and renders that card with
-`variant="inline"`. A ref carrying a `revision` pin renders the lock glyph
+`variant="inline"`. An id-only ref resolves once per record identity:
+pool re-renders hand it a fresh entity object for the same record and the
+chip keeps its instance (an open peek stays open), while the store's
+record cache serves the repeated lookups. A ref carrying a `revision` pin renders the lock glyph
 beside the chip (SPEC §24: the ref consumes that revision whatever the
 source's current payload holds). The record preview popup is the shared entity popup
 ([`EntityPopup.vue`](#entitypopupvue-with-useentitypopup): the referenced

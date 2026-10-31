@@ -21,7 +21,9 @@ Three cells; every surface derives from them, nothing else caches:
   directory card for the framework party types (`user`, `organization`),
   so cross-tenant references resolve to their name-level card instead of
   an id chip (see
-  [the directory feature](../server/features/directory/README.md)).
+  [the directory feature](../server/features/directory/README.md));
+  a resolved reference serves from the record cache on later lookups —
+  hover-driven resolvers call it on every trigger.
   Mutations go through it too: `runAction` posts process actions to the
   active-process action endpoint via the offline outbox (idempotent replay)
   and lands a create run's created entity in the pool eagerly — the local

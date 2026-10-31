@@ -252,9 +252,13 @@ export const useInstancesStore = defineStore('instances', () => {
   // The delegated legacy reference contract: resolve an optional reference
   // through the access-filtered list endpoint, never the protected detail
   // endpoint — an unreadable reference resolves to null without expected
-  // 403/404 browser failures. Only an exact readable match is cached.
+  // 403/404 browser failures. Only an exact readable match is cached, and
+  // a cached match serves later lookups without a refetch (hover-driven
+  // resolvers call this on every trigger).
   async function resolveReadableReference(typeKey = '', id = '', { silent = false, fetchOptions = {} } = {}) {
     if (!typeKey || !id) return null;
+    const known = dtoFor(typeKey, id);
+    if (known) return known;
     const key = `${typeKey}:ref:${id}`;
     if (pending.has(key)) return pending.get(key);
     const request = $fetch(endpointsFor(typeKey).list(), { query: { _id: id }, ...fetchOptions })

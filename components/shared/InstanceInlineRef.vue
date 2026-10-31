@@ -76,13 +76,12 @@ const contextEntity = computed(() => {
   }
   return null;
 });
-const hydrated = ref(null);
 const relationFetchId = computed(() => normalizedId.value
   || instanceId(props.entity)
   || instanceId(contextEntity.value)
   || ''
 );
-const resolved = computed(() => hydrated.value || props.entity || contextEntity.value || loaded.value);
+const resolved = computed(() => props.entity || contextEntity.value || loaded.value);
 const resolvedId = computed(() => normalizedId.value
   || resolved.value?._id?.toString?.()
   || resolved.value?.id?.toString?.()
@@ -171,11 +170,13 @@ const contextualActions = computed(() => {
   return props.contextActionEntries.map(entry => entry.action).filter(Boolean);
 });
 
+// The record id keys the watch — pool re-renders pass fresh entity
+// objects for the same record, and an identity-keyed watch refetches on
+// every store write (blanking `resolved`, which unmounts an open peek).
 watch(
-  () => [props.entity, relationFetchId.value, props.type, instanceId(contextEntity.value)],
+  () => [props.type, relationFetchId.value],
   async () => {
     loaded.value = null;
-    hydrated.value = null;
     if (!relationFetchId.value || !props.fetch) return;
 
     const provided = props.entity || contextEntity.value;
