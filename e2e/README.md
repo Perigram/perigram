@@ -83,6 +83,13 @@ that drive executor-backed surfaces or services wire them through
   asserting the produced container, the baked cassette-design children,
   the declared materials, and one nesting run per material. Writes the
   durable artifact `test-results/order-process-live.json`.
+- `nesting-attempt-flow.spec.js`: the attempt flow LIVE — the seam
+  fixture (`test-data/nesting-attempt-authoring.js`) composes the manual
+  solve over the designs, the result onto the attempt, and the
+  sheet-design construction from the solved layouts, then executes the
+  solve action over an attempt context: the attempt record carries the
+  run result and sheet designs exist with their placements. Writes the
+  durable artifact `test-results/nesting-attempt-flow.json`.
 - `chat-file-upload.spec.js`: chat file uploads — a common-chat
   attachment image with a working download, an instance-chat upload
   that materializes as the declared file child, and the refusal path
