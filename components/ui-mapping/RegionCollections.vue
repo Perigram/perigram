@@ -17,6 +17,15 @@
     @run="(action, context) => emit('run', action, context)"
     @inline-change="payload => emit('inline-change', payload)"
   />
+  <template v-else-if="listLayout === 'records' && recordHost">
+    <component
+      :is="recordHost"
+      v-for="instance in filteredInstances"
+      :key="instance.id"
+      :instance="instance"
+      @open-instance="payload => emit('open', { type: payload.typeId, id: payload.instanceId })"
+    />
+  </template>
   <div v-else-if="listLayout === 'records'" :class="LAYOUT.stackTight">
     <SurfaceBody
       v-for="instance in filteredInstances"
@@ -26,9 +35,7 @@
       :pool="effectivePool"
       :bundle="bundle"
       :state-policy="node.statePolicy"
-      :openable="openable"
       variant="detail"
-      @open-instance="target => emit('open', target)"
       @run="(action, context) => emit('run', action, context)"
       @inline-change="change => emit('inline-change', { instance, change: { [change.name]: change.value } })"
     />
@@ -135,6 +142,10 @@ defineProps({
   relationUnlink: { type: Object, default: null },
   // Cell values edit in place when the host binds a patch executor.
   patchable: { type: Boolean, default: false },
+  // The records projection's host surface (SPEC §22.16): a component the
+  // app host provides that renders one instance's own record page in
+  // place; without it the engine renders its detail card floor.
+  recordHost: { type: [Object, Function], default: null },
   resolveTransitions: { type: Function, default: null },
   isReloading: { type: Boolean, default: false }
 });

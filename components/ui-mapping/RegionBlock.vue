@@ -106,6 +106,7 @@
         :instance-actions="instanceActionsForType"
         :relation-unlink="relationUnlink"
         :patchable="patchable"
+        :record-host="recordHost"
         :resolve-transitions="resolveTransitions"
         :is-reloading="isReloading"
         @open="emitOpen"
@@ -123,6 +124,7 @@
       :bundle="bundle"
       :openable="openable"
       :instance-actions="instanceActions"
+      :record-host="recordHost"
       @run="emitRun"
       @open="emitOpen"
     />
@@ -270,7 +272,10 @@ const props = defineProps({
   editorActions: { type: Object, default: null },
   // The stub slot (SPEC → Placement-aware composition): an inert child
   // renders one compact line — label, count, its own create action.
-  stub: { type: Boolean, default: false }
+  stub: { type: Boolean, default: false },
+  // The records projection's host surface, threaded from the screen host
+  // (see RegionCollections).
+  recordHost: { type: [Object, Function], default: null }
 });
 
 const emit = defineEmits(['run', 'transition', 'open', 'patch', 'refresh']);
@@ -292,7 +297,8 @@ const childrenProps = computed(() => ({
   pool: props.pool,
   bundle: props.bundle,
   openable: props.openable,
-  instanceActions: props.instanceActions
+  instanceActions: props.instanceActions,
+  recordHost: props.recordHost
 }));
 // The record page's weight-proportional split: the side-rail outcome the
 // host's width step engages (wide hosts only), the side column's grid

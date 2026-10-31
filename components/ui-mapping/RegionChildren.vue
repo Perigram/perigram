@@ -53,6 +53,7 @@
       :bundle="bundle"
       :openable="openable"
       :instance-actions="instanceActions"
+      :record-host="recordHost"
       :region-props="regionProps"
       :region-events="regionEvents"
       @run="(action, context) => emit('run', action, context)"
@@ -127,6 +128,9 @@ const props = defineProps({
   bundle: { type: Object, default: null },
   openable: { type: Boolean, default: false },
   instanceActions: { type: Object, default: null },
+  // The records projection's host surface (SPEC §22.16), threaded to
+  // every nested region block.
+  recordHost: { type: [Object, Function], default: null },
   // Screen-level passthrough: extra RegionBlock props/events the host
   // surface owns (navigation, editor actions, patch/transition channels).
   regionProps: { type: Object, default: null },
@@ -142,6 +146,7 @@ const baseBlockProps = computed(() => ({
   bundle: props.bundle,
   openable: props.openable,
   instanceActions: props.instanceActions,
+  recordHost: props.recordHost,
   ...(props.regionProps || {})
 }));
 const blockEvents = computed(() => ({
