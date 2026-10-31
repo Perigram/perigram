@@ -29,7 +29,7 @@
     </TreeSelect>
     <AutoComplete v-else
       :model-value="selectedOption"
-      :suggestions="suggestions"
+      :suggestions="filteredOptions"
       option-label="label"
       force-selection
       dropdown
@@ -85,7 +85,7 @@ const props = defineProps({
 
 const emit = defineEmits(['construct-create']);
 const model = defineModel();
-const suggestions = ref([]);
+const query = ref('');
 const instances = useInstancesStore();
 const { t, te } = useI18n();
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
@@ -192,9 +192,13 @@ const options = computed(() => {
   return [...derived, ...supplemented.value.filter(option => !known.has(option.value?.id))];
 });
 const search = event => {
-  const query = String(event.query || '').toLowerCase();
-  suggestions.value = options.value.filter(option => option.label.toLowerCase().includes(query));
+  query.value = String(event.query || '');
+  for (const typeId of props.accepts || []) ensureType(typeId);
 };
+const filteredOptions = computed(() => {
+  const needle = query.value.toLowerCase();
+  return options.value.filter(option => option.label.toLowerCase().includes(needle));
+});
 
 // The autocomplete's input label resolves from the option object; the
 // model stays the bare `{ type, id }` instance ref, translated here.
