@@ -197,12 +197,12 @@ describe('entity Select wrappers', () => {
   });
 
   it('renders the popover create affordance for compiled create actions of the picked type', async () => {
+    const typedOptions = options.map(option => ({ ...option, typeId: 'queue' }));
     const html = await render(InstanceSelect, {
       modelValue: null,
-      options,
+      options: typedOptions,
       optionLabel: 'label',
       optionValue: 'value',
-      typeId: 'queue',
       placeholder: 'Pick a queue',
       createActions: { queue: [{ id: 'create-queue', actionKind: 'createInstance' }] }
     });
