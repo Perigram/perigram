@@ -389,7 +389,8 @@ const overlayTypeIds = computed(() => [...new Set([
     ? Object.values(props.node.type?.edges?.children || {}).flatMap(edge => edge?.types || [])
     : []),
   ...(embedded.value
-    ? props.node.childRegions.map(child => child.typeId).filter(Boolean)
+    ? [...props.node.childRegions, ...(props.node.stubRegions || [])]
+        .map(child => child.typeId).filter(Boolean)
     : [])
 ])]);
 const loadedTypes = ref({});
