@@ -47,7 +47,10 @@ detail, or the record floor (`detail-screen-actions.js`) — scopes it to
 the instance, and renders it in place through `GeneratedScreenHost`
 (children collections included); `GeneratedScreenHost` passes it to the
 engine as the `recordPage` prop a handful collection renders per item.
-The host import is async, keeping the engine↔host module graph acyclic.
+The host runs pool-only (source loading stays with the owning screen)
+and the `uiMappingEmbedded` provide steps the page chrome down:
+section-scale title, bounded preview band. The host import is async,
+keeping the engine↔host module graph acyclic.
 
 Every organization management surface — team, bots, partners, billing, the
 plugin marketplace, and the process designer canvas — is a registered

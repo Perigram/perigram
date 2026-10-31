@@ -203,7 +203,8 @@ beside the transition history in `StateHistory`.
   `editorActions` rides: the app host resolves the component, the
   engine renders what it is given), falling back to one detail-card
   `SurfaceBody` per instance when no host provides one (the showcase
-  and SSR fixtures).
+  and SSR fixtures). The embedded page rides the shared pool — its
+  host skips source fetches, loading states, and event sync.
 - `SortControl.vue` — the collection sort control for the card-grid and
   board projections (tables sort natively by column; board lanes carry one
   per column — see `BoardCollection`): a self-contained popover over the
@@ -403,7 +404,9 @@ beside the transition history in `StateHistory`.
   unbreakable content from eating half the row, pushing the separator, and
   drifting items' left borders out of alignment. Past the shared page
   budget the entries page through a standalone Paginator over `pageSlice`.
-- `SurfaceHeader.vue` — the record header. It paints nothing — the record
+- `SurfaceHeader.vue` — the record header. An embedded record page
+  (SPEC §22.16) floors its title at level 1 through the
+  `uiMappingEmbedded` provide. It paints nothing — the record
   page's stack rhythm separates it from the body, and pane boxes / route
   shells own the frames around it. Inline-resolved actions (relation
   unlink — the mapping contract's `inline` flag) render on the relation
@@ -460,7 +463,9 @@ beside the transition history in `StateHistory`.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card. Both variants
   render through `SurfaceDetailBody` under the identity line.
-- `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
+- `SurfaceDetailBody.vue` — shared detail/full body: preview (the
+  Card variant and embedded records rendering in the bounded
+  `LAYOUT.previewEmbedBand`), a bounded
   scalar facts strip (`DETAIL_FACT_BUDGET`, identifier-excluded — the
   title owns that value; collapsed behind one show-more control per
   group), structural fields as labeled open sections, labeled relation

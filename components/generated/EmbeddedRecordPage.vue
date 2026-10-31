@@ -2,6 +2,7 @@
   <GeneratedScreenHost
     v-if="screen"
     :screen="screen"
+    pool-only
     @open-instance="payload => emit('open-instance', payload)"
   />
 </template>
@@ -11,12 +12,16 @@
 // detail-screen resolution the record popup mounts — the compiled
 // instanceDetail screen, the synthesized detail, or the record floor —
 // scoped to one instance and rendered in place, children collections
-// included. The screen host is loaded async: GeneratedScreenHost imports
-// the engine that renders this component's parent tree.
-import { computed, defineAsyncComponent } from 'vue';
+// included. The embed rides the shared pool (pool-only host) and the
+// `uiMappingEmbedded` provide steps the page chrome down: section-scale
+// title, bounded preview band. The screen host is loaded async:
+// GeneratedScreenHost imports the engine that renders this component's
+// parent tree.
+import { computed, defineAsyncComponent, provide } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { resolveDetailScreen, recordFloorScreen } from './detail-screen-actions.js';
 
+provide('uiMappingEmbedded', true);
 const emit = defineEmits(['open-instance']);
 
 const GeneratedScreenHost = defineAsyncComponent(() => import('./GeneratedScreenHost.vue'));

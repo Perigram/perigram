@@ -141,6 +141,7 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle', 'inline-change', 'run', 'open-instance']);
 const d = inject('uiMappingSpacing');
+const embedded = inject('uiMappingEmbedded', false);
 
 // One structural panel edits at a time (SPEC UI): the parent owns the
 // editing field name, StructuralFieldPanel owns its draft.
@@ -157,6 +158,14 @@ const quantitative = computed(() => typeIsQuantitative(props.type));
 // stays bare. Band choice mirrors PreviewBox's branch order: plugin,
 // payload, declared source, quiet.
 const heroBand = computed(() => {
+  // The page-fill band belongs to the standalone record page: an
+  // embedded record (SPEC §22.16) and every Card variant render the
+  // bounded band.
+  const bounded = embedded || props.variant === 'detail';
+  const band = heroBandOfPage();
+  return bounded && band !== LAYOUT.previewHeroBand ? LAYOUT.previewEmbedBand : band;
+});
+const heroBandOfPage = () => {
   if (resolvePluginPreview(String(props.type?.id || ''))) return LAYOUT.previewHeroBandContent;
   const mode = props.instance.payload?.fileId ? resolvePreview(props.type).mode : null;
   if (mode && RENDERABLE_PREVIEW_MODES.includes(mode)) {
@@ -166,7 +175,7 @@ const heroBand = computed(() => {
   }
   if (props.type?.previewSource?.display === 'geometry' && props.instance.previewSource) return LAYOUT.previewHeroBandContent;
   return LAYOUT.previewHeroBand;
-});
+};
 // SPEC §22.8: a single-group body renders its fields with no group titles.
 const showGroupTitles = computed(() => groups.value.filter(group => group.label).length > 1);
 const hasPreview = computed(() => surface.value.slots.includes('preview'));

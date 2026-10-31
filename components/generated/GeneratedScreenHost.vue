@@ -65,6 +65,10 @@ import { statePolicyByType, stateTransitionsByType, stateDisplayFor } from '#sha
 
 const props = defineProps({
   screen: { type: Object, required: true },
+  // Pool-only hosting (SPEC §22.16 embeds): the surface projects the
+  // shared instance pool — source fetches, loading states, and event
+  // sync stay with the owning screen.
+  poolOnly: { type: Boolean, default: false },
   // The host context's screen key (create-open route targets); panes and
   // mobile tabs omit it and the screen's own key applies.
   screenKey: { type: String, default: '' },
@@ -149,6 +153,7 @@ const instanceGroups = computed(() => Object.fromEntries(
 const poolStates = ref({});
 
 async function reload() {
+  if (props.poolOnly) return;
   if (overload.value) {
     if (!import.meta.server) await overloadLoad();
     return;
@@ -191,7 +196,7 @@ async function reload() {
 }
 
 watch([() => props.screen, processBundle], () => reload(), { immediate: true });
-useScreenSourceSync(() => (overload.value ? { sources: [] } : props.screen), reload);
+useScreenSourceSync(() => (overload.value || props.poolOnly ? { sources: [] } : props.screen), reload);
 defineExpose({ reload });
 
 // Runtime state transitions land their updated entity straight into the
