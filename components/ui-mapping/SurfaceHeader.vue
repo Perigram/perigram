@@ -23,30 +23,32 @@
       <slot name="navigation" />
       <div :class="[LAYOUT.row, LAYOUT.headerIdentity]">
         <Avatar :icon="glyph" shape="circle" size="large" class="shrink-0" />
-        <div :class="LAYOUT.row" class="min-w-0 flex-1">
-          <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
-          <span v-if="typeLabel" class="shrink-0 text-muted text-supporting">{{ typeLabel }}</span>
-          <!-- One state surface per header: an instance carrying a flat
-               state renders the segmented current-state tag with its
-               history popover (the status_events audit trail) riding
-               the title line; instances without a state render nothing
-               — no state is itself information (SPEC §7: nothing
-               synthesizes one). -->
-          <StateTag v-if="currentState" :value="currentState" :policy="statePolicy" class="shrink-0" />
-          <Button
-            v-if="currentState"
-            icon="pi pi-clock"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            class="shrink-0"
-            :aria-label="$t('uiMapping.stateHistory')"
-            @click="event => historyPopover?.toggle(event)"
-          />
-          <Popover v-if="currentState" ref="historyPopover">
-            <StateHistory :instance="instance" :type-id="type.id" :target-id="instance.id" compact />
-          </Popover>
+        <div class="flex min-w-0 flex-1 flex-col">
+          <div :class="LAYOUT.row" class="min-w-0">
+            <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
+            <!-- One state surface per header: an instance carrying a flat
+                 state renders the segmented current-state tag with its
+                 history popover (the status_events audit trail) riding
+                 the title line; instances without a state render nothing
+                 — no state is itself information (SPEC §7: nothing
+                 synthesizes one). -->
+            <StateTag v-if="currentState" :value="currentState" :policy="statePolicy" class="shrink-0" />
+            <Button
+              v-if="currentState"
+              icon="pi pi-clock"
+              text
+              rounded
+              size="small"
+              severity="secondary"
+              class="shrink-0"
+              :aria-label="$t('uiMapping.stateHistory')"
+              @click="event => historyPopover?.toggle(event)"
+            />
+            <Popover v-if="currentState" ref="historyPopover">
+              <StateHistory :instance="instance" :type-id="type.id" :target-id="instance.id" compact />
+            </Popover>
+          </div>
+          <span v-if="typeLabel" class="truncate text-muted text-supporting">{{ typeLabel }}</span>
         </div>
       </div>
       <div :class="LAYOUT.row" class="header-actions">
