@@ -19,7 +19,7 @@ import {
 } from '../utils/instance-display-contract.js';
 import { instanceFactRows } from '../utils/fact-rows.js';
 import { registerDeclarationFieldAccess, filterEntityFields } from './instance-field-access.js';
-import { decorateDataValue } from '../utils/data-display.js';
+import { decorateDataValue, payloadFactLine } from '../utils/data-display.js';
 import { titleFor, iconFor, fieldLabel } from '../shared/ui-mapping/index.js';
 import { applyFieldDisplayRole, compileTreeDeclarations } from '../packages/processes/src/designer.js';
 
@@ -149,6 +149,12 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     expect(decorateDataValue({ width: 2500, length: 1250 }, { display: 'dimensions', unit: 'mm' })).toBe('2500 × 1250 mm');
     expect(decorateDataValue(3.125, { display: 'area', unit: 'm2' })).toBe('3.125 m²');
     expect(decorateDataValue(94.2, { display: 'percent', unit: 'percent' })).toBe('94.2%');
+  });
+
+  it('renders the payload block name facts through payloadFactLine', () => {
+    expect(payloadFactLine({ name: 'Mountain.dxf', mime: 'image/vnd.dxf', size: 39606 })).toBe('Mountain.dxf · image/vnd.dxf · 39 KB');
+    expect(payloadFactLine({ size: 512 })).toBe('512 B');
+    expect(payloadFactLine(null)).toBe('');
   });
 
   it('keeps the legacy residual map empty', () => {
