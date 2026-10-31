@@ -1,16 +1,16 @@
 <template>
   <div v-if="d" :class="d.stack">
-    <div v-if="hasPreview" :class="LAYOUT.previewHero">
-      <div :class="[heroBand, 'relative']">
+    <div v-if="hasPreview" :class="LAYOUT.previewHero" class="relative">
+      <div :class="heroBand">
         <PreviewBox variant="pane" :type="type" :instance="instance" :payload="instance.payload" :preview-source="instance.previewSource" />
-        <!-- The version surface rides the content it versions: its
-             trigger overlays the payload preview corner. -->
-        <div v-if="variant === 'full'" class="absolute bottom-2 right-2 z-10">
-          <PayloadRevisionPicker
-            :entity="instance"
-            :type="type"
-          />
-        </div>
+      </div>
+      <!-- The version surface rides the content it versions: its trigger
+           sits on the preview's corner. -->
+      <div v-if="variant === 'full'" class="absolute right-3 top-3 z-10">
+        <PayloadRevisionPicker
+          :entity="instance"
+          :type="type"
+        />
       </div>
     </div>
 

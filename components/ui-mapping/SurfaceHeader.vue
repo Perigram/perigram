@@ -26,26 +26,32 @@
         <div class="flex min-w-0 flex-1 flex-col">
           <div :class="LAYOUT.row" class="min-w-0">
             <span :class="[compact ? 'text-label' : (TYPE_BY_LEVEL[props.level] || 'text-section-heading'), LAYOUT.nameClamp]">{{ identity }}</span>
-            <!-- One state surface per header: an instance carrying a flat
-                 state renders the segmented current-state tag with its
-                 history popover (the status_events audit trail) riding
-                 the title line; instances without a state render nothing
-                 — no state is itself information (SPEC §7: nothing
-                 synthesizes one). -->
-            <StateTag v-if="currentState" :value="currentState" :policy="statePolicy" class="shrink-0" />
-            <Button
+            <!-- One state surface per header: the segmented current-state
+                 tag is the trigger for the state popover — legal
+                 transitions on top, the status_events audit trail below.
+                 Instances without a state render nothing; no state is
+                 itself information (SPEC §7: nothing synthesizes one). -->
+            <StateTag
               v-if="currentState"
-              icon="pi pi-clock"
-              text
-              rounded
-              size="small"
-              severity="secondary"
+              :value="currentState"
+              :policy="statePolicy"
+              actionable
               class="shrink-0"
-              :aria-label="$t('uiMapping.stateHistory')"
-              @click="event => historyPopover?.toggle(event)"
+              @select="event => statePopover?.toggle(event)"
             />
-            <Popover v-if="currentState" ref="historyPopover">
-              <StateHistory :instance="instance" :type-id="type.id" :target-id="instance.id" compact />
+            <Popover v-if="currentState" ref="statePopover">
+              <div class="flex w-80 flex-col gap-3">
+                <div v-if="transitionActions.length" :class="LAYOUT.row">
+                  <ActionButton
+                    v-for="action in transitionActions"
+                    :key="action.id || action.state?.to"
+                    :action="action"
+                    :state-policy="statePolicy"
+                    @run="$emit('transition', { to: action.state.to, intent: action.intent || null, region: action.region || null })"
+                  />
+                </div>
+                <StateHistory :instance="instance" :type-id="type.id" :target-id="instance.id" compact />
+              </div>
             </Popover>
           </div>
           <span v-if="!compact && typeLabel" class="truncate text-muted text-supporting">{{ typeLabel }}</span>
@@ -74,7 +80,7 @@
           />
         </div>
         <span
-          v-if="inlineActions.length || transitionActions.length || overflowActions.length"
+          v-if="inlineActions.length || overflowActions.length"
           :class="LAYOUT.actionDivider"
         />
         <div v-if="inlineActions.length" :class="LAYOUT.actionGroup">
@@ -87,24 +93,7 @@
           />
         </div>
         <span
-          v-if="inlineActions.length && (transitionActions.length || overflowActions.length)"
-          :class="LAYOUT.actionDivider"
-        />
-        <!-- Available state-machine transitions render as header actions:
-             the state axis is a tree, never a linear strip, so the machine
-             surface IS its runnable edges. Runtime transitions dispatch
-             through the dedicated transition channel. -->
-        <div v-if="transitionActions.length" :class="LAYOUT.actionGroup">
-          <ActionButton
-            v-for="action in transitionActions"
-            :key="action.id || action.state?.to"
-            :action="action"
-            :state-policy="statePolicy"
-            @run="$emit('transition', { to: action.state.to, intent: action.intent || null, region: action.region || null })"
-          />
-        </div>
-        <span
-          v-if="transitionActions.length && overflowActions.length"
+          v-if="inlineActions.length && overflowActions.length"
           :class="LAYOUT.actionDivider"
         />
         <Button
@@ -118,7 +107,7 @@
         />
         <Menu ref="overflowMenu" :model="overflowMenuItems" popup />
         <span
-          v-if="expandable && (inlineActions.length || transitionActions.length || overflowActions.length)"
+          v-if="expandable && (inlineActions.length || overflowActions.length)"
           :class="LAYOUT.actionDivider"
         />
         <div v-if="expandable" :class="LAYOUT.actionGroup">
@@ -198,8 +187,8 @@ const glyph = computed(() => iconFor(props.type, props.instance));
 // through the transition channel, which the generic run menu items do
 // not carry). A compiled action whose state target the machine already
 // serves is the same hop through the run channel — the machine button
-// owns the header (its dispatch targets the opened instance), so the
-// compiled twin never doubles it.
+// owns the state popover (its dispatch targets the opened instance), so
+// the compiled twin never doubles it.
 // Status transitions render only through the machine-scoped runtime set
 // (their target depends on the opened instance's current state).
 // updateInstance never joins the generic run menu: stateless ones are
@@ -221,7 +210,7 @@ const manualActions = computed(() => props.actions
 const inlineActions = computed(() => manualActions.value.slice(0, HEADER_ACTIONS_INLINE));
 const overflowActions = computed(() => manualActions.value
   .filter(action => !inlineActions.value.includes(action)));
-const historyPopover = ref(null);
+const statePopover = ref(null);
 const overflowMenu = ref(null);
 const overflowMenuItems = computed(() => overflowActions.value.map(action => {
   const resolved = resolveActionButton(action, { render: props.type?.render, statePolicy: props.statePolicy });
