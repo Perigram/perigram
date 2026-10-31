@@ -95,7 +95,7 @@ async function loadLayers(fileId) {
     const defaults = Object.fromEntries(
       layers.value.filter(layer => known.has(layer)).map(layer => [layer, layer])
     );
-    emit('update:modelValue', { ...defaults, ...mapping.value });
+    emit('update:modelValue', defaults);
   } catch (cause) {
     error.value = cause?.message || String(cause);
   } finally {
