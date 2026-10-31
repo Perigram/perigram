@@ -66,7 +66,7 @@ function sameFamily(row, record) {
     lineagValueId(row?.lineage?.[key]) === lineagValueId(value));
 }
 
-export default function createSurface({ vue, components, locale, queries, notify, access, open }) {
+export default function createSurface({ vue, components, locale, queries, records, notify, access, open }) {
   const { h, ref, computed, watch, onMounted, onBeforeUnmount, defineComponent } = vue;
   const t = locale.t;
 
@@ -90,6 +90,7 @@ export default function createSurface({ vue, components, locale, queries, notify
       const panState = ref(null);
       const saving = ref(false);
       const designs = ref([]);
+      const cutPlans = ref([]);
       const sheetPool = ref([]);
       const familyRows = ref([]);
       const view = ref({ cx: 610, cy: 1220, k: 0.25 });
@@ -170,6 +171,7 @@ export default function createSurface({ vue, components, locale, queries, notify
         queries.list('layer-standard').then(rows => { standards.value = rows || []; }).catch(() => {});
         queries.list('pen-template').then(rows => { pens.value = rows || []; }).catch(() => {});
         queries.list('cassette-design').then(rows => { designs.value = rows || []; }).catch(() => {});
+        loadCutPlans();
         const svg = svgRef.value;
         if (svg && typeof ResizeObserver !== 'undefined') {
           let viewInitialized = false;
@@ -239,6 +241,14 @@ export default function createSurface({ vue, components, locale, queries, notify
       // family members — picking is the explicit add channel.
       function loadSheetPool() {
         queries.list('sheet-design').then(rows => { sheetPool.value = rows || []; }).catch(() => {});
+      }
+
+      function loadCutPlans() {
+        queries.list('sheet-cut-plan').then(rows => { cutPlans.value = rows || []; }).catch(() => {});
+      }
+
+      function cutsOf(sheetId) {
+        return cutPlans.value.filter(plan => String(plan.fields?.design?.id ?? plan.fields?.design ?? '') === String(sheetId));
       }
 
       // The family joins the canvas beside the opened record: same
@@ -972,6 +982,40 @@ export default function createSurface({ vue, components, locale, queries, notify
         }
       }
 
+      // A stack is one sheet design behind many cuts. Splitting creates
+      // the second sheet design and moves one cut onto it; the geometry
+      // and the parts relation travel with the copy.
+      async function splitStack(entry) {
+        const cuts = cutsOf(entry.id);
+        if (cuts.length < 2 || !entry.writable || !props.persistence || !records) return;
+        try {
+          const created = await props.persistence.createBlank();
+          const newId = String(created?._id || created?.id || '');
+          if (!newId) throw new Error('split created no sheet design');
+          const updated = await props.persistence.patch(created, {
+            fields: {
+              geometry: entry.record?.fields?.geometry || null,
+              compositionKey: entry.record?.fields?.compositionKey || null
+            },
+            relations: entry.record?.relations || {}
+          });
+          const name = entry.record?.fields?.name || t('sheetDesign.sheet');
+          await props.persistence.rename(updated || created, `${name} 2`);
+          const moved = cuts[cuts.length - 1];
+          await records.update('sheet-cut-plan', String(moved._id || moved.id), {
+            fields: { design: { type: 'sheet-design', id: newId } }
+          });
+          const copy = sheetEntry(updated || created);
+          sheets.value.push(copy);
+          activeSheetId.value = copy.id;
+          loadCutPlans();
+          reflowSheets();
+          notify({ severity: 'success', summary: t('common.success'), detail: t('sheetDesign.splitStacked'), life: 2500 });
+        } catch (error) {
+          notify({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || t('sheetDesign.splitStackFailed') });
+        }
+      }
+
       // ---- chrome -------------------------------------------------------------------
 
       const documentDockItems = computed(() => [
@@ -1487,16 +1531,30 @@ export default function createSurface({ vue, components, locale, queries, notify
         selectable: true,
         onSelect: () => { selectSheet(entry.id); }
       }, {
-        trailing: () => [h(components.Button, {
-          icon: 'pi pi-times',
-          severity: 'secondary',
-          text: true,
-          rounded: true,
-          size: 'small',
-          'aria-label': t('sheetDesign.removeSheet'),
-          disabled: entry.dirty || sheets.value.length <= 1,
-          onClick: () => { removeSheetFromCanvas(entry); }
-        })]
+        trailing: () => [
+          cutsOf(entry.id).length > 1
+            ? h(components.Button, {
+              icon: 'pi pi-clone',
+              severity: 'secondary',
+              text: true,
+              rounded: true,
+              size: 'small',
+              'aria-label': t('sheetDesign.splitStack'),
+              disabled: !entry.writable,
+              onClick: () => { splitStack(entry); }
+            })
+            : null,
+          h(components.Button, {
+            icon: 'pi pi-times',
+            severity: 'secondary',
+            text: true,
+            rounded: true,
+            size: 'small',
+            'aria-label': t('sheetDesign.removeSheet'),
+            disabled: entry.dirty || sheets.value.length <= 1,
+            onClick: () => { removeSheetFromCanvas(entry); }
+          })
+        ]
       });
 
       // The working set groups by parent map: each distinct lineage is a

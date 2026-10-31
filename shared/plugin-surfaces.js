@@ -13,11 +13,11 @@
 //     `{ record, persistence }` (createBlank/loadDocument/saveDocument/
 //     rename).
 // 2 — the editor-grade mount (M6): everything in 1 plus the ctx
-//     `queries` (cross-type instance reads), `notify` (host toast), and
-//     `access` (write-grant resolution), the persistence `patch`
-//     transport, and the grown primitive pack (designer chrome beside
-//     the PrimeVue primitives). Author-facing shapes:
-//     docs/PLUGIN_AUTHORING.md §1a.
+//     `queries` (cross-type instance reads), `records` (cross-type
+//     create/update), `notify` (host toast), and `access` (write-grant
+//     resolution), the persistence `patch` transport, and the grown
+//     primitive pack (designer chrome beside the PrimeVue primitives).
+//     Author-facing shapes: docs/PLUGIN_AUTHORING.md §1a.
 // 3 — the capability mount (owner decision 2026-10-17): everything in 2
 //     plus `sync` and `upload`. `sync.onRecordChanged(callback)` delivers
 //     the host's instance-change bridge events for the mounted record —

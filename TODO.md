@@ -2577,6 +2577,33 @@ Ordered steps:
   typed cassette-design refs (resolved, revision-pinned,
   provenance-stamped), validates the layout against them, emits geometry
   + the parts relation; an empty layout constructs a blank sheet.
+- [ ] WAITING — owner verification: Nesting composition, cuts, and the
+  sheet stack (owner direction 2026-10-31): the solve groups layouts by
+  the full composition — sheet shape, each placement's design key, and
+  its transform — and stamps `compositionKey` on both the group and the
+  constructed sheet design. The org process nests the row's physical
+  cassette count, constructs one sheet design per composition under the
+  nesting attempt, reuses a stored design matching the composition key,
+  and cuts every layout through a sheet instance and cut plan. The
+  sheet-design editor splits a stack into another sheet design and moves
+  one cut plan onto the copy.
+
+  ### Agent Notes (2026-10-31, nesting composition and cuts)
+
+  Session `agent/order-family-20261031` (worktree
+  `.agent-worktrees/order-family-20261031`). Listing v29 adds
+  `sheet-design.compositionKey` and the solve item's `designKey`;
+  `groupNestingLayouts` keys on the normalized placement transforms +
+  design keys + sheet polygon, so rotated or differently-sheeted
+  layouts stay apart. `construct-sheet` stores the layout's
+  compositionKey. `test-data/order-process-authoring.js` declares
+  sheet-design/sheet-instance/sheet-cut-plan as attempt children, reads
+  the row count into the nesting item, loops the solved layouts,
+  branches on a stored composition match, and constructs the sheet,
+  its physical sheet, and its cut plan; the replay path reuses the
+  stored design. The sheet editor's tile carries the split action when
+  more than one cut plan references it. E2E
+  `e2e/order-process.spec.js` pins the family and the reuse.
 
   ### Agent Notes (2026-10-28, family slice)
 
@@ -3125,10 +3152,11 @@ family alone, and the placed design's instance tile.
   listing stay the transport for instance fields; this pipeline owns
   payload documents. En route: the designer's open-template path
   queried the retired `cassette` type id and could not hydrate.
-- [ ] The demo order process composes sheet-design children under its
-  nesting attempt and constructs them from the solve output
-  (lineage-keyed family; the editor scope above rides it) — flow
-  authoring follow-up in `test-data/order-process-authoring.js`.
+- [x] WAITING — owner verification: The demo order process composes
+  sheet-design children under its nesting attempt and constructs them
+  from the solve output (lineage-keyed family; the editor scope above
+  rides it) — flow authoring follow-up in
+  `test-data/order-process-authoring.js`.
 
 ### Agent Notes (2026-10-29, family round)
 
