@@ -3296,3 +3296,17 @@ tech-drawing fill dialog 3/4 — the failing pick step reproduces on the
 pre-merge tree in the picker-overlay timing area under active owner
 debug (the reverted overlay-timing fixes), ahead of this session's
 changes.
+
+### Agent Notes (2026-10-31, embed round)
+
+Session `agent/rich-records-embed-20261031` (worktree
+`.agent-worktrees/rich-records-embed-20261031`). Owner review verdict:
+the record page's chrome — page-scale title, reload lanes, page-sized
+preview hero — serves the standalone page alone. The records projection
+now renders one detail-card SurfaceBody per instance (identity, state,
+preview band, facts, relation sections); the card identity opens the
+record's page through the open channel (SurfaceBody threads `openable`).
+The recordPage/recordHost seam, EmbeddedRecordPage, and the nested
+threading retire with it. The loading strips were the hosted pages' own
+source loading; the card renders from the composed pool. The probe pins
+cards; the SSR smoke already pinned the card count.
