@@ -181,6 +181,10 @@ that drive executor-backed surfaces or services wire them through
   marked, opens any revision read-only through its frozen bytes, and
   restores a prior revision as a new one. Writes the durable artifact
   `test-results/payload-revisions-live.json`.
+- `llm-models.spec.js`: the models screen's profile dialog — the add
+  control opens an empty form, a saved login round-trips into the table,
+  and the row control reopens it with the stored id. Writes the durable
+  artifact `test-results/llm-models-screen.json`.
 
 Full nesting tests need explicit fixture cassette geometry and a running
 worker stack; keep those in a separate spec so smoke tests stay cheap.

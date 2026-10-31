@@ -3330,13 +3330,11 @@
         "apiKeyZai": "Coding plan API key",
         "providerOpenAiShaped": "OpenAI-shaped (local)",
         "baseUrl": "Server base URL",
-        "model": "Model",
         "apiKey": "API key (optional)",
         "apiKeySet": "Key stored — type to replace",
         "maxTokens": "Max output tokens",
         "maxTokensPlaceholder": "Default 16384",
         "test": "Test",
-        "testOk": "Connected",
         "unconfigured": "Not configured",
         "models": "Models",
         "profile": "Model profile",
@@ -3349,8 +3347,6 @@
         "chatRoute": "Chat",
         "summariesRoute": "Call summaries",
         "envDefault": "Environment default",
-        "chatRouteDefault": "Chat route",
-        "loadModels": "List models from the endpoint",
         "auto": "Auto"
     },
     "webSearch": {

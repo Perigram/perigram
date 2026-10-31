@@ -253,8 +253,6 @@ const kindOptions = computed(() => ([
 // Known providers are login options: the platform owns their endpoint and
 // dialect, the admin pastes only a key. The stored profile keeps the wire
 // truth (provider dialect + baseUrl); the preset is a UI-level identity.
-// Model choice never lives here: pickers are endpoint-fed at the models
-// screen and chosen at the execution points.
 const ZAI_PRESET = { provider: 'anthropic', baseUrl: 'https://api.z.ai/api/anthropic' };
 const PRESETS = { zai: ZAI_PRESET };
 const wireProvider = (provider) => PRESETS[provider]?.provider || provider;
@@ -355,7 +353,6 @@ async function loadSettings() {
 
 function editProfile(profile) {
     profileEditingExisting.value = Boolean(profile);
-    endpointModels.value = [];
     Object.assign(profileForm, profile ? {
         id: profile.id,
         kind: profile.kind,
@@ -365,7 +362,7 @@ function editProfile(profile) {
         apiKeySet: profile.apiKeySet,
         maxTokens: profile.maxTokens ?? null
     } : {
-        id: '', kind: 'chat', provider: 'ollama', baseUrl: '', model: '', apiKey: '', apiKeySet: false, maxTokens: null
+        id: '', kind: 'chat', provider: 'ollama', baseUrl: '', apiKey: '', apiKeySet: false, maxTokens: null
     });
     profileVisible.value = true;
 }
