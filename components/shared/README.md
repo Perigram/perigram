@@ -438,7 +438,12 @@ the unnamed fallback standing in until the title resolves. An option is
 entity-bearing when it carries an `entity` (or is itself) a record with
 an id slot plus one of the record dialects — an `identity` block or the
 flat §3 `fields` object — and a type id resolves (the `typeId` prop, the
-option's `typeId`, or the entity's). The multi wrapper shows selected
+option's `typeId`, or the entity's). The single picker's popover carries
+the create affordance (SPEC §22.13 create amendment) when the host
+passes compiled create actions for `typeId`: the created record leaves
+through `create-select` (`{ type, id, entity }` — hosts own their model
+shape) and a construct create through `construct-create`. The multi
+wrapper shows selected
 instances as glyph chips inside the control (PrimeVue chip display, the
 chip-surface recipe). Option lists over an instance pool build through
 `instancePickerOptions`
