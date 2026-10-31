@@ -3220,3 +3220,17 @@ state name` diagnostic in `declarationDiagnostics` — the rule's one
 home; the server binding check (`graph-protocol.js`) and machine
 compilation resolve state values per wiring. SPEC §7 states the repeat
 law; `designer.spec.js` pins repeats legal within and across classes.
+
+## Handful collections render their records (owner direction 2026-10-31)
+
+Owner direction: the retired <3-items list rule's successor — a
+collection carrying fewer than three loaded instances renders each
+instance as its rich record page in place (its detail screen, children
+collections included) through every projection, embedded and standalone
+alike. Under evaluation: the owner judges the rule live before it
+settles into SPEC §22.16 as standing law.
+
+- [ ] WAITING — owner verification: a collection of one or two loaded
+  instances renders each item as its record page (hosted detail screen
+  with children) on real screens and the showcase floor; three keep the
+  derived projection; the probe artifacts land under `.playwright/`.
