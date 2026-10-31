@@ -273,5 +273,7 @@ Ref resolution stamps the version fabric (SPEC §24): every resolved ref
 of a revision-scoped source type pins the revision it read — a declared
 ref field on the constructed record stores `{ type, id, revision }`,
 and the causal refs in `provenance.sources` carry the same `revision`
-slot. A stored pin re-reads the frozen revision bytes (a missing pin
-refuses); a ref with no pin follows the source's current payload.
+slot. A source type without a revision scope (a payload-less geometry
+record) stores `{ type, id }`; the ref field is written either way. A
+stored pin re-reads the frozen revision bytes (a missing pin refuses); a
+ref with no pin follows the source's current payload.
