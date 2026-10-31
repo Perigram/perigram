@@ -730,8 +730,9 @@ their `identity.name` display source.
 ### `EntityPopup.vue` (with `useEntityPopup`)
 The shared entity popup — the one record preview popup: the standard centered
 `StandardDialog` (size
-`md` for directory profiles, `xl` for instance detail screens; bounded
-scroll body) hosting the entity's real detail surface — the directory
+`md` for directory profiles, `xl` for instance detail screens; the dialog
+content is the one scroll surface) hosting the entity's real detail
+surface — the directory
 profile for `user`/`organization`
 ([components/directory](../directory/README.md)), and the compiled detail
 screen through the generator host
