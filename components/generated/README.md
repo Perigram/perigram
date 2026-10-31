@@ -10,7 +10,9 @@ Parent: [components](../README.md).
 `GeneratedScreenHost.vue` is the single home of the compiled-screen
 wiring: bundle/contract projection, instance-pool hydration
 (`useScreenSourceSync` + source states), process action runs (create-open
-through the workspace-open seam), runtime state-machine transitions, and
+through the workspace-open seam; a service action's value result opens
+in the host's result panel — scalars and counts, deeper structure stays
+in the run record), runtime state-machine transitions, and
 screen-template overloads — the `home` template renders its registered
 component fed by the wire-DTO source loader (`useGeneratedScreen`). The
 routed screens page, the workspace panes, and the mobile home tabs all
