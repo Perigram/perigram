@@ -268,13 +268,13 @@ beside the transition history in `StateHistory`.
   and month navigation is local view state — the month opens on the first
   loaded instance's month. Labels and weekday headers format through the
   active locale.
-- `BreadcrumbTrail.vue` — the lineage trail: a Breadcrumb of ancestor
-  identities derived from the record's declared containment ancestry
-  (`containmentAncestors` over the effective containment contract) and
-  resolved through the instances store's readable-reference seam.
-  Ancestors are navigation: each crumb opens its resolved instance
-  through the screen's identity-open channel; the opened record's title
-  is the header identity line below the trail.
+- `BreadcrumbTrail.vue` — the lineage trail: a compact, background-free
+  Breadcrumb of ancestor identities derived from the record's declared
+  containment ancestry (`containmentAncestors` over the effective
+  containment contract) and resolved through the instances store's
+  readable-reference seam. Ancestors are navigation: each crumb opens its
+  resolved instance through the screen's identity-open channel; the
+  opened record's title is the header identity line below the trail.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identifier (`InstanceIdentity`) under the identifier field's label (a
   type without an identifier field heads the column with the type label;
@@ -408,10 +408,11 @@ beside the transition history in `StateHistory`.
   back affordance ahead of the identity block), then one identity line,
   rendered in every host (the pane tab names the record beside it, and
   the header stays the record page's own title surface): Avatar carrying
-  the type glyph, and the title in the container-stepped
+  the type glyph, the title in the container-stepped
   `text-record-title` role (the one title resolver —
   [shared/ui-mapping](../../shared/ui-mapping/README.md); instance ids
-  are private display vocabulary) — and exactly one
+  are private display vocabulary), a subtle type label through the same
+  type-label chain, and exactly one
   state surface riding the title line. A state axis is a tree, so stateful
   records carry no lifecycle strip: an instance with a flat `state`
   renders the segmented current-state tag (`StateTag`, resolved against
