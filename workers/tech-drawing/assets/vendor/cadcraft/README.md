@@ -51,3 +51,39 @@ upstream `LICENSE`, `NOTICE`, `THIRD_PARTY.md`, `PROVENANCE.md` and
 
 Parent: [tech-drawing README](../../../README.md). Consumer:
 [facade cassette designer](../../../../facade/README.md).
+
+## Bundled entry
+
+`app/index.html` loads `app/assets/apps/cadcraft/0.7/cadcraft-bundle.js`, a
+single ESM bundle of the app's static module graph. It keeps `three`,
+`pdfjs-dist`, `manifold-3d`, `proj4`, `laz-perf`, `web-e57`, `@noble`,
+`liberation-sans`, `cc-workspace`, `app-help` and `geotiff` external for
+the edition's import map; dynamic imports of local modules inline.
+
+The bundle exists because the module proxy serves one authenticated
+request per module; the app's two hundred modules make a first mount
+slower than the host's ready window. One bundle plus the external
+libraries mounts in seconds.
+
+`app/index.html` also carries the embed stylesheet and loading spinner:
+they hide the edition's chrome from the first paint and keep the frame
+blank until `host.mjs` removes the spinner on ready. `workspace-cadcraft.js`
+imports its shell input relatively so the bundle resolves it under the
+plugin path.
+
+Rebuild after replacing `app/`:
+
+```bash
+cd app/assets/apps/cadcraft/0.7
+node_modules/.bin/esbuild cadcraft.js --bundle --format=esm \
+  --platform=browser --target=es2022 --outfile=cadcraft-bundle.js \
+  --external:three --external:pdfjs-dist --external:manifold-3d \
+  --external:proj4 --external:laz-perf --external:'web-e57/*' \
+  --external:'@noble/*' --external:'liberation-sans/*' \
+  --external:cc-workspace --external:app-help --external:geotiff
+```
+
+Set `workspace-cadcraft.js`'s `/assets/js/app-workspace-input.js` import to
+`../../../js/app-workspace-input.js`, point `index.html` and
+`manifest.json` at `cadcraft-bundle.js`, and restore the embed stylesheet
+and `#perigram-cadcraft-loading` element in `index.html`.

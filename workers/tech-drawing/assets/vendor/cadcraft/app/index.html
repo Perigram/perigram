@@ -32,9 +32,27 @@
   <link rel="stylesheet" href="./assets/apps/cadcraft/0.7/cadcraft.css">
   <link rel="stylesheet" href="./assets/apps/cadcraft/0.7/laser/laser-panel.css">
   <script type="importmap">{"imports":{"three":"./assets/vendor/three/0.186.1/three.module.js","pdfjs-dist":"./assets/vendor/pdfjs/6.3.289/build/pdf.min.js","manifold-3d":"./assets/vendor/manifold-3d/3.5.4/manifold.js","proj4":"./assets/vendor/proj4/2.22.0/proj4.esm.min.js","laz-perf":"./assets/vendor/laz-perf/0.0.7/laz-perf.js","web-e57/":"./assets/vendor/web-e57/1.2.0/","liberation-sans/":"./assets/vendor/liberation-sans/2.1.5/","@noble/curves/":"./assets/vendor/noble-curves/2.4.0/","@noble/hashes/":"./assets/vendor/noble-hashes/2.4.0/","@noble/ciphers/":"./assets/vendor/noble-ciphers/2.4.0/","app-help":"./assets/apps/cadcraft/0.7/help/help.js","/assets/js/app-input.js":"./assets/js/app-input.js","/assets/js/app-input-ui.js":"./assets/js/app-input-ui.js","cc-workspace":"./assets/js/app-workspace.js","/assets/js/app-workspace.js":"./assets/js/app-workspace.js","/assets/js/app-workspace-format.js":"./assets/js/app-workspace-format.js","/assets/js/app-workspace-popout.js":"./assets/js/app-workspace-popout.js","/assets/js/app-workspace-input.js":"./assets/js/app-workspace-input.js","/assets/js/app-workspace-extras.js":"./assets/js/app-workspace-extras.js","/assets/js/app-workspace-arrange.js":"./assets/js/app-workspace-arrange.js","/assets/js/i18n.js":"./assets/js/i18n.js"}}</script>
-  <script type="module" src="./assets/apps/cadcraft/0.7/cadcraft.js"></script>
+  <script type="module" src="./assets/apps/cadcraft/0.7/cadcraft-bundle.js"></script>
+
+<style id="perigram-embed">
+  html, body { height: 100% !important; overflow: hidden !important; }
+  body > header, header.site-header, .site-header, .shell-hint, .shell-edge, .shell-showbars { display: none !important; }
+  [data-cadcraft] > .cc-tools, [data-cadcraft] > .cc-panel, [data-cadcraft] > .cc-status,
+  [data-cadcraft] > .shell-tb, [data-cadcraft] > .visually-hidden,
+  [data-cadcraft] > .cc-stage > .cc-tabs, [data-cadcraft] > .cc-stage > .cc-doctabs { display: none !important; }
+  [data-cadcraft] { display: block !important; position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; }
+  [data-cadcraft] > .cc-stage { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; }
+  [data-cadcraft] > .cc-stage > .cc-canvases { bottom: 0 !important; top: 0 !important; }
+  [data-cadcraft] > .cc-cmd { display: none !important; }
+  [data-cadcraft].pg-command-line > .cc-cmd { display: block !important; position: absolute !important; left: 0; right: 0; bottom: 0; height: 7.2rem; z-index: 5; }
+  [data-cadcraft].pg-command-line > .cc-stage > .cc-canvases { bottom: 7.2rem !important; }
+  #perigram-cadcraft-loading { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: #f5f5f3; }
+  #perigram-cadcraft-loading span { width: 28px; height: 28px; border: 2px solid #d4d4d4; border-top-color: #555; border-radius: 50%; animation: perigram-spin .8s linear infinite; }
+  @keyframes perigram-spin { to { transform: rotate(360deg); } }
+</style>
 </head>
 <body class="app-shell layer-red">
+<div id="perigram-cadcraft-loading" aria-hidden="true"><span></span></div>
 <header class="app-bar">
   <span class="app-bar-mark" aria-hidden="true"><i class="bi bi-bounding-box"></i></span>
   <div class="app-bar-name">

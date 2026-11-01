@@ -57,7 +57,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const canvas = dialog.locator(CANVAS).first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
-  await page.waitForTimeout(2500);
+  await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
 
   const box = await canvas.boundingBox();
   expect(box, 'canvas box').toBeTruthy();
@@ -233,7 +233,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await page.getByRole('button', { name: /Edit/ }).first().click();
   const reopenedDialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
   await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });
-  await page.waitForTimeout(2000);
+  await expect(reopenedDialog.locator(CANVAS).first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
   const reopened = await dimState(reopenedDialog);
   expectDrawingScale(reopened);
   expect(Object.entries(reopened).find(([label]) => label.startsWith('diameter'))?.[1]).toBe('A');

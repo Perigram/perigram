@@ -4,7 +4,7 @@
     "cadcraft.css",
     "laser/laser-panel.css"
   ],
-  "module": "cadcraft.js",
+  "module": "cadcraft-bundle.js",
   "imports": {
     "three": "./assets/vendor/three/0.186.1/three.module.js",
     "pdfjs-dist": "./assets/vendor/pdfjs/6.3.289/build/pdf.min.js",

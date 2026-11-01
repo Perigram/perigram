@@ -17,7 +17,7 @@
  *   createCadcraftWorkspace(host) → Promise<{ adapter, attach(engine) } | null>
  *   host = { root, doc, view, engine, cad (cadcraft.js's host), t, setCurrent(name), open3d(), insertBlock(name), status, statusEl }
  */
-import { fromInput } from '/assets/js/app-workspace-input.js';
+import { fromInput } from '../../../js/app-workspace-input.js';
 import { namedBlocks } from './commands.js';
 import { xrefs, isXrefRoot } from './xref.js';
 import { el } from './ui-util.js';

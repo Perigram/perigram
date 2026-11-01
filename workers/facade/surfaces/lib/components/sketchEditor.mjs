@@ -56,6 +56,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       const rootRef = ref(null);
       const fileInputRef = ref(null);
       const engineError = ref('');
+      const canvasReady = ref(false);
       const importError = ref('');
       const activeTool = ref('select');
       const importedFileName = ref('');
@@ -624,6 +625,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         const tag = target?.tagName?.toLowerCase?.();
         return Boolean(target?.isContentEditable || ['input', 'textarea', 'select'].includes(tag));
       };
+      const ownsKeyboardTarget = (target) => {
+        const root = rootRef.value;
+        if (!root || typeof document === 'undefined') return false;
+        return target === document.body || root.contains(target);
+      };
 
       const handleCanvasKeydown = (event) => {
         if (event.key === 'Escape') {
@@ -642,6 +648,13 @@ export default function createSketchEditor({ vue, components, locale }) {
         event.stopPropagation();
         if (String(event.key).toLowerCase() === 'y' || event.shiftKey) redoSketch();
         else undoSketch();
+      };
+
+      // Toolbar and field focus sits in the host page, outside the frame:
+      // the same Escape/undo routing runs there for the dialog's scope.
+      const handleParentKeydown = (event) => {
+        if (!ownsKeyboardTarget(event.target) || isEditableTarget(event.target)) return;
+        handleCanvasKeydown(event);
       };
 
       // Editor operations ride icon-only buttons (Tabler glyphs,
@@ -1725,6 +1738,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           host.onPointerDown = handleVertexSelectPointerDown;
           host.onPointerUp = scheduleExtraction;
           host.onKeyDown = handleCanvasKeydown;
+          window.addEventListener('keydown', handleParentKeydown, true);
           startViewWatcher();
           openBlankDocument();
           lastEmitted = '';
@@ -1739,6 +1753,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           } else if (queued.length) {
             host.run(queued[0]);
           }
+          canvasReady.value = true;
           // A dialog mount can race the container's real size (open
           // animation, late flex layout); the first time the canvas
           // reaches working size, re-fit the view so the seed is framed.
@@ -1752,6 +1767,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             zoomObserver.observe(containerRef.value);
           }
         } catch (error) {
+          canvasReady.value = false;
           disposeHost();
           engineError.value = error?.message || String(error);
         }
@@ -1779,6 +1795,8 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       onBeforeUnmount(() => {
         disposed = true;
+        canvasReady.value = false;
+        window.removeEventListener('keydown', handleParentKeydown, true);
         if (extractTimer) clearTimeout(extractTimer);
         extractTimer = null;
         if (outlineTimer) clearTimeout(outlineTimer);
@@ -1811,7 +1829,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           ref: containerRef,
           class: 'relative min-h-[18rem] w-full flex-1 overflow-hidden rounded-ui border border-content-border bg-subtle',
           role: 'application',
-          'aria-label': t('cassette.v2.profileEditor.preview')
+          'aria-label': t('cassette.v2.profileEditor.preview'),
+          'data-cadcraft-ready': canvasReady.value ? 'true' : undefined
         }, [
               // The tool toolbar floats inside the canvas (the
               // DesignerWorkspace overlay pattern) — no row of its own.
