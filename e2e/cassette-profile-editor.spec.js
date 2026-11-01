@@ -1,35 +1,86 @@
 import { test, expect } from './fixtures.js';
 
-// The profile sketch editor's authored-truth roundtrip (regression:
-// the extraction merge once dropped rotated expression-bound shapes —
-// helpers returned as draw defaults that rode the booleans into the
-// cassette, drawn numerics carried float noise, and the blank canvas
-// booted at pixel scale). Drives the real dialog: draw a rect and a
-// circle through the CAD engine, add a parameter, bind the diameter
-// dim to it, save, reopen — the binding survives and every authored
-// numeric stays at drawing scale. Artifacts: console.log dim states
-// in the run log; .playwright/cassette-profile-editor-*.png on
+// The profile sketch editor's authored-truth roundtrip: dimensions are
+// native CadCraft dim entities, a label opens its field in place, and the
+// binding survives save and reopen. Drives the real dialog: draw a rect and
+// a circle through the CAD engine, bind the circle diameter to a parameter,
+// save, reopen — the binding survives and every authored numeric stays at
+// drawing scale. Artifacts: .playwright/cassette-profile-editor-*.png on
 // failure.
 
 const CANVAS = '[role="application"]';
 
-const dimState = async dialog => {
-  const dims = dialog.locator('input.profile-dim');
+const frameOf = async (dialog) => {
+  const handle = await dialog.locator('iframe').first().elementHandle();
+  return handle.contentFrame();
+};
+
+const nativeDims = async (dialog) => {
+  const frame = await frameOf(dialog);
+  return frame.evaluate(() => (window.cadcraft?.doc.all() || [])
+    .filter(entity => entity.type === 'dim')
+    .map(entity => {
+      const rot = entity.kind === 'aligned'
+        ? Math.atan2(entity.p2.y - entity.p1.y, entity.p2.x - entity.p1.x)
+        : (entity.rot || 0);
+      const measured = entity.kind === 'diameter'
+        ? 2 * Math.hypot(entity.p1.x - entity.c.x, entity.p1.y - entity.c.y)
+        : entity.kind === 'linear'
+          ? Math.abs((entity.p2.x - entity.p1.x) * Math.cos(rot) + (entity.p2.y - entity.p1.y) * Math.sin(rot))
+          : Math.hypot(entity.p2.x - entity.p1.x, entity.p2.y - entity.p1.y);
+      return {
+        key: entity.annotationKey,
+        field: entity.profile?.fieldKey || null,
+        shapeId: entity.profile?.shapeId || null,
+        kind: entity.kind,
+        text: entity.text,
+        measured
+      };
+    }));
+};
+
+const dimState = async (dialog) => {
   const out = {};
-  for (const input of await dims.all()) {
-    out[await input.getAttribute('aria-label')] = await input.inputValue();
+  for (const dim of await nativeDims(dialog)) {
+    out[dim.field || dim.key] = dim.text;
   }
   return out;
 };
 
-const expectDrawingScale = (state) => {
-  for (const [label, value] of Object.entries(state)) {
-    const numeric = Number(value);
-    if (Number.isFinite(numeric) && value !== '') {
-      expect(Number(value), `${label} within a drawing-scale window`).toBeLessThan(300);
-      expect(String(value).length, `${label} free of float noise`).toBeLessThan(9);
+const expectDrawingScale = (dims) => {
+  for (const dim of dims) {
+    const numeric = Number(dim.text);
+    if (dim.text !== '' && Number.isFinite(numeric)) {
+      expect(numeric, `${dim.key} within a drawing-scale window`).toBeLessThan(300);
+      expect(String(dim.text).length, `${dim.key} free of float noise`).toBeLessThan(9);
     }
   }
+};
+
+const clickDim = async (page, dialog, fieldKey) => {
+  const frame = await frameOf(dialog);
+  const point = await frame.evaluate(async (field) => {
+    const dim = window.cadcraft.doc.all().find(entity => entity.type === 'dim' && entity.profile?.fieldKey === field);
+    if (!dim) return null;
+    const { dimTextPoint } = await import('./assets/apps/cadcraft/0.7/dims.js');
+    const text = dimTextPoint(dim);
+    return window.cadcraft.view.toScreen(text.x, text.y);
+  }, fieldKey);
+  expect(point, `${fieldKey} dimension exists`).toBeTruthy();
+  const box = await dialog.locator(CANVAS).first().boundingBox();
+  await page.mouse.click(box.x + point.x, box.y + point.y);
+  const input = dialog.locator('input.profile-dim');
+  await expect(input).toBeVisible({ timeout: 10_000 });
+  return input;
+};
+
+const typeDim = async (page, dialog, fieldKey, text) => {
+  const input = await clickDim(page, dialog, fieldKey);
+  await input.click();
+  await input.press('ControlOrMeta+a');
+  await input.pressSequentially(text, { delay: 60 });
+  await input.press('Enter');
+  await page.waitForTimeout(700);
 };
 
 test('profile editor draws at millimetre scale and keeps bindings through save', async ({ app }) => {
@@ -63,12 +114,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(box, 'canvas box').toBeTruthy();
   const click = async (fx, fy) => page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
 
-  // The circle first — its clicks land on a dim-free canvas; the rect
-  // follows in the far quadrant, away from the circle's dimension
-  // annotations (the dim inputs are HTML overlays that swallow clicks).
-  // The toolbar's active state is the command lifecycle: draw clicks
-  // land only while the command runs, and the chip strip appears when
-  // the extraction lands.
+  // The circle first; the rect follows in the far quadrant.
   const runDrawTool = async (tool, from, to) => {
     const button = dialog.locator(`button[aria-label="${tool}"]`).first();
     await button.click();
@@ -84,9 +130,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await runDrawTool('Circle', [0.60, 0.30], [0.67, 0.30]);
   await runDrawTool('Rectangle', [0.30, 0.60], [0.60, 0.85]);
 
-  // The primitives panel lists every shape as a row with its op state
-  // visible at a glance (owner direction 2026-10-19). Selecting a row
-  // expands its op control and property fields.
+  // The primitives panel lists every shape as a row with its op state.
   const circleRow = dialog.locator('button[aria-label^="Circle s"]').first();
   const rectRow = dialog.locator('button[aria-label^="Rectangle s"]').first();
   await expect(circleRow, 'the drawn circle lists in the panel').toBeVisible({ timeout: 10_000 });
@@ -94,8 +138,13 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await expect(circleRow.locator('.p-tag')).toHaveText('Subtract');
   await expect(rectRow.locator('.p-tag')).toHaveText('Add');
 
-  // The op control rides the selected row — switching it regroups the
-  // list (adds before subtracts, construction apart).
+  // Drawing also produced native CadCraft dimensions, not page-space text.
+  const drawnDims = await nativeDims(dialog);
+  expect(drawnDims.length, 'native dimensions for the drawn shapes').toBeGreaterThan(0);
+  expectDrawingScale(drawnDims);
+  expect(drawnDims.some(dim => dim.field === 'diameter'), 'the circle carries a diameter dimension').toBe(true);
+
+  // The op control rides the selected row; switching it regroups the list.
   const rowBlock = (kind) => dialog.locator(`button[aria-label^="${kind} s"]`)
     .locator('xpath=ancestor::div[contains(@class,"border-b")]');
   const circleOps = () => rowBlock('Circle').locator('.p-selectbutton').getByRole('button');
@@ -106,9 +155,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await circleOps().filter({ hasText: 'Subtract' }).click();
   await expect(circleOps().filter({ hasText: 'Subtract' })).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 });
 
-  // The rows list the authored CSG sequence (drawing order): the
-  // circle drawn first sits above the rect drawn second. Row anatomy
-  // holds: one width, consistent heights, nothing overflows.
+  // Rows follow the authored CSG sequence (drawing order).
   const panelOrder = await dialog.locator('.profile-shapes-panel').evaluate(panel => (
     Array.from(panel.querySelectorAll('button[aria-label]'))
       .map(button => button.getAttribute('aria-label'))
@@ -129,9 +176,8 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   expect(new Set(metrics.heights).size).toBeLessThanOrEqual(2);
   expect(metrics.overflow, 'panel rows never overflow horizontally').toBe(false);
 
-  // Selecting a row expands its property fields — the shape's whole
-  // authoring table edits in place (owner direction: shape properties
-  // in the same tree). The row stays selected from the op switch.
+  // The shape's property fields edit in place. The row stays selected
+  // from the op switch.
   const circleDiameterField = dialog.locator('input[aria-label^="d s"]').first();
   await expect(circleDiameterField).toBeVisible({ timeout: 10_000 });
   await circleDiameterField.click();
@@ -139,14 +185,12 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await circleDiameterField.pressSequentially('20', { delay: 50 });
   await circleDiameterField.press('Enter');
   await page.waitForTimeout(600);
-  await expect(dialog.locator('input.profile-dim[aria-label^="diameter"]')).toHaveValue('20', { timeout: 10_000 });
+  const resized = await nativeDims(dialog);
+  expect(resized.find(dim => dim.field === 'diameter')?.text).toBe('20.0');
   await circleRow.click();
   await expect(circleDiameterField).toBeHidden({ timeout: 10_000 });
 
-  // Deleting a shape is atomic and panel-owned: the rect row's trash
-  // removes the whole primitive; the circle keeps its op, fields, and
-  // geometry. Reordering moves the rect ahead of the circle first —
-  // the sequence control is real.
+  // Deleting a shape is atomic and panel-owned; reordering moves a row.
   await rectRow.click();
   await rowBlock('Rectangle').getByRole('button', { name: /^Move earlier/ }).click();
   await page.waitForTimeout(400);
@@ -163,11 +207,11 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
 
   const drawn = await dimState(dialog);
   expect(Object.keys(drawn).length, 'dimension annotations for the drawn shapes').toBeGreaterThan(0);
-  expectDrawingScale(drawn);
+  expectDrawingScale(await nativeDims(dialog));
 
   // Bind the circle's diameter to a parameter: add one, then type its
-  // name into the diameter dim — the dim becomes that parameter's
-  // editor and keeps the expression as its label.
+  // name into the diameter dimension — the native label becomes the
+  // parameter's editor.
   await dialog.getByRole('button', { name: 'Add parameter' }).click();
   await page.waitForTimeout(400);
   const valueInput = dialog.locator('input[aria-label="A"], input[aria-label="P1"]').last();
@@ -178,43 +222,27 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await valueInput.press('Enter');
   await page.waitForTimeout(600);
 
-  const diameterDim = dialog.locator('input.profile-dim[aria-label^="diameter"]').first();
-  await diameterDim.click();
-  await page.keyboard.press('ControlOrMeta+a');
-  await diameterDim.pressSequentially('A', { delay: 60 });
-  await diameterDim.press('Enter');
-  await page.waitForTimeout(800);
-  const bound = await dimState(dialog);
-  const boundDiameter = Object.entries(bound).find(([label]) => label.startsWith('diameter'));
-  expect(boundDiameter?.[1], 'the diameter dim carries its parameter expression').toBe('A');
+  await typeDim(page, dialog, 'diameter', 'A');
+  const bound = await nativeDims(dialog);
+  expect(bound.find(dim => dim.field === 'diameter')?.text, 'the diameter label carries its parameter expression').toBe('A');
 
-  // A mid-edit expression never breaks the drawing (owner law: what
-  // the user did is sacred) — '=' holds the last good geometry, dims,
-  // and panel; finishing the text restores live evaluation.
-  await diameterDim.click();
-  await page.keyboard.press('ControlOrMeta+a');
-  await diameterDim.pressSequentially('=', { delay: 60 });
-  await diameterDim.press('Enter');
-  await page.waitForTimeout(700);
-  await expect(dialog.locator('input.profile-dim[aria-label^="diameter"]'), 'dims survive an invalid expression').toBeVisible();
+  // A mid-edit expression never breaks the drawing: the last good
+  // geometry and native dimensions stay, and finishing the text restores
+  // live evaluation.
+  await typeDim(page, dialog, 'diameter', '=');
   await expect(circleRow, 'the panel survives an invalid expression').toBeVisible();
   await expect(dialog.locator('.profile-shapes-panel')).toContainText('Circle');
-  await diameterDim.click();
-  await page.keyboard.press('ControlOrMeta+a');
-  await diameterDim.pressSequentially('A', { delay: 60 });
-  await diameterDim.press('Enter');
-  await page.waitForTimeout(700);
-  await expect(dialog.locator('input.profile-dim[aria-label^="diameter"]')).toHaveValue('A');
+  expect((await nativeDims(dialog)).length, 'native dimensions survive an invalid expression').toBeGreaterThan(0);
+  await typeDim(page, dialog, 'diameter', 'A');
+  expect((await nativeDims(dialog)).find(dim => dim.field === 'diameter')?.text).toBe('A');
 
-  // Save places the profile; reopening it shows the same authored
-  // state — expressions intact, values unchanged.
+  // Save places the profile; reopening it shows the same authored state.
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await page.waitForTimeout(2000);
 
-  // Parameter fields rebuild on commit only (owner direction
-  // 2026-10-20): typing into the placed workpiece's instance chip
-  // changes nothing until Enter.
+  // Parameter fields rebuild on commit only: typing into the placed
+  // workpiece's instance chip changes nothing until Enter.
   const canvasSignature = () => page.locator('.designer-workspace__canvas').first()
     .evaluate(root => Array.from(root.querySelectorAll('path'))
       .map(path => path.getAttribute('d')).filter(Boolean).sort().join('|').length);
@@ -234,12 +262,8 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   const reopenedDialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
   await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });
   await expect(reopenedDialog.locator(CANVAS).first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
-  const reopened = await dimState(reopenedDialog);
+  const reopened = await nativeDims(reopenedDialog);
   expectDrawingScale(reopened);
-  expect(Object.entries(reopened).find(([label]) => label.startsWith('diameter'))?.[1]).toBe('A');
-  for (const [label, value] of Object.entries(bound)) {
-    if (label.startsWith('diameter')) continue;
-    expect(reopened[label], `${label} unchanged through the save-load roundtrip`).toBe(value);
-  }
+  expect(reopened.find(dim => dim.field === 'diameter')?.text, 'the diameter binding survives the save-load roundtrip').toBe('A');
   await app.expectCleanRuntime();
 });

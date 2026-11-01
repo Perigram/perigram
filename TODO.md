@@ -887,6 +887,24 @@ AttachmentKind row.
   plugin's proxied scope; the surface check exempts cross-plugin modules
   from the own-root existence rule. Focused specs: sdk (validation),
   plugins (proxy rewrite).
+- [ ] WAITING — owner verification: native profile annotations — the
+  profile canvas's dimensions, face hatch and outline, zero axis and
+  origin ride CadCraft entities on a derived layer; a dimension label
+  opens its authored field in place; the edition's chrome, hint card and
+  first-run tour stay out of every embedded surface.
+
+  ### Agent Notes (2026-11-01, native annotations)
+
+  `surfaces/lib/profileAnnotations.js` builds the native entities from
+  one evaluated sketch and the folded face; `sketchEditor.mjs` swaps the
+  annotation layer through `CadCraftHost.annotate` on every model or
+  face change, opens a primitive dimension's field through
+  `CadCraftHost.pick`, and selects shapes through the engine's own
+  selection. The host suppresses the edition's first-run tour/hint card
+  and hides every child except the stage and the toggled command line;
+  `zoomFit` can hold a layer out of the extents calculation so derived
+  annotation geometry never changes the fitted window. Validation:
+  profile-editor e2e (native dims, in-place binding, save/reopen).
 
 ## Generative UI arrangement foundations (owner direction 2026-10-25)
 
