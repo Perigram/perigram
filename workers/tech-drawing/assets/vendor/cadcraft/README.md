@@ -95,8 +95,13 @@ node_modules/.bin/esbuild cadcraft.js --bundle --format=esm \
   --external:three --external:pdfjs-dist --external:manifold-3d \
   --external:proj4 --external:laz-perf --external:'web-e57/*' \
   --external:'@noble/*' --external:'liberation-sans/*' \
-  --external:cc-workspace --external:app-help --external:geotiff
+  --external:cc-workspace --external:app-help --external:geotiff \
+  --external:./ws3d.js
 ```
+
+`ws3d.js` stays external: the 3D tab's Three runtime and its view module
+load the first time the tab opens, so the 2D editor's bundle carries no
+Three import.
 
 Set `workspace-cadcraft.js`'s `/assets/js/app-workspace-input.js` import to
 `../../../js/app-workspace-input.js`, point `index.html` and
