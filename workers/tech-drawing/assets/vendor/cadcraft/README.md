@@ -8,12 +8,15 @@ adapter.
 
 ## Host contract
 
-`CadCraftHost` mounts `app/index.html` in an iframe on the page's origin.
-The frame exposes `window.cadcraft = { doc, view, engine, host, commands }`.
+`CadCraftHost` mounts `app/index.html?embed=1` in an iframe on the page's
+origin. The frame exposes `window.cadcraft = { doc, view, engine, host, commands }`.
+Embed mode keeps the host's persistence model: the edition starts no
+autosave copies, shows no recovery dialog, and starts no add-ons or
+assistant tooling.
 
 | Member | Contract |
 |---|---|
-| `mount()` | creates the frame, waits for `window.cadcraft`, injects the chrome stylesheet, binds the document, selection, command hook and input listeners |
+| `mount()` | creates the `?embed=1` frame, waits for `window.cadcraft`, injects the chrome stylesheet, binds the document, selection, command hook and input listeners |
 | `seed(entities, { name, layers, fit })` | `doc.load` of CadCraft entities (`line`, `circle`, `arc`, `poly`); seeded entities carry `shapeId` so extraction keeps authored identity |
 | `entities()` | `doc.all()` |
 | `openText(name, text)` | reads ASCII DXF through the edition's `dxf.js` and loads the drawing |
@@ -50,7 +53,9 @@ moves to a new listing version.
 1. Download `cadcraft-browser-edition-v0.7.0.zip` from the
    [release](https://github.com/getcadcraft/cadcraft/releases/tag/cadcraft-v0.7.0).
 2. Replace `app/` with the zip's `cadcraft-browser-edition-v0.7.0/` folder.
-   `host.mjs` and this README stay.
+   `host.mjs` and this README stay; reapply the embed-mode guard in
+   `cadcraft.js` (skip autosave, add-ons and assistant tooling when
+   `?embed=1`) before bundling.
 3. Run `npx perigram-plugin validate workers/tech-drawing/listing.json` and
    the surface smoke.
 

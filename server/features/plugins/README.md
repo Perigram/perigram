@@ -183,9 +183,10 @@ the proxy: `GET /api/plugins/:pluginId/module/**` streams the path from
 the install's endpoint origin server-side (`fetchSurfaceModule` here;
 GET only, paths resolve strictly under the origin, `..` refused).
 Access mirrors the served type view: any member of an organization
-holding the install. Module responses are `no-store`: they are live
-executor assets, and an executor update must reach the next browser
-load ahead of the app-wide stale-while-revalidate rule. A JS module's
+holding the install. Every module load revalidates against the
+executor: responses carry `private, no-cache` and an `ETag`, an
+unchanged body answers `304`, and text modules travel gzipped — an
+executor update still reaches the next browser load. A JS module's
 declared dependencies resolve to the
 plugin's own vendor scope: bare specifiers naming a declared dependency
 rewrite to same-origin proxied URLs; a dependency module of the form
