@@ -696,7 +696,7 @@ const pointFromDxf = (point = {}) => ({
 // ── CAD entity records ↔ OCCS profile sketch ─────────────────────────────
 //
 // The shared normalization between the cassette designer's CAD sketch
-// canvas (vendored MLightCAD engine) and the OCCS profile sketch model.
+// canvas (the tech-drawing CadCraft edition) and the OCCS profile sketch model.
 // Records are plain data so the same path serves the browser canvas
 // (live database entities mapped to records) and DXF imports:
 //   { type: 'LINE',  start: {x,y}, end: {x,y} }

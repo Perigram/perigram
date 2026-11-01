@@ -2,7 +2,7 @@
   "pluginId": "tech-drawing",
   "name": "Technical drawing",
   "description": "Drawing reference types (pens, layer standards, colors), CAD exchange documents (DXF, SVG) with template placement, and the sketch editor as an installable plugin",
-  "version": "8",
+  "version": "9",
   "requires": [],
   "declarations": {
     "types": [
@@ -326,10 +326,10 @@
     ],
     "dependencies": [
       {
-        "name": "cad-viewer",
-        "version": "1.7.5",
-        "module": "/assets/vendor/cad-viewer/cad-viewer.mjs",
-        "license": "MIT"
+        "name": "cadcraft",
+        "version": "0.7.0",
+        "module": "/assets/vendor/cadcraft/host.mjs",
+        "license": "Apache-2.0"
       }
     ]
   }

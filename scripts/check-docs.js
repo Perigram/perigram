@@ -51,14 +51,26 @@ const SKIP_DIRS = new Set([
   '.obsidian'
 ]);
 
+// Vendored upstream distributions carry their own READMEs, help and
+// source comments: the tree documents the integration, not the shipped
+// app's own documentation.
+const SKIP_PATHS = [
+  path.join(REPO_ROOT, 'workers/tech-drawing/assets/vendor/cadcraft/app')
+];
+
 const FENCE_RE = /^```/;
 
 const MIN_DUPLICATE_LENGTH = 180;
 
 const MIN_CODE_DUPLICATE_LENGTH = 60;
 
+function skipped(dir) {
+  return SKIP_PATHS.some(prefix => dir === prefix || dir.startsWith(prefix + path.sep));
+}
+
 function walk(dir) {
   const out = [];
+  if (skipped(dir)) return out;
   let entries;
   try {
     entries = readdirSync(dir);
@@ -243,6 +255,7 @@ const CONTRACT_COMMENT_MIN_MARKERS = 3;
 const SOURCE_ROOTS = ['server/features', 'server/core', 'server/runtime', 'packages', 'shared', 'utils', 'composables', 'workers'];
 
 function walkSource(dir, out = []) {
+  if (skipped(dir)) return out;
   let entries;
   try {
     entries = readdirSync(dir);

@@ -22,7 +22,21 @@ const STATIC_CONTENT_TYPES = {
   '.css': 'text/css',
   '.html': 'text/html',
   '.svg': 'image/svg+xml',
-  '.wasm': 'application/wasm'
+  '.wasm': 'application/wasm',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.pdf': 'application/pdf',
+  '.pbf': 'application/x-protobuf',
+  '.bcmap': 'application/octet-stream',
+  '.map': 'application/json'
 };
 
 export function createEndpointExecutor({ services = {}, token = null, staticRoot = null } = {}) {
