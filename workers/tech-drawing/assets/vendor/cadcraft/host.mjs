@@ -11,9 +11,10 @@ const DXF_MODULE = './app/assets/apps/cadcraft/0.7/dxf.js';
 const EMBED_CSS = `
   html, body { height: 100% !important; overflow: hidden !important; }
   body > header, header.site-header, .site-header, .shell-hint, .shell-edge, .shell-showbars { display: none !important; }
-  [data-cadcraft] > .cc-tools, [data-cadcraft] > .cc-panel, [data-cadcraft] > .cc-status,
-  [data-cadcraft] > .shell-tb, [data-cadcraft] > .visually-hidden,
-  [data-cadcraft] > .cc-stage > .cc-tabs, [data-cadcraft] > .cc-stage > .cc-doctabs { display: none !important; }
+  [data-cadcraft] > *:not(.cc-stage):not(.cc-cmd) { display: none !important; }
+  [data-cadcraft] > .cc-stage > .cc-tabs, [data-cadcraft] > .cc-stage > .cc-doctabs,
+  [data-cadcraft] .cc-tour, [data-cadcraft] .cc-hint, [data-cadcraft] .cc-dialog,
+  [data-cadcraft] .cc-vc { display: none !important; }
   [data-cadcraft] { display: block !important; position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; }
   [data-cadcraft] > .cc-stage { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; }
   [data-cadcraft] > .cc-stage > .cc-canvases { bottom: 0 !important; top: 0 !important; }
@@ -84,6 +85,16 @@ export class CadCraftHost {
   _hideChrome() {
     const doc = this.win.document;
     doc.getElementById('perigram-cadcraft-loading')?.remove();
+    // The edition's own first-run tour and hint card belong to its
+    // desktop surface; the embedding host owns the chrome.
+    try {
+      this.win.localStorage.setItem('cadcraft.tour', 'done');
+      this.win.localStorage.setItem('cadcraft.tour.auto', 'off');
+      this.win.localStorage.setItem('cc-tours', 'off');
+    } catch {
+      // Private storage: the stylesheet still hides the panel.
+    }
+    doc.querySelector('.cc-tour')?.remove();
     if (this.cad.host) {
       this.cad.host.settings.corner = 'none';
       this.cad.host.applyCorner?.();
@@ -147,6 +158,33 @@ export class CadCraftHost {
     if (fit) this.cad.view.fit();
   }
 
+  /** Replace one derived layer's entities in place — the host's annotation channel. */
+  annotate(layer, entities) {
+    if (!this.cad || !layer) return;
+    const doc = this.cad.doc;
+    this.suppress = true;
+    try {
+      doc.change('ANNOTATE', () => {
+        for (const entity of [...doc.entities.values()]) {
+          if (entity.layer === layer) doc.remove(entity.id);
+        }
+        doc.layer(layer);
+        for (const entity of entities) doc.add({ ...entity, layer });
+      });
+    } finally {
+      this.suppress = false;
+    }
+    this.cad.view.invalidate();
+  }
+
+  /** The entity under a world point (the engine's own pick tolerance), or null. */
+  pick(entityPoint, px = 6) {
+    const view = this.cad?.view;
+    if (!view) return null;
+    const id = view.pick({ x: entityPoint.x, y: entityPoint.y }, px);
+    return id == null ? null : this.cad.doc.get(id);
+  }
+
   async openText(name, text) {
     if (!this.cad) return;
     let drawing;
@@ -176,8 +214,21 @@ export class CadCraftHost {
     this.cad.view.fit();
   }
 
-  zoomFit() {
-    this.cad?.view?.fit();
+  zoomFit(excludeLayer = null) {
+    const view = this.cad?.view;
+    if (!view) return;
+    const layer = excludeLayer ? this.cad.doc.layers.get(excludeLayer) : null;
+    if (!layer) {
+      view.fit();
+      return;
+    }
+    const on = layer.on;
+    layer.on = false;
+    try {
+      view.fit();
+    } finally {
+      layer.on = on;
+    }
   }
 
   lockLayers(locked = true) {

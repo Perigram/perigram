@@ -21,6 +21,7 @@ import {
 } from '../../../occs/profiles.js';
 import { resolveOccsExpression } from '../../../occs/expressions.js';
 import { foldCassetteV2Region } from '../cassetteV2Clipper.js';
+import { buildProfileAnnotations, profileDimensionField, PROFILE_ANNOTATION_LAYER } from '../profileAnnotations.js';
 import { toolIcon } from './toolIcons.mjs';
 import createFieldDraft from './fieldDraft.mjs';
 
@@ -66,19 +67,21 @@ export default function createSketchEditor({ vue, components, locale }) {
       const selectedCorner = ref(null);
       const selectedShape = ref(null);
       const lastPointerAt = ref(null);
-      const overlayRef = ref(null);
+      const dimensionDraft = ref(null);
+      const dimensionInputRef = ref(null);
 
       let host = null;
       let extractTimer = null;
       let lastEmitted = '';
+      let lastAnnotationFingerprint = '';
       let disposed = false;
       let zoomObserver = null;
       let seeding = false;
       let viewRaf = 0;
       let lastViewKey = '';
 
-      // The overlay reads the frame's view directly: CadCraft's canvas is
-      // same-origin, so world/screen conversion is a plain function call.
+      // The transient popups read the frame's view directly: CadCraft's
+      // canvas is same-origin, so world/screen conversion is a plain call.
       const canvasView = {
         worldToScreen: point => host?.worldToScreen(point) || { x: 0, y: 0 },
         screenToWorld: point => host?.screenToWorld(point) || { x: 0, y: 0 }
@@ -181,6 +184,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           const { section } = occsProfileFromSketch(normalized, { parameters: externalScope() });
           if (section?.type !== 'shapes') {
             resolvedFace.value = null;
+            syncAnnotations();
             return;
           }
           const span = 1e5;
@@ -192,6 +196,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             resolveOccsProfileSectionOperations(section)
           );
           resolvedFace.value = resolved;
+          syncAnnotations();
           const participates = section.shapes.some(shape => shape.op !== 'construction');
           if (participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
             outlineError.value = t('cassette.v2.profileEditor.resultClipped');
@@ -207,232 +212,46 @@ export default function createSketchEditor({ vue, components, locale }) {
         outlineTimer = setTimeout(resolveOutline, 120);
       };
 
-      // Canvas annotations are a derived overlay — extraction never
-      // reads them back. The computed re-runs on a tick bumped from the
-      // view's render frame, so pan/zoom redraw it.
+      // Canvas annotations are native CadCraft entities on their own
+      // layer: extraction never reads them back, and pan/zoom redraws
+      // them with the drawing instead of through a page overlay.
       const viewTick = ref(0);
 
-      // Dimension stacking: dims on the same side of the same baseline
-      // chain outward (18px, then 40, 62…). Bands key on the WORLD
-      // midpoint, so pan/zoom keeps every dim in its slot — screen-space
-      // banding reshuffled same-label inputs onto each other mid-edit.
-      const createDimStack = () => {
-        const slots = new Map();
-        return (worldMid, horizontal, side) => {
-          const along = horizontal ? worldMid[1] : worldMid[0];
-          const slotKey = `${side}:${Math.round(along / 12)}`;
-          const slot = slots.get(slotKey) || 0;
-          slots.set(slotKey, slot + 1);
-          return 18 + slot * 22;
-        };
-      };
-
-      // One linear dimension between world points a and b, drawn on the
-      // side away from `inward` (the side the geometry occupies) —
-      // drafting law: dimensions sit outside the figure, the label on
-      // the dimension line. Editable dims carry their field binding —
-      // the label shows the parameter expression where one is bound,
-      // the measured number otherwise; the input's background breaks
-      // the line. Short spans keep their line and label; only the
-      // arrowheads are dropped.
-      const linearDim = (key, a, b, inward, label, editable, toScreen, stack) => {
-        const [ax, ay] = toScreen(a[0], a[1]);
-        const [bx, by] = toScreen(b[0], b[1]);
-        const nx = b[1] - a[1];
-        const ny = a[0] - b[0];
-        const outward = (inward[0] - (a[0] + b[0]) / 2) * nx + (inward[1] - (a[1] + b[1]) / 2) * ny > 0
-          ? [-nx, -ny]
-          : [nx, ny];
-        const nl = Math.hypot(outward[0], outward[1]) || 1;
-        const [dx, dy] = toScreen(a[0] + outward[0] / nl, a[1] + outward[1] / nl);
-        let ux = dx - ax;
-        let uy = dy - ay;
-        const ul = Math.hypot(ux, uy) || 1;
-        ux /= ul;
-        uy /= ul;
-        const a0 = [ax + ux * 2, ay + uy * 2];
-        const b0 = [bx + ux * 2, by + uy * 2];
-        const horizontal = Math.abs(bx - ax) >= Math.abs(by - ay);
-        const side = horizontal ? (uy > 0 ? 'below' : 'above') : (ux > 0 ? 'right' : 'left');
-        const off = stack
-          ? stack([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], horizontal, side)
-          : 18;
-        const a1 = [ax + ux * off, ay + uy * off];
-        const b1 = [bx + ux * off, by + uy * off];
-        return {
-          key,
-          extensionA: [...a0, a1[0] + ux * 4, a1[1] + uy * 4],
-          extensionB: [...b0, b1[0] + ux * 4, b1[1] + uy * 4],
-          line: [...a1, ...b1],
-          labelAt: [(a1[0] + b1[0]) / 2, (a1[1] + b1[1]) / 2],
-          arrows: Math.hypot(b1[0] - a1[0], b1[1] - a1[1]) >= 36,
-          text: label,
-          editable
-        };
-      };
-
-      const chainDimensions = (shape, toScreen, stack) => {
-        const corners = shape.points.filter(point => !point.chord);
-        const closed = shape.closed && corners.length >= 3;
-        const centroid = corners.length
-          ? corners
-            .reduce((sum, point) => [sum[0] + point.x, sum[1] + point.y], [0, 0])
-            .map(value => value / corners.length)
-          : [0, 0];
-        const dimensions = [];
-        const edgeCount = corners.length >= 2 ? (closed ? corners.length : corners.length - 1) : 0;
-        for (let index = 0; index < edgeCount; index += 1) {
-          const a = corners[index];
-          const b = corners[(index + 1) % corners.length];
-          const worldLength = Math.hypot(b.x - a.x, b.y - a.y);
-          if (worldLength < 1e-6) continue;
-          const dim = linearDim(`${shape.id}-${a.id}-${b.id}`, [a.x, a.y], [b.x, b.y], centroid, worldLength.toFixed(1), null, toScreen, stack);
-          if (dim) dimensions.push(dim);
+      const annotationSource = (sketch = props.modelValue) => {
+        const authored = normalizeOccsProfileSketch(sketch || {});
+        try {
+          const evaluated = evaluateOccsProfileSketch(derivedSketch(authored), externalScope());
+          lastGoodEvaluated.value = evaluated;
+          return { authored, evaluated };
+        } catch {
+          return { authored, evaluated: lastGoodEvaluated.value };
         }
-        return dimensions;
       };
 
-      const fieldLabel = (value, evaluatedValue) => (
-        typeof value === 'string' ? value : (Number.isFinite(evaluatedValue) ? evaluatedValue.toFixed(1) : '?')
-      );
-
-      // Primitive dimensions: rect (width, height, distance from the
-      // axis, height from the origin) and circle (diameter, distance
-      // from the axis, height from the origin) — each bound to its field,
-      // editable in place.
-      const primitiveDimensions = (authoredShape, shape, toScreen, stack) => {
-        const dims = [];
-        const editable = (fieldKey, value, readEvaluated, apply) => ({
-          shapeId: shape.id,
-          fieldKey,
-          value,
-          ariaLabel: `${fieldKey} ${shape.id}`,
-          readEvaluated,
-          apply
+      const syncAnnotations = (sketch = props.modelValue) => {
+        if (!host || disposed) return;
+        const { authored, evaluated } = annotationSource(sketch);
+        if (!evaluated) return;
+        const entities = buildProfileAnnotations({
+          evaluated,
+          authored,
+          resolvedFace: resolvedFace.value
         });
-        const push = (fieldKey, a, b, side, value, readEvaluated, apply) => {
-          const dim = linearDim(
-            `${shape.id}:${fieldKey}`, a, b, side,
-            fieldLabel(value, typeof value === 'number' ? value : null),
-            editable(fieldKey, value, readEvaluated, apply),
-            toScreen,
-            stack
-          );
-          if (dim) dims.push(dim);
-        };
-        if (shape.type === 'rect') {
-          const corners = occProfileRectCornerVertices(shape);
-          const centroid = [
-            (corners[0][0] + corners[2][0]) / 2,
-            (corners[0][1] + corners[2][1]) / 2
-          ];
-          const xs = corners.map(corner => corner[0]);
-          const ys = corners.map(corner => corner[1]);
-          const minX = Math.min(...xs);
-          const minY = Math.min(...ys);
-          push('width', corners[0], corners[1], centroid, authoredShape?.width ?? shape.width,
-            s => s?.width, (s, next) => ({ ...s, width: next }));
-          push('height', corners[1], corners[2], centroid, authoredShape?.height ?? shape.height,
-            s => s?.height, (s, next) => ({ ...s, height: next }));
-          push('center-x', [0, minY], [centroid[0], minY], centroid, authoredShape?.center?.[0] ?? shape.center[0],
-            s => s?.center?.[0], (s, next) => ({ ...s, center: [next, s.center[1]] }));
-          push('center-y', [minX, 0], [minX, centroid[1]], centroid, authoredShape?.center?.[1] ?? shape.center[1],
-            s => s?.center?.[1], (s, next) => ({ ...s, center: [s.center[0], next] }));
-        }
-        if (shape.type === 'circle') {
-          const radius = shape.diameter / 2;
-          const [cx, cy] = shape.center;
-          push('diameter', [cx - radius, cy], [cx + radius, cy], [cx, cy], authoredShape?.diameter ?? shape.diameter,
-            s => s?.diameter, (s, next) => ({ ...s, diameter: next }));
-          push('center-x', [0, cy - radius], [cx, cy - radius], [cx, cy], authoredShape?.center?.[0] ?? shape.center[0],
-            s => s?.center?.[0], (s, next) => ({ ...s, center: [next, s.center[1]] }));
-          push('center-y', [cx - radius, 0], [cx - radius, cy], [cx, cy], authoredShape?.center?.[1] ?? shape.center[1],
-            s => s?.center?.[1], (s, next) => ({ ...s, center: [s.center[0], next] }));
-        }
-        return dims;
+        const fingerprint = JSON.stringify(entities);
+        if (fingerprint === lastAnnotationFingerprint) return;
+        lastAnnotationFingerprint = fingerprint;
+        host.annotate(PROFILE_ANNOTATION_LAYER, entities);
       };
 
-      const buildCanvasAnnotations = (evaluated, authored, view) => {
-        const toScreen = (x, y) => {
-          const point = view.worldToScreen({ x, y });
-          return [point.x, point.y];
-        };
-        const stack = createDimStack();
-        const chains = evaluated.shapes.filter(shape => shape.type === 'chain');
-        const authoredById = new Map((authored?.shapes || []).map(shape => [shape.id, shape]));
-        const allDimensions = [
-          ...chains.flatMap(shape => chainDimensions(shape, toScreen, stack)),
-          ...evaluated.shapes.flatMap(shape => (
-            shape.type === 'rect' || shape.type === 'circle'
-              ? primitiveDimensions(authoredById.get(shape.id), shape, toScreen, stack)
-              : []
-          ))
-        ];
-        // Position dims measure the parameter they carry: concentric
-        // primitives bound to the same expression render one dim for it
-        // (both fields keep their binding; the value edits through the
-        // one dim). Divergent expressions each keep their own dim.
-        const seenPosition = new Set();
-        const dimensions = allDimensions.filter(dimension => {
-          const fieldKey = dimension.editable?.fieldKey;
-          if (fieldKey !== 'center-x' && fieldKey !== 'center-y') return true;
-          const dedupeKey = `${fieldKey}:${dimension.text}`;
-          if (seenPosition.has(dedupeKey)) return false;
-          seenPosition.add(dedupeKey);
-          return true;
-        });
-        const outline = resolvedFace.value
-          ? [...resolvedFace.value.polygons, ...resolvedFace.value.holes]
-              .filter(ring => ring.length >= 3)
-              .map(ring => ring.map(vertex => toScreen(Number(vertex[0]), Number(vertex[1]))))
+      const selectShapeInEngine = (shapeId) => {
+        if (!host) return;
+        const ids = shapeId
+          ? [...entityShapeByEntityId.entries()]
+            .filter(([, id]) => id === shapeId)
+            .map(([entityId]) => entityId)
           : [];
-        // The selected primitive's own footprint, stroked dashed over
-        // the canvas — selection reads on the drawing plane, not only
-        // in the strip.
-        const selected = evaluated.shapes.find(shape => shape.id === selectedShape.value?.shapeId)
-          || evaluated.shapes.find(shape => shape.id === selectedCorner.value?.shapeId);
-        let selection = null;
-        if (selected) {
-          const points = selected.type === 'circle'
-            ? Array.from({ length: 33 }, (_, index) => {
-              const angle = (index / 32) * Math.PI * 2;
-              return toScreen(
-                selected.center[0] + Math.cos(angle) * selected.diameter / 2,
-                selected.center[1] + Math.sin(angle) * selected.diameter / 2
-              );
-            })
-            : selected.type === 'rect'
-              ? occProfileRectCornerVertices(selected).map(vertex => toScreen(vertex[0], vertex[1]))
-              : selected.points.filter(point => !point.chord).map(point => toScreen(point.x, point.y));
-          if (points.length >= 2) {
-            selection = {
-              points,
-              closed: selected.type !== 'chain' || Boolean(selected.closed)
-            };
-          }
-        }
-        // The axis spans the viewport in world Y.
-        const span = 1e5;
-        const axisTop = toScreen(0, span);
-        const axisBottom = toScreen(0, -span);
-        return {
-          dimensions,
-          outline,
-          selection,
-          origin: toScreen(0, 0),
-          openEnds: [],
-          axis: { top: axisTop, bottom: axisBottom }
-        };
+        host.setSelection(ids);
       };
-
-      const canvasAnnotations = computed(() => {
-        viewTick.value;
-        const view = host ? canvasView : null;
-        if (!view) return null;
-        const evaluated = evaluateForRender();
-        if (!evaluated) return null;
-        return buildCanvasAnnotations(evaluated, normalizeOccsProfileSketch(props.modelValue || {}), view);
-      });
 
       const findShape = (sketch, shapeId) => sketch.shapes.find(shape => shape.id === shapeId) || null;
 
@@ -581,14 +400,45 @@ export default function createSketchEditor({ vue, components, locale }) {
         };
       };
 
+      const openDimensionEditor = (entity, event) => {
+        const { shapeId, fieldKey } = entity.profile || {};
+        const shape = findShape(normalizeOccsProfileSketch(props.modelValue || {}), shapeId);
+        const field = profileDimensionField(shape, fieldKey);
+        if (!field) return;
+        selectedCorner.value = null;
+        dimensionDraft.value = {
+          shapeId,
+          fieldKey,
+          label: `${shapeId}:${fieldKey}`,
+          value: field.value,
+          read: field.read,
+          apply: field.apply,
+          left: event.clientX,
+          top: event.clientY
+        };
+        nextTick(() => {
+          const input = dimensionInputRef.value?.$el || dimensionInputRef.value;
+          input?.focus?.();
+          input?.select?.();
+        });
+      };
+
       const handleVertexSelectPointerDown = (event) => {
         if (isEditableTarget(event.target)) return;
         lastPointerAt.value = [event.clientX, event.clientY];
         if (activeTool.value !== 'select') {
+          dimensionDraft.value = null;
           selectedCorner.value = null;
           selectedShape.value = null;
           return;
         }
+        const world = host?.screenToWorld({ x: event.clientX, y: event.clientY });
+        const picked = world ? host?.pick(world, 8) : null;
+        if (picked?.profile?.fieldKey) {
+          openDimensionEditor(picked, event);
+          return;
+        }
+        dimensionDraft.value = null;
         const found = cornerAt(event.clientX, event.clientY, 10);
         if (found) {
           selectedCorner.value = { shapeId: found.shapeId, vertexId: found.point.id };
@@ -606,6 +456,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!hits?.length) {
           pickCycle = null;
           selectedShape.value = null;
+          clearEngineSelection();
           return;
         }
         const sameSpot = pickCycle
@@ -614,6 +465,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         pickCycle = { at: [event.clientX, event.clientY], index };
         const shape = hits[index];
         selectedShape.value = { shapeId: shape.id, at: [event.clientX, event.clientY] };
+        selectShapeInEngine(shape.id);
       };
 
       // Escape closes the popups, cancels the frame's active command and
@@ -633,10 +485,11 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const handleCanvasKeydown = (event) => {
         if (event.key === 'Escape') {
-          const cancelling = Boolean(host?.running);
+          const cancelling = Boolean(host?.running) || Boolean(dimensionDraft.value);
           if (!cancelling && !selectedCorner.value && !selectedShape.value) return;
           event.preventDefault();
           event.stopPropagation();
+          if (dimensionDraft.value) dimensionDraft.value = null;
           if (selectedCorner.value) selectedCorner.value = null;
           if (selectedShape.value) selectedShape.value = null;
           host?.cancel();
@@ -681,7 +534,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           { icon: 'commandLine', labelKey: 'cassette.v2.profileEditor.actions.commandLine', isOn: () => commandLine.value, onActivate: toggleCommandLine }
         ],
         [
-          { icon: 'zoomFit', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => host?.zoomFit() },
+          { icon: 'zoomFit', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => host?.zoomFit(PROFILE_ANNOTATION_LAYER) },
           { icon: 'importDxf', labelKey: 'cassette.v2.profileEditor.importDxf', onActivate: () => fileInputRef.value?.click() },
           { icon: 'clear', labelKey: 'cassette.v2.profileEditor.actions.clear', onActivate: () => clearDrawing() }
         ]
@@ -698,6 +551,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       const entityRecords = () => {
         const records = [];
         for (const entity of host?.entities() || []) {
+          if (entity.layer === PROFILE_ANNOTATION_LAYER) continue;
           const shapeId = entityShapeByEntityId.get(entity.id);
           const tag = shapeId ? { shapeId } : {};
           if (entity.type === 'line') {
@@ -802,7 +656,10 @@ export default function createSketchEditor({ vue, components, locale }) {
         ].filter(shape => !keptIds.has(shape.id)).slice(-20);
         const sketch = normalizeOccsProfileSketch(merged, context.parameters);
         const fingerprint = JSON.stringify(sketch);
-        if (fingerprint === lastEmitted) return;
+        if (fingerprint === lastEmitted) {
+          syncAnnotations(sketch);
+          return;
+        }
         recordSketchHistory(sketch);
         lastEmitted = fingerprint;
         emit('update:modelValue', sketch);
@@ -815,6 +672,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           // Unresolvable expressions: nothing to emit while invalid.
         }
         emit('profile', profile);
+        syncAnnotations(sketch);
       };
 
       const scheduleExtraction = () => {
@@ -862,6 +720,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!host) return;
         host.onChange = (kind) => {
           if (seeding) return;
+          if (kind === 'change') lastAnnotationFingerprint = '';
           if (kind === 'change' && eraseShapeAtomically()) return;
           scheduleExtraction();
         };
@@ -888,6 +747,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         } finally {
           seeding = false;
         }
+        lastAnnotationFingerprint = '';
         // Seeded entities carry their shape's id — the frame's
         // selection maps back onto the authored shape for the popup.
         entityShapeByEntityId = new Map(
@@ -921,6 +781,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         } finally {
           seeding = false;
         }
+        lastAnnotationFingerprint = '';
         clearDrawingEntities();
         importedFileName.value = '';
         droppedShapes = [];
@@ -933,6 +794,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         emit('update:modelValue', sketch);
         emit('profile', null);
         zoomToBlankWindow();
+        syncAnnotations(sketch);
       };
 
       const reseedFromModel = () => {
@@ -957,13 +819,17 @@ export default function createSketchEditor({ vue, components, locale }) {
           if (entities.length) seedEntities({ entities });
           else {
             host.newDrawing('blank');
+            lastAnnotationFingerprint = '';
             entityShapeByEntityId = new Map();
           }
         } finally {
           seeding = false;
         }
         importedFileName.value = '';
-        if (entities.length) host.zoomFit();
+        if (entities.length) host.zoomFit(PROFILE_ANNOTATION_LAYER);
+        const selected = selectedShape.value?.shapeId || selectedCorner.value?.shapeId || '';
+        selectShapeInEngine(selected);
+        syncAnnotations(normalized);
       };
 
       // The frame owns the active-tool state: commands started from the
@@ -979,6 +845,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       };
 
       const runCommand = (tool) => {
+        dimensionDraft.value = null;
         if (tool.command) {
           if (activeTool.value !== 'select') host?.cancel();
           if (!host) {
@@ -1028,6 +895,9 @@ export default function createSketchEditor({ vue, components, locale }) {
         } finally {
           seeding = false;
         }
+        const selected = selectedShape.value?.shapeId || selectedCorner.value?.shapeId || '';
+        selectShapeInEngine(selected);
+        syncAnnotations(normalized);
       };
 
       const updateShape = (shapeId, mutate) => {
@@ -1353,10 +1223,11 @@ export default function createSketchEditor({ vue, components, locale }) {
                 'aria-label': `${t(SHAPE_KIND_LABEL[shape.type])} ${shape.id}`,
                 'aria-expanded': selected ? 'true' : 'false',
                 onClick: () => {
+                  dimensionDraft.value = null;
                   selectedCorner.value = null;
-                  selectedShape.value = selectedShape.value?.shapeId === shape.id
-                    ? null
-                    : { shapeId: shape.id };
+                  const wasSelected = selectedShape.value?.shapeId === shape.id;
+                  selectedShape.value = wasSelected ? null : { shapeId: shape.id };
+                  selectShapeInEngine(wasSelected ? '' : shape.id);
                 }
               }, [
                 h('span', { class: 'shrink-0 text-muted' }, () => [toolIcon(h, SHAPE_KIND_ICON[shape.type])]),
@@ -1471,148 +1342,47 @@ export default function createSketchEditor({ vue, components, locale }) {
       };
 
 
-      const DIM_STROKE = 'var(--p-text-muted-color)';
-      const DIM_HALO = 'var(--p-content-background)';
-      const PRIMARY = 'var(--p-primary-color)';
-      const HATCH_STROKE = 'var(--p-primary-color)';
-
-      const renderCanvasAnnotations = () => {
-        const annotations = canvasAnnotations.value;
-        if (!annotations) return null;
-        const line = (key, coords, stroke = DIM_STROKE, width = 1, extra = {}) => h('line', {
-          key,
-          x1: coords[0], y1: coords[1], x2: coords[2], y2: coords[3],
-          stroke, 'stroke-width': width, 'stroke-opacity': 0.9, ...extra
-        });
-        const datum = (key, [x, y]) => [
-          h('circle', { key: `${key}-c`, cx: x, cy: y, r: 6, fill: 'none', stroke: PRIMARY, 'stroke-width': 1.5 }),
-          h('line', { key: `${key}-h`, x1: x - 8, y1: y, x2: x + 8, y2: y, stroke: PRIMARY, 'stroke-width': 1 }),
-          h('line', { key: `${key}-v`, x1: x, y1: y - 8, x2: x, y2: y + 8, stroke: PRIMARY, 'stroke-width': 1 })
-        ];
-        const { axis, selection } = annotations;
-        // Two figures on the plane: the hatched FACE (the material half
-        // after the profile's ops — what goes to the cassette) and the
-        // bare engine lines of the drawn primitives beneath it. Holes
-        // carve empty; a subtract-only sketch punches through the hatch.
-        const ringPaths = annotations.outline
-          .filter(ring => ring.length >= 3)
-          .map(ring => `${ring.map((point, index) => `${index ? 'L' : 'M'} ${point[0]} ${point[1]}`).join(' ')} Z`);
-        const outlinePath = ringPaths.length
-          ? h('path', {
-              key: 'result-outline',
-              d: ringPaths.join(' '),
-              fill: 'none',
-              stroke: PRIMARY,
-              'stroke-width': 2.5,
-              'stroke-linejoin': 'round'
-            })
-          : null;
-        const faceHatchPath = resolvedFace.value?.polygons?.length
-          ? h('path', {
-              key: 'face-hatch',
-              d: ringPaths.join(' '),
-              'fill-rule': 'evenodd',
-              fill: 'url(#profile-face-hatch)'
-            })
-          : null;
-        const selectionPath = selection
-          ? h('path', {
-              key: 'selection-outline',
-              d: `M ${selection.points.map(point => `${point[0]} ${point[1]}`).join(' L ')}${selection.closed ? ' Z' : ''}`,
-              fill: 'none',
-              stroke: PRIMARY,
-              'stroke-width': 1.75,
-              'stroke-dasharray': '6 4',
-              'stroke-linejoin': 'round'
-            })
-          : null;
-        return [
-          h('defs', { key: 'hatch-defs' }, [
-            h('pattern', {
-              key: 'face-hatch-pattern',
-              id: 'profile-face-hatch',
-              width: 14,
-              height: 14,
-              patternTransform: 'rotate(45)',
-              patternUnits: 'userSpaceOnUse'
-            }, [
-              h('line', { x1: 0, y1: 0, x2: 0, y2: 14, stroke: HATCH_STROKE, 'stroke-width': 1, 'stroke-opacity': 0.22 })
-            ]),
-            h('marker', {
-              key: 'dim-arrow',
-              id: 'profile-dim-arrow',
-              viewBox: '0 0 10 10',
-              refX: 9,
-              refY: 5,
-              markerWidth: 7,
-              markerHeight: 7,
-              orient: 'auto-start-reverse',
-              markerUnits: 'userSpaceOnUse'
-            }, [
-              h('path', { d: 'M 0 1 L 10 5 L 0 9 z', fill: DIM_STROKE })
-            ])
-          ]),
-          faceHatchPath,
-          outlinePath,
-          selectionPath,
-          // The zero axis is the solid basis line every field measures
-          // from (SPEC law).
-          line('axis', [axis.top[0], axis.top[1], axis.bottom[0], axis.bottom[1]], PRIMARY, 1.25),
-          ...annotations.dimensions.flatMap(dimension => [
-            line(`${dimension.key}-ea`, dimension.extensionA, DIM_STROKE, 0.75),
-            line(`${dimension.key}-eb`, dimension.extensionB, DIM_STROKE, 0.75),
-            line(`${dimension.key}-d`, dimension.line, DIM_STROKE, 1, dimension.arrows ? {
-              'marker-start': 'url(#profile-dim-arrow)',
-              'marker-end': 'url(#profile-dim-arrow)'
-            } : {}),
-            dimension.editable ? null : h('text', {
-              key: `${dimension.key}-t`,
-              x: dimension.labelAt[0], y: dimension.labelAt[1],
-              'font-size': 10,
-              'text-anchor': 'middle',
-              'dominant-baseline': 'middle',
-              fill: DIM_STROKE,
-              stroke: DIM_HALO,
-              'stroke-width': 3,
-              'paint-order': 'stroke'
-            }, dimension.text)
-          ]),
-          ...datum('origin', annotations.origin)
-        ];
-      };
-
-      // The editable parameter dimensions: one small input per bound
-      // field, centered on its dimension line (the input's background
-      // breaks the line — drafting law) and clamped inside the canvas so
-      // the whole field stays visible. Width follows the value.
-      const renderDimensionInputs = () => {
-        const annotations = canvasAnnotations.value;
-        if (!annotations) return [];
+      // A dimension's native label opens its authored field in place;
+      // the transient input overlays the label while it has focus.
+      const renderDimensionEditor = () => {
+        const draft = dimensionDraft.value;
+        if (!draft) return null;
         const width = containerRef.value?.clientWidth || 0;
         const height = containerRef.value?.clientHeight || 0;
         const CH_PX = 8.5;
-        return annotations.dimensions
-          .filter(dimension => dimension.editable)
-          .map(dimension => {
-            const { editable } = dimension;
-            const shown = fieldDraft.text(editable.ariaLabel, editable.value);
-            const boxWidth = Math.min(Math.max(String(shown ?? '').length + 2, 6), 12) * CH_PX;
-            const left = Math.min(Math.max(dimension.labelAt[0] - boxWidth / 2, 2), Math.max(2, width - boxWidth - 2));
-            const top = Math.min(Math.max(dimension.labelAt[1] - 13, 2), Math.max(2, height - 28));
-            return h(InputText, {
-              key: dimension.key,
-              class: 'profile-dim absolute z-20 bg-content text-center font-mono text-xs shadow-sm',
-              style: { left: `${left}px`, top: `${top}px`, width: `${boxWidth}px` },
-              modelValue: shown,
-              ...fieldDraft.handlers(editable.ariaLabel, editable.value, next => {
-                applyShapeField(editable.shapeId, editable.readEvaluated, editable.apply, editable.value)(next);
-              }),
-              size: 'small',
-              'aria-label': editable.ariaLabel,
-              title: editable.ariaLabel,
-              onPointerdown: event => { event.stopPropagation(); }
-            });
-          });
+        const shown = fieldDraft.text(draft.label, draft.value);
+        const boxWidth = Math.min(Math.max(String(shown ?? '').length + 2, 6), 12) * CH_PX;
+        const left = Math.min(Math.max(draft.left - boxWidth / 2, 2), Math.max(2, width - boxWidth - 2));
+        const top = Math.min(Math.max(draft.top - 13, 2), Math.max(2, height - 28));
+        const close = () => { dimensionDraft.value = null; };
+        const handlers = fieldDraft.handlers(draft.label, draft.value, next => {
+          applyShapeField(draft.shapeId, draft.read, draft.apply, draft.value)(next);
+          close();
+        });
+        return h(InputText, {
+          ref: dimensionInputRef,
+          key: draft.label,
+          class: 'profile-dim absolute z-20 bg-content text-center font-mono text-xs shadow-sm',
+          style: { left: `${left}px`, top: `${top}px`, width: `${boxWidth}px` },
+          modelValue: shown,
+          ...handlers,
+          size: 'small',
+          'aria-label': draft.label,
+          title: draft.label,
+          onKeydown: event => {
+            handlers.onKeydown(event);
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              event.stopPropagation();
+              close();
+            }
+          },
+          onBlur: event => {
+            handlers.onBlur(event);
+            close();
+          },
+          onPointerdown: event => { event.stopPropagation(); }
+        });
       };
 
       // The selected corner's popup edits the authored model through the
@@ -1673,7 +1443,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           importedFileName.value = file.name;
           droppedShapes = [];
           entityShapeByEntityId = new Map();
-          host.zoomFit();
+          lastAnnotationFingerprint = '';
+          host.zoomFit(PROFILE_ANNOTATION_LAYER);
           // An import is reference geometry: every extracted shape lands
           // with op none until the author assigns its ops.
           emitSketch({ reference: true });
@@ -1702,6 +1473,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           if (key && key !== lastViewKey) {
             lastViewKey = key;
             viewTick.value += 1;
+            if (dimensionDraft.value) dimensionDraft.value = null;
           }
           viewRaf = requestAnimationFrame(tick);
         };
@@ -1762,7 +1534,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               if (!host || containerRef.value?.clientHeight < 120) return;
               zoomObserver.disconnect();
               zoomObserver = null;
-              host.zoomFit();
+              host.zoomFit(PROFILE_ANNOTATION_LAYER);
             });
             zoomObserver.observe(containerRef.value);
           }
@@ -1780,17 +1552,22 @@ export default function createSketchEditor({ vue, components, locale }) {
       });
 
       watch(() => props.modelValue, () => {
+        dimensionDraft.value = null;
         if (host) reseedFromModel();
         scheduleOutlineResolve();
       }, { deep: true });
 
-      watch(() => props.externalParameters, () => { scheduleOutlineResolve(); }, { deep: true });
+      watch(() => props.externalParameters, () => {
+        scheduleOutlineResolve();
+        syncAnnotations();
+      }, { deep: true });
 
       // Instance values repaint the derived geometry: the authored model
       // stays put, the canvas reseeds from the new derived table.
       watch(() => props.instanceParameters, () => {
         if (host) reseedFromModel();
         scheduleOutlineResolve();
+        syncAnnotations();
       }, { deep: true });
 
       onBeforeUnmount(() => {
@@ -1842,12 +1619,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             end: () => renderToolGroupButtons(2, 4)
           }),
           renderShapesPanel(),
-          h('svg', {
-            ref: overlayRef,
-            class: 'pointer-events-none absolute inset-0 z-10 h-full w-full',
-            'aria-hidden': 'true'
-          }, renderCanvasAnnotations()),
-          ...renderDimensionInputs(),
+          renderDimensionEditor(),
           renderVertexPopup(),
           engineError.value
             ? h('div', { class: 'flex h-full items-center justify-center p-4' }, [
