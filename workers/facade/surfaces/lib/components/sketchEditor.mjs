@@ -77,6 +77,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       let disposed = false;
       let zoomObserver = null;
       let seeding = false;
+      let pendingDimensionPick = null;
       let viewRaf = 0;
       let lastViewKey = '';
 
@@ -436,9 +437,12 @@ export default function createSketchEditor({ vue, components, locale }) {
         const world = host?.screenToWorld({ x: event.clientX, y: event.clientY });
         const picked = world ? host?.pick(world, 8) : null;
         if (picked?.profile?.fieldKey) {
-          openDimensionEditor(picked, event);
+          pendingDimensionPick = picked;
+          dimensionDraft.value = null;
+          selectedCorner.value = null;
           return;
         }
+        pendingDimensionPick = null;
         dimensionDraft.value = null;
         const found = cornerAt(event.clientX, event.clientY, 10);
         if (found) {
@@ -1474,7 +1478,6 @@ export default function createSketchEditor({ vue, components, locale }) {
           if (key && key !== lastViewKey) {
             lastViewKey = key;
             viewTick.value += 1;
-            if (dimensionDraft.value) dimensionDraft.value = null;
           }
           viewRaf = requestAnimationFrame(tick);
         };
@@ -1509,7 +1512,15 @@ export default function createSketchEditor({ vue, components, locale }) {
             if (!seeding) scheduleExtraction();
           };
           host.onPointerDown = handleVertexSelectPointerDown;
-          host.onPointerUp = scheduleExtraction;
+          host.onPointerUp = (event) => {
+            if (pendingDimensionPick) {
+              const picked = pendingDimensionPick;
+              pendingDimensionPick = null;
+              openDimensionEditor(picked, event);
+              return;
+            }
+            scheduleExtraction();
+          };
           host.onKeyDown = handleCanvasKeydown;
           window.addEventListener('keydown', handleParentKeydown, true);
           startViewWatcher();
