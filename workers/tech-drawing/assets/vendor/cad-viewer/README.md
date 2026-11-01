@@ -62,11 +62,30 @@ wiring polar tracking needs a re-vendor that re-exports it. This build
 has no grid or snap-to-grid at all (grid data only round-trips through
 DXF viewport table records).
 
+## One canvas per page
+
+`AcApDocManager` is a page singleton: `createInstance` returns the first
+manager and ignores every later container, so a second canvas would draw
+the first one's document. Surfaces coordinate through a lease on
+`globalThis[Symbol.for('perigram.cadViewer.lease')]` — an object with one
+slot, `owner`. A mount claims the lease with a private token before
+`createInstance`, releases it on unmount, and while another token holds
+it renders the collision state with a retry instead of mounting. The
+`cad-viewer` module is shared by both consumers (facade's profile canvas,
+tech-drawing's DXF template canvas), so the symbol is the whole protocol.
+
+Every mount destroys its manager on unmount (`destroy()` clears the
+singleton); the glyph-redraw settle delay in both surfaces guards the
+engine's font timer from firing after teardown.
+
 Keyboard routing stays in the engine: its view key handler binds at the
-document level for the active managed view and maps Ctrl+Z / Ctrl+Y to
-undo/redo and Delete/Backspace to erase, skipping events whose target is
-an editable field — the surface routes no drawing keys of its own (only
-its window-level Escape), so authoring inputs type normally. Typed prompt
+document level for the active managed view and maps Delete/Backspace to
+erase, skipping events whose target is an editable field. Undo/redo over
+an authored model belongs to that model: the profile canvas intercepts
+Ctrl+Z / Ctrl+Y at the window and steps its sketch snapshots, and the
+engine's undo/redo commands leave its command stack. The surface routes
+no other drawing keys (only its window-level Escape), so authoring
+inputs type normally. Typed prompt
 entry (a bare length as direct distance toward the cursor, `dist<angle`
 polar, `@x,y` relative) parses only through the command-line input —
 the engine's length/angle entry chrome is touch-layout only — so the

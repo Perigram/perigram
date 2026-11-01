@@ -27,7 +27,9 @@ same-origin. Orgs connect the executor through the install's
   `{spot:<name>}` anchors list beside it — add (a canvas click picks the
   insertion point into the X/Y form), rename, delete — and every edit
   re-opens the spliced DXF so the canvas shows the saved truth. The
-  canvas reads the layer-normalized copy (`withLayerTable`: every
+  canvas claims the page-level cad-viewer lease, destroys its manager on
+  unmount ([contract](./assets/vendor/cad-viewer/README.md)), and reads
+  the layer-normalized copy (`withLayerTable`: every
   entity-referenced layer plus layer 0 gains a LAYER record and the
   CONTINUOUS linetype, so strict viewers draw the whole template);
   saves ride the authored bytes through the revisioned payload channel.

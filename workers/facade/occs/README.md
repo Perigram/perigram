@@ -114,7 +114,11 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     section: its first and last vertices are the break points where the
     composite chain splices into the host face's contour; boolean shapes
     are excluded from it.
-  - Extraction keeps every drawn piece as its own shape. A closed
+  - Extraction keeps every drawn piece as its own shape. A DXF polyline
+    carries its arc segments as bulges on the vertex that starts the
+    segment, and extraction reads them (`polylineRecordSegments`), so a
+    rounded polyline round-trips as lines plus arcs instead of straight
+    chords. A closed
     four-vertex right-angle chain detects as a `rect` primitive in
     canonical order — counter-clockwise from the leftmost corner, so the
     draw direction leaves the stored settings and corner labels
@@ -141,7 +145,21 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   - An authored sketch whose expressions do not resolve keeps the
     authored model whole (the drawing-is-sacred law): canvas geometry
     merges on the next pass once the text resolves, and the editor
-    renders from the last good evaluation in between.
+    renders from the last good evaluation in between. The merge's
+    surrounding scope is evaluation-only — a refused merge returns the
+    authored table untouched.
+  - The sketch model owns the author's history: the profile editor's
+    undo/redo (toolbar and Ctrl+Z/Ctrl+Y over the canvas) step through
+    sketch snapshots and reseed the canvas. The engine's undo stack
+    covers its database projection, which every model step reseeds, so
+    the canvas drops the engine's `UNDO`/`REDO` commands. The engine's
+    destructive geometry edits (`FILLET`, `CHAMFER`, `TRIM`, `EXTEND`,
+    `BREAK`) leave the canvas for the same reason: fillets are authored
+    as shape modifiers, never as geometry.
+  - A sketch's parameter rows are its own. A row named by the
+    surrounding scope belongs to the sketch while a shape field
+    references it; an unreferenced scope-named row is stale copy and
+    drops from the editor's draft (`pruneScopeBoundParameters`).
   - The default hanger template is parametric — a rect (W/H the
     rectangle, R the four corner fillets) plus a subtract circle (D the
     hole), L resolving the sweep at evaluation. `normalizeOccsProfileSketch`
