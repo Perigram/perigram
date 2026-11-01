@@ -18,7 +18,7 @@ The frame exposes `window.cadcraft = { doc, view, engine, host, commands }`.
 | `entities()` | `doc.all()` |
 | `openText(name, text)` | reads ASCII DXF through the edition's `dxf.js` and loads the drawing |
 | `newDrawing(name)` | empty layer-0 document |
-| `annotate(layer, entities)` | replaces one derived layer's entities in place; document events stay suppressed, the view repaints |
+| `annotate(layer, entities, { locked })` | replaces one derived layer's entities in place; document events stay suppressed, a locked layer stays visible and unpickable |
 | `pick(point, px)` | the engine's editable entity under a world point, or null |
 | `worldToScreen` / `screenToWorld` | `view.toScreen` / `view.toWorld`; popup and pointer coordinates are frame-local |
 | `viewKey()` | the view pan/zoom tuple the surfaces poll for transient popup redraws |
