@@ -158,8 +158,8 @@ export class CadCraftHost {
     if (fit) this.cad.view.fit();
   }
 
-  /** Replace one derived layer's entities in place — the host's annotation channel. */
-  annotate(layer, entities) {
+  /** Replace one derived layer's entities in place — the host's annotation channel. A locked layer stays visible and unpickable. */
+  annotate(layer, entities, { locked = false } = {}) {
     if (!this.cad || !layer) return;
     const doc = this.cad.doc;
     this.suppress = true;
@@ -168,7 +168,7 @@ export class CadCraftHost {
         for (const entity of [...doc.entities.values()]) {
           if (entity.layer === layer) doc.remove(entity.id);
         }
-        doc.layer(layer);
+        doc.layer(layer).locked = Boolean(locked);
         for (const entity of entities) doc.add({ ...entity, layer });
       });
     } finally {

@@ -21,7 +21,7 @@ import {
 } from '../../../occs/profiles.js';
 import { resolveOccsExpression } from '../../../occs/expressions.js';
 import { foldCassetteV2Region } from '../cassetteV2Clipper.js';
-import { buildProfileAnnotations, profileDimensionField, PROFILE_ANNOTATION_LAYER } from '../profileAnnotations.js';
+import { buildProfileAnnotations, profileDimensionField, PROFILE_ANNOTATION_LAYER, PROFILE_DIMENSION_LAYER } from '../profileAnnotations.js';
 import { toolIcon } from './toolIcons.mjs';
 import createFieldDraft from './fieldDraft.mjs';
 
@@ -232,15 +232,16 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!host || disposed) return;
         const { authored, evaluated } = annotationSource(sketch);
         if (!evaluated) return;
-        const entities = buildProfileAnnotations({
+        const { dimensions, decorations } = buildProfileAnnotations({
           evaluated,
           authored,
           resolvedFace: resolvedFace.value
         });
-        const fingerprint = JSON.stringify(entities);
+        const fingerprint = JSON.stringify({ dimensions, decorations });
         if (fingerprint === lastAnnotationFingerprint) return;
         lastAnnotationFingerprint = fingerprint;
-        host.annotate(PROFILE_ANNOTATION_LAYER, entities);
+        host.annotate(PROFILE_ANNOTATION_LAYER, decorations, { locked: true });
+        host.annotate(PROFILE_DIMENSION_LAYER, dimensions);
       };
 
       const selectShapeInEngine = (shapeId) => {
@@ -551,7 +552,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       const entityRecords = () => {
         const records = [];
         for (const entity of host?.entities() || []) {
-          if (entity.layer === PROFILE_ANNOTATION_LAYER) continue;
+          if (entity.layer === PROFILE_ANNOTATION_LAYER || entity.layer === PROFILE_DIMENSION_LAYER) continue;
           const shapeId = entityShapeByEntityId.get(entity.id);
           const tag = shapeId ? { shapeId } : {};
           if (entity.type === 'line') {

@@ -5,6 +5,7 @@
 import { occProfileRectCornerVertices } from '../../occs/profiles.js';
 
 export const PROFILE_ANNOTATION_LAYER = 'perigram-profile-annotations';
+export const PROFILE_DIMENSION_LAYER = 'perigram-profile-dimensions';
 
 const DIM_STYLE = Object.freeze({
   txt: 2.5,
@@ -65,7 +66,7 @@ const dimension = ({ kind, key, a, b, inward, text, profile, stack }) => {
     text,
     st: { ...DIM_STYLE },
     color: 8,
-    layer: PROFILE_ANNOTATION_LAYER,
+    layer: PROFILE_DIMENSION_LAYER,
     profile: profile || null,
     annotationKey: key
   };
@@ -159,7 +160,7 @@ const primitiveDimensions = (authoredShape, shape, stack) => {
       text: fieldLabel(authoredShape?.diameter ?? shape.diameter, shape.diameter),
       st: { ...DIM_STYLE },
       color: 8,
-      layer: PROFILE_ANNOTATION_LAYER,
+      layer: PROFILE_DIMENSION_LAYER,
       profile: { shapeId: shape.id, fieldKey: 'diameter' },
       annotationKey: `${shape.id}:diameter`
     });
@@ -205,10 +206,10 @@ export function buildProfileAnnotations({ evaluated, authored = null, resolvedFa
     ))
   ]);
 
-  const entities = [...dimensions];
+  const decorations = [];
   const rings = ringsOf(resolvedFace);
   if (rings.length) {
-    entities.push({
+    decorations.push({
       type: 'hatch',
       loops: rings.map(ring => ring.flatMap(item => [item.x, item.y])),
       pattern: 'ANSI31',
@@ -217,7 +218,7 @@ export function buildProfileAnnotations({ evaluated, authored = null, resolvedFa
       layer: PROFILE_ANNOTATION_LAYER
     });
     for (const ring of rings) {
-      entities.push({
+      decorations.push({
         type: 'poly',
         pts: ring,
         closed: true,
@@ -226,11 +227,11 @@ export function buildProfileAnnotations({ evaluated, authored = null, resolvedFa
       });
     }
   }
-  entities.push(
+  decorations.push(
     { type: 'xline', x: 0, y: 0, dx: 0, dy: 1, color: 7, layer: PROFILE_ANNOTATION_LAYER },
     { type: 'point', x: 0, y: 0, color: 7, layer: PROFILE_ANNOTATION_LAYER }
   );
-  return entities;
+  return { dimensions, decorations };
 }
 
 /** The editable field a native dimension label edits, by its shape and field key. */
