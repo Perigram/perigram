@@ -352,9 +352,10 @@ the cassette, bare lines are what is authored. The editor, the
 production entity stream, and the nesting evaluation ride the same
 region fold.
 Owner direction (2026-10-19, authoring): a dragged shape keeps its
-parameter bindings — a moved field bound to a bare parameter edits that
-parameter, compound expressions and numerics carry the drawn value.
-Selection is the CAD engine's native selection.
+parameter bindings — a moved field bound to a bare identifier edits that
+identifier's effective row (the instance override when one exists),
+compound expressions and numerics carry the drawn value. Selection is
+the CAD engine's native selection.
 
 Owner direction (2026-10-19, evening — primitives panel): the
 primitive listing is a panel inside the editor canvas — a real list,
