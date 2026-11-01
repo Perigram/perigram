@@ -1337,6 +1337,125 @@ const shapesWithinEpsilon = (extracted = {}, authored = {}) => {
   ));
 };
 
+const nearestIndex = (points = [], point = {}) => {
+  let nearest = -1;
+  let nearestDistance = Infinity;
+  points.forEach((candidate, index) => {
+    const distance = Math.hypot(candidate.x - point.x, candidate.y - point.y);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearest = index;
+    }
+  });
+  return nearest;
+};
+
+// A rect and a closed four-corner chain describe one polygon: extraction
+// classifies by geometry, so a filleted chain can come back as a rect.
+// The authored kind is identity — the corner ring is the match.
+const rectFamilyCorners = (shape = {}) => {
+  if (shape.type === 'rect') return occProfileRectCornerVertices(shape);
+  if (shape.type === 'chain' && shape.closed && (shape.points || []).length === 4) {
+    return shape.points.map(point => [point.x, point.y]);
+  }
+  return null;
+};
+
+const cornerRingsMatch = (left, right) => {
+  if (!left || !right || left.length !== right.length) return false;
+  const used = new Set();
+  return left.every(([x, y]) => {
+    const index = right.findIndex(([rx, ry], at) => (
+      !used.has(at) && Math.hypot(rx - x, ry - y) <= MERGE_EPSILON_MM
+    ));
+    if (index < 0) return false;
+    used.add(index);
+    return true;
+  });
+};
+
+const sameShapeFamily = (extracted = {}, authored = {}) => {
+  if (extracted.type === authored.type) return true;
+  return cornerRingsMatch(rectFamilyCorners(extracted), rectFamilyCorners(authored))
+    && cornerRingsMatch(rectFamilyCorners(authored), rectFamilyCorners(extracted));
+};
+
+// Fillets come from the extraction (an erased arc clears its radius); the
+// authored radius expression rides along when the value still matches.
+const chainFilletsFromExtraction = (extractedShape, authoredShape, evaluatedShape, mergeField) => {
+  const authoredPoints = authoredShape?.points || [];
+  const authoredFillet = new Map((authoredShape?.modifiers || [])
+    .filter(modifier => modifier?.type === 'fillet')
+    .map(modifier => [modifier.vertexId, modifier.radius]));
+  const evaluatedFillet = new Map((evaluatedShape?.modifiers || [])
+    .filter(modifier => modifier?.type === 'fillet')
+    .map(modifier => [modifier.vertexId, modifier.radius]));
+  const extractedPoints = extractedShape?.points || [];
+  // Matching runs on evaluated geometry; the authored model carries the
+  // ids and the raw expressions.
+  const evaluatedPoints = (evaluatedShape?.points || []).length
+    ? evaluatedShape.points
+    : authoredPoints;
+  const extracted = [];
+  if (extractedShape?.type === 'rect') {
+    const corners = occProfileRectCornerVertices(extractedShape);
+    for (const fillet of extractedShape.fillets || []) {
+      const [x, y] = corners[fillet.corner] || [];
+      if (Number.isFinite(x) && Number.isFinite(y)) extracted.push({ point: { x, y }, radius: fillet.radius });
+    }
+  } else {
+    for (const modifier of extractedShape?.modifiers || []) {
+      if (modifier?.type !== 'fillet') continue;
+      const index = Number(String(modifier.vertexId ?? '').slice(1));
+      const point = Number.isInteger(index) ? extractedPoints[index] : null;
+      if (point) extracted.push({ point, radius: modifier.radius });
+    }
+  }
+  const modifiers = [];
+  for (const { point, radius } of extracted) {
+    const nearest = nearestIndex(evaluatedPoints.length ? evaluatedPoints : extractedPoints, point);
+    const vertexId = authoredPoints[nearest]?.id || evaluatedPoints[nearest]?.id || extractedPoints[nearest]?.id;
+    if (!vertexId) continue;
+    const merged = mergeField(
+      authoredFillet.get(vertexId),
+      evaluatedFillet.get(vertexId),
+      Number(radius)
+    );
+    if (merged === 0 || merged === '0' || merged === undefined) continue;
+    modifiers.push({ type: 'fillet', vertexId, radius: merged });
+  }
+  return modifiers;
+};
+
+const rectFilletsFromExtraction = (extractedShape, authoredShape, evaluatedShape, mergeField) => {
+  const authoredFillets = new Map((authoredShape?.fillets || []).map(fillet => [fillet.corner, fillet.radius]));
+  const evaluatedFillets = new Map((evaluatedShape?.fillets || []).map(fillet => [fillet.corner, fillet.radius]));
+  const authoredCorners = occProfileRectCornerVertices(
+    evaluatedShape?.type === 'rect' ? evaluatedShape : authoredShape
+  );
+  const fillets = [];
+  const pushAt = (point, radius) => {
+    if (!point) return;
+    const corner = nearestIndex(authoredCorners.map(([x, y]) => ({ x, y })), point);
+    if (corner < 0) return;
+    const merged = mergeField(authoredFillets.get(corner), evaluatedFillets.get(corner), Number(radius));
+    if (merged === 0 || merged === '0' || merged === undefined) return;
+    fillets.push({ corner, radius: merged });
+  };
+  if (extractedShape.type === 'rect') {
+    const corners = occProfileRectCornerVertices(extractedShape).map(([x, y]) => ({ x, y }));
+    for (const fillet of extractedShape.fillets || []) pushAt(corners[fillet.corner], fillet.radius);
+  } else {
+    const points = extractedShape.points || [];
+    for (const modifier of extractedShape.modifiers || []) {
+      if (modifier?.type !== 'fillet') continue;
+      const index = Number(String(modifier.vertexId ?? '').slice(1));
+      pushAt(points[index], modifier.radius);
+    }
+  }
+  return fillets.sort((left, right) => left.corner - right.corner);
+};
+
 // Chain merge: the per-point position law — an extracted point sitting
 // on an authored point's evaluated position keeps the authored id and
 // expression coordinates; a moved point keeps its authored expression
@@ -1369,25 +1488,7 @@ const mergeChainShape = (extractedShape, authoredShape, evaluatedShape, mergeFie
       ...(point.chord ? { chord: true } : {})
     };
   });
-  const authoredFillet = new Map(
-    (authoredShape?.modifiers || [])
-      .filter(modifier => modifier?.type === 'fillet')
-      .map(modifier => [modifier.vertexId, modifier.radius])
-  );
-  const idAtIndex = new Map(points.map((point, index) => [index, point.id]));
-  const modifiers = [];
-  for (const vertexId of used) {
-    if (authoredFillet.has(vertexId)) {
-      modifiers.push({ type: 'fillet', vertexId, radius: authoredFillet.get(vertexId) });
-    }
-  }
-  for (const modifier of extractedShape.modifiers || []) {
-    if (!modifier || modifier.type !== 'fillet') continue;
-    const index = Number(String(modifier.vertexId ?? '').slice(1));
-    const vertexId = Number.isInteger(index) ? idAtIndex.get(index) ?? modifier.vertexId : modifier.vertexId;
-    if (used.has(vertexId)) continue;
-    modifiers.push({ ...modifier, vertexId });
-  }
+  const modifiers = chainFilletsFromExtraction(extractedShape, authoredShape, evaluatedShape, mergeField);
   return {
     ...authoredShape,
     closed: extractedShape.closed,
@@ -1443,8 +1544,8 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     let best = null;
     let bestMatches = 0;
     for (const candidate of [...source.shapes, ...adoptSource]) {
-      if (usedAuthored.has(candidate.id) || candidate.type !== shape.type) continue;
-      if (shape.type === 'chain') {
+      if (usedAuthored.has(candidate.id) || !sameShapeFamily(shape, candidate)) continue;
+      if (shape.type === 'chain' && candidate.type === 'chain') {
         const matches = candidate.points.filter((candidatePoint, index) => (
           shape.points[index] && Math.hypot(
             candidatePoint.x - shape.points[index].x,
@@ -1457,7 +1558,7 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
         }
         continue;
       }
-      if (!best && shapesWithinEpsilon(shape, candidate)) best = candidate;
+      if (!best && (candidate.type !== shape.type || shapesWithinEpsilon(shape, candidate))) best = candidate;
     }
     if (!best) return { ...shape, __fresh: true };
     usedAuthored.add(best.id);
@@ -1470,7 +1571,16 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
       // shape so its fillet modifiers stay referenced.
       return mergeChainShape(shape, original, best, mergeField);
     }
-    return { ...original };
+    if (original.type === 'chain') {
+      // Extraction classified the polygon as a rect; the authored chain
+      // keeps its kind, points, and expressions.
+      return {
+        ...original,
+        closed: shape.closed ?? original.closed,
+        modifiers: chainFilletsFromExtraction(shape, original, best, mergeField)
+      };
+    }
+    return { ...original, fillets: rectFilletsFromExtraction(shape, original, best, mergeField) };
   });
   // Field-wise revive: a leftover extracted shape pairs with a leftover
   // authored shape of the same kind and keeps the authored expression on

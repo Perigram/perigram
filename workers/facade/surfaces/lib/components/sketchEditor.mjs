@@ -1084,12 +1084,16 @@ export default function createSketchEditor({ vue, components, locale }) {
             ? entitiesPerShape(lastGoodEvaluated.value)
             : [];
         }
+        // A model-driven reseed is not an author's canvas gesture: the
+        // entities it writes never feed extraction back into the model.
+        unbindDatabase();
         clearDrawingEntities();
         importedFileName.value = '';
         if (entities.length) {
           seedEntities({ entities });
           manager.curView?.zoomToFitDrawing?.();
         }
+        bindDatabase({ schedule: false });
       };
 
       // The engine owns the active-tool state: commands started from the

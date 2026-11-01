@@ -591,6 +591,59 @@ describe('OCCS profile helpers', () => {
     expect(current.parameters).toEqual({ W: 42, H: 28, R: 3 });
   });
 
+  it('keeps a filleted chain a chain — extraction classifies the polygon, identity keeps the kind', () => {
+    const authored = normalizeOccsProfileSketch({
+      shapes: [{
+        id: 's0', type: 'chain', op: 'add', closed: true,
+        points: [
+          { id: 'p0', x: 0, y: 0 }, { id: 'p1', x: 40, y: 0 },
+          { id: 'p2', x: 40, y: 20 }, { id: 'p3', x: 0, y: 20 }
+        ],
+        edges: [
+          { id: 'e0', type: 'line', from: 'p0', to: 'p1' },
+          { id: 'e1', type: 'line', from: 'p1', to: 'p2' },
+          { id: 'e2', type: 'line', from: 'p2', to: 'p3' },
+          { id: 'e3', type: 'line', from: 'p3', to: 'p0' }
+        ],
+        modifiers: [{ type: 'fillet', vertexId: 'p1', radius: 4 }]
+      }]
+    });
+    const extracted = occProfileSketchFromEntities(occProfileEntitiesFromSketch(authored));
+    expect(extracted.shapes[0].type).toBe('rect');
+    const merged = mergeOccsProfileSketchGeometry(extracted, authored, {});
+    expect(merged.shapes[0].type).toBe('chain');
+    expect(merged.shapes[0].points).toHaveLength(4);
+    expect(merged.shapes[0].modifiers).toEqual([{ type: 'fillet', vertexId: 'p1', radius: 4 }]);
+  });
+
+  it('drops a fillet whose arc left the canvas', () => {
+    const authored = normalizeOccsProfileSketch({
+      shapes: [{
+        id: 's0', type: 'chain', op: 'add', closed: true,
+        points: [
+          { id: 'p0', x: 0, y: 0 }, { id: 'p1', x: 40, y: 0 },
+          { id: 'p2', x: 40, y: 20 }, { id: 'p3', x: 0, y: 20 }
+        ],
+        edges: [
+          { id: 'e0', type: 'line', from: 'p0', to: 'p1' },
+          { id: 'e1', type: 'line', from: 'p1', to: 'p2' },
+          { id: 'e2', type: 'line', from: 'p2', to: 'p3' },
+          { id: 'e3', type: 'line', from: 'p3', to: 'p0' }
+        ],
+        modifiers: [{ type: 'fillet', vertexId: 'p1', radius: 4 }]
+      }]
+    });
+    const torn = normalizeOccsProfileSketch({
+      shapes: [{ ...authored.shapes[0], modifiers: [] }]
+    });
+    const merged = mergeOccsProfileSketchGeometry(
+      occProfileSketchFromEntities(occProfileEntitiesFromSketch(torn)),
+      authored,
+      {}
+    );
+    expect(merged.shapes[0].modifiers).toEqual([]);
+  });
+
   it('keeps a construction helper through a roundtrip — its op never becomes a draw default', () => {
     const authored = normalizeOccsProfileSketch({
       parameters: { W: 42, H: 28 },
