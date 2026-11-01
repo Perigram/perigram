@@ -29,6 +29,12 @@ The frame exposes `window.cadcraft = { doc, view, engine, host, commands }`.
 The frame is same-origin by construction: `contentWindow.cadcraft` and the
 frame's DOM events are the bridge. A cross-origin frame exposes neither.
 
+The module proxy rewrites the surfaces' bare `cadcraft` import from the
+organization's installed declaration snapshot. An install below
+tech-drawing v9 / facade v40 carries the old dependency list and leaves
+the specifier unresolved; apply the plugin upgrades when the executor
+moves to a new listing version.
+
 ## Rebuild
 
 1. Download `cadcraft-browser-edition-v0.7.0.zip` from the
