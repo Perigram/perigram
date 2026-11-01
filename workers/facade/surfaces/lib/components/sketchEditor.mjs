@@ -77,6 +77,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       let disposed = false;
       let zoomObserver = null;
       let seeding = false;
+      let programmaticSelection = false;
       let pendingDimensionPick = null;
       let viewRaf = 0;
       let lastViewKey = '';
@@ -252,7 +253,12 @@ export default function createSketchEditor({ vue, components, locale }) {
             .filter(([, id]) => id === shapeId)
             .map(([entityId]) => entityId)
           : [];
-        host.setSelection(ids);
+        programmaticSelection = true;
+        try {
+          host.setSelection(ids);
+        } finally {
+          programmaticSelection = false;
+        }
       };
 
       const findShape = (sketch, shapeId) => sketch.shapes.find(shape => shape.id === shapeId) || null;
@@ -1509,7 +1515,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           bindCommandEvents();
           host.onSelection = ids => {
             syncShapeSelection(ids);
-            if (!seeding) scheduleExtraction();
+            if (!seeding && !programmaticSelection) scheduleExtraction();
           };
           host.onPointerDown = handleVertexSelectPointerDown;
           host.onPointerUp = (event) => {
