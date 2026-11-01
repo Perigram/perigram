@@ -127,17 +127,21 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     center, width, height, rotation; circle center and diameter) rounds
     to 1e-3 mm; circles land as `subtract` shapes on a draw.
   - `mergeOccsProfileSketchGeometry` merges extraction back under the
-    one-way truth rule: shapes match by geometry identity — a rect when
-    its four corners match the authored evaluation's corners as a set
-    (ring start is draw-direction noise), a circle by center plus
+    one-way truth rule. A seeded entity carries its shape's id, and
+    extraction groups tagged entities back under that id, so a tagged
+    shape's identity is exact — geometry never decides its kind. Untagged
+    entities are the author's new geometry and match by geometry: a rect
+    when its four corners match the authored evaluation's corners as a
+    set (ring start is draw-direction noise), a circle by center plus
     diameter, a chain per point. A matched shape keeps the authored id,
     op, expressions, and fillets whole; the op rides the authored shape
     and extraction defaults apply only to genuinely new shapes. Kept
     shapes ride their authored sequence slots and fresh shapes append,
-    so the CSG order survives every extraction roundtrip. A moved field
-    keeps its authored expression when it names a parameter (the edit
-    lands on that parameter); compound expressions and numerics carry
-    the extracted value. Authored shapes with an erased extracted
+    so the CSG order survives every extraction roundtrip. Authored
+    expressions and numbers survive every pass: a bare parameter absorbs
+    an intentional move through its own value, and extraction rounding
+    never rewrites a value inside the merge epsilon. Authored shapes with
+    an erased extracted
     counterpart drop; a fourth argument offers the drops back as
     adoption candidates, so an engine undo/redo that restores erased
     canvas geometry revives the shape with its expressions. Fresh ids
