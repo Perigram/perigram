@@ -868,7 +868,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         const sketch = normalizeOccsProfileSketch(merged, context.parameters);
         const fingerprint = JSON.stringify(sketch);
         if (fingerprint === lastEmitted) return;
-        recordSketchHistory(props.modelValue || {});
+        recordSketchHistory(sketch);
         lastEmitted = fingerprint;
         emit('update:modelValue', sketch);
         // A merged sketch can keep authored expressions the evaluator
@@ -1146,7 +1146,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         const normalized = normalizeOccsProfileSketch(next);
         const fingerprint = JSON.stringify(normalized);
         if (fingerprint === lastEmitted) return;
-        if (!fromHistory) recordSketchHistory(props.modelValue || {});
+        if (!fromHistory) recordSketchHistory(normalized);
         lastEmitted = fingerprint;
         emit('update:modelValue', normalized);
         let profile = null;
