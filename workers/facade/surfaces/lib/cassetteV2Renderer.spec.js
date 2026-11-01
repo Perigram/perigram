@@ -274,7 +274,7 @@ describe('cassette v2 trapezoid renderer', () => {
         data: {
           kind: 'hanger',
           process: 'extruded',
-          parameters: { W: '40', H: '24', R: '2', D: '5', L: '100' }
+          instance: { W: '40', H: '24', R: '2', D: '5', L: '100' }
         }
       }
     });
@@ -330,7 +330,6 @@ describe('cassette v2 trapezoid renderer', () => {
       name: 'Open strip',
       kind: 'hanger',
       process: 'extruded',
-      parameters: square.parameters,
       occsProfile: occsProfileFromSketch(square),
       sketch: square
     });
@@ -374,7 +373,6 @@ describe('cassette v2 trapezoid renderer', () => {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
       name: 'Open strip',
-      parameters: open.parameters,
       occsProfile: occsProfileFromSketch(open),
       sketch: open
     });
@@ -405,7 +403,6 @@ describe('cassette v2 trapezoid renderer', () => {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
       name: 'Open strip',
-      parameters: open.parameters,
       occsProfile: occsProfileFromSketch(open),
       sketch: open
     });
@@ -562,7 +559,6 @@ describe('cassette v2 trapezoid renderer', () => {
         name: 'Filleted hanger',
         kind: 'hanger',
         process: 'extruded',
-        parameters: sketch.parameters,
         occsProfile: occsProfileFromSketch(sketch),
         sketch
       });
@@ -600,7 +596,6 @@ describe('cassette v2 trapezoid renderer', () => {
       name: 'Hanger',
       kind: 'hanger',
       process: 'extruded',
-      parameters: square.parameters,
       occsProfile: occsProfileFromSketch(square),
       sketch: square
     });
@@ -633,7 +628,6 @@ describe('cassette v2 trapezoid renderer', () => {
       name: 'Open strip',
       kind: 'hanger',
       process: 'extruded',
-      parameters: square.parameters,
       occsProfile: occsProfileFromSketch(square),
       sketch: square
     });
@@ -693,15 +687,17 @@ describe('cassette v2 trapezoid renderer', () => {
     const workpieceOf = (tree) => getCassetteV2Workpieces(tree).find(item => item.id === added.workpieceId);
 
     // No template, no authored sketch: the parametric default template
-    // supplies both the geometry and its table. The workpiece's own
-    // table carries it, because that is the table the row renders a
-    // chip per bound key from.
+    // supplies both the geometry and its table. The authored table rides
+    // the sketch, the overrides ride the instance table, and the chips
+    // render the derived table between them.
     const attached = workpieceOf(added.tree);
-    expect(attached.parameters).toEqual({ W: 42, H: 28, R: 3, D: 6, L: 120 });
+    expect(attached.profileSnapshot.instance).toEqual({});
+    expect(attached.profileSnapshot.sketch.parameters).toEqual({ W: 42, H: 28, R: 3, D: 6, L: 120 });
+    expect(normalizeCassetteV2Profile(attached).parameters).toEqual({ W: 42, H: 28, R: 3, D: 6, L: 120 });
 
     // Editing the chip re-evaluates: a larger R grows the corner arcs.
     const edited = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
-      parameters: { ...attached.parameters, R: 12 }
+      instance: { R: 12 }
     });
     const radius = (tree) => sectionShapeVertices(workpieceOf(tree).profileSnapshot.section).length;
     expect(radius(edited)).toBeGreaterThan(radius(added.tree));
@@ -731,7 +727,6 @@ describe('cassette v2 trapezoid renderer', () => {
       name: 'Parametric hanger',
       kind: 'hanger',
       process: 'extruded',
-      parameters: sketch.parameters,
       occsProfile: occsProfileFromSketch(sketch),
       sketch
     });
@@ -741,15 +736,18 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(rectVerticesOf(before)).toEqual([['0', '0'], ['42', '0'], ['42', '28'], ['0', '28']]);
 
     const instantiated = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
-      parameters: { ...sketch.parameters, W: 84, H: 'W/3' }
+      instance: { W: 84, H: 'W/3' }
     });
     const instance = getCassetteV2Workpieces(instantiated).find(item => item.id === added.workpieceId);
     expect(rectVerticesOf(instance)).toEqual([['0', '0'], ['84', '0'], ['84', '28'], ['0', '28']]);
-    expect(instance.profileSnapshot.parameters).toMatchObject({ W: 84, H: 'W/3' });
+    // The tables stay apart: the override rides instance, the authored
+    // row keeps its value.
+    expect(instance.profileSnapshot.instance).toEqual({ W: 84, H: 'W/3' });
+    expect(instance.profileSnapshot.sketch.parameters).toMatchObject({ W: 42, H: 28 });
 
     // A transient invalid parameter keeps the last good section.
     const broken = updateCassetteV2Workpiece(instantiated, added.workpieceId, {
-      parameters: { ...sketch.parameters, W: 84, H: 'W/' }
+      instance: { W: 84, H: 'W/' }
     });
     const held = getCassetteV2Workpieces(broken).find(item => item.id === added.workpieceId);
     expect(rectVerticesOf(held)).toEqual([['0', '0'], ['84', '0'], ['84', '28'], ['0', '28']]);
@@ -764,12 +762,11 @@ describe('cassette v2 trapezoid renderer', () => {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
       name: 'Hanger',
-      parameters: sketch.parameters,
       occsProfile: occsProfileFromSketch(sketch),
       sketch
     });
     const driven = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
-      parameters: { ...sketch.parameters, W: 'R*2' }
+      instance: { W: 'R*2' }
     });
     const workpiece = getCassetteV2Workpieces(driven).find(item => item.id === added.workpieceId);
     // The corner fillets resolve to arc points; bounds carry the law —
@@ -788,7 +785,6 @@ describe('cassette v2 trapezoid renderer', () => {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
       name: 'Strip',
-      parameters: open.parameters,
       occsProfile: occsProfileFromSketch(open),
       sketch: open
     });
@@ -800,7 +796,7 @@ describe('cassette v2 trapezoid renderer', () => {
       arrayCount: 'A/100'
     });
     const instance = updateCassetteV2Workpiece(arranged, placed.workpieceId, {
-      parameters: { ...open.parameters, W: 'A/2' }
+      instance: { W: 'A/2' }
     });
 
     const renamed = renameCassetteV2TreeParameter(instance, 'A', 'LENGTH');
@@ -811,7 +807,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(renamed.nodes.find(node => node.id !== 'face_1').foldAngle).toBe('LENGTH/2deg');
     // The instance value and the array count rebind.
     const workpiece = getCassetteV2Workpieces(renamed).find(item => item.id === placed.workpieceId);
-    expect(workpiece.parameters.W).toBe('LENGTH/2');
+    expect(workpiece.profileSnapshot.instance.W).toBe('LENGTH/2');
     expect(getCassetteV2WorkpieceRelations(renamed)[0].pattern.count).toBe('LENGTH/100');
     // Colliding and invalid names refuse.
     expect(renameCassetteV2TreeParameter(renamed, 'LENGTH', 'B').parameters.LENGTH).toBe('500');
@@ -823,14 +819,13 @@ describe('cassette v2 trapezoid renderer', () => {
       referenceWorkpieceId: 'wp_1',
       referenceNodeId: 'face_1',
       name: 'Hanger',
-      parameters: sketch.parameters,
       occsProfile: occsProfileFromSketch(sketch),
       sketch
     });
     // The default tree carries A=500: the W chip naming it reads it, and
-    // the stored table keeps the raw expression.
+    // the stored instance value keeps the raw expression.
     const driven = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
-      parameters: { ...sketch.parameters, W: 'A' }
+      instance: { W: 'A' }
     });
     const workpiece = getCassetteV2Workpieces(driven).find(item => item.id === added.workpieceId);
     const boundsOf = (section) => {
@@ -838,13 +833,15 @@ describe('cassette v2 trapezoid renderer', () => {
       return Math.max(...vertices.map(vertex => vertex[0]));
     };
     expect(boundsOf(workpiece.profileSnapshot.section)).toBeCloseTo(500, 5);
-    expect(workpiece.parameters.W).toBe('A');
+    expect(workpiece.profileSnapshot.instance.W).toBe('A');
 
     // The global stays live: the next derivation (what every render
-    // runs) reads the changed value — the stored table never baked it.
+    // runs) reads the changed value — the stored instance value never
+    // baked it.
     const reDerived = normalizeCassetteV2Profile(workpiece, { A: '600' });
     expect(boundsOf(reDerived.section)).toBeCloseTo(600, 5);
-    expect(reDerived.parameters.W).toBe('A');
+    expect(reDerived.instance.W).toBe('A');
+    expect(reDerived.parameters.W).toBe(600);
   });
 
   it('drives a drawn fillet chip whose point id is not its index', () => {
@@ -872,7 +869,6 @@ describe('cassette v2 trapezoid renderer', () => {
       name: 'Drawn hanger',
       kind: 'hanger',
       process: 'extruded',
-      parameters: sketch.parameters,
       occsProfile: occsProfileFromSketch(sketch),
       sketch
     });
@@ -883,7 +879,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(before.length, 'Expected the authored fillet to round the placed chain').toBeGreaterThan(4);
 
     const driven = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
-      parameters: { A: 2.5 }
+      instance: { A: 2.5 }
     });
     expect(chainOf(driven).length).toBeGreaterThan(4);
     expect(JSON.stringify(chainOf(driven)), 'Expected the chip edit to re-round the chain')

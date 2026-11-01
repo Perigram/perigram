@@ -772,4 +772,111 @@ describe('OCCS profile helpers', () => {
     assertRounded(rect.height);
     assertRounded(rect.rotation);
   });
+
+  // Shape identity (workers/facade/SPEC.md — shape identity): a tagged
+  // group rebuilds its authored shape's kind, so a filleted rectangle
+  // round-trips as one rectangle whatever its rotation and whatever the
+  // engine's endpoint rounding.
+  const rectWithFillets = (rotation) => normalizeOccsProfileSketch({
+    version: '0.2',
+    units: 'mm',
+    parameters: { W: 120, H: 60, R: 5, CX: 60, CY: 30, D: 6 },
+    material: 'positive',
+    shapes: [
+      {
+        id: 's0',
+        type: 'rect',
+        op: 'add',
+        center: ['CX', 'CY'],
+        width: 'W',
+        height: 'H',
+        rotation,
+        fillets: [0, 1, 2, 3].map(corner => ({ corner, radius: 'R' }))
+      },
+      { id: 's1', type: 'circle', op: 'subtract', center: ['CX', 'CY'], diameter: 'D' }
+    ]
+  });
+
+  const taggedEntities = (sketch) => sketch.shapes.flatMap(shape => (
+    occProfileEntitiesFromSketch({ ...sketch, shapes: [shape] })
+      .map(record => ({ ...record, shapeId: shape.id }))
+  ));
+
+  for (const rotation of [0, 30, -22.5, 45]) {
+    it(`round-trips a filleted rect at ${rotation}° as one rect with its bindings`, () => {
+      const sketch = rectWithFillets(rotation);
+      const extracted = occProfileSketchFromEntities(taggedEntities(sketch), {
+        parameters: sketch.parameters,
+        shapes: sketch.shapes
+      });
+      expect(extracted.shapes).toHaveLength(2);
+      expect(extracted.shapes[0]).toMatchObject({
+        id: 's0',
+        type: 'rect',
+        fillets: expect.arrayContaining([expect.objectContaining({ radius: 5 })])
+      });
+      expect(extracted.shapes[0].fillets).toHaveLength(4);
+
+      const merged = mergeOccsProfileSketchGeometry(extracted, sketch, {});
+      expect(merged.shapes).toHaveLength(2);
+      expect(merged.shapes[0]).toMatchObject({
+        id: 's0',
+        type: 'rect',
+        width: 'W',
+        height: 'H',
+        center: ['CX', 'CY']
+      });
+      expect(merged.shapes[0].fillets.map(fillet => fillet.radius)).toEqual(['R', 'R', 'R', 'R']);
+    });
+  }
+
+  it('holds an unreadable tagged group whole', () => {
+    const sketch = rectWithFillets(30);
+    const group = taggedEntities(sketch).filter(record => record.shapeId === 's0');
+    const extracted = occProfileSketchFromEntities(group.slice(0, group.length - 2), {
+      parameters: sketch.parameters,
+      shapes: sketch.shapes
+    });
+    const merged = mergeOccsProfileSketchGeometry(extracted, sketch, {});
+    expect(merged.shapes[0]).toMatchObject({ id: 's0', type: 'rect', width: 'W', height: 'H' });
+    expect(merged.shapes[0].fillets.map(fillet => fillet.radius)).toEqual(['R', 'R', 'R', 'R']);
+  });
+
+  it('reads untagged geometry by shape', () => {
+    const sketch = rectWithFillets(30);
+    const untagged = taggedEntities(sketch).map(({ shapeId, ...record }) => record);
+    const extracted = occProfileSketchFromEntities(untagged, { parameters: sketch.parameters });
+    expect(extracted.shapes.map(shape => shape.type).sort()).toEqual(['circle', 'rect']);
+  });
+
+  it('keeps a filleted chain\'s authored modifiers through the canvas', () => {
+    const sketch = normalizeOccsProfileSketch({
+      version: '0.2',
+      units: 'mm',
+      parameters: { W: 100, H: 40, R: 8 },
+      material: 'positive',
+      shapes: [{
+        id: 's0',
+        type: 'chain',
+        op: 'add',
+        closed: true,
+        points: [
+          { id: 'p0', x: 0, y: 0 }, { id: 'p1', x: 'W', y: 0 },
+          { id: 'p2', x: 'W', y: 'H' }, { id: 'p3', x: 0, y: 'H' },
+          { id: 'p4', x: -20, y: 'H/2' }
+        ],
+        modifiers: [{ type: 'fillet', vertexId: 'p1', radius: 'R' }]
+      }]
+    });
+    const extracted = occProfileSketchFromEntities(taggedEntities(sketch), {
+      parameters: sketch.parameters,
+      shapes: sketch.shapes
+    });
+    expect(extracted.shapes).toHaveLength(1);
+    const merged = mergeOccsProfileSketchGeometry(extracted, sketch, {});
+    expect(merged.shapes[0].type).toBe('chain');
+    expect(merged.shapes[0].points.map(point => [point.x, point.y]))
+      .toEqual(sketch.shapes[0].points.map(point => [point.x, point.y]));
+    expect(merged.shapes[0].modifiers).toEqual([{ type: 'fillet', vertexId: 'p1', radius: 'R' }]);
+  });
 });

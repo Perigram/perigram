@@ -241,23 +241,26 @@ const normalizeCassetteV2Hardware = (workpiece = {}) => {
 // faces: it owns no trapezoid node and never renders a face of its own.
 export const isCassetteV2ProfileWorkpiece = (workpiece = {}) => workpiece.type === 'profile' || Boolean(workpiece.profile);
 
+// A profile workpiece stores two parameter tables (workers/facade/SPEC.md
+// — two parameter tables): the authored table inside its sketch and the
+// instance table beside it. The derived table — authored rows with the
+// instance values on top — is what geometry, the save gate, and the
+// workpiece row's chips evaluate; the profile dialog edits the authored
+// one.
 export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
   const source = workpiece.profileSnapshot || workpiece.profile || workpiece.data?.occsProfile || {};
   // The authored sketch wins over any evaluated copy riding a cached
   // profile (`occsProfile.sketch` is evaluated numbers; the authored one
   // keeps the expressions parametric instantiation re-evaluates).
   const rawSketch = workpiece.sketch || source.sketch || null;
-  // The profile's own table is the authored sketch's table with the
-  // workpiece's instance values overriding it — that override is
-  // parametric instantiation, and the sketch (expressions included) is
-  // the derivation source, the stored section only the last good cache.
-  // The cassette's global parameters join ONLY the evaluation scope:
-  // instance values may be cassette expressions, but globals never bake
-  // into the stored table (they would go stale when the cassette's own
-  // parameters change).
-  const sketchTable = rawSketch ? normalizeOccsProfileSketch(rawSketch).parameters : {};
-  const instance = workpiece.parameters || {};
-  const table = { ...sketchTable, ...instance };
+  const data = createDefaultOccsProfileTemplateData({
+    kind: workpiece.profileKind || workpiece.kind || source.kind,
+    process: workpiece.process || workpiece.manufacturing?.process || source.process,
+    ...(rawSketch ? { sketch: rawSketch } : {})
+  });
+  const sketch = normalizeOccsProfileSketch(data.sketch);
+  const authoredTable = sketch.parameters;
+  const instance = source.instance || {};
   // Instance values resolve in the joined scope with the profile's own
   // table shadowing the cassette's globals (inner over outer — a local
   // parameter never gets silently overridden by a same-named global):
@@ -269,15 +272,15 @@ export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
   // and an expression naming nothing known stays raw too (the
   // transient-invalid law holds the last good section while the author
   // types).
-  const instanceScope = { ...scope, ...sketchTable, ...instance };
+  const instanceScope = { ...scope, ...authoredTable, ...instance };
   const resolveInstanceValue = (value) => {
     if (typeof value !== 'string' || !value.trim()) return value;
     try {
       const trimmed = value.trim();
       if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed)) {
         // A bare identifier reads its innermost binding — not itself.
-        if (Object.prototype.hasOwnProperty.call(sketchTable, trimmed)) {
-          return resolveCassetteV2Expression(trimmed, { ...scope, ...sketchTable });
+        if (Object.prototype.hasOwnProperty.call(authoredTable, trimmed)) {
+          return resolveCassetteV2Expression(trimmed, { ...scope, ...authoredTable });
         }
         if (Object.prototype.hasOwnProperty.call(scope, trimmed)) {
           return resolveCassetteV2Expression(trimmed, scope);
@@ -291,28 +294,14 @@ export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
       return value;
     }
   };
-  const evaluationTable = rawSketch || Object.keys(instance).length
-    ? {
-        ...sketchTable,
-        ...Object.fromEntries(Object.entries(instance)
-          .map(([key, value]) => [key, resolveInstanceValue(value)]))
-      }
-    : table;
+  const resolvedInstance = Object.fromEntries(Object.entries(instance)
+    .map(([key, value]) => [key, resolveInstanceValue(value)]));
+  const evaluationTable = { ...authoredTable, ...resolvedInstance };
   const evaluationScope = { ...evaluationTable, ...scope };
-  const data = createDefaultOccsProfileTemplateData({
-    kind: workpiece.profileKind || workpiece.kind || source.kind,
-    process: workpiece.process || workpiece.manufacturing?.process || source.process,
-    parameters: table,
-    ...(rawSketch ? { sketch: { ...rawSketch, parameters: table } } : {})
-  });
-  const sketch = normalizeOccsProfileSketch(rawSketch ? { ...rawSketch, parameters: table } : data.sketch, data.parameters);
-  // The evaluation sketch carries the resolved table — the stored sketch
-  // (returned below) keeps the raw one.
-  const evaluationSketch = normalizeOccsProfileSketch(
-    rawSketch ? { ...rawSketch, parameters: evaluationTable } : data.sketch,
-    data.parameters
-  );
-  const deriveFromSketch = rawSketch && sketch.shapes.length > 0;
+  // The evaluation sketch carries the resolved derived table — the stored
+  // sketch (returned below) keeps the authored one.
+  const evaluationSketch = normalizeOccsProfileSketch({ ...sketch, parameters: evaluationTable });
+  const deriveFromSketch = sketch.shapes.length > 0;
   let occsProfile = null;
   if (source.section && source.sweep && !deriveFromSketch) {
     occsProfile = { section: source.section, sweep: source.sweep, sketch };
@@ -332,18 +321,26 @@ export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
   return {
     kind: data.kind,
     process: data.process,
-    // The workpiece's table is the derived sketch's table with the
-    // instance values the workpiece carries on top. An instance table
-    // alone left the parametric default's own W/H/R/D table unreachable
-    // — the default template's row chips had nothing to render.
-    parameters: { ...sketch.parameters, ...table },
-    // The stored sketch keeps the clean table — never the scope-merged
-    // evaluation copy.
+    // The derived table drives the workpiece row's chips; the authored
+    // table rides the sketch and the overrides ride `instance`.
+    parameters: evaluationTable,
+    instance: { ...instance },
     sketch,
     section: occsProfile.section,
     sweep: occsProfile.sweep
   };
 };
+
+// The stored snapshot: authored truth and the instance table. The derived
+// table is the read-side projection.
+const cassetteV2ProfileSnapshot = (profile = {}) => ({
+  kind: profile.kind,
+  process: profile.process,
+  instance: profile.instance,
+  sketch: profile.sketch,
+  section: profile.section,
+  sweep: profile.sweep
+});
 
 const faceIdForWorkpiece = (tree, workpiece, preferredFaceId) => (
   tree.nodes.find(node => node.id === preferredFaceId && node.workpieceId === workpiece?.id)?.id ||
@@ -932,19 +929,21 @@ export const addCassetteV2ProfileWorkpiece = (tree, reference = {}) => {
     type: 'profile',
     profileKind: templateData.kind,
     process: templateData.process,
-    parameters: templateData.parameters,
-    profile: templateData.occsProfile || templateData.profile,
+    profile: {
+      ...(templateData.occsProfile || templateData.profile || {}),
+      instance: { ...(templateData.instance || {}) }
+    },
     sketch: templateData.sketch
   }, treeParameters(nextTree));
+  const snapshot = cassetteV2ProfileSnapshot(profile);
   const sourceWorkpiece = {
     id,
     name: reference.name || reference.template?.identity?.name || reference.profileTemplate?.identity?.name || `Profile ${index + 1}`,
     type: 'profile',
     role: profile.kind,
     profileTemplateId: reference.template?._id || reference.profileTemplate?._id || reference.profileTemplateId || '',
-    profileSnapshot: profile,
+    profileSnapshot: snapshot,
     process: profile.process,
-    parameters: { ...profile.parameters },
     rootId: '',
     definitionId: `${id}_def`,
     occurrenceId: id,
@@ -989,15 +988,23 @@ export const updateCassetteV2Workpiece = (tree, workpieceId, patch = {}) => {
   if (index < 0) return nextTree;
   const current = nextTree.workpieces[index];
   if (isCassetteV2ProfileWorkpiece(current) || patch.type === 'profile' || patch.profile) {
+    const currentSnapshot = current.profileSnapshot || current.profile || {};
+    const patchSnapshot = patch.profileSnapshot || patch.profile || null;
     const profile = normalizeCassetteV2Profile({
       ...current,
       ...patch,
-      profile: patch.profile || patch.profileSnapshot || current.profileSnapshot || current.profile,
-      parameters: {
-        ...(current.parameters || {}),
-        ...(patch.parameters || {})
+      type: 'profile',
+      profileSnapshot: {
+        ...currentSnapshot,
+        ...(patchSnapshot || {}),
+        instance: {
+          ...(currentSnapshot.instance || {}),
+          ...(patchSnapshot?.instance || {}),
+          ...(patch.instance || {})
+        }
       }
     }, treeParameters(nextTree));
+    const snapshot = cassetteV2ProfileSnapshot(profile);
     nextTree.nodes = nextTree.nodes.filter(node => node.workpieceId !== current.id);
     nextTree.joints.forEach((joint) => {
       if (joint.source?.occurrence === occurrenceIdForWorkpiece(current)) {
@@ -1010,10 +1017,10 @@ export const updateCassetteV2Workpiece = (tree, workpieceId, patch = {}) => {
       type: 'profile',
       role: patch.role || current.role || profile.kind,
       process: profile.process,
-      parameters: profile.parameters,
-      profileSnapshot: profile,
+      profileSnapshot: snapshot,
       rootId: ''
     };
+    delete nextTree.workpieces[index].parameters;
     delete nextTree.workpieces[index].family;
     delete nextTree.workpieces[index].productionMode;
     delete nextTree.workpieces[index].hardware;
@@ -1346,6 +1353,11 @@ export const renameCassetteV2TreeParameter = (tree = createCassetteV2GraphTree()
     ...(workpiece.profileSnapshot ? {
       profileSnapshot: {
         ...workpiece.profileSnapshot,
+        ...(workpiece.profileSnapshot.instance ? {
+          instance: Object.fromEntries(
+            Object.entries(workpiece.profileSnapshot.instance).map(([key, value]) => [key, rewrite(value)])
+          )
+        } : {}),
         ...(workpiece.profileSnapshot.sketch ? { sketch: rewriteSketch(workpiece.profileSnapshot.sketch) } : {})
       }
     } : {})
@@ -1616,7 +1628,9 @@ export const createCassetteV2OccsDocumentFromTree = async (tree = createCassette
             id: workpiece.definitionId || `${workpiece.id}_def`,
             type: 'profile',
             role: workpiece.role || profile.kind,
-            parameters: { ...(profile.parameters || {}) },
+            // The document workpiece carries the instance table; its
+            // authored truth rides the sketch extension.
+            parameters: { ...(profile.instance || {}) },
             profile: {
               section: profile.section,
               sweep: profile.sweep
