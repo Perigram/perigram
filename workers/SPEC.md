@@ -72,18 +72,18 @@ in the root [SPEC.md](../SPEC.md) §20.
   solvers stay behind the service seam.
 - Vendored runtimes rebuild through `perigram-plugin vendor` from declared
   dependencies; each vendor directory's README owns its rebuild contract
-  and traps (cad-viewer: esbuild + `--keep-names`, patched error strings,
-  osnap mask; three: OrbitControls sibling-import rewrite; documents:
-  esbuild-bundled crepe theme over the enabled features).
+  and traps (cadcraft: pinned release edition + the same-origin host
+  module and chrome CSS; three: OrbitControls sibling-import rewrite;
+  documents: esbuild-bundled crepe theme over the enabled features).
 - `workers/nesting/jagua-rs` is vendored upstream, read-only.
 
 ## Structure
 
 | Path | Homes |
 |---|---|
-| `facade/` | entry `index.js`; `services.js` (the seven services); `nesting-projections.js` (value→value purity); `occs/` the domain's single geometry engine — executor services and browser surfaces share it, and it is served statically; `surfaces/` + `surfaces/lib/` editor and preview modules; `vendor/` DXF engines; `assets/vendor/{cad-viewer,three,clipper2}` |
+| `facade/` | entry `index.js`; `services.js` (the seven services); `nesting-projections.js` (value→value purity); `occs/` the domain's single geometry engine — executor services and browser surfaces share it, and it is served statically; `surfaces/` + `surfaces/lib/` editor and preview modules; `vendor/` DXF engines; `assets/vendor/{three,clipper2}` |
 | `documents/` | entry, services, text/csv surfaces, vendored editor runtimes |
-| `tech-drawing/` | declarations-only listing + sketch editor surface |
+| `tech-drawing/` | declarations listing + sketch and DXF editor surfaces + the vendored CadCraft edition |
 | `nesting/` | `worker_service.py` entry; `core/nesting_input_builder.py`, `core/geometry_utils.py`; `jagua-rs/` + `lbf` |
 | `plugin-executor.Dockerfile` | shared executor image; the nesting image builds from the repo-root context |
 

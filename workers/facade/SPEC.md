@@ -36,15 +36,14 @@ chrome stays the platform's InstanceCard.
 ## Profiles and the cassette designer
 
 Owner decision (2026-10-13): the cassette profile sketch is drawn on a
-real CAD engine, not a bespoke sketch widget. The facade plugin's profile
-sketch editor embeds the MIT-licensed MLightCAD browser CAD engine
-(cad-simple-viewer, vendored as a self-contained executor asset) with
-real drawing commands, object snaps, and engine undo; drawn entity
-records normalize into the OCCS profile sketch through the engine's one
-normalization path (tangent corner arcs become fillet modifiers, other
-arcs flatten, circles become holes). DXF only: the open-source DWG
-parser is GPL LibreDWG and the alternative is commercial, so DWG stays
-out of the plugin and DXF remains the pipeline's exchange format.
+real CAD engine, not a bespoke sketch widget. Owner decision
+(2026-11-01): the facade plugin's profile sketch editor embeds the
+Apache-2.0 CadCraft browser edition (getcadcraft/cadcraft, vendored as a
+self-contained executor asset) with real drawing commands, object snaps,
+and the sketch's own undo history; drawn entity records normalize into
+the OCCS profile sketch through the engine's one normalization path
+(tangent corner arcs become fillet modifiers, other arcs flatten, circles
+become holes). DXF remains the pipeline's exchange format.
 
 Owner decision (2026-10-14): profile sketches go parametric through the
 OCCS expression layer, not an embedded constraint solver (owner pick

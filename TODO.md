@@ -572,29 +572,13 @@ AttachmentKind row.
     patch law); the file-detail replace affordance rides the lifecycle
     step below.
   - [ ] WAITING — owner verification: DXF editor surface, marker-first:
-    editor binding for dxf-source; a surface module over the MLightCAD
-    runtime homed in this plugin (the cross-plugin vendor dependency
-    serves facade's cassette designer from the same bundle) that opens
+    editor binding for dxf-source; a surface module over the CadCraft
+    browser edition homed in this plugin (the cross-plugin dependency
+    serves facade's cassette designer from the same host) that opens
     the template payload on the CAD canvas, authors and renames
     `{spot:<name>}` anchors — the part-matching vocabulary, authored
     where the drawing is drawn — and saves through the revisioned
     channel; full editing grows on the same surface.
-
-    ### Agent Notes (2026-10-27)
-
-    `surfaces/dxf-editor.mjs` (surface contract 2, `dxf-source` edit
-    binding; tech-drawing v7 with the own-scope `cad-viewer` dependency).
-    The canvas opens the template read-only through
-    `AcApDocManager.openDocument`; the marker panel adds (name + X/Y,
-    height from the drawing's own markers or extents), renames, and
-    deletes anchors; every edit splices the DXF text and re-opens, so
-    the canvas always shows the saved truth; saves ride
-    `saveDocument` → the revisioned payload channel. The pair model and
-    marker ops live in `dxf-markers.js`, single-homed with the placement
-    engine (placement.js imports them). Focused spec
-    `dxf-markers.spec.js` (7 cases incl. the authored-template
-    round-trip through `composeDxfPlacement`). Canvas-click point
-    picking and full geometry editing grow on the same surface.
 
     ### Agent Notes (2026-10-28, layer law)
 
@@ -605,6 +589,22 @@ AttachmentKind row.
     declared over the CONTINUOUS linetype — existing tables gain only
     missing records; saves keep the authored bytes. Spec grows to 10
     cases; the rails e2e fails on any layer-resolution console error.
+
+    ### Agent Notes (2026-11-01, CadCraft canvas)
+
+    The canvas is the CadCraft browser edition, mounted by
+    `assets/vendor/cadcraft/host.mjs` through the own-scope `cadcraft`
+    dependency (tech-drawing v9). `CadCraftHost` creates the same-origin
+    iframe, hides its chrome, opens the layer-normalized DXF, locks the
+    template's layers, and converts canvas points through
+    `view.toWorld` for the marker form. Saves stay on `saveDocument`.
+    The facade cassette designer consumes the same host through its
+    cross-plugin dependency (facade v40); its OCCS expressions, shape
+    records and CSG fold stay the model. Surface harness: 9 seeded
+    entities for the default hanger, 75 overlay annotations, shape
+    selection expands the row, a drawn LINE extracts as a new chain
+    shape. Validation: both listings, surface smoke, check-arch,
+    framework:validate, docs:validate, SSR suite.
   - [ ] Fill dialog general rails (owner direction 2026-10-28): part
     inputs pick, create through the accepted type's declared creation
     mode, and open the picked instance's editor when its type binds one;
@@ -724,7 +724,7 @@ AttachmentKind row.
 
     Owner direction (2026-10-28): name-matching as the only fill path
     forced part renames — degenerate. Landed: the fill operator's parts
-    input carries the `spot-parts` control pin (tech-drawing v8); the
+    input carries the `spot-parts` control pin (tech-drawing v9); the
     dialog lists the picked template's anchors and picks any part per
     anchor (`SpotPartsRow` over `shared/dxf-spots.js`), name-equal parts
     prefilled; the assignment travels as `{ id, spot }` beside the
@@ -872,16 +872,16 @@ AttachmentKind row.
   type and the exact instance on the node. Spec pins: the designer
   palette pin and the round-trip species pin carry the item.
 - [ ] WAITING — owner verification: cross-plugin vendor dependency — the
-  MLightCAD CAD runtime moves to tech-drawing and the facade cassette
-  designer consumes it through a declared `plugin:tech-drawing/…`
-  dependency (SPEC §20 law above).
+  CadCraft host homes in tech-drawing and the facade cassette designer
+  consumes it through a declared `plugin:tech-drawing/…` dependency
+  (SPEC §20 law above).
 
-  ### Agent Notes (2026-10-27)
+  ### Agent Notes (2026-11-01)
 
-  Bundle moved to `workers/tech-drawing/assets/vendor/cad-viewer/` (served
-  by its executor); facade listing declares
-  `{ name: 'cad-viewer', module: 'plugin:tech-drawing/assets/vendor/cad-viewer/cad-viewer.mjs' }`
-  and the sketch editor lazy-imports the bare `cad-viewer`. Mechanism:
+  `workers/tech-drawing/assets/vendor/cadcraft/host.mjs` is served by
+  the tech-drawing executor; facade listing declares
+  `{ name: 'cadcraft', module: 'plugin:tech-drawing/assets/vendor/cadcraft/host.mjs' }`
+  and the sketch editor imports the bare `cadcraft`. Mechanism:
   `parseListing` admits `plugin:<id><path>` modules when `<id>` is in
   `requires`; the module proxy rewrites the bare import to the required
   plugin's proxied scope; the surface check exempts cross-plugin modules

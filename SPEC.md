@@ -793,10 +793,10 @@ Owner decision (2026-10-27): a dependency module may name another
 plugin's served module — the `plugin:<id><path>` spelling — where `<id>`
 must appear in the listing's `requires`; the module proxy resolves the
 bare import to the required plugin's proxied scope, and the surface
-check exempts it from the own-root existence rule. The MLightCAD CAD
-runtime homes in tech-drawing (the drawing-domain plugin) as the base
-for DXF editing; the facade's cassette designer consumes it through this
-seam.
+check exempts it from the own-root existence rule. The CadCraft browser
+edition homes in tech-drawing (the drawing-domain plugin) as the base
+for DXF editing; the facade's cassette designer consumes its host
+through this seam.
 
 Owner decision (2026-10-17): the surface mount grows two editor-grade
 capabilities — `sync`, realtime document sync through the host's room

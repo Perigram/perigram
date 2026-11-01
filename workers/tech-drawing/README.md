@@ -22,18 +22,18 @@ same-origin. Orgs connect the executor through the install's
   capability mount; background images upload through the host file
   channel, undo/redo over scene snapshots inline).
 - DXF template editor: `surfaces/dxf-editor.mjs` (surface contract 2,
-  bound to `dxf-source` edit). Marker-first: the template opens on the
-  MLightCAD canvas (the declared `cad-viewer` dependency), the
+  bound to `dxf-source` edit). Marker-first: the template opens in the
+  CadCraft canvas (the declared `cadcraft` dependency), the
   `{spot:<name>}` anchors list beside it — add (a canvas click picks the
   insertion point into the X/Y form), rename, delete — and every edit
   re-opens the spliced DXF so the canvas shows the saved truth. The
-  canvas claims the page-level cad-viewer lease, destroys its manager on
-  unmount ([contract](./assets/vendor/cad-viewer/README.md)), and reads
-  the layer-normalized copy (`withLayerTable`: every
+  canvas reads the layer-normalized copy (`withLayerTable`: every
   entity-referenced layer plus layer 0 gains a LAYER record and the
   CONTINUOUS linetype, so strict viewers draw the whole template);
   saves ride the authored bytes through the revisioned payload channel.
-  The pair
+  [`assets/vendor/cadcraft/host.mjs`](./assets/vendor/cadcraft/README.md)
+  owns the same-origin iframe, chrome hiding, entity mapping and the
+  selection/pointer subscriptions. The pair
   model and the marker operations live in `dxf-markers.js`, shared with
   the placement engine; `spotNamesOf` (the anchor read the fill dialog's
   spot-parts row consumes through the served surface module) homes there
@@ -43,10 +43,10 @@ same-origin. Orgs connect the executor through the install's
   DrawingCanvas preview adapter over the same stored shape.
 - Vendored runtimes: `perfect-freehand` (declared dependency, MIT;
   rebuilt with `perigram-plugin vendor --listing listing.json`) and the
-  MLightCAD CAD engine
-  ([`assets/vendor/cad-viewer`](./assets/vendor/cad-viewer/README.md)) —
-  the base for DXF editing; facade's cassette designer consumes the same
-  bundle through its declared cross-plugin dependency.
+  CadCraft browser edition
+  ([`assets/vendor/cadcraft`](./assets/vendor/cadcraft/README.md)) — the
+  base for DXF editing; facade's cassette designer consumes the same host
+  through its declared cross-plugin dependency.
 - `dxf-source` and `svg-file` declare the `geometry` revision scope and
   `sketch` the `scene` scope: the revisioned payload channel serves
   replace-in-place for drawing templates (SPEC §24).

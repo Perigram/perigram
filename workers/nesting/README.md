@@ -10,7 +10,7 @@ algorithm, no DB access).
 Parent: [workers README](../README.md).
 
 ## Nesting Engine
-The worker integrates with **[jagua-rs](./jagua-rs/README.md)**, a high-performance nesting library written in Rust.
+The worker integrates with **[jagua-rs](./jagua-rs/)**, a high-performance nesting library written in Rust.
 - The `lbf` binary is executed to perform the nesting.
 
 ## Architecture & Workflow
