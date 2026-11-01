@@ -368,7 +368,7 @@ describe('cassette v2 folded preview', () => {
 
     // The owner's exact case: change R from the cassette row.
     const updated = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
-      parameters: { R: 6 }
+      instance: { R: 6 }
     });
     const after = snapshotOf(updated);
     // The section re-derives: a larger fillet radius grows the resolved
@@ -379,7 +379,7 @@ describe('cassette v2 folded preview', () => {
     // And the drawing's subtract operand follows its parameter: grow D
     // and the inner cut grows with it.
     const grownD = updateCassetteV2Workpiece(updated, added.workpieceId, {
-      parameters: { D: 14 }
+      instance: { D: 14 }
     });
     const cutSpanAt = async (tree) => {
       const d = (await renderCassetteV2TreeToDrawing(tree, { mode: 'workpiece' }))
@@ -403,7 +403,6 @@ describe('cassette v2 folded preview', () => {
         name: 'Hanger',
         kind: 'hanger',
         process: 'extruded',
-        parameters: sketch.parameters,
         occsProfile: occsProfileFromSketch(sketch),
         sketch
       });

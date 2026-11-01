@@ -68,7 +68,10 @@ export default function createSketchEditor({ vue, components, locale }) {
       // The surrounding scope's parameters (the cassette's globals): a
       // field expression naming one of them reads it — evaluation joins
       // the scope, adopt-on-bind never mints it (occs/README.md).
-      externalParameters: { type: Object, default: () => ({}) }
+      externalParameters: { type: Object, default: () => ({}) },
+      // The workpiece's instance table: it overrides the authored rows
+      // for every evaluation the canvas runs, and stays out of the model.
+      instanceParameters: { type: Object, default: () => ({}) }
     },
     emits: ['update:modelValue', 'profile'],
     setup(props, { emit }) {
@@ -202,10 +205,20 @@ export default function createSketchEditor({ vue, components, locale }) {
       // and hatch render from it, the message states the error, and
       // the next resolved pass restores live evaluation.
       const lastGoodEvaluated = shallowRef(null);
+      // The canvas renders the derived table: the instance values over
+      // the authored rows (workers/facade/SPEC.md — two parameter
+      // tables). The authored model stays what the editor emits.
+      const derivedSketch = (sketch = {}) => normalizeOccsProfileSketch({
+        ...sketch,
+        parameters: {
+          ...normalizeOccsProfileSketch(sketch).parameters,
+          ...(props.instanceParameters || {})
+        }
+      });
       const evaluateForRender = () => {
         try {
           const evaluated = evaluateOccsProfileSketch(
-            normalizeOccsProfileSketch(props.modelValue || {}),
+            derivedSketch(props.modelValue || {}),
             externalScope()
           );
           lastGoodEvaluated.value = evaluated;
@@ -220,7 +233,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (disposed) return;
         outlineError.value = '';
         try {
-          const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+          const normalized = derivedSketch(props.modelValue || {});
           const { section } = occsProfileFromSketch(normalized, { parameters: externalScope() });
           if (section?.type !== 'shapes') {
             resolvedFace.value = null;
@@ -813,6 +826,9 @@ export default function createSketchEditor({ vue, components, locale }) {
       };
 
       const externalScope = () => props.externalParameters || {};
+      // Instance values join the evaluation scope the canvas and the
+      // field editors resolve against.
+      const evaluationScope = () => ({ ...(props.instanceParameters || {}), ...externalScope() });
 
       const sketchFingerprint = sketch => JSON.stringify(normalizeOccsProfileSketch(sketch || {}));
 
@@ -860,13 +876,19 @@ export default function createSketchEditor({ vue, components, locale }) {
       const emitSketch = ({ reference = false } = {}) => {
         if (!manager || disposed) return;
         const context = parametersOf(props.modelValue);
-        const extracted = occProfileSketchFromEntities(entityRecords(), { ...context, reference });
+        const extracted = occProfileSketchFromEntities(entityRecords(), {
+          ...context,
+          reference,
+          // A tagged group rebuilds its authored shape's kind
+          // (occs/README.md — shape identity).
+          shapes: normalizeOccsProfileSketch(props.modelValue || {}).shapes
+        });
         // Extraction merges into the authored sketch — unchanged shapes
         // keep their authored expressions, ids, ops, and fillet radii;
         // only moved or new geometry goes numeric. The external scope
         // joins the merge's evaluation so global-bound fields resolve;
         // the stored sketch keeps the clean table.
-        const merged = mergeOccsProfileSketchGeometry(extracted, props.modelValue || {}, externalScope(), droppedShapes);
+        const merged = mergeOccsProfileSketchGeometry(extracted, props.modelValue || {}, evaluationScope(), droppedShapes);
         const keptIds = new Set(merged.shapes.map(shape => shape.id));
         droppedShapes = [
           ...(props.modelValue?.shapes || []),
@@ -882,7 +904,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         // rejects — the profile stays null then; the save gate reports.
         let profile = null;
         try {
-          profile = occsProfileFromSketch(sketch, context);
+          profile = occsProfileFromSketch(derivedSketch(sketch), { parameters: evaluationScope() });
         } catch {
           // Unresolvable expressions: nothing to emit while invalid.
         }
@@ -1083,7 +1105,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         // keeps the clean table.
         let entities = [];
         try {
-          entities = entitiesPerShape(normalizeOccsProfileSketch(normalized, externalScope()));
+          entities = entitiesPerShape(normalizeOccsProfileSketch(derivedSketch(normalized), externalScope()));
         } catch {
           // A mid-edit expression reseeds the last good geometry —
           // the canvas keeps the drawing.
@@ -1162,7 +1184,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         emit('update:modelValue', normalized);
         let profile = null;
         try {
-          profile = occsProfileFromSketch(normalized, { parameters: externalScope() });
+          profile = occsProfileFromSketch(derivedSketch(normalized), { parameters: externalScope() });
         } catch {
           // Save gates on the savable check; nothing to emit while invalid.
         }
@@ -1173,7 +1195,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         unbindDatabase();
         clearDrawingEntities();
         try {
-          seedEntities({ entities: entitiesPerShape(normalizeOccsProfileSketch(normalized, externalScope())) });
+          seedEntities({ entities: entitiesPerShape(normalizeOccsProfileSketch(derivedSketch(normalized), externalScope())) });
         } catch {
           if (lastGoodEvaluated.value) {
             seedEntities({ entities: entitiesPerShape(lastGoodEvaluated.value) });
@@ -1194,7 +1216,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // unresolvable model adopts nothing (the save gate reports).
       const evaluatedFieldValue = (read) => {
         try {
-          return read(evaluateOccsProfileSketch(normalizeOccsProfileSketch(props.modelValue || {}), externalScope()));
+          return read(evaluateOccsProfileSketch(derivedSketch(props.modelValue || {}), externalScope()));
         } catch {
           return null;
         }
@@ -1220,7 +1242,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           normalized,
           value,
           evaluatedFieldValue(evaluated => readEvaluated(findShape(evaluated, shapeId))),
-          externalScope()
+          evaluationScope()
         );
         commitSketch({
           ...normalized,
@@ -1239,7 +1261,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         const radius = value === '' || value === null || value === undefined
           ? 0
           : Number.isFinite(numeric) ? Math.max(0, numeric) : String(value).trim();
-        const parameters = adoptOccsProfileBindingParameter(normalized, radius, filletRadiusOf(shape, vertexId) ?? 0, externalScope());
+        const parameters = adoptOccsProfileBindingParameter(normalized, radius, filletRadiusOf(shape, vertexId) ?? 0, evaluationScope());
         const modifiers = (shape?.modifiers || []).filter(modifier => !(
           modifier.type === 'fillet' && modifier.vertexId === vertexId
         ));
@@ -1258,7 +1280,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           normalized,
           value,
           evaluatedFieldValue(evaluated => findShape(evaluated, shapeId)?.points.find(point => point.id === vertexId)?.[field]),
-          externalScope()
+          evaluationScope()
         );
         commitSketch({
           ...normalized,
@@ -1986,6 +2008,13 @@ export default function createSketchEditor({ vue, components, locale }) {
       }, { deep: true });
 
       watch(() => props.externalParameters, () => { scheduleOutlineResolve(); }, { deep: true });
+
+      // Instance values repaint the derived geometry: the authored model
+      // stays put, the canvas reseeds from the new derived table.
+      watch(() => props.instanceParameters, () => {
+        if (manager) reseedFromModel();
+        scheduleOutlineResolve();
+      }, { deep: true });
 
       onBeforeUnmount(() => {
         disposed = true;

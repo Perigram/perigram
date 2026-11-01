@@ -22,6 +22,7 @@ import {
   getCassetteV2WorkpieceRelations,
   getCassetteV2Workpieces,
   isCassetteV2ProfileWorkpiece,
+  normalizeCassetteV2Profile,
   OCCS_CASSETTE_FACE_ROLES,
   renderCassetteV2TreeToDrawing,
   cassetteV2LayerPanelRows,
@@ -316,31 +317,35 @@ export default function createSurface({ vue, components, locale, queries, record
       const loadedDocument = ref(null);
 
       const profileDraftSketch = computed(() => normalizeOccsProfileSketch(
-        profileDraft.value.sketch || createEmptyOccsProfileSketch(),
-        profileDraft.value.parameters || {}
+        profileDraft.value.sketch || createEmptyOccsProfileSketch()
       ));
+      // The draft evaluates the derived table — the instance values over
+      // the authored rows, over the cassette's variables. Neither table
+      // absorbs the other; the stored sketch keeps the authored rows
+      // (workers/facade/SPEC.md — two parameter tables).
+      const profileDraftDerived = computed(() => normalizeOccsProfileSketch({
+        ...profileDraftSketch.value,
+        parameters: {
+          ...profileDraftSketch.value.parameters,
+          ...(profileDraft.value.instance || {})
+        }
+      }));
       const profileDraftReady = computed(() => isOccsProfileSketchSavable(
-        profileDraftSketch.value,
-        // Global-bound fields read the cassette's variables — the save
-        // gate resolves against them too.
-        { ...(profileDraft.value.parameters || {}), ...globalParameters.value }
+        profileDraftDerived.value,
+        globalParameters.value
       ));
       // The refused save states its reason beside the button — a greyed
       // Save with no voice loses authored sessions.
       const profileDraftError = computed(() => {
         try {
-          evaluateOccsProfileSketch(
-            profileDraftSketch.value,
-            { ...(profileDraft.value.parameters || {}), ...globalParameters.value }
-          );
+          evaluateOccsProfileSketch(profileDraftDerived.value, globalParameters.value);
           return '';
         } catch (error) {
           return error?.message || String(error);
         }
       });
       const preparedProfileDraftSketch = computed(() => closeOccsProfileSketchBoundary(
-        profileDraftSketch.value,
-        profileDraft.value.parameters || {}
+        profileDraftSketch.value
       ));
 
       const selectedTemplateId = computed(() => persistedTemplateIdOverride.value || props.record?._id || '');
@@ -428,11 +433,14 @@ export default function createSurface({ vue, components, locale, queries, record
         return rows;
       });
       // The workpiece row carries the profile's whole parameter table
-      // (the item is the profile's parameter home on the cassette).
-      const profileBoundParameterKeys = (workpiece) => {
-        const sketch = workpiece.profileSnapshot?.sketch || workpiece.profile?.sketch;
-        return new Set(Object.keys(sketch?.parameters || {}));
-      };
+      // (the item is the profile's parameter home on the cassette). The
+      // chips render the derived table and exist for the authored rows
+      // (workers/facade/SPEC.md — two parameter tables).
+      const profileRowOf = (workpiece) => (
+        isCassetteV2ProfileWorkpiece(workpiece)
+          ? normalizeCassetteV2Profile(workpiece, globalParameters.value)
+          : null
+      );
       // Tree law (owner, 2026-10-17): every workpiece renders as a
       // top-level row — sheets and hardware never nest under each
       // other. Only profile workpieces nest, once, under the workpiece
@@ -442,22 +450,23 @@ export default function createSurface({ vue, components, locale, queries, record
         .filter(workpiece => isCassetteV2ProfileWorkpiece(workpiece)
           && workpieceRelations.value.filter(relation => relation.sourceWorkpieceId === workpiece.id).length === 1)
         .map(workpiece => workpiece.id)));
-      const workpieceRows = computed(() => workpieces.value.map(workpiece => ({
-        id: workpiece.id,
-        label: workpiece.name || workpiece.id,
-        type: workpiece.type || 'sheet',
-        family: workpiece.family || workpiece.hardware?.family || '',
-        productionMode: workpiece.productionMode || workpiece.hardware?.productionMode || '',
-        parameters: workpiece.parameters || workpiece.hardware?.parameters || {},
-        boundParameterKeys: isCassetteV2ProfileWorkpiece(workpiece)
-          ? profileBoundParameterKeys(workpiece)
-          : null,
-        isHardware: Boolean(workpiece.family || workpiece.hardware?.family),
-        isProfile: isCassetteV2ProfileWorkpiece(workpiece),
-        isNested: nestedWorkpieceIds.value.has(workpiece.id),
-        parentCount: workpieceRelations.value.filter(relation => relation.sourceWorkpieceId === workpiece.id).length,
-        relations: workpieceRelationRowsById.value.get(workpiece.id) || []
-      })));
+      const workpieceRows = computed(() => workpieces.value.map((workpiece) => {
+        const profile = profileRowOf(workpiece);
+        return {
+          id: workpiece.id,
+          label: workpiece.name || workpiece.id,
+          type: workpiece.type || 'sheet',
+          family: workpiece.family || workpiece.hardware?.family || '',
+          productionMode: workpiece.productionMode || workpiece.hardware?.productionMode || '',
+          parameters: profile ? profile.parameters : (workpiece.parameters || workpiece.hardware?.parameters || {}),
+          boundParameterKeys: profile ? new Set(Object.keys(profile.sketch.parameters)) : null,
+          isHardware: Boolean(workpiece.family || workpiece.hardware?.family),
+          isProfile: isCassetteV2ProfileWorkpiece(workpiece),
+          isNested: nestedWorkpieceIds.value.has(workpiece.id),
+          parentCount: workpieceRelations.value.filter(relation => relation.sourceWorkpieceId === workpiece.id).length,
+          relations: workpieceRelationRowsById.value.get(workpiece.id) || []
+        };
+      }));
       const relationStatusSeverity = (status) => {
         if (status === 'impossible' || status === 'refused') return 'danger';
         if (status === 'unresolved') return 'warn';
@@ -1526,19 +1535,20 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const profileDraftPayload = () => {
         const sketch = preparedProfileDraftSketch.value;
-        const data = {
-          kind: profileDraft.value.kind,
-          process: profileDraft.value.process,
-          parameters: sketch.parameters,
-          sketch,
-          // The derived profile resolves global-bound fields against the
-          // cassette's variables; the stored sketch keeps the clean
-          // table.
-          occsProfile: occsProfileFromSketch(sketch, { parameters: globalParameters.value })
-        };
+        const instance = { ...(profileDraft.value.instance || {}) };
         return {
           name: profileDraft.value.name || t('cassette.v2.profileEditor.defaultName'),
-          ...data
+          kind: profileDraft.value.kind,
+          process: profileDraft.value.process,
+          // The authored table rides the sketch; the overrides ride the
+          // instance table beside it.
+          instance,
+          sketch,
+          // The cached section evaluates the derived table (workers/facade/SPEC.md
+          // — two parameter tables).
+          occsProfile: occsProfileFromSketch(profileDraftDerived.value, {
+            parameters: globalParameters.value
+          })
         };
       };
 
@@ -1553,26 +1563,16 @@ export default function createSurface({ vue, components, locale, queries, record
           // their stale copies in the profile's tables drop here, so the
           // rows the dialog edits are the profile's own.
           const scope = globalParameters.value;
-          const instance = pruneScopeBoundParameters(
-            workpiece.parameters || profile?.parameters || {},
-            snapshotSketch.shapes,
-            scope
-          );
           profileDraft.value = {
             name: workpiece.name || t('cassette.v2.profileEditor.defaultName'),
             kind: workpiece.role || profile?.kind || 'hanger',
             process: workpiece.process || profile?.process || 'extruded',
-            parameters: instance,
-            // The instance values ride on top of the snapshot's table
-            // (the instantiation law: the workpiece's table is the
-            // derived table) — the editor edits what this workpiece
-            // renders, not the library original.
+            instance: pruneScopeBoundParameters(profile?.instance || {}, snapshotSketch.shapes, scope),
+            // The dialog edits the authored table; the instance values
+            // stay beside it and drive the preview.
             sketch: {
               ...snapshotSketch,
-              parameters: {
-                ...pruneScopeBoundParameters(snapshotSketch.parameters, snapshotSketch.shapes, scope),
-                ...instance
-              }
+              parameters: pruneScopeBoundParameters(snapshotSketch.parameters, snapshotSketch.shapes, scope)
             },
             occsProfile: profile?.section ? { section: profile.section, sweep: profile.sweep, sketch: profile.sketch } : profile?.occsProfile || null,
             libraryId: workpiece.profileTemplateId?.toString() || ''
@@ -1584,7 +1584,7 @@ export default function createSurface({ vue, components, locale, queries, record
             name: t('cassette.v2.profileEditor.defaultName'),
             kind: 'hanger',
             process: 'extruded',
-            parameters: {},
+            instance: {},
             sketch: createEmptyOccsProfileSketch(),
             occsProfile: null,
             libraryId: ''
@@ -1624,7 +1624,7 @@ export default function createSurface({ vue, components, locale, queries, record
           name: record.name || t('cassette.v2.profileEditor.defaultName'),
           kind: record?.fields?.kind || 'hanger',
           process: record?.fields?.process || 'extruded',
-          parameters: { ...(sketch.parameters || {}) },
+          instance: {},
           sketch,
           occsProfile: null,
           libraryId: record?._id?.toString() || ''
@@ -1683,7 +1683,7 @@ export default function createSurface({ vue, components, locale, queries, record
           name: record.name || t('cassette.v2.profileEditor.defaultName'),
           kind: record?.fields?.kind || 'hanger',
           process: record?.fields?.process || 'extruded',
-          parameters: { ...(sketch.parameters || {}) },
+          instance: {},
           occsProfile,
           sketch,
           // Library provenance: edits stay local (the snapshot law), and
@@ -1781,11 +1781,11 @@ export default function createSurface({ vue, components, locale, queries, record
             name: payload.name,
             role: payload.kind,
             process: payload.process,
-            parameters: payload.parameters,
+            instance: payload.instance,
             profileSnapshot: {
               kind: payload.kind,
               process: payload.process,
-              parameters: payload.parameters,
+              instance: payload.instance,
               sketch: payload.sketch,
               section: payload.occsProfile.section,
               sweep: payload.occsProfile.sweep
@@ -1797,7 +1797,7 @@ export default function createSurface({ vue, components, locale, queries, record
             name: payload.name,
             kind: payload.kind,
             process: payload.process,
-            parameters: payload.parameters,
+            instance: payload.instance,
             occsProfile: payload.occsProfile,
             sketch: payload.sketch
           });
@@ -1813,13 +1813,14 @@ export default function createSurface({ vue, components, locale, queries, record
         cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, selectedWorkpiece.value.id, patch);
       };
 
-      // Instance parameters re-evaluate the profile snapshot from its
-      // sketch — this is parametric instantiation on the workpiece row.
+      // Instance values re-evaluate the profile snapshot from its
+      // authored sketch — this is parametric instantiation on the
+      // workpiece row, and it writes the instance table alone.
       const updateProfileWorkpieceParameter = (workpieceId, key, value) => {
         const workpiece = workpieces.value.find(item => item.id === workpieceId);
         if (!workpiece) return;
         cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, workpieceId, {
-          parameters: { ...(workpiece.parameters || {}), [key]: value }
+          instance: { ...(workpiece.profileSnapshot?.instance || {}), [key]: value }
         });
       };
 
@@ -3160,6 +3161,7 @@ export default function createSurface({ vue, components, locale, queries, record
             h(ProfileSketchEditor, {
               modelValue: profileDraft.value.sketch,
               externalParameters: globalParameters.value,
+              instanceParameters: profileDraft.value.instance,
               'onUpdate:modelValue': value => { profileDraft.value.sketch = value; },
               onProfile: value => { profileDraft.value.occsProfile = value; }
             })

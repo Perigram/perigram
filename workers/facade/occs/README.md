@@ -126,16 +126,25 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     height swapping past the quarter-turn; every extracted numeric (rect
     center, width, height, rotation; circle center and diameter) rounds
     to 1e-3 mm; circles land as `subtract` shapes on a draw.
+  - Shape identity is the tag: a seeded entity carries its shape's id,
+    and `occProfileSketchFromEntities` rebuilds a tagged group as exactly
+    one shape of the authored kind — a circle from its CIRCLE, a rect
+    from its corner lines (the crossings of the two parallel side pairs)
+    and its fillet arcs, a chain from its connected segments. A group the
+    extraction cannot read holds the authored shape whole. Geometry
+    classification (`chainAsRect`, the chord flattening) serves untagged
+    geometry alone — drawn pieces and imports.
+  - Endpoint identity across seed and extraction works at the drawing
+    scale (`DRAWING_EPSILON_MM`, 0.05 mm): a filleted corner's line end
+    and its arc end are one point, so a loop chains whole.
   - `mergeOccsProfileSketchGeometry` merges extraction back under the
-    one-way truth rule. A seeded entity carries its shape's id, and
-    extraction groups tagged entities back under that id, so a tagged
-    shape's identity is exact — geometry never decides its kind. Untagged
-    entities are the author's new geometry and match by geometry: a rect
-    when its four corners match the authored evaluation's corners as a
-    set (ring start is draw-direction noise), a circle by center plus
-    diameter, a chain per point. A matched shape keeps the authored id,
-    op, expressions, and fillets whole; the op rides the authored shape
-    and extraction defaults apply only to genuinely new shapes. Kept
+    one-way truth rule. A tagged shape keeps its authored id, so identity
+    never rests on geometry: a rect when its four corners match the
+    authored evaluation's corners as a set (ring start is draw-direction
+    noise), a circle by center plus diameter, a chain per point. A
+    matched shape keeps the authored id, op, expressions, and fillets
+    whole; the op rides the authored shape and extraction defaults apply
+    only to genuinely new shapes. Kept
     shapes ride their authored sequence slots and fresh shapes append,
     so the CSG order survives every extraction roundtrip. Authored
     expressions and numbers survive every pass: a bare parameter absorbs
@@ -184,17 +193,22 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     anchor vertex sits on X=0, coordinates numeric).
     `upgradeLegacyOccsProfileSketch` is the same upgrade for the
     one-shot migration script.
-  - Parametric instantiation: a profile workpiece's instance parameters
-    override the profile's authored table; the workpiece's table is the
-    derived table with the instance values on top, and the stored
-    snapshot re-derives from the authored sketch (the stored section is
-    a last-good cache held through a transient invalid parameter).
-    Instance values may be cassette expressions resolved in the joined
+  - Two parameter tables per profile workpiece: the authored table is the
+    sketch's own (`profileSnapshot.sketch.parameters`, edited in the
+    profile dialog), the instance table is the placement's overrides
+    (`profileSnapshot.instance`, edited through the workpiece row's
+    chips), and the derived table — authored rows with the instance
+    values on top — is what geometry, the save gate, and the chips
+    evaluate. `normalizeCassetteV2Profile` returns all three
+    (`sketch.parameters`, `instance`, `parameters`); nothing folds one
+    table into the other.
+  - Instance values may be cassette expressions resolved in the joined
     scope — the profile's own table shadows the cassette's globals
-    (inner over outer) — while the raw expression stays stored.
-    Parameter names rename in place (`renameOccsProfileSketchParameter`
-    moves the key, order preserved, and rewrites every reference as
-    whole identifiers).
+    (inner over outer) — while the raw expression stays stored. The
+    stored section is a last-good cache held through a transient invalid
+    parameter. Parameter names rename in place
+    (`renameOccsProfileSketchParameter` moves the key, order preserved,
+    and rewrites every reference as whole identifiers).
   - Profiles ride the cassette template's own document as profile
     workpieces; their `profileSnapshot` is the renderer's geometry
     source. The plugin's `profile` library type (listing, class `item`)

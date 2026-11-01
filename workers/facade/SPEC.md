@@ -420,6 +420,33 @@ face frames in 2D and folded 3D alike.
 Snap points and array bindings are computed from the raw authored
 face, never from the profile-merged boundary.
 
+Owner decision (2026-11-01, two parameter tables): a profile workpiece
+carries its authored table and its instance table apart. The authored
+table is the sketch's own rows (`profileSnapshot.sketch.parameters`), the
+table the profile dialog edits and the library record stores. The instance
+table (`profileSnapshot.instance`) holds the values a placed workpiece
+overrides, edited through the workpiece row's chips. The derived table —
+authored rows with the instance values on top — is the evaluation scope
+and the table the chips render; geometry, the save gate, and every render
+consumer evaluate the derived table. Rows whose names the surrounding
+cassette scope defines live in the scope alone. A saved sketch keeps the
+authored table; a saved workpiece keeps its instance table; neither table
+is folded into the other.
+
+Owner decision (2026-11-01, shape identity): the sketch model is the
+truth and the canvas its projection, so a shape's identity rides its
+entities. A seeded entity carries its shape's id and a tagged group
+rebuilds exactly one shape of the authored kind — a circle from its
+CIRCLE, a rectangle from its corner lines and fillet arcs, a chain from
+its connected segments — with the authored id, op, expressions, and
+fillet bindings whole. Geometry classification serves untagged geometry
+alone: a drawn or imported piece becomes a shape of its own, dimensioned
+once. Endpoint identity across seed and extraction works at the drawing
+scale (0.05 mm), so a filleted corner's line and arc ends are one point.
+A tagged group the extraction cannot read holds the authored shape whole.
+Dimensions annotate authored shapes: one annotation set per shape, one
+linear dimension per authored field or edge.
+
 ## Sheet design and the plugin end state
 
 Owner decision (2026-10-19, sheet-design editor interactions): the

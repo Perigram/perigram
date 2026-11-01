@@ -711,12 +711,16 @@ const pointFromDxf = (point = {}) => ({
 // lands as construction geometry.
 
 const CHORD_TOLERANCE_MM = 0.05;
-const POINT_EPSILON = 0.001;
+// Drawing-scale identity: engine reconstruction carries µm-level noise
+// (rounded entity endpoints, tangent-arc reintersections), so two points
+// are one point below 0.05 mm — the extraction junction law and the
+// merge's unchanged-field law share this epsilon.
+const DRAWING_EPSILON_MM = 0.05;
 // Tangency tolerance in normalized units: rounding at 1e-3 mm on few-mm
 // arcs lands near 1e-3, so recognition needs headroom.
 const TANGENT_EPSILON = 1e-2;
 
-const samePoint = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < POINT_EPSILON;
+const samePoint = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < DRAWING_EPSILON_MM;
 
 const roundPoint = (point) => ({
   x: Math.round((point.x + Number.EPSILON) * 1000) / 1000,
@@ -1128,7 +1132,7 @@ const chainAsRect = (points = []) => {
   const side = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
   const widths = [side(points[0], points[1]), side(points[2], points[3])];
   const heights = [side(points[1], points[2]), side(points[3], points[0])];
-  if (Math.abs(widths[0] - widths[1]) > POINT_EPSILON || Math.abs(heights[0] - heights[1]) > POINT_EPSILON) {
+  if (Math.abs(widths[0] - widths[1]) > DRAWING_EPSILON_MM || Math.abs(heights[0] - heights[1]) > DRAWING_EPSILON_MM) {
     return null;
   }
   const width = (widths[0] + widths[1]) / 2;
@@ -1278,6 +1282,102 @@ const extractShapesFromEntities = (entities, parameters, chordTolerance, referen
   return shapes;
 };
 
+// A tagged group is one authored shape. It rebuilds that shape's kind
+// from its own entities: a circle from its CIRCLE, a rectangle from its
+// corner lines and fillet arcs, a chain from its connected segments
+// (occs/README.md — shape identity). The authored id, op, and expressions
+// ride the merge, which never re-classifies by geometry.
+const lineSegmentsOf = (group) => group
+  .filter(entity => entity.type === 'LINE')
+  .map(recordToSegment)
+  .filter(segment => segment && segment.type === 'line');
+
+const arcSegmentsOf = (group) => group
+  .filter(entity => entity.type === 'ARC')
+  .map(arcRecordToSegment)
+  .filter(segment => segment && !samePoint(segment.a, segment.b));
+
+// The authored corner two trimmed side lines share.
+const linesCrossingPoint = (first, second) => {
+  const firstDirection = { x: first.b.x - first.a.x, y: first.b.y - first.a.y };
+  const secondDirection = { x: second.b.x - second.a.x, y: second.b.y - second.a.y };
+  const denominator = firstDirection.x * secondDirection.y - firstDirection.y * secondDirection.x;
+  if (Math.abs(denominator) < 1e-9) return null;
+  const t = ((second.a.x - first.a.x) * secondDirection.y - (second.a.y - first.a.y) * secondDirection.x) / denominator;
+  return { x: first.a.x + firstDirection.x * t, y: first.a.y + firstDirection.y * t };
+};
+
+const arcMidpoint = (arc) => arcPointAt(
+  arc,
+  arc.startAngle + (arc.ccw === false ? -1 : 1) * arcAnglesTraversed(arc) / 2
+);
+
+const taggedCircleShape = (group) => {
+  const circle = group.find(entity => entity.type === 'CIRCLE');
+  if (!circle) return null;
+  const radius = numericValue(circle.radius);
+  if (!(radius > 0)) return null;
+  const center = roundPoint(circle.center);
+  return {
+    type: 'circle',
+    center: [center.x, center.y],
+    diameter: roundNumeric(radius * 2)
+  };
+};
+
+// The four side lines split into two parallel pairs; their crossings are
+// the rectangle's corners whatever the draw direction or fillet trim.
+const taggedRectShape = (group) => {
+  const lines = lineSegmentsOf(group);
+  if (lines.length !== 4) return null;
+  const angleOf = (line) => ((Math.atan2(line.b.y - line.a.y, line.b.x - line.a.x) * 180) / Math.PI + 180) % 180;
+  const angles = lines.map(angleOf);
+  const [first] = angles;
+  const nearFirst = lines.filter((line, index) => Math.abs(((angles[index] - first + 90) % 180) - 90) <= 1);
+  const acrossFirst = lines.filter(line => !nearFirst.includes(line));
+  if (nearFirst.length !== 2 || acrossFirst.length !== 2) return null;
+  const crossing = (line, across) => linesCrossingPoint(line, across);
+  const [firstSide, secondSide] = nearFirst;
+  const [firstAcross, secondAcross] = acrossFirst;
+  const corners = [
+    crossing(firstSide, firstAcross),
+    crossing(firstSide, secondAcross),
+    crossing(secondSide, secondAcross),
+    crossing(secondSide, firstAcross)
+  ];
+  if (corners.some(point => !point)) return null;
+  const rect = chainAsRect(canonicalPolygonPoints(corners));
+  if (!rect) return null;
+  const rectCorners = occProfileRectCornerVertices(rect).map(([x, y]) => ({ x, y }));
+  const fillets = [];
+  for (const segment of arcSegmentsOf(group)) {
+    const corner = nearestIndex(rectCorners, arcMidpoint(segment.arc));
+    if (corner < 0 || fillets.some(fillet => fillet.corner === corner)) continue;
+    const radius = roundNumeric(segment.arc.radius);
+    if (radius > 0) fillets.push({ corner, radius });
+  }
+  return { type: 'rect', ...rect, fillets: fillets.sort((left, right) => left.corner - right.corner) };
+};
+
+const taggedChainShape = (group, chordTolerance) => {
+  const segments = group
+    .filter(entity => entity.type === 'LINE' || entity.type === 'ARC')
+    .map(recordToSegment)
+    .filter(Boolean);
+  if (!segments.length) return null;
+  const { chain, closed } = chainSegments(segments);
+  if (chain.length < 1) return null;
+  const geometry = chainToSketchGeometry(chain, closed, chordTolerance);
+  if (geometry.points.length < 2) return null;
+  return chainShapeFromGeometry(geometry, closed, 'construction', 0);
+};
+
+const taggedShapeFromGroup = (group, authoredShape, chordTolerance) => {
+  if (authoredShape.type === 'circle') return taggedCircleShape(group);
+  if (authoredShape.type === 'rect') return taggedRectShape(group);
+  return taggedChainShape(group, chordTolerance);
+};
+
 // A seeded entity carries its shape's id; that group extracts back under
 // the same id, so identity survives a canvas pass. Untagged entities are
 // the author's new geometry and take fresh ids.
@@ -1287,6 +1387,7 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
     ? options.chordTolerance
     : CHORD_TOLERANCE_MM;
   const reference = Boolean(options.reference);
+  const authoredById = new Map((options.shapes || []).map(shape => [shape.id, shape]));
 
   const tagged = new Map();
   const untagged = [];
@@ -1302,10 +1403,14 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
 
   const shapes = [];
   for (const [shapeId, group] of tagged) {
-    const groupShapes = extractShapesFromEntities(group, parameters, chordTolerance, reference);
-    groupShapes.forEach((shape, index) => {
-      shapes.push(index === 0 ? { ...shape, id: shapeId } : shape);
-    });
+    const authored = authoredById.get(shapeId) || null;
+    const rebuilt = authored ? taggedShapeFromGroup(group, authored, chordTolerance) : null;
+    // An unreadable group holds the authored shape whole; a group without
+    // its authored counterpart is read by geometry.
+    const shape = authored
+      ? { ...authored, ...(rebuilt || {}) }
+      : extractShapesFromEntities(group, parameters, chordTolerance, reference)[0];
+    if (shape) shapes.push({ ...shape, id: shapeId });
   }
   const fresh = extractShapesFromEntities(untagged, parameters, chordTolerance, reference);
   fresh.forEach((shape, index) => {
@@ -1329,13 +1434,6 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
 // shapes with no extracted counterpart were erased and drop. An authored
 // sketch whose expressions do not resolve falls back to the plain
 // extraction (the save gate reports it).
-// Drawing-scale identity: reconstruction from engine geometry carries
-// µm-level noise (rounded entity endpoints, tangent-arc
-// reintersections), so shape identity and unchanged-field detection
-// work at 0.05 mm — below the smallest intentional edit at drawing
-// scale.
-const MERGE_EPSILON_MM = 0.05;
-
 // Rect identity is the corner ring: the same four corners (as a set —
 // ring start is draw-direction noise) are the same rect whatever
 // width/height/rotation triple describes them.
@@ -1345,7 +1443,7 @@ const rectCornersMatch = (extracted = {}, authored = {}) => {
   const used = new Set();
   return authoredCorners.every((corner) => {
     const match = extractedCorners.findIndex((candidate, index) => (
-      !used.has(index) && Math.hypot(candidate[0] - corner[0], candidate[1] - corner[1]) <= MERGE_EPSILON_MM
+      !used.has(index) && Math.hypot(candidate[0] - corner[0], candidate[1] - corner[1]) <= DRAWING_EPSILON_MM
     ));
     if (match < 0) return false;
     used.add(match);
@@ -1356,8 +1454,8 @@ const rectCornersMatch = (extracted = {}, authored = {}) => {
 const shapesWithinEpsilon = (extracted = {}, authored = {}) => {
   if (extracted.type !== authored.type) return false;
   if (extracted.type === 'circle') {
-    return Math.hypot(authored.center[0] - extracted.center[0], authored.center[1] - extracted.center[1]) <= MERGE_EPSILON_MM
-      && Math.abs(authored.diameter - extracted.diameter) <= MERGE_EPSILON_MM;
+    return Math.hypot(authored.center[0] - extracted.center[0], authored.center[1] - extracted.center[1]) <= DRAWING_EPSILON_MM
+      && Math.abs(authored.diameter - extracted.diameter) <= DRAWING_EPSILON_MM;
   }
   if (extracted.type === 'rect') return rectCornersMatch(extracted, authored);
   if (Boolean(authored.closed) !== Boolean(extracted.closed)) return false;
@@ -1365,7 +1463,7 @@ const shapesWithinEpsilon = (extracted = {}, authored = {}) => {
   const extractedPoints = extracted.points || [];
   if (authoredPoints.length !== extractedPoints.length) return false;
   return authoredPoints.every((point, index) => (
-    Math.hypot(point.x - extractedPoints[index].x, point.y - extractedPoints[index].y) <= MERGE_EPSILON_MM
+    Math.hypot(point.x - extractedPoints[index].x, point.y - extractedPoints[index].y) <= DRAWING_EPSILON_MM
   ));
 };
 
@@ -1398,7 +1496,7 @@ const cornerRingsMatch = (left, right) => {
   const used = new Set();
   return left.every(([x, y]) => {
     const index = right.findIndex(([rx, ry], at) => (
-      !used.has(at) && Math.hypot(rx - x, ry - y) <= MERGE_EPSILON_MM
+      !used.has(at) && Math.hypot(rx - x, ry - y) <= DRAWING_EPSILON_MM
     ));
     if (index < 0) return false;
     used.add(index);
@@ -1412,6 +1510,16 @@ const sameShapeFamily = (extracted = {}, authored = {}) => {
     && cornerRingsMatch(rectFamilyCorners(authored), rectFamilyCorners(extracted));
 };
 
+// An extraction that carries no readable geometry (a tagged group held
+// whole) leaves the authored fillets in place.
+const holdsAuthoredGeometry = (points = []) => !points.length || points.some(point => (
+  !Number.isFinite(point?.x) || !Number.isFinite(point?.y)
+));
+
+const authoredChainModifiers = (authoredShape) => (authoredShape?.modifiers || [])
+  .filter(modifier => modifier?.type === 'fillet')
+  .map(modifier => ({ type: 'fillet', vertexId: modifier.vertexId, radius: modifier.radius }));
+
 // Fillets come from the extraction (an erased arc clears its radius); the
 // authored radius expression rides along when the value still matches.
 const chainFilletsFromExtraction = (extractedShape, authoredShape, evaluatedShape, mergeField) => {
@@ -1422,7 +1530,12 @@ const chainFilletsFromExtraction = (extractedShape, authoredShape, evaluatedShap
   const evaluatedFillet = new Map((evaluatedShape?.modifiers || [])
     .filter(modifier => modifier?.type === 'fillet')
     .map(modifier => [modifier.vertexId, modifier.radius]));
-  const extractedPoints = extractedShape?.points || [];
+  const extractedPoints = extractedShape?.type === 'rect'
+    ? occProfileRectCornerVertices(extractedShape).map(([x, y]) => ({ x, y }))
+    : (extractedShape?.points || []);
+  if (authoredPoints.length && holdsAuthoredGeometry(extractedPoints)) {
+    return authoredChainModifiers(authoredShape);
+  }
   // Matching runs on evaluated geometry; the authored model carries the
   // ids and the raw expressions.
   const evaluatedPoints = (evaluatedShape?.points || []).length
@@ -1459,12 +1572,21 @@ const chainFilletsFromExtraction = (extractedShape, authoredShape, evaluatedShap
   return modifiers;
 };
 
+const authoredRectFillets = (authoredShape) => (authoredShape?.fillets || [])
+  .map(fillet => ({ corner: fillet.corner, radius: fillet.radius }));
+
 const rectFilletsFromExtraction = (extractedShape, authoredShape, evaluatedShape, mergeField) => {
   const authoredFillets = new Map((authoredShape?.fillets || []).map(fillet => [fillet.corner, fillet.radius]));
   const evaluatedFillets = new Map((evaluatedShape?.fillets || []).map(fillet => [fillet.corner, fillet.radius]));
   const authoredCorners = occProfileRectCornerVertices(
     evaluatedShape?.type === 'rect' ? evaluatedShape : authoredShape
   );
+  const extractedCorners = extractedShape.type === 'rect'
+    ? occProfileRectCornerVertices(extractedShape)
+    : (extractedShape.points || []).map(point => [point.x, point.y]);
+  if (holdsAuthoredGeometry(extractedCorners.map(([x, y]) => ({ x, y })))) {
+    return authoredRectFillets(authoredShape);
+  }
   const fillets = [];
   const pushAt = (point, radius) => {
     if (!point) return;
@@ -1520,7 +1642,7 @@ const mergeChainShape = (extractedShape, authoredShape, evaluatedShape, mergeFie
     for (const candidate of evaluatedPoints) {
       if (used.has(candidate.id) || Boolean(candidate.chord) !== Boolean(point.chord)) continue;
       const distance = Math.hypot(candidate.x - point.x, candidate.y - point.y);
-      if (distance <= MERGE_EPSILON_MM && (!best || distance < best.distance)) best = candidate;
+      if (distance <= DRAWING_EPSILON_MM && (!best || distance < best.distance)) best = candidate;
     }
     if (best) {
       used.add(best.id);
@@ -1580,7 +1702,7 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
   const mergeField = (authoredValue, evaluatedValue, extractedValue) => {
     // Extraction noise never rewrites an authored number.
     if (Number.isFinite(authoredValue) && Number.isFinite(extractedValue)
-      && Math.abs(authoredValue - extractedValue) <= MERGE_EPSILON_MM) return authoredValue;
+      && Math.abs(authoredValue - extractedValue) <= DRAWING_EPSILON_MM) return authoredValue;
     // An authored expression that resolves is the author's truth: drift
     // never rewrites it into a number. A bare parameter follows the
     // dragged geometry through the parameter table.
@@ -1588,7 +1710,7 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
       // A bare parameter absorbs an intentional move, never rounding
       // noise: the field is the parameter's editor.
       if (bareParameter(authoredValue) && Number.isFinite(extractedValue)
-        && (!Number.isFinite(evaluatedValue) || Math.abs(evaluatedValue - extractedValue) > MERGE_EPSILON_MM)) {
+        && (!Number.isFinite(evaluatedValue) || Math.abs(evaluatedValue - extractedValue) > DRAWING_EPSILON_MM)) {
         parameterEdits[authoredValue] = extractedValue;
       }
       return authoredValue;
@@ -1613,7 +1735,7 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
           shape.points[index] && Math.hypot(
             candidatePoint.x - shape.points[index].x,
             candidatePoint.y - shape.points[index].y
-          ) <= MERGE_EPSILON_MM
+          ) <= DRAWING_EPSILON_MM
         )).length;
         if (matches > bestMatches) {
           best = candidate;
