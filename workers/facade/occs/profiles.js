@@ -663,10 +663,8 @@ export const adoptOccsProfileBindingParameter = (sketch = {}, value, currentValu
   return { ...parameters, [identifier]: numeric };
 };
 
-// The sketch owns its parameter rows: an entry named by the surrounding
-// scope belongs to the sketch only while a shape field references it —
-// an unreferenced scope-named row is stale copy, never an authored
-// parameter.
+// Scope-named rows without a shape reference are stale copy
+// (occs/README.md).
 export const pruneScopeBoundParameters = (parameters = {}, shapes = [], externalParameters = {}) => {
   const scopeNames = new Set(Object.keys(externalParameters || {}));
   const keys = Object.keys(parameters);
@@ -1414,10 +1412,7 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
       ? evaluateOccsProfileSketch({ ...authored, shapes: adoptShapes }, externalParameters).shapes
       : [];
   } catch {
-    // A mid-edit expression keeps the authored sketch whole (owner law:
-    // what the user did is sacred) — canvas geometry merges on the next
-    // pass once the text resolves. The scope is evaluation-only, so the
-    // authored table returns untouched.
+    // A refused merge returns the authored table (occs/README.md).
     return normalizeOccsProfileSketch(authored);
   }
   const usedAuthored = new Set();
