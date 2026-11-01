@@ -3436,3 +3436,19 @@ hydrated joins the pool when the declaration arrives instead of staying
 unopenable. Focused: instances store 16, SSR smoke 23. The
 `shared/design-system.spec.js` three `GeneratedScreenHost.vue` findings
 predate this round on `local`.
+
+## Profile workpiece: two parameter tables and shape identity (owner report 2026-11-01)
+
+Owner report: the profile editor stores one table — authored parameters
+plus instance values — inside `sketch.parameters`. The dialog drafts that
+sketch, so it shows instance values as authored rows; the workpiece row's
+chips read the same table and filter it by its own key set, so each side
+starves the other. Shapes also decompose on the canvas: a filleted
+rectangle returns as chains, its parameter bindings fall back to the
+drawn numbers, and every returned piece carries its own dimensions.
+
+- [ ] WAITING — owner verification: a placed profile keeps its authored
+  rows in the snapshot's sketch and its overrides in `instance`; the
+  dialog shows authored values, the chips show the derived ones, and a
+  filleted rectangle round-trips the canvas as the same rectangle with
+  `W`/`H`/`R` bindings intact.

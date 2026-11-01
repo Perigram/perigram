@@ -80,8 +80,8 @@ values and files out, free of service imports, persistence, and auth.
   [plugins feature](../../server/features/plugins/README.md)
   (diff preview plus migration steps).
 - Existing orgs: `server/scripts/migrate-facade-pack-to-plugin.js`
-  (type ids unchanged) and
-  `server/scripts/migrate-profile-sketches-to-shapes.js` (one-shot,
+  (type ids unchanged), `server/scripts/migrate-profile-sketches-to-shapes.js`,
+  and `server/scripts/migrate-profile-parameter-tables.js` (both one-shot,
   dry-run by default) — see the
   [scripts README](../../server/scripts/README.md).
 
