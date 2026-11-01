@@ -2026,8 +2026,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               role: 'application',
               'aria-label': t('cassette.v2.profileEditor.preview'),
               onPointerdownCapture: [handleVertexSelectPointerDown],
-              onPointerup: scheduleExtraction,
-              onKeyup: scheduleExtraction
+              onPointerup: scheduleExtraction
             }, [
               // The tool toolbar floats inside the canvas (the
               // DesignerWorkspace overlay pattern) — no row of its own.
