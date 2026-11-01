@@ -36,7 +36,7 @@ test('profile canvas keeps its own parameter rows, Escape, and history', async (
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const canvas = dialog.locator(CANVAS).first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
-  await page.waitForTimeout(2500);
+  await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
 
   const box = await canvas.boundingBox();
   const click = async (fx, fy) => page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);

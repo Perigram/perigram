@@ -77,6 +77,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
+  await expect(dialog.locator('[role="application"]').first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
   await expect(dialog.locator('input[aria-label^="Parameter name"]')).toHaveCount(0);
 
   // Author one rectangle through the CAD engine's command lifecycle.
@@ -257,7 +258,7 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   const canvas = dialog.locator('div[role="application"]');
   await expect(canvas).toBeVisible({ timeout: 60_000 });
-  await page.waitForTimeout(2000);
+  await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
   // The blank session carries no parameter rows — nothing pre-seeds a
   // drawn profile.
   await expect(dialog.locator('input[aria-label^="Parameter name"]')).toHaveCount(0);
@@ -349,6 +350,7 @@ test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
   const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
+  await expect(dialog.locator('[role="application"]').first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
 
   // Author one shape with an operation (the save gate): a rectangle
   // through the CAD engine's command lifecycle.

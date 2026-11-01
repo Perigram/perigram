@@ -23,6 +23,7 @@ export default function createSurface({ vue, components, locale, notify }) {
       const saving = ref(false);
       const dirty = ref(false);
       const engineError = ref('');
+      const canvasReady = ref(false);
       const templateText = ref('');
       const containerRef = ref(null);
       const nameRef = ref(null);
@@ -129,6 +130,7 @@ export default function createSurface({ vue, components, locale, notify }) {
         host.setGrid(false);
         host.onPointerDown = pickPoint;
         await reopen();
+        canvasReady.value = true;
       }
 
       onMounted(async () => {
@@ -144,12 +146,14 @@ export default function createSurface({ vue, components, locale, notify }) {
         try {
           await mountEngine();
         } catch (error) {
+          canvasReady.value = false;
           fail(error);
         }
       });
 
       onBeforeUnmount(() => {
         disposed = true;
+        canvasReady.value = false;
         host?.destroy();
         host = null;
       });
@@ -204,7 +208,8 @@ export default function createSurface({ vue, components, locale, notify }) {
         h('div', { class: 'grid min-h-0 flex-1 grid-cols-[1fr_18rem] gap-3' }, [
           h('div', {
             ref: containerRef,
-            class: 'relative min-h-0 overflow-hidden rounded-panel border border-content-border bg-subtle'
+            class: 'relative min-h-0 overflow-hidden rounded-panel border border-content-border bg-subtle',
+            'data-cadcraft-ready': canvasReady.value ? 'true' : undefined
           }),
           h('div', { class: 'flex min-h-0 flex-col gap-2 overflow-auto' }, [
             h('div', { class: 'text-label text-muted' }, `${t('dxfEditor.markers')} · ${markers.value.length}`),

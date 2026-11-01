@@ -5,7 +5,7 @@
 // entity mapping between OCCS records and CadCraft entities.
 
 const APP_ENTRY = './app/index.html';
-const READY_TIMEOUT_MS = 30000;
+const READY_TIMEOUT_MS = 120000;
 const DXF_MODULE = './app/assets/apps/cadcraft/0.7/dxf.js';
 
 const EMBED_CSS = `
@@ -83,6 +83,13 @@ export class CadCraftHost {
 
   _hideChrome() {
     const doc = this.win.document;
+    doc.getElementById('perigram-cadcraft-loading')?.remove();
+    if (this.cad.host) {
+      this.cad.host.settings.corner = 'none';
+      this.cad.host.applyCorner?.();
+      this.cad.host.setToggle?.('grid', false);
+      this.cad.host.setToggle?.('dyn', false);
+    }
     const style = doc.createElement('style');
     style.id = 'perigram-cadcraft-embed';
     style.textContent = EMBED_CSS;
