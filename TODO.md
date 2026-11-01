@@ -3452,3 +3452,21 @@ drawn numbers, and every returned piece carries its own dimensions.
   dialog shows authored values, the chips show the derived ones, and a
   filleted rectangle round-trips the canvas as the same rectangle with
   `W`/`H`/`R` bindings intact.
+
+### Agent Notes (2026-11-01, profile tables and shape identity)
+
+Session `agent/profile-tables-lifecycle-20261101-1400` (worktree
+`.agent-worktrees/profile-tables-20261101`). `normalizeCassetteV2Profile`
+returns the authored table (`sketch.parameters`), the instance table
+(`instance`), and the derived table the chips render; the stored snapshot
+carries the first two. The dialog drafts the authored table and passes the
+instance table as `instanceParameters`, so the canvas renders the derived
+geometry while the model stays authored. Extraction rebuilds a tagged
+group as its authored kind (rect corners from the two parallel side-line
+crossings, fillets from the arcs) and reads untagged geometry alone; the
+merge epsilon is one constant at 0.05 mm, which is what stopped filleted
+rectangles from fragmenting into chains. Migration:
+`server/scripts/migrate-profile-parameter-tables.js`. Focused: facade
+suite 179. `npm run docs:validate` reports the pre-existing broken link
+`workers/nesting/README.md -> ./jagua-rs/README.md` and the contract-homing
+backlog; `node scripts/check-arch.js` passes.
