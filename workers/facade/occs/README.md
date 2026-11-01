@@ -148,9 +148,16 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     renders from the last good evaluation in between. The merge's
     surrounding scope is evaluation-only — a refused merge returns the
     authored table untouched.
+  - Geometric identity spans the rect family: a rect and a closed
+    four-corner chain describe one polygon, so extraction's classification
+    never changes an authored shape's kind — the authored kind, points,
+    ids, and expressions survive the merge. Fillets come from the
+    extraction (an erased arc clears its radius); a kept fillet keeps the
+    authored radius expression while the value matches.
   - The sketch model owns the author's history: the profile editor's
     undo/redo (toolbar and Ctrl+Z/Ctrl+Y over the canvas) step through
-    sketch snapshots and reseed the canvas. The engine's undo stack
+    sketch snapshots and reseed the canvas. A model-driven reseed writes
+    entities only — extraction reads the author's canvas gestures. The engine's undo stack
     covers its database projection, which every model step reseeds, so
     the canvas drops the engine's `UNDO`/`REDO` commands. The engine's
     destructive geometry edits (`FILLET`, `CHAMFER`, `TRIM`, `EXTEND`,
