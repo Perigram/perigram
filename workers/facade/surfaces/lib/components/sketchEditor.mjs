@@ -656,6 +656,28 @@ export default function createSketchEditor({ vue, components, locale }) {
         commitSketch(historyEntries[historyAt], { fromHistory: true });
       };
 
+      // Extraction merges against the derived table so a seeded override
+      // reads as the authored value; the stored sketch keeps the authored
+      // rows and an intentional move over an override writes that row.
+      const mergeAuthoredSketch = (extracted, authored, adoptShapes) => {
+        const derived = deriveOccsProfileSketch(authored, props.instanceParameters);
+        const merged = mergeOccsProfileSketchGeometry(extracted, derived, externalScope(), adoptShapes);
+        const instance = props.instanceParameters || {};
+        const instanceEdits = {};
+        const parameters = { ...normalizeOccsProfileSketch(authored || {}).parameters };
+        for (const [key, value] of Object.entries(merged.parameters || {})) {
+          if (Object.prototype.hasOwnProperty.call(instance, key)) {
+            if (value !== derived.parameters[key]) instanceEdits[key] = value;
+            continue;
+          }
+          parameters[key] = value;
+        }
+        if (Object.keys(instanceEdits).length) {
+          emit('update:instance', { ...instance, ...instanceEdits });
+        }
+        return { ...merged, parameters };
+      };
+
       const emitSketch = ({ reference = false } = {}) => {
         if (!host || disposed) return;
         const context = parametersOf(props.modelValue);
@@ -671,7 +693,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         // only moved or new geometry goes numeric. The external scope
         // joins the merge's evaluation so global-bound fields resolve;
         // the stored sketch keeps the clean table.
-        const merged = mergeOccsProfileSketchGeometry(extracted, props.modelValue || {}, evaluationScope(), droppedShapes);
+        const merged = mergeAuthoredSketch(extracted, props.modelValue || {}, droppedShapes);
         const keptIds = new Set(merged.shapes.map(shape => shape.id));
         droppedShapes = [
           ...(props.modelValue?.shapes || []),
