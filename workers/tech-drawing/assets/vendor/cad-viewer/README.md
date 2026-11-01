@@ -67,10 +67,11 @@ DXF viewport table records).
 `AcApDocManager` is a page singleton: `createInstance` returns the first
 manager and ignores every later container, so a second canvas would draw
 the first one's document. Surfaces coordinate through a lease on
-`globalThis[Symbol.for('perigram.cadViewer.lease')]` — an object with one
-slot, `owner`. A mount claims the lease with a private token before
-`createInstance`, releases it on unmount, and while another token holds
-it renders the collision state with a retry instead of mounting. The
+`globalThis[Symbol.for('perigram.cadViewer.lease')]` — one slot, `owner:
+{ token, yield }`. A mount claims the lease before `createInstance`; a
+claim calls the previous owner's `yield`, which destroys that manager and
+states the collision in its own pane with a retry. The newest mounted
+canvas owns the engine, and its predecessor takes it back on retry. The
 `cad-viewer` module is shared by both consumers (facade's profile canvas,
 tech-drawing's DXF template canvas), so the symbol is the whole protocol.
 
