@@ -28,6 +28,8 @@ The frame exposes `window.cadcraft = { doc, view, engine, host, commands }`.
 
 The frame is same-origin by construction: `contentWindow.cadcraft` and the
 frame's DOM events are the bridge. A cross-origin frame exposes neither.
+Both surfaces set `data-cadcraft-ready="true"` on their mount container
+once the frame is mounted and seeded; the E2E suite waits on it.
 
 The module proxy rewrites the surfaces' bare `cadcraft` import from the
 organization's installed declaration snapshot. An install below
