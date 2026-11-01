@@ -791,6 +791,9 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const clearDrawing = () => {
         if (!host) return;
+        host.cancel();
+        pendingCommand = null;
+        activeTool.value = 'select';
         seeding = true;
         try {
           host.newDrawing('blank');
