@@ -19,6 +19,7 @@ const DIM_STYLE = Object.freeze({
 });
 const DIM_BASE_OFFSET = 7;
 const DIM_STACK_STEP = 8;
+const DIM_STACK_GAP = 2;
 
 const point = (x, y) => ({ x: Number(x), y: Number(y) });
 const midpoint = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
@@ -33,58 +34,82 @@ const outwardNormal = (a, b, inward) => {
   return { x: out.x / length, y: out.y / length };
 };
 
-const createDimStack = () => {
-  const slots = new Map();
-  return (a, b, outward) => {
-    const horizontal = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
-    const side = horizontal
-      ? (outward.y > 0 ? 'above' : 'below')
-      : (outward.x > 0 ? 'right' : 'left');
-    const along = horizontal ? (a.x + b.x) / 2 : (a.y + b.y) / 2;
-    const slotKey = `${side}:${Math.round(along / 12)}`;
-    const slot = slots.get(slotKey) || 0;
-    slots.set(slotKey, slot + 1);
-    return DIM_BASE_OFFSET + slot * DIM_STACK_STEP;
+const frameOf = (a, b, inward) => {
+  const outward = outwardNormal(a, b, inward);
+  const horizontal = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
+  const side = horizontal
+    ? (outward.y > 0 ? 'above' : 'below')
+    : (outward.x > 0 ? 'right' : 'left');
+  const along = horizontal ? [a.x, b.x] : [a.y, b.y];
+  return {
+    outward,
+    side,
+    alongMin: Math.min(...along),
+    alongMax: Math.max(...along)
   };
+};
+
+const assignOffsets = (dimensions) => {
+  const slots = { above: [], below: [], left: [], right: [] };
+  for (const dimension of dimensions) {
+    const placed = slots[dimension.side];
+    let slot = 0;
+    while ((placed[slot] || []).some(([min, max]) => (
+      dimension.alongMin < max + DIM_STACK_GAP && dimension.alongMax > min - DIM_STACK_GAP
+    ))) {
+      slot += 1;
+    }
+    (placed[slot] ||= []).push([dimension.alongMin, dimension.alongMax]);
+    dimension.offset = DIM_BASE_OFFSET + slot * DIM_STACK_STEP;
+  }
 };
 
 const fieldLabel = (value, evaluated) => (
   typeof value === 'string' ? value : (Number.isFinite(evaluated) ? evaluated.toFixed(1) : '?')
 );
 
-const dimension = ({ kind, key, a, b, inward, text, profile, stack }) => {
-  const outward = outwardNormal(a, b, inward);
-  const offset = stack(a, b, outward);
-  const mid = midpoint(a, b);
+const linearDimension = ({ kind = 'linear', key, a, b, inward, text, profile }) => ({
+  kind,
+  key,
+  a,
+  b,
+  inward,
+  text,
+  profile: profile || null,
+  ...frameOf(a, b, inward)
+});
+
+const dimensionEntity = (dimension) => {
+  const mid = midpoint(dimension.a, dimension.b);
   return {
     type: 'dim',
-    kind,
-    p1: a,
-    p2: b,
-    loc: { x: mid.x + outward.x * offset, y: mid.y + outward.y * offset },
-    rot: Math.atan2(b.y - a.y, b.x - a.x),
-    text,
+    kind: dimension.kind,
+    p1: dimension.a,
+    p2: dimension.b,
+    loc: {
+      x: mid.x + dimension.outward.x * dimension.offset,
+      y: mid.y + dimension.outward.y * dimension.offset
+    },
+    rot: Math.atan2(dimension.b.y - dimension.a.y, dimension.b.x - dimension.a.x),
+    text: dimension.text,
     st: { ...DIM_STYLE },
     color: 8,
     layer: PROFILE_DIMENSION_LAYER,
-    profile: profile || null,
-    annotationKey: key
+    profile: dimension.profile,
+    annotationKey: dimension.key
   };
 };
 
-const linearDimension = (args) => dimension({ ...args, kind: 'linear' });
-
-const editableDimension = ({ shapeId, fieldKey, value, evaluated, a, b, inward, key, stack }) => linearDimension({
+const editableDimension = ({ shapeId, fieldKey, value, evaluated, a, b, inward, key }) => linearDimension({
   key,
   a,
   b,
   inward,
   text: fieldLabel(value, evaluated),
-  profile: { shapeId, fieldKey },
-  stack
+  profile: { shapeId, fieldKey }
 });
 
-const chainDimensions = (shape, stack) => {
+const chainDimensions = (shape) => {
   const corners = shape.points.filter(point => !point.chord);
   const closed = shape.closed && corners.length >= 3;
   const centroid = corners.length
@@ -98,28 +123,29 @@ const chainDimensions = (shape, stack) => {
   const dimensions = [];
   const edgeCount = corners.length >= 2 ? (closed ? corners.length : corners.length - 1) : 0;
   for (let index = 0; index < edgeCount; index += 1) {
-    const a = point(corners[index].x, corners[index].y);
-    const b = point(corners[(index + 1) % corners.length].x, corners[(index + 1) % corners.length].y);
+    const from = corners[index];
+    const to = corners[(index + 1) % corners.length];
+    const a = point(from.x, from.y);
+    const b = point(to.x, to.y);
     const length = Math.hypot(b.x - a.x, b.y - a.y);
     if (length < 1e-6) continue;
-    dimensions.push(dimension({
+    dimensions.push(linearDimension({
       kind: 'aligned',
-      key: `${shape.id}-${corners[index].id}-${corners[(index + 1) % corners.length].id}`,
+      key: `${shape.id}-${from.id}-${to.id}`,
       a,
       b,
       inward: centroid,
-      text: length.toFixed(1),
-      profile: null,
-      stack
+      text: length.toFixed(1)
     }));
   }
   return dimensions;
 };
 
-const primitiveDimensions = (authoredShape, shape, stack) => {
-  const dims = [];
+const primitiveDimensions = (authoredShape, shape) => {
+  const linear = [];
+  const fixed = [];
   const push = (fieldKey, a, b, inward, value, evaluated) => {
-    dims.push(editableDimension({
+    linear.push(editableDimension({
       shapeId: shape.id,
       fieldKey,
       value,
@@ -127,8 +153,7 @@ const primitiveDimensions = (authoredShape, shape, stack) => {
       a,
       b,
       inward,
-      key: `${shape.id}:${fieldKey}`,
-      stack
+      key: `${shape.id}:${fieldKey}`
     }));
   };
   if (shape.type === 'rect') {
@@ -151,7 +176,7 @@ const primitiveDimensions = (authoredShape, shape, stack) => {
     const radius = shape.diameter / 2;
     const [cx, cy] = shape.center;
     const center = point(cx, cy);
-    dims.push({
+    fixed.push({
       type: 'dim',
       kind: 'diameter',
       c: center,
@@ -169,7 +194,7 @@ const primitiveDimensions = (authoredShape, shape, stack) => {
     push('center-y', point(cx - radius, 0), point(cx - radius, cy), center,
       authoredShape?.center?.[1] ?? shape.center[1], shape.center[1]);
   }
-  return dims;
+  return { linear, fixed };
 };
 
 const dedupePositionDimensions = (dimensions) => {
@@ -194,17 +219,18 @@ const ringsOf = (face) => (
 
 /** The native CadCraft entities that carry the profile canvas annotations. */
 export function buildProfileAnnotations({ evaluated, authored = null, resolvedFace = null } = {}) {
-  const stack = createDimStack();
   const shapes = evaluated?.shapes || [];
   const authoredById = new Map((authored?.shapes || []).map(shape => [shape.id, shape]));
-  const dimensions = dedupePositionDimensions([
-    ...shapes.filter(shape => shape.type === 'chain').flatMap(shape => chainDimensions(shape, stack)),
-    ...shapes.flatMap(shape => (
-      shape.type === 'rect' || shape.type === 'circle'
-        ? primitiveDimensions(authoredById.get(shape.id), shape, stack)
-        : []
-    ))
+  const primitives = shapes
+    .filter(shape => shape.type === 'rect' || shape.type === 'circle')
+    .map(shape => primitiveDimensions(authoredById.get(shape.id), shape));
+  const linearDimensions = dedupePositionDimensions([
+    ...shapes.filter(shape => shape.type === 'chain').flatMap(shape => chainDimensions(shape)),
+    ...primitives.flatMap(primitive => primitive.linear)
   ]);
+  const fixedDimensions = primitives.flatMap(primitive => primitive.fixed);
+  assignOffsets(linearDimensions);
+  const dimensions = [...fixedDimensions, ...linearDimensions.map(dimensionEntity)];
 
   const decorations = [];
   const rings = ringsOf(resolvedFace);
