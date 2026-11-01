@@ -309,12 +309,13 @@ the shape model through a one-shot migration script; chain sketches
 become chain shapes, holes become subtract circles, and a closed
 sketch's basis anchor becomes the axis (the chain is translated so the
 anchor vertex sits on it). The editor shows the authored model the way
-the cassette editor shows its dimensions: every primitive field is a
-dimension annotation on the canvas, labeled by its parameter expression
-where one is bound (measured numbers otherwise), and set directly in
-place — typing in the dimension commits the field. Selection is the
-CAD engine's entity pick; a single selected shape opens its popup
-(op, rotation, fillet radii) at the click point. The editor overlays
+the cassette editor shows its dimensions: a primitive's width, height,
+center, and diameter are dimension annotations on the canvas, labeled by
+their parameter expression where one is bound (measured numbers
+otherwise), and set directly in place — typing in the dimension commits
+the field. Rotation and fillet radii ride the shape's expanded panel row
+and the corner popup. Selection is the CAD engine's entity pick; a single
+selected shape expands its row in the primitives panel. The editor overlays
 the resolved section as the one strong figure over the editable
 primitives — the section hatched with a solid
 outline — so the boolean result reads at a
@@ -331,9 +332,13 @@ the authored model survives every extraction roundtrip whole:
 parametric shapes stay parametric, bindings keep their expressions,
 raw text stays stored as typed. Error states speak through messages
 beside the work; they never clear the canvas, replace authored
-geometry, or gate editing. A placed profile's editor opens on the
-workpiece's derived table (instance values over the snapshot's), so
-editing edits what that workpiece renders.
+geometry, or gate editing. A placed profile's editor edits the authored
+sketch while its canvas evaluates the workpiece's derived table (instance
+values over the snapshot's). A dimension typed on a field bound to a bare
+identifier commits to the row that drives the drawing — the instance
+override when one exists, the authored row next, the surrounding scope as
+a workpiece-local override — so editing changes what that workpiece
+renders.
 
 Owner decision (2026-10-19, profile drawing; ordered-sequence
 amendment, same day): the fold is an ordered CSG sequence — each
@@ -349,7 +354,7 @@ region fold.
 Owner direction (2026-10-19, authoring): a dragged shape keeps its
 parameter bindings — a moved field bound to a bare parameter edits that
 parameter, compound expressions and numerics carry the drawn value.
-Selection strokes the shape's footprint dashed on the canvas.
+Selection is the CAD engine's native selection.
 
 Owner direction (2026-10-19, evening — primitives panel): the
 primitive listing is a panel inside the editor canvas — a real list,
@@ -380,8 +385,9 @@ nested cuts dissolving into merged rings) never draw on the cassette.
 
 Owner review (2026-10-18, profile editor readout): the parameter table
 lives in the strip above the canvas — its one home, visible with no
-selection. Clicking a primitive — face, edge, or cutout — opens its
-popup; a repeat click on the same spot cycles to the shape beneath.
+selection. Clicking a primitive — face, edge, or cutout — selects it and
+expands its row in the primitives panel; a repeat click on the same spot
+cycles to the shape beneath.
 The canvas carries exactly two surface states, hatch and empty: the
 resolved section hatches — the one hatch — with holes staying empty
 and everything outside the section empty. Stacked dimensions chain
@@ -399,10 +405,12 @@ and border. The primitive popup lays out as one compact panel: header
 (kind, construction toggle), then one row with rotation and the fillet
 radii.
 Authoring fields size to their content so their values stay visible.
-Typing a number into a dimension labeled by a bare parameter commits
-to that parameter — every field bound to it follows; a local field
-edit touches its own primitive only, and primitives bound to the same
-position expression share one dimension for it. Erasing a shape and
+Typing a number into a dimension labeled by a bare identifier commits
+to the row that drives the drawing — an instance override, an authored
+row, or a surrounding-scope parameter — and every field bound to it
+follows; a local field edit touches its own primitive only, and
+primitives bound to the same position expression share one dimension
+for it. Erasing a shape and
 undoing the erase revives the shape with its parameter bindings, and
 shape ids stay unique through every merge. A shape's boolean operation is a
 segmented Add/Subtract/Construction control; each option's tooltip
@@ -437,13 +445,16 @@ carries its authored table and its instance table apart. The authored
 table is the sketch's own rows (`profileSnapshot.sketch.parameters`), the
 table the profile dialog edits and the library record stores. The instance
 table (`profileSnapshot.instance`) holds the values a placed workpiece
-overrides, edited through the workpiece row's chips. The derived table —
-authored rows with the instance values on top — is the evaluation scope
-and the table the chips render; geometry, the save gate, and every render
-consumer evaluate the derived table. Rows whose names the surrounding
-cassette scope defines live in the scope alone. A saved sketch keeps the
-authored table; a saved workpiece keeps its instance table; neither table
-is folded into the other.
+overrides, edited through the workpiece row's chips — each chip shows the
+stored expression and carries the derived value as its hint — and by a
+dimension bound to an overridden parameter in the placed profile's
+editor. The derived table — authored rows with the instance values on
+top — is the evaluation scope; geometry, the save gate, and every render
+consumer evaluate it through one resolver. Rows whose names the
+surrounding cassette scope defines live in the scope alone; a scope-named
+row survives pruning while a shape or another kept row references it. A
+saved sketch keeps the authored table; a saved workpiece keeps its
+instance table; neither table is folded into the other.
 
 Owner decision (2026-11-01, shape identity): the sketch model is the
 truth and the canvas its projection, so a shape's identity rides its
@@ -457,7 +468,9 @@ once. Endpoint identity across seed and extraction works at the drawing
 scale (0.05 mm), so a filleted corner's line and arc ends are one point.
 A tagged group the extraction cannot read holds the authored shape whole.
 Dimensions annotate authored shapes: one annotation set per shape, one
-linear dimension per authored field or edge.
+linear dimension per authored field or edge; primitives whose position
+fields carry one expression share one dimension, and editing it edits
+every shape it names.
 
 ## Sheet design and the plugin end state
 

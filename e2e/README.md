@@ -141,9 +141,11 @@ that drive executor-backed surfaces or services wire them through
   state and mounts a non-zero WebGL canvas.
 - `cassette-designer-parameters.spec.js`: cassette profile parameter
   round-trip — a profile authored through the dialog carries live
-  W/H/R/D chips on its workpiece row, driving a chip re-evaluates the
-  drawing, the value reaches the profile's table on reopen, and
-  authoring fields hold partially typed numbers and cleared values.
+  W/H/R/D chips on its workpiece row, each chip shows the stored
+  expression while driving the derived table, a chip naming a cassette
+  global re-evaluates the drawing, the value reaches the profile's table
+  on reopen, and authoring fields hold partially typed numbers and
+  cleared values.
 - `cassette-profile-editor.spec.js`: the profile sketch editor's
   authored-truth round-trip through the real CAD dialog — draw shapes,
   bind a dimension to a parameter, save, reopen: the binding survives

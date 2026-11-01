@@ -177,9 +177,10 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     `BREAK`) leave the canvas for the same reason: fillets are authored
     as shape modifiers, never as geometry.
   - A sketch's parameter rows are its own. A row named by the
-    surrounding scope belongs to the sketch while a shape field
-    references it; an unreferenced scope-named row is stale copy and
-    drops from the editor's draft (`pruneScopeBoundParameters`).
+    surrounding scope belongs to the sketch while a shape field or
+    another kept row references it; an unreferenced scope-named row is
+    stale copy and drops from the editor's draft
+    (`pruneScopeBoundParameters`).
   - The default hanger template is parametric — a rect (W/H the
     rectangle, R the four corner fillets) plus a subtract circle (D the
     hole), L resolving the sweep at evaluation. `normalizeOccsProfileSketch`
@@ -198,17 +199,21 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     profile dialog), the instance table is the placement's overrides
     (`profileSnapshot.instance`, edited through the workpiece row's
     chips), and the derived table — authored rows with the instance
-    values on top — is what geometry, the save gate, and the chips
-    evaluate. `normalizeCassetteV2Profile` returns all three
-    (`sketch.parameters`, `instance`, `parameters`); nothing folds one
-    table into the other.
+    values on top — is the single evaluation scope (`deriveOccsProfileSketch`).
+    `normalizeCassetteV2Profile` returns all three (`sketch.parameters`,
+    `instance`, `parameters`); nothing folds one table into the other.
+    A chip shows the stored expression and carries the derived value as
+    its hint; a dimension typed on a field bound to a bare identifier
+    commits to the instance override, the authored row, or a
+    workpiece-local override of a surrounding-scope name, in that order.
   - Instance values may be cassette expressions resolved in the joined
     scope — the profile's own table shadows the cassette's globals
     (inner over outer) — while the raw expression stays stored. The
     stored section is a last-good cache held through a transient invalid
     parameter. Parameter names rename in place
-    (`renameOccsProfileSketchParameter` moves the key, order preserved,
-    and rewrites every reference as whole identifiers).
+    (`renameOccsProfileSketchParameter` moves the authored key and
+    rewrites every reference as whole identifiers;
+    `renameOccsProfileTableParameter` moves the instance row with it).
   - Profiles ride the cassette template's own document as profile
     workpieces; their `profileSnapshot` is the renderer's geometry
     source. The plugin's `profile` library type (listing, class `item`)
@@ -218,8 +223,9 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     snapshot. Library records are authored from the designer dialog; the
     type carries no editor surface of its own and its write access
     inherits the cassette grant (`access.inherits` in the listing). A
-    record whose sketch carries no participating shape refuses to place
-    — the hanger fallback serves sketch-less workpieces only. Placed
+    library save gates on the authored table alone, and a record whose
+    sketch carries no participating shape refuses to place — the hanger
+    fallback serves sketch-less workpieces only. Placed
     workpieces carry their library origin (`profileTemplateId`): edits
     stay local, an explicit update rewrites the origin record, and
     already-placed workpieces keep their copy.
