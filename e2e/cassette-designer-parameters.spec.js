@@ -236,6 +236,128 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await app.expectCleanRuntime();
 });
 
+test('a dimension edit over an instance override writes the override; clearing starts a fresh session', async ({ app }) => {
+  test.setTimeout(240_000);
+  await app.installPlugins(['tech-drawing', 'facade']);
+  await app.connectPlugin('facade', 'http://facade-executor:8790');
+  await app.connectPlugin('tech-drawing', 'http://tech-drawing-executor:8792');
+  const { manifest } = await app.seedSpeciesProcess({ types: ['cassette-template'], via: { 'cassette-template': 'editor' } });
+  const list = (manifest.screens || []).find(screen => screen.template === 'typeList' && screen.typeId === 'cassette-template');
+  const page = app.page;
+  await page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
+  await page.addInitScript(() => window.localStorage.setItem(
+    'perigram:onboarding:cassette-designer-v2',
+    JSON.stringify({ dismissed: true, dismissedAt: Date.now() })
+  ));
+  await app.gotoClient(list.route);
+
+  await page.locator('main').getByRole('button', { name: 'New', exact: true }).click();
+  await expect(page.locator('.designer-workspace__canvas').first()).toBeVisible({ timeout: 60_000 });
+  await page.getByRole('button', { name: 'Add profile' }).click();
+  const pickerEntry = page.getByRole('button', { name: /Create new|New profile/ }).first();
+  await pickerEntry.waitFor({ timeout: 10_000 }).catch(() => {});
+  if (await pickerEntry.isVisible().catch(() => false)) await pickerEntry.click();
+  const dialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  const canvas = dialog.locator('[role="application"]').first();
+  await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
+
+  const drawRectangle = async () => {
+    const drawButton = dialog.locator('button[aria-label="Rectangle"]').first();
+    await drawButton.click();
+    await expect(drawButton).toHaveClass(/p-button-primary/, { timeout: 15_000 });
+    await page.waitForTimeout(150);
+    const box = await canvas.boundingBox();
+    await page.mouse.click(box.x + box.width * 0.3, box.y + box.height * 0.3);
+    await page.waitForTimeout(250);
+    await page.mouse.click(box.x + box.width * 0.6, box.y + box.height * 0.6);
+    await expect(drawButton).not.toHaveClass(/p-button-primary/, { timeout: 15_000 });
+    await page.waitForTimeout(600);
+  };
+  const bindWidth = async (value) => {
+    await dialog.locator('button[aria-label^="Rectangle s"]').first().click();
+    const width = dialog.locator('input[aria-label^="w s"]').first();
+    await width.click();
+    await page.keyboard.press('ControlOrMeta+a');
+    await width.pressSequentially(value, { delay: 60 });
+    await width.press('Enter');
+    await page.waitForTimeout(600);
+    return width;
+  };
+
+  await drawRectangle();
+  await dialog.getByRole('button', { name: 'Add parameter' }).click();
+  const paramName = dialog.locator('input[aria-label^="Parameter name"]').last();
+  await paramName.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('W', { delay: 40 });
+  await paramName.press('Enter');
+  const fxW = dialog.locator('input[aria-label="W"]').last();
+  await fxW.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('42', { delay: 40 });
+  await fxW.press('Enter');
+  await bindWidth('W');
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(dialog).toBeHidden({ timeout: 30_000 });
+
+  const chipW = chipField(page, 'W');
+  await expect(chipW).toBeVisible({ timeout: 20_000 });
+  await expect.poll(() => chipText(chipW)).toBe('42');
+  await chipW.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('84', { delay: 60 });
+  await page.keyboard.press('Enter');
+  await expect.poll(() => chipText(chipW)).toBe('84');
+
+  // A number typed into the dimension bound to W edits the instance
+  // override that drives the drawing; the authored row keeps 42.
+  await page.getByRole('button', { name: 'Edit profile' }).first().click();
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
+  await dialog.locator('button[aria-label^="Rectangle s"]').first().click();
+  const widthField = dialog.locator('input[aria-label^="w s"]').first();
+  await expect(widthField).toHaveValue('W');
+  await widthField.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('20', { delay: 60 });
+  await widthField.press('Enter');
+  await page.waitForTimeout(800);
+  await expect(dialog.locator('input[aria-label="W"]').last()).toHaveValue('42');
+  await expect(widthField).toHaveValue('W');
+
+  // Renaming the authored row moves the override with it.
+  const nameW = dialog.locator('input[aria-label="Parameter name W"]').first();
+  await nameW.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('WIDTH', { delay: 40 });
+  await nameW.press('Enter');
+  await page.waitForTimeout(600);
+  await expect(widthField).toHaveValue('WIDTH');
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await expect.poll(() => chipText(chipField(page, 'WIDTH'))).toBe('20');
+
+  // Clearing starts a session whose history begins at the blank sketch:
+  // undo cannot cross back into the cleared profile.
+  await page.getByRole('button', { name: 'Edit profile' }).first().click();
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
+  await dialog.getByRole('button', { name: 'Clear canvas' }).click();
+  await expect(dialog.locator('button[aria-label^="Rectangle s"]')).toHaveCount(0);
+  await expect(dialog.locator('button[aria-label="Undo"]').first()).toBeDisabled();
+
+  // A sketch bound to a cassette global has no authored row to store in
+  // the library: the workpiece saves, the library record refuses.
+  await drawRectangle();
+  const width = await bindWidth('A');
+  await expect(width).toHaveValue('A');
+  await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+  await expect(dialog.getByRole('button', { name: 'Save to library', exact: true })).toBeDisabled();
+
+  await app.expectCleanRuntime();
+});
+
 test('a fillet bound on a drawn corner drives the placed profile', async ({ app }) => {
   test.setTimeout(240_000);
   await app.installPlugins(['tech-drawing', 'facade']);
