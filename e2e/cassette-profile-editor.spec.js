@@ -110,6 +110,26 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await expect(canvas).toBeVisible({ timeout: 60_000 });
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
 
+  // The embedded edition owns no desktop chrome: no autosave/recovery and
+  // none of the native bars or panels on screen.
+  const embedded = await page.evaluate(() => {
+    const frame = document.querySelector('[role="application"] iframe');
+    const win = frame?.contentWindow;
+    const chrome = ['body > header', '.cc-tools', '.cc-panel', '.cc-status']
+      .map(selector => win?.document.querySelector(selector))
+      .filter(Boolean);
+    return {
+      search: win?.location?.search || '',
+      autosave: win?.cadcraft?.host?.autosave ?? null,
+      recovery: Boolean(win?.document?.querySelector('[data-autosave-dialog]')),
+      visibleChrome: chrome.filter(node => win.getComputedStyle(node).display !== 'none').length
+    };
+  });
+  expect(embedded.search).toContain('embed=1');
+  expect(embedded.autosave, 'Expected no autosave wiring in the embed').toBe(null);
+  expect(embedded.recovery, 'Expected no native recovery dialog').toBe(false);
+  expect(embedded.visibleChrome, 'Expected no native CadCraft chrome').toBe(0);
+
   const box = await canvas.boundingBox();
   expect(box, 'canvas box').toBeTruthy();
   const click = async (fx, fy) => page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
