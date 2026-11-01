@@ -712,7 +712,9 @@ const pointFromDxf = (point = {}) => ({
 
 const CHORD_TOLERANCE_MM = 0.05;
 const POINT_EPSILON = 0.001;
-const TANGENT_EPSILON = 1e-3;
+// Tangency tolerance in normalized units: rounding at 1e-3 mm on few-mm
+// arcs lands near 1e-3, so recognition needs headroom.
+const TANGENT_EPSILON = 1e-2;
 
 const samePoint = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < POINT_EPSILON;
 
@@ -1229,11 +1231,7 @@ const chainShapeFromGeometry = (geometry, closed, op, index) => {
   };
 };
 
-export const occProfileSketchFromEntities = (entities = [], options = {}) => {
-  const parameters = options.parameters || {};
-  const chordTolerance = Number.isFinite(options.chordTolerance)
-    ? options.chordTolerance
-    : CHORD_TOLERANCE_MM;
+const extractShapesFromEntities = (entities, parameters, chordTolerance, reference) => {
   const circles = [];
   const polylines = [];
   const freeSegments = [];
@@ -1254,9 +1252,7 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
     if (segment) freeSegments.push(segment);
   }
 
-  const reference = Boolean(options.reference);
   const shapes = [];
-
   for (const circle of circles) {
     shapes.push({
       id: `s${shapes.length}`,
@@ -1279,6 +1275,42 @@ export const occProfileSketchFromEntities = (entities = [], options = {}) => {
       shapes.push(chainShapeFromGeometry(geometry, closed, reference ? 'construction' : 'add', shapes.length));
     }
   }
+  return shapes;
+};
+
+// A seeded entity carries its shape's id; that group extracts back under
+// the same id, so identity survives a canvas pass. Untagged entities are
+// the author's new geometry and take fresh ids.
+export const occProfileSketchFromEntities = (entities = [], options = {}) => {
+  const parameters = options.parameters || {};
+  const chordTolerance = Number.isFinite(options.chordTolerance)
+    ? options.chordTolerance
+    : CHORD_TOLERANCE_MM;
+  const reference = Boolean(options.reference);
+
+  const tagged = new Map();
+  const untagged = [];
+  for (const entity of entities) {
+    if (!entity) continue;
+    if (entity.shapeId) {
+      if (!tagged.has(entity.shapeId)) tagged.set(entity.shapeId, []);
+      tagged.get(entity.shapeId).push(entity);
+    } else {
+      untagged.push(entity);
+    }
+  }
+
+  const shapes = [];
+  for (const [shapeId, group] of tagged) {
+    const groupShapes = extractShapesFromEntities(group, parameters, chordTolerance, reference);
+    groupShapes.forEach((shape, index) => {
+      shapes.push(index === 0 ? { ...shape, id: shapeId } : shape);
+    });
+  }
+  const fresh = extractShapesFromEntities(untagged, parameters, chordTolerance, reference);
+  fresh.forEach((shape, index) => {
+    shapes.push({ ...shape, id: `n${index}` });
+  });
 
   return normalizeOccsProfileSketch({
     version: '0.2',
@@ -1456,6 +1488,22 @@ const rectFilletsFromExtraction = (extractedShape, authoredShape, evaluatedShape
   return fillets.sort((left, right) => left.corner - right.corner);
 };
 
+const mergeRectShape = (extractedShape, authoredShape, evaluatedShape, mergeField) => {
+  const field = (key, index) => mergeField(
+    index === undefined ? authoredShape?.[key] : authoredShape?.[key]?.[index],
+    index === undefined ? evaluatedShape?.[key] : evaluatedShape?.[key]?.[index],
+    index === undefined ? extractedShape?.[key] : extractedShape?.[key]?.[index]
+  );
+  return {
+    ...authoredShape,
+    center: [field('center', 0), field('center', 1)],
+    width: field('width'),
+    height: field('height'),
+    rotation: field('rotation'),
+    fillets: rectFilletsFromExtraction(extractedShape, authoredShape, evaluatedShape, mergeField)
+  };
+};
+
 // Chain merge: the per-point position law — an extracted point sitting
 // on an authored point's evaluated position keeps the authored id and
 // expression coordinates; a moved point keeps its authored expression
@@ -1530,20 +1578,35 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
     && Number.isFinite(Number(authored.parameters[value]))
   );
   const mergeField = (authoredValue, evaluatedValue, extractedValue) => {
-    if (typeof authoredValue === 'string'
-      && Number.isFinite(evaluatedValue)
-      && Number.isFinite(extractedValue)
-      && Math.abs(evaluatedValue - extractedValue) <= MERGE_EPSILON_MM) return authoredValue;
-    if (bareParameter(authoredValue) && Number.isFinite(extractedValue)) {
-      parameterEdits[authoredValue] = extractedValue;
+    // Extraction noise never rewrites an authored number.
+    if (Number.isFinite(authoredValue) && Number.isFinite(extractedValue)
+      && Math.abs(authoredValue - extractedValue) <= MERGE_EPSILON_MM) return authoredValue;
+    // An authored expression that resolves is the author's truth: drift
+    // never rewrites it into a number. A bare parameter follows the
+    // dragged geometry through the parameter table.
+    if (typeof authoredValue === 'string' && Number.isFinite(evaluatedValue)) {
+      // A bare parameter absorbs an intentional move, never rounding
+      // noise: the field is the parameter's editor.
+      if (bareParameter(authoredValue) && Number.isFinite(extractedValue)
+        && (!Number.isFinite(evaluatedValue) || Math.abs(evaluatedValue - extractedValue) > MERGE_EPSILON_MM)) {
+        parameterEdits[authoredValue] = extractedValue;
+      }
       return authoredValue;
     }
     return Number.isFinite(extractedValue) ? extractedValue : authoredValue;
   };
+  // A tagged extraction names its authored shape outright: identity is
+  // the tag, so geometry never decides the kind.
+  const authoredById = new Map([...authored.shapes, ...adoptShapes].map(shape => [shape.id, shape]));
   const shapes = extracted.shapes.map((shape) => {
-    let best = null;
+    const tagged = authoredById.get(shape.id) || null;
+    // The tagged shape's evaluated counterpart carries the numbers; the
+    // authored one carries the expressions.
+    let best = tagged
+      ? [...source.shapes, ...adoptSource].find(candidate => candidate.id === tagged.id) || null
+      : null;
     let bestMatches = 0;
-    for (const candidate of [...source.shapes, ...adoptSource]) {
+    for (const candidate of tagged ? [] : [...source.shapes, ...adoptSource]) {
       if (usedAuthored.has(candidate.id) || !sameShapeFamily(shape, candidate)) continue;
       if (shape.type === 'chain' && candidate.type === 'chain') {
         const matches = candidate.points.filter((candidatePoint, index) => (
@@ -1560,9 +1623,11 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
       }
       if (!best && (candidate.type !== shape.type || shapesWithinEpsilon(shape, candidate))) best = candidate;
     }
+    if (!best && tagged) best = tagged;
     if (!best) return { ...shape, __fresh: true };
     usedAuthored.add(best.id);
-    const pool = authored.shapes.find(authoredShape => authoredShape.id === best.id)
+    const pool = tagged
+      || authored.shapes.find(authoredShape => authoredShape.id === best.id)
       || adoptShapes.find(adoptShape => adoptShape.id === best.id);
     const original = pool || best;
     keptShapeIds.add(original.id);
@@ -1580,6 +1645,7 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
         modifiers: chainFilletsFromExtraction(shape, original, best, mergeField)
       };
     }
+    if (shape.type === 'rect') return mergeRectShape(shape, original, best, mergeField);
     return { ...original, fillets: rectFilletsFromExtraction(shape, original, best, mergeField) };
   });
   // Field-wise revive: a leftover extracted shape pairs with a leftover

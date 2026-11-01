@@ -408,10 +408,9 @@ describe('OCCS profile helpers', () => {
     ], { W: 40, H: 20 });
     const merged = normalizeOccsProfileSketch(mergeOccsProfileSketchGeometry(moved, authored, { W: 40, H: 20 }));
     const rect = merged.shapes[0];
-    // Compound expressions cannot take a drag: sizes keep their
-    // bindings (values survived), position carries numerics.
-    expect(rect).toMatchObject({ width: 'W', height: 'H' });
-    expect(rect.center[0]).toEqual(45);
+    // Every authored expression survives the drag: the arithmetic keeps
+    // its bindings and the canvas move lands on nothing.
+    expect(rect).toMatchObject({ width: 'W', height: 'H', center: ['W/2', 'H/2'] });
 
     // The same drag on a bare-parameter binding edits the parameter —
     // the dim stays the parameter's editor.
@@ -589,6 +588,27 @@ describe('OCCS profile helpers', () => {
     }
     expect(current.shapes[0]).toEqual(authored.shapes[0]);
     expect(current.parameters).toEqual({ W: 42, H: 28, R: 3 });
+  });
+
+  it('a tagged entity group keeps its kind and never drifts a parameter', () => {
+    const authored = normalizeOccsProfileSketch({
+      parameters: { W: 42, H: 28 },
+      shapes: [{ id: 's0', type: 'rect', op: 'add', center: ['W/2', 'H/2'], width: 'W', height: 'H', rotation: 0, fillets: [] }]
+    });
+    // The canvas rounds entity endpoints; the tag is what ties them back.
+    const entities = occProfileEntitiesFromSketch(authored).map(entity => (
+      entity.type === 'LINE'
+        ? { ...entity, shapeId: 's0', end: { x: entity.end.x + 0.001, y: entity.end.y } }
+        : { ...entity, shapeId: 's0' }
+    ));
+    const merged = mergeOccsProfileSketchGeometry(
+      occProfileSketchFromEntities(entities, { parameters: authored.parameters }),
+      authored,
+      {}
+    );
+    expect(merged.shapes[0].type).toBe('rect');
+    expect(merged.shapes[0].width).toBe('W');
+    expect(merged.parameters.W).toBe(42);
   });
 
   it('keeps a filleted chain a chain — extraction classifies the polygon, identity keeps the kind', () => {

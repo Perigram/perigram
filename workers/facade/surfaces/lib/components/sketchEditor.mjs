@@ -768,25 +768,32 @@ export default function createSketchEditor({ vue, components, locale }) {
         return entities;
       };
 
+      // Seeded entities carry their shape's id: extraction hands the tag
+      // back so the model keeps authored identity instead of re-matching
+      // geometry.
       const entityRecords = () => {
         const records = [];
         for (const entity of modelSpaceEntities()) {
           const type = entity?.dxfTypeName;
+          const shapeId = entityShapeByObjectId.get(String(entity.objectId));
+          const tag = shapeId ? { shapeId } : {};
           if (type === 'LINE') {
             records.push({
               type: 'LINE',
               start: { x: entity.startPoint.x, y: entity.startPoint.y },
-              end: { x: entity.endPoint.x, y: entity.endPoint.y }
+              end: { x: entity.endPoint.x, y: entity.endPoint.y },
+              ...tag
             });
           } else if (type === 'CIRCLE') {
-            records.push({ type: 'CIRCLE', center: { x: entity.center.x, y: entity.center.y }, radius: entity.radius });
+            records.push({ type: 'CIRCLE', center: { x: entity.center.x, y: entity.center.y }, radius: entity.radius, ...tag });
           } else if (type === 'ARC') {
             records.push({
               type: 'ARC',
               center: { x: entity.center.x, y: entity.center.y },
               radius: entity.radius,
               startAngle: entity.startAngle,
-              endAngle: entity.endAngle
+              endAngle: entity.endAngle,
+              ...tag
             });
           } else if (type === 'LWPOLYLINE' || type === 'POLYLINE') {
             const vertices = [];
@@ -798,7 +805,7 @@ export default function createSketchEditor({ vue, components, locale }) {
               bulges.push(Number(entity.getBulgeAt?.(index)) || 0);
             }
             if (vertices.length >= 2) {
-              records.push({ type: 'POLYLINE', vertices, bulges, closed: Boolean(entity.closed) });
+              records.push({ type: 'POLYLINE', vertices, bulges, closed: Boolean(entity.closed), ...tag });
             }
           }
         }
