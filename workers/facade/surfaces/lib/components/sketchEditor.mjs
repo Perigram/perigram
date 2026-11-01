@@ -53,7 +53,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // for every evaluation the canvas runs, and stays out of the model.
       instanceParameters: { type: Object, default: () => ({}) }
     },
-    emits: ['update:modelValue', 'update:instance'],
+    emits: ['update:modelValue', 'update:instance', 'outline-error'],
     setup(props, { emit }) {
       const containerRef = ref(null);
       const rootRef = ref(null);
@@ -146,7 +146,6 @@ export default function createSketchEditor({ vue, components, locale }) {
       // stay plain engine lines beneath it — hatch and strong outline
       // are what goes to the cassette, bare lines are what is drawn.
       const resolvedFace = shallowRef(null);
-      const outlineError = ref('');
       let outlineTimer = null;
 
       // Owner law: nothing breaks the drawing. A mid-edit expression
@@ -182,13 +181,15 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
+      const setOutlineError = (message) => emit('outline-error', message);
+
       let outlineGeneration = 0;
       const resolveOutline = async () => {
         outlineTimer = null;
         if (disposed) return;
         const generation = outlineGeneration + 1;
         outlineGeneration = generation;
-        outlineError.value = '';
+        setOutlineError('');
         try {
           const normalized = derivedSketch(props.modelValue || {});
           const { section } = occsProfileFromSketch(normalized, { parameters: externalScope() });
@@ -210,13 +211,13 @@ export default function createSketchEditor({ vue, components, locale }) {
           syncAnnotations();
           const participates = section.shapes.some(shape => shape.op !== 'construction');
           if (participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
-            outlineError.value = t('cassette.v2.profileEditor.resultClipped');
+            setOutlineError(t('cassette.v2.profileEditor.resultClipped'));
           }
         } catch (error) {
           if (disposed || generation !== outlineGeneration) return;
           // The last good face stays on the canvas; the error rides
           // the message alone.
-          outlineError.value = error?.message || String(error);
+          setOutlineError(error?.message || String(error));
         }
       };
       const scheduleOutlineResolve = () => {
@@ -1667,9 +1668,6 @@ export default function createSketchEditor({ vue, components, locale }) {
       }, [
         importError.value
           ? h(Message, { severity: 'error', size: 'small', closable: false }, () => importError.value)
-          : null,
-        outlineError.value
-          ? h(Message, { severity: 'error', size: 'small', closable: false }, () => outlineError.value)
           : null,
         renderParameterStrip(),
         h('input', {

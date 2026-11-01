@@ -329,13 +329,20 @@ const sketchParticipates = (evaluated = {}) => evaluated.shapes.some(shape => (
       : true)
 ));
 
-export const isOccsProfileSketchSavable = (sketch = {}, fallbackParameters = {}) => {
+// One evaluation for the save gate's two answers: the resolved sketch and
+// the error that refused it.
+export const inspectOccsProfileSketch = (sketch = {}, fallbackParameters = {}) => {
   try {
-    return sketchParticipates(evaluateOccsProfileSketch(sketch, fallbackParameters));
-  } catch {
-    return false;
+    const evaluated = evaluateOccsProfileSketch(sketch, fallbackParameters);
+    return { evaluated, error: '', savable: sketchParticipates(evaluated) };
+  } catch (error) {
+    return { evaluated: null, error: error?.message || String(error), savable: false };
   }
 };
+
+export const isOccsProfileSketchSavable = (sketch = {}, fallbackParameters = {}) => (
+  inspectOccsProfileSketch(sketch, fallbackParameters).savable
+);
 
 // Resolves every authored expression against the parameter table
 // (parameters may reference each other; the engine rejects cycles and
@@ -488,8 +495,7 @@ const chainSectionShape = (shape = {}) => {
   };
 };
 
-export const occsProfileFromSketch = (sketch = {}, options = {}) => {
-  const normalized = evaluateOccsProfileSketch(sketch, options.parameters);
+export const buildOccsProfileFromEvaluatedSketch = (normalized = {}, options = {}) => {
   const polyline = openChainSection(normalized);
   const section = polyline || {
     type: 'shapes',
@@ -537,6 +543,10 @@ export const occsProfileFromSketch = (sketch = {}, options = {}) => {
     sketch: normalized
   };
 };
+
+export const occsProfileFromSketch = (sketch = {}, options = {}) => (
+  buildOccsProfileFromEvaluatedSketch(evaluateOccsProfileSketch(sketch, options.parameters), options)
+);
 
 // The section's boolean steps as an ordered CSG sequence: each
 // participating shape applies to the face in authored list order — a

@@ -36,10 +36,11 @@ import { occsParameterSource } from '../occs/parameters.js';
 import {
   OCCS_PROFILE_KINDS,
   OCCS_PROFILE_PROCESSES,
+  buildOccsProfileFromEvaluatedSketch,
   closeOccsProfileSketchBoundary,
   createEmptyOccsProfileSketch,
   deriveOccsProfileSketch,
-  evaluateOccsProfileSketch,
+  inspectOccsProfileSketch,
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
   occsProfileFromSketch,
@@ -327,20 +328,22 @@ export default function createSurface({ vue, components, locale, queries, record
         profileDraftSketch.value,
         profileDraft.value.instance
       ));
-      const profileDraftReady = computed(() => isOccsProfileSketchSavable(
+      const profileDraftInspection = computed(() => inspectOccsProfileSketch(
         profileDraftDerived.value,
         globalParameters.value
       ));
+      const profileDraftReady = computed(() => profileDraftInspection.value.savable);
       // The refused save states its reason beside the button — a greyed
       // Save with no voice loses authored sessions.
-      const profileDraftError = computed(() => {
-        try {
-          evaluateOccsProfileSketch(profileDraftDerived.value, globalParameters.value);
-          return '';
-        } catch (error) {
-          return error?.message || String(error);
-        }
-      });
+      const profileDraftError = computed(() => profileDraftInspection.value.error);
+      // The dialog carries the one error voice: the save gate's refusal,
+      // the editor's outline refusal, or the participation gate.
+      const profileEditorError = ref('');
+      const profileDialogError = computed(() => (
+        profileDraftError.value
+        || profileEditorError.value
+        || (profileDraftReady.value ? '' : t('cassette.v2.profileEditor.invalidSketch'))
+      ));
       const preparedProfileDraftSketch = computed(() => closeOccsProfileSketchBoundary(
         profileDraftSketch.value
       ));
@@ -1555,16 +1558,17 @@ export default function createSurface({ vue, components, locale, queries, record
           // instance table beside it.
           instance,
           sketch,
-          // The cached section evaluates the derived table (workers/facade/SPEC.md
-          // — two parameter tables).
-          occsProfile: occsProfileFromSketch(profileDraftDerived.value, {
-            parameters: globalParameters.value
-          })
+          // The cached section reads the same evaluation the save gate
+          // inspected (workers/facade/SPEC.md — two parameter tables).
+          occsProfile: profileDraftInspection.value.evaluated
+            ? buildOccsProfileFromEvaluatedSketch(profileDraftInspection.value.evaluated)
+            : null
         };
       };
 
       const openProfileDialog = (workpieceId = '') => {
         closeInlineEditor();
+        profileEditorError.value = '';
         editingProfileWorkpieceId.value = workpieceId;
         const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;
         if (workpiece) {
@@ -3153,7 +3157,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 size: 'small',
                 disabled: !profileDraftReady.value,
                 'aria-label': t('common.save'),
-                title: profileDraftReady.value ? t('common.save') : profileDraftError.value || t('common.save'),
+                title: profileDialogError.value || t('common.save'),
                 onClick: saveProfileDraft
               }),
               profileLibraryAvailable.value
@@ -3176,17 +3180,16 @@ export default function createSurface({ vue, components, locale, queries, record
                 })
                 : null
             ]),
-            profileDraftReady.value
-              ? null
-              : h(Message, { severity: 'warn', size: 'small', closable: false, class: 'shrink-0' }, () => (
-                  profileDraftError.value || t('cassette.v2.profileEditor.invalidSketch')
-                )),
+            profileDialogError.value
+              ? h(Message, { severity: 'warn', size: 'small', closable: false, class: 'shrink-0' }, () => profileDialogError.value)
+              : null,
             h(ProfileSketchEditor, {
               modelValue: profileDraft.value.sketch,
               externalParameters: globalParameters.value,
               instanceParameters: profileDraft.value.instance,
               'onUpdate:modelValue': value => { profileDraft.value.sketch = value; },
-              'onUpdate:instance': value => { profileDraft.value.instance = value; }
+              'onUpdate:instance': value => { profileDraft.value.instance = value; },
+              onOutlineError: value => { profileEditorError.value = value; }
             })
           ])
         })
