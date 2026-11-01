@@ -1,32 +1,11 @@
 // The tech-drawing plugin's DXF template editor (surface contract 2 —
 // the editor-grade mount). Marker law homes in ../dxf-markers.js.
 import { spotMarkersOf, addSpotMarker, renameSpotMarker, removeSpotMarker, defaultMarkerHeight, withLayerTable } from '../dxf-markers.js';
+import { CadCraftHost } from 'cadcraft';
 
 // The anchor read host surfaces consume (the fill dialog's spot-parts
 // row): the parse law stays homed with the placement engine.
 export { spotNamesOf } from '../dxf-markers.js';
-
-const OPEN_OPTIONS = { readOnly: true };
-
-// The engine's glyph-redraw timer fires 50 ms after its font preload
-// resolves; teardown settles past it before destroying the singleton the
-// timer reads.
-const GLYPH_REDRAW_SETTLE_MS = 80;
-
-// The CAD engine is a page singleton (`AcApDocManager.createInstance`
-// hands back the first manager). Surfaces share one page-level claim so a
-// second canvas states the collision instead of binding to the first
-// one's container; the cad-viewer README owns the contract.
-const CAD_VIEWER_LEASE = Symbol.for('perigram.cadViewer.lease');
-const cadViewerLease = () => {
-  globalThis[CAD_VIEWER_LEASE] ||= { owner: null };
-  return globalThis[CAD_VIEWER_LEASE];
-};
-
-// The engine singleton is destroyed and re-created per mount; a pending
-// destroy must finish first or its teardown would clobber the new
-// instance.
-let engineChain = Promise.resolve();
 
 export default function createSurface({ vue, components, locale, notify }) {
   const { h, ref, computed, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
@@ -44,49 +23,14 @@ export default function createSurface({ vue, components, locale, notify }) {
       const saving = ref(false);
       const dirty = ref(false);
       const engineError = ref('');
-      const canvasBusy = ref(false);
       const templateText = ref('');
       const containerRef = ref(null);
       const nameRef = ref(null);
       const addName = ref('');
       const addX = ref(0);
       const addY = ref(0);
-      let manager = null;
+      let host = null;
       let disposed = false;
-      const canvasClaim = {};
-
-      const claimCanvas = () => {
-        const lease = cadViewerLease();
-        const current = lease.owner;
-        if (current && current.token !== canvasClaim) current.yield?.();
-        lease.owner = { token: canvasClaim, yield: yieldCanvas };
-      };
-
-      const releaseCanvas = () => {
-        const lease = cadViewerLease();
-        if (lease.owner?.token === canvasClaim) lease.owner = null;
-      };
-
-      const disposeManager = () => {
-        const dying = manager;
-        manager = null;
-        containerRef.value?.removeEventListener('click', pickPoint);
-        engineChain = engineChain.then(async () => {
-          try { await dying?.curView?.awaitTextStyleFontsReady?.(); } catch { /* bounded by the engine's own timeout */ }
-          await new Promise(resolve => setTimeout(resolve, GLYPH_REDRAW_SETTLE_MS));
-          await dying?.destroy?.();
-        });
-      };
-
-      const yieldCanvas = () => {
-        canvasBusy.value = true;
-        disposeManager();
-      };
-
-      const retryCanvas = () => {
-        canvasBusy.value = false;
-        mountEngine().catch(fail);
-      };
 
       const markers = computed(() => spotMarkersOf(templateText.value));
       const canSave = computed(() => dirty.value && !loading.value);
@@ -97,15 +41,12 @@ export default function createSurface({ vue, components, locale, notify }) {
       }
 
       async function reopen(skipFit = false) {
-        if (!manager || disposed || !templateText.value) return;
+        if (!host || disposed || !templateText.value) return;
         // The canvas reads the layer-normalized copy (dxf-markers);
         // saves ride the authored bytes verbatim.
-        await manager.openDocument(
-          `${props.record?.name || 'template'}.dxf`,
-          new TextEncoder().encode(withLayerTable(templateText.value)).buffer,
-          OPEN_OPTIONS
-        );
-        if (!skipFit) manager.curView?.zoomToFitDrawing?.();
+        await host.openText(`${props.record?.name || 'template'}.dxf`, withLayerTable(templateText.value));
+        host.lockLayers(true);
+        if (!skipFit) host.zoomFit();
       }
 
       function apply(next, note) {
@@ -155,11 +96,10 @@ export default function createSurface({ vue, components, locale, notify }) {
       const rounded6 = value => Math.round(value * 1e6) / 1e6;
 
       // A canvas click picks the anchor's insertion point into the add
-      // form — the engine's own view transforms, six-decimal rounding.
+      // form — the frame's own view transform, six-decimal rounding.
       function pickPoint(event) {
-        const view = manager?.curView;
-        if (!view?.viewportToCanvas || !view?.screenToWorld) return;
-        const world = view.screenToWorld(view.viewportToCanvas({ x: event.clientX, y: event.clientY }));
+        if (!host) return;
+        const world = host.screenToWorld({ x: event.clientX, y: event.clientY });
         if (world == null || !Number.isFinite(world.x) || !Number.isFinite(world.y)) return;
         addX.value = rounded6(world.x);
         addY.value = rounded6(world.y);
@@ -183,29 +123,12 @@ export default function createSurface({ vue, components, locale, notify }) {
       async function mountEngine() {
         await nextTick();
         if (disposed || !containerRef.value) return;
-        claimCanvas();
-        try {
-          const loaded = await import('cad-viewer');
-          if (disposed) return;
-          loaded.AcApSettingManager.instance.isShowCommandLine = false;
-          loaded.AcApSettingManager.instance.isShowShortCutToolbar = false;
-          loaded.acedApplyUiTheme?.('dark', containerRef.value);
-          await engineChain;
-          if (disposed) return;
-          manager = loaded.AcApDocManager.createInstance({
-            container: containerRef.value,
-            autoResize: true,
-            useMainThreadDraw: true,
-            builtinOpenFileDialog: false,
-            notificationCenter: false,
-            disableExport: true
-          });
-          await reopen();
-          containerRef.value?.addEventListener('click', pickPoint);
-        } catch (error) {
-          releaseCanvas();
-          throw error;
-        }
+        host = new CadCraftHost({ container: containerRef.value, title: editorTitle.value });
+        await host.mount();
+        host.setCommandLine(false);
+        host.setGrid(false);
+        host.onPointerDown = pickPoint;
+        await reopen();
       }
 
       onMounted(async () => {
@@ -227,8 +150,8 @@ export default function createSurface({ vue, components, locale, notify }) {
 
       onBeforeUnmount(() => {
         disposed = true;
-        releaseCanvas();
-        disposeManager();
+        host?.destroy();
+        host = null;
       });
 
       const markerRow = marker => h('div', { class: 'flex min-w-0 items-center gap-2' }, [
@@ -264,7 +187,7 @@ export default function createSurface({ vue, components, locale, notify }) {
             rounded: true,
             size: 'small',
             'aria-label': t('drawing.resetView'),
-            onClick: () => manager?.curView?.zoomToFitDrawing?.()
+            onClick: () => host?.zoomFit()
           }),
           h(Button, {
             label: t('common.save'),
@@ -279,70 +202,59 @@ export default function createSurface({ vue, components, locale, notify }) {
           ? h(Message, { severity: 'error', closable: false }, { default: () => engineError.value })
           : null,
         h('div', { class: 'grid min-h-0 flex-1 grid-cols-[1fr_18rem] gap-3' }, [
-            canvasBusy.value
-              ? h('div', { class: 'flex min-h-0 flex-col items-center justify-center gap-3 rounded-panel border border-content-border bg-subtle p-4' }, [
-                  h(Message, { severity: 'warn', closable: false }, () => t('dxfEditor.canvasBusy')),
-                  h(Button, {
-                    label: t('dxfEditor.canvasRetry'),
-                    icon: 'pi pi-refresh',
-                    severity: 'secondary',
-                    size: 'small',
-                    onClick: retryCanvas
-                  })
-                ])
-              : h('div', {
-                  ref: containerRef,
-                  class: 'min-h-0 rounded-panel border border-content-border bg-subtle'
-                }),
-            h('div', { class: 'flex min-h-0 flex-col gap-2 overflow-auto' }, [
-              h('div', { class: 'text-label text-muted' }, `${t('dxfEditor.markers')} · ${markers.value.length}`),
-              loading.value
-                ? h('span', { class: 'text-supporting text-muted' }, t('common.loading'))
-                : null,
-              !loading.value && !markers.value.length
-                ? h('span', { class: 'text-supporting text-muted' }, t('dxfEditor.noMarkers'))
-                : null,
-              ...markers.value.map(marker => h('div', { key: marker.name }, [markerRow(marker)])),
-              h('div', { class: 'mt-auto flex flex-col gap-2 rounded-panel border border-content-border p-2' }, [
-                h(InputText, {
-                  ref: nameRef,
-                  modelValue: addName.value,
+          h('div', {
+            ref: containerRef,
+            class: 'relative min-h-0 overflow-hidden rounded-panel border border-content-border bg-subtle'
+          }),
+          h('div', { class: 'flex min-h-0 flex-col gap-2 overflow-auto' }, [
+            h('div', { class: 'text-label text-muted' }, `${t('dxfEditor.markers')} · ${markers.value.length}`),
+            loading.value
+              ? h('span', { class: 'text-supporting text-muted' }, t('common.loading'))
+              : null,
+            !loading.value && !markers.value.length
+              ? h('span', { class: 'text-supporting text-muted' }, t('dxfEditor.noMarkers'))
+              : null,
+            ...markers.value.map(marker => h('div', { key: marker.name }, [markerRow(marker)])),
+            h('div', { class: 'mt-auto flex flex-col gap-2 rounded-panel border border-content-border p-2' }, [
+              h(InputText, {
+                ref: nameRef,
+                modelValue: addName.value,
+                size: 'small',
+                placeholder: t('dxfEditor.markerName'),
+                'aria-label': t('dxfEditor.markerName'),
+                'onUpdate:modelValue': value => { addName.value = value; },
+                onKeydown: event => {
+                  if (event.key === 'Enter') addMarker();
+                }
+              }),
+              h('div', { class: 'flex items-center gap-2' }, [
+                h(InputNumber, {
+                  modelValue: addX.value,
                   size: 'small',
-                  placeholder: t('dxfEditor.markerName'),
-                  'aria-label': t('dxfEditor.markerName'),
-                  'onUpdate:modelValue': value => { addName.value = value; },
-                  onKeydown: event => {
-                    if (event.key === 'Enter') addMarker();
-                  }
+                  class: 'w-full',
+                  inputId: 'dxf-marker-x',
+                  'aria-label': 'X',
+                  'onUpdate:modelValue': value => { addX.value = value; }
                 }),
-                h('div', { class: 'flex items-center gap-2' }, [
-                  h(InputNumber, {
-                    modelValue: addX.value,
-                    size: 'small',
-                    class: 'w-full',
-                    inputId: 'dxf-marker-x',
-                    'aria-label': 'X',
-                    'onUpdate:modelValue': value => { addX.value = value; }
-                  }),
-                  h(InputNumber, {
-                    modelValue: addY.value,
-                    size: 'small',
-                    class: 'w-full',
-                    'aria-label': 'Y',
-                    'onUpdate:modelValue': value => { addY.value = value; }
-                  })
-                ]),
-                h(Button, {
-                  label: t('dxfEditor.add'),
-                  icon: 'pi pi-plus',
+                h(InputNumber, {
+                  modelValue: addY.value,
                   size: 'small',
-                  severity: 'secondary',
-                  outlined: true,
-                  disabled: !addName.value.trim() || loading.value,
-                  onClick: addMarker
+                  class: 'w-full',
+                  'aria-label': 'Y',
+                  'onUpdate:modelValue': value => { addY.value = value; }
                 })
-              ])
+              ]),
+              h(Button, {
+                label: t('dxfEditor.add'),
+                icon: 'pi pi-plus',
+                size: 'small',
+                severity: 'secondary',
+                outlined: true,
+                disabled: !addName.value.trim() || loading.value,
+                onClick: addMarker
+              })
             ])
+          ])
         ])
       ]);
     }

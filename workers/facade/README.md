@@ -63,10 +63,10 @@ values and files out, free of service imports, persistence, and auth.
   geometry passes (`surfaces/lib/cassetteV2Clipper.js`).
 - `assets/vendor/three/` — the folded 3D preview runtime
   ([rewrite rule](./assets/vendor/three/README.md)).
-- the MLightCAD CAD runtime —
-  [tech-drawing's vendored copy](../tech-drawing/assets/vendor/cad-viewer/README.md),
-  consumed through the declared `cad-viewer` dependency (the
-  cross-plugin vendor seam).
+- the CadCraft browser edition —
+  [tech-drawing's vendored copy](../tech-drawing/assets/vendor/cadcraft/README.md),
+  consumed through the declared `cadcraft` dependency (the cross-plugin
+  vendor seam).
 
 ## Publish, install, migrate
 

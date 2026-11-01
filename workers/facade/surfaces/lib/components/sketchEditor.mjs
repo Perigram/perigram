@@ -1,8 +1,9 @@
-// The profile sketch editor as a plugin surface component: a CAD canvas
-// (the MLightCAD runtime homed in tech-drawing, loaded lazily through the
-// declared cad-viewer dependency) over the OCCS profile shape model.
-// Drawing, snapping, grips, and undo/redo run in the engine; entity
-// records and the sketch model normalize through occs/profiles.js.
+// The profile sketch editor as a plugin surface component: a CadCraft
+// canvas (the browser edition homed in tech-drawing, loaded through the
+// declared cadcraft dependency) over the OCCS profile shape model.
+// Drawing and snapping run in CadCraft; entity records and the sketch
+// model normalize through occs/profiles.js.
+import { CadCraftHost } from 'cadcraft';
 import {
   OCCS_PROFILE_SHAPE_OPS,
   adoptOccsProfileBindingParameter,
@@ -25,16 +26,6 @@ import createFieldDraft from './fieldDraft.mjs';
 
 const EXTRACT_DEBOUNCE_MS = 40;
 
-// The engine's glyph-redraw timer runs 50 ms after its font preload
-// resolves; teardown settles at least that long before destroying the
-// manager singleton the timer reads.
-const GLYPH_REDRAW_SETTLE_MS = 80;
-
-// Header-only blank DXF: the open pipeline fills the layer, layout,
-// and model-space defaults itself, so no template file (vendored or
-// CDN) is needed to boot a drawable document.
-const BLANK_DXF = '0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1027\n0\nENDSEC\n0\nEOF\n';
-
 const SHAPE_KIND_ICON = { circle: 'circle', rect: 'rectang', chain: 'polyline' };
 const SHAPE_KIND_LABEL = {
   circle: 'cassette.v2.profileEditor.tools.circle',
@@ -42,24 +33,10 @@ const SHAPE_KIND_LABEL = {
   chain: 'cassette.v2.profileEditor.tools.polyline'
 };
 
-// The CAD engine is a page singleton (`AcApDocManager.createInstance`
-// hands back the first manager). Surfaces share one page-level claim so a
-// second canvas states the collision instead of binding to the first
-// one's container; the cad-viewer README owns the contract.
-const CAD_VIEWER_LEASE = Symbol.for('perigram.cadViewer.lease');
-const cadViewerLease = () => {
-  globalThis[CAD_VIEWER_LEASE] ||= { owner: null };
-  return globalThis[CAD_VIEWER_LEASE];
-};
-
 export default function createSketchEditor({ vue, components, locale }) {
   const { h, ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
   const { Button, InputText, Message, Toolbar, SelectButton, Tag } = components;
-
-  // The engine singleton is destroyed and re-created per mount; a pending
-  // destroy must finish first or its teardown would clobber the new instance.
-  let engineChain = Promise.resolve();
 
   return defineComponent({
     name: 'ProfileSketchEditor',
@@ -78,9 +55,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       const containerRef = ref(null);
       const rootRef = ref(null);
       const fileInputRef = ref(null);
-      const runtime = shallowRef(null);
       const engineError = ref('');
-      const canvasBusy = ref(false);
       const importError = ref('');
       const activeTool = ref('select');
       const importedFileName = ref('');
@@ -92,16 +67,24 @@ export default function createSketchEditor({ vue, components, locale }) {
       const lastPointerAt = ref(null);
       const overlayRef = ref(null);
 
-      let manager = null;
-      let dbListeners = [];
+      let host = null;
       let extractTimer = null;
       let lastEmitted = '';
       let disposed = false;
       let zoomObserver = null;
-      const canvasClaim = {};
-      // The sketch model owns the author's history: the engine database is
-      // a projection every model change reseeds, so its undo stack cannot
-      // back a step.
+      let seeding = false;
+      let viewRaf = 0;
+      let lastViewKey = '';
+
+      // The overlay reads the frame's view directly: CadCraft's canvas is
+      // same-origin, so world/screen conversion is a plain function call.
+      const canvasView = {
+        worldToScreen: point => host?.worldToScreen(point) || { x: 0, y: 0 },
+        screenToWorld: point => host?.screenToWorld(point) || { x: 0, y: 0 }
+      };
+      // The sketch model owns the author's history: the frame's drawing
+      // is a projection every model change reseeds, so its undo stack
+      // cannot back a step.
       let historyEntries = [];
       let historyAt = -1;
       const historyVersion = ref(0);
@@ -114,73 +97,33 @@ export default function createSketchEditor({ vue, components, locale }) {
       // geometry revives their expressions. Session state — never
       // stored, cleared with the canvas.
       let droppedShapes = [];
-      // The construction document opens in Write mode; the blank and any
-      // imported document must keep it — Read-mode documents silently
-      // refuse the mode-gated draw commands. The bundle exports no mode
-      // enum, so the value is read off the fresh document, never hardcoded.
-      let writeMode;
-      // DXF osnap bit for Tangent (mode 9 → bit 1<<8): the engine's
-      // settings-manager mask uses the standard OSMODE encoding, where
-      // bit = osnap mode value − 1 (endpoint 1<<0 … centroid 1<<10).
-      const OSNAP_MODE_BITS = {
-        endpoint: 1 << 0,
-        midpoint: 1 << 1,
-        center: 1 << 2,
-        quadrant: 1 << 4,
-        intersection: 1 << 5,
-        tangent: 1 << 8,
-        nearest: 1 << 9
-      };
-      // The settings manager persists osnapModes to localStorage per
-      // origin and a stored value permanently overrides the engine's
-      // shipped defaults — a stale mask silently kills every snap. The
-      // editor owns its drafting set: assert the default mask on mount;
-      // the Tangent toggle rides on top.
-      const OSNAP_DEFAULT_MASK = OSNAP_MODE_BITS.endpoint | OSNAP_MODE_BITS.midpoint
-        | OSNAP_MODE_BITS.center | OSNAP_MODE_BITS.quadrant
-        | OSNAP_MODE_BITS.intersection | OSNAP_MODE_BITS.nearest;
+      // The canvas owns its snapping set; the tangent toggle rides on top.
+      const OSNAP_KINDS = ['end', 'mid', 'cen', 'quad', 'int', 'near'];
 
       const toggleOrtho = () => {
-        const database = manager?.curDocument?.database;
-        if (!database) return;
+        if (!host) return;
         orthoMode.value = !orthoMode.value;
-        database.orthomode = orthoMode.value ? 1 : 0;
+        host.setOrtho(orthoMode.value);
       };
 
       const toggleTangentSnap = () => {
-        const settings = runtime.value?.AcApSettingManager?.instance;
-        if (!settings) return;
+        if (!host) return;
         tangentSnap.value = !tangentSnap.value;
-        settings.osnapModes = OSNAP_DEFAULT_MASK
-          | (tangentSnap.value ? OSNAP_MODE_BITS.tangent : 0);
+        host.setSnapKind('tan', tangentSnap.value);
       };
 
-      // The engine CLI is the only desktop surface for typed prompt entry
-      // (bare length, dist<angle, @x,y — vendor README); the toggle reveals
-      // it on demand, the mount asserts it back off (clean-chrome law).
       const toggleCommandLine = () => {
-        const settings = runtime.value?.AcApSettingManager?.instance;
-        if (!settings) return;
+        if (!host) return;
         commandLine.value = !commandLine.value;
-        settings.isShowCommandLine = commandLine.value;
+        host.setCommandLine(commandLine.value);
       };
 
       // A blank canvas opens at drawing scale — a 200×150 mm window with
       // the zero axis in view — so freehand drawing lands in millimetres
-      // (occs/README.md owns the law). Script inputs are newline-tokenized
-      // (AutoCAD .scr semantics); sendStringToExecute runs one command and
-      // clears the input queue, so multi-command scripts ride runScript.
-      const BLANK_WINDOW_COMMAND = 'zoom\nw\n-50,-75\n150,75';
-      const runEngineScript = (script) => {
-        const commands = script.split('\n');
-        if (commands.length > 1 && manager?.runScript) {
-          manager.runScript(commands.join('\n'));
-          return;
-        }
-        manager?.sendStringToExecute?.(commands[commands.length - 1]);
-      };
+      // (occs/README.md owns the law).
       const zoomToBlankWindow = (extra = []) => {
-        runEngineScript([BLANK_WINDOW_COMMAND, ...extra].join('\n'));
+        host?.zoomWindow({ x: -50, y: -75 }, { x: 150, y: 75 });
+        for (const command of extra) host?.run(command);
       };
 
       // The material half of the zero axis is the boolean body — the
@@ -267,7 +210,6 @@ export default function createSketchEditor({ vue, components, locale }) {
       // reads them back. The computed re-runs on a tick bumped from the
       // view's render frame, so pan/zoom redraw it.
       const viewTick = ref(0);
-      const bumpViewTick = () => { viewTick.value += 1; };
 
       // Dimension stacking: dims on the same side of the same baseline
       // chain outward (18px, then 40, 62…). Bands key on the WORLD
@@ -484,7 +426,7 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const canvasAnnotations = computed(() => {
         viewTick.value;
-        const view = manager?.curView;
+        const view = host ? canvasView : null;
         if (!view) return null;
         const evaluated = evaluateForRender();
         if (!evaluated) return null;
@@ -499,7 +441,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // pan and zoom.
       const selectedVertexPopup = computed(() => {
         viewTick.value;
-        const view = manager?.curView;
+        const view = host ? canvasView : null;
         const selection = selectedCorner.value;
         if (!view || !selection) return null;
         const sketch = normalizeOccsProfileSketch(props.modelValue || {});
@@ -534,9 +476,8 @@ export default function createSketchEditor({ vue, components, locale }) {
       // Nearest authored corner within `radius` px of a client point —
       // vertex selection searches every chain shape.
       const cornerAt = (clientX, clientY, radius) => {
-        const view = manager?.curView;
-        const rect = overlayRef.value?.getBoundingClientRect();
-        if (!view || !rect) return null;
+        const view = host ? canvasView : null;
+        if (!view) return null;
         const evaluated = evaluateForRender();
         if (!evaluated) return null;
         let best = null;
@@ -544,7 +485,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           if (shape.type !== 'chain') continue;
           for (const point of shape.points.filter(item => !item.chord)) {
             const screen = view.worldToScreen({ x: point.x, y: point.y });
-            const distance = Math.hypot(rect.x + screen.x - clientX, rect.y + screen.y - clientY);
+            const distance = Math.hypot(screen.x - clientX, screen.y - clientY);
             if (distance <= radius && (!best || distance < best.distance)) {
               best = { shapeId: shape.id, point, distance };
             }
@@ -559,9 +500,8 @@ export default function createSketchEditor({ vue, components, locale }) {
       // clicks on the same point cycle the stack (selection cycling).
       let pickCycle = null;
       const shapesAt = (clientX, clientY) => {
-        const view = manager?.curView;
-        const bounds = overlayRef.value?.getBoundingClientRect();
-        if (!view || !bounds) return null;
+        const view = host ? canvasView : null;
+        if (!view) return null;
         const evaluated = evaluateForRender();
         if (!evaluated) return null;
         const authored = normalizeOccsProfileSketch(props.modelValue || {});
@@ -570,8 +510,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           .map(shape => byId.get(shape.id))
           .filter(Boolean)
           .reverse();
-        const px = clientX - bounds.x;
-        const py = clientY - bounds.y;
+        const px = clientX;
+        const py = clientY;
         const hits = [];
         const screenOf = (x, y) => view.worldToScreen({ x, y });
         const distanceToSegment = (ax, ay, bx, by) => {
@@ -619,51 +559,29 @@ export default function createSketchEditor({ vue, components, locale }) {
         return hits;
       };
 
-      // Seeded entities carry their shape's id — the engine's selection
+      // Seeded entities carry their shape's id — the frame's selection
       // maps back onto the authored shape for the popup.
-      let entityShapeByObjectId = new Map();
-      let unbindSelectionEvents = null;
+      let entityShapeByEntityId = new Map();
 
-      const syncShapeSelection = () => {
-        const ids = manager?.curView?.selectionSet?.ids;
-        if (!ids) return;
-        const shapeIds = [...new Set([...ids]
-          .map(id => entityShapeByObjectId.get(String(id)))
+      const syncShapeSelection = (ids = host?.selection() || []) => {
+        const shapeIds = [...new Set(ids
+          .map(id => entityShapeByEntityId.get(id))
           .filter(Boolean))];
-        // An empty engine pick carries no command — the surface's own
-        // pointerdown owns clearing on empty space.
         if (!shapeIds.length) return;
         if (shapeIds.length !== 1) {
           selectedShape.value = null;
           return;
         }
         if (selectedCorner.value) return;
-        const bounds = overlayRef.value?.getBoundingClientRect();
         const anchor = lastPointerAt.value;
         selectedShape.value = {
           shapeId: shapeIds[0],
-          at: anchor && bounds
-            ? [Math.min(Math.max(anchor[0] - bounds.x, 0), bounds.width), Math.min(Math.max(anchor[1] - bounds.y, 0), bounds.height)]
-            : [24, 24]
-        };
-      };
-
-      const bindSelectionEvents = () => {
-        const events = manager?.curView?.selectionSet?.events;
-        if (!events?.selectionAdded || !events?.selectionRemoved) return;
-        events.selectionAdded.addEventListener(syncShapeSelection);
-        events.selectionRemoved.addEventListener(syncShapeSelection);
-        unbindSelectionEvents = () => {
-          events.selectionAdded.removeEventListener(syncShapeSelection);
-          events.selectionRemoved.removeEventListener(syncShapeSelection);
+          at: anchor ? [anchor[0], anchor[1]] : [24, 24]
         };
       };
 
       const handleVertexSelectPointerDown = (event) => {
-        if (event.target?.closest?.('.profile-vertex-popup')
-          || event.target?.closest?.('.profile-dim')
-          || event.target?.closest?.('.profile-shape-popup')
-          || event.target?.closest?.('.profile-shapes-panel')) return;
+        if (isEditableTarget(event.target)) return;
         lastPointerAt.value = [event.clientX, event.clientY];
         if (activeTool.value !== 'select') {
           selectedCorner.value = null;
@@ -678,14 +596,13 @@ export default function createSketchEditor({ vue, components, locale }) {
           clearEngineSelection();
           return;
         }
-        // The engine picks entities on their edges; face clicks fall
+        // The frame picks entities on their edges; face clicks fall
         // through to the surface's hit test. A repeat click on the same
         // point cycles to the next shape beneath (covered shapes stay
         // reachable); a click elsewhere picks the topmost again.
         selectedCorner.value = null;
-        const bounds = overlayRef.value?.getBoundingClientRect();
         const hits = shapesAt(event.clientX, event.clientY);
-        if (!hits?.length || !bounds) {
+        if (!hits?.length) {
           pickCycle = null;
           selectedShape.value = null;
           return;
@@ -695,43 +612,32 @@ export default function createSketchEditor({ vue, components, locale }) {
         const index = sameSpot ? (pickCycle.index + 1) % hits.length : 0;
         pickCycle = { at: [event.clientX, event.clientY], index };
         const shape = hits[index];
-        selectedShape.value = { shapeId: shape.id, at: [event.clientX - bounds.x, event.clientY - bounds.y] };
+        selectedShape.value = { shapeId: shape.id, at: [event.clientX, event.clientY] };
       };
 
-      // The surface owns Escape routing: the engine's own handling needs
-      // focus inside its container, and toolbar clicks or a focused
-      // authoring field move it outside it. Escape closes the popups,
-      // cancels the engine's active command, and clears its selection —
-      // in that order, from any focus. The event stops here so the
-      // hosting dialog keeps its session; an idle canvas hands Escape
-      // back to the dialog. Undo/redo keys belong to the sketch history
-      // for the same reason: the engine undoes its projection, which the
-      // model reseeds on every step.
+      // Escape closes the popups, cancels the frame's active command and
+      // clears its selection; undo/redo step the sketch snapshots (the
+      // frame's projection is reseeded by the model).
       const isUndoKey = event => (event.ctrlKey || event.metaKey) && !event.altKey
         && ['z', 'y'].includes(String(event.key).toLowerCase());
       const isEditableTarget = (target) => {
         const tag = target?.tagName?.toLowerCase?.();
         return Boolean(target?.isContentEditable || ['input', 'textarea', 'select'].includes(tag));
       };
-      const ownsKeyboardTarget = (target) => {
-        const root = rootRef.value;
-        if (!root || typeof document === 'undefined') return false;
-        return target === document.body || root.contains(target);
-      };
 
-      const handleWindowKeydown = (event) => {
+      const handleCanvasKeydown = (event) => {
         if (event.key === 'Escape') {
-          const cancelling = Boolean(manager?.commandManager?.activeCommand);
+          const cancelling = Boolean(host?.running);
           if (!cancelling && !selectedCorner.value && !selectedShape.value) return;
           event.preventDefault();
           event.stopPropagation();
           if (selectedCorner.value) selectedCorner.value = null;
           if (selectedShape.value) selectedShape.value = null;
-          manager?.commandManager?.cancelActive?.();
+          host?.cancel();
           clearEngineSelection();
           return;
         }
-        if (!isUndoKey(event) || !ownsKeyboardTarget(event.target) || isEditableTarget(event.target)) return;
+        if (!isUndoKey(event) || isEditableTarget(event.target)) return;
         event.preventDefault();
         event.stopPropagation();
         if (String(event.key).toLowerCase() === 'y' || event.shiftKey) redoSketch();
@@ -743,7 +649,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // no icon set, and PrimeIcons had no unambiguous draw-tool glyphs.
       const TOOL_GROUPS = [
         [
-          { command: 'select', icon: 'select', labelKey: 'cassette.v2.profileEditor.tools.select' },
+          { icon: 'select', labelKey: 'cassette.v2.profileEditor.tools.select', onActivate: () => { host?.cancel(); activeTool.value = 'select'; } },
           { command: 'line', icon: 'line', labelKey: 'cassette.v2.profileEditor.tools.line' },
           { command: 'pline', icon: 'polyline', labelKey: 'cassette.v2.profileEditor.tools.polyline' },
           { command: 'circle', icon: 'circle', labelKey: 'cassette.v2.profileEditor.tools.circle' },
@@ -762,7 +668,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           { icon: 'commandLine', labelKey: 'cassette.v2.profileEditor.actions.commandLine', isOn: () => commandLine.value, onActivate: toggleCommandLine }
         ],
         [
-          { icon: 'zoomFit', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => manager?.curView?.zoomToFitDrawing?.() },
+          { icon: 'zoomFit', labelKey: 'cassette.v2.profileEditor.actions.zoomFit', onActivate: () => host?.zoomFit() },
           { icon: 'importDxf', labelKey: 'cassette.v2.profileEditor.importDxf', onActivate: () => fileInputRef.value?.click() },
           { icon: 'clear', labelKey: 'cassette.v2.profileEditor.actions.clear', onActivate: () => clearDrawing() }
         ]
@@ -773,53 +679,40 @@ export default function createSketchEditor({ vue, components, locale }) {
         return { parameters: normalized.parameters, units: normalized.units };
       };
 
-      const modelSpaceEntities = () => {
-        const modelSpace = manager?.curDocument?.database?.tables?.blockTable?.modelSpace;
-        if (!modelSpace?.newIterator) return [];
-        const entities = [];
-        for (const entity of modelSpace.newIterator()) entities.push(entity);
-        return entities;
-      };
-
       // Seeded entities carry their shape's id: extraction hands the tag
       // back so the model keeps authored identity instead of re-matching
       // geometry.
       const entityRecords = () => {
         const records = [];
-        for (const entity of modelSpaceEntities()) {
-          const type = entity?.dxfTypeName;
-          const shapeId = entityShapeByObjectId.get(String(entity.objectId));
+        for (const entity of host?.entities() || []) {
+          const shapeId = entityShapeByEntityId.get(entity.id);
           const tag = shapeId ? { shapeId } : {};
-          if (type === 'LINE') {
+          if (entity.type === 'line') {
             records.push({
               type: 'LINE',
-              start: { x: entity.startPoint.x, y: entity.startPoint.y },
-              end: { x: entity.endPoint.x, y: entity.endPoint.y },
+              start: { x: entity.x1, y: entity.y1 },
+              end: { x: entity.x2, y: entity.y2 },
               ...tag
             });
-          } else if (type === 'CIRCLE') {
-            records.push({ type: 'CIRCLE', center: { x: entity.center.x, y: entity.center.y }, radius: entity.radius, ...tag });
-          } else if (type === 'ARC') {
+          } else if (entity.type === 'circle') {
+            records.push({ type: 'CIRCLE', center: { x: entity.cx, y: entity.cy }, radius: entity.r, ...tag });
+          } else if (entity.type === 'arc') {
             records.push({
               type: 'ARC',
-              center: { x: entity.center.x, y: entity.center.y },
-              radius: entity.radius,
-              startAngle: entity.startAngle,
-              endAngle: entity.endAngle,
+              center: { x: entity.cx, y: entity.cy },
+              radius: entity.r,
+              startAngle: entity.a0,
+              endAngle: entity.a1,
               ...tag
             });
-          } else if (type === 'LWPOLYLINE' || type === 'POLYLINE') {
-            const vertices = [];
-            const bulges = [];
-            const count = Number(entity.numberOfVertices) || 0;
-            for (let index = 0; index < count; index += 1) {
-              const point = entity.getPoint2dAt(index);
-              vertices.push({ x: point.x, y: point.y });
-              bulges.push(Number(entity.getBulgeAt?.(index)) || 0);
-            }
-            if (vertices.length >= 2) {
-              records.push({ type: 'POLYLINE', vertices, bulges, closed: Boolean(entity.closed), ...tag });
-            }
+          } else if (entity.type === 'poly' && Array.isArray(entity.pts) && entity.pts.length >= 2) {
+            records.push({
+              type: 'POLYLINE',
+              vertices: entity.pts.map(point => ({ x: point.x, y: point.y })),
+              bulges: entity.pts.map(point => Number(point.bulge) || 0),
+              closed: Boolean(entity.closed),
+              ...tag
+            });
           }
         }
         return records;
@@ -874,7 +767,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       };
 
       const emitSketch = ({ reference = false } = {}) => {
-        if (!manager || disposed) return;
+        if (!host || disposed) return;
         const context = parametersOf(props.modelValue);
         const extracted = occProfileSketchFromEntities(entityRecords(), {
           ...context,
@@ -919,37 +812,9 @@ export default function createSketchEditor({ vue, components, locale }) {
         }, EXTRACT_DEBOUNCE_MS);
       };
 
-      // The manager's blank documents start with an empty database (no
-      // layer '0'); every entity defaults to that layer, so the default
-      // tables must exist before anything draws. Parsed DXF documents
-      // carry their own tables and are left untouched.
-      const ensureDefaultTables = () => {
-        const database = manager?.curDocument?.database;
-        if (!database?.createDefaultData) return;
-        try {
-          if (!database.tables?.layerTable?.getAt?.('0')) database.createDefaultData();
-        } catch {
-          // A document that cannot take default data reports on draw; the
-          // boot document always accepts it.
-        }
-      };
-
-      // The construction document never runs the open pipeline, so its
-      // scene never draws committed geometry (only cursor overlays show).
-      // Opening the minimal blank first builds the scene; on failure the
-      // default-tables fallback below keeps the previous behavior.
-      const openBlankDocument = async () => {
-        if (!manager || disposed) return;
-        try {
-          const opened = await manager.openDocument(
-            'blank.dxf',
-            new TextEncoder().encode(BLANK_DXF).buffer,
-            { mode: writeMode }
-          );
-          if (!opened) ensureDefaultTables();
-        } catch {
-          ensureDefaultTables();
-        }
+      const openBlankDocument = () => {
+        if (!host || disposed) return;
+        host.newDrawing('blank');
       };
 
       // Primitives are atomic: an erase that takes part of a rect or
@@ -959,12 +824,12 @@ export default function createSketchEditor({ vue, components, locale }) {
       // per-segment nature.
       const eraseShapeAtomically = () => {
         const aliveCounts = new Map();
-        for (const entity of modelSpaceEntities()) {
-          const shapeId = entityShapeByObjectId.get(String(entity.objectId));
+        for (const entity of host?.entities() || []) {
+          const shapeId = entityShapeByEntityId.get(entity.id);
           if (shapeId) aliveCounts.set(shapeId, (aliveCounts.get(shapeId) || 0) + 1);
         }
         const taggedCounts = new Map();
-        for (const shapeId of entityShapeByObjectId.values()) {
+        for (const shapeId of entityShapeByEntityId.values()) {
           taggedCounts.set(shapeId, (taggedCounts.get(shapeId) || 0) + 1);
         }
         const model = normalizeOccsProfileSketch(props.modelValue || {});
@@ -980,92 +845,52 @@ export default function createSketchEditor({ vue, components, locale }) {
         return false;
       };
 
-      const bindDatabase = ({ schedule = true } = {}) => {
-        unbindDatabase();
-        ensureDefaultTables();
-        const database = manager?.curDocument?.database;
-        if (!database?.events) return;
-        const handler = () => scheduleExtraction();
-        for (const name of ['entityAppended', 'entityModified']) {
-          const event = database.events[name];
-          if (!event?.addEventListener) continue;
-          event.addEventListener(handler);
-          dbListeners.push({ event, handler });
-        }
-        const erasedHandler = () => {
-          if (!eraseShapeAtomically()) scheduleExtraction();
+      const bindDocument = () => {
+        if (!host) return;
+        host.onChange = (kind) => {
+          if (seeding) return;
+          if (kind === 'change' && eraseShapeAtomically()) return;
+          scheduleExtraction();
         };
-        const erasedEvent = database.events.entityErased;
-        if (erasedEvent?.addEventListener) {
-          erasedEvent.addEventListener(erasedHandler);
-          dbListeners.push({ event: erasedEvent, handler: erasedHandler });
-        }
-        if (schedule) scheduleExtraction();
       };
 
-      const unbindDatabase = () => {
-        for (const { event, handler } of dbListeners) {
-          event.removeEventListener?.(handler);
+      const toCadEntity = record => {
+        if (record.type === 'LINE') {
+          return { type: 'line', x1: record.start.x, y1: record.start.y, x2: record.end.x, y2: record.end.y, layer: '0', shapeId: record.shapeId };
         }
-        dbListeners = [];
+        if (record.type === 'ARC') {
+          return { type: 'arc', cx: record.center.x, cy: record.center.y, r: record.radius, a0: record.startAngle, a1: record.endAngle, layer: '0', shapeId: record.shapeId };
+        }
+        if (record.type === 'CIRCLE') {
+          return { type: 'circle', cx: record.center.x, cy: record.center.y, r: record.radius, layer: '0', shapeId: record.shapeId };
+        }
+        return null;
       };
 
       const seedEntities = ({ entities }) => {
-        const modelSpace = manager?.curDocument?.database?.tables?.blockTable?.modelSpace;
-        if (!modelSpace || !entities.length) return;
-        const { AcDbArc, AcDbCircle, AcDbLine } = runtime.value;
-        const created = [];
-        for (const record of entities) {
-          if (record.type === 'LINE') {
-            created.push(new AcDbLine(
-              { x: record.start.x, y: record.start.y, z: 0 },
-              { x: record.end.x, y: record.end.y, z: 0 }
-            ));
-          } else if (record.type === 'ARC') {
-            created.push(new AcDbArc(
-              { x: record.center.x, y: record.center.y, z: 0 },
-              record.radius,
-              record.startAngle,
-              record.endAngle
-            ));
-          } else if (record.type === 'CIRCLE') {
-            created.push(new AcDbCircle(
-              { x: record.center.x, y: record.center.y, z: 0 },
-              record.radius
-            ));
-          }
+        if (!host) return;
+        seeding = true;
+        try {
+          host.seed(entities.map(toCadEntity).filter(Boolean), { fit: false });
+        } finally {
+          seeding = false;
         }
-        for (const entity of created) modelSpace.appendEntity(entity);
-        manager.curView?.addEntity?.(created);
-        // Seeded entities carry their shape's id — the engine's
+        // Seeded entities carry their shape's id — the frame's
         // selection maps back onto the authored shape for the popup.
-        entityShapeByObjectId = new Map([
-          ...(entityShapeByObjectId.entries?.() || []),
-          ...created.map((entity, index) => [String(entity.objectId), entities[index]?.shapeId]).filter(([, id]) => id)
-        ]);
+        entityShapeByEntityId = new Map(
+          host.entities()
+            .filter(entity => entity.shapeId != null)
+            .map(entity => [entity.id, entity.shapeId])
+        );
       };
 
-      // The engine's selection set holds object ids. Every reseed
-      // (authoring edits, imports, clears) removes entities behind its
-      // back — a selection left standing references dead ids, and the
-      // next erase over them fails inside the engine
-      // (`lookupObject not found`). Selection dies with the entities.
       const clearEngineSelection = () => {
-        const view = manager?.curView;
-        if (!view?.selectionSet) return;
-        view.selectionSet.clear();
-        view.htmlTransientManager?.deselectAll?.();
-        view.isHtmlDirty = true;
+        host?.setSelection([]);
       };
 
       const clearDrawingEntities = () => {
         clearEngineSelection();
-        for (const entity of modelSpaceEntities()) {
-          manager.curView?.removeEntity?.(entity);
-          const modelSpace = manager?.curDocument?.database?.tables?.blockTable?.modelSpace;
-          modelSpace?.removeEntity?.(entity.objectId);
-        }
-        entityShapeByObjectId = new Map();
+        entityShapeByEntityId = new Map();
       };
 
       // Entities emitted per shape, each record tagged with its shape's
@@ -1075,12 +900,14 @@ export default function createSketchEditor({ vue, components, locale }) {
           .map(record => ({ ...record, shapeId: shape.id }))
       ));
 
-      const clearDrawing = async () => {
-        if (!manager) return;
-        // The entity deletions never schedule an extraction: one racing
-        // the parent's model update read the OLD sketch's table and
-        // rebuilt it onto the blank session.
-        unbindDatabase();
+      const clearDrawing = () => {
+        if (!host) return;
+        seeding = true;
+        try {
+          host.newDrawing('blank');
+        } finally {
+          seeding = false;
+        }
         clearDrawingEntities();
         importedFileName.value = '';
         droppedShapes = [];
@@ -1092,12 +919,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         lastEmitted = JSON.stringify(normalizeOccsProfileSketch(sketch));
         emit('update:modelValue', sketch);
         emit('profile', null);
-        bindDatabase({ schedule: false });
         zoomToBlankWindow();
       };
 
       const reseedFromModel = () => {
-        if (!manager || disposed) return;
+        if (!host || disposed) return;
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
         if (JSON.stringify(normalized) === lastEmitted) return;
         // The seed evaluates a render copy with the external scope
@@ -1113,53 +939,40 @@ export default function createSketchEditor({ vue, components, locale }) {
             ? entitiesPerShape(lastGoodEvaluated.value)
             : [];
         }
-        // A model-driven reseed is not an author's canvas gesture: the
-        // entities it writes never feed extraction back into the model.
-        unbindDatabase();
-        clearDrawingEntities();
-        importedFileName.value = '';
-        if (entities.length) {
-          seedEntities({ entities });
-          manager.curView?.zoomToFitDrawing?.();
+        seeding = true;
+        try {
+          if (entities.length) seedEntities({ entities });
+          else {
+            host.newDrawing('blank');
+            entityShapeByEntityId = new Map();
+          }
+        } finally {
+          seeding = false;
         }
-        bindDatabase({ schedule: false });
+        importedFileName.value = '';
+        if (entities.length) host.zoomFit();
       };
 
-      // The engine owns the active-tool state: commands started from the
-      // toolbar, the queue, or the canvas all announce themselves through
-      // the editor's lifecycle events, and the toolbar only reflects
-      // them. Draw commands stick while running; everything else returns
-      // to Select when the command ends.
+      // The frame owns the active-tool state: commands started from the
+      // toolbar, the queue, or the canvas announce themselves through
+      // its command hook, and the toolbar only reflects them.
       const DRAW_COMMANDS = new Set(['line', 'pline', 'circle', 'arc', 'rectang']);
-      let unbindCommandEvents = null;
       const bindCommandEvents = () => {
-        const events = manager?.editor?.events;
-        if (!events?.commandWillStart || !events?.commandEnded) return;
-        const onWillStart = ({ command }) => {
-          const name = String(command?.globalName || command?.localName || '').toLowerCase();
-          activeTool.value = DRAW_COMMANDS.has(name) ? name : 'select';
-        };
-        const onEnded = () => { activeTool.value = 'select'; };
-        events.commandWillStart.addEventListener(onWillStart);
-        events.commandEnded.addEventListener(onEnded);
-        unbindCommandEvents = () => {
-          events.commandWillStart.removeEventListener(onWillStart);
-          events.commandEnded.removeEventListener(onEnded);
+        if (!host) return;
+        host.onCommand = (name) => {
+          const command = String(name || '').toLowerCase();
+          activeTool.value = DRAW_COMMANDS.has(command) ? command : 'select';
         };
       };
 
       const runCommand = (tool) => {
         if (tool.command) {
-          // An active command is cancelled first — the queue would
-          // otherwise stack prompts behind it.
-          if (activeTool.value !== 'select') {
-            manager?.commandManager?.cancelActive?.();
-          }
-          if (!manager) {
+          if (activeTool.value !== 'select') host?.cancel();
+          if (!host) {
             pendingCommand = tool.command;
             return;
           }
-          manager?.sendStringToExecute?.(tool.command);
+          host.run(tool.command);
         }
         tool.onActivate?.();
       };
@@ -1175,7 +988,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // mergeOccsProfileSketchGeometry, which keeps authored expressions
       // on unchanged shapes.
       const commitSketch = (next, { fromHistory = false } = {}) => {
-        if (!manager || disposed) return;
+        if (!host || disposed) return;
         const normalized = normalizeOccsProfileSketch(next);
         const fingerprint = JSON.stringify(normalized);
         if (fingerprint === lastEmitted) return;
@@ -1189,19 +1002,19 @@ export default function createSketchEditor({ vue, components, locale }) {
           // Save gates on the savable check; nothing to emit while invalid.
         }
         emit('profile', profile);
-        // The reseed writes to the database; extraction would immediately
-        // re-emit numeric geometry and clobber the authored expressions, so
-        // the listeners rebind without scheduling.
-        unbindDatabase();
-        clearDrawingEntities();
+        // The reseed writes the projection; extraction would immediately
+        // re-emit numeric geometry and clobber the authored expressions,
+        // so the seed suppresses document events.
+        seeding = true;
         try {
           seedEntities({ entities: entitiesPerShape(normalizeOccsProfileSketch(derivedSketch(normalized), externalScope())) });
         } catch {
           if (lastGoodEvaluated.value) {
             seedEntities({ entities: entitiesPerShape(lastGoodEvaluated.value) });
           }
+        } finally {
+          seeding = false;
         }
-        bindDatabase({ schedule: false });
       };
 
       const updateShape = (shapeId, mutate) => {
@@ -1835,18 +1648,19 @@ export default function createSketchEditor({ vue, components, locale }) {
       const handleDxfUpload = async (event) => {
         const [file] = Array.from(event.target.files || []);
         event.target.value = '';
-        if (!file || !manager) return;
+        if (!file || !host) return;
         importError.value = '';
         try {
-          const opened = await manager.openDocument(
-            file.name,
-            await file.arrayBuffer(),
-            { mode: writeMode }
-          );
-          if (!opened) throw new Error(t('cassette.v2.profileEditor.importFailed'));
+          seeding = true;
+          try {
+            await host.openText(file.name, await file.text());
+          } finally {
+            seeding = false;
+          }
           importedFileName.value = file.name;
           droppedShapes = [];
-          manager.curView?.zoomToFitDrawing?.();
+          entityShapeByEntityId = new Map();
+          host.zoomFit();
           // An import is reference geometry: every extracted shape lands
           // with op none until the author assigns its ops.
           emitSketch({ reference: true });
@@ -1859,139 +1673,86 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
-      // Geometry authoring belongs to the model: the engine's destructive
-      // edit commands rewrite authored primitives into foreign geometry,
-      // and its undo stack backs a projection the model reseeds. Both
-      // leave the command stack.
-      const ENGINE_COMMANDS_DROPPED = new Set(['FILLET', 'CHAMFER', 'TRIM', 'EXTEND', 'BREAK', 'UNDO', 'REDO', 'U']);
-      const dropEngineCommands = () => {
-        const stack = manager?.commandManager;
-        if (!stack?.iterator || !stack?.removeCmd) return;
-        for (const { command, commandGroup } of stack.iterator()) {
-          const names = [command?.globalName, command?.localName].map(name => String(name || '').toUpperCase());
-          if (names.some(name => ENGINE_COMMANDS_DROPPED.has(name))) {
-            stack.removeCmd(commandGroup, command.globalName);
-          }
+      const disposeHost = () => {
+        if (viewRaf) {
+          cancelAnimationFrame(viewRaf);
+          viewRaf = 0;
         }
+        host?.destroy();
+        host = null;
       };
 
-      const claimCanvas = () => {
-        const lease = cadViewerLease();
-        const current = lease.owner;
-        // A mounted canvas moves the engine to the newest editor: the
-        // previous holder yields and states the collision in its own pane.
-        if (current && current.token !== canvasClaim) current.yield?.();
-        lease.owner = { token: canvasClaim, yield: yieldCanvas };
-      };
-
-      const releaseCanvas = () => {
-        const lease = cadViewerLease();
-        if (lease.owner?.token === canvasClaim) lease.owner = null;
-      };
-
-      const retryCanvas = () => {
-        canvasBusy.value = false;
-        runtime.value = null;
-        mountEngine();
-      };
-
-      // Teardown is one path for a yielded canvas and an unmounted one:
-      // the engine singleton must be gone before the next claim mounts,
-      // and the glyph timer must not outlive it.
-      const disposeManager = () => {
-        const dying = manager;
-        manager = null;
-        unbindCommandEvents?.();
-        unbindCommandEvents = null;
-        unbindSelectionEvents?.();
-        unbindSelectionEvents = null;
-        window.removeEventListener('keydown', handleWindowKeydown, true);
-        dying?.curView?.events?.renderFrame?.removeEventListener?.(bumpViewTick);
-        unbindDatabase();
-        engineChain = engineChain.then(async () => {
-          try { await dying?.curView?.awaitTextStyleFontsReady?.(); } catch { /* bounded by the engine's own timeout */ }
-          await new Promise(resolve => setTimeout(resolve, GLYPH_REDRAW_SETTLE_MS));
-          await dying?.destroy?.();
-        });
-      };
-
-      const yieldCanvas = () => {
-        canvasBusy.value = true;
-        disposeManager();
+      const startViewWatcher = () => {
+        const tick = () => {
+          if (disposed || !host) return;
+          const key = host.viewKey();
+          if (key && key !== lastViewKey) {
+            lastViewKey = key;
+            viewTick.value += 1;
+          }
+          viewRaf = requestAnimationFrame(tick);
+        };
+        viewRaf = requestAnimationFrame(tick);
       };
 
       const mountEngine = async () => {
-        if (typeof window === 'undefined' || runtime.value) return;
-        claimCanvas();
+        if (typeof window === 'undefined' || host) return;
         engineError.value = '';
         try {
-          const loaded = await import('cad-viewer');
-          if (disposed) return;
-          runtime.value = loaded;
-          await engineChain;
-          if (disposed) return;
-          // The dialog owns the chrome: the engine's standalone-viewer
-          // widgets (command line, top-right undo/erase shortcut bar) stay
-          // off — prompts and keywords ride the cursor dynamic input, and
-          // undo/erase ride the host toolbar. The toolbar's Command line
-          // toggle reveals the CLI for typed prompt entry (asserted back
-          // off here, so every session starts clean). The dark UI theme
-          // matches the engine's model-space canvas.
-          const settings = loaded.AcApSettingManager.instance;
-          settings.isShowCommandLine = false;
-          settings.isShowShortCutToolbar = false;
-          loaded.acedApplyUiTheme?.('dark', containerRef.value);
-          manager = loaded.AcApDocManager.createInstance({
+          host = new CadCraftHost({
             container: containerRef.value,
-            autoResize: true,
-            useMainThreadDraw: true,
-            builtinOpenFileDialog: false,
-            notificationCenter: false,
-            disableExport: true
+            title: t('cassette.v2.profileEditor.preview')
           });
-          writeMode = manager.curDocument?.openMode;
-          dropEngineCommands();
-          await openBlankDocument();
-          if (disposed) return;
-          manager.events.documentActivated.addEventListener(() => bindDatabase({ schedule: false }));
-          manager.events.documentCreated.addEventListener(() => bindDatabase({ schedule: false }));
+          await host.mount();
+          if (disposed) {
+            host.destroy();
+            host = null;
+            return;
+          }
+          host.setCommandLine(false);
+          host.setGrid(false);
+          for (const kind of OSNAP_KINDS) host.setSnapKind(kind, true);
+          host.setOsnap(true);
+          orthoMode.value = Boolean(host.cad?.host?.settings?.ortho);
+          tangentSnap.value = Boolean(host.cad?.host?.settings?.kinds?.has('tan'));
+          host.setOrtho(orthoMode.value);
+          bindDocument();
           bindCommandEvents();
-          bindSelectionEvents();
-          window.addEventListener('keydown', handleWindowKeydown, true);
-          manager.curView?.events?.renderFrame?.addEventListener?.(bumpViewTick);
-          bindDatabase();
-          orthoMode.value = Number(manager.curDocument?.database?.orthomode) === 1;
-          const storedMask = Number(loaded.AcApSettingManager.instance.osnapModes) || 0;
-          tangentSnap.value = (storedMask & OSNAP_MODE_BITS.tangent) !== 0;
-          loaded.AcApSettingManager.instance.osnapModes = OSNAP_DEFAULT_MASK
-            | (tangentSnap.value ? OSNAP_MODE_BITS.tangent : 0);
+          host.onSelection = ids => {
+            syncShapeSelection(ids);
+            if (!seeding) scheduleExtraction();
+          };
+          host.onPointerDown = handleVertexSelectPointerDown;
+          host.onPointerUp = scheduleExtraction;
+          host.onKeyDown = handleCanvasKeydown;
+          startViewWatcher();
+          openBlankDocument();
           lastEmitted = '';
           reseedFromModel();
+          if (!host) return;
           emitSketch();
           resetSketchHistory();
-          // Scripted commands ride one script: separate sends execute
-          // concurrently and eat each other's prompt tokens.
           const queued = pendingCommand ? [pendingCommand] : [];
           pendingCommand = null;
           if (!normalizeOccsProfileSketch(props.modelValue || {}).shapes.length) {
             zoomToBlankWindow(queued);
           } else if (queued.length) {
-            runEngineScript(queued.join('\n'));
+            host.run(queued[0]);
           }
           // A dialog mount can race the container's real size (open
           // animation, late flex layout); the first time the canvas
           // reaches working size, re-fit the view so the seed is framed.
           if (containerRef.value && (containerRef.value.clientHeight < 120)) {
             zoomObserver = new ResizeObserver(() => {
-              if (!manager || containerRef.value?.clientHeight < 120) return;
+              if (!host || containerRef.value?.clientHeight < 120) return;
               zoomObserver.disconnect();
               zoomObserver = null;
-              manager.curView?.zoomToFitDrawing?.();
+              host.zoomFit();
             });
             zoomObserver.observe(containerRef.value);
           }
         } catch (error) {
-          releaseCanvas();
+          disposeHost();
           engineError.value = error?.message || String(error);
         }
       };
@@ -2003,7 +1764,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       });
 
       watch(() => props.modelValue, () => {
-        if (manager) reseedFromModel();
+        if (host) reseedFromModel();
         scheduleOutlineResolve();
       }, { deep: true });
 
@@ -2012,20 +1773,19 @@ export default function createSketchEditor({ vue, components, locale }) {
       // Instance values repaint the derived geometry: the authored model
       // stays put, the canvas reseeds from the new derived table.
       watch(() => props.instanceParameters, () => {
-        if (manager) reseedFromModel();
+        if (host) reseedFromModel();
         scheduleOutlineResolve();
       }, { deep: true });
 
       onBeforeUnmount(() => {
         disposed = true;
-        releaseCanvas();
         if (extractTimer) clearTimeout(extractTimer);
         extractTimer = null;
         if (outlineTimer) clearTimeout(outlineTimer);
         outlineTimer = null;
         zoomObserver?.disconnect?.();
         zoomObserver = null;
-        disposeManager();
+        disposeHost();
       });
 
       return () => h('div', {
@@ -2047,27 +1807,12 @@ export default function createSketchEditor({ vue, components, locale }) {
           class: 'hidden',
           onChange: handleDxfUpload
         }),
-        canvasBusy.value
-          ? h('div', {
-              class: 'flex min-h-[18rem] w-full flex-1 flex-col items-center justify-center gap-3 rounded-ui border border-content-border bg-subtle p-4'
-            }, [
-              h(Message, { severity: 'warn', size: 'small', closable: false }, () => t('cassette.v2.profileEditor.canvasBusy')),
-              h(Button, {
-                label: t('cassette.v2.profileEditor.canvasRetry'),
-                icon: 'pi pi-refresh',
-                severity: 'secondary',
-                size: 'small',
-                onClick: retryCanvas
-              })
-            ])
-          : h('div', {
-              ref: containerRef,
-              class: 'relative min-h-[18rem] w-full flex-1 overflow-hidden rounded-ui border border-content-border bg-subtle',
-              role: 'application',
-              'aria-label': t('cassette.v2.profileEditor.preview'),
-              onPointerdownCapture: [handleVertexSelectPointerDown],
-              onPointerup: scheduleExtraction
-            }, [
+        h('div', {
+          ref: containerRef,
+          class: 'relative min-h-[18rem] w-full flex-1 overflow-hidden rounded-ui border border-content-border bg-subtle',
+          role: 'application',
+          'aria-label': t('cassette.v2.profileEditor.preview')
+        }, [
               // The tool toolbar floats inside the canvas (the
               // DesignerWorkspace overlay pattern) — no row of its own.
           h(Toolbar, {

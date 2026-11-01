@@ -2,7 +2,7 @@
   "pluginId": "facade",
   "name": "Facade fabrication",
   "description": "Cassette templates, cassette designs, cassette instances, sheet designs, sheet cut plans, sheet instances, and the nesting solver as an installable plugin with an external executor",
-  "version": "39",
+  "version": "40",
   "requires": [
     "tech-drawing"
   ],
@@ -821,10 +821,10 @@
     ],
     "dependencies": [
       {
-        "name": "cad-viewer",
-        "version": "1.7.5",
-        "module": "plugin:tech-drawing/assets/vendor/cad-viewer/cad-viewer.mjs",
-        "license": "MIT"
+        "name": "cadcraft",
+        "version": "0.7.0",
+        "module": "plugin:tech-drawing/assets/vendor/cadcraft/host.mjs",
+        "license": "Apache-2.0"
       }
     ]
   }
