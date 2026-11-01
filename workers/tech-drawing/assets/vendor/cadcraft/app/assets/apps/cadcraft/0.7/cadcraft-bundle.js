@@ -112932,38 +112932,41 @@ function init3(root2) {
   });
   const params = createParamsPanel({ root: root2, doc, view, engine, host, print, status: status2, ask, focusCommandLine });
   installLispUi({ root: root2, engine, host, print, ask, focusCommandLine, el });
-  const autosaved = wireAutosave({ autosave: new Autosave({ app: "cadcraft" }), doc, tabs, view, open: (file, meta) => openLocal(file, meta) });
+  const embedded = new URLSearchParams(location.search).get("embed") === "1";
+  const autosaved = embedded ? null : wireAutosave({ autosave: new Autosave({ app: "cadcraft" }), doc, tabs, view, open: (file, meta) => openLocal(file, meta) });
   host.autosave = autosaved;
-  startAddons({
-    doc,
-    engine,
-    host,
-    print,
-    redraw: () => view.invalidate(true),
-    focusCommandLine,
-    pickFile: (accept) => new Promise((resolve) => {
-      const i = el("input", { type: "file", accept });
-      i.addEventListener("change", () => resolve(i.files[0] || null));
-      i.addEventListener("cancel", () => resolve(null));
-      i.click();
-    }),
-    download: (name, data, mime) => downloadBlob(name, data, mime),
-    openDrawing: async (drawing, name) => {
-      if (!tabs.pristine()) await tabs.add({ name });
-      doc.load({ ...drawing, meta: { ...drawing.meta || {}, name } });
-    }
-  }).catch((err) => console.warn("add-ons did not start:", err));
-  installAgents({
-    doc,
-    engine,
-    host,
-    view,
-    print,
-    canvases: [ui.base, ui.over],
-    saveFile: (format) => saveFile(format || void 0),
-    download: (name, data, mime) => downloadBlob(name, data, mime),
-    report: () => lastReport
-  });
+  if (!embedded) {
+    startAddons({
+      doc,
+      engine,
+      host,
+      print,
+      redraw: () => view.invalidate(true),
+      focusCommandLine,
+      pickFile: (accept) => new Promise((resolve) => {
+        const i = el("input", { type: "file", accept });
+        i.addEventListener("change", () => resolve(i.files[0] || null));
+        i.addEventListener("cancel", () => resolve(null));
+        i.click();
+      }),
+      download: (name, data, mime) => downloadBlob(name, data, mime),
+      openDrawing: async (drawing, name) => {
+        if (!tabs.pristine()) await tabs.add({ name });
+        doc.load({ ...drawing, meta: { ...drawing.meta || {}, name } });
+      }
+    }).catch((err) => console.warn("add-ons did not start:", err));
+    installAgents({
+      doc,
+      engine,
+      host,
+      view,
+      print,
+      canvases: [ui.base, ui.over],
+      saveFile: (format) => saveFile(format || void 0),
+      download: (name, data, mime) => downloadBlob(name, data, mime),
+      report: () => lastReport
+    });
+  }
   applyCorner2();
   renderTabs();
   renderBlocks();
@@ -112976,7 +112979,7 @@ function init3(root2) {
   ui.input.focus({ preventScroll: true });
   const libUuid = new URLSearchParams(location.search).get("library");
   if (libraryOn && libUuid && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(libUuid)) lib3.open({ uuid: libUuid });
-  if (!navigator.webdriver || new URLSearchParams(location.search).get("autosave") === "offer") autosaved.offer();
+  if (autosaved && (!navigator.webdriver || new URLSearchParams(location.search).get("autosave") === "offer")) autosaved.offer();
   fileHost.launchFiles().then(async (files) => {
     for (const f5 of files) await openHostFile(f5);
   }, (err) => console.warn("launch files:", err));

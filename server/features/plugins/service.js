@@ -8,7 +8,7 @@
 // Slice 1 carries declaration payloads only: connectors (worker-protocol
 // executors), upgrades, and cross-org execution are later slices.
 import { createError } from 'h3';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import * as repository from './repository.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { instanceServiceResolver, invalidateInstanceDeclarations } from '../instances/service.js';
@@ -402,14 +402,20 @@ export async function fetchSurfaceModule({ organizationId, pluginId, modulePath 
   // resolve to the plugin's own vendor scope: bare specifiers rewrite to
   // same-origin proxied URLs, so a surface imports `three` and the
   // browser loads it from this route. Binary assets stream untouched.
-  if (isJsModule) {
-    const source = await response.text();
-    const rewritten = rewriteDeclaredImports(source, pluginId, install.declarations?.dependencies || []);
-    return { contentType, body: Buffer.from(rewritten, 'utf8') };
-  }
+  const body = isJsModule
+    ? Buffer.from(rewriteDeclaredImports(
+        await response.text(),
+        pluginId,
+        install.declarations?.dependencies || []
+      ), 'utf8')
+    : Buffer.from(await response.arrayBuffer());
+  // Revalidation identity for the browser cache: every load reaches the
+  // executor, and an unchanged body answers 304 instead of transferring
+  // the module again.
   return {
     contentType,
-    body: Buffer.from(await response.arrayBuffer())
+    body,
+    etag: `"${createHash('sha1').update(body).digest('hex')}"`
   };
 }
 

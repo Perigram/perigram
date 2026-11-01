@@ -2547,19 +2547,24 @@ function init(root) {
   installLispUi({ root, engine, host, print, ask, focusCommandLine, el });
 
   // ---- autosave and crash recovery (0.4 item 1.2; dwg-autosave.js on the shell's app-autosave.js): one copy per drawing tab ----
-  const autosaved = wireAutosave({ autosave: new Autosave({ app: 'cadcraft' }), doc, tabs, view, open: (file, meta) => openLocal(file, meta) });
+  // The embedding host owns persistence; its iframe never starts the
+  // edition's autosave or the native recovery dialog.
+  const embedded = new URLSearchParams(location.search).get('embed') === '1';
+  const autosaved = embedded ? null : wireAutosave({ autosave: new Autosave({ app: 'cadcraft' }), doc, tabs, view, open: (file, meta) => openLocal(file, meta) });
   host.autosave = autosaved;   // tests: window.cadcraft.host.autosave
 
-  // ---- add-ons (0.4 part 2 A.3, session addons; docs/ADDONS-SPEC.md): CadCraft's own loader and API 1.0 (manifest "addons": "own") ----
-  startAddons({ doc, engine, host, print, redraw: () => view.invalidate(true), focusCommandLine,
-    pickFile: (accept) => new Promise((resolve) => { const i = el('input', { type: 'file', accept }); i.addEventListener('change', () => resolve(i.files[0] || null)); i.addEventListener('cancel', () => resolve(null)); i.click(); }),
-    download: (name, data, mime) => downloadBlob(name, data, mime),
-    openDrawing: async (drawing, name) => { if (!tabs.pristine()) await tabs.add({ name }); doc.load({ ...drawing, meta: { ...(drawing.meta || {}), name } }); },
-  }).catch((err) => console.warn('add-ons did not start:', err));   // i18n-ignore (developer message)
+  if (!embedded) {
+    // ---- add-ons (0.4 part 2 A.3, session addons; docs/ADDONS-SPEC.md): CadCraft's own loader and API 1.0 (manifest "addons": "own") ----
+    startAddons({ doc, engine, host, print, redraw: () => view.invalidate(true), focusCommandLine,
+      pickFile: (accept) => new Promise((resolve) => { const i = el('input', { type: 'file', accept }); i.addEventListener('change', () => resolve(i.files[0] || null)); i.addEventListener('cancel', () => resolve(null)); i.click(); }),
+      download: (name, data, mime) => downloadBlob(name, data, mime),
+      openDrawing: async (drawing, name) => { if (!tabs.pristine()) await tabs.add({ name }); doc.load({ ...drawing, meta: { ...(drawing.meta || {}), name } }); },
+    }).catch((err) => console.warn('add-ons did not start:', err));   // i18n-ignore (developer message)
 
-  // ---- AI assistants and scripts (0.4 part 2 X.5, session agents; agents.js on host.js's control channel): tools only, off until Settings › Assistants ----
-  installAgents({ doc, engine, host, view, print, canvases: [ui.base, ui.over], saveFile: (format) => saveFile(format || undefined),
-    download: (name, data, mime) => downloadBlob(name, data, mime), report: () => lastReport });
+    // ---- AI assistants and scripts (0.4 part 2 X.5, session agents; agents.js on host.js's control channel): tools only, off until Settings › Assistants ----
+    installAgents({ doc, engine, host, view, print, canvases: [ui.base, ui.over], saveFile: (format) => saveFile(format || undefined),
+      download: (name, data, mime) => downloadBlob(name, data, mime), report: () => lastReport });
+  }
 
   // ---- start ----
   applyCorner();
@@ -2577,7 +2582,7 @@ function init(root) {
   if (libraryOn && libUuid && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(libUuid)) lib.open({ uuid: libUuid });
   // "Recover your work?" when a page that stopped left drawings behind. Automated browsers (the test suites, which reload
   // mid-run with edits open) see it only when they ask for it: ?autosave=offer
-  if (!navigator.webdriver || new URLSearchParams(location.search).get('autosave') === 'offer') autosaved.offer();
+  if (autosaved && (!navigator.webdriver || new URLSearchParams(location.search).get('autosave') === 'offer')) autosaved.offer();
   // files the app was started with (desktop: a double-clicked .dwg / .dxf / .ccsheets; an installed web app's launch queue)
   fileHost.launchFiles().then(async (files) => { for (const f of files) await openHostFile(f); }, (err) => console.warn('launch files:', err));   // i18n-ignore (developer message)
   // /lab/cadcraft?handoff=<id> (BimCraft's "Edit in CadCraft"): open the drawing it left for us

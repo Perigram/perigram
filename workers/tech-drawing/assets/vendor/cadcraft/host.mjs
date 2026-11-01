@@ -15,6 +15,7 @@ const EMBED_CSS = `
   [data-cadcraft] > .cc-stage > .cc-tabs, [data-cadcraft] > .cc-stage > .cc-doctabs,
   [data-cadcraft] .cc-tour, [data-cadcraft] .cc-hint, [data-cadcraft] .cc-dialog,
   [data-cadcraft] .cc-vc { display: none !important; }
+  dialog.shell-recover, dialog[data-autosave-dialog] { display: none !important; }
   [data-cadcraft] { display: block !important; position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; }
   [data-cadcraft] > .cc-stage { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; }
   [data-cadcraft] > .cc-stage > .cc-canvases { bottom: 0 !important; top: 0 !important; }
@@ -52,7 +53,9 @@ export class CadCraftHost {
 
   async mount() {
     const frame = document.createElement('iframe');
-    frame.src = new URL(APP_ENTRY, import.meta.url).href;
+    const entry = new URL(APP_ENTRY, import.meta.url);
+    entry.searchParams.set('embed', '1');
+    frame.src = entry.href;
     frame.title = this.title;
     frame.setAttribute('allow', 'clipboard-read; clipboard-write');
     frame.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#2b2f36';
@@ -85,6 +88,9 @@ export class CadCraftHost {
   _hideChrome() {
     const doc = this.win.document;
     doc.getElementById('perigram-cadcraft-loading')?.remove();
+    const recovery = doc.querySelector('[data-autosave-dialog]');
+    if (recovery?.open) recovery.close();
+    this.cad.host?.autosave?.stop?.();
     // The edition's own first-run tour and hint card belong to its
     // desktop surface; the embedding host owns the chrome.
     try {
