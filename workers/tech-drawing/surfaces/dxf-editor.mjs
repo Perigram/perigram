@@ -57,14 +57,30 @@ export default function createSurface({ vue, components, locale, notify }) {
 
       const claimCanvas = () => {
         const lease = cadViewerLease();
-        if (lease.owner && lease.owner !== canvasClaim) return false;
-        lease.owner = canvasClaim;
-        return true;
+        const current = lease.owner;
+        if (current && current.token !== canvasClaim) current.yield?.();
+        lease.owner = { token: canvasClaim, yield: yieldCanvas };
       };
 
       const releaseCanvas = () => {
         const lease = cadViewerLease();
-        if (lease.owner === canvasClaim) lease.owner = null;
+        if (lease.owner?.token === canvasClaim) lease.owner = null;
+      };
+
+      const disposeManager = () => {
+        const dying = manager;
+        manager = null;
+        containerRef.value?.removeEventListener('click', pickPoint);
+        engineChain = engineChain.then(async () => {
+          try { await dying?.curView?.awaitTextStyleFontsReady?.(); } catch { /* bounded by the engine's own timeout */ }
+          await new Promise(resolve => setTimeout(resolve, GLYPH_REDRAW_SETTLE_MS));
+          await dying?.destroy?.();
+        });
+      };
+
+      const yieldCanvas = () => {
+        canvasBusy.value = true;
+        disposeManager();
       };
 
       const retryCanvas = () => {
@@ -167,10 +183,7 @@ export default function createSurface({ vue, components, locale, notify }) {
       async function mountEngine() {
         await nextTick();
         if (disposed || !containerRef.value) return;
-        if (!claimCanvas()) {
-          canvasBusy.value = true;
-          return;
-        }
+        claimCanvas();
         try {
           const loaded = await import('cad-viewer');
           if (disposed) return;
@@ -215,14 +228,7 @@ export default function createSurface({ vue, components, locale, notify }) {
       onBeforeUnmount(() => {
         disposed = true;
         releaseCanvas();
-        containerRef.value?.removeEventListener('click', pickPoint);
-        const dying = manager;
-        manager = null;
-        engineChain = engineChain.then(async () => {
-          try { await dying?.curView?.awaitTextStyleFontsReady?.(); } catch { /* bounded by the engine's own timeout */ }
-          await new Promise(resolve => setTimeout(resolve, GLYPH_REDRAW_SETTLE_MS));
-          await dying?.destroy?.();
-        });
+        disposeManager();
       });
 
       const markerRow = marker => h('div', { class: 'flex min-w-0 items-center gap-2' }, [

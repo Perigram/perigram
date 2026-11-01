@@ -739,8 +739,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         ],
         [
           { command: 'erase', icon: 'erase', labelKey: 'cassette.v2.profileEditor.actions.erase' },
-          { icon: 'undo', labelKey: 'cassette.v2.profileEditor.actions.undo', onActivate: undoSketch, isDisabled: () => !canUndoSketch() },
-          { icon: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo', onActivate: redoSketch, isDisabled: () => !canRedoSketch() }
+          { icon: 'undo', labelKey: 'cassette.v2.profileEditor.actions.undo', onActivate: () => undoSketch(), isDisabled: () => !canUndoSketch() },
+          { icon: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo', onActivate: () => redoSketch(), isDisabled: () => !canRedoSketch() }
         ],
         [
           { icon: 'materialSide', labelKey: 'cassette.v2.profileEditor.actions.material', isOn: () => normalizeOccsProfileSketch(props.modelValue || {}).material === 'negative', onActivate: toggleMaterialSide },
@@ -1844,27 +1844,52 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const claimCanvas = () => {
         const lease = cadViewerLease();
-        if (lease.owner && lease.owner !== canvasClaim) return false;
-        lease.owner = canvasClaim;
-        return true;
+        const current = lease.owner;
+        // A mounted canvas moves the engine to the newest editor: the
+        // previous holder yields and states the collision in its own pane.
+        if (current && current.token !== canvasClaim) current.yield?.();
+        lease.owner = { token: canvasClaim, yield: yieldCanvas };
       };
 
       const releaseCanvas = () => {
         const lease = cadViewerLease();
-        if (lease.owner === canvasClaim) lease.owner = null;
+        if (lease.owner?.token === canvasClaim) lease.owner = null;
       };
 
       const retryCanvas = () => {
         canvasBusy.value = false;
+        runtime.value = null;
         mountEngine();
+      };
+
+      // Teardown is one path for a yielded canvas and an unmounted one:
+      // the engine singleton must be gone before the next claim mounts,
+      // and the glyph timer must not outlive it.
+      const disposeManager = () => {
+        const dying = manager;
+        manager = null;
+        unbindCommandEvents?.();
+        unbindCommandEvents = null;
+        unbindSelectionEvents?.();
+        unbindSelectionEvents = null;
+        window.removeEventListener('keydown', handleWindowKeydown, true);
+        dying?.curView?.events?.renderFrame?.removeEventListener?.(bumpViewTick);
+        unbindDatabase();
+        engineChain = engineChain.then(async () => {
+          try { await dying?.curView?.awaitTextStyleFontsReady?.(); } catch { /* bounded by the engine's own timeout */ }
+          await new Promise(resolve => setTimeout(resolve, GLYPH_REDRAW_SETTLE_MS));
+          await dying?.destroy?.();
+        });
+      };
+
+      const yieldCanvas = () => {
+        canvasBusy.value = true;
+        disposeManager();
       };
 
       const mountEngine = async () => {
         if (typeof window === 'undefined' || runtime.value) return;
-        if (!claimCanvas()) {
-          canvasBusy.value = true;
-          return;
-        }
+        claimCanvas();
         engineError.value = '';
         try {
           const loaded = await import('cad-viewer');
@@ -1960,25 +1985,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         outlineTimer = null;
         zoomObserver?.disconnect?.();
         zoomObserver = null;
-        unbindCommandEvents?.();
-        unbindCommandEvents = null;
-        unbindSelectionEvents?.();
-        unbindSelectionEvents = null;
-        window.removeEventListener('keydown', handleWindowKeydown, true);
-        manager?.curView?.events?.renderFrame?.removeEventListener?.(bumpViewTick);
-        unbindDatabase();
-        const dying = manager;
-        manager = null;
-        engineChain = engineChain.then(async () => {
-          // The engine schedules a glyph-redraw timer when its font
-          // preload resolves, and that timer reads the manager
-          // singleton — one firing after destroy() clears the singleton
-          // is an uncaught page error. Let fonts settle (plus the
-          // engine's redraw delay) while the instance is alive.
-          try { await dying?.curView?.awaitTextStyleFontsReady?.(); } catch { /* bounded by the engine's own timeout */ }
-          await new Promise(resolve => setTimeout(resolve, GLYPH_REDRAW_SETTLE_MS));
-          await dying?.destroy?.();
-        });
+        disposeManager();
       });
 
       return () => h('div', {
