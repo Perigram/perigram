@@ -41,6 +41,7 @@ import {
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
   occsProfileFromSketch,
+  pruneScopeBoundParameters,
   resolveOccsProfileSketchLayerData
 } from '../occs/profiles.js';
 import createExpressionEditor from './lib/components/expressionEditor.mjs';
@@ -1548,11 +1549,20 @@ export default function createSurface({ vue, components, locale, queries, record
         if (workpiece) {
           const profile = workpiece.profileSnapshot || workpiece.profile || null;
           const snapshotSketch = profile?.sketch || createEmptyOccsProfileSketch();
+          // The cassette's globals are read through shape expressions;
+          // their stale copies in the profile's tables drop here, so the
+          // rows the dialog edits are the profile's own.
+          const scope = globalParameters.value;
+          const instance = pruneScopeBoundParameters(
+            workpiece.parameters || profile?.parameters || {},
+            snapshotSketch.shapes,
+            scope
+          );
           profileDraft.value = {
             name: workpiece.name || t('cassette.v2.profileEditor.defaultName'),
             kind: workpiece.role || profile?.kind || 'hanger',
             process: workpiece.process || profile?.process || 'extruded',
-            parameters: workpiece.parameters || profile?.parameters || {},
+            parameters: instance,
             // The instance values ride on top of the snapshot's table
             // (the instantiation law: the workpiece's table is the
             // derived table) — the editor edits what this workpiece
@@ -1560,8 +1570,8 @@ export default function createSurface({ vue, components, locale, queries, record
             sketch: {
               ...snapshotSketch,
               parameters: {
-                ...(snapshotSketch.parameters || {}),
-                ...(workpiece.parameters || {})
+                ...pruneScopeBoundParameters(snapshotSketch.parameters, snapshotSketch.shapes, scope),
+                ...instance
               }
             },
             occsProfile: profile?.section ? { section: profile.section, sweep: profile.sweep, sketch: profile.sketch } : profile?.occsProfile || null,

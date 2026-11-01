@@ -575,6 +575,8 @@
                 "saveToLibrary": "Save to library",
                 "createNew": "New profile",
                 "invalidSketch": "Author at least one shape with an operation before saving.",
+                "canvasBusy": "The drawing canvas is open in another editor. Close it and retry.",
+                "canvasRetry": "Retry",
                 "tools": {
                     "select": "Select",
                     "line": "Line",
@@ -2243,7 +2245,9 @@
         "markers": "Anchors",
         "markerName": "Anchor name",
         "noMarkers": "No anchors yet",
-        "add": "Add anchor"
+        "add": "Add anchor",
+        "canvasBusy": "The drawing canvas is open in another editor. Close it and retry.",
+        "canvasRetry": "Retry"
     },
     "assets": {
         "cassettes": "Cassettes",

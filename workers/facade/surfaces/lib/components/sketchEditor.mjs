@@ -42,6 +42,16 @@ const SHAPE_KIND_LABEL = {
   chain: 'cassette.v2.profileEditor.tools.polyline'
 };
 
+// The CAD engine is a page singleton (`AcApDocManager.createInstance`
+// hands back the first manager). Surfaces share one page-level claim so a
+// second canvas states the collision instead of binding to the first
+// one's container; the cad-viewer README owns the contract.
+const CAD_VIEWER_LEASE = Symbol.for('perigram.cadViewer.lease');
+const cadViewerLease = () => {
+  globalThis[CAD_VIEWER_LEASE] ||= { owner: null };
+  return globalThis[CAD_VIEWER_LEASE];
+};
+
 export default function createSketchEditor({ vue, components, locale }) {
   const { h, ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
@@ -63,9 +73,11 @@ export default function createSketchEditor({ vue, components, locale }) {
     emits: ['update:modelValue', 'profile'],
     setup(props, { emit }) {
       const containerRef = ref(null);
+      const rootRef = ref(null);
       const fileInputRef = ref(null);
       const runtime = shallowRef(null);
       const engineError = ref('');
+      const canvasBusy = ref(false);
       const importError = ref('');
       const activeTool = ref('select');
       const importedFileName = ref('');
@@ -83,6 +95,13 @@ export default function createSketchEditor({ vue, components, locale }) {
       let lastEmitted = '';
       let disposed = false;
       let zoomObserver = null;
+      const canvasClaim = {};
+      // The sketch model owns the author's history: the engine database is
+      // a projection every model change reseeds, so its undo stack cannot
+      // back a step.
+      let historyEntries = [];
+      let historyAt = -1;
+      const historyVersion = ref(0);
       // A toolbar command clicked before the engine finishes mounting
       // waits for the mount instead of dropping — the toolbar renders
       // with the dialog, the engine arrives asynchronously.
@@ -669,14 +688,41 @@ export default function createSketchEditor({ vue, components, locale }) {
       // The surface owns Escape routing: the engine's own handling needs
       // focus inside its container, and toolbar clicks or a focused
       // authoring field move it outside it. Escape closes the popups,
-      // cancels the engine's active command, and clears its
-      // selection — in that order, from any focus.
+      // cancels the engine's active command, and clears its selection —
+      // in that order, from any focus. The event stops here so the
+      // hosting dialog keeps its session; an idle canvas hands Escape
+      // back to the dialog. Undo/redo keys belong to the sketch history
+      // for the same reason: the engine undoes its projection, which the
+      // model reseeds on every step.
+      const isUndoKey = event => (event.ctrlKey || event.metaKey) && !event.altKey
+        && ['z', 'y'].includes(String(event.key).toLowerCase());
+      const isEditableTarget = (target) => {
+        const tag = target?.tagName?.toLowerCase?.();
+        return Boolean(target?.isContentEditable || ['input', 'textarea', 'select'].includes(tag));
+      };
+      const ownsKeyboardTarget = (target) => {
+        const root = rootRef.value;
+        if (!root || typeof document === 'undefined') return false;
+        return target === document.body || root.contains(target);
+      };
+
       const handleWindowKeydown = (event) => {
-        if (event.key !== 'Escape') return;
-        if (selectedCorner.value) selectedCorner.value = null;
-        if (selectedShape.value) selectedShape.value = null;
-        manager?.commandManager?.cancelActive?.();
-        clearEngineSelection();
+        if (event.key === 'Escape') {
+          const cancelling = Boolean(manager?.commandManager?.activeCommand);
+          if (!cancelling && !selectedCorner.value && !selectedShape.value) return;
+          event.preventDefault();
+          event.stopPropagation();
+          if (selectedCorner.value) selectedCorner.value = null;
+          if (selectedShape.value) selectedShape.value = null;
+          manager?.commandManager?.cancelActive?.();
+          clearEngineSelection();
+          return;
+        }
+        if (!isUndoKey(event) || !ownsKeyboardTarget(event.target) || isEditableTarget(event.target)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (String(event.key).toLowerCase() === 'y' || event.shiftKey) redoSketch();
+        else undoSketch();
       };
 
       // Editor operations ride icon-only buttons (Tabler glyphs,
@@ -693,8 +739,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         ],
         [
           { command: 'erase', icon: 'erase', labelKey: 'cassette.v2.profileEditor.actions.erase' },
-          { command: 'undo', icon: 'undo', labelKey: 'cassette.v2.profileEditor.actions.undo' },
-          { command: 'redo', icon: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo' }
+          { icon: 'undo', labelKey: 'cassette.v2.profileEditor.actions.undo', onActivate: undoSketch, isDisabled: () => !canUndoSketch() },
+          { icon: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo', onActivate: redoSketch, isDisabled: () => !canRedoSketch() }
         ],
         [
           { icon: 'materialSide', labelKey: 'cassette.v2.profileEditor.actions.material', isOn: () => normalizeOccsProfileSketch(props.modelValue || {}).material === 'negative', onActivate: toggleMaterialSide },
@@ -744,18 +790,65 @@ export default function createSketchEditor({ vue, components, locale }) {
             });
           } else if (type === 'LWPOLYLINE' || type === 'POLYLINE') {
             const vertices = [];
+            const bulges = [];
             const count = Number(entity.numberOfVertices) || 0;
             for (let index = 0; index < count; index += 1) {
               const point = entity.getPoint2dAt(index);
               vertices.push({ x: point.x, y: point.y });
+              bulges.push(Number(entity.getBulgeAt?.(index)) || 0);
             }
-            if (vertices.length >= 2) records.push({ type: 'POLYLINE', vertices, closed: Boolean(entity.closed) });
+            if (vertices.length >= 2) {
+              records.push({ type: 'POLYLINE', vertices, bulges, closed: Boolean(entity.closed) });
+            }
           }
         }
         return records;
       };
 
       const externalScope = () => props.externalParameters || {};
+
+      const sketchFingerprint = sketch => JSON.stringify(normalizeOccsProfileSketch(sketch || {}));
+
+      const resetSketchHistory = () => {
+        historyEntries = [normalizeOccsProfileSketch(props.modelValue || {})];
+        historyAt = 0;
+        historyVersion.value += 1;
+      };
+
+      // `sketch` is the state the author leaves behind; consecutive equal
+      // states collapse, so a reseed or a repeated extraction never
+      // swallows a step.
+      const recordSketchHistory = (sketch) => {
+        const entry = normalizeOccsProfileSketch(sketch || {});
+        const fingerprint = sketchFingerprint(entry);
+        if (historyAt >= 0 && sketchFingerprint(historyEntries[historyAt]) === fingerprint) return;
+        historyEntries = historyEntries.slice(0, historyAt + 1);
+        historyEntries.push(entry);
+        if (historyEntries.length > 100) historyEntries.shift();
+        historyAt = historyEntries.length - 1;
+        historyVersion.value += 1;
+      };
+
+      const canUndoSketch = () => {
+        historyVersion.value;
+        return historyAt > 0;
+      };
+      const canRedoSketch = () => {
+        historyVersion.value;
+        return historyAt >= 0 && historyAt < historyEntries.length - 1;
+      };
+      const undoSketch = () => {
+        if (historyAt <= 0) return;
+        historyAt -= 1;
+        historyVersion.value += 1;
+        commitSketch(historyEntries[historyAt], { fromHistory: true });
+      };
+      const redoSketch = () => {
+        if (!canRedoSketch()) return;
+        historyAt += 1;
+        historyVersion.value += 1;
+        commitSketch(historyEntries[historyAt], { fromHistory: true });
+      };
 
       const emitSketch = ({ reference = false } = {}) => {
         if (!manager || disposed) return;
@@ -775,6 +868,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         const sketch = normalizeOccsProfileSketch(merged, context.parameters);
         const fingerprint = JSON.stringify(sketch);
         if (fingerprint === lastEmitted) return;
+        recordSketchHistory(props.modelValue || {});
         lastEmitted = fingerprint;
         emit('update:modelValue', sketch);
         // A merged sketch can keep authored expressions the evaluator
@@ -1047,11 +1141,12 @@ export default function createSketchEditor({ vue, components, locale }) {
       // editing. Later draws merge back through
       // mergeOccsProfileSketchGeometry, which keeps authored expressions
       // on unchanged shapes.
-      const commitSketch = (next) => {
+      const commitSketch = (next, { fromHistory = false } = {}) => {
         if (!manager || disposed) return;
         const normalized = normalizeOccsProfileSketch(next);
         const fingerprint = JSON.stringify(normalized);
         if (fingerprint === lastEmitted) return;
+        if (!fromHistory) recordSketchHistory(props.modelValue || {});
         lastEmitted = fingerprint;
         emit('update:modelValue', normalized);
         let profile = null;
@@ -1269,13 +1364,13 @@ export default function createSketchEditor({ vue, components, locale }) {
       // one home (canvas dims mirror them as annotations).
       const shapePropertyRows = (shape, sketch) => {
         const rows = [];
-        const labeledField = (label, value, readEvaluated, apply) => h('div', { class: 'flex items-center gap-1' }, [
+        const labeledField = (label, value, readEvaluated, apply, ariaLabel = `${label} ${shape.id}`) => h('div', { class: 'flex items-center gap-1' }, [
           h('span', { class: 'w-5 shrink-0 text-right font-mono text-xs text-muted' }, label),
           expressionField(
             value,
             `${label}${resolvedHint(sketch, value)}`,
             applyShapeField(shape.id, readEvaluated, apply, value),
-            `${label} ${shape.id}`
+            ariaLabel
           )
         ]);
         if (shape.type === 'circle') {
@@ -1311,6 +1406,23 @@ export default function createSketchEditor({ vue, components, locale }) {
           ]));
         }
         if (shape.type === 'chain') {
+          // A point-drawn shape carries its dimensions as vertex
+          // coordinates: every point row is the same adopt-on-bind field
+          // the rect and circle rows carry.
+          for (const point of shape.points) {
+            const readField = field => evaluated => (
+              evaluated?.points?.find(item => item.id === point.id)?.[field]
+            );
+            const applyField = field => (subject, next) => ({
+              ...subject,
+              points: subject.points.map(item => (item.id === point.id ? { ...item, [field]: next } : item))
+            });
+            rows.push(h('div', { key: `${shape.id}-${point.id}`, class: 'flex items-center gap-1' }, [
+              h('span', { class: 'w-5 shrink-0 text-right font-mono text-xs text-muted' }, point.id),
+              labeledField('x', point.x, readField('x'), applyField('x'), `x ${point.id}`),
+              labeledField('y', point.y, readField('y'), applyField('y'), `y ${point.id}`)
+            ]));
+          }
           const fillets = shape.modifiers.filter(item => item.type === 'fillet');
           for (let index = 0; index < fillets.length; index += 4) {
             rows.push(h('div', { class: 'flex flex-wrap items-center gap-1' }, fillets.slice(index, index + 4).map(modifier => (
@@ -1714,8 +1826,45 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
+      // Geometry authoring belongs to the model: the engine's destructive
+      // edit commands rewrite authored primitives into foreign geometry,
+      // and its undo stack backs a projection the model reseeds. Both
+      // leave the command stack.
+      const ENGINE_COMMANDS_DROPPED = new Set(['FILLET', 'CHAMFER', 'TRIM', 'EXTEND', 'BREAK', 'UNDO', 'REDO', 'U']);
+      const dropEngineCommands = () => {
+        const stack = manager?.commandManager;
+        if (!stack?.iterator || !stack?.removeCmd) return;
+        for (const { command, commandGroup } of stack.iterator()) {
+          const names = [command?.globalName, command?.localName].map(name => String(name || '').toUpperCase());
+          if (names.some(name => ENGINE_COMMANDS_DROPPED.has(name))) {
+            stack.removeCmd(commandGroup, command.globalName);
+          }
+        }
+      };
+
+      const claimCanvas = () => {
+        const lease = cadViewerLease();
+        if (lease.owner && lease.owner !== canvasClaim) return false;
+        lease.owner = canvasClaim;
+        return true;
+      };
+
+      const releaseCanvas = () => {
+        const lease = cadViewerLease();
+        if (lease.owner === canvasClaim) lease.owner = null;
+      };
+
+      const retryCanvas = () => {
+        canvasBusy.value = false;
+        mountEngine();
+      };
+
       const mountEngine = async () => {
         if (typeof window === 'undefined' || runtime.value) return;
+        if (!claimCanvas()) {
+          canvasBusy.value = true;
+          return;
+        }
         engineError.value = '';
         try {
           const loaded = await import('cad-viewer');
@@ -1743,6 +1892,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             disableExport: true
           });
           writeMode = manager.curDocument?.openMode;
+          dropEngineCommands();
           await openBlankDocument();
           if (disposed) return;
           manager.events.documentActivated.addEventListener(() => bindDatabase({ schedule: false }));
@@ -1760,6 +1910,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           lastEmitted = '';
           reseedFromModel();
           emitSketch();
+          resetSketchHistory();
           // Scripted commands ride one script: separate sends execute
           // concurrently and eat each other's prompt tokens.
           const queued = pendingCommand ? [pendingCommand] : [];
@@ -1782,6 +1933,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             zoomObserver.observe(containerRef.value);
           }
         } catch (error) {
+          releaseCanvas();
           engineError.value = error?.message || String(error);
         }
       };
@@ -1801,6 +1953,7 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       onBeforeUnmount(() => {
         disposed = true;
+        releaseCanvas();
         if (extractTimer) clearTimeout(extractTimer);
         extractTimer = null;
         if (outlineTimer) clearTimeout(outlineTimer);
@@ -1829,6 +1982,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       });
 
       return () => h('div', {
+        ref: rootRef,
         class: 'flex min-h-0 flex-1 flex-col gap-2',
         'data-keyboard-scope': 'cad'
       }, [
@@ -1846,17 +2000,30 @@ export default function createSketchEditor({ vue, components, locale }) {
           class: 'hidden',
           onChange: handleDxfUpload
         }),
-        h('div', {
-          ref: containerRef,
-          class: 'relative min-h-[18rem] w-full flex-1 overflow-hidden rounded-ui border border-content-border bg-subtle',
-          role: 'application',
-          'aria-label': t('cassette.v2.profileEditor.preview'),
-          onPointerdownCapture: [handleVertexSelectPointerDown],
-          onPointerup: scheduleExtraction,
-          onKeyup: scheduleExtraction
-        }, [
-          // The tool toolbar floats inside the canvas (the
-          // DesignerWorkspace overlay pattern) — no row of its own.
+        canvasBusy.value
+          ? h('div', {
+              class: 'flex min-h-[18rem] w-full flex-1 flex-col items-center justify-center gap-3 rounded-ui border border-content-border bg-subtle p-4'
+            }, [
+              h(Message, { severity: 'warn', size: 'small', closable: false }, () => t('cassette.v2.profileEditor.canvasBusy')),
+              h(Button, {
+                label: t('cassette.v2.profileEditor.canvasRetry'),
+                icon: 'pi pi-refresh',
+                severity: 'secondary',
+                size: 'small',
+                onClick: retryCanvas
+              })
+            ])
+          : h('div', {
+              ref: containerRef,
+              class: 'relative min-h-[18rem] w-full flex-1 overflow-hidden rounded-ui border border-content-border bg-subtle',
+              role: 'application',
+              'aria-label': t('cassette.v2.profileEditor.preview'),
+              onPointerdownCapture: [handleVertexSelectPointerDown],
+              onPointerup: scheduleExtraction,
+              onKeyup: scheduleExtraction
+            }, [
+              // The tool toolbar floats inside the canvas (the
+              // DesignerWorkspace overlay pattern) — no row of its own.
           h(Toolbar, {
             class: 'absolute left-2 top-2 z-20 max-w-[calc(100%-1rem)] gap-1 overflow-x-auto p-1 shadow-card',
             'aria-label': t('cassette.v2.profileEditor.preview')

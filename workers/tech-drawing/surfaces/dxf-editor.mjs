@@ -8,6 +8,26 @@ export { spotNamesOf } from '../dxf-markers.js';
 
 const OPEN_OPTIONS = { readOnly: true };
 
+// The engine's glyph-redraw timer fires 50 ms after its font preload
+// resolves; teardown settles past it before destroying the singleton the
+// timer reads.
+const GLYPH_REDRAW_SETTLE_MS = 80;
+
+// The CAD engine is a page singleton (`AcApDocManager.createInstance`
+// hands back the first manager). Surfaces share one page-level claim so a
+// second canvas states the collision instead of binding to the first
+// one's container; the cad-viewer README owns the contract.
+const CAD_VIEWER_LEASE = Symbol.for('perigram.cadViewer.lease');
+const cadViewerLease = () => {
+  globalThis[CAD_VIEWER_LEASE] ||= { owner: null };
+  return globalThis[CAD_VIEWER_LEASE];
+};
+
+// The engine singleton is destroyed and re-created per mount; a pending
+// destroy must finish first or its teardown would clobber the new
+// instance.
+let engineChain = Promise.resolve();
+
 export default function createSurface({ vue, components, locale, notify }) {
   const { h, ref, computed, onMounted, onBeforeUnmount, nextTick, defineComponent } = vue;
   const t = locale.t;
@@ -24,6 +44,7 @@ export default function createSurface({ vue, components, locale, notify }) {
       const saving = ref(false);
       const dirty = ref(false);
       const engineError = ref('');
+      const canvasBusy = ref(false);
       const templateText = ref('');
       const containerRef = ref(null);
       const nameRef = ref(null);
@@ -32,6 +53,24 @@ export default function createSurface({ vue, components, locale, notify }) {
       const addY = ref(0);
       let manager = null;
       let disposed = false;
+      const canvasClaim = {};
+
+      const claimCanvas = () => {
+        const lease = cadViewerLease();
+        if (lease.owner && lease.owner !== canvasClaim) return false;
+        lease.owner = canvasClaim;
+        return true;
+      };
+
+      const releaseCanvas = () => {
+        const lease = cadViewerLease();
+        if (lease.owner === canvasClaim) lease.owner = null;
+      };
+
+      const retryCanvas = () => {
+        canvasBusy.value = false;
+        mountEngine().catch(fail);
+      };
 
       const markers = computed(() => spotMarkersOf(templateText.value));
       const canSave = computed(() => dirty.value && !loading.value);
@@ -128,21 +167,32 @@ export default function createSurface({ vue, components, locale, notify }) {
       async function mountEngine() {
         await nextTick();
         if (disposed || !containerRef.value) return;
-        const loaded = await import('cad-viewer');
-        if (disposed) return;
-        loaded.AcApSettingManager.instance.isShowCommandLine = false;
-        loaded.AcApSettingManager.instance.isShowShortCutToolbar = false;
-        loaded.acedApplyUiTheme?.('dark', containerRef.value);
-        manager = loaded.AcApDocManager.createInstance({
-          container: containerRef.value,
-          autoResize: true,
-          useMainThreadDraw: true,
-          builtinOpenFileDialog: false,
-          notificationCenter: false,
-          disableExport: true
-        });
-        await reopen();
-        containerRef.value?.addEventListener('click', pickPoint);
+        if (!claimCanvas()) {
+          canvasBusy.value = true;
+          return;
+        }
+        try {
+          const loaded = await import('cad-viewer');
+          if (disposed) return;
+          loaded.AcApSettingManager.instance.isShowCommandLine = false;
+          loaded.AcApSettingManager.instance.isShowShortCutToolbar = false;
+          loaded.acedApplyUiTheme?.('dark', containerRef.value);
+          await engineChain;
+          if (disposed) return;
+          manager = loaded.AcApDocManager.createInstance({
+            container: containerRef.value,
+            autoResize: true,
+            useMainThreadDraw: true,
+            builtinOpenFileDialog: false,
+            notificationCenter: false,
+            disableExport: true
+          });
+          await reopen();
+          containerRef.value?.addEventListener('click', pickPoint);
+        } catch (error) {
+          releaseCanvas();
+          throw error;
+        }
       }
 
       onMounted(async () => {
@@ -164,8 +214,15 @@ export default function createSurface({ vue, components, locale, notify }) {
 
       onBeforeUnmount(() => {
         disposed = true;
+        releaseCanvas();
         containerRef.value?.removeEventListener('click', pickPoint);
+        const dying = manager;
         manager = null;
+        engineChain = engineChain.then(async () => {
+          try { await dying?.curView?.awaitTextStyleFontsReady?.(); } catch { /* bounded by the engine's own timeout */ }
+          await new Promise(resolve => setTimeout(resolve, GLYPH_REDRAW_SETTLE_MS));
+          await dying?.destroy?.();
+        });
       });
 
       const markerRow = marker => h('div', { class: 'flex min-w-0 items-center gap-2' }, [
@@ -216,10 +273,21 @@ export default function createSurface({ vue, components, locale, notify }) {
           ? h(Message, { severity: 'error', closable: false }, { default: () => engineError.value })
           : null,
         h('div', { class: 'grid min-h-0 flex-1 grid-cols-[1fr_18rem] gap-3' }, [
-            h('div', {
-              ref: containerRef,
-              class: 'min-h-0 rounded-panel border border-content-border bg-subtle'
-            }),
+            canvasBusy.value
+              ? h('div', { class: 'flex min-h-0 flex-col items-center justify-center gap-3 rounded-panel border border-content-border bg-subtle p-4' }, [
+                  h(Message, { severity: 'warn', closable: false }, () => t('dxfEditor.canvasBusy')),
+                  h(Button, {
+                    label: t('dxfEditor.canvasRetry'),
+                    icon: 'pi pi-refresh',
+                    severity: 'secondary',
+                    size: 'small',
+                    onClick: retryCanvas
+                  })
+                ])
+              : h('div', {
+                  ref: containerRef,
+                  class: 'min-h-0 rounded-panel border border-content-border bg-subtle'
+                }),
             h('div', { class: 'flex min-h-0 flex-col gap-2 overflow-auto' }, [
               h('div', { class: 'text-label text-muted' }, `${t('dxfEditor.markers')} · ${markers.value.length}`),
               loading.value

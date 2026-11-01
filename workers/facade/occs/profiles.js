@@ -1,4 +1,4 @@
-import { resolveOccsExpression, rewriteOccsExpressionIdentifiers } from './expressions.js';
+import { collectOccsExpressionIdentifiers, resolveOccsExpression, rewriteOccsExpressionIdentifiers } from './expressions.js';
 import { foldCassetteV2Region } from '../surfaces/lib/cassetteV2Clipper.js';
 
 export const OCCS_PROFILE_KINDS = Object.freeze([
@@ -663,6 +663,32 @@ export const adoptOccsProfileBindingParameter = (sketch = {}, value, currentValu
   return { ...parameters, [identifier]: numeric };
 };
 
+// The sketch owns its parameter rows: an entry named by the surrounding
+// scope belongs to the sketch only while a shape field references it —
+// an unreferenced scope-named row is stale copy, never an authored
+// parameter.
+export const pruneScopeBoundParameters = (parameters = {}, shapes = [], externalParameters = {}) => {
+  const scopeNames = new Set(Object.keys(externalParameters || {}));
+  const keys = Object.keys(parameters);
+  if (!keys.some(key => scopeNames.has(key))) return parameters;
+  const referenced = new Set();
+  for (const shape of shapes || []) {
+    const values = [
+      shape.width, shape.height, shape.rotation, shape.diameter,
+      ...(shape.center || []),
+      ...(shape.points || []).flatMap(point => [point.x, point.y]),
+      ...(shape.fillets || []).map(fillet => fillet.radius),
+      ...(shape.modifiers || []).map(modifier => modifier.radius)
+    ];
+    for (const value of values) {
+      if (typeof value === 'string') collectOccsExpressionIdentifiers(value).forEach(name => referenced.add(name));
+    }
+  }
+  return Object.fromEntries(
+    Object.entries(parameters).filter(([key]) => !scopeNames.has(key) || referenced.has(key))
+  );
+};
+
 
 const pointFromDxf = (point = {}) => ({
   x: numericValue(point.x ?? point[0]),
@@ -936,6 +962,32 @@ const chainAllSegments = (segments) => {
   return { chains, leftover: remaining };
 };
 
+// A DXF polyline carries its arc segments as bulges on the vertex that
+// starts the segment: the tangent of a quarter of the included angle,
+// positive counter-clockwise.
+const bulgeSegment = (a, b, bulge) => {
+  const chord = Math.hypot(b.x - a.x, b.y - a.y);
+  if (!chord || !bulge) return null;
+  const theta = 4 * Math.atan(bulge);
+  const radius = Math.abs(chord / (2 * Math.sin(theta / 2)));
+  const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  const left = { x: -(b.y - a.y) / chord, y: (b.x - a.x) / chord };
+  const offset = chord / (2 * Math.tan(theta / 2));
+  const center = { x: mid.x + left.x * offset, y: mid.y + left.y * offset };
+  return {
+    type: 'arc',
+    arc: {
+      center: roundPoint(center),
+      radius,
+      startAngle: Math.atan2(a.y - center.y, a.x - center.x),
+      endAngle: Math.atan2(b.y - center.y, b.x - center.x),
+      ccw: bulge > 0
+    },
+    a: roundPoint(a),
+    b: roundPoint(b)
+  };
+};
+
 const polylineRecordSegments = (record) => {
   const vertices = record.vertices.map(roundPoint);
   const count = record.closed ? vertices.length : vertices.length - 1;
@@ -943,7 +995,8 @@ const polylineRecordSegments = (record) => {
   for (let index = 0; index < count; index += 1) {
     const a = vertices[index];
     const b = vertices[(index + 1) % vertices.length];
-    if (!samePoint(a, b)) segments.push({ type: 'line', a, b });
+    if (samePoint(a, b)) continue;
+    segments.push(bulgeSegment(a, b, Number(record.bulges?.[index]) || 0) || { type: 'line', a, b });
   }
   return segments;
 };
@@ -1361,10 +1414,11 @@ export const mergeOccsProfileSketchGeometry = (extracted = {}, authored = {}, ex
       ? evaluateOccsProfileSketch({ ...authored, shapes: adoptShapes }, externalParameters).shapes
       : [];
   } catch {
-    // A mid-edit expression keeps the authored sketch whole (owner
-    // law: what the user did is sacred) — canvas geometry merges on
-    // the next pass once the text resolves.
-    return normalizeOccsProfileSketch(authored, externalParameters);
+    // A mid-edit expression keeps the authored sketch whole (owner law:
+    // what the user did is sacred) — canvas geometry merges on the next
+    // pass once the text resolves. The scope is evaluation-only, so the
+    // authored table returns untouched.
+    return normalizeOccsProfileSketch(authored);
   }
   const usedAuthored = new Set();
   const keptShapeIds = new Set();
