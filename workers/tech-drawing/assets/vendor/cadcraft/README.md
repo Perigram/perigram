@@ -18,13 +18,21 @@ The frame exposes `window.cadcraft = { doc, view, engine, host, commands }`.
 | `entities()` | `doc.all()` |
 | `openText(name, text)` | reads ASCII DXF through the edition's `dxf.js` and loads the drawing |
 | `newDrawing(name)` | empty layer-0 document |
-| `worldToScreen` / `screenToWorld` | `view.toScreen` / `view.toWorld`; overlay and pointer coordinates are frame-local |
-| `viewKey()` | the view pan/zoom tuple the surfaces poll for overlay redraws |
+| `annotate(layer, entities)` | replaces one derived layer's entities in place; document events stay suppressed, the view repaints |
+| `pick(point, px)` | the engine's editable entity under a world point, or null |
+| `worldToScreen` / `screenToWorld` | `view.toScreen` / `view.toWorld`; popup and pointer coordinates are frame-local |
+| `viewKey()` | the view pan/zoom tuple the surfaces poll for transient popup redraws |
+| `zoomFit(excludeLayer?)` | `view.fit`; the named layer's visibility is held off while extents are measured |
 | `setSelection` / `selection` | `host.setSelection` wrapper; the wrapper reports every engine pick |
 | `run` / `cancel` / `running` | `engine.run` / `engine.escape` / `engine.running` |
 | `setOrtho` / `setOsnap` / `setSnapKind` | the frame's drafting settings |
 | `setCommandLine` | shows the frame's command line and re-sizes the canvas |
 | `onChange`, `onSelection`, `onCommand`, `onPointerDown`, `onPointerUp`, `onKeyDown` | surface subscriptions; the pointer and key listeners attach to the frame document |
+
+The host owns the visible chrome: mount injects the embed stylesheet,
+hides every edition child except the stage (and the command line the
+embedding toggle reveals), and turns off the edition's first-run tour and
+hint card.
 
 The frame is same-origin by construction: `contentWindow.cadcraft` and the
 frame's DOM events are the bridge. A cross-origin frame exposes neither.

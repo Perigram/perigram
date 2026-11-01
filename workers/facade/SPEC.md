@@ -45,6 +45,18 @@ the OCCS profile sketch through the engine's one normalization path
 (tangent corner arcs become fillet modifiers, other arcs flatten, circles
 become holes). DXF remains the pipeline's exchange format.
 
+Owner direction (2026-11-01, native profile annotations): the profile
+canvas draws its derived annotations — every dimension, the face hatch
+and outline, the zero axis, and the origin datum — as CadCraft entities
+on one derived layer, so the drawing's renderer paints them with the
+geometry through every pan and zoom. Dimension labels are the native
+dimension text; clicking a primitive dimension's label opens its
+authored expression field in place, and typing commits it. Selection is
+the engine's native selection. The surface chrome is the host dialog's:
+the embedded edition's toolbars, panels, hint card, first-run tour and
+dialogs stay out of the surface; its command line appears only through
+the editor's own toggle.
+
 Owner decision (2026-10-14): profile sketches go parametric through the
 OCCS expression layer, not an embedded constraint solver (owner pick
 2026-10-15: expressions). Sketch geometry (vertex coordinates, hole

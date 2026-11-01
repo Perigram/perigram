@@ -32,7 +32,8 @@ same-origin. Orgs connect the executor through the install's
   CONTINUOUS linetype, so strict viewers draw the whole template);
   saves ride the authored bytes through the revisioned payload channel.
   [`assets/vendor/cadcraft/host.mjs`](./assets/vendor/cadcraft/README.md)
-  owns the same-origin iframe, chrome hiding, entity mapping and the
+  owns the same-origin iframe, chrome and first-run-tour suppression,
+  entity mapping, the derived annotation layer and the
   selection/pointer subscriptions. The pair
   model and the marker operations live in `dxf-markers.js`, shared with
   the placement engine; `spotNamesOf` (the anchor read the fill dialog's
