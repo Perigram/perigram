@@ -663,27 +663,71 @@ export const adoptOccsProfileBindingParameter = (sketch = {}, value, currentValu
   return { ...parameters, [identifier]: numeric };
 };
 
-// Scope-named rows without a shape reference are stale copy
+// Scope-named rows without a shape or parameter reference are stale copy
 // (occs/README.md).
 export const pruneScopeBoundParameters = (parameters = {}, shapes = [], externalParameters = {}) => {
   const scopeNames = new Set(Object.keys(externalParameters || {}));
   const keys = Object.keys(parameters);
   if (!keys.some(key => scopeNames.has(key))) return parameters;
+  const identifiersOf = (value) => {
+    if (typeof value !== 'string') return [];
+    try {
+      return collectOccsExpressionIdentifiers(value);
+    } catch {
+      return [];
+    }
+  };
   const referenced = new Set();
+  const reference = (value) => identifiersOf(value).forEach(name => referenced.add(name));
   for (const shape of shapes || []) {
-    const values = [
+    [
       shape.width, shape.height, shape.rotation, shape.diameter,
       ...(shape.center || []),
       ...(shape.points || []).flatMap(point => [point.x, point.y]),
       ...(shape.fillets || []).map(fillet => fillet.radius),
       ...(shape.modifiers || []).map(modifier => modifier.radius)
-    ];
-    for (const value of values) {
-      if (typeof value === 'string') collectOccsExpressionIdentifiers(value).forEach(name => referenced.add(name));
+    ].forEach(reference);
+  }
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [key, value] of Object.entries(parameters)) {
+      if (!referenced.has(key)) continue;
+      for (const name of identifiersOf(value)) {
+        if (referenced.has(name)) continue;
+        referenced.add(name);
+        changed = true;
+      }
     }
   }
   return Object.fromEntries(
     Object.entries(parameters).filter(([key]) => !scopeNames.has(key) || referenced.has(key))
+  );
+};
+
+// The sketch every render consumer evaluates: the authored model with the
+// instance overrides on top. Neither stored table absorbs the other
+// (occs/README.md — two parameter tables).
+export const deriveOccsProfileSketch = (sketch = {}, instance = {}) => {
+  const normalized = normalizeOccsProfileSketch(sketch);
+  return normalizeOccsProfileSketch({
+    ...normalized,
+    parameters: { ...normalized.parameters, ...(instance || {}) }
+  });
+};
+
+// Renames a row of a profile parameter table in place: the key moves and
+// every value expression follows as whole identifiers.
+export const renameOccsProfileTableParameter = (parameters = {}, from = '', to = '') => {
+  const source = String(from || '').trim();
+  const next = String(to || '').trim();
+  if (!source || !next || source === next) return parameters;
+  const renames = { [source]: next };
+  return Object.fromEntries(
+    Object.entries(parameters || {}).map(([key, value]) => [
+      key === source ? next : key,
+      rewriteOccsExpressionIdentifiers(value, renames)
+    ])
   );
 };
 

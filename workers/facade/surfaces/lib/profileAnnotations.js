@@ -106,7 +106,7 @@ const editableDimension = ({ shapeId, fieldKey, value, evaluated, a, b, inward, 
   b,
   inward,
   text: fieldLabel(value, evaluated),
-  profile: { shapeId, fieldKey }
+  profile: { shapeId, shapeIds: [shapeId], fieldKey }
 });
 
 const chainDimensions = (shape) => {
@@ -198,15 +198,27 @@ const primitiveDimensions = (authoredShape, shape) => {
 };
 
 const dedupePositionDimensions = (dimensions) => {
-  const seen = new Set();
-  return dimensions.filter(dimension => {
+  const byKey = new Map();
+  const unique = [];
+  for (const dimension of dimensions) {
     const fieldKey = dimension.profile?.fieldKey;
-    if (fieldKey !== 'center-x' && fieldKey !== 'center-y') return true;
+    if (fieldKey !== 'center-x' && fieldKey !== 'center-y') {
+      unique.push(dimension);
+      continue;
+    }
     const key = `${fieldKey}:${dimension.text}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.profile.shapeIds = [...new Set([
+        ...(existing.profile.shapeIds || []),
+        ...(dimension.profile.shapeIds || [])
+      ])];
+      continue;
+    }
+    byKey.set(key, dimension);
+    unique.push(dimension);
+  }
+  return unique;
 };
 
 const ringsOf = (face) => (

@@ -49,6 +49,7 @@ import { buildCassetteV2FoldedPreview } from './cassetteV2FoldedPreview.js';
 import { embedOccsProfileEdge, embedOccsProfilesIntoContour } from '../../occs/profileEmbedding.js';
 import {
   createDefaultOccsProfileTemplateData,
+  deriveOccsProfileSketch,
   normalizeOccsProfileSketch,
   occsProfileFromSketch,
   resolveOccsProfileSectionOperations,
@@ -244,9 +245,8 @@ export const isCassetteV2ProfileWorkpiece = (workpiece = {}) => workpiece.type =
 // A profile workpiece stores two parameter tables (workers/facade/SPEC.md
 // — two parameter tables): the authored table inside its sketch and the
 // instance table beside it. The derived table — authored rows with the
-// instance values on top — is what geometry, the save gate, and the
-// workpiece row's chips evaluate; the profile dialog edits the authored
-// one.
+// instance values on top — is the evaluation scope; the authored sketch
+// stays the stored truth.
 export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
   const source = workpiece.profileSnapshot || workpiece.profile || workpiece.data?.occsProfile || {};
   // The authored sketch wins over any evaluated copy riding a cached
@@ -259,71 +259,39 @@ export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
     ...(rawSketch ? { sketch: rawSketch } : {})
   });
   const sketch = normalizeOccsProfileSketch(data.sketch);
-  const authoredTable = sketch.parameters;
   const instance = source.instance || {};
-  // Instance values resolve in the joined scope with the profile's own
-  // table shadowing the cassette's globals (inner over outer — a local
-  // parameter never gets silently overridden by a same-named global):
-  // the sketch's own table, the workpiece's other instance values, then
-  // the globals. A chip value naming a parameter reads the local one
-  // first, the global only when no local exists. The authored
-  // expression stays stored raw — globals never bake into the table
-  // (they would go stale when the cassette's own parameters change) —
-  // and an expression naming nothing known stays raw too (the
-  // transient-invalid law holds the last good section while the author
-  // types).
-  const instanceScope = { ...scope, ...authoredTable, ...instance };
-  const resolveInstanceValue = (value) => {
-    if (typeof value !== 'string' || !value.trim()) return value;
-    try {
-      const trimmed = value.trim();
-      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed)) {
-        // A bare identifier reads its innermost binding — not itself.
-        if (Object.prototype.hasOwnProperty.call(authoredTable, trimmed)) {
-          return resolveCassetteV2Expression(trimmed, { ...scope, ...authoredTable });
-        }
-        if (Object.prototype.hasOwnProperty.call(scope, trimmed)) {
-          return resolveCassetteV2Expression(trimmed, scope);
-        }
-        return value;
-      }
-      const identifiers = collectCassetteV2ExpressionIdentifiers(value);
-      const known = identifiers.every(name => Object.prototype.hasOwnProperty.call(instanceScope, name));
-      return known ? resolveCassetteV2Expression(value, instanceScope) : value;
-    } catch {
-      return value;
-    }
-  };
-  const resolvedInstance = Object.fromEntries(Object.entries(instance)
-    .map(([key, value]) => [key, resolveInstanceValue(value)]));
-  const evaluationTable = { ...authoredTable, ...resolvedInstance };
-  const evaluationScope = { ...evaluationTable, ...scope };
-  // The evaluation sketch carries the resolved derived table — the stored
-  // sketch (returned below) keeps the authored one.
-  const evaluationSketch = normalizeOccsProfileSketch({ ...sketch, parameters: evaluationTable });
+  // The derived sketch resolves through the one expression pass:
+  // instance values over authored rows over the cassette's globals (inner
+  // over outer). The stored tables keep their raw expressions.
+  const derivedSketch = deriveOccsProfileSketch(sketch, instance);
+  const derivedKeys = Object.keys(derivedSketch.parameters);
   const deriveFromSketch = sketch.shapes.length > 0;
+  let derivedTable = derivedSketch.parameters;
   let occsProfile = null;
   if (source.section && source.sweep && !deriveFromSketch) {
     occsProfile = { section: source.section, sweep: source.sweep, sketch };
   } else {
     try {
-      occsProfile = occsProfileFromSketch(evaluationSketch, { parameters: evaluationScope });
+      occsProfile = occsProfileFromSketch(derivedSketch, { parameters: scope });
+      derivedTable = Object.fromEntries(
+        derivedKeys.map(key => [key, occsProfile.sketch.parameters[key]])
+      );
     } catch {
       // A transient invalid instance parameter keeps the last good
       // section; there is nothing to fall back to for sketch-less
       // snapshots, so the default template geometry stands in.
       occsProfile = source.section && source.sweep
         ? { section: source.section, sweep: source.sweep, sketch }
-        : occsProfileFromSketch(normalizeOccsProfileSketch({}, evaluationScope), { parameters: evaluationScope });
+        : occsProfileFromSketch(normalizeOccsProfileSketch({}, scope), { parameters: scope });
     }
   }
 
   return {
     kind: data.kind,
     process: data.process,
-    // The derived table drives the workpiece row's chips; the authored
-    // table rides the sketch and the overrides ride `instance`.
-    parameters: evaluationTable,
+    // The evaluated derived table; the authored table rides the sketch and
+    // the overrides ride `instance`.
+    parameters: derivedTable,
     instance: { ...instance },
     sketch,
     section: occsProfile.section,
@@ -1344,24 +1312,32 @@ export const renameCassetteV2TreeParameter = (tree = createCassetteV2GraphTree()
       Object.entries(node.parameters || {}).map(([key, value]) => [key, rewriteAngle(value)])
     )
   }));
-  nextTree.workpieces = nextTree.workpieces.map(workpiece => ({
-    ...workpiece,
-    parameters: Object.fromEntries(
-      Object.entries(workpiece.parameters || {}).map(([key, value]) => [key, rewrite(value)])
-    ),
-    ...(workpiece.sketch ? { sketch: rewriteSketch(workpiece.sketch) } : {}),
-    ...(workpiece.profileSnapshot ? {
-      profileSnapshot: {
-        ...workpiece.profileSnapshot,
-        ...(workpiece.profileSnapshot.instance ? {
-          instance: Object.fromEntries(
-            Object.entries(workpiece.profileSnapshot.instance).map(([key, value]) => [key, rewrite(value)])
-          )
-        } : {}),
-        ...(workpiece.profileSnapshot.sketch ? { sketch: rewriteSketch(workpiece.profileSnapshot.sketch) } : {})
-      }
-    } : {})
-  }));
+  nextTree.workpieces = nextTree.workpieces.map(workpiece => {
+    const snapshotSketch = workpiece.profileSnapshot?.sketch || workpiece.sketch;
+    // A profile-local row shadows the global and keeps its name.
+    const localSource = Object.prototype.hasOwnProperty.call(snapshotSketch?.parameters || {}, source);
+    return {
+      ...workpiece,
+      parameters: Object.fromEntries(
+        Object.entries(workpiece.parameters || {}).map(([key, value]) => [key, rewrite(value)])
+      ),
+      ...(workpiece.sketch ? { sketch: rewriteSketch(workpiece.sketch) } : {}),
+      ...(workpiece.profileSnapshot ? {
+        profileSnapshot: {
+          ...workpiece.profileSnapshot,
+          ...(workpiece.profileSnapshot.instance ? {
+            instance: Object.fromEntries(
+              Object.entries(workpiece.profileSnapshot.instance).map(([key, value]) => [
+                key === source && !localSource ? next : key,
+                rewrite(value)
+              ])
+            )
+          } : {}),
+          ...(workpiece.profileSnapshot.sketch ? { sketch: rewriteSketch(workpiece.profileSnapshot.sketch) } : {})
+        }
+      } : {})
+    };
+  });
   nextTree.joints = nextTree.joints.map(joint => {
     const placement = joint.placement || {};
     const pattern = placement.pattern;

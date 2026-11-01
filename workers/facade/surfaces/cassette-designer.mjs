@@ -38,6 +38,7 @@ import {
   OCCS_PROFILE_PROCESSES,
   closeOccsProfileSketchBoundary,
   createEmptyOccsProfileSketch,
+  deriveOccsProfileSketch,
   evaluateOccsProfileSketch,
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
@@ -286,9 +287,8 @@ export default function createSurface({ vue, components, locale, queries, record
         name: '',
         kind: 'hanger',
         process: 'extruded',
-        parameters: {},
-        sketch: createEmptyOccsProfileSketch(),
-        occsProfile: null
+        instance: {},
+        sketch: createEmptyOccsProfileSketch()
       });
       const profileLibraryRecords = ref([]);
       const profileLibraryAvailable = ref(true);
@@ -323,13 +323,10 @@ export default function createSurface({ vue, components, locale, queries, record
       // the authored rows, over the cassette's variables. Neither table
       // absorbs the other; the stored sketch keeps the authored rows
       // (workers/facade/SPEC.md — two parameter tables).
-      const profileDraftDerived = computed(() => normalizeOccsProfileSketch({
-        ...profileDraftSketch.value,
-        parameters: {
-          ...profileDraftSketch.value.parameters,
-          ...(profileDraft.value.instance || {})
-        }
-      }));
+      const profileDraftDerived = computed(() => deriveOccsProfileSketch(
+        profileDraftSketch.value,
+        profileDraft.value.instance
+      ));
       const profileDraftReady = computed(() => isOccsProfileSketchSavable(
         profileDraftDerived.value,
         globalParameters.value
@@ -346,6 +343,11 @@ export default function createSurface({ vue, components, locale, queries, record
       });
       const preparedProfileDraftSketch = computed(() => closeOccsProfileSketchBoundary(
         profileDraftSketch.value
+      ));
+      // Library records store the authored sketch alone, so they place
+      // only when that table resolves without a workpiece's overrides.
+      const profileDraftAuthoredReady = computed(() => isOccsProfileSketchSavable(
+        preparedProfileDraftSketch.value
       ));
 
       const selectedTemplateId = computed(() => persistedTemplateIdOverride.value || props.record?._id || '');
@@ -433,8 +435,8 @@ export default function createSurface({ vue, components, locale, queries, record
         return rows;
       });
       // The workpiece row carries the profile's whole parameter table
-      // (the item is the profile's parameter home on the cassette). The
-      // chips render the derived table and exist for the authored rows
+      // (the item is the profile's parameter home on the cassette). A
+      // chip shows its stored expression and edits the instance table
       // (workers/facade/SPEC.md — two parameter tables).
       const profileRowOf = (workpiece) => (
         isCassetteV2ProfileWorkpiece(workpiece)
@@ -452,6 +454,8 @@ export default function createSurface({ vue, components, locale, queries, record
         .map(workpiece => workpiece.id)));
       const workpieceRows = computed(() => workpieces.value.map((workpiece) => {
         const profile = profileRowOf(workpiece);
+        const authoredParameters = profile ? profile.sketch.parameters : null;
+        const instanceParameters = profile ? profile.instance : null;
         return {
           id: workpiece.id,
           label: workpiece.name || workpiece.id,
@@ -459,7 +463,14 @@ export default function createSurface({ vue, components, locale, queries, record
           family: workpiece.family || workpiece.hardware?.family || '',
           productionMode: workpiece.productionMode || workpiece.hardware?.productionMode || '',
           parameters: profile ? profile.parameters : (workpiece.parameters || workpiece.hardware?.parameters || {}),
-          boundParameterKeys: profile ? new Set(Object.keys(profile.sketch.parameters)) : null,
+          authoredParameters,
+          instanceParameters,
+          boundParameterKeys: profile
+            ? new Set([
+                ...Object.keys(authoredParameters || {}),
+                ...Object.keys(instanceParameters || {})
+              ])
+            : null,
           isHardware: Boolean(workpiece.family || workpiece.hardware?.family),
           isProfile: isCassetteV2ProfileWorkpiece(workpiece),
           isNested: nestedWorkpieceIds.value.has(workpiece.id),
@@ -1574,7 +1585,6 @@ export default function createSurface({ vue, components, locale, queries, record
               ...snapshotSketch,
               parameters: pruneScopeBoundParameters(snapshotSketch.parameters, snapshotSketch.shapes, scope)
             },
-            occsProfile: profile?.section ? { section: profile.section, sweep: profile.sweep, sketch: profile.sketch } : profile?.occsProfile || null,
             libraryId: workpiece.profileTemplateId?.toString() || ''
           };
         } else {
@@ -1586,7 +1596,6 @@ export default function createSurface({ vue, components, locale, queries, record
             process: 'extruded',
             instance: {},
             sketch: createEmptyOccsProfileSketch(),
-            occsProfile: null,
             libraryId: ''
           };
         }
@@ -1626,7 +1635,6 @@ export default function createSurface({ vue, components, locale, queries, record
           process: record?.fields?.process || 'extruded',
           instance: {},
           sketch,
-          occsProfile: null,
           libraryId: record?._id?.toString() || ''
         };
       };
@@ -1696,7 +1704,7 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const saveProfileDraftToLibrary = async () => {
-        if (!profileDraftReady.value) {
+        if (!profileDraftAuthoredReady.value) {
           notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
           return;
         }
@@ -1732,8 +1740,8 @@ export default function createSurface({ vue, components, locale, queries, record
       // record keeps its name.
       const updateProfileLibraryRecord = async () => {
         const libraryId = profileDraft.value.libraryId;
-        if (!profileDraftReady.value || !libraryId) {
-          if (!profileDraftReady.value) {
+        if (!profileDraftAuthoredReady.value || !libraryId) {
+          if (!profileDraftAuthoredReady.value) {
             notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
           }
           return;
@@ -1825,17 +1833,21 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       // A parameter field is the shared expression editor over the
-      // cassette's variables (the same component every expression field
-      // rides): its value may name a global and reads it live.
-      const profileParameterField = (row, key, value) => h(CassetteExpressionEditor, {
-        modelValue: value,
-        parameters: globalParameters.value,
-        parameterNames: globalParameterNames.value,
-        'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`,
-        'onUpdate:modelValue': next => {
-          updateProfileWorkpieceParameter(row.id, key, next);
-        }
-      });
+      // cassette's variables and the profile's own rows (the same
+      // component every expression field rides): its value may name
+      // either and reads it live.
+      const profileParameterField = (row, key, value) => {
+        const profileTable = { ...(row.authoredParameters || {}), ...(row.instanceParameters || {}) };
+        return h(CassetteExpressionEditor, {
+          modelValue: value,
+          parameters: { ...globalParameters.value, ...profileTable },
+          parameterNames: [...new Set([...globalParameterNames.value, ...Object.keys(profileTable)])],
+          'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`,
+          'onUpdate:modelValue': next => {
+            updateProfileWorkpieceParameter(row.id, key, next);
+          }
+        });
+      };
 
       const addAttachmentToWorkpiece = (workpieceId, targetWorkpieceId = '', targetFaceId = '') => {
         closeInlineEditor();
@@ -2394,15 +2406,24 @@ export default function createSurface({ vue, components, locale, queries, record
       const workpieceDetailBlocks = (row) => [
         row.id === selectedWorkpieceId.value && row.isProfile
           ? h('div', { class: 'mt-2 grid grid-cols-2 gap-2 pl-4' },
-              Object.entries(row.parameters || {})
-                .filter(([key]) => row.boundParameterKeys?.has(key))
-                .map(([key, value]) => h('div', {
+              [...(row.boundParameterKeys || [])].map((key) => {
+                const instance = row.instanceParameters || {};
+                const authored = row.authoredParameters || {};
+                const value = Object.prototype.hasOwnProperty.call(instance, key)
+                  ? instance[key]
+                  : authored[key];
+                const derived = row.parameters?.[key];
+                return h('div', {
                   key: `${row.id}-${key}`,
                   class: 'flex min-w-0 flex-col gap-1 text-muted text-label'
                 }, [
-                  h('span', { class: 'truncate' }, key),
+                  h('span', {
+                    class: 'truncate',
+                    title: derived === undefined ? key : `${key} = ${derived}`
+                  }, key),
                   profileParameterField(row, key, value)
-                ])))
+                ]);
+              }))
           : null,
         row.id === selectedWorkpieceId.value && row.isHardware
           ? h('div', { class: 'mt-2 flex flex-col gap-2 pl-4' }, [
@@ -3142,13 +3163,15 @@ export default function createSurface({ vue, components, locale, queries, record
                   text: true,
                   rounded: true,
                   size: 'small',
-                  disabled: !profileDraftReady.value,
+                  disabled: !profileDraftAuthoredReady.value,
                   'aria-label': profileDraft.value.libraryId
                     ? t('cassette.v2.profileEditor.updateLibrary')
                     : t('cassette.v2.profileEditor.saveToLibrary'),
-                  title: profileDraft.value.libraryId
-                    ? t('cassette.v2.profileEditor.updateLibrary')
-                    : t('cassette.v2.profileEditor.saveToLibrary'),
+                  title: profileDraftAuthoredReady.value
+                    ? (profileDraft.value.libraryId
+                        ? t('cassette.v2.profileEditor.updateLibrary')
+                        : t('cassette.v2.profileEditor.saveToLibrary'))
+                    : t('cassette.v2.profileEditor.invalidSketch'),
                   onClick: profileDraft.value.libraryId ? updateProfileLibraryRecord : saveProfileDraftToLibrary
                 })
                 : null
@@ -3163,7 +3186,7 @@ export default function createSurface({ vue, components, locale, queries, record
               externalParameters: globalParameters.value,
               instanceParameters: profileDraft.value.instance,
               'onUpdate:modelValue': value => { profileDraft.value.sketch = value; },
-              onProfile: value => { profileDraft.value.occsProfile = value; }
+              'onUpdate:instance': value => { profileDraft.value.instance = value; }
             })
           ])
         })

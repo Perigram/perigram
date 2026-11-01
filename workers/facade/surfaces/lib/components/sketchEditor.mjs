@@ -8,6 +8,7 @@ import {
   OCCS_PROFILE_SHAPE_OPS,
   adoptOccsProfileBindingParameter,
   createEmptyOccsProfileSketch,
+  deriveOccsProfileSketch,
   evaluateOccsProfileSketch,
   isOccsProfileSketchSavable,
   mergeOccsProfileSketchGeometry,
@@ -17,6 +18,7 @@ import {
   occProfileSketchFromEntities,
   occsProfileFromSketch,
   renameOccsProfileSketchParameter,
+  renameOccsProfileTableParameter,
   resolveOccsProfileSectionOperations
 } from '../../../occs/profiles.js';
 import { resolveOccsExpression } from '../../../occs/expressions.js';
@@ -51,7 +53,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // for every evaluation the canvas runs, and stays out of the model.
       instanceParameters: { type: Object, default: () => ({}) }
     },
-    emits: ['update:modelValue', 'profile'],
+    emits: ['update:modelValue', 'update:instance'],
     setup(props, { emit }) {
       const containerRef = ref(null);
       const rootRef = ref(null);
@@ -60,13 +62,11 @@ export default function createSketchEditor({ vue, components, locale }) {
       const canvasReady = ref(false);
       const importError = ref('');
       const activeTool = ref('select');
-      const importedFileName = ref('');
       const orthoMode = ref(false);
       const tangentSnap = ref(false);
       const commandLine = ref(false);
       const selectedCorner = ref(null);
       const selectedShape = ref(null);
-      const lastPointerAt = ref(null);
       const dimensionDraft = ref(null);
       const dimensionInputRef = ref(null);
 
@@ -157,11 +157,16 @@ export default function createSketchEditor({ vue, components, locale }) {
       // The canvas renders the derived table: the instance values over
       // the authored rows (workers/facade/SPEC.md — two parameter
       // tables). The authored model stays what the editor emits.
-      const derivedSketch = (sketch = {}) => normalizeOccsProfileSketch({
-        ...sketch,
-        parameters: {
-          ...normalizeOccsProfileSketch(sketch).parameters,
-          ...(props.instanceParameters || {})
+      const derivedSketch = (sketch = {}) => deriveOccsProfileSketch(sketch, props.instanceParameters);
+      // Hints resolve through the same derived table the canvas evaluates.
+      const resolvedParameterTable = computed(() => {
+        try {
+          return evaluateOccsProfileSketch(
+            derivedSketch(props.modelValue || {}),
+            externalScope()
+          ).parameters;
+        } catch {
+          return null;
         }
       });
       const evaluateForRender = () => {
@@ -177,9 +182,12 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
+      let outlineGeneration = 0;
       const resolveOutline = async () => {
         outlineTimer = null;
         if (disposed) return;
+        const generation = outlineGeneration + 1;
+        outlineGeneration = generation;
         outlineError.value = '';
         try {
           const normalized = derivedSketch(props.modelValue || {});
@@ -197,6 +205,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             { polygons: [half], holes: [] },
             resolveOccsProfileSectionOperations(section)
           );
+          if (disposed || generation !== outlineGeneration) return;
           resolvedFace.value = resolved;
           syncAnnotations();
           const participates = section.shapes.some(shape => shape.op !== 'construction');
@@ -204,6 +213,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             outlineError.value = t('cassette.v2.profileEditor.resultClipped');
           }
         } catch (error) {
+          if (disposed || generation !== outlineGeneration) return;
           // The last good face stays on the canvas; the error rides
           // the message alone.
           outlineError.value = error?.message || String(error);
@@ -401,21 +411,18 @@ export default function createSketchEditor({ vue, components, locale }) {
           return;
         }
         if (selectedCorner.value) return;
-        const anchor = lastPointerAt.value;
-        selectedShape.value = {
-          shapeId: shapeIds[0],
-          at: anchor ? [anchor[0], anchor[1]] : [24, 24]
-        };
+        selectedShape.value = { shapeId: shapeIds[0] };
       };
 
       const openDimensionEditor = (entity, event) => {
-        const { shapeId, fieldKey } = entity.profile || {};
+        const { shapeId, shapeIds, fieldKey } = entity.profile || {};
         const shape = findShape(normalizeOccsProfileSketch(props.modelValue || {}), shapeId);
         const field = profileDimensionField(shape, fieldKey);
         if (!field) return;
         selectedCorner.value = null;
         dimensionDraft.value = {
           shapeId,
+          shapeIds,
           fieldKey,
           label: `${shapeId}:${fieldKey}`,
           value: field.value,
@@ -433,8 +440,8 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const handleVertexSelectPointerDown = (event) => {
         if (isEditableTarget(event.target)) return;
-        lastPointerAt.value = [event.clientX, event.clientY];
         if (activeTool.value !== 'select') {
+          pendingDimensionPick = null;
           dimensionDraft.value = null;
           selectedCorner.value = null;
           selectedShape.value = null;
@@ -475,7 +482,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         const index = sameSpot ? (pickCycle.index + 1) % hits.length : 0;
         pickCycle = { at: [event.clientX, event.clientY], index };
         const shape = hits[index];
-        selectedShape.value = { shapeId: shape.id, at: [event.clientX, event.clientY] };
+        selectedShape.value = { shapeId: shape.id };
         selectShapeInEngine(shape.id);
       };
 
@@ -500,6 +507,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           if (!cancelling && !selectedCorner.value && !selectedShape.value) return;
           event.preventDefault();
           event.stopPropagation();
+          pendingDimensionPick = null;
           if (dimensionDraft.value) dimensionDraft.value = null;
           if (selectedCorner.value) selectedCorner.value = null;
           if (selectedShape.value) selectedShape.value = null;
@@ -597,14 +605,18 @@ export default function createSketchEditor({ vue, components, locale }) {
       };
 
       const externalScope = () => props.externalParameters || {};
-      // Instance values join the evaluation scope the canvas and the
-      // field editors resolve against.
-      const evaluationScope = () => ({ ...(props.instanceParameters || {}), ...externalScope() });
+      // The derived table's precedence: instance values over the authored
+      // rows over the cassette's globals.
+      const evaluationScope = () => ({
+        ...externalScope(),
+        ...normalizeOccsProfileSketch(props.modelValue || {}).parameters,
+        ...(props.instanceParameters || {})
+      });
 
       const sketchFingerprint = sketch => JSON.stringify(normalizeOccsProfileSketch(sketch || {}));
 
-      const resetSketchHistory = () => {
-        historyEntries = [normalizeOccsProfileSketch(props.modelValue || {})];
+      const resetSketchHistory = (sketch = props.modelValue) => {
+        historyEntries = [normalizeOccsProfileSketch(sketch || {})];
         historyAt = 0;
         historyVersion.value += 1;
       };
@@ -674,15 +686,6 @@ export default function createSketchEditor({ vue, components, locale }) {
         recordSketchHistory(sketch);
         lastEmitted = fingerprint;
         emit('update:modelValue', sketch);
-        // A merged sketch can keep authored expressions the evaluator
-        // rejects — the profile stays null then; the save gate reports.
-        let profile = null;
-        try {
-          profile = occsProfileFromSketch(derivedSketch(sketch), { parameters: evaluationScope() });
-        } catch {
-          // Unresolvable expressions: nothing to emit while invalid.
-        }
-        emit('profile', profile);
         syncAnnotations(sketch);
       };
 
@@ -780,8 +783,10 @@ export default function createSketchEditor({ vue, components, locale }) {
       // Entities emitted per shape, each record tagged with its shape's
       // id — the seed builds the selection map from the tags.
       const entitiesPerShape = (normalized) => normalized.shapes.flatMap(shape => (
-        occProfileEntitiesFromSketch({ ...normalized, shapes: [shape] })
-          .map(record => ({ ...record, shapeId: shape.id }))
+        occProfileEntitiesFromSketch(
+          { ...normalized, shapes: [shape] },
+          { parameters: externalScope() }
+        ).map(record => ({ ...record, shapeId: shape.id }))
       ));
 
       const clearDrawing = () => {
@@ -794,8 +799,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
         lastAnnotationFingerprint = '';
         clearDrawingEntities();
-        importedFileName.value = '';
         droppedShapes = [];
+        pendingDimensionPick = null;
+        dimensionDraft.value = null;
+        selectedShape.value = null;
+        selectedCorner.value = null;
         // Clearing starts the blank authoring session: the parameter
         // table empties with the canvas (occs/README.md owns the
         // blank-session law), so a cleared session's parameters never
@@ -803,21 +811,22 @@ export default function createSketchEditor({ vue, components, locale }) {
         const sketch = createEmptyOccsProfileSketch();
         lastEmitted = JSON.stringify(normalizeOccsProfileSketch(sketch));
         emit('update:modelValue', sketch);
-        emit('profile', null);
+        emit('update:instance', {});
+        resetSketchHistory(sketch);
         zoomToBlankWindow();
         syncAnnotations(sketch);
       };
 
-      const reseedFromModel = () => {
+      const reseedFromModel = ({ force = false, fit = true } = {}) => {
         if (!host || disposed) return;
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
-        if (JSON.stringify(normalized) === lastEmitted) return;
+        if (!force && JSON.stringify(normalized) === lastEmitted) return;
         // The seed evaluates a render copy with the external scope
         // joined — global-bound coordinates render; the stored sketch
         // keeps the clean table.
         let entities = [];
         try {
-          entities = entitiesPerShape(normalizeOccsProfileSketch(derivedSketch(normalized), externalScope()));
+          entities = entitiesPerShape(derivedSketch(normalized));
         } catch {
           // A mid-edit expression reseeds the last good geometry —
           // the canvas keeps the drawing.
@@ -836,10 +845,9 @@ export default function createSketchEditor({ vue, components, locale }) {
         } finally {
           seeding = false;
         }
-        importedFileName.value = '';
-        if (entities.length) host.zoomFit(PROFILE_ANNOTATION_LAYER);
-        const selected = selectedShape.value?.shapeId || selectedCorner.value?.shapeId || '';
-        selectShapeInEngine(selected);
+        pruneSelection(normalized);
+        if (entities.length && fit) host.zoomFit(PROFILE_ANNOTATION_LAYER);
+        selectShapeInEngine(selectedShape.value?.shapeId || selectedCorner.value?.shapeId || '');
         syncAnnotations(normalized);
       };
 
@@ -856,6 +864,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       };
 
       const runCommand = (tool) => {
+        pendingDimensionPick = null;
         dimensionDraft.value = null;
         if (tool.command) {
           if (activeTool.value !== 'select') host?.cancel();
@@ -878,6 +887,13 @@ export default function createSketchEditor({ vue, components, locale }) {
       // editing. Later draws merge back through
       // mergeOccsProfileSketchGeometry, which keeps authored expressions
       // on unchanged shapes.
+      const pruneSelection = (sketch) => {
+        const shapeIds = new Set(normalizeOccsProfileSketch(sketch || {}).shapes.map(shape => shape.id));
+        if (selectedShape.value && !shapeIds.has(selectedShape.value.shapeId)) selectedShape.value = null;
+        if (selectedCorner.value && !shapeIds.has(selectedCorner.value.shapeId)) selectedCorner.value = null;
+        if (dimensionDraft.value && !shapeIds.has(dimensionDraft.value.shapeId)) dimensionDraft.value = null;
+      };
+
       const commitSketch = (next, { fromHistory = false } = {}) => {
         if (!host || disposed) return;
         const normalized = normalizeOccsProfileSketch(next);
@@ -886,19 +902,13 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (!fromHistory) recordSketchHistory(normalized);
         lastEmitted = fingerprint;
         emit('update:modelValue', normalized);
-        let profile = null;
-        try {
-          profile = occsProfileFromSketch(derivedSketch(normalized), { parameters: externalScope() });
-        } catch {
-          // Save gates on the savable check; nothing to emit while invalid.
-        }
-        emit('profile', profile);
+        pruneSelection(normalized);
         // The reseed writes the projection; extraction would immediately
         // re-emit numeric geometry and clobber the authored expressions,
         // so the seed suppresses document events.
         seeding = true;
         try {
-          seedEntities({ entities: entitiesPerShape(normalizeOccsProfileSketch(derivedSketch(normalized), externalScope())) });
+          seedEntities({ entities: entitiesPerShape(derivedSketch(normalized)) });
         } catch {
           if (lastGoodEvaluated.value) {
             seedEntities({ entities: entitiesPerShape(lastGoodEvaluated.value) });
@@ -906,8 +916,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         } finally {
           seeding = false;
         }
-        const selected = selectedShape.value?.shapeId || selectedCorner.value?.shapeId || '';
-        selectShapeInEngine(selected);
+        selectShapeInEngine(selectedShape.value?.shapeId || selectedCorner.value?.shapeId || '');
         syncAnnotations(normalized);
       };
 
@@ -929,77 +938,88 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
       };
 
+      // A typed number into a field bound by a bare identifier commits to
+      // that identifier in the table that drives the drawing: the instance
+      // override when one exists, the authored row next, the surrounding
+      // scope (a workpiece-local override) last.
+      const BARE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+      const commitBoundParameter = (binding, numeric) => {
+        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        const instance = props.instanceParameters || {};
+        if (Object.prototype.hasOwnProperty.call(instance, binding)) {
+          emit('update:instance', { ...instance, [binding]: numeric });
+          return true;
+        }
+        if (Object.prototype.hasOwnProperty.call(normalized.parameters, binding)) {
+          commitSketch({ ...normalized, parameters: { ...normalized.parameters, [binding]: numeric } });
+          return true;
+        }
+        if (Object.prototype.hasOwnProperty.call(externalScope(), binding)) {
+          emit('update:instance', { ...instance, [binding]: numeric });
+          return true;
+        }
+        return false;
+      };
+
       // Shape field commit with the parameter lifecycle: a typed number
-      // into a field bound to a bare sketch parameter commits to that
-      // parameter (the dim is the parameter's editor — everything bound
+      // into a field bound to a bare identifier commits to the effective
+      // table row (the dim is the parameter's editor — everything bound
       // to it follows); every other value keeps the adopt-on-bind path
       // onto the field.
-      const BARE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
-      const applyShapeField = (shapeId, readEvaluated, apply, authoredValue) => (value) => {
+      const applyShapeField = (shapeId, readEvaluated, apply, authoredValue, { shapeIds = null } = {}) => (value) => {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
         const numeric = typeof value === 'string' && value.trim() !== '' ? Number(value) : null;
         const binding = typeof authoredValue === 'string' ? authoredValue.trim() : '';
-        if (Number.isFinite(numeric)
-          && BARE_IDENTIFIER.test(binding)
-          && Object.prototype.hasOwnProperty.call(normalized.parameters, binding)) {
-          commitSketch({ ...normalized, parameters: { ...normalized.parameters, [binding]: numeric } });
-          return;
-        }
+        if (Number.isFinite(numeric) && BARE_IDENTIFIER.test(binding) && commitBoundParameter(binding, numeric)) return;
         const parameters = adoptOccsProfileBindingParameter(
           normalized,
           value,
           evaluatedFieldValue(evaluated => readEvaluated(findShape(evaluated, shapeId))),
           evaluationScope()
         );
+        const targets = new Set(shapeIds?.length ? shapeIds : [shapeId]);
         commitSketch({
           ...normalized,
           parameters,
-          shapes: normalized.shapes.map(shape => (shape.id === shapeId ? apply(shape, value) : shape))
+          shapes: normalized.shapes.map(shape => (targets.has(shape.id) ? apply(shape, value) : shape))
         });
       };
 
       const applyFilletRadius = (shapeId, vertexId, value) => {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
         const shape = findShape(normalized, shapeId);
-        const numeric = Number(value);
         // Numbers clamp to non-negative; expression strings pass through
-        // untouched like every other authoring field. Binding a single
-        // unknown identifier adopts the field's current value.
-        const radius = value === '' || value === null || value === undefined
-          ? 0
-          : Number.isFinite(numeric) ? Math.max(0, numeric) : String(value).trim();
-        const parameters = adoptOccsProfileBindingParameter(normalized, radius, filletRadiusOf(shape, vertexId) ?? 0, evaluationScope());
-        const modifiers = (shape?.modifiers || []).filter(modifier => !(
-          modifier.type === 'fillet' && modifier.vertexId === vertexId
-        ));
-        if (radius !== 0) modifiers.push({ type: 'fillet', vertexId, radius });
-        const next = {
-          ...normalized,
-          parameters,
-          shapes: normalized.shapes.map(item => (item.id === shapeId ? { ...item, modifiers } : item))
-        };
-        commitSketch(next);
+        // untouched like every other authoring field.
+        applyShapeField(
+          shapeId,
+          evaluated => filletRadiusOf(findShape(evaluated, shapeId), vertexId) ?? 0,
+          (subject, next) => {
+            const nextRadius = next === '' || next === null || next === undefined
+              ? 0
+              : Number.isFinite(Number(next)) ? Math.max(0, Number(next)) : String(next).trim();
+            const modifiers = (subject.modifiers || []).filter(modifier => !(
+              modifier.type === 'fillet' && modifier.vertexId === vertexId
+            ));
+            if (nextRadius !== 0) modifiers.push({ type: 'fillet', vertexId, radius: nextRadius });
+            return { ...subject, modifiers };
+          },
+          filletRadiusOf(shape, vertexId) ?? 0
+        )(value);
       };
 
       const applyVertexField = (shapeId, vertexId, field, value) => {
-        const normalized = normalizeOccsProfileSketch(props.modelValue || {});
-        const parameters = adoptOccsProfileBindingParameter(
-          normalized,
-          value,
-          evaluatedFieldValue(evaluated => findShape(evaluated, shapeId)?.points.find(point => point.id === vertexId)?.[field]),
-          evaluationScope()
-        );
-        commitSketch({
-          ...normalized,
-          parameters,
-          shapes: normalized.shapes.map(shape => (
-            shape.id === shapeId
-              ? { ...shape, points: shape.points.map(point => (
-                  point.id === vertexId ? { ...point, [field]: value } : point
-                )) }
-              : shape
-          ))
-        });
+        const shape = findShape(normalizeOccsProfileSketch(props.modelValue || {}), shapeId);
+        applyShapeField(
+          shapeId,
+          evaluated => findShape(evaluated, shapeId)?.points.find(point => point.id === vertexId)?.[field],
+          (subject, next) => ({
+            ...subject,
+            points: subject.points.map(point => (
+              point.id === vertexId ? { ...point, [field]: next } : point
+            ))
+          }),
+          shape?.points.find(point => point.id === vertexId)?.[field]
+        )(value);
       };
 
       const applyParameterValue = (key, value) => {
@@ -1026,22 +1046,36 @@ export default function createSketchEditor({ vue, components, locale }) {
 
       const removeParameter = (key) => {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
+        const instance = { ...(props.instanceParameters || {}) };
+        if (Object.prototype.hasOwnProperty.call(instance, key)) {
+          delete instance[key];
+          emit('update:instance', instance);
+        }
         const parameters = { ...normalized.parameters };
         delete parameters[key];
         commitSketch({ ...normalized, parameters });
       };
 
       // Renaming refuses invalid and colliding names — the row
-      // re-renders with the old name (the draft dies on commit).
+      // re-renders with the old name (the draft dies on commit). The
+      // instance table moves with it.
       const renameParameter = (from, to) => {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
-        commitSketch(renameOccsProfileSketchParameter(normalized, from, to));
+        const instance = props.instanceParameters || {};
+        if (Object.prototype.hasOwnProperty.call(instance, String(to || '').trim())) return;
+        const next = renameOccsProfileSketchParameter(normalized, from, to);
+        if (next === normalized) return;
+        const nextInstance = renameOccsProfileTableParameter(instance, from, to);
+        if (JSON.stringify(nextInstance) !== JSON.stringify(instance)) {
+          emit('update:instance', nextInstance);
+        }
+        commitSketch(next);
       };
 
       const resolvedHint = (sketch, value) => {
-        if (typeof value !== 'string') return '';
+        if (typeof value !== 'string' || !resolvedParameterTable.value) return ' = ?';
         try {
-          return ` = ${resolveOccsExpression(value, sketch.parameters)}`;
+          return ` = ${resolveOccsExpression(value, resolvedParameterTable.value)}`;
         } catch {
           return ' = ?';
         }
@@ -1147,9 +1181,9 @@ export default function createSketchEditor({ vue, components, locale }) {
         }
         if (shape.type === 'chain') {
           // A point-drawn shape carries its dimensions as vertex
-          // coordinates: every point row is the same adopt-on-bind field
-          // the rect and circle rows carry.
-          for (const point of shape.points) {
+          // coordinates: every authored point row is the same
+          // adopt-on-bind field the rect and circle rows carry.
+          for (const point of shape.points.filter(item => !item.chord)) {
             const readField = field => evaluated => (
               evaluated?.points?.find(item => item.id === point.id)?.[field]
             );
@@ -1367,7 +1401,7 @@ export default function createSketchEditor({ vue, components, locale }) {
         const top = Math.min(Math.max(draft.top - 13, 2), Math.max(2, height - 28));
         const close = () => { dimensionDraft.value = null; };
         const handlers = fieldDraft.handlers(draft.label, draft.value, next => {
-          applyShapeField(draft.shapeId, draft.read, draft.apply, draft.value)(next);
+          applyShapeField(draft.shapeId, draft.read, draft.apply, draft.value, { shapeIds: draft.shapeIds })(next);
           close();
         });
         return h(InputText, {
@@ -1451,7 +1485,6 @@ export default function createSketchEditor({ vue, components, locale }) {
           } finally {
             seeding = false;
           }
-          importedFileName.value = file.name;
           droppedShapes = [];
           entityShapeByEntityId = new Map();
           lastAnnotationFingerprint = '';
@@ -1576,6 +1609,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       }, { deep: true });
 
       watch(() => props.externalParameters, () => {
+        if (host) reseedFromModel({ force: true, fit: false });
         scheduleOutlineResolve();
         syncAnnotations();
       }, { deep: true });
@@ -1583,7 +1617,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // Instance values repaint the derived geometry: the authored model
       // stays put, the canvas reseeds from the new derived table.
       watch(() => props.instanceParameters, () => {
-        if (host) reseedFromModel();
+        if (host) reseedFromModel({ force: true, fit: false });
         scheduleOutlineResolve();
         syncAnnotations();
       }, { deep: true });
