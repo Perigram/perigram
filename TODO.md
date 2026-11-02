@@ -3489,3 +3489,206 @@ rectangles from fragmenting into chains. Migration:
 suite 179. `npm run docs:validate` reports the pre-existing broken link
 `workers/nesting/README.md -> ./jagua-rs/README.md` and the contract-homing
 backlog; `node scripts/check-arch.js` passes.
+
+## Stateful lifecycle contracts (2026-11-02 audit)
+
+Root SPEC §25 is the desired-state contract for every lifecycle in this
+program. READMEs keep describing the implemented machine; each README row
+lands with the code that makes it true. This section is the cross-cutting
+work list; each task names the owner seam and the desired machine.
+
+### Server runtimes
+
+- [ ] `server/core/tasks`: guard `completeTaskRun` and `failTaskRun` on
+  `status: 'RUNNING'` beside the claim token, so a replayed terminal
+  delivery applies as a no-op. Derive the terminal set from the task
+  definition's closed six status kinds; the hardcoded `TERMINAL_STATUSES`
+  array stays as the default spelling. Add transition tests for duplicate
+  complete/fail, cancel, retry, lease reclaim, and a definition that
+  renames status values. Evidence: `server/core/tasks/service.js:8,72-180`,
+  `repository.js:34-65`; desired machine SPEC §25.
+- [ ] `server/core/commands`: add orphan recovery for `RUNNING`. A
+  startup sweep, or the command lease chosen below, marks stale runs
+  `FAILED` with `abandoned` context and a finish stamp. Add transition
+  tests for success, failure, and abandoned recovery. Evidence:
+  `server/core/commands/service.js:24-120`.
+- [ ] `packages/processes` + `server/features/process-definitions`: publish
+  the run and step transition tables in the owning docs and pin them with
+  tests. Create each step as `pending`, move it to `running`, and settle
+  it through `succeeded`/`failed`/`cancelled`; `skipped` leaves the
+  vocabulary. Keep `waiting` as the parked state with `pendingEffect` or
+  `wakeAt` as facts. Test node failure, empty-token success, stop-success,
+  stop-failure, task cancellation, Wait Until resume, and restart loss of
+  an async command continuation. Evidence:
+  `packages/processes/src/orchestration.js:5-6,67-170,228-341`;
+  `server/features/process-definitions/service.js:639-720,840-885`.
+- [ ] `server/features/process-definitions`: give the definition its own
+  transition table — create → `DRAFT`, activate → `ACTIVE`, deactivate
+  `ACTIVE` → `DRAFT`, archive → `ARCHIVED` — and write status stamps
+  through the same audit seam as other persisted lifecycles. Add the
+  migration axis `none`/`required`/`applied`/`incomplete` to the same
+  contract; `ACTIVE` plus an incomplete migration is one named state.
+  Test activation from draft, active, and archived; deactivation refusal
+  from draft; archive from each state; re-activation history; and the
+  partial-migration resume. Evidence:
+  `server/features/process-definitions/service.js:274,402-470,540-597,1453-1455`.
+
+### Feature lifecycles
+
+- [ ] `server/features/billing`: close the payment machine with a terminal
+  failure path — `created`, `processing`, `completed`, `failed` — and give
+  the invoice `open`, `paid`, `void`, `failed`. The background claim keeps
+  the attempt cap and the startup `processing` reset; a payment at the cap
+  moves to `failed` with its last provider error. Test paid, retry, cap,
+  startup reset, and duplicate completion. Evidence:
+  `repository.js:135-155`; `service.js:102-162`;
+  `server/plugins/stripesync.js:21-35`.
+- [ ] `server/features/invitations` + `server/features/users`: make
+  `status` the invitation state — `pending`, `accepted`, `declined`,
+  `expired`, `revoked` — and derive `isActive` from it. Link and targeted
+  invitations share the table. Expiry moves through a declared sweep or a
+  lazy transition with the same result; `revoke` writes `revoked`. The
+  membership machine is `pending` → `active`, with rejection removing the
+  membership; the `rejected` reads leave the code. Test link join, targeted
+  accept, decline, revoke, expiry, pending approval, rejection, and a
+  duplicate response. Evidence: `invitations/repository.js`,
+  `invitations/service.js:86-192`, `users/repository.js:114`,
+  `users/service.js:200-216`, `states/types.js:9-13`.
+- [ ] `server/features/partnerships`: pin the documented table with
+  transition tests — request → `pending`, partner accept → `active`,
+  partner decline → `declined`, requester cancel pending → `declined`,
+  either side terminate `active` → `terminated` — and verify the collection
+  status and `status_events` record move together. Evidence:
+  `service.js:37-77`.
+- [ ] `server/features/livekit`: make recording terminal events idempotent.
+  `egress_ended` imports and completes once; a repeated delivery applies as
+  a no-op. `egress_failed` and import failure settle `failed`. Add a stale
+  `recording` recovery that checks the egress plane and settles the record.
+  Test duplicate ended, duplicate failed, import failure, and stale
+  recovery. Evidence: `repository.js:8-38`; `service.js:291-299,379-402`.
+- [ ] `server/features/files`: give upload sessions a `status` field —
+  `open`, `completed`, `expired` — beside the chunk collection. `complete`
+  assembles, stores, and marks `completed`; the TTL sweep marks `expired`
+  before deletion. Test resume, out-of-order chunks, incomplete completion,
+  duplicate completion, and expiry. Evidence: `repository.js`;
+  `service.js:141-211`; `composables/useChatFileUpload.js`.
+- [ ] `server/features/process-definitions`: close event delivery and
+  schedules. `process_events` carries `pending`, `dispatched`, `failed`
+  with attempts and last error; a failed delivery retries to the declared
+  cap and then settles `failed`. A schedule entry is `unfired` or `fired`,
+  with the ledger row as the state. Test inline delivery, scanner retry,
+  retry cap, event subscriber fanout, one-shot fire, interval re-arm, and
+  failed fire. Evidence: `run-store.js:45-71`; `run-scanner.js:47-98`.
+- [ ] `server/features/workflow-overrides`: keep `ACTIVE` and `ARCHIVED`
+  as the override states and delete `DRAFT` from the vocabulary. Activation
+  archives the current active row and inserts the next one in one seam; a
+  unique active index enforces the invariant. Test first activation,
+  replacement, archive, and a concurrent activation. Evidence:
+  `workflow-overrides/service.js:19-35`; `repository.js:39-52`.
+- [ ] `server/features/agent-bots`: name the room run machine — `running`,
+  `awaiting-answer`, `stopping` — with outcomes `completed` and `failed`.
+  The coalesced trigger set is queue state on the room. A stop moves the
+  room to `stopping`, aborts the loop, persists the partial answer, and
+  settles. A question moves to `awaiting-answer` and settles through the
+  answer, stop, or timeout. Test coalescing, stop mid-tool, stop mid-answer,
+  question answered, question timeout, question stopped, and run failure.
+  Evidence: `runtime.js:27-126,430-500,570-650,700-775`.
+
+### Client and transport machines
+
+- [ ] `stores/outbox.js` + `utils/outbox.js`: name the operation machine —
+  `pending`, `failed` — with success deleting the operation. Connectivity
+  is `online`/`offline` with the failure latch as its transition fact.
+  Persist the state on enqueue; a 4xx settles `failed`, a 5xx or network
+  failure leaves `pending` and stops the flush. Test offline queue, online
+  replay, 4xx failure, retry, discard, duplicate replay, and the latch
+  heal. Evidence: `stores/outbox.js`; `utils/outbox.js`.
+- [ ] `composables/useConnections.js`: publish the stream table —
+  `idle` → `connecting` → `open`; `open` → `error` → `reconnecting` →
+  `connecting` — and a separate subscription sync table `idle`, `syncing`,
+  `synced`, `failed`. A 403 moves the sync to a fresh stream. Test first
+  connect, ready, close, reconnect, 403 resync, sync retry cap, and topic
+  drop. Evidence: `composables/useConnections.js`.
+- [ ] `stores/instanceEvents.js`: publish the poll table — `idle`,
+  `polling`, `connected`, `error`, `stopped` — with visibility and retry
+  clauses. `connected` means the last poll succeeded; `error` keeps the
+  retry timer. Test first cursor, success, failure, visibility pause,
+  reconnect, and self-published skip. Evidence: `stores/instanceEvents.js`.
+- [ ] `stores/calls.js`: keep the documented line table and make the
+  session state explicit — `connecting`, `connected`, `reconnecting`,
+  `failed` — with `reconnecting` as a state in place of the boolean
+  overlay. Placement is `tab`, `dialog`, `floating`, `dock`, with
+  `pendingTabRoom`/`mountedRooms`/`callTabs` as facts. Give `joining` a
+  timeout that returns to `ringing` or `idle`. Test invite, accept, join,
+  leave, session failure, reconnect, surface move, and join timeout.
+  Evidence: `stores/calls.js:27-169,247-271,706-714`;
+  `components/calls/README.md:134-165`.
+- [ ] `composables/useProcessDesignerApply.js`: replace the parallel refs
+  with one `applyState` — `idle`, `saving`, `applying`,
+  `migration-required`, `type-migration-required`,
+  `type-death-required`, `error`. Confirm and cancel consume the state and
+  move to the next state; the three gates share the same transition table.
+  Test save-only, validation failure, migration confirm/cancel, type
+  migration confirm/cancel, type death confirm/cancel, and overlapping
+  gate arrival. Evidence: `useProcessDesignerApply.js:59-305`.
+- [ ] `stores/instances.js`: name the per-record write state — `idle`,
+  `pending`, `confirmed`, `rolled-back`, `queued` — and serialize writes
+  per record id. A preview enters `pending`; the response settles
+  `confirmed`; a failure or queued offline write settles `rolled-back` or
+  `queued`. Test update, delete, concurrent update, rollback, queued
+  offline, and event reconciliation. Evidence: `stores/instances.js:381-451`.
+- [ ] `components/chat/useChatThread.js`: derive the client run state from
+  the server stream — `idle`, `running`, `awaiting-answer`, `stopping`,
+  `completed`, `failed` — with `stopping` reconciled by stream end, the
+  persisted message, or a timeout. Test activity, stream, question,
+  answer, stop, stream end, persisted message, and gap resync. Evidence:
+  `useChatThread.js:142-183,1880-1940`.
+
+### Documentation reconciliation
+
+- [ ] `server/features/states/README.md`: state the actual status write
+  paths — `stateService` for machine-governed transitions, `applyStatus`
+  for initial organization/user/process-definition snapshots, and
+  `addStatus`/`initializeStatus` for invitations and partnerships. The
+  current "only through `stateService.transition()`" sentence contradicts
+  those writers.
+- [ ] `server/features/states/types.js` + `server/features/invitations/README.md`:
+  align the invitation vocabulary with the desired table (`declined` and
+  `revoked` included; `pending` as the single initial state).
+- [ ] `server/features/workflow-overrides/README.md`: drop `DRAFT` from the
+  data contract after the code cut.
+- [ ] `server/features/process-definitions/README.md`: add the Archive row
+  to the lifecycle table and state the migration axis beside the status.
+- [ ] Add the transition table to each implemented machine's README after
+  its code lands: task run, command run, process execution, billing,
+  call recording, upload session, process event delivery, agent run, and
+  outbox. Each README keeps the implemented table; root SPEC §25 keeps the
+  desired one.
+
+### Dead vocabulary and paths
+
+- [ ] Remove process step `skipped`; create steps as `pending`.
+- [ ] Remove membership `rejected` checks with the membership machine.
+- [ ] Write invitation `revoked` or remove it from the vocabulary; the
+  desired table writes it.
+- [ ] Remove `invitations/repository.js:markAsUsed()` with its callers.
+- [ ] Remove the organization/user `inactive` and `suspended` status
+  vocabulary, or implement the account lifecycle that uses it.
+- [ ] Remove `users.data.isActive` login checks, or implement account
+  deactivation as an explicit account machine.
+- [ ] Remove the workflow-override `DRAFT` state with the code cut.
+- [ ] Replace `TERMINAL_STATUSES` with the task definition's terminal set.
+
+### Owner decisions wanted
+
+- [ ] Command-run recovery: startup sweep or per-run lease?
+- [ ] Billing terminal names: `failed` on the payment and `failed`/`void`
+  on the invoice, or another pair?
+- [ ] Invitation expiry: scheduled sweep or lazy transition on access?
+- [ ] Upload-session state: persisted `status` field or a derived
+  projection over chunks and the TTL clock?
+- [ ] Agent-run state: in-memory room entry or a persisted run document?
+- [ ] Call placement: explicit `tab`/`dialog`/`floating`/`dock` state or a
+  derived rule over the surface registries?
+- [ ] Account lifecycle: implement `isActive`/`inactive`/`suspended`, or
+  delete that vocabulary and keep membership as the only tenant state?

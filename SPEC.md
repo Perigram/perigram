@@ -4,7 +4,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-09-26
-updated: 2026-10-29
+updated: 2026-11-02
 ```
 
 This spec is human-write only. 
@@ -620,8 +620,11 @@ screens, workflows, and grants, and the organization backend serves the
 compiled contract continuously. Manual actions evaluate the authored
 dataflow in-process at the moment of the action; async command effects
 park on the task boundary and continue in-process when the task lands.
-`command_runs` and `task_runs` are the audit trail. No execution
-records are stored for process evaluation.
+`command_runs` and `task_runs` are the audit trail. Durable execution
+records exist only at the time and event boundaries: Wait Until parks,
+schedule fires, and event deliveries persist in `process_executions` and
+`process_events` so their scanners can resume and retry them; async
+command continuations stay in-process and a restart drops them.
 
 ## 20. Plugin marketplace
 
@@ -1266,3 +1269,69 @@ composition, each rendering through the created type's payload preview
 mode. A values input pinned `template-values` renders one scalar input
 per template token — the composition's meta channel names the tokens,
 and records never store them.
+
+## 25. Stateful lifecycles are explicit machines (owner direction 2026-11-02)
+
+Every lifecycle the system exposes is an explicit state machine. One
+contract owns the machine's closed state set, transition table, write
+seam, and recovery rule. A record's state is its named state field;
+attempts, timestamps, leases, expiry clocks, and publication snapshots
+are facts about that state. A combination of flags is a state only when
+the contract names the combination as one.
+
+### 25.1 Machine laws
+
+1. **Closed states.** Every declared state is reachable from the initial
+   state and has a consumer; dead vocabulary is deleted.
+2. **One transition table.** Legal edges are stated as
+   `from → event/guard → to`; writers execute the table.
+3. **One writer.** Persisted state changes go through one service seam.
+   Domain-audited lifecycles stamp `status_events`; operational records
+   (run queues, payment attempts, upload sessions) use their own
+   collection as the audit.
+4. **Terminal is terminal.** Terminal states accept only the declared
+   retry/resume edge. A re-entered transition is idempotent at the state
+   boundary: a duplicate completion, failure, or webhook delivery applies
+   as a no-op.
+5. **Every state recovers.** Every non-terminal state has a recovery,
+   expiry, or lease rule; a crash, lost webhook, or abandoned browser
+   resolves through that rule.
+6. **One client truth.** An in-memory machine has one authoritative state
+   value. Mirrors derive from it or from the same event stream; every
+   state the contract names is carried by that value.
+7. **Docs split.** A README describes the implemented machine. A SPEC
+   describes the desired machine. A TODO carries the delta.
+
+### 25.2 Desired machines
+
+| Machine | Desired states | Owner |
+|---|---|---|
+| Task run | `QUEUED`, `RUNNING`, `RETRY_WAIT`, `SUCCEEDED`, `FAILED`, `CANCELLED`; terminal edges require `RUNNING`; a definition renames within this closed six-kind set | `server/core/tasks` |
+| Command run | `RUNNING`, `SUCCEEDED`, `FAILED`; orphaned `RUNNING` recovers as `FAILED` with an `abandoned` reason | `server/core/commands` |
+| Process execution | run `running`, `waiting`, `succeeded`, `failed`, `cancelled`; step `pending`, `running`, `waiting`, `succeeded`, `failed`, `cancelled`; parked means `waiting` plus `pendingEffect`/`wakeAt` | `packages/processes`, `server/features/process-definitions` |
+| Process-definition publication | `DRAFT`, `ACTIVE`, `ARCHIVED`; the status field is the state and `data.activated` is a publication snapshot; migration is a separate axis `none`, `required`, `applied`, `incomplete` | `server/features/process-definitions` |
+| Billing payment/invoice | payment `created`, `processing`, `completed`, `failed`; invoice `open`, `paid`, `void`, `failed` | `server/features/billing` |
+| Invitation | `pending`, `accepted`, `declined`, `expired`, `revoked`; one `status` field is the state, `isActive` derives from it | `server/features/invitations` |
+| Membership | `pending`, `active`; rejection removes the membership | `server/features/users` |
+| Partnership | `pending`, `active`, `declined`, `terminated` | `server/features/partnerships` |
+| Call recording | `recording`, `completed`, `failed`; terminal events are idempotent; stale `recording` has a recovery rule | `server/features/livekit` |
+| Upload session | `open`, `completed`, `expired`; chunk presence is a fact about the state | `server/features/files` |
+| Process-event delivery | `pending`, `dispatched`, `failed`; attempts and last error are facts | `server/features/process-definitions` |
+| Schedule entry | `unfired`, `fired`; the ledger row is the state | `server/features/process-definitions` |
+| Workflow override | `ACTIVE`, `ARCHIVED`; one active row per organization and type | `server/features/workflow-overrides` |
+| Agent run | room `running`, `awaiting-answer`, `stopping`; run outcome `completed`, `failed`; a coalesced trigger is queue state | `server/features/agent-bots` |
+| Outbox operation | `pending`, `failed`; success deletes the operation; connectivity is `online`, `offline` | `stores/outbox.js` |
+| Connections stream | `idle`, `connecting`, `open`, `reconnecting`, `error`; subscription sync `idle`, `syncing`, `synced`, `failed` | `composables/useConnections.js` |
+| Instance-events poll | `idle`, `polling`, `connected`, `error`, `stopped` | `stores/instanceEvents.js` |
+| Call line/session/placement | line `idle`, `ringing`, `joining`, `in-call`; session `connecting`, `connected`, `reconnecting`, `failed`; placement `tab`, `dialog`, `floating`, `dock` | `stores/calls.js` |
+| Designer Apply | `idle`, `saving`, `applying`, `migration-required`, `type-migration-required`, `type-death-required`, `error` | `composables/useProcessDesignerApply.js` |
+| Optimistic write | per record `idle`, `pending`, `confirmed`, `rolled-back`, `queued` | `stores/instances.js` |
+| Chat client run mirror | `idle`, `running`, `awaiting-answer`, `stopping`, `completed`, `failed` | `components/chat` |
+
+### 25.3 Transition-table ownership
+
+Each machine's transition table lives with its owner and is enforced by
+tests over every legal and illegal edge. A needed transition the table
+lacks is a contract defect; the table gains the edge and its test. A
+persisted state written outside its owner's seam is a defect regardless
+of the values written.
