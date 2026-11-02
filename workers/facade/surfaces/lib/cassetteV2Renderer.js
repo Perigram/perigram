@@ -2428,37 +2428,32 @@ const designerEdgesForBoundary = (nodeId, vertices = [], tree = createCassetteV2
 
 const designerFoldEdgesForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
   const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
+  const parameters = treeParameters(tree);
   return (tree.nodes || [])
     .filter(node => node.parentId)
     .map((node) => {
       const parentCurve = curveById.get(node.parentId);
-      const parentVertices = withoutClosingVertex(
-        parentCurve?.referenceVertices ||
-        parentCurve?.originalBoundaryVertices ||
-        parentCurve?.boundaryVertices ||
-        parentCurve?.vertices ||
-        []
-      );
+      const parentVertices = withoutClosingVertex(rawFaceVertices(parentCurve));
       const edgeIndex = Math.max(0, Math.round(numeric(node.parentEdgeIndex, 0)));
       const vertex = parentVertices[edgeIndex];
       const next = parentVertices[(edgeIndex + 1) % parentVertices.length];
       if (!vertex || !next) return null;
+      const edgeLength = Math.hypot(
+        numeric(next[0], 0) - numeric(vertex[0], 0),
+        numeric(next[1], 0) - numeric(vertex[1], 0)
+      );
+      if (edgeLength <= 0.001) return null;
 
       // The fold runs on the child's owned interval of the host edge:
       // multiple faces share one edge, each hinges on its own span.
-      const childCurve = curveById.get(node.id);
-      const childVertices = withoutClosingVertex(
-        childCurve?.referenceVertices ||
-        childCurve?.originalBoundaryVertices ||
-        childCurve?.boundaryVertices ||
-        childCurve?.vertices ||
-        []
-      );
-      const childIndex = edgeIndexFromLabel(node.attachEdge, 0);
-      const childStart = childVertices[childIndex];
-      const childEnd = childVertices[(childIndex + 1) % childVertices.length];
-      const foldStart = childStart || vertex;
-      const foldEnd = childEnd || next;
+      const scope = nodeExpressionScope(node, parameters);
+      const start = Math.max(0, Math.min(edgeLength, resolveCassetteV2Expression(node.parameters?.edgeStart, scope, 0)));
+      const rawWidth = node.parameters?.defaultLength;
+      const end = rawWidth === 'inherit' || rawWidth === undefined
+        ? edgeLength
+        : Math.max(start, Math.min(edgeLength, start + resolveCassetteV2Expression(rawWidth, scope, edgeLength - start)));
+      const foldStart = pointAlong(vertex, next, start / edgeLength);
+      const foldEnd = pointAlong(vertex, next, end / edgeLength);
       const [x1, y1] = toSvgPoint(foldStart);
       const [x2, y2] = toSvgPoint(foldEnd);
       const angle = displayAngle(foldAngleFromNode(node));
@@ -2846,32 +2841,11 @@ const faceEdgeForCurve = (curve, edgeIndex) => {
   return length > 0.001 ? { from, to, length } : null;
 };
 
-// The interval a profile occupies on its host edge: an open profile's
-// authored span, a closed section's projected footprint.
-const profileFootprintIntervalsOnEdge = (relation, workpiece, targetCurve, parameters, edgeIndex, edgeLength) => {
-  const profile = normalizeCassetteV2Profile(workpiece, parameters);
-  const open = profile.section?.open || profile.section?.type === 'polyline';
-  if (open) return [profileSpanInterval(relation.pattern || {}, edgeLength, parameters)];
-  const sectionOperations = resolveOccsProfileSectionOperations(profile.section || {});
-  const sectionYs = (sectionOperations || [])
-    .flatMap(operation => operation.polygons)
-    .flatMap(ring => ring.map(vertex => Number(vertex?.[1])))
-    .filter(Number.isFinite);
-  const edgeExtent = sectionYs.length ? Math.max(...sectionYs) - Math.min(...sectionYs) : 0;
-  const points = hardwarePointsForRelation(targetCurve, relation, parameters, edgeExtent);
-  const rings = points.flatMap((point) => {
-    const operations = profileOperationPolygons(profile, point, relation, targetCurve, parameters) || [];
-    return operations.flatMap(operation => operation.polygons);
-  });
-  const edge = faceEdgeForCurve(targetCurve, edgeIndex);
-  if (!edge) return [];
-  return edgeIntervalsForGeometry(edge.from, edge.to, rings.map(ring => ({ rings: [ring] })));
-};
-
-// The fold owns the child face's interval on the host edge; a profile
-// footprint crossing it is refused, the rest of the edge stays
-// arrangeable. Keyed relation id -> target face id; the drawing
-// surfaces refusals through profileEmbeddingErrors.
+// The fold owns the child face's interval on the host edge; an open
+// profile span crossing it is refused, the rest of the edge stays
+// arrangeable. Closed profiles cut the host through the bend line and
+// leave the authored fold route intact. Keyed relation id -> target face
+// id; the drawing surfaces refusals through profileEmbeddingErrors.
 export const profileFoldEdgeRefusalsForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
   const sourceTree = cloneCassetteV2Tree(tree);
   const parameters = treeParameters(sourceTree);
@@ -2880,6 +2854,9 @@ export const profileFoldEdgeRefusalsForTree = (curves = [], tree = createCassett
   for (const relation of getCassetteV2WorkpieceRelations(sourceTree)) {
     const workpiece = relationProfileWorkpiece(sourceTree, relation);
     if (!workpiece) continue;
+    const profile = normalizeCassetteV2Profile(workpiece, parameters);
+    const open = profile.section?.open || profile.section?.type === 'polyline';
+    if (!open) continue;
     const edgeIndex = profileArrangementEdgeIndex(relation, workpiece, parameters);
     if (edgeIndex === null) continue;
     const targetCurve = curveById.get(relation.targetFaceId);
@@ -2888,17 +2865,10 @@ export const profileFoldEdgeRefusalsForTree = (curves = [], tree = createCassett
     if (!edge) continue;
     const folds = faceEdgeIntervalsForChildren(sourceTree, relation.targetFaceId, edgeIndex, edge.length);
     if (!folds.length) continue;
-    const footprint = profileFootprintIntervalsOnEdge(
-      relation,
-      workpiece,
-      targetCurve,
-      parameters,
-      edgeIndex,
-      edge.length
-    );
-    const overlaps = footprint.some(interval => folds.some(fold => (
-      interval.start < fold.end - 0.001 && interval.end > fold.start + 0.001
-    )));
+    const span = profileSpanInterval(relation.pattern || {}, edge.length, parameters);
+    const overlaps = folds.some(fold => (
+      span.start < fold.end - 0.001 && span.end > fold.start + 0.001
+    ));
     if (overlaps) refusals.set(relation.id, relation.targetFaceId);
   }
   return refusals;
@@ -2980,17 +2950,17 @@ export const profileCutEntitiesForTree = async (curves = [], tree = createCasset
   return entities;
 };
 
-// A sketch face's subtract shapes are cuts on its parent face, the same
-// profile step a closed profile section applies to its host. The rings
-// ride the face's shard frame, so the cut lands where the editor showed
-// it against the parent ghost.
+// A sketch face's material region cuts its parent face where the two
+// overlap, the same boolean pass a closed profile applies to its host.
+// The rings ride the face's shard frame, so the cut lands where the
+// editor showed it against the parent ghost.
 export const faceSketchCutEntitiesForTree = (curves = []) => {
   const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
   const entities = [];
   for (const curve of curves) {
     const node = curve.node;
     if (!node?.parentId || !isCassetteV2SketchFace(node)) continue;
-    const rings = curve.sketchCutPolygons || [];
+    const rings = curve.faceCutPolygons || [];
     if (!rings.length) continue;
     const parentCurve = curveById.get(node.parentId);
     rings.forEach((ring, index) => {
@@ -3747,16 +3717,44 @@ const foldedPreviewForTree = async (curves = [], tree = createCassetteV2GraphTre
     vertices: curve.boundaryVertices || curve.vertices,
     holes: curve.holes || []
   }));
+  const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
   const folds = (tree.nodes || [])
     .filter(node => node.parentId)
-    .map(node => ({
-      parentId: node.parentId,
-      childId: node.id,
-      parentEdgeIndex: Math.max(0, Math.round(numeric(node.parentEdgeIndex, 0))),
-      childEdgeIndex: edgeIndexFromLabel(node.attachEdge, 0),
-      childAttachEdge: node.attachEdge || 'E0',
-      angle: resolveCassetteV2AngleExpression(foldAngleFromNode(node), parameters, 90)
-    }));
+    .map((node) => {
+      const parentCurve = curveById.get(node.parentId);
+      const parentVertices = withoutClosingVertex(rawFaceVertices(parentCurve));
+      const edgeIndex = Math.max(0, Math.round(numeric(node.parentEdgeIndex, 0)));
+      const vertex = parentVertices[edgeIndex];
+      const next = parentVertices[(edgeIndex + 1) % parentVertices.length];
+      let childFoldStart = null;
+      let childFoldEnd = null;
+      if (vertex && next) {
+        const edgeLength = Math.hypot(
+          numeric(next[0], 0) - numeric(vertex[0], 0),
+          numeric(next[1], 0) - numeric(vertex[1], 0)
+        );
+        if (edgeLength > 0.001) {
+          const scope = nodeExpressionScope(node, parameters);
+          const start = Math.max(0, Math.min(edgeLength, resolveCassetteV2Expression(node.parameters?.edgeStart, scope, 0)));
+          const rawWidth = node.parameters?.defaultLength;
+          const end = rawWidth === 'inherit' || rawWidth === undefined
+            ? edgeLength
+            : Math.max(start, Math.min(edgeLength, start + resolveCassetteV2Expression(rawWidth, scope, edgeLength - start)));
+          childFoldStart = pointAlong(vertex, next, start / edgeLength);
+          childFoldEnd = pointAlong(vertex, next, end / edgeLength);
+        }
+      }
+      return {
+        parentId: node.parentId,
+        childId: node.id,
+        parentEdgeIndex: edgeIndex,
+        childEdgeIndex: edgeIndexFromLabel(node.attachEdge, 0),
+        childAttachEdge: node.attachEdge || 'E0',
+        childFoldStart,
+        childFoldEnd,
+        angle: resolveCassetteV2AngleExpression(foldAngleFromNode(node), parameters, 90)
+      };
+    });
   const joints = options.includeJoints
     ? getCassetteV2WorkpieceRelations(tree)
       .filter(relation => !relationProfileWorkpiece(tree, relation))
@@ -4178,28 +4176,31 @@ const rotateSketchRingToAttachment = (ring = []) => {
   return closed ? [...rotated, rotated[0]] : rotated;
 };
 
-// A face sketch resolves to the face region from its add shapes: the
-// same ordered boolean fold the profile section uses, applied to the
-// adds alone. Subtracts are cuts on the parent face (the profile steps
-// applied to a host) and ride the face cut pass. The add fold must
-// resolve to one outline — a face is one connected sheet region.
+// A face sketch resolves through the same ordered boolean fold the
+// profile section uses: adds form the face, subtracts cut it. The face's
+// material region (outer rings minus holes) also cuts the parent where
+// the face overlaps it.
 const resolveCassetteV2FaceSketchGeometry = async (sketch = {}, parameters = {}) => {
   const evaluated = evaluateOccsProfileSketch(sketch, parameters);
   const { section } = buildOccsProfileFromEvaluatedSketch(evaluated);
   const operations = resolveOccsProfileSectionOperations(section) || [];
-  const addOperations = operations.filter(operation => operation.op === 'add');
-  if (!addOperations.length) throw new Error('Face shape has no closed outline');
-  const region = await foldCassetteV2Region({ polygons: [], holes: [] }, addOperations);
+  if (!operations.length) throw new Error('Face shape has no closed outline');
+  const region = await foldCassetteV2Region({ polygons: [], holes: [] }, operations);
   if (region.polygons.length !== 1) {
     throw new Error('Face shape must resolve to one closed outline');
   }
+  const outer = rotateSketchRingToAttachment(region.polygons[0]);
+  const holes = region.holes;
+  const material = holes.length
+    ? await foldCassetteV2Region(
+        { polygons: [outer], holes: [] },
+        holes.map(ring => ({ op: 'subtract', polygons: [ring] }))
+      )
+    : { polygons: [outer] };
   return {
-    outer: rotateSketchRingToAttachment(region.polygons[0]),
-    holes: region.holes,
-    cuts: operations
-      .filter(operation => operation.op === 'subtract')
-      .flatMap(operation => operation.polygons)
-      .filter(ring => ring.length >= 3)
+    outer,
+    holes,
+    cuts: material.polygons.filter(ring => ring.length >= 3)
   };
 };
 
@@ -4261,7 +4262,7 @@ const buildCassetteV2LocalTreeCurves = async (sourceTree) => {
         holes: localHoles.map(ring => placeSketchRing(ring, shiftedFrame)),
         localVertices,
         localHoles,
-        sketchCutPolygons: region.cuts.map(ring => placeSketchRing(ring, shiftedFrame)),
+        faceCutPolygons: region.cuts.map(ring => placeSketchRing(ring, shiftedFrame)),
         frame: shiftedFrame,
         referenceVertices: boundaryVertices,
         shapeType: 'polygon',
@@ -4340,7 +4341,7 @@ const transformCurve = (curve, transform = {}) => {
     vertices,
     boundaryVertices: withoutClosingVertex(vertices),
     ...(Array.isArray(curve.holes) ? { holes: curve.holes.map(place) } : {}),
-    ...(Array.isArray(curve.sketchCutPolygons) ? { sketchCutPolygons: curve.sketchCutPolygons.map(place) } : {}),
+    ...(Array.isArray(curve.faceCutPolygons) ? { faceCutPolygons: curve.faceCutPolygons.map(place) } : {}),
     ...(Array.isArray(curve.referenceVertices) ? { referenceVertices: withoutClosingVertex(place(curve.referenceVertices)) } : {}),
     ...(Array.isArray(curve.originalBoundaryVertices) ? { originalBoundaryVertices: withoutClosingVertex(place(curve.originalBoundaryVertices)) } : {}),
     ...(Array.isArray(curve.labelBoundaryVertices) ? { labelBoundaryVertices: withoutClosingVertex(place(curve.labelBoundaryVertices)) } : {})

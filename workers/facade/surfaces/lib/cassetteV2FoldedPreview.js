@@ -147,8 +147,12 @@ const placeChildFace = (childFace, parentPlacement, parentFace, fold) => {
   const parentEnd = parentReferencePoints[(parentIndex + 1) % parentReferencePoints.length];
   const parentSourceStart = parentSource[parentIndex];
   const parentSourceEnd = parentSource[(parentIndex + 1) % parentSource.length];
-  const childStart = childReference[childIndex];
-  const childEnd = childReference[(childIndex + 1) % childReference.length];
+  const childStart = Array.isArray(fold.childFoldStart)
+    ? fold.childFoldStart
+    : childReference[childIndex];
+  const childEnd = Array.isArray(fold.childFoldEnd)
+    ? fold.childFoldEnd
+    : childReference[(childIndex + 1) % childReference.length];
 
   if (!parentStart || !parentEnd || !parentSourceStart || !parentSourceEnd || !childStart || !childEnd) {
     return flatFacePlacement(childFace);
