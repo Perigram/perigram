@@ -2594,8 +2594,11 @@ Ordered steps:
   `cassetteV2FreeEdgeShards` allocates child faces and open profiles to
   disjoint intervals; open-profile spans merge on one host edge.
   `profileTerminalEdgesForTree` and the terminal edge exclusion are
-  retired. Focused tests: `cassetteV2Renderer.spec.js`,
-  `profileEmbedding.spec.js`, `evaluate.spec.js`.
+  retired. The canvas draws one + per free shard and skips the face's
+  own base edge; the face editor's datum is the parent edge line in
+  shard coordinates. Focused tests: `cassetteV2Renderer.spec.js`,
+  `profileAnnotations.spec.js`, `profileEmbedding.spec.js`,
+  `evaluate.spec.js`.
 
 - [ ] WAITING — owner verification: Listing compliance: delete the dead
   `states`/`transitions` blocks from cassette and cassette-design — CTS
