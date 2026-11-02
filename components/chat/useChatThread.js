@@ -42,6 +42,81 @@ import { useCallsStore } from '~/stores/calls'
 import { useCallRouting } from '~/composables/useCallRouting.js'
 import { useVoiceRecorder } from '~/components/chat/useVoiceRecorder.js'
 
+// The agent run state machine: canonical in
+// [components/chat/README.md](./README.md#agent-run-state-machine).
+export const AGENT_RUN_STOP_TIMEOUT_MS = 8000
+
+const idleAgentRun = () => ({ state: 'idle', activity: null, question: null })
+
+function mergeAgentActivity(activity, payload = {}) {
+    const base = activity || { userId: payload.userId, name: payload.name || '', steps: [], answer: '' }
+    return {
+        userId: payload.userId || base.userId,
+        name: payload.name || base.name || '',
+        steps: Array.isArray(payload.steps) ? payload.steps : base.steps || [],
+        answer: payload.text !== undefined ? payload.text : (base.answer || '')
+    }
+}
+
+export function reduceAgentRun(run = idleAgentRun(), event = {}) {
+    const state = run.state || 'idle'
+    switch (event.type) {
+        case 'activity':
+            if (state === 'stopping') return run
+            return { state: 'running', activity: mergeAgentActivity(run.activity, event), question: run.question || null }
+        case 'stream':
+            if (state === 'stopping') return run
+            return { state: 'running', activity: mergeAgentActivity(run.activity, event), question: run.question || null }
+        case 'question':
+            if (state === 'stopping') return run
+            return {
+                state: 'awaiting-answer',
+                activity: run.activity || { userId: event.userId, name: event.name || '', steps: [], answer: '' },
+                question: {
+                    question: String(event.question || ''),
+                    options: Array.isArray(event.options) ? event.options.map(String) : []
+                }
+            }
+        case 'question-end':
+            if (state !== 'awaiting-answer') return run
+            return { state: 'running', activity: run.activity, question: null }
+        case 'stop':
+            if (state !== 'running' && state !== 'awaiting-answer') return run
+            return { state: 'stopping', activity: null, question: null }
+        case 'stream-end':
+            if (!['running', 'awaiting-answer', 'stopping'].includes(state)) return run
+            return { state: 'completed', activity: null, question: null }
+        case 'message': {
+            if (!['running', 'awaiting-answer', 'stopping'].includes(state)) return run
+            const message = event.message || {}
+            if (!message.agent && !message.notice) return run
+            return { state: message.notice ? 'failed' : 'completed', activity: null, question: null }
+        }
+        case 'live':
+            if (event.active) {
+                if (state === 'stopping') return run
+                const question = event.question || null
+                return {
+                    state: question ? 'awaiting-answer' : 'running',
+                    activity: {
+                        userId: event.userId,
+                        name: event.name || '',
+                        steps: Array.isArray(event.steps) ? event.steps : [],
+                        answer: event.answer || ''
+                    },
+                    question
+                }
+            }
+            if (!['running', 'awaiting-answer', 'stopping'].includes(state)) return run
+            return { state: 'completed', activity: null, question: null }
+        case 'stop-timeout':
+            if (state !== 'stopping') return run
+            return { state: 'completed', activity: null, question: null }
+        default:
+            return run
+    }
+}
+
 // The chat column's state core: history, realtime reconcile, composer,
 // staging, strip, calls, dialogs — one thread object shared by the chat
 // component family.
@@ -142,49 +217,55 @@ const groupSaving = ref(false)
 const typingName = ref('')
 const typingIndicatorRef = ref(null)
 // The agent's live run while it works (server `bot_activity` /
-// `bot_stream` events): `{ userId, name, steps, answer }` or null, the
-// steps being the run's chronology so far. The persisted message replaces
+// `bot_stream` events). The machine's single state value carries the run's
+// state, activity, and suspended question; the persisted message replaces
 // it.
-const agentActivity = ref(null)
-// The run's suspended question (server `bot_question` / `bot_question_end`
-// events): `{ question, options }` while the run waits for the room's
-// answer — rendered at the composer, options send as one-tap replies.
-const agentQuestion = ref(null)
+const agentRun = ref(idleAgentRun())
+const agentActivity = computed(() => agentRun.value.activity)
+const agentQuestion = computed(() => agentRun.value.question)
+let agentStopTimer = null
+const reduceAgentEvent = (event) => {
+    agentRun.value = reduceAgentRun(agentRun.value, event)
+    if (agentRun.value.state !== 'stopping') clearAgentStopTimer()
+}
+const clearAgentStopTimer = () => {
+    if (agentStopTimer) clearTimeout(agentStopTimer)
+    agentStopTimer = null
+}
+const scheduleAgentStopTimeout = () => {
+    clearAgentStopTimer()
+    agentStopTimer = setTimeout(() => {
+        agentStopTimer = null
+        reduceAgentEvent({ type: 'stop-timeout' })
+    }, AGENT_RUN_STOP_TIMEOUT_MS)
+}
 const sendAgentAnswer = (option) => {
     if (!agentQuestion.value) return
     message.value = String(option)
     sendMessage()
 }
 // The live run's pre-step presence: the assistant rides the typing
-// line (owner direction — SPEC agent access) until the run has steps
-// or an answer to show; after that the activity block is the presence.
+// line until the run has steps or an answer to show; after that the
+// activity block is the presence.
 const agentTypingName = computed(() => {
     const activity = agentActivity.value
     if (!activity || (activity.steps || []).length || activity.answer) return ''
     return activity.name || t('support.bots.title')
 })
-const receiveAgentActivity = (payload, mutate) => {
-    if (!agentActivity.value || agentActivity.value.userId !== payload.userId) {
-        agentActivity.value = { userId: payload.userId, name: payload.name || '', steps: [], answer: '' }
-    }
-    mutate(agentActivity.value)
-    // A live run never yanks the transcript to the bottom while it works:
-    // the room reads at its own pace until the reply lands.
+const receiveAgentActivity = (payload, event) => {
+    reduceAgentEvent({ ...payload, ...event, type: event.type })
 }
 // The composer's stop control: a run live in this room can be ended early;
 // the answer produced so far is what stays.
-const agentRunLive = computed(() => Boolean(agentActivity.value || agentQuestion.value))
-// Between the stop click and the run's true end, the aborting run's last
-// reconcile events would resurrect the stream card — once the room says
-// stop, bot events are ignored until the run ends (stream end or the
-// persisted message).
-const agentStopping = ref(false)
+const agentRunLive = computed(() => ['running', 'awaiting-answer'].includes(agentRun.value.state))
+// Between the stop click and the run's true end the machine ignores the
+// aborting run's stream events.
+const agentStopping = computed(() => agentRun.value.state === 'stopping')
 const stopAgentRun = async () => {
     const key = activeConversation.value?.conversationKey
-    if (!key) return
-    agentActivity.value = null
-    agentQuestion.value = null
-    agentStopping.value = true
+    if (!key || !agentRunLive.value) return
+    reduceAgentEvent({ type: 'stop' })
+    scheduleAgentStopTimeout()
     await $fetch('/api/agent-bots/stop', { method: 'POST', body: { conversationKey: key } }).catch(() => {})
 }
 let typingResetTimer = null
@@ -214,7 +295,7 @@ const ongoingCallRoom = computed(() => {
     const sessionState = callsStore.session?.state
     const ownSessionLive = sessionState
         && sessionState.name === ongoing.room
-        && (sessionState.state === 'connected' || sessionState.state === 'connecting')
+        && ['connecting', 'connected', 'reconnecting'].includes(sessionState.state)
     return ownSessionLive ? null : ongoing
 })
 const conversationInvite = computed(() => callsStore.incoming.find(invite => (
@@ -1869,10 +1950,9 @@ const scrollToBottomFromControl = () => {
 watch(
     [activeConversationKey, supportDialog, () => props.embedded],
     ([key, dialogOpen, embedded]) => {
-        agentActivity.value = null
+        agentRun.value = idleAgentRun()
+        clearAgentStopTimer()
         mentionState.value = null
-        agentQuestion.value = null
-        agentStopping.value = false
         if (unsubscribeConversation) {
             unsubscribeConversation()
             unsubscribeConversation = null
@@ -1895,44 +1975,41 @@ watch(
             }
             if (payload?.type === 'bot_activity') {
                 if (!agentStopping.value) {
-                    receiveAgentActivity(payload, activity => {
-                        activity.steps = Array.isArray(payload.steps) ? payload.steps : []
-                    })
+                    receiveAgentActivity(payload, { type: 'activity', steps: Array.isArray(payload.steps) ? payload.steps : [] })
                 }
                 return
             }
             if (payload?.type === 'bot_stream') {
                 if (!agentStopping.value) {
-                    receiveAgentActivity(payload, activity => { activity.answer = payload.text || '' })
+                    receiveAgentActivity(payload, { type: 'stream', text: payload.text || '' })
                 }
                 return
             }
             if (payload?.type === 'bot_question') {
                 if (!agentStopping.value) {
-                    agentQuestion.value = {
-                        question: String(payload.question || ''),
-                        options: Array.isArray(payload.options) ? payload.options.map(String) : []
-                    }
+                    reduceAgentEvent({
+                        type: 'question',
+                        userId: payload.userId,
+                        name: payload.name,
+                        question: payload.question,
+                        options: payload.options
+                    })
                 }
                 return
             }
             if (payload?.type === 'bot_question_end') {
-                agentQuestion.value = null
+                reduceAgentEvent({ type: 'question-end' })
                 return
             }
             if (payload?.type === 'bot_stream_end') {
-                agentActivity.value = null
-                agentQuestion.value = null
-                agentStopping.value = false
+                reduceAgentEvent({ type: 'stream-end' })
                 return
             }
             // Ringing arrives only through the calls store's `call.invite`
             // subscription — one owner, no second local ring state.
             if (payload?.type !== 'message') return
             // The persisted message supersedes the live run.
-            agentActivity.value = null
-            agentQuestion.value = null
-            agentStopping.value = false
+            reduceAgentEvent({ type: 'message', message: payload.message })
             messages.value.push(payload.message)
             if (!atBottom.value) waitingMessages.value += 1
             supportChatStore.markRead(key)
@@ -1983,19 +2060,7 @@ const reconcileAfterReconnect = async () => {
             }
         }
         if (fresh.length) supportChatStore.markRead(conversation.conversationKey)
-        if (live?.active && !agentStopping.value) {
-            agentActivity.value = {
-                userId: live.userId,
-                name: live.name || '',
-                steps: Array.isArray(live.steps) ? live.steps : [],
-                answer: live.answer || ''
-            }
-            agentQuestion.value = live.question || null
-        } else if (live && !live.active) {
-            agentActivity.value = null
-            agentQuestion.value = null
-            agentStopping.value = false
-        }
+        if (live) reduceAgentEvent({ type: 'live', ...live })
         if (fresh.length) {
             await nextTick()
             if (atBottom.value) scrollToBottom()
@@ -2033,7 +2098,8 @@ onBeforeUnmount(() => {
         unsubscribeConversation()
         unsubscribeConversation = null
     }
-    agentActivity.value = null
+    agentRun.value = idleAgentRun()
+    clearAgentStopTimer()
     if (typingResetTimer) clearTimeout(typingResetTimer)
     if (typingSendTimer) clearTimeout(typingSendTimer)
     cancelVoiceRecording()

@@ -30,6 +30,17 @@ export async function findById(id) {
   return db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) });
 }
 
+export async function abandonRunning({ error, finishedAt, startedBefore }) {
+  const db = await connectDB();
+  const filter = { status: 'RUNNING' };
+  if (startedBefore) filter.startedAt = { $lt: startedBefore };
+  const result = await db.collection(COLLECTION).updateMany(
+    filter,
+    { $set: { status: 'FAILED', error, finishedAt, updatedAt: new Date() } }
+  );
+  return result.modifiedCount;
+}
+
 export async function list({ commandId, limit = 50 } = {}) {
   const db = await connectDB();
   const filter = commandId ? { commandId } : {};

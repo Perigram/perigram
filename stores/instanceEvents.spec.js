@@ -49,6 +49,7 @@ describe('entity events store', () => {
         expect(received).toEqual([
             expect.objectContaining({ type: 'queue', id: 'queue-1', source: 'server' })
         ]);
+        expect(store.status).toBe('connected');
         expect(store.connected).toBe(true);
     });
 
@@ -60,11 +61,14 @@ describe('entity events store', () => {
 
         const store = useEntityEventsStore();
         store.connect();
+        expect(store.status).toBe('polling');
         await vi.advanceTimersByTimeAsync(0);
+        expect(store.status).toBe('error');
         expect(store.connected).toBe(false);
         await vi.advanceTimersByTimeAsync(5_000);
 
         expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(store.status).toBe('connected');
         expect(store.connected).toBe(true);
     });
 
@@ -79,11 +83,52 @@ describe('entity events store', () => {
         document.dispatchEvent(new Event('visibilitychange'));
         await vi.advanceTimersByTimeAsync(30_000);
         expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(store.status).toBe('connected');
 
         document.visibilityState = 'visible';
         document.dispatchEvent(new Event('visibilitychange'));
         await vi.advanceTimersByTimeAsync(0);
         expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('settles error when a later poll fails and recovers on the retry timer', async () => {
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce({ cursor: 4, events: [] })
+            .mockRejectedValueOnce(new Error('temporary failure'))
+            .mockResolvedValueOnce({ cursor: 5, events: [] });
+        vi.stubGlobal('$fetch', fetchMock);
+
+        const store = useEntityEventsStore();
+        store.connect();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(store.status).toBe('connected');
+
+        await vi.advanceTimersByTimeAsync(15_000);
+        expect(store.status).toBe('error');
+        expect(store.connected).toBe(false);
+
+        await vi.advanceTimersByTimeAsync(5_000);
+        expect(store.status).toBe('connected');
+    });
+
+    it('stops on disconnect and reconnects through a fresh cursor', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({ cursor: 7, events: [] });
+        vi.stubGlobal('$fetch', fetchMock);
+
+        const store = useEntityEventsStore();
+        store.connect();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(store.status).toBe('connected');
+
+        store.disconnect();
+        expect(store.status).toBe('stopped');
+        expect(store.connected).toBe(false);
+
+        store.connect();
+        expect(store.status).toBe('polling');
+        await vi.advanceTimersByTimeAsync(0);
+        expect(store.status).toBe('connected');
+        expect(fetchMock).toHaveBeenLastCalledWith('/api/instance-events', { query: undefined });
     });
 });
 

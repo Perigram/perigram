@@ -55,14 +55,20 @@ export async function createCheckout({ organizationId, packageId, auth, runtimeC
     createdBy: auth.userId
   });
 
-  const checkout = await createStripeCheckoutSession({
-    organizationId,
-    auth,
-    pack,
-    invoiceId: invoice._id,
-    checkoutInternalId,
-    runtimeConfig
-  });
+  let checkout;
+  try {
+    checkout = await createStripeCheckoutSession({
+      organizationId,
+      auth,
+      pack,
+      invoiceId: invoice._id,
+      checkoutInternalId,
+      runtimeConfig
+    });
+  } catch (error) {
+    await repository.updateInvoiceById(invoice._id, { status: 'void', voidedAt: new Date() });
+    throw error;
+  }
 
   const payment = await repository.createPayment({
     organizationId,
@@ -101,10 +107,16 @@ export async function syncPaymentByCheckoutInternalId({ organizationId, checkout
 
 export async function syncPayment(payment) {
   if (!payment) return null;
-  if (payment.status === 'completed') return serializePayment(payment);
+  if (payment.status === 'completed' || payment.status === 'failed') return serializePayment(payment);
 
   const status = await getCheckoutPaymentStatus(payment.checkoutId);
   if (status !== 'paid') {
+    if (Number(payment.attempt) >= repository.PAYMENT_ATTEMPT_CAP) {
+      return serializePayment(await failPayment(payment, {
+        lastProviderStatus: status,
+        lastError: payment.lastError || null
+      }));
+    }
     const updated = await repository.updatePaymentById(payment._id, {
       status: 'created',
       lastProviderStatus: status,
@@ -153,12 +165,42 @@ export async function syncNextPendingPayment() {
   try {
     return await syncPayment(payment);
   } catch (error) {
-    await repository.updatePaymentById(payment._id, {
-      status: 'created',
-      lastError: error.message
-    });
+    if (Number(payment.attempt) >= repository.PAYMENT_ATTEMPT_CAP) {
+      await failPayment(payment, { lastError: error.message });
+    } else {
+      await repository.updatePaymentById(payment._id, {
+        status: 'created',
+        lastError: error.message
+      });
+    }
     throw error;
   }
+}
+
+export async function resetInterruptedPayments() {
+  const capped = await repository.failInterruptedPayments();
+  await Promise.all(capped.map(payment => repository.updateInvoiceById(payment.invoiceId, {
+    status: 'failed',
+    failedAt: new Date()
+  })));
+  await repository.resetProcessingPayments();
+  return { failed: capped.length };
+}
+
+async function failPayment(payment, { lastProviderStatus = null, lastError = null } = {}) {
+  const failed = await repository.failPaymentOnce(payment._id, {
+    lastProviderStatus: lastProviderStatus ?? payment.lastProviderStatus ?? null,
+    lastError: lastError ?? payment.lastError ?? null,
+    failedAt: new Date()
+  });
+  if (failed) {
+    await repository.updateInvoiceById(payment.invoiceId, {
+      status: 'failed',
+      failedAt: new Date()
+    });
+    return failed;
+  }
+  return await repository.findPaymentById(payment._id);
 }
 
 export async function assertSufficientServiceTokens({ organizationId, service, commandId }) {

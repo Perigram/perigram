@@ -7,6 +7,8 @@ import { connectDB } from '~/server/db/mongo.js';
 const RUNS = 'process_executions';
 const EVENTS = 'process_events';
 
+export const EVENT_DELIVERY_MAX_ATTEMPTS = 5;
+
 export async function persistRun(definition, run, meta = {}) {
   const db = await connectDB();
   const document = {
@@ -50,16 +52,19 @@ export async function persistEvent(event) {
     type: String(event.type || ''),
     payload: structuredClone(event.payload ?? null),
     at: event.at || new Date().toISOString(),
+    status: 'pending',
+    attempts: 0,
+    lastError: null,
     dispatchedAt: null
   };
   await db.collection(EVENTS).insertOne(document);
   return document;
 }
 
-export async function findUndispatchedEvents(limit = 100) {
+export async function findPendingEvents(limit = 100) {
   const db = await connectDB();
   return db.collection(EVENTS)
-    .find({ dispatchedAt: null })
+    .find({ status: 'pending' })
     .sort({ at: 1 })
     .limit(limit)
     .toArray();
@@ -67,5 +72,25 @@ export async function findUndispatchedEvents(limit = 100) {
 
 export async function markEventDispatched(eventId) {
   const db = await connectDB();
-  await db.collection(EVENTS).updateOne({ _id: eventId }, { $set: { dispatchedAt: new Date().toISOString() } });
+  const dispatchedAt = new Date().toISOString();
+  await db.collection(EVENTS).updateOne(
+    { _id: eventId },
+    { $set: { status: 'dispatched', dispatchedAt, lastError: null }, $inc: { attempts: 1 } }
+  );
+}
+
+export async function markEventFailed(eventId, error, maxAttempts = EVENT_DELIVERY_MAX_ATTEMPTS) {
+  const db = await connectDB();
+  const updated = await db.collection(EVENTS).findOneAndUpdate(
+    { _id: eventId },
+    {
+      $inc: { attempts: 1 },
+      $set: { lastError: error?.message || String(error || 'Event delivery failed'), updatedAt: new Date().toISOString() }
+    },
+    { returnDocument: 'after' }
+  );
+  const attempts = updated?.attempts || 1;
+  const status = attempts >= Number(maxAttempts) ? 'failed' : 'pending';
+  await db.collection(EVENTS).updateOne({ _id: eventId }, { $set: { status } });
+  return { ...updated, status };
 }

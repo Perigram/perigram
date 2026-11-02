@@ -1,26 +1,24 @@
 import { ref } from 'vue';
 import { writeTypeMigrationSteps } from '~/utils/processDesignerTypeMigrations.js';
 
-// The apply orchestration: Save persists the authored graph as a draft (or
-// the explicit copy-to-draft on an active process); Apply = save, compile
-// tree declarations into the registry, validate, activate — one operation,
-// with the first structured diagnostic focused on the canvas. Validation
-// state lands in the shared `validation` ref the page renders. When the
-// next contract removes workflow states still held by live instances,
-// validation returns a migration plan: Apply pauses with `pendingMigration`
-// unless the draft's declared migrations (`data.migrations.statuses`)
-// already cover it — the migration decision is a declaration on the
-// definition, so confirming persists the mappings through save and
-// activation itself carries no payload. A declaration post refused by the
-// type-migration gate pauses the same way with `pendingTypeMigration`:
-// the structured plan failures open the declarative-step dialog
-// (`TypeMigrationStepsDialog`), confirming writes the steps onto the class
-// nodes' `data.migrate` and retries the apply — the dialog is the author's
-// consent; nothing auto-declares. The type-lifetime gate (cts SPEC §4,
-// owner decision 2026-10-13) pauses with `pendingTypeDeath` when the
-// apply orphans types: the disclaimer (`TypeDeathDialog`) names each
-// dying type and its instance count, and confirming retries activation
-// with explicit consent.
+// The machine's transition table and payloads are canonical in
+// [composables/README.md](./README.md#process-designer-apply-state-machine).
+const APPLY_TRANSITIONS = Object.freeze({
+  idle: { save: 'saving', apply: 'applying' },
+  saving: { saved: 'idle', failed: 'error' },
+  applying: {
+    activated: 'idle',
+    failed: 'error',
+    'migration-required': 'migration-required',
+    'type-migration-required': 'type-migration-required',
+    'type-death-required': 'type-death-required'
+  },
+  'migration-required': { 'confirm-migration': 'applying', 'cancel-migration': 'idle' },
+  'type-migration-required': { 'confirm-type-migration': 'applying', 'cancel-type-migration': 'idle' },
+  'type-death-required': { 'confirm-type-death': 'applying', 'cancel-type-death': 'idle' },
+  error: { save: 'saving', apply: 'applying' }
+});
+
 function declaredMappingsCover(plan, statuses = []) {
   return (plan?.statuses || []).every(row =>
     row.removed.every(({ state }) =>
@@ -56,33 +54,44 @@ export function useProcessDesignerApply({
   syncNow,
   nodes = { value: [] }
 }) {
-  const savingDraft = ref(false);
-  const applyingProcess = ref(false);
-  const pendingMigration = ref(null);
-  const pendingTypeMigration = ref(null);
-  const pendingTypeDeath = ref(null);
+  const applyState = ref('idle');
+  const applyDetail = ref(null);
+
+  function move(event, detail = null) {
+    const next = APPLY_TRANSITIONS[applyState.value]?.[event];
+    if (!next) return false;
+    applyState.value = next;
+    applyDetail.value = detail;
+    return true;
+  }
+
+  async function persistDraft() {
+    syncNow();
+    if (!draft.value?._id) return await createDraft({ empty: true });
+    // One document for its whole life (process-definitions README):
+    // saves persist in place, draft or active — no fork.
+    const updated = await persistence.saveDraft(draft.value._id, serializeProcess());
+    upsertProcessDefinition(updated);
+    setDraft(updated);
+    return updated;
+  }
 
   async function saveDraft() {
-    savingDraft.value = true;
+    if (!move('save')) return null;
     try {
-      syncNow();
-      if (!draft.value?._id) return await createDraft({ empty: true });
-      // One document for its whole life (process-definitions README):
-      // saves persist in place, draft or active — no fork.
-      const updated = await persistence.saveDraft(draft.value._id, serializeProcess());
-      upsertProcessDefinition(updated);
-      setDraft(updated);
-      return updated;
-    } finally {
-      savingDraft.value = false;
+      const saved = await persistDraft();
+      move('saved');
+      return saved;
+    } catch (error) {
+      move('failed', error?.data?.message || error?.message || String(error));
+      throw error;
     }
   }
 
   async function saveDraftFromDock() {
-    if (savingDraft.value) return;
     const createsDraft = !draft.value?._id;
     try {
-      await saveDraft();
+      if (!await saveDraft()) return;
       toast.add({
         severity: 'success',
         summary: createsDraft ? t('processDesigner.newDraft') : t('processDesigner.saved'),
@@ -99,6 +108,7 @@ export function useProcessDesignerApply({
   }
 
   function completeActivation(activated) {
+    move('activated');
     upsertProcessDefinition(activated);
     setDraft(activated);
     validation.value = {
@@ -113,6 +123,7 @@ export function useProcessDesignerApply({
 
   function reportApplyError(error) {
     const message = error?.data?.message || error?.message || t('processDesigner.validationFailed');
+    move('failed', message);
     validation.value = {
       ok: false,
       errors: [message],
@@ -124,7 +135,7 @@ export function useProcessDesignerApply({
   }
 
   async function activateDraft() {
-    await saveDraft();
+    await persistDraft();
     // Apply compiles the app: tree declarations land in the registry first,
     // so validation and activation see the types the graph references. A
     // failed declaration post aborts the apply with its real cause.
@@ -132,9 +143,7 @@ export function useProcessDesignerApply({
     if (posted.failures.length) {
       // Toasts alone expire and leave the canvas silent: land the refusal in
       // the same persistent validation feedback every other Apply abort
-      // carries, so the cause stays visible after the toasts are gone. A
-      // structured plan failure additionally pauses with the declarative-
-      // step dialog (the type-migration authoring moment).
+      // carries, so the cause stays visible after the toasts are gone.
       const typeMigration = posted.failures.filter(failure => failure && typeof failure === 'object' && failure.plan);
       validation.value = {
         ok: false,
@@ -144,7 +153,11 @@ export function useProcessDesignerApply({
         warnings: []
       };
       focusFirstValidationDiagnostic(validation.value);
-      if (typeMigration.length) pendingTypeMigration.value = typeMigration;
+      if (typeMigration.length) {
+        move('type-migration-required', typeMigration);
+        return null;
+      }
+      move('failed', validation.value.errors[0]);
       return null;
     }
     const result = await persistence.validateDraft(draft.value._id);
@@ -157,20 +170,15 @@ export function useProcessDesignerApply({
     }
     if (result.migrationPlan?.statuses?.length
       && !declaredMappingsCover(result.migrationPlan, draft.value?.data?.migrations?.statuses)) {
-      // Pause: the migration dialog collects one target per removed state
-      // (pre-filled from the declarations); confirming persists them as a
-      // declaration and resumes through confirmApplyMigration.
-      pendingMigration.value = result.migrationPlan;
+      move('migration-required', result.migrationPlan);
       return null;
     }
     try {
       return completeActivation(await persistence.activateDraft(draft.value._id));
     } catch (error) {
-      // Type lifetime (cts SPEC §4): the apply that orphans types pauses
-      // with the death disclaimer; confirming retries with consent.
       const death = typeDeathOf(error);
       if (death?.length) {
-        pendingTypeDeath.value = { typeDeath: death, onConfirm: confirmTypeDeath };
+        move('type-death-required', death);
         return null;
       }
       throw error;
@@ -178,28 +186,24 @@ export function useProcessDesignerApply({
   }
 
   async function confirmTypeDeath() {
-    if (!draft.value?._id || applyingProcess.value) return;
-    applyingProcess.value = true;
+    if (!draft.value?._id || !move('confirm-type-death')) return;
     try {
       const activated = await persistence.activateDraft(draft.value._id, { confirmTypeDeath: true });
-      pendingTypeDeath.value = null;
       return completeActivation(activated);
     } catch (error) {
       const death = typeDeathOf(error);
       if (death?.length) {
         // Live counts drifted since the pause: refresh the disclaimer.
-        pendingTypeDeath.value = { typeDeath: death, onConfirm: confirmTypeDeath };
+        move('type-death-required', death);
         return null;
       }
       reportApplyError(error);
-    } finally {
-      applyingProcess.value = false;
     }
   }
 
   async function confirmApplyMigration(mappings) {
-    if (!draft.value?._id || applyingProcess.value) return;
-    applyingProcess.value = true;
+    const plan = applyDetail.value;
+    if (!draft.value?._id || !move('confirm-migration')) return;
     try {
       // The decision is a declaration, not a payload: persist the mappings
       // on the draft first, then activate — the declaration is also what an
@@ -208,14 +212,14 @@ export function useProcessDesignerApply({
         ...draft.value.data,
         migrations: { ...(draft.value.data?.migrations || {}), statuses: mappings }
       };
-      await saveDraft();
+      await persistDraft();
       const activated = await persistence.activateDraft(draft.value._id);
-      pendingMigration.value = null;
       return completeActivation(activated);
     } catch (error) {
       if (error?.data?.migrationIncomplete) {
         // Activation succeeded; some re-targets failed. The plan stays open
         // with the same mappings — re-confirming resumes idempotently.
+        move('migration-required', plan);
         toast.add({
           severity: 'warn',
           summary: t('processDesigner.applyMigrationTitle'),
@@ -227,7 +231,7 @@ export function useProcessDesignerApply({
       if (error?.data?.migrationPlan?.statuses?.length || error?.data?.migrationRequired) {
         // Live instances drifted since validation: refresh the plan and
         // keep the dialog open with the fresh counts.
-        pendingMigration.value = error.data.migrationPlan || pendingMigration.value;
+        move('migration-required', error.data.migrationPlan || plan);
         toast.add({
           severity: 'warn',
           summary: t('processDesigner.applyMigrationTitle'),
@@ -237,18 +241,15 @@ export function useProcessDesignerApply({
         return;
       }
       reportApplyError(error);
-    } finally {
-      applyingProcess.value = false;
     }
   }
 
   function cancelApplyMigration() {
-    pendingMigration.value = null;
+    move('cancel-migration');
   }
 
   async function confirmTypeMigration(stepsByType) {
-    if (!draft.value?._id || applyingProcess.value) return;
-    applyingProcess.value = true;
+    if (!draft.value?._id || !move('confirm-type-migration')) return;
     try {
       // The dialog IS the author's consent: the confirmed steps land on the
       // class nodes as one-time declaration state (`data.migrate`, read by
@@ -256,43 +257,33 @@ export function useProcessDesignerApply({
       // re-refusal re-opens the dialog with the fresh plan; consumed steps
       // clear at the successful post.
       writeTypeMigrationSteps(nodes.value, stepsByType);
-      pendingTypeMigration.value = null;
       syncNow();
       await activateDraft();
     } catch (error) {
       reportApplyError(error);
-    } finally {
-      applyingProcess.value = false;
     }
   }
 
   function cancelTypeMigration() {
-    pendingTypeMigration.value = null;
+    move('cancel-type-migration');
   }
 
   async function applyProcess() {
-    if (!draft.value?._id || applyingProcess.value) return;
-    applyingProcess.value = true;
+    if (!draft.value?._id || !move('apply')) return;
     try {
-      const activated = await activateDraft();
-      if (!activated) return;
+      await activateDraft();
     } catch (error) {
       reportApplyError(error);
-    } finally {
-      applyingProcess.value = false;
     }
   }
 
   function cancelTypeDeath() {
-    pendingTypeDeath.value = null;
+    move('cancel-type-death');
   }
 
   return {
-    savingDraft,
-    applyingProcess,
-    pendingMigration,
-    pendingTypeMigration,
-    pendingTypeDeath,
+    applyState,
+    applyDetail,
     saveDraft,
     saveDraftFromDock,
     activateDraft,

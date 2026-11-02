@@ -100,7 +100,7 @@
     </div>
     <CallDialog
         v-model:visible="callDialog"
-        :room="parkedCallRoom"
+        :room="dialogRoom"
         :label="parkedCallLabel"
     />
 </template>
@@ -119,29 +119,30 @@ const { t } = useI18n();
 const media = useMediaStore();
 const callsStore = useCallsStore();
 
-// The mobile lane's call entry: a connected session with no mounted
-// surface (the desktop auto-rule opens the floating window instead, which
-// is itself a mounted surface).
+// The mobile lane's call entry: the session parked in the dock placement
+// (the desktop parking rule writes the floating placement).
 const parkedCallRoom = computed(() => (
-    callsStore.session?.state?.state === 'connected'
-        && !callsStore.floatingRoom
-        && !callsStore.mountedRooms.has(callsStore.session.state.name)
+    callsStore.placement === 'dock'
+        && (callsStore.session?.state?.state === 'connected'
+            || callsStore.session?.state?.state === 'reconnecting')
         ? callsStore.session.state.name
         : ''
 ));
 
 const callRoomLabel = useCallRoomLabel();
-const parkedCallLabel = computed(() => callRoomLabel(parkedCallRoom.value, t('call.title')));
-
 const callDialog = ref(false);
+const dialogRoom = ref('');
+const parkedCallLabel = computed(() => callRoomLabel(dialogRoom.value || parkedCallRoom.value, t('call.title')));
 
 const openParkedCall = () => {
     if (!parkedCallRoom.value) return;
+    dialogRoom.value = parkedCallRoom.value;
     callDialog.value = true;
 };
 
 const leaveParkedCall = () => {
     callDialog.value = false;
+    dialogRoom.value = '';
     callsStore.leaveSession();
 };
 

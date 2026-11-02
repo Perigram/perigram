@@ -17,11 +17,9 @@ export class User extends BaseEntity {
           permissions: normalized.permissions || {}
         };
       });
-      this.data.isActive = raw.data?.isActive !== undefined ? raw.data.isActive : true;
     }
   }
 
-  get isActive() { return !!this.data.isActive; }
   get email() { return this.data.email; }
   get permissions() { return this.data.permissions || {}; }
   get memberships() { return this.data.memberships || []; }

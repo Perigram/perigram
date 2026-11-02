@@ -18,6 +18,7 @@
                 v-if="visibleModel && room"
                 :key="room"
                 :room="room"
+                placement="dialog"
                 @closed="visibleModel = false"
             />
         </div>

@@ -37,6 +37,14 @@ export async function findAllActive() {
         .toArray();
 }
 
+export async function findStaleActive(startedBefore) {
+    const db = await connectDB();
+    return await db.collection(COLLECTION)
+        .find({ status: 'recording', startedAt: { $lt: startedBefore } })
+        .sort({ startedAt: 1 })
+        .toArray();
+}
+
 export async function updateById(id, update) {
     const db = await connectDB();
     return await db.collection(COLLECTION).findOneAndUpdate(

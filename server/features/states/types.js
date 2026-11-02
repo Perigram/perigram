@@ -7,9 +7,9 @@
  */
 
 export const STATUS_TYPES = {
-  organization: ['active', 'inactive', 'suspended'],
-  user: ['active', 'inactive', 'suspended'],
-  invitation: ['pending', 'accepted', 'expired', 'revoked']
+  organization: ['active'],
+  user: ['active'],
+  invitation: ['pending', 'accepted', 'declined', 'expired', 'revoked']
 };
 
 /**

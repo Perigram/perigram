@@ -45,7 +45,7 @@ export async function generateInvitation(organizationId, roleIds, creatorUser, o
     organizationId: toFlexibleId(organizationId),
     organizationName: org.identity?.name || org.name || '',
     roleIds: invitedRoleIds,
-    isActive: true,
+    status: 'pending',
     createdBy: creatorUser.userId,
     ...(inviteeUserId ? { inviteeUserId } : {})
   });
@@ -56,9 +56,29 @@ export async function generateInvitation(organizationId, roleIds, creatorUser, o
 }
 
 export async function getByToken(token) {
-  const invitation = await repository.findByToken(token);
+  return await requirePendingInvitation(await repository.findByToken(token));
+}
+
+async function requirePendingInvitation(invitation, actor = 'SYSTEM') {
   if (!invitation) throw createError({ statusCode: 404, message: 'Invitation not found or expired' });
+  if (!repository.isPendingStatus(invitation.status)) {
+    throw createError({
+      statusCode: invitation.status === 'expired' ? 410 : 404,
+      message: 'Invitation not found or expired'
+    });
+  }
+  if (invitation.expiresAt && new Date() > new Date(invitation.expiresAt)) {
+    await expireInvitation(invitation, actor);
+    throw createError({ statusCode: 410, message: 'Invitation expired' });
+  }
   return invitation;
+}
+
+async function expireInvitation(invitation, actor = 'SYSTEM') {
+  const expired = await repository.setStatus(invitation._id, 'expired', actor, { expiredAt: new Date() });
+  if (expired) {
+    await addStatus('invitations', invitation._id.toString(), 'expired', 'SYSTEM', 'Detected expiration during access');
+  }
 }
 
 export async function getPublicByToken(token) {
@@ -78,18 +98,11 @@ export async function joinByToken(token, user) {
 }
 
 export async function joinByCode(code, user) {
-  const invitation = await repository.findByCode(code);
-  if (!invitation) throw createError({ statusCode: 404, message: 'Invitation not found or expired' });
+  const invitation = await requirePendingInvitation(await repository.findByCode(code));
   return await processJoin(invitation, user);
 }
 
 async function processJoin(invitation, user) {
-  if (invitation.expiresAt && new Date() > invitation.expiresAt) {
-    // Log status as expired if we find it expired during access
-    await addStatus('invitations', invitation._id.toString(), 'expired', 'SYSTEM', 'Detected expiration during access');
-    throw createError({ statusCode: 410, message: 'Invitation expired' });
-  }
-
   // Check if user is already a member
   const freshUser = await usersRepository.findById(user.userId);
   const alreadyMember = freshUser.data?.memberships?.some(m => m.organizationId.toString() === invitation.organizationId.toString());
@@ -140,24 +153,16 @@ export async function listMine(user) {
 
 export async function respondInvitation(invitationId, user, action = 'accept') {
   if (!user?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
-  const invitation = await repository.findById(invitationId);
-  if (!invitation || !invitation.isActive) {
-    throw createError({ statusCode: 404, message: 'Invitation not found or expired' });
-  }
+  const invitation = await requirePendingInvitation(await repository.findById(invitationId), user.userId);
   if (String(invitation.inviteeUserId || '') !== String(user.userId)) {
     throw createError({ statusCode: 403, message: 'Invitation is not addressed to you' });
   }
 
   if (action === 'decline') {
-    await repository.setStatus(invitation._id, 'declined', user.userId);
+    const declined = await repository.setStatus(invitation._id, 'declined', user.userId, { declinedAt: new Date() });
+    if (!declined) throw createError({ statusCode: 404, message: 'Invitation not found or expired' });
     await addStatus('invitations', invitation._id.toString(), 'declined', user.userId, 'Invitation declined');
     return { success: true, status: 'declined' };
-  }
-
-  if (invitation.expiresAt && new Date() > new Date(invitation.expiresAt)) {
-    await repository.setStatus(invitation._id, 'expired', user.userId);
-    await addStatus('invitations', invitation._id.toString(), 'expired', 'SYSTEM', 'Detected expiration during access');
-    throw createError({ statusCode: 410, message: 'Invitation expired' });
   }
 
   const freshUser = await usersRepository.findById(user.userId);
@@ -194,9 +199,11 @@ export async function respondInvitation(invitationId, user, action = 'accept') {
 async function serializeForOrganization(invitation) {
   const base = {
     _id: invitation._id.toString(),
+    organizationId: String(invitation.organizationId),
     code: invitation.code,
     token: invitation.token,
     roleIds: normalizeRoleIds(invitation.roleIds),
+    status: invitation.status,
     createdAt: invitation.createdAt,
     expiresAt: invitation.expiresAt,
     inviteeUserId: invitation.inviteeUserId ? String(invitation.inviteeUserId) : null
@@ -205,8 +212,7 @@ async function serializeForOrganization(invitation) {
   const invitee = await usersRepository.findById(invitation.inviteeUserId);
   return {
     ...base,
-    inviteeName: invitee?.identity?.name || null,
-    status: invitation.status || 'invited'
+    inviteeName: invitee?.identity?.name || null
   };
 }
 
@@ -218,6 +224,7 @@ async function serializeForInvitee(invitation) {
     organizationId: invitation.organizationId.toString(),
     organizationName: invitation.organizationName || organization?.identity?.name || '',
     roleLabels: normalizeRoleIds(invitation.roleIds).map(roleId => roles[roleId]?.label || roleId),
+    status: invitation.status,
     createdAt: invitation.createdAt,
     expiresAt: invitation.expiresAt || null
   };
@@ -225,7 +232,8 @@ async function serializeForInvitee(invitation) {
 
 export async function revokeInvitation(organizationId, invitationId, auth = {}) {
   await assertCanManageInvitations(organizationId, auth);
-  await repository.revoke(invitationId);
+  const invitation = await requirePendingInvitation(await repository.findById(invitationId), auth.userId);
+  await repository.revoke(invitation._id, auth.userId);
   return { success: true };
 }
 

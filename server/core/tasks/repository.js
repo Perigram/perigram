@@ -31,16 +31,26 @@ export async function findByIdempotencyKey(taskId, idempotencyKey) {
   return await db.collection(COLLECTION).findOne({ taskId, idempotencyKey });
 }
 
-export async function claimNext({ taskId, workerType, workerId, claimToken, leaseExpiresAt, now = new Date() }) {
+export async function claimNext({
+  taskId,
+  workerType,
+  workerId,
+  claimToken,
+  leaseExpiresAt,
+  now = new Date(),
+  claimableStatuses = ['QUEUED', 'RETRY_WAIT'],
+  runningStatuses = ['RUNNING'],
+  runningStatus = 'RUNNING'
+}) {
   const db = await connectDB();
   const query = {
     $or: [
       {
-        status: { $in: ['QUEUED', 'RETRY_WAIT'] },
+        status: { $in: claimableStatuses },
         $or: [{ runAfter: { $exists: false } }, { runAfter: { $lte: now } }]
       },
       {
-        status: 'RUNNING',
+        status: { $in: runningStatuses },
         leaseExpiresAt: { $lte: now }
       }
     ]
@@ -48,19 +58,34 @@ export async function claimNext({ taskId, workerType, workerId, claimToken, leas
   if (taskId) query.taskId = taskId;
   if (workerType) query.workerType = workerType;
 
+  const update = typeof runningStatus === 'string'
+    ? {
+        $set: { status: runningStatus, workerId, claimToken, leaseExpiresAt, startedAt: now, updatedAt: now },
+        $inc: { attempts: 1 }
+      }
+    : [{
+        $set: {
+          status: {
+            $switch: {
+              branches: Object.entries(runningStatus).map(([id, status]) => ({
+                case: { $eq: ['$taskId', id] },
+                then: status
+              })),
+              default: 'RUNNING'
+            }
+          },
+          workerId,
+          claimToken,
+          leaseExpiresAt,
+          startedAt: now,
+          updatedAt: now,
+          attempts: { $add: ['$attempts', 1] }
+        }
+      }];
+
   return await db.collection(COLLECTION).findOneAndUpdate(
     query,
-    {
-      $set: {
-        status: 'RUNNING',
-        workerId,
-        claimToken,
-        leaseExpiresAt,
-        startedAt: now,
-        updatedAt: now
-      },
-      $inc: { attempts: 1 }
-    },
+    update,
     { sort: { priority: -1, createdAt: 1 }, returnDocument: 'after' }
   );
 }
@@ -92,10 +117,10 @@ export async function updateById(id, update) {
   return await findById(id);
 }
 
-export async function updateClaimedById(id, claimToken, update) {
+export async function updateClaimedById(id, claimToken, update, claimedStatus = 'RUNNING') {
   const db = await connectDB();
   await db.collection(COLLECTION).updateOne(
-    { _id: id instanceof ObjectId ? id : toFlexibleId(id), claimToken, status: 'RUNNING' },
+    { _id: id instanceof ObjectId ? id : toFlexibleId(id), claimToken, status: claimedStatus },
     { $set: { ...update, updatedAt: new Date() } }
   );
   return await findById(id);

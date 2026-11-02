@@ -3,7 +3,7 @@
 // events — one sweep, the deadline-scanner's shape.
 import { connectDB } from '~/server/db/mongo.js';
 import { durationMs } from '#packages/cts/src/index.js';
-import { findDueWakeRuns, findLastScheduleFire, findUndispatchedEvents, markEventDispatched } from './run-store.js';
+import { findDueWakeRuns, findLastScheduleFire, findPendingEvents, markEventDispatched, markEventFailed } from './run-store.js';
 import { resumeParkedRun, runDefinitionEntry } from './service.js';
 
 const BATCH_LIMIT = 50;
@@ -33,7 +33,7 @@ export async function dispatchEventToSubscribers(event) {
 }
 
 export async function scanDueProcessRuns(now = new Date()) {
-  const summary = { wakes: 0, wakeFailed: 0, scheduleFires: 0, events: 0, eventFailed: 0 };
+  const summary = { wakes: 0, wakeFailed: 0, scheduleFires: 0, scheduleFailed: 0, events: 0, eventFailed: 0 };
   for (const record of await findDueWakeRuns(now, BATCH_LIMIT)) {
     try {
       await resumeParkedRun(record);
@@ -43,13 +43,16 @@ export async function scanDueProcessRuns(now = new Date()) {
       console.error(`[Process Run Scanner] wake ${record._id}:`, error?.message);
     }
   }
-  summary.scheduleFires = await scanDueSchedules(now);
-  for (const event of await findUndispatchedEvents(BATCH_LIMIT)) {
+  const schedules = await scanDueSchedules(now);
+  summary.scheduleFires = schedules.fired;
+  summary.scheduleFailed = schedules.failed;
+  for (const event of await findPendingEvents(BATCH_LIMIT)) {
     try {
       await dispatchEventToSubscribers(event);
       await markEventDispatched(event._id);
       summary.events += 1;
     } catch (error) {
+      await markEventFailed(event._id, error);
       summary.eventFailed += 1;
       console.error(`[Process Run Scanner] event ${event._id}:`, error?.message);
     }
@@ -66,6 +69,7 @@ async function scanDueSchedules(now) {
     .find({ 'states.main': 'ACTIVE' })
     .toArray();
   let fired = 0;
+  let failed = 0;
   for (const definition of definitions) {
     const organizationId = definition.lineage?.organizationId;
     if (!organizationId) continue;
@@ -80,11 +84,12 @@ async function scanDueSchedules(now) {
         await runDefinitionEntry(definition, { nodeId: node.id }, { kind: 'schedule', nodeId: node.id, organizationId });
         fired += 1;
       } catch (error) {
+        failed += 1;
         console.error(`[Process Run Scanner] schedule ${definition._id}/${node.id}:`, error?.message);
       }
     }
   }
-  return fired;
+  return { fired, failed };
 }
 
 async function oneShotDue(definition, node, schedule, now) {

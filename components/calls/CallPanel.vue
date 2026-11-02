@@ -170,10 +170,10 @@
                     </span>
                     <Button
                         v-if="!isMobile"
-                        :icon="hostFloating ? 'pi pi-table' : 'pi pi-external-link'"
+                        :icon="placement === 'floating' ? 'pi pi-table' : 'pi pi-external-link'"
                         text
                         rounded
-                        :aria-label="hostFloating ? $t('call.dock') : $t('call.popOut')"
+                        :aria-label="placement === 'floating' ? $t('call.dock') : $t('call.popOut')"
                         :disabled="!isConnected"
                         @click="dispatch"
                     />
@@ -271,9 +271,9 @@ import { useToast } from 'primevue/usetoast';
 
 const props = defineProps({
     room: { type: String, required: true },
-    // Set by the floating window host: the pill's dispatch action becomes
+    // The hosting surface; the floating host turns the dispatch action into
     // the dock action (back to a workspace tab).
-    hostFloating: { type: Boolean, default: false }
+    placement: { type: String, default: 'tab' }
 });
 const emit = defineEmits(['closed']);
 const { t } = useI18n();
@@ -307,7 +307,7 @@ const failureMessage = computed(() => {
     return sessionState.value?.error || t('call.failed');
 });
 const isConnected = computed(() => sessionState.value?.state === 'connected');
-const reconnecting = computed(() => Boolean(sessionState.value?.reconnecting));
+const reconnecting = computed(() => sessionState.value?.state === 'reconnecting');
 const micEnabled = computed(() => Boolean(sessionState.value?.micEnabled));
 const camEnabled = computed(() => Boolean(sessionState.value?.camEnabled));
 const sharing = computed(() => Boolean(sessionState.value?.sharing));
@@ -459,7 +459,7 @@ const runReaction = async (id) => {
 // surface; in the floating window it docks the session back into a
 // workspace tab.
 const dispatch = () => {
-    if (props.hostFloating) {
+    if (props.placement === 'floating') {
         callsStore.closeFloating();
         openCallInWorkspaceTab(props.room);
         return;
@@ -479,10 +479,10 @@ const leave = async () => {
 };
 
 onMounted(() => {
-    callsStore.mountSurface(props.room);
+    callsStore.mountSurface(props.room, props.placement);
     // The pending tab room is consumed by the surface that actually
     // mounts: until then it keeps the floating-window auto-rule
-    // suspended, so docking can never race the tab into existence.
+    // suspended, so docking and the adopting tab cannot race.
     if (callsStore.pendingTabRoom === props.room) callsStore.consumePendingTabRoom();
 });
 

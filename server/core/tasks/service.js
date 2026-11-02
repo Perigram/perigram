@@ -7,6 +7,19 @@ import { getAppRegistry } from '../../runtime/app-registry.js';
 
 const TERMINAL_STATUSES = ['SUCCEEDED', 'FAILED', 'CANCELLED'];
 
+function terminalStatuses(task) {
+  const status = task?.status || {};
+  return [
+    status.succeeded || TERMINAL_STATUSES[0],
+    status.failed || TERMINAL_STATUSES[1],
+    status.cancelled || TERMINAL_STATUSES[2]
+  ];
+}
+
+function isTerminalStatus(task, status) {
+  return terminalStatuses(task).includes(status);
+}
+
 export async function enqueueTask(taskId, input = {}, auth = {}, options = {}) {
   // Runtime-declared contracts (plugin connectors) pass their definition;
   // static registry tasks resolve as before.
@@ -14,7 +27,7 @@ export async function enqueueTask(taskId, input = {}, auth = {}, options = {}) {
   if (!task) throw createError({ statusCode: 400, message: `Unknown task: ${taskId}` });
   const normalizedInput = normalizeTaskInput(task, input);
   const existing = await repository.findByIdempotencyKey(taskId, options.idempotencyKey);
-  if (existing && !TERMINAL_STATUSES.includes(existing.status)) return existing;
+  if (existing && !isTerminalStatus(task, existing.status)) return existing;
 
   return await repository.create({
     taskId,
@@ -35,11 +48,24 @@ export async function enqueueTask(taskId, input = {}, auth = {}, options = {}) {
 export const createTaskRun = enqueueTask;
 
 export async function claimTask({ taskId = null, workerType = null, workerId = 'worker', leaseMs = 60000 } = {}) {
-  if (taskId && !getTaskDefinition(taskId)) throw createError({ statusCode: 400, message: `Unknown task: ${taskId}` });
+  const definition = taskId ? getTaskDefinition(taskId) : null;
+  if (taskId && !definition) throw createError({ statusCode: 400, message: `Unknown task: ${taskId}` });
   const now = new Date();
   const claimToken = randomUUID();
   const leaseExpiresAt = new Date(now.getTime() + Number(leaseMs || 60000));
-  return await repository.claimNext({ taskId, workerType, workerId, claimToken, leaseExpiresAt, now });
+  const claimable = definition ? claimableStatusesFor(definition) : claimableStatusesForDefinitions();
+  const running = definition?.status?.running || 'RUNNING';
+  return await repository.claimNext({
+    taskId,
+    workerType,
+    workerId,
+    claimToken,
+    leaseExpiresAt,
+    now,
+    claimableStatuses: claimable,
+    runningStatuses: definition ? [running] : runningStatusesForDefinitions(),
+    runningStatus: definition ? running : runningStatusesByTaskId()
+  });
 }
 
 export const claimNextTaskRun = (taskId, workerId) => claimTask({ taskId, workerId });
@@ -61,19 +87,22 @@ export async function runClaimedTaskRun(run, executor, task = getTaskDefinition(
 export async function heartbeatTaskRun(id, claimToken, { leaseMs = 60000 } = {}) {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
+  const task = await resolveTaskDefinitionFor(run);
   requireClaim(run, claimToken);
   return await repository.updateClaimedById(id, claimToken, {
-    status: 'RUNNING',
+    status: task?.status?.running || 'RUNNING',
     leaseExpiresAt: new Date(Date.now() + Number(leaseMs || 60000)),
     heartbeatAt: new Date()
-  });
+  }, task?.status?.running || 'RUNNING');
 }
 
 export async function completeTaskRun(id, result = {}, claimToken = null) {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
-  requireClaim(run, claimToken);
   const task = await resolveTaskDefinitionFor(run);
+  if (isTerminalStatus(task, run.status)) return run;
+  requireClaim(run, claimToken);
+  requireRunning(run, task);
   const output = createTaskResult({ taskId: run.taskId, ...result, raw: result });
   const effectContext = {
     auth: run.auth || {},
@@ -102,7 +131,7 @@ export async function completeTaskRun(id, result = {}, claimToken = null) {
     status: task?.status?.succeeded || 'SUCCEEDED',
     output,
     finishedAt: new Date()
-  });
+  }, task?.status?.running || 'RUNNING');
   await notifyProcessTaskOutcome({ taskRunId: String(id), status: 'SUCCEEDED', output });
   return updated;
 }
@@ -110,8 +139,10 @@ export async function completeTaskRun(id, result = {}, claimToken = null) {
 export async function failTaskRun(id, error, claimToken = null) {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
-  requireClaim(run, claimToken);
   const task = await resolveTaskDefinitionFor(run);
+  if (isTerminalStatus(task, run.status)) return run;
+  requireClaim(run, claimToken);
+  requireRunning(run, task);
   const retryable = !error?.statusCode || error.statusCode >= 500;
   const shouldRetry = retryable && (run.attempts || 0) < (run.maxAttempts || task?.retry?.maxAttempts || 3);
   if (shouldRetry) {
@@ -122,7 +153,7 @@ export async function failTaskRun(id, error, claimToken = null) {
       claimToken: null,
       workerId: null,
       leaseExpiresAt: null
-    });
+    }, task?.status?.running || 'RUNNING');
   }
   const processedEvents = await processEvents(error?.events || [], {
     auth: run.auth || {},
@@ -147,7 +178,7 @@ export async function failTaskRun(id, error, claimToken = null) {
       error: { message: error?.message || String(error) }
     },
     finishedAt: new Date()
-  });
+  }, task?.status?.running || 'RUNNING');
   await notifyProcessTaskOutcome({ taskRunId: String(id), status: 'FAILED', error: updated.error || error });
   return updated;
 }
@@ -155,9 +186,10 @@ export async function failTaskRun(id, error, claimToken = null) {
 export async function cancelTaskRun(id, reason = 'Cancelled') {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
-  if (TERMINAL_STATUSES.includes(run.status)) return run;
+  const task = await resolveTaskDefinitionFor(run);
+  if (isTerminalStatus(task, run.status)) return run;
   const updated = await repository.updateById(id, {
-    status: 'CANCELLED',
+    status: task?.status?.cancelled || 'CANCELLED',
     error: { message: reason },
     finishedAt: new Date()
   });
@@ -168,9 +200,11 @@ export async function cancelTaskRun(id, reason = 'Cancelled') {
 export async function retryTaskRun(id) {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
-  if (!['FAILED', 'RETRY_WAIT'].includes(run.status)) throw createError({ statusCode: 409, message: `Cannot retry task run in ${run.status}` });
+  const task = await resolveTaskDefinitionFor(run);
+  const retryable = [terminalStatuses(task)[1], task?.status?.retryWait || 'RETRY_WAIT'];
+  if (!retryable.includes(run.status)) throw createError({ statusCode: 409, message: `Cannot retry task run in ${run.status}` });
   return await repository.updateById(id, {
-    status: 'QUEUED',
+    status: task?.status?.queued || 'QUEUED',
     runAfter: new Date(),
     claimToken: null,
     workerId: null,
@@ -248,6 +282,35 @@ function requireClaim(run, claimToken) {
   if (!run.claimToken) throw createError({ statusCode: 409, message: 'Task run is not claimed' });
   if (!claimToken) throw createError({ statusCode: 409, message: 'Task run claim token required' });
   if (run.claimToken !== claimToken) throw createError({ statusCode: 409, message: 'Task run claim token mismatch' });
+}
+
+function requireRunning(run, task) {
+  const running = task?.status?.running || 'RUNNING';
+  if (run.status !== running) throw createError({ statusCode: 409, message: `Task run is not running: ${run.status}` });
+}
+
+function claimableStatusesFor(task) {
+  return [task?.status?.queued || 'QUEUED', task?.status?.retryWait || 'RETRY_WAIT'];
+}
+
+function claimableStatusesForDefinitions() {
+  const statuses = new Set(claimableStatusesFor(null));
+  for (const task of listTaskDefinitions()) {
+    for (const status of claimableStatusesFor(task)) statuses.add(status);
+  }
+  return [...statuses];
+}
+
+function runningStatusesForDefinitions() {
+  return [...new Set(['RUNNING', ...Object.values(runningStatusesByTaskId())])];
+}
+
+function runningStatusesByTaskId() {
+  const statuses = {};
+  for (const task of listTaskDefinitions()) {
+    if (task?.status?.running) statuses[task.id] = task.status.running;
+  }
+  return statuses;
 }
 
 function sanitizeAuth(auth = {}) {

@@ -108,7 +108,7 @@ describe('User Management & Auth', () => {
     expect(dto.data.email).toBe('test@example.com');
     expect(dto.data.role).toBeUndefined();
     expect(dto.data.permissions).toEqual({});
-    expect(dto.data.isActive).toBe(true);
+    expect(dto.data.isActive).toBeUndefined();
     expect(dto).not.toHaveProperty('email');
     expect(dto).not.toHaveProperty('role');
 

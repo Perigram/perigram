@@ -26,7 +26,15 @@ const INDEXES = {
   // Workflow Overrides Collection
   workflow_overrides: [
     { keys: { organizationId: 1, typeId: 1, status: 1 }, options: { name: 'org_entity_status_idx' } },
-    { keys: { organizationId: 1, typeId: 1 }, options: { name: 'org_entity_idx' } }
+    { keys: { organizationId: 1, typeId: 1 }, options: { name: 'org_entity_idx' } },
+    {
+      keys: { status: 1, organizationId: 1, typeId: 1 },
+      options: {
+        unique: true,
+        partialFilterExpression: { status: 'ACTIVE' },
+        name: 'org_entity_active_unique'
+      }
+    }
   ],
 
   // Memberships Collection

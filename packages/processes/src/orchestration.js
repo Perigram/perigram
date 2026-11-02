@@ -3,7 +3,41 @@ import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js
 import { resolveCatalogNodePorts, EFFECT_SPECIES_KINDS, constructionInputsForContract, resolveConstructionMode } from './node-catalog.js';
 
 export const PROCESS_RUN_STATUSES = Object.freeze(['running', 'waiting', 'succeeded', 'failed', 'cancelled']);
-export const PROCESS_STEP_STATUSES = Object.freeze(['pending', 'running', 'waiting', 'succeeded', 'failed', 'skipped']);
+export const PROCESS_STEP_STATUSES = Object.freeze(['pending', 'running', 'waiting', 'succeeded', 'failed', 'cancelled']);
+
+const PROCESS_RUN_TRANSITIONS = Object.freeze({
+  running: Object.freeze(['waiting', 'succeeded', 'failed', 'cancelled']),
+  waiting: Object.freeze(['running', 'failed', 'cancelled']),
+  succeeded: Object.freeze([]),
+  failed: Object.freeze([]),
+  cancelled: Object.freeze([])
+});
+
+const PROCESS_STEP_TRANSITIONS = Object.freeze({
+  pending: Object.freeze(['running', 'cancelled']),
+  running: Object.freeze(['waiting', 'succeeded', 'failed', 'cancelled']),
+  waiting: Object.freeze(['succeeded', 'failed', 'cancelled']),
+  succeeded: Object.freeze([]),
+  failed: Object.freeze([]),
+  cancelled: Object.freeze([])
+});
+
+export function transitionProcessRun(run, status) {
+  return transitionState(run, status, PROCESS_RUN_TRANSITIONS, 'process run');
+}
+
+export function transitionProcessStep(step, status) {
+  return transitionState(step, status, PROCESS_STEP_TRANSITIONS, 'process step');
+}
+
+function transitionState(record, status, table, label) {
+  if (record.status === status) return record;
+  if (!(table[record.status] || []).includes(status)) {
+    throw new Error(`Illegal ${label} transition ${record.status || '(none)'} -> ${status}`);
+  }
+  record.status = status;
+  return record;
+}
 
 const NATIVE_MUTATION_KINDS = new Set(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove']);
 
@@ -95,12 +129,12 @@ export async function advanceProcessRun(runInput, definition, environment = {}) 
   const now = instant(environment.now);
   if (run.status === 'waiting') {
     if (!run.wakeAt || new Date(run.wakeAt) > new Date(now)) return run;
-    run.status = 'running';
+    transitionProcessRun(run, 'running');
     run.wakeAt = null;
   }
   const current = run.tokens.shift();
   if (!current) {
-    run.status = 'succeeded';
+    transitionProcessRun(run, 'succeeded');
     run.updatedAt = now;
     return run;
   }
@@ -110,7 +144,7 @@ export async function advanceProcessRun(runInput, definition, environment = {}) 
     id: `${run.id}:${run.steps.length + 1}`,
     nodeId: node.id,
     kind: record.kind,
-    status: 'running',
+    status: 'pending',
     attempt: current.attempt || 1,
     idempotencyKey: `${run.id}:${node.id}:${current.scope || 'root'}:${current.attempt || 1}`,
     startedAt: now,
@@ -119,18 +153,19 @@ export async function advanceProcessRun(runInput, definition, environment = {}) 
     error: null
   };
   run.steps.push(step);
+  transitionProcessStep(step, 'running');
   try {
     await executeOperationalNode({ run, process, node, record, current, step, environment });
-    if (step.status === 'running') step.status = 'succeeded';
+    if (step.status === 'running') transitionProcessStep(step, 'succeeded');
     step.completedAt = instant(environment.now);
   } catch (error) {
-    step.status = 'failed';
+    transitionProcessStep(step, 'failed');
     step.error = serializeError(error);
     step.completedAt = instant(environment.now);
-    run.status = 'failed';
+    transitionProcessRun(run, 'failed');
     run.error = step.error;
   }
-  if (run.status === 'running' && !run.tokens.length) run.status = 'succeeded';
+  if (run.status === 'running' && !run.tokens.length) transitionProcessRun(run, 'succeeded');
   run.updatedAt = instant(environment.now);
   return run;
 }
@@ -150,11 +185,11 @@ export async function resumeProcessRun(runInput, definition, completion = {}, en
   if (!step) throw new Error(`Cannot resume pending effect: step ${pending.stepId} not found`);
   const now = instant(environment.now);
   const output = completion.output == null ? {} : completion.output;
-  step.status = 'succeeded';
+  transitionProcessStep(step, 'succeeded');
   step.output = structuredClone(output);
   step.completedAt = now;
   delete run.pendingEffect;
-  run.status = 'running';
+  transitionProcessRun(run, 'running');
   run.wakeAt = null;
   const outputValues = await effectOutputValues(node.id, record, output, environment);
   enqueueEdges(run, outgoingControl(process, node.id, 'completed'), {
@@ -164,7 +199,7 @@ export async function resumeProcessRun(runInput, definition, completion = {}, en
       ...outputValues
     }
   });
-  if (!run.tokens.length) run.status = 'succeeded';
+  if (!run.tokens.length) transitionProcessRun(run, 'succeeded');
   run.updatedAt = now;
   return run;
 }
@@ -226,9 +261,9 @@ async function executeOperationalNode({ run, process, node, record, current, ste
           run
         });
     if (result?.__processEffectPending === true) {
-      step.status = 'waiting';
+      transitionProcessStep(step, 'waiting');
       step.invocationId = result.invocationId || null;
-      run.status = 'waiting';
+      transitionProcessRun(run, 'waiting');
       run.pendingEffect = {
         stepId: step.id,
         nodeId: node.id,
@@ -272,7 +307,7 @@ async function executeOperationalNode({ run, process, node, record, current, ste
     if (record.kind === 'control.joinAny' || arrivals.size >= required) {
       delete run.joins[key];
       enqueueEdges(run, outgoingControl(process, node.id, 'out'), current);
-    } else step.status = 'waiting';
+    } else transitionProcessStep(step, 'waiting');
     return;
   }
   if (record.kind === 'control.forEach') {
@@ -316,8 +351,8 @@ async function executeOperationalNode({ run, process, node, record, current, ste
     }
     // Parks the run on the same boundary async effects park on; the run
     // store owns the wake and resumes through the pending-effect seam.
-    step.status = 'waiting';
-    run.status = 'waiting';
+    transitionProcessStep(step, 'waiting');
+    transitionProcessRun(run, 'waiting');
     run.wakeAt = date.toISOString();
     run.pendingEffect = {
       stepId: step.id,
@@ -329,13 +364,13 @@ async function executeOperationalNode({ run, process, node, record, current, ste
   }
   if (record.kind === 'control.stopSuccess') {
     run.tokens = [];
-    run.status = 'succeeded';
+    transitionProcessRun(run, 'succeeded');
     run.result = structuredClone(record.result || null);
     return;
   }
   if (record.kind === 'control.stopFailure') {
     run.tokens = [];
-    run.status = 'failed';
+    transitionProcessRun(run, 'failed');
     run.error = { name: 'ProcessStopped', message: record.message || 'Process stopped with failure' };
     return;
   }

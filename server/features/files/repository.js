@@ -10,7 +10,7 @@ const SESSIONS_COLLECTION = 'files_upload_sessions';
 const SESSION_CHUNKS_COLLECTION = 'files_upload_chunks';
 export const UPLOAD_SESSION_CHUNK_SIZE = 5 * 1024 * 1024;
 export const UPLOAD_SESSION_MAX_BYTES = 1024 * 1024 * 1024;
-const UPLOAD_SESSION_TTL_SECONDS = 24 * 60 * 60;
+export const UPLOAD_SESSION_TTL_SECONDS = 24 * 60 * 60;
 
 let uploadIndexesEnsured = false;
 
@@ -18,7 +18,7 @@ async function ensureUploadSessionIndexes(db) {
   if (uploadIndexesEnsured) return;
   await db.collection(SESSIONS_COLLECTION).createIndex(
     { createdAt: 1 },
-    { expireAfterSeconds: UPLOAD_SESSION_TTL_SECONDS }
+    { expireAfterSeconds: 2 * UPLOAD_SESSION_TTL_SECONDS }
   );
   await db.collection(SESSION_CHUNKS_COLLECTION).createIndex(
     { createdAt: 1 },
@@ -34,7 +34,11 @@ async function ensureUploadSessionIndexes(db) {
 export async function insertUploadSession(doc) {
   const db = await connectDB();
   await ensureUploadSessionIndexes(db);
-  const inserted = { ...doc, _id: new ObjectId() };
+  const inserted = {
+    ...doc,
+    status: doc.status || 'open',
+    _id: new ObjectId()
+  };
   await db.collection(SESSIONS_COLLECTION).insertOne(inserted);
   return inserted;
 }
@@ -73,8 +77,34 @@ export async function listUploadChunksSorted(sessionId) {
     .toArray();
 }
 
-export async function deleteUploadSession(sessionId) {
+export async function completeUploadSession(sessionId, stored) {
   const db = await connectDB();
-  await db.collection(SESSION_CHUNKS_COLLECTION).deleteMany({ uploadId: toFlexibleId(sessionId) });
-  await db.collection(SESSIONS_COLLECTION).deleteOne({ _id: toFlexibleId(sessionId) });
+  const result = await db.collection(SESSIONS_COLLECTION).findOneAndUpdate(
+    { _id: toFlexibleId(sessionId), status: 'open' },
+    { $set: { status: 'completed', result: stored, completedAt: new Date(), updatedAt: new Date() } },
+    { returnDocument: 'after' }
+  );
+  if (result) {
+    await db.collection(SESSION_CHUNKS_COLLECTION).deleteMany({ uploadId: toFlexibleId(sessionId) });
+  }
+  return result;
+}
+
+export async function sweepExpiredUploadSessions(now = new Date()) {
+  const db = await connectDB();
+  const cutoff = new Date(now.getTime() - UPLOAD_SESSION_TTL_SECONDS * 1000);
+  const result = await db.collection(SESSIONS_COLLECTION).updateMany(
+    { status: 'open', createdAt: { $lt: cutoff } },
+    { $set: { status: 'expired', expiredAt: now, updatedAt: now } }
+  );
+  const expired = await db.collection(SESSIONS_COLLECTION)
+    .find({ status: 'expired' })
+    .project({ _id: 1 })
+    .toArray();
+  if (expired.length) {
+    await db.collection(SESSION_CHUNKS_COLLECTION).deleteMany({
+      uploadId: { $in: expired.map(session => session._id) }
+    });
+  }
+  return result.modifiedCount;
 }

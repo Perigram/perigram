@@ -75,4 +75,114 @@ describe('outbox store', () => {
         await expect(store.mutate({ url: '/api/x', method: 'POST', body: {} })).resolves.toEqual({ fine: true });
         expect(globalThis.__outboxOps).toHaveLength(0);
     });
+
+    it('persists the pending state when an operation is queued offline', async () => {
+        const store = useOutboxStore();
+        window.navigator.onLine = false;
+        await expect(store.mutate({ url: '/api/x', method: 'POST', body: {} }))
+            .rejects.toMatchObject({ name: 'OfflineQueuedError' });
+        expect(globalThis.__outboxOps).toEqual([
+            expect.objectContaining({ url: '/api/x', status: 'pending', attempts: 0 })
+        ]);
+        expect(store.online).toBe(false);
+        expect(store.pendingOperations).toHaveLength(1);
+        expect(store.failedOperations).toHaveLength(0);
+    });
+
+    it('replays the queue when the browser returns online', async () => {
+        const store = useOutboxStore();
+        window.navigator.onLine = false;
+        await store.init();
+        await expect(store.mutate({ url: '/api/queued', method: 'POST', body: {} }))
+            .rejects.toMatchObject({ name: 'OfflineQueuedError' });
+        window.navigator.onLine = true;
+        fetchMock.mockResolvedValueOnce({ replayed: true });
+        window.dispatchEvent(new Event('online'));
+        await vi.waitFor(() => expect(globalThis.__outboxOps).toHaveLength(0));
+        expect(fetchMock).toHaveBeenCalledWith('/api/queued', expect.objectContaining({ method: 'POST' }));
+        expect(store.online).toBe(true);
+    });
+
+    it('settles a 4xx replay as failed and continues with the rest of the queue', async () => {
+        const store = useOutboxStore();
+        window.navigator.onLine = false;
+        await expect(store.mutate({ url: '/api/first', method: 'POST', body: {} }))
+            .rejects.toMatchObject({ name: 'OfflineQueuedError' });
+        await expect(store.mutate({ url: '/api/second', method: 'POST', body: {} }))
+            .rejects.toMatchObject({ name: 'OfflineQueuedError' });
+
+        fetchMock.mockRejectedValueOnce({ statusCode: 422, response: {}, data: { message: 'invalid' } });
+        fetchMock.mockResolvedValueOnce({ replayed: true });
+        await store.flush();
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(globalThis.__outboxOps).toEqual([
+            expect.objectContaining({ url: '/api/first', status: 'failed', lastError: 'invalid', attempts: 1 })
+        ]);
+        expect(store.failedOperations).toHaveLength(1);
+        expect(store.pendingOperations).toHaveLength(0);
+    });
+
+    it('retries a failed operation and removes it on success', async () => {
+        const store = useOutboxStore();
+        window.navigator.onLine = false;
+        await expect(store.mutate({ url: '/api/x', method: 'POST', body: {} }))
+            .rejects.toMatchObject({ name: 'OfflineQueuedError' });
+        fetchMock.mockRejectedValueOnce({ statusCode: 400, response: {}, data: { message: 'bad request' } });
+        await store.flush();
+        expect(globalThis.__outboxOps[0]).toMatchObject({ status: 'failed' });
+
+        fetchMock.mockResolvedValueOnce({ ok: true });
+        store.online = true;
+        await store.retry(globalThis.__outboxOps[0].id);
+        expect(globalThis.__outboxOps).toHaveLength(0);
+        expect(store.failedOperations).toHaveLength(0);
+    });
+
+    it('discards a failed operation', async () => {
+        const store = useOutboxStore();
+        window.navigator.onLine = false;
+        await expect(store.mutate({ url: '/api/x', method: 'POST', body: {} }))
+            .rejects.toMatchObject({ name: 'OfflineQueuedError' });
+        fetchMock.mockRejectedValueOnce({ statusCode: 403, response: {}, data: {} });
+        await store.flush();
+        const id = globalThis.__outboxOps[0].id;
+        await store.discard(id);
+        expect(globalThis.__outboxOps).toEqual([]);
+    });
+
+    it('removes a duplicate replay as a successful settlement', async () => {
+        const store = useOutboxStore();
+        window.navigator.onLine = false;
+        await expect(store.mutate({ url: '/api/x', method: 'POST', body: {} }))
+            .rejects.toMatchObject({ name: 'OfflineQueuedError' });
+        fetchMock.mockRejectedValueOnce({ statusCode: 409, response: {}, data: { duplicate: true } });
+        await store.flush();
+        expect(globalThis.__outboxOps).toHaveLength(0);
+    });
+
+    it('leaves an operation pending and stops the flush on a server or network failure', async () => {
+        const store = useOutboxStore();
+        window.navigator.onLine = false;
+        await expect(store.mutate({ url: '/api/first', method: 'POST', body: {} }))
+            .rejects.toMatchObject({ name: 'OfflineQueuedError' });
+        await expect(store.mutate({ url: '/api/second', method: 'POST', body: {} }))
+            .rejects.toMatchObject({ name: 'OfflineQueuedError' });
+
+        store.online = true;
+        fetchMock.mockRejectedValueOnce({ statusCode: 503, response: {}, data: {} });
+        await store.flush();
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(globalThis.__outboxOps).toEqual([
+            expect.objectContaining({ url: '/api/first', status: 'pending', attempts: 0 }),
+            expect.objectContaining({ url: '/api/second', status: 'pending', attempts: 0 })
+        ]);
+        expect(store.online).toBe(true);
+
+        fetchMock.mockRejectedValueOnce(networkFailure);
+        await store.flush();
+        expect(store.online).toBe(false);
+        expect(globalThis.__outboxOps[0]).toMatchObject({ status: 'pending' });
+    });
 });

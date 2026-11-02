@@ -154,25 +154,30 @@ export async function createUploadSession({ fileName = '', mimeType = '', size =
     bucket: bucketName,
     userId: userId || null,
     organizationId: organizationId || null,
+    status: 'open',
     createdAt: new Date()
   });
-  return { uploadId: doc._id.toString(), chunkSize: doc.chunkSize, size: doc.size };
+  return { uploadId: doc._id.toString(), chunkSize: doc.chunkSize, size: doc.size, status: doc.status };
 }
 
 export async function getUploadSession(uploadId, context = {}) {
   const doc = await repository.findUploadSession(uploadId, context);
   if (!doc) throw createError({ statusCode: 404, message: 'Upload session not found' });
+  if (doc.status === 'expired') throw createError({ statusCode: 410, message: 'Upload session expired' });
   return {
     uploadId: doc._id.toString(),
     chunkSize: doc.chunkSize,
     size: doc.size,
-    received: await repository.listReceivedChunkIndexes(doc._id)
+    status: doc.status,
+    received: doc.status === 'open' ? await repository.listReceivedChunkIndexes(doc._id) : []
   };
 }
 
 export async function appendUploadChunk(uploadId, index, buffer, context = {}) {
   const doc = await repository.findUploadSession(uploadId, context);
   if (!doc) throw createError({ statusCode: 404, message: 'Upload session not found' });
+  if (doc.status === 'expired') throw createError({ statusCode: 410, message: 'Upload session expired' });
+  if (doc.status !== 'open') throw createError({ statusCode: 409, message: 'Upload session is not open' });
   const chunkIndex = Number(index);
   const totalChunks = Math.ceil(doc.size / doc.chunkSize);
   if (!Number.isInteger(chunkIndex) || chunkIndex < 0 || chunkIndex >= totalChunks) {
@@ -188,6 +193,8 @@ export async function appendUploadChunk(uploadId, index, buffer, context = {}) {
 export async function completeUploadSession(uploadId, context = {}) {
   const doc = await repository.findUploadSession(uploadId, context);
   if (!doc) throw createError({ statusCode: 404, message: 'Upload session not found' });
+  if (doc.status === 'completed') return doc.result;
+  if (doc.status === 'expired') throw createError({ statusCode: 410, message: 'Upload session expired' });
   const totalChunks = Math.ceil(doc.size / doc.chunkSize);
   const chunks = await repository.listUploadChunksSorted(doc._id);
   if (chunks.length !== totalChunks || chunks.some((chunk, position) => chunk.index !== position)) {
@@ -206,6 +213,12 @@ export async function completeUploadSession(uploadId, context = {}) {
     doc.bucket,
     doc.mimeType || ''
   );
-  await repository.deleteUploadSession(doc._id);
-  return stored;
+  const completed = await repository.completeUploadSession(doc._id, stored);
+  if (completed) return completed.result;
+  const current = await repository.findUploadSession(uploadId, context);
+  return current?.result || stored;
+}
+
+export async function sweepExpiredUploadSessions(now = new Date()) {
+  return await repository.sweepExpiredUploadSessions(now);
 }

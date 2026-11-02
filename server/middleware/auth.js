@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // 3. Populate Context
-  if (user && user.isActive) {
+  if (user) {
     const authContext = buildAuthContext(user);
 
     if (user.organizationId) {

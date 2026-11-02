@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
     findByEgressId: vi.fn(),
     findActiveByRoom: vi.fn(async () => []),
     findAllActive: vi.fn(async () => []),
+    findStaleActive: vi.fn(async () => []),
     updateById: vi.fn(async (id, update) => ({ _id: id, ...update.$set }))
   },
   filesService: { uploadFile: vi.fn() },
@@ -52,6 +53,7 @@ describe('livekit recordings', () => {
     process.env.LIVEKIT_RECORDINGS_S3_BUCKET = 'livekit-egress';
     mocks.repository.findActiveByRoom.mockResolvedValue([]);
     mocks.repository.findAllActive.mockResolvedValue([]);
+    mocks.repository.findStaleActive.mockResolvedValue([]);
     mocks.supportService.findChatGroup.mockResolvedValue(GROUP);
   });
 
@@ -274,5 +276,108 @@ describe('livekit recordings', () => {
       event: 'egress_started',
       egressInfo: { egressId: '', roomName: '' }
     })).resolves.toEqual({ published: false });
+  });
+
+  it('applies duplicate ended and failed deliveries as no-ops', async () => {
+    const recording = {
+      _id: 'rec-1',
+      egressId: 'EG_1',
+      room: DIRECT_ROOM,
+      conversationKey: 'direct:user-a:user-b',
+      startedByUserId: 'user-a',
+      status: 'recording'
+    };
+    mocks.repository.findByEgressId
+      .mockResolvedValueOnce(recording)
+      .mockResolvedValueOnce({ ...recording, status: 'completed' });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('mp4-bytes', { status: 200 })));
+    mocks.filesService.uploadFile.mockResolvedValue({ id: 'gridfs-9', filename: 'call-recording-EG_1.mp4' });
+    mocks.supportService.insertRecordingMessage.mockResolvedValue({ _id: 'msg-1' });
+
+    const body = {
+      event: 'egress_ended',
+      egressInfo: {
+        egressId: 'EG_1',
+        roomName: DIRECT_ROOM,
+        fileResults: [{ filename: 'room-1.mp4' }]
+      }
+    };
+    await livekitService.publishWebhookEvent(body);
+    await livekitService.publishWebhookEvent(body);
+
+    expect(mocks.filesService.uploadFile).toHaveBeenCalledTimes(1);
+    expect(mocks.repository.updateById).toHaveBeenCalledTimes(1);
+
+    mocks.repository.updateById.mockClear();
+    mocks.repository.findByEgressId
+      .mockResolvedValueOnce(recording)
+      .mockResolvedValueOnce({ ...recording, status: 'failed' });
+    const failedBody = {
+      event: 'egress_failed',
+      egressInfo: { egressId: 'EG_1', roomName: DIRECT_ROOM }
+    };
+    await livekitService.publishWebhookEvent(failedBody);
+    await livekitService.publishWebhookEvent(failedBody);
+
+    expect(mocks.repository.updateById).toHaveBeenCalledTimes(1);
+  });
+
+  it('recovers a stale recording by checking the egress plane', async () => {
+    mocks.repository.findStaleActive.mockResolvedValue([{
+      _id: 'rec-stale',
+      egressId: 'EG_STALE',
+      room: DIRECT_ROOM,
+      conversationKey: 'direct:user-a:user-b',
+      startedByUserId: 'user-a',
+      status: 'recording'
+    }]);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(twirpResponse({
+        items: [{
+          egressId: 'EG_STALE',
+          status: 'EGRESS_COMPLETE',
+          fileResults: [{ filename: 'stale.mp4', duration: 12 }]
+        }]
+      }))
+      .mockResolvedValueOnce(new Response('mp4-bytes', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    mocks.filesService.uploadFile.mockResolvedValue({ id: 'gridfs-stale', filename: 'call-recording-EG_STALE.mp4' });
+    mocks.supportService.insertRecordingMessage.mockResolvedValue({ _id: 'msg-stale' });
+
+    await expect(livekitService.recoverStaleRecordings()).resolves.toEqual({
+      checked: 1,
+      completed: 1,
+      failed: 0,
+      active: 0,
+      unresolved: 0
+    });
+
+    expect(fetchMock.mock.calls[0][0]).toBe('http://livekit:7880/twirp/livekit.Egress/ListEgress');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ egress_id: 'EG_STALE' });
+    expect(mocks.repository.updateById).toHaveBeenCalledWith('rec-stale', {
+      $set: expect.objectContaining({ status: 'completed' })
+    });
+  });
+
+  it('settles a stale recording as failed when the egress plane reports failure', async () => {
+    mocks.repository.findStaleActive.mockResolvedValue([{
+      _id: 'rec-stale',
+      egressId: 'EG_STALE',
+      room: GROUP_ROOM,
+      conversationKey: 'group:group-1',
+      startedByUserId: 'user-a',
+      status: 'recording'
+    }]);
+    vi.stubGlobal('fetch', vi.fn(async () => twirpResponse({
+      items: [{ egressId: 'EG_STALE', status: 'EGRESS_FAILED', error: 'output failed' }]
+    })));
+
+    await expect(livekitService.recoverStaleRecordings()).resolves.toMatchObject({
+      checked: 1,
+      failed: 1
+    });
+    expect(mocks.repository.updateById).toHaveBeenCalledWith('rec-stale', {
+      $set: expect.objectContaining({ status: 'failed', lastError: 'output failed' })
+    });
   });
 });

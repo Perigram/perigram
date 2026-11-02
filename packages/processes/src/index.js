@@ -127,5 +127,7 @@ export {
   resumeProcessRun,
   createProcessRun,
   previewProcessDataflow,
-  runProcessUntilSettled
+  runProcessUntilSettled,
+  transitionProcessRun,
+  transitionProcessStep
 } from './orchestration.js';

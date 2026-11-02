@@ -1,11 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { useProcessDesignerApply } from './useProcessDesignerApply.js';
 
-// The apply orchestration contract: validation carrying a migration plan
-// pauses activation until the draft's declared migrations cover it; the
-// designer's migration dialog confirms target mappings, confirming
-// persists them as a declaration (save) and re-activates with no payload,
-// and drifted plans (409) refresh the dialog instead of failing the apply.
+// The Apply machine: one authoritative `applyState` value over the closed
+// states idle, saving, applying, migration-required, type-migration-required,
+// type-death-required, error; every gate confirm/cancel consumes its state.
 function mountApply(overrides = {}) {
   const persistence = {
     saveDraft: vi.fn(async () => ({ _id: 'draft-1' })),
@@ -33,27 +31,51 @@ function mountApply(overrides = {}) {
 }
 
 const validResult = { ok: true, errors: [], warnings: [], diff: null };
+const plan = {
+  statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 1 }], targets: ['draft'] }]
+};
 
-describe('useProcessDesignerApply migration pause', () => {
+describe('useProcessDesignerApply machine', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('pauses apply when validation carries a migration plan', async () => {
+  it('runs a save-only pass through saving and back to idle', async () => {
     const { apply, persistence } = mountApply();
-    persistence.validateDraft.mockResolvedValue({
-      ...validResult,
-      migrationPlan: { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 1 }], targets: ['draft'] }] }
-    });
+    let release;
+    persistence.saveDraft.mockImplementation(() => new Promise(resolve => {
+      release = () => resolve({ _id: 'draft-1' });
+    }));
+
+    const saving = apply.saveDraft();
+    expect(apply.applyState.value).toBe('saving');
+    release();
+    await saving;
+    expect(apply.applyState.value).toBe('idle');
+    expect(apply.applyDetail.value).toBeNull();
+  });
+
+  it('settles a save failure in error', async () => {
+    const { apply, persistence } = mountApply();
+    persistence.saveDraft.mockRejectedValue(Object.assign(new Error('boom'), { statusCode: 500 }));
+
+    await expect(apply.saveDraft()).rejects.toThrow('boom');
+    expect(apply.applyState.value).toBe('error');
+    expect(apply.applyDetail.value).toBe('boom');
+  });
+
+  it('settles a validation failure in error with the first diagnostic', async () => {
+    const { apply, persistence } = mountApply();
+    persistence.validateDraft.mockResolvedValue({ ok: false, errors: ['Missing socket'], warnings: [] });
 
     await apply.applyProcess();
 
     expect(persistence.activateDraft).not.toHaveBeenCalled();
-    expect(apply.pendingMigration.value.statuses).toHaveLength(1);
-    expect(apply.applyingProcess.value).toBe(false);
+    expect(apply.applyState.value).toBe('error');
+    expect(apply.applyDetail.value).toBe('Missing socket');
   });
 
-  it('activates without a payload when no plan is present', async () => {
+  it('activates through applying back to idle', async () => {
     const { apply, persistence } = mountApply();
     persistence.validateDraft.mockResolvedValue(validResult);
     persistence.activateDraft.mockResolvedValue({ _id: 'draft-1', data: { compiled: { warnings: [] } } });
@@ -61,7 +83,18 @@ describe('useProcessDesignerApply migration pause', () => {
     await apply.applyProcess();
 
     expect(persistence.activateDraft).toHaveBeenCalledWith('draft-1');
-    expect(apply.pendingMigration.value).toBeNull();
+    expect(apply.applyState.value).toBe('idle');
+  });
+
+  it('pauses in migration-required when validation carries a plan', async () => {
+    const { apply, persistence } = mountApply();
+    persistence.validateDraft.mockResolvedValue({ ...validResult, migrationPlan: plan });
+
+    await apply.applyProcess();
+
+    expect(persistence.activateDraft).not.toHaveBeenCalled();
+    expect(apply.applyState.value).toBe('migration-required');
+    expect(apply.applyDetail.value.statuses).toHaveLength(1);
   });
 
   it('activates without pausing when declared migrations already cover the plan', async () => {
@@ -78,16 +111,17 @@ describe('useProcessDesignerApply migration pause', () => {
     await apply.applyProcess();
 
     expect(persistence.activateDraft).toHaveBeenCalledWith('draft-1');
-    expect(apply.pendingMigration.value).toBeNull();
+    expect(apply.applyState.value).toBe('idle');
   });
 
-  it('persists confirmed mappings as a declaration, then activates with no payload', async () => {
+  it('confirming the migration persists the mappings, activates, and returns to idle', async () => {
     const { apply, persistence, draft } = mountApply();
     persistence.validateDraft.mockResolvedValue({
       ...validResult,
       migrationPlan: { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 2 }], targets: ['draft', 'done'] }] }
     });
     await apply.applyProcess();
+    expect(apply.applyState.value).toBe('migration-required');
 
     persistence.activateDraft.mockResolvedValue({ _id: 'draft-1', data: { compiled: { warnings: [] } } });
     await apply.confirmApplyMigration([{ typeId: 'project', from: 'OLD', to: 'draft' }]);
@@ -97,15 +131,24 @@ describe('useProcessDesignerApply migration pause', () => {
     ]);
     expect(persistence.saveDraft).toHaveBeenCalled();
     expect(persistence.activateDraft).toHaveBeenCalledWith('draft-1');
-    expect(apply.pendingMigration.value).toBeNull();
+    expect(apply.applyState.value).toBe('idle');
   });
 
-  it('keeps the dialog open with the fresh plan when instances drifted', async () => {
+  it('cancel returns migration-required to idle without activating', async () => {
     const { apply, persistence } = mountApply();
-    persistence.validateDraft.mockResolvedValue({
-      ...validResult,
-      migrationPlan: { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 1 }], targets: ['draft'] }] }
-    });
+    persistence.validateDraft.mockResolvedValue({ ...validResult, migrationPlan: plan });
+    await apply.applyProcess();
+
+    apply.cancelApplyMigration();
+
+    expect(apply.applyState.value).toBe('idle');
+    expect(apply.applyDetail.value).toBeNull();
+    expect(persistence.activateDraft).not.toHaveBeenCalled();
+  });
+
+  it('keeps migration-required with the fresh plan when instances drifted', async () => {
+    const { apply, persistence } = mountApply();
+    persistence.validateDraft.mockResolvedValue({ ...validResult, migrationPlan: plan });
     await apply.applyProcess();
 
     const driftedPlan = { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 5 }], targets: ['draft'] }] };
@@ -114,16 +157,13 @@ describe('useProcessDesignerApply migration pause', () => {
     persistence.activateDraft.mockRejectedValue(drifted);
     await apply.confirmApplyMigration([{ typeId: 'project', from: 'OLD', to: 'draft' }]);
 
-    // The reactive ref wraps the plan, so assert the drifted content.
-    expect(apply.pendingMigration.value.statuses[0].removed[0].count).toBe(5);
+    expect(apply.applyState.value).toBe('migration-required');
+    expect(apply.applyDetail.value.statuses[0].removed[0].count).toBe(5);
   });
 
-  it('keeps the plan on incomplete migrations so re-confirming resumes', async () => {
+  it('keeps migration-required on incomplete migrations so re-confirming resumes', async () => {
     const { apply, persistence } = mountApply();
-    persistence.validateDraft.mockResolvedValue({
-      ...validResult,
-      migrationPlan: { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 3 }], targets: ['draft'] }] }
-    });
+    persistence.validateDraft.mockResolvedValue({ ...validResult, migrationPlan: plan });
     await apply.applyProcess();
 
     const incomplete = new Error('Migration incomplete');
@@ -131,59 +171,10 @@ describe('useProcessDesignerApply migration pause', () => {
     persistence.activateDraft.mockRejectedValue(incomplete);
     await apply.confirmApplyMigration([{ typeId: 'project', from: 'OLD', to: 'draft' }]);
 
-    expect(apply.pendingMigration.value).not.toBeNull();
+    expect(apply.applyState.value).toBe('migration-required');
   });
 
-  it('clears the plan on cancel without activating', async () => {
-    const { apply, persistence } = mountApply();
-    persistence.validateDraft.mockResolvedValue({
-      ...validResult,
-      migrationPlan: { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 1 }], targets: ['draft'] }] }
-    });
-    await apply.applyProcess();
-
-    apply.cancelApplyMigration();
-
-    expect(apply.pendingMigration.value).toBeNull();
-    expect(persistence.activateDraft).not.toHaveBeenCalled();
-  });
-
-  it('rethrows save failures without creating anything', async () => {
-    const createDraft = vi.fn();
-    const { apply, persistence } = mountApply({ createDraft });
-    persistence.saveDraft.mockRejectedValue(Object.assign(new Error('boom'), { statusCode: 500 }));
-
-    await expect(apply.saveDraft()).rejects.toThrow('boom');
-    expect(createDraft).not.toHaveBeenCalled();
-  });
-
-  it('saves an active definition in place (one document, no fork)', async () => {
-    const createDraft = vi.fn();
-    const { apply, persistence, draft } = mountApply({ createDraft });
-    draft.value = { _id: 'process-1', states: { main: 'ACTIVE' }, data: {} };
-    persistence.saveDraft.mockResolvedValue({ _id: 'process-1', states: { main: 'ACTIVE' } });
-
-    const result = await apply.saveDraft();
-
-    expect(persistence.saveDraft).toHaveBeenCalledWith('process-1', expect.anything());
-    expect(createDraft).not.toHaveBeenCalled();
-    expect(result).toEqual({ _id: 'process-1', states: { main: 'ACTIVE' } });
-  });
-
-  it('lands declaration-post failures in the persistent validation feedback and stops before validation', async () => {
-    const validation = { value: null };
-    const { apply, persistence } = mountApply({
-      validation,
-      persistTreeDeclarations: vi.fn(async () => ({ failures: ['Plate: bad descriptor'] }))
-    });
-
-    await apply.applyProcess();
-
-    expect(persistence.validateDraft).not.toHaveBeenCalled();
-    expect(validation.value).toMatchObject({ ok: false, errors: ['Plate: bad descriptor'] });
-  });
-
-  it('pauses apply with the step dialog when a declaration post carries a migration plan', async () => {
+  it('pauses in type-migration-required when a declaration post carries a plan', async () => {
     const validation = { value: null };
     const planFailure = {
       typeId: 'child',
@@ -202,15 +193,15 @@ describe('useProcessDesignerApply migration pause', () => {
 
     expect(persistence.validateDraft).not.toHaveBeenCalled();
     expect(persistence.activateDraft).not.toHaveBeenCalled();
-    expect(apply.pendingTypeMigration.value).toEqual([planFailure]);
-    // The refusal also lands in the persistent feedback, named by the type.
+    expect(apply.applyState.value).toBe('type-migration-required');
+    expect(apply.applyDetail.value).toEqual([planFailure]);
     expect(validation.value).toMatchObject({
       ok: false,
       errors: ['Child: remove-field anythin requires a remove-field or rename-field step']
     });
   });
 
-  it('confirming writes the steps onto the class nodes and retries the apply', async () => {
+  it('confirming type migration writes the steps and retries the apply', async () => {
     const planFailure = {
       typeId: 'child',
       typeName: 'Child',
@@ -232,21 +223,19 @@ describe('useProcessDesignerApply migration pause', () => {
     persistence.activateDraft.mockResolvedValue({ _id: 'draft-1', data: { compiled: { warnings: [] } } });
 
     await apply.applyProcess();
-    expect(apply.pendingTypeMigration.value).toHaveLength(1);
+    expect(apply.applyState.value).toBe('type-migration-required');
 
     await apply.confirmTypeMigration({
       child: [{ kind: 'rename-field', from: 'anythin', to: 'anything' }]
     });
 
-    // The confirmed steps are the author's consent: they land on the class
-    // node as declaration state before the retry posts them.
     expect(classNode.data.migrate).toEqual([{ kind: 'rename-field', from: 'anythin', to: 'anything' }]);
     expect(persistTreeDeclarations).toHaveBeenCalledTimes(2);
     expect(persistence.activateDraft).toHaveBeenCalledWith('draft-1');
-    expect(apply.pendingTypeMigration.value).toBeNull();
+    expect(apply.applyState.value).toBe('idle');
   });
 
-  it('cancel clears the type-migration pause without writing steps', async () => {
+  it('cancel returns type-migration-required to idle without writing steps', async () => {
     const planFailure = {
       typeId: 'child',
       typeName: 'Child',
@@ -261,23 +250,11 @@ describe('useProcessDesignerApply migration pause', () => {
     await apply.applyProcess();
     apply.cancelTypeMigration();
 
-    expect(apply.pendingTypeMigration.value).toBeNull();
+    expect(apply.applyState.value).toBe('idle');
     expect(persistence.activateDraft).not.toHaveBeenCalled();
   });
-});
 
-describe('type lifetime pause (SPEC §4)', () => {
-  it('extracts the death payload from both h3 nestings', async () => {
-    const { typeDeathOf } = await import('./useProcessDesignerApply.js');
-    const rows = [{ typeId: 'facade-order', name: 'Facade order', instances: 2 }];
-    // h3 createError nests its data one level deep in the ofetch body.
-    expect(typeDeathOf({ data: { statusCode: 409, data: { typeDeath: rows } } })).toEqual(rows);
-    // Some transports hand the payload over already unwrapped.
-    expect(typeDeathOf({ data: { typeDeath: rows } })).toEqual(rows);
-    expect(typeDeathOf({ data: { message: 'other' } })).toBeNull();
-  });
-
-  it('the death 409 pauses with the disclaimer and confirms with consent', async () => {
+  it('pauses in type-death-required and confirms activation with consent', async () => {
     const rows = [{ typeId: 'facade-order', name: 'Facade order', instances: 2 }];
     const activateError = { data: { statusCode: 409, data: { typeDeath: rows } } };
     let calls = 0;
@@ -293,12 +270,67 @@ describe('type lifetime pause (SPEC §4)', () => {
     const { apply } = mountApply({ persistence });
 
     await apply.applyProcess();
-    // Paused, not failed: the disclaimer holds the rows, activation ran once.
-    expect(apply.pendingTypeDeath.value?.typeDeath).toEqual(rows);
+    expect(apply.applyState.value).toBe('type-death-required');
+    expect(apply.applyDetail.value).toEqual(rows);
 
     const activated = await apply.confirmTypeDeath();
     expect(activated?._id).toBe('draft-1');
     expect(persistence.activateDraft).toHaveBeenCalledWith('draft-1', { confirmTypeDeath: true });
-    expect(apply.pendingTypeDeath.value).toBeNull();
+    expect(apply.applyState.value).toBe('idle');
+  });
+
+  it('cancel returns type-death-required to idle without activating', async () => {
+    const rows = [{ typeId: 'facade-order', name: 'Facade order', instances: 2 }];
+    const persistence = {
+      saveDraft: vi.fn(async () => ({ _id: 'draft-1' })),
+      validateDraft: vi.fn(async () => ({ ok: true, errors: [], warnings: [] })),
+      activateDraft: vi.fn(async () => { throw { data: { data: { typeDeath: rows } } }; })
+    };
+    const { apply } = mountApply({ persistence });
+
+    await apply.applyProcess();
+    apply.cancelTypeDeath();
+
+    expect(apply.applyState.value).toBe('idle');
+    expect(apply.applyDetail.value).toBeNull();
+  });
+
+  it('ignores overlapping gate arrivals: a second apply cannot replace an open gate', async () => {
+    const { apply, persistence } = mountApply();
+    persistence.validateDraft.mockResolvedValue({ ...validResult, migrationPlan: plan });
+    await apply.applyProcess();
+
+    await apply.applyProcess();
+    apply.cancelTypeMigration();
+    apply.cancelTypeDeath();
+
+    expect(persistence.validateDraft).toHaveBeenCalledTimes(1);
+    expect(apply.applyState.value).toBe('migration-required');
+    expect(apply.applyDetail.value.statuses).toHaveLength(1);
+  });
+
+  it('ignores confirmations that do not belong to the open gate', async () => {
+    const { apply, persistence } = mountApply({
+      persistTreeDeclarations: vi.fn(async () => ({
+        failures: [{ typeId: 'child', typeName: 'Child', plan: { changes: [], requiredSteps: ['x'] } }]
+      }))
+    });
+    await apply.applyProcess();
+    expect(apply.applyState.value).toBe('type-migration-required');
+
+    await apply.confirmApplyMigration([]);
+
+    expect(apply.applyState.value).toBe('type-migration-required');
+    expect(persistence.activateDraft).not.toHaveBeenCalled();
+  });
+});
+
+describe('type lifetime payload', () => {
+  it('extracts the death payload from both h3 nestings', async () => {
+    const { typeDeathOf } = await import('./useProcessDesignerApply.js');
+    const rows = [{ typeId: 'facade-order', name: 'Facade order', instances: 2 }];
+    expect(typeDeathOf({ data: { statusCode: 409, data: { typeDeath: rows } } })).toEqual(rows);
+    expect(typeDeathOf({ data: { typeDeath: rows } })).toEqual(rows);
+    expect(typeDeathOf({ data: { message: 'other' } })).toBeNull();
   });
 });

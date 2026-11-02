@@ -66,6 +66,9 @@ export async function terminate(partnershipId, auth = {}) {
   if (partnership.status === 'declined' || partnership.status === 'terminated') {
     throw createError({ statusCode: 409, message: 'Partnership is already closed' });
   }
+  if (partnership.status === 'pending' && String(partnership.requesterOrganizationId) !== String(organizationId)) {
+    throw createError({ statusCode: 403, message: 'Only the requesting organization can cancel' });
+  }
 
   const status = partnership.status === 'active' ? 'terminated' : 'declined';
   await repository.setStatus(partnership._id, status, {

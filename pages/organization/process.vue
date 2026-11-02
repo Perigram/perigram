@@ -619,30 +619,30 @@
     </StandardDialog>
 
     <ApplyMigrationDialog
-      :visible="Boolean(pendingMigration)"
-      :plan="pendingMigration"
+      :visible="applyState === 'migration-required'"
+      :plan="applyState === 'migration-required' ? applyDetail : null"
       :mappings="draft?.data?.migrations?.statuses || null"
-      :loading="applyingProcess"
+      :loading="applyState === 'applying'"
       @update:visible="value => { if (!value) cancelApplyMigration(); }"
       @confirm="confirmApplyMigration"
       @cancel="cancelApplyMigration"
     />
 
     <TypeMigrationStepsDialog
-      :visible="Boolean(pendingTypeMigration)"
-      :failures="pendingTypeMigration"
+      :visible="applyState === 'type-migration-required'"
+      :failures="applyState === 'type-migration-required' ? applyDetail : null"
       :vocabulary="typeMigrationVocabulary"
-      :loading="applyingProcess"
+      :loading="applyState === 'applying'"
       @update:visible="value => { if (!value) cancelTypeMigration(); }"
       @confirm="confirmTypeMigration"
       @cancel="cancelTypeMigration"
     />
 
     <TypeDeathDialog
-      :visible="Boolean(pendingTypeDeath || pendingDefinitionDeath)"
-      :type-death="(pendingTypeDeath || pendingDefinitionDeath)?.typeDeath || []"
+      :visible="applyState === 'type-death-required' || Boolean(pendingDefinitionDeath)"
+      :type-death="(applyState === 'type-death-required' ? applyDetail : null) || pendingDefinitionDeath?.typeDeath || []"
       :deleting-definition="pendingDefinitionDeath?.action === 'delete'"
-      :loading="applyingProcess || Boolean(definitionBusyId)"
+      :loading="applyState === 'applying' || Boolean(definitionBusyId)"
       @update:visible="value => { if (!value) { cancelTypeDeath(); pendingDefinitionDeath = null; } }"
       @confirm="pendingDefinitionDeath ? confirmDefinitionDeath() : confirmTypeDeath()"
       @cancel="() => { cancelTypeDeath(); pendingDefinitionDeath = null; }"
@@ -1000,11 +1000,8 @@ const {
 });
 
 const {
-  savingDraft,
-  applyingProcess,
-  pendingMigration,
-  pendingTypeMigration,
-  pendingTypeDeath,
+  applyState,
+  applyDetail,
   saveDraft,
   saveDraftFromDock,
   applyProcess,
@@ -1030,6 +1027,8 @@ const {
   syncNow: () => syncNodeData(),
   nodes
 });
+
+const applyBusy = computed(() => applyState.value === 'saving' || applyState.value === 'applying');
 
 // Authored vocabulary for the type-migration step dialog: class names,
 // field labels (tree first, stored descriptors for removed fields), and
@@ -1128,7 +1127,7 @@ const documentDockItems = computed(() => [
     icon: 'pi pi-file-plus',
     label: t('processDesigner.newDraft'),
     onClick: createDraftFromDock,
-    disabled: creatingDraft.value || savingDraft.value || applyingProcess.value,
+    disabled: creatingDraft.value || applyBusy.value,
     loading: creatingDraft.value
   },
   { separator: true },
@@ -1136,15 +1135,15 @@ const documentDockItems = computed(() => [
     icon: 'pi pi-save',
     label: t('common.save'),
     onClick: saveDraftFromDock,
-    disabled: !draft.value || savingDraft.value || creatingDraft.value || applyingProcess.value,
+    disabled: !draft.value || applyBusy.value || creatingDraft.value,
     attention: isDirty.value
   },
   {
     icon: 'pi pi-check',
     label: t('processDesigner.apply'),
     onClick: applyProcess,
-    disabled: !draft.value?._id || applyingProcess.value || savingDraft.value || creatingDraft.value,
-    loading: applyingProcess.value
+    disabled: !draft.value?._id || applyBusy.value || creatingDraft.value,
+    loading: applyState.value === 'applying'
   }
 ]);
 // Lanes — the authorization surface, canonical in

@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useAuthStore } from './auth';
 import { useInstancesStore } from './instances';
-import { emitInstanceCreated, emitInstanceDeleted, emitInstanceUpdated } from '~/utils/instance-events.js';
+import { emitInstanceCreated, emitInstanceDeleted, emitInstanceMutation, emitInstanceUpdated } from '~/utils/instance-events.js';
+import { OfflineQueuedError } from '~/utils/outbox.js';
 
 // The client state model contract: cache key
 // canonicalization, endpoint resolution mirroring the server resolver,
@@ -268,5 +269,117 @@ describe('instances store optimistic mutations', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(isSelfPublished(7)).toBe(true);
+  });
+});
+
+describe('instances store optimistic write state', () => {
+  let deferredMutate;
+
+  beforeEach(async () => {
+    setActivePinia(createPinia());
+    seedBundle();
+    vi.stubGlobal('window', new EventTarget());
+    vi.stubGlobal('$fetch', vi.fn().mockResolvedValue({ eventId: 7 }));
+    const { useOutboxStore } = await import('./outbox');
+    const store = useOutboxStore();
+    deferredMutate = vi.spyOn(store, 'mutate');
+  });
+
+  it('starts idle, enters pending on the preview, and settles confirmed on the response', async () => {
+    const instances = useInstancesStore();
+    instances.upsertRecord('queue', { _id: 'q-1', name: 'One', fields: {} });
+    expect(instances.writeStateFor('queue', 'q-1')).toBe('idle');
+
+    deferredMutate.mockImplementation(() => new Promise((resolve, reject) => {
+      deferredMutate.resolve = resolve;
+      deferredMutate.reject = reject;
+    }));
+    const pending = instances.updateInstance('queue', 'q-1', { name: 'Two' });
+    expect(instances.writeStateFor('queue', 'q-1')).toBe('pending');
+
+    deferredMutate.resolve({ _id: 'q-1', name: 'Two', fields: {} });
+    await pending;
+    expect(instances.writeStateFor('queue', 'q-1')).toBe('confirmed');
+  });
+
+  it('settles a delete as pending then confirmed', async () => {
+    const instances = useInstancesStore();
+    instances.upsertRecord('queue', { _id: 'q-1', name: 'One', fields: {} });
+    deferredMutate.mockImplementation(() => new Promise((resolve, reject) => {
+      deferredMutate.resolve = resolve;
+      deferredMutate.reject = reject;
+    }));
+
+    const pending = instances.removeInstance('queue', 'q-1');
+    expect(instances.writeStateFor('queue', 'q-1')).toBe('pending');
+
+    deferredMutate.resolve({ ok: true });
+    await pending;
+    expect(instances.writeStateFor('queue', 'q-1')).toBe('confirmed');
+  });
+
+  it('serializes concurrent writes per record id', async () => {
+    const instances = useInstancesStore();
+    instances.upsertRecord('queue', { _id: 'q-1', name: 'One', fields: {} });
+    const requests = [];
+    deferredMutate.mockImplementation(() => new Promise((resolve, reject) => {
+      requests.push({ resolve, reject });
+    }));
+
+    const first = instances.updateInstance('queue', 'q-1', { name: 'Two' });
+    const second = instances.updateInstance('queue', 'q-1', { name: 'Three' });
+    expect(deferredMutate).toHaveBeenCalledTimes(1);
+    expect(instances.writeStateFor('queue', 'q-1')).toBe('pending');
+
+    requests[0].resolve({ _id: 'q-1', name: 'Two', fields: {} });
+    await first;
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(deferredMutate).toHaveBeenCalledTimes(2);
+    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ name: 'Three' });
+
+    requests[1].resolve({ _id: 'q-1', name: 'Three', fields: {} });
+    await second;
+    expect(instances.writeStateFor('queue', 'q-1')).toBe('confirmed');
+    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ name: 'Three' });
+  });
+
+  it('settles rolled-back when the write fails', async () => {
+    const instances = useInstancesStore();
+    instances.upsertRecord('queue', { _id: 'q-1', name: 'One', fields: {} });
+    deferredMutate.mockRejectedValue(new Error('denied'));
+
+    await expect(instances.updateInstance('queue', 'q-1', { name: 'Two' })).rejects.toThrow('denied');
+    expect(instances.writeStateFor('queue', 'q-1')).toBe('rolled-back');
+    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ name: 'One' });
+  });
+
+  it('settles queued for an offline write and rolls the preview back', async () => {
+    const instances = useInstancesStore();
+    instances.upsertRecord('queue', { _id: 'q-1', name: 'One', fields: {} });
+    deferredMutate.mockRejectedValue(new OfflineQueuedError('op-1'));
+
+    await expect(instances.updateInstance('queue', 'q-1', { name: 'Two' })).rejects.toThrow('Queued offline');
+    expect(instances.writeStateFor('queue', 'q-1')).toBe('queued');
+    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ name: 'One' });
+  });
+
+  it('reconciles a queued write to confirmed when the replay event lands', async () => {
+    const instances = useInstancesStore();
+    instances.upsertRecord('queue', { _id: 'q-1', name: 'One', fields: {} });
+    deferredMutate.mockRejectedValue(new OfflineQueuedError('op-1'));
+    await expect(instances.updateInstance('queue', 'q-1', { name: 'Two' })).rejects.toThrow('Queued offline');
+    expect(instances.writeStateFor('queue', 'q-1')).toBe('queued');
+
+    emitInstanceMutation({
+      type: 'queue',
+      id: 'q-1',
+      instance: { _id: 'q-1', name: 'Two', fields: {} },
+      change: 'updated',
+      reason: 'outbox-instance',
+      source: 'outbox'
+    });
+
+    expect(instances.writeStateFor('queue', 'q-1')).toBe('confirmed');
+    expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ name: 'Two' });
   });
 });

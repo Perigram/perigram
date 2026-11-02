@@ -2,7 +2,7 @@
   <div class="call-workspace h-full min-h-0">
     <div class="call-workspace__layout flex h-full min-h-0 w-full flex-col overflow-hidden">
       <div class="call-workspace__stage relative flex min-h-0 min-w-0 flex-1 flex-col">
-        <CallPanel :room="room" @closed="$emit('closed')" />
+        <CallPanel :room="room" placement="tab" @closed="$emit('closed')" />
       </div>
       <aside
         v-if="conversationKey"

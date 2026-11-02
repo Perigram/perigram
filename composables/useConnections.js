@@ -8,6 +8,7 @@ import { computed, ref } from 'vue'
  * (re)connect.
  */
 const status = ref('idle')
+const syncState = ref('idle')
 const onlineUsers = ref([])
 // Advances on every `ready` event — each (re)connect is a new epoch, so
 // consumers that can miss events during a stream gap refetch state.
@@ -22,14 +23,16 @@ const desiredTopics = new Set()
 const onlineUserIds = computed(() => new Set(onlineUsers.value.map(entry => entry.userId)))
 
 let syncAttempts = 0
+const SYNC_RETRY_LIMIT = 5
 
 async function syncSubscriptions() {
-    if (!connectionId || !desiredTopics.size) return
+    if (!connectionId) return
     if (syncing) {
         pendingSync = true
         return
     }
     syncing = true
+    syncState.value = 'syncing'
     let ok = false
     let staleConnection = false
     try {
@@ -56,13 +59,15 @@ async function syncSubscriptions() {
     }
     if (ok) {
         syncAttempts = 0
+        syncState.value = 'synced'
         if (pendingSync) {
             pendingSync = false
             syncSubscriptions()
         }
         return
     }
-    if (syncAttempts < 5) {
+    syncState.value = 'failed'
+    if (syncAttempts < SYNC_RETRY_LIMIT) {
         syncAttempts += 1
         pendingSync = true
         setTimeout(() => {
@@ -81,6 +86,7 @@ function resetStream() {
     }
     connectionId = null
     status.value = 'reconnecting'
+    syncState.value = 'idle'
     syncAttempts = 0
     setTimeout(ensureConnection, 500)
 }
@@ -117,7 +123,7 @@ function handleMessage(rawEvent) {
 }
 
 function ensureConnection() {
-    if (!import.meta.client || source) return
+    if (typeof window === 'undefined' || source) return
     status.value = 'connecting'
     source = new EventSource('/api/connections/events')
     source.onmessage = handleMessage
@@ -163,6 +169,7 @@ export function useConnections() {
 
     return {
         status,
+        syncState,
         epoch,
         onlineUsers,
         onlineUserIds,

@@ -48,5 +48,5 @@ export function applyOwnerPermissionsToAuth(auth = {}) {
 }
 
 function isActiveMembership(membership = {}) {
-  return !['pending', 'rejected'].includes(membership.status);
+  return membership.status === 'active';
 }

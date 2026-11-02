@@ -162,6 +162,15 @@ export async function listCommandRuns(filter = {}) {
   return commandRunsRepository.list(filter);
 }
 
+export async function recoverAbandonedCommandRuns({ staleAfterMs = 15 * 60 * 1000 } = {}) {
+  const abandoned = await commandRunsRepository.abandonRunning({
+    error: { message: 'Command run abandoned', reason: 'abandoned' },
+    finishedAt: new Date(),
+    startedBefore: new Date(Date.now() - Number(staleAfterMs))
+  });
+  return { abandoned };
+}
+
 async function loadCommandEntities(registry, command, refs) {
   const loaded = {};
   for (const input of command.input?.entities || []) {

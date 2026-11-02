@@ -132,11 +132,22 @@ export async function updatePaymentById(id, updates) {
   return findPaymentById(id);
 }
 
+export const PAYMENT_ATTEMPT_CAP = 3;
+
 export async function completePaymentOnce(id, updates) {
   const db = await connectDB();
   return db.collection(PAYMENTS).findOneAndUpdate(
-    { _id: toFlexibleId(id), status: { $ne: 'completed' } },
+    { _id: toFlexibleId(id), status: { $in: ['created', 'processing'] } },
     { $set: { ...updates, status: 'completed', updatedAt: new Date() } },
+    { returnDocument: 'after' }
+  );
+}
+
+export async function failPaymentOnce(id, updates) {
+  const db = await connectDB();
+  return db.collection(PAYMENTS).findOneAndUpdate(
+    { _id: toFlexibleId(id), status: { $in: ['created', 'processing'] } },
+    { $set: { ...updates, status: 'failed', updatedAt: new Date() } },
     { returnDocument: 'after' }
   );
 }
@@ -147,10 +158,31 @@ export async function claimPendingPayment() {
     {
       status: 'created',
       createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) },
-      attempt: { $lt: 3 }
+      attempt: { $lt: PAYMENT_ATTEMPT_CAP }
     },
     { $set: { status: 'processing', updatedAt: new Date() }, $inc: { attempt: 1 } },
     { returnDocument: 'after' }
   );
   return result;
+}
+
+export async function failInterruptedPayments() {
+  const db = await connectDB();
+  const payments = await db.collection(PAYMENTS)
+    .find({ status: 'processing', attempt: { $gte: PAYMENT_ATTEMPT_CAP } })
+    .toArray();
+  if (!payments.length) return [];
+  await db.collection(PAYMENTS).updateMany(
+    { status: 'processing', attempt: { $gte: PAYMENT_ATTEMPT_CAP } },
+    { $set: { status: 'failed', failedAt: new Date(), updatedAt: new Date() } }
+  );
+  return payments;
+}
+
+export async function resetProcessingPayments() {
+  const db = await connectDB();
+  await db.collection(PAYMENTS).updateMany(
+    { status: 'processing' },
+    { $set: { status: 'created', updatedAt: new Date() } }
+  );
 }

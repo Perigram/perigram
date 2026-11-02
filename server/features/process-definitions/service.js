@@ -24,6 +24,8 @@ import {
   resolveConstructionMode,
   resumeProcessRun,
   serializeProcessResult,
+  transitionProcessRun,
+  transitionProcessStep,
   validateRoundTrip,
   authoredSocketDefault,
   isDataTree,
@@ -272,6 +274,7 @@ export async function create(payload = {}, auth) {
     data: authored
   });
   applyProcessState(process, 'DRAFT', auth.userId, 'Process draft created');
+  setMigrationState(process, 'none');
   const created = await repository.create(process);
   return new ProcessDefinition(created).toJSON();
 }
@@ -291,8 +294,12 @@ export async function update(id, payload = {}, auth) {
   const domain = await getProjectedDomain(process.lineage.organizationId);
   const authored = persistedRewrites(structuredClone(payload.data), domain);
   assertEdgeSocketIntegrity(authored);
+  const migrationState = process.data?.migrations?.state || null;
   process.data = authored;
   process.data.compiled = null;
+  if (process.data.migrations?.state || migrationState) {
+    setMigrationState(process, process.data.migrations?.state || migrationState);
+  }
   const updated = await repository.updateById(id, process);
   return new ProcessDefinition(updated).toJSON();
 }
@@ -400,6 +407,8 @@ export async function validate(id, auth) {
 
 export async function activate(id, auth, { confirmTypeDeath = false } = {}) {
   const process = await loadAuthorized(id, auth, 'admin');
+  const publicationFrom = publicationStateOf(process);
+  const previousMigrationState = process.data?.migrations?.state || 'none';
   const domain = await getProjectedDomain(process.lineage.organizationId);
   const accepted = currentProcessDefinition(process.data, domain);
   assertCanonicalProcessSource(accepted);
@@ -435,10 +444,28 @@ export async function activate(id, auth, { confirmTypeDeath = false } = {}) {
   const mergedNext = await mergedNextContract(process, roles);
   const stranded = mergedNext ? await collectStrandedInstanceStatees(process, auth, mergedNext) : [];
   const plan = stranded.length ? buildStatusMigrationPlan(stranded, mergedNext) : null;
+  // Migration-decision law: README §Migration gate and plan (Decision).
+  const mappings = normalizeStatusMappings(process.data?.migrations?.statuses);
+  if (stranded.length) {
+    if (!mappings.length) {
+      setMigrationState(process, 'required');
+      await repository.updateById(id, process);
+      throwMigrationRequired(stranded, plan);
+    }
+    const mappingErrors = validateStatusMappings(plan, mappings);
+    if (mappingErrors.length) {
+      setMigrationState(process, 'required');
+      await repository.updateById(id, process);
+      throw createError({ statusCode: 400, message: mappingErrors.join('; '), data: { migrationPlan: plan } });
+    }
+    setMigrationState(process, 'required');
+  } else {
+    setMigrationState(process, previousMigrationState === 'incomplete' ? 'applied' : 'none');
+  }
   // Version record (feature README): re-activating an already-active
   // definition preserves the superseded authored snapshot in data.history
   // before the new graph activates.
-  if (process.status?.state?.primary === 'ACTIVE') {
+  if (publicationFrom === 'ACTIVE') {
     const history = [...(process.data.history || []), {
       at: new Date().toISOString(),
       actor: auth.userId || 'SYSTEM',
@@ -446,16 +473,7 @@ export async function activate(id, auth, { confirmTypeDeath = false } = {}) {
     }];
     process.data.history = history.slice(-50);
   }
-  // Migration-decision law: README §Migration gate and plan (Decision).
-  const mappings = normalizeStatusMappings(process.data?.migrations?.statuses);
-  if (stranded.length) {
-    if (!mappings.length) throwMigrationRequired(stranded, plan);
-    const mappingErrors = validateStatusMappings(plan, mappings);
-    if (mappingErrors.length) {
-      throw createError({ statusCode: 400, message: mappingErrors.join('; '), data: { migrationPlan: plan } });
-    }
-  }
-  applyProcessState(process, 'ACTIVE', auth.userId, 'Process activated');
+  applyPublicationState(process, 'activate', auth.userId, 'Process activated');
   // The runtime source for an active-set member is the snapshot that
   // activation published (feature README): edits accumulate as draft
   // data and go live only through activation.
@@ -479,6 +497,7 @@ export async function activate(id, auth, { confirmTypeDeath = false } = {}) {
     process.data.migrations = {
       ...(process.data.migrations || {}),
       statuses: mappings,
+      state: migration.failures.length ? 'incomplete' : 'applied',
       applied: {
         appliedAt: new Date().toISOString(),
         actor: auth.userId || 'SYSTEM',
@@ -543,6 +562,7 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
     compiled: await compileOrganizationProcess(process.data, process.lineage.organizationId, roles)
   };
   applyProcessState(process, 'ACTIVE', actorId || 'SYSTEM', 'Process activated (empty)');
+  setMigrationState(process, 'none');
 
   const created = await repository.create(process);
   return new ProcessDefinition(created).toJSON();
@@ -553,10 +573,7 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
 // re-derives from the remaining actives.
 export async function deactivate(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
-  if (process.status?.state?.primary !== 'ACTIVE') {
-    throw createError({ statusCode: 409, message: 'Only active process definitions can be deactivated' });
-  }
-  applyProcessState(process, 'DRAFT', auth.userId, 'Process deactivated');
+  applyPublicationState(process, 'deactivate', auth.userId, 'Process deactivated');
   const updated = await repository.updateById(id, process);
   await ensureInstanceIndexes((await compileRegistryForOrganization(process.lineage.organizationId)).resolveView(process.lineage.organizationId));
   publishOrgContractChanged(String(process.lineage.organizationId), 'process', { definitionId: String(updated._id) });
@@ -594,8 +611,12 @@ export async function remove(id, auth, { confirmTypeDeath = false } = {}) {
 
 export async function archive(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
-  applyProcessState(process, 'ARCHIVED', auth.userId, 'Process archived');
+  const { from } = applyPublicationState(process, 'archive', auth.userId, 'Process archived');
   const updated = await repository.updateById(id, process);
+  if (from === 'ACTIVE') {
+    await ensureInstanceIndexes((await compileRegistryForOrganization(process.lineage.organizationId)).resolveView(process.lineage.organizationId));
+    publishOrgContractChanged(String(process.lineage.organizationId), 'process', { definitionId: String(id) });
+  }
   return new ProcessDefinition(updated).toJSON();
 }
 
@@ -865,19 +886,20 @@ function projectedCompletionOutput(invocation, taskResult = {}) {
 }
 
 function failRunState(state, { error, cancelled }) {
+  if (['succeeded', 'failed', 'cancelled'].includes(state.status)) return state;
   const next = structuredClone(state);
   const failure = { message: error?.message || String(error || 'Task failed'), statusCode: error?.statusCode || null };
   const pendingStepId = next.pendingEffect?.stepId;
   if (pendingStepId) {
     const step = next.steps.find(item => item.id === pendingStepId);
     if (step) {
-      step.status = cancelled ? 'cancelled' : 'failed';
+      transitionProcessStep(step, cancelled ? 'cancelled' : 'failed');
       step.error = failure;
       step.completedAt = new Date().toISOString();
     }
   }
   delete next.pendingEffect;
-  next.status = cancelled ? 'cancelled' : 'failed';
+  transitionProcessRun(next, cancelled ? 'cancelled' : 'failed');
   next.error = failure;
   next.updatedAt = new Date().toISOString();
   return next;
@@ -1448,6 +1470,33 @@ function statusDisplayMetadata(status = {}) {
 export async function getByIdInternal(id) {
   const raw = await repository.findById(id);
   return raw ? new ProcessDefinition(raw).toJSON() : null;
+}
+
+const PUBLICATION_TRANSITIONS = Object.freeze({
+  DRAFT: Object.freeze({ activate: 'ACTIVE', archive: 'ARCHIVED' }),
+  ACTIVE: Object.freeze({ activate: 'ACTIVE', deactivate: 'DRAFT', archive: 'ARCHIVED' }),
+  ARCHIVED: Object.freeze({ activate: 'ACTIVE', archive: 'ARCHIVED' })
+});
+
+const MIGRATION_STATES = Object.freeze(['none', 'required', 'applied', 'incomplete']);
+
+function publicationStateOf(process) {
+  return process.status?.state?.primary || 'DRAFT';
+}
+
+function applyPublicationState(process, event, userId, note) {
+  const from = publicationStateOf(process);
+  const to = PUBLICATION_TRANSITIONS[from]?.[event];
+  if (!to) {
+    throw createError({ statusCode: 409, message: `Cannot ${event} a process definition in ${from}` });
+  }
+  applyProcessState(process, to, userId, note);
+  return { from, to };
+}
+
+function setMigrationState(process, state) {
+  const value = MIGRATION_STATES.includes(state) ? state : 'none';
+  process.data.migrations = { ...(process.data.migrations || {}), state: value };
 }
 
 function applyProcessState(process, primary, userId, note) {
@@ -2358,7 +2407,7 @@ async function assertOrgAccess(auth, organizationId, level) {
 export async function hasProcessDefinitionMembershipAccess(auth = {}, organizationId, level = 'read') {
   if (!['read', 'write', 'admin'].includes(level)) return false;
   const membership = findOrganizationMembership(auth, organizationId);
-  if (!membership || membership.status === 'pending' || membership.status === 'rejected') return false;
+  if (!membership || membership.status !== 'active') return false;
   if (hasPermissionGrant({ permissions: membership.permissions || {}, feature: 'organizations', level })) return true;
   return false;
 }

@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import { advanceProcessRun, createProcessRun, previewProcessDataflow, resumeProcessRun, runProcessUntilSettled } from './orchestration.js';
+import {
+  advanceProcessRun,
+  createProcessRun,
+  previewProcessDataflow,
+  resumeProcessRun,
+  runProcessUntilSettled,
+  transitionProcessRun,
+  transitionProcessStep
+} from './orchestration.js';
 import { isMissingField } from './missing-field.js';
 
 function process(records, nodes, edges) {
@@ -446,6 +454,49 @@ describe('durable process orchestration', () => {
     });
     expect(run.status).toBe('failed');
     expect(run.error.failures).toEqual([{ name: 'logo', message: 'spot logo has no matching part' }]);
+  });
+
+  it('enforces the run and step transition tables', () => {
+    const run = { status: 'running' };
+    transitionProcessRun(run, 'waiting');
+    transitionProcessRun(run, 'running');
+    transitionProcessRun(run, 'succeeded');
+    expect(() => transitionProcessRun(run, 'running')).toThrow(/Illegal process run transition succeeded/);
+
+    const step = { status: 'pending' };
+    transitionProcessStep(step, 'running');
+    transitionProcessStep(step, 'waiting');
+    transitionProcessStep(step, 'succeeded');
+    expect(() => transitionProcessStep(step, 'running')).toThrow(/Illegal process step transition succeeded/);
+    expect(() => transitionProcessStep({ status: 'pending' }, 'succeeded')).toThrow(/pending -> succeeded/);
+    transitionProcessStep({ status: 'waiting' }, 'cancelled');
+    transitionProcessRun({ status: 'waiting' }, 'cancelled');
+  });
+
+  it('settles a run with no pending tokens as succeeded', async () => {
+    const run = { id: 'r-1', status: 'running', tokens: [], steps: [], loops: {}, updatedAt: null };
+    const settled = await advanceProcessRun(run, process([], [], []), {});
+    expect(settled.status).toBe('succeeded');
+  });
+
+  it('leaves terminal runs untouched', async () => {
+    for (const status of ['succeeded', 'failed', 'cancelled']) {
+      const run = { id: `r-${status}`, status, tokens: [{ nodeId: 'x' }], steps: [], loops: {} };
+      const next = await advanceProcessRun(run, process([], [], []), {});
+      expect(next.status).toBe(status);
+      expect(next).toEqual(run);
+    }
+  });
+
+  it('marks the failed node and run on an effect error', async () => {
+    const definition = process([
+      { id: 'start', kind: 'cts.command', commandId: 'start', trigger: { mode: 'manual' } }
+    ], ['start'], []);
+    const failed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+      executeEffect: vi.fn().mockRejectedValue(new Error('boom'))
+    });
+    expect(failed.status).toBe('failed');
+    expect(failed.steps[0]).toMatchObject({ status: 'failed', error: { message: 'boom' } });
   });
 
   it('starts a run at a scheduled entry', async () => {

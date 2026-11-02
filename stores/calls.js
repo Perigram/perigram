@@ -5,6 +5,7 @@ import { useConnections } from '~/composables/useConnections.js';
 import { roomForConversationKey } from '#shared/call-rooms.js';
 
 const CALL_DATA_TOPIC = 'call.events';
+const JOIN_TIMEOUT_MS = 30_000;
 
 /**
  * Global call-activity store: the app's call line state machine
@@ -28,6 +29,10 @@ export const useCallsStore = defineStore('calls', () => {
     const activeRoom = ref('');
     const pendingTabRoom = ref('');
     const floatingRoom = ref('');
+    // Where the session renders: tab | dialog | floating | dock. Mounted
+    // surfaces report it; the desktop auto-park writes floating and the
+    // mobile lane writes dock.
+    const placement = ref('tab');
 
     // Rooms with a mounted call surface (any stage), and rooms with an
     // open workspace call tab. A call tab keeps its session seated even
@@ -40,6 +45,7 @@ export const useCallsStore = defineStore('calls', () => {
     let unsubscribeUser = null;
     let unsubscribeOrg = null;
     let refreshTimer = null;
+    let joinTimer = null;
     const inviteTimers = new Map();
 
     const userId = computed(() => String(
@@ -134,12 +140,21 @@ export const useCallsStore = defineStore('calls', () => {
 
     // Accepting an invite is a single global transition: every ring for that
     // room clears everywhere, and the call opens as a home workspace tab
-    // (consumed by the workspace's pending-tab watcher).
+    // (consumed by the workspace's pending-tab watcher). An unanswered join
+    // expires back to ringing or idle.
     function acceptInvite(invite = {}) {
         if (!invite.room) return;
         dismissIncoming(invite.room);
         pendingTabRoom.value = invite.room;
+        placement.value = 'tab';
         status.value = 'joining';
+        if (joinTimer) clearTimeout(joinTimer);
+        joinTimer = setTimeout(() => {
+            joinTimer = null;
+            if (status.value !== 'joining') return;
+            pendingTabRoom.value = '';
+            status.value = incoming.value.length ? 'ringing' : 'idle';
+        }, JOIN_TIMEOUT_MS);
     }
 
     function consumePendingTabRoom() {
@@ -148,6 +163,10 @@ export const useCallsStore = defineStore('calls', () => {
 
     function joinRoom(room = '') {
         if (!room) return;
+        if (joinTimer) {
+            clearTimeout(joinTimer);
+            joinTimer = null;
+        }
         joinedRooms.add(room);
         activeRoom.value = room;
         status.value = 'in-call';
@@ -214,6 +233,10 @@ export const useCallsStore = defineStore('calls', () => {
         }
         for (const timer of inviteTimers.values()) clearTimeout(timer);
         inviteTimers.clear();
+        if (joinTimer) {
+            clearTimeout(joinTimer);
+            joinTimer = null;
+        }
         incoming.value = [];
         activeRooms.value = [];
         recordings.value = [];
@@ -222,6 +245,7 @@ export const useCallsStore = defineStore('calls', () => {
         joinedRooms.clear();
         pendingTabRoom.value = '';
         floatingRoom.value = '';
+        placement.value = 'tab';
         resetCallTabs();
         teardownSession();
         connected.value = false;
@@ -247,9 +271,9 @@ export const useCallsStore = defineStore('calls', () => {
     function newSessionState(name) {
         return reactive({
             name,
-            state: 'connecting', // connecting | connected | failed
+            // connecting | connected | reconnecting | failed
+            state: 'connecting',
             error: '',
-            reconnecting: false,
             micEnabled: false,
             camEnabled: false,
             sharing: false,
@@ -425,11 +449,10 @@ export const useCallsStore = defineStore('calls', () => {
             .on(LiveKit.RoomEvent.MediaDevicesChanged, () => {
                 enumerateSessionDevices();
             })
-            .on(LiveKit.RoomEvent.Reconnecting, () => { state.reconnecting = true; })
-            .on(LiveKit.RoomEvent.Reconnected, () => { state.reconnecting = false; })
+            .on(LiveKit.RoomEvent.Reconnecting, () => { state.state = 'reconnecting'; })
+            .on(LiveKit.RoomEvent.Reconnected, () => { state.state = 'connected'; })
             .on(LiveKit.RoomEvent.Disconnected, () => {
                 if (leavingSession) return;
-                state.reconnecting = false;
                 state.state = 'failed';
                 state.error = 'disconnected';
                 leaveRoom(state.name);
@@ -664,13 +687,15 @@ export const useCallsStore = defineStore('calls', () => {
         if (state) state.focusMaximized = !state.focusMaximized;
     }
 
-    // Surface registry: panels register their room while mounted. The live
-    // session with no mounted surface parks into the desktop floating
-    // window (SPEC §11); mobile surfaces never set floatingRoom, so the
-    // media dock's call lane entry takes over there. A pending tab room
-    // suspends the rule while the home workspace mounts the adopting tab.
-    function mountSurface(roomName = '') {
-        if (roomName) mountedRooms.add(roomName);
+    // Surface registry: panels register their room and placement while
+    // mounted. The live session with no mounted surface parks into the
+    // desktop floating window (SPEC §11); mobile keeps it in the media
+    // dock's call lane. A pending tab room suspends the rule while the
+    // home workspace mounts the adopting tab.
+    function mountSurface(roomName = '', nextPlacement = 'tab') {
+        if (!roomName) return;
+        mountedRooms.add(roomName);
+        placement.value = nextPlacement;
     }
 
     function unmountSurface(roomName = '') {
@@ -703,14 +728,21 @@ export const useCallsStore = defineStore('calls', () => {
     const isDesktopViewport = () => process.client
         && window.matchMedia?.('(min-width: 768px)')?.matches;
 
+    const isSessionLive = state => state === 'connected' || state === 'reconnecting';
+
     watch(() => [session.value?.state?.state, session.value?.state?.name, pendingTabRoom.value, mountedRooms.size, callTabs.size], () => {
         const entry = session.value;
-        if (!entry || entry.state.state !== 'connected') return;
+        if (!entry || !isSessionLive(entry.state.state)) return;
         if (pendingTabRoom.value) return;
         if (mountedRooms.has(entry.state.name)) return;
         if (callTabs.has(entry.state.name)) return;
         if (floatingRoom.value === entry.state.name) return;
-        if (isDesktopViewport()) floatingRoom.value = entry.state.name;
+        if (isDesktopViewport()) {
+            floatingRoom.value = entry.state.name;
+            placement.value = 'floating';
+        } else {
+            placement.value = 'dock';
+        }
     });
 
     function closeFloating() {
@@ -720,7 +752,9 @@ export const useCallsStore = defineStore('calls', () => {
     // The floating window as an opening surface (the routing fallback for
     // organizations with no generated home workspace).
     function setFloating(room = '') {
-        if (room) floatingRoom.value = room;
+        if (!room) return;
+        floatingRoom.value = room;
+        placement.value = 'floating';
     }
 
     return {
@@ -733,6 +767,7 @@ export const useCallsStore = defineStore('calls', () => {
         activeRoom,
         pendingTabRoom,
         floatingRoom,
+        placement,
         mountedRooms,
         callTabs,
         tabOpened,

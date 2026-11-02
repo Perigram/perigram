@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   activate,
+  archive,
+  continueActionFromTask,
   create,
+  deactivate,
   effectTransitionContext,
+  failActionFromTask,
   executeActiveProcessAction,
   executeProcessQuery,
   hasProcessDefinitionMembershipAccess,
@@ -358,6 +362,8 @@ describe('current process-definition service contract', () => {
     });
     expect(processList).toHaveBeenCalledWith({}, expect.objectContaining({ organizationId: 'org-acceptance' }));
     expect(processRepository.updateById).not.toHaveBeenCalledWith('process-active', expect.anything());
+    const saved = processRepository.updateById.mock.calls.at(-1)[1].toJSON();
+    expect(saved.data.migrations.state).toBe('required');
   });
 
   it('maps construction inputs onto the wire paths the §3 boundary reads', async () => {
@@ -675,6 +681,7 @@ describe('current process-definition service contract', () => {
     );
     expect(result.data.migrations).toEqual(expect.objectContaining({
       statuses: [{ typeId, from: 'LEGACY_RETIRED', to: 'draft' }],
+      state: 'applied',
       applied: expect.objectContaining({
         actor: 'admin',
         applied: { [typeId]: { 'LEGACY_RETIRED->draft': 1 } },
@@ -684,6 +691,103 @@ describe('current process-definition service contract', () => {
     // Additive activation: no organization pointer is written — the active
     // set is queried from the definitions collection.
     expect(organizationService.setActiveProcessDefinition).not.toHaveBeenCalled();
+  });
+
+  it('treats a completion or cancellation without a parked continuation as a no-op', async () => {
+    await expect(continueActionFromTask({ taskRunId: 'missing-task', taskResult: {} }))
+      .resolves.toEqual({ applied: false, reason: 'uncorrelated' });
+    await expect(failActionFromTask({ taskRunId: 'missing-task', error: new Error('gone'), cancelled: true }))
+      .resolves.toEqual({ applied: false, reason: 'uncorrelated' });
+  });
+
+  it('re-activates an archived definition through the publication table', async () => {
+    const fixture = createPersistedAcceptanceFixture();
+    const archived = {
+      ...draftRecord(fixture.processDefinition.data),
+      status: { ...draftRecord(fixture.processDefinition.data).status, state: 'ARCHIVED' }
+    };
+    processRepository.findById.mockResolvedValue(archived);
+    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+
+    const result = await activate('process-draft', adminAuth());
+
+    expect(result.states.main).toBe('ACTIVE');
+  });
+
+  it('refuses deactivation from DRAFT and returns ACTIVE to DRAFT', async () => {
+    const fixture = createPersistedAcceptanceFixture();
+    processRepository.findById.mockResolvedValue(draftRecord(fixture.processDefinition.data));
+    await expect(deactivate('process-draft', adminAuth())).rejects.toMatchObject({ statusCode: 409 });
+
+    const active = {
+      ...draftRecord(fixture.processDefinition.data),
+      status: { ...draftRecord(fixture.processDefinition.data).status, state: 'ACTIVE' }
+    };
+    processRepository.findById.mockResolvedValue(active);
+    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+
+    const result = await deactivate('process-draft', adminAuth());
+    expect(result.states.main).toBe('DRAFT');
+  });
+
+  it.each(['DRAFT', 'ACTIVE', 'ARCHIVED'])('archives a definition from %s', async state => {
+    const fixture = createPersistedAcceptanceFixture();
+    processRepository.findById.mockResolvedValue({
+      ...draftRecord(fixture.processDefinition.data),
+      status: { ...draftRecord(fixture.processDefinition.data).status, state }
+    });
+    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+
+    const result = await archive('process-draft', adminAuth());
+
+    expect(result.states.main).toBe('ARCHIVED');
+  });
+
+  it('marks an incomplete migration and resumes it to applied', async () => {
+    const fixture = createPersistedAcceptanceFixture();
+    const typeId = fixture.processDefinition.data.producerOutputs['create_cassette:result'].typeId;
+    const activeData = structuredClone(fixture.processDefinition.data);
+    activeData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({
+      draft: { canUpdateMeta: true }, LEGACY_RETIRED: {}
+    });
+    const draftData = structuredClone(fixture.processDefinition.data);
+    draftData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({
+      draft: { canUpdateMeta: true }, done: {}
+    });
+    draftData.migrations = { statuses: [{ typeId, from: 'LEGACY_RETIRED', to: 'draft' }] };
+    processRepository.findActiveByOrganization.mockResolvedValue({
+      ...fixture.processDefinition, _id: 'process-active', data: activeData
+    });
+    processRepository.findActiveSetByOrganization.mockResolvedValue([{
+      ...fixture.processDefinition, _id: 'process-active', data: activeData
+    }]);
+    processRepository.findById.mockResolvedValue(draftRecord(draftData));
+    processRepository.updateById.mockImplementation(async (id, process) => ({
+      ...process.toJSON(),
+      status: process.status ? process.status.toJSON() : null,
+      _id: id
+    }));
+    getAppRegistry.mockReturnValue({
+      getInstanceService: type => type === typeId
+        ? { processList: vi.fn().mockResolvedValue([{ _id: 'p-1', state: 'LEGACY_RETIRED' }]) }
+        : organizationService
+    });
+    stateService.setInitialStateForOrganization.mockRejectedValueOnce(new Error('migration write failed'));
+
+    await expect(activate('process-draft', adminAuth())).rejects.toMatchObject({
+      statusCode: 500,
+      data: { migrationIncomplete: true }
+    });
+    const incomplete = processRepository.updateById.mock.calls.at(-1)[1].toJSON();
+    expect(incomplete.states.main).toBe('ACTIVE');
+    expect(incomplete.data.migrations.state).toBe('incomplete');
+
+    processRepository.findById.mockResolvedValue({ ...incomplete, _id: 'process-draft' });
+    stateService.setInitialStateForOrganization.mockResolvedValue({ state: { primary: 'draft' } });
+
+    const resumed = await activate('process-draft', adminAuth());
+    expect(resumed.states.main).toBe('ACTIVE');
+    expect(resumed.data.migrations.state).toBe('applied');
   });
 
   it('renames without touching data (identity-only PATCH keeps the graph)', async () => {
@@ -746,6 +850,7 @@ describe('current process-definition service contract', () => {
     const result = await activate('process-draft', adminAuth());
 
     expect(result.states.main).toBe('ACTIVE');
+    expect(result.data.migrations.state).toBe('none');
     // The compiled machine is graph-derived (SPEC §7): the fixture's state
     // records seed the vocabulary, the construct's state default is the
     // initial, and transitions come from transition nodes (none here).

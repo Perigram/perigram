@@ -47,8 +47,7 @@ export async function register(data, creatorUserId, userOrg, creatorRole, creato
       data: {
         email: data.email.toLowerCase(),
         passwordHash,
-        memberships,
-        isActive: true
+        memberships
       }
     });
 
@@ -106,7 +105,6 @@ export async function registerBot({ name, organizationId, email = null } = {}, c
         permissions: { organizations: 'admin' },
         status: 'active'
       }],
-      isActive: true,
       bot: { createdAt: new Date() }
     }
   });
@@ -147,7 +145,6 @@ export async function login(email, password) {
   }
   
   const user = new User(userRaw);
-  if (!user.isActive) throw createError({ statusCode: 403, message: 'Account deactivated' });
   
   const valid = await verifyPassword(user.data.passwordHash, password);
   
@@ -401,7 +398,7 @@ export async function canManageUsersInOrganization(auth = {}, organizationId) {
   })) return true;
 
   const membership = findOrganizationMembership(auth, organizationId);
-  if (!membership || membership.status === 'pending' || membership.status === 'rejected') return false;
+  if (!membership || membership.status !== 'active') return false;
   if (membership.owner === true) return true;
   if (hasPermissionGrant({ permissions: membership.permissions || {}, feature: 'users', level: 'admin' })) return true;
   return false;
@@ -425,7 +422,7 @@ function findOrganizationMembership(auth = {}, organizationId) {
 async function assertCanRemoveMembership({ userId, organizationId } = {}) {
   const targetRaw = await usersRepository.findById(userId);
   const targetMembership = targetRaw?.data?.memberships?.find(item => item.organizationId?.toString() === organizationId?.toString());
-  if (!targetMembership || ['pending', 'rejected'].includes(targetMembership.status)) return;
+  if (!targetMembership || targetMembership.status !== 'active') return;
 
   const activeMembers = await usersRepository.findActiveMembersByOrganization(organizationId);
   if (activeMembers.length <= 1) {

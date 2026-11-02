@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import * as llmService from '~/server/features/llm/service.js';
 import * as supportService from '~/server/features/support/service.js';
 import * as connectionsService from '~/server/features/connections/service.js';
@@ -21,15 +22,34 @@ import { executeTool, chatToolDescriptors, toolCallDetail } from './tools.js';
 
 const HISTORY_LIMIT = 30;
 
-// One in-flight run per room: the SUBSCRIBED conversation owns the lock
-// (chat replies and wakes share it), so bursts and ancestor-subscribed
-// triggers serialize instead of racing. A trigger arriving mid-run is
-// coalesced, never dropped — the latest waits as `pending` and re-fires
-// once the current run lands, its history re-snapshot covering everything
-// said meanwhile. Each entry carries the run's cancellation handle and
-// every conversation key its stop may arrive from (the room plus the
-// trigger's fanout keys).
+// Runtime handles for live runs: the persisted run document
+// (`agent_bot_runs`) is the machine record, and this map holds only what
+// cannot be stored — the abort controller, the coalesced trigger waiting
+// on the in-process entry, and the publication snapshot the live read
+// serves. The SUBSCRIBED conversation owns the lock (chat replies and
+// wakes share it), so bursts and ancestor-subscribed triggers serialize.
 const inFlight = new Map();
+
+const RUN = Object.freeze({
+    RUNNING: 'running',
+    AWAITING_ANSWER: 'awaiting-answer',
+    STOPPING: 'stopping',
+    COMPLETED: 'completed',
+    FAILED: 'failed'
+});
+
+function openRun({ runId, botUserId, conversationKey, lockKey, organizationId, stopKeys }) {
+    return botRepository.insertRun({
+        _id: String(runId),
+        botUserId: String(botUserId),
+        conversationKey: String(conversationKey),
+        lockKey,
+        organizationId: organizationId?.toString?.() || null,
+        stopKeys: [...new Set((stopKeys || []).map(String))],
+        state: RUN.RUNNING,
+        queue: []
+    });
+}
 
 function refirePending(pending) {
     const run = pending.kind === 'wake'
@@ -105,6 +125,11 @@ export function stopConversationRuns(organizationId, conversationKey) {
         if (!keys.includes(String(conversationKey))) continue;
         if (entry.organizationId && organizationId && String(entry.organizationId) !== String(organizationId)) continue;
         entry.pending = null;
+        // The run's settle awaits this edge, so `stopping` lands before
+        // the terminal outcome.
+        entry.stopTransition ||= botRepository
+            .transitionRun(entry.runId, [RUN.RUNNING, RUN.AWAITING_ANSWER], RUN.STOPPING, { queue: [], question: null })
+            .catch(error => console.error('[AGENT-BOTS] stop transition failed:', error));
         entry.controller.abort();
         stopped += 1;
     }
@@ -553,13 +578,31 @@ async function resolveDelegatedPrincipal(organizationId, userId) {
     return execAuth;
 }
 
-// ask_user's runtime half: publish the question through the run's sink,
-// wait for the room's answer (the observer consumes it), and always
-// clear the question card — answered, stopped, or timed out.
-function askRoom(stream, conversationKey, organizationId, signal, question, options) {
+// ask_user's runtime half: move the run to `awaiting-answer`, publish the
+// question through the run's sink, wait for the room's answer (the
+// observer consumes it), and on answer or timeout return the run to
+// `running`. A stop owns the `stopping` edge and leaves the question
+// cleared.
+function askRoom({ stream, runId, conversationKey, organizationId, signal, question, options }) {
+    // Register the waiter before publishing so a fast answer cannot slip
+    // past the room's suspended question.
+    const waiting = waitForRoomAnswer(conversationKey, organizationId, signal);
     if (stream) stream.question(question, options);
-    return waitForRoomAnswer(conversationKey, organizationId, signal)
-        .finally(() => { if (stream) stream.questionEnd(); });
+    const awaiting = botRepository.transitionRun(
+        runId,
+        [RUN.RUNNING],
+        RUN.AWAITING_ANSWER,
+        { question: { question: String(question || ''), options: (options || []).map(String), askedAt: new Date() } }
+    ).catch(error => console.error('[AGENT-BOTS] question transition failed:', error));
+    return waiting.finally(async () => {
+        await awaiting;
+        if (stream) stream.questionEnd();
+        if (!signal?.aborted) {
+            await botRepository
+                .transitionRun(runId, [RUN.AWAITING_ANSWER], RUN.RUNNING, { question: null })
+                .catch(error => console.error('[AGENT-BOTS] answer transition failed:', error));
+        }
+    });
 }
 
 /**
@@ -576,62 +619,116 @@ export async function runAssistantReply(target, context, message) {
         // Coalesce, never drop: the latest trigger answers once the
         // current run lands.
         existing.pending = { kind: 'reply', target, context, message };
+        await botRepository.updateRun(existing.runId, { queue: [existing.pending] })
+            .catch(error => console.error('[AGENT-BOTS] trigger queue failed:', error));
         return;
     }
     const controller = new AbortController();
     const fanoutKeys = candidateConversationKeys(context, message);
     const stopKeys = [...new Set([roomKey, ...fanoutKeys])];
-    inFlight.set(lockKey, { conversationKey: roomKey, stopKeys, organizationId: null, controller, pending: null });
+    const runId = randomUUID();
+    const entry = {
+        runId,
+        conversationKey: roomKey,
+        stopKeys,
+        organizationId: null,
+        controller,
+        pending: null,
+        stopTransition: null,
+        live: null
+    };
+    // The lock lands before the document write: a trigger arriving during
+    // the insert still coalesces onto this run.
+    inFlight.set(lockKey, entry);
+    try {
+        await openRun({
+            runId,
+            botUserId: target.assistantId,
+            conversationKey: roomKey,
+            lockKey,
+            organizationId: target.organizationId || message.organizationId || context.organizationId,
+            stopKeys
+        });
+        if (entry.pending) {
+            await botRepository.updateRun(runId, { queue: [entry.pending] })
+                .catch(error => console.error('[AGENT-BOTS] trigger queue failed:', error));
+        }
+    } catch (error) {
+        inFlight.delete(lockKey);
+        throw error;
+    }
     let stream = null;
     // Hoisted: the failure notice in the catch needs the delegated
     // principal, and a try-scoped const is invisible there.
     let execAuth = null;
+    let answer = '';
+    let failure = null;
     try {
         execAuth = await resolveDelegatedPrincipal(
             target.organizationId || message.organizationId || context.organizationId,
             message.senderUserId
         );
-        if (!execAuth) return;
+        if (!execAuth) {
+            failure = new Error('The delegated principal is not available');
+            return;
+        }
         // The subscription's org is the wake boundary: an assistant answers
         // only its own organization's members (a shared group's foreign
         // participant stays silent).
-        if (target.organizationId && String(execAuth.organizationId || '') !== target.organizationId) return;
+        if (target.organizationId && String(execAuth.organizationId || '') !== target.organizationId) {
+            failure = new Error('The sender is outside the subscription organization');
+            return;
+        }
         const assistantAuth = await buildPrincipalAuth(target.assistantId);
-        inFlight.get(lockKey).organizationId = target.organizationId || assistantAuth.organizationId || execAuth.organizationId;
-        stream = botActivitySink(assistantAuth, fanoutKeys, inFlight.get(lockKey));
-        stream.activity([]);
+        entry.organizationId = target.organizationId || assistantAuth.organizationId || execAuth.organizationId;
         const organizationId = target.organizationId || execAuth.organizationId;
+        await botRepository.updateRun(runId, { organizationId })
+            .catch(error => console.error('[AGENT-BOTS] run organization failed:', error));
+        stream = botActivitySink(assistantAuth, fanoutKeys, entry);
+        stream.activity([]);
         // Execution-point precedence: the conversation's pin, then the org
         // chat route (no per-bot brain — one AI, the org's models).
         const profileId = target.profile || '';
         const model = target.model || '';
         if (!(await llmService.isLlmAvailable(organizationId, 'chat', { profileId, model }))) {
+            failure = new Error('LLM provider is not configured for this organization');
             await sendReply(assistantAuth, execAuth, context, message, 'LLM provider is not configured for this organization.', [], null, 'warn');
             return;
         }
-        const { text, instanceRefs, agent, failed } = await runAgentLoop({
+        const result = await runAgentLoop({
             organizationId,
             execAuth,
             profileId,
             model,
             conversationKey: message.conversationKey,
-            ask: (question, options) => askRoom(stream, String(message.conversationKey), organizationId, controller.signal, question, options),
+            ask: (question, options) => askRoom({
+                stream,
+                runId,
+                conversationKey: String(message.conversationKey),
+                organizationId,
+                signal: controller.signal,
+                question,
+                options
+            }),
             system: systemPrompt(assistantAuth.name, assistantAuth.organizationData?.name || execAuth.organizationData?.name || '', execAuth.name || 'the sender'),
             conversation: await conversationHistory(message.conversationKey, target.assistantId),
             signal: controller.signal,
             stream
         });
-        if (failed) {
+        answer = result.text || '';
+        if (result.failed) {
             // The notice carries the run's chronology: a dead provider
             // must not erase the room's record of what the run did.
-            console.error('[AGENT-BOTS] reply failed:', failed);
-            await sendReply(assistantAuth, execAuth, context, message, 'The agent failed to answer; try again.', instanceRefs, agent, 'error');
+            failure = result.failed;
+            console.error('[AGENT-BOTS] reply failed:', result.failed);
+            await sendReply(assistantAuth, execAuth, context, message, 'The agent failed to answer; try again.', result.instanceRefs, result.agent, 'error');
             return;
         }
-        if (text) await sendReply(assistantAuth, execAuth, context, message, text, instanceRefs, agent);
+        if (result.text) await sendReply(assistantAuth, execAuth, context, message, result.text, result.instanceRefs, result.agent);
     } catch (error) {
         // A stopped run is silent: the room asked it to end.
         if (!controller.signal.aborted) {
+            failure = error;
             console.error('[AGENT-BOTS] reply failed:', error);
             try {
                 const assistantAuth = await buildPrincipalAuth(target.assistantId);
@@ -645,9 +742,18 @@ export async function runAssistantReply(target, context, message) {
         }
     } finally {
         if (stream) stream.end();
-        const pending = inFlight.get(lockKey)?.pending || null;
+        if (entry.stopTransition) await entry.stopTransition;
+        await botRepository.settleRun(runId, failure ? RUN.FAILED : RUN.COMPLETED, {
+            answer,
+            error: failure ? String(failure.message || failure) : null,
+            question: null,
+            queue: []
+        }).catch(error => console.error('[AGENT-BOTS] run settle failed:', error));
+        // The lock outlives the settle, so a trigger landing during it
+        // coalesces here; the read after release catches that trigger.
         inFlight.delete(lockKey);
-        if (pending && !controller.signal.aborted) refirePending(pending);
+        const queued = entry.pending;
+        if (queued && !controller.signal.aborted) refirePending(queued);
     }
 }
 
@@ -667,7 +773,34 @@ export function handleMessageInserted(context, message) {
         .catch(error => console.error('[AGENT-BOTS] trigger failed:', error));
 }
 
+/**
+ * Restart recovery: a run in any non-terminal state (`running`,
+ * `awaiting-answer`, `stopping`) that has stayed untouched past the stale
+ * window has lost its loop, its abort handle, and its waiting question with
+ * the process, so it settles failed. The terminal settle is guarded, so a
+ * concurrent finish wins and recovery is a no-op.
+ */
+export async function recoverAgentRuns({ staleAfterMs = 30 * 60 * 1000 } = {}) {
+    const runs = await botRepository.findNonTerminalRuns({
+        olderThan: new Date(Date.now() - Number(staleAfterMs))
+    });
+    let recovered = 0;
+    for (const run of runs) {
+        const settled = await botRepository.settleRun(run._id, RUN.FAILED, {
+            error: 'abandoned: the process restarted while this run was in flight',
+            question: null,
+            queue: []
+        }).catch(error => {
+            console.error('[AGENT-BOTS] run recovery failed:', error);
+            return false;
+        });
+        if (settled) recovered += 1;
+    }
+    return recovered;
+}
+
 export function registerSupportMessageObserver() {
+    recoverAgentRuns().catch(error => console.error('[AGENT-BOTS] run recovery failed:', error));
     return supportService.registerMessageObserver(handleMessageInserted);
 }
 
@@ -705,36 +838,77 @@ export async function runAssistantWake(subscription, event, rule = {}) {
         // Coalesce with the room's in-flight run: the wake re-fires once it
         // lands (chat replies and wakes share the lock space).
         existing.pending = { kind: 'wake', subscription, event, rule };
+        await botRepository.updateRun(existing.runId, { queue: [existing.pending] })
+            .catch(error => console.error('[AGENT-BOTS] trigger queue failed:', error));
         return;
     }
     const controller = new AbortController();
-    inFlight.set(lockKey, {
-        conversationKey: subscription.conversationKey,
-        stopKeys: [String(subscription.conversationKey)],
+    const conversationKey = String(subscription.conversationKey);
+    const runId = randomUUID();
+    const entry = {
+        runId,
+        conversationKey,
+        stopKeys: [conversationKey],
         organizationId: null,
         controller,
-        pending: null
-    });
+        pending: null,
+        stopTransition: null,
+        live: null
+    };
+    // The lock lands before the document write: a trigger arriving during
+    // the insert still coalesces onto this run.
+    inFlight.set(lockKey, entry);
+    try {
+        await openRun({
+            runId,
+            botUserId: subscription.botUserId,
+            conversationKey,
+            lockKey,
+            organizationId: subscription.organizationId,
+            stopKeys: [conversationKey]
+        });
+        if (entry.pending) {
+            await botRepository.updateRun(runId, { queue: [entry.pending] })
+                .catch(error => console.error('[AGENT-BOTS] trigger queue failed:', error));
+        }
+    } catch (error) {
+        inFlight.delete(lockKey);
+        throw error;
+    }
     let stream = null;
+    let answer = '';
+    let failure = null;
     try {
         const execAuth = await resolveDelegatedPrincipal(subscription.organizationId, rule.createdBy);
-        if (!execAuth) return;
+        if (!execAuth) {
+            failure = new Error('The wake rule author is not available');
+            return;
+        }
         const assistant = await ensureOrganizationAssistant(subscription.organizationId);
-        if (!assistant) return;
+        if (!assistant) {
+            failure = new Error('The organization assistant is not available');
+            return;
+        }
         const assistantAuth = await buildPrincipalAuth(assistant.id);
-        inFlight.get(lockKey).organizationId = subscription.organizationId?.toString?.() || null;
-        stream = botActivitySink(assistantAuth, [subscription.conversationKey], inFlight.get(lockKey));
+        entry.organizationId = subscription.organizationId?.toString?.() || null;
+        stream = botActivitySink(assistantAuth, [conversationKey], entry);
         stream.activity([]);
         // Execution-point precedence: the wake rule's model, then this
         // conversation's, then the org chat route.
         const profileId = String(rule.profile || '') || String(subscription.profile || '');
         const model = String(subscription.model || '');
-        if (!(await llmService.isLlmAvailable(subscription.organizationId, 'chat', { profileId, model }))) return;
+        if (!(await llmService.isLlmAvailable(subscription.organizationId, 'chat', { profileId, model }))) {
+            failure = new Error('LLM provider is not configured for this organization');
+            return;
+        }
         const service = getAppRegistry().getInstanceService(String(event.targetType || ''));
         const instance = await service?.processGetById?.(String(event.targetId || ''), execAuth).catch(() => null);
         // An unreadable or missing target skips the wake: the delegation
         // boundary — the author may not see this instance.
-        if (!instance) return;
+        if (!instance) {
+            failure = new Error('The wake target is not readable by its author');
+            return;
+        }
         const instanceName = instance.name || instance.identity?.name || String(event.targetId || '');
         const trigger = [
             `Lifecycle wake: ${event.targetType} "${instanceName}" (${event.targetId})`,
@@ -742,13 +916,21 @@ export async function runAssistantWake(subscription, event, rule = {}) {
             actorLabelOf(event) ? `by ${actorLabelOf(event)}.` : '.',
             'Do the work this room expects; inspect the instance with tools if you need more than this summary.'
         ].join(' ');
-        const { text, instanceRefs, agent } = await runAgentLoop({
+        const result = await runAgentLoop({
             organizationId: subscription.organizationId,
             execAuth,
             profileId,
             model,
             conversationKey: subscription.conversationKey,
-            ask: (question, options) => askRoom(stream, String(subscription.conversationKey), subscription.organizationId, controller.signal, question, options),
+            ask: (question, options) => askRoom({
+                stream,
+                runId,
+                conversationKey,
+                organizationId: subscription.organizationId,
+                signal: controller.signal,
+                question,
+                options
+            }),
             system: systemPrompt(assistantAuth.name, assistantAuth.organizationData?.name || '', execAuth.name || 'the rule author'),
             conversation: [
                 ...await conversationHistory(subscription.conversationKey, assistant.id),
@@ -757,20 +939,37 @@ export async function runAssistantWake(subscription, event, rule = {}) {
             signal: controller.signal,
             stream
         });
-        if (!text) return;
-        const body = postingBodyForKey(subscription.conversationKey, text);
+        answer = result.text || '';
+        if (result.failed) {
+            failure = result.failed;
+            return;
+        }
+        if (!result.text) return;
+        const body = postingBodyForKey(subscription.conversationKey, result.text);
         if (body) await supportService.sendUserMessage(assistantAuth, {
             ...body,
-            ...(instanceRefs.length ? { instanceRefs } : {}),
-            agent
+            ...(result.instanceRefs.length ? { instanceRefs: result.instanceRefs } : {}),
+            agent: result.agent
         }, { refsAuth: execAuth });
     } catch (error) {
         // A stopped wake is silent, like a failing wake: nobody is waiting.
-        if (!controller.signal.aborted) console.error('[AGENT-BOTS] wake failed:', error);
+        if (!controller.signal.aborted) {
+            failure = error;
+            console.error('[AGENT-BOTS] wake failed:', error);
+        }
     } finally {
         if (stream) stream.end();
-        const pending = inFlight.get(lockKey)?.pending || null;
+        if (entry.stopTransition) await entry.stopTransition;
+        await botRepository.settleRun(runId, failure ? RUN.FAILED : RUN.COMPLETED, {
+            answer,
+            error: failure ? String(failure.message || failure) : null,
+            question: null,
+            queue: []
+        }).catch(error => console.error('[AGENT-BOTS] run settle failed:', error));
+        // The lock outlives the settle, so a trigger landing during it
+        // coalesces here; the read after release catches that trigger.
         inFlight.delete(lockKey);
-        if (pending && !controller.signal.aborted) refirePending(pending);
+        const queued = entry.pending;
+        if (queued && !controller.signal.aborted) refirePending(queued);
     }
 }

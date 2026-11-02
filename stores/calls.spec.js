@@ -16,11 +16,76 @@ vi.mock('~/composables/useConnections.js', async () => {
     };
 });
 
+const ROOM_EVENTS = {
+    ParticipantConnected: 'ParticipantConnected',
+    ParticipantDisconnected: 'ParticipantDisconnected',
+    TrackSubscribed: 'TrackSubscribed',
+    TrackUnsubscribed: 'TrackUnsubscribed',
+    TrackUnpublished: 'TrackUnpublished',
+    LocalTrackPublished: 'LocalTrackPublished',
+    LocalTrackUnpublished: 'LocalTrackUnpublished',
+    TrackMuted: 'TrackMuted',
+    TrackUnmuted: 'TrackUnmuted',
+    ActiveSpeakersChanged: 'ActiveSpeakersChanged',
+    ConnectionQualityChanged: 'ConnectionQualityChanged',
+    MediaDevicesChanged: 'MediaDevicesChanged',
+    Reconnecting: 'Reconnecting',
+    Reconnected: 'Reconnected',
+    Disconnected: 'Disconnected',
+    DataReceived: 'DataReceived'
+};
+
+vi.mock('livekit-client', () => ({
+    Room: class FakeRoom {
+        constructor() {
+            this.handlers = new Map();
+            this.localParticipant = {
+                identity: 'me',
+                name: 'Me',
+                isMicrophoneEnabled: true,
+                isCameraEnabled: false,
+                isScreenShareEnabled: false,
+                setMicrophoneEnabled: async () => {},
+                setCameraEnabled: async () => {},
+                setScreenShareEnabled: async () => {},
+                publishData: async () => {},
+                switchActiveDevice: async () => {}
+            };
+            this.remoteParticipants = new Map();
+            this.connect = async () => {
+                if (globalThis.__roomConnectError) throw globalThis.__roomConnectError;
+            };
+            this.disconnect = async () => {};
+            this.removeAllListeners = () => this.handlers.clear();
+            globalThis.__livekitRoom = this;
+        }
+
+        on(event, handler) {
+            if (!this.handlers.has(event)) this.handlers.set(event, []);
+            this.handlers.get(event).push(handler);
+            return this;
+        }
+
+        emit(event, ...args) {
+            for (const handler of this.handlers.get(event) || []) handler(...args);
+        }
+    },
+    RoomEvent: ROOM_EVENTS,
+    Track: {
+        Kind: { Video: 'video', Audio: 'audio' },
+        Source: { ScreenShare: 'screen' }
+    }
+}));
+
+const emitRoomEvent = (event, ...args) => globalThis.__livekitRoom?.emit(event, ...args);
+
 describe('calls store line machine', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
         vi.useFakeTimers();
         vi.stubGlobal('$fetch', vi.fn().mockResolvedValue([]));
+        globalThis.__roomConnectError = null;
+        globalThis.__livekitRoom = null;
         const auth = useAuthStore();
         auth.user = { userId: 'me', organizationId: 'org-1' };
         auth.isUserSet = true;
@@ -173,5 +238,84 @@ describe('calls store line machine', () => {
         const ongoing = store.activeRoomForConversation('direct:me:caller');
         expect(ongoing).toMatchObject({ room: 'call:direct:caller:me', participants: 2 });
         expect(store.activeRoomForConversation('direct:me:someone-else')).toBeNull();
+    });
+
+    it('expires a join that never connects back to ringing or idle', () => {
+        const store = useCallsStore();
+        store.pushIncoming(inviteFrom('call:group:g1'));
+        store.acceptInvite(store.incoming[0]);
+        expect(store.status).toBe('joining');
+
+        vi.advanceTimersByTime(30_001);
+        expect(store.status).toBe('idle');
+        expect(store.pendingTabRoom).toBe('');
+
+        store.pushIncoming(inviteFrom('call:group:g1'));
+        store.acceptInvite(store.incoming[0]);
+        vi.advanceTimersByTime(1);
+        store.pushIncoming(inviteFrom('call:direct:other:me', 'other'));
+        vi.advanceTimersByTime(29_999);
+        expect(store.status).toBe('ringing');
+        expect(store.incoming.map(invite => invite.room)).toEqual(['call:direct:other:me']);
+    });
+
+    it('settles a failed session and recovers through retry', async () => {
+        const store = useCallsStore();
+        globalThis.__roomConnectError = new Error('token rejected');
+        const failed = await store.openSession('call:group:g1');
+        expect(failed).toMatchObject({ fatal: 'token rejected' });
+        expect(store.session.state.state).toBe('failed');
+        expect(store.session.state.error).toBe('token rejected');
+        expect(store.status).toBe('idle');
+
+        globalThis.__roomConnectError = null;
+        await store.leaveSession();
+        await store.openSession('call:group:g1');
+        expect(store.session.state.state).toBe('connected');
+        expect(store.status).toBe('in-call');
+    });
+
+    it('moves the session through reconnecting and fails on a lost connection', async () => {
+        const store = useCallsStore();
+        vi.stubGlobal('$fetch', vi.fn()
+            .mockResolvedValueOnce([])
+            .mockResolvedValueOnce([])
+            .mockResolvedValueOnce({ url: 'wss://livekit', token: 'token' }));
+        await store.openSession('call:group:g1');
+        expect(store.session.state.state).toBe('connected');
+
+        emitRoomEvent('Reconnecting');
+        expect(store.session.state.state).toBe('reconnecting');
+
+        emitRoomEvent('Reconnected');
+        expect(store.session.state.state).toBe('connected');
+
+        emitRoomEvent('Disconnected');
+        expect(store.session.state.state).toBe('failed');
+        expect(store.status).toBe('idle');
+    });
+
+    it('moves placement between mounted surfaces and the parked dock', async () => {
+        const store = useCallsStore();
+        vi.stubGlobal('$fetch', vi.fn()
+            .mockResolvedValueOnce([])
+            .mockResolvedValueOnce([])
+            .mockResolvedValueOnce({ url: 'wss://livekit', token: 'token' }));
+        await store.openSession('call:group:g1');
+
+        store.mountSurface('call:group:g1', 'dialog');
+        expect(store.placement).toBe('dialog');
+        store.setFloating('call:group:g1');
+        expect(store.placement).toBe('floating');
+
+        store.unmountSurface('call:group:g1');
+        store.mountSurface('call:group:g1', 'tab');
+        expect(store.placement).toBe('tab');
+
+        store.closeFloating();
+        store.unmountSurface('call:group:g1');
+        await nextTick();
+        expect(store.placement).toBe('dock');
+        expect(store.floatingRoom).toBe('');
     });
 });

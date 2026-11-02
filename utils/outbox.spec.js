@@ -28,6 +28,7 @@ describe('outbox queue', () => {
         const queue = createOutboxQueue({ storage: createMemoryStorage() })
         const first = await queue.enqueue(op())
         const second = await queue.enqueue(op())
+        expect((await queue.list()).map(item => item.status)).toEqual(['pending', 'pending'])
         expect((await queue.list()).map(item => item.id)).toEqual([first.id, second.id])
 
         await queue.update(first.id, { status: 'failed', lastError: '422' })
@@ -39,6 +40,13 @@ describe('outbox queue', () => {
         const remaining = await queue.remove(first.id)
         expect(remaining.map(item => item.id)).toEqual([second.id])
         expect(await queue.list()).toEqual([expect.objectContaining({ id: second.id })])
+    })
+
+    it('reads a stored operation without a status as pending', async () => {
+        const legacy = op()
+        delete legacy.status
+        const queue = createOutboxQueue({ storage: createMemoryStorage([legacy]) })
+        expect(await queue.list()).toEqual([expect.objectContaining({ id: legacy.id, status: 'pending' })])
     })
 
     it('survives storage failures without throwing', async () => {

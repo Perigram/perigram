@@ -4,6 +4,7 @@ import { emitInstanceCreated, emitInstanceDeleted, emitInstanceMutation, emitIns
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { createdEntity } from '~/utils/instance-run-results.js';
 import { isCreateAction } from '~/utils/action-visibility.js';
+import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { useRegistryStore } from './registry';
 import { useOutboxStore } from './outbox';
 
@@ -99,6 +100,52 @@ export const useInstancesStore = defineStore('instances', () => {
   const loading = ref(false);
   const error = ref(null);
   const pending = new Map();
+
+  // Per-record optimistic write state (stores README): `${typeKey}:${id}` →
+  // idle | pending | confirmed | rolled-back | queued.
+  const writeStates = reactive({});
+  const writeChains = new Map();
+
+  function writeKey(typeKey = '', id = '') {
+    return id ? `${typeKey}:${String(id)}` : '';
+  }
+
+  function writeStateFor(typeKey = '', id = '') {
+    const key = writeKey(typeKey, id);
+    return key ? (writeStates[key] || 'idle') : 'idle';
+  }
+
+  function setWriteState(typeKey = '', id = '', state = 'idle') {
+    const key = writeKey(typeKey, id);
+    if (key) writeStates[key] = state;
+  }
+
+  function reconcileWriteState(typeKey = '', id = '', source = 'local') {
+    if (source === 'local') return;
+    const key = writeKey(typeKey, id);
+    if (key && writeStates[key] && writeStates[key] !== 'confirmed') writeStates[key] = 'confirmed';
+  }
+
+  // Writes for one record run in arrival order: the head previews and
+  // issues its request immediately, later writes wait for it to settle.
+  function serializeWrite(typeKey = '', id = '', task) {
+    const key = writeKey(typeKey, id);
+    if (!key) return task();
+    const previous = writeChains.get(key);
+    const run = previous
+      ? previous.catch(() => null).then(() => start())
+      : start();
+    function start() {
+      setWriteState(typeKey, id, 'pending');
+      return task();
+    }
+    writeChains.set(key, run);
+    run.then(clear, clear);
+    function clear() {
+      if (writeChains.get(key) === run) writeChains.delete(key);
+    }
+    return run;
+  }
 
   ensureSyncListener();
   // -- type keys ----------------------------------------------------------
@@ -406,48 +453,56 @@ export const useInstancesStore = defineStore('instances', () => {
 
   async function updateInstance(typeKey = '', id = '', body = {}, { typeId = typeKey, reason = 'update' } = {}) {
     const cacheKey = canonicalTypeKey(typeKey);
-    const previous = recordFor(cacheKey, id)?.dto || null;
-    if (previous) {
-      const optimistic = applyWirePatch(previous, body);
-      upsertRecord(cacheKey, optimistic);
-      emitInstanceUpdated({ type: typeId, id, instance: optimistic, reason });
-    }
-    try {
-      const data = await mutateDirect(typeKey, 'PATCH', {
-        id,
-        body,
-        meta: { kind: 'instance', typeId, instanceId: id, change: 'updated', reason }
-      });
-      emitInstanceUpdated({ type: typeId, id: data?._id || id, instance: data, reason });
-      publishMutation({ type: typeId, id: data?._id || id, change: 'updated', reason });
-      return data;
-    } catch (err) {
+    return serializeWrite(cacheKey, id, async () => {
+      const previous = recordFor(cacheKey, id)?.dto || null;
       if (previous) {
-        upsertRecord(cacheKey, previous);
-        emitInstanceUpdated({ type: typeId, id, instance: previous, reason: `${reason}-rollback` });
+        const optimistic = applyWirePatch(previous, body);
+        upsertRecord(cacheKey, optimistic);
+        emitInstanceUpdated({ type: typeId, id, instance: optimistic, reason });
       }
-      throw err;
-    }
+      try {
+        const data = await mutateDirect(typeKey, 'PATCH', {
+          id,
+          body,
+          meta: { kind: 'instance', typeId, instanceId: id, change: 'updated', reason }
+        });
+        emitInstanceUpdated({ type: typeId, id: data?._id || id, instance: data, reason });
+        publishMutation({ type: typeId, id: data?._id || id, change: 'updated', reason });
+        setWriteState(cacheKey, id, 'confirmed');
+        return data;
+      } catch (err) {
+        if (previous) {
+          upsertRecord(cacheKey, previous);
+          emitInstanceUpdated({ type: typeId, id, instance: previous, reason: `${reason}-rollback` });
+        }
+        setWriteState(cacheKey, id, isOfflineQueuedError(err) ? 'queued' : 'rolled-back');
+        throw err;
+      }
+    });
   }
 
   async function removeInstance(typeKey = '', id = '', { typeId = typeKey, instance = null } = {}) {
     const cacheKey = canonicalTypeKey(typeKey);
-    const previous = recordFor(cacheKey, id)?.dto || null;
-    removeRecord(cacheKey, id);
-    emitInstanceDeleted({ type: typeId, id, instance: instance || previous });
-    try {
-      await mutateDirect(typeKey, 'DELETE', {
-        id,
-        meta: { kind: 'instance', typeId, instanceId: id, change: 'deleted', reason: 'delete' }
-      });
-      publishMutation({ type: typeId, id, change: 'deleted', reason: 'delete' });
-    } catch (err) {
-      if (previous) {
-        upsertRecord(cacheKey, previous);
-        emitInstanceUpdated({ type: typeId, id, instance: previous, reason: 'delete-rollback' });
+    return serializeWrite(cacheKey, id, async () => {
+      const previous = recordFor(cacheKey, id)?.dto || null;
+      removeRecord(cacheKey, id);
+      emitInstanceDeleted({ type: typeId, id, instance: instance || previous });
+      try {
+        await mutateDirect(typeKey, 'DELETE', {
+          id,
+          meta: { kind: 'instance', typeId, instanceId: id, change: 'deleted', reason: 'delete' }
+        });
+        publishMutation({ type: typeId, id, change: 'deleted', reason: 'delete' });
+        setWriteState(cacheKey, id, 'confirmed');
+      } catch (err) {
+        if (previous) {
+          upsertRecord(cacheKey, previous);
+          emitInstanceUpdated({ type: typeId, id, instance: previous, reason: 'delete-rollback' });
+        }
+        setWriteState(cacheKey, id, isOfflineQueuedError(err) ? 'queued' : 'rolled-back');
+        throw err;
       }
-      throw err;
-    }
+    });
   }
 
   // -- reconciliation ------------------------------------------------------
@@ -456,10 +511,11 @@ export const useInstancesStore = defineStore('instances', () => {
   // idempotent, so a re-created store re-attaching under tests is harmless.
   function ensureSyncListener() {
     if (typeof window === 'undefined') return;
-    onInstanceChanged(({ type, id, instance, change }) => {
+    onInstanceChanged(({ type, id, instance, change, source }) => {
       const typeKey = canonicalTypeKey(type);
       const normalizedId = id?.toString?.() || id || instance?._id?.toString?.() || instance?._id;
       if (!typeKey || !normalizedId) return;
+      reconcileWriteState(typeKey, normalizedId, source);
       if (change === 'deleted') {
         removeRecord(typeKey, normalizedId);
         return;
@@ -496,6 +552,7 @@ export const useInstancesStore = defineStore('instances', () => {
     recordFor,
     dtoFor,
     instanceFor,
+    writeStateFor,
     upsertRecord,
     removeRecord,
     fetchInstance,

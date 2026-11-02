@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { emitInstanceChanged, isSelfPublished } from '~/utils/instance-events.js';
 import { useConnections } from '~/composables/useConnections.js';
 import { useAuthStore } from './auth';
@@ -9,8 +9,11 @@ const RETRY_INTERVAL_MS = 5_000;
 const CONTRACT_REFRESH_DEBOUNCE_MS = 2_000;
 
 export const useEntityEventsStore = defineStore('instanceEvents', () => {
-    const connected = ref(false);
+    // idle → polling → connected | error; error → polling (retry);
+    // disconnect → stopped; connect from stopped → polling.
+    const status = ref('idle');
     const error = ref(null);
+    const connected = computed(() => status.value === 'connected');
     let cursor = null;
     let timer = null;
     let runId = 0;
@@ -71,6 +74,7 @@ export const useEntityEventsStore = defineStore('instanceEvents', () => {
 
     async function poll(activeRunId) {
         if (activeRunId !== runId || !isDocumentVisible()) return;
+        if (status.value !== 'connected') status.value = 'polling';
 
         try {
             const response = await $fetch('/api/instance-events', {
@@ -79,7 +83,7 @@ export const useEntityEventsStore = defineStore('instanceEvents', () => {
             if (activeRunId !== runId) return;
 
             cursor = Math.max(cursor || 0, response.cursor);
-            connected.value = true;
+            status.value = 'connected';
             error.value = null;
             for (const event of response.events || []) {
                 if (isSelfPublished(event.eventId)) continue;
@@ -88,7 +92,7 @@ export const useEntityEventsStore = defineStore('instanceEvents', () => {
             timer = setTimeout(() => poll(activeRunId), POLL_INTERVAL_MS);
         } catch (err) {
             if (activeRunId !== runId) return;
-            connected.value = false;
+            status.value = 'error';
             error.value = err;
             timer = setTimeout(() => poll(activeRunId), RETRY_INTERVAL_MS);
         }
@@ -99,6 +103,7 @@ export const useEntityEventsStore = defineStore('instanceEvents', () => {
         running = true;
         const activeRunId = ++runId;
         error.value = null;
+        status.value = 'polling';
         onVisibilityChange = () => {
             if (!isDocumentVisible() || activeRunId !== runId) return;
             if (timer) clearTimeout(timer);
@@ -124,11 +129,11 @@ export const useEntityEventsStore = defineStore('instanceEvents', () => {
         unsubscribeContract = null;
         contractTopic = null;
         cursor = null;
-        connected.value = false;
+        status.value = 'stopped';
         error.value = null;
     }
 
-    return { connected, error, connect, disconnect };
+    return { status, connected, error, connect, disconnect };
 });
 
 function isDocumentVisible() {

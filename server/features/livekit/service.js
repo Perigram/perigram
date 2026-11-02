@@ -383,23 +383,87 @@ async function handleEgressWebhookEvent(body = {}) {
     const room = String(info.roomName || '');
     if (!egressId || !room.startsWith('call:')) return { published: false };
     const record = await repository.findByEgressId(egressId).catch(() => null);
-    if (record) {
+    if (record?.status === 'recording') {
         try {
             if (event === 'egress_failed') {
-                await repository.updateById(record._id, { $set: { status: 'failed', endedAt: new Date() } });
+                await failRecording(record, info.error || null);
             } else if (event === 'egress_ended') {
-                for (const result of Array.isArray(info.fileResults) ? info.fileResults : []) {
-                    await importRecordingFile(record, result);
-                }
-                await repository.updateById(record._id, { $set: { status: 'completed', endedAt: new Date() } });
+                await completeRecording(record, info.fileResults);
             }
         } catch (error) {
             console.error(`Recording import failed for egress ${egressId}:`, error);
-            await repository.updateById(record._id, { $set: { status: 'failed', endedAt: new Date() } }).catch(() => {});
+            await failRecording(record).catch(() => {});
         }
     }
     await publishRoomActivity(room, { type: 'call.activity', event, room });
     return { published: true };
+}
+
+async function completeRecording(record, fileResults = []) {
+    for (const result of Array.isArray(fileResults) ? fileResults : []) {
+        await importRecordingFile(record, result);
+    }
+    await repository.updateById(record._id, { $set: { status: 'completed', endedAt: new Date() } });
+}
+
+async function failRecording(record, lastError = null) {
+    await repository.updateById(record._id, {
+        $set: {
+            status: 'failed',
+            endedAt: new Date(),
+            ...(lastError ? { lastError } : {})
+        }
+    });
+}
+
+async function fetchEgressInfo(egressId) {
+    const payload = await egressTwirp('ListEgress', { egress_id: egressId });
+    const items = Array.isArray(payload?.items) ? payload.items : [];
+    return items.find(item => String(item.egressId || item.egress_id || '') === String(egressId)) || null;
+}
+
+/**
+ * Stale `recording` recovery: a lost `egress_ended`/`egress_failed` delivery
+ * leaves the app record recording forever. Ask the egress plane for the
+ * egress state and settle the record through the same completion import or
+ * failure path the webhook uses.
+ */
+export async function recoverStaleRecordings({ olderThanMs = 30 * 60 * 1000 } = {}) {
+    const stale = await repository.findStaleActive(new Date(Date.now() - olderThanMs));
+    const summary = { checked: stale.length, completed: 0, failed: 0, active: 0, unresolved: 0 };
+    for (const record of stale) {
+        let info;
+        try {
+            info = await fetchEgressInfo(record.egressId);
+        } catch (error) {
+            console.error(`Recording recovery failed for egress ${record.egressId}:`, error);
+            summary.unresolved++;
+            continue;
+        }
+        if (!info) {
+            summary.unresolved++;
+            continue;
+        }
+        const state = String(info.status || '').toUpperCase();
+        if (state === 'EGRESS_COMPLETE') {
+            try {
+                await completeRecording(record, info.fileResults || info.file_results || []);
+                summary.completed++;
+            } catch (error) {
+                console.error(`Recording import failed for egress ${record.egressId}:`, error);
+                await failRecording(record, error.message).catch(() => {});
+                summary.failed++;
+            }
+            continue;
+        }
+        if (state === 'EGRESS_FAILED' || state === 'EGRESS_ABORTED') {
+            await failRecording(record, info.error || null);
+            summary.failed++;
+            continue;
+        }
+        summary.active++;
+    }
+    return summary;
 }
 
 /**

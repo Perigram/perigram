@@ -42,13 +42,14 @@ export function createOutboxQueue({ storage }) {
 
     return {
         async list() {
-            return storage.load()
+            const operations = await storage.load()
+            return operations.map(operation => operation.status ? operation : { ...operation, status: 'pending' })
         },
         async enqueue(operation) {
             const operations = await storage.load()
-            const stored = [...operations, operation]
+            const stored = [...operations, { ...operation, status: 'pending' }]
             await persist(stored)
-            return operation
+            return stored[stored.length - 1]
         },
         async remove(operationId) {
             const operations = await storage.load()

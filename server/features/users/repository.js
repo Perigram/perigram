@@ -56,8 +56,7 @@ export async function searchByName(query, limit = 10) {
   const db = await connectDB();
   return await db.collection(COLLECTION)
     .find({
-      'identity.name': { $regex: escapeRegex(String(query || '')), $options: 'i' },
-      'data.isActive': { $ne: false }
+      'identity.name': { $regex: escapeRegex(String(query || '')), $options: 'i' }
     })
     .sort({ 'identity.name': 1 })
     .limit(limit)

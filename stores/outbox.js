@@ -7,7 +7,8 @@ import {
     isNetworkFailure,
     classifyReplayFailure,
     OfflineQueuedError,
-    REPLAY_CONTINUE
+    REPLAY_DROP,
+    REPLAY_STOP
 } from '~/utils/outbox.js'
 import { emitInstanceMutation, emitStateTransitionResult } from '~/utils/instance-events.js'
 
@@ -19,7 +20,7 @@ export const useOutboxStore = defineStore('outbox', () => {
     const syncing = ref(false)
     let listenersBound = false
 
-    const pendingOperations = computed(() => operations.value.filter(op => op.status !== 'failed'))
+    const pendingOperations = computed(() => operations.value.filter(op => op.status === 'pending'))
     const failedOperations = computed(() => operations.value.filter(op => op.status === 'failed'))
 
     function emitOperationResult(operation, data = null, duplicate = false) {
@@ -46,7 +47,7 @@ export const useOutboxStore = defineStore('outbox', () => {
 
     async function flush() {
         if (syncing.value) return
-        const pending = operations.value.filter(op => op.status !== 'failed')
+        const pending = operations.value.filter(op => op.status === 'pending')
         if (!pending.length) return
         syncing.value = true
         try {
@@ -65,17 +66,17 @@ export const useOutboxStore = defineStore('outbox', () => {
                         await queue.remove(operation.id)
                         continue
                     }
-                    if (classifyReplayFailure(error) !== REPLAY_CONTINUE) {
-                        if (error && Number(error.statusCode) >= 400 && Number(error.statusCode) < 500) {
-                            await queue.update(operation.id, {
-                                status: 'failed',
-                                lastError: error.data?.message || `HTTP ${error.statusCode}`,
-                                attempts: (operation.attempts || 0) + 1
-                            })
-                            console.warn('[outbox] operation rejected, kept for review', operation.id, error?.statusCode)
-                        } else {
-                            break
-                        }
+                    const outcome = classifyReplayFailure(error)
+                    if (outcome === REPLAY_DROP) {
+                        await queue.update(operation.id, {
+                            status: 'failed',
+                            lastError: error.data?.message || `HTTP ${error.statusCode}`,
+                            attempts: (operation.attempts || 0) + 1
+                        })
+                        console.warn('[outbox] operation rejected, kept for review', operation.id, error?.statusCode)
+                    } else if (outcome === REPLAY_STOP) {
+                        if (isNetworkFailure(error)) online.value = false
+                        break
                     }
                 }
                 await refreshFromStorage()
@@ -86,6 +87,15 @@ export const useOutboxStore = defineStore('outbox', () => {
         }
     }
 
+    async function enqueueOffline(operation) {
+        await queue.enqueue({
+            ...operation,
+            createdAt: new Date().toISOString(),
+            attempts: 0
+        })
+        await refreshFromStorage()
+    }
+
     async function mutate({ url, method, body, meta = {} }) {
         const id = newOperationId()
         const headers = { 'Idempotency-Key': id }
@@ -93,9 +103,8 @@ export const useOutboxStore = defineStore('outbox', () => {
         // failure-latched tab with the browser online still attempts, so
         // one success heals the latch and replays the queue.
         if (typeof window !== 'undefined' && window.navigator.onLine === false) {
-            const operation = { id, url, method, body, meta, createdAt: new Date().toISOString(), attempts: 0 }
-            await queue.enqueue(operation)
-            await refreshFromStorage()
+            online.value = false
+            await enqueueOffline({ id, url, method, body, meta })
             throw new OfflineQueuedError(id)
         }
         try {
@@ -108,9 +117,7 @@ export const useOutboxStore = defineStore('outbox', () => {
         } catch (error) {
             if (isNetworkFailure(error)) {
                 online.value = false
-                const operation = { id, url, method, body, meta, createdAt: new Date().toISOString(), attempts: 0 }
-                await queue.enqueue(operation)
-                await refreshFromStorage()
+                await enqueueOffline({ id, url, method, body, meta })
                 throw new OfflineQueuedError(id)
             }
             throw error

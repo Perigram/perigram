@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // handshake negotiation, notifications, tool listing, and the
 // auth/unknown-tool error shapes.
 
-const { mockedSupport, mockedLlm, mockedConnections, mockedBotsService, mockedOrganizations, mockedBotRepository, mockedTools, mockedRegistry } = vi.hoisted(() => {
+const { mockedSupport, mockedLlm, mockedConnections, mockedBotsService, mockedOrganizations, mockedBotRepository, mockedTools, mockedRegistry, mockedRuns } = vi.hoisted(() => {
     const mockedLlm = { isLlmAvailable: vi.fn(), chatCompletion: vi.fn() };
     // Streaming twin: delegates to the chatCompletion mock so a test sets one
     // behavior and both seams answer identically; yields the content once,
@@ -25,6 +25,7 @@ const { mockedSupport, mockedLlm, mockedConnections, mockedBotsService, mockedOr
         if (content) yield { type: 'text', text: content };
         yield { type: 'message', content, thinking, toolCalls: message?.toolCalls || [] };
     });
+    const mockedRuns = { runs: new Map(), transitions: [] };
     return {
     mockedSupport: {
         registerMessageObserver: vi.fn(),
@@ -48,7 +49,34 @@ const { mockedSupport, mockedLlm, mockedConnections, mockedBotsService, mockedOr
     },
     mockedOrganizations: { canUseAgentChats: vi.fn() },
     mockedBotRepository: {
-        findSubscriptionsByConversation: vi.fn()
+        findSubscriptionsByConversation: vi.fn(),
+        insertRun: vi.fn(async doc => {
+            mockedRuns.runs.set(doc._id, { ...doc, updatedAt: new Date() });
+            return mockedRuns.runs.get(doc._id);
+        }),
+        findNonTerminalRuns: vi.fn(async ({ olderThan = null } = {}) => [...mockedRuns.runs.values()]
+            .filter(run => run.outcome == null)
+            .filter(run => !olderThan || new Date(run.updatedAt || 0) < new Date(olderThan))),
+        updateRun: vi.fn(async (id, patch) => {
+            const run = mockedRuns.runs.get(id);
+            if (!run || run.outcome != null) return false;
+            Object.assign(run, patch, { updatedAt: new Date() });
+            return true;
+        }),
+        transitionRun: vi.fn(async (id, from, to, patch = {}) => {
+            const run = mockedRuns.runs.get(id);
+            if (!run || run.outcome != null || !from.includes(run.state)) return false;
+            mockedRuns.transitions.push({ id, from: run.state, to });
+            Object.assign(run, patch, { state: to, updatedAt: new Date() });
+            return true;
+        }),
+        settleRun: vi.fn(async (id, outcome, patch = {}) => {
+            const run = mockedRuns.runs.get(id);
+            if (!run || run.outcome != null) return false;
+            mockedRuns.transitions.push({ id, from: run.state, to: outcome });
+            Object.assign(run, patch, { outcome, settledAt: new Date(), updatedAt: new Date() });
+            return true;
+        })
     },
     mockedTools: {
         executeTool: vi.fn(),
@@ -62,7 +90,8 @@ const { mockedSupport, mockedLlm, mockedConnections, mockedBotsService, mockedOr
     },
     mockedRegistry: {
         getInstanceService: vi.fn()
-    }
+    },
+    mockedRuns
     };
 });
 
@@ -75,13 +104,19 @@ vi.mock('./service.js', () => mockedBotsService);
 vi.mock('./repository.js', () => mockedBotRepository);
 vi.mock('./tools.js', () => mockedTools);
 
-import { resolveAssistantTarget, runAssistantReply, runAssistantWake, registerSupportMessageObserver, handleMessageInserted, stopConversationRuns, liveConversationRun } from './runtime.js';
+import { resolveAssistantTarget, runAssistantReply, runAssistantWake, registerSupportMessageObserver, handleMessageInserted, stopConversationRuns, liveConversationRun, recoverAgentRuns } from './runtime.js';
 import { handleMcpRequest } from './mcp.js';
 
 const HUMAN = 'user-human';
 const HUMAN_B = 'user-other';
 const ASSISTANT = 'user-bot-a';
 const ASSISTANT_B = 'user-bot-b';
+
+const runDocs = () => [...mockedRuns.runs.values()];
+const latestRun = () => runDocs().at(-1);
+const transitionsFor = (runId) => mockedRuns.transitions
+    .filter(transition => transition.id === runId)
+    .map(({ from, to }) => `${from}→${to}`);
 
 const humanAuth = { userId: HUMAN, name: 'Human', organizationId: 'org-1', organizationData: { name: 'Org' } };
 const assistantAuth = { userId: ASSISTANT, name: 'Assistant', organizationId: 'org-1', organizationData: { name: 'Org' } };
@@ -92,6 +127,8 @@ const assistantUser = {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    mockedRuns.runs.clear();
+    mockedRuns.transitions.length = 0;
     mockedBotsService.getBotIdentity.mockResolvedValue(null);
     mockedBotsService.buildPrincipalAuth.mockImplementation(async (userId) => {
         if (String(userId) === HUMAN) return { ...humanAuth };
@@ -103,6 +140,8 @@ beforeEach(() => {
     mockedBotsService.ensureOrganizationAssistant.mockResolvedValue(assistantUser);
     mockedOrganizations.canUseAgentChats.mockResolvedValue(true);
     mockedLlm.isLlmAvailable.mockResolvedValue(true);
+    // clearAllMocks keeps queued once-values; each test owns its rounds.
+    mockedLlm.chatCompletion.mockReset();
     mockedLlm.chatCompletion.mockResolvedValue({ content: 'ok' });
     mockedSupport.listMessages.mockResolvedValue([]);
     mockedSupport.sendUserMessage.mockResolvedValue({});
@@ -420,6 +459,10 @@ describe('runAssistantReply', () => {
         expect(body.message).toMatch(/failed to answer/i);
         expect(body.notice).toBe('error');
         expect(Array.isArray(body.agent?.steps)).toBe(true);
+        const run = latestRun();
+        expect(run.outcome).toBe('failed');
+        expect(run.error).toBe('provider exploded');
+        expect(transitionsFor(run._id)).toEqual(['running→failed']);
     });
 
     it('turns tool failures into readable tool results and continues', async () => {
@@ -442,7 +485,7 @@ describe('runAssistantReply', () => {
 
     it('coalesces concurrent triggers into one trailing run with a fresh history snapshot', async () => {
         mockedLlm.chatCompletion.mockImplementation(async () => {
-            await new Promise((resolve) => setTimeout(resolve, 20));
+            await new Promise((resolve) => setTimeout(resolve, 200));
             return { content: 'one', toolCalls: [] };
         });
         const late = { ...message, message: 'and this follows mid-run' };
@@ -450,11 +493,18 @@ describe('runAssistantReply', () => {
         await vi.waitFor(() => expect(mockedLlm.chatCompletion).toHaveBeenCalledTimes(1));
         // The second message lands mid-run: it must not be dropped.
         const second = runAssistantReply(target, context, late);
-        await Promise.all([first, second]);
+        await second;
+        const [running] = runDocs();
+        expect(running.state).toBe('running');
+        expect(running.queue.map(trigger => trigger.message.message)).toEqual(['and this follows mid-run']);
+        await first;
         await vi.waitFor(() => expect(mockedSupport.sendUserMessage).toHaveBeenCalledTimes(2));
         // The trailing run re-snapshots the room's history instead of
         // answering from the stale start-of-run context.
         expect(mockedSupport.listMessages).toHaveBeenCalledTimes(2);
+        expect(runDocs()).toHaveLength(2);
+        expect(runDocs().every(run => run.outcome === 'completed')).toBe(true);
+        expect(running.queue).toEqual([]);
     });
 
     it('stays silent when the sender is from another organization than the subscription', async () => {
@@ -698,12 +748,18 @@ describe('stopConversationRuns', () => {
 
         expect(stopConversationRuns('org-1', message.conversationKey)).toBe(1);
         expect(seenSignal.aborted).toBe(true);
+        await vi.waitFor(() => expect(latestRun().state).toBe('stopping'));
         releaseStream();
         await run;
 
         const body = mockedSupport.sendUserMessage.mock.calls[0][1];
         expect(body.message).toBe('Half an answer');
         expect(body.agent).toEqual({ steps: [] });
+        const runDoc = latestRun();
+        expect(runDoc.outcome).toBe('completed');
+        expect(runDoc.answer).toBe('Half an answer');
+        expect(runDoc.question).toBeNull();
+        expect(transitionsFor(runDoc._id)).toEqual(['running→stopping', 'stopping→completed']);
     });
 
     it('ignores runs in other conversations', () => {
@@ -763,6 +819,8 @@ describe('ask_user — suspended questions', () => {
             `conversation:${context.conversationKey}`,
             expect.objectContaining({ type: 'bot_question', question: 'Map archived to?' })
         ));
+        await vi.waitFor(() => expect(latestRun().state).toBe('awaiting-answer'));
+        expect(latestRun().question).toMatchObject({ question: 'Map archived to?', options: ['done', 'legacy'] });
         // The room answers: the message steers the suspended run.
         handleMessageInserted(context, { ...message, message: 'done' });
         await run;
@@ -776,9 +834,20 @@ describe('ask_user — suspended questions', () => {
             `conversation:${context.conversationKey}`,
             expect.objectContaining({ type: 'bot_question_end' })
         );
+        const runDoc = latestRun();
+        expect(runDoc.outcome).toBe('completed');
+        expect(runDoc.question).toBeNull();
+        expect(transitionsFor(runDoc._id)).toEqual([
+            'running→awaiting-answer',
+            'awaiting-answer→running',
+            'running→completed'
+        ]);
     });
 
     it('a sender without the agent-chat capability cannot answer; their message takes the normal trigger path', async () => {
+        mockedBotsService.getBotIdentity.mockImplementation(async (userId) => (
+            String(userId) === ASSISTANT ? { id: ASSISTANT, name: 'Assistant' } : null
+        ));
         mockedBotsService.buildPrincipalAuth.mockImplementation(async (userId) => {
             if (String(userId) === HUMAN) return { ...humanAuth };
             if (String(userId) === HUMAN_B) return { ...humanAuth, userId: HUMAN_B, name: 'Other Human' };
@@ -824,6 +893,7 @@ describe('ask_user — suspended questions', () => {
         });
         const run = runAssistantReply(target, context, message);
         await vi.waitFor(() => expect(mockedTools.executeTool).toHaveBeenCalled());
+        await vi.waitFor(() => expect(latestRun().state).toBe('awaiting-answer'));
         expect(stopConversationRuns('org-1', context.conversationKey)).toBe(1);
         await run;
         expect(mockedSupport.sendUserMessage).not.toHaveBeenCalled();
@@ -833,6 +903,53 @@ describe('ask_user — suspended questions', () => {
         );
         // A later message in the room takes the normal path again.
         expect(mockedOrganizations.canUseAgentChats).toHaveBeenCalledTimes(1);
+        const runDoc = latestRun();
+        expect(runDoc.outcome).toBe('completed');
+        expect(runDoc.question).toBeNull();
+        expect(runDoc.answer).toBe('');
+        expect(transitionsFor(runDoc._id)).toEqual([
+            'running→awaiting-answer',
+            'awaiting-answer→stopping',
+            'stopping→completed'
+        ]);
+    });
+
+    it('times an unanswered question out, returns to running, and concludes from the timeout', async () => {
+        const realSetTimeout = globalThis.setTimeout;
+        let askTimer = null;
+        const timerSpy = vi.spyOn(globalThis, 'setTimeout').mockImplementation((fn, ms, ...args) => {
+            if (ms === 10 * 60_000) {
+                askTimer = fn;
+                return realSetTimeout(() => {}, 0);
+            }
+            return realSetTimeout(fn, ms, ...args);
+        });
+        try {
+            mockedLlm.chatCompletion
+                .mockResolvedValueOnce({ content: '', toolCalls: [{ id: 'a1', name: 'ask_user', arguments: { question: 'Which?' } }] })
+                .mockResolvedValueOnce({ content: 'concluded', toolCalls: [] });
+            mockedTools.executeTool.mockImplementation(async (name, args, auth, run) => (
+                name === 'ask_user' ? { answer: await run.ask(args.question, []) } : {}
+            ));
+            const run = runAssistantReply(target, context, message);
+            await vi.waitFor(() => expect(askTimer).toBeTruthy());
+            await vi.waitFor(() => expect(latestRun().state).toBe('awaiting-answer'));
+            askTimer();
+            await run;
+            const toolMessage = mockedLlm.chatCompletion.mock.calls[1][0].messages.find(entry => entry.role === 'tool');
+            expect(JSON.parse(toolMessage.content).error).toMatch(/did not answer within 10 minutes/);
+            expect(mockedSupport.sendUserMessage.mock.calls[0][1].message).toBe('concluded');
+            const runDoc = latestRun();
+            expect(runDoc.outcome).toBe('completed');
+            expect(runDoc.question).toBeNull();
+            expect(transitionsFor(runDoc._id)).toEqual([
+                'running→awaiting-answer',
+                'awaiting-answer→running',
+                'running→completed'
+            ]);
+        } finally {
+            timerSpy.mockRestore();
+        }
     });
 });
 
@@ -914,5 +1031,43 @@ describe('stop between tool calls', () => {
             .filter(entry => entry.role === 'tool' && entry.toolCallId === 't2');
         expect(dropped).toHaveLength(0 + 1);
         expect(JSON.parse(dropped[0].content).error).toMatch(/stopped before this call executed/);
+        const runDoc = latestRun();
+        expect(runDoc.state).toBe('stopping');
+        expect(runDoc.outcome).toBe('completed');
+        expect(runDoc.answer).toBe('');
+        expect(transitionsFor(runDoc._id)).toEqual(['running→stopping', 'stopping→completed']);
+    });
+});
+
+describe('run recovery', () => {
+    const seed = (id, state, outcome = null, updatedAt = new Date(Date.now() - 60 * 60 * 1000)) => mockedRuns.runs.set(id, {
+        _id: id,
+        state,
+        outcome,
+        queue: [],
+        question: null,
+        updatedAt
+    });
+
+    it('settles every stale non-terminal state as failed and leaves terminal and fresh runs alone', async () => {
+        seed('run-running', 'running');
+        seed('run-awaiting', 'awaiting-answer');
+        seed('run-stopping', 'stopping');
+        seed('run-done', 'running', 'completed');
+        seed('run-fresh', 'running', null, new Date());
+
+        expect(await recoverAgentRuns()).toBe(3);
+        for (const id of ['run-running', 'run-awaiting', 'run-stopping']) {
+            expect(mockedRuns.runs.get(id)).toMatchObject({
+                outcome: 'failed',
+                error: expect.stringMatching(/abandoned/)
+            });
+            expect(mockedRuns.runs.get(id).queue).toEqual([]);
+            expect(mockedRuns.runs.get(id).question).toBeNull();
+        }
+        expect(mockedRuns.runs.get('run-done').outcome).toBe('completed');
+        expect(mockedRuns.runs.get('run-done').error).toBeUndefined();
+        // Terminal is terminal: the next restart resolves nothing.
+        expect(await recoverAgentRuns()).toBe(0);
     });
 });
