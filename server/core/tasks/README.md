@@ -35,6 +35,36 @@ completion resolves the contract back through the plugins feature.
 Worker-specific payloads and IO live
 in worker processes or feature adapters; this runtime is domain-agnostic.
 
+## Transitions
+
+| From | Event / guard | To |
+|---|---|---|
+| none | `enqueueTask` | queued |
+| queued / retryWait after `runAfter` | `claimTask` | running |
+| running with expired lease | `claimTask` | running, new claim token |
+| running | `completeTaskRun`, claim token | succeeded |
+| running | `failTaskRun`, claim token, retryable and attempts remain | retryWait |
+| running | `failTaskRun`, claim token, no retry | failed |
+| running | `heartbeatTaskRun`, claim token | running |
+| non-terminal | `cancelTaskRun` | cancelled |
+| failed / retryWait | `retryTaskRun` | queued |
+
+Status names come from the task definition's six `status` entries
+(`queued`, `running`, `retryWait`, `succeeded`, `failed`, `cancelled`);
+the runtime defaults to the uppercase spelling. The terminal kinds are
+`succeeded`, `failed`, and `cancelled`.
+
+- A terminal run applies a repeated `completeTaskRun` or `failTaskRun`
+  delivery as a no-op before effects, process notification, and result
+  validation.
+- `completeTaskRun` and `failTaskRun` require the running status and the
+  current claim token. `claimTask` reclaims an expired lease with a new
+  token; the previous token then fails completion.
+- `enqueueTask` returns the existing run for a repeated `idempotencyKey`
+  while that run is non-terminal.
+- The lease is the recovery rule for running; the retry backoff returns a
+  retry-wait run to the queue.
+
 ## API
 
 - `GET /api/admin/tasks`

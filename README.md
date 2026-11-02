@@ -223,6 +223,21 @@ builds only).
   and the floating `OfflineOutboxBadge` shows sync state with per-operation
   retry/discard. Successful replays emit the shared entity-event contract, so
   open screens reconcile as if the mutation happened locally.
+- The outbox operation machine (`stores/outbox.js`, `utils/outbox.js`):
+
+  | From | Event/guard | To |
+  |---|---|---|
+  | — | enqueue while offline, or a network failure mid-flight | `pending` (persisted) |
+  | `pending` | replay 2xx or an idempotent duplicate response | deleted |
+  | `pending` | replay 4xx | `failed` |
+  | `pending` | replay 5xx, 429, or network failure | `pending`; flush stops |
+  | `failed` | retry | `pending` |
+  | `failed` | discard | deleted |
+
+  Connectivity is `online`/`offline`; a network failure latches `offline`
+  and the next successful mutation or the browser's `online` event returns
+  it to `online`. The persisted operation's `status` is its one state
+  value; the store's `operations` list mirrors storage.
 - Replayed mutations carry an `Idempotency-Key` header deduped by
   `server/core/idempotency` (see
   [its README](./server/core/idempotency/README.md) for the contract).

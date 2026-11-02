@@ -26,12 +26,21 @@ Parent: [server/features](../README.md).
 - `organizationId`: tenant that owns the override.
 - `typeId`: normalized entity type id (registry-canonicalized).
 - `workflow`: normalized v2 workflow definition.
-- `status`: `ACTIVE`, `DRAFT`, or `ARCHIVED`; runtime uses only `ACTIVE`.
+- `status`: `ACTIVE` or `ARCHIVED`; resolution reads only `ACTIVE`.
 - `createdBy` / `updatedBy`: authenticated user ids.
 
-Only one active override should exist for `{ organizationId, typeId}`.
-Activation archives previous active records before inserting the new active
-definition.
+## Transitions
+
+| From | Event | To |
+|---|---|---|
+| none | `activate` | `ACTIVE` |
+| `ACTIVE` | `activate` (replaced row) | `ARCHIVED` |
+| `ACTIVE` | `archiveActive` | `ARCHIVED` |
+
+`activate` runs `archiveActive` and inserts the next row in one service
+seam. A unique partial index on `{ status, organizationId, typeId }` with
+`status = 'ACTIVE'` enforces one active override per organization and type;
+a concurrent activation that loses the insert race fails on that index.
 
 ## Related
 

@@ -22,12 +22,23 @@ Collection: `partnerships`
   as plain strings so membership queries stay independent of the
   ObjectId/UID duality of organization `_id`s.
 - `requesterOrganizationId` / `requesterUserId`: who asked.
-- `status`: `pending` → `active` (accepted) | `declined`; `active` →
-  `terminated`. `pending` may also be cancelled by the requester
-  (`declined`).
+- `status`: the partnership state.
 - `createdAt`, `respondedAt`, `terminatedAt`.
 - Audit trail rides the shared status-events service
-  (`initializeStatus`/`addStatus` on the `partnerships` collection).
+  (`initializeStatus`/`addStatus` on the `partnerships` collection); each
+  transition writes the collection status and its `status_events` row in the
+  same service call.
+
+| From | Event / guard | To |
+|---|---|---|
+| — | request | `pending` |
+| `pending` | partner-side admin accepts | `active` |
+| `pending` | partner-side admin declines | `declined` |
+| `pending` | requester-side admin cancels | `declined` |
+| `active` | either side's admin terminates | `terminated` |
+
+`declined` and `terminated` are terminal; a repeated response or termination
+reads as already closed.
 
 ## Authorization
 

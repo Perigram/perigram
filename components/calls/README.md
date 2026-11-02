@@ -14,21 +14,24 @@ Room instance, a single event binder, and a reactive state block
 (participants with their camera/screen tracks, speaking, quality, local
 device states, layout, pin, reactions, device lists). Every call surface —
 workspace tab, full-screen dialog, floating window, mobile lane — is a
-thin view over that state; mounting or unmounting a surface never touches
-the connection. Panels register their room in the store's
-`mountedRooms` set while mounted, and an open workspace call tab registers
-in `callTabs` — the pane renders the selected tab only, so the tab, open
-or active, is the session's workspace surface: switching tabs keeps the
-call seated (audio rides the app-level renderer; returning to the tab
-re-renders the live session). Closing the call tab ends the
-session — an explicit close is a leave. A connected session left by
-route navigation parks into the desktop floating window automatically
-(SPEC §11) — on mobile the media dock's call lane entry takes it. A pending tab room suspends the auto-rule while the home
-workspace mounts the adopting tab, and the workspace clears its tab
-registry on route leave so the floating-window rule takes over.
+thin view over that state; mounting or unmounting a surface leaves the
+connection untouched. `placement` is the session's explicit surface state:
+`tab`, `dialog`, `floating`, or `dock`. Panels register their room in the
+store's `mountedRooms` set while mounted, and an open workspace call tab
+registers in `callTabs` — the pane renders the selected tab only, so the
+tab, open or active, is the session's workspace surface: switching tabs
+keeps the call seated (audio rides the app-level renderer; returning to
+the tab re-renders the live session). Closing the call tab ends the
+session — an explicit close is a leave. A live session left by route
+navigation parks into the desktop floating window automatically
+(SPEC §11); on mobile the media dock's call lane entry takes it. A pending
+tab room suspends the auto-rule while the home workspace mounts the
+adopting tab, and the workspace clears its tab registry on route leave so
+the floating-window rule takes over.
 
 - `CallPanel.vue` renders the session: pre-join → connecting → connected
-  or failed stages, speaker/grid stages, the floating control pill, and
+  or failed stages, with `reconnecting` rendered as a status pill over the
+  live stage, speaker/grid stages, the floating control pill, and
   the mid-call device settings popover. It is a **bounded videocall
   surface**: the video stage owns every pixel, the root never page-scrolls
   (only the grid and the film strip scroll inside their own boxes, with
@@ -131,24 +134,58 @@ the stage, above the pill. Status is shown only where it changes
 behavior: a reconnecting pill while the room re-connects,
 degraded-quality glyphs on tile chips.
 
-## Call line state machine
+## Call line, session, and placement machines
 
-The user's call is one explicit machine in `stores/calls.js`, so every
-surface agrees on ringing:
+The user's call is three explicit machines in `stores/calls.js`; every
+surface reads the same values.
 
-```
-idle ──invite──▶ ringing ──accept──▶ joining ──session connected──▶ in-call
-  ▲                 │                                   │               │
-  └─ decline/TTL ───┘◄───────────────────────────────────┴─── leave ─────┘
-```
+Line state (`status`):
+
+| From | Event/guard | To |
+|---|---|---|
+| `idle` | invite | `ringing` |
+| `ringing` | accept | `joining` |
+| `ringing` | decline, 30 s invite TTL, or the running room leaving the snapshot | `idle` |
+| `joining` | session reaches `connected` (`joinRoom`) | `in-call` |
+| `joining` | 30 s join timeout, or leave | `ringing` when an invite is pending, else `idle` |
+| `in-call` | leave, or session disconnect | `ringing` when an invite is pending, else `idle` |
 
 `acceptInvite` is a single global transition — accepting or declining in
-any surface clears the ring for that room everywhere. The session's
-connect reports `joinRoom`; leaving and an unexpected disconnect report
-`leaveRoom`.
+any surface clears the ring for that room everywhere. A join timeout also
+clears `pendingTabRoom`.
+
+Session state (`session.state`):
+
+| From | Event/guard | To |
+|---|---|---|
+| `connecting` | room connect resolves | `connected` |
+| `connecting` | token fetch or connect failure | `failed` |
+| `connected` | transport `Reconnecting` | `reconnecting` |
+| `reconnecting` | transport `Reconnected` | `connected` |
+| `connected`, `reconnecting` | transport `Disconnected` | `failed`; the line leaves |
+| `failed` | retry (teardown then `openSession`) | `connecting` |
+
+The session tolerates one connected room at a time: opening a session for
+another room tears the previous one down first.
+
+Placement (`placement`):
+
+| From | Event/guard | To |
+|---|---|---|
+| `tab` | panel dispatch | `floating` |
+| `floating` | panel dock | `tab` (parked as `pendingTabRoom`) |
+| `tab`, `dialog`, `floating` | live session with no mounted surface, call tab, or pending tab | `floating` on desktop, `dock` on mobile |
+| `dock` | expand the lane entry | `dialog` |
+| `dialog` | close | `floating` on desktop, `dock` on mobile |
+| `tab` | close the call tab | leave (the tab is the session's workspace surface) |
+| `floating` | close | leave |
+
+`pendingTabRoom`, `mountedRooms`, `callTabs`, and `floatingRoom` are facts
+the parking transition reads; `placement` is the one surface truth every
+host renders against.
 
 The machine tracks the local user's participation: `in-call` holds while
-the session is connected and falls back to ringing/idle when it ends. The
+the session is connected and returns to ringing/idle when it ends. The
 room lifecycle — alive while *anyone* is in it — rides the activity
 snapshot: webhook `call.activity` events debounce into an
 `active-rooms` refetch (server-filtered to rooms with at least one
@@ -161,19 +198,18 @@ lives out its 30s TTL. A failed refetch keeps the last snapshot, and a
 reopened connections stream refetches it, so missed webhook events
 self-heal.
 
-The session tolerates one connected room at a time: opening a session for
-another room tears the previous one down first.
-
 ## Surface routing
 
 `composables/useCallRouting.js` owns where a call opens: the home
 workspace tab is the default (navigating home when the caller lives on
-another route); organizations without a generated home workspace fall back
-to the floating window, and mobile keeps the full-screen dialog. Accepted
-invites and docked calls are parked as `pendingTabRoom`; the home
-workspace's watcher opens the tab, and the mounted `CallPanel` consumes
-the pending room — the floating-window auto-rule stays suspended until a
-surface truly exists, so docking can never race the tab into existence.
+another route); organizations whose manifest omits a generated home
+workspace route to the floating window, and mobile keeps the full-screen
+dialog. Accepted
+invites and docked calls are parked as `pendingTabRoom` with placement
+`tab`; the home workspace's watcher opens the tab, and the mounted
+`CallPanel` consumes the pending room — the floating-window auto-rule stays
+suspended until a surface truly exists, so docking and the adopting tab
+cannot race.
 The mobile and
 chat-hosted full-screen call dialogs are the one `CallDialog` host: the
 dialog root is capped to the viewport (full-bleed on mobile,

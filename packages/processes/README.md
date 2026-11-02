@@ -1008,6 +1008,26 @@ receiver lifecycle contract.
 
 ## Runtime orchestration
 
+Run and step states follow one transition table; `transitionProcessRun`
+and `transitionProcessStep` enforce it and terminal states accept no edge.
+
+| Record | From | Event | To |
+|---|---|---|---|
+| Run | `running` | every token parks (async effect, join, Wait Until) | `waiting` |
+| Run | `running` | tokens empty or `stopSuccess` | `succeeded` |
+| Run | `running` | node error or `stopFailure` | `failed` |
+| Run | `running` | task cancellation | `cancelled` |
+| Run | `waiting` | `wakeAt` due or effect completion | `running` |
+| Run | `waiting` | resume failure | `failed` |
+| Run | `waiting` | task cancellation | `cancelled` |
+| Step | `pending` | token starts the node | `running` |
+| Step | `running` | async effect or join parks | `waiting` |
+| Step | `running` | node completes | `succeeded` |
+| Step | `running` | node error | `failed` |
+| Step | `running` | task cancellation | `cancelled` |
+| Step | `waiting` | effect completion resumes it | `succeeded` |
+| Step | `waiting` | resume failure or task cancellation | `failed` / `cancelled` |
+
 `orchestration.js` executes the full runtime control plane. Effect nodes
 have three execution modes: `manual`, exposed through authorized UI;
 `event`, which requires an incoming control socket; and `schedule`,

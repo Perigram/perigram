@@ -40,14 +40,32 @@ restarts); TTL indexes reap abandoned sessions and chunks after one day.
 |---|---|
 | Chunk size | 5 MiB |
 | Session size cap | 1 GiB |
-| TTL | 24 h |
+| Session status | `open`, `completed`, `expired` |
+| Open expiry | 24 h |
+| Session document TTL | 48 h |
+
+The session's `status` is its state; the chunk collection is a fact about an
+`open` session.
+
+| From | Event / guard | To |
+|---|---|---|
+| — | create session | `open` |
+| `open` | complete with every chunk present | `completed` |
+| `open` | sweep after 24 h | `expired` |
+
+`completed` and `expired` are terminal. A duplicate completion returns the
+stored result without uploading again. The sweep marks stale open sessions
+`expired`, deletes their chunks, and runs every 10 minutes
+(`UPLOAD_SESSION_SWEEP_INTERVAL_MS`); the session document is reaped later by
+its TTL index.
 
 | Export | Contract |
 |---|---|
-| `createUploadSession({ fileName, mimeType, size }, context, bucket)` | Validates the byte count against the cap; returns `{ uploadId, chunkSize, size }`. |
-| `getUploadSession(uploadId, { userId })` | Resume state `{ uploadId, chunkSize, size, received }` with the received chunk indexes. |
-| `appendUploadChunk(uploadId, index, buffer, { userId })` | Idempotent per index; validates index range and chunk size. |
-| `completeUploadSession(uploadId, { userId })` | Requires every chunk present; assembles, checks the byte count, uploads through `uploadFile` into the session's bucket, deletes the session. |
+| `createUploadSession({ fileName, mimeType, size }, context, bucket)` | Validates the byte count against the cap; returns `{ uploadId, chunkSize, size, status }`. |
+| `getUploadSession(uploadId, { userId })` | Resume state `{ uploadId, chunkSize, size, status, received }` with the received chunk indexes; `expired` answers `410`. |
+| `appendUploadChunk(uploadId, index, buffer, { userId })` | Idempotent per index; requires `open` and validates index range and chunk size. |
+| `completeUploadSession(uploadId, { userId })` | Requires every chunk present; assembles, checks the byte count, uploads through `uploadFile` into the session's bucket, and marks the session `completed`. |
+| `sweepExpiredUploadSessions(now?)` | Marks stale `open` sessions `expired` and deletes their chunks. |
 
 Sessions are caller-scoped: a `userId` mismatch reads as not found.
 

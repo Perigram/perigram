@@ -149,8 +149,15 @@ Transitions are governed by declarative machines in `server/core/machines/`.
 For history, use the specific status service or API.
 
 ### Updating Status
-Status blocks are written only through `stateService.transition()` from
-the machine engine.
+
+| Write path | Owner |
+|---|---|
+| `stateService.transition()` | machine-governed transitions |
+| `applyStatus()` | initial organization, user, and process-definition snapshots |
+| `addStatus()` / `initializeStatus()` | invitations and partnerships |
+
+`applyStatus()` is the `BaseEntity` snapshot setter: it stamps `origin` on
+the first write and replaces the current status block on every write.
 
 ```javascript
 import { stateService } from '~/server/core/machines/service';

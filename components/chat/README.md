@@ -20,6 +20,37 @@ Parent: [components README](../README.md). Target law: [SPEC](./SPEC.md).
 | `useVoiceRecorder.js` | MediaRecorder lifecycle for voice messages; the send tail stays in the thread core |
 State law: children are presentational over the thread bag; template
 refs bind through the bag in whichever SFC hosts the element.
+
+## Agent run state machine
+
+`useChatThread` derives one client run state from the conversation stream
+(`agentRun`); `agentActivity`, `agentQuestion`, `agentRunLive`, and
+`agentStopping` derive from it. `reduceAgentRun` is the transition table.
+
+| From | Event/guard | To |
+|---|---|---|
+| `idle` | `bot_activity` / `bot_stream` | `running` |
+| `idle`, `running` | `bot_question` | `awaiting-answer` |
+| `awaiting-answer` | `bot_question_end` (the room answered) | `running` |
+| `running`, `awaiting-answer` | stop control | `stopping` |
+| `running`, `awaiting-answer`, `stopping` | `bot_stream_end` | `completed` |
+| `running`, `awaiting-answer`, `stopping` | persisted message carrying `agent` | `completed` |
+| `running`, `awaiting-answer`, `stopping` | persisted message carrying `notice` | `failed` |
+| `running`, `awaiting-answer` | live snapshot reports the run inactive | `completed` |
+| `stopping` | live snapshot reports the run inactive | `completed` |
+| `stopping` | stop timeout (8000 ms) | `completed` |
+| `idle` | live snapshot reports an active run | `running` |
+| `idle` | live snapshot reports an active suspended run | `awaiting-answer` |
+| `completed`, `failed` | `bot_activity` / `bot_stream` / active live snapshot | `running` |
+| `completed`, `failed` | active live snapshot with a question | `awaiting-answer` |
+
+`stopping` recovers through stream end, the persisted message, or the
+timeout. Stream events arriving in `stopping` are ignored and the stopped
+run's live block stays cleared; the stream end, the persisted message, or
+the timeout leaves `stopping`. A reconnect restores the run from the live
+snapshot (`GET /api/agent-bots/live`), including a suspended question. A
+persisted human message leaves the state untouched.
+
 ## Quality bar
 | Feature | Law |
 |---|---|

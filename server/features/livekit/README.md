@@ -88,6 +88,26 @@ have no conversation thread to record into.
   org-configured [meetings pipeline](../meetings/README.md) may post a
   protocol-driven summary of the recording into the same conversation.
 
+### Recording Lifecycle
+
+The `call_recordings` `status` is the recording state.
+
+| From | Event / guard | To |
+|---|---|---|
+| — | start room-composite egress | `recording` |
+| `recording` | verified `egress_ended` with every file imported | `completed` |
+| `recording` | verified `egress_failed` | `failed` |
+| `recording` | import failure during `egress_ended` | `failed` |
+| `recording` | stale recovery reads `EGRESS_COMPLETE` | `completed` |
+| `recording` | stale recovery reads `EGRESS_FAILED` or `EGRESS_ABORTED` | `failed` |
+
+`completed` and `failed` are terminal; a repeated webhook delivery or stale
+recovery pass applies as a no-op. The recovery sweep runs every 5 minutes and
+checks recordings older than 30 minutes against the egress plane's
+`ListEgress` state (`RECORDING_RECOVERY_INTERVAL_MS`,
+`RECORDING_STALE_AFTER_MS`); an unreachable plane leaves the record
+`recording` for the next pass.
+
 ## Server Contract
 
 - `service.js` mints LiveKit room tokens (`jsonwebtoken`, HS256, `iss` = API

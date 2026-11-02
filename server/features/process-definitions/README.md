@@ -28,7 +28,24 @@ Target law: [SPEC.md](./SPEC.md).
 | Validate | Recompiles both sides from canonical authored records and produces the semantic Apply diff through `diffProcessContracts` (`packages/processes/src/contract-diff.js`): added/removed/changed actions, screens, and role grants; per-typeId CRUD capability changes; per-producer workflow state/transition/entry changes; field-policy section changes; and the statuses the next contract removes, by typeId. Draft validation overlays the draft's declaration graph on the projected CTS domain and validates the same recursive state/edge records that APPLY posts. |
 | Activate | Requires canonical semantic process records, validates the draft, verifies the process transpiler round-trip, compiles the runtime contract, and marks the definition `ACTIVE`. Each activation writes the activated snapshot to `data.activated`; the runtime compiles `data.activated || data` for every active-set member, so live draft edits stay out of the runtime. Re-activation records the superseded snapshot in `data.history` (capped at 50); the Definitions pane restores a history entry as the definition's data, and restoring goes live through activation. |
 | Deactivate | Removes one definition from the active set (state returns to `DRAFT`, editable and re-activatable) and re-derives the runtime contract. |
+| Archive | Moves a definition to `ARCHIVED` from `DRAFT`, `ACTIVE`, or `ARCHIVED`; the runtime contract drops an active definition on the same request. |
 | Type death | An org type lives while any stored definition's current graph declares it — active, draft, or turned off. Activation-orphaning types and definition deletion pause on the same disclaimer (`data.typeDeath`, one row per dying type with its authored name and live instance count; the designer renders `TypeDeathDialog`): the apply or delete fails with HTTP 409 until the request carries `confirmTypeDeath: true`; the confirmed retry kills each orphan with its data (declaration, instances, status history, stored files — the executor is [cts-types](../cts-types/README.md)) before proceeding. |
+
+Publication is one state machine; `data.migrations.state` is a separate
+axis with `none`, `required`, `applied`, and `incomplete`.
+
+| From | Event | To |
+|---|---|---|
+| — | create | `DRAFT` |
+| `DRAFT` | activate | `ACTIVE` |
+| `ACTIVE` | activate (re-activation) | `ACTIVE` |
+| `ARCHIVED` | activate | `ACTIVE` |
+| `ACTIVE` | deactivate | `DRAFT` |
+| any | archive | `ARCHIVED` |
+
+An `ACTIVE` definition with an `incomplete` migration is one named state:
+the contract is live while the declared re-targets resume on the next
+activation.
 
 Turned-off definitions and version-history snapshots retain their data
 and declaration copies; the runtime (hydration, screens, navigation) is
@@ -88,6 +105,11 @@ Apply turns the removed-status gate into a confirmed migration.
   are HTTP 400 with the plan attached. A declared row outside the
   current plan's requirements is a no-op, so declarations from earlier
   applies stay harmless.
+- **Axis** — `data.migrations.state` is `none` (nothing to apply),
+  `required` (the gate holds a plan), `applied` (the last run re-targeted
+  every stranded instance), or `incomplete` (activation landed and at
+  least one re-target failed; the next activation resumes). The axis is
+  persisted beside the authored `statuses` and the `applied` summary.
 - **Ordering** — activate, then migrate, inside one request. The status
   machine resolves the *active* contract (`resolveActiveWorkflow`), so
   re-targeting runs against machines that already contain the targets.
@@ -117,7 +139,9 @@ records.
 
 ## Action execution seam
 
-Activation compiles the contract; the organization backend serves it
+Run and step states follow the transition table owned by
+[packages/processes](../../../packages/processes/README.md) § Runtime
+orchestration. Activation compiles the contract; the organization backend serves it
 continuously. A manual action executes through
 `executeActiveProcessAction()`: it verifies the compiled role
 assignment, resolves the authored effect's manual start, and evaluates
@@ -161,11 +185,24 @@ re-arming ISO `interval`) fire as the SYSTEM principal of the
 organization; every fire is ledgered as a `process_executions` document
 (`kind: 'schedule'`), and a one-shot fires only while no ledger entry
 exists for its entry node. Emitted events deliver inline at emit and the
-scanner retries every undispatched `process_events` record; delivery
-starts one run per matching subscriber entry, the event riding the run
-trigger. Runs parked on an async command task keep their in-process
-continuation; a restart drops those (the task runtime records the work)
-while Wait Until parks survive it.
+scanner retries pending `process_events` records; delivery starts one run
+per matching subscriber entry, the event riding the run trigger.
+
+| Record | From | Event | To |
+|---|---|---|---|
+| Event delivery | `pending` | subscribers dispatched | `dispatched` |
+| Event delivery | `pending` | delivery error, attempts below the cap | `pending` |
+| Event delivery | `pending` | delivery error at the cap | `failed` |
+| Schedule entry | `unfired` | due and fired | `fired` |
+| Schedule entry | `fired` | interval elapses | `unfired` |
+| Schedule entry | `unfired` | fire error | `unfired` |
+
+Event attempts and last error are facts on the record; the delivery cap is
+`EVENT_DELIVERY_MAX_ATTEMPTS` in `run-store.js`. A schedule entry's ledger
+row (`process_executions`, `kind: 'schedule'`) is its state; a failed fire
+persists no row and retries on the next scan. Runs parked on an async
+command task keep their in-process continuation; a restart drops those
+(the task runtime records the work) while Wait Until parks survive it.
 
 
 Consumer effects accept the operated entity in every shape the run

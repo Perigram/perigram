@@ -98,6 +98,27 @@ with the shared instance-event emission contract (browser-local event plus
 the typed invalidation other sessions poll). `dtoRegistry` is the wire-DTO
 projection for handwritten card/detail surfaces.
 
+## Optimistic write state
+
+`writeStateFor(typeKey, id)` is the single per-record write state for
+`updateInstance` and `removeInstance`. Writes for one record id run in
+arrival order: the head previews and posts, later writes wait for it to
+settle and preview when they become the head.
+
+| From | Event/guard | To |
+|---|---|---|
+| `idle` | update or delete starts | `pending` |
+| `pending` | response settles | `confirmed` |
+| `pending` | request fails | `rolled-back` |
+| `pending` | outbox queues the write offline | `queued` |
+| `pending`, `rolled-back`, `queued` | server or outbox event for the record | `confirmed` |
+| `confirmed`, `rolled-back`, `queued` | next update or delete | `pending` |
+
+`pending` recovers through the response, the failure, or the offline
+queueing. `queued` recovers through the outbox replay event. `confirmed`
+and `rolled-back` are settled observations; the next write re-enters
+`pending`.
+
 ## Core Stores
 
 - `layerStandards.js`: Layer-standard catalog accessor over the generic
@@ -130,13 +151,17 @@ projection for handwritten card/detail surfaces.
   and owns incoming invites with a 30s TTL so accepting or declining
   anywhere stops the ring everywhere. The connected room is one session in
   the store — the LiveKit Room, a single event binder, and a reactive
-  participant/track state block — and every call surface (workspace tab,
-  dialog, floating window, mobile lane) renders it as a view; panels
-  register in `mountedRooms` while mounted and open workspace call tabs
-  register in `callTabs` (the tab is the session's surface, active or
-  not), and a connected session with neither parks into the desktop
-  floating window (SPEC §11) while mobile keeps the media-dock lane
-  entry. Accepted calls park as a
+  participant/track state block. The session state is explicit
+  (`connecting`, `connected`, `reconnecting`, `failed`); `reconnecting` is
+  the live state during a transport reconnect. Every call surface
+  (workspace tab, dialog, floating window, mobile lane) renders the session
+  as a view; `placement` is the explicit surface state (`tab`, `dialog`,
+  `floating`, `dock`), and `pendingTabRoom`, `mountedRooms`, `callTabs`, and
+  `floatingRoom` are facts the parking rule reads. Panels register in
+  `mountedRooms` while mounted; open workspace call tabs register in
+  `callTabs` (the tab is the session's surface, active or not). A live
+  session with neither parks into the desktop floating window (SPEC §11)
+  while mobile keeps the media-dock lane entry. Accepted calls park as a
   pending home-workspace tab. Ringing
   is room-scoped, not just time-scoped: an invite is dropped only after its
   room was observed running and then left the snapshot, so a caller hanging
@@ -148,7 +173,7 @@ projection for handwritten card/detail surfaces.
   which resolves through the shared room grammar
   ([`shared/call-rooms.js`](../shared/README.md)). The machine's canonical
   contract lives in
-  [components/calls](../components/calls/README.md#call-line-state-machine).
+  [components/calls](../components/calls/README.md#call-line-session-and-placement-machines).
 - `media.js`: The app's now-playing channel (see
   [components/media](../components/media/README.md)): exactly one media
   element plays across every surface (a starting element claims the channel
@@ -173,6 +198,29 @@ projection for handwritten card/detail surfaces.
   instance mutation snapshots publish through the same store. Successful
   mutations publish a complete instance snapshot to the browser-local
   `utils/instance-events.js` contract used by shared stores and generated screens.
+
+  Poll machine (`status`):
+
+  | From | Event/guard | To |
+  |---|---|---|
+  | `idle` | `connect` | `polling` |
+  | `polling` | `GET /api/instance-events` succeeds | `connected` |
+  | `polling` | request fails | `error` |
+  | `connected` | a later request fails | `error` |
+  | `error` | 5 s retry timer fires | `polling` |
+  | `idle`, `polling`, `connected`, `error` | `disconnect` | `stopped` |
+  | `stopped` | `connect` | `polling` |
+
+  `connected` means the last poll succeeded; `status` is the authoritative
+  poll state and `connected` derives from it. A hidden document stops
+  rescheduling after the in-flight request returns; becoming visible polls
+  immediately with the last cursor. `disconnect` resets the cursor, so the
+  next connect starts from the buffer's current end.
+
+- `outbox.js`: Offline mutation queue and sequential replay; the operation
+  machine (`pending`, `failed`), connectivity latch, and `Idempotency-Key`
+  replay contract are canonical in the
+  [root PWA section](../README.md#progressive-web-app).
 - Generated surfaces resolve entity data through the instances store.
 
 ## Conventions

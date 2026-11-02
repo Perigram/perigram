@@ -42,6 +42,22 @@ contract with `phase: 'completion'` (completion results may re-report
 immediate outputs; see `server/core/tasks/README.md`).
 Handlers do business work; access decisions stay in `server/core/access`.
 
+## Transitions
+
+| From | Event / guard | To |
+|---|---|---|
+| none | `executeCommand` | `RUNNING` |
+| `RUNNING` | handler returns | `SUCCEEDED` |
+| `RUNNING` | handler throws | `FAILED` |
+| `RUNNING` older than 15 min | startup sweep | `FAILED` (`abandoned`) |
+
+A successful or failed run carries `finishedAt`. The startup sweep
+(`server/plugins/command-run-recovery.js` calls
+`recoverAbandonedCommandRuns`) marks `RUNNING` rows older than 15 minutes
+`FAILED` with `error.reason = 'abandoned'` and a `finishedAt` stamp. The
+age guard keeps a rolling restart from abandoning commands still running
+in another replica.
+
 ## API
 
 - `GET /api/admin/commands`

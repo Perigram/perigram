@@ -85,10 +85,38 @@ subscription when the last handler goes away. After every (re)connect the
 composable resynchronizes the active topic set, so consumers are free of
 reconnect handling. `epoch` advances on every `ready` event — each
 (re)connect — so consumers that can miss topic events during a gap refetch
-their state on change (the chat thread reconciles this way). `status` is
-`idle | connecting | open | reconnecting | error`;
+their state on change (the chat thread reconciles this way).
 `onlineUserIds` is a reactive Set of user ids with a live connection in the
-active organization. Contract details live in
+active organization.
+
+Stream machine (`status`):
+
+| From | Event/guard | To |
+|---|---|---|
+| `idle` | first `subscribe` | `connecting` |
+| `connecting` | `ready` | `open` |
+| `open` | stream error | `error` |
+| `error` | closed source | `reconnecting` |
+| `reconnecting` | 500 ms reopen timer | `connecting` |
+| `error` | native retry opens the stream | `open` |
+
+Subscription sync machine (`syncState`):
+
+| From | Event/guard | To |
+|---|---|---|
+| `idle` | `ready` reports the connection id | `syncing` |
+| `syncing` | topic POST succeeds | `synced` |
+| `syncing` | topic POST fails | `failed` |
+| `failed` | retry timer, attempts below 5 | `syncing` |
+| `failed` | retry cap reached | `failed` |
+| `synced` | stream reset | `idle` |
+| `syncing` | 403 | `idle` on the fresh stream |
+| `failed` | stream reset | `idle` |
+
+A 403 means the server has dropped the connection id: the composable
+reopens the stream and the fresh `ready` event resynchronizes the retained
+topic set. `status` and `syncState` are the two authoritative values;
+`epoch` and presence are facts beside them. Contract details live in
 [the connections feature](../server/features/connections/README.md).
 
 ---
@@ -328,6 +356,38 @@ invariant).
   compile-derived keys and lineage bindings stripped, station kind preserved
   — so the duplicate begins projection-equal to inference and the compiler's
   redundancy guard refuses it at Apply until the author deviates.
+
+### Process designer Apply state machine
+
+`useProcessDesignerApply` owns one authoritative `applyState` value; the
+page renders dialogs and dock controls from it, and `applyDetail` carries
+the current gate's payload or the error message. The three gates share one
+transition table.
+
+| From | Event | To |
+|---|---|---|
+| `idle` | Save | `saving` |
+| `idle` | Apply | `applying` |
+| `saving` | draft persisted | `idle` |
+| `saving` | save failure | `error` |
+| `applying` | activation persisted | `idle` |
+| `applying` | validation or apply failure | `error` |
+| `applying` | validation returns an uncovered migration plan | `migration-required` |
+| `applying` | declaration post returns structured plan failures | `type-migration-required` |
+| `applying` | activation returns a type-death 409 | `type-death-required` |
+| `migration-required` | confirm; mappings persist as a declaration | `applying` |
+| `migration-required` | cancel | `idle` |
+| `type-migration-required` | confirm; steps write onto class nodes and the apply retries | `applying` |
+| `type-migration-required` | cancel | `idle` |
+| `type-death-required` | confirm; activation retries with explicit consent | `applying` |
+| `type-death-required` | cancel | `idle` |
+| `error` | Save or Apply | `saving` / `applying` |
+
+Events outside the table are ignored: a second Apply while a gate is open
+leaves the gate and its payload intact, and a confirm for another gate is a
+no-op. Every gate payload is cleared when its state is left. `saving` and
+`applying` recover through their response or `error`; an `error` recovers on
+the next Save or Apply.
 
 ---
 

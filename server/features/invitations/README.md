@@ -24,6 +24,26 @@ Parent: [server/features](../README.md).
    management. Pending membership prevents runtime tenant access; rejection
    removes both membership and organization assignment.
 
+## Invitation Machine
+
+One `status` field is the invitation state. Link and targeted invitations
+share the machine.
+
+| From | Event / guard | To |
+|---|---|---|
+| `pending` | link join by token or code | `accepted` |
+| `pending` | targeted invitee accepts | `accepted` |
+| `pending` | targeted invitee declines | `declined` |
+| `pending` | team administrator revokes | `revoked` |
+| `pending` | access after `expiresAt` | `expired` |
+
+Expiry is a lazy transition: the next token, code, or targeted-response read
+after `expiresAt` writes `expired` and answers `410`. `accepted`, `declined`,
+`expired`, and `revoked` are terminal; a repeated response reads as not found
+and writes no membership. Link join creates the membership in `pending`;
+targeted accept creates it in `active`. Membership transitions live in the
+[users](../users/README.md) component.
+
 ## Targeted Invitations (invite an existing user)
 
 `generateInvitation` accepts an optional `inviteeUserId` (validated to exist
@@ -35,7 +55,7 @@ creates the **active** membership and the role assignment directly — there
 is no second organizational approval round. Declining simply closes the
 invitation.
 
-- `listMine(user)` returns the caller's active targeted invitations
+- `listMine(user)` returns the caller's pending targeted invitations
   (`GET /api/invitations/mine`) — the shared `TargetedInvitations` surface
   renders them with accept/decline actions, mounted both in the account
   settings popup (above the memberships section, reachable for members of

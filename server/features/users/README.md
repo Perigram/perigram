@@ -31,7 +31,6 @@ user mutation stays on the feature routes below.
 - `passwordHash`: Argon2id hash
 - `permissions`: Tenant recovery grants; ordinary process access resolves from compiled roles.
 - `memberships`: Array of organization memberships `{ organizationId, permissions, status, owner? }`; memberships establish tenant relationship and approval state only
-- `isActive`: Boolean flag
 - `bot`: Marker for the AI's attribution identity, the per-organization
   assistant (`{ createdAt }` persisted; DTOs carry the same bare shape).
   The assistant has no password (no login) and an internal placeholder
@@ -40,6 +39,21 @@ user mutation stays on the feature routes below.
   feature to bootstrap the assistant) creates the marker without a token
   or profile — the assistant holds no grants of its own: AI runs execute
   delegated to the chatting user's access.
+
+## Membership Machine
+
+Membership is the tenant state; the user record carries no separate account
+active flag.
+
+| From | Event / guard | To |
+|---|---|---|
+| `pending` | organization admin approves (`confirmMembership`) | `active` |
+| `pending` | organization admin rejects | membership removed |
+| `active` | member removal | membership removed |
+
+Only `pending` membership blocks tenant access. Rejection removes the
+membership and the organization role assignment; the invitation keeps its own
+terminal state.
 
 ## Authentication Flow
 1. Login → `usersService.login(email, password)`

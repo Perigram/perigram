@@ -35,12 +35,42 @@ as organization token top-ups that fund compute-intensive services.
 - `organization_billing_accounts`: one prepaid token balance per organization.
 - `organization_billing_ledger`: immutable credit/debit entries.
 - `organization_billing_invoices`: package purchase records.
-- `organization_billing_payments`: Stripe checkout state and visible provider
-  errors.
+- `organization_billing_payments`: Stripe checkout state, attempt count, and
+  visible provider errors.
 
-Payment completion is idempotent: a payment is first claimed as `completed`,
-then the account is credited and a ledger row is written. Browser return sync
-and background Stripe polling both use the same service path.
+## Payment And Invoice Machines
+
+The payment `status` is its state. The background claim takes only `created`
+payments younger than one hour with `attempt` below the cap of 3, moving each
+to `processing` and incrementing `attempt`.
+
+| From | Event / guard | To |
+|---|---|---|
+| `created` | background claim | `processing` |
+| `processing` | provider reports `paid` | `completed` |
+| `processing` | provider reports another status below the cap | `created` |
+| `processing` | provider error below the cap | `created` with `lastError` |
+| `processing` | provider error at the cap | `failed` with `lastError` |
+| `processing` | provider reports another status at the cap | `failed` |
+| `processing` | startup reset below the cap | `created` |
+| `processing` | startup reset at the cap | `failed` |
+
+The startup reset also fails the capped payments' invoices. Completion,
+failure, and duplicate provider deliveries are idempotent at the state
+boundary: a payment in `completed` or `failed` accepts no further transition.
+Browser return sync and background Stripe polling share `syncPayment`; the
+account credit and ledger row are written once, beside the winning
+`processing` → `completed` edge.
+
+The invoice `status` is its state.
+
+| From | Event / guard | To |
+|---|---|---|
+| `open` | payment reaches `completed` | `paid` |
+| `open` | payment reaches `failed` | `failed` |
+| `open` | checkout session creation fails | `void` |
+
+`paid`, `failed`, and `void` are terminal.
 
 ## Service Token Consumption
 

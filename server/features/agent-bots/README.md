@@ -196,6 +196,50 @@ agent-chat capability, or one from another organization than the
 subscription's, is skipped silently — the subscription's organization is
 the wake boundary.
 
+### Run machine
+
+Each room run is a persisted `agent_bot_runs` document. Its `state` is
+the room's machine state and its `outcome` is terminal; `queue`,
+`question`, `answer`, and `error` are facts about that state.
+
+| From | Event / guard | To |
+|---|---|---|
+| — | a resolved trigger opens the room's run | `running` |
+| `running` | `ask_user` publishes its question | `awaiting-answer` |
+| `running`, `awaiting-answer` | a trigger lands while the run holds the room | unchanged; `queue` takes the trailing trigger |
+| `awaiting-answer` | a capability-holding message in the asking conversation | `running`; `question` clears |
+| `awaiting-answer` | 10-minute timeout | `running`; the timeout result feeds the loop |
+| `running`, `awaiting-answer` | `POST /api/agent-bots/stop` | `stopping`; `queue` clears and the controller aborts |
+| `stopping` | the aborted loop unwinds | `completed`; the partial `answer` persists |
+| `running` | the loop lands an answer | `completed`; `answer` persists |
+| `running`, `awaiting-answer` | delegation, provider, or loop failure | `failed`; `error` carries the cause |
+| `running`, `awaiting-answer`, `stopping` | boot recovery after 30 minutes untouched | `failed`; `error` starts with `abandoned` |
+| `completed`, `failed` | any later settle or stop | unchanged |
+
+Terminal rows write `outcome`; `state` keeps the last pre-terminal value.
+
+```js
+// agent_bot_runs
+{
+  _id, botUserId, conversationKey, lockKey, organizationId,
+  stopKeys: [conversationKey, ...fanoutKeys],
+  state: 'running' | 'awaiting-answer' | 'stopping',
+  outcome: null | 'completed' | 'failed',
+  queue: [trigger],              // the room's coalesced trigger set
+  question: null | { question, options, askedAt },
+  answer: '', error: null,
+  startedAt, updatedAt, settledAt
+}
+```
+
+One non-terminal run exists per `lockKey` (`botUserId:conversationKey`).
+Boot recovery settles non-terminal runs untouched for 30 minutes `failed`
+with an `abandoned` error, because the process took its loop, abort
+handle, and waiting question with it. The age guard keeps a rolling
+restart from settling runs still live in another replica. Terminal
+settles are guarded on `outcome: null`, which makes a duplicate settle a
+no-op.
+
 ### Run execution
 
 The run executes with the **triggering sender's** request-shaped auth
@@ -232,12 +276,13 @@ presence; a tool round retracts only its answer text, and each round
 reconciles the sink with the assembled neutral message (a
 reasoning-first stream that ends tagless was a plain answer).
 
-`ask_user` suspends the run on the room's answer: `bot_question` (with
-one-tap options) renders at the composer until `bot_question_end` —
-answered by the next capability-holding participant message in the
-asking conversation (consumed by the observer as the answer), ended by
-stop, or timed out (10 minutes) with a readable no-answer error the run
-concludes from.
+`ask_user` moves the run to `awaiting-answer` and publishes
+`bot_question` (with one-tap options) at the composer until
+`bot_question_end`. The next capability-holding participant message in
+the asking conversation is consumed by the observer as the answer and
+returns the run to `running`; the 10-minute timeout does the same with a
+readable no-answer error the run concludes from; stop owns the
+`stopping` edge and clears the question with the run.
 
 The in-flight registry keeps each run's last published snapshot;
 `GET /api/agent-bots/live?conversationKey=` serves it to a thread
@@ -248,25 +293,26 @@ question.
 ### Stop
 
 A run in flight is stoppable (`POST /api/agent-bots/stop` with the
-conversation key): the room's composer control aborts the request, the
-loop keeps the answer produced so far and persists it, and a stopped
-wake stays silent like a failing one. A stop landing mid-tool-batch
-drops the remaining calls (each answers the model with a readable
-stopped result), `web_search` carries the run's stop signal onto its
-provider request, and the client freezes bot events between the click
-and the run's true end so the aborting run's last reconcile events stay
-spent. In-flight runs are keyed by the subscribed room and hold their
-cancellation handle plus every key the stop may arrive from (the room's
-or any view the trigger fans out to), so the stop reaches exactly the
-room's run.
+conversation key): the transition table moves it to `stopping`, clears
+the queued trigger, and aborts the controller; the loop keeps the answer
+produced so far, persists it, and settles `completed`. A stopped wake
+stays silent like a failing one. A stop landing mid-tool-batch drops the
+remaining calls (each answers the model with a readable stopped result),
+`web_search` carries the run's stop signal onto its provider request, and
+the client freezes bot events between the click and the run's true end so
+the aborting run's last reconcile events stay spent. The in-flight map
+holds the abort handle and publication snapshot per subscribed room; the
+run document carries `stopKeys` — the room plus every view the trigger
+fans out to — so the stop reaches exactly the room's run.
 
 ### Coalescing and brakes
 
 One run occupies a room at a time: a trigger arriving mid-run (chat
-reply or wake alike) is coalesced — the latest re-fires when the current
-run lands, with a fresh history snapshot covering everything said
-meanwhile; a stopped room's coalesced trigger dies with the stop.
-Identical-call repetition is the one in-loop brake: the same tool with
+reply or wake alike) is coalesced into the run document's `queue` as the
+trailing trigger — it re-fires when the current run lands, with a fresh
+history snapshot covering everything said meanwhile; a stop clears the
+queue with the room. Identical-call repetition is the one in-loop brake:
+the same tool with
 the same arguments landing a third time is blocked before execution and
 answered with a structured instruction to change inputs, change
 approach, or ask the room; a changed argument list always proceeds.
