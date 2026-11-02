@@ -3351,31 +3351,6 @@ const centroidForVertices = (vertices = []) => {
   return { x: svgX, y: svgY };
 };
 
-const offsetControlsForNode = (node, vertices = []) => {
-  if (isCassetteV2SketchFace(node)) return [];
-  const points = withoutClosingVertex(vertices).map(toSvgPoint);
-  const controls = [
-    { key: 'baseStartOffset', pointIndex: 0 },
-    { key: 'baseEndOffset', pointIndex: 1 },
-    { key: 'topEndOffset', pointIndex: 2 },
-    { key: 'topStartOffset', pointIndex: 3 }
-  ];
-
-  return controls
-    .map((control) => {
-      const point = points[control.pointIndex];
-      if (!point) return null;
-      return {
-        ...control,
-        nodeId: node.id,
-        value: expressionValue(node.parameters?.[control.key], DEFAULT_CASSETTE_V2_TRAPEZOID[control.key]),
-        x: point[0],
-        y: point[1]
-      };
-    })
-    .filter(Boolean);
-};
-
 const dimensionControlsForNode = (node, vertices = []) => {
   if (isCassetteV2SketchFace(node)) return [];
   const points = withoutClosingVertex(vertices).map(toSvgPoint);
@@ -3969,8 +3944,7 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
       role: faceRoleFromNode(curve.node),
       parentId: curve.node.parentId || null,
       center: centroidForVertices(labelBoundary),
-      dimensionControls: dimensionControlsForNode(curve.node, labelBoundary),
-      offsetControls: offsetControlsForNode(curve.node, labelBoundary)
+      dimensionControls: dimensionControlsForNode(curve.node, labelBoundary)
     };
   });
 

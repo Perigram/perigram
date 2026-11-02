@@ -2185,6 +2185,14 @@ export default function createSurface({ vue, components, locale, queries, record
       const handleDesignerFaceSelect = ({ face }) => {
         if (!face?.nodeId && face?.nodeId !== '') return;
         if (inspectorSelection.value === 'attachment' && selectedWorkpieceRelation.value) {
+          if (attachmentSourceKind(selectedWorkpieceRelation.value) === 'profile') {
+            closeInlineEditor();
+            selectedRelationId.value = '';
+            selectedNodeId.value = face.nodeId;
+            selectedWorkpieceOverrideId.value = '';
+            inspectorSelection.value = 'face';
+            return;
+          }
           if (face.workpieceId === selectedWorkpieceRelation.value.sourceWorkpieceId) {
             updateSelectedWorkpieceRelation({ sourceFaceId: face.nodeId });
           } else if (face.workpieceId === selectedWorkpieceRelation.value.targetWorkpieceId) {

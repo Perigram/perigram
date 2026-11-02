@@ -1627,7 +1627,6 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(clippedFace.label).toBe(cleanFace.label);
     expect(clippedFace.center).toMatchObject(cleanFace.center);
     expect(clippedFace.dimensionControls).toEqual(cleanFace.dimensionControls);
-    expect(clippedFace.offsetControls).toEqual(cleanFace.offsetControls);
   });
 
   it('keeps edge hover and add-face button anchors on the original boundary for integral cuts', async () => {

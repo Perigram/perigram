@@ -385,20 +385,20 @@ const pathFillRule = (path) => {
 const isDimensionLayer = (layer = {}) => (
   layer.role === 'dimension' || /^dimension(\.|$)/i.test(String(layer.name || ''))
 );
-const previewDimensionFontSize = computed(() => {
-  const targetScreenPixels = 16;
+const canvasUnitsPerPixel = computed(() => {
   const viewportWidth = svgViewport.value.width || 0;
   const viewportHeight = svgViewport.value.height || 0;
   if (!viewportWidth || !viewportHeight) {
     const minSide = Math.min(viewBox.value.width || 0, viewBox.value.height || 0);
-    return Math.max(18, Math.min(36, minSide * 0.055));
+    return Math.max(18, Math.min(36, minSide * 0.055)) / 16;
   }
-  const userUnitsPerPixel = Math.max(
+  return Math.max(
     (viewBox.value.width || 1) / viewportWidth,
     (viewBox.value.height || 1) / viewportHeight
   );
-  return userUnitsPerPixel * targetScreenPixels;
 });
+const designerSize = (pixels) => canvasUnitsPerPixel.value * pixels;
+const previewDimensionFontSize = computed(() => designerSize(16));
 const textFontSize = (path, layer) => {
   const base = Number(path?.fontSize) || 12;
   if (!['thumbnail', 'card'].includes(props.mode)) return base;
@@ -776,31 +776,20 @@ const sectionHandleCursor = (section) => (
   section?.orientation === 'horizontal' ? 'cursor-row-resize' : 'cursor-col-resize'
 );
 
-const controlValueLabel = (value) => {
-  const text = String(value ?? '');
-  return text.length > 5 ? `${text.slice(0, 4)}...` : text;
-};
-
-const faceInlineControls = (face) => face.offsetControls || [];
-
-const controlChipWidth = (control) => {
-  const text = controlValueLabel(control.value);
-  return Math.max(26, Math.min(48, text.length * 6 + 14));
-};
-
-const controlChipRect = (control) => {
-  const width = controlChipWidth(control);
-  return { x: -width / 2, y: -8, width };
-};
-
 const dimensionControlWidth = (control) => {
   const text = String(control?.label || control?.value || '');
-  return Math.max(34, Math.min(72, text.length * 7 + 18));
+  return designerSize(Math.max(34, Math.min(72, text.length * 7 + 18)));
 };
 
 const dimensionControlRect = (control) => {
   const width = dimensionControlWidth(control);
-  return { x: -width / 2, y: -10, width };
+  return {
+    x: -width / 2,
+    y: -designerSize(10),
+    width,
+    height: designerSize(20),
+    rx: designerSize(10)
+  };
 };
 
 onMounted(() => {
@@ -989,6 +978,7 @@ onBeforeUnmount(() => {
               pointer-events="fill"
               vector-effect="non-scaling-stroke"
               class="cursor-pointer"
+              :data-designer-face-id="face.nodeId"
               @mouseenter="setDesignerFaceHover(face.nodeId)"
               @mouseleave="scheduleDesignerFaceHoverClear(face.nodeId)"
               @click.stop.prevent="requestDesignerFaceSelect(face)"
@@ -1002,19 +992,24 @@ onBeforeUnmount(() => {
                 class="select-none"
               >
                 <circle
-                  r="7"
+                  :r="designerSize(7)"
                   fill="currentColor"
                   :fill-opacity="marker.active ? 0.92 : 0.36"
                 />
                 <circle
-                  r="11"
+                  :r="designerSize(11)"
                   fill="none"
                   stroke="currentColor"
                   :stroke-opacity="marker.active ? 0.7 : 0.24"
                   stroke-width="1.2"
                   vector-effect="non-scaling-stroke"
                 />
-                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-supporting">
+                <text
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                  :font-size="designerSize(12)"
+                  class="fill-[var(--p-content-background)]"
+                >
                   {{ marker.label }}
                 </text>
               </g>
@@ -1031,6 +1026,7 @@ onBeforeUnmount(() => {
                 stroke-width="22"
                 stroke-linecap="round"
                 pointer-events="stroke"
+                vector-effect="non-scaling-stroke"
                 class="cursor-pointer"
                 @mouseenter="hoveredFoldEdge = index"
                 @mouseleave="hoveredFoldEdge = null"
@@ -1044,8 +1040,21 @@ onBeforeUnmount(() => {
                 @mouseleave="hoveredFoldEdge = null"
                 @click.stop.prevent="requestDesignerFoldAngleEdit(fold, $event)"
               >
-                <rect :x="-22" :y="-10" :width="44" :height="20" rx="10" fill="currentColor" class="opacity-90" />
-                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-supporting">
+                <rect
+                  :x="-designerSize(22)"
+                  :y="-designerSize(10)"
+                  :width="designerSize(44)"
+                  :height="designerSize(20)"
+                  :rx="designerSize(10)"
+                  fill="currentColor"
+                  class="opacity-90"
+                />
+                <text
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                  :font-size="designerSize(12)"
+                  class="fill-[var(--p-content-background)]"
+                >
                   {{ fold.label || fold.angle }}
                 </text>
               </g>
@@ -1079,6 +1088,7 @@ onBeforeUnmount(() => {
                 stroke-width="20"
                 stroke-linecap="round"
                 pointer-events="stroke"
+                vector-effect="non-scaling-stroke"
                 class="cursor-pointer"
                 @mouseenter="hoveredEdge = index"
                 @mouseleave="hoveredEdge = null"
@@ -1091,8 +1101,21 @@ onBeforeUnmount(() => {
                 @mouseleave="hoveredEdge = null"
                 @click.stop.prevent="requestDesignerAction(edge.edgeIndex ?? index, edge, $event)"
               >
-                <rect :x="-10" :y="-10" :width="20" :height="20" rx="10" fill="currentColor" class="opacity-90" />
-                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-supporting">
+                <rect
+                  :x="-designerSize(10)"
+                  :y="-designerSize(10)"
+                  :width="designerSize(20)"
+                  :height="designerSize(20)"
+                  :rx="designerSize(10)"
+                  fill="currentColor"
+                  class="opacity-90"
+                />
+                <text
+                  text-anchor="middle"
+                  dominant-baseline="middle"
+                  :font-size="designerSize(14)"
+                  class="fill-[var(--p-content-background)]"
+                >
                   +
                 </text>
               </g>
@@ -1158,12 +1181,17 @@ onBeforeUnmount(() => {
                 :x="dimensionControlRect(control).x"
                 :y="dimensionControlRect(control).y"
                 :width="dimensionControlRect(control).width"
-                height="20"
-                rx="10"
+                :height="dimensionControlRect(control).height"
+                :rx="dimensionControlRect(control).rx"
                 fill="currentColor"
                 class="opacity-90"
               />
-              <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-supporting">
+              <text
+                text-anchor="middle"
+                dominant-baseline="middle"
+                :font-size="designerSize(12)"
+                class="fill-[var(--p-content-background)]"
+              >
                 {{ control.label || control.value }}
               </text>
             </g>
@@ -1178,40 +1206,26 @@ onBeforeUnmount(() => {
                   class="cursor-pointer"
                   @click.stop.prevent="requestDesignerFaceCommand(face, 'menu', $event)"
                 >
-                  <rect x="-14" y="-14" width="28" height="28" rx="14" fill="currentColor" class="opacity-90" />
-                  <text y="-3" text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-body">
-                    ...
-                  </text>
-                </g>
-              </g>
-              <template v-if="face.nodeId === selectedDesignerFaceId">
-                <g
-                  v-for="control in faceInlineControls(face)"
-                  :key="`${face.nodeId}-${control.key}`"
-                  :transform="`translate(${control.x}, ${control.y})`"
-                  class="cursor-pointer select-none"
-                  @click.stop.prevent="requestDesignerPointEdit(control, $event)"
-                >
                   <rect
-                    :x="controlChipRect(control).x"
-                    :y="controlChipRect(control).y"
-                    :width="controlChipRect(control).width"
-                    height="16"
-                    rx="8"
+                    :x="-designerSize(14)"
+                    :y="-designerSize(14)"
+                    :width="designerSize(28)"
+                    :height="designerSize(28)"
+                    :rx="designerSize(14)"
                     fill="currentColor"
                     class="opacity-90"
                   />
                   <text
-                    :x="controlChipRect(control).x + controlChipRect(control).width / 2"
-                    :y="controlChipRect(control).y + 8"
+                    :y="-designerSize(3)"
                     text-anchor="middle"
                     dominant-baseline="middle"
-                    class="fill-[var(--p-content-background)] text-supporting"
+                    :font-size="designerSize(14)"
+                    class="fill-[var(--p-content-background)]"
                   >
-                    {{ controlValueLabel(control.value) }}
+                    ...
                   </text>
                 </g>
-              </template>
+              </g>
             </template>
           </g>
         </svg>
