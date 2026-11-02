@@ -2504,7 +2504,7 @@ export default function createSurface({ vue, components, locale, queries, record
           style: { left: `${editor.x}px`, top: `${editor.y}px` },
           tabindex: '-1',
           onKeydown: event => {
-            if (event.key !== 'Enter' && event.key !== 'Escape') return;
+            if (event.key !== 'Escape') return;
             event.stopPropagation();
             event.preventDefault();
             closeInlineEditor();

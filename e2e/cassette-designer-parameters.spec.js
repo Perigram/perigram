@@ -52,7 +52,7 @@ const openProfilePopup = async (page) => {
   if (await hit.count()) {
     await hit.dispatchEvent('click');
   } else {
-    await page.locator('aside').getByRole('button', { name: 'Hanger profile' }).first().click();
+    await page.locator('aside').getByRole('button', { name: /^Hanger profile/ }).first().click();
   }
   await expect(page.locator('div[aria-label^="Parameters "]').first()).toBeVisible({ timeout: 20_000 });
 };
@@ -182,6 +182,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   expect(await arrayValueText(page), 'Expected a typed zero to stay zero').toBe('0');
   await popup.locator('button[aria-label="Close"]').click();
   await page.waitForTimeout(800);
+  await openProfilePopup(page);
 
   // Driving the chip re-evaluates the placed profile's geometry.
   const before = await assemblyGeometry(page);
