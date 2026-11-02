@@ -15,9 +15,6 @@ export default function createExpressionEditor({ vue, components, locale }) {
       parameters: { type: Object, default: () => ({}) },
       parameterNames: { type: Array, default: () => [] },
       contextTokens: { type: Array, default: () => [] },
-      inputId: { type: String, default: '' },
-      labeled: { type: Boolean, default: false },
-      allowEmpty: { type: Boolean, default: false },
       allowAngleSuffix: { type: Boolean, default: false }
     },
     emits: ['update:modelValue'],
@@ -77,7 +74,7 @@ export default function createExpressionEditor({ vue, components, locale }) {
       ]);
 
       const validationError = computed(() => {
-        if (!internalText.value.trim()) return props.allowEmpty ? '' : t('cassette.v2.expression.empty');
+        if (!internalText.value.trim()) return t('cassette.v2.expression.empty');
         try {
           if (props.allowAngleSuffix) {
             resolveCassetteV2AngleExpression(internalText.value, props.parameters);
@@ -298,11 +295,8 @@ export default function createExpressionEditor({ vue, components, locale }) {
         h('div', { class: 'flex min-w-0 items-center gap-1' }, [
           h('div', {
             ref: editorRef,
-            id: props.inputId || undefined,
             class: [
-              props.labeled
-                ? 'p-inputtext min-w-0 w-full overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-ui px-2 outline-none focus:border-primary text-technical'
-                : 'p-inputtext h-8 min-w-0 flex-1 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-ui px-2 py-1 outline-none focus:border-primary text-technical',
+              'p-inputtext h-8 min-w-0 flex-1 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-ui px-2 py-1 outline-none focus:border-primary text-technical',
               validationError.value ? 'p-invalid' : 'border-content-border border bg-content'
             ].join(' '),
             contenteditable: 'true',
