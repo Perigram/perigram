@@ -241,11 +241,11 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   boolean sequence: adds form the face, subtracts cut it, and the result
   must resolve to one closed outline; holes ride `cut.inner`. The child
   face keeps the material on its side of the datum; the parent-side part
-  belongs to the parent cut. The face's material region — outer rings
-  minus holes — also cuts the parent face where the two overlap, placed
-  in the face's shard frame and folded into the parent's production
-  geometry like a closed profile section. The OCCS face shape is the
-  evaluated region (`polygon`), and the
+  belongs to the parent cut. Every participating shape cuts the parent
+  where it lands — the cut footprint is the union of the adds and
+  subtracts — placed in the face's shard frame and folded into the
+  parent's production geometry like a closed profile section. The OCCS
+  face shape is the evaluated region (`polygon`), and the
   authored sketch rides `face.extensions.perigram.sketch`. The outer
   ring rotates so its datum edge (y = 0) starts the ring, keeping E0 the
   attachment edge and fold routes stable. The trapezoid face remains the
@@ -262,12 +262,12 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   carries none, and the clicked shard is the interval the new face
   takes. A child face's popup carries Fill edge (inherit) and a
   fixed/parametric width otherwise, so the remaining edge becomes free
-  shards. A closed profile footprint is projected onto the host edge:
-  cuts that cross the edge block their interval, holes inside the face
-  leave the edge free. A closed profile footprint may cross a child
-  face's fold interval and cut the host; the fold route keeps the
-  authored edge. An open profile span crossing that interval refuses;
-  the rest of the host edge stays arrangeable.
+  shards. A closed profile footprint blocks its projected span on the
+  arranged host edge, and a face placement overlapping that span
+  refuses. A closed profile may cross a child face's fold interval and
+  cut the host; the fold route keeps the authored edge. An open profile
+  span crossing that interval refuses; the rest of the host edge stays
+  arrangeable.
 - **`production-layout.js`** — wraps the Clipper-backed face
   union/fold-route pass and returns semantic `cut.outer` / `fold.route`
   layer intent.
@@ -331,10 +331,10 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   the open-profile composite splices into the drawn face boundary
   exactly as production embeds it, closed sections cut the face on
   `cut.inner`, and the section layer carries section views only.
-  Whole-workpiece assembly previews dispatch `contour.cassette_face`,
-  `cut.outer`, and `fold.route` from unioned workpiece geometry; hollow
-  faces fill their outer ring and holes with `evenodd`, so a cut stays
-  open in every preview mode. The
+  Face fills stay per face so adjacent faces keep their own fill and the
+  fold route separates them; `cut.outer` carries the production union.
+  Hollow faces fill their outer ring and holes with `evenodd`, so a cut
+  stays open in every preview mode. The
   preview layer set — outline (`cut.outer`) and folds (`fold.route`)
   matched by `standardCode` (layer names are localized export names);
   all layers for a drawing outside the set — resolves through
