@@ -3563,7 +3563,9 @@ existing attachment inline editor from a profile hit and adds the
 profile's parameter fields, edit, and delete there; Add profile rides the
 canvas toolbar; the palette's profile add, parameter chips, placement,
 edit, and delete controls are removed. Parameter labels show their
-derived values beside the stored expressions.
+derived values beside the stored expressions. The drawing normalizer
+carries `designerProfiles` and the attachment markers through to the
+canvas, so the hit overlays survive the geometry-preview projection.
 
 ## Stateful lifecycle contracts (2026-11-02 audit)
 
