@@ -2406,7 +2406,7 @@ export default function createSurface({ vue, components, locale, queries, record
             t(labelKey),
             h(Select, {
               modelValue,
-              options: options.value,
+              options: Array.isArray(options) ? options : options?.value || [],
               optionLabel: 'label',
               optionValue: 'value',
               class: 'min-w-0 flex-1',
