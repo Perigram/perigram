@@ -137,6 +137,9 @@ const AUTHORING_GUIDE = [
     " {op:'connect', id:'project', fromPort:'data:value', to:'rec', toPort:'data:project'},",
     " {op:'connect', id:'rec', fromPort:'data:record', to:'fmt', toPort:'data:record'},",
     " {op:'connect', id:'fmt', fromPort:'data:value', to:'fill', toPort:'data:content'}] — then validate, apply_declarations, activate.",
+    '## The proposition gate',
+    "Composing a definition is a shape decision: answer FIRST with the definition's simplified proposition as a Mermaid flowchart — the entity types, their lifecycle states, the effects that act on them, and each entry (manual, schedule, event), with declared names on every node. A few nodes carry the whole proposition.",
+    'Ask ask_user in that same round: one short validation question with one-tap options, and the diagram stays in the answer beside the question. Compose after the room approves; a revision returns to the diagram and asks again. MCP surfaces answer with the diagram, and the next message starts the compose.',
     '## The loop',
     'The first illegal gesture fails with the gate message — read it, fix, retry. When intent maps to several authoring shapes (which class law, where it parents, which children move), ask_user: shape belongs to the room.',
     '1. compose_process_definition (or get_process_definition digest + edit_process_definition — same gestures, small payloads, no graph echo-back). Digest rows carry each node\'s socket handles — connect against them.',
@@ -449,7 +452,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'compose_process_definition',
-        description: 'Composes a NEW process definition draft through the same headless authoring seam the visual designer drives — each step is a designer gesture carrying the same legality gates, so nothing illegal can be composed. Steps run in order; the first failing step stops the compose with its gate message. Then validate_process_definition (its anchored diagnostics name what to fix), and activate_process_definition. Editing an existing definition instead: get_process_definition (digest) then edit_process_definition.',
+        description: 'Composes a NEW process definition draft through the same headless authoring seam the visual designer drives — each step is a designer gesture carrying the same legality gates, so nothing illegal can be composed. Compose the room-approved shape: answer first with the definition\'s simplified Mermaid flowchart (entity types, lifecycle states, effects, entries) and validate it with ask_user in chat runs; MCP surfaces answer with the diagram and compose on the next message. Steps run in order; the first failing step stops the compose with its gate message. Then validate_process_definition (its anchored diagnostics name what to fix), and activate_process_definition. Editing an existing definition instead: get_process_definition (digest) then edit_process_definition.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -831,7 +834,7 @@ export const TOOL_SPECS = [
     },
     {
         name: 'ask_user',
-        description: 'Asks the conversation a question and waits for the answer: the run suspends, the question (with optional one-tap options) renders at the composer, and the next message from a participant replies to it. Use it only for decisions that belong to the room — activation gates carrying live data (status migration targets, type death) or genuinely ambiguous intent. Never for permission to act on declared intent, and never to ask whether to retry.',
+        description: 'Asks the conversation a question and waits for the answer: the run suspends, the question (with optional one-tap options) renders at the composer, and the next message from a participant replies to it. Use it for decisions that belong to the room — a new definition\'s simplified Mermaid proposition (the diagram in your answer, the validation question here), activation gates carrying live data (status migration targets, type death), or genuinely ambiguous intent. Declared intent proceeds; a failed tool call is retried on its corrected input.',
         inputSchema: {
             type: 'object',
             properties: {

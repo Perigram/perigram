@@ -844,6 +844,25 @@ describe('ask_user — suspended questions', () => {
         ]);
     });
 
+    it('keeps the proposition diagram beside the suspended question', async () => {
+        const proposition = '```mermaid\nflowchart LR\n  Draft --> Approved\n```';
+        mockedLlm.chatCompletion
+            .mockResolvedValueOnce({ content: proposition, toolCalls: [{ id: 'a1', name: 'ask_user', arguments: { question: 'Compose this process?' } }] })
+            .mockResolvedValueOnce({ content: 'composed', toolCalls: [] });
+        mockedTools.executeTool.mockImplementation(async (name, args, auth, run) => (
+            name === 'ask_user' ? { answer: await run.ask(args.question, ['Yes']) } : {}
+        ));
+        const run = runAssistantReply(target, context, message);
+        await vi.waitFor(() => expect(latestRun().state).toBe('awaiting-answer'));
+        const events = mockedConnections.publish.mock.calls.map(([, payload]) => payload);
+        const questionAt = events.findIndex(payload => payload?.type === 'bot_question');
+        const lastStreamAt = events.findLastIndex((payload, index) => index < questionAt && payload?.type === 'bot_stream');
+        expect(events[lastStreamAt].text).toBe(proposition);
+        handleMessageInserted(context, { ...message, message: 'Yes' });
+        await run;
+        expect(latestRun().outcome).toBe('completed');
+    });
+
     it('a sender without the agent-chat capability cannot answer; their message takes the normal trigger path', async () => {
         mockedBotsService.getBotIdentity.mockImplementation(async (userId) => (
             String(userId) === ASSISTANT ? { id: ASSISTANT, name: 'Assistant' } : null

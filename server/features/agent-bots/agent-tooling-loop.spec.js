@@ -218,6 +218,8 @@ describe('the compose → validate → activate loop over the tool catalog', () 
         expect(compact.guide).toMatch(/declaration tree/);
         expect(compact.guide).toMatch(/Five identity laws/);
         expect(compact.guide).toMatch(/ask_user/);
+        expect(compact.guide).toMatch(/proposition gate/);
+        expect(compact.guide).toMatch(/Mermaid/);
         expect(compact.guide).toMatch(/schedule:\{at:/);
         expect(compact.guide).toMatch(/eventId/);
         expect(compact.palette.length).toBeGreaterThan(0);

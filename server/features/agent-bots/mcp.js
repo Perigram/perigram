@@ -16,7 +16,7 @@ const DEFAULT_PROTOCOL_VERSION = '2024-11-05';
 const SERVER_INFO = { name: 'perigram', version: '1.0.0' };
 const INSTRUCTIONS = [
     'Perigram agent tools: every call enforces the authenticated principal\'s access.',
-    'Authoring: start from get_authoring_vocabulary — the authoring skill (domain model, gesture grammar, roles, palette) and the compose→validate→apply→activate loop; compose and edit definitions through gestures (never whole-graph echo-backs), read definitions as the compact digest, always validate_process_definition before activate_process_definition.',
+    'Authoring: start from get_authoring_vocabulary — the authoring skill (domain model, gesture grammar, roles, palette) and the compose→validate→apply→activate loop; compose and edit definitions through gestures (never whole-graph echo-backs), read definitions as the compact digest, always validate_process_definition before activate_process_definition. Before composing a new definition, answer with its simplified proposition as a Mermaid flowchart — entity types, lifecycle states, effects, entries — and start the compose on the next message.',
     'Activation and deletion gates (status migration, type death) are confirmations to resolve — declare_status_mappings, confirmTypeDeath — never to bypass.',
     'Data: list_types / list_instances (flat filters plus a substring query) / get_instance, read file payloads with read_instance_file, and run compiled process actions from the live manifest (list_actions → run_action).'
 ].join(' ');
