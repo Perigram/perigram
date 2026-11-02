@@ -54,7 +54,12 @@ export default function createSketchEditor({ vue, components, locale }) {
       instanceParameters: { type: Object, default: () => ({}) },
       // `face` folds the shapes from an empty region (the sketch IS the
       // face); `profile` folds them onto the material half of the axis.
-      mode: { type: String, default: 'profile' }
+      mode: { type: String, default: 'profile' },
+      // In face mode the drawing datum is the host edge the face mounts
+      // to: a horizontal line in sketch coordinates (the shard origin
+      // sits at zero on that line).
+      basisStart: { type: Number, default: null },
+      basisEnd: { type: Number, default: null }
     },
     emits: ['update:modelValue', 'update:instance', 'outline-error'],
     setup(props, { emit }) {
@@ -255,7 +260,9 @@ export default function createSketchEditor({ vue, components, locale }) {
         const { dimensions, decorations } = buildProfileAnnotations({
           evaluated,
           authored,
-          resolvedFace: resolvedFace.value
+          resolvedFace: resolvedFace.value,
+          basisStart: faceMode.value ? props.basisStart : null,
+          basisEnd: faceMode.value ? props.basisEnd : null
         });
         const fingerprint = JSON.stringify({ dimensions, decorations });
         if (fingerprint === lastAnnotationFingerprint) return;
@@ -1646,6 +1653,11 @@ export default function createSketchEditor({ vue, components, locale }) {
         scheduleOutlineResolve();
         syncAnnotations();
       }, { deep: true });
+
+      watch(() => [props.basisStart, props.basisEnd], () => {
+        lastAnnotationFingerprint = '';
+        syncAnnotations();
+      });
 
       // Instance values repaint the derived geometry: the authored model
       // stays put, the canvas reseeds from the new derived table.

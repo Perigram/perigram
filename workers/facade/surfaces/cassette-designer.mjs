@@ -28,6 +28,7 @@ import {
   renderCassetteV2TreeToDrawing,
   cassetteV2LayerPanelRows,
   resolveCassetteV2AngleExpression,
+  resolveCassetteV2Expression,
   resolveCassetteV2FaceSketchRegion,
   updateCassetteV2FaceSketch,
   updateCassetteV2GraphNode,
@@ -312,6 +313,8 @@ export default function createSurface({ vue, components, locale, queries, record
       const faceShapeDialogVisible = ref(false);
       const editingFaceNodeId = ref('');
       const faceShapeDraft = ref(createEmptyOccsProfileSketch());
+      const faceShapeBasisStart = ref(null);
+      const faceShapeBasisEnd = ref(null);
       const faceShapeEditorError = ref('');
       const faceShapeDialogError = computed(() => faceShapeEditorError.value);
       const faceShapeDraftSketch = computed(() => normalizeOccsProfileSketch(faceShapeDraft.value));
@@ -1638,12 +1641,28 @@ export default function createSurface({ vue, components, locale, queries, record
         loadProfileLibrary();
       };
 
+      const faceBasisForNode = (node) => {
+        if (!node) return { start: null, end: null };
+        if (!node.parentId) {
+          const length = edgeLengthFor(node.id, 'E0');
+          return Number.isFinite(length) ? { start: 0, end: length } : { start: null, end: null };
+        }
+        const length = edgeLengthFor(node.parentId, `E${Math.max(0, Math.round(Number(node.parentEdgeIndex) || 0))}`);
+        if (!Number.isFinite(length)) return { start: null, end: null };
+        const start = resolveCassetteV2Expression(node.parameters?.edgeStart, globalParameters.value, 0);
+        return { start: -start, end: length - start };
+      };
+
       // A face sketch is edited on the same shape canvas as a profile;
       // converting a trapezoid seeds the draft with its current outline.
       const openFaceShapeDialog = async (nodeId) => {
         closeInlineEditor();
         faceShapeEditorError.value = '';
         editingFaceNodeId.value = nodeId;
+        const node = treeNodes.value.find(item => item.id === nodeId) || null;
+        const basis = faceBasisForNode(node);
+        faceShapeBasisStart.value = basis.start;
+        faceShapeBasisEnd.value = basis.end;
         try {
           faceShapeDraft.value = await cassetteV2FaceSketchFromNode(cassetteTree.value, nodeId);
         } catch (error) {
@@ -2048,9 +2067,9 @@ export default function createSurface({ vue, components, locale, queries, record
         selectWorkpieceForInspector(result.selectedWorkpieceId);
       };
 
-      const addFaceAtEdge = (parentId, edgeIndex, edgeLength = NaN) => {
+      const addFaceAtEdge = (parentId, edgeIndex, options = {}) => {
         if (!parentId && parentId !== '') return;
-        const result = addCassetteV2GraphChild(cassetteTree.value, parentId, edgeIndex, { edgeLength });
+        const result = addCassetteV2GraphChild(cassetteTree.value, parentId, edgeIndex, options);
         cassetteTree.value = result.tree;
         if (result.refused) {
           notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.edgeFull'), life: 3000 });
@@ -2063,7 +2082,10 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const handleDesignerAction = ({ edge, edgeIndex }) => {
         if (!edge?.nodeId && edge?.nodeId !== '') return;
-        addFaceAtEdge(edge.nodeId, edge.edgeIndex ?? edgeIndex, edge.length);
+        addFaceAtEdge(edge.nodeId, edge.edgeIndex ?? edgeIndex, {
+          edgeLength: edge.edgeLength ?? edge.length,
+          shardStart: edge.shardStart
+        });
       };
 
       const handleDesignerFaceSelect = ({ face }) => {
@@ -3057,6 +3079,11 @@ export default function createSurface({ vue, components, locale, queries, record
               onDesignerSectionEdit: handleDesignerSectionEdit,
               onDesignerFoldAngleEdit: handleDesignerFoldAngleEdit
             }),
+            previewError.value
+              ? h('div', { class: 'pointer-events-none absolute bottom-3 left-1/2 z-[130] w-[min(32rem,calc(100%-1rem))] -translate-x-1/2' }, [
+                  h(Message, { severity: 'warn', size: 'small', closable: false }, () => previewError.value)
+                ])
+              : null,
             renderInlineEditor()
           ]),
           inspector: renderInspector
@@ -3344,6 +3371,8 @@ export default function createSurface({ vue, components, locale, queries, record
           h(ProfileSketchEditor, {
             modelValue: faceShapeDraft.value,
             mode: 'face',
+            basisStart: faceShapeBasisStart.value,
+            basisEnd: faceShapeBasisEnd.value,
             externalParameters: globalParameters.value,
             'onUpdate:modelValue': value => { faceShapeDraft.value = value; },
             onOutlineError: value => { faceShapeEditorError.value = value; }

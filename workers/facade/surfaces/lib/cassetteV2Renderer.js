@@ -772,7 +772,7 @@ export const cassetteV2FreeEdgeShards = ({ edgeLength = 0, occupied = [] } = {})
 
 const edgeIntervalsForChildren = (tree, parentId, edgeIndex, edgeLength) => {
   const parameters = treeParameters(tree);
-  const intervals = tree.nodes
+  const intervals = (tree.nodes || [])
     .filter(node => node.parentId === parentId && node.parentEdgeIndex === edgeIndex)
     .map((node) => {
       const start = Math.max(0, resolveCassetteV2Expression(
@@ -790,7 +790,7 @@ const edgeIntervalsForChildren = (tree, parentId, edgeIndex, edgeLength) => {
   // Open profiles splice into the host contour, so their copy spans
   // consume edge shards exactly like child faces. Closed profile
   // sections cut the face and leave the edge free.
-  const workpieceByOccurrenceId = new Map(tree.workpieces.map(workpiece => [occurrenceIdForWorkpiece(workpiece), workpiece]));
+  const workpieceByOccurrenceId = new Map((tree.workpieces || []).map(workpiece => [occurrenceIdForWorkpiece(workpiece), workpiece]));
   for (const joint of tree.joints || []) {
     if ((joint.target?.face || joint.placement?.relativeTo?.face) !== parentId) continue;
     const workpiece = workpieceByOccurrenceId.get(joint.source?.occurrence);
@@ -838,10 +838,14 @@ export const addCassetteV2GraphChild = (tree, parentId, edgeIndex, options = {})
     : { role: 'return_flange' };
   const edgeLength = Number(options.edgeLength);
   if (Number.isFinite(edgeLength) && edgeLength > 0) {
-    const shard = cassetteV2FreeEdgeShards({
+    const shards = cassetteV2FreeEdgeShards({
       edgeLength,
       occupied: edgeIntervalsForChildren(nextTree, parentId, normalizedEdgeIndex, edgeLength)
-    })[0];
+    });
+    const requestedStart = Number(options.shardStart);
+    const shard = Number.isFinite(requestedStart)
+      ? shards.find(candidate => Math.abs(candidate.start - requestedStart) < 0.5) || shards[0]
+      : shards[0];
     if (!shard) return { tree: nextTree, nodeId: '', refused: 'edge-full' };
     const fullShard = shard.start <= 0.001 && shard.end >= edgeLength - 0.001;
     childOptions.parameters = {
@@ -2300,17 +2304,33 @@ export const composeCassetteV2NodiGraph = (tree = createCassetteV2GraphTree(), t
   return { graph, faces };
 };
 
-const designerEdgesForBoundary = (nodeId, vertices = [], foldedEdges = new Map()) => {
+const pointAlong = (from, to, ratio) => [
+  numeric(from?.[0], 0) + (numeric(to?.[0], 0) - numeric(from?.[0], 0)) * ratio,
+  numeric(from?.[1], 0) + (numeric(to?.[1], 0) - numeric(from?.[1], 0)) * ratio,
+  0
+];
+
+const designerEdgesForBoundary = (nodeId, vertices = [], tree = createCassetteV2GraphTree()) => {
   const boundaryVertices = withoutClosingVertex(vertices);
-  return boundaryVertices
-    .map((vertex, edgeIndex) => {
-      if (foldedEdges.has(pointKey(nodeId, edgeIndex))) return null;
-
-      const next = boundaryVertices[(edgeIndex + 1) % boundaryVertices.length];
-      const [x1, y1] = toSvgPoint(vertex);
-      const [x2, y2] = toSvgPoint(next);
-      const length = Math.round(Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2));
-
+  const node = (tree.nodes || []).find(item => item.id === nodeId);
+  const attachEdgeIndex = node?.parentId ? edgeIndexFromLabel(node.attachEdge, 0) : null;
+  return boundaryVertices.flatMap((vertex, edgeIndex) => {
+    // The face's own base edge is its connection to the parent panel;
+    // sibling faces share the parent edge, not this child's base.
+    if (edgeIndex === attachEdgeIndex) return [];
+    const next = boundaryVertices[(edgeIndex + 1) % boundaryVertices.length];
+    const edgeLength = Math.hypot(
+      numeric(next?.[0], 0) - numeric(vertex?.[0], 0),
+      numeric(next?.[1], 0) - numeric(vertex?.[1], 0)
+    );
+    if (edgeLength <= 0.001) return [];
+    const shards = cassetteV2FreeEdgeShards({
+      edgeLength,
+      occupied: edgeIntervalsForChildren(tree, nodeId, edgeIndex, edgeLength)
+    });
+    return shards.map((shard) => {
+      const [x1, y1] = toSvgPoint(pointAlong(vertex, next, shard.start / edgeLength));
+      const [x2, y2] = toSvgPoint(pointAlong(vertex, next, shard.end / edgeLength));
       return {
         x1,
         y1,
@@ -2318,13 +2338,16 @@ const designerEdgesForBoundary = (nodeId, vertices = [], foldedEdges = new Map()
         y2,
         midX: (x1 + x2) / 2,
         midY: (y1 + y2) / 2,
-        length,
+        length: Math.round(shard.end - shard.start),
+        edgeLength: Math.round(edgeLength * 1000) / 1000,
+        shardStart: Math.round(shard.start * 1000) / 1000,
+        shardEnd: Math.round(shard.end * 1000) / 1000,
         nodeId,
         edgeIndex,
         label: '+'
       };
-    })
-    .filter(Boolean);
+    });
+  });
 };
 
 const designerFoldEdgesForTree = (curves = [], tree = createCassetteV2GraphTree()) => {
@@ -3596,7 +3619,6 @@ const foldedPreviewForTree = async (curves = [], tree = createCassetteV2GraphTre
 };
 
 const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2GraphTree(), options = {}) => {
-  const foldedEdges = getCassetteV2FoldEdges(tree);
   // Profiles modify face geometry (owner law 2026-10-15): the open
   // profile chain splices into the boundary, closed sections and
   // hardware subtract — every consumer of the face, 2D drawing and
@@ -3703,7 +3725,7 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
     };
   });
   const designerEdges = drawingCurves.flatMap(curve => (
-    designerEdgesForBoundary(curve.node.id, curve.labelBoundaryVertices, foldedEdges)
+    designerEdgesForBoundary(curve.node.id, curve.labelBoundaryVertices, tree)
   ));
   const designerFoldEdges = designerFoldEdgesForTree(shapedCurves, tree);
   const foldedPreview = await foldedPreviewForTree(foldedPreviewCurves, tree, { includeJoints: options.includeFoldedPreviewJoints });
