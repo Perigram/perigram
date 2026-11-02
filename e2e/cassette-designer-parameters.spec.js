@@ -33,14 +33,11 @@ const assemblyGeometry = (page) => page.locator('.designer-workspace__canvas').f
     .join(';'));
 
 const arrayValueText = (page) => page.locator('div.z-\\[120\\]').first()
-  .evaluate(root => {
-    const field = root.querySelector('[aria-label="Array spacing"], [aria-label="Array count"]');
-    return field?.querySelector('div[contenteditable]')?.textContent ?? null;
-  });
+  .evaluate(root => root.querySelector('[aria-label="Array spacing"], [aria-label="Array count"]')?.value ?? null);
 
 const chipField = (page, key, label = 'Hanger profile') => page
-  .locator(`div[aria-label="Parameters ${key} ${label}"] div[contenteditable]`);
-const chipText = (locator) => locator.evaluate(el => (el.textContent || '').trim());
+  .locator(`input[aria-label="Parameters ${key} ${label}"]`);
+const chipText = (locator) => locator.inputValue();
 
 const openProfilePopup = async (page) => {
   const hit = page.locator('[data-designer-profile-id]').first();
@@ -162,11 +159,11 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await page.waitForTimeout(600);
 
   // Focusing a position field must not insert a token (label forwarding).
-  const spacingField = popup.locator('div[contenteditable]').filter({ hasText: '120' });
+  const spacingField = popup.locator('input[aria-label="Array spacing"]');
   await spacingField.click();
   await page.waitForTimeout(400);
   expect(await arrayValueText(page), 'Expected the spacing field to keep its value on focus').toBe('120');
-  const spacingInput = popup.locator('[aria-label="Array spacing"] div[contenteditable]');
+  const spacingInput = spacingField;
 
   // Clearing and typing a zero stays the author's text; the empty value
   // rides the PrimeVue invalid state alone.
@@ -178,7 +175,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await page.keyboard.type('0', { delay: 100 });
   await page.waitForTimeout(300);
   expect(await arrayValueText(page), 'Expected a typed zero to stay zero').toBe('0');
-  await expect(spacingInput).toHaveAttribute('aria-invalid', 'false');
+  await expect(spacingInput).not.toHaveAttribute('aria-invalid', 'true');
   await popup.locator('button[aria-label="Close"]').click();
   await page.waitForTimeout(800);
   await openProfilePopup(page);
@@ -196,7 +193,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
 
   // A chip value naming a cassette variable reads that variable (the
   // tree's A is 500) — no new chip is minted, the raw expression stays.
-  const chipCount = () => page.locator('div[aria-label^="Parameters "][aria-label$=" Hanger profile"]').count();
+  const chipCount = () => page.locator('input[aria-label^="Parameters "][aria-label$=" Hanger profile"]').count();
   const chipsBefore = await chipCount();
   await chipW.click();
   await page.keyboard.press('ControlOrMeta+a');
@@ -437,7 +434,7 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
   await openProfilePopup(page);
-  const chipK = page.locator('div[aria-label^="Parameters K "] div[contenteditable]').first();
+  const chipK = page.locator('input[aria-label^="Parameters K "]').first();
   await expect(chipK).toBeVisible({ timeout: 20_000 });
   await expect.poll(() => chipText(chipK)).toBe('1');
   await page.waitForTimeout(1200);

@@ -267,7 +267,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
     .evaluate(root => Array.from(root.querySelectorAll('path'))
       .map(path => path.getAttribute('d')).filter(Boolean).sort().join('|').length);
   await page.locator('[data-designer-profile-id]').first().dispatchEvent('click');
-  const chip = page.locator('div[aria-label^="Parameters A"] div[contenteditable]').first();
+  const chip = page.locator('input[aria-label^="Parameters A"]').first();
   await expect(chip).toBeVisible({ timeout: 20_000 });
   const before = await canvasSignature();
   await chip.click();
