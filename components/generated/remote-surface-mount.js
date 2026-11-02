@@ -24,7 +24,8 @@ import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import InputNumber from 'primevue/inputnumber';
-import IftaLabel from 'primevue/iftalabel';
+import FloatLabel from 'primevue/floatlabel';
+import Divider from 'primevue/divider';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { useRegistryStore } from '~/stores/registry';
@@ -61,7 +62,7 @@ import { isSupportedSurfaceContract } from '#shared/plugin-surfaces.js';
 let surfacePack = null;
 function surfaceComponentPack() {
   surfacePack ||= Object.freeze({
-    Button, Checkbox, ColorPicker, Column, DataTable, Dialog, InputText, InputNumber, IftaLabel, Message, Popover, ScrollPanel, Select, SelectButton, SpeedDial, Tag, Textarea, Toolbar,
+    Button, Checkbox, ColorPicker, Column, DataTable, Dialog, Divider, InputText, InputNumber, FloatLabel, Message, Popover, ScrollPanel, Select, SelectButton, SpeedDial, Tag, Textarea, Toolbar,
     DesignerSurface, DesignerWorkspace, DrawingCanvas, TraceChain, InstanceInlineRef, InstanceSelect, StandardDialog
   });
   return surfacePack;

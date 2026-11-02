@@ -77,6 +77,17 @@ const ATTACHMENT_SHORT_LABELS = Object.freeze({
   'cassette.v2.attachmentFields.sourceSnap': 'cassette.v2.attachmentFields.short.sourceSnap'
 });
 
+const expressionErrorOf = (value, parameters, emptyMessage, allowEmpty = false) => {
+  const text = String(value ?? '').trim();
+  if (!text) return allowEmpty ? '' : emptyMessage;
+  try {
+    resolveCassetteV2Expression(text, parameters);
+    return '';
+  } catch (error) {
+    return error?.message || String(error);
+  }
+};
+
 // §3 wire: records carry `name` — the label helper takes the plain
 // candidates; an unnamed record reads as unnamed, its id never renders.
 const entitySelectText = (...values) => {
@@ -168,9 +179,10 @@ export default function createSurface({ vue, components, locale, queries, record
 
   const CassetteExpressionEditor = createExpressionEditor({ vue, components, locale });
   const parameterNameDraft = createFieldDraft({ vue });
+  const attachmentDraft = createFieldDraft({ vue });
   const CassetteFoldedPreview = createFoldedPreview({ vue, components, locale });
   const ProfileSketchEditor = createSketchEditor({ vue, components, locale });
-  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, InputNumber, IftaLabel, Message, ScrollPanel, Select, Tag, InstanceSelect } = components;
+  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, InputNumber, FloatLabel, Divider, Message, ScrollPanel, Select, Tag, InstanceSelect } = components;
 
   return defineComponent({
     name: 'CassetteDesignerV2',
@@ -1306,6 +1318,7 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       const closeInlineEditor = () => {
+        attachmentDraft.clear();
         inlineEditor.value = null;
       };
 
@@ -2016,17 +2029,20 @@ export default function createSurface({ vue, components, locale, queries, record
       // either and reads it live.
       const profileParameterField = (row, key, value, inputId = '') => {
         const profileTable = { ...(row.authoredParameters || {}), ...(row.instanceParameters || {}) };
-        return h(CassetteExpressionEditor, {
-          inputId,
-          labeled: true,
-          class: 'min-w-0',
-          modelValue: value,
-          parameters: { ...globalParameters.value, ...profileTable },
-          parameterNames: [...new Set([...globalParameterNames.value, ...Object.keys(profileTable)])],
-          'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`,
-          'onUpdate:modelValue': next => {
+        const parameters = { ...globalParameters.value, ...profileTable };
+        const error = expressionErrorOf(value, parameters, t('cassette.v2.expression.empty'));
+        const derived = row.parameters?.[key];
+        const draftKey = `profile-param:${row.id}:${key}`;
+        return h(InputText, {
+          id: inputId,
+          fluid: true,
+          modelValue: attachmentDraft.text(draftKey, value),
+          ...attachmentDraft.handlers(draftKey, value, next => {
             updateProfileWorkpieceParameter(row.id, key, next);
-          }
+          }),
+          invalid: Boolean(error),
+          title: error || (derived === undefined ? key : `${key} = ${derived}`),
+          'aria-label': `${t('cassette.v2.profileEditor.parameters')} ${key} ${row.label}`
         });
       };
 
@@ -2400,7 +2416,7 @@ export default function createSurface({ vue, components, locale, queries, record
           const profileRow = kind === 'profile'
             ? workpieceRowById.value.get(relation.sourceWorkpieceId)
             : null;
-          // PrimeVue IftaLabel fields carry the label inside the control.
+          // PrimeVue FloatLabel fields with native InputText/Select controls.
           const shortLabel = key => t(ATTACHMENT_SHORT_LABELS[key] || key);
           const arrayValueShortLabel = relation => t(
             relation.arrayMode === 'spacing'
@@ -2408,28 +2424,33 @@ export default function createSurface({ vue, components, locale, queries, record
               : 'cassette.v2.attachmentFields.short.arrayCount'
           );
           const fieldId = key => `cassette-profile-${relation.id}-${key}`;
-          const labeledField = (label, control, id, className = '', title = '') => h(IftaLabel, {
+          const expressionError = (value, parameters, allowEmpty = false) => (
+            expressionErrorOf(value, parameters, t('cassette.v2.expression.empty'), allowEmpty)
+          );
+          const labeledField = (label, control, id, className = '', title = '') => h(FloatLabel, {
             class: className || 'w-full'
           }, [
             control,
             h('label', { for: id, title: title || label }, label)
           ]);
+          const textField = (id, label, value, draftKey, commit, parameters, allowEmpty = false) => {
+            const error = expressionError(value, parameters, allowEmpty);
+            return h(InputText, {
+              id,
+              fluid: true,
+              modelValue: attachmentDraft.text(draftKey, value),
+              ...attachmentDraft.handlers(draftKey, value, commit),
+              invalid: Boolean(error),
+              title: error || label,
+              'aria-label': label
+            });
+          };
           const expressionField = (labelKey, value, key, { className = '', allowEmpty = false } = {}) => {
             const id = fieldId(key);
+            const draftKey = `attachment:${relation.id}:${key}`;
             return labeledField(
               shortLabel(labelKey),
-              h(CassetteExpressionEditor, {
-                inputId: id,
-                labeled: true,
-                class: 'min-w-0',
-                modelValue: value,
-                parameters: globalParameters.value,
-                parameterNames: globalParameterNames.value,
-                allowEmpty,
-                title: t(labelKey),
-                'aria-label': t(labelKey),
-                'onUpdate:modelValue': next => updateInlineAttachmentRelation({ [key]: next })
-              }),
+              textField(id, t(labelKey), value, draftKey, next => updateInlineAttachmentRelation({ [key]: next }), globalParameters.value, allowEmpty),
               id,
               className,
               t(labelKey)
@@ -2445,7 +2466,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 options: Array.isArray(options) ? options : options?.value || [],
                 optionLabel: 'label',
                 optionValue: 'value',
-                class: 'min-w-0 w-full',
+                fluid: true,
                 'aria-label': t(labelKey),
                 title: t(labelKey),
                 'onUpdate:modelValue': value => updateInlineAttachmentRelation({ [key]: value })
@@ -2457,19 +2478,17 @@ export default function createSurface({ vue, components, locale, queries, record
           };
           const arrayValueField = (relation) => {
             const id = fieldId('arrayValue');
+            const draftKey = `attachment:${relation.id}:arrayValue`;
             return labeledField(
               arrayValueShortLabel(relation),
-              h(CassetteExpressionEditor, {
-                inputId: id,
-                labeled: true,
-                class: 'min-w-0',
-                modelValue: arrayValue(relation),
-                parameters: globalParameters.value,
-                parameterNames: globalParameterNames.value,
-                title: arrayValueLabel(relation),
-                'aria-label': arrayValueLabel(relation),
-                'onUpdate:modelValue': value => updateInlineAttachmentRelation(arrayValuePatch(relation, value))
-              }),
+              textField(
+                id,
+                arrayValueLabel(relation),
+                arrayValue(relation),
+                draftKey,
+                value => updateInlineAttachmentRelation(arrayValuePatch(relation, value)),
+                globalParameters.value
+              ),
               id,
               '',
               arrayValueLabel(relation)
@@ -2599,8 +2618,10 @@ export default function createSurface({ vue, components, locale, queries, record
                   : null
               ]),
               kind === 'profile' && profileRow
-                ? h('div', { class: 'grid grid-cols-2 gap-x-2 gap-y-1 border-t border-content-border pt-1.5' },
-                    profileParameterFields(profileRow))
+                ? h('div', null, [
+                    h(Divider),
+                    h('div', { class: 'grid grid-cols-2 gap-x-2 gap-y-1' }, profileParameterFields(profileRow))
+                  ])
                 : null
             ]);
           }
@@ -2687,9 +2708,9 @@ export default function createSurface({ vue, components, locale, queries, record
         'aria-hidden': 'true'
       });
 
-      // Each bound parameter is a PrimeVue IftaLabel field: the name is
-      // the infield label, the expression field carries the value; the
-      // derived value rides the label's title.
+      // Each bound parameter is a PrimeVue FloatLabel field: the name is
+      // the label, the expression value sits in the input; the derived
+      // value rides the label's title.
       const profileParameterFields = (row) => [...(row?.boundParameterKeys || [])].map((key) => {
         const instance = row.instanceParameters || {};
         const authored = row.authoredParameters || {};
@@ -2698,7 +2719,7 @@ export default function createSurface({ vue, components, locale, queries, record
           : authored[key];
         const derived = row.parameters?.[key];
         const id = `cassette-profile-param-${row.id}-${key}`;
-        return h(IftaLabel, {
+        return h(FloatLabel, {
           key: `${row.id}-${key}`,
           class: 'min-w-0'
         }, [
