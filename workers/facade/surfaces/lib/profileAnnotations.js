@@ -235,7 +235,8 @@ export function buildProfileAnnotations({
   authored = null,
   resolvedFace = null,
   basisStart = null,
-  basisEnd = null
+  basisEnd = null,
+  contextFace = null
 } = {}) {
   const shapes = evaluated?.shapes || [];
   const authoredById = new Map((authored?.shapes || []).map(shape => [shape.id, shape]));
@@ -270,6 +271,18 @@ export function buildProfileAnnotations({
         layer: PROFILE_ANNOTATION_LAYER
       });
     }
+  }
+  const contextPoints = Array.isArray(contextFace)
+    ? contextFace.filter(vertices => Array.isArray(vertices) && vertices.length >= 2)
+    : [];
+  if (contextPoints.length >= 3) {
+    decorations.push({
+      type: 'poly',
+      pts: contextPoints.map(([x, y]) => point(x, y)),
+      closed: true,
+      color: 8,
+      layer: PROFILE_ANNOTATION_LAYER
+    });
   }
   if (Number.isFinite(basisStart) && Number.isFinite(basisEnd) && basisEnd > basisStart) {
     decorations.push({

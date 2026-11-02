@@ -846,14 +846,22 @@ export const addCassetteV2GraphChild = (tree, parentId, edgeIndex, options = {})
     : { role: 'return_flange' };
   const edgeLength = Number(options.edgeLength);
   if (Number.isFinite(edgeLength) && edgeLength > 0) {
-    const shards = cassetteV2FreeEdgeShards({
-      edgeLength,
-      occupied: edgeIntervalsForChildren(nextTree, parentId, normalizedEdgeIndex, edgeLength)
-    });
+    const occupied = edgeIntervalsForChildren(nextTree, parentId, normalizedEdgeIndex, edgeLength);
+    const shards = cassetteV2FreeEdgeShards({ edgeLength, occupied });
     const requestedStart = Number(options.shardStart);
-    const shard = Number.isFinite(requestedStart)
-      ? shards.find(candidate => Math.abs(candidate.start - requestedStart) < 0.5) || shards[0]
-      : shards[0];
+    const requestedEnd = Number(options.shardEnd);
+    const requestedFits = Number.isFinite(requestedStart) && Number.isFinite(requestedEnd)
+      && requestedEnd > requestedStart
+      && requestedStart >= -0.001
+      && requestedEnd <= edgeLength + 0.001
+      && !occupied.some(interval => (
+        requestedStart < interval.end - 0.001 && requestedEnd > interval.start + 0.001
+      ));
+    const shard = requestedFits
+      ? { start: Math.max(0, requestedStart), end: Math.min(edgeLength, requestedEnd) }
+      : Number.isFinite(requestedStart)
+        ? shards.find(candidate => Math.abs(candidate.start - requestedStart) < 0.5) || shards[0]
+        : shards[0];
     if (!shard) return { tree: nextTree, nodeId: '', refused: 'edge-full' };
     const fullShard = shard.start <= 0.001 && shard.end >= edgeLength - 0.001;
     childOptions.parameters = {
@@ -2318,7 +2326,46 @@ const pointAlong = (from, to, ratio) => [
   0
 ];
 
-const designerEdgesForBoundary = (nodeId, vertices = [], tree = createCassetteV2GraphTree()) => {
+const profileEdgeIntervals = (nodeId, from, to, entities = []) => {
+  const length = Math.hypot(
+    numeric(to?.[0], 0) - numeric(from?.[0], 0),
+    numeric(to?.[1], 0) - numeric(from?.[1], 0)
+  );
+  if (length <= 0.001) return [];
+  const steps = Math.min(600, Math.max(2, Math.ceil(length / 0.5)));
+  const intervals = [];
+  const pushRun = (start, end) => {
+    if (end - start > 0.001) intervals.push({ start, end });
+  };
+  for (const entity of entities) {
+    if (entity.target !== nodeId) continue;
+    const rings = productionEntityCutRings(entity);
+    const circle = entity.geometry?.type === 'circle'
+      ? {
+          center: entity.geometry.center || [0, 0],
+          radius: Math.max(0.05, numeric(entity.geometry.diameter, 0) / 2)
+        }
+      : null;
+    if (!rings.length && !circle) continue;
+    let runStart = null;
+    for (let index = 0; index <= steps; index += 1) {
+      const ratio = index / steps;
+      const point = pointAlong(from, to, ratio);
+      const inside = circle
+        ? Math.hypot(point[0] - circle.center[0], point[1] - circle.center[1]) <= circle.radius + 0.05
+        : rings.some(ring => pointInPolygon(point, ring));
+      if (inside && runStart === null) runStart = ratio;
+      if (!inside && runStart !== null) {
+        pushRun(runStart * length, ratio * length);
+        runStart = null;
+      }
+    }
+    if (runStart !== null) pushRun(runStart * length, length);
+  }
+  return mergeEdgeIntervals(intervals);
+};
+
+const designerEdgesForBoundary = (nodeId, vertices = [], tree = createCassetteV2GraphTree(), profileEntities = []) => {
   const boundaryVertices = withoutClosingVertex(vertices);
   const node = (tree.nodes || []).find(item => item.id === nodeId);
   const attachEdgeIndex = node?.parentId ? edgeIndexFromLabel(node.attachEdge, 0) : null;
@@ -2334,7 +2381,10 @@ const designerEdgesForBoundary = (nodeId, vertices = [], tree = createCassetteV2
     if (edgeLength <= 0.001) return [];
     const shards = cassetteV2FreeEdgeShards({
       edgeLength,
-      occupied: edgeIntervalsForChildren(tree, nodeId, edgeIndex, edgeLength)
+      occupied: [
+        ...edgeIntervalsForChildren(tree, nodeId, edgeIndex, edgeLength),
+        ...profileEdgeIntervals(nodeId, vertex, next, profileEntities)
+      ]
     });
     return shards.map((shard) => {
       const [x1, y1] = toSvgPoint(pointAlong(vertex, next, shard.start / edgeLength));
@@ -3732,8 +3782,9 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
       labelBoundaryVertices
     };
   });
+  const profileEntities = productionEntities.filter(entity => entity.profileWorkpieceId);
   const designerEdges = drawingCurves.flatMap(curve => (
-    designerEdgesForBoundary(curve.node.id, curve.labelBoundaryVertices, tree)
+    designerEdgesForBoundary(curve.node.id, curve.labelBoundaryVertices, tree, profileEntities)
   ));
   const designerFoldEdges = designerFoldEdgesForTree(shapedCurves, tree);
   const foldedPreview = await foldedPreviewForTree(foldedPreviewCurves, tree, { includeJoints: options.includeFoldedPreviewJoints });
@@ -4321,6 +4372,58 @@ export const cassetteV2FaceSketchFromNode = async (tree = createCassetteV2GraphT
       modifiers: []
     }]
   });
+};
+
+// The face editor's context: the authored sketch plus the parent face in
+// sketch coordinates (edge start at the origin, +X along the edge, +Y
+// across it). The parent outline is the ghost the author mounts to.
+export const cassetteV2FaceSketchContext = async (tree = createCassetteV2GraphTree(), nodeId = '') => {
+  const sourceTree = cloneCassetteV2Tree(tree);
+  const node = sourceTree.nodes.find(item => item.id === nodeId);
+  const sketch = await cassetteV2FaceSketchFromNode(sourceTree, nodeId);
+  if (!node) return { sketch, basisStart: null, basisEnd: null, parentFace: null };
+  const curves = await buildCassetteV2LocalTreeCurves(sourceTree);
+  const ownCurve = curves.find(item => item.node.id === nodeId);
+  if (!node.parentId) {
+    const boundary = withoutClosingVertex(ownCurve?.boundaryVertices || []);
+    const length = boundary.length >= 2
+      ? Math.hypot(boundary[1][0] - boundary[0][0], boundary[1][1] - boundary[0][1])
+      : NaN;
+    return {
+      sketch,
+      basisStart: Number.isFinite(length) ? 0 : null,
+      basisEnd: Number.isFinite(length) ? length : null,
+      parentFace: null
+    };
+  }
+  const parentCurve = curves.find(item => item.node.id === node.parentId);
+  const boundary = withoutClosingVertex(
+    parentCurve?.referenceVertices || parentCurve?.boundaryVertices || parentCurve?.vertices || []
+  );
+  if (boundary.length < 2) return { sketch, basisStart: null, basisEnd: null, parentFace: null };
+  const edgeIndex = Math.max(0, Math.round(numeric(node.parentEdgeIndex, 0)));
+  const edgeStartPoint = boundary[edgeIndex % boundary.length];
+  const edgeEndPoint = boundary[(edgeIndex + 1) % boundary.length];
+  const edgeLength = Math.hypot(
+    numeric(edgeEndPoint?.[0], 0) - numeric(edgeStartPoint?.[0], 0),
+    numeric(edgeEndPoint?.[1], 0) - numeric(edgeStartPoint?.[1], 0)
+  );
+  const frame = cassetteV2FaceAttachmentFrame(boundary, edgeIndex);
+  const edgeStart = resolveCassetteV2Expression(node.parameters?.edgeStart, treeParameters(sourceTree), 0);
+  const parentFace = boundary.map((point) => {
+    const dx = numeric(point?.[0], 0) - numeric(frame.start[0], 0);
+    const dy = numeric(point?.[1], 0) - numeric(frame.start[1], 0);
+    return [
+      dx * numeric(frame.direction[0], 0) + dy * numeric(frame.direction[1], 0) - edgeStart,
+      dx * numeric(frame.normal[0], 0) + dy * numeric(frame.normal[1], 0)
+    ];
+  });
+  return {
+    sketch,
+    basisStart: -edgeStart,
+    basisEnd: edgeLength - edgeStart,
+    parentFace
+  };
 };
 
 export const renderCassetteV2TreeToDrawing = async (tree = createCassetteV2GraphTree(), options = {}) => {

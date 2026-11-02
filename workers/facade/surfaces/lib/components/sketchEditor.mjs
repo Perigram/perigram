@@ -54,7 +54,10 @@ export default function createSketchEditor({ vue, components, locale }) {
       // to: a horizontal line in sketch coordinates (the shard origin
       // sits at zero on that line).
       basisStart: { type: Number, default: null },
-      basisEnd: { type: Number, default: null }
+      basisEnd: { type: Number, default: null },
+      // The parent face outline in sketch coordinates, drawn as a ghost
+      // so the author mounts the new face to real parent geometry.
+      contextFace: { type: Array, default: () => [] }
     },
     emits: ['update:modelValue', 'outline-error'],
     setup(props, { emit }) {
@@ -256,7 +259,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           authored,
           resolvedFace: resolvedFace.value,
           basisStart: faceMode.value ? props.basisStart : null,
-          basisEnd: faceMode.value ? props.basisEnd : null
+          basisEnd: faceMode.value ? props.basisEnd : null,
+          contextFace: faceMode.value ? props.contextFace : null
         });
         const fingerprint = JSON.stringify({ dimensions, decorations });
         if (fingerprint === lastAnnotationFingerprint) return;
@@ -1611,10 +1615,10 @@ export default function createSketchEditor({ vue, components, locale }) {
         syncAnnotations();
       }, { deep: true });
 
-      watch(() => [props.basisStart, props.basisEnd], () => {
+      watch(() => [props.basisStart, props.basisEnd, props.contextFace], () => {
         lastAnnotationFingerprint = '';
         syncAnnotations();
-      });
+      }, { deep: true });
 
       onBeforeUnmount(() => {
         disposed = true;
