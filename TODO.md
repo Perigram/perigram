@@ -3490,6 +3490,30 @@ suite 179. `npm run docs:validate` reports the pre-existing broken link
 `workers/nesting/README.md -> ./jagua-rs/README.md` and the contract-homing
 backlog; `node scripts/check-arch.js` passes.
 
+## Profile library management in cassettes (owner direction 2026-11-02)
+
+The profile dialog manages the origin library record inside the cassette
+session: Save to library overwrites the origin record, Save as
+creates a new record and makes it the draft's origin, and Delete removes
+the origin record. Delete confirms in an anchored popover; placed
+workpieces keep their snapshots.
+
+- [ ] WAITING — owner verification: the profile dialog's library actions
+  save to the origin record, save as a new record, and delete the origin
+  record; the picker reflects every change.
+
+### Agent Notes (2026-11-02, profile library management)
+
+Session `agent/profile-library-20261102` (worktree
+`.agent-worktrees/profile-library-20261102`). `records.delete` joins the
+contract-2 surface write transports over `removeInstance`; the profile
+dialog's compact row carries Save to library (origin overwrite), Save as
+(new origin), and Delete (anchored confirmation), with the authoring
+surface unchanged. Save-to-origin writes the draft name beside kind,
+process, and sketch; saved workpieces carry their library origin through
+`profileTemplateId`; updated and deleted records drop their cached
+thumbnails.
+
 ## Stateful lifecycle contracts (2026-11-02 audit)
 
 Root SPEC §25 is the desired-state contract for every lifecycle in this

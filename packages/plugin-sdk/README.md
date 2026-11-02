@@ -55,9 +55,9 @@ read the fill dialog's spot-parts row uses). The ctx ladder by
   `{ t, te, locale }`. The mount injects `vue`, `primevue`, and `pinia`;
   surface modules receive them through the ctx.
 - **2 (editor-grade)** — adds `queries` (`list(typeId, params)` /
-  `get(typeId, id)`), `records` (`create` / `update` across types),
-  `notify` (host toast), `access` (`canWrite(record)` gates editing; a
-  denied surface degrades to view-only).
+  `get(typeId, id)`), `records` (`create` / `update` / `delete` across
+  types), `notify` (host toast), `access` (`canWrite(record)` gates
+  editing; a denied surface degrades to view-only).
 - **3 (capability)** — adds `sync.onRecordChanged(callback)` (host
   record-change bridge; own publications are skipped host-side) and
   `upload.file(blob, { fileName })` (host file channel, returns the
