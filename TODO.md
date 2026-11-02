@@ -2573,6 +2573,30 @@ generic machinery; the sheet-design editor edits the opened record on
 one canvas (multi-sheet retracted, owner direction 2026-10-28 evening).
 Ordered steps:
 
+- [ ] WAITING — owner verification: Parametric faces and shared edges
+  (owner direction 2026-11-02): faces author as parametric sketches in
+  the profile shape model and store the evaluated OCCS polygon with the
+  authored sketch in the face extension; faces and open profiles share
+  a host edge through free-shard allocation with expression
+  `edgeStart`/width and profile `spanStart`/`spanWidth`; folds use each
+  face's owned interval; closed profiles cut without consuming edge
+  space.
+
+  ### Agent Notes (2026-11-02, face shapes and edge shards)
+
+  Session `agent/face-shapes-20261102` (worktree
+  `.agent-worktrees/face-shapes-20261102`). `cassetteV2FaceSketchFromNode`
+  seeds a sketch from the current outline; `updateCassetteV2FaceSketch`
+  writes or clears it; `resolveCassetteV2FaceSketchRegion` folds the
+  shape list from empty and requires one outline. `buildCassetteV2TreeCurves`
+  is async and emits sketch faces as polygons; OCCS face extensions carry
+  the authored sketch. `edgeStart` is a trapezoid parameter and
+  `cassetteV2FreeEdgeShards` allocates child faces and open profiles to
+  disjoint intervals; open-profile spans merge on one host edge.
+  `profileTerminalEdgesForTree` and the terminal edge exclusion are
+  retired. Focused tests: `cassetteV2Renderer.spec.js`,
+  `profileEmbedding.spec.js`, `evaluate.spec.js`.
+
 - [ ] WAITING — owner verification: Listing compliance: delete the dead
   `states`/`transitions` blocks from cassette and cassette-design — CTS
   `normalizeType` drops the keys silently, so they are declaration slop;

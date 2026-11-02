@@ -486,6 +486,13 @@
             "globalParameters": "Global parameters",
             "deleteFace": "Delete face",
             "faceRole": "Face role",
+            "editFaceShape": "Edit shape",
+            "useTrapezoidFace": "Use trapezoid",
+            "edgeFull": "No free space is left on this edge.",
+            "faceShapeEditor": {
+                "title": "Face shape",
+                "singleOutline": "The shape must resolve to one closed outline."
+            },
             "autosaveDraftAvailable": "A session draft is available for this cassette.",
             "recoverDraft": "Recover draft",
             "discardDraft": "Discard draft",
@@ -516,6 +523,8 @@
                 "sourceSnap": "Source snap",
                 "side": "Side",
                 "edgeMargin": "Edge margin",
+                "spanStart": "Span start",
+                "spanWidth": "Span width",
                 "normalOffset": "Normal offset",
                 "rotation": "Rotation",
                 "placementMode": "Placement",
@@ -684,6 +693,7 @@
             "fields": {
                 "defaultLength": "Base length",
                 "height": "Height",
+                "edgeStart": "Edge start",
                 "parentEdgeIndex": "Parent edge index",
                 "baseStartOffset": "Base start offset",
                 "baseEndOffset": "Base end offset",

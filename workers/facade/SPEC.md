@@ -6,7 +6,7 @@ classification: reference
 status: active
 owner: product-owner
 created: 2026-10-28
-updated: 2026-10-28
+updated: 2026-11-02
 ```
 
 Desired state of the facade fabrication domain: its type family,
@@ -131,28 +131,36 @@ rips at those points, embedding the profile chain into the contour as
 the break. The Basis toggle applies to closed profiles only; on an open
 sketch it is disabled, never a silent no-op.
 
-Owner declarations (2026-10-15, profiles are terminal): an edge carrying
-an arranged profile is the end of the face — the profile consumes the
-edge, nothing grows from it and nothing attaches to it; the + face-grow
-affordance never appears there. Profile workpieces carry no geometry of
-their own: they modify face geometry, and every consumer of the face —
-the 2D drawing, the folded 3D, the evaluated production data — sees the
-same modified geometry. A closed profile section
-arranged on an edge places by the array settings and cuts the host face
-where it intersects, an open profile stitches its chain into the host
-contour, and the section layer carries section views only. Instance
-parameters on a profile workpiece drive only the identifiers its sketch
-references — a numeric sketch (drawn or imported without bindings) has
-no driving parameters and shows none.
+Owner decision (2026-11-02, faces share edges): faces and open profiles
+may occupy more than one interval of the same host edge. Each interval
+is an authored span: a child face carries `edgeStart` and its width in
+`defaultLength`, an open profile carries the pattern's `spanStart` and
+`spanWidth`; both are expressions over the cassette's parameters. New
+placements take the first free shard left by child faces and open
+profiles; a placement that would overlap another face, another open
+profile, or run past the host edge refuses. A fold sits on the child's
+owned interval, never on the whole host edge. Closed profile sections
+cut the face without consuming edge space, so holes and other cuts ride
+the same edge freely; their overlapping operands still merge through the
+boolean fold. Profile workpieces carry no geometry of their own: they
+modify face geometry, and every consumer of the face — the 2D drawing,
+the folded 3D, the evaluated production data — sees the same modified
+geometry. A closed profile section arranged on an edge places by the
+array settings and cuts the host face where it intersects, an open
+profile stitches its chain into the host contour, and the section layer
+carries section views only. Instance parameters on a profile workpiece
+drive only the identifiers its sketch references — a numeric sketch
+(drawn or imported without bindings) has no driving parameters and shows
+none.
 
 Owner declaration (2026-10-16, profiles never ride folds): a fold edge —
 an edge where a face bends to another — never carries a profile. The
 attachment edge chooser offers only the face's arrangeable edges (folds
-and profile-arranged edges excluded), and an arrangement authored on a
-fold is refused by evaluation (a visible refusal, never a splice into
-the bend line). Clearing the profile canvas starts the blank authoring
-session: the parameter table empties with the canvas, so one session's
-parameters never ride the next hand-drawn profile.
+excluded), and an arrangement authored on a fold is refused by
+evaluation (a visible refusal, never a splice into the bend line).
+Clearing the profile canvas starts the blank authoring session: the
+parameter table empties with the canvas, so one session's parameters
+never ride the next hand-drawn profile.
 
 Owner declaration (2026-10-16, chips read cassette variables): a placed
 profile's parameter chips are the same expression fields every other
@@ -468,6 +476,21 @@ beside its derived value; typing a cassette global resolves it through
 the same scope as every other chip. The canvas toolbar carries the Add
 profile entry. The palette lists profiles as assembly rows; profile
 authoring, parameter editing, placement, and removal live on the canvas.
+
+Owner decision (2026-11-02, faces are parametric shapes): a face may be
+authored as a parametric sketch in the profile shape model instead of a
+trapezoid. The sketch folds from an empty region — adds unite, subtracts
+cut, construction is excluded — and must resolve to one closed outline;
+holes ride the face's `cut.inner` production pass. The sketch is the
+node's authored truth (`sketch`), the OCCS face is the evaluated
+`polygon`, and the authored sketch rides
+`face.extensions.perigram.sketch`. The face editor is the profile editor
+in face mode: same expressions, fillets, shape list, dimensions, and
+undo stack; the material-side toggle is absent and the hatch is the face
+itself. Converting a trapezoid seeds the sketch from its current
+outline, keeping authored width and height expressions for a rectangle
+and a closed chain for any other outline; clearing the sketch returns
+the face to its trapezoid parameters.
 
 Owner decision (2026-11-01, shape identity): the sketch model is the
 truth and the canvas its projection, so a shape's identity rides its

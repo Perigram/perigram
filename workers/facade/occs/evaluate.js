@@ -1,6 +1,6 @@
 import {
   buildCassetteV2CassetteMarkLayerData,
-  buildCassetteV2TrapezoidTreeCurves,
+  buildCassetteV2TreeCurves,
   cassetteV2BooleanOperationsForEntities,
   profileCutEntitiesForTree,
   profileEdgeEmbeddingsForTree,
@@ -51,7 +51,7 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
   const curves = [];
 
   for (const workpiece of sheetWorkpieces) {
-    const workpieceCurves = buildCassetteV2TrapezoidTreeCurves(tree, {
+    const workpieceCurves = await buildCassetteV2TreeCurves(tree, {
       mode: 'workpiece',
       workpieceId: workpiece.id
     });
@@ -75,6 +75,7 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
         .join('; ');
       throw new Error(`Open profile placement is invalid (${details})`);
     }
+    const appliedEmbeddings = [];
     const embeddedCurves = workpieceCurves.map((curve) => {
       const faceEmbeddings = embeddings
         .filter(item => item.targetFaceId === curve.node.id)
@@ -84,10 +85,11 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
         || curve.referenceVertices
         || curve.boundaryVertices
         || curve.vertices;
-      const { contour, errors } = embedOccsProfilesIntoContour(source, faceEmbeddings);
+      const { contour, errors, applied } = embedOccsProfilesIntoContour(source, faceEmbeddings);
       if (errors.length) {
         throw new Error(`Open profile placement is invalid (${errors.join('; ')})`);
       }
+      appliedEmbeddings.push(...applied);
       return {
         ...curve,
         boundaryVertices: contour,
@@ -95,11 +97,10 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
         ...(curve.referenceVertices ? { referenceVertices: contour } : {})
       };
     });
-    for (const item of embeddings) {
-      const curve = faceCurves.get(item.targetFaceId);
+    for (const item of appliedEmbeddings) {
       contourLayerData.push({
         layer: OCCS_LAYER_CONTOUR_CASSETTE_FACE,
-        coordinates: item.embedding.composite.map(vertex => [vertex[0], vertex[1]]),
+        coordinates: item.composite.map(vertex => [vertex[0], vertex[1]]),
         handles: [`${item.relationId}:EDGE`],
         workpieceId: workpiece.id,
         workpieceDefinitionId: definitionIdForWorkpiece(workpiece),

@@ -486,6 +486,13 @@
             "globalParameters": "Глобальные параметры",
             "deleteFace": "Удалить грань",
             "faceRole": "Роль грани",
+            "editFaceShape": "Редактировать форму",
+            "useTrapezoidFace": "Использовать трапецию",
+            "edgeFull": "На этом ребре не осталось свободного места.",
+            "faceShapeEditor": {
+                "title": "Форма грани",
+                "singleOutline": "Форма должна давать один замкнутый контур."
+            },
             "autosaveDraftAvailable": "Для этой кассеты есть черновик текущей сессии.",
             "recoverDraft": "Восстановить черновик",
             "discardDraft": "Сбросить черновик",
@@ -516,6 +523,8 @@
                 "sourceSnap": "Привязка источника",
                 "side": "Сторона",
                 "edgeMargin": "Отступ от края",
+                "spanStart": "Начало участка",
+                "spanWidth": "Ширина участка",
                 "normalOffset": "Смещение от ребра",
                 "rotation": "Поворот",
                 "placementMode": "Размещение",
@@ -684,6 +693,7 @@
             "fields": {
                 "defaultLength": "Длина основания",
                 "height": "Высота",
+                "edgeStart": "Начало на ребре",
                 "parentEdgeIndex": "Индекс ребра родителя",
                 "baseStartOffset": "Смещение начала основания",
                 "baseEndOffset": "Смещение конца основания",

@@ -229,6 +229,19 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     workpieces carry their library origin (`profileTemplateId`): edits
     stay local, an explicit update rewrites the origin record, and
     already-placed workpieces keep their copy.
+- **Face sketches** — a face may carry the same parametric shape model
+  as a profile on its `sketch` (add/subtract/construction shapes,
+  expressions, fillets). The sketch folds from an empty region and must
+  resolve to one closed outline; its holes ride `cut.inner`. The OCCS
+  face shape is the evaluated `polygon`, and the authored sketch rides
+  `face.extensions.perigram.sketch`. The trapezoid face remains the
+  quick path; converting seeds the sketch from the current outline.
+- **Edge spans** — a host edge is an interval. Child faces carry
+  `edgeStart` plus their `defaultLength`; open profiles carry the edge
+  array's `spanStart`/`spanWidth`. Free shards exclude child faces and
+  open-profile spans, and a placement that overlaps or overflows
+  refuses. Folds and contour splices use the owned interval only.
+  Closed profile sections cut the face without consuming edge space.
 - **`production-layout.js`** — wraps the Clipper-backed face
   union/fold-route pass and returns semantic `cut.outer` / `fold.route`
   layer intent.
@@ -260,10 +273,9 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     the caret. A relation patch carrying any array field updates the
     pattern.
   - Closed profiles produce their production effect through the same
-    pass. Profiles are terminal: an edge carrying an arranged profile is
-    the end of the face — the designer's face-grow action refuses it
-    (`addFaceAtEdge`, a local closure in
-    `../surfaces/cassette-designer.mjs`). The boolean result's rings
+    pass. They do not consume edge space: several may share an edge with
+    faces and open profiles, and their overlapping operands merge through
+    the boolean fold. The boolean result's rings
     place by the axis law — the zero axis lands on the attachment edge
     (snap plus offsets, +X toward the host face, authored distances
     riding along as drawn; a point placement rotates by the relation's
