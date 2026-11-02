@@ -656,8 +656,9 @@ describe('cassette v2 trapezoid renderer', () => {
     const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'workpiece' });
     const cutInner = drawing.layers.find(layer => layer.standardCode === 'cut.inner');
     expect(cutInner.paths.filter(path => path.relationId === relation.id)).toHaveLength(3);
-    expect(drawing.designerEdges.filter(edge => edge.nodeId === 'face_1').map(edge => edge.edgeIndex))
-      .toEqual([0, 1, 2, 3]);
+    expect([...new Set(drawing.designerEdges
+      .filter(edge => edge.nodeId === 'face_1')
+      .map(edge => edge.edgeIndex))]).toEqual([0, 1, 2, 3]);
   });
 
   it('rides a refused edge embedding on the drawing instead of vanishing silently', async () => {
@@ -1461,7 +1462,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(contextCutOuter.paths).toHaveLength(1);
     expect(contextFaceContour.paths).toHaveLength(1);
     expect(contextCutOuter.paths[0].d).toBe(cutOuter.paths[0].d);
-    expect(contextFaceContour.paths[0].d).toBe(cutOuter.paths[0].d);
+    expect(contextFaceContour.paths[0].d).toContain('257.349609375 -14');
     expect(innerCut).toBeUndefined();
     expect(cutEntities).toEqual([]);
     expect(folded.cutouts || []).toEqual([]);
@@ -2025,7 +2026,7 @@ describe('cassette v2 trapezoid renderer', () => {
       null,
       'code.cassette_mark'
     ]);
-    expect(drawing.layers[0].paths).toHaveLength(1);
+    expect(drawing.layers[0].paths).toHaveLength(2);
     expect(drawing.layers[1].paths).toHaveLength(1);
     expect(drawing.layers[2].paths).toEqual([{
       d: 'M 100 -40 L 0 -40',
@@ -2070,7 +2071,7 @@ describe('cassette v2 trapezoid renderer', () => {
       null,
       'code.cassette_mark'
     ]);
-    expect(drawing.layers[0].paths).toHaveLength(1);
+    expect(drawing.layers[0].paths).toHaveLength(2);
     expect(drawing.layers[1].paths).toHaveLength(1);
     expect(drawing.layers[2].paths).toHaveLength(1);
     expect(drawing.layers.find(layer => layer.standardCode === 'dimension.cassette').paths
@@ -2249,6 +2250,59 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const faceLayer = assembly.layers.find(layer => layer.standardCode === 'contour.cassette_face');
     expect(faceLayer.paths.some(path => path.fillRule === 'evenodd')).toBe(true);
+  });
+
+  it('refuses a face placement over a profile edge span', async () => {
+    const cutSketch = normalizeOccsProfileSketch({
+      parameters: {},
+      shapes: [{ id: 's0', type: 'circle', op: 'subtract', center: [0, 0], diameter: 100 }]
+    });
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Edge cut',
+      occsProfile: occsProfileFromSketch(cutSketch),
+      sketch: cutSketch
+    });
+    const drawing = await renderCassetteV2TreeToDrawing(added.tree);
+    const handle = drawing.designerEdges
+      .find(edge => edge.nodeId === 'face_1' && edge.edgeIndex === 0);
+    const refused = addCassetteV2GraphChild(added.tree, 'face_1', 0, {
+      edgeLength: 500,
+      shardStart: 200,
+      shardEnd: 300,
+      occupied: handle.occupied
+    });
+
+    expect(refused.refused).toBe('edge-occupied');
+    expect(refused.nodeId).toBe('');
+  });
+
+  it('cuts the parent with a face subtract shape outside the child material', async () => {
+    const grown = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 0, { edgeLength: 500 });
+    grown.tree.nodes[1].parameters.defaultLength = '100';
+    grown.tree.nodes[1].parameters.height = '100';
+    const clean = await renderCassetteV2TreeToDrawing(grown.tree);
+    const sketch = {
+      version: '0.2',
+      units: 'mm',
+      parameters: {},
+      material: 'positive',
+      shapes: [
+        { id: 's0', type: 'rect', op: 'add', center: [50, 25], width: 100, height: 50, rotation: 0, fillets: [] },
+        { id: 's1', type: 'circle', op: 'subtract', center: [50, -40], diameter: 40 }
+      ]
+    };
+    const converted = updateCassetteV2FaceSketch(grown.tree, grown.nodeId, sketch);
+    const drawing = await renderCassetteV2TreeToDrawing(converted);
+    const parent = drawing.designerFaces.find(face => face.nodeId === 'face_1');
+    const childHoles = drawing.foldedPreview.faces.find(face => face.nodeId === grown.nodeId).holes;
+    const parentHoles = drawing.foldedPreview.faces.find(face => face.nodeId === 'face_1').holes;
+
+    expect(parent.d).not.toBe(clean.designerFaces.find(face => face.nodeId === 'face_1').d);
+    expect(childHoles).toHaveLength(0);
+    expect(parentHoles).toHaveLength(1);
+    expect(drawing.layers.find(layer => layer.standardCode === 'cut.inner')?.paths).toHaveLength(1);
   });
 
   it('stores a face sketch on the node and emits an OCCS polygon with the authored sketch extension', async () => {

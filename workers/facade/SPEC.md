@@ -143,11 +143,10 @@ writes a fixed or parametric width so the remaining edge becomes a free
 shard. The clicked shard is authoritative — the new face lands on that
 interval, never the whole edge. A placement that would overlap another
 face, an open profile, or a closed profile footprint on the edge
-refuses, and the refusal reads on the canvas. Closed profile footprints
-are projected onto the host edge and subtracted from its shards: a hole
-inside the face leaves the edge free, a cut that crosses the edge blocks
-that interval. A fold sits on the child's owned interval, never on the
-whole host edge. Profile workpieces carry no geometry of their own: they
+refuses, and the refusal reads on the canvas. A closed profile footprint
+blocks its projected span on the arranged host edge, and a face placement
+overlapping that span refuses. A fold sits on the child's owned interval,
+never on the whole host edge. Profile workpieces carry no geometry of their own: they
 modify face geometry, and every consumer of the face — the 2D drawing,
 the folded 3D, the evaluated production data — sees the same modified
 geometry. A closed profile section arranged on an edge places by the
@@ -508,10 +507,10 @@ trapezoid remains the quick path. The sketch folds through the profile's
 ordered boolean sequence: add shapes form the face, subtract shapes cut
 it, construction is excluded, and the result must resolve to one closed
 outline. The child face keeps the material on its side of the datum; the
-parent-side part belongs to the parent cut. The face's material region —
-outer rings minus holes — also cuts the parent face where the two
-overlap, the boolean pass a closed profile applies to its host. The
-sketch is the node's authored truth
+parent-side part belongs to the parent cut. Every participating shape
+cuts the parent where it lands — the cut footprint is the union of the
+adds and subtracts, the boolean pass a closed profile applies to its
+host. The sketch is the node's authored truth
 (`sketch`), the OCCS face is the evaluated region (`polygon`), and the
 authored sketch rides `face.extensions.perigram.sketch`. The face editor
 is the profile editor in face mode: same expressions, fillets, shape

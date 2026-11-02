@@ -23,38 +23,6 @@ export const withoutClosingOccsVertex = (vertices = []) => (
     : vertices
 );
 
-const pointInsideRing = (point, ring = []) => {
-  const vertices = withoutClosingOccsVertex(ring);
-  if (vertices.length < 3) return false;
-  const x = numeric(point?.[0]);
-  const y = numeric(point?.[1]);
-  let inside = false;
-  for (let index = 0, previous = vertices.length - 1; index < vertices.length; previous = index, index += 1) {
-    const current = vertices[index];
-    const before = vertices[previous];
-    const crosses = ((numeric(current?.[1]) > y) !== (numeric(before?.[1]) > y))
-      && (x < ((numeric(before?.[0]) - numeric(current?.[0])) * (y - numeric(current?.[1])))
-        / ((numeric(before?.[1]) - numeric(current?.[1])) || 1) + numeric(current?.[0]));
-    if (crosses) inside = !inside;
-  }
-  return inside;
-};
-
-const ringCentroid = (ring = []) => {
-  const vertices = withoutClosingOccsVertex(ring);
-  if (!vertices.length) return [0, 0];
-  return vertices.reduce((sum, point) => [
-    sum[0] + numeric(point?.[0]) / vertices.length,
-    sum[1] + numeric(point?.[1]) / vertices.length
-  ], [0, 0]);
-};
-
-export const occsRingsNest = (rings = []) => rings.some((ring, index) => (
-  rings.some((other, otherIndex) => (
-    index !== otherIndex && pointInsideRing(ringCentroid(ring), other)
-  ))
-));
-
 export const toOccsSvgPoint = (point) => [numeric(point?.[0]), -numeric(point?.[1])];
 
 export const occsCurveToPath = (vertices = []) => {
@@ -109,29 +77,16 @@ export const buildOccsDrawingFromFaceCurves = async (curves = [], overlays = {})
     })),
     overlays
   );
-  const hasShapedFaces = curves.some(curve => Array.isArray(curve.holes) && curve.holes.length);
-  const facePaths = hasShapedFaces
-    ? curves.map(curve => ({
-        d: occsShapeToPath(curve),
-        fill: 'layer',
-        stroke: 'none',
-        opacity: 0.1,
-        fillRule: Array.isArray(curve.holes) && curve.holes.length ? 'evenodd' : null
-      }))
-    : occsRingsNest(layout.cutOuterPaths)
-      ? [{
-          d: layout.cutOuterPaths.map(occsCurveToPath).join(' '),
-          fill: 'layer',
-          stroke: 'none',
-          opacity: 0.1,
-          fillRule: 'evenodd'
-        }]
-      : layout.cutOuterPaths.map(vertices => ({
-          d: occsCurveToPath(vertices),
-          fill: 'layer',
-          stroke: 'none',
-          opacity: 0.1
-        }));
+  // The face layer is per face: adjacent faces keep their own fill and
+  // the fold route separates them. The production union stays on
+  // cut.outer.
+  const facePaths = curves.map(curve => ({
+    d: occsShapeToPath(curve),
+    fill: 'layer',
+    stroke: 'none',
+    opacity: 0.1,
+    ...(Array.isArray(curve.holes) && curve.holes.length ? { fillRule: 'evenodd' } : {})
+  }));
   const cutOuterPaths = layout.cutOuterPaths.map(vertices => ({
     d: occsCurveToPath(vertices),
     fill: 'none',

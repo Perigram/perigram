@@ -2636,9 +2636,13 @@ Ordered steps:
   fold route uses the child's owned interval on the host edge; the 3D
   fold consumes that same interval. Nested cut paths fill with `evenodd`
   and the authored fold edges carry the fold route, so a notch stays open
-  and the bend line stays continuous. Closed profiles cut across a fold
-  interval with the authored bend route intact; open profile spans
-  crossing a fold still refuse.
+  and the bend line stays continuous. A subtract shape also cuts the
+  parent wherever it lands; the parent cut footprint is the union of the
+  adds and subtracts. Face fills stay per face, so adjacent faces keep
+  separate fills. A closed profile blocks its projected edge span and a
+  face placement over that span refuses (`edge-occupied`). Closed
+  profiles cut across a fold interval with the authored bend route
+  intact; open profile spans crossing a fold still refuse.
 
 - [ ] WAITING — owner verification: Profile editor isolation (owner
   direction 2026-11-02): the profile editor edits and evaluates the

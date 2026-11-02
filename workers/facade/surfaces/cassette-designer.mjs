@@ -2177,7 +2177,8 @@ export default function createSurface({ vue, components, locale, queries, record
         addFaceAtEdge(edge.nodeId, edge.edgeIndex ?? edgeIndex, {
           edgeLength: edge.edgeLength ?? edge.length,
           shardStart: edge.shardStart,
-          shardEnd: edge.shardEnd
+          shardEnd: edge.shardEnd,
+          occupied: edge.occupied
         });
       };
 
