@@ -22,6 +22,7 @@ import {
 import {
   buildOccsDrawingFromFaceCurves,
   occsCurveToPath,
+  occsRingsNest,
   occsShapeToPath
 } from '../../occs/drawing.js';
 import { buildOccsProductionLayout } from '../../occs/production-layout.js';
@@ -2518,13 +2519,22 @@ const designerAssemblyLayersForCurves = async (curves = [], extraLayers = [], op
           workpieceId,
           fillRule: Array.isArray(curve.holes) && curve.holes.length ? 'evenodd' : null
         }))
-      : layout.cutOuterPaths.map(vertices => ({
-          d: occsCurveToPath(vertices),
-          fill: 'layer',
-          stroke: 'none',
-          opacity: designerAssemblyFillOpacity(workpieceId, contextWorkpieceId),
-          workpieceId
-        }))));
+      : occsRingsNest(layout.cutOuterPaths)
+        ? [{
+            d: layout.cutOuterPaths.map(occsCurveToPath).join(' '),
+            fill: 'layer',
+            stroke: 'none',
+            opacity: designerAssemblyFillOpacity(workpieceId, contextWorkpieceId),
+            workpieceId,
+            fillRule: 'evenodd'
+          }]
+        : layout.cutOuterPaths.map(vertices => ({
+            d: occsCurveToPath(vertices),
+            fill: 'layer',
+            stroke: 'none',
+            opacity: designerAssemblyFillOpacity(workpieceId, contextWorkpieceId),
+            workpieceId
+          }))));
     cutPaths.push(...layout.cutOuterPaths.map(vertices => ({
       d: occsCurveToPath(vertices),
       fill: 'none',
@@ -2532,13 +2542,23 @@ const designerAssemblyLayersForCurves = async (curves = [], extraLayers = [], op
       opacity,
       workpieceId
     })));
-    foldPaths.push(...layout.foldPaths.map(vertices => ({
-      d: occsCurveToPath(vertices),
-      fill: 'none',
-      stroke: 'layer',
-      opacity,
-      workpieceId
-    })));
+    const authoredFolds = (options.foldEdges || [])
+      .filter(edge => !edge.workpieceId || edge.workpieceId === workpieceId);
+    foldPaths.push(...(authoredFolds.length
+      ? authoredFolds.map(edge => ({
+          d: `M ${edge.x1} ${edge.y1} L ${edge.x2} ${edge.y2}`,
+          fill: 'none',
+          stroke: 'layer',
+          opacity,
+          workpieceId
+        }))
+      : layout.foldPaths.map(vertices => ({
+          d: occsCurveToPath(vertices),
+          fill: 'none',
+          stroke: 'layer',
+          opacity,
+          workpieceId
+        }))));
   }
   const layers = [
     {
@@ -3940,7 +3960,8 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
   });
   if (options.contextWorkpieceId) {
     const assemblyLayers = await designerAssemblyLayersForCurves(shapedCurves, [designerSections.layer, markLayer], {
-      contextWorkpieceId: options.contextWorkpieceId
+      contextWorkpieceId: options.contextWorkpieceId,
+      foldEdges: designerFoldEdges
     });
     drawing.layers = assemblyLayers.concat(hardwareLayers);
   }
@@ -4189,17 +4210,26 @@ const resolveCassetteV2FaceSketchGeometry = async (sketch = {}, parameters = {})
   if (region.polygons.length !== 1) {
     throw new Error('Face shape must resolve to one closed outline');
   }
-  const outer = rotateSketchRingToAttachment(region.polygons[0]);
-  const holes = region.holes;
-  const material = holes.length
+  const material = region.holes.length
     ? await foldCassetteV2Region(
-        { polygons: [outer], holes: [] },
-        holes.map(ring => ({ op: 'subtract', polygons: [ring] }))
+        { polygons: region.polygons, holes: [] },
+        region.holes.map(ring => ({ op: 'subtract', polygons: [ring] }))
       )
-    : { polygons: [outer] };
+    : { polygons: region.polygons };
+  // The child face keeps the material on its side of the datum; the
+  // parent-side part belongs to the parent cut, so the two panels never
+  // double up on the same flat sheet.
+  const span = 1e5;
+  const clipped = await foldCassetteV2Region(
+    { polygons: region.polygons, holes: region.holes },
+    [{ op: 'subtract', polygons: [[[-span, -span], [span, -span], [span, 0], [-span, 0]]] }]
+  );
+  if (clipped.polygons.length !== 1) {
+    throw new Error('Face shape must resolve to one closed outline');
+  }
   return {
-    outer,
-    holes,
+    outer: rotateSketchRingToAttachment(clipped.polygons[0]),
+    holes: clipped.holes,
     cuts: material.polygons.filter(ring => ring.length >= 3)
   };
 };

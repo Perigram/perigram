@@ -2237,6 +2237,11 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(drawing.foldedPreview.faces.find(face => face.nodeId === grown.nodeId).holes).toHaveLength(1);
     expect(drawing.designerFoldEdges).toEqual(clean.designerFoldEdges);
     expect(drawing.layers.find(layer => layer.standardCode === 'cut.inner')?.paths).toHaveLength(1);
+    const childCurve = (await buildCassetteV2TreeCurves(converted))
+      .find(curve => curve.node.id === grown.nodeId);
+    expect(Math.min(...childCurve.localVertices.map(point => Number(point[1])))).toBeGreaterThanOrEqual(-0.001);
+    const foldRoute = drawing.layers.find(layer => layer.standardCode === 'fold.route');
+    expect(foldRoute.paths).toHaveLength(1);
 
     const assembly = await renderCassetteV2TreeToDrawing(converted, {
       mode: 'assembly',

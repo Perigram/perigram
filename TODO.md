@@ -2629,13 +2629,16 @@ Ordered steps:
 
   Session `agent/face-cut-child-subtract-20261102`. A face sketch folds
   through the full ordered sequence: adds form the face, subtracts cut
-  it and ride `cut.inner`. The face's material region (outer rings minus
-  holes) emits parent cut entities through `faceSketchCutEntitiesForTree`,
-  so a custom face shape crossing the datum cuts the parent instead of
-  only appearing as another panel. The fold route uses the child's owned
-  interval on the host edge; the 3D fold consumes that same interval.
-  Closed profiles cut across a fold interval with the authored bend route
-  intact; open profile spans crossing a fold still refuse.
+  it and ride `cut.inner`. The child face clips to its side of the datum;
+  the parent-side material emits parent cut entities through
+  `faceSketchCutEntitiesForTree`, so a custom face shape crossing the
+  datum cuts the parent without doubling the child panel over it. The
+  fold route uses the child's owned interval on the host edge; the 3D
+  fold consumes that same interval. Nested cut paths fill with `evenodd`
+  and the authored fold edges carry the fold route, so a notch stays open
+  and the bend line stays continuous. Closed profiles cut across a fold
+  interval with the authored bend route intact; open profile spans
+  crossing a fold still refuse.
 
 - [ ] WAITING — owner verification: Profile editor isolation (owner
   direction 2026-11-02): the profile editor edits and evaluates the

@@ -23,6 +23,38 @@ export const withoutClosingOccsVertex = (vertices = []) => (
     : vertices
 );
 
+const pointInsideRing = (point, ring = []) => {
+  const vertices = withoutClosingOccsVertex(ring);
+  if (vertices.length < 3) return false;
+  const x = numeric(point?.[0]);
+  const y = numeric(point?.[1]);
+  let inside = false;
+  for (let index = 0, previous = vertices.length - 1; index < vertices.length; previous = index, index += 1) {
+    const current = vertices[index];
+    const before = vertices[previous];
+    const crosses = ((numeric(current?.[1]) > y) !== (numeric(before?.[1]) > y))
+      && (x < ((numeric(before?.[0]) - numeric(current?.[0])) * (y - numeric(current?.[1])))
+        / ((numeric(before?.[1]) - numeric(current?.[1])) || 1) + numeric(current?.[0]));
+    if (crosses) inside = !inside;
+  }
+  return inside;
+};
+
+const ringCentroid = (ring = []) => {
+  const vertices = withoutClosingOccsVertex(ring);
+  if (!vertices.length) return [0, 0];
+  return vertices.reduce((sum, point) => [
+    sum[0] + numeric(point?.[0]) / vertices.length,
+    sum[1] + numeric(point?.[1]) / vertices.length
+  ], [0, 0]);
+};
+
+export const occsRingsNest = (rings = []) => rings.some((ring, index) => (
+  rings.some((other, otherIndex) => (
+    index !== otherIndex && pointInsideRing(ringCentroid(ring), other)
+  ))
+));
+
 export const toOccsSvgPoint = (point) => [numeric(point?.[0]), -numeric(point?.[1])];
 
 export const occsCurveToPath = (vertices = []) => {
@@ -86,22 +118,36 @@ export const buildOccsDrawingFromFaceCurves = async (curves = [], overlays = {})
         opacity: 0.1,
         fillRule: Array.isArray(curve.holes) && curve.holes.length ? 'evenodd' : null
       }))
-    : layout.cutOuterPaths.map(vertices => ({
-        d: occsCurveToPath(vertices),
-        fill: 'layer',
-        stroke: 'none',
-        opacity: 0.1
-      }));
+    : occsRingsNest(layout.cutOuterPaths)
+      ? [{
+          d: layout.cutOuterPaths.map(occsCurveToPath).join(' '),
+          fill: 'layer',
+          stroke: 'none',
+          opacity: 0.1,
+          fillRule: 'evenodd'
+        }]
+      : layout.cutOuterPaths.map(vertices => ({
+          d: occsCurveToPath(vertices),
+          fill: 'layer',
+          stroke: 'none',
+          opacity: 0.1
+        }));
   const cutOuterPaths = layout.cutOuterPaths.map(vertices => ({
     d: occsCurveToPath(vertices),
     fill: 'none',
     stroke: 'layer'
   }));
-  const foldRoutePaths = layout.foldPaths.map(vertices => ({
-    d: occsCurveToPath(vertices),
-    fill: 'none',
-    stroke: 'layer'
-  }));
+  const foldRoutePaths = Array.isArray(overlays.designerFoldEdges) && overlays.designerFoldEdges.length
+    ? overlays.designerFoldEdges.map(edge => ({
+        d: `M ${edge.x1} ${edge.y1} L ${edge.x2} ${edge.y2}`,
+        fill: 'none',
+        stroke: 'layer'
+      }))
+    : layout.foldPaths.map(vertices => ({
+        d: occsCurveToPath(vertices),
+        fill: 'none',
+        stroke: 'layer'
+      }));
   const layers = [
     {
       name: occsLayerExportName(OCCS_LAYER_CONTOUR_CASSETTE_FACE),
