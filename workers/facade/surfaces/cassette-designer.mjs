@@ -61,6 +61,22 @@ import { hardwareDefaultParameters, hardwareLabel } from '../occs/hardware.js';
 
 const OCCS_MIME = 'application/perigram+occs';
 
+const ATTACHMENT_SHORT_LABELS = Object.freeze({
+  'cassette.v2.attachmentFields.targetFace': 'cassette.v2.attachmentFields.short.targetFace',
+  'cassette.v2.attachmentFields.targetSnap': 'cassette.v2.attachmentFields.short.targetSnap',
+  'cassette.v2.attachmentFields.edgeMargin': 'cassette.v2.attachmentFields.short.edgeMargin',
+  'cassette.v2.attachmentFields.normalOffset': 'cassette.v2.attachmentFields.short.normalOffset',
+  'cassette.v2.attachmentFields.rotation': 'cassette.v2.attachmentFields.short.rotation',
+  'cassette.v2.attachmentFields.placementMode': 'cassette.v2.attachmentFields.short.placementMode',
+  'cassette.v2.attachmentFields.arrayEdge': 'cassette.v2.attachmentFields.short.arrayEdge',
+  'cassette.v2.attachmentFields.arrayMode': 'cassette.v2.attachmentFields.short.arrayMode',
+  'cassette.v2.attachmentFields.spanStart': 'cassette.v2.attachmentFields.short.spanStart',
+  'cassette.v2.attachmentFields.spanWidth': 'cassette.v2.attachmentFields.short.spanWidth',
+  'cassette.v2.attachmentFields.side': 'cassette.v2.attachmentFields.short.side',
+  'cassette.v2.attachmentFields.sourceFace': 'cassette.v2.attachmentFields.short.sourceFace',
+  'cassette.v2.attachmentFields.sourceSnap': 'cassette.v2.attachmentFields.short.sourceSnap'
+});
+
 // §3 wire: records carry `name` — the label helper takes the plain
 // candidates; an unnamed record reads as unnamed, its id never renders.
 const entitySelectText = (...values) => {
@@ -2385,25 +2401,33 @@ export default function createSurface({ vue, components, locale, queries, record
             : null;
           // PrimeVue InputGroup rows carry the field label in the addon:
           // one row per field, one row per parameter.
-          const labeledRow = (label, control, className = '') => h(InputGroup, { class: className }, [
-            h(InputGroupAddon, { class: 'shrink-0 text-xs' }, () => label),
+          const shortLabel = key => t(ATTACHMENT_SHORT_LABELS[key] || key);
+          const arrayValueShortLabel = relation => t(
+            relation.arrayMode === 'spacing'
+              ? 'cassette.v2.attachmentFields.short.arraySpacing'
+              : 'cassette.v2.attachmentFields.short.arrayCount'
+          );
+          const labeledRow = (label, control, className = '', title = '') => h(InputGroup, { class: className }, [
+            h(InputGroupAddon, { class: 'shrink-0 text-xs', title: title || label }, () => label),
             control
           ]);
-          const expressionField = (labelKey, value, key, className = '') => labeledRow(
-            t(labelKey),
+          const expressionField = (labelKey, value, key, { className = '', allowEmpty = false } = {}) => labeledRow(
+            shortLabel(labelKey),
             h(CassetteExpressionEditor, {
               class: 'min-w-0 flex-1',
               modelValue: value,
               parameters: globalParameters.value,
               parameterNames: globalParameterNames.value,
+              allowEmpty,
               title: t(labelKey),
               'aria-label': t(labelKey),
               'onUpdate:modelValue': next => updateInlineAttachmentRelation({ [key]: next })
             }),
-            className
+            className,
+            t(labelKey)
           );
           const selectField = (labelKey, modelValue, options, key, className = '') => labeledRow(
-            t(labelKey),
+            shortLabel(labelKey),
             h(Select, {
               modelValue,
               options: Array.isArray(options) ? options : options?.value || [],
@@ -2415,7 +2439,8 @@ export default function createSurface({ vue, components, locale, queries, record
               title: t(labelKey),
               'onUpdate:modelValue': value => updateInlineAttachmentRelation({ [key]: value })
             }),
-            className
+            className,
+            t(labelKey)
           );
           const dragHandle = fields => h('div', {
             class: 'flex cursor-move items-center gap-1',
@@ -2504,7 +2529,7 @@ export default function createSurface({ vue, components, locale, queries, record
                   : null,
                 relation.placementMode === 'edgeArray'
                   ? labeledRow(
-                      arrayValueLabel(relation),
+                      arrayValueShortLabel(relation),
                       h(CassetteExpressionEditor, {
                         class: 'min-w-0 flex-1',
                         modelValue: arrayValue(relation),
@@ -2513,14 +2538,16 @@ export default function createSurface({ vue, components, locale, queries, record
                         title: arrayValueLabel(relation),
                         'aria-label': arrayValueLabel(relation),
                         'onUpdate:modelValue': value => updateInlineAttachmentRelation(arrayValuePatch(relation, value))
-                      })
+                      }),
+                      '',
+                      arrayValueLabel(relation)
                     )
                   : null,
                 kind === 'profile' && relation.placementMode === 'edgeArray'
-                  ? expressionField('cassette.v2.attachmentFields.spanStart', relation.arraySpanStart, 'arraySpanStart')
+                  ? expressionField('cassette.v2.attachmentFields.spanStart', relation.arraySpanStart, 'arraySpanStart', { allowEmpty: true })
                   : null,
                 kind === 'profile' && relation.placementMode === 'edgeArray'
-                  ? expressionField('cassette.v2.attachmentFields.spanWidth', relation.arraySpanWidth, 'arraySpanWidth')
+                  ? expressionField('cassette.v2.attachmentFields.spanWidth', relation.arraySpanWidth, 'arraySpanWidth', { allowEmpty: true })
                   : null,
                 kind === 'profile'
                   ? h('div', { class: 'col-span-2 flex min-w-0 gap-1' }, [

@@ -535,7 +535,24 @@
                 "mirrorX": "Mirror X",
                 "mirrorY": "Mirror Y",
                 "driver": "Placement driver",
-                "jointType": "Joint type"
+                "jointType": "Joint type",
+                "short": {
+                    "targetFace": "Face",
+                    "sourceFace": "Face",
+                    "targetSnap": "Snap",
+                    "sourceSnap": "Snap",
+                    "side": "Side",
+                    "edgeMargin": "Margin",
+                    "spanStart": "Start",
+                    "spanWidth": "Width",
+                    "normalOffset": "Offset",
+                    "rotation": "Angle",
+                    "placementMode": "Mode",
+                    "arrayEdge": "Edge",
+                    "arrayMode": "Rule",
+                    "arrayCount": "Count",
+                    "arraySpacing": "Spacing"
+                }
             },
             "hardwareFields": {
                 "family": "Hardware family",

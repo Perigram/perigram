@@ -15,6 +15,7 @@ export default function createExpressionEditor({ vue, components, locale }) {
       parameters: { type: Object, default: () => ({}) },
       parameterNames: { type: Array, default: () => [] },
       contextTokens: { type: Array, default: () => [] },
+      allowEmpty: { type: Boolean, default: false },
       allowAngleSuffix: { type: Boolean, default: false }
     },
     emits: ['update:modelValue'],
@@ -74,7 +75,7 @@ export default function createExpressionEditor({ vue, components, locale }) {
       ]);
 
       const validationError = computed(() => {
-        if (!internalText.value.trim()) return t('cassette.v2.expression.empty');
+        if (!internalText.value.trim()) return props.allowEmpty ? '' : t('cassette.v2.expression.empty');
         try {
           if (props.allowAngleSuffix) {
             resolveCassetteV2AngleExpression(internalText.value, props.parameters);

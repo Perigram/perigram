@@ -535,7 +535,24 @@
                 "mirrorX": "Зеркало X",
                 "mirrorY": "Зеркало Y",
                 "driver": "Ведущая привязка",
-                "jointType": "Тип соединения"
+                "jointType": "Тип соединения",
+                "short": {
+                    "targetFace": "Грань",
+                    "sourceFace": "Грань",
+                    "targetSnap": "Привязка",
+                    "sourceSnap": "Привязка",
+                    "side": "Сторона",
+                    "edgeMargin": "Отступ",
+                    "spanStart": "Начало",
+                    "spanWidth": "Ширина",
+                    "normalOffset": "Смещение",
+                    "rotation": "Угол",
+                    "placementMode": "Режим",
+                    "arrayEdge": "Кромка",
+                    "arrayMode": "Правило",
+                    "arrayCount": "Кол-во",
+                    "arraySpacing": "Шаг"
+                }
             },
             "hardwareFields": {
                 "family": "Семейство метиза",
