@@ -83,6 +83,24 @@ const typeDim = async (page, dialog, fieldKey, text) => {
   await page.waitForTimeout(700);
 };
 
+// The assembly camera and the sketch camera the canvas session preserves
+// across a mode flip.
+const assemblyViewBox = async (page) => page
+  .locator('.designer-workspace__canvas svg[viewBox]').first()
+  .getAttribute('viewBox');
+const sketchCamera = async (dialog) => {
+  const frame = await frameOf(dialog);
+  return frame.evaluate(() => ({ ...window.cadcraft.view.snapshot() }));
+};
+const moveSketchCamera = async (dialog) => {
+  const frame = await frameOf(dialog);
+  return frame.evaluate(() => {
+    window.cadcraft.view.zoomAt(240, 180, 1.5);
+    window.cadcraft.view.panBy(36, 18);
+    return { ...window.cadcraft.view.snapshot() };
+  });
+};
+
 test('profile editor draws at millimetre scale and keeps bindings through save', async ({ app }) => {
   test.setTimeout(300_000);
   await app.installPlugins(['tech-drawing', 'documents', 'facade']);
@@ -106,6 +124,10 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await page.getByRole('button', { name: /Create new|New profile/ }).first().click();
   const dialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(dialog).toBeVisible({ timeout: 30_000 });
+  const workspaceBox = await page.locator('.designer-workspace__canvas').first().boundingBox();
+  const modeBox = await dialog.boundingBox();
+  expect(Math.abs(modeBox.width - workspaceBox.width), 'the sketch mode fills the canvas').toBeLessThan(2);
+  expect(Math.abs(modeBox.height - workspaceBox.height), 'the sketch mode fills the canvas').toBeLessThan(2);
   const canvas = dialog.locator(CANVAS).first();
   await expect(canvas).toBeVisible({ timeout: 60_000 });
   await expect(canvas).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
@@ -279,10 +301,26 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await page.waitForTimeout(1200);
   expect(await canvasSignature(), 'Enter commits and rebuilds').not.toBe(before);
 
+  const assemblyBefore = await assemblyViewBox(page);
   await page.getByRole('button', { name: 'Edit profile' }).first().click();
   const reopenedDialog = page.locator('[data-sketch-mode="profile"]').first();
   await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });
   await expect(reopenedDialog.locator(CANVAS).first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
+  const reopenedModeBox = await reopenedDialog.boundingBox();
+  expect(Math.abs(reopenedModeBox.width - workspaceBox.width), 'the reopened sketch fills the canvas').toBeLessThan(2);
+  const movedCamera = await moveSketchCamera(reopenedDialog);
+  await reopenedDialog.getByRole('button', { name: 'Back to cassette' }).click();
+  await expect(reopenedDialog).toBeHidden({ timeout: 30_000 });
+  expect(await assemblyViewBox(page), 'the assembly camera survives the flip').toBe(assemblyBefore);
+
+  await page.getByRole('button', { name: 'Edit profile' }).first().click();
+  await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });
+  await expect(reopenedDialog.locator(CANVAS).first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
+  await page.waitForTimeout(600);
+  const restoredCamera = await sketchCamera(reopenedDialog);
+  expect(restoredCamera.zoom, 'the target reopens at its session camera').toBeCloseTo(movedCamera.zoom, 4);
+  expect(restoredCamera.cx).toBeCloseTo(movedCamera.cx, 3);
+  expect(restoredCamera.cy).toBeCloseTo(movedCamera.cy, 3);
   const reopened = await nativeDims(reopenedDialog);
   expectDrawingScale(reopened);
   const reopenedDiameter = reopened.find(dim => dim.field === 'diameter');

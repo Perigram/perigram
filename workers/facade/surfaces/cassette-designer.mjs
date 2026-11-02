@@ -53,6 +53,13 @@ import createExpressionEditor from './lib/components/expressionEditor.mjs';
 import createFieldDraft from './lib/components/fieldDraft.mjs';
 import createFoldedPreview from './lib/components/foldedPreview.mjs';
 import createSketchEditor from './lib/components/sketchEditor.mjs';
+import {
+  beginCanvasSession,
+  canvasSketchView,
+  createCanvasSession,
+  endCanvasSession,
+  rememberCanvasSketchView
+} from './lib/canvasSession.js';
 import { buildCassetteV2FoldedPreview } from './lib/cassetteV2FoldedPreview.js';
 import { cassettePreviewLayerSelection, normalizeGeometryDrawing } from './lib/drawingPreview.js';
 import { evaluateOccsCassetteTemplate } from '../occs/evaluate.js';
@@ -361,7 +368,10 @@ export default function createSurface({ vue, components, locale, queries, record
       // viewport survives the flip; the editor mounts once per surface.
       const sketchEditorMounted = ref(false);
       const sketchEditorMode = ref('profile');
-      let sketchReturnState = null;
+      const sketchEditorRef = ref(null);
+      const canvasSession = createCanvasSession();
+      const sketchInitialView = ref(null);
+      const sketchSessionKey = ref(0);
       const hardwareLibraryRecords = ref([]);
       const hardwareLibraryAvailable = ref(true);
       const hardwarePicker = ref(null);
@@ -1638,9 +1648,7 @@ export default function createSurface({ vue, components, locale, queries, record
         inlineEditor: inlineEditor.value ? { ...inlineEditor.value } : null
       });
 
-      const restoreSketchReturn = () => {
-        const state = sketchReturnState;
-        sketchReturnState = null;
+      const restoreSketchReturn = (state) => {
         if (!state) return;
         selectedNodeId.value = state.selectedNodeId;
         selectedWorkpieceOverrideId.value = state.selectedWorkpieceOverrideId;
@@ -1649,33 +1657,50 @@ export default function createSurface({ vue, components, locale, queries, record
         if (state.inlineEditor) openInlineEditor(state.inlineEditor);
       };
 
+      // One session spans the assembly canvas and the sketch editor: it
+      // holds the assembly camera and selection a flip returns to, and the
+      // sketch camera each target reopens with.
+      const openSketchSession = (mode, id, returnState) => {
+        beginCanvasSession(canvasSession, {
+          mode,
+          id,
+          returnState,
+          assemblyView: drawingCanvasRef.value?.getViewBox() || null
+        });
+        sketchInitialView.value = canvasSketchView(canvasSession, canvasSession.target.key);
+        sketchSessionKey.value += 1;
+      };
+
+      const closeSketchSession = ({ restoreSelection = true } = {}) => {
+        rememberCanvasSketchView(canvasSession, sketchEditorRef.value?.snapshotView());
+        const { returnState, assemblyView } = endCanvasSession(canvasSession);
+        if (assemblyView) drawingCanvasRef.value?.setViewBox(assemblyView);
+        if (restoreSelection) restoreSketchReturn(returnState);
+      };
+
       const finishProfileSketch = (addedWorkpieceId = '') => {
         profileSketchOpen.value = false;
-        if (addedWorkpieceId) {
-          sketchReturnState = null;
-          selectProfileWorkpiece(addedWorkpieceId);
-          return;
-        }
-        restoreSketchReturn();
+        closeSketchSession({ restoreSelection: !addedWorkpieceId });
+        if (addedWorkpieceId) selectProfileWorkpiece(addedWorkpieceId);
       };
 
       const cancelProfileSketch = () => {
         profileSketchOpen.value = false;
-        restoreSketchReturn();
+        closeSketchSession();
       };
 
       const finishFaceSketch = () => {
         faceSketchOpen.value = false;
-        restoreSketchReturn();
+        closeSketchSession();
       };
 
       const cancelFaceSketch = () => {
         faceSketchOpen.value = false;
-        restoreSketchReturn();
+        closeSketchSession();
       };
 
       const openProfileSketch = (workpieceId = '') => {
-        sketchReturnState = captureSketchReturn();
+        openSketchSession('profile', workpieceId, captureSketchReturn());
         closeInlineEditor();
         profileEditorError.value = '';
         editingProfileWorkpieceId.value = workpieceId;
@@ -1733,7 +1758,7 @@ export default function createSurface({ vue, components, locale, queries, record
       // A face sketch is edited on the same shape canvas as a profile;
       // converting a trapezoid seeds the draft with its current outline.
       const openFaceShapeSketch = async (nodeId) => {
-        sketchReturnState = captureSketchReturn();
+        openSketchSession('face', nodeId, captureSketchReturn());
         closeInlineEditor();
         faceShapeEditorError.value = '';
         editingFaceNodeId.value = nodeId;
@@ -3099,7 +3124,7 @@ export default function createSurface({ vue, components, locale, queries, record
             ];
         return h('section', {
           class: [
-            'absolute inset-3 z-[110] flex min-h-0 flex-col gap-2 overflow-hidden rounded-ui border border-content-border bg-content p-3 shadow-overlay',
+            'absolute inset-0 z-[110] flex min-h-0 flex-col gap-2 overflow-hidden bg-content p-3',
             open ? '' : 'invisible pointer-events-none'
           ],
           'data-sketch-mode': active || undefined,
@@ -3174,9 +3199,12 @@ export default function createSurface({ vue, components, locale, queries, record
             ? h(Message, { severity: 'warn', size: 'small', closable: false, class: 'shrink-0' }, () => error)
             : null,
           h(ProfileSketchEditor, {
+            ref: sketchEditorRef,
             modelValue: face ? faceShapeDraft.value : profileDraft.value.sketch,
             mode: face ? 'face' : 'profile',
             active: open,
+            initialView: sketchInitialView.value,
+            viewSessionKey: sketchSessionKey.value,
             basisStart: face ? faceShapeBasisStart.value : null,
             basisEnd: face ? faceShapeBasisEnd.value : null,
             contextFace: face ? faceShapeParentFace.value : [],

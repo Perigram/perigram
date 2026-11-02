@@ -265,6 +265,17 @@ export class CadCraftHost {
     return [view.x0, view.y0, view.w, view.h, view.zoom, view.tw].join(',');
   }
 
+  /** The view camera `{ cx, cy, zoom, tw }`, for a host that preserves it across mode flips. */
+  snapshotView() {
+    const view = this.cad?.view;
+    return view ? { ...view.snapshot() } : null;
+  }
+
+  restoreView(snapshot) {
+    if (!snapshot || !this.cad?.view) return;
+    this.cad.view.restore({ ...snapshot });
+  }
+
   selection() {
     return [...(this.cad?.host?.selection || [])];
   }

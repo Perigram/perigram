@@ -60,10 +60,14 @@ export default function createSketchEditor({ vue, components, locale }) {
       basisEnd: { type: Number, default: null },
       // The parent face outline in sketch coordinates, drawn as a ghost
       // so the author mounts the new face to real parent geometry.
-      contextFace: { type: Array, default: () => [] }
+      contextFace: { type: Array, default: () => [] },
+      // The canvas session's camera for this target: the editor restores it
+      // when the same sketch reopens, so pan/zoom survives a mode flip.
+      initialView: { type: Object, default: null },
+      viewSessionKey: { type: Number, default: 0 }
     },
     emits: ['update:modelValue', 'outline-error'],
-    setup(props, { emit }) {
+    setup(props, { emit, expose }) {
       const faceMode = computed(() => props.mode === 'face');
       const containerRef = ref(null);
       const rootRef = ref(null);
@@ -91,6 +95,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       let pendingDimensionPick = null;
       let viewRaf = 0;
       let lastViewKey = '';
+      let pendingView = props.initialView ? { ...props.initialView } : null;
 
       // The transient popups read the frame's view directly: CadCraft's
       // canvas is same-origin, so world/screen conversion is a plain call.
@@ -141,6 +146,18 @@ export default function createSketchEditor({ vue, components, locale }) {
         host?.zoomWindow({ x: -50, y: -75 }, { x: 150, y: 75 });
         for (const command of extra) host?.run(command);
       };
+
+      // The canvas session owns the editor camera across flips: applyView
+      // restores the view stored for a reopened target, snapshotView hands
+      // the current view back to the session before the flip.
+      const applyView = (view) => {
+        if (!view) return;
+        pendingView = { ...view };
+        if (!host) return;
+        host.restoreView(pendingView);
+        pendingView = null;
+      };
+      const snapshotView = () => host?.snapshotView() || null;
 
       // The material half of the zero axis is the boolean body — the
       // toggle flips which side of the axis hatches and clips.
@@ -1681,7 +1698,12 @@ export default function createSketchEditor({ vue, components, locale }) {
           resetSketchHistory();
           const queued = pendingCommand ? [pendingCommand] : [];
           pendingCommand = null;
-          if (!normalizeOccsProfileSketch(props.modelValue || {}).shapes.length) {
+          const restored = Boolean(pendingView);
+          if (restored) {
+            host.restoreView(pendingView);
+            pendingView = null;
+          }
+          if (!restored && !normalizeOccsProfileSketch(props.modelValue || {}).shapes.length) {
             zoomToBlankWindow(queued);
           } else if (queued.length) {
             host.run(queued[0]);
@@ -1717,6 +1739,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (host) reseedFromModel();
         scheduleOutlineResolve();
       }, { deep: true });
+
+      watch(() => props.viewSessionKey, () => applyView(props.initialView));
 
       watch(() => props.externalParameters, () => {
         if (host) reseedFromModel({ force: true, fit: false });
@@ -1755,6 +1779,8 @@ export default function createSketchEditor({ vue, components, locale }) {
         zoomObserver = null;
         disposeHost();
       });
+
+      expose({ snapshotView });
 
       return () => h('div', {
         ref: rootRef,

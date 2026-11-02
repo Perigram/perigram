@@ -206,7 +206,9 @@ const bindSvgResizeObserver = () => {
 };
 
 const parseViewBox = (value) => {
-  const parts = String(value || '0 0 100 100').split(/\s+/).map(Number);
+  const parts = value && typeof value === 'object'
+    ? [value.x, value.y, value.width, value.height]
+    : String(value || '0 0 100 100').split(/\s+/).map(Number);
   if (parts.length !== 4 || parts.some(part => !Number.isFinite(part))) {
     return { x: 0, y: 0, width: 100, height: 100 };
   }
@@ -460,7 +462,14 @@ const resetView = () => {
   viewBox.value = applyPreviewInset(parseViewBox(drawing.value?.viewBox));
 };
 
-defineExpose({ zoomIn, zoomOut, resetView });
+// Camera handoff for hosts that own one canvas session across renderers:
+// the host stores the box before a mode flip and writes it back on return.
+const getViewBox = () => ({ ...viewBox.value });
+const setViewBox = (box) => {
+  viewBox.value = parseViewBox(box);
+};
+
+defineExpose({ zoomIn, zoomOut, resetView, getViewBox, setViewBox });
 const showAllLayers = () => {
   visibleLayerSelection.value = [...layerNames.value];
 };
