@@ -181,7 +181,7 @@ export default function createSurface({ vue, components, locale, queries, record
   const attachmentDraft = createFieldDraft({ vue });
   const CassetteFoldedPreview = createFoldedPreview({ vue, components, locale });
   const ProfileSketchEditor = createSketchEditor({ vue, components, locale });
-  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, InputNumber, FloatLabel, Divider, Message, ScrollPanel, Select, Tag, InstanceSelect } = components;
+  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, InputNumber, IftaLabel, Divider, Message, ScrollPanel, Select, Tag, InstanceSelect } = components;
 
   return defineComponent({
     name: 'CassetteDesignerV2',
@@ -2445,7 +2445,7 @@ export default function createSurface({ vue, components, locale, queries, record
           const profileRow = kind === 'profile'
             ? workpieceRowById.value.get(relation.sourceWorkpieceId)
             : null;
-          // PrimeVue FloatLabel fields with native InputText/Select controls.
+          // PrimeVue IftaLabel fields with native InputText/Select controls.
           const shortLabel = key => t(ATTACHMENT_SHORT_LABELS[key] || key);
           const arrayValueShortLabel = relation => t(
             relation.arrayMode === 'spacing'
@@ -2456,7 +2456,7 @@ export default function createSurface({ vue, components, locale, queries, record
           const expressionError = (value, parameters, allowEmpty = false) => (
             expressionErrorOf(value, parameters, t('cassette.v2.expression.empty'), allowEmpty)
           );
-          const labeledField = (label, control, id, className = '', title = '') => h(FloatLabel, {
+          const labeledField = (label, control, id, className = '', title = '') => h(IftaLabel, {
             class: className || 'w-full'
           }, [
             control,
@@ -2737,9 +2737,9 @@ export default function createSurface({ vue, components, locale, queries, record
         'aria-hidden': 'true'
       });
 
-      // Each bound parameter is a PrimeVue FloatLabel field: the name is
-      // the label, the expression value sits in the input; the derived
-      // value rides the label's title.
+      // Each bound parameter is a PrimeVue IftaLabel field: the name is
+      // the infield label, the expression value sits in the input; the
+      // derived value rides the label's title.
       const profileParameterFields = (row) => [...(row?.boundParameterKeys || [])].map((key) => {
         const instance = row.instanceParameters || {};
         const authored = row.authoredParameters || {};
@@ -2748,7 +2748,7 @@ export default function createSurface({ vue, components, locale, queries, record
           : authored[key];
         const derived = row.parameters?.[key];
         const id = `cassette-profile-param-${row.id}-${key}`;
-        return h(FloatLabel, {
+        return h(IftaLabel, {
           key: `${row.id}-${key}`,
           class: 'min-w-0'
         }, [

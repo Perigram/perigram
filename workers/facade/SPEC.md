@@ -484,12 +484,12 @@ the Add profile entry. The palette lists profiles as assembly rows;
 profile authoring, parameter editing, placement, and removal live on the
 canvas.
 
-Owner direction (2026-11-02, compact profile popup): the popup is a
-dense field grid. Its form controls carry PrimeVue placeholders and
-invalid states; mirror controls are icon buttons labelled X and Y; a
-parameter renders as its name beside one expression field, with no
-heading or secondary label. An invalid expression marks its field with
-the PrimeVue invalid state and carries the reason in the field title.
+Owner direction (2026-11-02, compact profile popup): the popup lays its
+fields as PrimeVue `IftaLabel` controls over native inputs, with the label
+inside the field. A parameter is its name label over one input, with no
+heading or secondary label. Mirror controls are icon buttons labelled X
+and Y. An invalid expression marks its field with the PrimeVue invalid
+state and carries the reason in the field title.
 
 Owner decision (2026-11-02, faces are parametric shapes): a face may be
 authored as a parametric sketch in the profile shape model instead of a
