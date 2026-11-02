@@ -34,13 +34,8 @@ const assemblyGeometry = (page) => page.locator('.designer-workspace__canvas').f
 
 const arrayValueText = (page) => page.locator('div.z-\\[120\\]').first()
   .evaluate(root => {
-    for (const span of root.querySelectorAll('span')) {
-      const text = (span.textContent || '').trim();
-      if (text === 'Array spacing' || text === 'Array count') {
-        return span.parentElement.querySelector('div[contenteditable]')?.textContent ?? null;
-      }
-    }
-    return null;
+    const field = root.querySelector('[aria-label="Array spacing"], [aria-label="Array count"]');
+    return field?.querySelector('div[contenteditable]')?.textContent ?? null;
   });
 
 const chipField = (page, key, label = 'Hanger profile') => page
@@ -171,15 +166,19 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await spacingField.click();
   await page.waitForTimeout(400);
   expect(await arrayValueText(page), 'Expected the spacing field to keep its value on focus').toBe('120');
+  const spacingInput = popup.locator('[aria-label="Array spacing"] div[contenteditable]');
 
-  // Clearing and typing a zero stays the author's text.
+  // Clearing and typing a zero stays the author's text; the empty value
+  // rides the PrimeVue invalid state alone.
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.press('Delete');
   await page.waitForTimeout(300);
   expect(await arrayValueText(page), 'Expected the cleared field to stay empty').toBe('');
+  await expect(spacingInput).toHaveAttribute('aria-invalid', 'true');
   await page.keyboard.type('0', { delay: 100 });
   await page.waitForTimeout(300);
   expect(await arrayValueText(page), 'Expected a typed zero to stay zero').toBe('0');
+  await expect(spacingInput).toHaveAttribute('aria-invalid', 'false');
   await popup.locator('button[aria-label="Close"]').click();
   await page.waitForTimeout(800);
   await openProfilePopup(page);

@@ -15,6 +15,7 @@ export default function createExpressionEditor({ vue, components, locale }) {
       parameters: { type: Object, default: () => ({}) },
       parameterNames: { type: Array, default: () => [] },
       contextTokens: { type: Array, default: () => [] },
+      placeholder: { type: String, default: '' },
       allowAngleSuffix: { type: Boolean, default: false }
     },
     emits: ['update:modelValue'],
@@ -293,29 +294,41 @@ export default function createExpressionEditor({ vue, components, locale }) {
         onFocusout: deactivatePanelIfOutside
       }, [
         h('div', { class: 'flex min-w-0 items-center gap-1' }, [
-          h('div', {
-            ref: editorRef,
-            class: 'h-8 min-w-0 flex-1 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-ui border border-content-border bg-content px-2 py-1 outline-none focus:border-primary text-technical',
-            contenteditable: 'true',
-            role: 'textbox',
-            spellcheck: 'false',
-            'aria-label': t('cassette.v2.expression.label'),
-            onInput: handleEditorInput,
-            onFocus: captureSelection,
-            onBlur: commitText,
-            onMouseup: captureSelection,
-            onKeyup: captureSelection,
-            onKeydown: event => {
-              if (event.key === 'Enter') {
+          h('div', { class: 'relative min-w-0 flex-1' }, [
+            h('div', {
+              ref: editorRef,
+              class: [
+                'p-inputtext h-8 min-w-0 w-full overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-ui px-2 py-1 outline-none focus:border-primary text-technical',
+                validationError.value ? 'p-invalid' : 'border-content-border border bg-content'
+              ].join(' '),
+              contenteditable: 'true',
+              role: 'textbox',
+              spellcheck: 'false',
+              'aria-label': t('cassette.v2.expression.label'),
+              'aria-invalid': validationError.value ? 'true' : 'false',
+              title: validationError.value || undefined,
+              onInput: handleEditorInput,
+              onFocus: captureSelection,
+              onBlur: commitText,
+              onMouseup: captureSelection,
+              onKeyup: captureSelection,
+              onKeydown: event => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  commitText();
+                }
+              },
+              onPaste: event => {
                 event.preventDefault();
-                commitText();
+                handlePaste(event);
               }
-            },
-            onPaste: event => {
-              event.preventDefault();
-              handlePaste(event);
-            }
-          })
+            }),
+            internalText.value.trim() || !props.placeholder
+              ? null
+              : h('span', {
+                  class: 'pointer-events-none absolute left-2 top-1 truncate text-muted text-technical'
+                }, props.placeholder)
+          ])
         ]),
         showTokenPanel.value
           ? h('div', { class: 'absolute left-0 right-0 top-full z-30 mt-1 flex flex-col gap-1 rounded-ui border border-content-border bg-content p-2 shadow-overlay' },
@@ -333,9 +346,6 @@ export default function createExpressionEditor({ vue, components, locale }) {
                 onClick: () => insertToken(token)
               }))
             ])))
-          : null,
-        validationError.value
-          ? h(components.Message, { severity: 'error', size: 'small', closable: false }, () => validationError.value)
           : null
       ]);
     }

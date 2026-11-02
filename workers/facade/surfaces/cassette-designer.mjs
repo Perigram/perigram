@@ -1982,6 +1982,7 @@ export default function createSurface({ vue, components, locale, queries, record
       const profileParameterField = (row, key, value) => {
         const profileTable = { ...(row.authoredParameters || {}), ...(row.instanceParameters || {}) };
         return h(CassetteExpressionEditor, {
+          class: 'min-w-0 flex-1',
           modelValue: value,
           parameters: { ...globalParameters.value, ...profileTable },
           parameterNames: [...new Set([...globalParameterNames.value, ...Object.keys(profileTable)])],
@@ -2356,6 +2357,7 @@ export default function createSurface({ vue, components, locale, queries, record
           // face, side, basis snap, and both offsets per section — with
           // no mirror, driver, or delete (the panel row owns removal).
           const kind = attachmentSourceKind(relation);
+          const compact = kind !== 'workpiece';
           const profileRow = kind === 'profile'
             ? workpieceRowById.value.get(relation.sourceWorkpieceId)
             : null;
@@ -2363,18 +2365,27 @@ export default function createSurface({ vue, components, locale, queries, record
           // control, and the editor's token panel carries buttons —
           // the browser forwards a click on the label to its first
           // button, typing phantom tokens into the field.
-          const expressionField = (labelKey, value, key) => h('div', {
-            class: 'flex min-w-0 flex-col gap-1 text-muted text-label',
-            title: t(labelKey)
-          }, [
-            h('span', { class: 'truncate' }, t(labelKey)),
-            h(CassetteExpressionEditor, {
+          const expressionField = (labelKey, value, key) => {
+            const field = {
+              class: 'min-w-0',
               modelValue: value,
               parameters: globalParameters.value,
               parameterNames: globalParameterNames.value,
+              placeholder: t(labelKey),
+              title: t(labelKey),
+              'aria-label': t(labelKey),
               'onUpdate:modelValue': next => updateInlineAttachmentRelation({ [key]: next })
-            })
-          ]);
+            };
+            return compact
+              ? h(CassetteExpressionEditor, field)
+              : h('div', {
+                  class: 'flex min-w-0 flex-col gap-1 text-muted text-label',
+                  title: t(labelKey)
+                }, [
+                  h('span', { class: 'truncate' }, t(labelKey)),
+                  h(CassetteExpressionEditor, field)
+                ]);
+          };
           const selectField = (labelKey, modelValue, options, key) => h(Select, {
             modelValue,
             options: options.value,
@@ -2382,6 +2393,7 @@ export default function createSurface({ vue, components, locale, queries, record
             optionValue: 'value',
             class: 'w-full',
             size: 'small',
+            placeholder: t(labelKey),
             'aria-label': t(labelKey),
             title: t(labelKey),
             'onUpdate:modelValue': value => updateInlineAttachmentRelation({ [key]: value })
@@ -2426,7 +2438,7 @@ export default function createSurface({ vue, components, locale, queries, record
               ])
             ]);
           } else {
-            body = h('div', { class: 'flex w-96 flex-col gap-2' }, [
+            body = h('div', { class: compact ? 'flex w-80 flex-col gap-1.5' : 'flex w-96 flex-col gap-2' }, [
               dragHandle([
                 h(Select, {
                   modelValue: relation.targetFaceId,
@@ -2435,6 +2447,7 @@ export default function createSurface({ vue, components, locale, queries, record
                   optionValue: 'value',
                   class: 'min-w-0 flex-1',
                   size: 'small',
+                  placeholder: t('cassette.v2.attachmentFields.targetFace'),
                   'aria-label': t('cassette.v2.attachmentFields.targetFace'),
                   title: t('cassette.v2.attachmentFields.targetFace'),
                   onMousedown: event => event.stopPropagation(),
@@ -2467,7 +2480,7 @@ export default function createSurface({ vue, components, locale, queries, record
                     })
                   : null
               ]),
-              h('div', { class: 'grid grid-cols-2 gap-2' }, [
+              h('div', { class: compact ? 'grid grid-cols-3 gap-1.5' : 'grid grid-cols-2 gap-2' }, [
                 selectField('cassette.v2.attachmentFields.targetSnap', relation.targetSnap, snapOptions, 'targetSnap'),
                 expressionField('cassette.v2.attachmentFields.edgeMargin', relation.offsetX, 'offsetX'),
                 expressionField('cassette.v2.attachmentFields.normalOffset', relation.offsetY, 'offsetY'),
@@ -2484,6 +2497,7 @@ export default function createSurface({ vue, components, locale, queries, record
                       optionValue: 'value',
                       class: 'w-full',
                       size: 'small',
+                      placeholder: t('cassette.v2.attachmentFields.arrayEdge'),
                       'aria-label': t('cassette.v2.attachmentFields.arrayEdge'),
                       title: t('cassette.v2.attachmentFields.arrayEdge'),
                       'onUpdate:modelValue': value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arrayEdge: value })
@@ -2493,15 +2507,16 @@ export default function createSurface({ vue, components, locale, queries, record
                   ? selectField('cassette.v2.attachmentFields.arrayMode', relation.arrayMode, arrayModeOptions, 'arrayMode')
                   : null,
                 relation.placementMode === 'edgeArray'
-                  ? h('div', { class: 'flex min-w-0 flex-col gap-1 text-muted text-label', title: arrayValueLabel(relation) }, [
-                      h('span', { class: 'truncate' }, arrayValueLabel(relation)),
-                      h(CassetteExpressionEditor, {
-                        modelValue: arrayValue(relation),
-                        parameters: globalParameters.value,
-                        parameterNames: globalParameterNames.value,
-                        'onUpdate:modelValue': value => updateInlineAttachmentRelation(arrayValuePatch(relation, value))
-                      })
-                    ])
+                  ? h(CassetteExpressionEditor, {
+                      class: 'min-w-0',
+                      modelValue: arrayValue(relation),
+                      parameters: globalParameters.value,
+                      parameterNames: globalParameterNames.value,
+                      placeholder: arrayValueLabel(relation),
+                      title: arrayValueLabel(relation),
+                      'aria-label': arrayValueLabel(relation),
+                      'onUpdate:modelValue': value => updateInlineAttachmentRelation(arrayValuePatch(relation, value))
+                    })
                   : null,
                 kind === 'profile' && relation.placementMode === 'edgeArray'
                   ? expressionField('cassette.v2.attachmentFields.spanStart', relation.arraySpanStart, 'arraySpanStart')
@@ -2510,13 +2525,15 @@ export default function createSurface({ vue, components, locale, queries, record
                   ? expressionField('cassette.v2.attachmentFields.spanWidth', relation.arraySpanWidth, 'arraySpanWidth')
                   : null,
                 kind === 'profile'
-                  ? h('div', { class: 'flex min-w-0 gap-1' }, [
+                  ? h('div', { class: 'col-span-2 flex min-w-0 gap-1' }, [
                       h(Button, {
                         icon: 'pi pi-arrows-h',
                         severity: relation.mirrorX ? 'primary' : 'secondary',
+                        text: true,
+                        rounded: true,
                         size: 'small',
                         class: 'min-w-0 flex-1',
-                        label: t('cassette.v2.attachmentFields.mirrorX'),
+                        label: 'X',
                         'aria-label': t('cassette.v2.attachmentFields.mirrorX'),
                         title: t('cassette.v2.attachmentFields.mirrorX'),
                         onClick: () => updateInlineAttachmentRelation({ mirrorX: !relation.mirrorX })
@@ -2524,9 +2541,11 @@ export default function createSurface({ vue, components, locale, queries, record
                       h(Button, {
                         icon: 'pi pi-arrows-v',
                         severity: relation.mirrorY ? 'primary' : 'secondary',
+                        text: true,
+                        rounded: true,
                         size: 'small',
                         class: 'min-w-0 flex-1',
-                        label: t('cassette.v2.attachmentFields.mirrorY'),
+                        label: 'Y',
                         'aria-label': t('cassette.v2.attachmentFields.mirrorY'),
                         title: t('cassette.v2.attachmentFields.mirrorY'),
                         onClick: () => updateInlineAttachmentRelation({ mirrorY: !relation.mirrorY })
@@ -2535,10 +2554,8 @@ export default function createSurface({ vue, components, locale, queries, record
                   : null
               ]),
               kind === 'profile' && profileRow
-                ? h('div', { class: 'flex flex-col gap-2 border-t border-content-border pt-2' }, [
-                    h('div', { class: 'text-muted text-label' }, t('cassette.v2.profileEditor.parameters')),
-                    h('div', { class: 'grid grid-cols-2 gap-2' }, profileParameterFields(profileRow))
-                  ])
+                ? h('div', { class: 'grid grid-cols-2 gap-x-2 gap-y-1 border-t border-content-border pt-1.5' },
+                    profileParameterFields(profileRow))
                 : null
             ]);
           }
@@ -2625,10 +2642,8 @@ export default function createSurface({ vue, components, locale, queries, record
         'aria-hidden': 'true'
       });
 
-      // The bound parameters lay out as captioned expression fields in
-      // the canvas popup's field grid — the attachment popup's caption
-      // pattern, never bespoke chip chrome. Each label carries the
-      // derived value beside the stored expression.
+      // Each bound parameter is its name beside one compact expression
+      // field; the derived value rides the name's title.
       const profileParameterFields = (row) => [...(row?.boundParameterKeys || [])].map((key) => {
         const instance = row.instanceParameters || {};
         const authored = row.authoredParameters || {};
@@ -2638,17 +2653,12 @@ export default function createSurface({ vue, components, locale, queries, record
         const derived = row.parameters?.[key];
         return h('div', {
           key: `${row.id}-${key}`,
-          class: 'flex min-w-0 flex-col gap-1 text-muted text-label'
+          class: 'flex min-w-0 items-center gap-1'
         }, [
           h('span', {
-            class: 'flex min-w-0 items-baseline gap-1',
+            class: 'w-10 shrink-0 truncate font-mono text-xs text-muted',
             title: derived === undefined ? key : `${key} = ${derived}`
-          }, [
-            h('span', { class: 'truncate' }, key),
-            derived === undefined
-              ? null
-              : h('small', { class: 'shrink-0 text-muted' }, `= ${derived}`)
-          ]),
+          }, key),
           profileParameterField(row, key, value)
         ]);
       });
