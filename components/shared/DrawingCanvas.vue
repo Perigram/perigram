@@ -1098,39 +1098,37 @@ onBeforeUnmount(() => {
               </g>
             </g>
 
-            <template v-if="designerProfileSelectable">
-              <g
-                v-for="profile in drawing.designerProfiles || []"
-                :key="`profile-hit-${profile.id}`"
-                class="cursor-pointer"
-                :data-designer-profile-id="profile.workpieceId"
-                :data-designer-profile-relation-id="profile.relationId"
-                @mouseenter="hoveredProfileId = profile.workpieceId"
-                @mouseleave="hoveredProfileId = null"
-                @click.stop.prevent="requestDesignerProfileSelect(profile, $event)"
-              >
-                <path
-                  v-if="!profile.open"
-                  :d="profile.d"
-                  fill="currentColor"
-                  :opacity="designerProfileOpacity(profile)"
-                  stroke="none"
-                  pointer-events="fill"
-                  vector-effect="non-scaling-stroke"
-                />
-                <path
-                  :d="profile.d"
-                  fill="none"
-                  stroke="currentColor"
-                  opacity="0.001"
-                  stroke-width="18"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  pointer-events="stroke"
-                  vector-effect="non-scaling-stroke"
-                />
-              </g>
-            </template>
+            <g
+              v-for="profile in drawing.designerProfiles || []"
+              :key="`profile-hit-${profile.id}`"
+              :class="designerProfileSelectable ? 'cursor-pointer' : ''"
+              :data-designer-profile-id="profile.workpieceId"
+              :data-designer-profile-relation-id="profile.relationId"
+              @mouseenter="designerProfileSelectable && (hoveredProfileId = profile.workpieceId)"
+              @mouseleave="hoveredProfileId = null"
+              @click.stop.prevent="designerProfileSelectable && requestDesignerProfileSelect(profile, $event)"
+            >
+              <path
+                v-if="!profile.open"
+                :d="profile.d"
+                fill="currentColor"
+                :opacity="designerProfileOpacity(profile)"
+                stroke="none"
+                :pointer-events="designerProfileSelectable ? 'fill' : 'none'"
+                vector-effect="non-scaling-stroke"
+              />
+              <path
+                :d="profile.d"
+                fill="none"
+                stroke="currentColor"
+                opacity="0.001"
+                stroke-width="18"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                :pointer-events="designerProfileSelectable ? 'stroke' : 'none'"
+                vector-effect="non-scaling-stroke"
+              />
+            </g>
 
             <g
               v-for="profile in drawing.designerProfiles || []"
