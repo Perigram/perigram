@@ -3090,7 +3090,7 @@ export default function createSurface({ vue, components, locale, queries, record
             ];
         return h('section', {
           class: [
-            'absolute inset-3 z-[120] flex min-h-0 flex-col gap-2 overflow-hidden rounded-ui border border-content-border bg-content p-3 shadow-overlay',
+            'absolute inset-3 z-[110] flex min-h-0 flex-col gap-2 overflow-hidden rounded-ui border border-content-border bg-content p-3 shadow-overlay',
             open ? '' : 'invisible pointer-events-none'
           ],
           'data-sketch-mode': active || undefined,
