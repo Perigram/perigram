@@ -965,11 +965,8 @@ export default function createSketchEditor({ vue, components, locale }) {
           commitSketch({ ...normalized, parameters: { ...normalized.parameters, [binding]: numeric } });
           return true;
         }
-        if (Object.prototype.hasOwnProperty.call(externalScope(), binding)) {
-          // A cassette global is read from its own table; the profile
-          // never mints an override row for it.
-          return true;
-        }
+        // A surrounding-scope binding stays a global; the typed value
+        // becomes a local field value instead of a profile override row.
         return false;
       };
 
