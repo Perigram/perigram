@@ -96,7 +96,8 @@ Process-definition tools ride the authoring and lifecycle seam of
 (the two layers, the class identity laws, containment and lineage,
 effects and lanes, time and event entries, instance and list work), the
 gesture grammar with its
-removal twins, and the compose→validate→apply→activate loop; the
+removal twins, the proposition gate, and the
+compose→validate→apply→activate loop; the
 organization's role list (the grant vocabulary the designer's
 [lanes](../../../components/process-designer/README.md) author through
 effect `access.grants`, one grant per effect); node families; the
@@ -113,6 +114,14 @@ conversation limit beside it); the palette list rides the default view
 only.
 Record-bound kinds resolve live sockets off the digest of the dropped
 node, and a filter naming no entry fails with the valid families.
+
+Composing a definition passes the proposition gate first: the run answers
+with the definition's simplified Mermaid flowchart — entity types,
+lifecycle states, effects, entries — and suspends on `ask_user` with a
+one-tap validation question; the diagram stays in the answer beside the
+question. Compose gestures follow the room's approval, and a revision
+returns to the diagram. MCP surfaces carry the diagram as the validation
+request and compose on the next message.
 
 `list_instances` rides the instance list seam's own narrowing: the
 flat filter map (`primaryState`, `primaryStates`, `states.<key>`,
@@ -162,10 +171,10 @@ the descriptor builders (chat and MCP alike) omit it, the same
 capability-availability law an unconfigured LLM follows.
 
 `ask_user` (chat-run only) suspends the run on the room's answer — the
-room-input channel for decisions that belong to it (activation gates
-carrying live data, genuinely ambiguous intent); its routing and
-lifecycle ride the runtime's pending-question registry (see the chat
-runtime).
+room-input channel for decisions that belong to it (a definition's
+proposition, activation gates carrying live data, genuinely ambiguous
+intent); its routing and lifecycle ride the runtime's pending-question
+registry (see the chat runtime).
 
 ## MCP transport (`mcp.js` → `POST /api/mcp`)
 
@@ -272,8 +281,9 @@ the failure message when one was rejected, always a snapshot),
 persisted message supersedes the live view. The activity itself is the
 run's pre-step presence signal: the assistant rides the room's typing
 line until the first step or answer streams, then the activity is the
-presence; a tool round retracts only its answer text, and each round
-reconciles the sink with the assembled neutral message (a
+presence; a tool round retracts only its answer text, a proposition round
+keeps it so the room reads the diagram beside the question, and each
+round reconciles the sink with the assembled neutral message (a
 reasoning-first stream that ends tagless was a plain answer).
 
 `ask_user` moves the run to `awaiting-answer` and publishes

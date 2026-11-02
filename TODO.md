@@ -3980,3 +3980,23 @@ instance-select, canvas-model, and the support snapshot. `check-arch`, `framewor
   and membership approval, billing payment, call joining/reconnect and
   placement, offline outbox replay, agent stop/answer, and a process run
   through Wait Until and event delivery.
+
+## Process proposition before compose (owner direction 2026-11-02)
+
+Composing a process definition answers with the definition's simplified
+Mermaid proposition first — entity types, lifecycle states, effects,
+entries. The room validates the shape through `ask_user` in chat runs;
+MCP surfaces validate it in the diagram reply that starts the compose.
+
+- [x] WAITING — owner verification: the authoring guide, system prompt,
+  MCP instructions, and compose tool description carry the gate; a chat
+  proposition round keeps its diagram beside the suspended question.
+
+### Agent Notes (2026-11-02, process-proposition-mermaid)
+
+Session `agent/process-proposition-mermaid-20261102` (worktree
+`.agent-worktrees/process-proposition-mermaid-20261102`). The guide adds
+`## The proposition gate` ahead of the compose loop; the runtime system
+prompt and MCP instructions carry it; the loop keeps a proposition
+round's answer text live beside `ask_user`; the tooling spec pins the
+guide text and the chat spec pins the preserved diagram.

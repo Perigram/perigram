@@ -150,9 +150,15 @@ message from a capability-holding participant in that conversation is
 consumed as the answer — persisted as the ordinary message it is, never
 double-firing a new run. Unanswered questions time out and the run
 concludes with what it has; stopping the room ends the question with
-it. Asking is for decisions that belong to the room (activation gates
-with live data, genuinely ambiguous intent), never for permission to
-act on declared intent.
+it. Asking is for decisions that belong to the room (a process
+definition's proposed shape, activation gates with live data, genuinely
+ambiguous intent), never for permission to act on declared intent.
+
+Composing a process definition passes a proposition gate: the AI answers
+with the definition's simplified Mermaid flowchart — entity types,
+lifecycle states, effects, entries — and the room validates that shape
+before the compose gestures run. Chat runs carry the validation question
+through `ask_user`; MCP runs carry it in the diagram reply.
 
 An agent run is visible in its room and stays with its answer: the
 model's reasoning streams as a collapsible thinking block and each tool
