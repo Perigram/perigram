@@ -89,8 +89,14 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
   // copies, so a zero spacing butts them together. The perpendicular
   // component of the origin is dropped on purpose — open profiles keep
   // their feet on the edge.
+  const spanStart = Math.max(0, Math.min(edgeLength, resolve(pattern.spanStart, 0)));
+  const rawSpanWidth = pattern.spanWidth;
+  const spanWidth = rawSpanWidth === undefined || rawSpanWidth === ''
+    ? edgeLength - spanStart
+    : Math.max(0, resolve(rawSpanWidth, edgeLength - spanStart));
+  const spanLength = Math.max(0, Math.min(edgeLength - spanStart, spanWidth));
   const margin = Math.max(0, resolve(relation.offsetX, 0));
-  const rowSpan = edgeLength - 2 * margin - chordLength;
+  const rowSpan = spanLength - 2 * margin - chordLength;
   if (rowSpan < -1e-6) {
     return { ok: false, reason: 'edge too short for the profile at this margin' };
   }
@@ -101,7 +107,7 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
     binding: relation.targetSnap || 'start',
     copyLength: chordLength,
     resolve
-  }).map(distance => margin + distance);
+  }).map(distance => spanStart + margin + distance);
   if (!starts.length) {
     return { ok: false, reason: 'array settings place no copy on the edge' };
   }
@@ -157,6 +163,7 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
     edgeStart,
     edgeEnd,
     copies: copies.map(copy => copy.points),
+    copySpans: copies.map(copy => ({ startAlong: copy.startAlong, endAlong: copy.endAlong, points: copy.points })),
     breakPoints: [copies[0].points[0], copies[copies.length - 1].points[copies[copies.length - 1].points.length - 1]],
     composite
   };
@@ -167,19 +174,60 @@ export const embedOccsProfileEdge = ({ section = {}, vertices = [], relation = {
 // follows the profile chains. A relation whose embedding reports a
 // problem fails the whole pass — overlapping or overflowing profiles
 // are forbidden, never silently clamped.
+const edgeKey = embedding => (
+  `${roundPoint(embedding.edgeStart).join(',')}|${roundPoint(embedding.edgeEnd).join(',')}`
+);
+
+const mergeEdgeEmbeddings = (embeddings = []) => {
+  const copies = embeddings
+    .flatMap(embedding => embedding.copySpans || [])
+    .sort((left, right) => left.startAlong - right.startAlong);
+  for (let index = 1; index < copies.length; index += 1) {
+    if (copies[index].startAlong < copies[index - 1].endAlong - 1e-6) {
+      return { ok: false, reason: 'profile copies overlap on the host edge' };
+    }
+  }
+  const composite = [embeddings[0].edgeStart];
+  for (const copy of copies) {
+    for (const point of copy.points) {
+      const last = composite[composite.length - 1];
+      if (Math.hypot(last[0] - point[0], last[1] - point[1]) < 1e-9) continue;
+      composite.push(point);
+    }
+  }
+  const end = embeddings[0].edgeEnd;
+  const lastPoint = composite[composite.length - 1];
+  if (Math.hypot(lastPoint[0] - end[0], lastPoint[1] - end[1]) >= 1e-9) composite.push(end);
+  return { ok: true, composite };
+};
+
 export const embedOccsProfilesIntoContour = (vertices = [], embeddings = []) => {
   let contour = withoutClosingVertex(vertices);
   const errors = [];
   const applied = [];
+  const groups = new Map();
   for (const embedding of embeddings) {
     if (!embedding.ok) {
       errors.push(embedding.reason);
       continue;
     }
+    const key = edgeKey(embedding);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(embedding);
+  }
+
+  for (const group of groups.values()) {
+    const merged = group.length === 1
+      ? { ok: true, composite: group[0].composite }
+      : mergeEdgeEmbeddings(group);
+    if (!merged.ok) {
+      errors.push(merged.reason);
+      continue;
+    }
     const at = contour.findIndex((point, index) => {
       const next = contour[(index + 1) % contour.length];
-      return (Math.hypot(point[0] - embedding.edgeStart[0], point[1] - embedding.edgeStart[1]) < 1e-6
-        && Math.hypot(next[0] - embedding.edgeEnd[0], next[1] - embedding.edgeEnd[1]) < 1e-6);
+      return (Math.hypot(point[0] - group[0].edgeStart[0], point[1] - group[0].edgeStart[1]) < 1e-6
+        && Math.hypot(next[0] - group[0].edgeEnd[0], next[1] - group[0].edgeEnd[1]) < 1e-6);
     });
     if (at === -1) {
       errors.push('host edge no longer present after an earlier embedding');
@@ -187,10 +235,10 @@ export const embedOccsProfilesIntoContour = (vertices = [], embeddings = []) => 
     }
     contour = [
       ...contour.slice(0, at + 1),
-      ...embedding.composite.slice(1, -1),
+      ...merged.composite.slice(1, -1),
       ...contour.slice(at + 1)
     ];
-    applied.push(embedding);
+    group.forEach(embedding => applied.push({ ...embedding, composite: merged.composite }));
   }
   return { contour, errors, applied };
 };

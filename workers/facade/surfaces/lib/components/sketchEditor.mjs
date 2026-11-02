@@ -51,10 +51,14 @@ export default function createSketchEditor({ vue, components, locale }) {
       externalParameters: { type: Object, default: () => ({}) },
       // The workpiece's instance table: it overrides the authored rows
       // for every evaluation the canvas runs, and stays out of the model.
-      instanceParameters: { type: Object, default: () => ({}) }
+      instanceParameters: { type: Object, default: () => ({}) },
+      // `face` folds the shapes from an empty region (the sketch IS the
+      // face); `profile` folds them onto the material half of the axis.
+      mode: { type: String, default: 'profile' }
     },
     emits: ['update:modelValue', 'update:instance', 'outline-error'],
     setup(props, { emit }) {
+      const faceMode = computed(() => props.mode === 'face');
       const containerRef = ref(null);
       const rootRef = ref(null);
       const fileInputRef = ref(null);
@@ -202,15 +206,18 @@ export default function createSketchEditor({ vue, components, locale }) {
           const half = normalized.material === 'negative'
             ? [[0, -span], [-span, -span], [-span, span], [0, span]]
             : [[0, -span], [span, -span], [span, span], [0, span]];
+          const base = faceMode.value ? { polygons: [], holes: [] } : { polygons: [half], holes: [] };
           const resolved = await foldCassetteV2Region(
-            { polygons: [half], holes: [] },
+            base,
             resolveOccsProfileSectionOperations(section)
           );
           if (disposed || generation !== outlineGeneration) return;
           resolvedFace.value = resolved;
           syncAnnotations();
           const participates = section.shapes.some(shape => shape.op !== 'construction');
-          if (participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
+          if (faceMode.value && participates && resolved.polygons.length !== 1) {
+            setOutlineError(t('cassette.v2.faceShapeEditor.singleOutline'));
+          } else if (!faceMode.value && participates && ![...(resolved?.polygons || []), ...(resolved?.holes || [])].length) {
             setOutlineError(t('cassette.v2.profileEditor.resultClipped'));
           }
         } catch (error) {
@@ -548,7 +555,7 @@ export default function createSketchEditor({ vue, components, locale }) {
           { icon: 'redo', labelKey: 'cassette.v2.profileEditor.actions.redo', onActivate: () => redoSketch(), isDisabled: () => !canRedoSketch() }
         ],
         [
-          { icon: 'materialSide', labelKey: 'cassette.v2.profileEditor.actions.material', isOn: () => normalizeOccsProfileSketch(props.modelValue || {}).material === 'negative', onActivate: toggleMaterialSide },
+          { icon: 'materialSide', labelKey: 'cassette.v2.profileEditor.actions.material', isOn: () => normalizeOccsProfileSketch(props.modelValue || {}).material === 'negative', onActivate: toggleMaterialSide, profileOnly: true },
           { icon: 'ortho', labelKey: 'cassette.v2.profileEditor.actions.ortho', isOn: () => orthoMode.value, onActivate: toggleOrtho },
           { icon: 'tangentSnap', labelKey: 'cassette.v2.profileEditor.actions.tangentSnap', isOn: () => tangentSnap.value, onActivate: toggleTangentSnap },
           { icon: 'commandLine', labelKey: 'cassette.v2.profileEditor.actions.commandLine', isOn: () => commandLine.value, onActivate: toggleCommandLine }
@@ -1487,7 +1494,7 @@ export default function createSketchEditor({ vue, components, locale }) {
       // primary; tooltips and aria-labels carry the localized names.
       const renderToolGroupButtons = (fromGroup, toGroup) => TOOL_GROUPS.slice(fromGroup, toGroup).flatMap((group, groupIndex) => [
         ...(groupIndex > 0 ? [h('span', { class: 'mx-0.5 h-4 w-px shrink-0 bg-content-border' })] : []),
-        ...group.map(tool => h(Button, {
+        ...group.filter(tool => !(faceMode.value && tool.profileOnly)).map(tool => h(Button, {
           key: tool.labelKey,
           severity: (tool.command && activeTool.value === tool.command) || tool.isOn?.() ? 'primary' : 'secondary',
           text: true,

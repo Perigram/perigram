@@ -5,7 +5,8 @@ import {
   addCassetteV2ProfileWorkpiece,
   addCassetteV2Workpiece,
   createCassetteV2GraphTree,
-  createCassetteV2OccsDocument
+  createCassetteV2OccsDocument,
+  updateCassetteV2FaceSketch
 } from '../surfaces/lib/cassetteV2Renderer.js';
 import {
   createDefaultOccsProfileSketch,
@@ -224,5 +225,24 @@ describe('OCCS cassette evaluation', () => {
       workpieceDefinitionId: 'wp_1_def',
       occurrenceId: 'wp_1'
     });
+  });
+
+  it('carries a parametric face sketch into the OCCS face and inner cuts', async () => {
+    const sketch = {
+      parameters: { W: 120, H: 80, D: 20 },
+      shapes: [
+        { id: 'outline', type: 'rect', op: 'add', center: ['W/2', 'H/2'], width: 'W', height: 'H' },
+        { id: 'hole', type: 'circle', op: 'subtract', center: ['W/2', 'H/2'], diameter: 'D' }
+      ]
+    };
+    const tree = updateCassetteV2FaceSketch(createCassetteV2GraphTree(), 'face_1', sketch);
+    const definition = await createCassetteV2OccsDocument(tree);
+    const result = await evaluateOccsCassetteTemplate(definition, {});
+    const face = definition.definitions.workpieces[0].faces[0];
+
+    expect(face.shape).toMatchObject({ type: 'polygon' });
+    expect(face.shape.holes).toHaveLength(1);
+    expect(face.extensions.perigram.sketch.parameters).toMatchObject({ W: 120, H: 80, D: 20 });
+    expect(result.layerData.filter(item => item.layer === 'cut.inner')).toHaveLength(1);
   });
 });

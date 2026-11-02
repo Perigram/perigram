@@ -9,9 +9,10 @@ import {
   buildCassetteV2Drawing,
   buildCassetteV2FaceGraph,
   buildCassetteV2IncrementalDrawing,
-  buildCassetteV2TrapezoidTreeCurves,
+  buildCassetteV2TreeCurves,
   buildCassetteV2WorkpieceTopology,
   cassetteV2AttachableProfileEdgesForTree,
+  cassetteV2FaceSketchFromNode,
   cassetteV2LayerPanelRows,
   collectCassetteV2ExpressionIdentifiers,
   composeCassetteV2NodiGraph,
@@ -26,12 +27,13 @@ import {
   normalizeCassetteV2Profile,
   renameCassetteV2TreeParameter,
   normalizeCassetteV2Trapezoid,
-  profileTerminalEdgesForTree,
   renderCassetteV2ToDrawing,
   renderCassetteV2TreeToDrawing,
   resolveCassetteV2AngleExpression,
   resolveCassetteV2Expression,
+  resolveCassetteV2FaceSketchRegion,
   setGraphNumberInput,
+  updateCassetteV2FaceSketch,
   updateCassetteV2Workpiece,
   updateCassetteV2WorkpieceRelation
 } from './cassetteV2Renderer.js';
@@ -353,17 +355,15 @@ describe('cassette v2 trapezoid renderer', () => {
     // ...the section layer carries no profile geometry...
     const sectionLayer = drawing.layers.find(layer => layer.name === 'designer.section');
     expect(sectionLayer.paths.filter(path => path.relationId)).toHaveLength(0);
-    // ...and the profile-arranged edge is terminal — no + affordance.
-    expect(profileTerminalEdgesForTree(arranged).has('face_1:2')).toBe(true);
     const edgeIndexes = drawing.designerEdges
       .filter(edge => edge.nodeId === 'face_1')
       .map(edge => edge.edgeIndex);
-    expect(edgeIndexes).toEqual([0, 1, 3]);
+    expect(edgeIndexes).toEqual([0, 1, 2, 3]);
   });
 
-  it('offers only arrangeable edges: folds and profile-arranged edges are excluded', () => {
-    // A face grown on E0 folds there; a profile arranged on E2 consumes
-    // it. Only E1 and E3 may carry a profile.
+  it('offers only arrangeable edges: folds are excluded, profiles may share an edge', () => {
+    // A face grown on E0 folds there; profiles may share every other
+    // edge and receive their own shard.
     const initialTree = createCassetteV2GraphTree();
     const grown = addCassetteV2GraphChild(initialTree, 'face_1', 0).tree;
     expect(cassetteV2AttachableProfileEdgesForTree(grown, 'face_1')).toEqual(['E1', 'E2', 'E3']);
@@ -383,10 +383,7 @@ describe('cassette v2 trapezoid renderer', () => {
       arrayMode: 'count',
       arrayCount: '1'
     });
-    expect(cassetteV2AttachableProfileEdgesForTree(arranged, 'face_1')).toEqual(['E1', 'E3']);
-    // The asking relation's own edge stays listed — its value must remain
-    // in its own chooser.
-    expect(cassetteV2AttachableProfileEdgesForTree(arranged, 'face_1', relation.id)).toEqual(['E1', 'E2', 'E3']);
+    expect(cassetteV2AttachableProfileEdgesForTree(arranged, 'face_1')).toEqual(['E1', 'E2', 'E3']);
     // The fold eats an edge on both faces (the existing folded-edge law):
     // the child's attach edge is not arrangeable either.
     expect(cassetteV2AttachableProfileEdgesForTree(arranged, 'face_2')).toEqual(['E1', 'E2', 'E3']);
@@ -588,7 +585,8 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(openFilletedFace.d.length).toBeGreaterThan(openSharpFace.d.length);
   });
 
-  it('treats a closed profile edge array as terminal and cuts every copy', async () => {    const initialTree = createCassetteV2GraphTree();
+  it('cuts every copy of a closed profile edge array without consuming the edge', async () => {
+    const initialTree = createCassetteV2GraphTree();
     const square = createDefaultOccsProfileSketch();
     const added = addCassetteV2ProfileWorkpiece(initialTree, {
       referenceWorkpieceId: 'wp_1',
@@ -616,7 +614,7 @@ describe('cassette v2 trapezoid renderer', () => {
     const cutInner = drawing.layers.find(layer => layer.standardCode === 'cut.inner');
     expect(cutInner.paths.filter(path => path.relationId === relation.id)).toHaveLength(3);
     expect(drawing.designerEdges.filter(edge => edge.nodeId === 'face_1').map(edge => edge.edgeIndex))
-      .toEqual([0, 1, 3]);
+      .toEqual([0, 1, 2, 3]);
   });
 
   it('rides a refused edge embedding on the drawing instead of vanishing silently', async () => {
@@ -990,7 +988,7 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const workpieces = getCassetteV2Workpieces(result.tree);
     const occs = await createCassetteV2OccsDocument(result.tree);
-    const curves = buildCassetteV2TrapezoidTreeCurves(result.tree);
+    const curves = await buildCassetteV2TreeCurves(result.tree);
     const drawing = await renderCassetteV2TreeToDrawing(result.tree);
     const relations = getCassetteV2WorkpieceRelations(result.tree);
     const topology = buildCassetteV2WorkpieceTopology(result.tree);
@@ -1068,7 +1066,7 @@ describe('cassette v2 trapezoid renderer', () => {
     });
     const relations = getCassetteV2WorkpieceRelations(tree);
     const occs = await createCassetteV2OccsDocument(tree);
-    const assemblyCurves = buildCassetteV2TrapezoidTreeCurves(tree, { mode: 'assembly' });
+    const assemblyCurves = await buildCassetteV2TreeCurves(tree, { mode: 'assembly' });
     const drawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'assembly' });
     const targetCurve = assemblyCurves.find(curve => curve.node.id === 'face_1');
     const sourceFaceCurve = assemblyCurves.find(curve => curve.node.id === addedFace.nodeId);
@@ -1678,7 +1676,7 @@ describe('cassette v2 trapezoid renderer', () => {
     const relations = getCassetteV2WorkpieceRelations(tree);
     const topology = buildCassetteV2WorkpieceTopology(tree);
     const selectedDrawing = await renderCassetteV2TreeToDrawing(tree, { mode: 'workpiece', workpieceId: 'wp_2' });
-    const assemblyCurves = buildCassetteV2TrapezoidTreeCurves(tree, { mode: 'assembly' });
+    const assemblyCurves = await buildCassetteV2TreeCurves(tree, { mode: 'assembly' });
 
     expect(relations.map(item => ({
       source: item.sourceWorkpieceId,
@@ -2041,7 +2039,7 @@ describe('cassette v2 trapezoid renderer', () => {
   it('builds the live tree drawing from pure trapezoid curves', async () => {
     const initialTree = createCassetteV2GraphTree();
     const { tree } = addCassetteV2GraphChild(initialTree, 'face_1', 2);
-    const curves = buildCassetteV2TrapezoidTreeCurves(tree);
+    const curves = await buildCassetteV2TreeCurves(tree);
     const drawing = await renderCassetteV2TreeToDrawing(tree);
 
     expect(curves[0].vertices).toEqual([
@@ -2119,5 +2117,121 @@ describe('cassette v2 trapezoid renderer', () => {
     const dimensionLayer = drawing.layers.find(layer => layer.standardCode === 'dimension.cassette');
 
     expect(dimensionLayer.paths.filter(path => path.kind === 'text').map(path => path.text)).toEqual(['A', 'B']);
+  });
+
+  it('resolves a face sketch through the ordered boolean fold', async () => {
+    const region = await resolveCassetteV2FaceSketchRegion({
+      parameters: { W: 120, H: 80, D: 20 },
+      shapes: [
+        { id: 'outline', type: 'rect', op: 'add', center: ['W/2', 'H/2'], width: 'W', height: 'H' },
+        { id: 'hole', type: 'circle', op: 'subtract', center: ['W/2', 'H/2'], diameter: 'D' }
+      ]
+    });
+
+    expect(region.outer.slice(0, -1)).toHaveLength(4);
+    expect(region.holes).toHaveLength(1);
+  });
+
+  it('stores a face sketch on the node and emits an OCCS polygon with the authored sketch extension', async () => {
+    const sketch = {
+      version: '0.2',
+      units: 'mm',
+      parameters: { W: 'A', H: 60 },
+      shapes: [{
+        id: 'outline',
+        type: 'rect',
+        op: 'add',
+        center: ['W/2', 'H/2'],
+        width: 'W',
+        height: 'H'
+      }]
+    };
+    const updated = updateCassetteV2FaceSketch(createCassetteV2GraphTree(), 'face_1', sketch);
+    const curves = await buildCassetteV2TreeCurves(updated);
+    const occs = await createCassetteV2OccsDocument(updated);
+    const face = occs.definitions.workpieces[0].faces[0];
+
+    expect(updated.nodes[0].sketch).toMatchObject({ parameters: { W: 'A', H: 60 } });
+    expect(curves[0].boundaryVertices).toHaveLength(4);
+    expect(face.shape.type).toBe('polygon');
+    expect(face.extensions.perigram.sketch).toMatchObject({ parameters: { W: 'A', H: 60 } });
+    expect(updateCassetteV2FaceSketch(updated, 'face_1', null).nodes[0].sketch).toBeUndefined();
+  });
+
+  it('allocates an open profile to the free shard beside an earlier profile', () => {
+    const open = openChainSketch([[0, 0], [42, 0], [42, 28], [0, 28]], createDefaultOccsProfileSketch().parameters);
+    const first = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      edgeLength: 400,
+      occsProfile: occsProfileFromSketch(open),
+      sketch: open
+    });
+    const firstRelation = getCassetteV2WorkpieceRelations(first.tree)[0];
+    const narrowed = updateCassetteV2WorkpieceRelation(first.tree, firstRelation.id, {
+      placementMode: 'edgeArray',
+      arrayEdge: 'E0',
+      arraySpanStart: '0',
+      arraySpanWidth: '200'
+    });
+    const second = addCassetteV2ProfileWorkpiece(narrowed, {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      edgeLength: 400,
+      occsProfile: occsProfileFromSketch(open),
+      sketch: open
+    });
+    const secondRelation = getCassetteV2WorkpieceRelations(second.tree)
+      .find(relation => relation.sourceWorkpieceId === second.workpieceId);
+
+    expect(secondRelation.pattern).toMatchObject({
+      spanStart: '200',
+      spanWidth: '200'
+    });
+  });
+
+  it('allocates child faces to free shards of the host edge', async () => {
+    const first = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 2, { edgeLength: 400 });
+    first.tree.nodes[1].parameters.defaultLength = '150';
+    const second = addCassetteV2GraphChild(first.tree, 'face_1', 2, { edgeLength: 400 });
+    const third = addCassetteV2GraphChild(second.tree, 'face_1', 2, { edgeLength: 400 });
+    const child = second.tree.nodes.find(node => node.id === second.nodeId);
+    const curves = await buildCassetteV2TreeCurves(second.tree);
+    const childCurve = curves.find(curve => curve.node.id === second.nodeId);
+
+    expect(child.parameters).toMatchObject({
+      edgeStart: '150',
+      defaultLength: '250'
+    });
+    expect(childCurve.localVertices[0][0]).toBeCloseTo(0);
+    expect(childCurve.localVertices[1][0]).toBeCloseTo(250);
+    expect(childCurve.vertices[0][0]).toBeCloseTo(150);
+    expect(childCurve.vertices[1][0]).toBeCloseTo(400);
+    expect(third.refused).toBe('edge-full');
+  });
+
+  it('places a converted sketch face on its allocated edge shard', async () => {
+    const first = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 2, { edgeLength: 400 });
+    first.tree.nodes[1].parameters.defaultLength = '150';
+    const second = addCassetteV2GraphChild(first.tree, 'face_1', 2, { edgeLength: 400 });
+    const sketch = await cassetteV2FaceSketchFromNode(second.tree, second.nodeId);
+    const converted = updateCassetteV2FaceSketch(second.tree, second.nodeId, sketch);
+    const curve = (await buildCassetteV2TreeCurves(converted)).find(item => item.node.id === second.nodeId);
+
+    const xs = curve.vertices.map(point => point[0]);
+    expect(Math.min(...xs)).toBeCloseTo(150);
+    expect(Math.max(...xs)).toBeCloseTo(400);
+  });
+
+  it('seeds a face sketch from the current rectangle with its authored expressions', async () => {
+    const sketch = await cassetteV2FaceSketchFromNode(createCassetteV2GraphTree(), 'face_1');
+
+    expect(sketch.shapes).toHaveLength(1);
+    expect(sketch.shapes[0]).toMatchObject({
+      type: 'rect',
+      op: 'add',
+      width: 'A',
+      height: 'B'
+    });
   });
 });

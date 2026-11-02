@@ -68,6 +68,19 @@ export const cassetteV2TrapezoidReferenceLength = (parentVertices, parentEdgeInd
   edgeFrame(parentVertices, parentEdgeIndex)?.referenceLength || null
 );
 
+// The frame a face shape is authored and placed in: the parent edge
+// start with +X along the edge and +Y toward the parent's material. The
+// root face sits on the world origin with the same axes.
+export const cassetteV2FaceAttachmentFrame = (parentVertices, parentEdgeIndex) => {
+  if (parentVertices?.length) return edgeFrame(parentVertices, parentEdgeIndex, { reverse: true });
+  return {
+    start: [0, 0, 0],
+    direction: [1, 0],
+    normal: [0, 1],
+    referenceLength: 0
+  };
+};
+
 export const resolveCassetteV2TrapezoidLocalPoints = (trapezoid = {}) => {
   const referenceLength = numeric(trapezoid.defaultLength, 0);
   const baseStartOffset = numeric(trapezoid.baseStartOffset, 0);
@@ -104,10 +117,11 @@ export const buildCassetteV2TrapezoidVertices = (
       };
   if (!frame) throw new Error('Cannot resolve trapezoid parent edge');
 
+  const edgeStart = numeric(trapezoid.edgeStart, 0);
   const baseStartOffset = numeric(trapezoid.baseStartOffset, 0);
   const origin = [
-    frame.start[0] - frame.direction[0] * baseStartOffset,
-    frame.start[1] - frame.direction[1] * baseStartOffset,
+    frame.start[0] + frame.direction[0] * edgeStart - frame.direction[0] * baseStartOffset,
+    frame.start[1] + frame.direction[1] * edgeStart - frame.direction[1] * baseStartOffset,
     frame.start[2] || 0
   ];
 

@@ -13,6 +13,7 @@ import {
   CASSETTE_V2_HANGER_PRODUCTION_MODES,
   CASSETTE_V2_HARDWARE_FAMILIES,
   cassetteV2AttachableProfileEdgesForTree,
+  cassetteV2FaceSketchFromNode,
   collectCassetteV2ExpressionIdentifiers,
   renameCassetteV2TreeParameter,
   createCassetteV2GraphTree,
@@ -26,8 +27,9 @@ import {
   OCCS_CASSETTE_FACE_ROLES,
   renderCassetteV2TreeToDrawing,
   cassetteV2LayerPanelRows,
-  profileTerminalEdgesForTree,
   resolveCassetteV2AngleExpression,
+  resolveCassetteV2FaceSketchRegion,
+  updateCassetteV2FaceSketch,
   updateCassetteV2GraphNode,
   updateCassetteV2Workpiece,
   updateCassetteV2WorkpieceRelation
@@ -301,6 +303,20 @@ export default function createSurface({ vue, components, locale, queries, record
         typeId: 'profile'
       })));
       const profilePicker = ref(null);
+      const faceShapeDialogVisible = ref(false);
+      const editingFaceNodeId = ref('');
+      const faceShapeDraft = ref(createEmptyOccsProfileSketch());
+      const faceShapeEditorError = ref('');
+      const faceShapeDialogError = computed(() => faceShapeEditorError.value);
+      const faceShapeDraftSketch = computed(() => normalizeOccsProfileSketch(faceShapeDraft.value));
+      const faceShapeInspection = computed(() => inspectOccsProfileSketch(
+        faceShapeDraftSketch.value,
+        globalParameters.value
+      ));
+      const faceShapeReady = computed(() => (
+        faceShapeInspection.value.savable
+        && faceShapeDraftSketch.value.shapes.some(shape => shape.op === 'add')
+      ));
       const hardwareLibraryRecords = ref([]);
       const hardwareLibraryAvailable = ref(true);
       const hardwarePicker = ref(null);
@@ -556,16 +572,18 @@ export default function createSurface({ vue, components, locale, queries, record
         placementMode: 'edgeArray',
         [relation.arrayMode === 'spacing' ? 'arraySpacing' : 'arrayCount']: value
       });
-      // Owner law (2026-10-16): a profile never arranges on a fold edge
-      // (or one consumed by another profile) — the chooser offers only
-      // the face's arrangeable edges, keeping the relation's own.
-      // Hardware arrays may bind profile-occupied edges (owner law
-      // 2026-10-17): the terminal exclusion is profile-on-profile only.
-      const attachableEdgeOptions = (faceId, relationId, kind = 'profile') => cassetteV2AttachableProfileEdgesForTree(
+      // A profile never arranges on a fold edge; faces and open profiles
+      // may share every other edge through shard placement.
+      const faceEdgeCounts = computed(() => previewSource.value?.faceEdgeCounts || {});
+      const edgeLengthFor = (faceId, edgeLabel = 'E0') => {
+        const match = String(edgeLabel || 'E0').match(/\d+/);
+        const edgeIndex = match ? Math.max(0, Math.round(Number(match[0]))) : 0;
+        return previewSource.value?.faceEdgeLengths?.[faceId]?.[edgeIndex] ?? NaN;
+      };
+      const attachableEdgeOptions = (faceId) => cassetteV2AttachableProfileEdgesForTree(
         cassetteTree.value,
         faceId,
-        relationId,
-        { excludeProfileEdges: kind !== 'hardware' }
+        { edgeCountByFaceId: faceEdgeCounts.value }
       )
         .map(edge => ({ label: edge, value: edge }));
       const anchorOptions = computed(() => [
@@ -1395,10 +1413,7 @@ export default function createSurface({ vue, components, locale, queries, record
           const attachable = cassetteV2AttachableProfileEdgesForTree(
             cassetteTree.value,
             nextPatch.targetFaceId || relation.targetFaceId,
-            relationId,
-            // Hardware arrays may sit on profile-occupied edges (owner
-            // law 2026-10-17): only profile askers get the exclusion.
-            { excludeProfileEdges: attachmentSourceKind(relation) !== 'hardware' }
+            { edgeCountByFaceId: faceEdgeCounts.value }
           );
           const edge = nextPatch.arrayEdge ?? relation.arrayEdge;
           if (attachable.length && !attachable.includes(edge)) nextPatch.arrayEdge = attachable[0];
@@ -1608,6 +1623,38 @@ export default function createSurface({ vue, components, locale, queries, record
         loadProfileLibrary();
       };
 
+      // A face sketch is edited on the same shape canvas as a profile;
+      // converting a trapezoid seeds the draft with its current outline.
+      const openFaceShapeDialog = async (nodeId) => {
+        closeInlineEditor();
+        faceShapeEditorError.value = '';
+        editingFaceNodeId.value = nodeId;
+        try {
+          faceShapeDraft.value = await cassetteV2FaceSketchFromNode(cassetteTree.value, nodeId);
+        } catch (error) {
+          faceShapeEditorError.value = error?.message || String(error);
+          faceShapeDraft.value = createEmptyOccsProfileSketch();
+        }
+        faceShapeDialogVisible.value = true;
+      };
+
+      const saveFaceShapeDraft = async () => {
+        const sketch = closeOccsProfileSketchBoundary(faceShapeDraftSketch.value);
+        try {
+          await resolveCassetteV2FaceSketchRegion(sketch, globalParameters.value);
+        } catch (error) {
+          faceShapeEditorError.value = error?.message || String(error);
+          return;
+        }
+        cassetteTree.value = updateCassetteV2FaceSketch(cassetteTree.value, editingFaceNodeId.value, sketch);
+        faceShapeDialogVisible.value = false;
+      };
+
+      const useTrapezoidFace = (nodeId = editingFaceNodeId.value) => {
+        cassetteTree.value = updateCassetteV2FaceSketch(cassetteTree.value, nodeId, null);
+        faceShapeDialogVisible.value = false;
+      };
+
       // The profile library: `profile` records of the plugin's own type,
       // authored only from this dialog. Save to library writes the
       // authored truth (kind, process, prepared sketch) through the
@@ -1685,6 +1732,11 @@ export default function createSurface({ vue, components, locale, queries, record
       };
       watch(profileLibraryRecords, () => { resolveProfileThumbnails(); });
 
+      const profileTargetFaceId = () => {
+        if (selectedNode.value?.workpieceId === selectedWorkpieceId.value) return selectedNode.value.id;
+        return workpieces.value.find(workpiece => workpiece.id === selectedWorkpieceId.value)?.rootId || '';
+      };
+
       const addProfileFromLibrary = (record) => {
         if (!record) return;
         const sketch = normalizeOccsProfileSketch(
@@ -1704,8 +1756,11 @@ export default function createSurface({ vue, components, locale, queries, record
           notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
           return;
         }
+        const targetFaceId = profileTargetFaceId();
         const added = addCassetteV2ProfileWorkpiece(cassetteTree.value, {
           referenceWorkpieceId: selectedWorkpieceId.value,
+          referenceNodeId: targetFaceId,
+          edgeLength: edgeLengthFor(targetFaceId, 'E0'),
           name: record.name || t('cassette.v2.profileEditor.defaultName'),
           kind: record?.fields?.kind || 'hanger',
           process: record?.fields?.process || 'extruded',
@@ -1717,8 +1772,12 @@ export default function createSurface({ vue, components, locale, queries, record
           profileTemplateId: record?._id?.toString() || ''
         });
         cassetteTree.value = added.tree;
-        selectWorkpiece(added.workpieceId);
         closeProfilePicker();
+        if (added.refused) {
+          notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.edgeFull'), life: 3000 });
+          return;
+        }
+        selectWorkpiece(added.workpieceId);
       };
 
       const saveProfileDraftToLibrary = async ({ asNew = false } = {}) => {
@@ -1861,8 +1920,11 @@ export default function createSurface({ vue, components, locale, queries, record
             }
           });
         } else {
+          const targetFaceId = profileTargetFaceId();
           const added = addCassetteV2ProfileWorkpiece(cassetteTree.value, {
             referenceWorkpieceId: selectedWorkpieceId.value,
+            referenceNodeId: targetFaceId,
+            edgeLength: edgeLengthFor(targetFaceId, 'E0'),
             name: payload.name,
             kind: payload.kind,
             process: payload.process,
@@ -1872,6 +1934,10 @@ export default function createSurface({ vue, components, locale, queries, record
             profileTemplateId: profileDraft.value.libraryId || ''
           });
           cassetteTree.value = added.tree;
+          if (added.refused) {
+            notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.edgeFull'), life: 3000 });
+            return;
+          }
           selectWorkpiece(added.workpieceId);
         }
         profileDialogVisible.value = false;
@@ -1967,13 +2033,14 @@ export default function createSurface({ vue, components, locale, queries, record
         selectWorkpieceForInspector(result.selectedWorkpieceId);
       };
 
-      const addFaceAtEdge = (parentId, edgeIndex) => {
+      const addFaceAtEdge = (parentId, edgeIndex, edgeLength = NaN) => {
         if (!parentId && parentId !== '') return;
-        // A profile-arranged edge is terminal: the profile consumes the
-        // edge and the face ends there — nothing grows from it.
-        if (profileTerminalEdgesForTree(cassetteTree.value).has(`${parentId}:${Math.max(0, Math.round(Number(edgeIndex) || 0))}`)) return;
-        const result = addCassetteV2GraphChild(cassetteTree.value, parentId, edgeIndex);
+        const result = addCassetteV2GraphChild(cassetteTree.value, parentId, edgeIndex, { edgeLength });
         cassetteTree.value = result.tree;
+        if (result.refused) {
+          notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.edgeFull'), life: 3000 });
+          return;
+        }
         selectedNodeId.value = result.nodeId;
         selectedWorkpieceOverrideId.value = '';
         inspectorSelection.value = 'face';
@@ -1981,7 +2048,7 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const handleDesignerAction = ({ edge, edgeIndex }) => {
         if (!edge?.nodeId && edge?.nodeId !== '') return;
-        addFaceAtEdge(edge.nodeId, edge.edgeIndex ?? edgeIndex);
+        addFaceAtEdge(edge.nodeId, edge.edgeIndex ?? edgeIndex, edge.length);
       };
 
       const handleDesignerFaceSelect = ({ face }) => {
@@ -2219,6 +2286,34 @@ export default function createSurface({ vue, components, locale, queries, record
               })
             ]),
             inlineEditorNode.value?.parentId
+              ? h('div', { class: 'flex flex-col gap-1 text-muted text-label' }, [
+                  h('span', { class: 'truncate' }, t('cassette.v2.fields.edgeStart')),
+                  h(CassetteExpressionEditor, {
+                    modelValue: inlineEditorNode.value?.parameters?.edgeStart ?? '0',
+                    parameters: globalParameters.value,
+                    parameterNames: globalParameterNames.value,
+                    'onUpdate:modelValue': value => updateFaceParameter(editor.nodeId, 'edgeStart', value)
+                  })
+                ])
+              : null,
+            h(Button, {
+              icon: 'pi pi-pen-to-square',
+              label: t('cassette.v2.editFaceShape'),
+              severity: 'secondary',
+              size: 'small',
+              onClick: () => openFaceShapeDialog(editor.nodeId)
+            }),
+            inlineEditorNode.value?.sketch
+              ? h(Button, {
+                  icon: 'pi pi-undo',
+                  label: t('cassette.v2.useTrapezoidFace'),
+                  severity: 'secondary',
+                  text: true,
+                  size: 'small',
+                  onClick: () => useTrapezoidFace(editor.nodeId)
+                })
+              : null,
+            inlineEditorNode.value?.parentId
               ? h(Button, {
                   icon: 'pi pi-trash',
                   label: t('cassette.v2.deleteFace'),
@@ -2328,7 +2423,7 @@ export default function createSurface({ vue, components, locale, queries, record
                 relation.placementMode === 'edgeArray'
                   ? h(Select, {
                       modelValue: relation.arrayEdge,
-                      options: attachableEdgeOptions(relation.targetFaceId, relation.id, kind),
+                      options: attachableEdgeOptions(relation.targetFaceId),
                       optionLabel: 'label',
                       optionValue: 'value',
                       class: 'w-full',
@@ -2351,6 +2446,12 @@ export default function createSurface({ vue, components, locale, queries, record
                         'onUpdate:modelValue': value => updateInlineAttachmentRelation(arrayValuePatch(relation, value))
                       })
                     ])
+                  : null,
+                kind === 'profile' && relation.placementMode === 'edgeArray'
+                  ? expressionField('cassette.v2.attachmentFields.spanStart', relation.arraySpanStart, 'arraySpanStart')
+                  : null,
+                kind === 'profile' && relation.placementMode === 'edgeArray'
+                  ? expressionField('cassette.v2.attachmentFields.spanWidth', relation.arraySpanWidth, 'arraySpanWidth')
                   : null,
                 kind === 'profile'
                   ? h('div', { class: 'flex min-w-0 gap-1' }, [
@@ -3159,6 +3260,48 @@ export default function createSurface({ vue, components, locale, queries, record
         }, () => [
           h('div', { class: 'h-[70vh] w-full' }, [foldedPreviewMount()])
         ]),
+        h(StandardDialog, {
+          visible: faceShapeDialogVisible.value,
+          'onUpdate:visible': value => { faceShapeDialogVisible.value = value; },
+          header: t('cassette.v2.faceShapeEditor.title'),
+          size: 'xl',
+          fill: true,
+          showDefaultFooter: false,
+          class: 'h-[92dvh]'
+        }, () => h('div', { class: 'flex min-h-0 flex-1 flex-col gap-2' }, [
+          h('div', { class: 'flex shrink-0 flex-wrap items-center justify-end gap-2' }, [
+            h(Button, {
+              icon: 'pi pi-save',
+              severity: 'primary',
+              rounded: true,
+              size: 'small',
+              disabled: !faceShapeReady.value,
+              'aria-label': t('common.save'),
+              title: faceShapeDialogError.value || t('common.save'),
+              onClick: saveFaceShapeDraft
+            }),
+            h(Button, {
+              icon: 'pi pi-undo',
+              severity: 'secondary',
+              text: true,
+              rounded: true,
+              size: 'small',
+              'aria-label': t('cassette.v2.useTrapezoidFace'),
+              title: t('cassette.v2.useTrapezoidFace'),
+              onClick: () => useTrapezoidFace()
+            })
+          ]),
+          faceShapeDialogError.value
+            ? h(Message, { severity: 'warn', size: 'small', closable: false, class: 'shrink-0' }, () => faceShapeDialogError.value)
+            : null,
+          h(ProfileSketchEditor, {
+            modelValue: faceShapeDraft.value,
+            mode: 'face',
+            externalParameters: globalParameters.value,
+            'onUpdate:modelValue': value => { faceShapeDraft.value = value; },
+            onOutlineError: value => { faceShapeEditorError.value = value; }
+          })
+        ])),
         h(StandardDialog, {
           visible: profileDialogVisible.value,
           'onUpdate:visible': value => { profileDialogVisible.value = value; },
