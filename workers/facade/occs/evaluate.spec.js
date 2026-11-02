@@ -228,15 +228,15 @@ describe('OCCS cassette evaluation', () => {
     });
   });
 
-  it('carries a parametric face sketch and cuts its subtract shapes from the parent', async () => {
+  it('carries a parametric face sketch that cuts its subtract hole and the parent overlap', async () => {
     const grown = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 0, { edgeLength: 500 });
     grown.tree.nodes[1].parameters.defaultLength = '100';
     grown.tree.nodes[1].parameters.height = '100';
     const sketch = {
       parameters: { W: 100, H: 100, D: 40 },
       shapes: [
-        { id: 'outline', type: 'rect', op: 'add', center: ['W/2', 'H/2'], width: 'W', height: 'H' },
-        { id: 'hole', type: 'circle', op: 'subtract', center: ['W/2', '-40'], diameter: 'D' }
+        { id: 'outline', type: 'rect', op: 'add', center: ['W/2', '0'], width: 'W', height: 'H' },
+        { id: 'hole', type: 'circle', op: 'subtract', center: ['W/2', 'H/4'], diameter: 'D' }
       ]
     };
     const tree = updateCassetteV2FaceSketch(grown.tree, grown.nodeId, sketch);
@@ -245,9 +245,9 @@ describe('OCCS cassette evaluation', () => {
     const [parent, child] = definition.definitions.workpieces[0].faces;
 
     expect(child.shape).toMatchObject({ type: 'polygon' });
-    expect(child.shape.holes).toHaveLength(0);
+    expect(child.shape.holes).toHaveLength(1);
     expect(child.extensions.perigram.sketch.parameters).toMatchObject({ W: 100, H: 100, D: 40 });
-    expect(parent.shape.holes).toHaveLength(1);
+    expect(parent.shape.vertices.length).toBeGreaterThan(4);
     expect(result.layerData.filter(item => item.layer === 'cut.inner')).toHaveLength(1);
   });
 });

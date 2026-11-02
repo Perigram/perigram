@@ -209,10 +209,9 @@ export default function createSketchEditor({ vue, components, locale }) {
             ? [[0, -span], [-span, -span], [-span, span], [0, span]]
             : [[0, -span], [span, -span], [span, span], [0, span]];
           const base = faceMode.value ? { polygons: [], holes: [] } : { polygons: [half], holes: [] };
-          const operations = resolveOccsProfileSectionOperations(section) || [];
           const resolved = await foldCassetteV2Region(
             base,
-            faceMode.value ? operations.filter(operation => operation.op === 'add') : operations
+            resolveOccsProfileSectionOperations(section)
           );
           if (disposed || generation !== outlineGeneration) return;
           resolvedFace.value = resolved;

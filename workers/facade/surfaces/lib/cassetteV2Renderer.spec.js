@@ -390,7 +390,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(cassetteV2AttachableProfileEdgesForTree(arranged, 'face_2')).toEqual(['E1', 'E2', 'E3']);
   });
 
-  it('refuses a profile arranged on a fold edge instead of embedding or cutting', async () => {
+  it('refuses an open profile on a fold edge and lets a closed profile cut through it', async () => {
     const initialTree = createCassetteV2GraphTree();
     const grown = addCassetteV2GraphChild(initialTree, 'face_1', 0).tree;
     const cleanFace = (await renderCassetteV2TreeToDrawing(grown, { mode: 'assembly' }))
@@ -419,8 +419,8 @@ describe('cassette v2 trapezoid renderer', () => {
     const face = drawing.designerFaces.find(item => item.nodeId === 'face_1');
     expect(face.d).toBe(cleanFace.d);
 
-    // A closed section whose footprint crosses the fold is refused —
-    // no cut entity lands on the bend line.
+    // A closed section cuts through the fold; the authored bend route
+    // stays on the parent edge.
     const crossingCut = normalizeOccsProfileSketch({
       parameters: {},
       shapes: [{ id: 's0', type: 'circle', op: 'subtract', center: [0, 0], diameter: 100 }]
@@ -441,11 +441,13 @@ describe('cassette v2 trapezoid renderer', () => {
       arrayCount: '1'
     });
     const cutDrawing = await renderCassetteV2TreeToDrawing(cutOnFold, { mode: 'assembly' });
-    expect(cutDrawing.profileEmbeddingErrors).toEqual([
-      { relationId: expect.any(String), reason: 'fold-edge' }
-    ]);
-    const cutInner = cutDrawing.layers.find(layer => layer.name === 'cut.inner');
-    expect(cutInner?.paths.length || 0).toBe(0);
+    const cutFace = cutDrawing.designerFaces.find(item => item.nodeId === 'face_1');
+
+    expect(cutDrawing.profileEmbeddingErrors).toEqual([]);
+    expect(cutFace.d).not.toBe(cleanFace.d);
+    expect(cutDrawing.designerFoldEdges).toEqual(
+      (await renderCassetteV2TreeToDrawing(grown, { mode: 'assembly' })).designerFoldEdges
+    );
   });
 
   it('keeps a closed profile cut when a face takes another shard of the host edge', async () => {
@@ -2197,7 +2199,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(dimensionLayer.paths.filter(path => path.kind === 'text').map(path => path.text)).toEqual(['A', 'B']);
   });
 
-  it('resolves a face sketch from its adds and keeps subtracts for the parent', async () => {
+  it('resolves a face sketch through the ordered boolean fold', async () => {
     const region = await resolveCassetteV2FaceSketchRegion({
       parameters: { W: 120, H: 80, D: 20 },
       shapes: [
@@ -2207,10 +2209,10 @@ describe('cassette v2 trapezoid renderer', () => {
     });
 
     expect(region.outer.slice(0, -1)).toHaveLength(4);
-    expect(region.holes).toHaveLength(0);
+    expect(region.holes).toHaveLength(1);
   });
 
-  it('cuts the parent face with a sketch face subtract shape and leaves the bend edges alone', async () => {
+  it('cuts the parent with the sketch face material and keeps subtracts on the child', async () => {
     const grown = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 0, { edgeLength: 500 });
     grown.tree.nodes[1].parameters.defaultLength = '100';
     grown.tree.nodes[1].parameters.height = '100';
@@ -2221,8 +2223,8 @@ describe('cassette v2 trapezoid renderer', () => {
       parameters: {},
       material: 'positive',
       shapes: [
-        { id: 's0', type: 'rect', op: 'add', center: [50, 50], width: 100, height: 100, rotation: 0, fillets: [] },
-        { id: 's1', type: 'circle', op: 'subtract', center: [50, -40], diameter: 40 }
+        { id: 's0', type: 'rect', op: 'add', center: [50, 0], width: 100, height: 100, rotation: 0, fillets: [] },
+        { id: 's1', type: 'circle', op: 'subtract', center: [50, 25], diameter: 20 }
       ]
     };
     const converted = updateCassetteV2FaceSketch(grown.tree, grown.nodeId, sketch);
@@ -2231,8 +2233,8 @@ describe('cassette v2 trapezoid renderer', () => {
     const child = drawing.designerFaces.find(face => face.nodeId === grown.nodeId);
 
     expect(parent.d).not.toBe(clean.designerFaces.find(face => face.nodeId === 'face_1').d);
-    expect(child.center).toEqual(clean.designerFaces.find(face => face.nodeId === grown.nodeId).center);
-    expect(child.d.split('L')).toHaveLength(4);
+    expect(child.d).not.toBe(clean.designerFaces.find(face => face.nodeId === grown.nodeId).d);
+    expect(drawing.foldedPreview.faces.find(face => face.nodeId === grown.nodeId).holes).toHaveLength(1);
     expect(drawing.designerFoldEdges).toEqual(clean.designerFoldEdges);
     expect(drawing.layers.find(layer => layer.standardCode === 'cut.inner')?.paths).toHaveLength(1);
 
