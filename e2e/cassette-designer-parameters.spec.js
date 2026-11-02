@@ -211,6 +211,8 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
 
   // Renaming a global in place rebinds every reference: the field keeps
   // the tree's value and the chip's expression follows the new name.
+  await popup.locator('button[aria-label="Close"]').click();
+  await page.waitForTimeout(300);
   const globalNameA = page.locator('aside input[aria-label="Parameter name A"]');
   await expect(globalNameA).toBeVisible();
   await globalNameA.click();
@@ -219,6 +221,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await globalNameA.press('Enter');
   await page.waitForTimeout(1200);
   await expect(page.locator('aside input[aria-label="Parameter name LENGTH"]')).toBeVisible();
+  await openProfilePopup(page);
   await expect.poll(() => chipText(chipField(page, 'W'))).toBe('LENGTH');
 
   // The renamed global reached the profile's own table — the raw
