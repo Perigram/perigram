@@ -176,11 +176,10 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     destructive geometry edits (`FILLET`, `CHAMFER`, `TRIM`, `EXTEND`,
     `BREAK`) leave the canvas for the same reason: fillets are authored
     as shape modifiers, never as geometry.
-  - A sketch's parameter rows are its own. A row named by the
-    surrounding scope belongs to the sketch while a shape field or
-    another kept row references it; an unreferenced scope-named row is
-    stale copy and drops from the editor's draft
-    (`pruneScopeBoundParameters`).
+  - A sketch's parameter rows are its own. A scope-named row lives in
+    the surrounding scope; it is stale copy in a profile table and drops
+    from the editor's draft unless an authored shape or another kept row
+    explicitly references it (`pruneScopeBoundParameters`).
   - The default hanger template is parametric — a rect (W/H the
     rectangle, R the four corner fillets) plus a subtract circle (D the
     hole), L resolving the sweep at evaluation. `normalizeOccsProfileSketch`
@@ -201,11 +200,17 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     chips), and the derived table — authored rows with the instance
     values on top — is the single evaluation scope (`deriveOccsProfileSketch`).
     `normalizeCassetteV2Profile` returns all three (`sketch.parameters`,
-    `instance`, `parameters`); nothing folds one table into the other.
+    `instance`, `parameters`) and drops scope-named override rows;
+    nothing folds one table into the other.
     A chip shows the stored expression and carries the derived value as
-    its hint; a dimension typed on a field bound to a bare identifier
-    commits to the instance override, the authored row, or a
-    workpiece-local override of a surrounding-scope name, in that order.
+    its hint. The profile editor never receives the instance table: it
+    edits and evaluates the authored sketch alone, and saving preserves
+    the workpiece's overrides. A dimension typed on a field bound to a
+    bare authored identifier commits that authored row; a
+    surrounding-scope identifier stays in its own table and never becomes
+    a profile or override row. An override row whose name the sketch does
+    not author is pruned from the instance table; an authored row may
+    shadow a same-named global and keeps its override.
   - Instance values may be cassette expressions resolved in the joined
     scope — the profile's own table shadows the cassette's globals
     (inner over outer) — while the raw expression stays stored. The
