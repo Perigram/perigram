@@ -2625,6 +2625,18 @@ Ordered steps:
   carry every face's outer ring and holes with `evenodd`, so profile and
   face cuts stay open in assembly previews.
 
+  ### Agent Notes (2026-11-02, face material cuts the parent)
+
+  Session `agent/face-cut-child-subtract-20261102`. A face sketch folds
+  through the full ordered sequence: adds form the face, subtracts cut
+  it and ride `cut.inner`. The face's material region (outer rings minus
+  holes) emits parent cut entities through `faceSketchCutEntitiesForTree`,
+  so a custom face shape crossing the datum cuts the parent instead of
+  only appearing as another panel. The fold route uses the child's owned
+  interval on the host edge; the 3D fold consumes that same interval.
+  Closed profiles cut across a fold interval with the authored bend route
+  intact; open profile spans crossing a fold still refuse.
+
 - [ ] WAITING — owner verification: Profile editor isolation (owner
   direction 2026-11-02): the profile editor edits and evaluates the
   authored sketch alone; placement instance rows never enter it, saving

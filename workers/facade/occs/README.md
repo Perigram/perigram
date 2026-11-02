@@ -237,18 +237,20 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     already-placed workpieces keep their copy.
 - **Face sketches** — a face may carry the same parametric shape model
   as a profile on its `sketch` (add/subtract/construction shapes,
-  expressions, fillets). Add shapes fold from an empty region and must
-  resolve to one closed outline. A child face's subtract shapes are
-  cuts on the parent face, placed in the face's shard frame and folded
-  into the parent's production geometry like a closed profile section;
-  they ride `cut.inner`. The OCCS face shape is the evaluated add region
-  (`polygon`), and the authored sketch rides
-  `face.extensions.perigram.sketch`. The outer ring rotates so its datum
-  edge (y = 0) starts the ring, keeping E0 the attachment edge and fold
-  routes stable. The trapezoid face remains the quick path; converting
-  seeds the sketch from the current outline. The face editor's datum is
-  the parent edge line in shard coordinates (the shard start is zero);
-  the parent face renders as a ghost outline in those same coordinates.
+  expressions, fillets). The sketch folds through the profile's ordered
+  boolean sequence: adds form the face, subtracts cut it, and the result
+  must resolve to one closed outline; holes ride `cut.inner`. The face's
+  material region — outer rings minus holes — also cuts the parent face
+  where the two overlap, placed in the face's shard frame and folded
+  into the parent's production geometry like a closed profile section.
+  The OCCS face shape is the evaluated region (`polygon`), and the
+  authored sketch rides `face.extensions.perigram.sketch`. The outer
+  ring rotates so its datum edge (y = 0) starts the ring, keeping E0 the
+  attachment edge and fold routes stable. The trapezoid face remains the
+  quick path; converting seeds the sketch from the current outline. The
+  face editor's datum is the parent edge line in shard coordinates (the
+  shard start is zero); the parent face renders as a ghost outline in
+  those same coordinates.
 - **Edge spans** — a host edge is an interval. Child faces carry
   `edgeStart` plus their `defaultLength`; open profiles carry the edge
   array's `spanStart`/`spanWidth`. Free shards exclude child faces and
@@ -260,9 +262,10 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   fixed/parametric width otherwise, so the remaining edge becomes free
   shards. A closed profile footprint is projected onto the host edge:
   cuts that cross the edge block their interval, holes inside the face
-  leave the edge free. A profile footprint or open span crossing a
-  child face's fold interval refuses; the rest of the host edge stays
-  arrangeable.
+  leave the edge free. A closed profile footprint may cross a child
+  face's fold interval and cut the host; the fold route keeps the
+  authored edge. An open profile span crossing that interval refuses;
+  the rest of the host edge stays arrangeable.
 - **`production-layout.js`** — wraps the Clipper-backed face
   union/fold-route pass and returns semantic `cut.outer` / `fold.route`
   layer intent.
