@@ -499,9 +499,11 @@ authored as a parametric sketch in the profile shape model; the
 trapezoid remains the quick path. The sketch folds through the profile's
 ordered boolean sequence: add shapes form the face, subtract shapes cut
 it, construction is excluded, and the result must resolve to one closed
-outline. The face's material region — outer rings minus holes — also
-cuts the parent face where the two overlap, the boolean pass a closed
-profile applies to its host. The sketch is the node's authored truth
+outline. The child face keeps the material on its side of the datum; the
+parent-side part belongs to the parent cut. The face's material region —
+outer rings minus holes — also cuts the parent face where the two
+overlap, the boolean pass a closed profile applies to its host. The
+sketch is the node's authored truth
 (`sketch`), the OCCS face is the evaluated region (`polygon`), and the
 authored sketch rides `face.extensions.perigram.sketch`. The face editor
 is the profile editor in face mode: same expressions, fillets, shape

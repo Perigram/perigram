@@ -239,11 +239,13 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   as a profile on its `sketch` (add/subtract/construction shapes,
   expressions, fillets). The sketch folds through the profile's ordered
   boolean sequence: adds form the face, subtracts cut it, and the result
-  must resolve to one closed outline; holes ride `cut.inner`. The face's
-  material region — outer rings minus holes — also cuts the parent face
-  where the two overlap, placed in the face's shard frame and folded
-  into the parent's production geometry like a closed profile section.
-  The OCCS face shape is the evaluated region (`polygon`), and the
+  must resolve to one closed outline; holes ride `cut.inner`. The child
+  face keeps the material on its side of the datum; the parent-side part
+  belongs to the parent cut. The face's material region — outer rings
+  minus holes — also cuts the parent face where the two overlap, placed
+  in the face's shard frame and folded into the parent's production
+  geometry like a closed profile section. The OCCS face shape is the
+  evaluated region (`polygon`), and the
   authored sketch rides `face.extensions.perigram.sketch`. The outer
   ring rotates so its datum edge (y = 0) starts the ring, keeping E0 the
   attachment edge and fold routes stable. The trapezoid face remains the
