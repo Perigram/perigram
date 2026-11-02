@@ -2157,7 +2157,7 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(dimensionLayer.paths.filter(path => path.kind === 'text').map(path => path.text)).toEqual(['A', 'B']);
   });
 
-  it('resolves a face sketch through the ordered boolean fold', async () => {
+  it('resolves a face sketch from its adds and keeps subtracts for the parent', async () => {
     const region = await resolveCassetteV2FaceSketchRegion({
       parameters: { W: 120, H: 80, D: 20 },
       shapes: [
@@ -2167,7 +2167,34 @@ describe('cassette v2 trapezoid renderer', () => {
     });
 
     expect(region.outer.slice(0, -1)).toHaveLength(4);
-    expect(region.holes).toHaveLength(1);
+    expect(region.holes).toHaveLength(0);
+  });
+
+  it('cuts the parent face with a sketch face subtract shape and leaves the bend edges alone', async () => {
+    const grown = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 0, { edgeLength: 500 });
+    grown.tree.nodes[1].parameters.defaultLength = '100';
+    grown.tree.nodes[1].parameters.height = '100';
+    const clean = await renderCassetteV2TreeToDrawing(grown.tree);
+    const sketch = {
+      version: '0.2',
+      units: 'mm',
+      parameters: {},
+      material: 'positive',
+      shapes: [
+        { id: 's0', type: 'rect', op: 'add', center: [50, 50], width: 100, height: 100, rotation: 0, fillets: [] },
+        { id: 's1', type: 'circle', op: 'subtract', center: [50, -40], diameter: 40 }
+      ]
+    };
+    const converted = updateCassetteV2FaceSketch(grown.tree, grown.nodeId, sketch);
+    const drawing = await renderCassetteV2TreeToDrawing(converted);
+    const parent = drawing.designerFaces.find(face => face.nodeId === 'face_1');
+    const child = drawing.designerFaces.find(face => face.nodeId === grown.nodeId);
+
+    expect(parent.d).not.toBe(clean.designerFaces.find(face => face.nodeId === 'face_1').d);
+    expect(child.center).toEqual(clean.designerFaces.find(face => face.nodeId === grown.nodeId).center);
+    expect(child.d.split('L')).toHaveLength(4);
+    expect(drawing.designerFoldEdges).toEqual(clean.designerFoldEdges);
+    expect(drawing.layers.find(layer => layer.standardCode === 'cut.inner')?.paths).toHaveLength(1);
   });
 
   it('stores a face sketch on the node and emits an OCCS polygon with the authored sketch extension', async () => {

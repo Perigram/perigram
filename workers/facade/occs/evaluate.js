@@ -2,6 +2,7 @@ import {
   buildCassetteV2CassetteMarkLayerData,
   buildCassetteV2TreeCurves,
   cassetteV2BooleanOperationsForEntities,
+  faceSketchCutEntitiesForTree,
   profileCutEntitiesForTree,
   profileEdgeEmbeddingsForTree,
   resultInnerCutEntities
@@ -110,15 +111,18 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
       });
     }
 
-    // Closed profiles carry boolean operations on the host face (owner
-    // law 2026-10-19): adds unite into the face, subtracts cut from it —
-    // the same grouped fold the designer applies.
-    const profileCutEntities = (await profileCutEntitiesForTree(workpieceCurves, tree))
-      .filter(entity => faceCurves.has(entity.target));
+    // Closed profiles and sketch-face subtracts carry boolean
+    // operations on the host face (owner law 2026-10-19): adds unite
+    // into the face, subtracts cut from it — the same grouped fold the
+    // designer applies.
+    const cutEntities = [
+      ...(await profileCutEntitiesForTree(workpieceCurves, tree)),
+      ...faceSketchCutEntitiesForTree(workpieceCurves)
+    ].filter(entity => faceCurves.has(entity.target));
     const cutEmbeddedCurves = [];
     for (const curve of embeddedCurves) {
       const operations = cassetteV2BooleanOperationsForEntities(
-        profileCutEntities.filter(entity => entity.target === curve.node.id)
+        cutEntities.filter(entity => entity.target === curve.node.id)
       );
       if (!operations.length) {
         cutEmbeddedCurves.push(curve);
@@ -145,7 +149,7 @@ export const evaluateOccsCassetteTemplate = async (definition = {}, parameters =
 
     // Inner cut paths ride the fold's result rings: the operands are
     // the recipe, the folded holes are the product.
-    for (const entity of resultInnerCutEntities(cutEmbeddedCurves, profileCutEntities)) {
+    for (const entity of resultInnerCutEntities(cutEmbeddedCurves, cutEntities)) {
       profileCutLayerData.push({
         layer: entity.layer,
         coordinates: entity.geometry.vertices.map(vertex => [vertex[0], vertex[1]]),
