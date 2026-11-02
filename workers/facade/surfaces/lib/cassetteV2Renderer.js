@@ -1737,6 +1737,7 @@ export const createCassetteV2OccsDocumentFromTree = async (tree = createCassette
     }
   };
   await collectEntities(profileCutEntitiesForTree(rawCurves, sourceTree));
+  await collectEntities(faceSketchCutEntitiesForTree(rawCurves));
   await collectEntities(hardwareProductionEntitiesForTree(rawCurves, sourceTree));
   // Face shapes ride the region fold: the result's outer ring and
   // hole rings are the document's derived geometry.
@@ -2365,7 +2366,7 @@ const profileEdgeIntervals = (nodeId, from, to, entities = []) => {
   return mergeEdgeIntervals(intervals);
 };
 
-const designerEdgesForBoundary = (nodeId, vertices = [], tree = createCassetteV2GraphTree(), profileEntities = []) => {
+const designerEdgesForBoundary = (nodeId, vertices = [], tree = createCassetteV2GraphTree(), footprintEntities = []) => {
   const boundaryVertices = withoutClosingVertex(vertices);
   const node = (tree.nodes || []).find(item => item.id === nodeId);
   const attachEdgeIndex = node?.parentId ? edgeIndexFromLabel(node.attachEdge, 0) : null;
@@ -2383,7 +2384,7 @@ const designerEdgesForBoundary = (nodeId, vertices = [], tree = createCassetteV2
       edgeLength,
       occupied: [
         ...edgeIntervalsForChildren(tree, nodeId, edgeIndex, edgeLength),
-        ...profileEdgeIntervals(nodeId, vertex, next, profileEntities)
+        ...profileEdgeIntervals(nodeId, vertex, next, footprintEntities)
       ]
     });
     return shards.map((shard) => {
@@ -2896,6 +2897,34 @@ export const profileCutEntitiesForTree = async (curves = [], tree = createCasset
         });
       });
     }
+  }
+  return entities;
+};
+
+// A sketch face's subtract shapes are cuts on its parent face, the same
+// profile step a closed profile section applies to its host. The rings
+// ride the face's shard frame, so the cut lands where the editor showed
+// it against the parent ghost.
+export const faceSketchCutEntitiesForTree = (curves = []) => {
+  const curveById = new Map(curves.map(curve => [curve.node.id, curve]));
+  const entities = [];
+  for (const curve of curves) {
+    const node = curve.node;
+    if (!node?.parentId || !isCassetteV2SketchFace(node)) continue;
+    const rings = curve.sketchCutPolygons || [];
+    if (!rings.length) continue;
+    const parentCurve = curveById.get(node.parentId);
+    rings.forEach((ring, index) => {
+      entities.push({
+        id: `${node.id}:face_cut:${index}`,
+        layer: OCCS_LAYER_CUT_INNER,
+        target: node.parentId,
+        workpieceId: parentCurve?.node?.workpieceId || node.workpieceId,
+        faceShapeNodeId: node.id,
+        geometry: { type: 'polygon', vertices: ring },
+        booleanOperation: 'subtract'
+      });
+    });
   }
   return entities;
 };
@@ -3558,6 +3587,7 @@ const foldedPreviewProductionEntitiesForTree = async (curves = [], tree = create
   // The curves arrive folded — their holes are the boolean result.
   const operandEntities = [
     ...(await profileCutEntitiesForTree(curves, tree)),
+    ...faceSketchCutEntitiesForTree(curves),
     ...(await hardwareProductionEntitiesForTree(curves, tree))
   ];
   return [
@@ -3740,6 +3770,7 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
   const embeddedCurves = spliceProfileEmbeddings(curves, profileEmbeddingErrors, openProfileHits);
   const productionEntities = [
     ...await profileCutEntitiesForTree(curves, tree),
+    ...faceSketchCutEntitiesForTree(curves),
     ...await hardwareProductionEntitiesForTree(curves, tree)
   ];
   const closedProfileHits = productionEntities
@@ -3766,6 +3797,7 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
     const localEmbedded = spliceProfileEmbeddings(options.foldedPreviewCurves, []);
     const localEntities = [
       ...await profileCutEntitiesForTree(options.foldedPreviewCurves, tree),
+      ...faceSketchCutEntitiesForTree(options.foldedPreviewCurves),
       ...await hardwareProductionEntitiesForTree(options.foldedPreviewCurves, tree)
     ];
     foldedPreviewCurves = await applyHardwareBooleanDifferences(localEmbedded, localEntities);
@@ -3782,9 +3814,10 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
       labelBoundaryVertices
     };
   });
-  const profileEntities = productionEntities.filter(entity => entity.profileWorkpieceId);
+  const footprintEntities = productionEntities
+    .filter(entity => entity.profileWorkpieceId || entity.faceShapeNodeId);
   const designerEdges = drawingCurves.flatMap(curve => (
-    designerEdgesForBoundary(curve.node.id, curve.labelBoundaryVertices, tree, profileEntities)
+    designerEdgesForBoundary(curve.node.id, curve.labelBoundaryVertices, tree, footprintEntities)
   ));
   const designerFoldEdges = designerFoldEdgesForTree(shapedCurves, tree);
   const foldedPreview = await foldedPreviewForTree(foldedPreviewCurves, tree, { includeJoints: options.includeFoldedPreviewJoints });
@@ -4041,22 +4074,59 @@ const rawFaceVertices = (curve) => curve?.originalBoundaryVertices
   || curve?.vertices
   || [];
 
-// A face sketch resolves to the face region through the same ordered
-// boolean fold the profile section uses: adds unite, subtracts cut. The
-// result must be one outline — a face is one connected sheet region.
-export const resolveCassetteV2FaceSketchRegion = async (sketch = {}, parameters = {}) => {
+// The face's attachment edge is E0: the outer ring rotates so its edge
+// on the datum line (y = 0, running +X) starts the ring. Fold routes
+// hinge on that index for trapezoid and sketch faces alike.
+const rotateSketchRingToAttachment = (ring = []) => {
+  const points = ring.map(point => [numeric(point?.[0], 0), numeric(point?.[1], 0), 0]);
+  const closed = points.length > 1 && pointsEqual(points[0], points[points.length - 1]);
+  const open = closed ? points.slice(0, -1) : points;
+  let index = -1;
+  let best = { distance: Infinity, x: Infinity };
+  for (let current = 0; current < open.length; current += 1) {
+    const from = open[current];
+    const to = open[(current + 1) % open.length];
+    if (to[0] - from[0] <= 0.001) continue;
+    const distance = Math.max(Math.abs(from[1]), Math.abs(to[1]));
+    if (distance < best.distance - 0.001
+      || (Math.abs(distance - best.distance) <= 0.001 && from[0] < best.x)) {
+      index = current;
+      best = { distance, x: from[0] };
+    }
+  }
+  if (index < 0) return points;
+  const rotated = [...open.slice(index), ...open.slice(0, index)];
+  return closed ? [...rotated, rotated[0]] : rotated;
+};
+
+// A face sketch resolves to the face region from its add shapes: the
+// same ordered boolean fold the profile section uses, applied to the
+// adds alone. Subtracts are cuts on the parent face (the profile steps
+// applied to a host) and ride the face cut pass. The add fold must
+// resolve to one outline — a face is one connected sheet region.
+const resolveCassetteV2FaceSketchGeometry = async (sketch = {}, parameters = {}) => {
   const evaluated = evaluateOccsProfileSketch(sketch, parameters);
   const { section } = buildOccsProfileFromEvaluatedSketch(evaluated);
-  const operations = resolveOccsProfileSectionOperations(section);
-  if (!operations?.length) throw new Error('Face shape has no closed outline');
-  const region = await foldCassetteV2Region({ polygons: [], holes: [] }, operations);
+  const operations = resolveOccsProfileSectionOperations(section) || [];
+  const addOperations = operations.filter(operation => operation.op === 'add');
+  if (!addOperations.length) throw new Error('Face shape has no closed outline');
+  const region = await foldCassetteV2Region({ polygons: [], holes: [] }, addOperations);
   if (region.polygons.length !== 1) {
     throw new Error('Face shape must resolve to one closed outline');
   }
   return {
-    outer: region.polygons[0],
-    holes: region.holes
+    outer: rotateSketchRingToAttachment(region.polygons[0]),
+    holes: region.holes,
+    cuts: operations
+      .filter(operation => operation.op === 'subtract')
+      .flatMap(operation => operation.polygons)
+      .filter(ring => ring.length >= 3)
   };
+};
+
+export const resolveCassetteV2FaceSketchRegion = async (sketch = {}, parameters = {}) => {
+  const { outer, holes } = await resolveCassetteV2FaceSketchGeometry(sketch, parameters);
+  return { outer, holes };
 };
 
 const placeSketchRing = (ring = [], frame) => ring.map(point => [
@@ -4100,7 +4170,7 @@ const buildCassetteV2LocalTreeCurves = async (sourceTree) => {
           0
         ]
       };
-      const region = await resolveCassetteV2FaceSketchRegion(node.sketch, parameters);
+      const region = await resolveCassetteV2FaceSketchGeometry(node.sketch, parameters);
       const localVertices = region.outer;
       const localHoles = region.holes;
       const vertices = placeSketchRing(localVertices, shiftedFrame);
@@ -4112,6 +4182,7 @@ const buildCassetteV2LocalTreeCurves = async (sourceTree) => {
         holes: localHoles.map(ring => placeSketchRing(ring, shiftedFrame)),
         localVertices,
         localHoles,
+        sketchCutPolygons: region.cuts.map(ring => placeSketchRing(ring, shiftedFrame)),
         frame: shiftedFrame,
         referenceVertices: boundaryVertices,
         shapeType: 'polygon',
@@ -4190,6 +4261,7 @@ const transformCurve = (curve, transform = {}) => {
     vertices,
     boundaryVertices: withoutClosingVertex(vertices),
     ...(Array.isArray(curve.holes) ? { holes: curve.holes.map(place) } : {}),
+    ...(Array.isArray(curve.sketchCutPolygons) ? { sketchCutPolygons: curve.sketchCutPolygons.map(place) } : {}),
     ...(Array.isArray(curve.referenceVertices) ? { referenceVertices: withoutClosingVertex(place(curve.referenceVertices)) } : {}),
     ...(Array.isArray(curve.originalBoundaryVertices) ? { originalBoundaryVertices: withoutClosingVertex(place(curve.originalBoundaryVertices)) } : {}),
     ...(Array.isArray(curve.labelBoundaryVertices) ? { labelBoundaryVertices: withoutClosingVertex(place(curve.labelBoundaryVertices)) } : {})

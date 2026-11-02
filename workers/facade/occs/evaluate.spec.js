@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultOccsCassetteTemplateDefinition } from './templates.js';
 import { evaluateOccsCassetteTemplate } from './evaluate.js';
 import {
+  addCassetteV2GraphChild,
   addCassetteV2ProfileWorkpiece,
   addCassetteV2Workpiece,
   createCassetteV2GraphTree,
@@ -227,22 +228,26 @@ describe('OCCS cassette evaluation', () => {
     });
   });
 
-  it('carries a parametric face sketch into the OCCS face and inner cuts', async () => {
+  it('carries a parametric face sketch and cuts its subtract shapes from the parent', async () => {
+    const grown = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 0, { edgeLength: 500 });
+    grown.tree.nodes[1].parameters.defaultLength = '100';
+    grown.tree.nodes[1].parameters.height = '100';
     const sketch = {
-      parameters: { W: 120, H: 80, D: 20 },
+      parameters: { W: 100, H: 100, D: 40 },
       shapes: [
         { id: 'outline', type: 'rect', op: 'add', center: ['W/2', 'H/2'], width: 'W', height: 'H' },
-        { id: 'hole', type: 'circle', op: 'subtract', center: ['W/2', 'H/2'], diameter: 'D' }
+        { id: 'hole', type: 'circle', op: 'subtract', center: ['W/2', '-40'], diameter: 'D' }
       ]
     };
-    const tree = updateCassetteV2FaceSketch(createCassetteV2GraphTree(), 'face_1', sketch);
+    const tree = updateCassetteV2FaceSketch(grown.tree, grown.nodeId, sketch);
     const definition = await createCassetteV2OccsDocument(tree);
     const result = await evaluateOccsCassetteTemplate(definition, {});
-    const face = definition.definitions.workpieces[0].faces[0];
+    const [parent, child] = definition.definitions.workpieces[0].faces;
 
-    expect(face.shape).toMatchObject({ type: 'polygon' });
-    expect(face.shape.holes).toHaveLength(1);
-    expect(face.extensions.perigram.sketch.parameters).toMatchObject({ W: 120, H: 80, D: 20 });
+    expect(child.shape).toMatchObject({ type: 'polygon' });
+    expect(child.shape.holes).toHaveLength(0);
+    expect(child.extensions.perigram.sketch.parameters).toMatchObject({ W: 100, H: 100, D: 40 });
+    expect(parent.shape.holes).toHaveLength(1);
     expect(result.layerData.filter(item => item.layer === 'cut.inner')).toHaveLength(1);
   });
 });

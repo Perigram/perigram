@@ -2604,6 +2604,17 @@ Ordered steps:
   `profileAnnotations.spec.js`, `profileEmbedding.spec.js`,
   `evaluate.spec.js`.
 
+  ### Agent Notes (2026-11-02, face subtract cuts)
+
+  Session `agent/face-shape-parent-cut-20261102`. A sketch face's add
+  shapes resolve the face; its subtract shapes emit parent-face cut
+  entities through `faceSketchCutEntitiesForTree`, placed by the face's
+  shard frame and consumed by the 2D drawing, folded 3D, and OCCS
+  document passes. The evaluated add ring rotates so E0 is the datum
+  edge, keeping fold routes and edge indexes stable through conversion.
+  Face cuts and closed-profile footprints share the free-shard
+  allocation.
+
 - [ ] WAITING — owner verification: Profile editor isolation (owner
   direction 2026-11-02): the profile editor edits and evaluates the
   authored sketch alone; placement instance rows never enter it, saving

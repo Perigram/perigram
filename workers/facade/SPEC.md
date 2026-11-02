@@ -494,23 +494,29 @@ state and carries the reason in the field title.
 
 Owner decision (2026-11-02, faces are parametric shapes): a face may be
 authored as a parametric sketch in the profile shape model instead of a
-trapezoid. The sketch folds from an empty region — adds unite, subtracts
-cut, construction is excluded — and must resolve to one closed outline;
-holes ride the face's `cut.inner` production pass. The sketch is the
-node's authored truth (`sketch`), the OCCS face is the evaluated
-`polygon`, and the authored sketch rides
-`face.extensions.perigram.sketch`. The face editor is the profile editor
-in face mode: same expressions, fillets, shape list, dimensions, and
-undo stack; the material-side toggle is absent and the hatch is the face
-itself. Its datum is the parent edge the face mounts to — a horizontal
-line spanning the host edge in the face's shard coordinates (the shard
-start sits at zero), never the profile's vertical material axis. The
-parent face renders as a ghost outline in the same coordinates, so the
-author sees the real parent geometry and mounts the child to it. A root
-face uses its own base edge as that line. Converting a trapezoid seeds the sketch from its current
-outline, keeping authored width and height expressions for a rectangle
-and a closed chain for any other outline; clearing the sketch returns
-the face to its trapezoid parameters.
+trapezoid. Add shapes fold from an empty region into the face and must
+resolve to one closed outline; construction is excluded. On a child
+face, every subtract shape is a cut on the parent face — the same
+profile step a closed profile section applies to its host — placed in
+the face's shard coordinates and riding `cut.inner`. The sketch is the node's authored
+truth (`sketch`), the OCCS face is the evaluated add region (`polygon`),
+and the authored sketch rides `face.extensions.perigram.sketch`. The
+face editor is the profile editor in face mode: same expressions,
+fillets, shape list, dimensions, and undo stack; the hatch is the face
+itself and the material-side toggle belongs to profile mode. Its datum
+is the parent edge the face mounts to — a horizontal line spanning the
+host edge in the face's shard coordinates (the shard start sits at
+zero). The parent face renders as a ghost outline in the same
+coordinates, so the author sees the real parent geometry and mounts the
+child to it. A root face uses its own
+base edge as that line. Converting a trapezoid seeds the sketch from its
+current outline, keeping authored width and height expressions for a
+rectangle and a closed chain for any other outline; clearing the sketch
+returns the face to its trapezoid parameters. The face's attachment edge
+is its first ring edge; the evaluated add ring rotates to start on the
+datum line so folds and edge indexes hold across the trapezoid and
+sketch authoring paths. Fold routes read the authored boundaries, so a
+subtract shape cutting the parent leaves every bend curve unchanged.
 
 Owner decision (2026-11-01, shape identity): the sketch model is the
 truth and the canvas its projection, so a shape's identity rides its
