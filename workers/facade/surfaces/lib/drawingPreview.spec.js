@@ -11,17 +11,21 @@ describe('drawing preview contract', () => {
     const drawing = normalizeGeometryDrawing({
       viewBox: '0 0 10 10',
       designerFaces: [{ nodeId: 'face_1', d: 'M 0 0 L 10 0 L 10 10 Z' }],
+      designerProfiles: [{ id: 'p1', workpieceId: 'wp_2', relationId: 'joint_1', d: 'M 1 1 L 2 1 L 2 2 Z' }],
       designerFoldEdges: [{ foldNodeId: 'face_2', angle: '90' }],
       designerSections: { handles: [{ orientation: 'vertical' }], segments: [{ orientation: 'vertical', d: 'M 5 0 L 5 10' }] },
       designerEdges: [{ nodeId: 'face_1', edgeIndex: 0 }],
+      designerAttachmentMarkers: [{ id: 'm1', x: 1, y: 2 }],
       foldedPreview: { faces: [{ nodeId: 'face_1' }], folds: [] },
       layers: [{ name: 'geometry', paths: ['M 0 0 L 10 0'] }]
     });
 
     expect(drawing.designerFaces).toEqual([{ nodeId: 'face_1', d: 'M 0 0 L 10 0 L 10 10 Z' }]);
+    expect(drawing.designerProfiles).toEqual([{ id: 'p1', workpieceId: 'wp_2', relationId: 'joint_1', d: 'M 1 1 L 2 1 L 2 2 Z' }]);
     expect(drawing.designerFoldEdges).toEqual([{ foldNodeId: 'face_2', angle: '90' }]);
     expect(drawing.designerSections).toEqual({ handles: [{ orientation: 'vertical' }], segments: [{ orientation: 'vertical', d: 'M 5 0 L 5 10' }] });
     expect(drawing.designerEdges).toEqual([{ nodeId: 'face_1', edgeIndex: 0 }]);
+    expect(drawing.designerAttachmentMarkers).toEqual([{ id: 'm1', x: 1, y: 2 }]);
     expect(drawing.foldedPreview).toEqual({ faces: [{ nodeId: 'face_1' }], folds: [] });
   });
 

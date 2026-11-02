@@ -382,9 +382,11 @@ export const normalizeGeometryDrawing = (source, options = {}) => {
       viewBox: preview.viewBox || '0 0 100 60',
       vertices: preview.vertices || [],
       designerFaces: preview.designerFaces || [],
+      designerProfiles: preview.designerProfiles || [],
       designerFoldEdges: preview.designerFoldEdges || [],
       designerSections: preview.designerSections || { handles: [], segments: [] },
       designerEdges: preview.designerEdges || [],
+      designerAttachmentMarkers: preview.designerAttachmentMarkers || [],
       foldedPreview: preview.foldedPreview || { faces: [], folds: [] },
       layers: layers.map(layer => ({
         name: layer.name || 'geometry',
