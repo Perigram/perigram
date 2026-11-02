@@ -154,7 +154,7 @@ export default function createSurface({ vue, components, locale, queries, record
   const parameterNameDraft = createFieldDraft({ vue });
   const CassetteFoldedPreview = createFoldedPreview({ vue, components, locale });
   const ProfileSketchEditor = createSketchEditor({ vue, components, locale });
-  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, InputNumber, Message, ScrollPanel, Select, Tag, InstanceSelect } = components;
+  const { DrawingCanvas, DesignerSurface, DesignerWorkspace, StandardDialog, Popover, Button, Checkbox, InputText, InputNumber, InputGroup, InputGroupAddon, Message, ScrollPanel, Select, Tag, InstanceSelect } = components;
 
   return defineComponent({
     name: 'CassetteDesignerV2',
@@ -2383,43 +2383,40 @@ export default function createSurface({ vue, components, locale, queries, record
           const profileRow = kind === 'profile'
             ? workpieceRowById.value.get(relation.sourceWorkpieceId)
             : null;
-          // Caption blocks, not <label>s: a label wraps exactly one
-          // control, and the editor's token panel carries buttons —
-          // the browser forwards a click on the label to its first
-          // button, typing phantom tokens into the field.
-          const expressionField = (labelKey, value, key) => {
-            const field = {
-              class: 'min-w-0',
+          // PrimeVue InputGroup rows carry the field label in the addon:
+          // one row per field, one row per parameter.
+          const labeledRow = (label, control, className = '') => h(InputGroup, { class: className }, [
+            h(InputGroupAddon, { class: 'shrink-0 text-xs' }, () => label),
+            control
+          ]);
+          const expressionField = (labelKey, value, key, className = '') => labeledRow(
+            t(labelKey),
+            h(CassetteExpressionEditor, {
+              class: 'min-w-0 flex-1',
               modelValue: value,
               parameters: globalParameters.value,
               parameterNames: globalParameterNames.value,
-              placeholder: t(labelKey),
               title: t(labelKey),
               'aria-label': t(labelKey),
               'onUpdate:modelValue': next => updateInlineAttachmentRelation({ [key]: next })
-            };
-            return compact
-              ? h(CassetteExpressionEditor, field)
-              : h('div', {
-                  class: 'flex min-w-0 flex-col gap-1 text-muted text-label',
-                  title: t(labelKey)
-                }, [
-                  h('span', { class: 'truncate' }, t(labelKey)),
-                  h(CassetteExpressionEditor, field)
-                ]);
-          };
-          const selectField = (labelKey, modelValue, options, key) => h(Select, {
-            modelValue,
-            options: options.value,
-            optionLabel: 'label',
-            optionValue: 'value',
-            class: 'w-full',
-            size: 'small',
-            placeholder: t(labelKey),
-            'aria-label': t(labelKey),
-            title: t(labelKey),
-            'onUpdate:modelValue': value => updateInlineAttachmentRelation({ [key]: value })
-          });
+            }),
+            className
+          );
+          const selectField = (labelKey, modelValue, options, key, className = '') => labeledRow(
+            t(labelKey),
+            h(Select, {
+              modelValue,
+              options: options.value,
+              optionLabel: 'label',
+              optionValue: 'value',
+              class: 'min-w-0 flex-1',
+              size: 'small',
+              'aria-label': t(labelKey),
+              title: t(labelKey),
+              'onUpdate:modelValue': value => updateInlineAttachmentRelation({ [key]: value })
+            }),
+            className
+          );
           const dragHandle = fields => h('div', {
             class: 'flex cursor-move items-center gap-1',
             onMousedown: event => { event.preventDefault(); startInlineEditorDrag(event); }
@@ -2462,19 +2459,7 @@ export default function createSurface({ vue, components, locale, queries, record
           } else {
             body = h('div', { class: compact ? 'flex w-80 flex-col gap-1.5' : 'flex w-96 flex-col gap-2' }, [
               dragHandle([
-                h(Select, {
-                  modelValue: relation.targetFaceId,
-                  options: targetFaceOptions.value,
-                  optionLabel: 'label',
-                  optionValue: 'value',
-                  class: 'min-w-0 flex-1',
-                  size: 'small',
-                  placeholder: t('cassette.v2.attachmentFields.targetFace'),
-                  'aria-label': t('cassette.v2.attachmentFields.targetFace'),
-                  title: t('cassette.v2.attachmentFields.targetFace'),
-                  onMousedown: event => event.stopPropagation(),
-                  'onUpdate:modelValue': value => updateInlineAttachmentRelation({ targetFaceId: value })
-                }),
+                selectField('cassette.v2.attachmentFields.targetFace', relation.targetFaceId, targetFaceOptions, 'targetFaceId', 'min-w-0 flex-1'),
                 kind === 'profile'
                   ? h(Button, {
                       icon: 'pi pi-pencil',
@@ -2502,7 +2487,7 @@ export default function createSurface({ vue, components, locale, queries, record
                     })
                   : null
               ]),
-              h('div', { class: compact ? 'grid grid-cols-3 gap-1.5' : 'grid grid-cols-2 gap-2' }, [
+              h('div', { class: 'grid grid-cols-2 gap-1.5' }, [
                 selectField('cassette.v2.attachmentFields.targetSnap', relation.targetSnap, snapOptions, 'targetSnap'),
                 expressionField('cassette.v2.attachmentFields.edgeMargin', relation.offsetX, 'offsetX'),
                 expressionField('cassette.v2.attachmentFields.normalOffset', relation.offsetY, 'offsetY'),
@@ -2512,33 +2497,24 @@ export default function createSurface({ vue, components, locale, queries, record
                   : null,
                 selectField('cassette.v2.attachmentFields.placementMode', relation.placementMode, placementModeOptions, 'placementMode'),
                 relation.placementMode === 'edgeArray'
-                  ? h(Select, {
-                      modelValue: relation.arrayEdge,
-                      options: attachableEdgeOptions(relation.targetFaceId),
-                      optionLabel: 'label',
-                      optionValue: 'value',
-                      class: 'w-full',
-                      size: 'small',
-                      placeholder: t('cassette.v2.attachmentFields.arrayEdge'),
-                      'aria-label': t('cassette.v2.attachmentFields.arrayEdge'),
-                      title: t('cassette.v2.attachmentFields.arrayEdge'),
-                      'onUpdate:modelValue': value => updateInlineAttachmentRelation({ placementMode: 'edgeArray', arrayEdge: value })
-                    })
+                  ? selectField('cassette.v2.attachmentFields.arrayEdge', relation.arrayEdge, attachableEdgeOptions(relation.targetFaceId), 'arrayEdge')
                   : null,
                 relation.placementMode === 'edgeArray'
                   ? selectField('cassette.v2.attachmentFields.arrayMode', relation.arrayMode, arrayModeOptions, 'arrayMode')
                   : null,
                 relation.placementMode === 'edgeArray'
-                  ? h(CassetteExpressionEditor, {
-                      class: 'min-w-0',
-                      modelValue: arrayValue(relation),
-                      parameters: globalParameters.value,
-                      parameterNames: globalParameterNames.value,
-                      placeholder: arrayValueLabel(relation),
-                      title: arrayValueLabel(relation),
-                      'aria-label': arrayValueLabel(relation),
-                      'onUpdate:modelValue': value => updateInlineAttachmentRelation(arrayValuePatch(relation, value))
-                    })
+                  ? labeledRow(
+                      arrayValueLabel(relation),
+                      h(CassetteExpressionEditor, {
+                        class: 'min-w-0 flex-1',
+                        modelValue: arrayValue(relation),
+                        parameters: globalParameters.value,
+                        parameterNames: globalParameterNames.value,
+                        title: arrayValueLabel(relation),
+                        'aria-label': arrayValueLabel(relation),
+                        'onUpdate:modelValue': value => updateInlineAttachmentRelation(arrayValuePatch(relation, value))
+                      })
+                    )
                   : null,
                 kind === 'profile' && relation.placementMode === 'edgeArray'
                   ? expressionField('cassette.v2.attachmentFields.spanStart', relation.arraySpanStart, 'arraySpanStart')
@@ -2664,8 +2640,9 @@ export default function createSurface({ vue, components, locale, queries, record
         'aria-hidden': 'true'
       });
 
-      // Each bound parameter is its name beside one compact expression
-      // field; the derived value rides the name's title.
+      // Each bound parameter is its PrimeVue InputGroup row: the name
+      // rides the addon, the expression field carries the value; the
+      // derived value rides the addon's title.
       const profileParameterFields = (row) => [...(row?.boundParameterKeys || [])].map((key) => {
         const instance = row.instanceParameters || {};
         const authored = row.authoredParameters || {};
@@ -2673,14 +2650,14 @@ export default function createSurface({ vue, components, locale, queries, record
           ? instance[key]
           : authored[key];
         const derived = row.parameters?.[key];
-        return h('div', {
+        return h(InputGroup, {
           key: `${row.id}-${key}`,
-          class: 'flex min-w-0 items-center gap-1'
+          class: 'min-w-0'
         }, [
-          h('span', {
-            class: 'w-10 shrink-0 truncate font-mono text-xs text-muted',
+          h(InputGroupAddon, {
+            class: 'shrink-0 font-mono text-xs',
             title: derived === undefined ? key : `${key} = ${derived}`
-          }, key),
+          }, () => key),
           profileParameterField(row, key, value)
         ]);
       });
