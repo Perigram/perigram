@@ -235,13 +235,17 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   resolve to one closed outline; its holes ride `cut.inner`. The OCCS
   face shape is the evaluated `polygon`, and the authored sketch rides
   `face.extensions.perigram.sketch`. The trapezoid face remains the
-  quick path; converting seeds the sketch from the current outline.
+  quick path; converting seeds the sketch from the current outline. The
+  face editor's datum is the parent edge line in shard coordinates (the
+  shard start is zero), not the profile's vertical material axis.
 - **Edge spans** — a host edge is an interval. Child faces carry
   `edgeStart` plus their `defaultLength`; open profiles carry the edge
   array's `spanStart`/`spanWidth`. Free shards exclude child faces and
   open-profile spans, and a placement that overlaps or overflows
-  refuses. Folds and contour splices use the owned interval only.
-  Closed profile sections cut the face without consuming edge space.
+  refuses. Folds and contour splices use the owned interval only. The
+  designer draws one + handle per free shard; a face's own base edge
+  carries none. Closed profile sections cut the face without consuming
+  edge space.
 - **`production-layout.js`** — wraps the Clipper-backed face
   union/fold-route pass and returns semantic `cut.outer` / `fold.route`
   layer intent.

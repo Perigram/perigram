@@ -230,7 +230,13 @@ const ringsOf = (face) => (
 );
 
 /** The native CadCraft entities that carry the profile canvas annotations. */
-export function buildProfileAnnotations({ evaluated, authored = null, resolvedFace = null } = {}) {
+export function buildProfileAnnotations({
+  evaluated,
+  authored = null,
+  resolvedFace = null,
+  basisStart = null,
+  basisEnd = null
+} = {}) {
   const shapes = evaluated?.shapes || [];
   const authoredById = new Map((authored?.shapes || []).map(shape => [shape.id, shape]));
   const primitives = shapes
@@ -265,10 +271,18 @@ export function buildProfileAnnotations({ evaluated, authored = null, resolvedFa
       });
     }
   }
-  decorations.push(
-    { type: 'xline', x: 0, y: 0, dx: 0, dy: 1, color: 7, layer: PROFILE_ANNOTATION_LAYER },
-    { type: 'point', x: 0, y: 0, color: 7, layer: PROFILE_ANNOTATION_LAYER }
-  );
+  if (Number.isFinite(basisStart) && Number.isFinite(basisEnd) && basisEnd > basisStart) {
+    decorations.push({
+      type: 'poly',
+      pts: [point(basisStart, 0), point(basisEnd, 0)],
+      closed: false,
+      color: 7,
+      layer: PROFILE_ANNOTATION_LAYER
+    });
+  } else {
+    decorations.push({ type: 'xline', x: 0, y: 0, dx: 0, dy: 1, color: 7, layer: PROFILE_ANNOTATION_LAYER });
+  }
+  decorations.push({ type: 'point', x: 0, y: 0, color: 7, layer: PROFILE_ANNOTATION_LAYER });
   return { dimensions, decorations };
 }
 
