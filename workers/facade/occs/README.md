@@ -207,10 +207,11 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     edits and evaluates the authored sketch alone, and saving preserves
     the workpiece's overrides. A dimension typed on a field bound to a
     bare authored identifier commits that authored row; a
-    surrounding-scope identifier stays in its own table and never becomes
-    a profile or override row. An override row whose name the sketch does
-    not author is pruned from the instance table; an authored row may
-    shadow a same-named global and keeps its override.
+    surrounding-scope identifier stays in its own table. Typing a value
+    into a field bound to it makes that field local; the global never
+    becomes a profile or override row. An override row whose name the
+    sketch does not author is pruned from the instance table; an authored
+    row may shadow a same-named global and keeps its override.
   - Instance values may be cassette expressions resolved in the joined
     scope — the profile's own table shadows the cassette's globals
     (inner over outer) — while the raw expression stays stored. The

@@ -352,7 +352,8 @@ evaluates the authored sketch alone; the workpiece's instance overrides
 stay on the cassette and never enter the editor. A dimension typed on a
 field bound to an authored bare identifier commits that authored row. A
 field bound to a surrounding-scope identifier keeps reading that scope;
-the editor never mints a profile row for it.
+typing a value there makes that field local, and the editor never mints
+a profile row for the global.
 
 Owner decision (2026-10-19, profile drawing; ordered-sequence
 amendment, same day): the fold is an ordered CSG sequence — each
