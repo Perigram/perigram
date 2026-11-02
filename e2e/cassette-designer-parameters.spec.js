@@ -54,7 +54,7 @@ const openProfilePopup = async (page) => {
   } else {
     await page.locator('aside').getByRole('button', { name: /^Hanger profile/ }).first().click();
   }
-  await expect(page.locator('div[aria-label^="Parameters "]').first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator('div.z-\\[120\\]').first()).toBeVisible({ timeout: 20_000 });
 };
 
 test('profile parameter chips re-evaluate the placed profile; array position fields hold drafts', async ({ app }) => {
