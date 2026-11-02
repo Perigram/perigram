@@ -39,6 +39,8 @@ const props = defineProps({
   layerMapping: { type: Object, default: () => ({}) },
   showLayerPanel: { type: Boolean, default: false },
   selectedDesignerFaceId: { type: String, default: null },
+  selectedDesignerProfileId: { type: String, default: null },
+  designerProfileSelectable: { type: Boolean, default: true },
   designerSelectableWorkpieceIds: { type: Array, default: null },
   showDesignerWorkpieceContext: { type: Boolean, default: false },
   visibleLayerNames: { type: Array, default: null },
@@ -58,6 +60,7 @@ const emit = defineEmits([
   'layer-toggle',
   'designer-action',
   'designer-face-select',
+  'designer-profile-select',
   'designer-fold-select',
   'designer-face-command',
   'designer-point-edit',
@@ -82,6 +85,7 @@ const panStart = ref({ x: 0, y: 0 });
 const hoveredEdge = ref(null);
 const hoveredFoldEdge = ref(null);
 const hoveredFaceId = ref(null);
+const hoveredProfileId = ref(null);
 const activeSectionDrag = ref(null);
 let faceHoverClearTimer = null;
 let svgResizeObserver = null;
@@ -619,6 +623,15 @@ const requestDesignerFaceSelect = (face) => {
   });
 };
 
+const requestDesignerProfileSelect = (profile, event = null) => {
+  emit('designer-profile-select', {
+    type: 'select-profile',
+    profile,
+    clientX: event?.clientX,
+    clientY: event?.clientY
+  });
+};
+
 const screenPointForCanvasPoint = (x, y, event = null) => {
   if (event) return clampMenuPoint(event.clientX, event.clientY);
   try {
@@ -706,6 +719,17 @@ const isDesignerFaceActive = (face) => (
   face?.nodeId === hoveredFaceId.value ||
   face?.nodeId === props.selectedDesignerFaceId
 );
+
+const isDesignerProfileActive = (profile) => (
+  profile?.workpieceId === hoveredProfileId.value ||
+  profile?.workpieceId === props.selectedDesignerProfileId
+);
+
+const designerProfileOpacity = (profile) => {
+  if (profile?.workpieceId === hoveredProfileId.value) return 0.12;
+  if (profile?.workpieceId === props.selectedDesignerProfileId) return 0.08;
+  return 0.001;
+};
 
 const designerFaceOpacity = (face) => {
   if (face?.nodeId === hoveredFaceId.value) return 0.12;
@@ -1072,6 +1096,55 @@ onBeforeUnmount(() => {
                   +
                 </text>
               </g>
+            </g>
+
+            <template v-if="designerProfileSelectable">
+              <g
+                v-for="profile in drawing.designerProfiles || []"
+                :key="`profile-hit-${profile.id}`"
+                class="cursor-pointer"
+                :data-designer-profile-id="profile.workpieceId"
+                :data-designer-profile-relation-id="profile.relationId"
+                @mouseenter="hoveredProfileId = profile.workpieceId"
+                @mouseleave="hoveredProfileId = null"
+                @click.stop.prevent="requestDesignerProfileSelect(profile, $event)"
+              >
+                <path
+                  v-if="!profile.open"
+                  :d="profile.d"
+                  fill="currentColor"
+                  :opacity="designerProfileOpacity(profile)"
+                  stroke="none"
+                  pointer-events="fill"
+                  vector-effect="non-scaling-stroke"
+                />
+                <path
+                  :d="profile.d"
+                  fill="none"
+                  stroke="currentColor"
+                  opacity="0.001"
+                  stroke-width="18"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  pointer-events="stroke"
+                  vector-effect="non-scaling-stroke"
+                />
+              </g>
+            </template>
+
+            <g
+              v-for="profile in drawing.designerProfiles || []"
+              :key="`profile-outline-${profile.id}`"
+              v-show="isDesignerProfileActive(profile)"
+            >
+              <path
+                :d="profile.d"
+                fill="none"
+                stroke="currentColor"
+                :stroke-width="displayStrokeWidth(1)"
+                pointer-events="none"
+                vector-effect="non-scaling-stroke"
+              />
             </g>
 
             <g
