@@ -3541,15 +3541,16 @@ thumbnails.
 ## Profile management on the cassette canvas (owner direction 2026-11-02)
 
 Placed profiles are canvas objects. Their placed section geometry is the
-hit area: a click selects the profile and opens one popup carrying the
-placement fields, the parameter table beside its derived values, and the
-edit and delete actions. Add profile moves to the canvas toolbar. The
-palette keeps profiles as assembly rows and leaves authoring, parameter
-editing, placement, and removal to the canvas.
+hit area: a click selects the profile and opens one compact popup carrying
+the placement fields, name-and-value parameter fields, and the edit and
+delete actions. Add profile moves to the canvas toolbar. The palette keeps
+profiles as assembly rows and leaves authoring, parameter editing,
+placement, and removal to the canvas.
 
 - [ ] WAITING — owner verification: clicking a placed profile on the
-  canvas opens its placement-and-parameters popup; edit, delete, and Add
-  profile work from the canvas; the palette's profile controls are gone.
+  canvas opens its compact placement-and-parameters popup; edit, delete,
+  and Add profile work from the canvas; the palette's profile controls are
+  gone.
 
 ### Agent Notes (2026-11-02, profile management on the canvas)
 
@@ -3562,10 +3563,19 @@ an attachment editor owns face clicks. The cassette designer opens the
 existing attachment inline editor from a profile hit and adds the
 profile's parameter fields, edit, and delete there; Add profile rides the
 canvas toolbar; the palette's profile add, parameter chips, placement,
-edit, and delete controls are removed. Parameter labels show their
+edit, and delete controls are removed. Parameter fields show their
 derived values beside the stored expressions. The drawing normalizer
 carries `designerProfiles` and the attachment markers through to the
 canvas, so the hit overlays survive the geometry-preview projection.
+
+### Agent Notes (2026-11-02, compact profile popup)
+
+Session `agent/profile-popup-compact-20261102` (worktree
+`.agent-worktrees/profile-popup-compact-20261102`). The profile popup is a
+dense three-column field grid with PrimeVue placeholders, inline X/Y
+mirror toggles, and name-and-field parameter rows without heading or
+secondary labels. Expression fields use the PrimeVue invalid state with
+the reason in the field title; the inline error message is gone.
 
 ## Stateful lifecycle contracts (2026-11-02 audit)
 

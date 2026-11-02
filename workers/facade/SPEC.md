@@ -471,11 +471,18 @@ Owner direction (2026-11-02, profile management on the canvas): a placed
 profile is a canvas object. Its placed section geometry carries the
 profile hit area, so a click selects the profile and opens one popup
 carrying the placement fields, the parameter table, and the edit and
-delete actions. The popup's parameter fields show each stored expression
-beside its derived value; typing a cassette global resolves it through
-the same scope as every other chip. The canvas toolbar carries the Add
-profile entry. The palette lists profiles as assembly rows; profile
-authoring, parameter editing, placement, and removal live on the canvas.
+delete actions. Typing a cassette global into a parameter field resolves
+it through the same scope as every other chip. The canvas toolbar carries
+the Add profile entry. The palette lists profiles as assembly rows;
+profile authoring, parameter editing, placement, and removal live on the
+canvas.
+
+Owner direction (2026-11-02, compact profile popup): the popup is a
+dense field grid. Its form controls carry PrimeVue placeholders and
+invalid states; mirror controls are icon buttons labelled X and Y; a
+parameter renders as its name beside one expression field, with no
+heading or secondary label. An invalid expression marks its field with
+the PrimeVue invalid state and carries the reason in the field title.
 
 Owner decision (2026-11-02, faces are parametric shapes): a face may be
 authored as a parametric sketch in the profile shape model instead of a
