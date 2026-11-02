@@ -3471,12 +3471,27 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
   // profile chain splices into the boundary, closed sections and
   // hardware subtract — every consumer of the face, 2D drawing and
   // folded 3D alike, sees the SAME modified geometry.
-  const spliceProfileEmbeddings = (sourceCurves, embeddingErrors) => {
+  const openProfileHits = [];
+  const spliceProfileEmbeddings = (sourceCurves, embeddingErrors, profileHits = null) => {
     const embeddingsByFace = new Map();
     for (const item of profileEdgeEmbeddingsForTree(sourceCurves, tree)) {
       if (!item.embedding.ok) {
         embeddingErrors.push({ relationId: item.relationId, reason: item.embedding.reason });
         continue;
+      }
+      if (profileHits) {
+        item.embedding.copies.forEach((points, index) => {
+          const d = occsCurveToPath(points);
+          if (!d) return;
+          profileHits.push({
+            id: `${item.relationId}:open:${index}`,
+            workpieceId: item.profileWorkpieceId,
+            relationId: item.relationId,
+            open: true,
+            d,
+            center: centroidForVertices(points)
+          });
+        });
       }
       if (!embeddingsByFace.has(item.targetFaceId)) embeddingsByFace.set(item.targetFaceId, []);
       embeddingsByFace.get(item.targetFaceId).push(item.embedding);
@@ -3512,12 +3527,26 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
   profileFoldEdgeRefusalsForTree(tree).forEach((faceId, relationId) => {
     profileEmbeddingErrors.push({ relationId, reason: 'fold-edge' });
   });
-  const embeddedCurves = spliceProfileEmbeddings(curves, profileEmbeddingErrors);
+  const embeddedCurves = spliceProfileEmbeddings(curves, profileEmbeddingErrors, openProfileHits);
   const terminalEdges = profileTerminalEdgesForTree(tree);
   const productionEntities = [
     ...await profileCutEntitiesForTree(curves, tree),
     ...await hardwareProductionEntitiesForTree(curves, tree)
   ];
+  const closedProfileHits = productionEntities
+    .filter(entity => entity.profileWorkpieceId && entity.geometry?.polygons?.length)
+    .map(entity => {
+      const polygons = entity.geometry.polygons;
+      return {
+        id: entity.id,
+        workpieceId: entity.profileWorkpieceId,
+        relationId: entity.relationId,
+        open: false,
+        d: polygons.map(occsCurveToPath).filter(Boolean).join(' '),
+        center: centroidForVertices(polygons[0])
+      };
+    })
+    .filter(hit => hit.d);
   const shapedCurves = await applyHardwareBooleanDifferences(embeddedCurves, productionEntities);
   // The folded 3D rides the local (untransformed) curves in assembly
   // mode: their modification pass runs in the same space — local
@@ -3596,6 +3625,7 @@ const buildLayoutDrawingFromCurves = async (curves = [], tree = createCassetteV2
     drawing.layers = assemblyLayers.concat(hardwareLayers);
   }
   drawing.designerAttachmentMarkers = designerAttachmentMarkers;
+  drawing.designerProfiles = [...closedProfileHits, ...openProfileHits];
   drawing.profileEmbeddingErrors = profileEmbeddingErrors;
   // The plugin's layer standards bake the base pens here — every drawing
   // this renderer emits is styled; org-authored standards still override

@@ -263,6 +263,12 @@ export default function createSurface({ vue, components, locale, queries, record
           icon: 'pi pi-refresh',
           label: t('drawing.resetView'),
           onClick: () => drawingCanvasRef.value?.resetView()
+        },
+        { separator: true },
+        {
+          icon: 'pi pi-wave-pulse',
+          label: t('cassette.v2.addProfile'),
+          onClick: event => openProfilePicker(event)
         }
       ]);
 
@@ -1356,6 +1362,15 @@ export default function createSurface({ vue, components, locale, queries, record
         inspectorSelection.value = 'workpiece';
       };
 
+      const selectProfileWorkpiece = (workpieceId) => {
+        const relation = workpieceRelations.value.find(item => item.sourceWorkpieceId === workpieceId);
+        if (relation) {
+          selectWorkpieceRelation(relation.id);
+          return;
+        }
+        selectWorkpieceForInspector(workpieceId);
+      };
+
       const selectWorkpieceRelation = (relationId, event = null) => {
         closeInlineEditor();
         const relation = workpieceRelations.value.find(item => item.id === relationId);
@@ -2001,6 +2016,18 @@ export default function createSurface({ vue, components, locale, queries, record
         inspectorSelection.value = 'face';
       };
 
+      const handleDesignerProfileSelect = ({ profile, clientX, clientY } = {}) => {
+        if (!profile?.workpieceId) return;
+        if (profile.relationId) {
+          const point = Number.isFinite(clientX) && Number.isFinite(clientY)
+            ? { clientX, clientY }
+            : null;
+          selectWorkpieceRelation(profile.relationId, point);
+          return;
+        }
+        selectWorkpieceForInspector(profile.workpieceId);
+      };
+
       const handleDesignerFoldSelect = ({ fold }) => {
         if (!fold?.foldNodeId && fold?.foldNodeId !== '') return;
         if (fold.workpieceId && fold.workpieceId !== selectedWorkpieceId.value) return;
@@ -2234,6 +2261,9 @@ export default function createSurface({ vue, components, locale, queries, record
           // face, side, basis snap, and both offsets per section — with
           // no mirror, driver, or delete (the panel row owns removal).
           const kind = attachmentSourceKind(relation);
+          const profileRow = kind === 'profile'
+            ? workpieceRowById.value.get(relation.sourceWorkpieceId)
+            : null;
           // Caption blocks, not <label>s: a label wraps exactly one
           // control, and the editor's token panel carries buttons —
           // the browser forwards a click on the label to its first
@@ -2314,7 +2344,33 @@ export default function createSurface({ vue, components, locale, queries, record
                   title: t('cassette.v2.attachmentFields.targetFace'),
                   onMousedown: event => event.stopPropagation(),
                   'onUpdate:modelValue': value => updateInlineAttachmentRelation({ targetFaceId: value })
-                })
+                }),
+                kind === 'profile'
+                  ? h(Button, {
+                      icon: 'pi pi-pencil',
+                      severity: 'secondary',
+                      text: true,
+                      rounded: true,
+                      size: 'small',
+                      'aria-label': t('cassette.v2.editProfile'),
+                      title: t('cassette.v2.editProfile'),
+                      onMousedown: event => event.stopPropagation(),
+                      onClick: () => openProfileDialog(relation.sourceWorkpieceId)
+                    })
+                  : null,
+                kind === 'profile'
+                  ? h(Button, {
+                      icon: 'pi pi-trash',
+                      severity: 'danger',
+                      text: true,
+                      rounded: true,
+                      size: 'small',
+                      'aria-label': t('cassette.v2.deleteWorkpiece'),
+                      title: t('cassette.v2.deleteWorkpiece'),
+                      onMousedown: event => event.stopPropagation(),
+                      onClick: () => deleteWorkpiece(relation.sourceWorkpieceId)
+                    })
+                  : null
               ]),
               h('div', { class: 'grid grid-cols-2 gap-2' }, [
                 selectField('cassette.v2.attachmentFields.targetSnap', relation.targetSnap, snapOptions, 'targetSnap'),
@@ -2376,7 +2432,13 @@ export default function createSurface({ vue, components, locale, queries, record
                       })
                     ])
                   : null
-              ])
+              ]),
+              kind === 'profile' && profileRow
+                ? h('div', { class: 'flex flex-col gap-2 border-t border-content-border pt-2' }, [
+                    h('div', { class: 'text-muted text-label' }, t('cassette.v2.profileEditor.parameters')),
+                    h('div', { class: 'grid grid-cols-2 gap-2' }, profileParameterFields(profileRow))
+                  ])
+                : null
             ]);
           }
         } else if (editor.type === 'faceParameter' && anchorKey) {
@@ -2463,30 +2525,34 @@ export default function createSurface({ vue, components, locale, queries, record
       });
 
       // The bound parameters lay out as captioned expression fields in
-      // the palette's field grid — the attachment popup's caption
-      // pattern, never bespoke chip chrome.
+      // the canvas popup's field grid — the attachment popup's caption
+      // pattern, never bespoke chip chrome. Each label carries the
+      // derived value beside the stored expression.
+      const profileParameterFields = (row) => [...(row?.boundParameterKeys || [])].map((key) => {
+        const instance = row.instanceParameters || {};
+        const authored = row.authoredParameters || {};
+        const value = Object.prototype.hasOwnProperty.call(instance, key)
+          ? instance[key]
+          : authored[key];
+        const derived = row.parameters?.[key];
+        return h('div', {
+          key: `${row.id}-${key}`,
+          class: 'flex min-w-0 flex-col gap-1 text-muted text-label'
+        }, [
+          h('span', {
+            class: 'flex min-w-0 items-baseline gap-1',
+            title: derived === undefined ? key : `${key} = ${derived}`
+          }, [
+            h('span', { class: 'truncate' }, key),
+            derived === undefined
+              ? null
+              : h('small', { class: 'shrink-0 text-muted' }, `= ${derived}`)
+          ]),
+          profileParameterField(row, key, value)
+        ]);
+      });
+
       const workpieceDetailBlocks = (row) => [
-        row.id === selectedWorkpieceId.value && row.isProfile
-          ? h('div', { class: 'mt-2 grid grid-cols-2 gap-2 pl-4' },
-              [...(row.boundParameterKeys || [])].map((key) => {
-                const instance = row.instanceParameters || {};
-                const authored = row.authoredParameters || {};
-                const value = Object.prototype.hasOwnProperty.call(instance, key)
-                  ? instance[key]
-                  : authored[key];
-                const derived = row.parameters?.[key];
-                return h('div', {
-                  key: `${row.id}-${key}`,
-                  class: 'flex min-w-0 flex-col gap-1 text-muted text-label'
-                }, [
-                  h('span', {
-                    class: 'truncate',
-                    title: derived === undefined ? key : `${key} = ${derived}`
-                  }, key),
-                  profileParameterField(row, key, value)
-                ]);
-              }))
-          : null,
         row.id === selectedWorkpieceId.value && row.isHardware
           ? h('div', { class: 'mt-2 flex flex-col gap-2 pl-4' }, [
               h('div', { class: 'grid grid-cols-2 gap-2' }, [
@@ -2562,7 +2628,9 @@ export default function createSurface({ vue, components, locale, queries, record
             h('button', {
               type: 'button',
               class: ['flex min-w-0 flex-1 flex-col gap-0.5 rounded-ui border px-2 py-1 text-left', isSelected ? 'border-primary bg-subtle' : 'border-content-border'],
-              onClick: () => selectWorkpieceForInspector(dependent.id)
+              onClick: () => (dependent.isProfile
+                ? selectProfileWorkpiece(dependent.id)
+                : selectWorkpieceForInspector(dependent.id))
             }, [
               h('div', { class: 'flex min-w-0 items-center gap-2' }, [
                 workpieceTypeIcon(dependent),
@@ -2574,38 +2642,30 @@ export default function createSurface({ vue, components, locale, queries, record
                 : null
             ]),
             h('div', { class: 'flex shrink-0 items-start' }, [
-              h(Button, {
-                icon: 'pi pi-sliders-h',
-                severity: 'secondary',
-                text: true,
-                rounded: true,
-                size: 'small',
-                'aria-label': t('cassette.v2.attachmentPosition'),
-                title: t('cassette.v2.attachmentPosition'),
-                onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
-              }),
-              dependent.isProfile
-                ? h(Button, {
-                    icon: 'pi pi-pencil',
-                    severity: 'secondary',
-                    text: true,
-                    rounded: true,
-                    size: 'small',
-                    'aria-label': t('cassette.v2.editProfile'),
-                    title: t('cassette.v2.editProfile'),
-                    onClick: () => openProfileDialog(dependent.id)
-                  })
-                : null,
-              h(Button, {
-                icon: 'pi pi-trash',
-                severity: 'danger',
-                text: true,
-                rounded: true,
-                size: 'small',
-                'aria-label': t('cassette.v2.deleteWorkpiece'),
-                title: t('cassette.v2.deleteWorkpiece'),
-                onClick: () => deleteWorkpiece(dependent.id)
-              })
+              !dependent.isProfile
+                ? h('div', { class: 'flex shrink-0 items-start' }, [
+                    h(Button, {
+                      icon: 'pi pi-sliders-h',
+                      severity: 'secondary',
+                      text: true,
+                      rounded: true,
+                      size: 'small',
+                      'aria-label': t('cassette.v2.attachmentPosition'),
+                      title: t('cassette.v2.attachmentPosition'),
+                      onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
+                    }),
+                    h(Button, {
+                      icon: 'pi pi-trash',
+                      severity: 'danger',
+                      text: true,
+                      rounded: true,
+                      size: 'small',
+                      'aria-label': t('cassette.v2.deleteWorkpiece'),
+                      title: t('cassette.v2.deleteWorkpiece'),
+                      onClick: () => deleteWorkpiece(dependent.id)
+                    })
+                  ])
+                : null
             ])
           ]),
           ...workpieceDetailBlocks(dependent)
@@ -2630,28 +2690,32 @@ export default function createSurface({ vue, components, locale, queries, record
             ? h('small', { class: 'truncate text-muted' }, relationRow.crumbs.join('  ›  '))
             : null
         ]),
-        h(Button, {
-          icon: 'pi pi-sliders-h',
-          severity: 'secondary',
-          text: true,
-          rounded: true,
-          size: 'small',
-          class: 'mt-0.5 shrink-0',
-          'aria-label': t('cassette.v2.attachmentPosition'),
-          title: t('cassette.v2.attachmentPosition'),
-          onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
-        }),
-        h(Button, {
-          icon: 'pi pi-trash',
-          severity: 'danger',
-          text: true,
-          rounded: true,
-          size: 'small',
-          class: 'mt-0.5 shrink-0',
-          'aria-label': t('cassette.v2.removeAttachment'),
-          title: t('cassette.v2.removeAttachment'),
-          onClick: () => deleteWorkpieceRelation(relationRow.relation.id)
-        })
+        !workpieceRowById.value.get(relationRow.relation.sourceWorkpieceId)?.isProfile
+          ? h('div', { class: 'flex shrink-0 items-start gap-0' }, [
+              h(Button, {
+                icon: 'pi pi-sliders-h',
+                severity: 'secondary',
+                text: true,
+                rounded: true,
+                size: 'small',
+                class: 'mt-0.5 shrink-0',
+                'aria-label': t('cassette.v2.attachmentPosition'),
+                title: t('cassette.v2.attachmentPosition'),
+                onClick: event => selectWorkpieceRelation(relationRow.relation.id, event)
+              }),
+              h(Button, {
+                icon: 'pi pi-trash',
+                severity: 'danger',
+                text: true,
+                rounded: true,
+                size: 'small',
+                class: 'mt-0.5 shrink-0',
+                'aria-label': t('cassette.v2.removeAttachment'),
+                title: t('cassette.v2.removeAttachment'),
+                onClick: () => deleteWorkpieceRelation(relationRow.relation.id)
+              })
+            ])
+          : null
       ]);
 
       const renderInspector = () => h('aside', { class: 'flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3' }, [
@@ -2660,16 +2724,6 @@ export default function createSurface({ vue, components, locale, queries, record
             h('strong', { class: 'truncate' }, t('cassette.v2.workpieces')),
             h('div', { class: 'flex items-center gap-1' }, [
               h(Tag, { value: assemblySummary.value, severity: 'secondary', size: 'small' }),
-              h(Button, {
-                icon: 'pi pi-wave-pulse',
-                severity: 'secondary',
-                text: true,
-                rounded: true,
-                size: 'small',
-                'aria-label': t('cassette.v2.addProfile'),
-                title: t('cassette.v2.addProfile'),
-                onClick: event => openProfilePicker(event)
-              }),
               h(Button, {
                 icon: 'ck-entity-icon ck-entity-icon-bolt',
                 severity: 'secondary',
@@ -2701,7 +2755,9 @@ export default function createSurface({ vue, components, locale, queries, record
                     h('button', {
                       type: 'button',
                       class: ['flex min-w-0 flex-1 items-center gap-2 rounded-ui border border-transparent px-2 py-1 text-left', row.id === selectedWorkpieceId.value ? 'border-primary bg-subtle' : ''].filter(Boolean).join(' '),
-                      onClick: () => selectWorkpieceForInspector(row.id)
+                      onClick: () => (row.isProfile
+                        ? selectProfileWorkpiece(row.id)
+                        : selectWorkpieceForInspector(row.id))
                     }, [
                       workpieceTypeIcon(row),
                       h('span', { class: 'truncate' }, row.label),
@@ -2730,19 +2786,7 @@ export default function createSurface({ vue, components, locale, queries, record
                             title: t('cassette.v2.addAttachment'),
                             onClick: event => openAttachmentPicker(event, row.id)
                           }),
-                          row.isProfile
-                            ? h(Button, {
-                                icon: 'pi pi-pencil',
-                                severity: 'secondary',
-                                text: true,
-                                rounded: true,
-                                size: 'small',
-                                'aria-label': t('cassette.v2.editProfile'),
-                                title: t('cassette.v2.editProfile'),
-                                onClick: () => openProfileDialog(row.id)
-                              })
-                            : null,
-                          row.id !== workpieces.value[0]?.id
+                          row.id !== workpieces.value[0]?.id && !row.isProfile
                             ? h(Button, {
                                 icon: 'pi pi-trash',
                                 severity: 'danger',
@@ -2897,12 +2941,15 @@ export default function createSurface({ vue, components, locale, queries, record
               preserveViewport: true,
               visibleLayerNames: visibleLayerNames.value,
               selectedDesignerFaceId: selectedDesignerFaceId.value,
+              selectedDesignerProfileId: selectedWorkpieceId.value,
+              designerProfileSelectable: inlineEditor.value?.type !== 'attachment',
               designerSelectableWorkpieceIds: designerSelectableWorkpieceIds.value,
               showDesignerWorkpieceContext: showDesignerWorkpieceContext.value,
               onReady: handleDrawingReady,
               onLayerToggle: updateVisibleLayerNames,
               onDesignerAction: handleDesignerAction,
               onDesignerFaceSelect: handleDesignerFaceSelect,
+              onDesignerProfileSelect: handleDesignerProfileSelect,
               onDesignerFoldSelect: handleDesignerFoldSelect,
               onDesignerFaceCommand: handleDesignerFaceCommand,
               onDesignerPointEdit: handleDesignerPointEdit,
