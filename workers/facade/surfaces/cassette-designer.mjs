@@ -2446,7 +2446,6 @@ export default function createSurface({ vue, components, locale, queries, record
                 optionLabel: 'label',
                 optionValue: 'value',
                 class: 'min-w-0 w-full',
-                size: 'small',
                 'aria-label': t(labelKey),
                 title: t(labelKey),
                 'onUpdate:modelValue': value => updateInlineAttachmentRelation({ [key]: value })
