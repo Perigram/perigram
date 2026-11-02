@@ -293,6 +293,7 @@ export default function createSurface({ vue, components, locale, queries, record
       });
       const profileLibraryRecords = ref([]);
       const profileLibraryAvailable = ref(true);
+      const profileDeletePopover = ref(null);
       const profileLibraryOptions = computed(() => profileLibraryRecords.value.map(record => ({
         label: record?.name || t('common.unnamed'),
         value: record?._id?.toString(),
@@ -1629,6 +1630,7 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const applyProfileLibraryRecord = (record) => {
         if (!record) return;
+        closeProfileDeletePopover();
         const sketch = normalizeOccsProfileSketch(
           record?.fields?.sketch || createEmptyOccsProfileSketch(),
           {}
@@ -1656,6 +1658,18 @@ export default function createSurface({ vue, components, locale, queries, record
       const closeProfilePicker = () => {
         profilePicker.value?.hide?.();
       };
+
+      const openProfileDeletePopover = (event) => {
+        profileDeletePopover.value?.toggle?.(event);
+      };
+
+      const closeProfileDeletePopover = () => {
+        profileDeletePopover.value?.hide?.();
+      };
+
+      watch(profileDialogVisible, visible => {
+        if (!visible) closeProfileDeletePopover();
+      });
 
       // Thumbnails resolve asynchronously (the boolean section folds
       // through the Clipper runtime); the picker renders from the map
@@ -1707,7 +1721,7 @@ export default function createSurface({ vue, components, locale, queries, record
         closeProfilePicker();
       };
 
-      const saveProfileDraftToLibrary = async () => {
+      const saveProfileDraftToLibrary = async ({ asNew = false } = {}) => {
         if (!profileDraftAuthoredReady.value) {
           notify({ severity: 'warn', summary: t('common.warning'), detail: t('cassette.v2.profileEditor.invalidSketch'), life: 3000 });
           return;
@@ -1722,8 +1736,18 @@ export default function createSurface({ vue, components, locale, queries, record
               sketch: payload.sketch
             }
           });
-          if (created) profileLibraryRecords.value = [created, ...profileLibraryRecords.value];
-          notify({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.savedToLibrary'), life: 2500 });
+          if (created) {
+            profileLibraryRecords.value = [created, ...profileLibraryRecords.value];
+            const createdId = created?._id?.toString();
+            if (asNew && createdId) profileDraft.value.libraryId = createdId;
+          }
+          closeProfileDeletePopover();
+          notify({
+            severity: 'success',
+            summary: t('common.success'),
+            detail: t(asNew ? 'cassette.v2.profileEditor.savedAsToLibrary' : 'cassette.v2.profileEditor.savedToLibrary'),
+            life: 2500
+          });
         } catch (error) {
           if (error?.name === 'OfflineQueuedError') {
             notify({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
@@ -1739,9 +1763,9 @@ export default function createSurface({ vue, components, locale, queries, record
       };
 
       // Editing a library-sourced profile is local (the snapshot law);
-      // Update library is the explicit rewrite of the origin record —
-      // authored truth only (kind, process, prepared sketch), the
-      // record keeps its name.
+      // Save to library overwrites the origin record. Save as creates a
+      // new record and makes it the draft's origin; Delete removes the
+      // origin. Already-placed workpieces keep their snapshots.
       const updateProfileLibraryRecord = async () => {
         const libraryId = profileDraft.value.libraryId;
         if (!profileDraftAuthoredReady.value || !libraryId) {
@@ -1753,6 +1777,7 @@ export default function createSurface({ vue, components, locale, queries, record
         const payload = profileDraftPayload();
         try {
           const updated = await records.update('profile', libraryId, {
+            name: payload.name,
             fields: {
               kind: payload.kind,
               process: payload.process,
@@ -1762,6 +1787,9 @@ export default function createSurface({ vue, components, locale, queries, record
           if (updated) {
             profileLibraryRecords.value = profileLibraryRecords.value.map(item =>
               item?._id?.toString() === libraryId ? updated : item);
+            const thumbnails = { ...profileThumbnails.value };
+            delete thumbnails[libraryId];
+            profileThumbnails.value = thumbnails;
           }
           notify({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.updatedInLibrary'), life: 2500 });
         } catch (error) {
@@ -1773,6 +1801,34 @@ export default function createSurface({ vue, components, locale, queries, record
             severity: 'error',
             summary: t('common.error'),
             detail: error?.data?.message || error?.message || t('cassette.v2.profileEditor.librarySaveFailed'),
+            life: 4000
+          });
+        }
+      };
+
+      const deleteProfileLibraryRecord = async () => {
+        const libraryId = profileDraft.value.libraryId;
+        if (!libraryId) return;
+        try {
+          await records.delete('profile', libraryId);
+          profileLibraryRecords.value = profileLibraryRecords.value.filter(
+            item => item?._id?.toString() !== libraryId
+          );
+          const thumbnails = { ...profileThumbnails.value };
+          delete thumbnails[libraryId];
+          profileThumbnails.value = thumbnails;
+          profileDraft.value.libraryId = '';
+          closeProfileDeletePopover();
+          notify({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.deletedFromLibrary'), life: 2500 });
+        } catch (error) {
+          if (error?.name === 'OfflineQueuedError') {
+            notify({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+            return;
+          }
+          notify({
+            severity: 'error',
+            summary: t('common.error'),
+            detail: error?.data?.message || error?.message || t('cassette.v2.profileEditor.libraryDeleteFailed'),
             life: 4000
           });
         }
@@ -1794,6 +1850,7 @@ export default function createSurface({ vue, components, locale, queries, record
             role: payload.kind,
             process: payload.process,
             instance: payload.instance,
+            profileTemplateId: profileDraft.value.libraryId || '',
             profileSnapshot: {
               kind: payload.kind,
               process: payload.process,
@@ -1811,7 +1868,8 @@ export default function createSurface({ vue, components, locale, queries, record
             process: payload.process,
             instance: payload.instance,
             occsProfile: payload.occsProfile,
-            sketch: payload.sketch
+            sketch: payload.sketch,
+            profileTemplateId: profileDraft.value.libraryId || ''
           });
           cassetteTree.value = added.tree;
           selectWorkpiece(added.workpieceId);
@@ -2951,6 +3009,16 @@ export default function createSurface({ vue, components, locale, queries, record
                 }))
             : null
         ])),
+        h(Popover, { ref: profileDeletePopover }, () => h('div', { class: 'flex w-64 max-w-90 flex-col gap-2' }, [
+          h('span', { class: 'text-sm' }, t('cassette.v2.profileEditor.deleteLibraryConfirm')),
+          h(Button, {
+            icon: 'pi pi-trash',
+            label: t('common.delete'),
+            severity: 'danger',
+            size: 'small',
+            onClick: deleteProfileLibraryRecord
+          })
+        ])),
         h(Popover, { ref: hardwarePicker }, () => h('div', { class: 'flex w-80 max-w-90 flex-col gap-1' }, [
           h(Button, {
             icon: 'pi pi-plus',
@@ -3160,25 +3228,56 @@ export default function createSurface({ vue, components, locale, queries, record
                 title: profileDialogError.value || t('common.save'),
                 onClick: saveProfileDraft
               }),
-              profileLibraryAvailable.value
-                ? h(Button, {
-                  icon: profileDraft.value.libraryId ? 'pi pi-cloud-upload' : 'pi pi-bookmark',
-                  severity: 'secondary',
-                  text: true,
-                  rounded: true,
-                  size: 'small',
-                  disabled: !profileDraftAuthoredReady.value,
-                  'aria-label': profileDraft.value.libraryId
-                    ? t('cassette.v2.profileEditor.updateLibrary')
-                    : t('cassette.v2.profileEditor.saveToLibrary'),
-                  title: profileDraftAuthoredReady.value
-                    ? (profileDraft.value.libraryId
+              ...(profileLibraryAvailable.value
+                ? [
+                    h(Button, {
+                      icon: profileDraft.value.libraryId ? 'pi pi-cloud-upload' : 'pi pi-bookmark',
+                      severity: 'secondary',
+                      text: true,
+                      rounded: true,
+                      size: 'small',
+                      disabled: !profileDraftAuthoredReady.value,
+                      'aria-label': profileDraft.value.libraryId
                         ? t('cassette.v2.profileEditor.updateLibrary')
-                        : t('cassette.v2.profileEditor.saveToLibrary'))
-                    : t('cassette.v2.profileEditor.invalidSketch'),
-                  onClick: profileDraft.value.libraryId ? updateProfileLibraryRecord : saveProfileDraftToLibrary
-                })
-                : null
+                        : t('cassette.v2.profileEditor.saveToLibrary'),
+                      title: profileDraftAuthoredReady.value
+                        ? (profileDraft.value.libraryId
+                            ? t('cassette.v2.profileEditor.updateLibrary')
+                            : t('cassette.v2.profileEditor.saveToLibrary'))
+                        : t('cassette.v2.profileEditor.invalidSketch'),
+                      onClick: profileDraft.value.libraryId
+                        ? updateProfileLibraryRecord
+                        : () => saveProfileDraftToLibrary()
+                    }),
+                    profileDraft.value.libraryId
+                      ? h(Button, {
+                          icon: 'pi pi-copy',
+                          severity: 'secondary',
+                          text: true,
+                          rounded: true,
+                          size: 'small',
+                          disabled: !profileDraftAuthoredReady.value,
+                          'aria-label': t('cassette.v2.profileEditor.saveAsToLibrary'),
+                          title: profileDraftAuthoredReady.value
+                            ? t('cassette.v2.profileEditor.saveAsToLibrary')
+                            : t('cassette.v2.profileEditor.invalidSketch'),
+                          onClick: () => saveProfileDraftToLibrary({ asNew: true })
+                        })
+                      : null,
+                    profileDraft.value.libraryId
+                      ? h(Button, {
+                          icon: 'pi pi-trash',
+                          severity: 'danger',
+                          text: true,
+                          rounded: true,
+                          size: 'small',
+                          'aria-label': t('cassette.v2.profileEditor.deleteFromLibrary'),
+                          title: t('cassette.v2.profileEditor.deleteFromLibrary'),
+                          onClick: openProfileDeletePopover
+                        })
+                      : null
+                  ]
+                : [])
             ]),
             profileDialogError.value
               ? h(Message, { severity: 'warn', size: 'small', closable: false, class: 'shrink-0' }, () => profileDialogError.value)

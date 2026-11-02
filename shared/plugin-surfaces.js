@@ -14,7 +14,7 @@
 //     rename).
 // 2 — the editor-grade mount (M6): everything in 1 plus the ctx
 //     `queries` (cross-type instance reads), `records` (cross-type
-//     create/update), `notify` (host toast), and `access` (write-grant
+//     create/update/delete), `notify` (host toast), and `access` (write-grant
 //     resolution), the persistence `patch` transport, and the grown
 //     primitive pack (designer chrome beside the PrimeVue primitives).
 //     Author-facing shapes: docs/PLUGIN_AUTHORING.md §1a.

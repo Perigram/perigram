@@ -116,13 +116,17 @@ export function editorSurfaceQueries() {
 }
 
 // Cross-type record writes over the generic transport (contract 2): an
-// editor that composes OTHER types' records creates and updates them
-// through the same instance transports — never a bespoke route.
+// editor that composes OTHER types' records creates, updates, and deletes
+// them through the same instance transports.
 export function editorSurfaceRecords() {
   const instances = useInstancesStore();
   return Object.freeze({
     create: (typeId, payload) => instances.createInstance(instances.canonicalTypeKey(typeId), payload),
-    update: (typeId, id, payload) => instances.updateInstance(instances.canonicalTypeKey(typeId), id, payload)
+    update: (typeId, id, payload) => instances.updateInstance(instances.canonicalTypeKey(typeId), id, payload),
+    delete: (typeId, id) => {
+      const typeKey = instances.canonicalTypeKey(typeId);
+      return instances.removeInstance(typeKey, String(id), { typeId: typeKey });
+    }
   });
 }
 

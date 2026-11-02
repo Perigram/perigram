@@ -124,7 +124,7 @@ function stubContext() {
     components: component,
     locale: { t: key => key, te: () => true, locale: () => 'en' },
     queries: { list: async () => [], get: async () => null },
-    records: { create: async () => null, update: async () => null },
+    records: { create: async () => null, update: async () => null, delete: async () => null },
     notify: () => {},
     access: { canWrite: () => true },
     sync: { onRecordChanged: () => () => {} },
