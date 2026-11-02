@@ -3694,7 +3694,12 @@ branch in `handleDesignerFaceSelect` selects the clicked face and clears
 the attachment selection. `DrawingCanvas` sizes designer chips, handles,
 marker circles, and hit strokes from the viewBox-to-viewport ratio. The
 face render data carries `dimensionControls`; corner geometry is authored
-in the face shape editor. Validation: pending.
+in the face shape editor. Validation: 69 facade surface specs green;
+`check-arch`, `framework:validate`, and listing validation green. E2E
+`cassette-profile-lifecycle` and `cassette-profile-editor` pass;
+`cassette-designer-parameters` keeps its two pre-existing attachment and
+override assertions failing, with two tests passing. The docs guard and
+design-system suite keep their pre-existing findings.
 
 ## Stateful lifecycle contracts (2026-11-02 audit)
 
