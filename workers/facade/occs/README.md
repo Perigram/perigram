@@ -237,14 +237,18 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
     already-placed workpieces keep their copy.
 - **Face sketches** — a face may carry the same parametric shape model
   as a profile on its `sketch` (add/subtract/construction shapes,
-  expressions, fillets). The sketch folds from an empty region and must
-  resolve to one closed outline; its holes ride `cut.inner`. The OCCS
-  face shape is the evaluated `polygon`, and the authored sketch rides
-  `face.extensions.perigram.sketch`. The trapezoid face remains the
-  quick path; converting seeds the sketch from the current outline. The
-  face editor's datum is the parent edge line in shard coordinates (the
-  shard start is zero), not the profile's vertical material axis; the
-  parent face renders as a ghost outline in those same coordinates.
+  expressions, fillets). Add shapes fold from an empty region and must
+  resolve to one closed outline. A child face's subtract shapes are
+  cuts on the parent face, placed in the face's shard frame and folded
+  into the parent's production geometry like a closed profile section;
+  they ride `cut.inner`. The OCCS face shape is the evaluated add region
+  (`polygon`), and the authored sketch rides
+  `face.extensions.perigram.sketch`. The outer ring rotates so its datum
+  edge (y = 0) starts the ring, keeping E0 the attachment edge and fold
+  routes stable. The trapezoid face remains the quick path; converting
+  seeds the sketch from the current outline. The face editor's datum is
+  the parent edge line in shard coordinates (the shard start is zero);
+  the parent face renders as a ghost outline in those same coordinates.
 - **Edge spans** — a host edge is an interval. Child faces carry
   `edgeStart` plus their `defaultLength`; open profiles carry the edge
   array's `spanStart`/`spanWidth`. Free shards exclude child faces and
