@@ -55,6 +55,7 @@ import {
   deriveOccsProfileSketch,
   evaluateOccsProfileSketch,
   normalizeOccsProfileSketch,
+  occProfileSectionChainedVertices,
   occsProfileFromSketch,
   resolveOccsProfileSectionOperations,
   rewriteOccsProfileSketchExpressions
@@ -1032,10 +1033,14 @@ export const addCassetteV2ProfileWorkpiece = (tree, reference = {}) => {
   if (referenceWorkpiece && open && Number.isFinite(edgeLength) && edgeLength > 0 && targetNode?.id) {
     const edgeMatch = String(pattern.edge || 'E0').match(/\d+/);
     const edgeIndex = edgeMatch ? Math.max(0, Math.round(numeric(edgeMatch[0], 0))) : 0;
+    const chain = occProfileSectionChainedVertices(profile.section);
+    const chordLength = chain.length >= 2
+      ? Math.hypot(chain.at(-1)[0] - chain[0][0], chain.at(-1)[1] - chain[0][1])
+      : 0;
     const shard = cassetteV2FreeEdgeShards({
       edgeLength,
       occupied: edgeIntervalsForChildren(nextTree, targetNode.id, edgeIndex, edgeLength)
-    })[0];
+    }).find(candidate => candidate.end - candidate.start >= chordLength - 0.001);
     if (!shard) return { tree: nextTree, workpieceId: '', nodeId: '', refused: 'edge-full' };
     const fullShard = shard.start <= 0.001 && shard.end >= edgeLength - 0.001;
     if (!fullShard) {
