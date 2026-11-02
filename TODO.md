@@ -2596,8 +2596,11 @@ Ordered steps:
   `profileTerminalEdgesForTree` and the terminal edge exclusion are
   retired. The canvas draws one + per free shard and skips the face's
   own base edge; the face actions popup carries edge start plus Fill
-  edge / fixed width, and the face editor's datum is the parent edge
-  line in shard coordinates. Focused tests: `cassetteV2Renderer.spec.js`,
+  edge / fixed width. Closed profile footprints subtract from the edge
+  shards, so a cut crossing the edge blocks that interval, and the
+  clicked shard is the interval the face takes. The face editor's datum
+  is the parent edge line in shard coordinates, with the parent face
+  ghosted around it. Focused tests: `cassetteV2Renderer.spec.js`,
   `profileAnnotations.spec.js`, `profileEmbedding.spec.js`,
   `evaluate.spec.js`.
 

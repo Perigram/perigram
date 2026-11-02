@@ -12,6 +12,7 @@ import {
   buildCassetteV2TreeCurves,
   buildCassetteV2WorkpieceTopology,
   cassetteV2AttachableProfileEdgesForTree,
+  cassetteV2FaceSketchContext,
   cassetteV2FaceSketchFromNode,
   cassetteV2LayerPanelRows,
   collectCassetteV2ExpressionIdentifiers,
@@ -2248,6 +2249,25 @@ describe('cassette v2 trapezoid renderer', () => {
     });
   });
 
+  it('removes a closed profile footprint from the edge shards', async () => {
+    const sketch = normalizeOccsProfileSketch({
+      parameters: {},
+      shapes: [{ id: 's0', type: 'circle', op: 'subtract', center: [0, 0], diameter: 100 }]
+    });
+    const added = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      occsProfile: occsProfileFromSketch(sketch),
+      sketch
+    });
+    const drawing = await renderCassetteV2TreeToDrawing(added.tree);
+    const shards = drawing.designerEdges
+      .filter(edge => edge.nodeId === 'face_1' && edge.edgeIndex === 0)
+      .map(edge => [edge.shardStart, edge.shardEnd]);
+
+    expect(shards).toEqual([[0, 200], [300, 500]]);
+  });
+
   it('draws a + handle on each free edge shard', async () => {
     const first = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 1, { edgeLength: 400 });
     first.tree.nodes[1].parameters.defaultLength = '150';
@@ -2293,6 +2313,18 @@ describe('cassette v2 trapezoid renderer', () => {
     const xs = curve.vertices.map(point => point[0]);
     expect(Math.min(...xs)).toBeCloseTo(150);
     expect(Math.max(...xs)).toBeCloseTo(400);
+  });
+
+  it('gives the face editor the parent face in shard coordinates', async () => {
+    const grown = addCassetteV2GraphChild(createCassetteV2GraphTree(), 'face_1', 0, { edgeLength: 500 });
+    grown.tree.nodes[1].parameters.edgeStart = '100';
+    grown.tree.nodes[1].parameters.defaultLength = '100';
+    const context = await cassetteV2FaceSketchContext(grown.tree, grown.nodeId);
+
+    expect(context.basisStart).toBeCloseTo(-100);
+    expect(context.basisEnd).toBeCloseTo(400);
+    expect(context.parentFace).toHaveLength(4);
+    expect(context.sketch.shapes).toHaveLength(1);
   });
 
   it('seeds a face sketch from the current rectangle with its authored expressions', async () => {

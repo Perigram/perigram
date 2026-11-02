@@ -13,7 +13,7 @@ import {
   CASSETTE_V2_HANGER_PRODUCTION_MODES,
   CASSETTE_V2_HARDWARE_FAMILIES,
   cassetteV2AttachableProfileEdgesForTree,
-  cassetteV2FaceSketchFromNode,
+  cassetteV2FaceSketchContext,
   collectCassetteV2ExpressionIdentifiers,
   renameCassetteV2TreeParameter,
   createCassetteV2GraphTree,
@@ -342,6 +342,7 @@ export default function createSurface({ vue, components, locale, queries, record
       const faceShapeDraft = ref(createEmptyOccsProfileSketch());
       const faceShapeBasisStart = ref(null);
       const faceShapeBasisEnd = ref(null);
+      const faceShapeParentFace = ref([]);
       const faceShapeEditorError = ref('');
       const faceShapeDialogError = computed(() => faceShapeEditorError.value);
       const faceShapeDraftSketch = computed(() => normalizeOccsProfileSketch(faceShapeDraft.value));
@@ -1661,18 +1662,6 @@ export default function createSurface({ vue, components, locale, queries, record
         loadProfileLibrary();
       };
 
-      const faceBasisForNode = (node) => {
-        if (!node) return { start: null, end: null };
-        if (!node.parentId) {
-          const length = edgeLengthFor(node.id, 'E0');
-          return Number.isFinite(length) ? { start: 0, end: length } : { start: null, end: null };
-        }
-        const length = edgeLengthFor(node.parentId, `E${Math.max(0, Math.round(Number(node.parentEdgeIndex) || 0))}`);
-        if (!Number.isFinite(length)) return { start: null, end: null };
-        const start = resolveCassetteV2Expression(node.parameters?.edgeStart, globalParameters.value, 0);
-        return { start: -start, end: length - start };
-      };
-
       const resolvedFaceWidth = (node) => {
         if (!node) return '';
         if (node.parameters?.defaultLength !== 'inherit') return node.parameters?.defaultLength ?? '';
@@ -1689,15 +1678,18 @@ export default function createSurface({ vue, components, locale, queries, record
         closeInlineEditor();
         faceShapeEditorError.value = '';
         editingFaceNodeId.value = nodeId;
-        const node = treeNodes.value.find(item => item.id === nodeId) || null;
-        const basis = faceBasisForNode(node);
-        faceShapeBasisStart.value = basis.start;
-        faceShapeBasisEnd.value = basis.end;
         try {
-          faceShapeDraft.value = await cassetteV2FaceSketchFromNode(cassetteTree.value, nodeId);
+          const context = await cassetteV2FaceSketchContext(cassetteTree.value, nodeId);
+          faceShapeDraft.value = context.sketch;
+          faceShapeBasisStart.value = context.basisStart;
+          faceShapeBasisEnd.value = context.basisEnd;
+          faceShapeParentFace.value = context.parentFace || [];
         } catch (error) {
           faceShapeEditorError.value = error?.message || String(error);
           faceShapeDraft.value = createEmptyOccsProfileSketch();
+          faceShapeBasisStart.value = null;
+          faceShapeBasisEnd.value = null;
+          faceShapeParentFace.value = [];
         }
         faceShapeDialogVisible.value = true;
       };
@@ -2121,7 +2113,8 @@ export default function createSurface({ vue, components, locale, queries, record
         if (!edge?.nodeId && edge?.nodeId !== '') return;
         addFaceAtEdge(edge.nodeId, edge.edgeIndex ?? edgeIndex, {
           edgeLength: edge.edgeLength ?? edge.length,
-          shardStart: edge.shardStart
+          shardStart: edge.shardStart,
+          shardEnd: edge.shardEnd
         });
       };
 
@@ -3458,6 +3451,7 @@ export default function createSurface({ vue, components, locale, queries, record
             mode: 'face',
             basisStart: faceShapeBasisStart.value,
             basisEnd: faceShapeBasisEnd.value,
+            contextFace: faceShapeParentFace.value,
             externalParameters: globalParameters.value,
             'onUpdate:modelValue': value => { faceShapeDraft.value = value; },
             onOutlineError: value => { faceShapeEditorError.value = value; }

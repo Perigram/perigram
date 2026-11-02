@@ -243,17 +243,20 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   `face.extensions.perigram.sketch`. The trapezoid face remains the
   quick path; converting seeds the sketch from the current outline. The
   face editor's datum is the parent edge line in shard coordinates (the
-  shard start is zero), not the profile's vertical material axis.
+  shard start is zero), not the profile's vertical material axis; the
+  parent face renders as a ghost outline in those same coordinates.
 - **Edge spans** — a host edge is an interval. Child faces carry
   `edgeStart` plus their `defaultLength`; open profiles carry the edge
   array's `spanStart`/`spanWidth`. Free shards exclude child faces and
   open-profile spans, and a placement that overlaps or overflows
   refuses. Folds and contour splices use the owned interval only. The
   designer draws one + handle per free shard; a face's own base edge
-  carries none. A child face's popup carries Fill edge (inherit) and a
+  carries none, and the clicked shard is the interval the new face
+  takes. A child face's popup carries Fill edge (inherit) and a
   fixed/parametric width otherwise, so the remaining edge becomes free
-  shards. Closed profile sections cut the face without consuming edge
-  space.
+  shards. A closed profile footprint is projected onto the host edge:
+  cuts that cross the edge block their interval, holes inside the face
+  leave the edge free.
 - **`production-layout.js`** — wraps the Clipper-backed face
   union/fold-route pass and returns semantic `cut.outer` / `fold.route`
   layer intent.
