@@ -2642,7 +2642,14 @@ Ordered steps:
   separate fills. A closed profile blocks its projected edge span and a
   face placement over that span refuses (`edge-occupied`). Closed
   profiles cut across a fold interval with the authored bend route
-  intact; open profile spans crossing a fold still refuse.
+  intact; open profile spans crossing a fold still refuse. The sketch
+  editor's rect and circle boundary grips resize the authored shape by
+  drag (axis-aligned rects; circle diameter), with one history entry per
+  drag and live reseeding; plain clicks still select on pointerup.
+
+- [ ] WAITING — owner verification: Face and profile sketch grips
+  resize the authored shape by drag, and the shape panel fields mirror
+  the dragged values.
 
 - [ ] WAITING — owner verification: Profile editor isolation (owner
   direction 2026-11-02): the profile editor edits and evaluates the
