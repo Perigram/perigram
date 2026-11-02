@@ -711,6 +711,8 @@
                 "defaultLength": "Длина основания",
                 "height": "Высота",
                 "edgeStart": "Начало на ребре",
+                "fillEdge": "Заполнить ребро",
+                "faceWidth": "Ширина грани",
                 "parentEdgeIndex": "Индекс ребра родителя",
                 "baseStartOffset": "Смещение начала основания",
                 "baseEndOffset": "Смещение конца основания",

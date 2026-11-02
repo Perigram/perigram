@@ -1673,6 +1673,16 @@ export default function createSurface({ vue, components, locale, queries, record
         return { start: -start, end: length - start };
       };
 
+      const resolvedFaceWidth = (node) => {
+        if (!node) return '';
+        if (node.parameters?.defaultLength !== 'inherit') return node.parameters?.defaultLength ?? '';
+        if (!node.parentId) return '';
+        const length = edgeLengthFor(node.parentId, `E${Math.max(0, Math.round(Number(node.parentEdgeIndex) || 0))}`);
+        if (!Number.isFinite(length)) return '';
+        const start = resolveCassetteV2Expression(node.parameters?.edgeStart, globalParameters.value, 0);
+        return String(Math.round(Math.max(0, length - start) * 1000) / 1000);
+      };
+
       // A face sketch is edited on the same shape canvas as a profile;
       // converting a trapezoid seeds the draft with its current outline.
       const openFaceShapeDialog = async (nodeId) => {
@@ -2337,6 +2347,8 @@ export default function createSurface({ vue, components, locale, queries, record
         const anchorKey = inlineEditorAnchorKey.value;
         let body;
         if (editor.type === 'faceActions') {
+          const node = inlineEditorNode.value;
+          const fillId = `face-fill-${editor.nodeId}`;
           body = h('div', { class: 'flex flex-col gap-2' }, [
             h('div', { class: 'flex cursor-move items-center gap-1', onMousedown: event => { event.preventDefault(); startInlineEditorDrag(event); } }, [
               h(Select, {
@@ -2369,6 +2381,31 @@ export default function createSurface({ vue, components, locale, queries, record
                     parameters: globalParameters.value,
                     parameterNames: globalParameterNames.value,
                     'onUpdate:modelValue': value => updateFaceParameter(editor.nodeId, 'edgeStart', value)
+                  })
+                ])
+              : null,
+            h('div', { class: 'flex items-center gap-2' }, [
+              h(Checkbox, {
+                modelValue: node?.parameters?.defaultLength === 'inherit',
+                binary: true,
+                inputId: fillId,
+                size: 'small',
+                'onUpdate:modelValue': value => updateFaceParameter(
+                  editor.nodeId,
+                  'defaultLength',
+                  value ? 'inherit' : resolvedFaceWidth(node)
+                )
+              }),
+              h('label', { for: fillId, class: 'min-w-0 flex-1 truncate text-label' }, t('cassette.v2.fields.fillEdge'))
+            ]),
+            node?.parameters?.defaultLength !== 'inherit'
+              ? h('div', { class: 'flex flex-col gap-1 text-muted text-label' }, [
+                  h('span', { class: 'truncate' }, t('cassette.v2.fields.faceWidth')),
+                  h(CassetteExpressionEditor, {
+                    modelValue: node?.parameters?.defaultLength ?? '0',
+                    parameters: globalParameters.value,
+                    parameterNames: globalParameterNames.value,
+                    'onUpdate:modelValue': value => updateFaceParameter(editor.nodeId, 'defaultLength', value)
                   })
                 ])
               : null,
