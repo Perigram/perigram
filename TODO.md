@@ -2615,6 +2615,16 @@ Ordered steps:
   Face cuts and closed-profile footprints share the free-shard
   allocation.
 
+  ### Agent Notes (2026-11-02, face/profile placement coordination)
+
+  Session `agent/face-profile-overlap-20261102`. Fold-edge refusal is
+  interval-based: `profileFoldEdgeRefusalsForTree` projects a profile's
+  open span or closed footprint onto the host edge and refuses only when
+  it crosses a child face's fold interval. A face added on another shard
+  of the same edge leaves the profile cut intact. Assembly face fills
+  carry every face's outer ring and holes with `evenodd`, so profile and
+  face cuts stay open in assembly previews.
+
 - [ ] WAITING — owner verification: Profile editor isolation (owner
   direction 2026-11-02): the profile editor edits and evaluates the
   authored sketch alone; placement instance rows never enter it, saving

@@ -158,14 +158,15 @@ drive only the identifiers its sketch references — a numeric sketch
 (drawn or imported without bindings) has no driving parameters and shows
 none.
 
-Owner declaration (2026-10-16, profiles never ride folds): a fold edge —
-an edge where a face bends to another — never carries a profile. The
-attachment edge chooser offers only the face's arrangeable edges (folds
-excluded), and an arrangement authored on a fold is refused by
-evaluation (a visible refusal, never a splice into the bend line).
-Clearing the profile canvas starts the blank authoring session: the
-parameter table empties with the canvas, so one session's parameters
-never ride the next hand-drawn profile.
+Owner declaration (2026-10-16, fold intervals; 2026-11-02): a fold owns
+the child face's interval on the host edge. A profile whose footprint or
+open span crosses that interval is refused by evaluation with a visible
+refusal that preserves the bend line; a profile may share the rest of the
+host edge with faces and open profiles. The attachment edge chooser
+offers the face's arrangeable edges (folds excluded). Clearing the
+profile canvas starts the blank authoring session: the parameter table
+empties with the canvas, so one session's parameters never ride the next
+hand-drawn profile.
 
 Owner declaration (2026-10-16, chips read cassette variables): a placed
 profile's parameter chips are the same expression fields every other

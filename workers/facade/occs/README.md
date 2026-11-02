@@ -260,7 +260,9 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   fixed/parametric width otherwise, so the remaining edge becomes free
   shards. A closed profile footprint is projected onto the host edge:
   cuts that cross the edge block their interval, holes inside the face
-  leave the edge free.
+  leave the edge free. A profile footprint or open span crossing a
+  child face's fold interval refuses; the rest of the host edge stays
+  arrangeable.
 - **`production-layout.js`** — wraps the Clipper-backed face
   union/fold-route pass and returns semantic `cut.outer` / `fold.route`
   layer intent.
@@ -325,7 +327,9 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   exactly as production embeds it, closed sections cut the face on
   `cut.inner`, and the section layer carries section views only.
   Whole-workpiece assembly previews dispatch `contour.cassette_face`,
-  `cut.outer`, and `fold.route` from unioned workpiece geometry. The
+  `cut.outer`, and `fold.route` from unioned workpiece geometry; hollow
+  faces fill their outer ring and holes with `evenodd`, so a cut stays
+  open in every preview mode. The
   preview layer set — outline (`cut.outer`) and folds (`fold.route`)
   matched by `standardCode` (layer names are localized export names);
   all layers for a drawing outside the set — resolves through
