@@ -22,7 +22,6 @@ import {
 import {
   buildOccsDrawingFromFaceCurves,
   occsCurveToPath,
-  occsRingsNest,
   occsShapeToPath
 } from '../../occs/drawing.js';
 import { buildOccsProductionLayout } from '../../occs/production-layout.js';
@@ -856,17 +855,22 @@ export const addCassetteV2GraphChild = (tree, parentId, edgeIndex, options = {})
     : { role: 'return_flange' };
   const edgeLength = Number(options.edgeLength);
   if (Number.isFinite(edgeLength) && edgeLength > 0) {
-    const occupied = edgeIntervalsForChildren(nextTree, parentId, normalizedEdgeIndex, edgeLength);
+    const occupied = mergeEdgeIntervals([
+      ...edgeIntervalsForChildren(nextTree, parentId, normalizedEdgeIndex, edgeLength),
+      ...(Array.isArray(options.occupied) ? options.occupied : [])
+    ]);
     const shards = cassetteV2FreeEdgeShards({ edgeLength, occupied });
     const requestedStart = Number(options.shardStart);
     const requestedEnd = Number(options.shardEnd);
-    const requestedFits = Number.isFinite(requestedStart) && Number.isFinite(requestedEnd)
-      && requestedEnd > requestedStart
+    const requestedSpan = Number.isFinite(requestedStart) && Number.isFinite(requestedEnd)
+      && requestedEnd > requestedStart;
+    const overlapsOccupied = requestedSpan && occupied.some(interval => (
+      requestedStart < interval.end - 0.001 && requestedEnd > interval.start + 0.001
+    ));
+    if (overlapsOccupied) return { tree: nextTree, nodeId: '', refused: 'edge-occupied' };
+    const requestedFits = requestedSpan
       && requestedStart >= -0.001
-      && requestedEnd <= edgeLength + 0.001
-      && !occupied.some(interval => (
-        requestedStart < interval.end - 0.001 && requestedEnd > interval.start + 0.001
-      ));
+      && requestedEnd <= edgeLength + 0.001;
     const shard = requestedFits
       ? { start: Math.max(0, requestedStart), end: Math.min(edgeLength, requestedEnd) }
       : Number.isFinite(requestedStart)
@@ -2370,19 +2374,58 @@ const edgeIntervalsForGeometry = (from, to, geometries = []) => {
   return mergeEdgeIntervals(intervals);
 };
 
-const profileEdgeIntervals = (nodeId, from, to, entities = []) => edgeIntervalsForGeometry(
-  from,
-  to,
-  entities.filter(entity => entity.target === nodeId).map(entity => ({
-    rings: productionEntityCutRings(entity),
-    circle: entity.geometry?.type === 'circle'
-      ? {
-          center: entity.geometry.center || [0, 0],
-          radius: Math.max(0.05, numeric(entity.geometry.diameter, 0) / 2)
-        }
-      : null
-  }))
-);
+const projectedRingInterval = (ring = [], from = [0, 0], to = [0, 0], length = 0) => {
+  const dx = numeric(to?.[0], 0) - numeric(from?.[0], 0);
+  const dy = numeric(to?.[1], 0) - numeric(from?.[1], 0);
+  const squared = dx * dx + dy * dy;
+  if (squared <= 1e-9) return null;
+  let min = Infinity;
+  let max = -Infinity;
+  for (const point of withoutClosingVertex(ring)) {
+    const ratio = (
+      (numeric(point?.[0], 0) - numeric(from?.[0], 0)) * dx
+      + (numeric(point?.[1], 0) - numeric(from?.[1], 0)) * dy
+    ) / squared;
+    min = Math.min(min, ratio);
+    max = Math.max(max, ratio);
+  }
+  if (!Number.isFinite(min)) return null;
+  return {
+    start: Math.max(0, Math.min(length, min * length)),
+    end: Math.max(0, Math.min(length, max * length))
+  };
+};
+
+const profileEdgeIntervals = (nodeId, from, to, entities = [], edgeIndex = null) => {
+  const length = Math.hypot(
+    numeric(to?.[0], 0) - numeric(from?.[0], 0),
+    numeric(to?.[1], 0) - numeric(from?.[1], 0)
+  );
+  if (length <= 0.001) return [];
+  const profileSpans = entities
+    .filter(entity => (
+      entity.target === nodeId
+      && entity.profileWorkpieceId
+      && (edgeIndex === null || entity.edgeIndex === edgeIndex)
+    ))
+    .flatMap(entity => productionEntityCutRings(entity)
+      .map(ring => projectedRingInterval(ring, from, to, length))
+      .filter(Boolean));
+  const crossing = edgeIntervalsForGeometry(
+    from,
+    to,
+    entities.filter(entity => entity.target === nodeId && !entity.profileWorkpieceId).map(entity => ({
+      rings: productionEntityCutRings(entity),
+      circle: entity.geometry?.type === 'circle'
+        ? {
+            center: entity.geometry.center || [0, 0],
+            radius: Math.max(0.05, numeric(entity.geometry.diameter, 0) / 2)
+          }
+        : null
+    }))
+  );
+  return mergeEdgeIntervals([...profileSpans, ...crossing]);
+};
 
 const designerEdgesForBoundary = (nodeId, vertices = [], tree = createCassetteV2GraphTree(), footprintEntities = []) => {
   const boundaryVertices = withoutClosingVertex(vertices);
@@ -2398,13 +2441,11 @@ const designerEdgesForBoundary = (nodeId, vertices = [], tree = createCassetteV2
       numeric(next?.[1], 0) - numeric(vertex?.[1], 0)
     );
     if (edgeLength <= 0.001) return [];
-    const shards = cassetteV2FreeEdgeShards({
-      edgeLength,
-      occupied: [
-        ...edgeIntervalsForChildren(tree, nodeId, edgeIndex, edgeLength),
-        ...profileEdgeIntervals(nodeId, vertex, next, footprintEntities)
-      ]
-    });
+    const occupied = mergeEdgeIntervals([
+      ...edgeIntervalsForChildren(tree, nodeId, edgeIndex, edgeLength),
+      ...profileEdgeIntervals(nodeId, vertex, next, footprintEntities, edgeIndex)
+    ]);
+    const shards = cassetteV2FreeEdgeShards({ edgeLength, occupied });
     return shards.map((shard) => {
       const [x1, y1] = toSvgPoint(pointAlong(vertex, next, shard.start / edgeLength));
       const [x2, y2] = toSvgPoint(pointAlong(vertex, next, shard.end / edgeLength));
@@ -2419,6 +2460,7 @@ const designerEdgesForBoundary = (nodeId, vertices = [], tree = createCassetteV2
         edgeLength: Math.round(edgeLength * 1000) / 1000,
         shardStart: Math.round(shard.start * 1000) / 1000,
         shardEnd: Math.round(shard.end * 1000) / 1000,
+        occupied,
         nodeId,
         edgeIndex,
         label: '+'
@@ -2509,32 +2551,14 @@ const designerAssemblyLayersForCurves = async (curves = [], extraLayers = [], op
       options
     );
     const opacity = designerAssemblyLayerOpacity(workpieceId, contextWorkpieceId);
-    const hasShapedFaces = groupCurves.some(curve => Array.isArray(curve.holes) && curve.holes.length);
-    facePaths.push(...(hasShapedFaces
-      ? groupCurves.map(curve => ({
-          d: occsShapeToPath(curve),
-          fill: 'layer',
-          stroke: 'none',
-          opacity: designerAssemblyFillOpacity(workpieceId, contextWorkpieceId),
-          workpieceId,
-          fillRule: Array.isArray(curve.holes) && curve.holes.length ? 'evenodd' : null
-        }))
-      : occsRingsNest(layout.cutOuterPaths)
-        ? [{
-            d: layout.cutOuterPaths.map(occsCurveToPath).join(' '),
-            fill: 'layer',
-            stroke: 'none',
-            opacity: designerAssemblyFillOpacity(workpieceId, contextWorkpieceId),
-            workpieceId,
-            fillRule: 'evenodd'
-          }]
-        : layout.cutOuterPaths.map(vertices => ({
-            d: occsCurveToPath(vertices),
-            fill: 'layer',
-            stroke: 'none',
-            opacity: designerAssemblyFillOpacity(workpieceId, contextWorkpieceId),
-            workpieceId
-          }))));
+    facePaths.push(...groupCurves.map(curve => ({
+      d: occsShapeToPath(curve),
+      fill: 'layer',
+      stroke: 'none',
+      opacity: designerAssemblyFillOpacity(workpieceId, contextWorkpieceId),
+      workpieceId,
+      ...(Array.isArray(curve.holes) && curve.holes.length ? { fillRule: 'evenodd' } : {})
+    })));
     cutPaths.push(...layout.cutOuterPaths.map(vertices => ({
       d: occsCurveToPath(vertices),
       fill: 'none',
@@ -2947,6 +2971,7 @@ export const profileCutEntitiesForTree = async (curves = [], tree = createCasset
       .flatMap(ring => ring.map(vertex => Number(vertex?.[1])))
       .filter(Number.isFinite);
     const edgeExtent = sectionYs.length ? Math.max(...sectionYs) - Math.min(...sectionYs) : 0;
+    const patternEdgeIndex = profileArrangementEdgeIndex(relation, workpiece, parameters);
     const points = hardwarePointsForRelation(targetCurve, relation, parameters, edgeExtent);
     for (let index = 0; index < points.length; index += 1) {
       const operations = await profileOperationPolygons(profile, points[index], relation, targetCurve, parameters);
@@ -2961,6 +2986,7 @@ export const profileCutEntitiesForTree = async (curves = [], tree = createCasset
           workpieceId: relation.targetWorkpieceId,
           profileWorkpieceId: relation.sourceWorkpieceId,
           relationId: relation.id,
+          edgeIndex: patternEdgeIndex,
           geometry: { type: 'polygons', polygons: operation.polygons },
           booleanOperation: operation.op
         });
@@ -4210,15 +4236,13 @@ const resolveCassetteV2FaceSketchGeometry = async (sketch = {}, parameters = {})
   if (region.polygons.length !== 1) {
     throw new Error('Face shape must resolve to one closed outline');
   }
-  const material = region.holes.length
-    ? await foldCassetteV2Region(
-        { polygons: region.polygons, holes: [] },
-        region.holes.map(ring => ({ op: 'subtract', polygons: [ring] }))
-      )
-    : { polygons: region.polygons };
-  // The child face keeps the material on its side of the datum; the
-  // parent-side part belongs to the parent cut, so the two panels never
-  // double up on the same flat sheet.
+  // Every participating shape cuts the parent where it lands: the cut
+  // footprint is the union of the adds and subtracts. The child face
+  // keeps the ordered fold result on its side of the datum.
+  const cutRegion = await foldCassetteV2Region(
+    { polygons: [], holes: [] },
+    operations.map(operation => ({ op: 'add', polygons: operation.polygons }))
+  );
   const span = 1e5;
   const clipped = await foldCassetteV2Region(
     { polygons: region.polygons, holes: region.holes },
@@ -4230,7 +4254,7 @@ const resolveCassetteV2FaceSketchGeometry = async (sketch = {}, parameters = {})
   return {
     outer: rotateSketchRingToAttachment(clipped.polygons[0]),
     holes: clipped.holes,
-    cuts: material.polygons.filter(ring => ring.length >= 3)
+    cuts: cutRegion.polygons.filter(ring => ring.length >= 3)
   };
 };
 
