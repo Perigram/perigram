@@ -1624,6 +1624,20 @@ export default function createSketchEditor({ vue, components, locale }) {
         syncAnnotations();
       }, { deep: true });
 
+      watch(() => props.active, active => {
+        if (!active) {
+          selectedCorner.value = null;
+          selectedShape.value = null;
+          dimensionDraft.value = null;
+          pendingDimensionPick = null;
+          activeTool.value = 'select';
+          host?.cancel();
+          return;
+        }
+        clearEngineSelection();
+        resetSketchHistory();
+      }, { immediate: true });
+
       onBeforeUnmount(() => {
         disposed = true;
         canvasReady.value = false;
