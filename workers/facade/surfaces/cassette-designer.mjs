@@ -2395,7 +2395,6 @@ export default function createSurface({ vue, components, locale, queries, record
           // face, side, basis snap, and both offsets per section — with
           // no mirror, driver, or delete (the panel row owns removal).
           const kind = attachmentSourceKind(relation);
-          const compact = kind !== 'workpiece';
           const profileRow = kind === 'profile'
             ? workpieceRowById.value.get(relation.sourceWorkpieceId)
             : null;
@@ -2482,7 +2481,7 @@ export default function createSurface({ vue, components, locale, queries, record
               ])
             ]);
           } else {
-            body = h('div', { class: compact ? 'flex w-80 flex-col gap-1.5' : 'flex w-96 flex-col gap-2' }, [
+            body = h('div', { class: 'flex w-96 flex-col gap-1.5' }, [
               dragHandle([
                 selectField('cassette.v2.attachmentFields.targetFace', relation.targetFaceId, targetFaceOptions, 'targetFaceId', 'min-w-0 flex-1'),
                 kind === 'profile'
