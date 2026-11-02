@@ -3659,7 +3659,10 @@ on first use and stays mounted while the assembly canvas owns the surface.
 shortcuts while the mode is open. Profile and face saves restore the
 assembly selection and its floating editor. Validation: 74 facade surface
 specs green; `check-arch`, `framework:validate`, and listing validation
-green. The docs guard reports the pre-existing `workers/nesting` link and
+green. E2E `cassette-profile-lifecycle` and `cassette-profile-editor` pass.
+`cassette-designer-parameters` passes 2 and fails 2 on unchanged
+attachment/parameter assertions that also exist at the pre-change commit.
+The docs guard reports the pre-existing `workers/nesting` link and
 contract-homing debt; the design-system suite reports the pre-existing
 `GeneratedScreenHost.vue` findings. The surface checker cannot resolve the
 cross-plugin `cadcraft` import in this checkout.
