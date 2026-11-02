@@ -711,6 +711,8 @@
                 "defaultLength": "Base length",
                 "height": "Height",
                 "edgeStart": "Edge start",
+                "fillEdge": "Fill edge",
+                "faceWidth": "Face width",
                 "parentEdgeIndex": "Parent edge index",
                 "baseStartOffset": "Base start offset",
                 "baseEndOffset": "Base end offset",

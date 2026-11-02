@@ -249,8 +249,10 @@ modules in `../surfaces/` (their geometry passes in `surfaces/lib/`).
   open-profile spans, and a placement that overlaps or overflows
   refuses. Folds and contour splices use the owned interval only. The
   designer draws one + handle per free shard; a face's own base edge
-  carries none. Closed profile sections cut the face without consuming
-  edge space.
+  carries none. A child face's popup carries Fill edge (inherit) and a
+  fixed/parametric width otherwise, so the remaining edge becomes free
+  shards. Closed profile sections cut the face without consuming edge
+  space.
 - **`production-layout.js`** — wraps the Clipper-backed face
   union/fold-route pass and returns semantic `cut.outer` / `fold.route`
   layer intent.
