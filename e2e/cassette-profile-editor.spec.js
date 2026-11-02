@@ -266,6 +266,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   const canvasSignature = () => page.locator('.designer-workspace__canvas').first()
     .evaluate(root => Array.from(root.querySelectorAll('path'))
       .map(path => path.getAttribute('d')).filter(Boolean).sort().join('|').length);
+  await page.locator('[data-designer-profile-id]').first().dispatchEvent('click');
   const chip = page.locator('div[aria-label^="Parameters A"] div[contenteditable]').first();
   await expect(chip).toBeVisible({ timeout: 20_000 });
   const before = await canvasSignature();
@@ -278,7 +279,7 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await page.waitForTimeout(1200);
   expect(await canvasSignature(), 'Enter commits and rebuilds').not.toBe(before);
 
-  await page.getByRole('button', { name: /Edit/ }).first().click();
+  await page.getByRole('button', { name: 'Edit profile' }).first().click();
   const reopenedDialog = page.locator('[role="dialog"]').filter({ hasText: 'Profile sketch' }).first();
   await expect(reopenedDialog).toBeVisible({ timeout: 30_000 });
   await expect(reopenedDialog.locator(CANVAS).first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });

@@ -844,6 +844,34 @@ describe('cassette v2 trapezoid renderer', () => {
     expect(reDerived.parameters.W).toBe(600);
   });
 
+  it('exposes placed profiles as designer hit areas', async () => {
+    const sketch = createDefaultOccsProfileSketch();
+    const closed = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Hanger',
+      occsProfile: occsProfileFromSketch(sketch),
+      sketch
+    });
+    const closedDrawing = await renderCassetteV2TreeToDrawing(closed.tree);
+    const closedHits = closedDrawing.designerProfiles.filter(hit => hit.workpieceId === closed.workpieceId);
+    expect(closedHits.length).toBeGreaterThan(0);
+    expect(closedHits.every(hit => hit.relationId && hit.d && !hit.open)).toBe(true);
+
+    const open = openChainSketch([[0, 0], [42, 0], [42, 28], [0, 28]], { A: 100 });
+    const strip = addCassetteV2ProfileWorkpiece(createCassetteV2GraphTree(), {
+      referenceWorkpieceId: 'wp_1',
+      referenceNodeId: 'face_1',
+      name: 'Strip',
+      occsProfile: occsProfileFromSketch(open),
+      sketch: open
+    });
+    const openDrawing = await renderCassetteV2TreeToDrawing(strip.tree);
+    const openHits = openDrawing.designerProfiles.filter(hit => hit.workpieceId === strip.workpieceId);
+    expect(openHits.length).toBeGreaterThan(0);
+    expect(openHits.every(hit => hit.relationId && hit.d && hit.open)).toBe(true);
+  });
+
   it('drives a drawn fillet chip whose point id is not its index', () => {
     // The drawing/merge flow mints fresh ids (p4 lands first), so a
     // fillet on that corner must resolve by its vertex slot — parsing the

@@ -3514,6 +3514,33 @@ process, and sketch; saved workpieces carry their library origin through
 `profileTemplateId`; updated and deleted records drop their cached
 thumbnails.
 
+## Profile management on the cassette canvas (owner direction 2026-11-02)
+
+Placed profiles are canvas objects. Their placed section geometry is the
+hit area: a click selects the profile and opens one popup carrying the
+placement fields, the parameter table beside its derived values, and the
+edit and delete actions. Add profile moves to the canvas toolbar. The
+palette keeps profiles as assembly rows and leaves authoring, parameter
+editing, placement, and removal to the canvas.
+
+- [ ] WAITING — owner verification: clicking a placed profile on the
+  canvas opens its placement-and-parameters popup; edit, delete, and Add
+  profile work from the canvas; the palette's profile controls are gone.
+
+### Agent Notes (2026-11-02, profile management on the canvas)
+
+Session `agent/profile-canvas-20261102` (worktree
+`.agent-worktrees/profile-canvas-20261102`). The tree renderer emits
+`designerProfiles` hit paths for closed section operations and open-chain
+embedding copies; `DrawingCanvas` highlights and selects them through
+`selectedDesignerProfileId` / `designer-profile-select`, gated off while
+an attachment editor owns face clicks. The cassette designer opens the
+existing attachment inline editor from a profile hit and adds the
+profile's parameter fields, edit, and delete there; Add profile rides the
+canvas toolbar; the palette's profile add, parameter chips, placement,
+edit, and delete controls are removed. Parameter labels show their
+derived values beside the stored expressions.
+
 ## Stateful lifecycle contracts (2026-11-02 audit)
 
 Root SPEC §25 is the desired-state contract for every lifecycle in this

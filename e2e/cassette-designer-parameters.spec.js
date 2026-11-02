@@ -47,6 +47,16 @@ const chipField = (page, key, label = 'Hanger profile') => page
   .locator(`div[aria-label="Parameters ${key} ${label}"] div[contenteditable]`);
 const chipText = (locator) => locator.evaluate(el => (el.textContent || '').trim());
 
+const openProfilePopup = async (page) => {
+  const hit = page.locator('[data-designer-profile-id]').first();
+  if (await hit.count()) {
+    await hit.dispatchEvent('click');
+  } else {
+    await page.locator('aside').getByRole('button', { name: /^Hanger profile/ }).first().click();
+  }
+  await expect(page.locator('div[aria-label^="Parameters "]').first()).toBeVisible({ timeout: 20_000 });
+};
+
 test('profile parameter chips re-evaluate the placed profile; array position fields hold drafts', async ({ app }) => {
   test.setTimeout(240_000);
   await app.installPlugins(['tech-drawing', 'facade']);
@@ -136,6 +146,9 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   // The saved profile row carries a live expression chip per bound
   // parameter, and the pane with it selected shows the assembly it is
   // placed in.
+  await openProfilePopup(page);
+  await expect(page.locator('aside').getByRole('button', { name: 'Add profile' })).toHaveCount(0);
+  await expect(page.locator('aside').getByRole('button', { name: 'Positioning' })).toHaveCount(0);
   const chipW = chipField(page, 'W');
   await expect(chipW).toBeVisible({ timeout: 20_000 });
   await expect.poll(() => chipText(chipW)).toBe('42');
@@ -144,7 +157,6 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
 
 
   // Array position settings: the fields are the author's text.
-  await page.locator('aside').getByRole('button', { name: 'Positioning' }).first().click();
   const popup = page.locator('div.z-\\[120\\]').first();
   await expect(popup).toBeVisible({ timeout: 15_000 });
   await popup.locator('[aria-label="Placement"]').click();
@@ -170,6 +182,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   expect(await arrayValueText(page), 'Expected a typed zero to stay zero').toBe('0');
   await popup.locator('button[aria-label="Close"]').click();
   await page.waitForTimeout(800);
+  await openProfilePopup(page);
 
   // Driving the chip re-evaluates the placed profile's geometry.
   const before = await assemblyGeometry(page);
@@ -228,6 +241,7 @@ test('profile parameter chips re-evaluate the placed profile; array position fie
   await expect(reopenedWidth).toHaveValue('WIDTH');
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await openProfilePopup(page);
   await expect.poll(() => chipText(chipField(page, 'WIDTH'))).toBe('LENGTH');
 
   await page.locator('.designer-workspace__canvas').first().screenshot({
@@ -301,6 +315,7 @@ test('a dimension edit over an instance override writes the override; clearing s
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
+  await openProfilePopup(page);
   const chipW = chipField(page, 'W');
   await expect(chipW).toBeVisible({ timeout: 20_000 });
   await expect.poll(() => chipText(chipW)).toBe('42');
@@ -336,6 +351,7 @@ test('a dimension edit over an instance override writes the override; clearing s
   await expect(widthField).toHaveValue('WIDTH');
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await openProfilePopup(page);
   await expect.poll(() => chipText(chipField(page, 'WIDTH'))).toBe('20');
 
   // Clearing starts a session whose history begins at the blank sketch:
@@ -418,6 +434,7 @@ test('a fillet bound on a drawn corner drives the placed profile', async ({ app 
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
 
+  await openProfilePopup(page);
   const chipK = page.locator('div[aria-label^="Parameters K "] div[contenteditable]').first();
   await expect(chipK).toBeVisible({ timeout: 20_000 });
   await expect.poll(() => chipText(chipK)).toBe('1');
@@ -491,9 +508,9 @@ test('the profile edge chooser never offers a fold edge', async ({ app }) => {
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await page.waitForTimeout(1200);
 
-  // The refused default (face_1 › E0 is the fold) leaves the row's
-  // Positioning control as the entry to the placement popup.
-  await page.locator('aside').getByRole('button', { name: 'Positioning' }).first().click();
+  // The refused default (face_1 › E0 is the fold) leaves the profile
+  // row as the entry to the placement popup.
+  await openProfilePopup(page);
   const popup = page.locator('div.z-\\[120\\]').first();
   await expect(popup).toBeVisible({ timeout: 15_000 });
   await popup.locator('[aria-label="Placement"]').click();

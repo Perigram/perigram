@@ -448,8 +448,8 @@ carries its authored table and its instance table apart. The authored
 table is the sketch's own rows (`profileSnapshot.sketch.parameters`), the
 table the profile dialog edits and the library record stores. The instance
 table (`profileSnapshot.instance`) holds the values a placed workpiece
-overrides, edited through the workpiece row's chips — each chip shows the
-stored expression and carries the derived value as its hint — and by a
+overrides, edited through the canvas popup's parameter fields — each
+field shows the stored expression and its derived value — and by a
 dimension bound to an overridden parameter in the placed profile's
 editor. The derived table — authored rows with the instance values on
 top — is the evaluation scope; geometry, the save gate, and every render
@@ -458,6 +458,16 @@ surrounding cassette scope defines live in the scope alone; a scope-named
 row survives pruning while a shape or another kept row references it. A
 saved sketch keeps the authored table; a saved workpiece keeps its
 instance table; neither table is folded into the other.
+
+Owner direction (2026-11-02, profile management on the canvas): a placed
+profile is a canvas object. Its placed section geometry carries the
+profile hit area, so a click selects the profile and opens one popup
+carrying the placement fields, the parameter table, and the edit and
+delete actions. The popup's parameter fields show each stored expression
+beside its derived value; typing a cassette global resolves it through
+the same scope as every other chip. The canvas toolbar carries the Add
+profile entry. The palette lists profiles as assembly rows; profile
+authoring, parameter editing, placement, and removal live on the canvas.
 
 Owner decision (2026-11-01, shape identity): the sketch model is the
 truth and the canvas its projection, so a shape's identity rides its
