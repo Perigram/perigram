@@ -3674,6 +3674,28 @@ contract-homing debt; the design-system suite reports the pre-existing
 `GeneratedScreenHost.vue` findings. The surface checker cannot resolve the
 cross-plugin `cadcraft` import in this checkout.
 
+## Cassette selection and canvas widgets (owner direction 2026-11-02)
+
+A face click with a profile selected selects that face and leaves the
+profile placement untouched. Canvas chips, handles, and hit areas keep
+their screen size across zoom. Trapezoid faces expose width and height
+dimensions; authored corner geometry lives in the face shape editor.
+
+- [ ] WAITING — owner verification: clicking a face while a profile is
+  selected switches the selection to that face; profile placement stays;
+  zooming leaves the canvas widgets at a constant screen size; corner
+  geometry opens in the face shape editor.
+
+### Agent Notes (2026-11-02, selection and widgets)
+
+Session `agent/cassette-selection-widgets-20261102` (worktree
+`.agent-worktrees/cassette-selection-widgets-20261102`). The profile face
+branch in `handleDesignerFaceSelect` selects the clicked face and clears
+the attachment selection. `DrawingCanvas` sizes designer chips, handles,
+marker circles, and hit strokes from the viewBox-to-viewport ratio. The
+face render data carries `dimensionControls`; corner geometry is authored
+in the face shape editor. Validation: pending.
+
 ## Stateful lifecycle contracts (2026-11-02 audit)
 
 Root SPEC §25 is the desired-state contract for every lifecycle in this

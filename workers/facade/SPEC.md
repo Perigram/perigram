@@ -494,6 +494,13 @@ mode, and the existing CadCraft profile editor renders the sketch. Save
 returns to the assembly with the edited target's popup restored; Back returns
 unchanged.
 
+Owner direction (2026-11-02, selection and canvas widgets): a face click
+with a profile selected selects that face and leaves the profile relation
+untouched; the face becomes the active selection. Designer chips, handles,
+and hit areas keep their screen size across zoom. Trapezoid faces expose
+width and height dimensions; authored corner geometry lives in the face
+shape editor.
+
 Owner direction (2026-11-02, compact profile popup): the popup lays its
 fields as PrimeVue `IftaLabel` controls over native inputs, with the label
 inside the field. A parameter is its name label over one input, with no
