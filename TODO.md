@@ -3639,6 +3639,34 @@ as the infield label. A PrimeVue `Divider` separates placement from
 parameters, mirror controls are icon buttons labelled X/Y, and expression
 values ride PrimeVue's native invalid state with the reason in the title.
 
+## In-place profile and face sketch mode (owner direction 2026-11-02)
+
+Profile and face shape editing open as a full-area sketch mode over the
+cassette designer's canvas. The assembly drawing stays mounted beneath the
+mode, so its viewport and selection survive the flip; the mode bar carries
+back, save, and the profile identity in profile mode. Save returns to the assembly with the
+edited target's popup restored; Back returns unchanged.
+
+- [ ] WAITING — owner verification: editing a face or a placed profile
+  opens the existing CadCraft sketch editor in the cassette canvas area;
+  Save returns with the target's popup open, Back restores the assembly
+  unchanged, and the assembly viewport survives both.
+
+### Agent Notes (2026-11-02, in-place sketch mode)
+
+Session `agent/cassette-sketch-mode-20261102` (worktree
+`.agent-worktrees/cassette-sketch-mode-20261102`). The cassette designer
+holds one sketch mode over the assembly canvas; the sketch editor mounts
+on first use and stays mounted while the assembly canvas owns the surface.
+`sketchEditor.mjs` gains an `active` prop so its keyboard scope only owns
+shortcuts while the mode is open. Profile and face saves restore the
+assembly selection and its floating editor. Validation: 74 facade surface
+specs green; `check-arch`, `framework:validate`, and listing validation
+green. The docs guard reports the pre-existing `workers/nesting` link and
+contract-homing debt; the design-system suite reports the pre-existing
+`GeneratedScreenHost.vue` findings. The surface checker cannot resolve the
+cross-plugin `cadcraft` import in this checkout.
+
 ## Stateful lifecycle contracts (2026-11-02 audit)
 
 Root SPEC §25 is the desired-state contract for every lifecycle in this
