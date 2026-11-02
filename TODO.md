@@ -3709,8 +3709,8 @@ Back/Save. Validation: 124 facade surface specs green; `check-arch`,
 `check-plugin-deps`, and facade listing validation green; SSR smoke 7/7 green.
 `check-docs` keeps the pre-existing `workers/nesting/README.md` broken link.
 The surface checker cannot resolve the cross-plugin `cadcraft` import in this
-checkout. E2E `cassette-profile-editor` carries the full-bleed and camera
-roundtrip assertions.
+checkout. E2E `cassette-profile-editor` passes (51.2s), including the
+full-bleed box and the assembly/sketch camera roundtrip.
 
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
