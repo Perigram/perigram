@@ -3573,12 +3573,13 @@ canvas, so the hit overlays survive the geometry-preview projection.
 
 ### Agent Notes (2026-11-02, compact profile popup)
 
-Session `agent/profile-popup-compact-20261102` (worktree
-`.agent-worktrees/profile-popup-compact-20261102`). The profile popup is a
-dense three-column field grid with PrimeVue placeholders, inline X/Y
-mirror toggles, and name-and-field parameter rows without heading or
-secondary labels. Expression fields use the PrimeVue invalid state with
-the reason in the field title; the inline error message is gone.
+Session `agent/profile-popup-primevue-20261102` (worktree
+`.agent-worktrees/profile-popup-primevue-20261102`). The profile popup is
+a two-column field grid built from PrimeVue `IftaLabel` over native
+`InputText` and `Select` controls; parameter rows use the parameter name
+as the infield label. A PrimeVue `Divider` separates placement from
+parameters, mirror controls are icon buttons labelled X/Y, and expression
+values ride PrimeVue's native invalid state with the reason in the title.
 
 ## Stateful lifecycle contracts (2026-11-02 audit)
 
