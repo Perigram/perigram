@@ -3681,6 +3681,37 @@ contract-homing debt; the design-system suite reports the pre-existing
 `GeneratedScreenHost.vue` findings. The surface checker cannot resolve the
 cross-plugin `cadcraft` import in this checkout.
 
+## Shared cassette canvas session (owner direction 2026-11-02)
+
+The cassette designer runs one canvas session over the assembly canvas and the
+CadCraft sketch editor: the session owns the assembly camera and selection a
+mode flip preserves, and one sketch camera per edited target. The assembly
+canvas stays the SVG surface; profile and face editing take the canvas area as
+a full-bleed mode. Back and Save return the assembly to the session camera and
+selection; reopening a target restores its sketch camera.
+
+- [ ] WAITING — owner verification: opening a sketch, panning and zooming,
+  then Back restores the assembly camera and selection; reopening the same
+  target returns to the sketch camera used last time; the sketch mode fills
+  the canvas with no dialog frame.
+
+### Agent Notes (2026-11-02, shared canvas session)
+
+Session `agent/cassette-canvas-session-20261102` (worktree
+`.agent-worktrees/cassette-canvas-session-20261102`).
+`workers/facade/surfaces/lib/canvasSession.js` is the session record: target,
+assembly selection, assembly camera, and one sketch camera per target.
+`DrawingCanvas` exposes `getViewBox`/`setViewBox`; `CadCraftHost` exposes
+`snapshotView`/`restoreView`; `sketchEditor.mjs` restores the stored camera on
+reopen and hands its camera back on close. The sketch mode fills the canvas
+area, and the designer restores the assembly camera and selection on
+Back/Save. Validation: 124 facade surface specs green; `check-arch`,
+`check-plugin-deps`, and facade listing validation green; SSR smoke 7/7 green.
+`check-docs` keeps the pre-existing `workers/nesting/README.md` broken link.
+The surface checker cannot resolve the cross-plugin `cadcraft` import in this
+checkout. E2E `cassette-profile-editor` carries the full-bleed and camera
+roundtrip assertions.
+
 ## Cassette selection and canvas widgets (owner direction 2026-11-02)
 
 A face click with a profile selected selects that face and leaves the

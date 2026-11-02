@@ -25,6 +25,7 @@ assistant tooling.
 | `pick(point, px)` | the engine's editable entity under a world point, or null |
 | `worldToScreen` / `screenToWorld` | `view.toScreen` / `view.toWorld`; popup and pointer coordinates are frame-local |
 | `viewKey()` | the view pan/zoom tuple the surfaces poll for transient popup redraws |
+| `snapshotView` / `restoreView` | the view camera `{ cx, cy, zoom, tw }`, which a host preserves across a mode flip |
 | `zoomFit(excludeLayer?)` | `view.fit`; the named layer's visibility is held off while extents are measured |
 | `setSelection` / `selection` | `host.setSelection` wrapper; the wrapper reports every engine pick |
 | `run` / `cancel` / `running` | `engine.run` / `engine.escape` / `engine.running` |

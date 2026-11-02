@@ -494,6 +494,15 @@ mode, and the existing CadCraft profile editor renders the sketch. Save
 returns to the assembly with the edited target's popup restored; Back returns
 unchanged.
 
+Owner direction (2026-11-02, shared canvas session): the cassette designer
+runs one canvas session over the assembly canvas and the sketch editor. The
+session owns the assembly camera and selection a mode flip preserves, and one
+sketch camera per edited target. The assembly canvas stays the SVG drawing
+surface; the sketch editor is the CadCraft surface. Profile and face editing
+take the canvas area as a full-bleed mode, and Back and Save return the
+assembly to the session's camera and selection. Reopening the same target
+restores that target's sketch camera.
+
 Owner direction (2026-11-02, selection and canvas widgets): a face click
 with a profile selected selects that face and leaves the profile relation
 untouched; the face becomes the active selection. Designer chips, handles,
