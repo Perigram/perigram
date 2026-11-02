@@ -454,25 +454,94 @@ export default function createSketchEditor({ vue, components, locale }) {
         });
       };
 
-      const handleVertexSelectPointerDown = (event) => {
-        if (isEditableTarget(event.target)) return;
-        if (activeTool.value !== 'select') {
-          pendingDimensionPick = null;
-          dimensionDraft.value = null;
-          selectedCorner.value = null;
-          selectedShape.value = null;
-          return;
+      let pointerDownPoint = null;
+      let gripDrag = null;
+
+      const screenGripHandle = (event) => {
+        const shapeId = selectedShape.value?.shapeId;
+        if (!shapeId) return null;
+        const evaluated = evaluateForRender();
+        const shape = evaluated?.shapes.find(item => item.id === shapeId);
+        if (!shape) return null;
+        let minX;
+        let minY;
+        let maxX;
+        let maxY;
+        if (shape.type === 'rect') {
+          if (Math.abs(Number(shape.rotation) || 0) > 0.001) return null;
+          minX = shape.center[0] - shape.width / 2;
+          maxX = shape.center[0] + shape.width / 2;
+          minY = shape.center[1] - shape.height / 2;
+          maxY = shape.center[1] + shape.height / 2;
+        } else if (shape.type === 'circle') {
+          const radius = shape.diameter / 2;
+          minX = shape.center[0] - radius;
+          maxX = shape.center[0] + radius;
+          minY = shape.center[1] - radius;
+          maxY = shape.center[1] + radius;
+        } else {
+          return null;
         }
-        const world = host?.screenToWorld({ x: event.clientX, y: event.clientY });
-        const picked = world ? host?.pick(world, 8) : null;
-        if (picked?.profile?.fieldKey) {
-          pendingDimensionPick = picked;
-          dimensionDraft.value = null;
-          selectedCorner.value = null;
-          return;
+        const candidates = [
+          ['nw', minX, maxY], ['n', (minX + maxX) / 2, maxY], ['ne', maxX, maxY],
+          ['w', minX, (minY + maxY) / 2], ['e', maxX, (minY + maxY) / 2],
+          ['sw', minX, minY], ['s', (minX + maxX) / 2, minY], ['se', maxX, minY]
+        ];
+        for (const [key, x, y] of candidates) {
+          const screen = canvasView.worldToScreen({ x, y });
+          if (Math.hypot(screen.x - event.clientX, screen.y - event.clientY) <= 8) {
+            return { key, bounds: { minX, minY, maxX, maxY }, shape };
+          }
         }
-        pendingDimensionPick = null;
-        dimensionDraft.value = null;
+        return null;
+      };
+
+      const startGripDrag = (event, grip) => {
+        event.preventDefault();
+        event.stopImmediatePropagation?.();
+        recordSketchHistory(normalizeOccsProfileSketch(props.modelValue || {}));
+        gripDrag = { ...grip, shapeId: selectedShape.value.shapeId };
+        const doc = host?.win?.document;
+        if (!doc) return;
+        const round = value => Math.round(value * 1000) / 1000;
+        const move = (moveEvent) => {
+          if (!gripDrag) return;
+          const world = host.screenToWorld({ x: moveEvent.clientX, y: moveEvent.clientY });
+          if (grip.shape.type === 'circle') {
+            const radius = Math.max(0.25, Math.hypot(
+              world.x - grip.shape.center[0],
+              world.y - grip.shape.center[1]
+            ));
+            updateShape(gripDrag.shapeId, shape => ({ ...shape, diameter: round(radius * 2) }), { record: false });
+            return;
+          }
+          let { minX, minY, maxX, maxY } = grip.bounds;
+          if (grip.key.includes('w')) minX = Math.min(world.x, maxX - 0.5);
+          if (grip.key.includes('e')) maxX = Math.max(world.x, minX + 0.5);
+          if (grip.key.includes('s')) minY = Math.min(world.y, maxY - 0.5);
+          if (grip.key.includes('n')) maxY = Math.max(world.y, minY + 0.5);
+          updateShape(gripDrag.shapeId, shape => ({
+            ...shape,
+            width: round(maxX - minX),
+            height: round(maxY - minY),
+            center: [round((minX + maxX) / 2), round((minY + maxY) / 2)]
+          }), { record: false });
+        };
+        const up = () => {
+          doc.removeEventListener('pointermove', move, true);
+          doc.removeEventListener('pointerup', up, true);
+          gripDrag = null;
+          scheduleExtraction();
+        };
+        doc.addEventListener('pointermove', move, true);
+        doc.addEventListener('pointerup', up, true);
+      };
+
+      // Selection runs on pointerup so the frame owns grip drags: a
+      // pointerdown on a selected shape's grip must reach the engine,
+      // and a click that did not move selects the shape beneath.
+      const selectShapeAt = (event) => {
+        selectedCorner.value = null;
         const found = cornerAt(event.clientX, event.clientY, 10);
         if (found) {
           selectedCorner.value = { shapeId: found.shapeId, vertexId: found.point.id };
@@ -485,7 +554,6 @@ export default function createSketchEditor({ vue, components, locale }) {
         // through to the surface's hit test. A repeat click on the same
         // point cycles to the next shape beneath (covered shapes stay
         // reachable); a click elsewhere picks the topmost again.
-        selectedCorner.value = null;
         const hits = shapesAt(event.clientX, event.clientY);
         if (!hits?.length) {
           pickCycle = null;
@@ -498,8 +566,53 @@ export default function createSketchEditor({ vue, components, locale }) {
         const index = sameSpot ? (pickCycle.index + 1) % hits.length : 0;
         pickCycle = { at: [event.clientX, event.clientY], index };
         const shape = hits[index];
+        const alreadySelected = selectedShape.value?.shapeId === shape.id;
         selectedShape.value = { shapeId: shape.id };
-        selectShapeInEngine(shape.id);
+        if (!alreadySelected) selectShapeInEngine(shape.id);
+      };
+
+      const handleVertexSelectPointerDown = (event) => {
+        if (isEditableTarget(event.target)) return;
+        pointerDownPoint = null;
+        if (activeTool.value !== 'select') {
+          pendingDimensionPick = null;
+          dimensionDraft.value = null;
+          selectedCorner.value = null;
+          selectedShape.value = null;
+          return;
+        }
+        pointerDownPoint = [event.clientX, event.clientY];
+        const grip = screenGripHandle(event);
+        if (grip) {
+          startGripDrag(event, grip);
+          return;
+        }
+        const world = host?.screenToWorld({ x: event.clientX, y: event.clientY });
+        const picked = world ? host?.pick(world, 8) : null;
+        if (picked?.profile?.fieldKey) {
+          pendingDimensionPick = picked;
+          dimensionDraft.value = null;
+          selectedCorner.value = null;
+          return;
+        }
+        pendingDimensionPick = null;
+        dimensionDraft.value = null;
+      };
+
+      const handleCanvasPointerUp = (event) => {
+        if (pendingDimensionPick) {
+          const picked = pendingDimensionPick;
+          pendingDimensionPick = null;
+          openDimensionEditor(picked, event);
+          return;
+        }
+        const down = pointerDownPoint;
+        pointerDownPoint = null;
+        if (down && !host?.running) {
+          const moved = Math.hypot(event.clientX - down[0], event.clientY - down[1]);
+          if (moved <= 4) selectShapeAt(event);
+        }
+        scheduleExtraction();
       };
 
       // Escape closes the popups, cancels the frame's active command and
@@ -919,12 +1032,12 @@ export default function createSketchEditor({ vue, components, locale }) {
         if (dimensionDraft.value && !shapeIds.has(dimensionDraft.value.shapeId)) dimensionDraft.value = null;
       };
 
-      const commitSketch = (next, { fromHistory = false } = {}) => {
+      const commitSketch = (next, { fromHistory = false, record = true } = {}) => {
         if (!host || disposed) return;
         const normalized = normalizeOccsProfileSketch(next);
         const fingerprint = JSON.stringify(normalized);
         if (fingerprint === lastEmitted) return;
-        if (!fromHistory) recordSketchHistory(normalized);
+        if (!fromHistory && record) recordSketchHistory(normalized);
         lastEmitted = fingerprint;
         emit('update:modelValue', normalized);
         pruneSelection(normalized);
@@ -945,12 +1058,12 @@ export default function createSketchEditor({ vue, components, locale }) {
         syncAnnotations(normalized);
       };
 
-      const updateShape = (shapeId, mutate) => {
+      const updateShape = (shapeId, mutate, options = {}) => {
         const normalized = normalizeOccsProfileSketch(props.modelValue || {});
         commitSketch({
           ...normalized,
           shapes: normalized.shapes.map(shape => (shape.id === shapeId ? mutate(shape) : shape))
-        });
+        }, options);
       };
 
       // The field's current evaluated number feeds adopt-on-bind; an
@@ -1556,15 +1669,7 @@ export default function createSketchEditor({ vue, components, locale }) {
             if (!seeding && !programmaticSelection) scheduleExtraction();
           };
           host.onPointerDown = handleVertexSelectPointerDown;
-          host.onPointerUp = (event) => {
-            if (pendingDimensionPick) {
-              const picked = pendingDimensionPick;
-              pendingDimensionPick = null;
-              openDimensionEditor(picked, event);
-              return;
-            }
-            scheduleExtraction();
-          };
+          host.onPointerUp = handleCanvasPointerUp;
           host.onKeyDown = handleCanvasKeydown;
           window.addEventListener('keydown', handleParentKeydown, true);
           startViewWatcher();
