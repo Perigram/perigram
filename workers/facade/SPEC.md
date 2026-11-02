@@ -137,8 +137,11 @@ is an authored span: a child face carries `edgeStart` and its width in
 `defaultLength`, an open profile carries the pattern's `spanStart` and
 `spanWidth`; both are expressions over the cassette's parameters. The
 canvas shows one + handle per free shard; a face's own base edge is its
-parent connection and carries no +. New placements take the clicked
-free shard, or the first free shard when added without one; a placement
+parent connection and carries no +. A child face's popup carries its
+edge start and width: Fill edge keeps the inherited span, unchecking it
+writes a fixed or parametric width so the remaining edge becomes a free
+shard. New placements take the clicked free shard, or the first free
+shard when added without one; a placement
 that would overlap another face, another open profile, or run past the
 host edge refuses, and the refusal reads on the canvas. A fold sits on
 the child's owned interval, never on the whole host edge. Closed profile

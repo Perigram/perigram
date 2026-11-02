@@ -2595,8 +2595,9 @@ Ordered steps:
   disjoint intervals; open-profile spans merge on one host edge.
   `profileTerminalEdgesForTree` and the terminal edge exclusion are
   retired. The canvas draws one + per free shard and skips the face's
-  own base edge; the face editor's datum is the parent edge line in
-  shard coordinates. Focused tests: `cassetteV2Renderer.spec.js`,
+  own base edge; the face actions popup carries edge start plus Fill
+  edge / fixed width, and the face editor's datum is the parent edge
+  line in shard coordinates. Focused tests: `cassetteV2Renderer.spec.js`,
   `profileAnnotations.spec.js`, `profileEmbedding.spec.js`,
   `evaluate.spec.js`.
 
