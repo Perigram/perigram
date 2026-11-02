@@ -42,7 +42,6 @@ import {
   buildOccsProfileFromEvaluatedSketch,
   closeOccsProfileSketchBoundary,
   createEmptyOccsProfileSketch,
-  deriveOccsProfileSketch,
   inspectOccsProfileSketch,
   isOccsProfileSketchSavable,
   normalizeOccsProfileSketch,
@@ -297,7 +296,7 @@ export default function createSurface({ vue, components, locale, queries, record
         name: '',
         kind: 'hanger',
         process: 'extruded',
-        instance: {},
+        preservedInstance: {},
         sketch: createEmptyOccsProfileSketch()
       });
       const profileLibraryRecords = ref([]);
@@ -346,16 +345,10 @@ export default function createSurface({ vue, components, locale, queries, record
       const profileDraftSketch = computed(() => normalizeOccsProfileSketch(
         profileDraft.value.sketch || createEmptyOccsProfileSketch()
       ));
-      // The draft evaluates the derived table — the instance values over
-      // the authored rows, over the cassette's variables. Neither table
-      // absorbs the other; the stored sketch keeps the authored rows
-      // (workers/facade/SPEC.md — two parameter tables).
-      const profileDraftDerived = computed(() => deriveOccsProfileSketch(
-        profileDraftSketch.value,
-        profileDraft.value.instance
-      ));
+      // The dialog edits the authored profile. Placement overrides stay on
+      // the workpiece and never enter this evaluation.
       const profileDraftInspection = computed(() => inspectOccsProfileSketch(
-        profileDraftDerived.value,
+        profileDraftSketch.value,
         globalParameters.value
       ));
       const profileDraftReady = computed(() => profileDraftInspection.value.savable);
@@ -1583,17 +1576,13 @@ export default function createSurface({ vue, components, locale, queries, record
 
       const profileDraftPayload = () => {
         const sketch = preparedProfileDraftSketch.value;
-        const instance = { ...(profileDraft.value.instance || {}) };
         return {
           name: profileDraft.value.name || t('cassette.v2.profileEditor.defaultName'),
           kind: profileDraft.value.kind,
           process: profileDraft.value.process,
-          // The authored table rides the sketch; the overrides ride the
-          // instance table beside it.
-          instance,
           sketch,
-          // The cached section reads the same evaluation the save gate
-          // inspected (workers/facade/SPEC.md — two parameter tables).
+          // The cached section reads the authored evaluation the save gate
+          // inspected; the placement re-evaluates its own overrides.
           occsProfile: profileDraftInspection.value.evaluated
             ? buildOccsProfileFromEvaluatedSketch(profileDraftInspection.value.evaluated)
             : null
@@ -1612,13 +1601,15 @@ export default function createSurface({ vue, components, locale, queries, record
           // their stale copies in the profile's tables drop here, so the
           // rows the dialog edits are the profile's own.
           const scope = globalParameters.value;
+          const normalizedProfile = normalizeCassetteV2Profile(workpiece, scope);
           profileDraft.value = {
             name: workpiece.name || t('cassette.v2.profileEditor.defaultName'),
             kind: workpiece.role || profile?.kind || 'hanger',
             process: workpiece.process || profile?.process || 'extruded',
-            instance: pruneScopeBoundParameters(profile?.instance || {}, snapshotSketch.shapes, scope),
-            // The dialog edits the authored table; the instance values
-            // stay beside it and drive the preview.
+            // Placement overrides stay on the workpiece; the dialog never
+            // evaluates or edits them.
+            preservedInstance: { ...(normalizedProfile.instance || {}) },
+            // The dialog edits the authored table alone.
             sketch: {
               ...snapshotSketch,
               parameters: pruneScopeBoundParameters(snapshotSketch.parameters, snapshotSketch.shapes, scope)
@@ -1632,7 +1623,7 @@ export default function createSurface({ vue, components, locale, queries, record
             name: t('cassette.v2.profileEditor.defaultName'),
             kind: 'hanger',
             process: 'extruded',
-            instance: {},
+            preservedInstance: {},
             sketch: createEmptyOccsProfileSketch(),
             libraryId: ''
           };
@@ -1720,7 +1711,7 @@ export default function createSurface({ vue, components, locale, queries, record
           name: record.name || t('cassette.v2.profileEditor.defaultName'),
           kind: record?.fields?.kind || 'hanger',
           process: record?.fields?.process || 'extruded',
-          instance: {},
+          preservedInstance: { ...(profileDraft.value.preservedInstance || {}) },
           sketch,
           libraryId: record?._id?.toString() || ''
         };
@@ -1936,18 +1927,19 @@ export default function createSurface({ vue, components, locale, queries, record
           return;
         }
         const payload = profileDraftPayload();
+        const preservedInstance = { ...(profileDraft.value.preservedInstance || {}) };
         const workpieceId = editingProfileWorkpieceId.value;
         if (workpieceId && workpieces.value.some(item => item.id === workpieceId)) {
           cassetteTree.value = updateCassetteV2Workpiece(cassetteTree.value, workpieceId, {
             name: payload.name,
             role: payload.kind,
             process: payload.process,
-            instance: payload.instance,
+            instance: preservedInstance,
             profileTemplateId: profileDraft.value.libraryId || '',
             profileSnapshot: {
               kind: payload.kind,
               process: payload.process,
-              instance: payload.instance,
+              instance: preservedInstance,
               sketch: payload.sketch,
               section: payload.occsProfile.section,
               sweep: payload.occsProfile.sweep
@@ -1962,7 +1954,7 @@ export default function createSurface({ vue, components, locale, queries, record
             name: payload.name,
             kind: payload.kind,
             process: payload.process,
-            instance: payload.instance,
+            instance: {},
             occsProfile: payload.occsProfile,
             sketch: payload.sketch,
             profileTemplateId: profileDraft.value.libraryId || ''
@@ -3491,9 +3483,7 @@ export default function createSurface({ vue, components, locale, queries, record
             h(ProfileSketchEditor, {
               modelValue: profileDraft.value.sketch,
               externalParameters: globalParameters.value,
-              instanceParameters: profileDraft.value.instance,
               'onUpdate:modelValue': value => { profileDraft.value.sketch = value; },
-              'onUpdate:instance': value => { profileDraft.value.instance = value; },
               onOutlineError: value => { profileEditorError.value = value; }
             })
           ])

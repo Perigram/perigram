@@ -838,6 +838,15 @@ describe('cassette v2 trapezoid renderer', () => {
     // baked it.
     const reDerived = normalizeCassetteV2Profile(workpiece, { A: '600' });
     expect(boundsOf(reDerived.section)).toBeCloseTo(600, 5);
+
+    // A cassette global never becomes a profile override row, even when
+    // an older edit put one there.
+    const polluted = updateCassetteV2Workpiece(added.tree, added.workpieceId, {
+      instance: { W: 'A', A: '999' }
+    });
+    const cleaned = getCassetteV2Workpieces(polluted).find(item => item.id === added.workpieceId);
+    expect(cleaned.profileSnapshot.instance).toEqual({ W: 'A' });
+    expect(normalizeCassetteV2Profile(cleaned, { A: '500' }).instance).toEqual({ W: 'A' });
     expect(reDerived.instance.W).toBe('A');
     expect(reDerived.parameters.W).toBe(600);
   });

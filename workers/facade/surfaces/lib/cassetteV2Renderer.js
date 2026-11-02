@@ -271,7 +271,15 @@ export const normalizeCassetteV2Profile = (workpiece = {}, scope = {}) => {
     ...(rawSketch ? { sketch: rawSketch } : {})
   });
   const sketch = normalizeOccsProfileSketch(data.sketch);
-  const instance = source.instance || {};
+  // A cassette global with no authored profile row is read from the
+  // surrounding scope, never stored as a profile override row. A row the
+  // sketch authors may shadow a same-named global and keeps its override.
+  const authoredKeys = new Set(Object.keys(sketch.parameters || {}));
+  const instance = Object.fromEntries(
+    Object.entries(source.instance || {}).filter(([key]) => (
+      authoredKeys.has(key) || !Object.prototype.hasOwnProperty.call(scope || {}, key)
+    ))
+  );
   // The derived sketch resolves through the one expression pass:
   // instance values over authored rows over the cassette's globals (inner
   // over outer). The stored tables keep their raw expressions.
