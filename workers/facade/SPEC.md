@@ -344,13 +344,12 @@ the authored model survives every extraction roundtrip whole:
 parametric shapes stay parametric, bindings keep their expressions,
 raw text stays stored as typed. Error states speak through messages
 beside the work; they never clear the canvas, replace authored
-geometry, or gate editing. A placed profile's editor edits the authored
-sketch while its canvas evaluates the workpiece's derived table (instance
-values over the snapshot's). A dimension typed on a field bound to a bare
-identifier commits to the row that drives the drawing — the instance
-override when one exists, the authored row next, the surrounding scope as
-a workpiece-local override — so editing changes what that workpiece
-renders.
+geometry, or gate editing. A placed profile's editor edits and
+evaluates the authored sketch alone; the workpiece's instance overrides
+stay on the cassette and never enter the editor. A dimension typed on a
+field bound to an authored bare identifier commits that authored row. A
+field bound to a surrounding-scope identifier keeps reading that scope;
+the editor never mints a profile row for it.
 
 Owner decision (2026-10-19, profile drawing; ordered-sequence
 amendment, same day): the fold is an ordered CSG sequence — each
@@ -364,9 +363,9 @@ the cassette, bare lines are what is authored. The editor, the
 production entity stream, and the nesting evaluation ride the same
 region fold.
 Owner direction (2026-10-19, authoring): a dragged shape keeps its
-parameter bindings — a moved field bound to a bare identifier edits that
-identifier's effective row (the instance override when one exists),
-compound expressions and numerics carry the drawn value. Selection is
+parameter bindings — a moved field bound to an authored bare identifier
+edits that row, compound expressions and numerics carry the drawn value,
+and a surrounding-scope identifier stays in its own table. Selection is
 the CAD engine's native selection.
 
 Owner direction (2026-10-19, evening — primitives panel): the
@@ -419,9 +418,9 @@ and border. The primitive popup lays out as one compact panel: header
 radii.
 Authoring fields size to their content so their values stay visible.
 Typing a number into a dimension labeled by a bare identifier commits
-to the row that drives the drawing — an instance override, an authored
-row, or a surrounding-scope parameter — and every field bound to it
-follows; a local field edit touches its own primitive only, and
+to that authored row and every field bound to it follows; a field bound
+to a surrounding-scope identifier keeps reading the scope, a local field
+edit touches its own primitive only, and
 primitives bound to the same position expression share one dimension
 for it. Erasing a shape and
 undoing the erase revives the shape with its parameter bindings, and
@@ -459,15 +458,18 @@ table is the sketch's own rows (`profileSnapshot.sketch.parameters`), the
 table the profile dialog edits and the library record stores. The instance
 table (`profileSnapshot.instance`) holds the values a placed workpiece
 overrides, edited through the canvas popup's parameter fields — each
-field shows the stored expression and its derived value — and by a
-dimension bound to an overridden parameter in the placed profile's
-editor. The derived table — authored rows with the instance values on
-top — is the evaluation scope; geometry, the save gate, and every render
-consumer evaluate it through one resolver. Rows whose names the
-surrounding cassette scope defines live in the scope alone; a scope-named
-row survives pruning while a shape or another kept row references it. A
-saved sketch keeps the authored table; a saved workpiece keeps its
-instance table; neither table is folded into the other.
+field shows the stored expression and its derived value. The profile
+editor never receives this table: it edits and evaluates the authored
+sketch alone, and saving a profile preserves the workpiece's instance
+rows untouched. The derived table — authored rows with the instance
+values on top — is the render evaluation scope; the save gate and the
+profile editor evaluate authored rows. A row whose name the surrounding
+cassette scope defines and which the sketch does not author lives in the
+scope alone — it never enters the instance table. An authored row may
+shadow a same-named global and keeps its override; an unreferenced
+authored scope-named row prunes. A saved
+sketch keeps the authored table; a saved workpiece keeps its instance
+table; neither table is folded into the other.
 
 Owner direction (2026-11-02, profile management on the canvas): a placed
 profile is a canvas object. Its placed section geometry carries the

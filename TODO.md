@@ -2600,6 +2600,24 @@ Ordered steps:
   `profileAnnotations.spec.js`, `profileEmbedding.spec.js`,
   `evaluate.spec.js`.
 
+- [ ] WAITING — owner verification: Profile editor isolation (owner
+  direction 2026-11-02): the profile editor edits and evaluates the
+  authored sketch alone; placement instance rows never enter it, saving
+  preserves them, and cassette globals are never serialized as profile
+  or override rows.
+
+  ### Agent Notes (2026-11-02, profile editor isolation)
+
+  Session `agent/profile-isolation-20261102`. The designer stops passing
+  `instanceParameters` to `ProfileSketchEditor`; the editor component no
+  longer has an instance channel. Save preserves
+  `profileDraft.preservedInstance`, and the draft gate evaluates the
+  authored sketch. `normalizeCassetteV2Profile` prunes scope-named
+  instance rows, so existing polluted records clean on read/save.
+  External-scope bindings no longer mint override rows in the editor.
+  E2E `cassette-profile-editor` asserts the reopened editor measures the
+  authored parameter, not the cassette chip.
+
 - [ ] WAITING — owner verification: Listing compliance: delete the dead
   `states`/`transitions` blocks from cassette and cassette-design — CTS
   `normalizeType` drops the keys silently, so they are declaration slop;

@@ -285,6 +285,9 @@ test('profile editor draws at millimetre scale and keeps bindings through save',
   await expect(reopenedDialog.locator(CANVAS).first()).toHaveAttribute('data-cadcraft-ready', 'true', { timeout: 120_000 });
   const reopened = await nativeDims(reopenedDialog);
   expectDrawingScale(reopened);
-  expect(reopened.find(dim => dim.field === 'diameter')?.text, 'the diameter binding survives the save-load roundtrip').toBe('A');
+  const reopenedDiameter = reopened.find(dim => dim.field === 'diameter');
+  expect(reopenedDiameter?.text, 'the diameter binding survives the save-load roundtrip').toBe('A');
+  expect(reopenedDiameter?.measured, 'the editor evaluates the authored profile A=100, never the cassette chip A=55')
+    .toBeCloseTo(100, 1);
   await app.expectCleanRuntime();
 });
